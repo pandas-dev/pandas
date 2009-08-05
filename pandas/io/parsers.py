@@ -65,7 +65,7 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
                 try:    
                     tmp = val        
                     val = np.float64(val)
-                    if isinf(val):
+                    if np.isinf(val):
                         val = tmp
                 except:
                     pass
