@@ -1,0 +1,4 @@
+include TODO LICENSE README
+include setup.py setupegg.py
+include examples/data/*
+recursive-include examples *
