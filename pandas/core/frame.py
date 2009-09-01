@@ -63,11 +63,7 @@ class DataFrame(Picklable, Groupable):
                     self._series[k] = v.reindex(self.index) # Forces homogoneity
                 else:
                     assert(len(v) == len(self.index))
-                    try:
-                        s = Series(v, index=self.index, dtype=float)
-                    except:
-                        s = Series(v, index=self.index)
-
+                    s = Series(v, index=self.index)
                     self._series[k] = s
         elif index is not None:
             if isinstance(index, Index):
@@ -504,7 +500,7 @@ class DataFrame(Picklable, Groupable):
     def toString(self, to_stdout=True, verbose=False, colSpace=15, nanRep=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
-        skeys = sorted(series.keys())
+        skeys = sorted(self.cols())
         if len(skeys) == 0 or len(self.index) == 0:
             output = 'Empty DataFrame\n'
             output += self.index.__repr__()
@@ -601,7 +597,7 @@ class DataFrame(Picklable, Groupable):
             raise Exception('Must pass DateOffset!')
 
         dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
-        
+
         return self.reindex(dateRange, fillMethod=fillMethod)
 
     def asMatrix(self, columns=None):
@@ -619,15 +615,12 @@ class DataFrame(Picklable, Groupable):
     # For DataMatrix compatibility
     values = property(asMatrix)
 
-    def copy(self, deep=False):
+    def copy(self):
         """
-        Make a shallow copy of this frame
-
-        Copies series dict but does not copy data / index.
+        Make a deep copy of this frame
         """
         newFrame = DataFrame(index=self.index)
-        newFrame._series = dict((k, v.copy())
-                                for k, v in self._series.iteritems())
+        newFrame._series = dict((k, v.copy()) for k, v in self.iteritems())
         return newFrame
 
     def corr(self):
@@ -1270,7 +1263,7 @@ class DataFrame(Picklable, Groupable):
 
         return mergedSeries
 
-    def merge(self, otherFrame, on):
+    def merge(self, otherFrame, on=None):
         """
         Merge DataFrame or DataMatrix with this one on some many-to-one index
 
