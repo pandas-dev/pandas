@@ -30,14 +30,14 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
     """
     Workhorse function for processing nested list into DataFrame
     """
-    naValues = set(['-1.#IND', '1.#QNAN', '1.#IND', 
+    naValues = set(['-1.#IND', '1.#QNAN', '1.#IND',
                     '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
                     'NA', 'NULL', 'NaN', 'nan', ''])
     lines = nestedList
     data = {}
     if header is not None:
         columns = lines[header]
-        columns = [c if c != '' else 'Unnamed: ' + string.ascii_uppercase[i] 
+        columns = [c if c != '' else 'Unnamed: ' + string.ascii_uppercase[i]
                    for i, c in enumerate(columns)]
         content = lines[header+1:]
 
@@ -53,7 +53,7 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
             columns = colNames
         content = lines
 
-    for i, (c, col) in enumerate(izip(columns, izip(*content))):            
+    for i, (c, col) in enumerate(izip(columns, izip(*content))):
         if i == indexCol:
             data[c] = col
             continue
@@ -62,8 +62,8 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
             if val in naValues:
                 val = np.nan
             else:
-                try:    
-                    tmp = val        
+                try:
+                    tmp = val
                     val = np.float64(val)
                     if np.isinf(val):
                         val = tmp
@@ -84,7 +84,7 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
         try:
             data[c] = np.array(values, dtype = np.float64)
         except:
-            data[c] = np.array(values, dtype = np.object_)            
+            data[c] = np.array(values, dtype = np.object_)
     if indexCol is not None:
         index = Index(data[columns[indexCol]])
         frameData = dict([(col, data[col]) for col in columns \
@@ -94,7 +94,7 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
         index = np.arange(len(data.values()[0]))
         frameData = dict([(col, data[col]) for col in columns])
         return DataFrame(data=frameData, index=index)
-    
+
 def parseCSV(filepath, header=0, indexCol=0):
     """
     Parse CSV file into a DataFrame object. Try to parse dates if possible.
@@ -108,11 +108,11 @@ def parseCSV(filepath, header=0, indexCol=0):
 
 def parseText(filepath, sep='\t', header=0, indexCol=0, colNames = None):
     """
-    Parse whitespace separated file into a DataFrame object. 
+    Parse whitespace separated file into a DataFrame object.
     Try to parse dates if possible.
     """
     lines = [l.rstrip().split(sep) for l in open(filepath,'rb').readlines()]
-    return simpleParser(lines, header=header, indexCol=indexCol, 
+    return simpleParser(lines, header=header, indexCol=indexCol,
                         colNames = colNames)
 
 #===============================================================================
@@ -122,20 +122,22 @@ def parseText(filepath, sep='\t', header=0, indexCol=0, colNames = None):
 OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
 def ole2datetime(oledt):
     """function for converting excel date to normal date format"""
-    return OLE_TIME_ZERO + timedelta(days=float(oledt))  
+    return OLE_TIME_ZERO + timedelta(days=float(oledt))
 
-def parseExcel(filepath, header = None, indexCol = 0, dateCol = 0, 
+
+def parseExcel(filepath, header = None, indexCol = 0, dateCol = 0,
                sheetname = None):
     try:
         import xlrd
-    except ImportError:
-        raise ImportError('Sorry, you do not have xlrd.')
+    except:
+        raise Exception('Sorry, you do not have xlrd.')
     book = xlrd.open_workbook(filepath)
     sheet = book.sheet_by_name(sheetname)
     data = [sheet.row_values(i) for i in range(sheet.nrows)]
-    for row in data:
-        try:
-            row[0] = ole2datetime(row[0])
-        except:
-            pass
+    if dateCol is not None:
+        for row in data:
+            try:
+                row[dateCol] = ole2datetime(row[dateCol])
+            except:
+                pass
     return simpleParser(data, header = header, indexCol = indexCol)
