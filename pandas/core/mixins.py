@@ -13,15 +13,15 @@ class Picklable(object):
     @classmethod
     def load(cls, fileName):
         with open(fileName, 'rb') as f:
-            obj = cPickle.load(f)        
+            obj = cPickle.load(f)
             return obj
         raise Exception("Error trying to unpickle %s" % fileName)
-    
+
 #-------------------------------------------------------------------------------
 # Groupable mixin
 
 class Groupable(object):
     def groupby(self, mapper):
-        from panda.core.groupby import GroupBy
+        from pandas.core.groupby import GroupBy
         return GroupBy(self, mapper)
 
