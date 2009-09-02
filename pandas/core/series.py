@@ -14,6 +14,54 @@ from pandas.lib.tseries import isnull, notnull
 import pandas.lib.tseries as tseries
 
 #-------------------------------------------------------------------------------
+# Wrapper function for Series arithmetic methods
+
+def _seriesOpWrap(opname, comp=False):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+    MIRROR_OPS = {
+        '__add__' : '__radd__',
+        '__sub__' : '__rsub__',
+        '__div__' : '__rdiv__',
+        '__mul__' : '__rmul__'
+    }
+    def wrapper(self, other):
+        from pandas.core.frame import DataFrame
+
+        func = getattr(self.view(ndarray), opname)
+        cls = self.__class__
+        if isinstance(other, Series):
+            if self.index is other.index:
+                return cls(func(other), index=self.index)
+            if len(self.index) + len(other.index) > 0:
+                newIndex = self.index + other.index
+            else:
+                newIndex = NULL_INDEX
+            try:
+                arr = tseries.combineFunc(opname, newIndex, self, other,
+                                          self.index.indexMap,
+                                          other.index.indexMap)
+            except:
+                arr = Series.combineFunc(self, other,
+                                         getattr(type(self[0]), opname))
+            result = cls(arr, index=newIndex)
+            if comp:
+                result[isnull(result)] = 0
+                return result.astype(np.bool)
+            else:
+                return result
+        elif isinstance(other, DataFrame):
+            reverse_op = MIRROR_OPS.get(opname)
+            if reverse_op is None:
+                raise Exception('Cannot do %s op, sorry!')
+            return getattr(other, reverse_op)(self)
+        else:
+            return cls(func(other), index=self.index)
+    return wrapper
+
+#-------------------------------------------------------------------------------
 # Series class
 
 class Series(np.ndarray, Picklable, Groupable):
@@ -318,51 +366,6 @@ class Series(np.ndarray, Picklable, Groupable):
 #-------------------------------------------------------------------------------
 #   Arithmetic operators
 
-    def _seriesOpWrap(opname, comp=False):
-        """
-        Wrapper function for Series arithmetic operations, to avoid
-        code duplication.
-        """
-        MIRROR_OPS = {
-            '__add__' : '__radd__',
-            '__sub__' : '__rsub__',
-            '__div__' : '__rdiv__',
-            '__mul__' : '__rmul__'
-        }
-        def wrapper(self, other):
-            from pandas.core.frame import DataFrame
-
-            func = getattr(self.view(ndarray), opname)
-            cls = self.__class__
-            if isinstance(other, Series):
-                if self.index is other.index:
-                    return cls(func(other), index=self.index)
-                if len(self.index) + len(other.index) > 0:
-                    newIndex = self.index + other.index
-                else:
-                    newIndex = NULL_INDEX
-                try:
-                    arr = tseries.combineFunc(opname, newIndex, self, other,
-                                              self.index.indexMap,
-                                              other.index.indexMap)
-                except:
-                    arr = Series.combineFunc(self, other,
-                                             getattr(type(self[0]), opname))
-                result = cls(arr, index=newIndex)
-                if comp:
-                    result[isnull(result)] = 0
-                    return result.astype(np.bool)
-                else:
-                    return result
-            elif isinstance(other, DataFrame):
-                reverse_op = MIRROR_OPS.get(opname)
-                if reverse_op is None:
-                    raise Exception('Cannot do %s op, sorry!')
-                return getattr(other, reverse_op)(self)
-            else:
-                return cls(func(other), index=self.index)
-        return wrapper
-
     __add__ = _seriesOpWrap('__add__')
     __sub__ = _seriesOpWrap('__sub__')
     __mul__ = _seriesOpWrap('__mul__')
@@ -375,8 +378,6 @@ class Series(np.ndarray, Picklable, Groupable):
     __imul__ = __mul__
     __idiv__ = __div__
     __ipow__ = __pow__
-
-    del _seriesOpWrap
 
 #-------------------------------------------------------------------------------
 # Overridden ndarray methods

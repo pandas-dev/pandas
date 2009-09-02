@@ -11,6 +11,15 @@ from pandas.core.series import Series, remove_na
 from pandas.lib.tseries import isnull, notnull
 import pandas.lib.tseries as tseries
 
+def arith_method(func, name):
+    def f(self, other):
+        return self._combineFunc(other, func)
+
+    f.__name__ = name
+    f.__doc__ = 'Wrapper for arithmetic method %s' % name
+
+    return f
+
 #-------------------------------------------------------------------------------
 # DataFrame class
 
@@ -277,7 +286,6 @@ class DataFrame(Picklable, Groupable):
         Delete column from DataFrame (only deletes the reference)
         """
         r = self._series.pop(key, None)
-        del r   # need to delete the reference
 
     def __iter__(self):
         """
@@ -297,15 +305,6 @@ class DataFrame(Picklable, Groupable):
         """
         return key in self._series
 
-    def arith_method(func, name):
-        def f(self, other):
-            return self._combineFunc(other, func)
-
-        f.__name__ = name
-        f.__doc__ = 'Wrapper for arithmetic method %s' % name
-
-        return f
-
     __add__ = arith_method(operator.add, '__add__')
     __sub__ = arith_method(operator.sub, '__sub__')
     __mul__ = arith_method(operator.mul, '__mul__')
@@ -317,8 +316,6 @@ class DataFrame(Picklable, Groupable):
     __rsub__ = arith_method(lambda x, y: y - x, '__rsub__')
     __rdiv__ = arith_method(lambda x, y: y / x, '__rdiv__')
     __rpow__ = arith_method(lambda x, y: y ** x, '__rpow__')
-
-    del arith_method
 
     def __neg__(self):
         mycopy = self.copy()
