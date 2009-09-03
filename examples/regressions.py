@@ -18,6 +18,9 @@ def makeDataMatrix():
 
     return data
 
+#-------------------------------------------------------------------------------
+# Standard rolling linear regression
+
 data = makeDataMatrix()
 model = LinearModel(data, window=100, minPeriods=80)
 model.parseFormula('A ~ B + C + D + E + F + G + I')
@@ -31,6 +34,9 @@ print model.beta()
 print model.rsquare()
 print model.tstat()
 
+#-------------------------------------------------------------------------------
+# Panel regression
+
 data = {
     'A' : makeDataMatrix(),
     'B' : makeDataMatrix(),
@@ -40,3 +46,5 @@ data = {
 panelModel = XSLinearModel(data, window=50, minPeriods=20)
 panelModel.parseFormula('A ~ B + C + I')
 panelModel.fit()
+
+# Same diagnostic statistics as per above
