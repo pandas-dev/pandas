@@ -1,116 +1,21 @@
 """Objects for doing linear / pooled xs linear modeling"""
 
-from pandas.core.index import Index
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
+from pandas.core.api import Index, Series, DataFrame, DataMatrix
 from datetime import datetime
+
+import scikits.statsmodels as sm
 
 import numpy.linalg as L
 import numpy as np
 
 __all__ = ['LinearModel', 'XSLinearModel', 'regress']
 
-def parseFormula(formString):
-    """
-    From an R-style formula string, derive a scipy.stats.models formula
 
-    Use 'I' to specify an intercept
-
-    Example: Y ~ X1 + X2 + X3 + I
-    """
-    from scipy.stats.models.formula import Term, Formula, I
-
-    lhs, rhs = formString.split('~')
-    rhsVars = [s.strip() for s in rhs.split('+')]
-    newForm = None
-    for var in rhsVars:
-        if var == 'I':
-            term = I
-        else:
-            term = Term(var)
-        newForm = newForm + term if newForm else Formula(term)
-
-    return lhs.strip(), newForm
-
-def _robustlm(formula, lhs):
-    from scipy.stats.models import rlm
-    from scipy.stats.models.robust.norms import HuberT
-
-    model = rlm(design=formula.design(), M=HuberT())
-    result = model.fit(lhs)
-    return {
-        'beta'      : Series(result.beta, index=formula.names()),
-        'tstat'     : Series(result.t(), index=formula.names()),
-        'resid'     : Series(result.resid, index=formula.namespace.index),
-        'rsquare'   : result.Rsq()
-    }
-
-def RLM(X, Y):
-    from scipy.stats.models import rlm
-    from scipy.stats.models.robust.norms import HuberT
-
-    model = rlm(design=X, M=HuberT())
-    result = model.fit(Y)
-
-    return result
-
-def OLS(X, Y):
-    from scipy.stats import linregress
-    from scipy.stats.models.regression import OLSModel, RegressionResults
-
-    if X.ndim == 1:
-        beta, alpha, r, prob, stderr = np.array([linregress(X, Y)[0]])
-
-        result = RegressionResults(beta, X)
-        # resid = lhs - X * result.beta
-    else:
-        model = OLSModel(design=X)
-        result = model.fit(Y)
-
-    return result
-
-def Rsquared(resid, lhs, rhsNo):
-    regular = 1 - resid.var(ddof=1) / lhs.var(ddof=1)
-    N = len(resid)
-    adjusted = 1 - (1 - regular) * (N-1) / (N - rhsNo)
-    return regular, adjusted
-
-def _ols(formula, lhs):
-    from scipy.stats import linregress
-    from scipy.stats.models.regression import OLSModel, RegressionResults
-
-    design = formula.design()
-    if design.ndim == 1:
-        result = RegressionResults(np.array([linregress(design, lhs)[0]]), design)
-        resid = Series(lhs - design * result.beta, formula.namespace.index)
-
-        return {
-            'beta'  : Series(result.beta, index = formula.names()),
-            'resid' : resid
-        }
-
-    else:
-        model = OLSModel(design=design)
-        result = model.fit(lhs)
-
-        resid = Series(result.resid, index=formula.namespace.index)
-
-        returnValue =  {
-            'beta'      : Series(result.beta, index=formula.names()),
-            'tstat'     : Series(result.t(), index=formula.names()),
-            'resid'     : resid,
-            'rsquare'   : result.Rsq()
-        }
-
-    return returnValue
-
-_funcMap = {
-    'ols'       : OLS,
-    'rlm'       : RLM,
-}
+#-------------------------------------------------------------------------------
+# Linear regression models
 
 class LinearModel(object):
-    def __init__(self, data=None, kind='ols', window = 0, minPeriods=None,
+    def __init__(self, data=None, kind='ols', window=0, minPeriods=None,
                  nwLags=None, nwDownweight=True, storeFullResid=False,
                  computeForecastStats=False):
         """
@@ -124,7 +29,7 @@ class LinearModel(object):
             too complicated for this part.
 
         kind: {'ols', 'rlm'}, default is 'ols'
-            Specifies scipy.stats.models or RPy routine to use for
+            Specifies scikits.statsmodels or RPy routine to use for
             fitting the model. Ex. 'ols', 'rlm', etc.
 
         window: rolling window size for regression.
@@ -167,51 +72,19 @@ class LinearModel(object):
         self._r2.clear()
         self._r2Adjusted.clear()
 
-    def addLags(self, field, number, addToFormula = False):
-        """
-        Add # of lags of some field to model.
-
-        Lag names will take the standard form 'field_L#', where # is
-        the period lag being added.
-
-        Note that this method works if the data is a dict of DataFrames
-        """
-        from scipy.stats.models.formula import Term
-
-        data = self.data
-        for i in range(1, number + 1):
-            colName = field + '_L' + str(i)
-
-            data[colName] = data[field].shift(i, strict=True)
-            if addToFormula:
-                self.formula += Term(colName)
-
     def parseFormula(self, formString):
         """
-        From an R-style formula string, derive a scipy.stats.models formula
+        From an R-style formula string, derive a scikits.statsmodels formula
 
         Use 'I' to specify an intercept
 
         Example: Y ~ X1 + X2 + X3 + I
         """
-        from scipy.stats.models.formula import Term, Formula, I
-
         self.clear()
         self._formString = formString
+        self.lhs, self.formula = parseFormula(formString)
 
-        lhs, rhs = formString.split('~')
-        rhsVars = [s.strip() for s in rhs.split('+')]
-        newForm = None
-        for var in rhsVars:
-            if var == 'I':
-                term = I
-            else:
-                term = Term(var)
-            newForm = newForm + term if newForm else Formula(term)
-        self.formula = newForm
-        self.lhs = lhs.strip()
-
-    def fit(self, index=None, verbose=False, firstPeriod = None, offset = None):
+    def fit(self, index=None, verbose=False, firstPeriod=None, offset=None):
         """
         Fit the model and return a result object.
         """
@@ -242,7 +115,7 @@ class LinearModel(object):
             try:
                 if verbose:
                     print period
-                curSlice = self.data.getTS(toDate=period, nPeriods = window)
+                curSlice = self.data.getTS(toDate=period, nPeriods=window)
 
                 regCols = [x for x in formula.names() if x != 'intercept']
                 regCols.append(self.lhs)
@@ -256,21 +129,22 @@ class LinearModel(object):
 
                 formula.namespace = curSlice
 
+            except:
+                continue
+            try:
                 LHS = curSlice[self.lhs]
                 RHS = formula.design()
 
                 result = regFunc(RHS, LHS)
 
-                resid = result.resid
-                reg, adj = Rsquared(resid, LHS, len(formulaNames))
-
-                beta = Series(result.beta, index=formulaNames)
+                resid = Series(result.resid, index=curSlice.index)
+                beta = Series(result.params, index=formulaNames)
                 tstat = Series(result.t(), index=formulaNames)
 
                 self._betas[period] = beta
                 self._tstats[period] = tstat
-                self._r2[period] = reg
-                self._r2Adjusted[period] = adj
+                self._r2[period] = result.rsquared
+                self._r2Adjusted[period] = result.rsquared_adj
 
                 if self.computeForecastStats:
                     self._forecastMean[period] = LHS.mean()
@@ -285,9 +159,9 @@ class LinearModel(object):
                 if self.storeFullResid:
                     self._resid[period] = resid
                 else:
-                    self._resid[period] = result.resid[period]
+                    self._resid[period] = resid[period]
             except:
-                pass
+                raise
                 #print '%s failed.' % period
 
     def _calcNWTstats(self, design, result):
@@ -313,37 +187,37 @@ class LinearModel(object):
 
         return result['beta'] / sqrt(diag(dot(xxinv, dot(Xeps, xxinv))))
 
-    def tstat(self, period = None):
+    def tstat(self, period=None):
         if period is not None:
             return self._tstats[period]
         else:
             return DataFrame.fromDict(self._tstats).T
 
-    def nwTstat(self, period = None):
+    def nwTstat(self, period=None):
         if period is not None:
             return self._nwTstats[period]
         else:
             return DataFrame.fromDict(self._nwTstats)
 
-    def rsquare(self, period = None):
+    def rsquare(self, period=None):
         if period is not None:
             return self._r2.get(period)
         else:
             return Series.fromDict(self._r2)
 
-    def rsquareAdjusted(self, period = None):
+    def rsquareAdjusted(self, period=None):
         if period is not None:
             return self._r2Adjusted.get(period)
         else:
             return Series.fromDict(self._r2Adjusted)
 
-    def beta(self, period = None):
+    def beta(self, period=None):
         if period is not None:
             return self._betas[period]
         else:
             return DataFrame.fromDict(self._betas).T
 
-    def resid(self, period = None):
+    def resid(self, period=None):
         if period is not None:
             return self._resid[period]
         else:
@@ -368,13 +242,14 @@ class LinearModel(object):
         """
 
         from pylab import figure, scatter, xlabel, ylabel, plot, legend
+
         from scipy.stats.models.regression import OLSModel
         window = self.window if self.window > 0 else len(self.data.index)
         colNames = [x for x in self.formula.names() if x != 'intercept']
         colNames.append(self.lhs)
 
-        curSlice = self.data.getTS(toDate=date, nPeriods = window)
-        curSlice = curSlice.dropIncompleteRows(specificColumns = colNames)
+        curSlice = self.data.getTS(toDate=date, nPeriods=window)
+        curSlice = curSlice.dropIncompleteRows(specificColumns=colNames)
 
         rhsVars = self.formula.names()
 
@@ -405,7 +280,7 @@ class LinearModel(object):
             design = self.formula.design()
             model = OLSModel(design=design)
             result =  model.fit(LHS)
-            print 'beta: ' + str(result.beta)
+            print 'beta: ' + str(result.params)
             axes.plot(RHS, result.predictors(design), 'b-')
 
     def summary(self, period):
@@ -424,6 +299,9 @@ class LinearModel(object):
         print '\n\n'.join(('Formula: ' + self._formString, results, rsq))
 
 
+#-------------------------------------------------------------------------------
+# Panel regression model
+
 class XSLinearModel(LinearModel):
     """
     A subclass of LinearModel which supports cross-sectional (inc. pooled)
@@ -434,7 +312,7 @@ class XSLinearModel(LinearModel):
     data: dict
         Collection of DataFrames
     kind: {'ols', 'rlm'}, default is 'ols'
-        Specifies scipy.stats.models routine to use for
+        Specifies scikits.statsmodels routine to use for
         fitting the model. Ex. 'ols', 'rlm', etc.
     window: int
         rolling window size for regression / number of days to pool
@@ -452,8 +330,8 @@ class XSLinearModel(LinearModel):
        for each item included in the regression, for item X, it will
        be 1 on rows for that item.
     """
-    def __init__(self, data=None, kind='ols', window = 0, demeaned=False,
-                 nwLags = None, nwDownweight = True, minPeriods=0,
+    def __init__(self, data=None, kind='ols', window=0, demeaned=False,
+                 nwLags=None, nwDownweight=True, minPeriods=0,
                  useFixedEffects=False):
         # Going to contain all the stacked data for the regression.
         self.stackedFrame = None
@@ -472,18 +350,13 @@ class XSLinearModel(LinearModel):
                              nwDownweight=nwDownweight)
 
     def parseFormula(self, formString):
-        from scipy.stats.models.formula import Term, Formula, I
-
         LinearModel.parseFormula(self, formString)
 
         if self.useFixedEffects:
-            for dummy in self._dummies:
-                term = 'FE_' + dummy
+            self.formula.addTerms(['FE_' + dummy for dummy in self._dummies])
 
-                self.formula = self.formula + Term(term)
-
-            if 'intercept' in self.formula.names() and self.demeaned:
-                self.formula = self.formula - I
+            if self.formula._hasIntercept and self.demeaned:
+                self.formula.removeTerms(['intercept'])
 
     parseFormula.__doc__ = LinearModel.parseFormula.__doc__
 
@@ -494,8 +367,6 @@ class XSLinearModel(LinearModel):
         indices, we need to be able to handle this case, seems more likely
         than not.
         """
-        from itertools import imap
-
         if type(data) != dict:
             raise Exception('Data needs to be a dict of DataFrames!')
 
@@ -534,9 +405,9 @@ class XSLinearModel(LinearModel):
 
         #    Demean the data cross-sectionally for each date if specified
         #
-        #    Data is represented like this:
+        #    Data is represented something like this:
         #
-        #                        Var1           Var2           Var3
+        #                        X1             X2             X3
         #    20080602;A          4.86406        4.347          4.226
         #    20080602;B          0.91938        1.788          1.378
         #    20080602;C          5.86813        4.955          4.884
@@ -592,13 +463,13 @@ class XSLinearModel(LinearModel):
 
     data = property(fset=_set_data, fget=_get_data, doc=_data_doc)
 
-    def resid(self, period = None):
+    def resid(self, period=None):
         if period is not None:
             return self._resid[period]
         else:
             return DataFrame.fromDict(self._resid).T
 
-    def getDataSlice(self, period1, period2, colName = None):
+    def getDataSlice(self, period1, period2, colName=None):
         begin = self.begSlice[period1]
 
         try:
@@ -617,7 +488,7 @@ class XSLinearModel(LinearModel):
             newColumns[col] = series[begin:end]
         return DataFrame(data=newColumns, index=indexRange)
 
-    def fit(self, index = None, verbose = False):
+    def fit(self, index=None, verbose=False):
         """
         Fit cross-sectional linear model for given period, possibly pooled.
         """
@@ -660,17 +531,15 @@ class XSLinearModel(LinearModel):
             RHS = formula.design()
 
             result = regFunc(RHS, LHS)
-            resid = result.resid
 
-            reg, adj = Rsquared(resid, LHS, len(formulaNames))
-
-            beta = Series(result.beta, index=formulaNames)
+            resid = Series(result.resid, index=curSlice.index)
+            beta = Series(result.params, index=formulaNames)
             tstat = Series(result.t(), index=formulaNames)
 
             self._betas[period] = beta
             self._tstats[period] = tstat
-            self._r2[period] = reg
-            self._r2Adjusted[period] = adj
+            self._r2[period] = result.rsquared
+            self._r2Adjusted[period] = result.rsquared_adj
 
             if self.nwLags is not None:
                 self._nwTstats[period] = self._calcNWTstats(curSlice, RHS,
@@ -696,7 +565,9 @@ class XSLinearModel(LinearModel):
         t, n = design.shape
         Xeps = np.zeros((n, n))
 
-        for item, indices in groupby(panelSlice.index, lambda x: x.split(';')[1]):
+        splitf = lambda x: x.split(';')[1]
+
+        for item, indices in groupby(panelSlice.index, splitf):
             ix = [panelSlice.index.indexMap[idx] for idx in indices]
             m = (design[ix].T * resids[ix]).T
             nwCov = np.dot(m.T, m)
@@ -717,3 +588,90 @@ class XSLinearModel(LinearModel):
 
     def scatter(self, **kwargs):
         raise Exception('Scatter plot disabled for XSLinearModel!')
+
+
+#-------------------------------------------------------------------------------
+# Simplified Formula object for compatibility with scikits.statsmodels
+
+class Formula(object):
+    """
+    Formula object, similar API to Johnathan Taylor's
+    scipy.stats.models version.
+    """
+    def __init__(self, terms):
+        if not isinstance(terms, list):
+            terms = list(terms)
+
+        if 'I' in terms:
+            self._hasIntercept = True
+            terms.remove('I')
+        else:
+            self._hasIntercept = False
+
+        self._terms = sorted(terms)
+        if self._hasIntercept:
+            self._terms.append('intercept')
+
+        self.namespace = None
+
+    def __repr__(self):
+        return '<formula: %s>' % ' + '.join(self.names())
+
+    def __contains__(self, term):
+        return term in self._terms
+
+    def removeTerms(self, toRemove):
+        for term in toRemove:
+            if term == 'intecept':
+                self._hasIntercept = False
+
+            self._terms.remove(term)
+
+    def addTerms(self, newTerms):
+        newList = self._terms + list(newTerms)
+
+        if self._hasIntercept:
+            newList = sorted([x for x in newList if x != 'intercept'])
+            newList.append('intercept')
+
+        self._terms = newList
+
+    def design(self):
+        vectors = []
+        for term in self._terms:
+            if term == 'intercept' and self._hasIntercept:
+                continue
+            vectors.append(self.namespace[term])
+
+        if self._hasIntercept:
+            N = len(vectors[0])
+            vectors.append(np.ones((N, ) , dtype=float))
+
+        return np.column_stack(vectors)
+
+    def names(self):
+        return self._terms
+
+def parseFormula(formString):
+    """
+    From an R-style formula string, derive a Y variable name and Formula
+
+    Use 'I' to specify an intercept
+
+    Example: Y ~ X1 + X2 + X3 + I
+    """
+    lhs, rhs = formString.split('~')
+    rhsVars = [s.strip() for s in rhs.split('+')]
+
+    return lhs.strip(), Formula(rhsVars)
+
+def RLM(X, Y):
+    return sm.RLM(Y, X).fit()
+
+def OLS(X, Y):
+    return sm.OLS(Y, X).fit()
+
+_funcMap = {
+    'ols'       : OLS,
+    'rlm'       : RLM,
+}
