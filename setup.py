@@ -9,9 +9,9 @@ import sys
 
 config = Configuration('pandas', parent_package=None, top_path=None)
 
-cython_ext = Extension('pandas.lib.tseries', ['pandas/lib/src/tseries.c'], 
+cython_ext = Extension('pandas.lib.tseries', ['pandas/lib/src/tseries.c'],
                        include_dirs=[numpy.get_include(),
-                                     'pandas/lib/include/']) 
+                                     'pandas/lib/include/'])
 
 dates_ext = Extension('pandas.lib.tdates', ['pandas/lib/src/tdates.c'])
 
@@ -42,7 +42,11 @@ if __name__ == '__main__':
           platforms='any',
           long_description="""
           """,
-          packages=["pandas", "pandas.core", "pandas.core.tests", "pandas.io",
-                    "pandas.lib"],
+          packages=["pandas",
+                    "pandas.core",
+                    "pandas.core.tests",
+                    "pandas.io",
+                    "pandas.lib",
+                    "pandas.stats"],
           ext_modules=[cython_ext, dates_ext],
           **(config_dict))
