@@ -16,7 +16,7 @@ def parseFormula(formString):
 
     Use 'I' to specify an intercept
 
-    Example: Spec ~ Spec_L1 + Spec_L2 + Spec_L3 + MarketReturn_L1 + I
+    Example: Y ~ X1 + X2 + X3 + I
     """
     from scipy.stats.models.formula import Term, Formula, I
 
