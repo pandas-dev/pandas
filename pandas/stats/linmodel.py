@@ -8,7 +8,7 @@ import scikits.statsmodels as sm
 import numpy.linalg as L
 import numpy as np
 
-__all__ = ['LinearModel', 'XSLinearModel', 'regress']
+__all__ = ['LinearModel', 'XSLinearModel']
 
 
 #-------------------------------------------------------------------------------
