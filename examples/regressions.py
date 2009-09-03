@@ -1,7 +1,10 @@
 from datetime import datetime
 import string
 
+import numpy as np
+
 from pandas.core.api import DataMatrix, DateRange
+from pandas.stats.linmodel import LinearModel, XSLinearModel
 
 N = 100
 
@@ -16,9 +19,17 @@ def makeDataMatrix():
     return data
 
 data = makeDataMatrix()
-model = LinearModel(data, window=50, minPeriods=20)
+model = LinearModel(data, window=100, minPeriods=80)
 model.parseFormula('A ~ B + C + D + E + F + G + I')
 model.fit()
+
+# Extremely basic summary
+
+model.summary(dateRange[-1])
+
+print model.beta()
+print model.rsquare()
+print model.tstat()
 
 data = {
     'A' : makeDataMatrix(),
