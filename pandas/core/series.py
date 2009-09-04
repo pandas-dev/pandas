@@ -116,7 +116,7 @@ class Series(np.ndarray, Picklable, Groupable):
         This is to prevent mixed-type Series getting all casted
         to NumPy string type, e.g. NaN --> '-1#IND'.
         """
-        if subarr.dtype.type == np.str_:
+        if issubclass(subarr.dtype.type, basestring):
             subarr = np.array(data, dtype=object, copy=copy)
 
         # Change the class of the array to be the subclass type.
