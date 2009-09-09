@@ -622,7 +622,7 @@ class Formula(object):
 
     def removeTerms(self, toRemove):
         for term in toRemove:
-            if term == 'intecept':
+            if term == 'intercept':
                 self._hasIntercept = False
 
             self._terms.remove(term)

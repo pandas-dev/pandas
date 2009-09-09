@@ -107,8 +107,12 @@ class DataMatrix(DataFrame):
                                                          dtype)
         elif isinstance(data, np.ndarray):
             if data.ndim == 1:
-                # Assume is only one column
-                data = data.reshape((data.shape[0], 1))
+                N = data.shape[0]
+                if N == 0:
+                    data = data.reshape((data.shape[0], 0))
+                else:
+                    data = data.reshape((data.shape[0], 1))
+
             values = np.asarray(data)
 
         elif data is None:

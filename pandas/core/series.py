@@ -530,6 +530,29 @@ class Series(np.ndarray, Picklable, Groupable):
             newArr[i] = func(self.get(idx, NaN), other.get(idx, NaN))
         return self.__class__(newArr, index=newIndex)
 
+    def combineFirst(self, other):
+        """
+        Combine Series values, choosing calling Series's values first.
+
+        Parameters
+        ----------
+        other: Series
+
+        Returns
+        -------
+        Series formed as union of
+        """
+        if self.index is other.index:
+            newIndex = self.index
+        else:
+            newIndex = self.index + other.index
+
+        this = self.reindex(newIndex)
+        other = other.reindex(newIndex)
+        result = Series(np.where(isnull(this), other, this), index=newIndex)
+
+        return result
+
     def argsort(self, axis = 0, kind='quicksort', order=None):
         """
         Overriding numpy's built-in cumsum functionality
