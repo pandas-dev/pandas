@@ -101,41 +101,39 @@ class Series(np.ndarray, Picklable, Groupable):
         >>> s[d]    # Valid
     """
     def __new__(cls, data, index=None, dtype=None, copy=False):
-        indexTypes = np.ndarray, Index, list, tuple, type(None)
+        if index is None and isinstance(data, Series):
+            index = data.index
+
+        if index is None:
+            raise Exception('Index cannot be None!')
+
+        indexTypes = ndarray, Index, list, tuple
         if not isinstance(index, indexTypes):
             raise TypeError("Expected index to be in %s; was %s."
                             % (indexTypes, type(index)))
 
-        # Make a copy of the data, infer type
-        subarr = np.array(data, dtype=dtype, copy=copy)
+        if not isinstance(index, Index):
+            index = Index(index)
 
-        if not subarr.shape:
-            return np.float64(subarr)
+        if len(data) != len(index):
+            raise AssertionError('Lengths of index and values did not match!')
+
+        # Make a copy of the data, infer type
+        subarr = array(data, dtype=dtype, copy=copy)
+
+        if subarr.ndim == 0:
+            return subarr.item()
 
         """
         This is to prevent mixed-type Series getting all casted
         to NumPy string type, e.g. NaN --> '-1#IND'.
         """
         if issubclass(subarr.dtype.type, basestring):
-            subarr = np.array(data, dtype=object, copy=copy)
+            subarr = array(data, dtype=object, copy=copy)
 
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)
-
-        # Deal with the index
-        if index is not None:
-            try:
-                assert(len(data) == len(index))
-            except AssertionError:
-                raise Exception('Lengths of index and values did not match!')
-            if isinstance(index, Index):
-                subarr.index = index
-            else:
-                subarr.index = Index(index)
-        elif hasattr(data, 'index'):
-            subarr.index = data.index
-        else:
-            raise Exception('Index cannot be None!')
+        subarr.index = index
 
         if subarr.index._allDates:
             subarr = subarr.view(TimeSeries)

@@ -491,8 +491,7 @@ class DataFrame(Picklable, Groupable):
     def toDataMatrix(self):
         from pandas.core.matrix import DataMatrix
 
-        return DataMatrix(self.asMatrix(), index=self.index,
-                          columns=self.cols())
+        return DataMatrix(self._series, index=self.index)
 
     def toString(self, to_stdout=True, verbose=False, colSpace=15, nanRep=None):
         """Output a tab-separated version of this DataFrame"""
