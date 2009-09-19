@@ -1380,13 +1380,35 @@ class DataFrame(Picklable, Groupable):
         Returns
         -------
         Series or TimeSeries
+
+        Examples
+        --------
+        self:
+            c1  c2
+        a   1   0
+        b   0   2
+        c   3   0
+        d   0   4
+
+        >>>self.sum(axis=0)
+        Series:
+        c1: 4
+        c2: 6
         """
         y = np.array(self.values, subok=True)
-        if not issubclass(y.dtype.type, np.int_):
-            y[np.isnan(y)] = 0
-        theSum = y.sum(axis)
-        theCount = self.count(axis)
-        theSum[theCount==0] = NaN
+
+        try:
+            if not issubclass(y.dtype.type, np.int_):
+                y[np.isnan(y)] = 0
+            theSum = y.sum(axis)
+            theCount = self.count(axis)
+            theSum[theCount==0] = NaN
+        except:
+            if axis == 0:
+                theSum = self.apply(np.sum)
+            else:
+                theSum = self.tapply(np.sum)
+
         if asarray:
             return theSum
         if axis == 0:
@@ -1412,11 +1434,19 @@ class DataFrame(Picklable, Groupable):
         Series or TimeSeries
         """
         y = np.array(self.values, subok=True)
-        if not issubclass(y.dtype.type, np.int_):
-            y[np.isnan(y)] = 1
-        theProd = y.prod(axis)
-        theCount = self.count(axis)
-        theProd[theCount==0] = NaN
+        try:
+
+            if not issubclass(y.dtype.type, np.int_):
+                y[np.isnan(y)] = 1
+            theProd = y.prod(axis)
+            theCount = self.count(axis)
+            theProd[theCount==0] = NaN
+        except:
+            if axis == 0:
+                theProd = self.apply(np.prod)
+            else:
+                theProd = self.tapply(np.prod)
+
         if asarray:
             return theProd
         if axis == 0:
