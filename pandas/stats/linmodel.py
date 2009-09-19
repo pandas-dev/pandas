@@ -15,35 +15,35 @@ __all__ = ['LinearModel', 'XSLinearModel']
 # Linear regression models
 
 class LinearModel(object):
+    """
+    A general class for formulating, fitting a linear TS or XS model.
+    For this, it's assumed that the data is indexed on time.
+
+    Parameters
+    ----------
+    data: DataFrame or dict of arrays.
+        For subclasses may be a dict of DataFrame objects, but that's
+        too complicated for this part.
+
+    kind: {'ols', 'rlm'}, default is 'ols'
+        Specifies scikits.statsmodels or RPy routine to use for
+        fitting the model. Ex. 'ols', 'rlm', etc.
+
+    window: rolling window size for regression.
+        For an XS model (see subclass), this is the number of days to pool.
+        For a time series model this is just the standard window.
+        NOTE: use window = 0 for expanding window.
+
+    nwLags: int
+        Compute Newey-West adjusted T-stat (for reducing autocorrelation)
+        By default NOT enabled (as time consuming)
+
+    nwDownweight: boolean (default=True)
+        Downweight subsequent lags in Newey-West adjustment
+    """
     def __init__(self, data=None, kind='ols', window=0, minPeriods=None,
                  nwLags=None, nwDownweight=True, storeFullResid=False,
                  computeForecastStats=False):
-        """
-        A general class for formulating, fitting a linear TS or XS model.
-        For this, it's assumed that the data is indexed on time.
-
-        Parameters
-        ----------
-        data: DataFrame or dict of arrays.
-            For subclasses may be a dict of DataFrame objects, but that's
-            too complicated for this part.
-
-        kind: {'ols', 'rlm'}, default is 'ols'
-            Specifies scikits.statsmodels or RPy routine to use for
-            fitting the model. Ex. 'ols', 'rlm', etc.
-
-        window: rolling window size for regression.
-            For an XS model (see subclass), this is the number of days to pool.
-            For a time series model this is just the standard window.
-            NOTE: use window = 0 for expanding window.
-
-        nwLags: int
-            Compute Newey-West adjusted T-stat (for reducing autocorrelation)
-            By default NOT enabled (as time consuming)
-
-        nwDownweight: boolean (default=True)
-            Downweight subsequent lags in Newey-West adjustment
-        """
         self.data = data
         self.kind = kind
         self.window = window
@@ -65,6 +65,8 @@ class LinearModel(object):
         self.formula = None
 
     def clear(self):
+        """
+        """
         self._tstats.clear()
         self._nwTstats.clear()
         self._betas.clear()
@@ -165,6 +167,9 @@ class LinearModel(object):
                 #print '%s failed.' % period
 
     def _calcNWTstats(self, design, result):
+        """
+
+        """
         from numpy import diag, dot, sqrt
 
         resids = result['resid'].view(np.ndarray)
@@ -188,48 +193,65 @@ class LinearModel(object):
         return result['beta'] / sqrt(diag(dot(xxinv, dot(Xeps, xxinv))))
 
     def tstat(self, period=None):
+        """
+        """
         if period is not None:
             return self._tstats[period]
         else:
             return DataFrame.fromDict(self._tstats).T
 
     def nwTstat(self, period=None):
+        """
+        """
         if period is not None:
             return self._nwTstats[period]
         else:
             return DataFrame.fromDict(self._nwTstats)
 
     def rsquare(self, period=None):
+        """
+
+        """
         if period is not None:
             return self._r2.get(period)
         else:
             return Series.fromDict(self._r2)
 
     def rsquareAdjusted(self, period=None):
+        """
+        """
         if period is not None:
             return self._r2Adjusted.get(period)
         else:
             return Series.fromDict(self._r2Adjusted)
 
     def beta(self, period=None):
+        """
+        """
         if period is not None:
             return self._betas[period]
         else:
             return DataFrame.fromDict(self._betas).T
 
     def resid(self, period=None):
+        """
+        """
         if period is not None:
             return self._resid[period]
         else:
             return Series.fromDict(self._resid)
 
     def forecastMean(self, period=None):
+        """
+        """
         if period is not None:
             return self._forecastMean[period]
         else:
             return Series.fromDict(self._forecastMean)
 
     def forecastVol(self, period=None):
+        """
+        """
         if period is not None:
             return self._forecastVol[period]
         else:
@@ -666,9 +688,14 @@ def parseFormula(formString):
     return lhs.strip(), Formula(rhsVars)
 
 def RLM(X, Y):
+    """
+
+    """
     return sm.RLM(Y, X).fit()
 
 def OLS(X, Y):
+    """
+    """
     return sm.OLS(Y, X).fit()
 
 _funcMap = {
