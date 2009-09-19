@@ -838,7 +838,8 @@ class DataFrame(Picklable, Groupable):
         ----
         Will try to return a TimeSeries if the columns are dates.
         """
-        subset = np.unique(subset) if subset else np.unique(self._series.keys())
+        subset = list(set(subset) if subset else set(self._series.keys()))
+        subset.sort()
 
         rowValues = [self._series[k].get(key) for k in subset]
 
@@ -1018,11 +1019,10 @@ class DataFrame(Picklable, Groupable):
         if hasattr(results.values()[0], '__iter__'):
             return DataFrame(data=results, index=self.index)
         else:
-            newIndex = Index(np.unique(np.asarray(results.keys(),
-                                                  dtype=object)))
+            keyArray = np.asarray(sorted(set(results.keys())), dtype=object)
+            newIndex = Index(keyArray)
 
             arr = np.array([results[idx] for idx in newIndex])
-
             return Series(arr, index=newIndex)
 
     def tapply(self, func):
