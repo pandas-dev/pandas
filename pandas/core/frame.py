@@ -894,28 +894,43 @@ class DataFrame(Picklable, Groupable):
         if len(self.index) == 0:
             return DataFrame(index=newIndex)
 
-        selfM = self.asMatrix()
-
         oldMap = self.index.indexMap
         newMap = newIndex.indexMap
 
-        if not fillMethod:
-            fillMethod = ''
-
-        fillMethod = fillMethod.upper()
-
+        fillMethod = fillMethod.upper() if fillMethod else ''
         if fillMethod not in ['BACKFILL', 'PAD', '']:
             raise Exception("Don't recognize fillMethod: %s" % fillMethod)
 
         fillVec, mask = tseries.getFillVec(self.index, newIndex, oldMap,
                                            newMap, fillMethod)
 
-        tmpMatrix = selfM[fillVec]
-        tmpMatrix[-mask] = NaN
+        # Maybe this is a bit much? Wish I had unit tests...
+        typeHierarchy = [
+            (float, float),
+            (int, float),
+            (bool, np.bool_),
+            (np.bool_, np.bool_),
+            (basestring, object),
+            (object, object)
+        ]
 
-        return DataFrame(data=dict([(col, tmpMatrix[:, j])
-                                        for j, col in enumerate(self.cols())]),
-                                        index=newIndex)
+        missingValue = {
+            float  : NaN,
+            object : None,
+            np.bool_ : False
+        }
+
+        newSeries = {}
+        for col, series in self.iteritems():
+            series = series.view(np.ndarray)
+            for type, dest in typeHierarchy:
+                if issubclass(series.dtype.type, type):
+                    new = series[fillVec].astype(dest)
+                    new[-mask] = missingValue[dest]
+                    newSeries[col] = new
+                    break
+
+        return DataFrame(newSeries, index=newIndex)
 
     @property
     def T(self):
