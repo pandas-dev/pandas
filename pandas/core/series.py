@@ -107,17 +107,6 @@ class Series(np.ndarray, Picklable, Groupable):
         if index is None:
             raise Exception('Index cannot be None!')
 
-        indexTypes = ndarray, Index, list, tuple
-        if not isinstance(index, indexTypes):
-            raise TypeError("Expected index to be in %s; was %s."
-                            % (indexTypes, type(index)))
-
-        if not isinstance(index, Index):
-            index = Index(index)
-
-        if len(data) != len(index):
-            raise AssertionError('Lengths of index and values did not match!')
-
         # Make a copy of the data, infer type
         subarr = array(data, dtype=dtype, copy=copy)
 
@@ -140,12 +129,32 @@ class Series(np.ndarray, Picklable, Groupable):
 
         return subarr
 
+    def _get_index(self):
+        return self._index
+
+    def _set_index(self, index):
+        indexTypes = ndarray, Index, list, tuple
+        if not isinstance(index, indexTypes):
+            raise TypeError("Expected index to be in %s; was %s."
+                            % (indexTypes, type(index)))
+
+        if len(self) != len(index):
+            raise AssertionError('Lengths of index and values did not match!')
+
+        if not isinstance(index, Index):
+            index = Index(index)
+
+        self._index = index
+
+    _index = None
+    index = property(fget=_get_index, fset=_set_index)
+
     def __array_finalize__(self, obj):
         """
         Gets called after any ufunc or other array operations, necessary
         to pass on the index.
         """
-        self.index = getattr(obj, 'index', None)
+        self._index = getattr(obj, '_index', None)
 
     @classmethod
     def fromDict(cls, input={}, castFloat=True, **kwds):
