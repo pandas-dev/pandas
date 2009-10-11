@@ -137,8 +137,9 @@ class WidePanel(Panel):
 
 class LongPanel(Panel):
     """
-
+    Represents long or "stacked" format panel data
     """
+
     def __init__(self, values, fields, major_axis, minor_axis, major_labels,
                  minor_labels, mask=None):
 
@@ -150,11 +151,31 @@ class LongPanel(Panel):
         self.major_labels = major_labels
         self.minor_labels = minor_labels
 
-        self._mask = mask
+        self.__mask = mask
+
+    __bounds = None
+    @property
+    def _bounds(self):
+        if self.__bounds is None:
+            inds = np.arange(len(self.major_axis))
+            self.__bounds = self.major_labels.searchsorted(inds)
+            
+        return self.__bounds
+    
+    @property
+    def _mask(self):
+        """
+        
+        """
+        if self.__mask is None:
+            self.__mask = self._makeMask()
+
+        return self.__mask
         
     def _makeMask(self):
         """
-        Seperate method for testing purposes
+        Create observation selection vector using major and minor
+        labels, for converting to wide format.
         """
         _, N, K = self.dims
         selector = self.minor_labels + K * self.major_labels
@@ -163,13 +184,6 @@ class LongPanel(Panel):
         mask[selector] = True
         
         return mask
-
-    @property
-    def mask(self):
-        if self._mask is None:
-            self._mask = self._maskMask()
-
-        return self._makeMask()
 
     def toString(self, col_space=15, return_=False):
         """
@@ -206,6 +220,10 @@ class LongPanel(Panel):
         """
         Swap major and minor axes and reorder values to be grouped by
         minor axis values
+
+        Returns
+        -------
+        LongPanel (new object)
         """
         # Order everything by minor labels. Have to use mergesort
         # because NumPy quicksort is not stable. Here of course I'm
@@ -219,6 +237,32 @@ class LongPanel(Panel):
         return LongPanel(new_values, self.fields, self.minor_axis,
                          self.major_axis, new_major, new_minor,
                          mask=self._mask)
+
+    def getSlice(self, begin, end):
+        """
+
+        Parameters
+        ----------
+        
+        
+        Returns
+        -------
+        LongPanel
+        """
+        i = self.major_axis.indexMap[begin]
+        j = self.major_axis.indexMap[end] + 1
+
+        if i > j:
+            raise Exception('Must have begin <= end!')
+
+        left, right = self._bounds[i], self._bounds[j]
+
+        return LongPanel(self.values[left : right],
+                         self.fields,
+                         self.major_axis[i : j],
+                         self.minor_axis,
+                         self.major_labels[left : right] - i,
+                         self.minor_labels[left : right])
     
     def toWide(self):
         """
@@ -232,8 +276,8 @@ class LongPanel(Panel):
 
         values = np.empty((F, N, K), dtype=float)
 
-        mask = self.mask
-        notmask = -self.mask
+        mask = self._mask
+        notmask = -mask
         
         for i in xrange(len(self.fields)):
             values[i].flat[mask] = self.values[:, i]
@@ -276,7 +320,7 @@ if __name__ == '__main__':
     from pandas.core.api import DataMatrix, DateRange
     from pandas.stats.linmodel import LinearModel, XSLinearModel
 
-    N = 20
+    N = 5000
     K = 4
 
     start = datetime(2009, 9, 2)
@@ -296,7 +340,6 @@ if __name__ == '__main__':
     }
 
     data['A']['A'][:10] = np.NaN
-
     
     panel = WidePanel.fromDict(data)
 
