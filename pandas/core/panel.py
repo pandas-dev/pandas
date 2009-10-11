@@ -291,9 +291,9 @@ class LongPanel(Panel):
         # using the invariant that the major labels are ordered.
         indexer = self.minor_labels.argsort(kind='mergesort')
 
-        new_major = self.minor_labels[indexer]
-        new_minor = self.major_labels[indexer]
-        new_values = self.values[indexer]
+        new_major = self.minor_labels.take(indexer)
+        new_minor = self.major_labels.take(indexer)
+        new_values = self.values.take(indexer, axis=0)
         
         return LongPanel(new_values, self.items, self.minor_axis,
                          self.major_axis, new_major, new_minor,
