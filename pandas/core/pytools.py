@@ -1,6 +1,7 @@
 """A collection of tools for various purely Python operations"""
 from random import Random
 import base64
+import functools
 import os
 import string
 
@@ -28,11 +29,45 @@ def adjoin(space, *lists):
         outLines.append(''.join(lines))
     return '\n'.join(outLines)
 
+
+def iterpairs(seq):
+    """
+    Parameters
+    ----------
+    seq: sequence
+
+    Returns
+    -------
+    iterator returning overlapping pairs of elements
+
+    Example
+    -------
+    >>> iterpairs([1, 2, 3, 4])
+    [(1, 2), (2, 3), (3, 4)
+    """
+    if len(seq) < 2:
+        raise Exception('Only works on sequences length 2 or greater!')
+
+    seqiter = iter(seq)
+    current = seqiter.next()
+    while True:
+        try:
+            next = seqiter.next()
+            yield current, next
+
+            current = next
+
+        except StopIteration:
+            break
+
 def indent(string, spaces=4):
     dent = ' ' * spaces
     return '\n'.join([dent + x for x in string.split('\n')])
 
 def banner(message):
+    """
+    Return 80-char width message declaration with = bars on top and bottom.
+    """
     bar = '=' * 80
     return '%s\n%s\n%s' % (bar, message, bar)
 
@@ -40,9 +75,9 @@ def banner(message):
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.
-    
+
     Does not require the sequence elements to be sorted by keys,
-    however it is slower. 
+    however it is slower.
     """
     def __init__(self, seq, key=lambda x:x):
         for value in seq:
@@ -58,3 +93,25 @@ def map_indices_py(arr):
     """
     return dict([(x, i) for i, x in enumerate(arr)])
 
+#===============================================================================
+# Set operations
+#===============================================================================
+
+def union(*seqs):
+    result = set([])
+    for seq in seqs:
+        if not isinstance(seq, set):
+            seq = set(seq)
+        result |= seq
+    return type(seqs[0])(list(result))
+
+def difference(a, b):
+    return type(a)(list(set(a) - set(b)))
+
+def intersection(*seqs):
+    result = set(seqs[0])
+    for seq in seqs:
+        if not isinstance(seq, set):
+            seq = set(seq)
+        result &= seq
+    return type(seqs[0])(list(result))

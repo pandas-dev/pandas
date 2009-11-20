@@ -1,7 +1,10 @@
+# pylint: disable-msg=E1101
+# pylint: disable-msg=E1103
+# pylint: disable-msg=W0212
+# pylint: disable-msg=W0231
 from cStringIO import StringIO
 
-from numpy import NaN
-from numpy.lib.format import write_array, read_array
+from numpy import isfinite, NaN
 import numpy as np
 
 from pandas.core.datetools import DateOffset
@@ -260,8 +263,6 @@ class DataMatrix(DataFrame):
         index = Index(rowNames)
         colIndex = Index(colNames)
 
-        idxMap = colIndex.indexMap
-
         return DataMatrix(mat, index=index, columns=colIndex)
 
     @classmethod
@@ -315,7 +316,7 @@ class DataMatrix(DataFrame):
 # Outputting
 
     def toCSV(self, path=None, nanRep='', writeMode='wb', index=True,
-              header=True, cols=None):
+              header=True, cols=None, verbose=False):
         """
         Write the DataMatrix to a CSV file
 
@@ -360,19 +361,17 @@ class DataMatrix(DataFrame):
             f.write('\n')
         if path is not None:
             f.close()
-        print 'CSV file written successfully: %s' % path
 
-    def toString(self, to_stdout=True, verbose=False,
-                 colSpace=15, formatters=None):
+        if verbose:
+            print 'CSV file written successfully: %s' % path
+
+    def toString(self, to_stdout=True, verbose=False, colSpace=15):
         """
         Output a tab-separated version of this DataMatrix
         """
         from cStringIO import StringIO
 
         output = StringIO()
-
-        if formatters is not None:
-            return self._toStringFormatted(formatters)
 
         mat = self.values
         cols = self.columns
@@ -433,12 +432,12 @@ class DataMatrix(DataFrame):
             output += '\n'
 
         output += 'Data columns:\n'
-        space = max([len(str(k)) for k in self.columns]) + 4
+        space = max([len(str(k)) for k in self.cols()]) + 4
 
         isObjects = False
         try:
             counts = isfinite(self.values).sum(0)
-        except:
+        except Exception, e:
             counts = np.repeat(self.values.shape[0], len(self.columns))
             isObjects = True
 
@@ -551,6 +550,7 @@ class DataMatrix(DataFrame):
         return mycopy
 
     def __repr__(self):
+        """Return a string representation for a particular DataMatrix"""
         if self.values is None or len(self.columns) == 0:
             output = 'Empty DataMatrix\nIndex: %s' % repr(self.index)
         elif 0 < len(self.index) < 1000 and self.values.shape[1] < 10:
@@ -641,7 +641,7 @@ class DataMatrix(DataFrame):
         else:
             try:
                 value = np.repeat(value, len(self.index))
-            except:
+            except Exception, e:
                 raise Exception('Could not put %s in the matrix!' % value)
 
         if value.dtype not in self._dataTypes:
@@ -667,7 +667,10 @@ class DataMatrix(DataFrame):
                 self.values = value.reshape((len(value), 1))
                 self.columns = Index([key])
             else:
-                loc = bisect.bisect_right(self.columns, key)
+                try:
+                    loc = bisect.bisect_right(self.columns, key)
+                except TypeError:
+                    loc = len(self.columns)
                 if loc == self.values.shape[1]:
                     newValues = np.c_[self.values, value]
                     newColumns = Index(np.concatenate((self.columns, [key])))
@@ -695,7 +698,11 @@ class DataMatrix(DataFrame):
                 self.values = value.reshape((len(value), 1)).astype(np.float)
                 self.columns = Index([key])
             else:
-                loc = bisect.bisect_right(self.columns, key)
+                try:
+                    loc = bisect.bisect_right(self.columns, key)
+                except TypeError:
+                    loc = len(self.columns)
+
                 if loc == self.values.shape[1]:
                     newValues = np.c_[self.values, value]
                     newColumns = Index(np.concatenate((self.columns, [key])))
@@ -817,7 +824,7 @@ class DataMatrix(DataFrame):
 
         Could probably deal with some Cython action in here at some point
         """
-        if self.index is other.index:
+        if self.index.equals(other.index):
             newIndex = self.index
             myReindex = self
             hisReindex = other
@@ -834,7 +841,7 @@ class DataMatrix(DataFrame):
             return self * NaN
 
         myValues = myReindex.values
-        if self.columns is other.columns:
+        if self.columns.equals(other.columns):
             newCols = self.columns
             commonCols = self.columns
         else:
@@ -865,7 +872,7 @@ class DataMatrix(DataFrame):
         newCols = self.columns
         if self.index._allDates and other.index._allDates:
             # Operate row-wise
-            if self.index is other.index:
+            if self.index.equals(other.index):
                 newIndex = self.index
             else:
                 newIndex = self.index + other.index
@@ -918,7 +925,7 @@ class DataMatrix(DataFrame):
             newCols = self.columns
             try:
                 resultMatrix = func(self.values, other)
-            except:
+            except Exception, e:
                 raise Exception('Bad operator value: %s' % other)
 
         # TODO: deal with objects
@@ -979,7 +986,7 @@ class DataMatrix(DataFrame):
         asarray: boolean, default False
             Choose to return as ndarray or have index attached
         """
-        y = array(self.values, subok=True)
+        y = np.array(self.values, subok=True)
         if not issubclass(y.dtype.type, np.int_):
             y[np.isnan(self.values)] = 0
         theSum = y.cumsum(axis)
@@ -1004,8 +1011,6 @@ class DataMatrix(DataFrame):
         -------
         DataMatrix with rows containing any NaN values deleted
         """
-        T, N = self.values.shape
-
         if specificColumns:
             theCount = self.filterItems(specificColumns).count(axis=1,
                                                                asarray=True)
@@ -1207,7 +1212,7 @@ class DataMatrix(DataFrame):
         loc = self.index.indexMap[key]
 
         if subset:
-            subset = np.unique(subset)
+            subset = sorted(set(subset))
             indexer = [self.columns.indexMap[col] for col in subset]
             theSlice = self.values[loc, indexer].copy()
             xsIndex = subset
@@ -1253,7 +1258,7 @@ class DataMatrix(DataFrame):
 
         fillVec, mask = tseries.getMergeVec(self[on], indexMap)
 
-        tmpMatrix = otherM[fillVec]
+        tmpMatrix = otherM.take(fillVec, axis=0)
         tmpMatrix[-mask] = NaN
 
         seriesDict = dict((col, tmpMatrix[:, j])
@@ -1263,9 +1268,8 @@ class DataMatrix(DataFrame):
             objects = otherFrame.objects
 
             objM = objects.asMatrix()
-            cols = objects.columns
 
-            tmpMat = objM[fillVec]
+            tmpMat = objM.take(fillVec, axis=0)
             tmpMat[-mask] = NaN
             objDict = dict((col, tmpMat[:, j])
                            for j, col in enumerate(objects.columns))
@@ -1292,7 +1296,7 @@ class DataMatrix(DataFrame):
         DataMatrix
         """
         if newIndex is self.index:
-            return self
+            return self.copy()
 
         if len(newIndex) == 0:
             return DataMatrix(index=NULL_INDEX)
@@ -1318,7 +1322,7 @@ class DataMatrix(DataFrame):
         fillVec, mask = tseries.getFillVec(self.index, newIndex, oldMap,
                                            newMap, fillMethod)
 
-        tmpMatrix = selfM[fillVec]
+        tmpMatrix = selfM.take(fillVec, axis=0)
         tmpMatrix[-mask] = NaN
 
         if self.objects is not None and len(self.objects.columns) > 0:
@@ -1416,7 +1420,8 @@ class DataMatrix(DataFrame):
                               columns=self.columns, objects=self.objects)
         elif isinstance(results, dict):
             if isinstance(results.values()[0], np.ndarray):
-                return DataMatrix(results, objects=self.objects)
+                return DataMatrix(results, index=self.index,
+                                  objects=self.objects)
             else:
                 return Series.fromDict(results)
         else:
@@ -1445,7 +1450,7 @@ class DataMatrix(DataFrame):
         results = npfunc(self.values)
         try:
             results = results.astype(self.values.dtype)
-        except:
+        except Exception, e:
             return DataFrame.fromMatrix(results, self.columns, self.index)
         return DataMatrix(data=results, index=self.index, columns=self.columns)
 
@@ -1487,6 +1492,27 @@ class DataMatrix(DataFrame):
         """
         newCols = Index([c for c in self.columns if arg in c])
         return self._withColumns(newCols)
+
+    def append(self, otherFrame):
+        if not otherFrame:
+            return self
+        if not self:
+            return otherFrame
+        if (isinstance(otherFrame, DataMatrix) and
+            list(self.columns) == list(otherFrame.columns)):
+
+            idx = Index(np.concatenate([self.index, otherFrame.index]))
+            mat = np.vstack((self.values, otherFrame.values))
+            dm = DataMatrix(mat, idx, self.columns)
+            if otherFrame.objects is None:
+                dm.objects = self.objects
+            elif self.objects is None:
+                dm.objects = otherFrame.objects
+            else:
+                dm.objects = self.objects.append(otherFrame.objects)
+            return dm
+        else:
+            return super(DataMatrix, self).append(otherFrame)
 
     def combineFirst(self, otherFrame):
         """
@@ -1567,8 +1593,8 @@ class DataMatrix(DataFrame):
         result = {}
         for col in unionCols:
             if col in frame and col in otherFrame:
-                series = frame[col].view(ndarray)
-                otherSeries = otherFrame[col].view(ndarray)
+                series = frame[col].view(np.ndarray)
+                otherSeries = otherFrame[col].view(np.ndarray)
                 sok = np.isfinite(series)
                 ook = np.isfinite(otherSeries)
 
@@ -1578,7 +1604,7 @@ class DataMatrix(DataFrame):
             elif col in frame:
                 result[col] = frame[col]
             elif col in otherFrame:
-                result[col]= otherFrame[col]
+                result[col] = otherFrame[col]
             else:
                 raise Exception('Phantom column, be very afraid')
 
@@ -1614,7 +1640,7 @@ class DataMatrix(DataFrame):
 
         return DataMatrix.fromDict(mergedSeries)
 
-    def leftJoin(self, *frames, **kwds):
+    def leftJoin(self, *frames):
         """
         Insert columns of input DataFrames / dicts into this one.
 
@@ -1643,7 +1669,6 @@ class DataMatrix(DataFrame):
                 raise Exception('Overlapping columns!')
             unionCols |= cols
 
-        newColumns = Index(sorted(unionCols))
         seriesDict = self._series
 
         for frame in frames:
@@ -1651,25 +1676,3 @@ class DataMatrix(DataFrame):
             seriesDict.update(frame._series)
 
         return DataMatrix(seriesDict, index=self.index)
-
-    def append(self, otherFrame):
-        if not otherFrame:
-            return self
-        if not self:
-            return otherFrame
-        if (isinstance(otherFrame, DataMatrix) and
-            list(self.columns) == list(otherFrame.columns)):
-            #if len(self.index.diff(otherFrame.index)) != len(self.index):
-            #    raise ValueError('Index cannot overlap')
-            idx = Index(np.concatenate([self.index, otherFrame.index]))
-            mat = np.vstack((self.values, otherFrame.values))
-            dm = DataMatrix(mat, idx, self.columns)
-            if otherFrame.objects is None:
-                dm.objects = self.objects
-            elif self.objects is None:
-                dm.objects = otherFrame.objects
-            else:
-                dm.objects = self.objects.append(otherFrame.objects)
-            return dm
-        else:
-            return super(DataMatrix, self).append(otherFrame)

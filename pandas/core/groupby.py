@@ -100,7 +100,13 @@ class GroupBy(object):
         ------
         Sequence of (groupName, subsetted object) for each group
         """
-        for groupName, groupList in self.groups.iteritems():
+        try:
+            groupNames = sorted(self.groups)
+        except Exception, e:
+            groupNames = self.groups.keys()
+
+        for groupName in groupNames:
+            groupList = self.groups[groupName]
             yield groupName, self.getGroup(groupList)
 
     def aggregate(self, func):
@@ -115,6 +121,8 @@ class GroupBy(object):
     def apply(self, func):
         return self.transform(func)
 
+    def __getitem__(self, key):
+        return self.getGroup(self.groups[key])
 
 class SeriesGroupBy(GroupBy):
 
@@ -156,7 +164,7 @@ class SeriesGroupBy(GroupBy):
             try:
                 result = groupby(self.obj.index, self.obj,
                                  self.grouper, applyfunc)
-            except:
+            except Exception:
                 result = {}
                 theUnion = set([])
                 for groupName, groupList in self.groups.iteritems():
@@ -218,7 +226,6 @@ class SeriesGroupBy(GroupBy):
             allSeries.update(subseries.iteritems())
 
         return Series.fromDict(allSeries)
-
 
 class DataFrameGroupBy(GroupBy):
     def __init__(self, obj, grouper):
@@ -378,4 +385,3 @@ class DataMatrixGroupBy(DataFrameGroupBy):
             allSeries.update(frame._series)
 
         return DataMatrix(data = allSeries).T
-

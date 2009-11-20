@@ -496,7 +496,7 @@ class XSLinearModel(LinearModel):
 
         try:
             end = self.endSlice[period2]
-        except:
+        except Exception, e:
             period2 = max((k for k in self.endSlice.keys() if k < period2))
             end = self.endSlice[period2]
 
@@ -571,7 +571,7 @@ class XSLinearModel(LinearModel):
                 oneDaySlice = self.getDataSlice(period, period)
                 unstacked = resid.reindex(oneDaySlice.index).unstack()
                 self._resid[period] = unstacked[period]
-            except:
+            except Exception, e:
                 raise
 
     def _calcNWTstats(self, panelSlice, design, beta, resids):

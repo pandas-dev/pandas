@@ -1,3 +1,7 @@
+# pylint: disable-msg=E1101
+# pylint: disable-msg=E1103
+# pylint: disable-msg=W0212
+
 import operator
 
 from numpy import NaN
@@ -10,6 +14,8 @@ from pandas.core.mixins import Picklable, Groupable
 from pandas.core.series import Series, remove_na
 from pandas.lib.tseries import isnull, notnull
 import pandas.lib.tseries as tseries
+#-------------------------------------------------------------------------------
+# Factory helper methods
 
 def arith_method(func, name):
     def f(self, other):
@@ -39,9 +45,9 @@ class DataFrame(Picklable, Groupable):
 
     Notes
     -----
-    Data contained within is COPIED from input arrays, this is to prevent silly
-    behavior like altering the original arrays and having those changes
-    reflected in the frame.
+    Data contained within is COPIED from input arrays, this is to
+    prevent silly behavior like altering the original arrays and
+    having those changes reflected in the frame.
 
     See also
     --------
@@ -84,7 +90,7 @@ class DataFrame(Picklable, Groupable):
 
     # Alternate constructors
     @classmethod
-    def fromDict(cls, inputDict={}, castFloat=True, **kwds):
+    def fromDict(cls, inputDict=None, castFloat=True, **kwds):
         """
         Convert a two-level tree representation of a series or time series
         to a DataFrame.
@@ -113,33 +119,86 @@ class DataFrame(Picklable, Groupable):
         df1 = DataFrame.fromDict(myDict)
         df2 = DataFrame.fromDict(A=seriesA, B=seriesB)
         """
-        if not hasattr(inputDict, 'iteritems'):
-            raise Exception('Input must be dict or dict-like!')
+        if inputDict is None:
+            inputDict = {}
+        else:
+            if not hasattr(inputDict, 'iteritems'):
+                raise Exception('Input must be dict or dict-like!')
+            inputDict = inputDict.copy()
 
-        inputDict = inputDict.copy()
         inputDict.update(kwds)
 
         if len(inputDict) == 0:
             return DataFrame(index=NULL_INDEX)
+        elif len(inputDict) == 1:
+            index = inputDict.values()[0].keys()
+            if not isinstance(index, Index):
+                index = Index(sorted(index))
 
-        # Get set of indices
-        indices = set([])
-        for key, branch in inputDict.iteritems():
-            indices = indices | set(branch.keys())
-        index = Index(sorted(indices))
+        else:
+            # GET set of indices
+            indices = set([])
+            for key, branch in inputDict.iteritems():
+                indices = indices | set(branch.keys())
+            index = Index(sorted(indices))
 
         columns = {}
         for key, branch in inputDict.iteritems():
-            tmp = [branch.get(i, NaN) for i in index]
+            if isinstance(branch, Series):
+                tmp = branch.reindex(index)
+            else:
+                tmp = [branch.get(i, NaN) for i in index]
+
             try:
                 if castFloat:
                     columns[key] = Series(tmp, dtype=float, index=index)
                 else:
                     columns[key] = Series(tmp, index=index)
-            except:
+            except Exception, e:
                 columns[key] = Series(tmp, index=index)
 
         return DataFrame(data=columns, index=index)
+
+    @classmethod
+    def fromRecords(cls, data, indexField=None):
+        """
+        Convert structured or record ndarray to DataFrame
+
+        Parameters
+        ----------
+        input: NumPy structured array
+
+        Returns
+        -------
+        DataFrame
+        """
+        # Dtype when you have records
+        if data.dtype.type != np.void:
+            raise Exception('Input was not a structured array!')
+
+        columns = data.dtype.names
+        dataDict = dict((k, data[k]) for k in columns)
+
+        if indexField is not None:
+            index = dataDict.pop(indexField)
+        else:
+            index = np.arange(len(data))
+
+        return cls(dataDict, index=index)
+
+    def toRecords(self):
+        """
+        Convert DataFrame to record array. Index will be put in the
+        'index' field of the record array.
+
+        Returns
+        -------
+        recarray
+        """
+        arrays = [self.index] + [self[c] for c in self.cols()]
+        names = ['index'] + list(self.cols())
+
+        return np.rec.fromarrays(arrays, names=names)
 
     @classmethod
     def fromMatrix(cls, mat, colNames, rowNames):
@@ -230,28 +289,31 @@ class DataFrame(Picklable, Groupable):
         """
         Retrieve column or slice from DataFrame
         """
-        if isinstance(item, slice):
-            start, stop = item.start, item.stop
-            start = 0 if start is None else start
-            stop = len(self) if stop is None else stop
-            if start < 0:
-                start += len(self)
-            if stop < 0:
-                stop += len(self)
-
-            dateRange = self.index[start:stop]
-            newColumns = {}
-            for col, series in self.iteritems():
-                newColumns[col] = series[start:stop]
-            return DataFrame(data=newColumns, index=dateRange)
-        elif isinstance(item, np.ndarray):
-            if len(item) != len(self.index):
-                raise Exception('Item wrong length %d instead of %d!' %
-                                (len(item), len(self.index)))
-            newIndex = self.index[item]
-            return self.reindex(newIndex)
-        else:
+        try:
             return self._series[item]
+        except (TypeError, KeyError):
+            if isinstance(item, slice):
+                start, stop = item.start, item.stop
+                start = 0 if start is None else start
+                stop = len(self) if stop is None else stop
+                if start < 0:
+                    start += len(self)
+                if stop < 0:
+                    stop += len(self)
+
+                dateRange = self.index[start:stop]
+                newColumns = {}
+                for col, series in self.iteritems():
+                    newColumns[col] = series[start:stop]
+                return DataFrame(data=newColumns, index=dateRange)
+            elif isinstance(item, np.ndarray):
+                if len(item) != len(self.index):
+                    raise Exception('Item wrong length %d instead of %d!' %
+                                    (len(item), len(self.index)))
+                newIndex = self.index[item]
+                return self.reindex(newIndex)
+            else:
+                raise
 
     def __setitem__(self, key, value):
         """
@@ -278,7 +340,7 @@ class DataFrame(Picklable, Groupable):
                 self._series[key] = Series.fromValue(value, index=self.index)
         except AssertionError:
             raise
-        except:
+        except Exception, e:
             raise Exception('Could not put key, value pair in Frame!')
 
     def __delitem__(self, key):
@@ -347,7 +409,7 @@ class DataFrame(Picklable, Groupable):
         newColumns = {}
         newIndex = self.index
 
-        if self.index is other.index:
+        if self.index.equals(other.index):
             newIndex = self.index
         else:
             newIndex = self.index + other.index
@@ -388,7 +450,7 @@ class DataFrame(Picklable, Groupable):
             if not self:
                 return DataFrame(index=other.index)
 
-            if self.index is other.index:
+            if self.index.equals(other.index):
                 newIndex = self.index
             else:
                 newIndex = self.index + other.index
@@ -441,7 +503,7 @@ class DataFrame(Picklable, Groupable):
 # Public methods
 
     def toCSV(self, path=None, nanRep='', cols=None, inclHeader=True,
-              inclIndex=True):
+              inclIndex=True, verbose=False):
         """
         Write the DataFrame to a CSV file
         """
@@ -470,7 +532,9 @@ class DataFrame(Picklable, Groupable):
             f.write('\n')
         if path is not None:
             f.close()
-        print 'CSV file written successfully: %s' % path
+
+        if verbose:
+            print 'CSV file written successfully: %s' % path
 
     def toDict(self):
         """
@@ -496,7 +560,7 @@ class DataFrame(Picklable, Groupable):
     def toString(self, to_stdout=True, verbose=False, colSpace=15, nanRep=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
-        skeys = sorted(self.cols())
+        skeys = sorted(series.keys())
         if len(skeys) == 0 or len(self.index) == 0:
             output = 'Empty DataFrame\n'
             output += self.index.__repr__()
@@ -530,7 +594,7 @@ class DataFrame(Picklable, Groupable):
                                                     max(self.index))
         output += 'Columns:\n'
         series = self._series
-        skeys = sorted(series.keys())
+        skeys = sorted(self.cols())
         space = max([len(str(k)) for k in skeys]) + 4
         for k in skeys:
             out = _pfixed(k, space)
@@ -689,7 +753,7 @@ class DataFrame(Picklable, Groupable):
 
         if specificColumns:
             colSet = set(specificColumns)
-            intersection= set(self.cols()) & colSet
+            intersection = set(self.cols()) & colSet
 
             N = len(intersection)
 
@@ -862,15 +926,9 @@ class DataFrame(Picklable, Groupable):
         values: string or object
             Column name to use for populating new frame's values
         """
-        from itertools import izip
-        tree = {}
-        for i, (idx, col) in enumerate(izip(self[index], self[columns])):
-            if col not in tree:
-                tree[col] = {}
-            branch = tree[col]
-            branch[idx] = self[values][i]
+        from pandas.core.panel import pivot, _slow_pivot
 
-        return self.fromDict(tree)
+        return _slow_pivot(self[index], self[columns], self[values])
 
     def reindex(self, newIndex, fillMethod = None):
         """
@@ -884,7 +942,7 @@ class DataFrame(Picklable, Groupable):
             Method to use for filling holes in reindexed DataFrame
         """
         if newIndex is self.index:
-            return self
+            return self.copy()
 
         if len(newIndex) == 0:
             return DataFrame(index=NULL_INDEX)
@@ -926,7 +984,7 @@ class DataFrame(Picklable, Groupable):
             series = series.view(np.ndarray)
             for type, dest in typeHierarchy:
                 if issubclass(series.dtype.type, type):
-                    new = series[fillVec].astype(dest)
+                    new = series.take(fillVec).astype(dest)
                     new[-mask] = missingValue[dest]
                     newSeries[col] = new
                     break
@@ -1047,6 +1105,12 @@ class DataFrame(Picklable, Groupable):
             results[col] = map(func, series)
         return DataFrame(data=results, index=self.index)
 
+    def tgroupby(self, keyfunc, applyfunc):
+        """
+        Call groupby on transposed frame
+        """
+        return self.T.groupby(keyfunc).aggregate(applyfunc).T
+
     def filterItems(self, items):
         """
         Restrict frame's columns to input set of items.
@@ -1062,29 +1126,6 @@ class DataFrame(Picklable, Groupable):
         """
         data = dict([(r, self[r]) for r in items if r in self])
         return DataFrame(data=data, index=self.index)
-
-    def stack(self, indexCombineFunc= (lambda x, y: str(y.toordinal())+';'+x)):
-        """
-        Converts a DataFrame object with columns [col1, col2, ..., colN] and
-        indices [idx1, ... idxT] into a series with indices [col1:idx1,
-        col1:idx2, ... colN:idxT]
-
-        For doing pooled cross-sectional regressions.
-        """
-        cols = self.cols()
-        mat = self.asMatrix()
-
-        newIndices = {}
-        for i, index in enumerate(self.index):
-            theOrd = str(index.toordinal()) + ';'
-            newIndices[i] = [theOrd + col for col in cols]
-
-        N = len(self.index)
-
-        newIndex = np.concatenate([newIndices[i] for i in xrange(N)])
-        newValues = np.concatenate([mat[i, :] for i in xrange(N)])
-
-        return Series(newValues, index=newIndex)
 
     def sortUp(self, column=None):
         """
@@ -1148,7 +1189,7 @@ class DataFrame(Picklable, Groupable):
 
         Returns
         -------
-        DataFrmae
+        DataFrame
         """
         if not otherFrame:
             return self
@@ -1224,7 +1265,7 @@ class DataFrame(Picklable, Groupable):
             elif col in frame:
                 result[col] = frame[col]
             elif col in otherFrame:
-                result[col]= otherFrame[col]
+                result[col] = otherFrame[col]
             else:
                 raise Exception('Phantom column, be very afraid')
 
@@ -1274,13 +1315,13 @@ class DataFrame(Picklable, Groupable):
 
         return mergedSeries
 
-    def merge(self, otherFrame, on=None):
+    def merge(self, other, on=None):
         """
         Merge DataFrame or DataMatrix with this one on some many-to-one index
 
         Parameters
         ----------
-        otherFrame: DataFrame
+        other: DataFrame
             Index should be similar to one of the columns in this one
         on: string
             Column name to use
@@ -1294,26 +1335,31 @@ class DataFrame(Picklable, Groupable):
         c   1
         d   0
         """
-        if len(otherFrame.index) == 0:
+        if len(other.index) == 0:
             return self
 
         if on not in self:
             raise Exception('%s column not contained in this frame!' % on)
 
-        otherM = otherFrame.asMatrix()
-        indexMap = otherFrame.index.indexMap
+        # Check for column overlap
+        overlap = set(self.cols()) & set(other.cols())
 
-        fillVec, mask = tseries.getMergeVec(self[on], indexMap)
+        if any(overlap):
+            raise Exception('Columns overlap: %s' % sorted(overlap))
 
-        tmpMatrix = otherM[fillVec]
-        tmpMatrix[-mask] = NaN
+        fillVec, mask = tseries.getMergeVec(self[on], other.index.indexMap)
 
-        seriesDict = dict((col, tmpMatrix[:, j])
-                           for j, col in enumerate(otherFrame.cols()))
+        newSeries = {}
 
-        filledFrame = DataFrame(data=seriesDict, index=self.index)
+        for col, series in other.iteritems():
+            arr = series.view(ndarray).take(fillVec)
+            arr[-mask] = NaN
 
-        return self.leftJoin(filledFrame)
+            newSeries[col] = arr
+
+        newSeries.update(self._series)
+
+        return DataFrame(newSeries, index=self.index)
 
     def plot(self, kind='line', **kwds):
         """
@@ -1332,7 +1378,7 @@ class DataFrame(Picklable, Groupable):
         """
         try:
             plot
-        except:
+        except Exception, e:
             from pylab import plot
 
         for col in sorted(self.columns):
@@ -1355,7 +1401,15 @@ class DataFrame(Picklable, Groupable):
         -------
         Series or TimeSeries
         """
-        theCount = np.isfinite(self.values).sum(axis)
+        try:
+            theCount = np.isfinite(self.values).sum(axis)
+        except Exception, e:
+            f = lambda s: notnull(s).sum()
+            if axis == 0:
+                theCount = self.apply(f)
+            elif axis == 1:
+                theCount = self.tapply(f)
+
         if asarray:
             return theCount
         else:
@@ -1402,8 +1456,8 @@ class DataFrame(Picklable, Groupable):
                 y[np.isnan(y)] = 0
             theSum = y.sum(axis)
             theCount = self.count(axis)
-            theSum[theCount==0] = NaN
-        except:
+            theSum[theCount == 0] = NaN
+        except Exception, e:
             if axis == 0:
                 theSum = self.apply(np.sum)
             else:
@@ -1440,8 +1494,8 @@ class DataFrame(Picklable, Groupable):
                 y[np.isnan(y)] = 1
             theProd = y.prod(axis)
             theCount = self.count(axis)
-            theProd[theCount==0] = NaN
-        except:
+            theProd[theCount == 0] = NaN
+        except Exception, e:
             if axis == 0:
                 theProd = self.apply(np.prod)
             else:
@@ -1464,8 +1518,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis: {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1481,8 +1533,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis: {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1496,6 +1546,82 @@ class DataFrame(Picklable, Groupable):
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
+
+    def min(self, axis=0):
+        """
+        Return array or Series of minimums over requested axis.
+
+        Parameters
+        ----------
+        axis: {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        if axis == 0:
+            med = [np.min(remove_na(self[col])) for col in self.columns]
+            return Series(med, index=self.columns)
+        elif axis == 1:
+            med = [np.min(remove_na(self.getXS(k))) for k in self.index]
+            return Series(med, index=self.index)
+        else:
+            raise Exception('Must have 0<= axis <= 1')
+
+    def max(self, axis=0):
+        """
+        Return array or Series of maximums over requested axis.
+
+        Parameters
+        ----------
+        axis: {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        if axis == 0:
+            med = [np.max(remove_na(self[col])) for col in self.columns]
+            return Series(med, index=self.columns)
+        elif axis == 1:
+            med = [np.max(remove_na(self.getXS(k))) for k in self.index]
+            return Series(med, index=self.index)
+        else:
+            raise Exception('Must have 0<= axis <= 1')
+
+    def mad(self, axis=0, asarray=False):
+        """
+        Return array or Series of mean absolute deviation over
+        requested axis.
+
+        Parameters
+        ----------
+        axis: {0, 1}
+            0 for row-wise, 1 for column-wise
+        asarray: boolean, default False
+            Choose to return as ndarray or have index attached
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        if axis == 0:
+            demeaned = self-self.mean(axis=axis)
+        else:
+            demeaned = (self.T-self.mean(axis=axis)).T
+        y = np.array(demeaned.values, subok=True)
+        if not issubclass(y.dtype.type, np.int_):
+            y[np.isnan(y)] = 0
+
+        if asarray:
+            return np.sum(np.abs(y), axis)
+
+        if axis == 0:
+            return Series(np.sum(np.abs(y), axis), self.cols())
+        else:
+            return Series(np.sum(np.abs(y), axis), self.index)
 
     def var(self, axis=0, asarray=False):
         """
@@ -1600,6 +1726,21 @@ class DataFrame(Picklable, Groupable):
         """
         raise Exception('Not implemented yet!')
 
+    def _withColumns(self, newCols):
+        """
+        Utility method, force values matrix to have particular columns
+        Can make this as cute as we like
+        """
+        if len(newCols) == 0:
+            return DataFrame(index=self.index)
+
+        newFrame = self.filterItems(newCols)
+
+        for col in newCols:
+            if col not in newFrame:
+                newFrame[col] = NaN
+
+        return newFrame
 def _pfixed(s, space, nanRep=None):
     if isinstance(s, float):
         fstring = '%-' + str(space-4) + 'g'

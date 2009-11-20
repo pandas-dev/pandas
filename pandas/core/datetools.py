@@ -29,7 +29,7 @@ def to_datetime(input):
         return input
     try:
         return parser.parse(input)
-    except:
+    except Exception:
         return input
 
 def normalize_date(dt):
@@ -41,45 +41,48 @@ def normalize_date(dt):
 class DateOffset(object):
     """
     Standard kind of date increment used for a date range.
-    
-    Works exactly like relativedelta in terms of the keyword args you pass in,
-    use of the keyword n is discouraged-- you would be better off specifying
-    n in the keywords you use, but regardless it is there for you. n is needed
-    for DateOffset subclasses.
-    
-    DateOffets work as follows.  Each offset specify a set of dates that 
-    conform to the DateOffset.  For example, Bday defines this set to be the
-    set of dates that are weekdays (M-F).  To test if a date is in the set
-    of a DateOffset dateOffset we can use the onOffset method:
-    dateOffset.onOffset(date).  
-    
-    If a date is not on a valid date, the rollback and rollforward methods can
-    be used to roll the date to the nearest valid date before/after the date.
-    
-    DateOffsets can be created to move dates forward a given number of valid
-    dates.  For example, Bday(2) can be added to a date to move it two 
-    business days forward.  If the date does not start on a valid date, first
-    it is moved to a valid date.  Thus psedo code is:
-    
+
+    Works exactly like relativedelta in terms of the keyword args you
+    pass in, use of the keyword n is discouraged-- you would be better
+    off specifying n in the keywords you use, but regardless it is
+    there for you. n is needed for DateOffset subclasses.
+
+    DateOffets work as follows.  Each offset specify a set of dates
+    that conform to the DateOffset.  For example, Bday defines this
+    set to be the set of dates that are weekdays (M-F).  To test if a
+    date is in the set of a DateOffset dateOffset we can use the
+    onOffset method: dateOffset.onOffset(date).
+
+    If a date is not on a valid date, the rollback and rollforward
+    methods can be used to roll the date to the nearest valid date
+    before/after the date.
+
+    DateOffsets can be created to move dates forward a given number of
+    valid dates.  For example, Bday(2) can be added to a date to move
+    it two business days forward.  If the date does not start on a
+    valid date, first it is moved to a valid date.  Thus psedo code
+    is:
+
     def __add__(date):
       date = rollback(date) # does nothing is date is valid
       return date + <n number of periods>
 
-    When a date offset is created for a negitive number of periods, the date
-    is first rolled forward.  The psedo code is:
-    
+    When a date offset is created for a negitive number of periods,
+    the date is first rolled forward.  The pseudo code is:
+
     def __add__(date):
       date = rollforward(date) # does nothing is date is valid
-      return date + <n number of periods>      
-      
-    Zero presents a problem.  Should it roll forward or back?  We arbitrarily 
-    have it rollforward:
-    
+      return date + <n number of periods>
+
+    Zero presents a problem.  Should it roll forward or back?  We
+    arbitrarily have it rollforward:
+
     date + BDay(0) == BDay.rollforward(date)
-    
+
     Since 0 is a bit weird, we suggest avoiding its use.
-    """    
-    # For some offsets, want to drop the time information off the first date
+    """
+    # For some offsets, want to drop the time information off the
+    # first date
     _normalizeFirst = False
     def __init__(self, n = 1, **kwds):
         self.n = int(n)
@@ -114,7 +117,8 @@ class DateOffset(object):
         exclude = set(['n', 'inc'])
         attrs = []
         for attr in self.__dict__:
-            if attr == 'kwds' and len(self.kwds) == 0:
+            if ((attr == 'kwds' and len(self.kwds) == 0)
+                or attr.startswith('_')):
                 continue
             if attr not in exclude:
                 attrs.append('='.join((attr, repr(getattr(self, attr)))))
@@ -124,8 +128,8 @@ class DateOffset(object):
         out += '>'
         return out
 
-    def __eq__(self, other):        
-        return self._params() == other._params() 
+    def __eq__(self, other):
+        return self._params() == other._params()
 
     def __hash__(self):
         return hash(self._params())
@@ -134,7 +138,7 @@ class DateOffset(object):
         return self.apply(other)
 
     def __add__(self, other):
-        return self.apply(other)        
+        return self.apply(other)
 
     def __radd__(self, other):
         return self.__add__(other)
@@ -150,10 +154,10 @@ class DateOffset(object):
 
     def __rmul__(self, someInt):
         return self.__class__(n = someInt * self.n, **self.kwds)
-    
+
     def __neg__(self):
         return self.__class__(-self.n, **self.kwds)
-    
+
     def __contains__(self, other):
         return self.onOffset(other)
 
@@ -161,7 +165,7 @@ class DateOffset(object):
         """Roll provided date backward to next offset only if not on offset"""
         if self._normalizeFirst:
             someDate = normalize_date(someDate)
-        
+
         if not self.onOffset(someDate):
             someDate = someDate - self.__class__(1, **self.kwds)
         return someDate
@@ -174,12 +178,12 @@ class DateOffset(object):
         if not self.onOffset(someDate):
             someDate = someDate + self.__class__(1, **self.kwds)
         return someDate
-        
+
     @classmethod
     def onOffset(cls, someDate):
-        # Default (slow) method for determining if some date is a member of 
-        # the DateRange generated by this offset. Subclasses may have this
-        # re-implemented in a nicer way. 
+        # Default (slow) method for determining if some date is a
+        # member of the DateRange generated by this offset. Subclasses
+        # may have this re-implemented in a nicer way.
         obj = cls()
         return someDate == ((someDate + obj) - obj)
 
@@ -190,21 +194,56 @@ class BDay(DateOffset):
     """
     _normalizeFirst = True
     _outputName = 'BusinessDay'
+    def __init__(self, n=1, **kwds):
+        self.n = int(n)
+        self.kwds = kwds
+        self.offset = kwds.get('offset', timedelta(0))
+        self.normalize = kwds.get('normalize', True)
+
+    def __repr__(self):
+        className = getattr(self, '_outputName', self.__class__.__name__)
+        exclude = set(['n', 'inc'])
+        attrs = []
+
+        if self.offset:
+            attrs = ['offset=%s' % self.offset]
+
+        out = '<%s ' % self.n + className + ('s' if abs(self.n) != 1 else '')
+        if attrs:
+            out += ': ' + ', '.join(attrs)
+        out += '>'
+        return out
 
     def isAnchored(self):
         return (self.n == 1)
 
     def apply(self, other):
-        if not isinstance(other, datetime):
-            raise Exception('Only know how to add business day to a datetime!')
-        n = self.n
-        if n == 0 and other.weekday() > 4:
-            n = 1
-        while n != 0:
-            other = other + timedelta(n/abs(n))
-            if other.weekday() < 5: n -= n/abs(n)
-        return datetime(other.year, other.month, other.day)
+        if isinstance(other, datetime):
+            n = self.n
+            if n == 0 and other.weekday() > 4:
+                n = 1
 
+            result = other
+
+            while n != 0:
+                result = result + timedelta(n/abs(n))
+                if result.weekday() < 5:
+                    n -= n/abs(n)
+
+            if self.normalize:
+                result = datetime(result.year, result.month, result.day)
+
+            if self.offset:
+                result = result + self.offset
+
+            return result
+
+        elif isinstance(other, (timedelta, Tick)):
+            return BDay(self.n, offset=self.offset + other,
+                        normalize=self.normalize)
+        else:
+            raise Exception('Only know how to combine business day with '
+                            'datetime or timedelta!')
     @classmethod
     def onOffset(cls, someDate):
         return someDate.weekday() < 5
@@ -227,9 +266,10 @@ class MonthEnd(DateOffset):
 
     @classmethod
     def onOffset(cls, someDate):
-        __junk, nDaysInMonth = calendar.monthrange(someDate.year, someDate.month)
+        __junk, nDaysInMonth = calendar.monthrange(someDate.year,
+                                                   someDate.month)
         return someDate.day == nDaysInMonth
-        
+
 class BMonthEnd(DateOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessMonthEnd'
@@ -240,19 +280,19 @@ class BMonthEnd(DateOffset):
 
     def apply(self, other):
         n = self.n
-        
+
         wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
         lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
-        
+
         if n > 0 and not other.day >= lastBDay:
-            n = n - 1      
+            n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
         other = other + relativedelta(months=n, day=31)
-        
+
         if other.weekday() > 4:
-            other = other - BDay()        
-        return other 
+            other = other - BDay()
+        return other
 
 
 class Week(DateOffset):
@@ -270,21 +310,21 @@ class Week(DateOffset):
     def __init__(self, n=1, **kwds):
         self.n = n
         self.dayOfWeek = kwds.get('dayOfWeek', None)
-        
+
         if self.dayOfWeek is not None:
             if self.dayOfWeek < 0 or self.dayOfWeek > 6:
                 raise Exception('Day must be 0<=day<=6, got %d' % self.dayOfWeek)
-            
+
         self.inc = timedelta(weeks=1)
         self.kwds = kwds
 
     def isAnchored(self):
         return (self.n == 1 and self.dayOfWeek is not None)
-        
+
     def apply(self, other):
         if self.dayOfWeek is None:
             return other + self.n * self.inc
-        
+
         if self.n > 0:
             k = self.n
             otherDay = other.weekday()
@@ -301,7 +341,7 @@ class Week(DateOffset):
             for i in xrange(-k):
                 other = other - self.inc
         return other
-    
+
     def onOffset(self, someDate):
         return someDate.weekday() == self.dayOfWeek
 
@@ -318,65 +358,65 @@ class BQuarterEnd(DateOffset):
     def __init__(self, n=1, **kwds):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
-        
+
         if self.startingMonth < 1 or self.startingMonth > 3:
-            raise Exception('Start month must be 1<=day<=12, got %d' 
+            raise Exception('Start month must be 1<=day<=12, got %d'
                             % self.startingMonth)
-            
+
         self.offset = BMonthEnd(3)
         self.kwds = kwds
 
     def isAnchored(self):
         return (self.n == 1 and self.startingMonth is not None)
-        
+
     def apply(self, other):
         n = self.n
 
         wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
         lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
-        
+
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
             monthsToGo = 0
-        
+
         if n > 0 and not (other.day >= lastBDay and monthsToGo == 0):
-            n = n - 1      
+            n = n - 1
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
         other = other + relativedelta(months=monthsToGo + 3*n, day=31)
-        
+
         if other.weekday() > 4:
             other = other - BDay()
-        
-        return other 
+
+        return other
 
     def onOffset(self, someDate):
         modMonth = (someDate.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(someDate) and modMonth == 0
-        
+
 class BYearEnd(DateOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessYearEnd'
     _normalizeFirst = True
-    
+
     def apply(self, other):
         n = self.n
 
         wkday, nDaysInMonth = calendar.monthrange(other.year, 12)
         lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
-        
+
         if n > 0 and not (other.month == 12 and other.day >= lastBDay):
-            n = n - 1      
+            n = n - 1
         elif n <= 0 and other.month == 12 and other.day > lastBDay:
             n = n + 1
 
         other = other + relativedelta(years=n, month=12, day=31)
-        
+
         if other.weekday() > 4:
             other = other - BDay()
-        
-        return other                
+
+        return other
 
 
 class YearEnd(DateOffset):
@@ -394,7 +434,7 @@ class YearEnd(DateOffset):
 
     @classmethod
     def onOffset(cls, someDate):
-        return someDate.month == 12 and someDate.day == 31    
+        return someDate.month == 12 and someDate.day == 31
 
 
 class YearBegin(DateOffset):
@@ -409,29 +449,29 @@ class YearBegin(DateOffset):
                 n = n + 1
         other = other + relativedelta(years = n, day=1)
         return other
-    
+
     @classmethod
     def onOffset(cls, someDate):
-        return someDate.month == 1 and someDate.day == 1    
+        return someDate.month == 1 and someDate.day == 1
 
 #-------------------------------------------------------------------------------
 # Ticks
-    
+
 class Tick(DateOffset):
     pass
     
 class Hour(Tick):
     _normalizeFirst = False
     _delta = None
-    _inc = timedelta(60)
-    
+    _inc = timedelta(0, 3600)
+
     @property
     def delta(self):
         if self._delta is None:
             self._delta = self.n * self._inc
-            
+
         return self._delta
-    
+
     def apply(self, other):
         return other + self.delta
 
@@ -439,14 +479,14 @@ class Minute(Tick):
     _normalizeFirst = False
     _delta = None
     _inc = timedelta(0, 60)
-    
+
     @property
     def delta(self):
         if self._delta is None:
             self._delta = self.n * self._inc
-            
+
         return self._delta
-    
+
     def apply(self, other):
         return other + self.delta
 
@@ -454,19 +494,19 @@ class Second(Tick):
     _normalizeFirst = False
     _delta = None
     _inc = timedelta(0, 1)
-    
+
     @property
     def delta(self):
         if self._delta is None:
             self._delta = self.n * self._inc
-            
+
         return self._delta
-    
+
     def apply(self, other):
         return other + self.delta
-    
+
 day = DateOffset()
-bday = BDay()
+bday = BDay(normalize=True)
 businessDay = bday
 monthEnd = MonthEnd()
 yearEnd = YearEnd()

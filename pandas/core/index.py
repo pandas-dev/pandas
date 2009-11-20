@@ -1,6 +1,15 @@
 import numpy as np
 from pandas.lib.tdates import isAllDates
 from pandas.lib.tseries import map_indices
+def _indexOp(opname):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+    def wrapper(self, other):
+        func = getattr(self.view(np.ndarray), opname)
+        return func(other)
+    return wrapper
 
 
 class Index(np.ndarray):
@@ -27,16 +36,29 @@ class Index(np.ndarray):
         if self.ndim == 0:
             return self.item()
 
-        if len(self) > 0:
+        # New instance creation
+        if obj is None:
             self.indexMap = map_indices(self)
+            self._allDates = isAllDates(self)
 
-            if hasattr(obj, '_allDates'):
-                self._allDates = obj._allDates
-            else:
-                self._allDates = isAllDates(self)
+        # New from template / slicing
+        elif isinstance(obj, type(self)) and len(self) != len(obj.indexMap):
+            self.indexMap = map_indices(self)
+            self._allDates = isAllDates(self)
+
+        # View casting
         else:
-            self.indexMap = {}
-            self._allDates = False
+            self.indexMap = getattr(obj, 'indexMap', map_indices(self))
+            self._allDates = getattr(obj, '_allDates', isAllDates(self))
+
+        self._checkForDuplicates()
+
+    def _checkForDuplicates(self):
+        if len(self.indexMap) < len(self):
+            raise Exception('Index cannot contain duplicate values!')
+
+    def __iter__(self):
+        return iter(self.view(np.ndarray))
 
     def __setstate__(self,state):
         """Necessary for making this object picklable"""
@@ -59,11 +81,10 @@ class Index(np.ndarray):
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
-        result = self.view(np.ndarray)[key]
-        if isinstance(result, np.ndarray):
-            return Index(result)
+        if np.isscalar(key):
+            return np.ndarray.__getitem__(self, key)
         else:
-            return result
+            return Index(self.view(np.ndarray)[key])
 
     def equals(self, other):
         """
@@ -78,15 +99,11 @@ class Index(np.ndarray):
         if not isinstance(other, Index):
             return False
 
-        if len(self) != len(other):
-            return False
-
-        return self._md5 == other._md5
+        return np.array_equal(self, other)
 
     def _computeMD5(self):
         import hashlib
-        m = hashlib.md5(self.tostring())
-        return m.hexdigest()
+        return hashlib.md5(self.data).hexdigest()
 
     @property
     def _md5(self):
@@ -113,11 +130,20 @@ class Index(np.ndarray):
     def sort(self, *args, **kwargs):
         raise Exception('Tried to sort an Index object, too dangerous to be OK!')
 
+    def argsort(self, *args, **kwargs):
+        return self.view(np.ndarray).argsort(*args, **kwargs)
+
     def __add__(self, other):
         if isinstance(other, Index):
             return self.union(other)
         else:
             return np.ndarray.__add__(self, other)
+
+    __eq__ = _indexOp('__eq__')
+    __lt__ = _indexOp('__lt__')
+    __gt__ = _indexOp('__gt__')
+    __le__ = _indexOp('__le__')
+    __ge__ = _indexOp('__ge__')
 
     def union(self, other):
         """
@@ -136,12 +162,18 @@ class Index(np.ndarray):
 
         if other is self:
             return self
-        newElts = filter(lambda x: x not in self.indexMap, other)
+
+        if isinstance(other, Index):
+            if self.equals(other):
+                return self
+
+        f = self.indexMap.__contains__
+        newElts = [x for x in other if not f(x)]
         if len(newElts) > 0:
             newSeq = np.concatenate((self, newElts))
             try:
                 newSeq = np.unique(newSeq)
-            except:
+            except Exception, e:
                 # Not sortable / multiple types
                 pass
             return Index(newSeq)
