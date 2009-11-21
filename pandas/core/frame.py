@@ -1706,24 +1706,6 @@ class DataFrame(Picklable, Groupable):
         else:
             raise Exception('Must have 0<= axis <= 1')
 
-    # TODO
-    def kurtosis(self, axis=0):
-        """
-        Return array or Series of unbiased kurtosis over requested axis.
-
-        Parameters
-        ----------
-        axis: {0, 1}
-            0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
-            Choose to return as ndarray or have index attached
-
-        Returns
-        -------
-        Series or TimeSeries
-        """
-        raise Exception('Not implemented yet!')
-
     def _withColumns(self, newCols):
         """
         Utility method, force values matrix to have particular columns
