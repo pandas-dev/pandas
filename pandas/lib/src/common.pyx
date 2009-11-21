@@ -1,14 +1,12 @@
 include "datetime.pxi"
-include "numpy.pxi"
 include "Python.pxi"
-
-# initialize numpy
-import_array()
 
 cimport numpy as np
 cimport cython
 from numpy cimport *
-from python_dict cimport *
+
+from python_dict cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
+                          PyDict_Contains, PyDict_Keys)
 from python_float cimport PyFloat_Check
 
 import numpy as np
@@ -80,3 +78,8 @@ cpdef map_indices(ndarray index):
 
 cdef extern from "math.h":
     double sqrt(double x)
+
+
+# initialize numpy
+import_array()
+

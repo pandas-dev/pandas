@@ -1,40 +1,3 @@
-def reindexNew(ndarray index, ndarray arr, dict idxMap):
-    '''
-    Using the provided new index, a given array, and a mapping of index-value
-    correpondences in the value array, return a new ndarray conforming to
-    the new index.
-
-    This is significantly faster than doing it in pure Python.
-    '''
-    cdef ndarray result
-    cdef double *result_data
-    cdef int i, length
-    cdef flatiter itera, iteridx
-    cdef double nan
-    cdef object idx
-
-    nan = <double> np.NaN
-
-    length = PyArray_SIZE(index)
-
-    result = <ndarray> np.empty(length, np.float64)
-
-    result_data = <double *> result.data
-
-    itera = PyArray_IterNew(arr)
-    iteridx = PyArray_IterNew(index)
-
-    for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, <void *> iteridx.dataptr)
-        PyArray_ITER_NEXT(iteridx)
-        if idx not in idxMap:
-            result_data[i] = nan
-            continue
-        PyArray_ITER_GOTO1D(itera, idxMap[idx])
-        result_data[i] = (<double *>(itera.dataptr))[0]
-
-    return result
-
 
 def reindex(ndarray index, ndarray arr, dict idxMap):
     '''
@@ -59,17 +22,17 @@ def reindex(ndarray index, ndarray arr, dict idxMap):
 
     result_data = <double *> result.data
 
-    itera = PyArray_IterNew(arr)
-    iteridx = PyArray_IterNew(index)
+    itera = <flatiter> PyArray_IterNew(arr)
+    iteridx = <flatiter> PyArray_IterNew(index)
 
     for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, <void *> iteridx.dataptr)
+        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iteridx))
         PyArray_ITER_NEXT(iteridx)
         if idx not in idxMap:
             result_data[i] = nan
             continue
         PyArray_ITER_GOTO1D(itera, idxMap[idx])
-        result_data[i] = (<double *>(itera.dataptr))[0]
+        result_data[i] = (<double *>PyArray_ITER_DATA(itera))[0]
 
     return result
 
@@ -91,25 +54,25 @@ def reindexObj(ndarray index, ndarray arr, dict idxMap):
 
     result = <ndarray> np.empty(length, dtype=np.object_)
 
-    itera = PyArray_IterNew(arr)
-    iteridx = PyArray_IterNew(index)
-    iterresult = PyArray_IterNew(result)
+    itera = <flatiter> PyArray_IterNew(arr)
+    iteridx = <flatiter> PyArray_IterNew(index)
+    iterresult = <flatiter> PyArray_IterNew(result)
 
     cdef int res
 
     for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, <void *> iteridx.dataptr)
+        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iteridx))
         PyArray_ITER_NEXT(iteridx)
 
         if idx not in idxMap:
-            PyArray_SETITEM(result, <void *> iterresult.dataptr, nan)
+            PyArray_SETITEM(result, PyArray_ITER_DATA(iterresult), nan)
             PyArray_ITER_NEXT(iterresult)
             continue
 
         PyArray_ITER_GOTO1D(itera, idxMap[idx])
-        obj = PyArray_GETITEM(arr, <void *> itera.dataptr)
+        obj = PyArray_GETITEM(arr, PyArray_ITER_DATA(itera))
 
-        res = PyArray_SETITEM(result, <void *> iterresult.dataptr, obj)
+        res = PyArray_SETITEM(result, PyArray_ITER_DATA(iterresult), obj)
         PyArray_ITER_NEXT(iterresult)
 
     return result
@@ -160,10 +123,10 @@ cdef tuple _nofill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap)
     newLength = PyArray_SIZE(fillVec)
 
     length = PyArray_SIZE(oldIndex)
-    iterold = PyArray_IterNew(oldIndex)
+    iterold = <flatiter> PyArray_IterNew(oldIndex)
 
     for i from 0 <= i < length:
-        idx = PyArray_GETITEM(oldIndex, <void *> iterold.dataptr)
+        idx = PyArray_GETITEM(oldIndex, PyArray_ITER_DATA(iterold))
         if i < length - 1:
            PyArray_ITER_NEXT(iterold)
         if idx in newMap:
@@ -217,8 +180,8 @@ cdef tuple _backfill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMa
 
     # Create the iterators
     cdef flatiter iterold, iternew
-    iterold = PyArray_IterNew(oldIndex)
-    iternew = PyArray_IterNew(newIndex)
+    iterold = <flatiter> PyArray_IterNew(oldIndex)
+    iternew = <flatiter> PyArray_IterNew(newIndex)
 
     # Get the size
     oldLength = PyArray_SIZE(oldIndex)
@@ -238,10 +201,10 @@ cdef tuple _backfill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMa
         PyArray_ITER_GOTO1D(iterold, oldPos)
 
         # Get the current index
-        curOld = PyArray_GETITEM(oldIndex, <void *> iterold.dataptr)
+        curOld = PyArray_GETITEM(oldIndex, PyArray_ITER_DATA(iterold))
 
         # Until we reach a point where we are before the curOld point
-        while PyArray_GETITEM(newIndex, <void *> iternew.dataptr) > curOld:
+        while PyArray_GETITEM(newIndex, PyArray_ITER_DATA(iternew)) > curOld:
             newPos -= 1
             if newPos < 0:
                 break
@@ -254,7 +217,7 @@ cdef tuple _backfill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMa
         if oldPos == 0:
 
             # Make sure we are before the curOld index
-            if PyArray_GETITEM(newIndex, <void *> iternew.dataptr) <= curOld:
+            if PyArray_GETITEM(newIndex, PyArray_ITER_DATA(iternew)) <= curOld:
                 fillVec[:newPos + 1] = curLoc
                 maskVec[:newPos + 1] = 1
 
@@ -266,10 +229,10 @@ cdef tuple _backfill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMa
             PyArray_ITER_GOTO1D(iterold, oldPos - 1)
 
             # Get the index there
-            prevOld = PyArray_GETITEM(oldIndex, <void *> iterold.dataptr)
+            prevOld = PyArray_GETITEM(oldIndex, PyArray_ITER_DATA(iterold))
 
             # Until we reach the previous index
-            while PyArray_GETITEM(newIndex, <void *> iternew.dataptr) > prevOld:
+            while PyArray_GETITEM(newIndex, PyArray_ITER_DATA(iternew)) > prevOld:
 
                 # Set the current fill location
                 fillLocs[newPos] = curLoc
@@ -334,8 +297,8 @@ cdef tuple _pad(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
     mask = <char *> maskVec.data
 
     # Create simple ndarray iterators using C API
-    iterold = PyArray_IterNew(oldIndex)
-    iternew = PyArray_IterNew(newIndex)
+    iterold = <flatiter> PyArray_IterNew(oldIndex)
+    iternew = <flatiter> PyArray_IterNew(newIndex)
 
     # Length of each index
     oldLength = PyArray_SIZE(oldIndex)
@@ -344,11 +307,11 @@ cdef tuple _pad(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
     oldPos = 0
     newPos = 0
     while newPos < newLength:
-        curOld = PyArray_GETITEM(oldIndex, <void *> iterold.dataptr)
+        curOld = PyArray_GETITEM(oldIndex, PyArray_ITER_DATA(iterold))
 
         # At beginning, keep going until we go exceed the
         # first OLD index in the NEW index
-        while PyArray_GETITEM(newIndex, <void *> iternew.dataptr) < curOld:
+        while PyArray_GETITEM(newIndex, PyArray_ITER_DATA(iternew)) < curOld:
             newPos += 1
             if newPos > newLength - 1:
                 break
@@ -359,7 +322,7 @@ cdef tuple _pad(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
 
         # We're at the end of the road, need to propagate this value to the end
         if oldPos == oldLength - 1:
-            if PyArray_GETITEM(newIndex, <void *> iternew.dataptr) >= curOld:
+            if PyArray_GETITEM(newIndex, PyArray_ITER_DATA(iternew)) >= curOld:
                 fillVec[newPos:] = curLoc
                 maskVec[newPos:] = 1
             break
@@ -368,12 +331,12 @@ cdef tuple _pad(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
 
             # Get the next index so we know when to stop propagating this value
             PyArray_ITER_NEXT(iterold)
-            nextOld = PyArray_GETITEM(oldIndex, <void *> iterold.dataptr)
+            nextOld = PyArray_GETITEM(oldIndex, PyArray_ITER_DATA(iterold))
 
             done = 0
 
             # Until we reach the next OLD value in the NEW index
-            while PyArray_GETITEM(newIndex, <void *> iternew.dataptr) < nextOld:
+            while PyArray_GETITEM(newIndex, PyArray_ITER_DATA(iternew)) < nextOld:
 
                 # Use this location to fill
                 fillLocs[newPos] = curLoc
@@ -437,10 +400,10 @@ def getMergeVec(ndarray values, dict indexMap):
     mask = <char *> maskVec.data
 
     length = PyArray_SIZE(values)
-    itervals = PyArray_IterNew(values)
+    itervals = <flatiter> PyArray_IterNew(values)
 
     for i from 0 <= i < length:
-        val = PyArray_GETITEM(values, <void *> itervals.dataptr)
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(itervals))
         if val in indexMap:
             j = indexMap[val]
             fillLocs[i] = j
