@@ -65,12 +65,11 @@ cpdef map_indices(ndarray index):
 
     result = {}
 
-    iter = PyArray_IterNew(index)
-
+    iter = <flatiter> PyArray_IterNew(index)
     length = PyArray_SIZE(index)
 
     for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, <void *> iter.dataptr)
+        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iter))
         result[idx] = i
         PyArray_ITER_NEXT(iter)
 
