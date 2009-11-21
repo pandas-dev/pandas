@@ -12,9 +12,9 @@ from numpy import array, NaN, ndarray
 import numpy as np
 
 from pandas.core.daterange import DateRange
-from pandas.core.datetools import to_datetime
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
+import pandas.core.datetools as datetools
 
 from pandas.lib.tseries import isnull, notnull
 import pandas.lib.tseries as tseries
@@ -1067,8 +1067,8 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         TimeSeries
         """
-        before = to_datetime(before)
-        after = to_datetime(after)
+        before = datetools.to_datetime(before)
+        after = datetools.to_datetime(after)
 
         if before is None:
             before = min(self.index)

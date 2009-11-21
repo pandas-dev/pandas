@@ -8,12 +8,13 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.daterange import DateRange
-from pandas.core.datetools import DateOffset, to_datetime
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
 from pandas.core.series import Series, remove_na
 from pandas.lib.tseries import isnull, notnull
+import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
+
 #-------------------------------------------------------------------------------
 # Factory helper methods
 
@@ -861,8 +862,8 @@ class DataFrame(Picklable, Groupable):
         """
         import bisect
 
-        before = to_datetime(before)
-        after = to_datetime(after)
+        before = datetools.to_datetime(before)
+        after = datetools.to_datetime(after)
 
         if before is not None:
             binsearch = bisect.bisect_left(self.index, before)
@@ -926,7 +927,7 @@ class DataFrame(Picklable, Groupable):
         values: string or object
             Column name to use for populating new frame's values
         """
-        from pandas.core.panel import pivot, _slow_pivot
+        from pandas.core.panel import _slow_pivot
 
         return _slow_pivot(self[index], self[columns], self[values])
 
@@ -1352,7 +1353,7 @@ class DataFrame(Picklable, Groupable):
         newSeries = {}
 
         for col, series in other.iteritems():
-            arr = series.view(ndarray).take(fillVec)
+            arr = series.view(np.ndarray).take(fillVec)
             arr[-mask] = NaN
 
             newSeries[col] = arr
@@ -1376,10 +1377,7 @@ class DataFrame(Picklable, Groupable):
         NOTE: This method doesn't make much sense for cross-sections,
         and will error.
         """
-        try:
-            plot
-        except Exception, e:
-            from pylab import plot
+        from pylab import plot
 
         for col in sorted(self.columns):
             s = self[col]

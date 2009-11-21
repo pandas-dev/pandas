@@ -1,19 +1,15 @@
 from pandas.core.daterange import DateRange
 from pandas.core.datetools import bday
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index, NULL_INDEX
+from pandas.core.index import Index
 from pandas.core.series import Series
-from pandas.lib.tseries import map_indices
 from copy import deepcopy
 from datetime import datetime
-from numpy import isnan, array, NaN, alltrue
+from numpy import isnan, array
 from numpy import random
 from random import choice
 import numpy as np
-import os
-import pickle
 import string
-import sys
 import unittest
 
 def rands(n):
@@ -54,7 +50,7 @@ class TestDataFrame(unittest.TestCase):
                 else:
                     self.assert_(isnan(val))
         for col, series in newFrame.iteritems():
-            self.assert_(equalContents(series.index, newFrame.index))    
+            self.assert_(equalContents(series.index, newFrame.index))
         emptyFrame = self.frame.reindex(Index([]))
         self.assert_(len(emptyFrame.index) == 0)
 
@@ -69,7 +65,7 @@ class TestDataFrame(unittest.TestCase):
                 else:
                     self.assert_(isnan(val))
         for col, series in nonContigFrame.iteritems():
-            self.assert_(equalContents(series.index, nonContigFrame.index))    
+            self.assert_(equalContents(series.index, nonContigFrame.index))
 
     def testShift(self):
         shiftedFrame = self.frame.shift(5)
@@ -77,7 +73,7 @@ class TestDataFrame(unittest.TestCase):
             self.assert_(idx-5*bday == self.frame.index[i])
         series = shiftedFrame['col1']
         for i, idx in enumerate(series.index):
-            self.assert_(idx-5*bday == self.frame.index[i])        
+            self.assert_(idx-5*bday == self.frame.index[i])
 
     def testOperators(self):
         garbage = random.random(4)
@@ -111,28 +107,6 @@ class TestDataFrame(unittest.TestCase):
         for key, value in self.frame._series.iteritems():
             self.assert_(self.frame[key] is not None)
         self.assert_('random' not in self.frame)
-        
-    def testStack(self):
-        frameSlice = self.frame.getTS(fromDate=self.frame.index[0], nPeriods=5)
-        stacked = frameSlice.stack()
-        for idx, value in stacked.iteritems():
-            date, col = idx.split(';')
-            date = datetime.fromordinal(int(date))
-            if isnan(value):
-                self.assert_(isnan(frameSlice[col][date]))
-            else:
-                self.assertEquals(value, frameSlice[col][date])
-
-        unstacked = stacked.unstack().T
-        
-        for i, idx in enumerate(unstacked.index):
-            self.assertEquals(idx, frameSlice.index[i])
-        for col, series in unstacked.iteritems():
-            for idx, value in series.iteritems():
-                if isnan(value):
-                    self.assert_(isnan(frameSlice[col][idx]))
-                else:                
-                    self.assertEquals(value, frameSlice[col][idx])
 
     def testSetItem(self):
         # not sure what else to do here
@@ -144,7 +118,7 @@ class TestDataFrame(unittest.TestCase):
         sumFrame = self.frame.apply(np.sum)
         for col, series in self.frame.iteritems():
             self.assertEqual(sumFrame[col], series.sum())
-        
+
     def testDelItem(self):
         del self.frame['col1']
         self.assert_('col1' not in self.frame)
@@ -196,7 +170,7 @@ class TestDataFrame(unittest.TestCase):
                     self.assert_(isnan(frame[col][i]))
                 else:
                     self.assertEqual(value, frame[col][i])
-        
+
     def testDeepcopy(self):
         cp = deepcopy(self.frame)
         series = cp['col1']
@@ -206,16 +180,16 @@ class TestDataFrame(unittest.TestCase):
 
     def testFilterItems(self):
         pass
-    
+
     def testGroupBy(self):
-        
+
         pass
 
     def testApply(self):
-        pass    
+        pass
 
     def testSort(self):
-        pass    
+        pass
 
     def testToCSV(self):
         pass
@@ -225,7 +199,7 @@ class TestDataFrame(unittest.TestCase):
 
     def testToDictList(self):
         pass
-    
+
     def testDictToDataFrame(self):
         pass
 
@@ -239,11 +213,11 @@ class TestDataFrame(unittest.TestCase):
                 self.assertEqual(newFrame['col1'][idx], self.ts1[idx])
             if idx in self.ts2.index:
                 self.assertEqual(newFrame['col2'][idx], self.ts2[idx])
-            
-    
-    def testPreserveReferences(self):        
+
+
+    def testPreserveReferences(self):
         pass
-    
+
     def testCleanNaN(self):
         pass
 

@@ -4,14 +4,14 @@
 # pylint: disable-msg=W0231
 from cStringIO import StringIO
 
+from numpy.lib.format import read_array, write_array
 from numpy import isfinite, NaN
 import numpy as np
 
-from pandas.core.datetools import DateOffset
 from pandas.core.frame import DataFrame, _pfixed
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.series import Series, remove_na
-from pandas.lib.tseries import isnull, notnull
+from pandas.core.series import Series
+from pandas.lib.tseries import isnull
 import pandas.lib.tseries as tseries
 
 #-------------------------------------------------------------------------------
