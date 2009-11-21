@@ -16,6 +16,11 @@ pyx_ext = Extension('tseries', ['pandas/lib/src/tseries.pyx',
                                   'pandas/lib/include/'])
 
 
+dates_ext = Extension('tdates', ['src/tdates.c'],
+                      include_dirs=[numpy.get_include()])
+
+setup(name='tdates', description='Nothing', ext_modules=[dates_ext])
+
 setup(name='pandas.lib.tseries', description='Nothing',
       ext_modules=[pyx_ext],
       cmdclass = {
