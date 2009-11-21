@@ -1112,6 +1112,7 @@ class Series(np.ndarray, Picklable, Groupable):
         else:
             return None
 
+
 class TimeSeries(Series):
     pass
 
