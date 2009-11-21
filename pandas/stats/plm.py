@@ -19,7 +19,7 @@ from pandas.util.decorators import cache_readonly
 
 import pandas.stats.common as common
 import pandas.stats.math as math
-import pandas.stats.moments as moments
+import pandas.lib.tseries as tseries
 
 class PanelOLS(OLS):
     """Implements panel OLS.
@@ -969,8 +969,8 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         else:
             window = self._window
 
-        result = moments.rollingSum(self._time_obs_count, window,
-                                    minPeriods=1)
+        result = tseries.rolling_sum(self._time_obs_count, window,
+                                     minp=1)
 
         return result.astype(int)
 
@@ -980,9 +980,8 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
 
     @cache_readonly
     def _window_time_obs(self):
-        window_obs = moments.rollingSum(self._time_obs_count > 0,
-                                        self._window,
-                                        minPeriods=1)
+        window_obs = tseries.rolling_sum(self._time_obs_count > 0,
+                                         self._window, minp=1)
 
         window_obs[np.isnan(window_obs)] = 0
         return window_obs.astype(int)
