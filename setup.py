@@ -2,11 +2,8 @@
 
 from distutils.core import Extension
 from numpy.distutils.misc_util import Configuration
-from numpy.distutils.system_info import get_info
 from numpy.distutils.core import setup
 import numpy
-import os
-import sys
 
 config = Configuration('pandas', parent_package=None, top_path=None)
 
