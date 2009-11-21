@@ -10,10 +10,10 @@ config = Configuration('pandas', parent_package=None, top_path=None)
 from Cython.Distutils import build_ext
 
 
-pyx_ext = Extension('tseries', ['pandas/lib/src/tseries.pyx',
-                                'pandas/lib/src/wirth.c'],
+pyx_ext = Extension('tseries', ['src/tseries.pyx',
+                                'src/wirth.c'],
                     include_dirs=[numpy.get_include(),
-                                  'pandas/lib/include/'])
+                                  'include/'])
 
 
 dates_ext = Extension('tdates', ['src/tdates.c'],
