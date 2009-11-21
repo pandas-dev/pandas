@@ -1,6 +1,10 @@
+# pylint: disable-msg=E1101
+# pylint: disable-msg=E1103
+
 import numpy as np
 from pandas.lib.tdates import isAllDates
 from pandas.lib.tseries import map_indices
+
 def _indexOp(opname):
     """
     Wrapper function for Series arithmetic operations, to avoid

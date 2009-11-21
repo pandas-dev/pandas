@@ -3,13 +3,34 @@
 from distutils.core import Extension
 from numpy.distutils.misc_util import Configuration
 from numpy.distutils.system_info import get_info
+from numpy.distutils.core import setup
 import numpy
 import os
 import sys
 
 config = Configuration('pandas', parent_package=None, top_path=None)
 
-cython_ext = Extension('pandas.lib.tseries', ['pandas/lib/src/tseries.c'],
+def get_cython_ext():
+    from Cython.Distutils import build_ext
+    from distutils.extension import Extension
+
+    pyx_ext = Extension('tseries', ['pandas/lib/src/tseries.pyx',
+                                    'pandas/lib/src/wirth.c'],
+                        include_dirs=[numpy.get_include(),
+                                      'pandas/lib/include/'])
+
+
+    setup(name='pandas.lib.tseries', description='Nothing',
+          ext_modules=[pyx_ext],
+          cmdclass = {
+              'build_ext' : build_ext
+          })
+
+# get_cython_ext()
+# sys.exit()
+
+cython_ext = Extension('pandas.lib.tseries', ['pandas/lib/src/tseries.c',
+                                              'pandas/lib/src/wirth.c'],
                        include_dirs=[numpy.get_include(),
                                      'pandas/lib/include/'])
 
@@ -22,7 +43,6 @@ except:
     pass
 
 if __name__ == '__main__':
-    from numpy.distutils.core import setup
     setup(version="0.1",
           description="Panel and time series data analysis toolkit",
           author="AQR Capital Management, LLC",

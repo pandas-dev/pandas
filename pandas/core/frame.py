@@ -931,7 +931,7 @@ class DataFrame(Picklable, Groupable):
 
         return _slow_pivot(self[index], self[columns], self[values])
 
-    def reindex(self, newIndex, fillMethod = None):
+    def reindex(self, newIndex, fillMethod=None):
         """
         Reindex data inside, optionally filling according to some rule.
 
@@ -1739,6 +1739,7 @@ class DataFrame(Picklable, Groupable):
                 newFrame[col] = NaN
 
         return newFrame
+
 def _pfixed(s, space, nanRep=None):
     if isinstance(s, float):
         fstring = '%-' + str(space-4) + 'g'

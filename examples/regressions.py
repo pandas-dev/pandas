@@ -3,8 +3,8 @@ import string
 
 import numpy as np
 
-from pandas.core.api import DataMatrix, DateRange
-from pandas.stats.linmodel import LinearModel, XSLinearModel
+from pandas.core.api import Series, DataMatrix, DateRange
+from pandas.stats.api import ols
 
 N = 100
 
@@ -18,21 +18,18 @@ def makeDataMatrix():
 
     return data
 
+def makeSeries():
+    return Series(np.random.randn(N), index=dateRange)
+
 #-------------------------------------------------------------------------------
 # Standard rolling linear regression
 
-data = makeDataMatrix()
-model = LinearModel(data, window=100, minPeriods=80)
-model.parseFormula('A ~ B + C + D + E + F + G + I')
-model.fit()
+X = makeDataMatrix()
+Y =  makeSeries()
 
-# Extremely basic summary
+model = ols(y=Y, x=X)
 
-model.summary(dateRange[-1])
-
-print model.beta()
-print model.rsquare()
-print model.tstat()
+print model
 
 #-------------------------------------------------------------------------------
 # Panel regression
@@ -43,8 +40,8 @@ data = {
     'C' : makeDataMatrix()
 }
 
-panelModel = XSLinearModel(data, window=50, minPeriods=20)
-panelModel.parseFormula('A ~ B + C + I')
-panelModel.fit()
+Y = makeDataMatrix()
 
-# Same diagnostic statistics as per above
+panelModel = ols(y=Y, x=data, window=50)
+
+print panelModel

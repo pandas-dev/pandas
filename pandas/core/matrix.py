@@ -1280,7 +1280,7 @@ class DataMatrix(DataFrame):
 
         return self.leftJoin(filledFrame)
 
-    def reindex(self, newIndex, fillMethod = None):
+    def reindex(self, newIndex, fillMethod=None):
         """
         Reindex data inside, optionally filling according to some rule.
 
