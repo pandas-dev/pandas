@@ -72,7 +72,7 @@ class TestOLSFilter(unittest.TestCase):
         self.tsAssertEqual(exp_rhs2, rhs['x2'])
 
     def tsAssertEqual(self, ts1, ts2):
-        self.assert_((ts1 == ts2).all())
+        self.assert_(np.array_equal(ts1, ts2))
 
 if __name__ == '__main__':
     unittest.main()

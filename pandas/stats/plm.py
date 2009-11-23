@@ -306,10 +306,9 @@ class PanelOLS(OLS):
         X = self._x_trans_raw
         Y = self._y_trans_raw
 
-        XX = np.dot(X.T, X)
-        XY = np.dot(X.T, Y)
+        beta, ssr, rank, sing = np.linalg.lstsq(X, Y)
 
-        return math.solve(XX, XY)
+        return beta
 
     @cache_readonly
     def beta(self):
@@ -478,10 +477,6 @@ class PanelOLS(OLS):
     def _time_has_obs(self):
         return self._time_obs_count > 0
 
-    @property
-    def _total_times(self):
-        return self._time_has_obs.sum()
-
 def _convertDummies(dummies, mapping):
     # cleans up the names of the generated dummies
     new_items = []
@@ -559,7 +554,8 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         ENTITY or TIME, indicating entity/time clustering
     """
     def __init__(self, y, x, weights=None,
-                 window_type=common.ROLLING, window=10, min_periods=0,
+                 window_type=common.ROLLING, window=10,
+                 min_periods=None,
                  intercept=True,
                  nw_lags=None, nw_overlap=False,
                  entity_effects=False,
@@ -584,42 +580,13 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
 
         self._window_type = common._get_window_type(window_type)
         self._window = window
-        self._min_periods = min_periods
+        self._min_periods = window if min_periods is None else min_periods
 
     @cache_readonly
     def beta(self):
         return DataMatrix(self._beta_raw,
                           index=self._result_index,
                           columns=self._x.items)
-
-    @cache_readonly
-    def _beta_raw(self):
-        """Runs the regression and returns the beta."""
-        beta, indices = self._rolling_ols_call
-
-        return beta[indices]
-
-    @cache_readonly
-    def rank(self):
-        return Series(self._rank_raw, index=self._result_index)
-
-    @cache_readonly
-    def _rank_raw(self):
-        rank = self._rolling_rank
-
-        return rank[self._valid_indices]
-
-    @cache_readonly
-    def _result_index(self):
-        return self._index[self._valid_indices]
-
-    @property
-    def _valid_indices(self):
-        return self._rolling_ols_call[1]
-
-    @cache_readonly
-    def _rolling_ols_call(self):
-        return self._calc_betas()
 
     def _calc_betas(self):
         N = len(self._index)
@@ -661,12 +628,11 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         cum_xx = []
 
         last = np.zeros((K, K))
-        for i in xrange(len(dates)):
+        for i, date in enumerate(dates):
             if not valid[i]:
                 cum_xx.append(last)
                 continue
 
-            date = dates[i]
             x_slice = x.getValueSlice(date, date)
             xx = last = last + np.dot(x_slice.T, x_slice)
             cum_xx.append(xx)
@@ -679,12 +645,11 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         cum_xy = []
 
         last = np.zeros((len(x.items), 1))
-        for i in xrange(len(dates)):
+        for i, date in enumerate(dates):
             if not valid[i]:
                 cum_xy.append(last)
                 continue
 
-            date = dates[i]
             x_slice = x.getValueSlice(date, date)
             y_slice = y.getValueSlice(date, date)
 
@@ -692,10 +657,6 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
             cum_xy.append(xy)
 
         return cum_xy
-
-    @property
-    def _is_rolling(self):
-        return self._window_type == common.ROLLING
 
     @cache_readonly
     def _rolling_rank(self):
@@ -732,11 +693,6 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
             df += self._window_time_obs
 
         return df[self._valid_indices]
-
-    @cache_readonly
-    def _df_resid_raw(self):
-        """Returns the raw residual degrees of freedom."""
-        return self._window_nobs - self._df_raw
 
     @cache_readonly
     def _var_beta_raw(self):
@@ -903,19 +859,6 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         return np.nan_to_num(self._beta_raw / self._std_err_raw)
 
     @cache_readonly
-    def _p_value_raw(self):
-        """Returns the raw p values."""
-        get_prob = lambda a, b: 2 * (1 - stats.t.cdf(a, b))
-
-        result = starmap(get_prob,
-                         izip(np.fabs(self._t_stat_raw),
-                              self._window_nobs - self._df_raw))
-
-        result = np.array(list(result))
-
-        return result
-
-    @cache_readonly
     def _resid_raw(self):
         beta_matrix = self._beta_matrix(lag=0)
 
@@ -988,6 +931,8 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
 
     @cache_readonly
     def _enough_obs(self):
+        # XXX: what's the best way to determine where to start?
+
         return self._window_nobs_raw >= max(self._min_periods,
                                             len(self._x.items) * 2)
 

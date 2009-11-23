@@ -6,6 +6,7 @@ Unit test suite for OLS and PanelOLS classes
 
 from __future__ import division
 
+from cStringIO import StringIO
 from datetime import datetime
 import unittest
 
@@ -20,6 +21,9 @@ from pandas.core.api import DataMatrix, Index, Series
 from pandas.stats.api import *
 from pandas.stats.plm import NonPooledPanelOLS
 from pandas.stats.tests.common import assert_almost_equal, BaseTest
+
+def _check_repr(obj):
+    str = '%s' % obj
 
 class TestOLS(BaseTest):
 
@@ -359,9 +363,10 @@ class TestPanelOLS(BaseTest):
     def checkNonPooled(self, x, y, **kwds):
         # For now, just check that it doesn't crash
         result = ols(y=y, x=x, pool=False, **kwds)
-        print result
+
+        _check_repr(result)
         for attr in NonPooledPanelOLS.ATTRIBUTES:
-            print getattr(result, attr)
+            _check_repr(getattr(result, attr))
 
     def checkRollingOLS(self, x, y, window_type=ROLLING, **kwds):
         window = 25  # must be larger than rank of x
@@ -435,11 +440,11 @@ class TestPanelOLS(BaseTest):
             assert_almost_equal(ref, res)
 
 def _check_non_raw_results(model):
-    print model
-    print model.resid
-    print model.summary_as_matrix
-    print model.y_fitted
-    print model.y_predict
+    _check_repr(model)
+    _check_repr(model.resid)
+    _check_repr(model.summary_as_matrix)
+    _check_repr(model.y_fitted)
+    _check_repr(model.y_predict)
 
 def _period_slice(panelModel, i):
     index = panelModel._x_trans.index

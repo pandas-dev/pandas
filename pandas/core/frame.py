@@ -316,6 +316,20 @@ class DataFrame(Picklable, Groupable):
             else:
                 raise
 
+    def pop(self, item):
+        """
+        Return column and drop from frame. Raise KeyError if not
+        found.
+
+        Returns
+        -------
+        Series
+        """
+        result = self[item]
+        del self[item]
+
+        return result
+
     def __setitem__(self, key, value):
         """
         Add series to DataFrame in specified column.

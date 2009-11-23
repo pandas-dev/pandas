@@ -10,12 +10,13 @@ from scipy import stats
 
 from pandas.core.api import DataFrame, DataMatrix, Series
 from pandas.util.decorators import cache_readonly
+import pandas.lib.tseries as tseries
 import pandas.stats.common as common
 import pandas.stats.math as math
 
-
 class OLS(object):
-    """Runs a simple OLS.
+    """
+    Runs a full sample ordinary least squares regression
 
     Parameters
     ----------
@@ -35,11 +36,12 @@ class OLS(object):
         self._nw_lags = nw_lags
         self._nw_overlap = nw_overlap
 
-        self._y, self._x, self._x_filtered = self._prepare_data()
+        (self._y, self._x, self._x_filtered,
+         self._index, self._time_has_obs) = self._prepare_data()
+
         self._x_raw = self._x.values
         self._y_raw = self._y.view(np.ndarray)
         self._nobs = len(self._y_raw)
-        self._index = self._y.index
 
         self.sm_ols = sm.OLS(self._y_raw, self._x_raw).fit()
 
@@ -51,13 +53,13 @@ class OLS(object):
         -------
         (DataFrame, Series).
         """
-
-        y, x, x_filtered = _filter_data(self._y_orig, self._x_orig)
+        (y, x, x_filtered,
+         union_index, valid) = _filter_data(self._y_orig, self._x_orig)
 
         if self._intercept:
             x['intercept'] = x_filtered['intercept'] = 1.
 
-        return y, x, x_filtered
+        return y, x, x_filtered, union_index, valid
 
     @property
     def nobs(self):
@@ -425,6 +427,10 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
     def __repr__(self):
         return self.summary
 
+    @property
+    def _total_times(self):
+        return self._time_has_obs.sum()
+
 
 class MovingOLS(OLS):
     """
@@ -443,8 +449,9 @@ class MovingOLS(OLS):
     window: int
         size of window (for rolling/expanding OLS)
     """
-    def __init__(self, y, x, window_type=common.ROLLING, window=10,
-                 intercept=True, nw_lags=None, nw_overlap=False):
+    def __init__(self, y, x, window_type=common.ROLLING,
+                 window=10, min_periods=None, intercept=True,
+                 nw_lags=None, nw_overlap=False):
 
         self._args = dict(intercept=intercept, nw_lags=nw_lags,
                           nw_overlap=nw_overlap)
@@ -453,43 +460,141 @@ class MovingOLS(OLS):
 
         self._window_type = common._get_window_type(window_type)
         self._window = window
+        self._min_periods = window if min_periods is None else min_periods
 
-    @cache_readonly
-    def _beta_raw(self):
-        """Runs the regression and returns the beta."""
-        Y  = self._y_raw
-        X  = self._x_raw
-
-        return math.rolling_ols(X, Y, self._window_type, self._window)
+    @property
+    def _is_rolling(self):
+        return self._window_type == common.ROLLING
 
     @cache_readonly
     def beta(self):
         """Returns the betas in Series/DataMatrix form."""
-        return DataMatrix(
-            self._beta_raw, index=self._index[-len(self._beta_raw):],
-            columns=self._x.cols())
+        return DataMatrix(self._beta_raw,
+                          index=self._result_index,
+                          columns=self._x.cols())
+
+    @cache_readonly
+    def _beta_raw(self):
+        """Runs the regression and returns the beta."""
+        beta, indices = self._rolling_ols_call
+
+        return beta[indices]
+
+    @cache_readonly
+    def _result_index(self):
+        return self._index[self._valid_indices]
+
+    @property
+    def _valid_indices(self):
+        return self._rolling_ols_call[1]
+
+    @cache_readonly
+    def _rolling_ols_call(self):
+        return self._calc_betas()
+
+    def _calc_betas(self):
+        N = len(self._index)
+        K = len(self._x.cols())
+
+        betas = np.empty((N, K), dtype=float)
+        betas[:] = np.NaN
+
+        valid = self._time_has_obs
+        enough = self._enough_obs
+        window = self._window
+
+        # Use transformed (demeaned) Y, X variables
+        cum_xx = self._cum_xx(self._x)
+        cum_xy = self._cum_xy(self._x, self._y)
+
+        for i in xrange(N):
+            # XXX
+            if not valid[i] or not enough[i]:
+                continue
+
+            xx = cum_xx[i]
+            xy = cum_xy[i]
+            if self._is_rolling and i >= window:
+                xx = xx - cum_xx[i - window]
+                xy = xy - cum_xy[i - window]
+
+            betas[i] = math.solve(xx, xy)
+
+        have_betas = np.arange(N)[-np.isnan(betas).any(axis=1)]
+
+        return betas, have_betas
+
+    def _cum_xx(self, x):
+        K = len(x.cols())
+        valid = self._time_has_obs
+        cum_xx = []
+
+        last = np.zeros((K, K))
+        for i, date in enumerate(self._index):
+            if not valid[i]:
+                cum_xx.append(last)
+                continue
+
+            xs = x.getXS(date)
+            xx = last = last + np.outer(xs, xs)
+            cum_xx.append(xx)
+
+        return cum_xx
+
+    def _cum_xy(self, x, y):
+        valid = self._time_has_obs
+        cum_xy = []
+        last = len(x.cols())
+        for i, date in enumerate(self._index):
+            if not valid[i]:
+                cum_xy.append(last)
+                continue
+
+            xs = np.asarray(x.getXS(date))
+            xy = last = last + xs * y[date]
+            cum_xy.append(xy)
+
+        return cum_xy
+
+    @cache_readonly
+    def rank(self):
+        return Series(self._rank_raw, index=self._result_index)
+
+    @cache_readonly
+    def _rank_raw(self):
+        rank = self._rolling_rank
+
+        return rank[self._valid_indices]
+
+    @cache_readonly
+    def _rolling_rank(self):
+        dates = self._index
+        enough = self._enough_obs
+        window = self._window
+
+        ranks = np.empty(len(dates), dtype=float)
+        ranks[:] = np.NaN
+        for i, date in enumerate(dates):
+            if self._is_rolling and i >= window:
+                prior_date = dates[i - window + 1]
+            else:
+                prior_date = dates[0]
+
+            x_slice = self._x.truncate(before=prior_date, after=date)
+            ranks[i] = math.rank(x_slice.values)
+
+        return ranks
 
     @cache_readonly
     def _df_raw(self):
         """Returns the degrees of freedom."""
-        df = []
-        start = self._window - 1
-        for i in xrange(start, len(self._x_raw)):
-            if self._window_type == common.ROLLING:
-                begin = i - start
-            else:
-                begin = 0
-
-            df.append(math.rank(self._x_raw[begin : i + 1]))
-
-        return np.array(df)
+        return self._rank_raw
 
     @cache_readonly
     def df(self):
         """Returns the degrees of freedom."""
         index = self.beta.index
         return Series(self._df_raw, index=index)
-
 
     @cache_readonly
     def _df_model_raw(self):
@@ -506,18 +611,7 @@ class MovingOLS(OLS):
     @cache_readonly
     def _df_resid_raw(self):
         """Returns the raw residual degrees of freedom."""
-        df = []
-
-        start = self._window - 1
-        for i in xrange(start, self._nobs):
-            if self._window_type == common.ROLLING:
-                nobs = self._window
-            else:
-                nobs = i + 1
-
-            df.append(nobs - self._df_raw[i - start])
-
-        return np.array(df)
+        return self._window_nobs - self._df_raw
 
     @cache_readonly
     def df_resid(self):
@@ -549,19 +643,14 @@ class MovingOLS(OLS):
     @cache_readonly
     def _p_value_raw(self):
         """Returns the raw p values."""
-        p_value = []
-        start = self._window - 1
-        for i in xrange(start, self._nobs):
-            if self._window_type == common.EXPANDING:
-                nobs = i + 1
-            else:
-                nobs = self._window
-            fabs = np.fabs(self._t_stat_raw[i - start])
-            result = 2 * (1 - stats.t.cdf(fabs,
-                nobs - self._df_raw[i - start]))
-            p_value.append(result)
+        get_prob = lambda a, b: 2 * (1 - stats.t.cdf(a, b))
 
-        return np.array(p_value)
+        result = starmap(get_prob,
+                         izip(np.fabs(self._t_stat_raw), self._df_resid_raw))
+
+        result = np.array(list(result))
+
+        return result
 
     @cache_readonly
     def p_value(self):
@@ -774,32 +863,73 @@ class MovingOLS(OLS):
 
         return results
 
-def _filter_rhs(rhs):
-    merged_df = None
+    def _beta_matrix(self, lag=0):
+        assert(lag >= 0)
+
+        labels = self._y_trans.index.major_labels - lag
+        indexer = self._valid_indices.searchsorted(labels, side='left')
+
+        beta_matrix = self._beta_raw[indexer]
+        beta_matrix[labels < 0] = np.NaN
+
+        return beta_matrix
+
+    @cache_readonly
+    def _window_nobs_raw(self):
+        if self._is_rolling:
+            window = self._window
+        else:
+            # expanding case
+            window = len(self._index)
+
+        result = tseries.rolling_sum(self._time_has_obs, window,
+                                     minp=1)
+
+        return result.astype(int)
+
+    @cache_readonly
+    def _window_nobs(self):
+        return self._window_nobs_raw[self._valid_indices]
+
+    @cache_readonly
+    def _enough_obs(self):
+        # XXX: what's the best way to determine where to start?
+        return self._window_nobs_raw >= max(self._min_periods,
+                                            len(self._x.columns) + 1)
+
+def _safe_update(d, other):
+    """
+    Combine dictionaries with non-overlapping keys
+    """
+    for k, v in other.iteritems():
+        if k in d:
+            raise Exception('Duplicate regressor: %s' % k)
+
+        d[k] = v
+
+def _combine_rhs(rhs):
+    """
+    Glue input X variables together while checking for potential
+    duplicates
+    """
+    series = {}
 
     if isinstance(rhs, Series):
-        merged_df = DataFrame({'x' : rhs})
+        series['x'] = rhs
     elif isinstance(rhs, DataFrame):
-        merged_df = rhs
-    else:
+        _safe_update(series, rhs)
+    elif isinstance(rhs, dict):
         for name, value in rhs.iteritems():
             if isinstance(value, Series):
-                df = DataFrame({name : value})
-            elif isinstance(value, DataFrame):
-                df = value
-            elif isinstance(value, dict):
-                df = DataFrame(dict)
+                _safe_update(series, {name : value})
+            elif isinstance(value, (dict, DataFrame)):
+                _safe_update(series, value)
             else:
-                raise Exception('Invalid RHS data type: %s' % str(type(value)))
+                raise Exception('Invalid RHS data type: %s' % type(value))
+    else:
+        raise Exception('Invalid RHS type: %s' % type(rhs))
 
-            if merged_df is None:
-                merged_df = df
-            else:
-                merged_df = merged_df.leftJoin(df)
-
-    merged_df = merged_df.dropIncompleteRows()
-
-    return merged_df
+    return series
 
 def _filter_data(lhs, rhs):
     """
@@ -809,7 +939,6 @@ def _filter_data(lhs, rhs):
     ----------
     lhs: Series
         Dependent variable in the regression.
-
     rhs: dict, whose values are Series, DataFrame, or dict
         Explanatory variables of the regression.
 
@@ -821,16 +950,20 @@ def _filter_data(lhs, rhs):
     if not isinstance(lhs, Series):
         raise Exception('lhs must be a Series')
 
-    pre_filtered_rhs = _filter_rhs(rhs)
+    combined_rhs = _combine_rhs(rhs)
 
-    frame = pre_filtered_rhs.copy().reindex(lhs.index)
+    pre_filtered_rhs = DataMatrix.fromDict(combined_rhs).dropIncompleteRows()
 
-    frame['_y'] = lhs
-    frame = frame.dropIncompleteRows()
+    # Union of all indices
+    combined_rhs['_y'] = lhs
+    full_dataset = DataMatrix.fromDict(combined_rhs)
 
-    filtered_lhs = frame['_y']
-    del frame['_y']
+    index = full_dataset.index
 
-    filtered_rhs = frame
+    obs_count = full_dataset.count(axis=1, asarray=True)
+    valid = obs_count == len(full_dataset.cols())
 
-    return filtered_lhs, filtered_rhs, pre_filtered_rhs
+    filtered_rhs = full_dataset.reindex(index[valid])
+    filtered_lhs = filtered_rhs.pop('_y')
+
+    return filtered_lhs, filtered_rhs, pre_filtered_rhs, index, valid
