@@ -1157,16 +1157,19 @@ class DataMatrix(DataFrame):
                 else:
                     raise Exception('Begin date after last date in this index!')
 
-        if fromDate and toDate:
+        haveFrom = fromDate is not None
+        haveTo = toDate is not None
+
+        if haveFrom and haveTo:
             if nPeriods:
                 raise Exception('fromDate/toDate, toDate/nPeriods, ' +
                                 'fromDate/nPeriods are mutually exclusive')
             beg_slice = self.index.indexMap[fromDate]
             end_slice = self.index.indexMap[toDate] + 1
-        elif fromDate and nPeriods:
+        elif haveFrom and nPeriods:
             beg_slice = self.index.indexMap[fromDate]
             end_slice = self.index.indexMap[fromDate] + nPeriods
-        elif toDate and nPeriods:
+        elif haveTo and nPeriods:
             beg_slice = self.index.indexMap[toDate] - nPeriods + 1
             end_slice = self.index.indexMap[toDate] + 1
         else:
@@ -1469,9 +1472,10 @@ class DataMatrix(DataFrame):
         -------
         DataMatrix with filtered columns
         """
-        if len(self.columns) == 0:
+        if len(self.cols()) == 0:
             return self
-        intersection = self.columns.intersection(items)
+        intersection = Index(self.cols()).intersection(items)
+
         indexer = [self.columns.indexMap[col] for col in intersection]
         newValues = self.values[:, indexer].copy()
         return DataMatrix(newValues, index=self.index, columns=intersection)

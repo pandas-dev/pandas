@@ -635,23 +635,23 @@ class LongPanelIndex(object):
 
         return True
 
-    def getSlice(self, begin=None, end=None):
+    def truncate(self, before=None, after=None):
         """
         Slice index between two major axis values, return complete LongPanel
 
         Parameters
         ----------
-        begin: type of major_axis values or None, default None
+        before: type of major_axis values or None, default None
             None defaults to start of panel
 
-        end: type of major_axis values or None, default None
-            None defaults to end of panel
+        after: type of major_axis values or None, default None
+            None defaults to after of panel
 
         Returns
         -------
         LongPanel
         """
-        i, j = self._getAxisBounds(begin, end)
+        i, j = self._getAxisBounds(before, after)
         left, right = self._getLabelBounds(i, j)
 
         return LongPanelIndex(self.major_axis[i : j],
@@ -807,6 +807,17 @@ class LongPanel(Panel):
         values, factors = _convert(data, items, factors=factor_list)
 
         return LongPanel(values, items, index, factors=factors)
+
+    @property
+    def columns(self):
+        """
+        So LongPanel can be DataMatrix-like at times
+        """
+        return self.items
+
+    def cols(self):
+        "DataMatrix compatibility"
+        return self.columns
 
     def copy(self):
         values = self.values.copy()
@@ -1059,57 +1070,27 @@ class LongPanel(Panel):
 
         return LongPanel(new_values, self.items, new_index)
 
-    def getSlice(self, begin=None, end=None):
+    def truncate(self, before=None, after=None):
         """
         Slice panel between two major axis values, return complete LongPanel
 
         Parameters
         ----------
-        begin: type of major_axis values or None, default None
+        before: type of major_axis values or None, default None
             None defaults to start of panel
 
-        end: type of major_axis values or None, default None
+        after: type of major_axis values or None, default None
             None defaults to end of panel
 
         Returns
         -------
         LongPanel
         """
-        left, right = self.index.getMajorBounds(begin, end)
-        new_index = self.index.getSlice(begin, end)
+        left, right = self.index.getMajorBounds(before, after)
+        new_index = self.index.truncate(before, after)
 
         return LongPanel(self.values[left : right],
-                         self.items,
-                         new_index)
-
-    def getSliceAtIndices(self, begin, end):
-        return self.getSlice(
-            self.index.major_axis[begin], self.index.major_axis[end])
-
-    def getValueSlice(self, begin=None, end=None):
-        """
-        Slice panel between two major axis values and return only
-        values array
-
-        Parameters
-        ----------
-        begin: type of major_axis values or None, default None
-            None defaults to start of panel
-
-        end: type of major_axis values or None, default None
-            None defaults to end of panel
-
-        Returns
-        -------
-        ndarray
-        """
-        left, right = self.index.getMajorBounds(begin, end)
-
-        return self.values[left : right]
-
-    def getValueSliceAtIndices(self, begin, end):
-        return self.getValueSlice(
-            self.index.major_axis[begin], self.index.major_axis[end])
+                         self.items, new_index)
 
     def filterItems(self, items):
         """

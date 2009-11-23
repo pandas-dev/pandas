@@ -81,10 +81,9 @@ def ols(**kwargs):
 
     y = kwargs.get('y')
     if window_type == common.FULL_SAMPLE:
-        if 'window_type' in kwargs:
-            del kwargs['window_type']
-        if 'window' in kwargs:
-            del kwargs['window']
+        for rolling_field in ('window_type', 'window', 'min_periods'):
+            if rolling_field in kwargs:
+                del kwargs[rolling_field]
 
         if isinstance(y, Series):
             klass = OLS

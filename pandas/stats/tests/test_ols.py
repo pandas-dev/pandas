@@ -28,8 +28,8 @@ def _check_repr(obj):
 class TestOLS(BaseTest):
 
     FIELDS = ['beta', 'df', 'df_model', 'df_resid', 'f_stat', 'p_value',
-              'r2', 'r2_adj', 'resid', 'rmse', 'std_err', 't_stat',
-              'var_beta', 'y_fitted']
+              'r2', 'r2_adj', 'rmse', 'std_err', 't_stat',
+              'var_beta']
 
     # TODO: Add tests for OLS y predict
     # TODO: Right now we just check for consistency between full-sample and
@@ -84,54 +84,58 @@ class TestOLS(BaseTest):
         _check_non_raw_results(result)
 
     def checkMovingOLS(self, window_type, x, y, **kwds):
-        window = tools.rank(x.values) + 2
+        window = tools.rank(x.values) * 2
 
-        moving = ols(y=y, x=x, window_type=window_type, window=window,
-                     **kwds)
+        moving = ols(y=y, x=x, window_type=window_type,
+                     window=window, **kwds)
 
         if isinstance(moving.y, Series):
             index = moving.y.index
         elif isinstance(moving.y, LongPanel):
             index = moving.y.major_axis
 
-        time = len(index)
-
-        reference_last_only = ['resid', 'y_fitted']
-
-        for i in xrange(time - window + 1):
-            if window_type == ROLLING:
-                start = index[i]
+        for n, i in enumerate(moving._valid_indices):
+            if window_type == ROLLING and i >= window:
+                prior_date = index[i - window + 1]
             else:
-                start = index[0]
+                prior_date = index[0]
 
-            end = index[i + window - 1]
+            date = index[i]
 
-            x2 = {}
+            x_iter = {}
             for k, v in x.iteritems():
-                x2[k] = v.truncate(start, end)
-            y2 = y.truncate(start, end)
+                x_iter[k] = v.truncate(before=prior_date, after=date)
+            y_iter = y.truncate(before=prior_date, after=date)
 
-            static = ols(y=y2, x=x2, **kwds)
+            static = ols(y=y_iter, x=x_iter, **kwds)
 
-            self.compare(static, moving, reference_last_only, i)
-
-            # y-predict (just non-null check)
-            self.assertTrue(np.isfinite(moving._y_predict_raw).all())
+            self.compare(static, moving, event_index=i,
+                         result_index=n)
 
         _check_non_raw_results(moving)
 
-    def compare(self, reference, result, reference_last_only=None,
+    def compare(self, static, moving, event_index=None,
                 result_index=None):
+
+        # Check resid if we have a time index specified
+        if event_index is not None:
+            ref = static._resid_raw[-1]
+            res = moving._resid_raw[event_index]
+
+            assert_almost_equal(ref, res)
+
+            ref = static._y_fitted_raw[-1]
+            res = moving._y_fitted_raw[event_index]
+
+            assert_almost_equal(ref, res)
+
+        # Check y_fitted
+
         for field in self.FIELDS:
             attr = '_%s_raw' % field
 
-            ref = getattr(reference, attr)
-
-            if (reference_last_only is not None
-                and field in reference_last_only):
-                ref = ref[-1]
-
-            res = getattr(result, attr)
+            ref = getattr(static, attr)
+            res = getattr(moving, attr)
 
             if result_index is not None:
                 res = res[result_index]
@@ -314,51 +318,51 @@ class TestPanelOLS(BaseTest):
         weights = self.panel_y.copy()
 
         weights.values = np.random.standard_normal(weights.values.shape)
-        self.checkRollingOLS(self.panel_x,
+        self.checkMovingOLS(self.panel_x,
                             self.panel_y, weights=weights)
 
     def testRolling(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y)
+        self.checkMovingOLS(self.panel_x, self.panel_y)
 
     def testRollingWithFixedEffects(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             entity_effects=True)
 
     def testRollingWithTimeEffects(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             time_effects=True)
 
     def testRollingWithNeweyWest(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             nw_lags=1)
 
     def testRollingWithEntityCluster(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             cluster=ENTITY)
 
     def testRollingWithTimeEffectsAndEntityCluster(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             time_effects=True, cluster=ENTITY)
 
     def testRollingWithTimeCluster(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             cluster=TIME)
 
     def testRollingWithNeweyWestAndEntityCluster(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             nw_lags=1, cluster=ENTITY)
 
     def testRollingWithNeweyWestAndTimeEffectsAndEntityCluster(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y,
+        self.checkMovingOLS(self.panel_x, self.panel_y,
                             nw_lags=1, cluster=ENTITY, time_effects=True)
 
     def testExpanding(self):
-        self.checkRollingOLS(self.panel_x, self.panel_y, window_type=EXPANDING)
+        self.checkMovingOLS(self.panel_x, self.panel_y, window_type=EXPANDING)
 
     def testNonPooled(self):
         self.checkNonPooled(y=self.panel_y, x=self.panel_x)
         self.checkNonPooled(y=self.panel_y, x=self.panel_x,
-                                    window_type=ROLLING, window=25)
+                            window_type=ROLLING, window=25, min_periods=10)
 
     def checkNonPooled(self, x, y, **kwds):
         # For now, just check that it doesn't crash
@@ -368,7 +372,7 @@ class TestPanelOLS(BaseTest):
         for attr in NonPooledPanelOLS.ATTRIBUTES:
             _check_repr(getattr(result, attr))
 
-    def checkRollingOLS(self, x, y, window_type=ROLLING, **kwds):
+    def checkMovingOLS(self, x, y, window_type=ROLLING, **kwds):
         window = 25  # must be larger than rank of x
 
         moving = ols(y=y, x=x, window_type=window_type,
@@ -379,11 +383,9 @@ class TestPanelOLS(BaseTest):
         elif isinstance(moving.y, LongPanel):
             index = moving.y.major_axis
 
-        time_periods = moving._window_time_obs
-
         for n, i in enumerate(moving._valid_indices):
-            if window_type == ROLLING:
-                prior_date = index[i - time_periods[i] + 1]
+            if window_type == ROLLING and i >= window:
+                prior_date = index[i - window + 1]
             else:
                 prior_date = index[0]
 

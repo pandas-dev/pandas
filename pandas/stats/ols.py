@@ -3,6 +3,7 @@ Simple OLS.
 """
 from __future__ import division
 
+from itertools import izip, starmap
 from StringIO import StringIO
 
 import numpy as np
@@ -41,7 +42,6 @@ class OLS(object):
 
         self._x_raw = self._x.values
         self._y_raw = self._y.view(np.ndarray)
-        self._nobs = len(self._y_raw)
 
         self.sm_ols = sm.OLS(self._y_raw, self._x_raw).fit()
 
@@ -64,6 +64,10 @@ class OLS(object):
     @property
     def nobs(self):
         return self._nobs
+
+    @property
+    def _nobs(self):
+        return len(self._y_raw)
 
     @property
     def nw_lags(self):
@@ -127,7 +131,37 @@ class OLS(object):
         """Returns the raw f-stat value."""
         return math.calc_f_stat(self._nw_lags, self._r2_raw, self._r2_adj_raw,
                                 self._x.columns, self._beta_raw,
-                                self._var_beta_raw,self._nobs, self.df)
+                                self._var_beta_raw, self._nobs, self.df)
+
+    @cache_readonly
+    def _f_stat_raw(self):
+        """Returns the raw f-stat value."""
+        cols = self._x.columns
+
+        if self._nw_lags is None:
+            F = self._r2_raw / (self._r2_raw - self._r2_adj_raw)
+
+            q = len(cols)
+            if 'intercept' in cols:
+                q -= 1
+
+            shape = q, self.df_resid
+            p_value = 1 - stats.f.cdf(F, shape[0], shape[1])
+            return F, shape, p_value
+
+        k = len(cols)
+        R = np.eye(k)
+        r = np.zeros((k, 1))
+
+        intercept = cols.indexMap.get('intercept')
+
+        if intercept is not None:
+            R = np.concatenate((R[0 : intercept], R[intercept + 1:]))
+            r = np.concatenate((r[0 : intercept], r[intercept + 1:]))
+
+        return math.calc_F(R, r, self._beta_raw, self._var_beta_raw,
+                           self._nobs, self.df)
+
     @cache_readonly
     def f_stat(self):
         """Returns the f-stat value."""
@@ -180,7 +214,7 @@ class OLS(object):
         r = np.array(r).reshape(q, 1)
 
         result = math.calc_F(R, r, self._beta_raw, self._var_beta_raw,
-                             self.nobs, self.df)
+                             self._nobs, self.df)
 
         return common.f_stat_to_dict(result)
 
@@ -195,7 +229,7 @@ class OLS(object):
     @cache_readonly
     def p_value(self):
         """Returns the p values."""
-        return Series(self._p_value_raw, index=self._result_index)
+        return Series(self._p_value_raw, index=self.beta.index)
 
     @cache_readonly
     def _r2_raw(self):
@@ -247,7 +281,7 @@ class OLS(object):
     @cache_readonly
     def std_err(self):
         """Returns the standard err values of the betas."""
-        return Series(self._std_err_raw, index=self._result_index)
+        return Series(self._std_err_raw, index=self.beta.index)
 
     @cache_readonly
     def _t_stat_raw(self):
@@ -257,17 +291,10 @@ class OLS(object):
     @cache_readonly
     def t_stat(self):
         """Returns the t-stat values of the betas."""
-        return Series(self._t_stat_raw, index=self._result_index)
+        return Series(self._t_stat_raw, index=self.beta.index)
 
+    @cache_readonly
     def _var_beta_raw(self):
-        """Returns the raw covariance of beta."""
-        result = math.calc_var_beta(x=self._x_raw, y=self._y_raw,
-                                    nw_lags=self._nw_lags, rmse=self._rmse_raw,
-                                    beta=self._beta_raw, nobs=self.nobs,
-                                    df=self._df_raw, nw_overlap=self._nw_overlap)
-        return np.array(result)
-
-    def _var_beta_raw2(self):
         """
         Returns the raw covariance of beta.
         """
@@ -279,10 +306,10 @@ class OLS(object):
         if self._nw_lags is None:
             return math.inv(xx) * (self._rmse_raw ** 2)
         else:
-            resid = y - np.dot(x, beta)
+            resid = y - np.dot(x, self._beta_raw)
             m = (x.T * resid).T
 
-            xeps = math.newey_west(m, self._nw_lags, self.nobs, self._df_raw,
+            xeps = math.newey_west(m, self._nw_lags, self._nobs, self._df_raw,
                                    self._nw_overlap)
 
             xx_inv = math.inv(xx)
@@ -291,8 +318,8 @@ class OLS(object):
     @cache_readonly
     def var_beta(self):
         """Returns the variance-covariance matrix of beta."""
-        return DataMatrix(self._var_beta_raw, index=self._result_index,
-                          columns=self._result_index)
+        return DataMatrix(self._var_beta_raw, index=self.beta.index,
+                          columns=self.beta.index)
 
     @cache_readonly
     def _y_fitted_raw(self):
@@ -318,7 +345,7 @@ class OLS(object):
         return self.y_fitted
 
     RESULT_FIELDS = ['r2', 'r2_adj', 'df', 'df_model', 'df_resid', 'rmse',
-                     'f_stat', 'beta', 'std_err', 't_stat', 'p_value']
+                     'f_stat', 'beta', 'std_err', 't_stat', 'p_value', 'nobs']
 
     @cache_readonly
     def _results(self):
@@ -430,7 +457,7 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
             'formula' : formula.getvalue(),
             'r2' : results['r2'],
             'r2_adj' : results['r2_adj'],
-            'nobs' : self.nobs,
+            'nobs' : results['nobs'],
             'df'  : results['df'],
             'df_model'  : results['df_model'],
             'df_resid'  : results['df_resid'],
@@ -445,6 +472,12 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
 
     def __repr__(self):
         return self.summary
+
+
+    @cache_readonly
+    def _time_obs_count(self):
+        # XXX
+        return self._time_has_obs.astype(int)
 
     @property
     def _total_times(self):
@@ -481,9 +514,8 @@ class MovingOLS(OLS):
         self._window = window
         self._min_periods = window if min_periods is None else min_periods
 
-    @property
-    def _is_rolling(self):
-        return self._window_type == common.ROLLING
+#-------------------------------------------------------------------------------
+# "Public" results
 
     @cache_readonly
     def beta(self):
@@ -493,140 +525,8 @@ class MovingOLS(OLS):
                           columns=self._x.cols())
 
     @cache_readonly
-    def _beta_raw(self):
-        """Runs the regression and returns the beta."""
-        beta, indices = self._rolling_ols_call
-
-        return beta[indices]
-
-    @cache_readonly
-    def _result_index(self):
-        return self._index[self._valid_indices]
-
-    @property
-    def _valid_indices(self):
-        return self._rolling_ols_call[1]
-
-    @cache_readonly
-    def _rolling_ols_call(self):
-        return self._calc_betas()
-
-    def _calc_betas(self):
-        N = len(self._index)
-        K = len(self._x.cols())
-
-        betas = np.empty((N, K), dtype=float)
-        betas[:] = np.NaN
-
-        valid = self._time_has_obs
-        enough = self._enough_obs
-        window = self._window
-
-        # Use transformed (demeaned) Y, X variables
-        cum_xx = self._cum_xx(self._x)
-        cum_xy = self._cum_xy(self._x, self._y)
-
-        for i in xrange(N):
-            # XXX
-            if not valid[i] or not enough[i]:
-                continue
-
-            xx = cum_xx[i]
-            xy = cum_xy[i]
-            if self._is_rolling and i >= window:
-                xx = xx - cum_xx[i - window]
-                xy = xy - cum_xy[i - window]
-
-            betas[i] = math.solve(xx, xy)
-
-        have_betas = np.arange(N)[-np.isnan(betas).any(axis=1)]
-
-        return betas, have_betas
-
-    def _cum_xx(self, x):
-        K = len(x.cols())
-        valid = self._time_has_obs
-        cum_xx = []
-
-        last = np.zeros((K, K))
-        for i, date in enumerate(self._index):
-            if not valid[i]:
-                cum_xx.append(last)
-                continue
-
-            xs = x.getXS(date)
-            xx = last = last + np.outer(xs, xs)
-            cum_xx.append(xx)
-
-        return cum_xx
-
-    def _cum_xy(self, x, y):
-        valid = self._time_has_obs
-        cum_xy = []
-        last = len(x.cols())
-        for i, date in enumerate(self._index):
-            if not valid[i]:
-                cum_xy.append(last)
-                continue
-
-            xs = np.asarray(x.getXS(date))
-            xy = last = last + xs * y[date]
-            cum_xy.append(xy)
-
-        return cum_xy
-
-    @cache_readonly
     def rank(self):
         return Series(self._rank_raw, index=self._result_index)
-
-    @cache_readonly
-    def _rank_raw(self):
-        rank = self._rolling_rank
-
-        return rank[self._valid_indices]
-
-    @cache_readonly
-    def _rolling_rank(self):
-        dates = self._index
-        enough = self._enough_obs
-        window = self._window
-
-        ranks = np.empty(len(dates), dtype=float)
-        ranks[:] = np.NaN
-        for i, date in enumerate(dates):
-            if self._is_rolling and i >= window:
-                prior_date = dates[i - window + 1]
-            else:
-                prior_date = dates[0]
-
-            x_slice = self._x.truncate(before=prior_date, after=date)
-            ranks[i] = math.rank(x_slice.values)
-
-        return ranks
-
-    @cache_readonly
-    def _df_raw(self):
-        """Returns the degrees of freedom."""
-
-    @cache_readonly
-    def _df_model_raw(self):
-        """Returns the raw model degrees of freedom."""
-        return self._df_raw - 1
-
-    @cache_readonly
-    def _df_resid_raw(self):
-        """Returns the raw residual degrees of freedom."""
-        return self._nobs - self._df_raw
-
-        return self._rank_raw
-
-    @cache_readonly
-    def _f_stat_raw(self):
-        """Returns the raw f-stat value."""
-        return math.calc_f_stat(self._nw_lags, self._r2_raw, self._r2_adj_raw,
-                                self._x.columns, self._beta_raw,
-                                self._var_beta_raw, self._nobs, self.df,
-                                self._window, self._nobs)
 
     @cache_readonly
     def df(self):
@@ -656,6 +556,251 @@ class MovingOLS(OLS):
         raise Exception('f_test not supported for rolling/expanding OLS')
 
     @cache_readonly
+    def p_value(self):
+        """Returns the p values."""
+        cols = self.beta.cols()
+        return DataMatrix(self._p_value_raw, columns=cols,
+                          index=self._result_index)
+
+    @cache_readonly
+    def r2(self):
+        """Returns the r-squared values."""
+        return Series(self._r2_raw, index=self._result_index)
+
+    @cache_readonly
+    def resid(self):
+        """Returns the residuals."""
+        return Series(self._resid_raw[self._valid_obs_labels],
+                      index=self._result_index)
+
+    @cache_readonly
+    def r2_adj(self):
+        """Returns the r-squared adjusted values."""
+        index = self.r2.index
+
+        return Series(self._r2_adj_raw, index=index)
+
+    @cache_readonly
+    def rmse(self):
+        """Returns the rmse values."""
+        return Series(self._rmse_raw, index=self._result_index)
+
+    @cache_readonly
+    def std_err(self):
+        """Returns the standard err values."""
+        return DataMatrix(self._std_err_raw, columns=self.beta.cols(),
+                          index=self._result_index)
+
+    @cache_readonly
+    def t_stat(self):
+        """Returns the t-stat value."""
+        return DataMatrix(self._t_stat_raw, columns=self.beta.cols(),
+                          index=self._result_index)
+
+    @cache_readonly
+    def var_beta(self):
+        """Returns the covariance of beta."""
+        result = []
+        for i in xrange(len(self._var_beta_raw)):
+            dm = DataMatrix(self._var_beta_raw[i], columns=self.beta.cols(),
+                            index=self.beta.cols())
+            result.append(dm)
+
+        return Series(result, index=self._result_index)
+
+    @cache_readonly
+    def y_fitted(self):
+        """Returns the fitted y values."""
+        return Series(self._y_fitted_raw[self._valid_obs_labels],
+                      index=self._result_index)
+
+    @cache_readonly
+    def y_predict(self):
+        """Returns the predicted y values."""
+        return Series(self._y_predict_raw[self._valid_obs_labels],
+                      index=self._result_index)
+
+#-------------------------------------------------------------------------------
+# "raw" attributes, calculations
+
+    @property
+    def _is_rolling(self):
+        return self._window_type == common.ROLLING
+
+    @cache_readonly
+    def _beta_raw(self):
+        """Runs the regression and returns the beta."""
+        beta, indices = self._rolling_ols_call
+
+        return beta[indices]
+
+    @cache_readonly
+    def _result_index(self):
+        return self._index[self._valid_indices]
+
+    @property
+    def _valid_indices(self):
+        return self._rolling_ols_call[1]
+
+    @cache_readonly
+    def _rolling_ols_call(self):
+        return self._calc_betas(self._x, self._y)
+
+    def _calc_betas(self, x, y):
+        N = len(self._index)
+        K = len(self._x.cols())
+
+        betas = np.empty((N, K), dtype=float)
+        betas[:] = np.NaN
+
+        valid = self._time_has_obs
+        enough = self._enough_obs
+        window = self._window
+
+        # Use transformed (demeaned) Y, X variables
+        cum_xx = self._cum_xx(x)
+        cum_xy = self._cum_xy(x, y)
+
+        for i in xrange(N):
+            if not valid[i] or not enough[i]:
+                continue
+
+            xx = cum_xx[i]
+            xy = cum_xy[i]
+            if self._is_rolling and i >= window:
+                xx = xx - cum_xx[i - window]
+                xy = xy - cum_xy[i - window]
+
+            betas[i] = math.solve(xx, xy)
+
+        have_betas = np.arange(N)[-np.isnan(betas).any(axis=1)]
+
+        return betas, have_betas
+
+    def _rolling_rank(self):
+        dates = self._index
+        window = self._window
+
+        ranks = np.empty(len(dates), dtype=float)
+        ranks[:] = np.NaN
+        for i, date in enumerate(dates):
+            if self._is_rolling and i >= window:
+                prior_date = dates[i - window + 1]
+            else:
+                prior_date = dates[0]
+
+            x_slice = self._x.truncate(before=prior_date, after=date)
+            ranks[i] = math.rank(x_slice.values)
+
+        return ranks
+
+    def _cum_xx(self, x):
+        dates = self._index
+        K = len(x.cols())
+        valid = self._time_has_obs
+        cum_xx = []
+
+        last = np.zeros((K, K))
+        for i, date in enumerate(dates):
+            if not valid[i]:
+                cum_xx.append(last)
+                continue
+
+            x_slice = x.truncate(date, date).values
+            xx = last = last + np.dot(x_slice.T, x_slice)
+            cum_xx.append(xx)
+
+        return cum_xx
+
+    def _cum_xy(self, x, y):
+        dates = self._index
+        valid = self._time_has_obs
+        cum_xy = []
+
+        # A little kludge so we can use this method for both
+        # MovingOLS and MovingPanelOLS
+        if isinstance(y, Series):
+            y_converter = lambda x: np.asarray(x)
+        else:
+            y_converter = lambda x: x.values.squeeze()
+
+        last = np.zeros(len(x.cols()))
+        for i, date in enumerate(dates):
+            if not valid[i]:
+                cum_xy.append(last)
+                continue
+
+            x_slice = x.truncate(date, date).values
+            y_slice = y_converter(y.truncate(date, date))
+
+            xy = last = last + np.dot(x_slice.T, y_slice)
+            cum_xy.append(xy)
+
+        return cum_xy
+
+    @cache_readonly
+    def _rank_raw(self):
+        rank = self._rolling_rank()
+        return rank[self._valid_indices]
+
+    @cache_readonly
+    def _df_raw(self):
+        """Returns the degrees of freedom."""
+        return self._rank_raw
+
+    @cache_readonly
+    def _df_model_raw(self):
+        """Returns the raw model degrees of freedom."""
+        return self._df_raw - 1
+
+    @cache_readonly
+    def _df_resid_raw(self):
+        """Returns the raw residual degrees of freedom."""
+        return self._nobs - self._df_raw
+
+    @cache_readonly
+    def _f_stat_raw(self):
+        """Returns the raw f-stat value."""
+        items = self.beta.columns
+        nobs = self._nobs
+        df = self._df_raw
+        df_resid = nobs - df
+
+        # var_beta has not been newey-west adjusted
+        if self._nw_lags is None:
+            F = self._r2_raw / (self._r2_raw - self._r2_adj_raw)
+
+            q = len(items)
+            if 'intercept' in items:
+                q -= 1
+
+            def get_result_simple(Fst, d):
+                return Fst, (q, d), 1 - stats.f.cdf(Fst, q, d)
+
+            # Compute the P-value for each pair
+            result = starmap(get_result_simple, izip(F, df_resid))
+
+            return list(result)
+
+        K = len(items)
+        R = np.eye(K)
+        r = np.zeros((K, 1))
+
+        intercept = items.indexMap.get('intercept')
+
+        if intercept is not None:
+            R = np.concatenate((R[0 : intercept], R[intercept + 1:]))
+            r = np.concatenate((r[0 : intercept], r[intercept + 1:]))
+
+        def get_result(beta, vcov, n, d):
+            return math.calc_F(R, r, beta, vcov, n, d)
+
+        results = starmap(get_result,
+                          izip(self._beta_raw, self._var_beta_raw, nobs, df))
+
+        return list(results)
+
+    @cache_readonly
     def _p_value_raw(self):
         """Returns the raw p values."""
         get_prob = lambda a, b: 2 * (1 - stats.t.cdf(a, b))
@@ -668,24 +813,15 @@ class MovingOLS(OLS):
         return result
 
     @cache_readonly
-    def p_value(self):
-        """Returns the p values."""
-        cols = self.beta.cols()
-        return DataMatrix(self._p_value_raw, columns=cols, index=self._result_index)
-
-    @cache_readonly
     def _resid_stats(self):
-        Y = self._y
-        X = self._x
-
-        dates = self._index
-        window = self._window
-
         sst = []
         sse = []
 
+        Y = self._y
+        X = self._x
+        dates = self._index
+        window = self._window
         for n, index in enumerate(self._valid_indices):
-
             if self._is_rolling and index >= window:
                 prior_date = dates[index - window + 1]
             else:
@@ -731,32 +867,9 @@ class MovingOLS(OLS):
         return 1 - (1 - self._r2_raw) * factors
 
     @cache_readonly
-    def r2(self):
-        """Returns the r-squared values."""
-        return Series(self._r2_raw, index=self._result_index)
-
-    @cache_readonly
     def _resid_raw(self):
         """Returns the raw residuals."""
-        start = self._window - 1
-        return self._y_raw[start:] - self._y_fitted_raw
-
-    @cache_readonly
-    def resid(self):
-        """Returns the residuals."""
-        return Series(self._resid_raw, index=self._result_index)
-
-    @cache_readonly
-    def r2_adj(self):
-        """Returns the r-squared adjusted values."""
-        index = self.r2.index
-
-        return Series(self._r2_adj_raw, index=index)
-
-    @cache_readonly
-    def rmse(self):
-        """Returns the rmse values."""
-        return Series(self._rmse_raw, index=self._result_index)
+        return (self._y_raw - self._y_fitted_raw)
 
     @cache_readonly
     def _std_err_raw(self):
@@ -768,110 +881,73 @@ class MovingOLS(OLS):
         return np.nan_to_num(np.array(results))
 
     @cache_readonly
-    def std_err(self):
-        """Returns the standard err values."""
-        return DataMatrix(self._std_err_raw, columns=self.beta.cols(),
-                          index=self._result_index)
-
-    @cache_readonly
     def _t_stat_raw(self):
         """Returns the raw t-stat value."""
         return np.nan_to_num(self._beta_raw / self._std_err_raw)
 
     @cache_readonly
-    def t_stat(self):
-        """Returns the t-stat value."""
-        return DataMatrix(self._t_stat_raw, columns=self.beta.cols(),
-                          index=self._result_index)
-
     def _var_beta_raw(self):
         """Returns the raw covariance of beta."""
-        result = math.calc_var_beta(x=self._x_raw, y=self._y_raw,
-                                    window_type=self._window_type,
-                                    window=self._window, nw_lags=self._nw_lags,
-                                    rmse=self._rmse_raw, beta=self._beta_raw,
-                                    nobs=self.nobs, df=self._df_raw,
-                                    nw_overlap=self._nw_overlap)
-        return np.array(result)
+        x = self._x
+        y = self._y
+        dates = self._index
+        nobs = self._nobs
+        rmse = self._rmse_raw
+        beta = self._beta_raw
+        df = self._df_raw
+        window = self._window
+        cum_xx = self._cum_xx(self._x)
 
-    def _var_beta_raw2(self):
-        """Returns the raw covariance of beta."""
         results = []
-        start = window - 1
-        for i in xrange(start, len(y)):
-            if nw_lags is None:
-                temp_xx = cum_xx[i]
-                if window_type == ROLLING and i >= window:
-                    temp_xx = temp_xx - cum_xx[i - window]
-                result = inv(temp_xx) * (rmse[i - start] ** 2)
+        for n, i in enumerate(self._valid_indices):
+            xx = cum_xx[i]
+            date = dates[i]
+
+            if self._is_rolling and i >= window:
+                xx = xx - cum_xx[i - window]
+                prior_date = dates[i - window + 1]
             else:
-                temp_xx = cum_xx[i]
+                prior_date = dates[0]
 
-                if window_type == EXPANDING:
-                    begin = 0
-                else:
-                    begin = i - start
-                    if i >= window:
-                        temp_xx = temp_xx - cum_xx[i - window]
+            x_slice = x.truncate(before=prior_date, after=date)
+            y_slice = y.truncate(before=prior_date, after=date)
+            xv = x_slice.values
+            yv = np.asarray(y_slice)
 
-                section = slice(begin, i + 1)
+            if self._nw_lags is None:
+                result = math.inv(xx) * (rmse[n] ** 2)
+            else:
+                resid = yv - np.dot(xv, beta[n])
+                m = (xv.T * resid).T
 
-                resid = y[section] - np.dot(x[section], beta[i - start])
-                m = (x[section].T * resid).T
+                xeps = math.newey_west(m, self._nw_lags, nobs[n], df[n],
+                                       self._nw_overlap)
 
-                window_nobs = i + 1 - begin
-                window_df = df[i - start]
-
-                xeps = newey_west(m, nw_lags, window_nobs,
-                                  window_df, nw_overlap)
-
-                xx_inv = inv(temp_xx)
+                xx_inv = math.inv(xx)
                 result = np.dot(xx_inv, np.dot(xeps, xx_inv))
 
             results.append(result)
 
-        return results
-
-    @cache_readonly
-    def var_beta(self):
-        """Returns the covariance of beta."""
-        result = []
-        for i in xrange(len(self._var_beta_raw)):
-            result.append(DataMatrix(
-                self._var_beta_raw[i], columns=self.beta.cols(),
-                index=self.beta.cols()))
-
-        return Series(result, index=self._result_index)
+        return np.array(results)
 
     @cache_readonly
     def _y_fitted_raw(self):
         """Returns the raw fitted y values."""
-        start = self._window - 1
-        return (self._x_raw[start:] * self._beta_raw).sum(1)
-
-    @cache_readonly
-    def y_fitted(self):
-        """Returns the fitted y values."""
-        return Series(self._y_fitted_raw, index=self._result_index)
+        return (self._x_raw * self._beta_matrix(lag=0)).sum(1)
 
     @cache_readonly
     def _y_predict_raw(self):
         """Returns the raw predicted y values."""
-        bx = self._beta_raw[: -1] * self._x_raw[self._window :]
-        return bx.sum(1)
-
-    @cache_readonly
-    def y_predict(self):
-        """Returns the predicted y values."""
-        index = self.beta.index[1 :]
-        return Series(self._y_predict_raw, index=index)
+        return (self._x_raw * self._beta_matrix(lag=1)).sum(1)
 
     @cache_readonly
     def _results(self):
         results = {}
         for result in self.RESULT_FIELDS:
             value = getattr(self, result)
-            if isinstance(value, Series):
+            if isinstance(value, np.ndarray):
+                value = value[-1]
+            elif isinstance(value, Series):
                 value = value[self.beta.index[-1]]
             elif isinstance(value, DataFrame):
                 value = value.getXS(self.beta.index[-1])
@@ -882,29 +958,12 @@ class MovingOLS(OLS):
         return results
 
     @cache_readonly
-    def _nobs(self):
-        results = []
-        start = self._window - 1
-        for i in xrange(start, self._nobs):
-            if self._window_type == common.EXPANDING:
-                result = i + 1
-            else:
-                result = self._window
+    def _window_time_obs(self):
+        window_obs = tseries.rolling_sum(self._time_obs_count > 0,
+                                         self._window, minp=1)
 
-            results.append(result)
-
-        return results
-
-    def _beta_matrix(self, lag=0):
-        assert(lag >= 0)
-
-        labels = self._y_trans.index.major_labels - lag
-        indexer = self._valid_indices.searchsorted(labels, side='left')
-
-        beta_matrix = self._beta_raw[indexer]
-        beta_matrix[labels < 0] = np.NaN
-
-        return beta_matrix
+        window_obs[np.isnan(window_obs)] = 0
+        return window_obs.astype(int)
 
     @cache_readonly
     def _nobs_raw(self):
@@ -914,14 +973,34 @@ class MovingOLS(OLS):
             # expanding case
             window = len(self._index)
 
-        result = tseries.rolling_sum(self._time_has_obs, window,
+        result = tseries.rolling_sum(self._time_obs_count, window,
                                      minp=1)
 
         return result.astype(int)
 
+    def _beta_matrix(self, lag=0):
+        assert(lag >= 0)
+
+        labels = np.arange(len(self._y)) - lag
+        indexer = self._valid_obs_labels.searchsorted(labels, side='left')
+
+        beta_matrix = self._beta_raw[indexer]
+        beta_matrix[labels < self._valid_obs_labels[0]] = np.NaN
+
+        return beta_matrix
+
+    @cache_readonly
+    def _valid_obs_labels(self):
+        dates = self._index[self._valid_indices]
+        return self._y.index.searchsorted(dates)
+
     @cache_readonly
     def _nobs(self):
         return self._nobs_raw[self._valid_indices]
+
+    @property
+    def nobs(self):
+        return Series(self._nobs, index=self._result_index)
 
     @cache_readonly
     def _enough_obs(self):
@@ -999,3 +1078,4 @@ def _filter_data(lhs, rhs):
     filtered_lhs = filtered_rhs.pop('_y')
 
     return filtered_lhs, filtered_rhs, pre_filtered_rhs, index, valid
+

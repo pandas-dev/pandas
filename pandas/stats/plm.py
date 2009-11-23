@@ -6,20 +6,16 @@ Linear regression objects for panel data
 # pylint: disable-msg=E1103
 
 from __future__ import division
-from itertools import izip, starmap
 
 import numpy as np
-from scipy import stats
 
 from pandas.core.panel import WidePanel, LongPanel
 from pandas.core.matrix import DataMatrix
 from pandas.core.series import Series
 from pandas.stats.ols import OLS, MovingOLS
 from pandas.util.decorators import cache_readonly
-
 import pandas.stats.common as common
 import pandas.stats.math as math
-import pandas.lib.tseries as tseries
 
 class PanelOLS(OLS):
     """Implements panel OLS.
@@ -85,9 +81,8 @@ class PanelOLS(OLS):
         self._y_trans_raw = self._y_trans.values.squeeze()
 
         self._index = self._y.major_axis
-        self._T = len(self._index)
 
-        self._nobs = len(self._y_trans_raw)
+        self._T = len(self._index)
 
     def log(self, msg):
         if self._verbose:
@@ -306,7 +301,7 @@ class PanelOLS(OLS):
         X = self._x_trans_raw
         Y = self._y_trans_raw
 
-        beta, ssr, rank, sing = np.linalg.lstsq(X, Y)
+        beta, _, _, _ = np.linalg.lstsq(X, Y)
 
         return beta
 
@@ -334,13 +329,6 @@ class PanelOLS(OLS):
         return df
 
     @cache_readonly
-    def _f_stat_raw(self):
-        """Returns the raw f-stat value."""
-        return math.calc_f_stat(self._nw_lags, self._r2_raw, self._r2_adj_raw,
-                                self._x.items, self._beta_raw,
-                                self._var_beta_raw, self._nobs, self.df)
-
-    @cache_readonly
     def _r2_raw(self):
         Y = self._y_trans_raw
         Y_orig = self._y.values
@@ -356,8 +344,9 @@ class PanelOLS(OLS):
     @cache_readonly
     def _r2_adj_raw(self):
         """Returns the raw r-squared adjusted values."""
-        factor = ((self._nobs - 1) / (self._nobs - self._df_raw))
-        return 1 - (1 - self._r2_raw) * factor
+        nobs = self._nobs
+        factors = (nobs - 1) / (nobs - self._df_raw)
+        return 1 - (1 - self._r2_raw) * factors
 
     @cache_readonly
     def _resid_raw(self):
@@ -387,13 +376,13 @@ class PanelOLS(OLS):
             cluster_axis = 1
 
         if self._time_effects:
-            xx = math.xx_time_effects(self._x, self._y)
+            xx = _xx_time_effects(self._x, self._y)
         else:
             xx = np.dot(self._x.values.T, self._x.values)
 
-        return math.var_beta_panel(self._y, self._x, self._beta_raw, xx,
-                                   self._rmse_raw, cluster_axis, self._nw_lags,
-                                   self.nobs, self._df_raw, self._nw_overlap)
+        return _var_beta_panel(self._y, self._x, self._beta_raw, xx,
+                              self._rmse_raw, cluster_axis, self._nw_lags,
+                              self._nobs, self._df_raw, self._nw_overlap)
 
     @cache_readonly
     def _y_fitted_raw(self):
@@ -452,7 +441,7 @@ class PanelOLS(OLS):
         r = np.array(r).reshape(q, 1)
 
         result = math.calc_F(R, r, self._beta_raw, self._var_beta_raw,
-                             self.nobs, self.df)
+                             self._nobs, self.df)
 
         return common.f_stat_to_dict(result)
 
@@ -476,6 +465,10 @@ class PanelOLS(OLS):
     @cache_readonly
     def _time_has_obs(self):
         return self._time_obs_count > 0
+
+    @property
+    def _nobs(self):
+        return len(self._y_trans_raw)
 
 def _convertDummies(dummies, mapping):
     # cleans up the names of the generated dummies
@@ -517,7 +510,7 @@ def add_intercept(panel, name='intercept'):
 
     return panel
 
-class MovingPanelOLS(PanelOLS, MovingOLS):
+class MovingPanelOLS(MovingOLS, PanelOLS):
     """Implements rolling/expanding panel OLS.
 
     Parameters
@@ -583,111 +576,26 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         self._min_periods = window if min_periods is None else min_periods
 
     @cache_readonly
-    def beta(self):
-        return DataMatrix(self._beta_raw,
-                          index=self._result_index,
-                          columns=self._x.items)
-
-    def _calc_betas(self):
-        N = len(self._index)
-        K = len(self._x.items)
-
-        betas = np.empty((N, K), dtype=float)
-        betas[:] = np.NaN
-
-        valid = self._time_has_obs
-        enough = self._enough_obs
-        window_obs = self._window_time_obs
-
-        # Use transformed (demeaned) Y, X variables
-        cum_xx = self._cum_xx(self._x_trans)
-        cum_xy = self._cum_xy(self._x_trans, self._y_trans)
-
-        for i in xrange(N):
-            # XXX
-            if not valid[i] or not enough[i]:
-                continue
-
-            xx = cum_xx[i]
-            xy = cum_xy[i]
-            obs = window_obs[i]
-            if self._is_rolling and i >= obs:
-                xx = xx - cum_xx[i - obs]
-                xy = xy - cum_xy[i - obs]
-
-            betas[i] = math.solve(xx, xy).squeeze()
-
-        have_betas = np.arange(N)[-np.isnan(betas).any(axis=1)]
-
-        return betas, have_betas
-
-    def _cum_xx(self, x):
-        dates = x.index.major_axis
-        K = len(x.items)
-        valid = self._time_has_obs
-        cum_xx = []
-
-        last = np.zeros((K, K))
-        for i, date in enumerate(dates):
-            if not valid[i]:
-                cum_xx.append(last)
-                continue
-
-            x_slice = x.getValueSlice(date, date)
-            xx = last = last + np.dot(x_slice.T, x_slice)
-            cum_xx.append(xx)
-
-        return cum_xx
-
-    def _cum_xy(self, x, y):
-        dates = x.index.major_axis
-        valid = self._time_has_obs
-        cum_xy = []
-
-        last = np.zeros((len(x.items), 1))
-        for i, date in enumerate(dates):
-            if not valid[i]:
-                cum_xy.append(last)
-                continue
-
-            x_slice = x.getValueSlice(date, date)
-            y_slice = y.getValueSlice(date, date)
-
-            xy = last = last + np.dot(x_slice.T, y_slice)
-            cum_xy.append(xy)
-
-        return cum_xy
+    def resid(self):
+        return self._unstack_y(self._resid_raw)
 
     @cache_readonly
-    def _rolling_rank(self):
-        dates = self._x.index.major_axis
+    def y_fitted(self):
+        return self._unstack_y(self._y_fitted_raw)
 
-        N = len(dates)
-        ranks = np.empty(N, dtype=float)
-        ranks[:] = np.NaN
+    @cache_readonly
+    def y_predict(self):
+        """Returns the predicted y values."""
+        return self._unstack_y(self._y_predict_raw)
 
-        enough = self._enough_obs
-        time_periods = self._window_time_obs
-
-        for i in xrange(N):
-            if not enough[i]:
-                continue
-
-            if self._is_rolling:
-                prior_date = dates[i - time_periods[i] + 1]
-            else:
-                prior_date = dates[0]
-
-            date = dates[i]
-            x_slice = self._x.getValueSlice(prior_date, date)
-            ranks[i] = math.rank(x_slice)
-
-        return ranks
+    @cache_readonly
+    def _rolling_ols_call(self):
+        return self._calc_betas(self._x_trans, self._y_trans)
 
     @cache_readonly
     def _df_raw(self):
         """Returns the degrees of freedom."""
-        df = self._rolling_rank
+        df = self._rolling_rank()
 
         if self._time_effects:
             df += self._window_time_obs
@@ -707,91 +615,42 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         elif self._cluster == common.ENTITY:
             cluster_axis = 1
 
-        time_periods = self._window_time_obs
         nobs = self._nobs
         rmse = self._rmse_raw
         beta = self._beta_raw
         df = self._df_raw
+        window = self._window
 
         if not self._time_effects:
             # Non-transformed X
-
             cum_xx = self._cum_xx(self._x)
 
         results = []
         for n, i in enumerate(self._valid_indices):
-            obs = time_periods[i]
-
-            if self._is_rolling:
-                prior_date = dates[i - obs + 1]
+            if self._is_rolling and i >= window:
+                prior_date = dates[i - window + 1]
             else:
                 prior_date = dates[0]
 
             date = dates[i]
 
-            x_slice = x.getSlice(prior_date, date)
-            y_slice = y.getSlice(prior_date, date)
+            x_slice = x.truncate(prior_date, date)
+            y_slice = y.truncate(prior_date, date)
 
             if self._time_effects:
-                xx = math.xx_time_effects(x_slice, y_slice)
+                xx = _xx_time_effects(x_slice, y_slice)
             else:
                 xx = cum_xx[i]
-                if self._is_rolling and i >= obs:
-                    xx = xx - cum_xx[i - time_periods[i]]
+                if self._is_rolling and i >= window:
+                    xx = xx - cum_xx[i - window]
 
-            result = math.var_beta_panel(y_slice, x_slice, beta[n], xx, rmse[n],
-                                         cluster_axis, self._nw_lags,
-                                         nobs[n], df[n],
-                                         self._nw_overlap)
+            result = _var_beta_panel(y_slice, x_slice, beta[n], xx, rmse[n],
+                                    cluster_axis, self._nw_lags,
+                                    nobs[n], df[n], self._nw_overlap)
 
             results.append(result)
 
         return np.array(results)
-
-    def f_test(self, hypothesis):
-        raise Exception('f_test not supported for rolling/expanding OLS')
-
-    @cache_readonly
-    def _f_stat_raw(self):
-        """Returns the raw f-stat value."""
-        items = self._x.items
-        nobs = self._nobs
-        df = self._df_raw
-        df_resid = nobs - df
-
-        # var_beta has not been newey-west adjusted
-        if self._nw_lags is None:
-            F = self._r2_raw / (self._r2_raw - self._r2_adj_raw)
-
-            q = len(items)
-            if 'intercept' in items:
-                q -= 1
-
-            def get_result_simple(Fst, d):
-                return Fst, (q, d), 1 - stats.f.cdf(Fst, q, d)
-
-            # Compute the P-value for each pair
-            result = starmap(get_result_simple, izip(F, df_resid))
-
-            return list(result)
-
-        K = len(items)
-        R = np.eye(K)
-        r = np.zeros((K, 1))
-
-        intercept = items.indexMap.get('intercept')
-
-        if intercept is not None:
-            R = np.concatenate((R[0 : intercept], R[intercept + 1:]))
-            r = np.concatenate((r[0 : intercept], r[intercept + 1:]))
-
-        def get_result(beta, vcov, n, d):
-            return math.calc_F(R, r, beta, vcov, n, d)
-
-        results = starmap(get_result,
-                          izip(self._beta_raw, self._var_beta_raw, nobs, df))
-
-        return list(results)
 
     @cache_readonly
     def _resid_stats(self):
@@ -799,23 +658,22 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         Y_orig = self._y
         X = self._x_trans
         dates = self._index
-        time_periods = self._window_time_obs
+        window = self._window
 
         sst = []
         sse = []
 
-        for n, index in enumerate(self._valid_indices):
-
-            if self._is_rolling:
-                prior_date = dates[index - time_periods[index] + 1]
+        for n, i in enumerate(self._valid_indices):
+            if self._is_rolling and i >= window:
+                prior_date = dates[i - window + 1]
             else:
                 prior_date = dates[0]
 
-            date = dates[index]
+            date = dates[i]
 
-            X_slice = X.getValueSlice(prior_date, date)
-            Y_slice = Y.getValueSlice(prior_date, date).squeeze()
-            Y_orig_slice = Y_orig.getValueSlice(prior_date, date).squeeze()
+            X_slice = X.truncate(prior_date, date).values
+            Y_slice = Y.truncate(prior_date, date).values.squeeze()
+            Y_orig_slice = Y_orig.truncate(prior_date, date).values.squeeze()
 
             beta_slice = self._beta_raw[n]
 
@@ -834,24 +692,6 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
             'sse' : sse,
             'sst' : sst,
         }
-
-    @cache_readonly
-    def _rmse_raw(self):
-        """Returns the raw rmse values."""
-        return np.sqrt(self._resid_stats['sse'] / self._df_resid_raw)
-
-    @cache_readonly
-    def _r2_raw(self):
-        rs = self._resid_stats
-        return 1 - rs['sse'] / rs['sst']
-
-    @cache_readonly
-    def _r2_adj_raw(self):
-        """Returns the raw r-squared adjusted values."""
-        nobs = self._nobs
-        factors = (nobs - 1) / (nobs - self._df_raw)
-        return 1 - (1 - self._r2_raw) * factors
-
 
     @cache_readonly
     def _resid_raw(self):
@@ -876,19 +716,6 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         betas = self._beta_matrix(lag=1)
         return (betas * x).sum(1)
 
-    @cache_readonly
-    def resid(self):
-        return self._unstack_y(self._resid_raw)
-
-    @cache_readonly
-    def y_fitted(self):
-        return self._unstack_y(self._y_fitted_raw)
-
-    @cache_readonly
-    def y_predict(self):
-        """Returns the predicted y values."""
-        return self._unstack_y(self._y_predict_raw)
-
     def _beta_matrix(self, lag=0):
         assert(lag >= 0)
 
@@ -896,33 +723,9 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         indexer = self._valid_indices.searchsorted(labels, side='left')
 
         beta_matrix = self._beta_raw[indexer]
-        beta_matrix[labels < 0] = np.NaN
+        beta_matrix[labels < self._valid_indices[0]] = np.NaN
 
         return beta_matrix
-
-    @cache_readonly
-    def _nobs_raw(self):
-        if self._window_type == common.EXPANDING:
-            window = len(self._index)
-        else:
-            window = self._window
-
-        result = tseries.rolling_sum(self._time_obs_count, window,
-                                     minp=1)
-
-        return result.astype(int)
-
-    @cache_readonly
-    def _nobs(self):
-        return self._nobs_raw[self._valid_indices]
-
-    @cache_readonly
-    def _window_time_obs(self):
-        window_obs = tseries.rolling_sum(self._time_obs_count > 0,
-                                         self._window, minp=1)
-
-        window_obs[np.isnan(window_obs)] = 0
-        return window_obs.astype(int)
 
     @cache_readonly
     def _enough_obs(self):
@@ -984,7 +787,8 @@ class NonPooledPanelOLS(object):
     ]
 
     def __init__(self, y, x, window_type=common.FULL_SAMPLE, window=None,
-                 intercept=True, nw_lags=None, nw_overlap=False):
+                 min_periods=None, intercept=True, nw_lags=None,
+                 nw_overlap=False):
 
         for attr in self.ATTRIBUTES:
             setattr(self.__class__, attr, create_ols_attr(attr))
@@ -1003,8 +807,67 @@ class NonPooledPanelOLS(object):
                                   x=entity_x,
                                   window_type=window_type,
                                   window=window,
+                                  min_periods=min_periods,
                                   intercept=intercept,
                                   nw_lags=nw_lags,
                                   nw_overlap=nw_overlap)
 
         self.results = results
+
+
+def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
+                   nw_lags, nobs, df, nw_overlap):
+
+    from pandas.core.panel import LongPanel, group_agg
+
+    xx_inv = math.inv(xx)
+
+    if cluster_axis is None:
+        if nw_lags is None:
+            return xx_inv * (rmse ** 2)
+        else:
+            resid = y.values.squeeze() - np.dot(x.values, beta)
+            m = (x.values.T * resid).T
+
+            xeps = math.newey_west(m, nw_lags, nobs, df, nw_overlap)
+
+            return np.dot(xx_inv, np.dot(xeps, xx_inv))
+    else:
+        Xb = np.dot(x.values, beta).reshape((len(x.values), 1))
+        resid = LongPanel(y.values - Xb, ['resid'], y.index)
+
+        if cluster_axis == 1:
+            x = x.swapaxes()
+            resid = resid.swapaxes()
+
+        m = group_agg(x.values * resid.values, x.index._bounds,
+                      lambda x: np.sum(x, axis=0))
+
+        if nw_lags is None:
+            nw_lags = 0
+
+        xox = 0
+        for i in range(len(x.major_axis)):
+            xox += math.newey_west(m[i : i + 1], nw_lags,
+                                   nobs, df, nw_overlap)
+
+        return np.dot(xx_inv, np.dot(xox, xx_inv))
+
+def _xx_time_effects(x, y):
+    """
+    Returns X'X - (X'T) (T'T)^-1 (T'X)
+    """
+    # X'X
+    xx = np.dot(x.values.T, x.values)
+    xt = x.sum().values
+
+    count = y.count()
+    selector = count > 0
+
+    # X'X - (T'T)^-1 (T'X)
+    xt = xt[selector]
+    count = count[selector]
+
+    return xx - np.dot(xt.T / count, xt)
+
+
