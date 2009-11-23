@@ -164,8 +164,8 @@ cdef void _ewma(double_t *input, double_t *output,
     cdef double cur, prev, neww, oldw, adj
     cdef int i
 
-    neww = 1. / (1 + com)
-    oldw = 1 - neww
+    neww = 1. / (1. + com)
+    oldw = 1. - neww
     adj = oldw
 
     output[0] = neww * input[0]
@@ -184,7 +184,7 @@ cdef void _ewma(double_t *input, double_t *output,
 
     for i from 0 <= i < N:
         cur = input[i]
-        output[i] = output[i] / (1 - adj)
+        output[i] = output[i] / (1. - adj)
 
         if cur == cur:
             adj *= oldw
@@ -195,8 +195,8 @@ def _ewma_noncontig(ndarray[double_t, ndim=1] input,
     cdef double cur, prev, neww, oldw, adj
     cdef int i
 
-    neww = 1. / (1 + com)
-    oldw = 1 - neww
+    neww = 1. / (1. + com)
+    oldw = 1. - neww
     adj = oldw
 
     output[0] = neww * input[0]
@@ -215,7 +215,7 @@ def _ewma_noncontig(ndarray[double_t, ndim=1] input,
 
     for i from 0 <= i < N:
         cur = input[i]
-        output[i] = output[i] / (1 - adj)
+        output[i] = output[i] / (1. - adj)
 
         if cur == cur:
             adj *= oldw
