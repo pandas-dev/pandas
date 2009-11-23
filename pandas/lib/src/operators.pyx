@@ -27,7 +27,7 @@ cdef ndarray _applyFunc(double_func func, ndarray index, object ao,
     cdef ndarray A, B, result
     cdef double *result_data
     cdef int i, length
-    cdef flatiter itera, iterb, iteridx
+    cdef flatiter itera, iteridx
     cdef double nan
     cdef object idx
 
@@ -43,11 +43,10 @@ cdef ndarray _applyFunc(double_func func, ndarray index, object ao,
     result_data = <double *>result.data
 
     itera = <flatiter> PyArray_IterNew(A)
-    iterb = <flatiter> PyArray_IterNew(B)
     iteridx = PyArray_IterNew(index)
 
     for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, <void *> iteridx.dataptr)
+        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iteridx))
         PyArray_ITER_NEXT(iteridx)
 
         if idx not in aMap or idx not in bMap:
