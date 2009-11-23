@@ -21,8 +21,8 @@ def ole2datetime(oledt):
     val = float(oledt)
     if val < 61:
         raise Exception("Value is outside of acceptable range: %s " % val)
-    return OLE_TIME_ZERO + timedelta(days=val)  
-            
+    return OLE_TIME_ZERO + timedelta(days=val)
+
 def to_datetime(input):
     """Attempts to convert input to datetime"""
     if input is None or isinstance(input, datetime):
@@ -102,7 +102,7 @@ class DateOffset(object):
 
     def isAnchored(self):
         return (self.n == 1)
-        
+
     def copy(self):
         return self.__class__(self.n, **self.kwds)
 
@@ -187,7 +187,7 @@ class DateOffset(object):
         obj = cls()
         return someDate == ((someDate + obj) - obj)
 
-    
+
 class BDay(DateOffset):
     """
     DateOffset subclass representing possibly n business days
@@ -248,7 +248,7 @@ class BDay(DateOffset):
     def onOffset(cls, someDate):
         return someDate.weekday() < 5
 
-    
+
 class MonthEnd(DateOffset):
     _normalizeFirst = True
     """DateOffset of one month end"""
@@ -459,7 +459,7 @@ class YearBegin(DateOffset):
 
 class Tick(DateOffset):
     pass
-    
+
 class Hour(Tick):
     _normalizeFirst = False
     _delta = None
@@ -528,3 +528,64 @@ thisBQuarterEnd = BQuarterEnd(0)
 isBusinessDay = BDay.onOffset
 isMonthEnd = MonthEnd.onOffset
 isBMonthEnd = BMonthEnd.onOffset
+
+#-------------------------------------------------------------------------------
+# Offset names ("time rules") and related functions
+
+_offsetMap = {
+    "WEEKDAY"  : BDay(1),
+    "EOM"      : BMonthEnd(1),
+    "W@MON"    : Week(dayOfWeek=0),
+    "W@TUE"    : Week(dayOfWeek=1),
+    "W@WED"    : Week(dayOfWeek=2),
+    "W@THU"    : Week(dayOfWeek=3),
+    "W@FRI"    : Week(dayOfWeek=4),
+    "Q@JAN"    : BQuarterEnd(startingMonth=1),
+    "Q@FEB"    : BQuarterEnd(startingMonth=2),
+    "Q@MAR"    : BQuarterEnd(startingMonth=3),
+    "A@DEC"    : BYearEnd()
+}
+
+_offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
+
+def inferTimeRule(index):
+    if len(index) <= 1:
+        raise Exception('Need at least two dates to infer time rule!')
+
+    first, second, third = index[:3]
+    for rule, offset in _offsetMap.iteritems():
+        if second == (first + offset) and third == (second + offset):
+            return rule
+
+    raise Exception('Could not infer time rule from data!')
+
+def getOffset(name):
+    """
+    Return DateOffset object associated with rule name
+
+    Example
+    -------
+    getOffset('EOM') --> BMonthEnd(1)
+    """
+    offset = _offsetMap.get(name)
+    if offset is not None:
+        return offset
+    else:
+        raise Exception('Bad rule name requested: %s!' % name)
+
+def hasOffsetName(offset):
+    return offset in _offsetNames
+
+def getOffsetName(offset):
+    """
+    Return rule name associated with a DateOffset object
+
+    Example
+    -------
+    getOffsetName(BMonthEnd(1)) --> 'EOM'
+    """
+    name = _offsetNames.get(offset)
+    if name is not None:
+        return name
+    else:
+        raise Exception('Bad offset name requested: %s!' % offset)

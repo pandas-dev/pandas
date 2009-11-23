@@ -840,7 +840,7 @@ class Series(np.ndarray, Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # TimeSeries methods
 
-    def shift(self, periods, offset=None):
+    def shift(self, periods, offset=None, timeRule=None):
         """
         Shift the underlying series of the DataMatrix and Series objects within
         by given number (positive or negative) of business/weekdays.
@@ -851,6 +851,8 @@ class Series(np.ndarray, Picklable, Groupable):
             Number of periods to move
         offset: DateOffset, optional
             Increment to use from datetools module
+        timeRule: string
+            time rule name to use by name (e.g. 'WEEKDAY')
 
         Returns
         -------
@@ -858,6 +860,9 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         if periods == 0:
             return self
+
+        if timeRule is not None and offset is None:
+            offset = datetools.getOffset(timeRule)
 
         if offset is None:
             if periods > 0:
@@ -966,10 +971,10 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         TimeSeries
         """
-        if not isinstance(freq, datetools.DateOffset):
-            raise Exception('Must pass DateOffset!')
-
-        dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
+        if isinstance(freq, datetools.DateOffset):
+            dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
+        else:
+            dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
 
         return self.reindex(dateRange, fillMethod=fillMethod)
 

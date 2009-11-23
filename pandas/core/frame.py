@@ -668,12 +668,12 @@ class DataFrame(Picklable, Groupable):
         fillMethod: {'backfill', 'pad', 'interpolate', None}
                     Method to use for filling holes in new inde
         """
-        if not isinstance(freq, datetools.DateOffset):
-            raise Exception('Must pass DateOffset!')
+        if isinstance(freq, datetools.DateOffset):
+            dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
+        else:
+            dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
 
-        dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
-
-        return self.reindex(dateRange, fillMethod=fillMethod)
+        return self.reindex(dateRange, fillMethod = fillMethod)
 
     def asMatrix(self, columns=None):
         """
@@ -1030,7 +1030,7 @@ class DataFrame(Picklable, Groupable):
         temp = temp[periods:] - temp[:-periods]
         return self.fromMatrix(temp, self.cols(), self.index[periods:])
 
-    def shift(self, periods, offset=None):
+    def shift(self, periods, offset=None, timeRule=None):
         """
         Shift the underlying series of the DataFrame and Series objects within
         by given number (positive or negative) of business/weekdays.
@@ -1039,6 +1039,9 @@ class DataFrame(Picklable, Groupable):
         """
         if periods == 0:
             return self
+
+        if timeRule is not None and offset is None:
+            offset = datetools.getOffset(timeRule)
 
         if offset is None:
             if periods > 0:

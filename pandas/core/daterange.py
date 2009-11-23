@@ -37,7 +37,14 @@ class XDateRange(object):
     _cacheStart = {}
     _cacheEnd = {}
     def __init__(self, fromDate=None, toDate=None, nPeriods=None,
-                 offset=datetools.BDay()):
+                 offset = datetools.BDay(), timeRule=None):
+
+        if timeRule is not None:
+            offset = datetools.getOffset(timeRule)
+
+        if timeRule is None:
+            if offset in datetools._offsetNames:
+                timeRule = datetools._offsetNames[offset]
 
         fromDate = datetools.to_datetime(fromDate)
         toDate = datetools.to_datetime(toDate)
@@ -57,6 +64,7 @@ class XDateRange(object):
             fromDate = toDate - (nPeriods - 1) * offset
 
         self.offset = offset
+        self.timeRule = timeRule
         self.fromDate = fromDate
         self.toDate = toDate
         self.nPeriods = nPeriods
@@ -106,7 +114,7 @@ class DateRange(Index):
     """
     _cache = {}
     def __new__(cls, fromDate=None, toDate=None, periods=None,
-                offset=datetools.bday, **kwds):
+                offset=datetools.bday, timeRule=None, **kwds):
 
         # Allow us to circumvent hitting the cache
         index = kwds.get('index')
@@ -121,10 +129,11 @@ class DateRange(Index):
 
             if offset.isAnchored() and not isinstance(offset, datetools.Tick):
                 index = cls.getCachedRange(fromDate, toDate, periods=periods,
-                                           offset=offset)
+                                           offset=offset, timeRule=timeRule)
             else:
                 xdr = XDateRange(fromDate=fromDate, toDate=toDate,
-                                 nPeriods=periods, offset=offset)
+                                 nPeriods=periods, offset=offset,
+                                 timeRule=timeRule)
 
                 index = np.array(list(xdr), dtype=object, copy=False)
 
@@ -135,8 +144,15 @@ class DateRange(Index):
 
         return index
 
+
     @classmethod
-    def getCachedRange(cls, start=None, end=None, periods=None, offset=None):
+    def getCachedRange(cls, start=None, end=None, periods=None, offset=None,
+                       timeRule=None):
+
+        # HACK: fix this dependency later
+        if timeRule is not None:
+            offset = datetools.getOffset(timeRule)
+
         if offset is None:
             raise Exception('Must provide a DateOffset!')
 
