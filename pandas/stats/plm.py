@@ -708,7 +708,7 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
             cluster_axis = 1
 
         time_periods = self._window_time_obs
-        window_nobs = self._window_nobs
+        nobs = self._nobs
         rmse = self._rmse_raw
         beta = self._beta_raw
         df = self._df_raw
@@ -741,7 +741,7 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
 
             result = math.var_beta_panel(y_slice, x_slice, beta[n], xx, rmse[n],
                                          cluster_axis, self._nw_lags,
-                                         window_nobs[n], df[n],
+                                         nobs[n], df[n],
                                          self._nw_overlap)
 
             results.append(result)
@@ -755,7 +755,7 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
     def _f_stat_raw(self):
         """Returns the raw f-stat value."""
         items = self._x.items
-        nobs = self._window_nobs
+        nobs = self._nobs
         df = self._df_raw
         df_resid = nobs - df
 
@@ -822,8 +822,7 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
             resid = Y_slice - np.dot(X_slice, beta_slice)
             SS_err = (resid ** 2).sum()
 
-            Y_mean = np.mean(Y_orig_slice)
-            SS_total = ((Y_orig_slice - Y_mean) ** 2).sum()
+            SS_total = ((Y_orig_slice - Y_orig_slice.mean()) ** 2).sum()
 
             sse.append(SS_err)
             sst.append(SS_total)
@@ -849,14 +848,10 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
     @cache_readonly
     def _r2_adj_raw(self):
         """Returns the raw r-squared adjusted values."""
-        nobs = self._window_nobs
+        nobs = self._nobs
         factors = (nobs - 1) / (nobs - self._df_raw)
         return 1 - (1 - self._r2_raw) * factors
 
-    @cache_readonly
-    def _t_stat_raw(self):
-        """Returns the raw t-stat value."""
-        return np.nan_to_num(self._beta_raw / self._std_err_raw)
 
     @cache_readonly
     def _resid_raw(self):
@@ -906,7 +901,7 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         return beta_matrix
 
     @cache_readonly
-    def _window_nobs_raw(self):
+    def _nobs_raw(self):
         if self._window_type == common.EXPANDING:
             window = len(self._index)
         else:
@@ -918,8 +913,8 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
         return result.astype(int)
 
     @cache_readonly
-    def _window_nobs(self):
-        return self._window_nobs_raw[self._valid_indices]
+    def _nobs(self):
+        return self._nobs_raw[self._valid_indices]
 
     @cache_readonly
     def _window_time_obs(self):
@@ -933,8 +928,8 @@ class MovingPanelOLS(PanelOLS, MovingOLS):
     def _enough_obs(self):
         # XXX: what's the best way to determine where to start?
 
-        return self._window_nobs_raw >= max(self._min_periods,
-                                            len(self._x.items) * 2)
+        return self._nobs_raw >= max(self._min_periods,
+                                     len(self._x.items) * 2)
 
 def create_ols_dict(attr):
     def attr_getter(self):

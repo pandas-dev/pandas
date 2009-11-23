@@ -37,51 +37,6 @@ def inv(a):
     except linalg.LinAlgError:
         return np.linalg.pinv(a)
 
-def rolling_ols(x, y, window_type, window):
-    """Returns rolling betas for rolling/expanding """
-    xx = []
-    xy = []
-
-    xx.append(np.dot(x[0 : 1, :].T, x[0 : 1, :]))
-    xy.append(np.dot(x[0 : 1, :].T, y[0 : 1]))
-
-    for i in xrange(1, len(y)):
-        next_x = x[i : i + 1]
-        xx.append(xx[i - 1] + np.dot(next_x.T, next_x))
-        xy.append(xy[i - 1] + np.dot(next_x.T, y[i : i + 1]))
-
-    # Now calculate the coefficients
-
-    xn, xk = x.shape
-
-    betas = np.empty(((xn - window + 1), xk), dtype=float)
-    start = window - 1
-    for i in xrange(start, xn):
-        temp_xx = xx[i]
-        temp_xy = xy[i]
-
-        if window_type == ROLLING and i >= window:
-            temp_xx = temp_xx - xx[i - window]
-            temp_xy = temp_xy - xy[i - window]
-
-        betas[i - start] = solve(temp_xx, temp_xy)
-
-    return betas
-
-def get_xx_xy(x, y, idx, time_index):
-    x_slice = x.getValueSlice(time_index[idx], time_index[idx])
-    y_slice = y.getValueSlice(time_index[idx], time_index[idx])
-
-    xx = np.zeros((x_slice.shape[1], x_slice.shape[1]))
-    xy = np.zeros((x_slice.shape[1], 1))
-    for i in xrange(len(x_slice)):
-        xs = x_slice[i : i + 1]
-        ys = y_slice[i : i + 1]
-        xx += np.dot(xs.T, xs)
-        xy += np.dot(xs.T, ys)
-
-    return xx, xy
-
 def calc_xx_with_time_effects(x, y):
     """
     Returns X'X - (X'T) (T'T)^-1 (T'X)
