@@ -1353,10 +1353,10 @@ class DataMatrix(DataFrame):
             return DataMatrix(data=self.values.T, index=self.columns,
                               columns=self.index)
 
-    def shift(self, periods, offset=None):
+    def shift(self, periods, offset=None, timeRule=None):
         """
         Shift the underlying series of the DataMatrix and Series objects within
-        by given number (positive or negative) of business/weekdays.
+        by given number (positive or negative) of periods.
 
         Parameters
         ----------
@@ -1364,6 +1364,8 @@ class DataMatrix(DataFrame):
             Number of periods to move
         offset: DateOffset, optional
             Increment to use from datetools module
+        timeRule: string
+            Time rule to use by name
 
         Returns
         -------
@@ -1371,6 +1373,9 @@ class DataMatrix(DataFrame):
         """
         if periods == 0:
             return self
+
+        if timeRule is not None and offset is None:
+            offset = datetools.getOffset(timeRule)
 
         if offset is None:
             if periods > 0:
