@@ -17,6 +17,7 @@ from pandas.core.groupby import GroupBy
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
+from pandas.core.mixins import Picklable
 
 class PanelError(Exception):
     pass
@@ -36,7 +37,7 @@ def _interpret(s):
     arr = read_array(StringIO(s))
     return arr
 
-class Panel(object):
+class Panel(Picklable):
     """
     Abstract superclass for LongPanel and WidePanel data structures
     """
@@ -270,10 +271,10 @@ class WidePanel(Panel):
         "Unpickle the panel"
         vals, items, major, minor = state
 
-        self.values = _interpret(vals)
         self.items = _interpret(items)
         self.major_axis = _interpret(major)
         self.minor_axis = _interpret(minor)
+        self.values = _interpret(vals)
 
     def conform(self, frame, axis='items'):
         """
@@ -876,9 +877,9 @@ class LongPanel(Panel):
         "Unpickle the panel"
         (vals, items, index) = state
 
-        self.values = _interpret(vals)
         self.items = _interpret(items)
         self.index = index
+        self.values = _interpret(vals)
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):

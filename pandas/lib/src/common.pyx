@@ -43,12 +43,17 @@ cdef int32_t *get_int32_ptr(ndarray arr):
 
     return <int32_t *> arr.data
 
+cdef int64_t *get_int64_ptr(ndarray arr):
+    _contiguous_check(arr)
+
+    return <int64_t *> arr.data
+
 cdef double_t *get_double_ptr(ndarray arr):
     _contiguous_check(arr)
 
     return <double_t *> arr.data
 
-cpdef map_indices(ndarray index):
+def map_indices(ndarray[object, ndim=1] index):
     '''
     Produce a dict mapping the values of the input array to their respective
     locations.
@@ -58,20 +63,12 @@ cpdef map_indices(ndarray index):
 
     Better to do this with Cython because of the enormous speed boost.
     '''
-    cdef int i, length
-    cdef flatiter iter
+    cdef int i
     cdef dict result
-    cdef object idx
 
     result = {}
-
-    iter = <flatiter> PyArray_IterNew(index)
-    length = PyArray_SIZE(index)
-
-    for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iter))
-        result[idx] = i
-        PyArray_ITER_NEXT(iter)
+    for i from 0 <= i < PyArray_SIZE(index):
+        result[index[i]] = i
 
     return result
 
