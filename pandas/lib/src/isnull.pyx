@@ -18,7 +18,7 @@ cdef ndarray _isnullobj(input):
     iter= PyArray_IterNew(input)
 
     for i from 0 <= i < length:
-        val = PyArray_GETITEM(input, <void *> iter.dataptr)
+        val = PyArray_GETITEM(input, PyArray_ITER_DATA(iter))
 
         if _checknull(val):
             result[i] = 1
