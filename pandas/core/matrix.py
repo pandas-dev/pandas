@@ -12,6 +12,7 @@ from pandas.core.frame import DataFrame, _pfixed
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
 from pandas.lib.tseries import isnull
+import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
 #-------------------------------------------------------------------------------

@@ -129,13 +129,6 @@ class OLS(object):
     @cache_readonly
     def _f_stat_raw(self):
         """Returns the raw f-stat value."""
-        return math.calc_f_stat(self._nw_lags, self._r2_raw, self._r2_adj_raw,
-                                self._x.columns, self._beta_raw,
-                                self._var_beta_raw, self._nobs, self.df)
-
-    @cache_readonly
-    def _f_stat_raw(self):
-        """Returns the raw f-stat value."""
         cols = self._x.columns
 
         if self._nw_lags is None:

@@ -1006,7 +1006,7 @@ class LongPanel(Panel):
         """
         Output a screen-friendly version of this Panel
         """
-        from pandas.core.series import _pfixed
+        from pandas.core.frame import _pfixed
 
         major_space = max(max([len(str(idx))
                                for idx in self.major_axis]) + 4, 9)

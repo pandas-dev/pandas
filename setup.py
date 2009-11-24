@@ -41,7 +41,7 @@ except:
 
 if __name__ == '__main__':
     setup(version="0.1",
-          description="Panel and time series data analysis toolkit",
+          description="Cross-section and time series data analysis toolkit",
           author="AQR Capital Management, LLC",
           author_email='wesmckinn@gmail.com',
           url="pandas.googlecode.com",
