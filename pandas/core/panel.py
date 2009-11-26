@@ -61,8 +61,12 @@ class Panel(Picklable):
 
         items = 'Items: %s to %s' % (self.items[0], self.items[-1])
 
-        return '%s\n%s\n%s\n%s\n%s' % (class_name, dims,
-                                       items, major, minor)
+        output = '%s\n%s\n%s\n%s\n%s' % (class_name, dims, items, major, minor)
+
+        if self.factors:
+            output += '\nFactors: %s' % ', '.join(self.factors)
+
+        return output
 
     def _get_items(self):
         return self._items
@@ -136,6 +140,8 @@ class WidePanel(Panel):
         self.major_axis = major_axis
         self.minor_axis = minor_axis
 
+#        self.factors = factors or {}
+        self.factors = {}
         self.values = values
 
     @classmethod
@@ -340,6 +346,8 @@ class WidePanel(Panel):
         new_items = self.items
         new_major = self.major_axis
         new_minor = self.minor_axis
+#        new_factors = dict((k, v.take(indexer))
+#                           for k, v in self.factors.iteritems())
 
         if axis_i == 0:
             new_values[-mask] = np.NaN
@@ -750,16 +758,18 @@ class LongPanel(Panel):
     """
 
     def __init__(self, values, items, index, factors=None):
-        self.values = values
         self.items = items
         self.index = index
+
+        self.values = values
 
         self.factors = factors or {}
 
     @classmethod
     def fromRecords(cls, data, major_field, minor_field,
-                    factor_list=None, exclude=None):
+                    factors=None, exclude=None):
         """
+        Convert LongPanel
 
         Parameters
         ----------
@@ -767,8 +777,9 @@ class LongPanel(Panel):
         major_field: string
         minor_field: string
             Name of field
-        factor_list: list-like, default None
+        factors: list-like, default None
         exclude: list-like, default None
+
         Returns
         -------
         LongPanel
@@ -783,7 +794,9 @@ class LongPanel(Panel):
             columns = data.dtype.names
             data = dict((k, data[k]) for k in columns)
         elif isinstance(data, DataFrame):
-            data = data._series
+            data = data._series.copy()
+
+        exclude = set(exclude) if exclude is not None else set()
 
         if major_field in data:
             major_vec = data.pop(major_field)
@@ -798,16 +811,25 @@ class LongPanel(Panel):
         major_axis = Index(sorted(set(major_vec)))
         minor_axis = Index(sorted(set(minor_vec)))
 
-        major_labels = getMergeVec(major_vec, major_axis.indexMap)
-        minor_labels = getMergeVec(minor_vec, minor_axis.indexMap)
+        major_labels, _ = getMergeVec(major_vec, major_axis.indexMap)
+        minor_labels, _ = getMergeVec(minor_vec, minor_axis.indexMap)
+
+        factor_dict = {}
+        for col in data.keys():
+            series = data[col]
+
+            # Is it a factor?
+            if not np.issctype(series.dtype):
+                factor_dict[col] = fac = Factor.fromarray(series)
+                del data[col]
+
+        items = sorted(data)
+        values = np.array([data[k] for k in items]).T
 
         index = LongPanelIndex(major_axis, minor_axis,
                                major_labels, minor_labels)
 
-        items = sorted(data)
-        values, factors = _convert(data, items, factors=factor_list)
-
-        return LongPanel(values, items, index, factors=factors)
+        return LongPanel(values, items, index, factors=factor_dict)
 
     @property
     def columns(self):
@@ -824,7 +846,7 @@ class LongPanel(Panel):
         values = self.values.copy()
         items = self.items
         index = self.index
-        return LongPanel(values, items, index)
+        return LongPanel(values, items, index, factors=self.factors)
 
     def _get_major_axis(self):
         return self.index.major_axis
@@ -843,6 +865,12 @@ class LongPanel(Panel):
         if not values.flags.contiguous:
             values = values.copy()
 
+        shape = len(self.index.major_labels), len(self.items)
+
+        if values.shape != shape:
+            raise Exception('Values shape %s mismatch to %s' % (values.shape,
+                                                                shape))
+
         self._values = values
 
     values = property(fget=_get_values, fset=_set_values)
@@ -853,7 +881,7 @@ class LongPanel(Panel):
         loc = self.items.indexMap[key]
 
         return LongPanel(self.values[:, loc : loc + 1].copy(),
-                        [key], self.index)
+                        [key], self.index, factors=self.factors)
 
     def __setitem__(self, key, value):
         """
@@ -905,7 +933,8 @@ class LongPanel(Panel):
         else:
             new_values = func(self.values, other.values)
 
-        return LongPanel(new_values, self.items, self.index)
+        return LongPanel(new_values, self.items, self.index,
+                         factors=self.factors)
 
     def add(self, other, axis='major'):
         """
@@ -961,7 +990,11 @@ class LongPanel(Panel):
         new_index = LongPanelIndex(self.major_axis, self.minor_axis,
                                    new_major, new_minor)
 
-        return LongPanel(new_values, self.items, new_index)
+        new_factors = dict((k, v[indexer])
+                           for k, v in self.factors.iteritems())
+
+        return LongPanel(new_values, self.items, new_index,
+                         factors=new_factors)
 
     def toWide(self):
         """
@@ -1317,30 +1350,38 @@ class LongPanel(Panel):
         return LongPanel(self.values, new_items, self.index)
 
 
-class Factor(np.ndarray):
+class Factor(object):
     """
     Represents a categorical variable in classic R / S+ fashion
     """
-    def __new__(cls, values):
-        values = np.array(values, dtype=object)
-        values = values.view(cls)
-        return values
+    def __init__(self, labels, levels):
+        self.labels = labels
+        self.levels = levels
 
-    def __array_finalize__(self, obj):
-        if obj is None:
-            self.levels = np.array(sorted(set(self)), dtype=object)
-            self.labels = self.levels.searchsorted(self)
-        elif isinstance(obj, Factor):
-            self.levels = getattr(obj, 'levels')
-            self.labels = getattr(obj, 'labels')
-        else:
-            self.levels = np.array(sorted(set(obj)), dtype=object)
-            self.labels = self.levels.searchsorted(obj)
+    @classmethod
+    def fromarray(cls, values):
+        levels = np.array(sorted(set(values)), dtype=object)
+        labels = levels.searchsorted(values)
 
+        return Factor(labels, levels=levels)
 
     def __repr__(self):
-        return '%s\nLevels (%d): %s' % (np.ndarray.__repr__(self),
-                                        len(self.levels), self.levels)
+        temp = 'Factor:\n%s\nLevels (%d): %s'
+
+        values = self.levels[self.labels]
+        return temp % (repr(values), len(self.levels), self.levels)
+
+    def __getitem__(self, key):
+        if key is None and key not in self.index:
+            raise Exception('None/Null object requested of Series!')
+
+        if isinstance(key, int):
+            i = self.labels[key]
+            return self.levels[i]
+        else:
+            new_labels = self.labels[key]
+            return Factor(new_labels, self.levels)
+
 
 def _makeItemName(item, prefix=None):
     if prefix is None:
@@ -1357,25 +1398,13 @@ def _makePrefixedLongPanel(values, items, index, prefix):
 def _convert(data, order, factors=None):
     """
 
-    TODO: make more efficient
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
-    N = len(data.values()[0])
-    index = np.arange(N)
-
-    factorSet = set() if factors is None else set(factors)
-
-    frame = DataFrame(data, index=index)
-
-    factors = {}
-    for col, series in frame.iteritems():
-        # Is it a factor?
-        if not np.issctype(series.dtype) and col in factorSet:
-            factors[col] = fac = Factor(series)
-            frame[col] = fac.labels
-
-    values = frame.asMatrix(order)
-
-    return values, factors
 
 def _homogenize(frames, intersect=True):
     """
