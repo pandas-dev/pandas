@@ -1021,7 +1021,10 @@ class Series(np.ndarray, Picklable, Groupable):
                 else:
                     thisVals = self.view(np.ndarray).astype(object)
                     vals = tseries.reindexObj(newIndex, thisVals, idxMap)
-                    vals = vals.astype(self.dtype)
+
+                    if not isnull(vals).any():
+                        vals = vals.astype(self.dtype)
+
                     return self.__class__(vals, index=newIndex)
 
         if not isinstance(newIndex, Index):

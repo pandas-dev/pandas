@@ -81,7 +81,7 @@ class DataMatrix(DataFrame):
                         assert(len(v) == len(index))
                         v = Series(v, index=index)
 
-                    if issubclass(v.dtype.type, (float, int, bool)):
+                    if issubclass(v.dtype.type, (float, int)):
                         valueDict[k] = v
                     else:
                         objectDict[k] = v
@@ -117,7 +117,10 @@ class DataMatrix(DataFrame):
                 else:
                     data = data.reshape((data.shape[0], 1))
 
-            values = np.asarray(data)
+            if issubclass(data.dtype.type, (np.bool_, np.str_, np.object_)):
+                values = np.asarray(data, dtype=object)
+            else:
+                values = np.asarray(data, dtype=float)
 
         elif data is None:
             if index is None:
@@ -265,53 +268,6 @@ class DataMatrix(DataFrame):
         colIndex = Index(colNames)
 
         return DataMatrix(mat, index=index, columns=colIndex)
-
-    @classmethod
-    def load(cls, baseFile):
-        """
-        Load DataMatrix from file.
-
-        Parameters
-        ----------
-        baseFile: string
-            Filename base where index/values are stored.
-            e.g. baseFile='myfile' --> 'myfile_index.npy' and
-                                       'myfile_values.npy'
-
-        Returns
-        -------
-        DataMatrix
-        """
-        import os
-
-        objectsFile = baseFile + '_objects'
-        cacheLoad = np.load(baseFile + '.npz')
-
-        if os.path.exists(objectsFile + '.npz'):
-            objectData = np.load(objectsFile + '.npz')
-            objects = DataMatrix(objectData['v'], columns=objectData['c'],
-                                 index=Index(objectData['i']))
-        else:
-            objects = None
-
-        return DataMatrix(cacheLoad['v'], index=Index(cacheLoad['i']),
-                          columns=cacheLoad['c'], objects=objects)
-
-    def save(self, baseFile):
-        """
-        Write DataFrame efficiently to file using NumPy serialization,
-        which is easily 100x faster than cPickle.
-
-        Note
-        ----
-        Saves data to 3 files, one for index, columns, and values matrix.
-        """
-
-        objectsFile = baseFile + '_objects'
-        np.savez(baseFile, i=self.index, v=self.values, c=self.columns)
-
-        if self.objects is not None and len(self.objects.columns) > 0:
-            self.objects.save(objectsFile)
 
 #-------------------------------------------------------------------------------
 # Outputting
