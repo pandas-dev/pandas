@@ -143,14 +143,19 @@ class PanelOLS(OLS):
         """
 
         """
-        data, cat_mapping = self._convert_x()
-        x_names = data.keys()
+        data = self._x_orig
 
         if isinstance(data, LongPanel):
+            cat_mapping = {}
             data = data.toWide()
 
-        elif not isinstance(data, WidePanel):
-            data = WidePanel.fromDict(data)
+        else:
+            data, cat_mapping = self._convert_x(data)
+
+            if not isinstance(data, WidePanel):
+                data = WidePanel.fromDict(data)
+
+        x_names = data.items
 
         if self._weights is not None:
             data['__weights__'] = self._weights
@@ -171,7 +176,7 @@ class PanelOLS(OLS):
 
         return x, x_filt, y, weights, weights_filt, cat_mapping
 
-    def _convert_x(self):
+    def _convert_x(self, x):
 
         # Converts non-numeric data in x to floats. x_converted is the
         # DataMatrix with converted values, and x_conversion is a dict that
@@ -179,7 +184,7 @@ class PanelOLS(OLS):
         # for x named 'variety', then x_conversion['variety'][0] is 'A'.
         x_converted = {}
         x_conversion = {}
-        for key, value in self._x_orig.iteritems():
+        for key, value in x.iteritems():
             df = value
             if _is_numeric(df):
                 x_converted[key] = df
