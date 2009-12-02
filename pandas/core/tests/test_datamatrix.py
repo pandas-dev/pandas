@@ -1,25 +1,13 @@
-from pandas.core.daterange import DateRange
-from pandas.core.datetools import bday
-from pandas.core.index import Index, NULL_INDEX
-from pandas.core.matrix import DataMatrix
-from pandas.core.series import Series
-from pandas.lib.tseries import map_indices
 from copy import deepcopy
 from datetime import datetime
-from numpy import isnan, array, NaN, alltrue
-from numpy import random
-from random import choice
-import numpy as np
-import pickle
-import string
 import unittest
 
-def rands(n):
-    return ''.join([choice(string.letters + string.digits) for i in range(n)])
-def equalContents(arr1, arr2):
-    """Checks if the set of unique elements of arr1 and arr2 are equivalent.
-    """
-    return frozenset(arr1) == frozenset(arr2)
+from numpy.random import randn
+import numpy as np
+
+from pandas.core.api import Index, NULL_INDEX, DataMatrix, Series, DateRange
+from pandas.core.datetools import bday
+import pandas.core.tests.common as common
 
 #-------------------------------------------------------------------------------
 # DataMatrix test cases
@@ -29,10 +17,10 @@ class TestDataMatrix(unittest.TestCase):
         index1 = DateRange(datetime(2008,4,22), periods=50)
         index2 = DateRange(datetime(2008,4,29), periods=50)
         index3 = DateRange(datetime(2008,4,28), periods=50)
-        ts1 = Series(random.random(50), index=index1)
-        ts2 = Series(random.random(50), index=index2)
-        ts3 = Series(random.random(50), index=index3)
-        ts4 = Series(random.random(50), index=index1)
+        ts1 = Series(randn(50), index=index1)
+        ts2 = Series(randn(50), index=index2)
+        ts3 = Series(randn(50), index=index3)
+        ts4 = Series(randn(50), index=index1)
         data = {'col1' : ts1,'col2' : ts2,'col3' : ts3, 'col4' : ts4}
         self.frame = DataMatrix(data=data, index=index3)
         self.ts1 = ts1
@@ -45,14 +33,14 @@ class TestDataMatrix(unittest.TestCase):
         for col in newFrame.cols():
             for idx, val in newFrame[col].iteritems():
                 if idx in self.frame.index:
-                    if isnan(val):
-                        self.assert_(isnan(self.frame[col][idx]))
+                    if np.isnan(val):
+                        self.assert_(np.isnan(self.frame[col][idx]))
                     else:
                         self.assertEqual(val, self.frame[col][idx])
                 else:
-                    self.assert_(isnan(val))
+                    self.assert_(np.isnan(val))
         for col, series in newFrame.iteritems():
-            self.assert_(equalContents(series.index, newFrame.index))
+            self.assert_(common.equalContents(series.index, newFrame.index))
         emptyFrame = self.frame.reindex(Index([]))
         self.assert_(len(emptyFrame.index) == 0)
 
@@ -60,14 +48,14 @@ class TestDataMatrix(unittest.TestCase):
         for col in nonContigFrame.cols():
             for idx, val in nonContigFrame[col].iteritems():
                 if idx in self.frame.index:
-                    if isnan(val):
-                        self.assert_(isnan(self.frame[col][idx]))
+                    if np.isnan(val):
+                        self.assert_(np.isnan(self.frame[col][idx]))
                     else:
                         self.assertEqual(val, self.frame[col][idx])
                 else:
-                    self.assert_(isnan(val))
+                    self.assert_(np.isnan(val))
         for col, series in nonContigFrame.iteritems():
-            self.assert_(equalContents(series.index, nonContigFrame.index))
+            self.assert_(common.equalContents(series.index, nonContigFrame.index))
 
     def testShift(self):
         shiftedFrame = self.frame.shift(5)
@@ -78,24 +66,24 @@ class TestDataMatrix(unittest.TestCase):
             self.assert_(idx-5*bday == self.frame.index[i])
 
     def testOperators(self):
-        garbage = random.random(4)
-        colSeries = Series(garbage, index=array(self.frame.cols()))
+        garbage = randn(4)
+        colSeries = Series(garbage, index=np.array(self.frame.cols()))
         idSum = self.frame + self.frame
         seriesSum = self.frame + colSeries
         for col, series in idSum.iteritems():
             for idx, val in series.iteritems():
                 origVal = self.frame[col][idx] * 2
-                if not isnan(val):
+                if not np.isnan(val):
                     self.assertEqual(val, origVal)
                 else:
-                    self.assert_(isnan(origVal))
+                    self.assert_(np.isnan(origVal))
         for col, series in seriesSum.iteritems():
             for idx, val in series.iteritems():
                 origVal = self.frame[col][idx] + colSeries[col]
-                if not isnan(val):
+                if not np.isnan(val):
                     self.assertEqual(val, origVal)
                 else:
-                    self.assert_(isnan(origVal))
+                    self.assert_(np.isnan(origVal))
 
     def testSlice(self):
         """Slicing NOT intended for production code"""
@@ -103,7 +91,7 @@ class TestDataMatrix(unittest.TestCase):
         self.assertEqual(20, len(slice.index))
         for col, series in slice.iteritems():
             self.assertEqual(20, len(series.index))
-            self.assert_(equalContents(series.index, slice.index))
+            self.assert_(common.equalContents(series.index, slice.index))
 
     def testGetItem(self):
         for key, value in self.frame._series.iteritems():
@@ -120,7 +108,7 @@ class TestDataMatrix(unittest.TestCase):
         sumFrame = self.frame.apply(np.sum)
         for col, series in self.frame.iteritems():
             val = sumFrame[col]
-            if isnan(val):
+            if np.isnan(val):
                 print self.frame[col]
             self.assertEqual(val, series.sum())
 
@@ -133,8 +121,8 @@ class TestDataMatrix(unittest.TestCase):
         idx = self.frame.index[5]
         xs = self.frame.getXS(idx)
         for item, value in xs.iteritems():
-            if isnan(value):
-                self.assert_(isnan(self.frame[item][idx]))
+            if np.isnan(value):
+                self.assert_(np.isnan(self.frame[item][idx]))
             else:
                 self.assertEqual(value, self.frame[item][idx])
 
@@ -147,8 +135,8 @@ class TestDataMatrix(unittest.TestCase):
                 self.assertEqual(idx, series.index[i])
         for col, series in frame.iteritems():
             for idx, value in series.iteritems():
-                if isnan(value):
-                    self.assert_(isnan(frame[col][idx]))
+                if np.isnan(value):
+                    self.assert_(np.isnan(frame[col][idx]))
                 else:
                     self.assertEqual(value, frame[col][idx])
 
@@ -157,8 +145,8 @@ class TestDataMatrix(unittest.TestCase):
         dft = frame.T
         for idx, series in dft.iteritems():
             for col, value in series.iteritems():
-                if isnan(value):
-                    self.assert_(isnan(frame[col][idx]))
+                if np.isnan(value):
+                    self.assert_(np.isnan(frame[col][idx]))
                 else:
                     self.assertEqual(value, frame[col][idx])
 
@@ -171,8 +159,8 @@ class TestDataMatrix(unittest.TestCase):
         for i, row in enumerate(mat):
             for j, value in enumerate(row):
                 col = frameCols[j]
-                if isnan(value):
-                    self.assert_(isnan(frame[col][i]))
+                if np.isnan(value):
+                    self.assert_(np.isnan(frame[col][i]))
                 else:
                     self.assertEqual(value, frame[col][i])
 
@@ -182,6 +170,14 @@ class TestDataMatrix(unittest.TestCase):
         series[:] = 10
         for idx, value in series.iteritems():
             self.assertNotEqual(self.frame['col1'][idx], value)
+
+    def testFromDict(self):
+        newFrame = DataMatrix.fromDict(col1=self.ts1, col2 = self.ts2)
+        for idx in newFrame.index:
+            if idx in self.ts1.index:
+                self.assertEqual(newFrame['col1'][idx], self.ts1[idx])
+            if idx in self.ts2.index:
+                self.assertEqual(newFrame['col2'][idx], self.ts2[idx])
 
     def testFilterItems(self):
         pass
@@ -197,33 +193,6 @@ class TestDataMatrix(unittest.TestCase):
         pass
 
     def testToCSV(self):
-        pass
-
-    def testPickle(self):
-        pass
-
-    def testToDictList(self):
-        pass
-
-    def testDictToDataFrame(self):
-        pass
-
-    def testDataFrameToDict(self):
-        pass
-
-    def testFromDict(self):
-        newFrame = DataMatrix.fromDict(col1=self.ts1, col2 = self.ts2)
-        for idx in newFrame.index:
-            if idx in self.ts1.index:
-                self.assertEqual(newFrame['col1'][idx], self.ts1[idx])
-            if idx in self.ts2.index:
-                self.assertEqual(newFrame['col2'][idx], self.ts2[idx])
-
-
-    def testPreserveReferences(self):
-        pass
-
-    def testCleanNaN(self):
         pass
 
 if __name__ == '__main__':

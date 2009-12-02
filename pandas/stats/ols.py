@@ -827,8 +827,8 @@ class MovingOLS(OLS):
             Y_slice = np.asarray(Y.truncate(before=prior_date, after=date))
 
             resid = Y_slice - np.dot(X_slice, beta)
-            SS_err = (resid ** 2).sum()
 
+            SS_err = (resid ** 2).sum()
             SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
 
             sse.append(SS_err)

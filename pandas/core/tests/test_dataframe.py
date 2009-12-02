@@ -1,23 +1,13 @@
-from pandas.core.daterange import DateRange
+from pandas.core.api import DateRange, DataFrame, Index, Series
 from pandas.core.datetools import bday
-from pandas.core.frame import DataFrame
-from pandas.core.index import Index
-from pandas.core.series import Series
 from copy import deepcopy
 from datetime import datetime
-from numpy import isnan, array
+
 from numpy import random
-from random import choice
 import numpy as np
+
 import string
 import unittest
-
-def rands(n):
-    return ''.join([choice(string.letters + string.digits) for i in range(n)])
-def equalContents(arr1, arr2):
-    """Checks if the set of unique elements of arr1 and arr2 are equivalent.
-    """
-    return frozenset(arr1) == frozenset(arr2)
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases
@@ -43,12 +33,12 @@ class TestDataFrame(unittest.TestCase):
         for col in newFrame.cols():
             for idx, val in newFrame[col].iteritems():
                 if idx in self.frame.index:
-                    if isnan(val):
-                        self.assert_(isnan(self.frame[col][idx]))
+                    if np.isnan(val):
+                        self.assert_(np.isnan(self.frame[col][idx]))
                     else:
                         self.assertEqual(val, self.frame[col][idx])
                 else:
-                    self.assert_(isnan(val))
+                    self.assert_(np.isnan(val))
         for col, series in newFrame.iteritems():
             self.assert_(equalContents(series.index, newFrame.index))
         emptyFrame = self.frame.reindex(Index([]))
@@ -58,12 +48,12 @@ class TestDataFrame(unittest.TestCase):
         for col in nonContigFrame.cols():
             for idx, val in nonContigFrame[col].iteritems():
                 if idx in self.frame.index:
-                    if isnan(val):
-                        self.assert_(isnan(self.frame[col][idx]))
+                    if np.isnan(val):
+                        self.assert_(np.isnan(self.frame[col][idx]))
                     else:
                         self.assertEqual(val, self.frame[col][idx])
                 else:
-                    self.assert_(isnan(val))
+                    self.assert_(np.isnan(val))
         for col, series in nonContigFrame.iteritems():
             self.assert_(equalContents(series.index, nonContigFrame.index))
 
@@ -77,23 +67,23 @@ class TestDataFrame(unittest.TestCase):
 
     def testOperators(self):
         garbage = random.random(4)
-        colSeries = Series(garbage, index=array(self.frame.cols()))
+        colSeries = Series(garbage, index=np.array(self.frame.cols()))
         idSum = self.frame + self.frame
         seriesSum = self.frame + colSeries
         for col, series in idSum.iteritems():
             for idx, val in series.iteritems():
                 origVal = self.frame[col][idx] * 2
-                if not isnan(val):
+                if not np.isnan(val):
                     self.assertEqual(val, origVal)
                 else:
-                    self.assert_(isnan(origVal))
+                    self.assert_(np.isnan(origVal))
         for col, series in seriesSum.iteritems():
             for idx, val in series.iteritems():
                 origVal = self.frame[col][idx] + colSeries[col]
-                if not isnan(val):
+                if not np.isnan(val):
                     self.assertEqual(val, origVal)
                 else:
-                    self.assert_(isnan(origVal))
+                    self.assert_(np.isnan(origVal))
 
     def testSlice(self):
         """Slicing NOT intended for production code"""
@@ -128,8 +118,8 @@ class TestDataFrame(unittest.TestCase):
         idx = self.frame.index[5]
         xs = self.frame.getXS(idx)
         for item, value in xs.iteritems():
-            if isnan(value):
-                self.assert_(isnan(self.frame[item][idx]))
+            if np.isnan(value):
+                self.assert_(np.isnan(self.frame[item][idx]))
             else:
                 self.assertEqual(value, self.frame[item][idx])
 
@@ -142,8 +132,8 @@ class TestDataFrame(unittest.TestCase):
                 self.assertEqual(idx, series.index[i])
         for col, series in frame.iteritems():
             for idx, value in series.iteritems():
-                if isnan(value):
-                    self.assert_(isnan(frame[col][idx]))
+                if np.isnan(value):
+                    self.assert_(np.isnan(frame[col][idx]))
                 else:
                     self.assertEqual(value, frame[col][idx])
 
@@ -152,8 +142,8 @@ class TestDataFrame(unittest.TestCase):
         dft = frame.T
         for idx, series in dft.iteritems():
             for col, value in series.iteritems():
-                if isnan(value):
-                    self.assert_(isnan(frame[col][idx]))
+                if np.isnan(value):
+                    self.assert_(np.isnan(frame[col][idx]))
                 else:
                     self.assertEqual(value, frame[col][idx])
 
@@ -166,8 +156,8 @@ class TestDataFrame(unittest.TestCase):
         for i, row in enumerate(mat):
             for j, value in enumerate(row):
                 col = frameCols[j]
-                if isnan(value):
-                    self.assert_(isnan(frame[col][i]))
+                if np.isnan(value):
+                    self.assert_(np.isnan(frame[col][i]))
                 else:
                     self.assertEqual(value, frame[col][i])
 
@@ -191,21 +181,6 @@ class TestDataFrame(unittest.TestCase):
     def testSort(self):
         pass
 
-    def testToCSV(self):
-        pass
-
-    def testPickle(self):
-        pass
-
-    def testToDictList(self):
-        pass
-
-    def testDictToDataFrame(self):
-        pass
-
-    def testDataFrameToDict(self):
-        pass
-
     def testFromDict(self):
         newFrame = DataFrame.fromDict(col1=self.ts1, col2 = self.ts2)
         for idx in newFrame.index:
@@ -213,13 +188,6 @@ class TestDataFrame(unittest.TestCase):
                 self.assertEqual(newFrame['col1'][idx], self.ts1[idx])
             if idx in self.ts2.index:
                 self.assertEqual(newFrame['col2'][idx], self.ts2[idx])
-
-
-    def testPreserveReferences(self):
-        pass
-
-    def testCleanNaN(self):
-        pass
 
 if __name__ == '__main__':
     unittest.main()

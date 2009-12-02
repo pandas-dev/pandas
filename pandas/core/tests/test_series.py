@@ -1,26 +1,8 @@
-from pandas.core.daterange import DateRange
-from pandas.core.datetools import bday
-from pandas.core.index import Index
-from pandas.core.series import Series
-from pandas.lib.tseries import map_indices
-from copy import deepcopy
-from datetime import datetime
-from numpy import isnan, array, NaN, alltrue
-from numpy import random
-from random import choice
-import numpy as np
-import os
-import pickle
-import string
-import sys
 import unittest
 
-def rands(n):
-    return ''.join([choice(string.letters + string.digits) for i in range(n)])
-def equalContents(arr1, arr2):
-    """Checks if the set of unique elements of arr1 and arr2 are equivalent.
-    """
-    return frozenset(arr1) == frozenset(arr2)
+import numpy as np
+
+import pandas.core.tests.common as common
 
 #-------------------------------------------------------------------------------
 # Series test cases
@@ -32,8 +14,7 @@ class TestSeries(unittest.TestCase):
         self.ts = Series(random.random(50), index=dateIndex)
         self.series = Series(random.random(50), index=index)
         self.objSeries = Series(dateIndex, index=index)
-        #self.plainSeries = Series(random.random(50))
-    
+
     def testSlice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]
@@ -43,31 +24,31 @@ class TestSeries(unittest.TestCase):
         self.assertEqual(len(numSlice), len(numSlice.index))
         self.assertEqual(self.series[numSlice.index[0]], numSlice[numSlice.index[0]])
         self.assertEqual(numSlice.index[1], self.series.index[11])
-        self.assert_(equalContents(numSliceEnd, array(self.series)[-10:]))
-    
+        self.assert_(common.equalContents(numSliceEnd, array(self.series)[-10:]))
+
     def testGet(self):
         self.assertEqual(self.series[5], self.series.get(self.series.index[5]))
-    
+
     def testGetItem(self):
         idx1 = self.series.index[5]
         idx2 = self.objSeries.index[5]
         self.assertEqual(self.series[idx1], self.series.get(idx1))
         self.assertEqual(self.objSeries[idx2], self.objSeries.get(idx2))
-    
+
     def testSetItem(self):
         self.ts[self.ts.index[5]] = NaN
         self.ts[[1,2,27]] = NaN
         self.ts[6] = NaN
-        self.assert_(isnan(self.ts[6]))
-        self.assert_(isnan(self.ts[2]))
-        self.ts[isnan(self.ts)] = 5
-        self.assert_(not isnan(self.ts[2]))
-        
+        self.assert_(np.isnan(self.ts[6]))
+        self.assert_(np.isnan(self.ts[2]))
+        self.ts[np.isnan(self.ts)] = 5
+        self.assert_(not np.isnan(self.ts[2]))
+
     def testSetSlice(self):
         slice = self.ts[5:20]
         self.assertEqual(len(slice), len(slice.index))
         self.assertEqual(len(slice.index.indexMap), len(slice.index))
-        
+
     def testGetSequence(self):
         slice1 = self.series[[1,2,3]]
         slice2 = self.objSeries[[1,2,3]]
@@ -76,77 +57,52 @@ class TestSeries(unittest.TestCase):
         self.assertEqual(self.series[2], slice1[1])
         self.assertEqual(self.objSeries[2], slice2[1])
 
-        #slice3 = self.plainSeries[[1,2,3]]
-        #self.assertEqual(self.plainSeries[2], slice3[1])
-        
     def testMeta(self):
         wrapped = Series(self.series)
-        self.assert_(equalContents(wrapped.index, self.series.index))
+        self.assert_(common.equalContents(wrapped.index, self.series.index))
         # Ensure new index is not created
         self.assertEquals(id(self.series.index), id(wrapped.index))
-    
+
     def testStatistics(self):
         self.series[5:15] = NaN
-        
+
         s1 = array(self.series)
-        s1 = s1[-isnan(s1)]
+        s1 = s1[-np.isnan(s1)]
         self.assertEquals(np.mean(s1), self.series.mean())
         self.assertEquals(np.std(s1, ddof=1), self.series.std())
         self.assertEquals(np.var(s1, ddof=1), self.series.var())
         self.assertEquals(np.sum(s1), self.series.sum())
-        self.assert_(not isnan(np.sum(self.series)))
-        self.assert_(not isnan(np.mean(self.series)))
-        self.assert_(not isnan(np.std(self.series)))
-        self.assert_(not isnan(np.var(self.series)))
+        self.assert_(not np.isnan(np.sum(self.series)))
+        self.assert_(not np.isnan(np.mean(self.series)))
+        self.assert_(not np.isnan(np.std(self.series)))
+        self.assert_(not np.isnan(np.var(self.series)))
 
-        #self.plainSeries[20:25] = NaN
-        #s2 = array(self.plainSeries)
-        #s2 = s2[-isnan(s2)]
-        #self.assertEquals(np.mean(s2), self.plainSeries.mean())
-        #self.assertEquals(np.std(s2, ddof=1), self.plainSeries.std())
-        #self.assertEquals(np.var(s2, ddof=1), self.plainSeries.var())
-        #self.assertEquals(np.sum(s2), self.plainSeries.sum())
-
-        #self.assert_(isnan(self.series.mean(removeNA=False)))
-        #self.assert_(isnan(self.series.std(removeNA=False)))
-        #self.assert_(isnan(self.series.var(removeNA=False)))
-        #self.assert_(isnan(self.series.sum(removeNA=False)))
-        
     def testPickle(self):
         f = open('tmp1', 'wb')
-        #g = open('tmp2', 'wb')
         h = open('tmp3', 'wb')
         pickle.dump(self.series, f)
-        #pickle.dump(self.plainSeries, g)
         pickle.dump(self.ts, h)
         f.close()
-        #g.close()
         h.close()
         f = open('tmp1', 'rb')
-        #g = open('tmp2', 'rb')
         h = open('tmp3', 'rb')
         unPickledf = pickle.load(f)
-        #unPickledg = pickle.load(g)
         unPickledh = pickle.load(h)
         f.close()
-        #g.close()
         h.close()
         os.remove('tmp1')
-        #os.remove('tmp2')
         os.remove('tmp3')
         self.assert_(isinstance(unPickledf, Series))
-        #self.assert_(isinstance(unPickledg, Series))
         self.assert_(isinstance(unPickledh, Series))
-        self.assert_(equalContents(unPickledf, self.series))
-        #self.assert_(equalContents(unPickledg, self.plainSeries))
-        self.assert_(equalContents(unPickledh, self.ts))
+        self.assert_(common.equalContents(unPickledf, self.series))
+        self.assert_(common.equalContents(unPickledh, self.ts))
         for idx in self.series.index:
             self.assert_(idx in unPickledf.index)
-            self.assertEqual(unPickledf[idx], self.series[idx])    
+            self.assertEqual(unPickledf[idx], self.series[idx])
         for idx in self.ts.index:
             self.assert_(idx in unPickledh.index)
-            self.assertEqual(unPickledh[idx], self.ts[idx])    
-            
+            self.assertEqual(unPickledh[idx], self.ts[idx])
+
     def testIter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
@@ -155,9 +111,8 @@ class TestSeries(unittest.TestCase):
         for idx, val in self.series.iteritems():
             self.assertEqual(val, self.series[idx])
         for idx, val in self.ts.iteritems():
-            self.assertEqual(val, self.ts[idx])            
-        #self.assertRaises(Exception, self.plainSeries.iteritems)
-        
+            self.assertEqual(val, self.ts[idx])
+
     def testFromIndex(self):
         identity = self.series.reindex(self.series.index)
         self.assertEqual(id(self.series.index), id(identity.index))
@@ -170,18 +125,18 @@ class TestSeries(unittest.TestCase):
         for idx, val in subTS.iteritems():
             self.assertEqual(val, self.ts[idx])
         crapSeries = self.ts.reindex(subIndex)
-        self.assert_(alltrue(isnan(crapSeries)))
-        
+        self.assert_(alltrue(np.isnan(crapSeries)))
+
         # This is extremely important for the Cython code to not screw up
         nonContigIndex = self.ts.index[::2]
         subNonContig = self.ts.reindex(nonContigIndex)
         for idx, val in subNonContig.iteritems():
-            self.assertEqual(val, self.ts[idx])            
-    
+            self.assertEqual(val, self.ts[idx])
+
     def testCombineFunc(self):
         shiftedSum = self.ts + self.ts.shift(5)
         idSum = self.ts + self.ts
-        self.assert_(isnan(shiftedSum[0]))
+        self.assert_(np.isnan(shiftedSum[0]))
         for idx, val in idSum.iteritems():
             self.assertAlmostEqual(self.ts[idx] + self.ts[idx], val)
         multiplied = self.ts * 5
@@ -200,12 +155,12 @@ class TestSeries(unittest.TestCase):
         self.assertFalse(ltSeries[10])
         self.assertTrue(gtSeries[10])
         self.assertFalse(gtSeries[20])
-        
-        
+
+
     def testShift(self):
         shifted = self.ts.shift(1)
         unshifted = shifted.shift(-1)
-        #self.assert_(equalContents(self.ts.index, unshifted.index))
+        #self.assert_(common.equalContents(self.ts.index, unshifted.index))
         idxMap = self.ts.index.indexMap
         for k, v in unshifted.iteritems():
             self.assertEqual(self.ts[idxMap[k]], v)
@@ -217,15 +172,15 @@ class TestSeries(unittest.TestCase):
         val2 = self.ts.asOf(self.ts.index[19])
         self.assertEqual(val1, self.ts[4])
         self.assertEqual(val2, self.ts[14])
-        
+
     def testPreserveReferences(self):
         slice = self.ts[5:10]
         seq = self.ts[[5,10,15]]
         slice[4] = NaN
         seq[1] = NaN
-        self.assertFalse(isnan(self.ts[9]))
-        self.assertFalse(isnan(self.ts[10]))
-        
+        self.assertFalse(np.isnan(self.ts[9]))
+        self.assertFalse(np.isnan(self.ts[10]))
+
     def testAppend(self):
         appendedSeries = self.series.append(self.ts)
         for idx, value in appendedSeries.iteritems():

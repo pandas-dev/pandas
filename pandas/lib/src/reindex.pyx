@@ -85,28 +85,39 @@ def reindexObject(ndarray[object, ndim=1] index,
     Using the provided new index, a given array, and a mapping of index-value
     correpondences in the value array, return a new ndarray conforming to
     the new index.
+
+    Returns
+    -------
+    ndarray
     '''
-    cdef int j, loc, length
+    cdef ndarray[object, ndim = 1] result
+    cdef int i, loc, length
     cdef object idx, value
     cdef object nan = np.NaN
 
     length = index.shape[0]
-    cdef ndarray[object, ndim = 1] result = np.empty(length, dtype=object)
+    result = np.empty(length, dtype=object)
 
-    loc = 0
-    cdef int i = 0
     for i from 0 <= i < length:
         idx = index[i]
-        if not PyDict_Contains(idxMap, idx):
+        if idx not in idxMap:
             result[i] = nan
             continue
-        value = arr[idxMap[idx]]
-        result[i] = value
+
+        result[i] = arr[idxMap[idx]]
+
     return result
 
 cdef tuple _nofill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
     cdef int *fillLocs
     cdef char *mask
+
+
+
+
+
+
+
     cdef int i, j, length, newLength
 
     cdef flatiter iterold

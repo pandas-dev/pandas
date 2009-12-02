@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 from pandas.core.api import DataMatrix, DateRange
-
+from pandas.core.tests.common import assert_almost_equal
 
 N = 100
 K = 4
@@ -21,32 +21,6 @@ def makeDataMatrix():
                       index=DATE_RANGE)
 
     return data
-
-def isiterable(obj):
-    return getattr(obj, '__iter__', False)
-
-def assert_almost_equal(a, b):
-    if isiterable(a):
-        np.testing.assert_(isiterable(b))
-        np.testing.assert_equal(len(a), len(b))
-        for i in xrange(len(a)):
-            assert_almost_equal(a[i], b[i])
-        return
-
-    err_msg = lambda a, b: 'expected %.5f but got %.5f' % (a, b)
-
-    if np.isnan(a):
-        np.testing.assert_(np.isnan(b))
-        return
-
-    # case for zero
-    if abs(a) < 1e-5:
-        np.testing.assert_almost_equal(
-            a, b, decimal=5, err_msg=err_msg(a, b), verbose=False)
-    else:
-        np.testing.assert_almost_equal(
-            1, a/b, decimal=5, err_msg=err_msg(a, b), verbose=False)
-
 
 def getBasicDatasets():
     A = makeDataMatrix()

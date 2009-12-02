@@ -18,7 +18,7 @@ DataFrame / DataMatrix
 
 DateRange
     Index subclass for generating arrays of fixed frequency dates
-    
+
 Subpackages
 -----------
 core
@@ -29,8 +29,11 @@ io
 lib
     C, Cython, and Fortran extensions for other components
 stats
-    Standard 
+    Statistical and econometric functions
 """
+
+# pylint: disable-msg=W0614,W0401,W0611
 
 from pandas.core.api import *
 from pandas.io.parsers import parseCSV, parseText, parseExcel
+from pandas.stats.api import *

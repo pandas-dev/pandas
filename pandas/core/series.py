@@ -73,13 +73,6 @@ def _seriesOpWrap(opname, comp=False):
 class Series(np.ndarray, Picklable, Groupable):
     """Generic indexed series (time series or otherwise) object.
 
-    Parameters
-    ----------
-    data:  array-like
-        Underlying values of Series, preferably as numpy ndarray
-    index: array-like, optional
-        Index object (or other iterable of same length as data)
-
     Contains values in a numpy-ndarray with an optional bound index
     (also an array of dates, strings, or whatever you want the 'row
     names' of your series to be)
@@ -93,12 +86,22 @@ class Series(np.ndarray, Picklable, Groupable):
     underlying ndarray. In other words, there is no 'matching' or
     'aligning' to do, it's all taken care of for you.
 
-    NOTE: If you combine two series, all values for an index position
-    must be present or the value for that index position will be
-    nan. The new index is the sorted union of the two Series indices.
+    Note
+    ----
+    If you combine two series, all values for an index position must
+    be present or the value for that index position will be nan. The
+    new index is the sorted union of the two Series indices.
 
     ALSO NOTE: There is currently no restriction on what can be in the
     index.
+
+    Parameters
+    ----------
+    data:  array-like
+        Underlying values of Series, preferably as numpy ndarray
+    index: array-like, optional
+        Index object (or other iterable of same length as data)
+
 
     Example usage:
         >>> s = Series(arr, index=Index(dates))
@@ -878,6 +881,10 @@ class Series(np.ndarray, Picklable, Groupable):
             return self.__class__(self, index=newIndex)
 
     def slice(self, before, after):
+        """
+
+        """
+
         import bisect
 
         if before is not None:
@@ -910,17 +917,25 @@ class Series(np.ndarray, Picklable, Groupable):
         requested date.
 
         If there is no good value, NaN is returned.
+
+        Returns
+        -------
+        value or NaN
         """
         if isinstance(date, basestring):
             date = datetools.to_datetime(date)
+
         v = self.get(date)
+
         if isnull(v):
             candidates = self.index[notnull(self)]
             candidates = candidates[candidates <= date]
+
             if any(candidates):
                 asOfDate = max(candidates)
             else:
                 return NaN
+
             return self.get(asOfDate)
         else:
             return v

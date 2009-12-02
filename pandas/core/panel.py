@@ -1395,17 +1395,6 @@ def _makePrefixedLongPanel(values, items, index, prefix):
 
     return LongPanel(values, items, index)
 
-def _convert(data, order, factors=None):
-    """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-
 def _homogenize(frames, intersect=True):
     """
     Conform set of DataFrame-like objects to either an intersection
