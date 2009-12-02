@@ -111,6 +111,7 @@ class DateRange(Index):
         Number of periods to generate.
     offset: DateOffset, default is 1 BusinessDay
         Used to determine the dates returned
+    timeRule: timeRule to use
     """
     _cache = {}
     def __new__(cls, fromDate=None, toDate=None, periods=None,

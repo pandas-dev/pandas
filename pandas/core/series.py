@@ -993,6 +993,46 @@ class Series(np.ndarray, Picklable, Groupable):
 
         return self.reindex(dateRange, fillMethod=fillMethod)
 
+    def interpolate(self, method='linear'):
+        """
+        Interpolate missing values (after the first valid value)
+
+        Parameters
+        ----------
+        method: {'linear', 'time'}
+            Interpolation method.
+
+            Time interpolation works on daily and higher resolution
+            data to interpolate given length of interval
+
+        Returns
+        -------
+        Series with values interpolated
+        """
+        if method == 'time':
+            if not isinstance(self, TimeSeries):
+                raise Exception('time-weighted interpolation only works'
+                                'on TimeSeries')
+            inds = np.array([d.toordinal() for d in self.index])
+        else:
+            inds = np.arange(len(self))
+
+        values = self.view(np.ndarray)
+
+        invalid = isnull(values)
+        valid = -invalid
+
+        firstIndex = valid.argmax()
+        valid = valid[firstIndex:]
+        invalid = invalid[firstIndex:]
+        inds = inds[firstIndex:]
+
+        result = values.copy()
+        result[firstIndex:][invalid] = np.interp(inds[invalid], inds[valid],
+                                                 values[firstIndex:][valid])
+
+        return Series(result, index=self.index)
+
     def reindex(self, newIndex, fillMethod=None):
         """Overloaded version of reindex for TimeSeries. Supports filling
         with values based on new index.
@@ -1021,18 +1061,13 @@ class Series(np.ndarray, Picklable, Groupable):
             idxMap = self.index.indexMap
 
             if self.dtype == float:
-                return self.__class__(tseries.reindex(newIndex, self, idxMap),
-                                      index=newIndex)
+                vals = tseries.reindex(newIndex, self, idxMap)
             elif self.dtype == int:
                 # This could be unsafe, but NaN will not work in int arrays.
-                reindexed = tseries.reindex(newIndex, self.astype(float),
-                                            idxMap)
-                return self.__class__(reindexed, index=newIndex)
-
+                vals = tseries.reindex(newIndex, self.astype(float), idxMap)
             else:
                 if self.dtype.type == np.object_:
-                    result = tseries.reindexObj(newIndex, self, idxMap)
-                    return self.__class__(result, index=newIndex)
+                    vals = tseries.reindexObj(newIndex, self, idxMap)
                 else:
                     thisVals = self.view(np.ndarray).astype(object)
                     vals = tseries.reindexObj(newIndex, thisVals, idxMap)
@@ -1040,7 +1075,7 @@ class Series(np.ndarray, Picklable, Groupable):
                     if not isnull(vals).any():
                         vals = vals.astype(self.dtype)
 
-                    return self.__class__(vals, index=newIndex)
+            return self.__class__(vals, index=newIndex)
 
         if not isinstance(newIndex, Index):
             newIndex = Index(newIndex)

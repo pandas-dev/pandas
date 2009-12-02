@@ -595,6 +595,24 @@ class WidePanel(Panel):
 
         return self._apply(_std, axis=axis)
 
+    def shift(self, lags, axis='major'):
+        values = self.values
+        items = self.items
+        major_axis = self.major_axis
+        minor_axis = self.minor_axis
+
+        if axis == 'major':
+            values = values[:, :-lags, :]
+            major_axis = major_axis[lags:]
+        elif axis == 'minor':
+            values = values[:, :, :-lags]
+            minor_axis = minor_axis[lags:]
+        else:
+            raise Exception('Invalid axis')
+
+        return WidePanel(values=values, items=items, major_axis=major_axis,
+                         minor_axis=minor_axis)
+
 class LongPanelIndex(object):
     """
     Parameters
@@ -917,8 +935,12 @@ class LongPanel(Panel):
         elif np.isscalar(other):
             pass
 
-    def _combineFrame(self, other, axis=0):
-        pass
+    def _combineFrame(self, other, func, axis=0):
+        wide = self.toWide()
+
+        result = wide._combineFrame(other, func, axis=axis)
+
+        return result.toLong()
 
     def _combinePanel(self, other, func):
         """
@@ -1144,7 +1166,8 @@ class LongPanel(Panel):
         new_values = self.values.take(indexer, axis=1)
         return LongPanel(new_values, intersection, self.index)
 
-    def getAxisDummies(self, axis='minor'):
+    def getAxisDummies(self, axis='minor', transform=None,
+                       prefix=None):
         """
         Construct 1-0 dummy variables corresponding to designated axis
         labels
@@ -1152,7 +1175,14 @@ class LongPanel(Panel):
         Parameters
         ----------
         axis: {'major', 'minor'}, default 'minor'
+        transform: function, default None
 
+            Function to apply to axis labels first. For example, to
+            get "day of week" dummies in a time series regression you might
+            call:
+
+                panel.getAxisDummies(axis='major',
+                                     transform=lambda d: d.weekday())
         Returns
         -------
         LongPanel, item names taken from chosen axis
@@ -1160,26 +1190,54 @@ class LongPanel(Panel):
         if axis == 'minor':
             dim = len(self.minor_axis)
             items = self.minor_axis
+            labels = self.index.minor_labels
         elif axis == 'major':
             dim = len(self.major_axis)
             items = self.major_axis
+            labels = self.index.major_labels
         else:
             raise Exception('Do not recognize axis %s' % axis)
 
-        vals = np.eye(dim, dtype=float)
+        if transform:
+            mapped = np.array([transform(val) for val in items])
 
-        return self._makeDummyPanel(vals, items, axis=axis)
+            items = np.array(sorted(set(mapped)))
+            labels = mapped[labels]
+            dim = len(items)
+
+        values = np.eye(dim, dtype=float)
+        values = values.take(labels, axis=0)
+
+        result = LongPanel(values, items, self.index)
+
+        if prefix is None:
+            prefix = ''
+
+        result = result.addPrefix(prefix)
+
+        return result
 
     def getFrameDummies(self, dataFrame, axis='minor', prefix=None):
+        """
+
+        Returns
+        -------
+        LongPanel
+        """
         if axis == 'minor':
             dataFrame = dataFrame.reindex(self.minor_axis)
+            labels = self.index.minor_labels
         elif axis == 'major':
             dataFrame = dataFrame.reindex(self.major_axis)
+            labels = self.index.major_labels
 
-        items = dataFrame.columns
+        values = dataFrame.values.take(labels, axis=0)
+        result = LongPanel(values, dataFrame.columns, self.index)
 
-        return self._makeDummyPanel(dataFrame.values, items, axis=axis,
-                                    prefix=prefix)
+        if prefix is not None:
+            result = result.addPrefix(prefix)
+
+        return result
 
     def getItemDummies(self, item):
         """
@@ -1206,39 +1264,6 @@ class LongPanel(Panel):
         dummy_mat = values.take(mapping, axis=0)
 
         return LongPanel(dummy_mat, distinct_values, self.index)
-
-    def _makeDummyPanel(self, values, items, axis='minor'):
-        """
-        Construct 1-0 dummy variables corresponding to designated axis
-        labels
-
-        Parameters
-        ----------
-        axis: {'major', 'minor'}, default 'minor'
-
-        Returns
-        -------
-        LongPanel, item names taken from chosen axis
-        """
-
-        N, K = values.shape
-
-        if len(items) != K:
-            raise Exception('items length does not match values matrix')
-
-        if axis == 'minor':
-            if len(self.minor_axis) != N:
-                raise Exception('Axis length does not match values matrix')
-            dummy_mat = values.take(self.index.minor_labels, axis=0)
-
-        elif axis == 'major':
-            if len(self.major_axis) != N:
-                raise Exception('Axis length does not match values matrix')
-            dummy_mat = values.take(self.index.major_labels, axis=0)
-        else:
-            raise Exception('Do not recognize axis %s' % axis)
-
-        return LongPanel(dummy_mat, items, self.index)
 
     def applyToAxis(self, f, axis='major', broadcast=False):
         """
@@ -1310,8 +1335,12 @@ class LongPanel(Panel):
         ----------
         other: LongPanel
         """
-        if other.index is self.index:
-            pass
+        assert(self.index is other.index)
+
+        values = np.concatenate((self.values, other.values), axis=1).copy()
+        items = self.items.tolist() + other.items.tolist()
+
+        return LongPanel(values, items, self.index)
 
     def merge(self, other):
         """
@@ -1324,12 +1353,7 @@ class LongPanel(Panel):
         -------
         LongPanel
         """
-        assert(self.index is other.index)
-
-        values = np.concatenate((self.values, other.values), axis=1).copy()
-        items = self.items.tolist() + other.items.tolist()
-
-        return LongPanel(values, items, self.index)
+        return self.leftJoin(other)
 
     def addPrefix(self, prefix):
         """
