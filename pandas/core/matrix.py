@@ -1,7 +1,7 @@
 # pylint: disable-msg=E1101
 # pylint: disable-msg=E1103
-# pylint: disable-msg=W0212
-# pylint: disable-msg=W0231
+# pylint: disable-msg=W0212,W0703,W0231
+
 from cStringIO import StringIO
 
 from numpy.lib.format import read_array, write_array
@@ -65,6 +65,10 @@ class DataMatrix(DataFrame):
                     else:
                         index = Index(np.arange(len(s)))
 
+                if columns is not None:
+                    if len(columns) != len(data):
+                        raise Exception('Supplied columns does not match dict!')
+
                 if not isinstance(index, Index):
                     index = Index(index)
 
@@ -81,10 +85,17 @@ class DataMatrix(DataFrame):
                         assert(len(v) == len(index))
                         v = Series(v, index=index)
 
-                    if issubclass(v.dtype.type, (float, int)):
+                    if issubclass(v.dtype.type, (np.bool_, float, int)):
                         valueDict[k] = v
                     else:
                         objectDict[k] = v
+
+                if columns is None:
+                    columns = Index(sorted(valueDict))
+                    objectColumns = Index(sorted(objectDict))
+                else:
+                    columns = Index([c for c in columns if c in valueDict])
+                    objectColumns = Index([c for c in columns if c in objectDict])
 
                 if len(valueDict) == 0:
                     dtype = np.object_
@@ -93,11 +104,10 @@ class DataMatrix(DataFrame):
                     dtype = np.float_
                     if len(objectDict) > 0:
                         objects = DataMatrix(objectDict, dtype=np.object_,
-                                             index=index)
+                                             index=index, columns=objectColumns)
                     else:
                         objects = None
 
-                columns = Index(sorted(valueDict))
                 values = np.empty((len(index), len(columns)), dtype=dtype)
 
                 for i, col in enumerate(columns):
@@ -117,10 +127,11 @@ class DataMatrix(DataFrame):
                 else:
                     data = data.reshape((data.shape[0], 1))
 
-            if issubclass(data.dtype.type, (np.bool_, np.str_, np.object_)):
+            if issubclass(data.dtype.type, (np.str_, np.object_)):
                 values = np.asarray(data, dtype=object)
             else:
-                values = np.asarray(data, dtype=float)
+                # We're allowing things to be boolean
+                values = np.asarray(data)
 
         elif data is None:
             if index is None:
@@ -220,7 +231,7 @@ class DataMatrix(DataFrame):
 
         # Get set of indices
         indices = set([])
-        for key, branch in inputDict.iteritems():
+        for branch in inputDict.values():
             indices = indices | set(branch.keys())
 
         index = Index(sorted(indices))
@@ -305,7 +316,7 @@ class DataMatrix(DataFrame):
                 f.write(',')
             f.write(','.join([str(c) for c in cols]))
             f.write('\n')
-        for i, idx in enumerate(self.index):
+        for idx in self.index:
             if index:
                 f.write(str(idx) + ',')
             for col in cols:
@@ -326,19 +337,10 @@ class DataMatrix(DataFrame):
         """
         Output a tab-separated version of this DataMatrix
         """
-        from cStringIO import StringIO
-
         output = StringIO()
 
         mat = self.values
         cols = self.columns
-        jinds = range(len(cols))
-        totaljinds = range(len(self.cols()))
-
-        if self.objects is None:
-            obj_jinds = range(0)
-        else:
-            obj_jinds = range(len(self.objects.cols()))
 
         idxSpace = max([len(str(idx)) for idx in self.index]) + 4
         if len(self.cols()) == 0:
@@ -394,7 +396,7 @@ class DataMatrix(DataFrame):
         isObjects = False
         try:
             counts = isfinite(self.values).sum(0)
-        except Exception, e:
+        except Exception:
             counts = np.repeat(self.values.shape[0], len(self.columns))
             isObjects = True
 
@@ -598,7 +600,7 @@ class DataMatrix(DataFrame):
         else:
             try:
                 value = np.repeat(value, len(self.index))
-            except Exception, e:
+            except Exception:
                 raise Exception('Could not put %s in the matrix!' % value)
 
         if value.dtype not in self._dataTypes:
@@ -882,7 +884,7 @@ class DataMatrix(DataFrame):
             newCols = self.columns
             try:
                 resultMatrix = func(self.values, other)
-            except Exception, e:
+            except Exception:
                 raise Exception('Bad operator value: %s' % other)
 
         # TODO: deal with objects
@@ -921,9 +923,9 @@ class DataMatrix(DataFrame):
         else:
             return list(self.columns)
 
-    def copy(self, deep=False):
+    def copy(self):
         """
-        Make a deep copy of this DataMatrix
+        Make a copy of this DataMatrix
         """
         if self.values is not None:
             valsCopy = self.values.copy()
@@ -1386,6 +1388,7 @@ class DataMatrix(DataFrame):
         elif isinstance(results, dict):
             if isinstance(results.values()[0], np.ndarray):
                 return DataMatrix(results, index=self.index,
+                                  columns=self.columns,
                                   objects=self.objects)
             else:
                 return Series.fromDict(results)
@@ -1415,7 +1418,7 @@ class DataMatrix(DataFrame):
         results = npfunc(self.values)
         try:
             results = results.astype(self.values.dtype)
-        except Exception, e:
+        except Exception:
             return DataFrame.fromMatrix(results, self.columns, self.index)
         return DataMatrix(data=results, index=self.index, columns=self.columns)
 
