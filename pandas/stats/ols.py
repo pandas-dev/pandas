@@ -682,8 +682,12 @@ class MovingOLS(OLS):
             else:
                 prior_date = dates[0]
 
-            x_slice = self._x.truncate(before=prior_date, after=date)
-            ranks[i] = math.rank(x_slice.values)
+            x_slice = self._x.truncate(before=prior_date, after=date).values
+
+            if len(x_slice) == 0:
+                continue
+
+            ranks[i] = math.rank(x_slice)
 
         return ranks
 
@@ -712,10 +716,15 @@ class MovingOLS(OLS):
 
         # A little kludge so we can use this method for both
         # MovingOLS and MovingPanelOLS
-        if isinstance(y, Series):
-            y_converter = lambda x: np.asarray(x)
-        else:
-            y_converter = lambda x: x.values.squeeze()
+        def y_converter(y):
+            if isinstance(y, Series):
+                return np.asarray(y)
+            else:
+                y = y.values.squeeze()
+                if y.ndim == 0:
+                    return np.array([y])
+                else:
+                    return y
 
         last = np.zeros(len(x.cols()))
         for i, date in enumerate(dates):
@@ -827,8 +836,8 @@ class MovingOLS(OLS):
             Y_slice = np.asarray(Y.truncate(before=prior_date, after=date))
 
             resid = Y_slice - np.dot(X_slice, beta)
-
             SS_err = (resid ** 2).sum()
+
             SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
 
             sse.append(SS_err)
