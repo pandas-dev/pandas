@@ -53,7 +53,7 @@ cdef double_t *get_double_ptr(ndarray arr):
 
     return <double_t *> arr.data
 
-def map_indices(ndarray[object, ndim=1] index):
+cpdef map_indices(ndarray index):
     '''
     Produce a dict mapping the values of the input array to their respective
     locations.
@@ -63,12 +63,20 @@ def map_indices(ndarray[object, ndim=1] index):
 
     Better to do this with Cython because of the enormous speed boost.
     '''
-    cdef int i
+    cdef int i, length
+    cdef flatiter iter
     cdef dict result
+    cdef object idx
 
     result = {}
-    for i from 0 <= i < PyArray_SIZE(index):
-        result[index[i]] = i
+
+    iter = <flatiter> PyArray_IterNew(index)
+    length = PyArray_SIZE(index)
+
+    for i from 0 <= i < length:
+        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iter))
+        result[idx] = i
+        PyArray_ITER_NEXT(iter)
 
     return result
 

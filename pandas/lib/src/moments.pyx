@@ -731,6 +731,8 @@ def rolling_var(ndarray input, window, minp=None):
 
     if minp is None:
         minp = window
+    else:
+        minp = max(2, minp)
 
     if not issubclass(input.dtype.type, float):
         input = input.astype(float)
@@ -755,6 +757,8 @@ def rolling_skew(ndarray input, window, minp=None):
 
     if minp is None:
         minp = window
+    else:
+        minp = max(2, minp)
 
     if not issubclass(input.dtype.type, float):
         input = input.astype(float)
@@ -774,6 +778,8 @@ def rolling_kurt(ndarray input, window, minp=None):
 
     if minp is None:
         minp = window
+    else:
+        minp = max(2, minp)
 
     if not issubclass(input.dtype.type, float):
         input = input.astype(float)
