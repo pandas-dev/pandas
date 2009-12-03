@@ -236,40 +236,6 @@ class DataFrame(Picklable, Groupable):
                                       for idx in colIndex]),
                          index = index)
 
-    @classmethod
-    def load(cls, baseFile):
-        """
-        Load DataFrame from file.
-
-        Parameters
-        ----------
-        baseFile: string
-            Filename base where index/values are stored.
-            e.g. baseFile='myfile' --> 'myfile_index.npy', 'myfile_values.npy'
-
-        Returns
-        -------
-        DataFrame
-        """
-        cacheLoad = np.load(baseFile + '.npz')
-
-        values = cacheLoad['v']
-        index = Index(cacheLoad['i'])
-        cols = cacheLoad['c']
-
-        return cls.fromMatrix(values, cols, index)
-
-    def save(self, baseFile):
-        """
-        Write DataFrame efficiently to file using NumPy serialization,
-        which is easily 100x faster than cPickle.
-
-        Note
-        ----
-        Saves data to 3 files, one for index, columns, and values matrix.
-        """
-        np.savez(baseFile, i=self.index, v=self.values, c=self.columns)
-
 #-------------------------------------------------------------------------------
 # Magic methods
 
@@ -316,20 +282,6 @@ class DataFrame(Picklable, Groupable):
             else:
                 raise
 
-    def pop(self, item):
-        """
-        Return column and drop from frame. Raise KeyError if not
-        found.
-
-        Returns
-        -------
-        Series
-        """
-        result = self[item]
-        del self[item]
-
-        return result
-
     def __setitem__(self, key, value):
         """
         Add series to DataFrame in specified column.
@@ -363,6 +315,20 @@ class DataFrame(Picklable, Groupable):
         Delete column from DataFrame (only deletes the reference)
         """
         r = self._series.pop(key, None)
+
+    def pop(self, item):
+        """
+        Return column and drop from frame. Raise KeyError if not
+        found.
+
+        Returns
+        -------
+        Series
+        """
+        result = self[item]
+        del self[item]
+
+        return result
 
     def __iter__(self):
         """

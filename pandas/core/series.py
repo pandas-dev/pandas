@@ -228,44 +228,6 @@ class Series(np.ndarray, Picklable, Groupable):
 
         return Series(arr, index=index)
 
-    @classmethod
-    def load(cls, baseFile):
-        """
-        Load Series from file.
-
-        Parameters
-        ----------
-        baseFile: string
-            Filename base where index/values are stored.
-            e.g. baseFile='myfile' --> 'myfile_index.npy', 'myfile_values.npy'
-
-        Returns
-        -------
-        Series or TimeSeries
-        """
-        indexFile = baseFile + '_index.npy'
-        valuesFile = baseFile + '_values.npy'
-        index = np.load(indexFile)
-        values = np.load(valuesFile)
-
-        return cls(values, index=index)
-
-    def save(self, baseFile):
-        """
-        Save Series to file.
-
-        Parameters
-        ----------
-        baseFile: string
-            Filename base where index/values are stored.
-            e.g. baseFile='myfile' --> 'myfile_index.npy', 'myfile_values.npy'
-        """
-        indexFile = baseFile + '_index'
-        valuesFile = baseFile + '_values'
-
-        np.save(indexFile, self.index)
-        np.save(valuesFile, self)
-
     def __contains__(self, key):
         return key in self.index
 
@@ -781,21 +743,6 @@ class Series(np.ndarray, Picklable, Groupable):
 
         pylab.plot(self.index, self, **kwds)
 
-    def unstack(self):
-        """
-        Inverse operator for *stack*
-        """
-        from pandas.core.frame import DataFrame
-        data = {}
-        for idx, value in self.iteritems():
-            row, col = idx.split(';')
-            try:
-                row = datetime.fromordinal(int(row))
-            except Exception, e:
-                pass
-            data.setdefault(row, {})[col] = value
-        return DataFrame.fromDict(data)
-
     def toCSV(self, path=None):
         """
         Write the Series to a CSV file
@@ -839,6 +786,22 @@ class Series(np.ndarray, Picklable, Groupable):
         Series
         """
         return remove_na(self)
+
+    def _firstTimeWithValue(self):
+        noNA = remove_na(self)
+
+        if len(noNA) > 0:
+            return noNA.index[0]
+        else:
+            return None
+
+    def _lastTimeWithValue(self):
+        noNA = remove_na(self)
+
+        if len(noNA) > 0:
+            return noNA.index[-1]
+        else:
+            return None
 
 #-------------------------------------------------------------------------------
 # TimeSeries methods
@@ -910,6 +873,35 @@ class Series(np.ndarray, Picklable, Groupable):
         end_slice = min(len(self.index), self.index.indexMap[rightDate] + 1)
 
         return self[beg_slice:end_slice]
+
+    def truncate(self, before=None, after=None):
+        """Function truncate a TimeSeries before and/or after some
+        particular dates.
+
+        Parameters
+        ----------
+        before: date
+            Truncate before date
+        after: date
+            Truncate after date
+
+        Note
+        ----
+        If TimeSeries is contained in a DataFrame, consider using the version
+        of the function there.
+
+        Returns
+        -------
+        TimeSeries
+        """
+        before = datetools.to_datetime(before)
+        after = datetools.to_datetime(after)
+
+        if before is None:
+            before = min(self.index)
+        if after is None:
+            after = max(self.index)
+        return self.slice(before, after)
 
     def asOf(self, date):
         """
@@ -1105,35 +1097,6 @@ class Series(np.ndarray, Picklable, Groupable):
         return self.__class__([d.weekday() for d in self.index],
                               index = self.index)
 
-    def truncate(self, before=None, after=None):
-        """Function truncate a TimeSeries before and/or after some
-        particular dates.
-
-        Parameters
-        ----------
-        before: date
-            Truncate before date
-        after: date
-            Truncate after date
-
-        Note
-        ----
-        If TimeSeries is contained in a DataFrame, consider using the version
-        of the function there.
-
-        Returns
-        -------
-        TimeSeries
-        """
-        before = datetools.to_datetime(before)
-        after = datetools.to_datetime(after)
-
-        if before is None:
-            before = min(self.index)
-        if after is None:
-            after = max(self.index)
-        return self.slice(before, after)
-
     def diff(self):
         """
         1st discrete difference of object
@@ -1153,22 +1116,6 @@ class Series(np.ndarray, Picklable, Groupable):
         TimeSeries
         """
         return self.corr(self.shift(1))
-
-    def _firstTimeWithValue(self):
-        noNA = remove_na(self)
-
-        if len(noNA) > 0:
-            return noNA.index[0]
-        else:
-            return None
-
-    def _lastTimeWithValue(self):
-        noNA = remove_na(self)
-
-        if len(noNA) > 0:
-            return noNA.index[-1]
-        else:
-            return None
 
 
 class TimeSeries(Series):

@@ -120,3 +120,13 @@ def calc_F(R, r, beta, var_beta, nobs, df):
     p_value = 1 - stats.f.cdf(F, q, nobs - df)
 
     return F, (q, nobs - df), p_value
+
+def chain_dot(*matrices):
+    """
+    Returns the dot product of the given matrices.
+
+    Parameters
+    ----------
+    matrices: argument list of ndarray
+    """
+    return reduce(lambda x, y: np.dot(y, x), matrices[::-1])

@@ -91,16 +91,16 @@ class DataMatrix(DataFrame):
                         objectDict[k] = v
 
                 if columns is None:
-                    valueColumns = Index(sorted(valueDict))
+                    columns = Index(sorted(valueDict))
                     objectColumns = Index(sorted(objectDict))
                 else:
-                    valueColumns = Index([c for c in columns if c in valueDict])
                     objectColumns = Index([c for c in columns if c in objectDict])
+                    columns = Index([c for c in columns if c in valueDict])
 
                 if len(valueDict) == 0:
                     dtype = np.object_
                     valueDict = objectDict
-                    valueColumns = objectColumns
+                    columns = objectColumns
                 else:
                     dtype = np.float_
                     if len(objectDict) > 0:
@@ -109,12 +109,12 @@ class DataMatrix(DataFrame):
                     else:
                         objects = None
 
-                values = np.empty((len(index), len(valueColumns)), dtype=dtype)
+                values = np.empty((len(index), len(columns)), dtype=dtype)
 
-                for i, col in enumerate(valueColumns):
+                for i, col in enumerate(columns):
                     values[:, i] = valueDict[col]
 
-            return index, valueColumns, values, objects
+            return index, columns, values, objects
 
         if isinstance(data, dict):
             index, columns, values, objects = handleDict(data, index,

@@ -129,6 +129,7 @@ class Index(np.ndarray):
                 return self[loc-1]
             else:
                 return None
+
         return date
 
     def sort(self, *args, **kwargs):

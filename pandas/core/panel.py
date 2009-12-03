@@ -1414,11 +1414,6 @@ def _makeItemName(item, prefix=None):
     template = '%g%s' if isinstance(item, float) else '%s%s'
     return template % (prefix, item)
 
-def _makePrefixedLongPanel(values, items, index, prefix):
-    items = [_makeItemName(item, prefix) for item in items]
-
-    return LongPanel(values, items, index)
-
 def _homogenize(frames, intersect=True):
     """
     Conform set of DataFrame-like objects to either an intersection

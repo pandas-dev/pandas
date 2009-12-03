@@ -1,3 +1,5 @@
+# pylint: disable-msg=W0611,W0402
+
 from datetime import datetime
 import string
 import unittest

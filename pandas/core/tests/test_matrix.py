@@ -15,5 +15,12 @@ import pandas.core.tests.common as common
 class TestDataMatrix(test_frame.TestDataFrame):
     klass = DataMatrix
 
+    def test_more_constructor(self):
+        pass
+
+    def test_more_fromDict(self):
+        pass
+
+
 if __name__ == '__main__':
     unittest.main()
