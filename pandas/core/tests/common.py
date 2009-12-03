@@ -1,3 +1,5 @@
+# pylint: disable-msg=W0402
+
 from datetime import datetime
 import random
 import string
@@ -7,8 +9,8 @@ import numpy as np
 
 from pandas.core.api import DateRange, Index, Series, DataFrame
 
-N = 100
-K = 10
+N = 30
+K = 4
 
 def rands(n):
     choices = string.letters + string.digits
@@ -52,6 +54,10 @@ def assert_dict_equal(a, b):
 
     for k in a_keys:
         assert_almost_equal(a[k], b[k])
+
+def assert_contains_all(iterable, dic):
+    for k in iterable:
+        assert(k in dic)
 
 def getCols(k):
     return string.ascii_uppercase[:k]

@@ -1,3 +1,4 @@
+from datetime import datetime
 from pandas.core.index import Index
 import pandas.core.tests.common as common
 import pandas.lib.tseries as tseries
@@ -12,65 +13,123 @@ class TestIndex(unittest.TestCase):
         self.dateIndex = common.makeStringIndex(100)
         self.intIndex = common.makeIntIndex(100)
 
-    def testSlice(self):
-        strSlice = self.strIndex[10:20]
-        dateSlice = self.dateIndex[10:20]
-        intSlice = self.intIndex[10:20]
-        strMap = tseries.map_indices(np.array(strSlice))
-        dateMap = tseries.map_indices(np.array(dateSlice))
-        intMap = tseries.map_indices(np.array(intSlice))
+    def test_duplicates(self):
+        self.assertRaises(Exception, Index, [0, 0, 0])
 
-        common.assert_dict_equal(strSlice.indexMap, strMap)
-        common.assert_dict_equal(dateSlice.indexMap, dateMap)
-        common.assert_dict_equal(intSlice.indexMap, intMap)
+    def test_sort(self):
+        self.assertRaises(Exception, self.strIndex.sort)
 
-    def testGetItem(self):
-        sl = self.strIndex[[1,2,3]]
-        for i in sl:
-            self.assertEqual(i, sl[sl.indexMap[i]])
-        boolIdx = np.repeat(True, len(self.strIndex)).astype(bool)
-        boolIdx[5:30:2] = False
-        subIndex = self.strIndex[boolIdx]
-        strMap = tseries.map_indices(subIndex)
-        for key, value in strMap.iteritems():
-            self.assert_(subIndex.indexMap[key] == value)
-
-    def testAdd(self):
-        firstCat = self.strIndex + self.dateIndex
-        secondCat = self.strIndex + self.strIndex
-        self.assert_(common.equalContents(np.append(self.strIndex, self.dateIndex), firstCat))
-        self.assert_(common.equalContents(secondCat, self.strIndex))
-        for key in self.strIndex:
-            self.assert_(key in firstCat.indexMap)
-            self.assert_(key in secondCat.indexMap)
-        for key in self.dateIndex:
-            self.assert_(key in firstCat.indexMap)
-
-    def testContains(self):
-        self.assert_(self.strIndex[10] in self.strIndex)
-        self.assert_(self.dateIndex[10] in self.dateIndex)
-        self.assert_(self.intIndex[10] in self.intIndex)
-        strSlice = self.strIndex[10:20]
-        dateSlice = self.dateIndex[10:20]
-        intSlice = self.intIndex[10:20]
-        self.assert_(self.strIndex[9] not in strSlice)
-        self.assert_(self.dateIndex[9] not in dateSlice)
-        self.assert_(self.intIndex[9] not in intSlice)
-
-    def testMutability(self):
+    def test_mutability(self):
         self.assertRaises(Exception, self.strIndex.__setitem__, 5, 0)
         self.assertRaises(Exception, self.strIndex.__setitem__, slice(1,5), 0)
 
-    def testPickle(self):
-        f = open('tmp', 'wb')
-        pickle.dump(self.strIndex, f)
-        f.close()
-        f = open('tmp', 'rb')
-        unPickled = pickle.load(f)
-        f.close()
-        os.remove('tmp')
-        self.assert_(isinstance(unPickled, Index))
-        self.assert_(common.equalContents(unPickled, self.strIndex))
-        for k, v in self.strIndex.indexMap.iteritems():
-            self.assert_(k in unPickled.indexMap)
-            self.assertEqual(unPickled.indexMap[k], v)
+    def test_constructor(self):
+        # regular instance creation
+        common.assert_contains_all(self.strIndex, self.strIndex)
+        common.assert_contains_all(self.dateIndex, self.dateIndex)
+
+        # casting
+        arr = np.array(self.strIndex)
+        index = arr.view(Index)
+        common.assert_contains_all(arr, index)
+        self.assert_(np.array_equal(self.strIndex, index))
+
+    def test_equals(self):
+        # same
+        self.assert_(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c'])))
+
+        # different length
+        self.assertFalse(Index(['a', 'b', 'c']).equals(Index(['a', 'b'])))
+
+        # same length, different values
+        self.assertFalse(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'd'])))
+
+    def test_asOfDate(self):
+        pass
+
+    def test_argsort(self):
+        result = self.strIndex.argsort()
+        expected = np.array(self.strIndex).argsort()
+        self.assert_(np.array_equal(result, expected))
+
+    def test_comparators(self):
+        index = self.dateIndex
+        element = index[len(index) // 2]
+        arr = np.array(index)
+
+        self.assert_(np.array_equal(arr == element, index == element))
+        self.assert_(np.array_equal(arr > element, index > element))
+        self.assert_(np.array_equal(arr < element, index < element))
+        self.assert_(np.array_equal(arr >= element, index >= element))
+        self.assert_(np.array_equal(arr <= element, index <= element))
+
+    def test_booleanindex(self):
+        boolIdx = np.repeat(True, len(self.strIndex)).astype(bool)
+        boolIdx[5:30:2] = False
+
+        subIndex = self.strIndex[boolIdx]
+        common.assert_dict_equal(tseries.map_indices(subIndex),
+                                 subIndex.indexMap)
+
+    def test_fancy(self):
+        sl = self.strIndex[[1,2,3]]
+        for i in sl:
+            self.assertEqual(i, sl[sl.indexMap[i]])
+
+    def test_getitem(self):
+        arr = np.array(self.dateIndex)
+        self.assertEquals(self.dateIndex[5], arr[5])
+
+    def test_add(self):
+        firstCat = self.strIndex + self.dateIndex
+        secondCat = self.strIndex + self.strIndex
+
+        self.assert_(common.equalContents(np.append(self.strIndex,
+                                                    self.dateIndex), firstCat))
+        self.assert_(common.equalContents(secondCat, self.strIndex))
+        common.assert_contains_all(self.strIndex, firstCat.indexMap)
+        common.assert_contains_all(self.strIndex, secondCat.indexMap)
+        common.assert_contains_all(self.dateIndex, firstCat.indexMap)
+
+    def test_intersection(self):
+        first = self.strIndex[:20]
+        second = self.strIndex[:10]
+        intersect = first.intersection(second)
+
+        self.assert_(common.equalContents(intersect, second))
+
+    def test_union(self):
+        first = self.strIndex[5:20]
+        second = self.strIndex[:10]
+        everything = self.strIndex[:20]
+        union = first.union(second)
+        self.assert_(common.equalContents(union, everything))
+
+    def test_diff(self):
+        first = self.strIndex[5:20]
+        second = self.strIndex[:10]
+        answer = self.strIndex[10:20]
+        result = first - second
+
+        self.assert_(common.equalContents(result, answer))
+
+    def test_pickle(self):
+        def testit(index):
+            f = open('tmp', 'wb')
+            pickle.dump(index, f)
+            f.close()
+
+            f = open('tmp', 'rb')
+            unPickled = pickle.load(f)
+            f.close()
+
+            os.remove('tmp')
+
+            self.assert_(isinstance(unPickled, Index))
+            self.assert_(np.array_equal(unPickled, index))
+
+            common.assert_dict_equal(unPickled.indexMap, index.indexMap)
+
+        testit(self.strIndex)
+        testit(self.dateIndex)
+
