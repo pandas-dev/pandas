@@ -99,6 +99,18 @@ def getSeriesData():
 def getTimeSeriesData():
     return dict((c, makeTimeSeries()) for c in getCols(K))
 
+def getMixedTypeDict():
+    index = Index(['a', 'b', 'c', 'd', 'e'])
+
+    data = {
+        'A' : [0., 1., 2., 3., 4.],
+        'B' : [0., 1., 0., 1., 0.],
+        'C' : ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
+        'D' : DateRange('1/1/2009', periods=5)
+    }
+
+    return index, data
+
 def makeDataFrame():
     data = getSeriesData()
     return DataFrame(data)

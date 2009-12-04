@@ -7,6 +7,8 @@ import numpy as np
 
 from pandas.core.api import DateRange, DataFrame, Index, Series
 from pandas.core.datetools import bday
+
+from pandas.core.tests.common import assert_almost_equal
 import pandas.core.tests.common as common
 
 #-------------------------------------------------------------------------------
@@ -32,6 +34,12 @@ class TestDataFrame(unittest.TestCase):
 
     def test_constructor(self):
         pass
+
+    def test_constructor_mixed(self):
+        index, data = common.getMixedTypeDict()
+
+        indexed_frame = self.klass(data, index=index)
+        unindexed_frame = self.klass(data)
 
     def test_fromDict(self):
         newFrame = self.klass.fromDict(col1=self.ts1, col2 = self.ts2)
@@ -323,7 +331,18 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_merge(self):
-        pass
+        index, data = common.getMixedTypeDict()
+        target = DataFrame(data, index=index)
+
+        # Merge on string value
+        source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
+                           index=data['C'])
+        merged = target.merge(source, on='C')
+
+        self.assert_(np.array_equal(merged['MergedA'], target['A']))
+        self.assert_(np.array_equal(merged['MergedD'], target['D']))
+
+        # Test when some are missing
 
     def test_statistics(self):
         sumFrame = self.frame.apply(np.sum)
