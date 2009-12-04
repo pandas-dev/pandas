@@ -11,7 +11,7 @@ import numpy as np
 from pandas.core.frame import DataFrame, _pfixed
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
-from pandas.lib.tseries import isnull
+from pandas.lib.tseries import isnull, notnull
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
@@ -73,7 +73,7 @@ class DataMatrix(DataFrame):
                     index = Index(index)
 
                 objectDict = {}
-                if objects is not None:
+                if objects is not None and isinstance(objects, dict):
                     objectDict.update(objects)
 
                 valueDict = {}
@@ -104,10 +104,14 @@ class DataMatrix(DataFrame):
                 else:
                     dtype = np.float_
                     if len(objectDict) > 0:
-                        objects = DataMatrix(objectDict, dtype=np.object_,
-                                             index=index, columns=objectColumns)
-                    else:
-                        objects = None
+                        new_objects = DataMatrix(objectDict,
+                                                 dtype=np.object_,
+                                                 index=index,
+                                                 columns=objectColumns)
+                        if isinstance(objects, DataMatrix):
+                            objects = objects.leftJoin(new_objects)
+                        else:
+                            objects = new_objects
 
                 values = np.empty((len(index), len(columns)), dtype=dtype)
 
@@ -394,22 +398,14 @@ class DataMatrix(DataFrame):
         output += 'Data columns:\n'
         space = max([len(str(k)) for k in self.cols()]) + 4
 
-        isObjects = False
-        try:
-            counts = isfinite(self.values).sum(0)
-        except Exception:
-            counts = np.repeat(self.values.shape[0], len(self.columns))
-            isObjects = True
+        counts = self.apply(notnull).sum(0)
+        if self.objects is not None:
+            counts = counts.append(self.objects.apply(notnull).sum(0))
 
         columns = []
-        if isObjects:
-            for j, col in enumerate(self.columns):
-                columns.append('%s%d  non-null values' %
-                               (_pfixed(col, space), counts[j]))
-        else:
-            for j, col in enumerate(self.columns):
-                columns.append('%s%d  non-null values' %
-                               (_pfixed(col, space), counts[j]))
+        for j, col in enumerate(self.columns):
+            columns.append('%s%d  non-null values' %
+                           (_pfixed(col, space), counts[j]))
 
         if self.objects is not None and len(self.objects.columns) > 0:
             n = len(self.objects.index)
@@ -1379,13 +1375,16 @@ class DataMatrix(DataFrame):
             results = func(self.values)
         else:
             if axis == 0:
-                results = dict([(k, func(v)) for k, v in self.iteritems()])
+                target = self
             elif axis == 1:
-                results = dict([(k, func(v)) for k, v in self.T.iteritems()])
+                target = self.T
+
+            results = dict([(k, func(target[k])) for k in target.columns])
 
         if isinstance(results, np.ndarray):
             return DataMatrix(data=results, index=self.index,
                               columns=self.columns, objects=self.objects)
+
         elif isinstance(results, dict):
             if isinstance(results.values()[0], np.ndarray):
                 return DataMatrix(results, index=self.index,
@@ -1394,7 +1393,7 @@ class DataMatrix(DataFrame):
             else:
                 return Series.fromDict(results)
         else:
-            raise Exception('This is ridiculous')
+            raise Exception('Should not reach here')
 
     def tapply(self, func):
         """
