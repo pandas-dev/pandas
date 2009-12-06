@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pandas.core.index import Index
 import pandas.core.tests.common as common
 import pandas.lib.tseries as tseries
@@ -10,7 +10,7 @@ import unittest
 class TestIndex(unittest.TestCase):
     def setUp(self):
         self.strIndex = common.makeStringIndex(100)
-        self.dateIndex = common.makeStringIndex(100)
+        self.dateIndex = common.makeDateIndex(100)
         self.intIndex = common.makeIntIndex(100)
 
     def test_duplicates(self):
@@ -34,6 +34,12 @@ class TestIndex(unittest.TestCase):
         common.assert_contains_all(arr, index)
         self.assert_(np.array_equal(self.strIndex, index))
 
+        # corner case
+        self.assertRaises(Exception, Index, 0)
+
+        arr = np.array(5.)
+        self.assertRaises(Exception, arr.view, Index)
+
     def test_equals(self):
         # same
         self.assert_(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c'])))
@@ -44,8 +50,21 @@ class TestIndex(unittest.TestCase):
         # same length, different values
         self.assertFalse(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'd'])))
 
+        # Must also be an Index
+        self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
+
+    def test_md5(self):
+        self.strIndex._md5
+        self.dateIndex._md5
+        self.intIndex._md5
+
     def test_asOfDate(self):
-        pass
+        d = self.dateIndex[0]
+        self.assert_(self.dateIndex.asOfDate(d) is d)
+        self.assert_(self.dateIndex.asOfDate(d - timedelta(1)) is None)
+
+        d = self.dateIndex[-1]
+        self.assert_(self.dateIndex.asOfDate(d + timedelta(1)) is d)
 
     def test_argsort(self):
         result = self.strIndex.argsort()
@@ -91,12 +110,22 @@ class TestIndex(unittest.TestCase):
         common.assert_contains_all(self.strIndex, secondCat.indexMap)
         common.assert_contains_all(self.dateIndex, firstCat.indexMap)
 
+        # this is valid too
+        shifted = self.dateIndex + timedelta(1)
+
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
         intersect = first.intersection(second)
 
         self.assert_(common.equalContents(intersect, second))
+
+        # Corner cases
+        inter = first.intersection(first)
+        self.assert_(inter is first)
+
+        # non-iterable input
+        self.assertRaises(Exception, first.intersection, 0.5)
 
     def test_union(self):
         first = self.strIndex[5:20]
@@ -105,6 +134,16 @@ class TestIndex(unittest.TestCase):
         union = first.union(second)
         self.assert_(common.equalContents(union, everything))
 
+        # Corner cases
+        union = first.union(first)
+        self.assert_(union is first)
+
+        union = first.union([])
+        self.assert_(union is first)
+
+        # non-iterable input
+        self.assertRaises(Exception, first.union, 0.5)
+
     def test_diff(self):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -112,6 +151,12 @@ class TestIndex(unittest.TestCase):
         result = first - second
 
         self.assert_(common.equalContents(result, answer))
+
+        diff = first.diff(first)
+        self.assert_(len(diff) == 0)
+
+        # non-iterable input
+        self.assertRaises(Exception, first.diff, 0.5)
 
     def test_pickle(self):
         def testit(index):

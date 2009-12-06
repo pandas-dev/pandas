@@ -1,5 +1,6 @@
 # pylint: disable-msg=E1101
 # pylint: disable-msg=E1103
+# pylint: disable-msg=W0232
 
 import numpy as np
 from pandas.lib.tdates import isAllDates
@@ -38,7 +39,7 @@ class Index(np.ndarray):
 
     def __array_finalize__(self, obj):
         if self.ndim == 0:
-            return self.item()
+            raise Exception('Cannot create 0-dimensional Index!')
 
         # New instance creation
         if obj is None:
@@ -121,10 +122,8 @@ class Index(np.ndarray):
         return self.__md5
 
     def asOfDate(self, date):
-        import bisect
-
         if date not in self.indexMap:
-            loc = bisect.bisect(self, date)
+            loc = self.searchsorted(date, side='left')
             if loc > 0:
                 return self[loc-1]
             else:
@@ -178,7 +177,7 @@ class Index(np.ndarray):
             newSeq = np.concatenate((self, newElts))
             try:
                 newSeq = np.unique(newSeq)
-            except Exception, e:
+            except Exception:
                 # Not sortable / multiple types
                 pass
             return Index(newSeq)
@@ -202,7 +201,7 @@ class Index(np.ndarray):
 
         if other is self:
             return self
-        otherArr = np.asarray(other)
+
         theIntersection = sorted(set(self) & set(other))
         return Index(theIntersection)
 

@@ -30,7 +30,7 @@ def assert_almost_equal(a, b):
         np.testing.assert_equal(len(a), len(b))
         for i in xrange(len(a)):
             assert_almost_equal(a[i], b[i])
-        return
+        return True
 
     err_msg = lambda a, b: 'expected %.5f but got %.5f' % (a, b)
 
@@ -46,14 +46,22 @@ def assert_almost_equal(a, b):
         np.testing.assert_almost_equal(
             1, a/b, decimal=5, err_msg=err_msg(a, b), verbose=False)
 
-def assert_dict_equal(a, b):
+def is_sorted(seq):
+    return assert_almost_equal(seq, np.sort(np.array(seq)))
+
+def assert_dict_equal(a, b, compare_keys=True):
     a_keys = frozenset(a.keys())
     b_keys = frozenset(b.keys())
 
-    assert(a_keys == b_keys)
+    if compare_keys:
+        assert(a_keys == b_keys)
 
     for k in a_keys:
         assert_almost_equal(a[k], b[k])
+
+def assert_series_equal(left, right):
+    assert(np.array_equal(left, right))
+    assert(np.array_equal(left.index, right.index))
 
 def assert_contains_all(iterable, dic):
     for k in iterable:

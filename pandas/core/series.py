@@ -4,8 +4,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 # pylint: disable-msg=E1101
 # pylint: disable-msg=E1103
+# pylint: disable-msg=W0703
 
-from datetime import datetime
 from itertools import izip
 
 from numpy import array, NaN, ndarray
@@ -22,7 +22,7 @@ import pandas.lib.tseries as tseries
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
-def _seriesOpWrap(opname, comp=False):
+def _seriesOpWrap(opname):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -31,37 +31,38 @@ def _seriesOpWrap(opname, comp=False):
         '__add__' : '__radd__',
         '__sub__' : '__rsub__',
         '__div__' : '__rdiv__',
-        '__mul__' : '__rmul__'
+        '__mul__' : '__rmul__',
     }
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
 
-        func = getattr(self.view(ndarray), opname)
+        func = getattr(self.values(), opname)
         cls = self.__class__
         if isinstance(other, Series):
             if self.index.equals(other.index):
-                return cls(func(other.view(ndarray)), index=self.index)
+                return cls(func(other.values()), index=self.index)
+
             if len(self.index) + len(other.index) > 0:
                 newIndex = self.index + other.index
             else:
                 newIndex = NULL_INDEX
+
             try:
                 arr = tseries.combineFunc(opname, newIndex, self, other,
                                           self.index.indexMap,
                                           other.index.indexMap)
-            except Exception, e:
-                arr = Series.combineFunc(self, other,
+            except Exception:
+                arr = Series._combineFunc(self, other,
                                          getattr(type(self[0]), opname))
             result = cls(arr, index=newIndex)
-            if comp:
-                result[isnull(result)] = 0
-                return result.astype(np.bool)
-            else:
-                return result
+            return result
+
         elif isinstance(other, DataFrame):
             reverse_op = MIRROR_OPS.get(opname)
+
             if reverse_op is None:
                 raise Exception('Cannot do %s op, sorry!')
+
             return getattr(other, reverse_op)(self)
         else:
             return cls(func(other), index=self.index)
@@ -71,7 +72,8 @@ def _seriesOpWrap(opname, comp=False):
 # Series class
 
 class Series(np.ndarray, Picklable, Groupable):
-    """Generic indexed series (time series or otherwise) object.
+    """
+    Generic indexed series (time series or otherwise) object.
 
     Contains values in a numpy-ndarray with an optional bound index
     (also an array of dates, strings, or whatever you want the 'row
@@ -86,6 +88,13 @@ class Series(np.ndarray, Picklable, Groupable):
     underlying ndarray. In other words, there is no 'matching' or
     'aligning' to do, it's all taken care of for you.
 
+    Parameters
+    ----------
+    data:  array-like
+        Underlying values of Series, preferably as numpy ndarray
+    index: array-like, optional
+        Index object (or other iterable of same length as data)
+
     Note
     ----
     If you combine two series, all values for an index position must
@@ -95,14 +104,6 @@ class Series(np.ndarray, Picklable, Groupable):
     ALSO NOTE: There is currently no restriction on what can be in the
     index.
 
-    Parameters
-    ----------
-    data:  array-like
-        Underlying values of Series, preferably as numpy ndarray
-    index: array-like, optional
-        Index object (or other iterable of same length as data)
-
-
     Example usage:
         >>> s = Series(arr, index=Index(dates))
         >>> t = Series(otherArr, index=Index(otherDates))
@@ -111,18 +112,18 @@ class Series(np.ndarray, Picklable, Groupable):
         >>> s[5]
         >>> s[d]    # Valid
     """
-    def __new__(cls, data, index=None, dtype=None, copy=False):
+    def __new__(cls, data, index=None, dtype=None, copy=True):
         if index is None and isinstance(data, Series):
             index = data.index
-
-        if index is None:
-            raise Exception('Index cannot be None!')
 
         # Make a copy of the data, infer type
         subarr = array(data, dtype=dtype, copy=copy)
 
         if subarr.ndim == 0:
             return subarr.item()
+
+        if index is None:
+            raise Exception('Index cannot be None!')
 
         # This is to prevent mixed-type Series getting all casted to
         # NumPy string type, e.g. NaN --> '-1#IND'.
@@ -138,6 +139,9 @@ class Series(np.ndarray, Picklable, Groupable):
             subarr = subarr.view(TimeSeries)
 
         return subarr
+
+    def __hash__(self):
+        raise TypeError('unhashable type')
 
     def _get_index(self):
         return self._index
@@ -167,7 +171,7 @@ class Series(np.ndarray, Picklable, Groupable):
         self._index = getattr(obj, '_index', None)
 
     @classmethod
-    def fromDict(cls, input={}, castFloat=True, **kwds):
+    def fromDict(cls, input, castFloat=True, **kwds):
         """
         Analogous to asDataFrame, but turns dict into Series
 
@@ -188,11 +192,14 @@ class Series(np.ndarray, Picklable, Groupable):
         if castFloat:
             try:
                 useData = [float(input[idx]) for idx in index]
-            except Exception, e:
+            except Exception:
                 useData = [input[idx] for idx in index]
         else:
             useData = [input[idx] for idx in index]
         return Series(useData, index=index)
+
+    def toDict(self):
+        return dict(self.iteritems())
 
     @classmethod
     def fromValue(cls, value=np.NaN, index=None, dtype=None):
@@ -209,9 +216,6 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         Series
         """
-        if not isinstance(index, Index):
-            index = Index(index)
-
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
         # so this is kind of bad. Alternately we could use np.repeat
@@ -258,32 +262,42 @@ class Series(np.ndarray, Picklable, Groupable):
               of a sequence, a 'slice' of the series (with corresponding dates)
               will be returned, otherwise a single value.
         """
-        if key is None and key not in self.index:
-            raise Exception('None/Null object requested of Series!')
-        if not hasattr(key, '__iter__'):
-            try:
-                # Check that we can even look for this in the index
-                return ndarray.__getitem__(self, self.index.indexMap[key])
-            except KeyError:
-                if isinstance(key, int):
-                    return ndarray.__getitem__(self, key)
-                raise Exception('Requested index not in this series!')
-            except TypeError:
-                # Could not hash item
-                pass
-        dataSlice = self.view(ndarray)[key]
-        if self.index is not None:
-            indices = self.index.view(ndarray)[key]
-            if isinstance(indices, ndarray):
-                indexSlice = Index(indices)
-                return self.__class__(dataSlice, index=indexSlice)
-            else:
-                return dataSlice
+        values = self.values()
+
+        try:
+            # Check that we can even look for this in the index
+            return values[self.index.indexMap[key]]
+        except KeyError:
+            if isinstance(key, int):
+                return values[key]
+            raise Exception('Requested index not in this series!')
+        except TypeError:
+            # Could not hash item
+            pass
+
+        # is there a case where this would NOT be an ndarray?
+        # need to find an example, I took out the case for now
+
+        dataSlice = values[key]
+        indices = Index(self.index.view(ndarray)[key])
+        return self.__class__(dataSlice, index=indices)
+
+    def get(self, key, missingVal=None):
+        """
+        Returns value occupying requested index, and
+        return missingVal if not in Index
+
+        Parameters
+        ----------
+        key: object
+            Index value looking for
+        missingVal: object, optional
+            Value to return if key not in index
+        """
+        if key in self.index:
+            return ndarray.__getitem__(self, self.index.indexMap[key])
         else:
-            if isinstance(dataSlice, ndarray):
-                return self.__class__(dataSlice)
-            else:
-                return dataSlice    # Just one element
+            return missingVal
 
     def __getslice__(self, i, j):
         """
@@ -295,13 +309,10 @@ class Series(np.ndarray, Picklable, Groupable):
         will have a reference to the original series which could be
         inadvertently changed if the slice were altered (made mutable).
         """
-        newArr = self.view(ndarray)[i:j].copy()
+        newArr = self.values()[i:j].copy()
+        newIndex = self.index[i:j]
 
-        if self.index is not None:
-            newIndex = self.index[i:j]
-            return self.__class__(newArr, index = newIndex)
-        else:
-            return self.__class__(newArr)
+        return self.__class__(newArr, index=newIndex)
 
     def __setitem__(self, key, value):
         """
@@ -310,8 +321,9 @@ class Series(np.ndarray, Picklable, Groupable):
         try:
             loc = self.index.indexMap[key]
             ndarray.__setitem__(self, loc, value)
-        except Exception, e:
-            ndarray.__setitem__(self, key, value)
+        except Exception:
+            values = self.values()
+            values[key] = value
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
@@ -319,23 +331,21 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def __repr__(self):
         """Clean string representation of a Series"""
-        vals = self.view(ndarray)
+        vals = self.values()
         index = self.index
-        if index is not None and len(index) > 0:
-            if len(index) > 500:
-                head = _seriesRepr(index[:50], vals[:50])
-                tail = _seriesRepr(index[-50:], vals[-50:])
-                return head + '\n...\n' + tail + '\nlength: %d' % len(vals)
-            else:
-                return _seriesRepr(index, vals)
+
+        if len(index) > 500:
+            head = _seriesRepr(index[:50], vals[:50])
+            tail = _seriesRepr(index[-50:], vals[-50:])
+            return head + '\n...\n' + tail + '\nlength: %d' % len(vals)
         else:
-            return 'No index!\n' + ndarray.__repr__(self)
+            return _seriesRepr(index, vals)
 
     def __str__(self):
         return self.__repr__()
 
     def __iter__(self):
-        return iter(self.view(ndarray))
+        return iter(self.values())
 
 #-------------------------------------------------------------------------------
 #   Arithmetic operators
@@ -355,69 +365,50 @@ class Series(np.ndarray, Picklable, Groupable):
 
 #-------------------------------------------------------------------------------
 # Overridden ndarray methods
+    def _ndarray_statistic(self, funcname):
+        arr = self.values()
+        retVal = getattr(arr, funcname)()
+
+        if isnull(retVal):
+            arr = remove_na(arr)
+            retVal = getattr(arr, funcname)()
+
+        return retVal
 
     def sum(self, axis=None, dtype=None, out=None):
         """
         Overridden version of ndarray.sum for Series which excludes
         NaN automatically
         """
-        arr = self.view(ndarray)
-        retVal = arr.sum(axis, dtype, out)
-
-        if isnull(retVal):
-            arr = remove_na(arr)
-            retVal = arr.sum(axis, dtype, out)
-
-        return retVal
+        return self._ndarray_statistic('sum')
 
     def mean(self, axis=None, dtype=None, out=None):
         """
         Overridden version of ndarray.mean for Series which excludes
         NaN automatically
         """
-        arr = self.view(ndarray)
-        retVal = arr.mean(axis, dtype, out)
-
-        if isnull(retVal):
-            arr = remove_na(arr)
-            retVal = arr.mean(axis, dtype, out)
-
-        return retVal
+        return self._ndarray_statistic('mean')
 
     def min(self, axis=None, out=None):
         """
         Overridden version of ndarray.min for Series which excludes
         NaN automatically
         """
-        arr = self.view(ndarray)
-        retVal = arr.min(axis, out)
-
-        if isnull(retVal):
-            arr = remove_na(arr)
-            retVal = arr.min(axis, out)
-
-        return retVal
+        return self._ndarray_statistic('min')
 
     def max(self, axis=None, out=None):
         """
         Overridden version of ndarray.max for Series which excludes
         NaN automatically
         """
-        arr = self.view(ndarray)
-        retVal = arr.max(axis, out)
-
-        if isnull(retVal):
-            arr = remove_na(arr)
-            retVal = arr.max(axis, out)
-
-        return retVal
+        return self._ndarray_statistic('max')
 
     def std(self, axis=None, dtype=None, out=None, ddof=1):
         """
         Overridden version of ndarray.std for Series which excludes
         NaN automatically
         """
-        nona = remove_na(self.view(ndarray))
+        nona = remove_na(self.values())
         if len(nona) < 2:
             return NaN
         return ndarray.std(nona, axis, dtype, out, ddof)
@@ -427,7 +418,7 @@ class Series(np.ndarray, Picklable, Groupable):
         Overridden version of ndarray.var for Series which excludes
         NaN automatically
         """
-        nona = remove_na(self.view(ndarray))
+        nona = remove_na(self.values())
         if len(nona) < 2:
             return NaN
         return ndarray.var(nona, axis, dtype, out, ddof)
@@ -448,11 +439,14 @@ class Series(np.ndarray, Picklable, Groupable):
         """
 
         from scipy.stats import skew
-        nona = remove_na(self.view(ndarray))
+        nona = remove_na(self.values())
+
         if len(nona) < 3:
             return NaN
+
         theSkew = skew(nona, bias=bias)
 
+        # Hack for SciPy < 0.8
         if isinstance(theSkew, ndarray):
             theSkew = theSkew.item()
 
@@ -478,74 +472,40 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Iterate over (index, value) tuples
         """
-        if self.index is not None:
-            return izip(iter(self.index), iter(self))
-        else:
-            raise Exception('This series has no index!')
-
-    def get(self, key, missingVal=None):
-        """
-        Returns value occupying requested index, and
-        return missingVal if not in Index
-
-        Parameters
-        ----------
-        key: object
-            Index value looking for
-        missingVal: object, optional
-            Value to return if key not in index
-        """
-        if key in self.index:
-            return ndarray.__getitem__(self, self.index.indexMap[key])
-        else:
-            return missingVal
+        return izip(iter(self.index), iter(self))
 
     def append(self, other):
         """
         Concatenate two Series
         """
         newIndex = np.concatenate((self.index, other.index))
+
+        # Force overlap check
+        try:
+            newIndex = Index(newIndex)
+        except Exception:
+            raise
+
         newValues = np.concatenate((self, other))
-        return self.__class__(newValues, index = newIndex)
+        return self.__class__(newValues, index=newIndex)
 
-    def merge(self, other):
+    def _combineFunc(self, other, func):
         """
-        If self is {A}->{B} and other is another mapping of {B}->{C}
-        then returns a new Series that is {A}->{C}
-
-        Parameters
-        ----------
-        other: dict or Series
-
-        Returns
-        -------
-        Series having same index as calling instance, with values from
-        input Series
+        Combines this Series using the given function with either
+          * another Series index by index
+          * a scalar value
+          * DataFrame
         """
-        if isinstance(other, dict):
-            other = Series.fromDict(other)
-        if not isinstance(other, Series):
-            raise Exception('Argument must be a Series!')
-        fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)
-
-        newValues = other.view(np.ndarray).take(fillVec)
-        newValues[-mask] = np.nan
-
-        newSer = Series(newValues, index=self.index)
-        return newSer
-
-    def combineFunc(self, other, func):
-        """
-        Combines this Series with another Series index by index using
-        the given function.
-        """
-        if self.index.equals(other.index):
-            newIndex = self.index
-        else:
+        if isinstance(other, Series):
             newIndex = self.index + other.index
-        newArr = np.empty(len(newIndex), dtype = self.dtype)
-        for i, idx in enumerate(newIndex):
-            newArr[i] = func(self.get(idx, NaN), other.get(idx, NaN))
+
+            newArr = np.empty(len(newIndex), dtype=self.dtype)
+            for i, idx in enumerate(newIndex):
+                newArr[i] = func(self.get(idx, NaN), other.get(idx, NaN))
+        else:
+            newIndex = self.index
+            newArr = func(self.values(), other)
+
         return self.__class__(newArr, index=newIndex)
 
     def combineFirst(self, other):
@@ -560,27 +520,28 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         Series formed as union of
         """
-        if self.index.equals(other.index):
-            newIndex = self.index
-        else:
-            newIndex = self.index + other.index
+        newIndex = self.index + other.index
 
-        this = self.reindex(newIndex)
-        other = other.reindex(newIndex)
+        this = self
+        if newIndex is not self.index:
+            # save ourselves the copying in this case
+
+            this = self.reindex(newIndex)
+            other = other.reindex(newIndex)
+
         result = Series(np.where(isnull(this), other, this), index=newIndex)
-
         return result
 
-    def argsort(self, axis = 0, kind='quicksort', order=None):
+    def argsort(self, axis=0, kind='quicksort', order=None):
         """
         Overriding numpy's built-in cumsum functionality
         """
-        arr = self.view(ndarray).copy()
+        arr = self.values().copy()
         okLocs = notnull(arr)
         arr[okLocs] = np.argsort(arr[okLocs])
         return self.__class__(arr, index=self.index)
 
-    def cumsum(self, axis = 0, dtype = None, out = None):
+    def cumsum(self, axis=0, dtype=None, out=None):
         """
         Overriding numpy's built-in cumsum functionality
         """
@@ -591,7 +552,7 @@ class Series(np.ndarray, Picklable, Groupable):
         arr[okLocs] = result
         return arr
 
-    def cumprod(self, axis = 0, dtype = None, out = None):
+    def cumprod(self, axis=0, dtype=None, out=None):
         """
         Overriding numpy's built-in cumprod functionality
         """
@@ -600,8 +561,14 @@ class Series(np.ndarray, Picklable, Groupable):
         arr[okLocs] = np.cumprod(arr.view(ndarray)[okLocs])
         return arr
 
+    def median(self):
+        """
+        Return median value of Series
+        """
+        return tseries.median(self.valid())
+
     def copy(self):
-        return self.__class__(self.view(ndarray).copy(), index=self.index)
+        return self.__class__(self.values().copy(), index=self.index)
 
     def corr(self, other):
         """
@@ -615,8 +582,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         float (the correlation coefficient)
         """
-        commonIdx = list(set(remove_na(self).index) &
-                         set(remove_na(other).index))
+        commonIdx = remove_na(self).index.intersection(remove_na(other).index)
 
         if len(commonIdx) == 0:
             return NaN
@@ -634,22 +600,17 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         int (# obs)
         """
-        return np.isfinite(self.view(ndarray)).sum()
-
-    def median(self):
-        """
-        Return median value of Series
-        """
-        selfExNaN = remove_na(self.view(ndarray))
-        med = np.median(selfExNaN)
-        return med
+        return notnull(self.values()).sum()
 
     def sort(self, axis=0, kind='quicksort', order=None):
+        """
+        Overridden NumPy sort, taking care with missing values
+        """
         sortedSeries = self.order(missingAtEnd=True)
         self[:] = sortedSeries
         self.index = sortedSeries.index
 
-    def order(self, missingAtEnd = True):
+    def order(self, missingAtEnd=True):
         """
         Sorts Series object, by value, maintaining index-value object
 
@@ -664,7 +625,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         SORTED series by values (indices correspond to the appropriate values)
         """
-        arr = self.view(ndarray)
+        arr = self.values()
         sortedIdx = np.empty(len(self), dtype=np.int32)
 
         bad = isnull(arr)
@@ -696,7 +657,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         Series with same index
         """
-        return Series([func(x) for x in self], index = self.index)
+        return Series([func(x) for x in self], index=self.index)
 
     def plot(self, label=None, kind='line', **kwds):
         """
@@ -730,20 +691,9 @@ class Series(np.ndarray, Picklable, Groupable):
             kwds = kwds.copy()
             kwds['label'] = label
 
-        # I can't get this to work
-
-        #fig = pylab.gcf()
-        #fig.autofmt_xdate(bottom=0.1)
-
-        #ax = fig.gca()
-        #if not ax.has_data():
-            #ax = fig.add_subplot(111)
-
-        #ax.plot(self.index, self, **kwds)
-
         pylab.plot(self.index, self, **kwds)
 
-    def toCSV(self, path=None):
+    def toCSV(self, path):
         """
         Write the Series to a CSV file
 
@@ -752,18 +702,12 @@ class Series(np.ndarray, Picklable, Groupable):
         path: string or None
             Output filepath. If None, write to stdout
         """
-        if not path:
-            import sys
-            f = sys.stdout
-        else:
-            f = open(path, 'wb')
+        f = open(path, 'wb')
+
         for idx, value in self.iteritems():
             f.write(str(idx) + ',' + str(value) + ',\n')
-        if path is not None:
-            f.close()
 
-    def toDict(self):
-        return dict(self.iteritems())
+        f.close()
 
     def cap(self, value):
         """Return copy of series with values above given value truncated"""
@@ -834,49 +778,23 @@ class Series(np.ndarray, Picklable, Groupable):
             if periods > 0:
                 newIndex = self.index[periods:]
                 newValues = np.array(self)[:-periods]
-            else:
+            elif periods < 0:
                 newIndex = self.index[:periods]
                 newValues = np.array(self)[-periods:]
+            else:
+                newValues = self.values().copy()
+                newIndex = self.index
+
             return self.__class__(newValues, index=newIndex)
         else:
             offset = periods * offset
             newIndex = Index([idx + offset for idx in self.index])
+
             return self.__class__(self, index=newIndex)
 
-    def slice(self, before, after):
-        """
-
-        """
-
-        import bisect
-
-        if before is not None:
-            binsearch = bisect.bisect_left(self.index, before)
-            cur = self.index[binsearch]
-            next = self.index[min(binsearch + 1, len(self.index) - 1)]
-            leftDate = cur if cur >= before else next
-        else:
-            leftDate = self.index[0]
-
-        if after is not None:
-            if after < self.index[-1]:
-                binsearch = bisect.bisect_right(self.index, after)
-                cur = self.index[binsearch]
-                prior = self.index[max(binsearch - 1, 0)]
-                rightDate = cur if cur <= after else prior
-            else:
-                rightDate = self.index[-1]
-        else:
-            rightDate = self.index[-1]
-
-        beg_slice = max(0, self.index.indexMap[leftDate])
-        end_slice = min(len(self.index), self.index.indexMap[rightDate] + 1)
-
-        return self[beg_slice:end_slice]
-
     def truncate(self, before=None, after=None):
-        """Function truncate a TimeSeries before and/or after some
-        particular dates.
+        """Function truncate a sorted TimeSeries before and/or after
+        some particular dates.
 
         Parameters
         ----------
@@ -894,14 +812,29 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         TimeSeries
         """
-        before = datetools.to_datetime(before)
-        after = datetools.to_datetime(after)
+        before = arg_before = datetools.to_datetime(before)
+        after = arg_after = datetools.to_datetime(after)
 
         if before is None:
-            before = min(self.index)
+            before = self.index[0]
+        elif before not in self.index:
+            loc = self.index.searchsorted(before, side='left')
+            before = self.index[loc]
+
         if after is None:
-            after = max(self.index)
-        return self.slice(before, after)
+            after = self.index[-1]
+        elif after not in self.index:
+            loc = self.index.searchsorted(after, side='right') - 1
+            loc = loc if loc < len(self.index) else -1
+            after = self.index[loc]
+
+        beg_slice = self.index.indexMap[before]
+        end_slice = self.index.indexMap[after] + 1
+
+        return self[beg_slice:end_slice]
+
+    def slice(self, before, after):
+        return self.truncate(before=before, after=after)
 
     def asOf(self, date):
         """
@@ -1009,7 +942,7 @@ class Series(np.ndarray, Picklable, Groupable):
         else:
             inds = np.arange(len(self))
 
-        values = self.view(np.ndarray)
+        values = self.values()
 
         invalid = isnull(values)
         valid = -invalid
@@ -1024,6 +957,32 @@ class Series(np.ndarray, Picklable, Groupable):
                                                  values[firstIndex:][valid])
 
         return Series(result, index=self.index)
+
+    def merge(self, other):
+        """
+        If self is {A}->{B} and other is another mapping of {B}->{C}
+        then returns a new Series that is {A}->{C}
+
+        Parameters
+        ----------
+        other: dict or Series
+
+        Returns
+        -------
+        Series having same index as calling instance, with values from
+        input Series
+        """
+        if isinstance(other, dict):
+            other = Series.fromDict(other)
+        if not isinstance(other, Series):
+            raise Exception('Argument must be a Series!')
+        fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)
+
+        newValues = other.view(np.ndarray).take(fillVec)
+        newValues[-mask] = np.nan
+
+        newSer = Series(newValues, index=self.index)
+        return newSer
 
     def reindex(self, newIndex, fillMethod=None):
         """Overloaded version of reindex for TimeSeries. Supports filling
@@ -1087,7 +1046,7 @@ class Series(np.ndarray, Picklable, Groupable):
         fillVec, mask = tseries.getFillVec(self.index, newIndex, oldMap,
                                            newMap, kind=fillMethod)
 
-        newValues = self.view(ndarray).take(fillVec)
+        newValues = self.values().take(fillVec)
         newValues[-mask] = NaN
 
         return self.__class__(newValues, index = newIndex)
