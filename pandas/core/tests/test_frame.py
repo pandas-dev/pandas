@@ -1,3 +1,5 @@
+# pylint: disable-msg=W0612
+
 from copy import deepcopy
 from datetime import datetime
 import unittest
@@ -18,22 +20,30 @@ class TestDataFrame(unittest.TestCase):
     klass = DataFrame
 
     def setUp(self):
-        index1 = DateRange(datetime(2008,4,22), periods=50)
-        index2 = DateRange(datetime(2008,4,29), periods=50)
-        index3 = DateRange(datetime(2008,4,28), periods=50)
-        ts1 = Series(random.random(50), index=index1)
-        ts2 = Series(random.random(50), index=index2)
-        ts3 = Series(random.random(50), index=index3)
-        ts4 = Series(random.random(50), index=index1)
-        data = {'col1' : ts1,'col2' : ts2,'col3' : ts3, 'col4' : ts4}
-        self.frame = self.klass(data=data, index=index3)
-        self.ts1 = ts1
-        self.ts2 = ts2
-        self.ts3 = ts3
-        self.ts4 = ts4
+        self.seriesd = common.getSeriesData()
+        self.tsd = common.getTimeSeriesData()
+
+        self.frame = self.klass(self.seriesd)
+        self.tsframe = self.klass(self.tsd)
+
+        self.mixed_frame = self.frame.copy()
+        self.mixed_frame['foo'] = 'bar'
+
+        self.ts1 = common.makeTimeSeries()
+        self.ts2 = common.makeTimeSeries()[5:]
+        self.ts3 = common.makeTimeSeries()[-5:]
+        self.ts4 = common.makeTimeSeries()[1:-1]
+
+        self.ts_dict = {
+            'col1' : self.ts1,
+            'col2' : self.ts2,
+            'col3' : self.ts3,
+            'col4' : self.ts4,
+        }
 
     def test_constructor(self):
-        pass
+
+        self.assertRaises(Exception, DataFrame)
 
     def test_constructor_mixed(self):
         index, data = common.getMixedTypeDict()
@@ -42,53 +52,155 @@ class TestDataFrame(unittest.TestCase):
         unindexed_frame = self.klass(data)
 
     def test_fromDict(self):
-        newFrame = self.klass.fromDict(col1=self.ts1, col2 = self.ts2)
-        for idx in newFrame.index:
-            if idx in self.ts1.index:
-                self.assertEqual(newFrame['col1'][idx], self.ts1[idx])
-            if idx in self.ts2.index:
-                self.assertEqual(newFrame['col2'][idx], self.ts2[idx])
+        frame = self.klass.fromDict(col1=self.ts1, col2 = self.ts2)
+
+        common.assert_dict_equal(self.ts1, frame['col1'], compare_keys=False)
+        common.assert_dict_equal(self.ts2, frame['col2'], compare_keys=False)
+
+        # cast float tests
+        test_data = {
+                'A' : {'1' : 1, '2' : 2},
+                'B' : {'1' : '1', '2' : '2', '3' : '3'},
+        }
+        frame = self.klass.fromDict(test_data)
+        self.assertEqual(len(frame), 3)
+        self.assert_(frame['B'].dtype == np.float_)
+        self.assert_(frame['A'].dtype == np.float_)
+
+        frame = self.klass.fromDict(test_data, castFloat=False)
+        self.assertEqual(len(frame), 3)
+        self.assert_(frame['B'].dtype == np.object_)
+        self.assert_(frame['A'].dtype == np.float_)
+
+        # can't cast to float
+        test_data = {
+                'A' : dict(zip(range(20), common.makeDateIndex(20))),
+                'B' : dict(zip(range(15), common.randn(15)))
+        }
+        frame = self.klass.fromDict(test_data)
+        self.assertEqual(len(frame), 20)
+        self.assert_(frame['A'].dtype == np.object_)
+        self.assert_(frame['B'].dtype == np.float_)
+
+        # Corner cases
+        self.assertEqual(len(self.klass.fromDict({})), 0)
+        self.assertEqual(len(self.klass.fromDict()), 0)
+        self.assertRaises(Exception, self.klass.fromDict, [self.ts1, self.ts2])
+
+    def test_toDict(self):
+        pass
 
     def test_fromRecords(self):
-        pass
+        # from numpy documentation
+        arr = np.zeros((2,),dtype=('i4,f4,a10'))
+        arr[:] = [(1,2.,'Hello'),(2,3.,"World")]
 
-    def test_toRecords(self):
-        pass
+        frame = self.klass.fromRecords(arr)
+        indexed_frame = self.klass.fromRecords(arr, indexField='f1')
+
+        self.assertRaises(Exception, self.klass.fromRecords, np.zeros((2, 3)))
+
+        # what to do?
+        records = indexed_frame.toRecords()
+        self.assertEqual(len(records.dtype.names), 3)
 
     def test_fromMatrix(self):
-        pass
+        mat = np.zeros((2, 3), dtype=float)
+
+        frame = self.klass.fromMatrix(mat, ['A', 'B', 'C'], [1, 2])
+
+        self.assertEqual(len(frame.index), 2)
+        self.assertEqual(len(frame.cols()), 3)
+
+        self.assertRaises(Exception, self.klass.fromMatrix,
+                          mat, ['A', 'B', 'C'], [1])
+        self.assertRaises(Exception, self.klass.fromMatrix,
+                          mat, ['A', 'B'], [1, 2])
 
     def test_nonzero(self):
         pass
 
     def test_repr(self):
-        pass
+        # small one
+        foo = repr(self.frame)
+
+        # big one
+        biggie = self.klass.fromMatrix(np.zeros((1000, 4)),
+                                       range(4), range(1000))
+        foo = repr(biggie)
+
+        # mixed
+        foo = repr(self.mixed_frame)
+
+        # big mixed
+        biggie = self.klass({'A' : common.randn(1000),
+                             'B' : common.makeStringIndex(1000)},
+                            index=range(1000))
+        foo = repr(biggie)
 
     def test_getitem(self):
-        """Slicing NOT intended for production code"""
+        # slicing
+
         sl = self.frame[:20]
         self.assertEqual(20, len(sl.index))
+
+        # column access
+
         for _, series in sl.iteritems():
             self.assertEqual(20, len(series.index))
             self.assert_(common.equalContents(series.index, sl.index))
 
         for key, _ in self.frame._series.iteritems():
             self.assert_(self.frame[key] is not None)
+
         self.assert_('random' not in self.frame)
+        self.assertRaises(Exception, self.frame.__getitem__, 'random')
+
+        # boolean indexing
+        d = self.tsframe.index[10]
+        indexer = self.tsframe.index > d
+
+        subindex = self.tsframe.index[indexer]
+        subframe = self.tsframe[indexer]
+
+        self.assert_(np.array_equal(subindex, subframe.index))
+        self.assertRaises(Exception, self.tsframe.__getitem__, indexer[:-1])
 
     def test_setitem(self):
         # not sure what else to do here
-        series = self.frame['col1']
+        series = self.frame['A'][::2]
         self.frame['col5'] = series
         self.assert_('col5' in self.frame)
+        common.assert_dict_equal(series, self.frame['col5'],
+                                 compare_keys=False)
+
+        series = self.frame['A']
+        self.frame['col6'] = series
+        common.assert_dict_equal(series, self.frame['col6'],
+                                 compare_keys=False)
+
+        # set value
+        self.frame['col7'] = 5
+        assert((self.frame['col7'] == 5).all())
+
+        self.frame['col8'] = 'foo'
+        assert((self.frame['col8'] == 'foo').all())
+
+        self.assertRaises(Exception, self.frame.__setitem__,
+                          common.randn(len(self.frame) + 1))
+
 
     def test_delitem(self):
-        del self.frame['col1']
-        self.assert_('col1' not in self.frame)
-        self.assert_('col1' not in self.frame._series)
+        del self.frame['A']
+        self.assert_('A' not in self.frame)
 
     def test_pop(self):
-        pass
+        A = self.frame.pop('A')
+        self.assert_('A' not in self.frame)
+
+        self.frame['foo'] = 'bar'
+        foo = self.frame.pop('foo')
+        self.assert_('foo' not in self.frame)
 
     def test_iter(self):
         pass
@@ -120,7 +232,8 @@ class TestDataFrame(unittest.TestCase):
                     self.assert_(np.isnan(origVal))
 
     def test_neg(self):
-        pass
+        # what to do?
+        f = -self.frame
 
     def test_firstTimeWithNValues(self):
         pass
@@ -141,9 +254,6 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_toCSV(self):
-        pass
-
-    def test_toDict(self):
         pass
 
     def test_toDataMatrix(self):
@@ -176,7 +286,7 @@ class TestDataFrame(unittest.TestCase):
     def test_asMatrix(self):
         frame = self.frame
         mat = frame.asMatrix()
-        smallerCols = ['col3', 'col1']
+        smallerCols = ['C', 'A']
         # smallerMat = frame.asMatrix(smallerCols)
         frameCols = frame.cols()
         for i, row in enumerate(mat):
@@ -192,10 +302,10 @@ class TestDataFrame(unittest.TestCase):
 
     def test_deepcopy(self):
         cp = deepcopy(self.frame)
-        series = cp['col1']
+        series = cp['A']
         series[:] = 10
         for idx, value in series.iteritems():
-            self.assertNotEqual(self.frame['col1'][idx], value)
+            self.assertNotEqual(self.frame['A'][idx], value)
 
     def test_copy(self):
         pass
@@ -213,7 +323,7 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_getTS(self):
-        frame = self.frame
+        frame = self.tsframe
         tsFrame = frame.getTS(fromDate=frame.index[5], nPeriods=5)
         for i, idx in enumerate(tsFrame.index):
             self.assertEqual(idx, frame.index[5+i])
@@ -284,12 +394,12 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_shift(self):
-        shiftedFrame = self.frame.shift(5)
+        shiftedFrame = self.tsframe.shift(5)
         for i, idx in enumerate(shiftedFrame.index):
-            self.assert_(idx-5*bday == self.frame.index[i])
-        series = shiftedFrame['col1']
+            self.assert_(idx-5*bday == self.tsframe.index[i])
+        series = shiftedFrame['A']
         for i, idx in enumerate(series.index):
-            self.assert_(idx-5*bday == self.frame.index[i])
+            self.assert_(idx-5*bday == self.tsframe.index[i])
 
     def test_apply(self):
         pass

@@ -1,6 +1,6 @@
 # pylint: disable-msg=E1101
 # pylint: disable-msg=E1103
-# pylint: disable-msg=W0212
+# pylint: disable-msg=W0212,W0703
 
 import operator
 
@@ -59,35 +59,41 @@ class DataFrame(Picklable, Groupable):
         >>> d = {'col1' : ts1, 'col2' : ts2}
         >>> df = DataFrame(data=d, index=someIndex)
     """
-    def __init__(self, data = None, index = None):
-        series = data
+    def __init__(self, data=None, index=None):
         self._series = {}
-        if series is not None and len(series) > 0:
+        if data is not None and len(data) > 0:
             if index is None:
-                for s in series.values(): break
-                if hasattr(s, 'index'):
+                s = data.values()[0]
+                if isinstance(s, Series):
                     self.index = s.index
                 else:
-                    self.index = Index(np.arange(len(s)))
+                    self.index = np.arange(len(s))
             else:
-                if isinstance(index, Index):
-                    self.index = index
-                else:
-                    self.index = Index(index)
-            for k, v in series.iteritems():
-                if isinstance(v, Series):
-                    self._series[k] = v.reindex(self.index) # Forces homogoneity
-                else:
-                    assert(len(v) == len(self.index))
-                    s = Series(v, index=self.index)
-                    self._series[k] = s
-        elif index is not None:
-            if isinstance(index, Index):
                 self.index = index
-            else:
-                self.index = Index(index)
+
+            for k, v in data.iteritems():
+                if isinstance(v, Series):
+                    # Forces homogoneity and copies data
+                    self._series[k] = v.reindex(self.index)
+                else:
+                    # Copies data and checks length
+                    self._series[k] = Series(v, index=self.index)
+
+        elif index is not None:
+            self.index = index
         else:
             raise Exception('DataFrame constructor not properly called!')
+
+    def _set_index(self, index):
+        if isinstance(index, Index):
+            self._index = index
+        else:
+            self._index = Index(index)
+
+    def _get_index(self):
+        return self._index
+
+    index = property(fget=_get_index, fset=_set_index)
 
     # Alternate constructors
     @classmethod
@@ -124,7 +130,7 @@ class DataFrame(Picklable, Groupable):
             inputDict = {}
         else:
             if not hasattr(inputDict, 'iteritems'):
-                raise Exception('Input must be dict or dict-like!')
+                raise Exception('Input must be a dict or dict-like!')
             inputDict = inputDict.copy()
 
         inputDict.update(kwds)
@@ -155,10 +161,26 @@ class DataFrame(Picklable, Groupable):
                     columns[key] = Series(tmp, dtype=float, index=index)
                 else:
                     columns[key] = Series(tmp, index=index)
-            except Exception, e:
+            except Exception:
                 columns[key] = Series(tmp, index=index)
 
         return DataFrame(data=columns, index=index)
+
+    def toDict(self):
+        """
+        Simpler pseudo-inverse operation of dictToDataFrame, NaN values will be
+        included in the resulting dict-tree.
+
+        Return
+        ------
+        nested dict mapping: {column -> index -> value}
+        """
+        tree = {}
+        for col, series in self.iteritems():
+            tree[col] = branch = {}
+            for i in self.index:
+                branch[i] = series[i]
+        return tree
 
     @classmethod
     def fromRecords(cls, data, indexField=None):
@@ -177,8 +199,7 @@ class DataFrame(Picklable, Groupable):
         if data.dtype.type != np.void:
             raise Exception('Input was not a structured array!')
 
-        columns = data.dtype.names
-        dataDict = dict((k, data[k]) for k in columns)
+        dataDict = dict((k, data[k]) for k in data.dtype.names)
 
         if indexField is not None:
             index = dataDict.pop(indexField)
@@ -232,9 +253,8 @@ class DataFrame(Picklable, Groupable):
 
         idxMap = colIndex.indexMap
 
-        return DataFrame(data = dict([(idx, mat[:, idxMap[idx]])
-                                      for idx in colIndex]),
-                         index = index)
+        data = dict([(idx, mat[:, idxMap[idx]]) for idx in colIndex])
+        return DataFrame(data=data, index=index)
 
 #-------------------------------------------------------------------------------
 # Magic methods
@@ -274,6 +294,7 @@ class DataFrame(Picklable, Groupable):
                     newColumns[col] = series[start:stop]
                 return DataFrame(data=newColumns, index=dateRange)
             elif isinstance(item, np.ndarray):
+
                 if len(item) != len(self.index):
                     raise Exception('Item wrong length %d instead of %d!' %
                                     (len(item), len(self.index)))
@@ -293,22 +314,19 @@ class DataFrame(Picklable, Groupable):
         ensure homogeneity.
         """
         # Array
-        try:
-            if hasattr(value, '__iter__'):
-                if hasattr(value, 'reindex'):
-                    cleanSeries = value.reindex(self.index)
-                else:
-                    cleanSeries = Series(value, index=self.index)
-                assert(len(cleanSeries) == len(self.index))
-                self._series[key] = cleanSeries
-
-            # Scalar
+        if hasattr(value, '__iter__'):
+            if isinstance(value, Series):
+                cleanSeries = value.reindex(self.index)
             else:
-                self._series[key] = Series.fromValue(value, index=self.index)
-        except AssertionError:
-            raise
-        except Exception, e:
-            raise Exception('Could not put key, value pair in Frame!')
+                cleanSeries = Series(value, index=self.index)
+
+            if len(cleanSeries) != len(self.index):
+                raise Exception('Series was wrong length!')
+
+            self._series[key] = cleanSeries
+        # Scalar
+        else:
+            self._series[key] = Series.fromValue(value, index=self.index)
 
     def __delitem__(self, key):
         """
@@ -334,7 +352,7 @@ class DataFrame(Picklable, Groupable):
         """
         Iterate over columns of the frame.
         """
-        return self._series.__iter__()
+        return iter(self._series)
 
     def __len__(self):
         """
@@ -361,11 +379,7 @@ class DataFrame(Picklable, Groupable):
     __rpow__ = arith_method(lambda x, y: y ** x, '__rpow__')
 
     def __neg__(self):
-        mycopy = self.copy()
-        myseries = mycopy._series
-        for col in myseries:
-            mycopy[col] = -myseries[col]
-        return mycopy
+        return self * -1
 
 #-------------------------------------------------------------------------------
 # Private / helper methods
@@ -494,12 +508,14 @@ class DataFrame(Picklable, Groupable):
         else:
             f = open(path, 'w')
         cols = self.cols() if cols is None else cols
+
         if inclHeader:
             if inclIndex:
                 f.write(',' + ','.join([str(c) for c in cols]))
             else:
                 f.write(','.join([str(c) for c in cols]))
             f.write('\n')
+
         for idx in self.index:
             if inclIndex:
                 f.write(str(idx) + ',')
@@ -516,22 +532,6 @@ class DataFrame(Picklable, Groupable):
 
         if verbose:
             print 'CSV file written successfully: %s' % path
-
-    def toDict(self):
-        """
-        Simpler pseudo-inverse operation of dictToDataFrame, NaN values will be
-        included in the resulting dict-tree.
-
-        Return
-        ------
-        nested dict mapping: {column -> index -> value}
-        """
-        tree = {}
-        for col, series in self.iteritems():
-            tree[col] = branch = {}
-            for i in self.index:
-                branch[i] = series[i]
-        return tree
 
     def toDataMatrix(self):
         from pandas.core.matrix import DataMatrix
@@ -737,10 +737,6 @@ class DataFrame(Picklable, Groupable):
             intersection = set(self.cols()) & colSet
 
             N = len(intersection)
-
-            #if len(cols) < N:
-                #diff = str(set(specificColumns) - set(cols))
-                #raise Exception('Missing columns: %s' % diff)
 
             filtered = self.filterItems(intersection)
             theCount = filtered.count(axis=1, asarray=True)
@@ -1384,7 +1380,7 @@ class DataFrame(Picklable, Groupable):
         """
         try:
             theCount = np.isfinite(self.values).sum(axis)
-        except Exception, e:
+        except Exception:
             f = lambda s: notnull(s).sum()
             if axis == 0:
                 theCount = self.apply(f)
@@ -1438,7 +1434,7 @@ class DataFrame(Picklable, Groupable):
             theSum = y.sum(axis)
             theCount = self.count(axis)
             theSum[theCount == 0] = NaN
-        except Exception, e:
+        except Exception:
             if axis == 0:
                 theSum = self.apply(np.sum)
             else:
@@ -1476,7 +1472,7 @@ class DataFrame(Picklable, Groupable):
             theProd = y.prod(axis)
             theCount = self.count(axis)
             theProd[theCount == 0] = NaN
-        except Exception, e:
+        except Exception:
             if axis == 0:
                 theProd = self.apply(np.prod)
             else:

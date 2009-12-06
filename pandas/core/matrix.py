@@ -207,7 +207,7 @@ class DataMatrix(DataFrame):
 # Alternate constructors
 
     @classmethod
-    def fromDict(cls, inputDict={}, castFloat=True, **kwds):
+    def fromDict(cls, inputDict=None, castFloat=True, **kwds):
         """
         Convert a two-level tree representation of a series or time series
         to a DataMatrix.
@@ -232,6 +232,13 @@ class DataMatrix(DataFrame):
         df1 = DataMatrix.fromDict(myDict)
         df2 = DataMatrix.fromDict(A=seriesA, B=seriesB)
         """
+        if inputDict is None:
+            inputDict = {}
+        else:
+            if not hasattr(inputDict, 'iteritems'):
+                raise Exception('Input must be a dict or dict-like!')
+            inputDict = inputDict.copy()
+
         inputDict.update(kwds)
 
         # Get set of indices
@@ -244,7 +251,7 @@ class DataMatrix(DataFrame):
         series = {}
         for col, mapping in inputDict.iteritems():
             if not isinstance(mapping, Series):
-                mapping = Series.fromDict(mapping)
+                mapping = Series.fromDict(mapping, castFloat=castFloat)
             series[col] = mapping.reindex(index)
 
         return DataMatrix(series, index=index)
