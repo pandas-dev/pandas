@@ -37,8 +37,11 @@ class TestIndex(unittest.TestCase):
         # corner case
         self.assertRaises(Exception, Index, 0)
 
-        arr = np.array(5.)
-        self.assertRaises(Exception, arr.view, Index)
+        # arr = np.array(5.)
+        # self.assertRaises(Exception, arr.view, Index)
+
+    def test_compat(self):
+        self.strIndex.tolist()
 
     def test_equals(self):
         # same

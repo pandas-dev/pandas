@@ -117,7 +117,7 @@ class Series(np.ndarray, Picklable, Groupable):
             index = data.index
 
         # Make a copy of the data, infer type
-        subarr = array(data, dtype=dtype, copy=copy)
+        subarr = np.array(data, dtype=dtype, copy=copy)
 
         if subarr.ndim == 0:
             return subarr.item()
@@ -129,7 +129,7 @@ class Series(np.ndarray, Picklable, Groupable):
         # NumPy string type, e.g. NaN --> '-1#IND'.
 
         if issubclass(subarr.dtype.type, basestring):
-            subarr = array(data, dtype=object, copy=copy)
+            subarr = np.array(data, dtype=object, copy=copy)
 
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)

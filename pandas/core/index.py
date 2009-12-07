@@ -39,7 +39,12 @@ class Index(np.ndarray):
 
     def __array_finalize__(self, obj):
         if self.ndim == 0:
-            raise Exception('Cannot create 0-dimensional Index!')
+            # tolist will cause a bus error if this is not here, hmm
+            
+            return self.item()
+
+        
+            # raise Exception('Cannot create 0-dimensional Index!')
 
         # New instance creation
         if obj is None:
