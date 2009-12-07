@@ -189,7 +189,6 @@ class TestDataFrame(unittest.TestCase):
         self.assertRaises(Exception, self.frame.__setitem__,
                           common.randn(len(self.frame) + 1))
 
-
     def test_delitem(self):
         del self.frame['A']
         self.assert_('A' not in self.frame)
@@ -203,13 +202,10 @@ class TestDataFrame(unittest.TestCase):
         self.assert_('foo' not in self.frame)
 
     def test_iter(self):
-        pass
+        self.assert_(common.equalContents(list(self.frame), self.frame.cols()))
 
     def test_len(self):
-        pass
-
-    def test_contains(self):
-        pass
+        self.assertEqual(len(self.frame), len(self.frame.index))
 
     def test_operators(self):
         garbage = random.random(4)
