@@ -1,0 +1,1 @@
+from numpydoc import setup

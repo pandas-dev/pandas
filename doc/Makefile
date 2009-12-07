@@ -5,12 +5,11 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = _build
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+ALLSPHINXOPTS   = -d build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 .PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest
 
@@ -28,62 +27,62 @@ help:
 	@echo "  doctest   to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf $(BUILDDIR)/*
+	-rm -rf build/*
 
 html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
 	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+	@echo "Build finished. The HTML pages are in build/html."
 
 dirhtml:
-	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
+	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) build/dirhtml
 	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
+	@echo "Build finished. The HTML pages are in build/dirhtml."
 
 pickle:
-	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(BUILDDIR)/pickle
+	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) build/pickle
 	@echo
 	@echo "Build finished; now you can process the pickle files."
 
 json:
-	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) $(BUILDDIR)/json
+	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) build/json
 	@echo
 	@echo "Build finished; now you can process the JSON files."
 
 htmlhelp:
-	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
+	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) build/htmlhelp
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
-	      ".hhp project file in $(BUILDDIR)/htmlhelp."
+	      ".hhp project file in build/htmlhelp."
 
 qthelp:
-	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp
+	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) build/qthelp
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
-	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/pandas.qhcp"
+	      ".qhcp project file in build/qthelp, like this:"
+	@echo "# qcollectiongenerator build/qthelp/pandas.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/pandas.qhc"
+	@echo "# assistant -collectionFile build/qthelp/pandas.qhc"
 
 latex:
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) build/latex
 	@echo
-	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
+	@echo "Build finished; the LaTeX files are in build/latex."
 	@echo "Run \`make all-pdf' or \`make all-ps' in that directory to" \
 	      "run these through (pdf)latex."
 
 changes:
-	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes
+	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) build/changes
 	@echo
-	@echo "The overview file is in $(BUILDDIR)/changes."
+	@echo "The overview file is in build/changes."
 
 linkcheck:
-	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(BUILDDIR)/linkcheck
+	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) build/linkcheck
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
-	      "or in $(BUILDDIR)/linkcheck/output.txt."
+	      "or in build/linkcheck/output.txt."
 
 doctest:
-	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
+	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) build/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(BUILDDIR)/doctest/output.txt."
+	      "results in build/doctest/output.txt."
