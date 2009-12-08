@@ -90,9 +90,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
     Parameters
     ----------
-    data:  array-like
+    data : array-like
         Underlying values of Series, preferably as numpy ndarray
-    index: array-like, optional
+    index : array-like, optional
         Index object (or other iterable of same length as data)
 
     Note
@@ -177,9 +177,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        input: dict object
+        input : dict object
             Keys become indices of returned Series
-        kwds: optionally provide arguments as keywords
+        kwds : optionally provide arguments as keywords
 
         Returns
         -------
@@ -208,9 +208,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        input: dict object
+        input : dict object
             Keys become indices of returned Series
-        kwds: optionally provide arguments as keywords
+        kwds : optionally provide arguments as keywords
 
         Returns
         -------
@@ -289,9 +289,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        key: object
+        key : object
             Index value looking for
-        missingVal: object, optional
+        missingVal : object, optional
             Value to return if key not in index
         """
         if key in self.index:
@@ -514,7 +514,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        other: Series
+        other : Series
 
         Returns
         -------
@@ -576,7 +576,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        other: Series object
+        other : Series object
 
         Returns
         -------
@@ -616,7 +616,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        missingAtEnd: boolean (optional, default=True)
+        missingAtEnd : boolean (optional, default=True)
             Put NaN's at beginning or end
 
         In general, AVOID sorting Series unless you absolutely need to.
@@ -650,7 +650,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        func: function
+        func : function
             Element-wise function to apply
 
         Returns
@@ -666,12 +666,12 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Params
         ------
-        label: label argument to provide to plot
+        label : label argument to provide to plot
 
-        kind: {'line', 'bar', 'hist'}
+        kind : {'line', 'bar', 'hist'}
             Default: line for TimeSeries, hist for Series
 
-        kwds: other plotting keyword arguments
+        kwds : other plotting keyword arguments
 
         Default plot-types:
             TimeSeries: line chart
@@ -699,7 +699,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        path: string or None
+        path : string or None
             Output filepath. If None, write to stdout
         """
         f = open(path, 'wb')
@@ -757,11 +757,11 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        periods: int (+ or -)
+        periods : int (+ or -)
             Number of periods to move
-        offset: DateOffset, optional
+        offset : DateOffset, optional
             Increment to use from datetools module
-        timeRule: string
+        timeRule : string
             time rule name to use by name (e.g. 'WEEKDAY')
 
         Returns
@@ -798,9 +798,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        before: date
+        before : date
             Truncate before date
-        after: date
+        after : date
             Truncate after date
 
         Note
@@ -871,10 +871,10 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        value: any kind (should be same type as array)
+        value : any kind (should be same type as array)
             Value to use to fill holes (e.g. 0)
 
-        method: {'backfill', 'pad', None}
+        method : {'backfill', 'pad', None}
             Method to use for filling holes in new inde
 
         Returns
@@ -901,10 +901,10 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        offset: DateOffset object, or string in {'WEEKDAY', 'EOM'}
+        offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
             DateOffset object or subclass (e.g. monthEnd)
 
-        fillMethod: {'backfill', 'pad', 'interpolate', None}
+        fillMethod : {'backfill', 'pad', 'interpolate', None}
                     Method to use for filling holes in new inde
 
         Returns
@@ -924,7 +924,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        method: {'linear', 'time'}
+        method : {'linear', 'time'}
             Interpolation method.
 
             Time interpolation works on daily and higher resolution
@@ -965,7 +965,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        other: dict or Series
+        other : dict or Series
 
         Returns
         -------
@@ -993,9 +993,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Parameters
         ----------
-        newIndex:   array-like, preferably an Index object (to avoid
+        newIndex :   array-like, preferably an Index object (to avoid
                     duplicating data)
-        fillMethod: {'backfill', 'pad', 'interpolate', None}
+        fillMethod : {'backfill', 'pad', 'interpolate', None}
                     Method to use for filling holes in reindexed Series
 
         Returns

@@ -40,10 +40,10 @@ class Index(np.ndarray):
     def __array_finalize__(self, obj):
         if self.ndim == 0:
             # tolist will cause a bus error if this is not here, hmm
-            
+
             return self.item()
 
-        
+
             # raise Exception('Cannot create 0-dimensional Index!')
 
         # New instance creation
@@ -169,12 +169,8 @@ class Index(np.ndarray):
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
 
-        if other is self:
+        if self.equals(other):
             return self
-
-        if isinstance(other, Index):
-            if self.equals(other):
-                return self
 
         f = self.indexMap.__contains__
         newElts = [x for x in other if not f(x)]

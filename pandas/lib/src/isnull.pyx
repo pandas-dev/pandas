@@ -3,7 +3,10 @@ cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
 cdef inline _checknull(object val):
-    return val is None or val != val or val == INF or val == NEGINF
+    if isinstance(val, float):
+        return val != val or val == INF or val == NEGINF
+    else:
+        return val is None
 
 cdef ndarray _isnullobj(input):
     cdef int i, length

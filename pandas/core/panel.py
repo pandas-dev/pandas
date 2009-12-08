@@ -1342,19 +1342,6 @@ class LongPanel(Panel):
 
         return LongPanel(values, items, self.index)
 
-    def merge(self, other):
-        """
-
-        Parameters
-        ----------
-        other: LongPanel
-
-        Returns
-        -------
-        LongPanel
-        """
-        return self.leftJoin(other)
-
     def addPrefix(self, prefix):
         """
         Concatenate prefix string with panel items names.
