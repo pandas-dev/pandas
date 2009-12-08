@@ -182,6 +182,8 @@ class TestSeries(unittest.TestCase):
         str(self.series)
         str(self.objSeries)
 
+        str(Series(common.randn(1000), index=np.arange(1000)))
+        
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
@@ -225,6 +227,10 @@ class TestSeries(unittest.TestCase):
         self.assert_(not np.isnan(np.min(self.series)))
         self.assert_(not np.isnan(np.max(self.series)))
 
+        self.assert_(np.isnan(Series([1.], index=[1]).std()))
+        self.assert_(np.isnan(Series([1.], index=[1]).var()))
+        self.assert_(np.isnan(Series([1.], index=[1]).skew()))
+        
     def test_append(self):
         appendedSeries = self.series.append(self.ts)
         for idx, value in appendedSeries.iteritems():
@@ -497,11 +503,20 @@ class TestSeries(unittest.TestCase):
     def test_asOf(self):
         self.ts[5:10] = np.NaN
         self.ts[15:20] = np.NaN
+
         val1 = self.ts.asOf(self.ts.index[7])
         val2 = self.ts.asOf(self.ts.index[19])
+
         self.assertEqual(val1, self.ts[4])
         self.assertEqual(val2, self.ts[14])
 
+        # accepts strings
+        val1 = self.ts.asOf(str(self.ts.index[7]))
+        self.assertEqual(val1, self.ts[4])
+
+        # in there
+        self.assertEqual(self.ts.asOf(self.ts.index[3]), self.ts[3])
+        
     def test_merge(self):
         index, data = common.getMixedTypeDict()
 
@@ -545,8 +560,17 @@ class TestSeries(unittest.TestCase):
 # TimeSeries-specific
 
     def test_fill(self):
-        pass
+        ts = Series([0., 1., 2., 3., 4.], index=common.makeDateIndex(5))
 
+        self.assert_(np.array_equal(ts, ts.fill()))
+        
+        ts[2] = np.NaN
+
+        self.assert_(np.array_equal(ts.fill(), [0., 1., 1., 3., 4.]))
+        self.assert_(np.array_equal(ts.fill(method='backfill'), [0., 1., 3., 3., 4.]))
+
+        self.assert_(np.array_equal(ts.fill(value=5), [0., 1., 5., 3., 4.]))
+        
     def test_asfreq(self):
         pass
 
@@ -578,8 +602,20 @@ class TestSeries(unittest.TestCase):
         pass
 
     def test_firstValid(self):
-        pass
+        ts = self.ts.copy()
+        ts[:5] = np.NaN
 
+        index = ts._firstTimeWithValue()
+        self.assertEqual(index, ts.index[5])
+        
+        ts[-5:] = np.NaN
+        index = ts._lastTimeWithValue()        
+        self.assertEqual(index, ts.index[-6])
+
+        ser = Series([], index=[])
+        self.assert_(ser._lastTimeWithValue() is None)
+        self.assert_(ser._firstTimeWithValue() is None)
+        
     def test_lastValid(self):
         pass
 

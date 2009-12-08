@@ -42,10 +42,7 @@ def _seriesOpWrap(opname):
             if self.index.equals(other.index):
                 return cls(func(other.values()), index=self.index)
 
-            if len(self.index) + len(other.index) > 0:
-                newIndex = self.index + other.index
-            else:
-                newIndex = NULL_INDEX
+            newIndex = self.index + other.index
 
             try:
                 arr = tseries.combineFunc(opname, newIndex, self, other,
