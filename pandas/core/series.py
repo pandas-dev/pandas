@@ -656,7 +656,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         return Series([func(x) for x in self], index=self.index)
 
-    def plot(self, label=None, kind='line', **kwds):
+    def plot(self, label=None, kind='line', **kwds): # pragma: no cover
         """
         Plot the input series with the index on the x-axis using
         matplotlib / pylab.
@@ -971,8 +971,10 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         if isinstance(other, dict):
             other = Series.fromDict(other)
+
         if not isinstance(other, Series):
             raise Exception('Argument must be a Series!')
+
         fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)
 
         newValues = other.view(np.ndarray).take(fillVec)
@@ -1017,7 +1019,7 @@ class Series(np.ndarray, Picklable, Groupable):
                 if self.dtype.type == np.object_:
                     vals = tseries.reindexObj(newIndex, self, idxMap)
                 else:
-                    thisVals = self.view(np.ndarray).astype(object)
+                    thisVals = self.values().astype(object)
                     vals = tseries.reindexObj(newIndex, thisVals, idxMap)
 
                     if not isnull(vals).any():

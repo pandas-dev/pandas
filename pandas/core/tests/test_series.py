@@ -10,7 +10,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import Index, Series, TimeSeries, DataFrame
+from pandas.core.api import (Index, Series, TimeSeries, DataFrame, isnull)
 import pandas.core.datetools as datetools
 import pandas.core.tests.common as common
 
@@ -183,7 +183,7 @@ class TestSeries(unittest.TestCase):
         str(self.objSeries)
 
         str(Series(common.randn(1000), index=np.arange(1000)))
-        
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
@@ -230,7 +230,7 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.isnan(Series([1.], index=[1]).std()))
         self.assert_(np.isnan(Series([1.], index=[1]).var()))
         self.assert_(np.isnan(Series([1.], index=[1]).skew()))
-        
+
     def test_append(self):
         appendedSeries = self.series.append(self.ts)
         for idx, value in appendedSeries.iteritems():
@@ -516,7 +516,7 @@ class TestSeries(unittest.TestCase):
 
         # in there
         self.assertEqual(self.ts.asOf(self.ts.index[3]), self.ts[3])
-        
+
     def test_merge(self):
         index, data = common.getMixedTypeDict()
 
@@ -524,6 +524,12 @@ class TestSeries(unittest.TestCase):
         target = Series(data['C'][:4], index=data['D'][:4])
 
         merged = target.merge(source)
+
+        for k, v in merged.iteritems():
+            self.assertEqual(v, source[target[k]])
+
+        # input could be a dict
+        merged = target.merge(source.toDict())
 
         for k, v in merged.iteritems():
             self.assertEqual(v, source[target[k]])
@@ -548,6 +554,34 @@ class TestSeries(unittest.TestCase):
         for idx, val in subNonContig.iteritems():
             self.assertEqual(val, self.ts[idx])
 
+        # bad fill method
+        ts = self.ts[::2]
+        self.assertRaises(Exception, ts.reindex, self.ts.index, fillMethod='foo')
+
+    def test_reindex_bool(self):
+
+        # A series other than float, int, string, or object
+        ts = self.ts[::2]
+        bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
+
+        # this should work fine
+        reindexed_bool = bool_ts.reindex(self.ts.index)
+
+        # if NaNs introduced
+        self.assert_(reindexed_bool.dtype == np.object_)
+
+        # NO NaNs introduced
+        reindexed_bool = bool_ts.reindex(bool_ts.index[::2])
+        self.assert_(reindexed_bool.dtype == np.bool_)
+
+    @np.testing.decorators.knownfailureif(True)
+    def test_reindex_bool_pad(self):
+        # fail
+        ts = self.ts[5:]
+        bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
+        filled_bool = bool_ts.reindex(self.ts.index, fillMethod='pad')
+        self.assert_(filled_bool.dtype == np.object_)
+
     def test_preserveRefs(self):
         sl = self.ts[5:10]
         seq = self.ts[[5,10,15]]
@@ -563,16 +597,30 @@ class TestSeries(unittest.TestCase):
         ts = Series([0., 1., 2., 3., 4.], index=common.makeDateIndex(5))
 
         self.assert_(np.array_equal(ts, ts.fill()))
-        
+
         ts[2] = np.NaN
 
         self.assert_(np.array_equal(ts.fill(), [0., 1., 1., 3., 4.]))
         self.assert_(np.array_equal(ts.fill(method='backfill'), [0., 1., 3., 3., 4.]))
 
         self.assert_(np.array_equal(ts.fill(value=5), [0., 1., 5., 3., 4.]))
-        
+
     def test_asfreq(self):
-        pass
+        ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
+                                         datetime(2009, 11, 30),
+                                         datetime(2009, 12, 31)])
+
+        daily_ts = ts.asfreq('WEEKDAY')
+        monthly_ts = daily_ts.asfreq('EOM')
+        self.assert_(np.array_equal(monthly_ts, ts))
+
+        daily_ts = ts.asfreq('WEEKDAY', fillMethod='pad')
+        monthly_ts = daily_ts.asfreq('EOM')
+        self.assert_(np.array_equal(monthly_ts, ts))
+
+        daily_ts = ts.asfreq(datetools.bday)
+        monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
+        self.assert_(np.array_equal(monthly_ts, ts))
 
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
@@ -593,13 +641,16 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.array_equal(time_interp, ord_ts))
 
     def test_weekday(self):
-        pass
+        # Just run the function
+        weekdays = self.ts.weekday
 
     def test_diff(self):
-        pass
+        # Just run the function
+        self.ts.diff()
 
     def test_autocorr(self):
-        pass
+        # Just run the function
+        self.ts.autocorr()
 
     def test_firstValid(self):
         ts = self.ts.copy()
@@ -607,15 +658,15 @@ class TestSeries(unittest.TestCase):
 
         index = ts._firstTimeWithValue()
         self.assertEqual(index, ts.index[5])
-        
+
         ts[-5:] = np.NaN
-        index = ts._lastTimeWithValue()        
+        index = ts._lastTimeWithValue()
         self.assertEqual(index, ts.index[-6])
 
         ser = Series([], index=[])
         self.assert_(ser._lastTimeWithValue() is None)
         self.assert_(ser._firstTimeWithValue() is None)
-        
+
     def test_lastValid(self):
         pass
 
