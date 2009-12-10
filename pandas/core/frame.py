@@ -38,9 +38,9 @@ class DataFrame(Picklable, Groupable):
 
     Parameters
     ----------
-    data: dict
+    data : dict
         Mapping of column name --> array or Series/TimeSeries objects
-    index: array-like
+    index : array-like
         Specific index to use for the Frame, Series will be conformed to this
         if you provide it.
 
@@ -113,9 +113,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        input: dict object
+        input : dict object
             Keys become column names of returned frame
-        kwds: optionally provide arguments as keywords
+        kwds : optionally provide arguments as keywords
 
         Returns
         -------
@@ -189,7 +189,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        input: NumPy structured array
+        input : NumPy structured array
 
         Returns
         -------
@@ -229,11 +229,11 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        mat: ndarray
+        mat : ndarray
             Dimension T x N
-        colNames: iterable
+        colNames : iterable
             Dimension N
-        rowNames: iterable
+        rowNames : iterable
             Dimension T
 
         Returns
@@ -474,8 +474,8 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        other: constant, array, or DataFrame/Matrix
-        func: function taking two arguments
+        other : constant, array, or DataFrame/Matrix
+        func : function taking two arguments
 
         Example
         -------
@@ -628,10 +628,10 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        offset: DateOffset object, or string in {'WEEKDAY', 'EOM'}
+        offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
             DateOffset object or subclass (e.g. monthEnd)
 
-        fillMethod: {'backfill', 'pad', 'interpolate', None}
+        fillMethod : {'backfill', 'pad', 'interpolate', None}
                     Method to use for filling holes in new inde
         """
         if isinstance(freq, datetools.DateOffset):
@@ -699,7 +699,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        specificColumns: list-like, optional keyword
+        specificColumns : list-like, optional keyword
             Columns to consider in removing NaN values. As a typical
             application, you might provide the list of the columns involved in
             a regression to exlude all the missing data in one shot.
@@ -718,10 +718,10 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        minObs: int or None (default)
+        minObs : int or None (default)
            Instead of requiring all the columns to have observations, require
            only minObs observations
-        specificColumns: list-like, optional keyword
+        specificColumns : list-like, optional keyword
             Columns to consider in removing NaN values. As a typical
             application, you might provide the list of the columns involved in
             a regression to exlude all the missing data in one shot.
@@ -757,10 +757,10 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        method: {'backfill', 'pad', None}
+        method : {'backfill', 'pad', None}
             Method to use for filling holes in new inde
 
-        value: any kind (should be same type as array)
+        value : any kind (should be same type as array)
             Value to use to fill holes (e.g. 0)
 
         Returns
@@ -785,12 +785,14 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        colName: particular column name requested
-        fromDate: datetime
-        toDate: datetime
-        nPeriods: int/float
+        colName : particular column name requested
+        fromDate : datetime
+        toDate : datetime
+        nPeriods : int/float
 
-        NOTE: Error thrown if all of fromDate, toDate, nPeriods specified.
+        Note
+        ----
+        Error thrown if all of fromDate, toDate, nPeriods specified.
         """
         if toDate:
             if toDate not in self.index:
@@ -868,10 +870,10 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        key: some index contained in the index
-        subset: iterable (list, array, set, etc.), optional
+        key : some index contained in the index
+        subset : iterable (list, array, set, etc.), optional
             columns to be included
-        asOf: boolean, optional
+        asOf : boolean, optional
             Whether to use asOf values for TimeSeries objects
             Won't do anything for Series objects.
 
@@ -896,11 +898,11 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        index: string or object
+        index : string or object
             Column name to use to make new frame's index
-        columns: string or object
+        columns : string or object
             Column name to use to make new frame's columns
-        values: string or object
+        values : string or object
             Column name to use for populating new frame's values
         """
         from pandas.core.panel import _slow_pivot
@@ -913,9 +915,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        newIndex:   array-like
+        newIndex :   array-like
             preferably an Index object (to avoid duplicating data)
-        fillMethod: {'backfill', 'pad', 'interpolate', None}
+        fillMethod : {'backfill', 'pad', 'interpolate', None}
             Method to use for filling holes in reindexed DataFrame
         """
         if newIndex is self.index:
@@ -1030,16 +1032,17 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        func: function
+        func : function
             Function to apply to each column
 
         Example
         -------
-
             >>> df.apply(numpy.sqrt) --> DataFrame
             >>> df.apply(numpy.sum) --> Series
 
-        N.B.: Do NOT use functions that might toy with the index.
+        Note
+        ----
+        Do NOT use functions that might toy with the index.
         """
         if not len(self.cols()):
             return self
@@ -1077,7 +1080,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        func: function
+        func : function
             Python function to apply to each element
         """
         results = {}
@@ -1097,7 +1100,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        items: list-like
+        items : list-like
             List of columns to restrict to (must not all be present)
 
         Returns
@@ -1142,7 +1145,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameter
         ---------
-        arg: string
+        arg : string
 
         Return
         ------
@@ -1160,12 +1163,14 @@ class DataFrame(Picklable, Groupable):
         Combine two DataFrame / DataMatrix objects and default to value
         in frame calling the method.
 
-        Example: a.combineFirst(b)
-            a's values prioritized, use values from b to fill holes
-
         Parameters
         ----------
-        otherFrame: DataFrame / Matrix
+        otherFrame : DataFrame / Matrix
+
+        Example
+        -------
+        a.combineFirst(b)
+            a's values prioritized, use values from b to fill holes
 
         Returns
         -------
@@ -1209,7 +1214,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        otherFrame: DataFrame / Matrix
+        otherFrame : DataFrame / Matrix
 
         Returns
         -------
@@ -1277,7 +1282,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        *frames: list-like
+        *frames : list-like
             List of frames (DataMatrix or DataFrame) as function arguments
 
         Returns
@@ -1301,9 +1306,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        other: DataFrame
+        other : DataFrame
             Index should be similar to one of the columns in this one
-        on: string
+        on : string
             Column name to use
 
         Example
@@ -1348,12 +1353,14 @@ class DataFrame(Picklable, Groupable):
 
         Params
         ------
-        kind: {'line', 'bar', 'hist'}
+        kind : {'line', 'bar', 'hist'}
             Default: line for TimeSeries, hist for Series
 
-        kwds: other plotting keyword arguments
+        kwds : other plotting keyword arguments
 
-        NOTE: This method doesn't make much sense for cross-sections,
+        Note
+        ----
+        This method doesn't make much sense for cross-sections,
         and will error.
         """
         from pylab import plot
@@ -1369,9 +1376,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
 
         Returns
@@ -1403,9 +1410,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
 
         Returns
@@ -1455,9 +1462,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
 
         Returns
@@ -1493,7 +1500,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
         Returns
@@ -1508,7 +1515,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
         Returns
@@ -1530,7 +1537,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
         Returns
@@ -1552,7 +1559,7 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
         Returns
@@ -1575,9 +1582,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
 
         Returns
@@ -1606,9 +1613,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
 
         Returns
@@ -1639,9 +1646,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
 
         Returns
@@ -1656,9 +1663,9 @@ class DataFrame(Picklable, Groupable):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
 
         Returns

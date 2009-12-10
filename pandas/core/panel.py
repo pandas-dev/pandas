@@ -130,10 +130,10 @@ class WidePanel(Panel):
 
     Parameters
     ----------
-    values: ndarray (items x major x minor)
-    items: sequence
-    major_axis: sequence
-    minor_axis: sequence
+    values : ndarray (items x major x minor)
+    items : sequence
+    major_axis : sequence
+    minor_axis : sequence
     """
     def __init__(self, values, items, major_axis, minor_axis):
         self.items = items
@@ -192,9 +192,9 @@ class WidePanel(Panel):
 
         Parameters
         ----------
-        data: dict
+        data : dict
             {field : DataFrame}
-        intersect: boolean
+        intersect : boolean
 
         Returns
         -------
@@ -288,8 +288,8 @@ class WidePanel(Panel):
 
         Parameters
         ----------
-        frame: DataFrame
-        axis: {'items', 'major', 'minor'}
+        frame : DataFrame
+        axis : {'items', 'major', 'minor'}
             Axis the input corresponds to. E.g., if axis='major', then
             the frame's columns would be items, and the index would be
             values of the minor axis
@@ -308,10 +308,10 @@ class WidePanel(Panel):
 
         Parameters
         ----------
-        new_index: Index or sequence
-        axis: {'items', 'major', 'minor'}
+        new_index : Index or sequence
+        axis : {'items', 'major', 'minor'}
             Axis to reindex
-        fill_method: {'backfill', 'pad', 'interpolate', None}
+        fill_method : {'backfill', 'pad', 'interpolate', None}
             Method to use for filling holes in reindexed panel
 
         Returns
@@ -452,9 +452,9 @@ class WidePanel(Panel):
         """
         Parameters
         ----------
-        function: callable
+        function : callable
             Mapping function for chosen access
-        axis: {'major', 'minor', 'items'}, default 'major'
+        axis : {'major', 'minor', 'items'}, default 'major'
 
         Returns
         -------
@@ -482,7 +482,7 @@ class WidePanel(Panel):
 
         Parameters
         ----------
-        filter_observations: boolean, default True
+        filter_observations : boolean, default True
             Drop (major, minor) pairs without a complete set of observations
             across all the items
 
@@ -531,7 +531,7 @@ class WidePanel(Panel):
 
         Parameters
         ----------
-        items: sequence
+        items : sequence
 
         Returns
         -------
@@ -548,10 +548,10 @@ class WidePanel(Panel):
         """
         Parameters
         ----------
-        func: numpy function
+        func : numpy function
             Signature should match numpy.{sum, mean, var, std} etc.
-        axis: {'major', 'minor', 'items'}
-        fill_na: boolean, default True
+        axis : {'major', 'minor', 'items'}
+        fill_na : boolean, default True
             Replace NaN values with 0 first
 
         Returns
@@ -668,10 +668,10 @@ class LongPanelIndex(object):
 
         Parameters
         ----------
-        before: type of major_axis values or None, default None
+        before : type of major_axis values or None, default None
             None defaults to start of panel
 
-        after: type of major_axis values or None, default None
+        after : type of major_axis values or None, default None
             None defaults to after of panel
 
         Returns
@@ -791,12 +791,12 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        data: DataFrame, structured or record array, or dict
-        major_field: string
-        minor_field: string
+        data : DataFrame, structured or record array, or dict
+        major_field : string
+        minor_field : string
             Name of field
-        factors: list-like, default None
-        exclude: list-like, default None
+        factors : list-like, default None
+        exclude : list-like, default None
 
         Returns
         -------
@@ -1132,10 +1132,10 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        before: type of major_axis values or None, default None
+        before : type of major_axis values or None, default None
             None defaults to start of panel
 
-        after: type of major_axis values or None, default None
+        after : type of major_axis values or None, default None
             None defaults to end of panel
 
         Returns
@@ -1154,7 +1154,7 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        items: sequence
+        items : sequence
 
         Returns
         -------
@@ -1174,8 +1174,8 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        axis: {'major', 'minor'}, default 'minor'
-        transform: function, default None
+        axis : {'major', 'minor'}, default 'minor'
+        transform : function, default None
 
             Function to apply to axis labels first. For example, to
             get "day of week" dummies in a time series regression you might
@@ -1246,7 +1246,7 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        item: object
+        item : object
             Value in panel items Index
 
         Returns
@@ -1271,11 +1271,11 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        f: function
+        f : function
             NumPy function to apply to each group
-        axis: {'major', 'minor'}
+        axis : {'major', 'minor'}
 
-        broadcast: boolean
+        broadcast : boolean
 
         Returns
         -------
@@ -1333,7 +1333,7 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        other: LongPanel
+        other : LongPanel
         """
         assert(self.index is other.index)
 
@@ -1348,13 +1348,15 @@ class LongPanel(Panel):
 
         Parameters
         ----------
-        prefix: string
+        prefix : string
 
         Returns
         -------
         LongPanel
 
-        Note: does *not* copy values matrix
+        Note
+        ----
+        does *not* copy values matrix
         """
         new_items = [_makeItemName(item, prefix) for item in self.items]
 
@@ -1408,8 +1410,8 @@ def _homogenize(frames, intersect=True):
 
     Parameters
     ----------
-    frames: dict
-    intersect: boolean, default True
+    frames : dict
+    intersect : boolean, default True
 
     Returns
     -------
@@ -1464,11 +1466,11 @@ def pivot(index, columns, values):
 
     Parameters
     ----------
-    index: ndarray
+    index : ndarray
         Labels to use to make new frame's index
-    columns: ndarray
+    columns : ndarray
         Labels to use to make new frame's columns
-    values: ndarray
+    values : ndarray
         Values to use for populating new frame's values
 
     Note
@@ -1510,11 +1512,11 @@ def _slow_pivot(index, columns, values):
 
     Parameters
     ----------
-    index: string or object
+    index : string or object
         Column name to use to make new frame's index
-    columns: string or object
+    columns : string or object
         Column name to use to make new frame's columns
-    values: string or object
+    values : string or object
         Column name to use for populating new frame's values
 
     Could benefit from some Cython here.

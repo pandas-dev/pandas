@@ -109,7 +109,7 @@ class Series(np.ndarray, Picklable, Groupable):
         >>> s[5]
         >>> s[d]    # Valid
     """
-    def __new__(cls, data, index=None, dtype=None, copy=True):
+    def __new__(cls, data, index=None, dtype=None, copy=False):
         if index is None and isinstance(data, Series):
             index = data.index
 
@@ -772,17 +772,18 @@ class Series(np.ndarray, Picklable, Groupable):
             offset = datetools.getOffset(timeRule)
 
         if offset is None:
+            newValues = np.empty(len(self), dtype=self.dtype)
+
             if periods > 0:
-                newIndex = self.index[periods:]
-                newValues = np.array(self)[:-periods]
+                newValues[periods:] = self.values()[:-periods]
+                newValues[:periods] = np.NaN
             elif periods < 0:
-                newIndex = self.index[:periods]
-                newValues = np.array(self)[-periods:]
+                newValues[:periods] = self.values()[-periods:]
+                newValues[periods:] = np.NaN
             else:
                 newValues = self.values().copy()
-                newIndex = self.index
 
-            return self.__class__(newValues, index=newIndex)
+            return self.__class__(newValues, index=self.index)
         else:
             offset = periods * offset
             newIndex = Index([idx + offset for idx in self.index])

@@ -26,12 +26,12 @@ class DataMatrix(DataFrame):
 
     Constructor params
     ------------------
-    data: numpy ndarray or dict of Series
+    data : numpy ndarray or dict of Series
         Constructor can understand various kinds of inputs
-    index: Index or array-like
+    index : Index or array-like
         Index to use for resulting frame (optional if provided dict of Series)
-    columns: Index or array-like
-    dtype: dtype, default=float
+    columns : Index or array-like
+    dtype : dtype, default=float
         Data type to use
 
     Notes
@@ -223,9 +223,9 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        input: dict object
+        input : dict object
             Keys become column names of returned frame
-        kwds: optionally provide arguments as keywords
+        kwds : optionally provide arguments as keywords
 
         Example
         -------
@@ -264,11 +264,11 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        mat: ndarray
+        mat : ndarray
             Dimension T x N
-        colNames: iterable
+        colNames : iterable
             Dimension N
-        rowNames: iterable
+        rowNames : iterable
             Dimension T
 
         Returns
@@ -302,15 +302,15 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        path: string
+        path : string
             Output file path
-        nanRep: string, default=''
+        nanRep : string, default=''
             Appearance of NaN values in output
-        index: boolean, default=True
+        index : boolean, default=True
             Prints index if True
-        header: boolean, default=True
+        header : boolean, default=True
             Prints header if True
-        cols: list of strings
+        cols : list of strings
             Prints the values in order specified by cols.
             By default, prints all columns in lexicographical order.
         """
@@ -530,9 +530,9 @@ class DataMatrix(DataFrame):
 
         Possible inputs
         ---------------
-        single value: retrieve a column as a Series
-        slice: reindex to indices specified by slice
-        boolean vector: like slice but more general, reindex to indices
+        single value : retrieve a column as a Series
+        slice : reindex to indices specified by slice
+        boolean vector : like slice but more general, reindex to indices
           where the input vector is True
 
         Examples
@@ -906,7 +906,7 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        columns: list-like
+        columns : list-like
             columns to use in producing matrix, must all be contained
 
         Returns
@@ -944,9 +944,9 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        axis: {0, 1}
+        axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray: boolean, default False
+        asarray : boolean, default False
             Choose to return as ndarray or have index attached
         """
         y = np.array(self.values, subok=True)
@@ -965,7 +965,7 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        specificColumns: list-like, optional keyword
+        specificColumns : list-like, optional keyword
             Columns to consider in removing NaN values. As a typical
             application, you might provide the list of the columns involved in
             a regression to exclude all the missing data in one shot.
@@ -989,10 +989,10 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        minObs: int or None (default)
+        minObs : int or None (default)
            Instead of requiring all the columns to have observations, require
            only minObs observations
-        specificColumns: list-like, optional keyword
+        specificColumns : list-like, optional keyword
             Columns to consider in removing NaN values. As a typical
             application, you might provide the list of the columns involved in
             a regression to exlude all the missing data in one shot.
@@ -1022,10 +1022,10 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        value: any kind (should be same type as array)
+        value : any kind (should be same type as array)
             Value to use to fill holes (e.g. 0)
 
-        method: {'backfill', 'pad', None}
+        method : {'backfill', 'pad', None}
             Method to use for filling holes in new inde
 
         Returns
@@ -1091,11 +1091,11 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        colName: string or None
+        colName : string or None
             particular column name requested, fine to leave blank
-        fromDate: datetime
-        toDate: datetime
-        nPeriods: int/float
+        fromDate : datetime
+        toDate : datetime
+        nPeriods : int/float
 
         Note
         ----
@@ -1161,10 +1161,10 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        key: some index contained in the index
-        subset: iterable (list, array, set, etc.), optional
+        key : some index contained in the index
+        subset : iterable (list, array, set, etc.), optional
             columns to be included
-        asOf: boolean, optional
+        asOf : boolean, optional
             Whether to use asOf values for TimeSeries objects
             Won't do anything for Series objects.
 
@@ -1199,9 +1199,9 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        otherFrame: DataFrame
+        otherFrame : DataFrame
             Index should be similar to one of the columns in this one
-        on: string
+        on : string
             Column name to use
 
         Example
@@ -1252,9 +1252,9 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        newIndex:   array-like
+        newIndex :   array-like
             preferably an Index object (to avoid duplicating data)
-        fillMethod: {'backfill', 'pad', 'interpolate', None}
+        fillMethod : {'backfill', 'pad', 'interpolate', None}
             Method to use for filling holes in reindexed DataFrame
 
         Returns
@@ -1323,11 +1323,11 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        periods: int (+ or -)
+        periods : int (+ or -)
             Number of periods to move
-        offset: DateOffset, optional
+        offset : DateOffset, optional
             Increment to use from datetools module
-        timeRule: string
+        timeRule : string
             Time rule to use by name
 
         Returns
@@ -1362,7 +1362,7 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        func: function
+        func : function
             Function to apply to each column
 
         Example
@@ -1416,10 +1416,10 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        func: function
+        func : function
             Python function, returns a single value from a single value
 
-        Note: try to avoid using this function if you can, very slow.
+        Note : try to avoid using this function if you can, very slow.
         """
         npfunc = np.frompyfunc(func, 1, 1)
         results = npfunc(self.values)
@@ -1437,7 +1437,7 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        items: list-like
+        items : list-like
             List of columns to restrict to (must not all be present)
 
         Returns
@@ -1460,7 +1460,7 @@ class DataMatrix(DataFrame):
 
         Parameter
         ---------
-        arg: string
+        arg : string
 
         Return
         ------
@@ -1495,12 +1495,12 @@ class DataMatrix(DataFrame):
         Combine two DataFrame / DataMatrix objects and default to value
         in frame calling the method.
 
-        Example: a.combineFirst(b)
+        Example : a.combineFirst(b)
             a's values prioritized, use values from b to fill holes
 
         Parameters
         ----------
-        otherFrame: DataFrame / Matrix
+        otherFrame : DataFrame / Matrix
 
         Returns
         -------
@@ -1544,7 +1544,7 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        otherFrame: DataFrame / Matrix
+        otherFrame : DataFrame / Matrix
 
         Returns
         -------
@@ -1595,7 +1595,7 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        *frames: list-like
+        *frames : list-like
             List of frames (DataMatrix or DataFrame) as function arguments
 
         Returns
@@ -1624,12 +1624,8 @@ class DataMatrix(DataFrame):
 
         Parameters
         ----------
-        *frames: list-like
+        *frames : list-like
             List of frames (DataMatrix or DataFrame) as function arguments
-
-        Keyword args
-        ------------
-        coerceTo: type or dtype
 
         Returns
         -------

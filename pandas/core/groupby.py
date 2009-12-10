@@ -136,9 +136,9 @@ class SeriesGroupBy(GroupBy):
 
         Parameters
         ----------
-        mapper: function
+        mapper : function
             Called on each element of the Series index to determine the groups
-        applyfunc: function
+        applyfunc : function
             Function to use to aggregate each group
 
         Returns
@@ -192,15 +192,19 @@ class SeriesGroupBy(GroupBy):
         on this sub-Series. Return a Series of the results for each
         key.
 
-        Note: this function does not aggregate like groupby/tgroupby,
-        the results of the given function on the subSeries should be another
-        Series.
-
         Parameters
         ----------
-        mapper:    function which, on being called on each element of the Series
-                   index, determines the groups.
-        applyfunc: function to apply to each group
+        mapper : function
+            on being called on each element of the Series
+            index, determines the groups.
+
+        applyfunc : function to apply to each group
+
+        Note
+        ----
+        This function does not aggregate like groupby/tgroupby,
+        the results of the given function on the subSeries should be another
+        Series.
 
         Example
         -------
@@ -248,10 +252,10 @@ class DataFrameGroupBy(GroupBy):
 
         Parameters
         ----------
-        mapper: function, dict-like, or string
+        mapper : function, dict-like, or string
             Mapping or mapping function. If string given, must be a column
             name in the frame
-        applyfunc: function
+        applyfunc : function
             Function to use for aggregating groups
 
         N.B.: applyfunc must produce one value from a Series, otherwise
@@ -284,10 +288,10 @@ class DataFrameGroupBy(GroupBy):
 
         Parameters
         ----------
-        mapper: function, dict-like, or string
+        mapper : function, dict-like, or string
             Mapping or mapping function. If string given, must be a column
             name in the frame
-        applyfunc: function
+        applyfunc : function
             Function to apply to each subframe
 
         Note
@@ -326,10 +330,10 @@ class DataMatrixGroupBy(DataFrameGroupBy):
 
         Parameters
         ----------
-        mapper: function, dict-like, or string
+        mapper : function, dict-like, or string
             Mapping or mapping function. If string given, must be a column
             name in the frame
-        applyfunc: function
+        applyfunc : function
             Function to use to aggregate each group
         """
         result = {}
@@ -357,9 +361,9 @@ class DataMatrixGroupBy(DataFrameGroupBy):
 
         Parameters
         ----------
-        mapper: function
+        mapper : function
             Function to apply to each index value
-        applyfunc: function
+        applyfunc : function
             Function to apply to each subframe
 
         Note

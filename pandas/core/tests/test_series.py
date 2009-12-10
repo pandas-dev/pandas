@@ -445,7 +445,7 @@ class TestSeries(unittest.TestCase):
         shifted = self.ts.shift(1)
         unshifted = shifted.shift(-1)
 
-        common.assert_dict_equal(unshifted, self.ts, compare_keys=False)
+        common.assert_dict_equal(unshifted.valid(), self.ts, compare_keys=False)
 
         offset = datetools.bday
         shifted = self.ts.shift(1, offset=offset)

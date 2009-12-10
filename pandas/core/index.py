@@ -160,7 +160,7 @@ class Index(np.ndarray):
 
         Parameters
         ----------
-        other: Index or array-like
+        other : Index or array-like
 
         Returns
         -------
@@ -191,7 +191,7 @@ class Index(np.ndarray):
 
         Parameters
         ----------
-        other: Index or array-like
+        other : Index or array-like
 
         Returns
         -------
