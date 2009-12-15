@@ -20,7 +20,7 @@ MAINTAINER_EMAIL = "wesmckinn@gmail.com"
 URL = "pandas.googlecode.com"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'Environment :: Console',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     setup(configuration=configuration,
           packages=setuptools.find_packages(),
           classifiers=CLASSIFIERS,
-          requires=['numpy', 'scikits.statsmodels', 'dateutil'],
+          requires=['numpy', 'scipy', 'scikits.statsmodels', 'dateutil'],
           platforms='any',
           test_suite='nose.collector',
           zip_safe=False)

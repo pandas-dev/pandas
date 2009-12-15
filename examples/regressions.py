@@ -44,4 +44,6 @@ Y = makeDataMatrix()
 
 panelModel = ols(y=Y, x=data, window=50)
 
+model = ols(y=Y, x=data)
+
 print panelModel

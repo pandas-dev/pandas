@@ -82,7 +82,7 @@ class DataFrame(Picklable, Groupable):
         elif index is not None:
             self.index = index
         else:
-            raise Exception('DataFrame constructor not properly called!')
+            self.index = NULL_INDEX
 
     def _set_index(self, index):
         if isinstance(index, Index):
@@ -141,7 +141,6 @@ class DataFrame(Picklable, Groupable):
             index = inputDict.values()[0].keys()
             if not isinstance(index, Index):
                 index = Index(sorted(index))
-
         else:
             # GET set of indices
             indices = set([])
@@ -175,12 +174,7 @@ class DataFrame(Picklable, Groupable):
         ------
         nested dict mapping: {column -> index -> value}
         """
-        tree = {}
-        for col, series in self.iteritems():
-            tree[col] = branch = {}
-            for i in self.index:
-                branch[i] = series[i]
-        return tree
+        return dict((k, v.toDict()) for k, v in self.iteritems())
 
     @classmethod
     def fromRecords(cls, data, indexField=None):

@@ -10,7 +10,7 @@ import numpy as np
 from pandas.core.api import DateRange, DataFrame, Index, Series
 from pandas.core.datetools import bday
 
-from pandas.core.tests.common import assert_almost_equal
+from pandas.core.tests.common import assert_almost_equal, randn
 import pandas.core.tests.common as common
 
 #-------------------------------------------------------------------------------
@@ -42,8 +42,8 @@ class TestDataFrame(unittest.TestCase):
         }
 
     def test_constructor(self):
-
-        self.assertRaises(Exception, DataFrame)
+        df = DataFrame()
+        self.assert_(len(df.index) == 0)
 
     def test_constructor_mixed(self):
         index, data = common.getMixedTypeDict()
@@ -75,7 +75,7 @@ class TestDataFrame(unittest.TestCase):
         # can't cast to float
         test_data = {
                 'A' : dict(zip(range(20), common.makeDateIndex(20))),
-                'B' : dict(zip(range(15), common.randn(15)))
+                'B' : dict(zip(range(15), randn(15)))
         }
         frame = self.klass.fromDict(test_data)
         self.assertEqual(len(frame), 20)
@@ -87,9 +87,21 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(len(self.klass.fromDict()), 0)
         self.assertRaises(Exception, self.klass.fromDict, [self.ts1, self.ts2])
 
-    def test_toDict(self):
-        pass
+        # Length-one dict micro-optimization
+        frame = self.klass.fromDict({'A' : {'1' : 1, '2' : 2}})
+        self.assert_(np.array_equal(frame.index, ['1', '2']))
 
+    def test_toDict(self):
+        test_data = {
+                'A' : {'1' : 1, '2' : 2},
+                'B' : {'1' : '1', '2' : '2', '3' : '3'},
+        }
+        recons_data = self.klass.fromDict(test_data, castFloat=False).toDict()
+
+        for k, v in test_data.iteritems():
+            for k2, v2 in v.iteritems():
+                self.assertEqual(v2, recons_data[k][k2])
+        
     def test_fromRecords(self):
         # from numpy documentation
         arr = np.zeros((2,),dtype=('i4,f4,a10'))
@@ -118,8 +130,12 @@ class TestDataFrame(unittest.TestCase):
                           mat, ['A', 'B'], [1, 2])
 
     def test_nonzero(self):
-        pass
+        empty = DataFrame({})
 
+        self.assertFalse(empty)
+
+        self.assert_(self.frame)
+        
     def test_repr(self):
         # small one
         foo = repr(self.frame)
@@ -133,7 +149,7 @@ class TestDataFrame(unittest.TestCase):
         foo = repr(self.mixed_frame)
 
         # big mixed
-        biggie = self.klass({'A' : common.randn(1000),
+        biggie = self.klass({'A' : randn(1000),
                              'B' : common.makeStringIndex(1000)},
                             index=range(1000))
         foo = repr(biggie)
@@ -187,7 +203,12 @@ class TestDataFrame(unittest.TestCase):
         assert((self.frame['col8'] == 'foo').all())
 
         self.assertRaises(Exception, self.frame.__setitem__,
-                          common.randn(len(self.frame) + 1))
+                          randn(len(self.frame) + 1))
+
+        # set ndarray
+        arr = randn(len(self.frame))
+        self.frame['col9'] = arr
+        self.assert_((self.frame['col9'] == arr).all())
 
     def test_delitem(self):
         del self.frame['A']
@@ -349,6 +370,7 @@ class TestDataFrame(unittest.TestCase):
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
+
         for col in newFrame.cols():
             for idx, val in newFrame[col].iteritems():
                 if idx in self.frame.index:
@@ -358,12 +380,15 @@ class TestDataFrame(unittest.TestCase):
                         self.assertEqual(val, self.frame[col][idx])
                 else:
                     self.assert_(np.isnan(val))
+
         for col, series in newFrame.iteritems():
             self.assert_(common.equalContents(series.index, newFrame.index))
         emptyFrame = self.frame.reindex(Index([]))
         self.assert_(len(emptyFrame.index) == 0)
 
+        # Cython code should be unit-tested directly
         nonContigFrame = self.frame.reindex(self.ts1.index[::2])
+
         for col in nonContigFrame.cols():
             for idx, val in nonContigFrame[col].iteritems():
                 if idx in self.frame.index:
@@ -373,9 +398,23 @@ class TestDataFrame(unittest.TestCase):
                         self.assertEqual(val, self.frame[col][idx])
                 else:
                     self.assert_(np.isnan(val))
+
         for col, series in nonContigFrame.iteritems():
             self.assert_(common.equalContents(series.index, nonContigFrame.index))
 
+        # corner cases
+
+        # Same index, copies values
+        newFrame = self.frame.reindex(self.frame.index)
+        self.assert_(newFrame.index is self.frame.index)
+
+        # length zero
+        newFrame = self.frame.reindex([])
+        self.assert_(not newFrame)
+
+    def test_reindex_mixed(self):
+        pass
+        
     def test_transpose(self):
         frame = self.frame
         dft = frame.T
