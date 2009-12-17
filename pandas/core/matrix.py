@@ -548,22 +548,9 @@ class DataMatrix(DataFrame):
         This is a magic method. Do NOT call explicity.
         """
         if isinstance(item, slice):
-            start, stop = item.start, item.stop
-            start = 0 if start is None else start
-            stop = len(self) if stop is None else stop
-            if start < 0:
-                start += len(self)
-            if stop < 0:
-                stop += len(self)
+            indexRange = self.index[item]
+            return self.reindex(indexRange)
 
-            indexRange = self.index[start:stop]
-            if self.objects is not None:
-                newObjects = self.objects.reindex(indexRange)
-            else:
-                newObjects = None
-
-            return DataMatrix(data=self.values[start:stop], index=indexRange,
-                              columns=self.columns, objects=newObjects)
         elif isinstance(item, np.ndarray):
             if len(item) != len(self.index):
                 raise Exception('Item wrong length %d instead of %d!' %

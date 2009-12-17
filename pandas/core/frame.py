@@ -274,19 +274,9 @@ class DataFrame(Picklable, Groupable):
             return self._series[item]
         except (TypeError, KeyError):
             if isinstance(item, slice):
-                start, stop = item.start, item.stop
-                start = 0 if start is None else start
-                stop = len(self) if stop is None else stop
-                if start < 0:
-                    start += len(self)
-                if stop < 0:
-                    stop += len(self)
+                dateRange = self.index[item]
+                return self.reindex(dateRange)
 
-                dateRange = self.index[start:stop]
-                newColumns = {}
-                for col, series in self.iteritems():
-                    newColumns[col] = series[start:stop]
-                return DataFrame(data=newColumns, index=dateRange)
             elif isinstance(item, np.ndarray):
 
                 if len(item) != len(self.index):
@@ -313,9 +303,6 @@ class DataFrame(Picklable, Groupable):
                 cleanSeries = value.reindex(self.index)
             else:
                 cleanSeries = Series(value, index=self.index)
-
-            if len(cleanSeries) != len(self.index):
-                raise Exception('Series was wrong length!')
 
             self._series[key] = cleanSeries
         # Scalar
@@ -417,14 +404,12 @@ class DataFrame(Picklable, Groupable):
                 newSeries = func(series, other[col])
                 newColumns[col] = newSeries.reindex(newIndex)
             else:
-                cls = series.__class__
-                newColumns[col] = cls(np.repeat(NaN, len(newIndex)),
-                                          index=newIndex)
+                newColumns[col] = series.fromValue(np.NaN, index=newIndex)
+
         for col, series in other.iteritems():
             if col not in self:
                 cls = series.__class__
-                newColumns[col] = cls(np.repeat(NaN, len(newIndex)),
-                                      index=newIndex)
+                newColumns[col] = series.fromValue(np.NaN, index=newIndex)
 
         return DataFrame(data=newColumns, index=newIndex)
 
@@ -491,27 +476,24 @@ class DataFrame(Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # Public methods
 
-    def toCSV(self, path=None, nanRep='', cols=None, inclHeader=True,
-              inclIndex=True, verbose=False):
+    def toCSV(self, path, nanRep='', cols=None, header=True,
+              index=True, verbose=False):
         """
         Write the DataFrame to a CSV file
         """
-        if path is None:
-            import sys
-            f = sys.stdout
-        else:
-            f = open(path, 'w')
+        f = open(path, 'w')
+
         cols = self.cols() if cols is None else cols
 
-        if inclHeader:
-            if inclIndex:
+        if header:
+            if index:
                 f.write(',' + ','.join([str(c) for c in cols]))
             else:
                 f.write(','.join([str(c) for c in cols]))
             f.write('\n')
 
         for idx in self.index:
-            if inclIndex:
+            if index:
                 f.write(str(idx) + ',')
             for col in cols:
                 val = self._series[col].get(idx)
@@ -521,10 +503,10 @@ class DataFrame(Picklable, Groupable):
                     val = str(val)
                 f.write(val + ',')
             f.write('\n')
-        if path is not None:
-            f.close()
 
-        if verbose:
+        f.close()
+
+        if verbose: # pragma: no cover
             print 'CSV file written successfully: %s' % path
 
     def toDataMatrix(self):
@@ -604,17 +586,20 @@ class DataFrame(Picklable, Groupable):
         """
         newIndex = np.concatenate((self.index, otherFrame.index))
         newValues = {}
+        
         for column, series in self.iteritems():
             if column in otherFrame:
                 newValues[column] = series.append(otherFrame[column])
             else:
                 newValues[column] = series
+
         for column, series in otherFrame.iteritems():
             if column not in self:
                 newValues[column] = series
+
         return DataFrame(data=newValues, index=newIndex)
 
-    def asfreq(self, freq, fillMethod = None):
+    def asfreq(self, freq, fillMethod=None):
         """
         Convert all TimeSeries inside to specified frequency using DateOffset
         objects. Optionally provide fill method to pad/backfill/interpolate
@@ -633,7 +618,7 @@ class DataFrame(Picklable, Groupable):
         else:
             dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
 
-        return self.reindex(dateRange, fillMethod = fillMethod)
+        return self.reindex(dateRange, fillMethod=fillMethod)
 
     def asMatrix(self, columns=None):
         """
@@ -674,11 +659,11 @@ class DataFrame(Picklable, Groupable):
 
         # Get the covariance with items that have NaN values
         for i, A in enumerate(mat):
-            bada = np.isnan(A)
-            if np.any(bada):
+            aok = np.isfinite(A)
+            if not aok.all():
                 for j, B in enumerate(mat):
-                    commonVec = (- bada) & (- np.isnan(B))
-                    if any(commonVec):
+                    commonVec = aok & np.isfinite(B)
+                    if commonVec.any():
                         ac, bc = A[commonVec], B[commonVec]
                         c = np.corrcoef(ac, bc)[0, 1]
                         correl[i, j] = c
@@ -788,76 +773,67 @@ class DataFrame(Picklable, Groupable):
         ----
         Error thrown if all of fromDate, toDate, nPeriods specified.
         """
-        if toDate:
-            if toDate not in self.index:
-                if toDate > self.index[0]:
-                    toDate = self.index.asOfDate(toDate)
-                else:
-                    raise Exception('End date after last date in this index!')
-        if fromDate:
-            if fromDate not in self.index:
-                if fromDate < self.index[-1]:
-                    fromDate = self.index.asOfDate(fromDate)
-                else:
-                    raise Exception('Begin date after last date in this index!')
-        if fromDate and toDate:
-            if nPeriods:
+        beg_slice, end_slice = self._getIndices(fromDate, toDate)
+
+        if nPeriods:
+            if fromDate and toDate:
                 raise Exception('fromDate/toDate, toDate/nPeriods, ' + \
                                 ' fromDate/nPeriods are mutually exclusive')
-            beg_slice = self.index.indexMap[fromDate]
-            end_slice = self.index.indexMap[toDate] + 1
-        elif fromDate and nPeriods:
-            beg_slice = self.index.indexMap[fromDate]
-            end_slice = self.index.indexMap[fromDate] + nPeriods
-        elif toDate and nPeriods:
-            beg_slice = self.index.indexMap[toDate] - nPeriods + 1
-            end_slice = self.index.indexMap[toDate] + 1
-        else:
-            raise Exception('Not enough arguments provided to getTS')
+            elif fromDate:
+                end_slice = min(len(self), beg_slice + nPeriods)
+            elif toDate:
+                beg_slice = max(0, end_slice - nPeriods)
+            else:
+                raise Exception('Not enough arguments provided to getTS')
 
-        # Fix indices in case they fall out of the boundaries
-        beg_slice = max(0, beg_slice)
-        end_slice = min(len(self.index), end_slice)
         dateRange = self.index[beg_slice:end_slice]
 
         if colName:
-            return self[colName][beg_slice:end_slice]
+            return self[colName].reindex(dateRange)
         else:
-            newColumns = {}
-            for col, series in self.iteritems():
-                newColumns[col] = series[beg_slice:end_slice]
-            return DataFrame(data=newColumns, index=dateRange)
+            return self.reindex(dateRange)
 
-    def truncate(self, before = None, after = None):
+    def truncate(self, before=None, after=None, periods=None):
+        """Function truncate a sorted DataFrame before and/or after
+        some particular dates.
+
+        Parameters
+        ----------
+        before : date
+            Truncate before date
+        after : date
+            Truncate after date
+        
+        Returns
+        -------
+        DataFrame
         """
-        Placeholder for documentation
-        """
-        import bisect
+        beg_slice, end_slice = self._getIndices(before, after)
+        
+        return self[beg_slice:end_slice]
 
-        before = datetools.to_datetime(before)
-        after = datetools.to_datetime(after)
+    def _getIndices(self, before, after):
+        before = arg_before = datetools.to_datetime(before)
+        after = arg_after = datetools.to_datetime(after)
 
-        if before is not None:
-            binsearch = bisect.bisect_left(self.index, before)
-            cur = self.index[binsearch]
-            next = self.index[min(binsearch + 1, len(self.index) - 1)]
-            leftDate = cur if cur >= before else next
-        else:
-            leftDate = self.index[0]
+        if before is None:
+            before = self.index[0]
+        elif before not in self.index:
+            loc = self.index.searchsorted(before, side='left')
+            before = self.index[loc]
 
-        if after is not None:
-            if after < self.index[-1]:
-                binsearch = bisect.bisect_right(self.index, after)
-                cur = self.index[binsearch]
-                prior = self.index[max(binsearch - 1, 0)]
-                rightDate = cur if cur <= after else prior
-            else:
-                rightDate = self.index[-1]
-        else:
-            rightDate = self.index[-1]
+        if after is None:
+            after = self.index[-1]
+        elif after not in self.index:
+            loc = self.index.searchsorted(after, side='right') - 1
+            loc = loc if loc < len(self.index) else -1
+            after = self.index[loc]
 
-        return self.getTS(fromDate=leftDate, toDate=rightDate)
+        beg_slice = self.index.indexMap[before]
+        end_slice = self.index.indexMap[after] + 1
 
+        return beg_slice, end_slice
+        
     def getXS(self, key, subset=None, asOf=False):
         """
         Returns a row from the DataFrame as a Series object.
@@ -914,7 +890,7 @@ class DataFrame(Picklable, Groupable):
         fillMethod : {'backfill', 'pad', 'interpolate', None}
             Method to use for filling holes in reindexed DataFrame
         """
-        if newIndex is self.index:
+        if self.index.equals(newIndex):
             return self.copy()
 
         if len(newIndex) == 0:
@@ -1044,11 +1020,6 @@ class DataFrame(Picklable, Groupable):
         results = {}
         for col, series in self.iteritems():
             result = func(series)
-
-            # WORKAROUND FOR NUMPY/SCIPY FUNCTIONS RETURNING UNSIZED NDARRAY
-            if isinstance(result, np.ndarray) and result.ndim == 0:
-                result = result.item()
-
             results[col] = result
 
         if hasattr(results.values()[0], '__iter__'):

@@ -60,9 +60,17 @@ def assert_dict_equal(a, b, compare_keys=True):
         assert_almost_equal(a[k], b[k])
 
 def assert_series_equal(left, right):
-    assert(np.array_equal(left, right))
+    assert_almost_equal(left, right)
     assert(np.array_equal(left.index, right.index))
 
+def assert_frame_equal(left, right):
+    for col, series in left.iteritems():
+        assert(col in right)
+        assert_series_equal(series, right[col])
+
+    for col in right:
+        assert(col in left)
+    
 def assert_contains_all(iterable, dic):
     for k in iterable:
         assert(k in dic)

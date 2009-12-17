@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from datetime import datetime
+import os
 import unittest
 
 from numpy import random
@@ -9,6 +10,7 @@ import numpy as np
 
 from pandas.core.api import DateRange, DataFrame, Index, Series
 from pandas.core.datetools import bday
+import pandas.core.datetools as datetools
 
 from pandas.core.tests.common import assert_almost_equal, randn
 import pandas.core.tests.common as common
@@ -40,7 +42,8 @@ class TestDataFrame(unittest.TestCase):
             'col3' : self.ts3,
             'col4' : self.ts4,
         }
-
+        self.empty = DataFrame({})
+        
     def test_constructor(self):
         df = DataFrame()
         self.assert_(len(df.index) == 0)
@@ -130,9 +133,7 @@ class TestDataFrame(unittest.TestCase):
                           mat, ['A', 'B'], [1, 2])
 
     def test_nonzero(self):
-        empty = DataFrame({})
-
-        self.assertFalse(empty)
+        self.assertFalse(self.empty)
 
         self.assert_(self.frame)
         
@@ -253,17 +254,57 @@ class TestDataFrame(unittest.TestCase):
         f = -self.frame
 
     def test_firstTimeWithNValues(self):
-        pass
+        self.frame['A'][:5] = np.NaN
 
-    def test_firstTimeWithValue(self):
-        pass
+        index = self.frame._firstTimeWithNValues()
+        self.assert_(index == self.frame.index[5])
+        
+    def test_firstLastValid(self):
+        N = len(self.frame.index)
+        mat = randn(N)
+        mat[:5] = np.NaN
+        mat[-5:] = np.NaN
+        
+        frame = DataFrame({'foo' : mat}, index=self.frame.index)
+        index = frame._firstTimeWithValue()
 
-    def test_lastTimeWithValue(self):
-        pass
+        self.assert_(index == frame.index[5])
+
+        index = frame._lastTimeWithValue()
+        self.assert_(index == frame.index[-6])        
 
     def test_combineFrame(self):
-        pass
+        frame_copy = self.frame.reindex(self.frame.index[::2])
 
+        del frame_copy['D']
+        frame_copy['C'][:5] = np.NaN
+
+        added = self.frame + frame_copy
+        common.assert_dict_equal(added['A'].valid(),
+                                 self.frame['A'] * 2,
+                                 compare_keys=False)
+
+        self.assert_(np.isnan(added['C'][:5]).all())
+        self.assert_(np.isnan(added['D']).all())
+            
+        self_added = self.frame + self.frame
+        self.assert_(self_added.index is self.frame.index)
+        
+        added_rev = frame_copy + self.frame
+        self.assert_(np.isnan(added['D']).all())
+        
+        # corner cases
+
+        # empty
+        plus_empty = self.frame + self.empty
+        self.assert_(np.isnan(plus_empty.values).all())
+
+        empty_plus = self.empty + self.frame
+        self.assert_(np.isnan(empty_plus.values).all())
+
+        empty_empty = self.empty + self.empty
+        self.assert_(not empty_empty)
+        
     def test_combineSeries(self):
         pass
 
@@ -271,10 +312,19 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_toCSV(self):
-        pass
+        path = '__tmp__'
+
+        self.frame['A'][:5] = np.NaN
+
+        self.frame.toCSV(path)
+        self.frame.toCSV(path, cols=['A', 'B'])
+        self.frame.toCSV(path, header=False)
+        self.frame.toCSV(path, index=False)
+        
+        os.remove(path)
 
     def test_toDataMatrix(self):
-        pass
+        dm = self.frame.toDataMatrix()
 
     def test_toString(self):
         pass
@@ -295,11 +345,30 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_append(self):
-        pass
+        begin_index = self.frame.index[:5]
+        end_index = self.frame.index[5:]
 
+        begin_frame = self.frame.reindex(begin_index)
+        end_frame = self.frame.reindex(end_index)
+
+        appended = begin_frame.append(end_frame)
+        assert_almost_equal(appended['A'], self.frame['A'])
+        
+        del end_frame['A']
+        partial_appended = begin_frame.append(end_frame)
+        self.assert_('A' in partial_appended)
+
+        partial_appended = end_frame.append(begin_frame)
+        self.assert_('A' in partial_appended)
+        
     def test_asfreq(self):
-        pass
+        offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
+        rule_monthly = self.tsframe.asfreq('EOM')
+        
+        assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
+        filled = rule_monthly.asfreq('WEEKDAY', fillMethod='pad')
+        
     def test_asMatrix(self):
         frame = self.frame
         mat = frame.asMatrix()
@@ -328,33 +397,106 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_corr(self):
-        pass
+        self.frame['A'][:5] = np.NaN
+        self.frame['B'][:10] = np.NaN
+
+        correls = self.frame.corr()
+
+        assert_almost_equal(correls['A']['C'],
+                            self.frame['A'].corr(self.frame['C']))
 
     def test_dropEmptyRows(self):
-        pass
-
+        N = len(self.frame.index)
+        mat = randn(N)
+        mat[:5] = np.NaN
+        
+        frame = DataFrame({'foo' : mat}, index=self.frame.index)
+        
+        smaller_frame = frame.dropEmptyRows()
+        self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
+        
     def test_dropIncompleteRows(self):
-        pass
+        N = len(self.frame.index)
+        mat = randn(N)
+        mat[:5] = np.NaN
+        
+        frame = DataFrame({'foo' : mat}, index=self.frame.index)
+        frame['bar'] = 5
+        
+        smaller_frame = frame.dropIncompleteRows()
+        self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
 
+        samesize_frame = frame.dropIncompleteRows(specificColumns=['bar'])
+        self.assert_(samesize_frame.index is self.frame.index)
+        
     def test_fill(self):
-        pass
+        self.tsframe['A'][:5] = np.NaN
+        self.tsframe['A'][-5:] = np.NaN
 
+        zero_filled = self.tsframe.fill(0)
+        self.assert_((zero_filled['A'][:5] == 0).all())
+
+        padded = self.tsframe.fill(method='pad')
+        self.assert_(np.isnan(padded['A'][:5]).all())
+        self.assert_((padded['A'][-5:] == padded['A'][-5]).all())
+        
     def test_getTS(self):
         frame = self.tsframe
+
         tsFrame = frame.getTS(fromDate=frame.index[5], nPeriods=5)
-        for i, idx in enumerate(tsFrame.index):
-            self.assertEqual(idx, frame.index[5+i])
-            for col, series in tsFrame.iteritems():
-                self.assertEqual(idx, series.index[i])
-        for col, series in frame.iteritems():
-            for idx, value in series.iteritems():
-                if np.isnan(value):
-                    self.assert_(np.isnan(frame[col][idx]))
-                else:
-                    self.assertEqual(value, frame[col][idx])
+        common.assert_frame_equal(tsFrame, frame[5:10])
+
+        tsFrame = frame.getTS(fromDate=frame.index[5], toDate=frame.index[9])
+        common.assert_frame_equal(tsFrame, frame[5:10])
+        
+        tsFrame = frame.getTS(nPeriods=5, toDate=frame.index[9])
+        common.assert_frame_equal(tsFrame, frame[5:10])
+
+        A = frame.getTS(colName='A', nPeriods=5, toDate=frame.index[9])
+        common.assert_series_equal(A, frame['A'][5:10])
+
+        self.assertRaises(Exception, frame.getTS, nPeriods=5)
 
     def test_truncate(self):
-        pass
+        offset = datetools.bday
+
+        ts = self.tsframe[::3]
+
+        start, end = self.tsframe.index[3], self.tsframe.index[6]
+
+        start_missing = self.tsframe.index[2]
+        end_missing = self.tsframe.index[7]
+
+        # neither specified
+        truncated = ts.truncate()
+        common.assert_frame_equal(truncated, ts)
+
+        # both specified
+        expected = ts[1:3]
+
+        truncated = ts.truncate(start, end)
+        common.assert_frame_equal(truncated, expected)
+
+        truncated = ts.truncate(start_missing, end_missing)
+        common.assert_frame_equal(truncated, expected)
+
+        # start specified
+        expected = ts[1:]
+
+        truncated = ts.truncate(before=start)
+        common.assert_frame_equal(truncated, expected)
+
+        truncated = ts.truncate(before=start_missing)
+        common.assert_frame_equal(truncated, expected)
+
+        # end specified
+        expected = ts[:3]
+
+        truncated = ts.truncate(after=end)
+        common.assert_frame_equal(truncated, expected)
+
+        truncated = ts.truncate(after=end_missing)
+        common.assert_frame_equal(truncated, expected)
 
     def test_getXS(self):
         idx = self.frame.index[5]
@@ -412,6 +554,10 @@ class TestDataFrame(unittest.TestCase):
         newFrame = self.frame.reindex([])
         self.assert_(not newFrame)
 
+        # pass non-Index
+        newFrame = self.frame.reindex(list(self.ts1.index))
+        self.assert_(newFrame.index.equals(self.ts1.index))
+        
     def test_reindex_mixed(self):
         pass
         
@@ -452,10 +598,15 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_sortUp(self):
-        pass
+        # what to do?
+        sorted = self.frame.sortUp()
+
+        sorted_A = self.frame.sortUp(column='A')
 
     def test_sortDown(self):
-        pass
+        sorted = self.frame.sortDown()
+
+        sorted_A = self.frame.sortDown(column='A')
 
     def test_filterLike(self):
         pass
