@@ -10,7 +10,7 @@ from __future__ import division
 import numpy as np
 
 from pandas.core.panel import WidePanel, LongPanel
-from pandas.core.matrix import DataMatrix
+from pandas.core.matrix import DataFrame, DataMatrix
 from pandas.core.series import Series
 from pandas.stats.ols import OLS, MovingOLS
 from pandas.util.decorators import cache_readonly
@@ -184,8 +184,11 @@ class PanelOLS(OLS):
         # for x named 'variety', then x_conversion['variety'][0] is 'A'.
         x_converted = {}
         x_conversion = {}
-        for key, value in x.iteritems():
-            df = value
+        for key, df in x.iteritems():
+            if not isinstance(df, DataFrame):
+                raise TypeError('Input X data set contained an object of '
+                                'type %s' % type(df))
+
             if _is_numeric(df):
                 x_converted[key] = df
             else:
@@ -230,9 +233,9 @@ class PanelOLS(OLS):
 
         if not self._use_all_dummies:
             if 'entity' in self._dropped_dummies:
-                to_exclude = self._dropped_dummies.get('entity')
+                to_exclude = str(self._dropped_dummies.get('entity'))
             else:
-                to_exclude = panel.minor_axis[0]
+                to_exclude = dummies.items[0]
 
             if to_exclude not in dummies.items:
                 raise Exception('%s not in %s' % (to_exclude,
@@ -592,6 +595,23 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
     def y_predict(self):
         """Returns the predicted y values."""
         return self._unstack_y(self._y_predict_raw)
+
+    def lagged_y_predict(self, lag=1):
+        """
+        Compute forecast Y value lagging coefficient by input number
+        of time periods
+
+        Parameters
+        ----------
+        lag : int
+
+        Returns
+        -------
+        DataMatrix
+        """
+        x = self._x_raw
+        betas = self._beta_matrix(lag=lag)
+        return self._unstack_y((betas * x).sum(1))
 
     @cache_readonly
     def _rolling_ols_call(self):

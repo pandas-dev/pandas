@@ -68,6 +68,13 @@ class Panel(Picklable):
 
         return output
 
+    def __iter__(self):
+        return iter(self.items)
+
+    def iteritems(self):
+        for item in self:
+            yield item, self[item]
+
     def _get_items(self):
         return self._items
 

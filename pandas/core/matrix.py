@@ -1482,12 +1482,14 @@ class DataMatrix(DataFrame):
         Combine two DataFrame / DataMatrix objects and default to value
         in frame calling the method.
 
-        Example : a.combineFirst(b)
-            a's values prioritized, use values from b to fill holes
-
         Parameters
         ----------
         otherFrame : DataFrame / Matrix
+
+        Example
+        -------
+        a.combineFirst(b)
+            a's values prioritized, use values from b to fill holes
 
         Returns
         -------
