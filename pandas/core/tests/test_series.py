@@ -249,7 +249,7 @@ class TestSeries(unittest.TestCase):
 
         def _check_op(other, op):
             cython_or_numpy = op(series, other)
-            python = series._combineFunc(other, op)
+            python = series.combineFunc(other, op)
 
             common.assert_almost_equal(cython_or_numpy, python)
 
@@ -557,6 +557,10 @@ class TestSeries(unittest.TestCase):
         # bad fill method
         ts = self.ts[::2]
         self.assertRaises(Exception, ts.reindex, self.ts.index, fillMethod='foo')
+
+        # corner case: pad empty series
+        s = Series([], index=[])
+        reindexed = s.reindex(self.ts.index, fillMethod='pad')
 
     def test_reindex_bool(self):
 

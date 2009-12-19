@@ -570,11 +570,15 @@ class WidePanel(Panel):
         index, columns = self._get_plane_axes(axis)
 
         values = self.values
+        mask = np.isfinite(values)
         if fill_na:
             values = values.copy()
-            values[-np.isfinite(values)] = 0
+            values[-mask] = 0
 
         result = func(values, axis=i)
+        count = mask.sum(axis=i)
+
+        result[count == 0] = np.NaN
 
         if axis != 'items':
             result = result.T
@@ -845,7 +849,7 @@ class LongPanel(Panel):
 
             # Is it a factor?
             if not np.issctype(series.dtype):
-                factor_dict[col] = fac = Factor.fromarray(series)
+                factor_dict[col] = Factor.fromarray(series)
                 del data[col]
 
         items = sorted(data)

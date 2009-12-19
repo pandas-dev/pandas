@@ -8,11 +8,11 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 from itertools import izip
 
-from numpy import array, NaN, ndarray
+from numpy import NaN, ndarray
 import numpy as np
 
 from pandas.core.daterange import DateRange
-from pandas.core.index import Index, NULL_INDEX
+from pandas.core.index import Index
 from pandas.core.mixins import Picklable, Groupable
 import pandas.core.datetools as datetools
 
@@ -49,7 +49,7 @@ def _seriesOpWrap(opname):
                                           self.index.indexMap,
                                           other.index.indexMap)
             except Exception:
-                arr = Series._combineFunc(self, other,
+                arr = Series.combineFunc(self, other,
                                          getattr(type(self[0]), opname))
             result = cls(arr, index=newIndex)
             return result
@@ -486,7 +486,7 @@ class Series(np.ndarray, Picklable, Groupable):
         newValues = np.concatenate((self, other))
         return self.__class__(newValues, index=newIndex)
 
-    def _combineFunc(self, other, func):
+    def combineFunc(self, other, func):
         """
         Combines this Series using the given function with either
           * another Series index by index
@@ -1031,6 +1031,9 @@ class Series(np.ndarray, Picklable, Groupable):
         if not isinstance(newIndex, Index):
             newIndex = Index(newIndex)
 
+        if len(self.index) == 0:
+            return self.__class__.fromValue(NaN, index=newIndex)
+
         oldMap = self.index.indexMap
         newMap = newIndex.indexMap
 
@@ -1049,7 +1052,7 @@ class Series(np.ndarray, Picklable, Groupable):
         newValues = self.values().take(fillVec)
         newValues[-mask] = NaN
 
-        return self.__class__(newValues, index = newIndex)
+        return self.__class__(newValues, index=newIndex)
 
     @property
     def weekday(self):

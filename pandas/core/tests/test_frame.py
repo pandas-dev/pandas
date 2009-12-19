@@ -1,7 +1,6 @@
 # pylint: disable-msg=W0612
 
 from copy import deepcopy
-from datetime import datetime
 import os
 import unittest
 
@@ -43,7 +42,7 @@ class TestDataFrame(unittest.TestCase):
             'col4' : self.ts4,
         }
         self.empty = DataFrame({})
-        
+
     def test_constructor(self):
         df = DataFrame()
         self.assert_(len(df.index) == 0)
@@ -104,7 +103,7 @@ class TestDataFrame(unittest.TestCase):
         for k, v in test_data.iteritems():
             for k2, v2 in v.iteritems():
                 self.assertEqual(v2, recons_data[k][k2])
-        
+
     def test_fromRecords(self):
         # from numpy documentation
         arr = np.zeros((2,),dtype=('i4,f4,a10'))
@@ -136,7 +135,7 @@ class TestDataFrame(unittest.TestCase):
         self.assertFalse(self.empty)
 
         self.assert_(self.frame)
-        
+
     def test_repr(self):
         # small one
         foo = repr(self.frame)
@@ -258,20 +257,20 @@ class TestDataFrame(unittest.TestCase):
 
         index = self.frame._firstTimeWithNValues()
         self.assert_(index == self.frame.index[5])
-        
+
     def test_firstLastValid(self):
         N = len(self.frame.index)
         mat = randn(N)
         mat[:5] = np.NaN
         mat[-5:] = np.NaN
-        
+
         frame = DataFrame({'foo' : mat}, index=self.frame.index)
         index = frame._firstTimeWithValue()
 
         self.assert_(index == frame.index[5])
 
         index = frame._lastTimeWithValue()
-        self.assert_(index == frame.index[-6])        
+        self.assert_(index == frame.index[-6])
 
     def test_combineFrame(self):
         frame_copy = self.frame.reindex(self.frame.index[::2])
@@ -286,13 +285,13 @@ class TestDataFrame(unittest.TestCase):
 
         self.assert_(np.isnan(added['C'][:5]).all())
         self.assert_(np.isnan(added['D']).all())
-            
+
         self_added = self.frame + self.frame
         self.assert_(self_added.index is self.frame.index)
-        
+
         added_rev = frame_copy + self.frame
         self.assert_(np.isnan(added['D']).all())
-        
+
         # corner cases
 
         # empty
@@ -304,7 +303,7 @@ class TestDataFrame(unittest.TestCase):
 
         empty_empty = self.empty + self.empty
         self.assert_(not empty_empty)
-        
+
     def test_combineSeries(self):
         pass
 
@@ -320,7 +319,7 @@ class TestDataFrame(unittest.TestCase):
         self.frame.toCSV(path, cols=['A', 'B'])
         self.frame.toCSV(path, header=False)
         self.frame.toCSV(path, index=False)
-        
+
         os.remove(path)
 
     def test_toDataMatrix(self):
@@ -353,22 +352,22 @@ class TestDataFrame(unittest.TestCase):
 
         appended = begin_frame.append(end_frame)
         assert_almost_equal(appended['A'], self.frame['A'])
-        
+
         del end_frame['A']
         partial_appended = begin_frame.append(end_frame)
         self.assert_('A' in partial_appended)
 
         partial_appended = end_frame.append(begin_frame)
         self.assert_('A' in partial_appended)
-        
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
         rule_monthly = self.tsframe.asfreq('EOM')
-        
+
         assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
         filled = rule_monthly.asfreq('WEEKDAY', fillMethod='pad')
-        
+
     def test_asMatrix(self):
         frame = self.frame
         mat = frame.asMatrix()
@@ -409,26 +408,26 @@ class TestDataFrame(unittest.TestCase):
         N = len(self.frame.index)
         mat = randn(N)
         mat[:5] = np.NaN
-        
+
         frame = DataFrame({'foo' : mat}, index=self.frame.index)
-        
+
         smaller_frame = frame.dropEmptyRows()
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
-        
+
     def test_dropIncompleteRows(self):
         N = len(self.frame.index)
         mat = randn(N)
         mat[:5] = np.NaN
-        
+
         frame = DataFrame({'foo' : mat}, index=self.frame.index)
         frame['bar'] = 5
-        
+
         smaller_frame = frame.dropIncompleteRows()
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
 
         samesize_frame = frame.dropIncompleteRows(specificColumns=['bar'])
         self.assert_(samesize_frame.index is self.frame.index)
-        
+
     def test_fill(self):
         self.tsframe['A'][:5] = np.NaN
         self.tsframe['A'][-5:] = np.NaN
@@ -439,7 +438,7 @@ class TestDataFrame(unittest.TestCase):
         padded = self.tsframe.fill(method='pad')
         self.assert_(np.isnan(padded['A'][:5]).all())
         self.assert_((padded['A'][-5:] == padded['A'][-5]).all())
-        
+
     def test_getTS(self):
         frame = self.tsframe
 
@@ -448,7 +447,7 @@ class TestDataFrame(unittest.TestCase):
 
         tsFrame = frame.getTS(fromDate=frame.index[5], toDate=frame.index[9])
         common.assert_frame_equal(tsFrame, frame[5:10])
-        
+
         tsFrame = frame.getTS(nPeriods=5, toDate=frame.index[9])
         common.assert_frame_equal(tsFrame, frame[5:10])
 
@@ -557,10 +556,10 @@ class TestDataFrame(unittest.TestCase):
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
-        
+
     def test_reindex_mixed(self):
         pass
-        
+
     def test_transpose(self):
         frame = self.frame
         dft = frame.T

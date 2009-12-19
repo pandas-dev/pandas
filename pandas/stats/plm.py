@@ -115,6 +115,7 @@ class PanelOLS(OLS):
                                                 - self._x_effects)
 
         if self._time_effects:
+            x_filtered = x_filtered.subtract(x_filtered.mean(broadcast=True))
             x_regressor = x.subtract(x.mean(broadcast=True))
             y_regressor = y.subtract(y.mean(broadcast=True))
 
@@ -245,7 +246,7 @@ class PanelOLS(OLS):
 
             dummies = dummies.filterItems(dummies.items - [to_exclude])
 
-        dummies = dummies.addPrefix('fe_')
+        dummies = dummies.addPrefix('FE_')
         panel = panel.leftJoin(dummies)
 
         return panel
