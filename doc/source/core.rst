@@ -1,30 +1,15 @@
-.. currentmodule:: pandas.core.api
-
 .. _core:
 
+***************
 Data Structures
-===============
+***************
 
-Introduction
-------------
+.. currentmodule:: pandas
 
-Examples
---------
+.. toctree::
+   :maxdepth: 2
 
-Module Reference
-----------------
-
-.. autosummary::
-   :toctree: generated/
-
-   Index
-   Series
-   TimeSeries
-   DataFrame
-   DataMatrix
-   WidePanel
-   LongPanel
-
-Examples
---------
-
+   indexobj
+   series
+   dataframe
+   panel

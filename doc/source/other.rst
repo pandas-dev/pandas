@@ -1,4 +1,4 @@
-.. currentmodule:: pandas.core
+.. currentmodule:: pandas
 
 .. _core:
 
