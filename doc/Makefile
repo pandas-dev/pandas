@@ -1,10 +1,15 @@
 # Makefile for Sphinx documentation
 #
 
+PYVER = 2.5
+PYTHON = python$(PYVER)
+
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
+
+NEED_AUTOSUMMARY = $(shell $(PYTHON) -c 'import sphinx; print sphinx.__version__ < "0.7" and "1" or ""')
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -27,7 +32,18 @@ help:
 	@echo "  doctest   to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf build/*
+	-rm -rf build/* source/generated
+
+
+generate: build/generate-stamp
+build/generate-stamp: $(wildcard source/*.rst)
+	mkdir -p build
+ifeq ($(NEED_AUTOSUMMARY),1)
+	$(PYTHON) \
+		./sphinxext/autosummary_generate.py source/*.rst \
+		-p dump.xml -o source/generated
+endif
+	touch build/generate-stamp
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
