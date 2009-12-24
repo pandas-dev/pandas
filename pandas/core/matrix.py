@@ -1,11 +1,10 @@
-# pylint: disable-msg=E1101
-# pylint: disable-msg=E1103
-# pylint: disable-msg=W0212,W0703,W0231
+# pylint: disable-msg=E1101,E1103
+# pylint: disable-msg=W0212,W0703,W0231,W0622
 
 from cStringIO import StringIO
+import sys
 
 from numpy.lib.format import read_array, write_array
-from numpy import isfinite, NaN
 import numpy as np
 
 from pandas.core.frame import DataFrame, _pfixed
@@ -152,7 +151,7 @@ class DataMatrix(DataFrame):
                 K = len(columns)
 
             values = np.empty((N, K), dtype=dtype)
-            values[:] = NaN
+            values[:] = np.NaN
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
@@ -315,7 +314,6 @@ class DataMatrix(DataFrame):
             By default, prints all columns in lexicographical order.
         """
         if path is None:
-            import sys
             f = sys.stdout
         else:
             f = open(path, writeMode)
@@ -345,64 +343,63 @@ class DataMatrix(DataFrame):
         if verbose:
             print 'CSV file written successfully: %s' % path
 
-    def toString(self, to_stdout=True, verbose=False, colSpace=15):
+    def toString(self, buffer=sys.stdout, verbose=False,
+                 columns=None, colSpace=15, formatters=None,
+                 float_format=None):
         """
-        Output a tab-separated version of this DataMatrix
+        Output a string version of this DataMatrix
         """
-        output = StringIO()
+        formatters = formatters or {}
 
-        mat = self.values
-        cols = self.columns
+        if columns is None:
+            columns = self.columns
+            values = self.values
+            if self.objects:
+                columns = list(columns) + list(self.objects.columns)
+                values = np.column_stack((values.astype(object),
+                                          self.objects.values))
+        else:
+            columns = [c for c in columns if c in self]
+            values = self.asMatrix(columns)
+
+        float_format = float_format or str
+        for c in columns:
+            if c not in formatters:
+                formatters[c] = float_format if c in self.columns else str
 
         idxSpace = max([len(str(idx)) for idx in self.index]) + 4
+
         if len(self.cols()) == 0:
-            output.write('DataMatrix is empty!\n')
-            output.write(self.index.__repr__())
-
+            buffer.write('DataMatrix is empty!\n')
+            buffer.write(self.index.__repr__())
         else:
-            output.write(_pfixed('', idxSpace))
-            for h in self.cols():
-                output.write(_pfixed(h, colSpace))
-
-            output.write('\n')
+            buffer.write(_pfixed('', idxSpace))
+            for h in columns:
+                buffer.write(_pfixed(h, colSpace))
+            buffer.write('\n')
 
             for i, idx in enumerate(self.index):
-                output.write(_pfixed(idx, idxSpace))
-                objcounter = 0
-                floatcounter = 0
-                for cName in self.cols():
-                    if cName in cols:
-                        vals = mat[i, floatcounter]
-                        output.write(_pfixed(vals, colSpace))
-                        floatcounter += 1
-                    else:
-                        vals = self.objects.values[i, objcounter]
-                        output.write(_pfixed(vals, colSpace))
-                        objcounter += 1
+                buffer.write(_pfixed(idx, idxSpace))
+                for j, col in enumerate(columns):
+                    formatter = formatters[col]
+                    buffer.write(_pfixed(formatter(values[i, j]), colSpace))
+                buffer.write('\n')
 
-                output.write('\n')
-
-        if to_stdout:
-            print output.getvalue()
-        else:
-            return output.getvalue()
-
-    def info(self, to_stdout=True):
+    def info(self, buffer=sys.stdout):
         """
         Concise summary of a DataMatrix, used in __repr__ when very large.
         """
         if len(self.columns) == 0:
-            output = 'DataMatrix is empty!\n'
-            output += repr(self.index)
-            return output
+            print >> buffer, 'DataMatrix is empty!'
+            print >> buffer, repr(self.index)
 
-        output = 'Index: %s entries' % len(self.index)
+        print >> buffer, 'Index: %s entries' % len(self.index),
         if len(self.index) > 0:
-            output += ', %s to %s\n' % (self.index[0], self.index[-1])
+            print >> buffer, ', %s to %s' % (self.index[0], self.index[-1])
         else:
-            output += '\n'
+            print >> buffer, ''
 
-        output += 'Data columns:\n'
+        print >> buffer, 'Data columns:'
         space = max([len(str(k)) for k in self.cols()]) + 4
 
         counts = self.apply(notnull).sum(0)
@@ -433,12 +430,7 @@ class DataMatrix(DataFrame):
         else:
             dtypeLine = '\ndtype: %s(%d)' % (df, nf)
 
-        output += '\n'.join(columns) + dtypeLine
-
-        if to_stdout:
-            print output
-        else:
-            return output
+        buffer.write('\n'.join(columns) + dtypeLine)
 
 #-------------------------------------------------------------------------------
 # Properties for index and columns
@@ -514,15 +506,17 @@ class DataMatrix(DataFrame):
 
     def __repr__(self):
         """Return a string representation for a particular DataMatrix"""
-        if self.values is None or len(self.columns) == 0:
-            output = 'Empty DataMatrix\nIndex: %s' % repr(self.index)
-        elif 0 < len(self.index) < 1000 and self.values.shape[1] < 10:
-            output = self.toString(to_stdout=False)
-        else:
-            output = str(self.__class__) + '\n'
-            output = output + self.info(to_stdout=False)
+        buffer = StringIO()
 
-        return output
+        if self.values is None or len(self.columns) == 0:
+            buffer.write('Empty DataMatrix\nIndex: %s' % repr(self.index))
+        elif 0 < len(self.index) < 500 and self.values.shape[1] < 10:
+            self.toString(buffer=buffer)
+        else:
+            print >> buffer, str(self.__class__)
+            self.info(buffer=buffer)
+
+        return buffer.getvalue()
 
     def __getitem__(self, item):
         """
@@ -747,7 +741,7 @@ class DataMatrix(DataFrame):
         T, N = len(self.index), len(newCols)
 
         resultMatrix = np.empty((T, N), dtype=self.values.dtype)
-        resultMatrix.fill(NaN)
+        resultMatrix.fill(np.NaN)
 
         if not isinstance(newCols, Index):
             newCols = Index(newCols)
@@ -786,9 +780,9 @@ class DataMatrix(DataFrame):
         if not self and not other:
             return DataMatrix(index=newIndex)
         elif not self:
-            return other * NaN
+            return other * np.NaN
         elif not other:
-            return self * NaN
+            return self * np.NaN
 
         myValues = myReindex.values
         if self.columns.equals(other.columns):
@@ -805,7 +799,7 @@ class DataMatrix(DataFrame):
         else:
             T, N = len(newIndex), len(newCols)
             resultMatrix = np.empty((T, N), dtype=self.values.dtype)
-            resultMatrix.fill(NaN)
+            resultMatrix.fill(np.NaN)
 
             myIndexer = [self.columns.indexMap[idx] for idx in commonCols]
             hisIndexer =  [hisCols.indexMap[idx] for idx in commonCols]
@@ -835,7 +829,7 @@ class DataMatrix(DataFrame):
             resultMatrix = func(myReindex.values.T, other).T
         else:
             if len(other) == 0:
-                return self * NaN
+                return self * np.NaN
 
             # Operate column-wise
             other = other.reindex(self.columns).view(np.ndarray)
@@ -904,8 +898,20 @@ class DataMatrix(DataFrame):
             return self.values.copy()
         else:
             idxMap = self.columns.indexMap
-            indexer = [idxMap[col] for col in columns]
-            return self.values[:, indexer].copy()
+            indexer = [idxMap[col] for col in columns if col in idxMap]
+            values = self.values.take(indexer, axis=1)
+
+            if self.objects:
+                idxMap = self.objects.columns.indexMap
+                indexer = [idxMap[col] for col in columns if col in idxMap]
+
+                obj_values = self.objects.values.take(indexer, axis=1)
+                values = np.column_stack((values, obj_values))
+
+                # now put in the right order
+                # XXX!
+
+            return values
 
     def cols(self):
         """Return sorted list of frame's columns"""
@@ -1142,7 +1148,7 @@ class DataMatrix(DataFrame):
             return DataMatrix(newValues, index=dateRange,
                               columns=self.columns, objects=newLinks)
 
-    def getXS(self, key, subset=None, asOf=False):
+    def getXS(self, key, subset=None):
         """
         Returns a row from the DataMatrix as a Series object.
 
@@ -1151,9 +1157,6 @@ class DataMatrix(DataFrame):
         key : some index contained in the index
         subset : iterable (list, array, set, etc.), optional
             columns to be included
-        asOf : boolean, optional
-            Whether to use asOf values for TimeSeries objects
-            Won't do anything for Series objects.
 
         Note
         ----
@@ -1212,7 +1215,7 @@ class DataMatrix(DataFrame):
         fillVec, mask = tseries.getMergeVec(self[on], indexMap)
 
         tmpMatrix = otherM.take(fillVec, axis=0)
-        tmpMatrix[-mask] = NaN
+        tmpMatrix[-mask] = np.NaN
 
         seriesDict = dict((col, tmpMatrix[:, j])
                            for j, col in enumerate(otherFrame.columns))
@@ -1223,7 +1226,7 @@ class DataMatrix(DataFrame):
             objM = objects.asMatrix()
 
             tmpMat = objM.take(fillVec, axis=0)
-            tmpMat[-mask] = NaN
+            tmpMat[-mask] = np.NaN
             objDict = dict((col, tmpMat[:, j])
                            for j, col in enumerate(objects.columns))
 
@@ -1276,7 +1279,7 @@ class DataMatrix(DataFrame):
                                            newMap, fillMethod)
 
         tmpMatrix = selfM.take(fillVec, axis=0)
-        tmpMatrix[-mask] = NaN
+        tmpMatrix[-mask] = np.NaN
 
         if self.objects is not None and len(self.objects.columns) > 0:
             newLinks = self.objects.reindex(newIndex)

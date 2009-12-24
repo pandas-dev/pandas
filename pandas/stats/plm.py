@@ -76,7 +76,6 @@ class PanelOLS(OLS):
          self._x_filtered, self._y,
          self._y_trans) = self._prepare_data()
 
-        self._x_raw = self._x.values
         self._x_trans_raw = self._x_trans.values
         self._y_trans_raw = self._y_trans.values.squeeze()
 
@@ -115,7 +114,6 @@ class PanelOLS(OLS):
                                                 - self._x_effects)
 
         if self._time_effects:
-            x_filtered = x_filtered.subtract(x_filtered.mean(broadcast=True))
             x_regressor = x.subtract(x.mean(broadcast=True))
             y_regressor = y.subtract(y.mean(broadcast=True))
 
@@ -127,16 +125,12 @@ class PanelOLS(OLS):
             y_regressor = y
         else:
             self.log('No intercept added')
-
             x_regressor = x
             y_regressor = y
 
         if weights is not None:
-            x = x.multiply(weights)
-            x_regressor = x_regressor.multiply(weights)
-            x_filtered = x_filtered.multiply(weights_filt)
-            y = y.multiply(weights)
             y_regressor = y_regressor.multiply(weights)
+            x_regressor = x_regressor.multiply(weights)
 
         return x, x_regressor, x_filtered, y, y_regressor
 
@@ -610,7 +604,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         -------
         DataMatrix
         """
-        x = self._x_raw
+        x = self._x.values
         betas = self._beta_matrix(lag=lag)
         return self._unstack_y((betas * x).sum(1))
 
@@ -731,14 +725,14 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
     @cache_readonly
     def _y_fitted_raw(self):
-        x = self._x_raw
+        x = self._x.values
         betas = self._beta_matrix(lag=0)
         return (betas * x).sum(1)
 
     @cache_readonly
     def _y_predict_raw(self):
         """Returns the raw predicted y values."""
-        x = self._x_raw
+        x = self._x.values
         betas = self._beta_matrix(lag=1)
         return (betas * x).sum(1)
 

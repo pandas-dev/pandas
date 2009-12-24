@@ -180,7 +180,10 @@ class TestPanelOLS(BaseTest):
                  [30, 48, 1]]
         assert_almost_equal(exp_x, result._x.values)
 
-        exp_x_filtered = [[6, 14, 1], [9, 17, 1], [30, 48, 1], [11, 20, 1],
+        exp_x_filtered = [[6, 14, 1],
+                          [9, 17, 1],
+                          [30, 48, 1],
+                          [11, 20, 1],
                           [12, 21, 1]]
         assert_almost_equal(exp_x_filtered, result._x_filtered.values)
 
@@ -199,18 +202,24 @@ class TestPanelOLS(BaseTest):
 
         result = ols(y=self.panel_y2, x=self.panel_x2, weights=weights)
 
-        assert_almost_equal(result._y.values.flat, [0, 16, 25])
+        assert_almost_equal(result._y_trans.values.flat, [0, 16, 25])
 
         exp_x = [[0, 0, 0],
                  [36, 68, 4],
                  [150, 240, 5]]
-        assert_almost_equal(result._x.values, exp_x)
+        assert_almost_equal(result._x_trans.values, exp_x)
 
-        exp_x_filtered = [[0, 0, 0],
-                          [36, 68, 4],
-                          [150, 240, 5],
-                          [66, 120, 6],
-                          [84, 147, 7]]
+
+        exp_x_filtered = [[6, 14, 1],
+                          [9, 17, 1],
+                          [30, 48, 1],
+                          [11, 20, 1],
+                          [12, 21, 1]]
+#         exp_x_filtered = [[0, 0, 0],
+#                           [36, 68, 4],
+#                           [150, 240, 5],
+#                           [66, 120, 6],
+#                           [84, 147, 7]]
 
         assert_almost_equal(result._x_filtered.values, exp_x_filtered)
 
@@ -233,7 +242,7 @@ class TestPanelOLS(BaseTest):
         exp_x = [[6, 14, 0, 1], [9, 17, 0, 1], [30, 48, 1, 1]]
         assert_almost_equal(result._x.values, exp_x)
 
-        exp_index = Index(['x1', 'x2', 'fe_B', 'intercept'])
+        exp_index = Index(['x1', 'x2', 'FE_B', 'intercept'])
         self.assertTrue(exp_index.equals(result._x.items))
 
         # _check_non_raw_results(result)
@@ -246,7 +255,7 @@ class TestPanelOLS(BaseTest):
         exp_x = [[6, 14, 1, 1], [9, 17, 1, 1], [30, 48, 0, 1]]
         assert_almost_equal(result._x.values, exp_x)
 
-        exp_index = Index(['x1', 'x2', 'fe_A', 'intercept'])
+        exp_index = Index(['x1', 'x2', 'FE_A', 'intercept'])
         self.assertTrue(exp_index.equals(result._x.items))
 
         # _check_non_raw_results(result)

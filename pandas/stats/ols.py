@@ -503,8 +503,9 @@ class MovingOLS(OLS):
 
         OLS.__init__(self, y=y, x=x, **self._args)
 
+        self._window = int(window)
         self._window_type = common._get_window_type(window_type)
-        self._window = window
+
         self._min_periods = window if min_periods is None else min_periods
 
 #-------------------------------------------------------------------------------

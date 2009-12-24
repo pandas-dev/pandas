@@ -1,8 +1,10 @@
 # pylint: disable-msg=E1101
 # pylint: disable-msg=E1103
-# pylint: disable-msg=W0212,W0703
+# pylint: disable-msg=W0212,W0703,W0622
 
+from cStringIO import StringIO
 import operator
+import sys
 
 from numpy import NaN
 import numpy as np
@@ -260,11 +262,14 @@ class DataFrame(Picklable, Groupable):
         """
         Return a string representation for a particular DataFrame
         """
-        if len(self.index) < 1000 and len(self._series) < 10:
-            return self.toString(to_stdout=False)
+        buf = StringIO()
+        if len(self.index) < 500 and len(self._series) < 10:
+            self.toString(buffer=buf)
         else:
-            output = str(self.__class__) + '\n'
-            return output + self.info(to_stdout=False)
+            buf.write(str(self.__class__) + '\n')
+            self.info(buffer=buf)
+
+        return buf.getvalue()
 
     def __getitem__(self, item):
         """
@@ -313,7 +318,7 @@ class DataFrame(Picklable, Groupable):
         """
         Delete column from DataFrame (only deletes the reference)
         """
-        r = self._series.pop(key, None)
+        self._series.pop(key, None)
 
     def pop(self, item):
         """
@@ -408,7 +413,6 @@ class DataFrame(Picklable, Groupable):
 
         for col, series in other.iteritems():
             if col not in self:
-                cls = series.__class__
                 newColumns[col] = series.fromValue(np.NaN, index=newIndex)
 
         return DataFrame(data=newColumns, index=newIndex)
@@ -514,54 +518,60 @@ class DataFrame(Picklable, Groupable):
 
         return DataMatrix(self._series, index=self.index)
 
-    def toString(self, to_stdout=True, verbose=False, colSpace=15, nanRep=None):
+    def toString(self, buffer=sys.stdout, verbose=False,
+                 colSpace=15, nanRep=None, formatters=None,
+                 float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
-        skeys = sorted(series.keys())
-        if len(skeys) == 0 or len(self.index) == 0:
-            output = 'Empty DataFrame\n'
-            output += self.index.__repr__()
+        columns = sorted(series.keys())
+        formatters = formatters or {}
+
+
+        # TODO
+
+        float_format = float_format or str
+        for c in columns:
+            if c not in formatters:
+                formatters[c] = str # float_format if c in self.columns else str
+
+        if len(columns) == 0 or len(self.index) == 0:
+            print >> buffer, 'Empty DataFrame'
+            print >> buffer, repr(self.index)
         else:
             idxSpace = max([len(str(idx)) for idx in self.index]) + 4
             head = _pfixed('', idxSpace)
             if verbose:
                 colSpace = max([len(c) for c in self.columns]) + 4
-            for h in skeys:
+            for h in columns:
                 head += _pfixed(h, colSpace)
-            output = head + '\n'
+            print >> buffer, head
             for idx in self.index:
                 ot = _pfixed(idx, idxSpace)
-                for k in skeys:
-                    ot += _pfixed(series[k][idx], colSpace, nanRep=nanRep)
-                output += ot + '\n'
-        if to_stdout:
-            print output
-        else:
-            return output
+                for k in columns:
+                    formatter = formatters.get(k, str)
+                    ot += _pfixed(formatter(series[k][idx]),
+                                  colSpace, nanRep=nanRep)
+                print >> buffer, ot
 
-    def info(self, to_stdout=True):
+    def info(self, buffer=sys.stdout):
         """Concise summary of a DataFrame, used in __repr__ when very large."""
         if len(self._series) == 0:
-            output = 'DataFrame is empty!\n'
-            output += self.index.__repr__()
-            return output
+            print >> buffer, 'DataFrame is empty!'
+            print >> buffer, repr(self.index)
 
-        output = 'Index: %s entries, %s to %s\n' % (len(self.index),
-                                                    min(self.index),
-                                                    max(self.index))
-        output += 'Columns:\n'
+        print >> buffer, 'Index: %s entries, %s to %s' % (len(self.index),
+                                                          min(self.index),
+                                                          max(self.index))
+        print >> buffer, 'Data columns:'
+
         series = self._series
-        skeys = sorted(self.cols())
-        space = max([len(str(k)) for k in skeys]) + 4
-        for k in skeys:
+        columns = sorted(self.cols())
+        space = max([len(str(k)) for k in columns]) + 4
+        for k in columns:
             out = _pfixed(k, space)
             N = notnull(series[k]).sum()
-            out += '%d  non-null values\n' % N
-            output += out
-        if to_stdout:
-            print output
-        else:
-            return output
+            out += '%d  non-null values' % N
+            print >> buffer, out
 
     def rows(self):
         """Alias for the frame's index"""
@@ -586,7 +596,7 @@ class DataFrame(Picklable, Groupable):
         """
         newIndex = np.concatenate((self.index, otherFrame.index))
         newValues = {}
-        
+
         for column, series in self.iteritems():
             if column in otherFrame:
                 newValues[column] = series.append(otherFrame[column])
@@ -793,7 +803,7 @@ class DataFrame(Picklable, Groupable):
         else:
             return self.reindex(dateRange)
 
-    def truncate(self, before=None, after=None, periods=None):
+    def truncate(self, before=None, after=None):
         """Function truncate a sorted DataFrame before and/or after
         some particular dates.
 
@@ -803,13 +813,13 @@ class DataFrame(Picklable, Groupable):
             Truncate before date
         after : date
             Truncate after date
-        
+
         Returns
         -------
         DataFrame
         """
         beg_slice, end_slice = self._getIndices(before, after)
-        
+
         return self[beg_slice:end_slice]
 
     def _getIndices(self, before, after):
@@ -833,8 +843,8 @@ class DataFrame(Picklable, Groupable):
         end_slice = self.index.indexMap[after] + 1
 
         return beg_slice, end_slice
-        
-    def getXS(self, key, subset=None, asOf=False):
+
+    def getXS(self, key, subset=None):
         """
         Returns a row from the DataFrame as a Series object.
 
@@ -843,9 +853,6 @@ class DataFrame(Picklable, Groupable):
         key : some index contained in the index
         subset : iterable (list, array, set, etc.), optional
             columns to be included
-        asOf : boolean, optional
-            Whether to use asOf values for TimeSeries objects
-            Won't do anything for Series objects.
 
         Note
         ----
@@ -1050,7 +1057,7 @@ class DataFrame(Picklable, Groupable):
         """
         results = {}
         for col, series in self.iteritems():
-            results[col] = map(func, series)
+            results[col] = [func(v) for v in series]
         return DataFrame(data=results, index=self.index)
 
     def tgroupby(self, keyfunc, applyfunc):

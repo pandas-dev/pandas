@@ -45,6 +45,7 @@ class Panel(Picklable):
     _major_axis = None
     _minor_axis = None
     _values = None
+    factors = None
 
     def __repr__(self):
         class_name = str(self.__class__)
@@ -193,7 +194,7 @@ class WidePanel(Panel):
         return index, columns
 
     @classmethod
-    def fromDict(cls, data, intersect=True):
+    def fromDict(cls, data, intersect=True, dtype=float):
         """
         Construct WidePanel from dict of DataFrame objects
 
@@ -210,7 +211,7 @@ class WidePanel(Panel):
         data, index, columns = _homogenize(data, intersect=intersect)
         items = Index(sorted(data.keys()))
 
-        values = np.array([data[k].values for k in items], dtype=float)
+        values = np.array([data[k].values for k in items], dtype=dtype)
 
         return cls(values, items, index, columns)
 
