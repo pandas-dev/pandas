@@ -15,10 +15,11 @@ Available from the Google Code website and PyPI.
 Dependencies
 ------------
   * `NumPy <http://www.numpy.org>`__: 1.3.0 or higher
-  * `dateutil <http://labix.org/python-dateutil>`__
 
 Optional dependencies
 ---------------------
+
+  * `dateutil <http://labix.org/python-dateutil>`__
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
@@ -26,7 +27,8 @@ Optional dependencies
 
 .. note::
 
-   Without the optional dependencies, many unit tests will fail.
+   Without the optional dependencies, many useful features will not
+   work. Hence, it is highly recommended that you install these.
 
 Installing from source
 ----------------------

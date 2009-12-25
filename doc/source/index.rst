@@ -56,10 +56,8 @@ User manual
     datetools
     stats
 
-
-***************
 Quick Reference
-***************
+---------------
 
 .. autosummary::
    :toctree: generated/

@@ -168,6 +168,7 @@ Of course, the same behavior applies to *setting* values:
     d    -1.0
     e    -1.0
 
+.. _series.arithmetic:
 
 Arithmetic, data alignment
 --------------------------
@@ -206,7 +207,7 @@ data as NaN. However, missing data could be represented in some other
 forms (e.g. *None* values generated from DBNULL values in SQL
 data). This problem is compounded by the fact that *numpy.isnan* is
 only valid on float arrays. For this reason, pandas includes two
-functions for testing for validity, **isnull** and **notnull**. These
+functions for testing validity, **isnull** and **notnull**. These
 functions are implemented in Cython and provide reasonably good
 performance on object arrays. For numerical arrays, the performance
 will be equivalent to *numpy.isfinite*.
@@ -254,25 +255,98 @@ from a Series. Since this is such a common operation, a method
     and ease-of-implementation. It differs from the MaskedArray
     approach of, for example, :mod:`scikits.timeseries`.
 
-Filling, padding, and interpolating values
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   Series.fill
-   Series.interpolate
+.. _series.reindexing:
 
 Reindexing
 ~~~~~~~~~~
+
+Reindexing is one of the most important features of the Series and the
+other pandas data structures. In essence it means: *conform data to a
+specified index*.
+
+Using our prior example, we can see the basic behavior:
+
+::
+
+    >>> s.reindex(['f', 'a', 'd', 'e'])
+    f    nan
+    a    0.0
+    d    3.0
+    e    4.0
+
+As you can see, the new index order is as inputted, and values not
+present in the Series appear as NaN.
+
+For TimeSeries or other ordered Series, an additional argument can be
+specified to perform forward- (referred to as "padding") or
+back-filling:
+
+::
+
+    >>> ts
+    2009-01-02 00:00:00    1.0
+    2009-01-07 00:00:00    4.0
+
+    >>> ts.reindex(dates, fillMethod='pad')
+    2009-01-01 00:00:00    nan
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    1.0
+    2009-01-06 00:00:00    1.0
+    2009-01-07 00:00:00    4.0
+
+    >>> ts.reindex(dates, fillMethod='backfill')
+    2009-01-01 00:00:00    1.0
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    4.0
+    2009-01-06 00:00:00    4.0
+    2009-01-07 00:00:00    4.0
+
+Two common reindexing methods are provided: **valid** (which we
+already mentioned) and **truncate** (for selecting intervals of index
+values).
+
+::
+
+    >>> ts
+    2009-01-01 00:00:00    0.0
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    2.0
+    2009-01-06 00:00:00    3.0
+    2009-01-07 00:00:00    4.0
+
+    >>> ts.truncate(before=datetime(2009, 1, 5), after=datetime(2009, 1, 6))
+    2009-01-05 00:00:00    2.0
+    2009-01-06 00:00:00    3.0
+
+Since writing out datetimes interactively like that can be a bit
+verbose, one can also pass a string date representation:
+
+::
+
+    >>> ts.truncate(after='1/5/2009')
+    2009-01-01 00:00:00    0.0
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    2.0
+
 
 .. autosummary::
    :toctree: generated/
 
    Series.reindex
    Series.valid
-   Series.merge
    Series.truncate
+
+Filling, padding, and interpolating values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is often desirable to deal with missing values in some specific
+way, especially for time series data.
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.fill
+   Series.interpolate
 
 Iterating
 ---------
@@ -288,6 +362,8 @@ Otherwise, methods providing dict-like iteration are available:
    Series.keys
    Series.values
    Series.iteritems
+
+.. _series.statistics:
 
 Basic statistical functions
 ---------------------------
@@ -357,6 +433,16 @@ implemented:
    Series.cap
    Series.floor
 
+Merging Series based on key
+---------------------------
+
+TODO
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.merge
+
 Sorting
 -------
 
@@ -381,6 +467,8 @@ TODO
    Series.shift
    Series.asOf
    Series.weekday
+
+.. _series.groupby:
 
 GroupBy functionality
 ---------------------
