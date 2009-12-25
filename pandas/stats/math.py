@@ -78,9 +78,9 @@ def newey_west(m, max_lags, nobs, df, nw_overlap=False):
 
     if nw_overlap and not is_psd(Xeps):
         new_max_lags = int(np.ceil(max_lags * 1.5))
-        print ('nw_overlap is True and newey_west generated a non positive '
-               'semidefinite matrix, so using newey_west with max_lags of %d.'
-               % new_max_lags)
+#         print ('nw_overlap is True and newey_west generated a non positive '
+#                'semidefinite matrix, so using newey_west with max_lags of %d.'
+#                % new_max_lags)
         return newey_west(m, new_max_lags, nobs, df)
 
     return Xeps

@@ -89,7 +89,7 @@ class Series(np.ndarray, Picklable, Groupable):
     ----------
     data : array-like
         Underlying values of Series, preferably as numpy ndarray
-    index : array-like, optional
+    index : array-like
         Index object (or other iterable of same length as data)
 
     Note
@@ -98,10 +98,8 @@ class Series(np.ndarray, Picklable, Groupable):
     be present or the value for that index position will be nan. The
     new index is the sorted union of the two Series indices.
 
-    ALSO NOTE: There is currently no restriction on what can be in the
-    index.
-
-    Example usage:
+    Example
+    -------
         >>> s = Series(arr, index=Index(dates))
         >>> t = Series(otherArr, index=Index(otherDates))
         >>> s / t # --> new Series resulting from by-index division of elements
@@ -170,7 +168,7 @@ class Series(np.ndarray, Picklable, Groupable):
     @classmethod
     def fromDict(cls, input, castFloat=True, **kwds):
         """
-        Analogous to asDataFrame, but turns dict into Series
+        Construct Series from dict
 
         Parameters
         ----------
@@ -180,7 +178,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        Series
+        y : Series
         """
         input = input.copy()
         input.update(kwds)
@@ -201,7 +199,7 @@ class Series(np.ndarray, Picklable, Groupable):
     @classmethod
     def fromValue(cls, value=np.NaN, index=None, dtype=None):
         """
-        Analogous to asDataFrame, but turns dict into Series
+        Create Series with all values being the input scalar
 
         Parameters
         ----------
@@ -211,7 +209,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        Series
+        y : Series
         """
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
@@ -281,8 +279,8 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def get(self, key, missingVal=None):
         """
-        Returns value occupying requested index, and
-        return missingVal if not in Index
+        Returns value occupying requested index, default to missingVal
+        if not present
 
         Parameters
         ----------
@@ -290,6 +288,10 @@ class Series(np.ndarray, Picklable, Groupable):
             Index value looking for
         missingVal : object, optional
             Value to return if key not in index
+
+        Returns
+        -------
+        y : scalar
         """
         if key in self.index:
             return ndarray.__getitem__(self, self.index.indexMap[key])
@@ -362,6 +364,17 @@ class Series(np.ndarray, Picklable, Groupable):
 
 #-------------------------------------------------------------------------------
 # Overridden ndarray methods
+
+    def count(self):
+        """
+        Return number of observations of Series.
+
+        Returns
+        -------
+        int (# obs)
+        """
+        return notnull(self.values()).sum()
+
     def _ndarray_statistic(self, funcname):
         arr = self.values()
         retVal = getattr(arr, funcname)()
@@ -374,36 +387,31 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def sum(self, axis=None, dtype=None, out=None):
         """
-        Overridden version of ndarray.sum for Series which excludes
-        NaN automatically
+        Compute sum of non-null values
         """
         return self._ndarray_statistic('sum')
 
     def mean(self, axis=None, dtype=None, out=None):
         """
-        Overridden version of ndarray.mean for Series which excludes
-        NaN automatically
+        Compute mean of non-null values
         """
         return self._ndarray_statistic('mean')
 
     def min(self, axis=None, out=None):
         """
-        Overridden version of ndarray.min for Series which excludes
-        NaN automatically
+        Compute minimum of non-null values
         """
         return self._ndarray_statistic('min')
 
     def max(self, axis=None, out=None):
         """
-        Overridden version of ndarray.max for Series which excludes
-        NaN automatically
+        Compute maximum of non-null values
         """
         return self._ndarray_statistic('max')
 
     def std(self, axis=None, dtype=None, out=None, ddof=1):
         """
-        Overridden version of ndarray.std for Series which excludes
-        NaN automatically
+        Compute unbiased standard deviation of non-null values
         """
         nona = remove_na(self.values())
         if len(nona) < 2:
@@ -412,8 +420,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def var(self, axis=None, dtype=None, out=None, ddof=1):
         """
-        Overridden version of ndarray.var for Series which excludes
-        NaN automatically
+        Compute unbiased variance of non-null values
         """
         nona = remove_na(self.values())
         if len(nona) < 2:
@@ -421,18 +428,14 @@ class Series(np.ndarray, Picklable, Groupable):
         return ndarray.var(nona, axis, dtype, out, ddof)
 
     def skew(self, bias=False):
-        """Computes the skewness of the Series
-
-        For normally distributed data, the skewness should be about 0.
-        A skewness value > 0 means that there is more weight in the left
-        tail of the distribution. The function skewtest() can be used to
-        determine if the skewness value is close enough to 0, statistically
-        speaking.
+        """
+        Computes the skewness of the non-null values
 
         Parameters
         ----------
         bias : bool
-        If False, then the calculations are corrected for statistical bias.
+            If False, then the calculations are corrected for
+            statistical bias.
         """
 
         from scipy.stats import skew
@@ -452,28 +455,32 @@ class Series(np.ndarray, Picklable, Groupable):
     def keys(self):
         """
         Return Series index
-
-        Analogous to dict.keys()
         """
         return self.index
 
     def values(self):
         """
-        Return Series values
-
-        Analogous to dict.values()
+        Return Series as ndarray
         """
         return self.view(ndarray)
 
     def iteritems(self):
         """
-        Iterate over (index, value) tuples
+        Lazily iterate over (index, value) tuples
         """
         return izip(iter(self.index), iter(self))
 
     def append(self, other):
         """
-        Concatenate two Series
+        Concatenate two Series. The indices should not overlap
+
+        Parameters
+        ----------
+        other : Series
+
+        Returns
+        -------
+        y : Series
         """
         newIndex = np.concatenate((self.index, other.index))
 
@@ -492,6 +499,16 @@ class Series(np.ndarray, Picklable, Groupable):
           * another Series index by index
           * a scalar value
           * DataFrame
+
+        Parameters
+        ----------
+        other : {Series, DataFrame, scalar value}
+
+        Returns
+        -------
+        y : {Series or DataFrame}
+            Output depends on input. If a DataFrame is inputted, that
+            will be the return type.
         """
         if isinstance(other, Series):
             newIndex = self.index + other.index
@@ -515,7 +532,8 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        Series formed as union of
+        y : Series
+            formed as union of two Series
         """
         newIndex = self.index + other.index
 
@@ -560,7 +578,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def median(self):
         """
-        Return median value of Series
+        Compute median value of non-null values
         """
         return tseries.median(self.valid())
 
@@ -569,7 +587,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def corr(self, other):
         """
-        Correlation of this Series with another Series, NaN excluded
+        Compute correlation two Series, excluding missing values
 
         Parameters
         ----------
@@ -577,7 +595,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        float (the correlation coefficient)
+        correlation : float
         """
         commonIdx = remove_na(self).index.intersection(remove_na(other).index)
 
@@ -588,16 +606,6 @@ class Series(np.ndarray, Picklable, Groupable):
         that = other.reindex(commonIdx)
 
         return np.corrcoef(this, that)[0, 1]
-
-    def count(self):
-        """
-        Return number of observations of Series.
-
-        Returns
-        -------
-        int (# obs)
-        """
-        return notnull(self.values()).sum()
 
     def sort(self, axis=0, kind='quicksort', order=None):
         """
@@ -620,7 +628,8 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        SORTED series by values (indices correspond to the appropriate values)
+        y : Series
+            sorted by values
         """
         arr = self.values()
         sortedIdx = np.empty(len(self), dtype=np.int32)
@@ -652,7 +661,8 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        Series with same index
+        y : Series
+            same index as caller
         """
         return Series([func(x) for x in self], index=self.index)
 
@@ -661,8 +671,8 @@ class Series(np.ndarray, Picklable, Groupable):
         Plot the input series with the index on the x-axis using
         matplotlib / pylab.
 
-        Params
-        ------
+        Parameters
+        ----------
         label : label argument to provide to plot
 
         kind : {'line', 'bar', 'hist'}

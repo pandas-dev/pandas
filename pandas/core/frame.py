@@ -42,9 +42,11 @@ class DataFrame(Picklable, Groupable):
     ----------
     data : dict
         Mapping of column name --> array or Series/TimeSeries objects
-    index : array-like
-        Specific index to use for the Frame, Series will be conformed to this
-        if you provide it.
+    index : array-like, optional
+        Specific index to use for the Frame, Series will be conformed
+        to this if you provide it. If not input, index will be
+        inferred from input Series
+    columns : array-like, optional
 
     Notes
     -----
@@ -56,12 +58,12 @@ class DataFrame(Picklable, Groupable):
     --------
     DataMatrix: more efficient version of DataFrame for most operations
 
-    Example usage
-    -------------
+    Example
+    -------
         >>> d = {'col1' : ts1, 'col2' : ts2}
         >>> df = DataFrame(data=d, index=someIndex)
     """
-    def __init__(self, data=None, index=None):
+    def __init__(self, data=None, index=None, columns=None):
         self._series = {}
         if data is not None and len(data) > 0:
             if index is None:
@@ -75,7 +77,7 @@ class DataFrame(Picklable, Groupable):
 
             for k, v in data.iteritems():
                 if isinstance(v, Series):
-                    # Forces homogoneity and copies data
+                    # Forces homogeneity and copies data
                     self._series[k] = v.reindex(self.index)
                 else:
                     # Copies data and checks length
@@ -169,8 +171,8 @@ class DataFrame(Picklable, Groupable):
 
     def toDict(self):
         """
-        Simpler pseudo-inverse operation of dictToDataFrame, NaN values will be
-        included in the resulting dict-tree.
+        Simpler pseudo-inverse operation of DataFrame.fromDict, NaN
+        values will be included in the resulting dict-tree.
 
         Return
         ------
@@ -316,9 +318,9 @@ class DataFrame(Picklable, Groupable):
 
     def __delitem__(self, key):
         """
-        Delete column from DataFrame (only deletes the reference)
+        Delete column from DataFrame
         """
-        self._series.pop(key, None)
+        del self._series[key]
 
     def pop(self, item):
         """
@@ -611,16 +613,16 @@ class DataFrame(Picklable, Groupable):
 
     def asfreq(self, freq, fillMethod=None):
         """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill/interpolate
-        missing values.
+        Convert all TimeSeries inside to specified frequency using
+        DateOffset objects. Optionally provide fill method to pad or
+        backfill missing values.
 
         Parameters
         ----------
         offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
             DateOffset object or subclass (e.g. monthEnd)
 
-        fillMethod : {'backfill', 'pad', 'interpolate', None}
+        fillMethod : {'backfill', 'pad', None}
                     Method to use for filling holes in new inde
         """
         if isinstance(freq, datetools.DateOffset):
@@ -886,38 +888,53 @@ class DataFrame(Picklable, Groupable):
 
         return _slow_pivot(self[index], self[columns], self[values])
 
-    def reindex(self, newIndex, fillMethod=None):
+    def reindex(self, index=None, columns=None, fillMethod=None):
         """
         Reindex data inside, optionally filling according to some rule.
 
         Parameters
         ----------
-        newIndex :   array-like
+        index : array-like, optional
             preferably an Index object (to avoid duplicating data)
-        fillMethod : {'backfill', 'pad', 'interpolate', None}
-            Method to use for filling holes in reindexed DataFrame
+        columns : array-like, optional
+        fillMethod : {'backfill', 'pad', None}
+            Method to use for filling data holes using the index
+
+        Returns
+        -------
+        y : same type as calling instance
         """
-        if self.index.equals(newIndex):
-            return self.copy()
-
-        if len(newIndex) == 0:
-            return DataFrame(index=NULL_INDEX)
-
-        if not isinstance(newIndex, Index):
-            newIndex = Index(newIndex)
-
-        if len(self.index) == 0:
-            return DataFrame(index=newIndex)
-
-        oldMap = self.index.indexMap
-        newMap = newIndex.indexMap
-
         fillMethod = fillMethod.upper() if fillMethod else ''
+
         if fillMethod not in ['BACKFILL', 'PAD', '']:
             raise Exception("Don't recognize fillMethod: %s" % fillMethod)
 
-        fillVec, mask = tseries.getFillVec(self.index, newIndex, oldMap,
-                                           newMap, fillMethod)
+        frame = self
+
+        if index is not None:
+            frame = frame._reindex_index(index, fillMethod)
+
+        if columns is not None:
+            frame = frame._reindex_columns(columns)
+
+        return frame
+
+    def _reindex_index(self, index, method):
+        if self.index.equals(index):
+            return self.copy()
+
+        if len(index) == 0:
+            return DataFrame(index=NULL_INDEX)
+
+        if not isinstance(index, Index):
+            index = Index(index)
+
+        if len(self.index) == 0:
+            return DataFrame(index=index)
+
+        fillVec, mask = tseries.getFillVec(self.index, index,
+                                           self.index.indexMap,
+                                           index.indexMap, method)
 
         # Maybe this is a bit much? Wish I had unit tests...
         typeHierarchy = [
@@ -938,14 +955,26 @@ class DataFrame(Picklable, Groupable):
         newSeries = {}
         for col, series in self.iteritems():
             series = series.view(np.ndarray)
-            for type, dest in typeHierarchy:
-                if issubclass(series.dtype.type, type):
+            for klass, dest in typeHierarchy:
+                if issubclass(series.dtype.type, klass):
                     new = series.take(fillVec).astype(dest)
                     new[-mask] = missingValue[dest]
                     newSeries[col] = new
                     break
 
-        return DataFrame(newSeries, index=newIndex)
+        return DataFrame(newSeries, index=index)
+
+    def _reindex_columns(self, columns):
+        if len(columns) == 0:
+            return DataFrame(index=self.index)
+
+        newFrame = self.filterItems(columns)
+
+        for col in columns:
+            if col not in newFrame:
+                newFrame[col] = NaN
+
+        return newFrame
 
     @property
     def T(self):
@@ -1000,7 +1029,7 @@ class DataFrame(Picklable, Groupable):
                                for col, series in self.iteritems()])
         return DataFrame(data = newValues, index= newIndex)
 
-    def apply(self, func):
+    def apply(self, func, axis=0):
         """
         Applies func to columns (Series) of this DataFrame and returns either
         a DataFrame (if the function produces another series) or a Series
@@ -1011,6 +1040,7 @@ class DataFrame(Picklable, Groupable):
         ----------
         func : function
             Function to apply to each column
+        axis : {0, 1}
 
         Example
         -------
@@ -1019,30 +1049,28 @@ class DataFrame(Picklable, Groupable):
 
         Note
         ----
-        Do NOT use functions that might toy with the index.
+        Functions altering the index are not supported (yet)
         """
         if not len(self.cols()):
             return self
 
-        results = {}
-        for col, series in self.iteritems():
-            result = func(series)
-            results[col] = result
+        if axis == 0:
+            target = self
+        elif axis == 1:
+            target = self.T
+
+        results = dict([(k, func(target[k])) for k in target.columns])
 
         if hasattr(results.values()[0], '__iter__'):
             return DataFrame(data=results, index=self.index)
         else:
-            keyArray = np.asarray(sorted(set(results.keys())), dtype=object)
-            newIndex = Index(keyArray)
-
-            arr = np.array([results[idx] for idx in newIndex])
-            return Series(arr, index=newIndex)
+            return Series.fromDict(results)
 
     def tapply(self, func):
         """
         Apply func to the transposed DataFrame, results as per apply
         """
-        return self.T.apply(func)
+        return self.apply(func, axis=1)
 
     def applymap(self, func):
         """
@@ -1323,8 +1351,8 @@ class DataFrame(Picklable, Groupable):
         Plot the DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
 
-        Params
-        ------
+        Parameters
+        ----------
         kind : {'line', 'bar', 'hist'}
             Default: line for TimeSeries, hist for Series
 
@@ -1414,10 +1442,7 @@ class DataFrame(Picklable, Groupable):
             theCount = self.count(axis)
             theSum[theCount == 0] = NaN
         except Exception:
-            if axis == 0:
-                theSum = self.apply(np.sum)
-            else:
-                theSum = self.tapply(np.sum)
+            theSum = self.apply(np.sum, axis=axis)
 
         if asarray:
             return theSum
@@ -1427,6 +1452,27 @@ class DataFrame(Picklable, Groupable):
             return Series(theSum, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
+
+    def cumsum(self, axis=0):
+        """
+        Return cumulative sum over requested axis as DataFrame
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        def get_cumsum(y):
+            y = np.array(y)
+            if not issubclass(y.dtype.type, np.int_):
+                y[np.isnan(y)] = 0
+            return y.cumsum()
+
+        return self.apply(get_cumsum, axis=axis)
 
     def product(self, axis=0, asarray=False):
         """
@@ -1663,22 +1709,6 @@ class DataFrame(Picklable, Groupable):
             return Series(theSkew, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
-
-    def _withColumns(self, newCols):
-        """
-        Utility method, force values matrix to have particular columns
-        Can make this as cute as we like
-        """
-        if len(newCols) == 0:
-            return DataFrame(index=self.index)
-
-        newFrame = self.filterItems(newCols)
-
-        for col in newCols:
-            if col not in newFrame:
-                newFrame[col] = NaN
-
-        return newFrame
 
 def _pfixed(s, space, nanRep=None):
     if isinstance(s, float):

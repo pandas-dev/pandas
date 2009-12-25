@@ -11,7 +11,11 @@ from pandas.core.api import DateRange, DataFrame, Index, Series
 from pandas.core.datetools import bday
 import pandas.core.datetools as datetools
 
-from pandas.core.tests.common import assert_almost_equal, randn
+from pandas.core.tests.common import (assert_almost_equal,
+                                      assert_series_equal,
+                                      assert_frame_equal,
+                                      randn)
+
 import pandas.core.tests.common as common
 
 #-------------------------------------------------------------------------------
@@ -452,7 +456,7 @@ class TestDataFrame(unittest.TestCase):
         common.assert_frame_equal(tsFrame, frame[5:10])
 
         A = frame.getTS(colName='A', nPeriods=5, toDate=frame.index[9])
-        common.assert_series_equal(A, frame['A'][5:10])
+        assert_series_equal(A, frame['A'][5:10])
 
         self.assertRaises(Exception, frame.getTS, nPeriods=5)
 
@@ -556,6 +560,13 @@ class TestDataFrame(unittest.TestCase):
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
+
+    def test_reindex_columns(self):
+        newFrame = self.frame.reindex(columns=['A', 'B', 'E'])
+
+        assert_series_equal(newFrame['B'], self.frame['B'])
+        self.assert_(np.isnan(newFrame['E']).all())
+        self.assert_('C' not in newFrame)
 
     def test_reindex_mixed(self):
         pass
@@ -675,9 +686,6 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_skew(self):
-        pass
-
-    def test_withColumns(self):
         pass
 
     def testGroupBy(self):

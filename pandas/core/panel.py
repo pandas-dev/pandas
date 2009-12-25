@@ -261,8 +261,8 @@ class WidePanel(Panel):
             value = value.toWide()[value.items[0]]
 
         if isinstance(value, DataFrame):
-            value = value.reindex(self.major_axis)
-            value = value._withColumns(self.minor_axis)
+            value = value.reindex(index=self.major_axis,
+                                  columns=self.minor_axis)
 
             mat = value.values.reshape((1, N, K))
 
@@ -308,7 +308,7 @@ class WidePanel(Panel):
         """
         index, columns = self._get_plane_axes(axis)
 
-        return frame.reindex(index)._withColumns(columns)
+        return frame.reindex(index=index, columns=columns)
 
     def reindex(self, new_index, axis='major', fill_method=None):
         """
@@ -381,7 +381,7 @@ class WidePanel(Panel):
         index, columns = self._get_plane_axes(axis)
         axis = self._wide_axis_number(axis)
 
-        other = other.reindex(index)._withColumns(columns)
+        other = other.reindex(index=index, columns=columns)
 
         if axis == 0:
             newValues = func(self.values, other.values)
@@ -1467,7 +1467,7 @@ def _homogenize(frames, intersect=True):
             if not isinstance(frame, DataMatrix):
                 frame = frame.toDataMatrix()
 
-            result[key] = frame._withColumns(columns).reindex(index)
+            result[key] = frame.reindex(index=index, columns=columns)
 
     return result, index, columns
 

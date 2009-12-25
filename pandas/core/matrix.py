@@ -38,10 +38,6 @@ class DataMatrix(DataFrame):
     Transposing is much faster in this regime, as is calling getXS, so please
     take note of this.
     """
-    values = None
-    _columns = None
-    _index = None
-    objects = None
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  objects=None):
 
@@ -202,6 +198,8 @@ class DataMatrix(DataFrame):
         else:
             self.objects = None
 
+    # Because of DataFrame property
+    values = None
 #-------------------------------------------------------------------------------
 # Alternate constructors
 
@@ -435,6 +433,7 @@ class DataMatrix(DataFrame):
 #-------------------------------------------------------------------------------
 # Properties for index and columns
 
+    _columns = None
     def _get_columns(self):
         return self._columns
 
@@ -457,6 +456,7 @@ class DataMatrix(DataFrame):
 
     columns = property(fget=_get_columns, fset=_set_columns)
 
+    _index = None
     def _set_index(self, index):
         if index is None:
             if self.values is not None and self.values.shape[0] > 0:
@@ -729,31 +729,6 @@ class DataMatrix(DataFrame):
             raise Exception('No time has %d values!' % N)
 
         return self.index[selector][0]
-
-    def _withColumns(self, newCols):
-        """
-        Utility method, force values matrix to have particular columns
-        Can make this as cute as we like
-        """
-        if len(newCols) == 0:
-            return DataMatrix(index=self.index)
-
-        T, N = len(self.index), len(newCols)
-
-        resultMatrix = np.empty((T, N), dtype=self.values.dtype)
-        resultMatrix.fill(np.NaN)
-
-        if not isinstance(newCols, Index):
-            newCols = Index(newCols)
-
-        overlap = self.columns.intersection(newCols)
-        thisIndexer = [self.columns.indexMap[col] for col in overlap]
-        resultIndexer = [newCols.indexMap[idx] for idx in overlap]
-
-        resultMatrix[:, resultIndexer] = self.values[:, thisIndexer]
-
-        return DataMatrix(resultMatrix, index=self.index, columns=newCols,
-                          objects=self.objects)
 
     def _combineFrame(self, other, func):
         """
@@ -1236,58 +1211,77 @@ class DataMatrix(DataFrame):
 
         return self.leftJoin(filledFrame)
 
-    def reindex(self, newIndex, fillMethod=None):
-        """
-        Reindex data inside, optionally filling according to some rule.
-
-        Parameters
-        ----------
-        newIndex :   array-like
-            preferably an Index object (to avoid duplicating data)
-        fillMethod : {'backfill', 'pad', 'interpolate', None}
-            Method to use for filling holes in reindexed DataFrame
-
-        Returns
-        -------
-        DataMatrix
-        """
-        if newIndex is self.index:
+    def _reindex_index(self, index, method):
+        if index is self.index:
             return self.copy()
 
-        if len(newIndex) == 0:
+        if len(index) == 0:
             return DataMatrix(index=NULL_INDEX)
 
-        if not isinstance(newIndex, Index):
-            newIndex = Index(newIndex)
+        if not isinstance(index, Index):
+            index = Index(index)
 
         if len(self.index) == 0:
-            return DataMatrix(index=newIndex, columns=self.columns)
+            return DataMatrix(index=index, columns=self.columns)
 
-        selfM = self.values
-        oldMap = self.index.indexMap
-        newMap = newIndex.indexMap
+        fillVec, mask = tseries.getFillVec(self.index, index,
+                                           self.index.indexMap,
+                                           index.indexMap, method)
 
-        if not fillMethod:
-            fillMethod = ''
-
-        fillMethod = fillMethod.upper()
-
-        if fillMethod not in ['BACKFILL', 'PAD', '']:
-            raise Exception("Don't recognize fillMethod: %s" % fillMethod)
-
-        fillVec, mask = tseries.getFillVec(self.index, newIndex, oldMap,
-                                           newMap, fillMethod)
-
-        tmpMatrix = selfM.take(fillVec, axis=0)
+        tmpMatrix = self.values.take(fillVec, axis=0)
         tmpMatrix[-mask] = np.NaN
 
         if self.objects is not None and len(self.objects.columns) > 0:
-            newLinks = self.objects.reindex(newIndex)
+            newObjects = self.objects.reindex(index)
         else:
-            newLinks = None
+            newObjects = None
 
-        return DataMatrix(tmpMatrix, index=newIndex,
-                          columns=self.columns, objects=newLinks)
+        return DataMatrix(tmpMatrix, index=index,
+                          columns=self.columns,
+                          objects=newObjects)
+
+    def _reindex_columns(self, columns):
+        if len(columns) == 0:
+            return DataMatrix(index=self.index)
+
+        if not isinstance(columns, Index):
+            columns = Index(columns)
+
+        indexer, mask = tseries.getFillVec(self.columns, columns,
+                                           self.columns.indexMap,
+                                           columns.indexMap, '')
+
+        newValues = self.values.take(indexer, axis=1)
+        newValues[:, -mask] = np.NaN
+
+        return DataMatrix(newValues, index=self.index, columns=columns,
+                          objects=self.objects)
+
+
+    def _withColumns(self, columns):
+        """
+        Utility method, force values matrix to have particular columns
+        Can make this as cute as we like
+        """
+        if len(columns) == 0:
+            return DataMatrix(index=self.index)
+
+        T, N = len(self.index), len(columns)
+
+        resultMatrix = np.empty((T, N), dtype=self.values.dtype)
+        resultMatrix.fill(np.NaN)
+
+        if not isinstance(columns, Index):
+            columns = Index(columns)
+
+        overlap = self.columns.intersection(columns)
+        thisIndexer = [self.columns.indexMap[col] for col in overlap]
+        resultIndexer = [columns.indexMap[idx] for idx in overlap]
+
+        resultMatrix[:, resultIndexer] = self.values[:, thisIndexer]
+
+        return DataMatrix(resultMatrix, index=self.index, columns=columns,
+                          objects=self.objects)
 
     @property
     def T(self):
@@ -1392,12 +1386,6 @@ class DataMatrix(DataFrame):
         else:
             raise Exception('Should not reach here')
 
-    def tapply(self, func):
-        """
-        Apply func to the transposed DataMatrix, results as per above.
-        """
-        return self.apply(func, axis=1)
-
     def applymap(self, func):
         """
         Apply a function to a DataMatrix that is intended to operate
@@ -1457,7 +1445,7 @@ class DataMatrix(DataFrame):
         DataMatrix with matching columns
         """
         newCols = Index([c for c in self.columns if arg in c])
-        return self._withColumns(newCols)
+        return self.reindex(columns=newCols)
 
     def append(self, otherFrame):
         if not otherFrame:
