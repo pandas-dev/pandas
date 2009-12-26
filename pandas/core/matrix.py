@@ -23,8 +23,8 @@ class DataMatrix(DataFrame):
     numerical computation, and other operations that do not require the
     frame to change size.
 
-    Constructor params
-    ------------------
+    Parameters
+    ----------
     data : numpy ndarray or dict of Series
         Constructor can understand various kinds of inputs
     index : Index or array-like
@@ -224,8 +224,8 @@ class DataMatrix(DataFrame):
             Keys become column names of returned frame
         kwds : optionally provide arguments as keywords
 
-        Example
-        -------
+        Examples
+        --------
         df1 = DataMatrix.fromDict(myDict)
         df2 = DataMatrix.fromDict(A=seriesA, B=seriesB)
         """
@@ -1169,8 +1169,8 @@ class DataMatrix(DataFrame):
         on : string
             Column name to use
 
-        Example
-        -------
+        Examples
+        --------
         This frame         Other frame
             c1                 q1
         a   1              0   v1
@@ -1349,8 +1349,8 @@ class DataMatrix(DataFrame):
         func : function
             Function to apply to each column
 
-        Example
-        -------
+        Examples
+        --------
 
             >>> df.apply(numpy.sqrt) --> DataMatrix
             >>> df.apply(numpy.sum) --> Series
@@ -1477,8 +1477,8 @@ class DataMatrix(DataFrame):
         ----------
         otherFrame : DataFrame / Matrix
 
-        Example
-        -------
+        Examples
+        --------
         a.combineFirst(b)
             a's values prioritized, use values from b to fill holes
 

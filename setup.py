@@ -9,15 +9,26 @@ import numpy
 
 DESCRIPTION = "Cross-section and time series data analysis toolkit"
 LONG_DESCRIPTION = """
-Pandas provides data structures and statistical tools for common
-time-series and cross-sectional data sets.
+pandas provides NumPy-based data structures and statistical tools for
+common time series and cross-sectional data sets. It is intended to
+accomplish the following:
+
+* Simplify working with possibly labeled 1, 2, and 3 dimensional
+  heterogeneous data sets commonly found in statistics, finance, and
+  econometrics.
+
+* Provide IO utilities for getting data in and out of pandas
+
+* Implement common statistical models with a convenient interface,
+  handling missing data and other common problems associated with
+  messy statistical data sets
 """
 
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
 MAINTAINER = "AQR Capital Management, LLC"
 MAINTAINER_EMAIL = "wesmckinn@gmail.com"
-URL = "pandas.googlecode.com"
+URL = "http://pandas.sourceforge.net"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -54,7 +65,7 @@ def configuration(parent_package='', top_path=None, package_name=DISTNAME):
     config = Configuration(None, parent_package, top_path,
                            name=DISTNAME,
                            version=get_version(),
-                           maintainer =MAINTAINER,
+                           maintainer=MAINTAINER,
                            maintainer_email=MAINTAINER_EMAIL,
                            description=DESCRIPTION,
                            license=LICENSE,
@@ -83,7 +94,7 @@ if __name__ == '__main__':
     setup(configuration=configuration,
           packages=setuptools.find_packages(),
           classifiers=CLASSIFIERS,
-          requires=['numpy', 'scipy', 'scikits.statsmodels', 'dateutil'],
+          requires=['numpy'],
           platforms='any',
           test_suite='nose.collector',
           zip_safe=False)

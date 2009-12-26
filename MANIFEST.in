@@ -1,4 +1,4 @@
-include TODO LICENSE README
+include TODO.txt LICENSE.txt README.txt
 include setup.py setupegg.py
 include examples/data/*
 recursive-include examples *

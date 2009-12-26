@@ -98,8 +98,8 @@ class Series(np.ndarray, Picklable, Groupable):
     be present or the value for that index position will be nan. The
     new index is the sorted union of the two Series indices.
 
-    Example
-    -------
+    Examples
+    --------
         >>> s = Series(arr, index=Index(dates))
         >>> t = Series(otherArr, index=Index(otherDates))
         >>> s / t # --> new Series resulting from by-index division of elements

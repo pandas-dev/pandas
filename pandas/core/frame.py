@@ -58,8 +58,8 @@ class DataFrame(Picklable, Groupable):
     --------
     DataMatrix: more efficient version of DataFrame for most operations
 
-    Example
-    -------
+    Examples
+    --------
         >>> d = {'col1' : ts1, 'col2' : ts2}
         >>> df = DataFrame(data=d, index=someIndex)
     """
@@ -125,8 +125,8 @@ class DataFrame(Picklable, Groupable):
         -------
         DataFrame
 
-        Example
-        -------
+        Examples
+        --------
         df1 = DataFrame.fromDict(myDict)
         df2 = DataFrame.fromDict(A=seriesA, B=seriesB)
         """
@@ -462,8 +462,8 @@ class DataFrame(Picklable, Groupable):
         other : constant, array, or DataFrame/Matrix
         func : function taking two arguments
 
-        Example
-        -------
+        Examples
+        --------
         frame._combineFunc(otherFrame, lambda x, y: x + y)
         """
         newColumns = {}
@@ -1042,8 +1042,8 @@ class DataFrame(Picklable, Groupable):
             Function to apply to each column
         axis : {0, 1}
 
-        Example
-        -------
+        Examples
+        --------
             >>> df.apply(numpy.sqrt) --> DataFrame
             >>> df.apply(numpy.sum) --> Series
 
@@ -1167,8 +1167,8 @@ class DataFrame(Picklable, Groupable):
         ----------
         otherFrame : DataFrame / Matrix
 
-        Example
-        -------
+        Examples
+        --------
         a.combineFirst(b)
             a's values prioritized, use values from b to fill holes
 
@@ -1311,8 +1311,8 @@ class DataFrame(Picklable, Groupable):
         on : string
             Column name to use
 
-        Example
-        -------
+        Examples
+        --------
         This frame         Other frame
             c1                 q1
         a   1              0   v1

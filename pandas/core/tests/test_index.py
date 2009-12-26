@@ -163,15 +163,15 @@ class TestIndex(unittest.TestCase):
 
     def test_pickle(self):
         def testit(index):
-            f = open('tmp', 'wb')
+            f = open('__tmp__', 'wb')
             pickle.dump(index, f)
             f.close()
 
-            f = open('tmp', 'rb')
+            f = open('__tmp__', 'rb')
             unPickled = pickle.load(f)
             f.close()
 
-            os.remove('tmp')
+            os.remove('__tmp__')
 
             self.assert_(isinstance(unPickled, Index))
             self.assert_(np.array_equal(unPickled, index))
