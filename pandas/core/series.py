@@ -692,13 +692,30 @@ class Series(np.ndarray, Picklable, Groupable):
         ----
         See matplotlib documentation online for more on this subject
         """
-        import pylab
+        import matplotlib.pyplot as plt
 
         if label is not None:
             kwds = kwds.copy()
             kwds['label'] = label
 
-        pylab.plot(self.index, self, **kwds)
+        N = len(self)
+
+        if kind == 'line':
+            plt.plot(self.index, self.values(), **kwds)
+
+#             ax = plt.gca()
+#             ax.autoscale_view(scalex=True, scaley=True)
+
+#             locs, labels = plt.xticks()
+#             new_locs = locs[::len(locs) // 8]
+#             plt.xticks(new_locs, rotation=20)
+
+        elif kind == 'bar':
+            xinds = np.arange(N) + 0.25
+            plt.bar(xinds, self.values(), 0.5, bottom=np.zeros(N), linewidth=1)
+            fontsize = 12 if N < 10 else 10
+
+            plt.xticks(xinds + 0.25, self.index, rotation=30, fontsize=fontsize)
 
     def toCSV(self, path):
         """
