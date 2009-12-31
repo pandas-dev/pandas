@@ -5,6 +5,7 @@ from cStringIO import StringIO
 import sys
 
 from numpy.lib.format import read_array, write_array
+from numpy import NaN
 import numpy as np
 
 from pandas.core.frame import DataFrame, _pfixed
@@ -147,7 +148,7 @@ class DataMatrix(DataFrame):
                 K = len(columns)
 
             values = np.empty((N, K), dtype=dtype)
-            values[:] = np.NaN
+            values[:] = NaN
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
@@ -755,9 +756,9 @@ class DataMatrix(DataFrame):
         if not self and not other:
             return DataMatrix(index=newIndex)
         elif not self:
-            return other * np.NaN
+            return other * NaN
         elif not other:
-            return self * np.NaN
+            return self * NaN
 
         myValues = myReindex.values
         if self.columns.equals(other.columns):
@@ -774,7 +775,7 @@ class DataMatrix(DataFrame):
         else:
             T, N = len(newIndex), len(newCols)
             resultMatrix = np.empty((T, N), dtype=self.values.dtype)
-            resultMatrix.fill(np.NaN)
+            resultMatrix.fill(NaN)
 
             myIndexer = [self.columns.indexMap[idx] for idx in commonCols]
             hisIndexer =  [hisCols.indexMap[idx] for idx in commonCols]
@@ -804,11 +805,15 @@ class DataMatrix(DataFrame):
             resultMatrix = func(myReindex.values.T, other).T
         else:
             if len(other) == 0:
-                return self * np.NaN
+                return self * NaN
+
+            newCols = self.columns.union(other.index)
 
             # Operate column-wise
-            other = other.reindex(self.columns).view(np.ndarray)
-            resultMatrix = func(self.values, other)
+            this = self.reindex(columns=newCols)
+            other = other.reindex(newCols).values()
+
+            resultMatrix = func(this.values, other)
 
         # TODO: deal with objects
         return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
@@ -1190,7 +1195,7 @@ class DataMatrix(DataFrame):
         fillVec, mask = tseries.getMergeVec(self[on], indexMap)
 
         tmpMatrix = otherM.take(fillVec, axis=0)
-        tmpMatrix[-mask] = np.NaN
+        tmpMatrix[-mask] = NaN
 
         seriesDict = dict((col, tmpMatrix[:, j])
                            for j, col in enumerate(otherFrame.columns))
@@ -1201,7 +1206,7 @@ class DataMatrix(DataFrame):
             objM = objects.asMatrix()
 
             tmpMat = objM.take(fillVec, axis=0)
-            tmpMat[-mask] = np.NaN
+            tmpMat[-mask] = NaN
             objDict = dict((col, tmpMat[:, j])
                            for j, col in enumerate(objects.columns))
 
@@ -1229,7 +1234,7 @@ class DataMatrix(DataFrame):
                                            index.indexMap, method)
 
         tmpMatrix = self.values.take(fillVec, axis=0)
-        tmpMatrix[-mask] = np.NaN
+        tmpMatrix[-mask] = NaN
 
         if self.objects is not None and len(self.objects.columns) > 0:
             newObjects = self.objects.reindex(index)
@@ -1252,35 +1257,9 @@ class DataMatrix(DataFrame):
                                            columns.indexMap, '')
 
         newValues = self.values.take(indexer, axis=1)
-        newValues[:, -mask] = np.NaN
+        newValues[:, -mask] = NaN
 
         return DataMatrix(newValues, index=self.index, columns=columns,
-                          objects=self.objects)
-
-
-    def _withColumns(self, columns):
-        """
-        Utility method, force values matrix to have particular columns
-        Can make this as cute as we like
-        """
-        if len(columns) == 0:
-            return DataMatrix(index=self.index)
-
-        T, N = len(self.index), len(columns)
-
-        resultMatrix = np.empty((T, N), dtype=self.values.dtype)
-        resultMatrix.fill(np.NaN)
-
-        if not isinstance(columns, Index):
-            columns = Index(columns)
-
-        overlap = self.columns.intersection(columns)
-        thisIndexer = [self.columns.indexMap[col] for col in overlap]
-        resultIndexer = [columns.indexMap[idx] for idx in overlap]
-
-        resultMatrix[:, resultIndexer] = self.values[:, thisIndexer]
-
-        return DataMatrix(resultMatrix, index=self.index, columns=columns,
                           objects=self.objects)
 
     @property
@@ -1324,17 +1303,27 @@ class DataMatrix(DataFrame):
         if timeRule is not None and offset is None:
             offset = datetools.getOffset(timeRule)
 
+        N = len(self)
+
         if offset is None:
+            newIndex = self.index
+            indexer = np.zeros(N, dtype=int)
             if periods > 0:
-                newIndex = self.index[periods:]
-                newValues = self.values[:-periods].copy()
+                indexer[periods:] = np.arange(N - periods)
+                newValues = self.values.take(indexer, axis=0)
+                newValues[:periods] = NaN
             else:
-                newIndex = self.index[:periods]
-                newValues = self.values[-periods:].copy()
+                indexer[:periods] = np.arange(-periods, N)
+                newValues = self.values.take(indexer, axis=0)
+                newValues[periods:] = NaN
         else:
             offset = periods * offset
-            newIndex = Index([idx + offset for idx in self.index])
+            newIndex = Index([x + offset for x in self.index])
             newValues = self.values.copy()
+
+        if self.objects is not None:
+            pass
+
         return DataMatrix(data=newValues, index=newIndex, columns=self.columns)
 
     def apply(self, func, axis=0):

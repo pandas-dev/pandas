@@ -220,15 +220,17 @@ class BDay(DateOffset):
     def apply(self, other):
         if isinstance(other, datetime):
             n = self.n
+
             if n == 0 and other.weekday() > 4:
                 n = 1
 
             result = other
 
             while n != 0:
-                result = result + timedelta(n/abs(n))
+                k = n // abs(n)
+                result = result + timedelta(k)
                 if result.weekday() < 5:
-                    n -= n/abs(n)
+                    n -= k
 
             if self.normalize:
                 result = datetime(result.year, result.month, result.day)

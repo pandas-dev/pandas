@@ -70,7 +70,7 @@ def assert_frame_equal(left, right):
 
     for col in right:
         assert(col in left)
-    
+
 def assert_contains_all(iterable, dic):
     for k in iterable:
         assert(k in dic)
@@ -137,8 +137,8 @@ def makeTimeDataFrame():
 
 def makeDataMatrix():
     data = getSeriesData()
-    return DataFrame(data)
+    return DataMatrix(data)
 
 def makeTimeDataMatrix():
     data = getTimeSeriesData()
-    return DataFrame(data)
+    return DataMatrix(data)

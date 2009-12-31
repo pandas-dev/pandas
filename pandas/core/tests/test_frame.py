@@ -7,7 +7,7 @@ import unittest
 from numpy import random
 import numpy as np
 
-from pandas.core.api import DateRange, DataFrame, Index, Series
+from pandas.core.api import DataFrame, Index, Series
 from pandas.core.datetools import bday
 import pandas.core.datetools as datetools
 
@@ -309,7 +309,36 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(not empty_empty)
 
     def test_combineSeries(self):
-        pass
+
+        # Series
+        series = self.frame.getXS(self.frame.index[0])
+
+        added = self.frame + series
+
+        for key, s in added.iteritems():
+            assert_series_equal(s, self.frame[key] + series[key])
+
+        larger_series = series.toDict()
+        larger_series['E'] = 1
+        larger_series = Series.fromDict(larger_series)
+        larger_added = self.frame + larger_series
+
+        for key, s in self.frame.iteritems():
+            assert_series_equal(larger_added[key], s + series[key])
+        self.assert_('E' in larger_added)
+        self.assert_(np.isnan(larger_added['E']).all())
+
+        # TimeSeries
+        ts = self.tsframe['A']
+        added = self.tsframe + ts
+
+        for key, col in self.tsframe.iteritems():
+            assert_series_equal(added[key], col + ts)
+
+        smaller_frame = self.tsframe[:-5]
+        smaller_added = smaller_frame + ts
+
+        self.assert_(smaller_added.index.equals(self.tsframe.index))
 
     def test_combineFunc(self):
         pass
@@ -447,13 +476,13 @@ class TestDataFrame(unittest.TestCase):
         frame = self.tsframe
 
         tsFrame = frame.getTS(fromDate=frame.index[5], nPeriods=5)
-        common.assert_frame_equal(tsFrame, frame[5:10])
+        assert_frame_equal(tsFrame, frame[5:10])
 
         tsFrame = frame.getTS(fromDate=frame.index[5], toDate=frame.index[9])
-        common.assert_frame_equal(tsFrame, frame[5:10])
+        assert_frame_equal(tsFrame, frame[5:10])
 
         tsFrame = frame.getTS(nPeriods=5, toDate=frame.index[9])
-        common.assert_frame_equal(tsFrame, frame[5:10])
+        assert_frame_equal(tsFrame, frame[5:10])
 
         A = frame.getTS(colName='A', nPeriods=5, toDate=frame.index[9])
         assert_series_equal(A, frame['A'][5:10])
@@ -472,34 +501,34 @@ class TestDataFrame(unittest.TestCase):
 
         # neither specified
         truncated = ts.truncate()
-        common.assert_frame_equal(truncated, ts)
+        assert_frame_equal(truncated, ts)
 
         # both specified
         expected = ts[1:3]
 
         truncated = ts.truncate(start, end)
-        common.assert_frame_equal(truncated, expected)
+        assert_frame_equal(truncated, expected)
 
         truncated = ts.truncate(start_missing, end_missing)
-        common.assert_frame_equal(truncated, expected)
+        assert_frame_equal(truncated, expected)
 
         # start specified
         expected = ts[1:]
 
         truncated = ts.truncate(before=start)
-        common.assert_frame_equal(truncated, expected)
+        assert_frame_equal(truncated, expected)
 
         truncated = ts.truncate(before=start_missing)
-        common.assert_frame_equal(truncated, expected)
+        assert_frame_equal(truncated, expected)
 
         # end specified
         expected = ts[:3]
 
         truncated = ts.truncate(after=end)
-        common.assert_frame_equal(truncated, expected)
+        assert_frame_equal(truncated, expected)
 
         truncated = ts.truncate(after=end_missing)
-        common.assert_frame_equal(truncated, expected)
+        assert_frame_equal(truncated, expected)
 
     def test_getXS(self):
         idx = self.frame.index[5]
@@ -585,27 +614,71 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_shift(self):
+        # naive shift
         shiftedFrame = self.tsframe.shift(5)
-        for i, idx in enumerate(shiftedFrame.index):
-            self.assert_(idx-5*bday == self.tsframe.index[i])
-        series = shiftedFrame['A']
-        for i, idx in enumerate(series.index):
-            self.assert_(idx-5*bday == self.tsframe.index[i])
+        self.assert_(shiftedFrame.index.equals(self.tsframe.index))
+
+        shiftedSeries = self.tsframe['A'].shift(5)
+        assert_series_equal(shiftedFrame['A'], shiftedSeries)
+
+        shiftedFrame = self.tsframe.shift(-5)
+        self.assert_(shiftedFrame.index.equals(self.tsframe.index))
+
+        shiftedSeries = self.tsframe['A'].shift(-5)
+        assert_series_equal(shiftedFrame['A'], shiftedSeries)
+
+        # shift by DateOffset
+        shiftedFrame = self.tsframe.shift(5, offset=datetools.BDay())
+        self.assert_(len(shiftedFrame) == len(self.tsframe))
+
+        d = self.tsframe.index[0]
+        shifted_d = d + datetools.BDay(5)
+        assert_series_equal(self.tsframe.getXS(d),
+                            shiftedFrame.getXS(shifted_d))
 
     def test_apply(self):
-        pass
+        # ufunc
+        applied = self.frame.apply(np.sqrt)
+        assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
+
+        # aggregator
+        applied = self.frame.apply(np.mean)
+        self.assertEqual(applied['A'], np.mean(self.frame['A']))
+
+        d = self.frame.index[0]
+        applied = self.frame.apply(np.mean, axis=1)
+        self.assertEqual(applied[d], np.mean(self.frame.getXS(d)))
 
     def test_tapply(self):
-        pass
+        d = self.frame.index[0]
+        tapplied = self.frame.tapply(np.mean)
+        self.assertEqual(tapplied[d], np.mean(self.frame.getXS(d)))
 
     def test_applymap(self):
-        pass
+        f = lambda x: x * 2
+        applied = self.frame.applymap(f)
+
+        assert_frame_equal(applied, self.frame * 2)
 
     def test_tgroupby(self):
         pass
 
-    def test_filterItems(self):
-        pass
+    def test_filter(self):
+        # items
+
+        filtered = self.frame.filterItems(['A', 'B', 'E'])
+        self.assertEqual(len(filtered.cols()), 2)
+        self.assert_('E' not in filtered)
+
+        # like
+        fcopy = self.frame.copy()
+        fcopy['AA'] = 1
+
+        filtered = fcopy.filterLike('A')
+        self.assertEqual(len(filtered.cols()), 2)
+        self.assert_('AA' in filtered)
+
+        # regex
 
     def test_sortUp(self):
         # what to do?
@@ -618,14 +691,64 @@ class TestDataFrame(unittest.TestCase):
 
         sorted_A = self.frame.sortDown(column='A')
 
-    def test_filterLike(self):
-        pass
-
     def test_combineFirst(self):
-        pass
+        # disjoint
+        head, tail = self.frame[:5], self.frame[5:]
+
+        combined = head.combineFirst(tail)
+        reordered_frame = self.frame.reindex(combined.index)
+        assert_frame_equal(combined, reordered_frame)
+        self.assert_(common.equalContents(combined.cols(), self.frame.cols()))
+        assert_series_equal(combined['A'], reordered_frame['A'])
+
+        # same index
+        fcopy = self.frame.copy()
+        fcopy['A'] = 1
+        del fcopy['C']
+
+        fcopy2 = self.frame.copy()
+        fcopy2['B'] = 0
+        del fcopy2['D']
+
+        combined = fcopy.combineFirst(fcopy2)
+
+        self.assert_((combined['A'] == 1).all())
+        assert_series_equal(combined['B'], fcopy['B'])
+        assert_series_equal(combined['C'], fcopy2['C'])
+        assert_series_equal(combined['D'], fcopy['D'])
+
+        # overlap
+        head, tail = reordered_frame[:10].copy(), reordered_frame
+        head['A'] = 1
+
+        combined = head.combineFirst(tail)
+        self.assert_((combined['A'][:10] == 1).all())
+
+        # reverse overlap
+        tail['A'][:10] = 0
+        combined = tail.combineFirst(head)
+        self.assert_((combined['A'][:10] == 0).all())
+
+        # corner cases
+        comb = self.frame.combineFirst(self.empty)
+        self.assert_(comb is self.frame)
+
+        comb = self.empty.combineFirst(self.frame)
+        self.assert_(comb is self.frame)
 
     def test_combineAdd(self):
-        pass
+        # trivial
+        comb = self.frame.combineAdd(self.frame)
+
+        assert_frame_equal(comb, self.frame * 2)
+
+
+        # corner cases
+        comb = self.frame.combineAdd(self.empty)
+        self.assert_(comb is self.frame)
+
+        comb = self.empty.combineAdd(self.frame)
+        self.assert_(comb is self.frame)
 
     def test_combineMult(self):
         pass

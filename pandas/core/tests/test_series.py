@@ -558,6 +558,10 @@ class TestSeries(unittest.TestCase):
         ts = self.ts[::2]
         self.assertRaises(Exception, ts.reindex, self.ts.index, fillMethod='foo')
 
+        # corner case: pad empty series
+        s = Series([], index=[])
+        reindexed = s.reindex(self.ts.index, fillMethod='pad')
+
     def test_reindex_bool(self):
 
         # A series other than float, int, string, or object

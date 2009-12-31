@@ -1044,7 +1044,7 @@ class LongPanel(Panel):
 
         I, N, K = self.dims
 
-        values = np.empty((I, N, K), dtype=float)
+        values = np.empty((I, N, K), dtype=self.values.dtype)
 
         mask = self.index.mask
         notmask = -mask
