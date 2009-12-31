@@ -394,8 +394,13 @@ class DataFrame(Picklable, Groupable):
 
         if self.index.equals(other.index):
             newIndex = self.index
+
+            this = self
         else:
             newIndex = self.index + other.index
+
+            this = self.reindex(newIndex)
+            other = other.reindex(newIndex)
 
         if not self and not other:
             return DataFrame(index=newIndex)
@@ -406,10 +411,9 @@ class DataFrame(Picklable, Groupable):
         if not self:
             return other * NaN
 
-        for col, series in self.iteritems():
+        for col, series in this.iteritems():
             if col in other:
-                newSeries = func(series, other[col])
-                newColumns[col] = newSeries.reindex(newIndex)
+                newColumns[col] = func(series, other[col])
             else:
                 newColumns[col] = series.fromValue(np.NaN, index=newIndex)
 
@@ -432,23 +436,32 @@ class DataFrame(Picklable, Groupable):
 
             if self.index.equals(other.index):
                 newIndex = self.index
+
+                this = self
             else:
                 newIndex = self.index + other.index
 
-            other = other.reindex(newIndex)
-            for col, series in self.iteritems():
-                newColumns[col] = func(series.reindex(newIndex), other)
+                this = self.reindex(newIndex)
+                other = other.reindex(newIndex)
+
+            for col, series in this.iteritems():
+                newColumns[col] = func(series, other)
+
+            result = DataFrame(newColumns, index=newIndex)
 
         else:
-            for col, series in self.iteritems():
-                if col in other.index:
-                    newColumns[col] = func(series, other[col])
-                else:
-                    cls = series.__class__
-                    newColumns[col] = cls(np.repeat(NaN, len(self.index)),
-                                          index=self.index)
+            union = other.index.union(self.cols())
+            intersection = other.index.intersection(self.cols())
 
-        return DataFrame(data=newColumns, index=newIndex)
+            for col in intersection:
+                newColumns[col] = func(self[col], other[col])
+
+            result = DataFrame(newColumns, index=self.index)
+
+            for col in (x for x in union if x not in intersection):
+                result[col] = NaN
+
+        return result
 
     def _combineFunc(self, other, func):
         """
@@ -1013,21 +1026,35 @@ class DataFrame(Picklable, Groupable):
         if timeRule is not None and offset is None:
             offset = datetools.getOffset(timeRule)
 
+        N = len(self)
+
         if offset is None:
+            newIndex = self.index
+
+            indexer = np.zeros(N, dtype=int)
             if periods > 0:
-                newIndex = self.index[periods:]
-                newValues = dict([(col, np.asarray(series)[:-periods])
-                                   for col, series in self.iteritems()])
+                indexer[periods:] = np.arange(N - periods)
+                def do_shift(series):
+                    values = np.asarray(series).take(indexer)
+                    values[:periods] = NaN
+                    return values
+
             else:
-                newIndex = self.index[:periods]
-                newValues = dict([(col, np.asarray(series)[-periods:])
-                                   for col, series in self.iteritems()])
+                indexer[:periods] = np.arange(-periods, N)
+                def do_shift(series):
+                    values = np.asarray(series).take(indexer)
+                    values[periods:] = NaN
+                    return values
+
+            newValues = dict([(col, do_shift(series))
+                              for col, series in self.iteritems()])
         else:
             offset = periods * offset
             newIndex = Index([idx + offset for idx in self.index])
             newValues = dict([(col, np.asarray(series))
                                for col, series in self.iteritems()])
-        return DataFrame(data = newValues, index= newIndex)
+
+        return DataFrame(data=newValues, index=newIndex)
 
     def apply(self, func, axis=0):
         """
@@ -1094,6 +1121,23 @@ class DataFrame(Picklable, Groupable):
         """
         return self.T.groupby(keyfunc).aggregate(applyfunc).T
 
+    def filter(self, items=None, like=None, regex=None):
+        """
+        TODO
+        """
+        if items:
+            data = dict([(r, self[r]) for r in items if r in self])
+            return DataFrame(data=data, index=self.index)
+        elif like:
+            mycopy = self.copy()
+            for col in mycopy._series.keys():
+                series = mycopy._series.pop(col)
+                if like in col:
+                    mycopy._series[col] = series
+            return mycopy
+        elif regex:
+            pass
+
     def filterItems(self, items):
         """
         Restrict frame's columns to input set of items.
@@ -1107,8 +1151,23 @@ class DataFrame(Picklable, Groupable):
         -------
         DataFrame with filtered columns
         """
-        data = dict([(r, self[r]) for r in items if r in self])
-        return DataFrame(data=data, index=self.index)
+        return self.filter(items=items)
+
+    def filterLike(self, arg):
+        """
+        Filter to columns partially matching the import argument.
+
+        Keep columns where "arg in col == True"
+
+        Parameter
+        ---------
+        arg : string
+
+        Return
+        ------
+        DataFrame with matching columns
+        """
+        return self.filter(like=arg)
 
     def sortUp(self, column=None):
         """
@@ -1136,27 +1195,6 @@ class DataFrame(Picklable, Groupable):
             idx = idx[::-1]  # Reverses array
             newIndex = self.index[idx.astype(int)]
             return self.reindex(newIndex)
-
-    def filterLike(self, arg):
-        """
-        Filter to columns partially matching the import argument.
-
-        Keep columns where "arg in col == True"
-
-        Parameter
-        ---------
-        arg : string
-
-        Return
-        ------
-        DataFrame with matching columns
-        """
-        mycopy = self.copy()
-        for col in mycopy._series.keys():
-            series = mycopy._series.pop(col)
-            if arg in col:
-                mycopy._series[col] = series
-        return mycopy
 
     def combineFirst(self, otherFrame):
         """
@@ -1204,7 +1242,10 @@ class DataFrame(Picklable, Groupable):
             if col not in self:
                 result[col] = series
 
-        return DataFrame(result, index = unionIndex)
+        return DataFrame(result, index=unionIndex)
+
+    def combine(self, func, fill_value=np.NaN):
+        pass
 
     def combineAdd(self, otherFrame):
         """
@@ -1613,7 +1654,9 @@ class DataFrame(Picklable, Groupable):
             demeaned = self-self.mean(axis=axis)
         else:
             demeaned = (self.T-self.mean(axis=axis)).T
+
         y = np.array(demeaned.values, subok=True)
+
         if not issubclass(y.dtype.type, np.int_):
             y[np.isnan(y)] = 0
 
