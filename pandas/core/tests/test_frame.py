@@ -1,14 +1,14 @@
 # pylint: disable-msg=W0612
 
 from copy import deepcopy
+from cStringIO import StringIO
 import os
 import unittest
 
 from numpy import random
 import numpy as np
 
-from pandas.core.api import DataFrame, Index, Series
-from pandas.core.datetools import bday
+from pandas.core.api import DataFrame, Index, Series, notnull
 import pandas.core.datetools as datetools
 
 from pandas.core.tests.common import (assert_almost_equal,
@@ -45,10 +45,13 @@ class TestDataFrame(unittest.TestCase):
             'col3' : self.ts3,
             'col4' : self.ts4,
         }
-        self.empty = DataFrame({})
+        self.empty = self.klass({})
 
     def test_constructor(self):
-        df = DataFrame()
+        df = self.klass()
+        self.assert_(len(df.index) == 0)
+
+        df = self.klass(data={})
         self.assert_(len(df.index) == 0)
 
     def test_constructor_mixed(self):
@@ -139,8 +142,23 @@ class TestDataFrame(unittest.TestCase):
         self.assertFalse(self.empty)
 
         self.assert_(self.frame)
+        self.assert_(self.mixed_frame)
+
+        # corner case
+        df = self.klass({'A' : [1., 2., 3.],
+                         'B' : ['a', 'b', 'c']},
+                        index=np.arange(3))
+        del df['A']
+        self.assert_(df)
 
     def test_repr(self):
+        # empty
+        foo = repr(self.empty)
+
+        # empty with index
+        frame = self.klass(index=np.arange(1000))
+        foo = repr(frame)
+
         # small one
         foo = repr(self.frame)
 
@@ -156,7 +174,16 @@ class TestDataFrame(unittest.TestCase):
         biggie = self.klass({'A' : randn(1000),
                              'B' : common.makeStringIndex(1000)},
                             index=range(1000))
+        biggie['A'][:20] = np.NaN
+        biggie['B'][:20] = np.NaN
+
         foo = repr(biggie)
+
+        buf = StringIO()
+        biggie.toString(buffer=buf)
+
+    def test_toString(self):
+        pass
 
     def test_getitem(self):
         # slicing
@@ -199,13 +226,6 @@ class TestDataFrame(unittest.TestCase):
         common.assert_dict_equal(series, self.frame['col6'],
                                  compare_keys=False)
 
-        # set value
-        self.frame['col7'] = 5
-        assert((self.frame['col7'] == 5).all())
-
-        self.frame['col8'] = 'foo'
-        assert((self.frame['col8'] == 'foo').all())
-
         self.assertRaises(Exception, self.frame.__setitem__,
                           randn(len(self.frame) + 1))
 
@@ -213,6 +233,13 @@ class TestDataFrame(unittest.TestCase):
         arr = randn(len(self.frame))
         self.frame['col9'] = arr
         self.assert_((self.frame['col9'] == arr).all())
+
+        # set value, do out of order for DataMatrix
+        self.frame['col7'] = 5
+        assert((self.frame['col7'] == 5).all())
+
+        self.frame['col8'] = 'foo'
+        assert((self.frame['col8'] == 'foo').all())
 
     def test_delitem(self):
         del self.frame['A']
@@ -268,7 +295,7 @@ class TestDataFrame(unittest.TestCase):
         mat[:5] = np.NaN
         mat[-5:] = np.NaN
 
-        frame = DataFrame({'foo' : mat}, index=self.frame.index)
+        frame = self.klass({'foo' : mat}, index=self.frame.index)
         index = frame._firstTimeWithValue()
 
         self.assert_(index == frame.index[5])
@@ -291,7 +318,7 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(np.isnan(added['D']).all())
 
         self_added = self.frame + self.frame
-        self.assert_(self_added.index is self.frame.index)
+        self.assert_(self_added.index.equals(self.frame.index))
 
         added_rev = frame_copy + self.frame
         self.assert_(np.isnan(added['D']).all())
@@ -357,9 +384,6 @@ class TestDataFrame(unittest.TestCase):
 
     def test_toDataMatrix(self):
         dm = self.frame.toDataMatrix()
-
-    def test_toString(self):
-        pass
 
     def test_info(self):
         pass
@@ -442,9 +466,12 @@ class TestDataFrame(unittest.TestCase):
         mat = randn(N)
         mat[:5] = np.NaN
 
-        frame = DataFrame({'foo' : mat}, index=self.frame.index)
+        frame = self.klass({'foo' : mat}, index=self.frame.index)
 
         smaller_frame = frame.dropEmptyRows()
+        self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
+
+        smaller_frame = frame.dropEmptyRows(['foo'])
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
 
     def test_dropIncompleteRows(self):
@@ -452,14 +479,14 @@ class TestDataFrame(unittest.TestCase):
         mat = randn(N)
         mat[:5] = np.NaN
 
-        frame = DataFrame({'foo' : mat}, index=self.frame.index)
+        frame = self.klass({'foo' : mat}, index=self.frame.index)
         frame['bar'] = 5
 
         smaller_frame = frame.dropIncompleteRows()
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
 
         samesize_frame = frame.dropIncompleteRows(specificColumns=['bar'])
-        self.assert_(samesize_frame.index is self.frame.index)
+        self.assert_(samesize_frame.index.equals(self.frame.index))
 
     def test_fill(self):
         self.tsframe['A'][:5] = np.NaN
@@ -610,6 +637,14 @@ class TestDataFrame(unittest.TestCase):
                 else:
                     self.assertEqual(value, frame[col][idx])
 
+        # mixed type
+        index, data = common.getMixedTypeDict()
+        mixed = self.klass(data, index=index)
+
+        mixed_T = mixed.T
+        for col, s in mixed_T.iteritems():
+            self.assert_(s.dtype == np.object_)
+
     def test_diff(self):
         pass
 
@@ -660,8 +695,34 @@ class TestDataFrame(unittest.TestCase):
 
         assert_frame_equal(applied, self.frame * 2)
 
+    def test_groupby(self):
+        grouped = self.tsframe.groupby(lambda x: x.weekday())
+
+        # aggregate
+        aggregated = grouped.aggregate(np.mean)
+        self.assertEqual(len(aggregated), 5)
+        self.assertEqual(len(aggregated.cols()), 4)
+
+        # transform
+        transformed = grouped.transform(lambda x: x - x.mean())
+        self.assertEqual(len(aggregated), 5)
+        self.assertEqual(len(aggregated.cols()), 4)
+
+        # iterate
+        for weekday, group in grouped:
+            self.assert_(group.index[0].weekday() == weekday)
+
     def test_tgroupby(self):
-        pass
+        grouping = {
+            'A' : 0,
+            'B' : 1,
+            'C' : 0,
+            'D' : 1
+        }
+
+        grouped = self.frame.tgroupby(grouping.get, np.mean)
+        self.assertEqual(len(grouped), len(self.frame.index))
+        self.assertEqual(len(grouped.cols()), 2)
 
     def test_filter(self):
         # items
@@ -679,6 +740,9 @@ class TestDataFrame(unittest.TestCase):
         self.assert_('AA' in filtered)
 
         # regex
+        filterd = fcopy.filter(regex='[A]+')
+        self.assertEqual(len(filtered.cols()), 2)
+        self.assert_('AA' in filtered)
 
     def test_sortUp(self):
         # what to do?
@@ -742,7 +806,6 @@ class TestDataFrame(unittest.TestCase):
 
         assert_frame_equal(comb, self.frame * 2)
 
-
         # corner cases
         comb = self.frame.combineAdd(self.empty)
         self.assert_(comb is self.frame)
@@ -751,21 +814,47 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(comb is self.frame)
 
     def test_combineMult(self):
-        pass
+        # trivial
+        comb = self.frame.combineMult(self.frame)
 
-    def test_outerJoin(self):
-        pass
+        assert_frame_equal(comb, self.frame ** 2)
+
+        # corner cases
+        comb = self.frame.combineMult(self.empty)
+        self.assert_(comb is self.frame)
+
+        comb = self.empty.combineMult(self.frame)
+        self.assert_(comb is self.frame)
 
     def test_leftJoin(self):
-        pass
+        f = self.frame.reindex(columns=['A', 'B'])[:10]
+        f2 = self.frame.reindex(columns=['C', 'D'])
+
+        joined = f.leftJoin(f2)
+        self.assert_(f.index.equals(joined.index))
+        self.assertEqual(len(joined.cols()), 4)
+
+        # corner case
+        self.assertRaises(Exception, self.frame.leftJoin, self.frame)
+
+    def test_outerJoin(self):
+        f = self.frame.reindex(columns=['A', 'B'])[:10]
+        f2 = self.frame.reindex(columns=['C', 'D'])
+
+        joined = f.outerJoin(f2)
+        self.assert_(common.equalContents(self.frame.index, joined.index))
+        self.assertEqual(len(joined.cols()), 4)
+
+        # corner case
+        self.assertRaises(Exception, self.frame.outerJoin, self.frame)
 
     def test_merge(self):
         index, data = common.getMixedTypeDict()
-        target = DataFrame(data, index=index)
+        target = self.klass(data, index=index)
 
         # Merge on string value
-        source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
-                           index=data['C'])
+        source = self.klass({'MergedA' : data['A'], 'MergedD' : data['D']},
+                            index=data['C'])
         merged = target.merge(source, on='C')
 
         self.assert_(np.array_equal(merged['MergedA'], target['A']))
@@ -773,46 +862,103 @@ class TestDataFrame(unittest.TestCase):
 
         # Test when some are missing
 
+        # corner case
+
     def test_statistics(self):
         sumFrame = self.frame.apply(np.sum)
         for col, series in self.frame.iteritems():
             self.assertEqual(sumFrame[col], series.sum())
 
+    def _check_statistic(self, frame, name, alternative):
+        f = getattr(frame, name)
+
+        result = f(axis=0)
+        assert_series_equal(result, frame.apply(alternative))
+
+        result = f(axis=1)
+        comp = frame.apply(alternative, axis=1).reindex(result.index)
+        assert_series_equal(result, comp)
+
+        self.assertRaises(Exception, f, axis=2)
+
     def test_count(self):
-        pass
+        f = lambda s: notnull(s).sum()
+
+        self._check_statistic(self.frame, 'count', f)
 
     def test_sum(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return x[notnull(x)].sum()
+
+        self._check_statistic(self.frame, 'sum', f)
 
     def test_product(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return np.prod(x[notnull(x)])
+
+        self._check_statistic(self.frame, 'product', f)
 
     def test_mean(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return x[notnull(x)].mean()
+
+        self._check_statistic(self.frame, 'mean', f)
 
     def test_median(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return np.median(x[notnull(x)])
+
+        self._check_statistic(self.frame, 'median', f)
 
     def test_min(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return x[notnull(x)].min()
+
+        self._check_statistic(self.frame, 'min', f)
 
     def test_max(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return x[notnull(x)].max()
+
+        self._check_statistic(self.frame, 'max', f)
 
     def test_mad(self):
-        pass
+        f = lambda x: np.abs(x - x.mean()).mean()
+
+        self._check_statistic(self.frame, 'mad', f)
 
     def test_var(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return x[notnull(x)].var(ddof=1)
+
+        self._check_statistic(self.frame, 'var', f)
 
     def test_std(self):
-        pass
+        def f(x):
+            x = np.asarray(x)
+            return x[notnull(x)].std(ddof=1)
+
+        self._check_statistic(self.frame, 'std', f)
 
     def test_skew(self):
-        pass
+        from scipy.stats import skew
+        def f(x):
+            x = np.asarray(x)
+            return skew(x[notnull(x)], bias=False)
 
-    def testGroupBy(self):
-        pass
+        self._check_statistic(self.frame, 'skew', f)
+
+    def test_cumsum(self):
+        cumsum = self.tsframe.cumsum()
+
+        assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fill(0)))
 
 if __name__ == '__main__':
     unittest.main()

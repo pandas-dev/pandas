@@ -1000,7 +1000,7 @@ class Series(np.ndarray, Picklable, Groupable):
         if isinstance(other, dict):
             other = Series.fromDict(other)
 
-        if not isinstance(other, Series):
+        if not isinstance(other, Series): # pragma: no cover
             raise Exception('Argument must be a Series!')
 
         fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)

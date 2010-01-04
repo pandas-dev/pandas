@@ -12,7 +12,7 @@ import numpy as np
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
-from pandas.core.series import Series, remove_na
+from pandas.core.series import Series
 from pandas.lib.tseries import isnull, notnull
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
@@ -534,13 +534,12 @@ class DataFrame(Picklable, Groupable):
         return DataMatrix(self._series, index=self.index)
 
     def toString(self, buffer=sys.stdout, verbose=False,
-                 colSpace=15, nanRep=None, formatters=None,
+                 colSpace=15, nanRep='NaN', formatters=None,
                  float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
         columns = sorted(series.keys())
         formatters = formatters or {}
-
 
         # TODO
 
@@ -570,14 +569,14 @@ class DataFrame(Picklable, Groupable):
 
     def info(self, buffer=sys.stdout):
         """Concise summary of a DataFrame, used in __repr__ when very large."""
-        if len(self._series) == 0:
-            print >> buffer, 'DataFrame is empty!'
-            print >> buffer, repr(self.index)
-
         print >> buffer, 'Index: %s entries, %s to %s' % (len(self.index),
                                                           min(self.index),
                                                           max(self.index))
         print >> buffer, 'Data columns:'
+
+        if len(self._series) == 0:
+            print >> buffer, 'DataFrame is empty!'
+            return
 
         series = self._series
         columns = sorted(self.cols())
@@ -978,16 +977,18 @@ class DataFrame(Picklable, Groupable):
         return DataFrame(newSeries, index=index)
 
     def _reindex_columns(self, columns):
-        if len(columns) == 0:
-            return DataFrame(index=self.index)
+        result = DataFrame(index=self.index)
 
-        newFrame = self.filterItems(columns)
+        if len(columns) == 0:
+            return result
 
         for col in columns:
-            if col not in newFrame:
-                newFrame[col] = NaN
+            if col in self:
+                result[col] = self[col]
+            else:
+                result[col] = NaN
 
-        return newFrame
+        return result
 
     @property
     def T(self):
@@ -1117,7 +1118,16 @@ class DataFrame(Picklable, Groupable):
 
     def tgroupby(self, keyfunc, applyfunc):
         """
-        Call groupby on transposed frame
+        Aggregate columns based on passed function
+
+        Parameters
+        ----------
+        keyfunc : function
+        applyfunc : function
+
+        Returns
+        -------
+        y : DataFrame
         """
         return self.T.groupby(keyfunc).aggregate(applyfunc).T
 
@@ -1125,18 +1135,18 @@ class DataFrame(Picklable, Groupable):
         """
         TODO
         """
+        import re
+
         if items:
             data = dict([(r, self[r]) for r in items if r in self])
             return DataFrame(data=data, index=self.index)
         elif like:
-            mycopy = self.copy()
-            for col in mycopy._series.keys():
-                series = mycopy._series.pop(col)
-                if like in col:
-                    mycopy._series[col] = series
-            return mycopy
+            columns = [c for c in self.cols() if like in c]
+            return self.reindex(columns=columns)
         elif regex:
-            pass
+            matcher = re.compile(regex)
+            columns = [c for c in self.cols() if matcher.match(c)]
+            return self.reindex(columns=columns)
 
     def filterItems(self, items):
         """
@@ -1196,7 +1206,64 @@ class DataFrame(Picklable, Groupable):
             newIndex = self.index[idx.astype(int)]
             return self.reindex(newIndex)
 
-    def combineFirst(self, otherFrame):
+    def combine(self, other, func, fill_value=None):
+        """
+        Add two DataFrame / DataMatrix objects and do not propagate NaN values,
+        so if for a (column, time) one frame is missing a value, it will
+        default to the other frame's value (which might be NaN as well)
+
+        Parameters
+        ----------
+        other : DataFrame / Matrix
+
+        Returns
+        -------
+        DataFrame
+        """
+        if not other:
+            return self
+
+        if not self:
+            return other
+
+        if self.index is not other.index:
+            unionIndex = self.index + other.index
+            frame = self.reindex(unionIndex)
+            other = other.reindex(unionIndex)
+        else:
+            unionIndex = self.index
+            frame = self
+
+        do_fill = fill_value is not None
+        unionCols = sorted(set(frame.cols() + other.cols()))
+
+        result = {}
+        for col in unionCols:
+            if col in frame and col in other:
+                series = frame[col].values()
+                otherSeries = other[col].values()
+
+                if do_fill:
+                    this_mask = isnull(series)
+                    other_mask = isnull(otherSeries)
+                    series = series.copy()
+                    otherSeries = otherSeries.copy()
+                    series[this_mask] = fill_value
+                    otherSeries[other_mask] = fill_value
+
+                result[col] = func(series, otherSeries)
+
+                if do_fill:
+                    result[col][this_mask & other_mask] = np.NaN
+
+            elif col in frame:
+                result[col] = frame[col]
+            elif col in other:
+                result[col] = other[col]
+
+        return DataFrame(result, index = unionIndex)
+
+    def combineFirst(self, other):
         """
         Combine two DataFrame / DataMatrix objects and default to value
         in frame calling the method.
@@ -1214,106 +1281,57 @@ class DataFrame(Picklable, Groupable):
         -------
         DataFrame
         """
-        if not otherFrame:
-            return self
+        combiner = lambda x, y: np.where(isnull(x), y, x)
+        return self.combine(other, combiner)
 
-        if not self:
-            return otherFrame
-
-        if self.index is not otherFrame.index:
-            unionIndex = self.index + otherFrame.index
-            frame = self.reindex(unionIndex)
-            otherFrame = otherFrame.reindex(unionIndex)
-        else:
-            unionIndex = self.index
-            frame = self
-
-        result = {}
-        for col, series in frame.iteritems():
-            otherSeries = otherFrame[col] if col in otherFrame else None
-            if otherSeries is not None:
-                result[col] = series.__class__(np.where(isnull(series),
-                                                        otherSeries, series),
-                                               index=unionIndex)
-            else:
-                result[col] = series
-
-        for col, series in otherFrame.iteritems():
-            if col not in self:
-                result[col] = series
-
-        return DataFrame(result, index=unionIndex)
-
-    def combine(self, func, fill_value=np.NaN):
-        pass
-
-    def combineAdd(self, otherFrame):
+    def combineAdd(self, other):
         """
-        Add two DataFrame / DataMatrix objects and do not propagate NaN values,
-        so if for a (column, time) one frame is missing a value, it will
-        default to the other frame's value (which might be NaN as well)
+        Add two DataFrame / DataMatrix objects and do not propagate
+        NaN values, so if for a (column, time) one frame is missing a
+        value, it will default to the other frame's value (which might
+        be NaN as well)
 
         Parameters
         ----------
-        otherFrame : DataFrame / Matrix
+        other : DataFrame / Matrix
 
         Returns
         -------
         DataFrame
         """
-        if not otherFrame:
-            return self
+        return self.combine(other, np.add, fill_value=0.)
 
-        if not self:
-            return otherFrame
+    def combineMult(self, other):
+        """
+        Multiply two DataFrame / DataMatrix objects and do not
+        propagate NaN values, so if for a (column, time) one frame is
+        missing a value, it will default to the other frame's value
+        (which might be NaN as well)
 
-        if self.index is not otherFrame.index:
-            unionIndex = self.index + otherFrame.index
-            frame = self.reindex(unionIndex)
-            otherFrame = otherFrame.reindex(unionIndex)
-        else:
-            unionIndex = self.index
-            frame = self
+        Parameters
+        ----------
+        other : DataFrame / Matrix
 
-        unionCols = sorted(set(frame.cols() + otherFrame.cols()))
-
-        result = {}
-        for col in unionCols:
-            if col in frame and col in otherFrame:
-                series = frame[col].view(np.ndarray)
-                otherSeries = otherFrame[col].view(np.ndarray)
-                sok = np.isfinite(series)
-                ook = np.isfinite(otherSeries)
-
-                result[col] = np.where(sok & ook, series + otherSeries,
-                                       np.where(sok, series, otherSeries))
-
-            elif col in frame:
-                result[col] = frame[col]
-            elif col in otherFrame:
-                result[col] = otherFrame[col]
-            else:
-                raise Exception('Phantom column, be very afraid')
-
-        return DataFrame(result, index = unionIndex)
-
-    def combineMult(self, otherFrame):
-        return (self * otherFrame).combineFirst(self)
+        Returns
+        -------
+        DataFrame
+        """
+        return self.combine(other, np.multiply, fill_value=1.)
 
     def outerJoin(self, *frames):
-        mergedSeries = self._series.copy()
-
         unionIndex = self.index
         for frame in frames:
             unionIndex  = unionIndex + frame.index
 
+        joined = self.reindex(unionIndex)
         for frame in frames:
+            frame = frame.reindex(unionIndex)
             for col, series in frame.iteritems():
-                if col in mergedSeries:
+                if col in joined:
                     raise Exception('Overlapping columns!')
-                mergedSeries[col] = series
+                joined[col] = series
 
-        return DataFrame.fromDict(mergedSeries)
+        return joined
 
     def leftJoin(self, *frames):
         """
@@ -1330,16 +1348,15 @@ class DataFrame(Picklable, Groupable):
         -------
         DataFrame
         """
-        mergedSeries = DataFrame(index=self.index)
-        mergedSeries._series = self._series.copy()
+        joined = self.copy()
 
         for frame in frames:
             for col, series in frame.iteritems():
-                if col in mergedSeries:
+                if col in joined:
                     raise Exception('Overlapping columns!')
-                mergedSeries[col] = series
+                joined[col] = series.copy()
 
-        return mergedSeries
+        return joined
 
     def merge(self, other, on=None):
         """
@@ -1387,7 +1404,7 @@ class DataFrame(Picklable, Groupable):
 
         return DataFrame(newSeries, index=self.index)
 
-    def plot(self, kind='line', **kwds):
+    def plot(self, kind='line', **kwds): # pragma: no cover
         """
         Plot the DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -1430,10 +1447,7 @@ class DataFrame(Picklable, Groupable):
             theCount = np.isfinite(self.values).sum(axis)
         except Exception:
             f = lambda s: notnull(s).sum()
-            if axis == 0:
-                theCount = self.apply(f)
-            elif axis == 1:
-                theCount = self.tapply(f)
+            theCount = self.apply(f, axis=axis)
 
         if asarray:
             return theCount
@@ -1542,7 +1556,7 @@ class DataFrame(Picklable, Groupable):
             if axis == 0:
                 theProd = self.apply(np.prod)
             else:
-                theProd = self.tapply(np.prod)
+                theProd = self.apply(np.prod, axis=1)
 
         if asarray:
             return theProd
@@ -1582,10 +1596,10 @@ class DataFrame(Picklable, Groupable):
         Series or TimeSeries
         """
         if axis == 0:
-            med = [np.median(remove_na(self[col])) for col in self.columns]
+            med = [np.median(self[col].valid()) for col in self.columns]
             return Series(med, index=self.columns)
         elif axis == 1:
-            med = [np.median(remove_na(self.getXS(k))) for k in self.index]
+            med = [np.median(self.getXS(k).valid()) for k in self.index]
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
@@ -1604,10 +1618,10 @@ class DataFrame(Picklable, Groupable):
         Series or TimeSeries
         """
         if axis == 0:
-            med = [np.min(remove_na(self[col])) for col in self.columns]
+            med = [np.min(self[col].valid()) for col in self.columns]
             return Series(med, index=self.columns)
         elif axis == 1:
-            med = [np.min(remove_na(self.getXS(k))) for k in self.index]
+            med = [np.min(self.getXS(k).valid()) for k in self.index]
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
@@ -1626,10 +1640,10 @@ class DataFrame(Picklable, Groupable):
         Series or TimeSeries
         """
         if axis == 0:
-            med = [np.max(remove_na(self[col])) for col in self.columns]
+            med = [np.max(self[col].valid()) for col in self.columns]
             return Series(med, index=self.columns)
         elif axis == 1:
-            med = [np.max(remove_na(self.getXS(k))) for k in self.index]
+            med = [np.max(self.getXS(k).valid()) for k in self.index]
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
@@ -1660,13 +1674,15 @@ class DataFrame(Picklable, Groupable):
         if not issubclass(y.dtype.type, np.int_):
             y[np.isnan(y)] = 0
 
+        result = np.abs(y).mean(axis=axis)
+
         if asarray:
-            return np.sum(np.abs(y), axis)
+            return result
 
         if axis == 0:
-            return Series(np.sum(np.abs(y), axis), self.cols())
+            return Series(result, demeaned.cols())
         else:
-            return Series(np.sum(np.abs(y), axis), self.index)
+            return Series(result, demeaned.index)
 
     def var(self, axis=0, asarray=False):
         """
@@ -1758,6 +1774,7 @@ def _pfixed(s, space, nanRep=None):
         fstring = '%-' + str(space-4) + 'g'
         if nanRep is not None and isnull(s):
             return nanRep.ljust(space)
+
         return (fstring % s).ljust(space)
     else:
         return str(s)[:space-4].ljust(space)

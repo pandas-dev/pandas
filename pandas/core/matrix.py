@@ -149,6 +149,7 @@ class DataMatrix(DataFrame):
 
             values = np.empty((N, K), dtype=dtype)
             values[:] = NaN
+
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
@@ -293,7 +294,7 @@ class DataMatrix(DataFrame):
 #-------------------------------------------------------------------------------
 # Outputting
 
-    def toCSV(self, path=None, nanRep='', writeMode='wb', index=True,
+    def toCSV(self, path, nanRep='', writeMode='wb', index=True,
               header=True, cols=None, verbose=False):
         """
         Write the DataMatrix to a CSV file
@@ -312,34 +313,34 @@ class DataMatrix(DataFrame):
             Prints the values in order specified by cols.
             By default, prints all columns in lexicographical order.
         """
-        if path is None:
-            f = sys.stdout
-        else:
-            f = open(path, writeMode)
+        f = open(path, writeMode)
+
         if cols is None:
             cols = self.cols()
-        serDict = self._series
+        series = self._series
 
         if header:
             if index:
                 f.write(',')
             f.write(','.join([str(c) for c in cols]))
             f.write('\n')
+
         for idx in self.index:
             if index:
                 f.write(str(idx) + ',')
+
             for col in cols:
-                val = serDict[col].get(idx)
-                if isinstance(val, float) and np.isnan(val) == True:
+                val = series[col][idx]
+                if isnull(val):
                     val = nanRep
                 else:
                     val = str(val)
                 f.write(val + ',')
             f.write('\n')
-        if path is not None:
-            f.close()
 
-        if verbose:
+        f.close()
+
+        if verbose: # pragma: no cover
             print 'CSV file written successfully: %s' % path
 
     def toString(self, buffer=sys.stdout, verbose=False,
@@ -388,15 +389,16 @@ class DataMatrix(DataFrame):
         """
         Concise summary of a DataMatrix, used in __repr__ when very large.
         """
-        if len(self.columns) == 0:
-            print >> buffer, 'DataMatrix is empty!'
-            print >> buffer, repr(self.index)
-
         print >> buffer, 'Index: %s entries' % len(self.index),
         if len(self.index) > 0:
             print >> buffer, ', %s to %s' % (self.index[0], self.index[-1])
         else:
             print >> buffer, ''
+
+        if len(self.columns) == 0:
+            print >> buffer, 'DataMatrix is empty!'
+            print >> buffer, repr(self.index)
+            return
 
         print >> buffer, 'Data columns:'
         space = max([len(str(k)) for k in self.cols()]) + 4
@@ -485,20 +487,14 @@ class DataMatrix(DataFrame):
 # "Magic methods"
 
     def __nonzero__(self):
-        if self.values is not None:
-            N, K = self.values.shape
-            if N == 0 or K == 0:
-                if self.objects is None:
-                    return False
-                else:
-                    return self.objects.__nonzero__()
-            else:
-                return True
-        else:
+        N, K = self.values.shape
+        if N == 0 or K == 0:
             if self.objects is None:
                 return False
             else:
                 return self.objects.__nonzero__()
+        else:
+            return True
 
     def __neg__(self):
         mycopy = self.copy()
@@ -592,7 +588,7 @@ class DataMatrix(DataFrame):
         if value.dtype not in self._dataTypes:
             isObject = True
 
-        if self.values is None:
+        if len(self.columns) == 0:
             if isObject:
                 if self.objects is None:
                     self.objects = DataMatrix({key : value},
@@ -600,7 +596,7 @@ class DataMatrix(DataFrame):
                 else:
                     self.objects[key] = value
             else:
-                self.values = value.reshape((len(value), 1))
+                self.values = value.reshape((len(value), 1)).copy()
                 self.columns = Index([key])
             return
 
@@ -609,13 +605,14 @@ class DataMatrix(DataFrame):
                 loc = self.columns.indexMap[key]
                 self.values[:, loc] = value
             elif len(self.columns) == 0:
-                self.values = value.reshape((len(value), 1))
+                self.values = value.reshape((len(value), 1)).copy()
                 self.columns = Index([key])
             else:
                 try:
                     loc = bisect.bisect_right(self.columns, key)
                 except TypeError:
                     loc = len(self.columns)
+
                 if loc == self.values.shape[1]:
                     newValues = np.c_[self.values, value]
                     newColumns = Index(np.concatenate((self.columns, [key])))
