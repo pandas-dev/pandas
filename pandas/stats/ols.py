@@ -40,10 +40,14 @@ class OLS(object):
         (self._y, self._x, self._x_filtered,
          self._index, self._time_has_obs) = self._prepare_data()
 
+        # for compat with PanelOLS
+        self._x_trans = self._x
+        self._y_trans = self._y
+
         self._x_raw = self._x.values
         self._y_raw = self._y.view(np.ndarray)
 
-        self.sm_ols = sm.OLS(self._y_raw, self._x_raw).fit()
+        self.sm_ols = sm.OLS(self._y_raw, self._x.values).fit()
 
     def _prepare_data(self):
         """
@@ -96,7 +100,7 @@ class OLS(object):
     @cache_readonly
     def _df_raw(self):
         """Returns the degrees of freedom."""
-        return math.rank(self._x_raw)
+        return math.rank(self._x.values)
 
     @cache_readonly
     def df(self):
@@ -291,7 +295,7 @@ class OLS(object):
         """
         Returns the raw covariance of beta.
         """
-        x = self._x_raw
+        x = self._x.values
         y = self._y_raw
 
         xx = np.dot(x.T, x)
@@ -638,7 +642,7 @@ class MovingOLS(OLS):
 
     @cache_readonly
     def _rolling_ols_call(self):
-        return self._calc_betas(self._x, self._y)
+        return self._calc_betas(self._x_trans, self._y_trans)
 
     def _calc_betas(self, x, y):
         N = len(self._index)
@@ -715,18 +719,6 @@ class MovingOLS(OLS):
         valid = self._time_has_obs
         cum_xy = []
 
-        # A little kludge so we can use this method for both
-        # MovingOLS and MovingPanelOLS
-        def y_converter(y):
-            if isinstance(y, Series):
-                return np.asarray(y)
-            else:
-                y = y.values.squeeze()
-                if y.ndim == 0:
-                    return np.array([y])
-                else:
-                    return y
-
         last = np.zeros(len(x.cols()))
         for i, date in enumerate(dates):
             if not valid[i]:
@@ -734,7 +726,7 @@ class MovingOLS(OLS):
                 continue
 
             x_slice = x.truncate(date, date).values
-            y_slice = y_converter(y.truncate(date, date))
+            y_slice = _y_converter(y.truncate(date, date))
 
             xy = last = last + np.dot(x_slice.T, y_slice)
             cum_xy.append(xy)
@@ -820,8 +812,8 @@ class MovingOLS(OLS):
         sst = []
         sse = []
 
-        Y = self._y
-        X = self._x
+        Y = self._y_trans
+        X = self._x_trans
         dates = self._index
         window = self._window
         for n, index in enumerate(self._valid_indices):
@@ -834,7 +826,7 @@ class MovingOLS(OLS):
             beta = self._beta_raw[n]
 
             X_slice = X.truncate(before=prior_date, after=date).values
-            Y_slice = np.asarray(Y.truncate(before=prior_date, after=date))
+            Y_slice = _y_converter(Y.truncate(before=prior_date, after=date))
 
             resid = Y_slice - np.dot(X_slice, beta)
             SS_err = (resid ** 2).sum()
@@ -936,12 +928,12 @@ class MovingOLS(OLS):
     @cache_readonly
     def _y_fitted_raw(self):
         """Returns the raw fitted y values."""
-        return (self._x_raw * self._beta_matrix(lag=0)).sum(1)
+        return (self._x.values * self._beta_matrix(lag=0)).sum(1)
 
     @cache_readonly
     def _y_predict_raw(self):
         """Returns the raw predicted y values."""
-        return (self._x_raw * self._beta_matrix(lag=1)).sum(1)
+        return (self._x.values * self._beta_matrix(lag=1)).sum(1)
 
     @cache_readonly
     def _results(self):
@@ -1082,3 +1074,16 @@ def _filter_data(lhs, rhs):
 
     return filtered_lhs, filtered_rhs, pre_filtered_rhs, index, valid
 
+
+
+# A little kludge so we can use this method for both
+# MovingOLS and MovingPanelOLS
+def _y_converter(y):
+    if isinstance(y, Series):
+        return np.asarray(y)
+    else:
+        y = y.values.squeeze()
+        if y.ndim == 0:
+            return np.array([y])
+        else:
+            return y

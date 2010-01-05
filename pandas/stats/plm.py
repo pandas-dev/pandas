@@ -313,6 +313,19 @@ class PanelOLS(OLS):
         return Series(self._beta_raw, index=self._x.items)
 
     @cache_readonly
+    def _weighted_x(self):
+        if self._weights:
+            return self._x.multiply(self._weights)
+        return self._x
+
+    @cache_readonly
+    def _weighted_y(self):
+        if self._weights:
+            return self._y.multiply(self._weights)
+
+        return self._y
+
+    @cache_readonly
     def _df_model_raw(self):
         """Returns the raw model degrees of freedom."""
         return self._df_raw - 1
@@ -333,16 +346,15 @@ class PanelOLS(OLS):
 
     @cache_readonly
     def _r2_raw(self):
-        Y = self._y_trans_raw
-        Y_orig = self._y.values
-        X = self._x_trans_raw
+        Y = self._y.values.squeeze()
+        X = self._x.values
 
         resid = Y - np.dot(X, self._beta_raw)
-        SS_err = (resid ** 2).sum()
 
-        SS_total = ((Y_orig - np.mean(Y_orig)) ** 2).sum()
+        SSE = (resid ** 2).sum()
+        SST = ((Y - np.mean(Y)) ** 2).sum()
 
-        return 1 - SS_err / SS_total
+        return 1 - SSE / SST
 
     @cache_readonly
     def _r2_adj_raw(self):
@@ -353,8 +365,8 @@ class PanelOLS(OLS):
 
     @cache_readonly
     def _resid_raw(self):
-        Y = self._y_trans.values.squeeze()
-        X = self._x_trans.values
+        Y = self._y.values.squeeze()
+        X = self._x.values
         return Y - np.dot(X, self._beta_raw)
 
     @cache_readonly
@@ -364,8 +376,9 @@ class PanelOLS(OLS):
     @cache_readonly
     def _rmse_raw(self):
         """Returns the raw rmse values."""
-        X = self._x_trans_raw
-        Y = self._y_trans_raw
+        X = self._x.values
+        Y = self._y.values.squeeze()
+
         resid = Y - np.dot(X, self._beta_raw)
         ss = (resid ** 2).sum()
         return np.sqrt(ss / (self._nobs - self._df_raw))
@@ -378,14 +391,17 @@ class PanelOLS(OLS):
         elif self._cluster == common.ENTITY:
             cluster_axis = 1
 
-        if self._time_effects:
-            xx = _xx_time_effects(self._x, self._y)
-        else:
-            xx = np.dot(self._x.values.T, self._x.values)
+        x = self._x
+        y = self._y
 
-        return _var_beta_panel(self._y, self._x, self._beta_raw, xx,
-                              self._rmse_raw, cluster_axis, self._nw_lags,
-                              self._nobs, self._df_raw, self._nw_overlap)
+        if self._time_effects:
+            xx = _xx_time_effects(x, y)
+        else:
+            xx = np.dot(x.values.T, x.values)
+
+        return _var_beta_panel(y, x, self._beta_raw, xx,
+                               self._rmse_raw, cluster_axis, self._nw_lags,
+                               self._nobs, self._df_raw, self._nw_overlap)
 
     @cache_readonly
     def _y_fitted_raw(self):
@@ -462,8 +478,7 @@ class PanelOLS(OLS):
 
     @cache_readonly
     def _time_obs_count(self):
-        # XXX
-        return self._y.count()
+        return self._y_trans.count()
 
     @cache_readonly
     def _time_has_obs(self):
@@ -627,6 +642,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         """Returns the raw covariance of beta."""
         x = self._x
         y = self._y
+
         dates = x.index.major_axis
 
         cluster_axis = None
@@ -643,7 +659,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
         if not self._time_effects:
             # Non-transformed X
-            cum_xx = self._cum_xx(self._x)
+            cum_xx = self._cum_xx(x)
 
         results = []
         for n, i in enumerate(self._valid_indices):
@@ -674,9 +690,8 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
     @cache_readonly
     def _resid_stats(self):
-        Y = self._y_trans
-        Y_orig = self._y
-        X = self._x_trans
+        Y = self._y
+        X = self._x
         dates = self._index
         window = self._window
 
@@ -693,14 +708,13 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
             X_slice = X.truncate(prior_date, date).values
             Y_slice = Y.truncate(prior_date, date).values.squeeze()
-            Y_orig_slice = Y_orig.truncate(prior_date, date).values.squeeze()
 
             beta_slice = self._beta_raw[n]
 
             resid = Y_slice - np.dot(X_slice, beta_slice)
             SS_err = (resid ** 2).sum()
 
-            SS_total = ((Y_orig_slice - Y_orig_slice.mean()) ** 2).sum()
+            SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
 
             sse.append(SS_err)
             sst.append(SS_total)
@@ -717,8 +731,8 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
     def _resid_raw(self):
         beta_matrix = self._beta_matrix(lag=0)
 
-        Y = self._y_trans.values.squeeze()
-        X = self._x_trans.values
+        Y = self._y.values.squeeze()
+        X = self._x.values
         resid = Y - (X * beta_matrix).sum(1)
 
         return resid
