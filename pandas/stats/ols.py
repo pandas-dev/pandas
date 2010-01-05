@@ -1066,7 +1066,7 @@ def _filter_data(lhs, rhs):
 
     index = full_dataset.index
 
-    obs_count = full_dataset.count(axis=1, asarray=True)
+    obs_count = full_dataset.count(axis=1).values()
     valid = obs_count == len(full_dataset.cols())
 
     filtered_rhs = full_dataset.reindex(index[valid])
