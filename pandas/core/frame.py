@@ -1,6 +1,6 @@
 # pylint: disable-msg=E1101
 # pylint: disable-msg=E1103
-# pylint: disable-msg=W0212,W0703,W0622
+# pylint: disable-msg=W0212,W0231,W0703,W0622
 
 from cStringIO import StringIO
 import operator
@@ -9,6 +9,7 @@ import sys
 from numpy import NaN
 import numpy as np
 
+from pandas.core.common import _pickle_array, _unpickle_array, _pfixed
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
@@ -88,6 +89,20 @@ class DataFrame(Picklable, Groupable):
         else:
             self.index = NULL_INDEX
 
+    def __getstate__(self):
+        series = dict((k, v.values()) for k, v in self.iteritems())
+        index = _pickle_array(self.index)
+
+        return series, index
+
+    def __setstate__(self, state):
+        series, idx = state
+
+        self.index = index = _unpickle_array(idx)
+        self._series = dict((k, Series(v, index=index))
+                            for k, v in series.iteritems())
+
+    _index = None
     def _set_index(self, index):
         if isinstance(index, Index):
             self._index = index
@@ -1093,7 +1108,7 @@ class DataFrame(Picklable, Groupable):
         results = dict([(k, func(target[k])) for k in target.columns])
 
         if hasattr(results.values()[0], '__iter__'):
-            return DataFrame(data=results, index=self.index)
+            return DataFrame(data=results, index=target.index)
         else:
             return Series.fromDict(results)
 
@@ -1140,7 +1155,7 @@ class DataFrame(Picklable, Groupable):
         """
         import re
 
-        if items:
+        if items is not None:
             data = dict([(r, self[r]) for r in items if r in self])
             return DataFrame(data=data, index=self.index)
         elif like:
@@ -1724,17 +1739,4 @@ class DataFrame(Picklable, Groupable):
         theSkew = (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
         return Series(theSkew, index=self._get_axis(axis))
-
-def _pfixed(s, space, nanRep=None, float_format=None):
-    if isinstance(s, float):
-        if nanRep is not None and isnull(s):
-            return nanRep.ljust(space)
-
-        if float_format:
-            return float_format(s)
-        else:
-            fstring = '%.4g'
-            return (fstring % s).ljust(space)
-    else:
-        return str(s)[:space-4].ljust(space)
 

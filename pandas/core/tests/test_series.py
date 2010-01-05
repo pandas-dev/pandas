@@ -337,6 +337,11 @@ class TestSeries(unittest.TestCase):
         common.assert_dict_equal(strings, combined, compare_keys=False)
         common.assert_dict_equal(floats[1::2], combined, compare_keys=False)
 
+        # corner case
+        s = Series([1., 2, 3], index=[0, 1, 2])
+        result = s.combineFirst(Series([], index=[]))
+        common.assert_series_equal(s, result)
+
     def test_overloads(self):
         methods = ['argsort', 'cumsum', 'cumprod']
 

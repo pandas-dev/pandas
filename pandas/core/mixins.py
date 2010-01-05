@@ -8,7 +8,7 @@ import cPickle
 class Picklable(object):
     def save(self, fileName):
         with open(fileName, 'wb') as f:
-            cPickle.dump(self, f)
+            cPickle.dump(self, f, protocol=cPickle.HIGHEST_PROTOCOL)
 
     @classmethod
     def load(cls, fileName):

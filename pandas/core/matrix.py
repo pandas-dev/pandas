@@ -4,11 +4,11 @@
 from cStringIO import StringIO
 import sys
 
-from numpy.lib.format import read_array, write_array
 from numpy import NaN
 import numpy as np
 
-from pandas.core.frame import DataFrame, _pfixed
+from pandas.core.common import _pfixed, _pickle_array, _unpickle_array
+from pandas.core.frame import DataFrame
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
 from pandas.lib.tseries import isnull, notnull
@@ -166,37 +166,33 @@ class DataMatrix(DataFrame):
         self.objects = objects
 
     def __getstate__(self):
-        valsIO = StringIO()
-        colsIO = StringIO()
-        idxIO = StringIO()
-
-        write_array(valsIO, self.values)
-        write_array(colsIO, self.columns)
-        write_array(idxIO, self.index)
-
         if self.objects is not None:
-            objects = self.objects.__getstate__()
+            objects = self.objects._matrix_state(pickle_index=False)
         else:
             objects = None
 
-        return (valsIO.getvalue(), colsIO.getvalue(),
-                idxIO.getvalue(), objects)
+        state = self._matrix_state()
+
+        return (state, objects)
+
+    def _matrix_state(self, pickle_index=True):
+        columns = _pickle_array(self.columns)
+        index = _pickle_array(self.index) if pickle_index else None
+
+        return self.values, index, columns
 
     def __setstate__(self, state):
-        vals, cols, idx, objects = state
+        (vals, idx, cols), object_state = state
 
-        def interpret(s):
-            arr = read_array(StringIO(s))
-            return arr
+        self.values = vals
+        self.index = _unpickle_array(idx)
+        self.columns = _unpickle_array(cols)
 
-        self.values = interpret(vals)
-        self.index = interpret(idx)
-        self.columns = interpret(cols)
-
-        if objects is not None:
-            ovals, ocols, oidx, _ = objects
-            self.objects = DataMatrix(interpret(ovals), index=self.index,
-                                      columns=interpret(ocols))
+        if object_state:
+            ovals, _, ocols = object_state
+            self.objects = DataMatrix(_unpickle_array(ovals),
+                                      index=self.index,
+                                      columns=_unpickle_array(ocols))
         else:
             self.objects = None
 
@@ -457,7 +453,6 @@ class DataMatrix(DataFrame):
 
     columns = property(fget=_get_columns, fset=_set_columns)
 
-    _index = None
     def _set_index(self, index):
         if index is None:
             if self.values is not None and self.values.shape[0] > 0:
@@ -1613,7 +1608,6 @@ class DataMatrix(DataFrame):
             seriesDict.update(frame._series)
 
         return DataMatrix(seriesDict, index=self.index)
-
 
 def _reorder_columns(mat, current, desired):
     fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,

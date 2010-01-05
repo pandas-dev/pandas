@@ -337,11 +337,13 @@ class Series(np.ndarray, Picklable, Groupable):
             head = _seriesRepr(index[:50], vals[:50])
             tail = _seriesRepr(index[-50:], vals[-50:])
             return head + '\n...\n' + tail + '\nlength: %d' % len(vals)
-        else:
+        elif len(index) > 0:
             return _seriesRepr(index, vals)
+        else:
+            return '%s' % ndarray.__repr__(self)
 
     def __str__(self):
-        return self.__repr__()
+        return repr(self)
 
     def __iter__(self):
         return iter(self.values())
@@ -535,11 +537,12 @@ class Series(np.ndarray, Picklable, Groupable):
         y : Series
             formed as union of two Series
         """
-        newIndex = self.index + other.index
-
-        this = self
-        if newIndex is not self.index:
+        if self.index.equals(other.index):
+            newIndex = self.index
             # save ourselves the copying in this case
+            this = self
+        else:
+            newIndex = self.index + other.index
 
             this = self.reindex(newIndex)
             other = other.reindex(newIndex)
