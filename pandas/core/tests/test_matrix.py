@@ -57,6 +57,17 @@ class TestDataMatrix(test_frame.TestDataFrame):
     def test_more_fromDict(self):
         pass
 
+    def test_fill_corner(self):
+        self.mixed_frame['foo'][5:20] = np.NaN
+        self.mixed_frame['A'][-10:] = np.NaN
+
+        obj_result = self.mixed_frame.objects.fill(value=0)
+
+        del self.mixed_frame['foo']
+
+        # XXX
+        obj_result = self.mixed_frame.objects.fill(value=0)
+
 
 if __name__ == '__main__':
     unittest.main()

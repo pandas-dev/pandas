@@ -666,7 +666,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         return Series([func(x) for x in self], index=self.index)
 
-    def plot(self, label=None, kind='line', **kwds): # pragma: no cover
+    def plot(self, label=None, kind='line', rot=30, **kwds): # pragma: no cover
         """
         Plot the input series with the index on the x-axis using
         matplotlib / pylab.
@@ -715,7 +715,8 @@ class Series(np.ndarray, Picklable, Groupable):
             plt.bar(xinds, self.values(), 0.5, bottom=np.zeros(N), linewidth=1)
             fontsize = 12 if N < 10 else 10
 
-            plt.xticks(xinds + 0.25, self.index, rotation=30, fontsize=fontsize)
+            plt.xticks(xinds + 0.25, self.index, rotation=rot,
+                       fontsize=fontsize)
 
     def toCSV(self, path):
         """
@@ -793,7 +794,7 @@ class Series(np.ndarray, Picklable, Groupable):
         TimeSeries
         """
         if periods == 0:
-            return self
+            return self.copy()
 
         if timeRule is not None and offset is None:
             offset = datetools.getOffset(timeRule)
@@ -807,8 +808,6 @@ class Series(np.ndarray, Picklable, Groupable):
             elif periods < 0:
                 newValues[:periods] = self.values()[-periods:]
                 newValues[periods:] = np.NaN
-            else:
-                newValues = self.values().copy()
 
             return self.__class__(newValues, index=self.index)
         else:

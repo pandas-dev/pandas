@@ -461,6 +461,10 @@ class TestSeries(unittest.TestCase):
 
         common.assert_series_equal(unshifted, self.ts)
 
+        # corner case
+        unshifted = self.ts.shift(0)
+        common.assert_series_equal(unshifted, self.ts)
+
     def test_truncate(self):
         offset = datetools.bday
 

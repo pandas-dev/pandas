@@ -179,11 +179,20 @@ class TestDataFrame(unittest.TestCase):
 
         foo = repr(biggie)
 
+    def test_toString(self):
+        # big mixed
+        biggie = self.klass({'A' : randn(1000),
+                             'B' : common.makeStringIndex(1000)},
+                            index=range(1000))
+
+        biggie['A'][:20] = np.NaN
+        biggie['B'][:20] = np.NaN
         buf = StringIO()
         biggie.toString(buffer=buf)
 
-    def test_toString(self):
-        pass
+        biggie.toString(buffer=buf, columns=['B', 'A'], colSpace=17)
+        biggie.toString(buffer=buf, columns=['B', 'A'],
+                        formatters={'A' : lambda x: '%.1f' % x})
 
     def test_getitem(self):
         # slicing
@@ -429,7 +438,7 @@ class TestDataFrame(unittest.TestCase):
         frame = self.frame
         mat = frame.asMatrix()
         smallerCols = ['C', 'A']
-        # smallerMat = frame.asMatrix(smallerCols)
+
         frameCols = frame.cols()
         for i, row in enumerate(mat):
             for j, value in enumerate(row):
@@ -438,6 +447,10 @@ class TestDataFrame(unittest.TestCase):
                     self.assert_(np.isnan(frame[col][i]))
                 else:
                     self.assertEqual(value, frame[col][i])
+
+        # mixed type
+        mat = self.mixed_frame.asMatrix(['foo', 'A'])
+        self.assertEqual(mat[0, 0], 'bar')
 
     def test_values(self):
         pass
@@ -498,6 +511,12 @@ class TestDataFrame(unittest.TestCase):
         padded = self.tsframe.fill(method='pad')
         self.assert_(np.isnan(padded['A'][:5]).all())
         self.assert_((padded['A'][-5:] == padded['A'][-5]).all())
+
+        # mixed type
+        self.mixed_frame['foo'][5:20] = np.NaN
+        self.mixed_frame['A'][-10:] = np.NaN
+
+        result = self.mixed_frame.fill(value=0)
 
     def test_getTS(self):
         frame = self.tsframe
@@ -567,7 +586,23 @@ class TestDataFrame(unittest.TestCase):
                 self.assertEqual(value, self.frame[item][idx])
 
     def test_pivot(self):
-        pass
+        data = {
+            'index' : ['A', 'B', 'C', 'C', 'B', 'A'],
+            'columns' : ['One', 'One', 'One', 'Two', 'Two', 'Two'],
+            'values' : [1., 2., 3., 3., 2., 1.]
+        }
+
+        frame = DataFrame(data)
+        pivoted = frame.pivot(index='index', columns='columns', values='values')
+
+        expected = DataFrame.fromDict({
+            'One' : {'A' : 1., 'B' : 2., 'C' : 3.},
+            'Two' : {'A' : 1., 'B' : 2., 'C' : 3.}
+        })
+
+        assert_frame_equal(pivoted, expected)
+
+        # corner cases
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
@@ -646,7 +681,10 @@ class TestDataFrame(unittest.TestCase):
             self.assert_(s.dtype == np.object_)
 
     def test_diff(self):
-        pass
+        the_diff = self.tsframe.diff(1)
+
+        assert_series_equal(the_diff['A'],
+                            self.tsframe['A'] - self.tsframe['A'].shift(1))
 
     def test_shift(self):
         # naive shift

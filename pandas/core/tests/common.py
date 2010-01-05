@@ -7,7 +7,7 @@ import string
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import DateRange, Index, Series, DataFrame
+from pandas.core.api import DateRange, Index, Series, DataFrame, DataMatrix
 
 N = 30
 K = 4

@@ -534,19 +534,20 @@ class DataFrame(Picklable, Groupable):
         return DataMatrix(self._series, index=self.index)
 
     def toString(self, buffer=sys.stdout, verbose=False,
-                 colSpace=15, nanRep='NaN', formatters=None,
-                 float_format=None):
+                 columns=None, colSpace=15, nanRep='NaN',
+                 formatters=None, float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
-        columns = sorted(series.keys())
+
+        if columns is None:
+            columns = sorted(series.keys())
+        else:
+            columns = [c for c in columns if c in self]
+
         formatters = formatters or {}
 
         # TODO
-
-        float_format = float_format or str
-        for c in columns:
-            if c not in formatters:
-                formatters[c] = str # float_format if c in self.columns else str
+        ident = lambda x: x
 
         if len(columns) == 0 or len(self.index) == 0:
             print >> buffer, 'Empty DataFrame'
@@ -555,16 +556,20 @@ class DataFrame(Picklable, Groupable):
             idxSpace = max([len(str(idx)) for idx in self.index]) + 4
             head = _pfixed('', idxSpace)
             if verbose:
-                colSpace = max([len(c) for c in self.columns]) + 4
+                colSpace = max([len(c) for c in columns]) + 4
+
             for h in columns:
                 head += _pfixed(h, colSpace)
+
             print >> buffer, head
+
             for idx in self.index:
                 ot = _pfixed(idx, idxSpace)
                 for k in columns:
-                    formatter = formatters.get(k, str)
+                    formatter = formatters.get(k, ident)
                     ot += _pfixed(formatter(series[k][idx]),
-                                  colSpace, nanRep=nanRep)
+                                  colSpace, nanRep=nanRep,
+                                  float_format=float_format)
                 print >> buffer, ot
 
     def info(self, buffer=sys.stdout):
@@ -742,9 +747,9 @@ class DataFrame(Picklable, Groupable):
             N = len(intersection)
 
             filtered = self.filterItems(intersection)
-            theCount = filtered.count(axis=1, asarray=True)
+            theCount = filtered.count(axis=1)
         else:
-            theCount = self.count(axis=1, asarray=True)
+            theCount = self.count(axis=1)
 
         if minObs is None:
             minObs = N
@@ -1009,10 +1014,8 @@ class DataFrame(Picklable, Groupable):
                                         for idx in self.index]),
                                         index=Index(self.cols()))
 
-    def diff(self, periods = 1):
-        temp = self.values
-        temp = temp[periods:] - temp[:-periods]
-        return self.fromMatrix(temp, self.cols(), self.index[periods:])
+    def diff(self, periods=1):
+        return self - self.shift(periods)
 
     def shift(self, periods, offset=None, timeRule=None):
         """
@@ -1427,8 +1430,16 @@ class DataFrame(Picklable, Groupable):
             s = self[col]
             plot(s.index, s, label=col)
 
+    def _get_axis(self, axis_num):
+        if axis_num == 0:
+            return self.columns
+        elif axis_num == 1:
+            return self.index
+        else:
+            raise Exception('Must have 0<= axis <= 1')
+
     # ndarray-like stats methods
-    def count(self, axis=0, asarray=False):
+    def count(self, axis=0):
         """
         Return array or Series of # observations over requested axis.
 
@@ -1436,8 +1447,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1449,17 +1458,9 @@ class DataFrame(Picklable, Groupable):
             f = lambda s: notnull(s).sum()
             theCount = self.apply(f, axis=axis)
 
-        if asarray:
-            return theCount
-        else:
-            if axis == 0:
-                return Series(theCount, index=self.columns)
-            elif axis == 1:
-                return Series(theCount, index=self.index)
-            else:
-                raise Exception('Must have 0<= axis <= 1')
+        return Series(theCount, index=self._get_axis(axis))
 
-    def sum(self, axis=0, asarray=False):
+    def sum(self, axis=0):
         """
         Return array or Series of sums over requested axis.
 
@@ -1467,8 +1468,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1499,14 +1498,7 @@ class DataFrame(Picklable, Groupable):
         except Exception:
             theSum = self.apply(np.sum, axis=axis)
 
-        if asarray:
-            return theSum
-        if axis == 0:
-            return Series(theSum, index=self.columns)
-        elif axis == 1:
-            return Series(theSum, index=self.index)
-        else:
-            raise Exception('Must have 0<= axis <= 1')
+        return Series(theSum, index=self._get_axis(axis))
 
     def cumsum(self, axis=0):
         """
@@ -1529,7 +1521,7 @@ class DataFrame(Picklable, Groupable):
 
         return self.apply(get_cumsum, axis=axis)
 
-    def product(self, axis=0, asarray=False):
+    def product(self, axis=0):
         """
         Return array or Series of products over requested axis.
 
@@ -1537,8 +1529,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1553,19 +1543,9 @@ class DataFrame(Picklable, Groupable):
             theCount = self.count(axis)
             theProd[theCount == 0] = NaN
         except Exception:
-            if axis == 0:
-                theProd = self.apply(np.prod)
-            else:
-                theProd = self.apply(np.prod, axis=1)
+            theProd = self.apply(np.prod, axis=axis)
 
-        if asarray:
-            return theProd
-        if axis == 0:
-            return Series(theProd, index=self.columns)
-        elif axis == 1:
-            return Series(theProd, index=self.index)
-        else:
-            raise Exception('Must have 0<= axis <= 1')
+        return Series(theProd, index=self._get_axis(axis))
 
     def mean(self, axis=0):
         """
@@ -1580,7 +1560,7 @@ class DataFrame(Picklable, Groupable):
         -------
         Series or TimeSeries
         """
-        return self.sum(axis) / self.count(axis, asarray=True).astype(float)
+        return self.sum(axis) / self.count(axis).values().astype(float)
 
     def median(self, axis=0):
         """
@@ -1648,7 +1628,7 @@ class DataFrame(Picklable, Groupable):
         else:
             raise Exception('Must have 0<= axis <= 1')
 
-    def mad(self, axis=0, asarray=False):
+    def mad(self, axis=0):
         """
         Return array or Series of mean absolute deviation over
         requested axis.
@@ -1657,8 +1637,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1676,15 +1654,12 @@ class DataFrame(Picklable, Groupable):
 
         result = np.abs(y).mean(axis=axis)
 
-        if asarray:
-            return result
-
         if axis == 0:
             return Series(result, demeaned.cols())
         else:
             return Series(result, demeaned.index)
 
-    def var(self, axis=0, asarray=False):
+    def var(self, axis=0):
         """
         Return array or Series of unbiased variance over requested axis.
 
@@ -1692,8 +1667,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1708,16 +1681,10 @@ class DataFrame(Picklable, Groupable):
         XX = (y**2).sum(axis)
 
         theVar = (XX - X**2 / count) / (count - 1)
-        if asarray:
-            return theVar
-        if axis == 0:
-            return Series(theVar, index=self.columns)
-        elif axis == 1:
-            return Series(theVar, index=self.index)
-        else:
-            raise Exception('Must have 0<= axis <= 1')
 
-    def std(self, axis=0, asarray=False):
+        return Series(theVar, index=self._get_axis(axis))
+
+    def std(self, axis=0):
         """
         Return array or Series of unbiased std deviation over requested axis.
 
@@ -1725,16 +1692,14 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
         Series or TimeSeries
         """
-        return np.sqrt(self.var(axis=axis, asarray=asarray))
+        return np.sqrt(self.var(axis=axis))
 
-    def skew(self, axis=0, asarray=False):
+    def skew(self, axis=0):
         """
         Return array or Series of unbiased skewness over requested axis.
 
@@ -1742,8 +1707,6 @@ class DataFrame(Picklable, Groupable):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
 
         Returns
         -------
@@ -1760,22 +1723,18 @@ class DataFrame(Picklable, Groupable):
 
         theSkew = (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
-        if asarray:
-            return theSkew
-        if axis == 0:
-            return Series(theSkew, index=self.columns)
-        elif axis == 1:
-            return Series(theSkew, index=self.index)
-        else:
-            raise Exception('Must have 0<= axis <= 1')
+        return Series(theSkew, index=self._get_axis(axis))
 
-def _pfixed(s, space, nanRep=None):
+def _pfixed(s, space, nanRep=None, float_format=None):
     if isinstance(s, float):
-        fstring = '%-' + str(space-4) + 'g'
         if nanRep is not None and isnull(s):
             return nanRep.ljust(space)
 
-        return (fstring % s).ljust(space)
+        if float_format:
+            return float_format(s)
+        else:
+            fstring = '%.4g'
+            return (fstring % s).ljust(space)
     else:
         return str(s)[:space-4].ljust(space)
 

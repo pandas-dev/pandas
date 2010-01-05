@@ -362,10 +362,7 @@ class DataMatrix(DataFrame):
             columns = [c for c in columns if c in self]
             values = self.asMatrix(columns)
 
-        float_format = float_format or str
-        for c in columns:
-            if c not in formatters:
-                formatters[c] = float_format if c in self.columns else str
+        ident = lambda x: x
 
         idxSpace = max([len(str(idx)) for idx in self.index]) + 4
 
@@ -381,8 +378,9 @@ class DataMatrix(DataFrame):
             for i, idx in enumerate(self.index):
                 buffer.write(_pfixed(idx, idxSpace))
                 for j, col in enumerate(columns):
-                    formatter = formatters[col]
-                    buffer.write(_pfixed(formatter(values[i, j]), colSpace))
+                    formatter = formatters.get(col, ident)
+                    buffer.write(_pfixed(formatter(values[i, j]), colSpace,
+                                         float_format=float_format))
                 buffer.write('\n')
 
     def info(self, buffer=sys.stdout):
@@ -872,21 +870,31 @@ class DataMatrix(DataFrame):
         ndarray
         """
         if columns is None:
-            return self.values.copy()
+            values = self.values.copy()
+
+            if self.objects:
+                values = np.column_stack((values, self.objects.values))
+
+            return values
         else:
-            idxMap = self.columns.indexMap
-            indexer = [idxMap[col] for col in columns if col in idxMap]
-            values = self.values.take(indexer, axis=1)
+            if not isinstance(columns, Index):
+                columns = Index(columns)
+
+            values = self.values
+            order = self.columns
 
             if self.objects:
                 idxMap = self.objects.columns.indexMap
                 indexer = [idxMap[col] for col in columns if col in idxMap]
 
                 obj_values = self.objects.values.take(indexer, axis=1)
+
                 values = np.column_stack((values, obj_values))
+                order = Index(np.concatenate((order, self.objects.columns)))
 
                 # now put in the right order
-                # XXX!
+
+            values = _reorder_columns(values, order, columns)
 
             return values
 
@@ -908,7 +916,7 @@ class DataMatrix(DataFrame):
         return DataMatrix(valsCopy, index=self.index,
                           columns=self.columns, objects=self.objects)
 
-    def cumsum(self, axis=0, asarray=False):
+    def cumsum(self, axis=0):
         """
         Return DataMatrix of cumulative sums over requested axis.
 
@@ -916,15 +924,16 @@ class DataMatrix(DataFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
-        asarray : boolean, default False
-            Choose to return as ndarray or have index attached
+
+        Returns
+        -------
+        y : DataMatrix
         """
         y = np.array(self.values, subok=True)
         if not issubclass(y.dtype.type, np.int_):
             y[np.isnan(self.values)] = 0
         theSum = y.cumsum(axis)
-        if asarray:
-            return theSum
+
         return DataMatrix(theSum, index=self.index,
                           columns=self.columns, objects=self.objects)
 
@@ -945,10 +954,9 @@ class DataMatrix(DataFrame):
         DataMatrix with rows containing any NaN values deleted
         """
         if specificColumns:
-            theCount = self.filterItems(specificColumns).count(axis=1,
-                                                               asarray=True)
+            theCount = self.filterItems(specificColumns).count(axis=1)
         else:
-            theCount = self.count(axis=1, asarray=True)
+            theCount = self.count(axis=1)
 
         return self.reindex(self.index[theCount > 0])
 
@@ -974,10 +982,10 @@ class DataMatrix(DataFrame):
         T, N = self.values.shape
         if specificColumns:
             cols = self.columns.intersection(specificColumns)
-            theCount = self.filterItems(cols).count(axis=1, asarray=True)
+            theCount = self.filterItems(cols).count(axis=1)
             N = len(cols)
         else:
-            theCount = self.count(axis=1, asarray=True)
+            theCount = self.count(axis=1)
 
         if minObs is None:
             minObs = N
@@ -1015,10 +1023,6 @@ class DataMatrix(DataFrame):
                 result[col] = filledSeries
             return DataMatrix(result, index=self.index, objects=self.objects)
         else:
-            def fillfunc(vec):
-                vec[isnull(vec)] = value
-                return vec
-
             gotFloat = isinstance(value, (int, float))
             if gotFloat and self.values.dtype == np.float64:
                 # Float type values
@@ -1026,32 +1030,27 @@ class DataMatrix(DataFrame):
                     return self
 
                 vals = self.values.copy()
-                vals[-np.isfinite(self.values)] = value
+                vals.flat[isnull(vals.ravel())] = value
+
                 objectsToUse = None
+
                 if self.objects is not None:
                     objectsToUse = self.objects.copy()
+
                 return DataMatrix(vals, index=self.index, columns=self.columns,
                                   objects=objectsToUse)
 
-            elif self.values.dtype == np.object_:
+            else:
                 # Object type values
                 if len(self.columns) == 0:
                     return self
 
-                myCopy = self.copy()
+                # XXX
 
+                myCopy = self.copy()
                 vals = myCopy.values
-                myCopy.values = np.apply_along_axis(fillfunc, 0, vals)
-
-                return myCopy
-            else:
-                # Object type values
-                if len(self.objects.columns) == 0:
-                    return self
-
-                myCopy = self.copy()
-                vals = myCopy.objects.values
-                myCopy.objects.values = np.apply_along_axis(fillfunc, 0, vals)
+                vals = self.values.copy()
+                vals.flat[isnull(vals.ravel())] = value
 
                 return myCopy
 
@@ -1614,3 +1613,12 @@ class DataMatrix(DataFrame):
             seriesDict.update(frame._series)
 
         return DataMatrix(seriesDict, index=self.index)
+
+
+def _reorder_columns(mat, current, desired):
+    fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,
+                                       desired.indexMap, '')
+
+    fillVec = fillVec[mask]
+
+    return mat.take(fillVec, axis=1)
