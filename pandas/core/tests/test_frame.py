@@ -831,6 +831,13 @@ class TestDataFrame(unittest.TestCase):
         combined = tail.combineFirst(head)
         self.assert_((combined['A'][:10] == 0).all())
 
+        # no overlap
+        f = self.frame[:10]
+        g = self.frame[10:]
+        combined = f.combineFirst(g)
+        assert_series_equal(combined['A'].reindex(f.index), f['A'])
+        assert_series_equal(combined['A'].reindex(g.index), g['A'])
+
         # corner cases
         comb = self.frame.combineFirst(self.empty)
         self.assert_(comb is self.frame)

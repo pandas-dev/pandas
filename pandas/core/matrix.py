@@ -39,6 +39,7 @@ class DataMatrix(DataFrame):
     Transposing is much faster in this regime, as is calling getXS, so please
     take note of this.
     """
+    objects = None
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  objects=None):
 
@@ -470,6 +471,9 @@ class DataMatrix(DataFrame):
             index = Index(index)
 
         self._index = index
+
+        if self.objects is not None:
+            self.objects._index = index
 
     def _get_index(self):
         return self._index
@@ -904,12 +908,13 @@ class DataMatrix(DataFrame):
         """
         Make a copy of this DataMatrix
         """
-        if self.values is not None:
-            valsCopy = self.values.copy()
+        if self.objects:
+            objects = self.objects.copy()
         else:
-            valsCopy = None
-        return DataMatrix(valsCopy, index=self.index,
-                          columns=self.columns, objects=self.objects)
+            objects = None
+
+        return DataMatrix(self.values.copy(), index=self.index,
+                          columns=self.columns, objects=objects)
 
     def cumsum(self, axis=0):
         """
@@ -1447,104 +1452,6 @@ class DataMatrix(DataFrame):
             return dm
         else:
             return super(DataMatrix, self).append(otherFrame)
-
-    def combineFirst(self, otherFrame):
-        """
-        Combine two DataFrame / DataMatrix objects and default to value
-        in frame calling the method.
-
-        Parameters
-        ----------
-        otherFrame : DataFrame / Matrix
-
-        Examples
-        --------
-        a.combineFirst(b)
-            a's values prioritized, use values from b to fill holes
-
-        Returns
-        -------
-        DataMatrix
-        """
-        if not otherFrame:
-            return self
-
-        if not self:
-            return otherFrame
-
-        if self.index is not otherFrame.index:
-            unionIndex = self.index + otherFrame.index
-            frame = self.reindex(unionIndex)
-            otherFrame = otherFrame.reindex(unionIndex)
-        else:
-            unionIndex = self.index
-            frame = self
-
-        result = {}
-        for col, series in frame.iteritems():
-            otherSeries = otherFrame[col] if col in otherFrame else None
-            if otherSeries is not None:
-                result[col] = series.__class__(np.where(isnull(series),
-                                                        otherSeries, series),
-                                               index=unionIndex)
-            else:
-                result[col] = series
-
-        for col, series in otherFrame.iteritems():
-            if col not in self:
-                result[col] = series
-
-        return DataMatrix(result, index = unionIndex)
-
-    def combineAdd(self, otherFrame):
-        """
-        Add two DataFrame / DataMatrix objects and do not propagate NaN values,
-        so if for a (column, time) one frame is missing a value, it will
-        default to the other frame's value (which might be NaN as well)
-
-        Parameters
-        ----------
-        otherFrame : DataFrame / Matrix
-
-        Returns
-        -------
-        DataMatrix
-        """
-        if not otherFrame:
-            return self
-
-        if not self:
-            return otherFrame
-
-        if self.index is not otherFrame.index:
-            unionIndex = self.index + otherFrame.index
-            frame = self.reindex(unionIndex)
-            otherFrame = otherFrame.reindex(unionIndex)
-        else:
-            unionIndex = self.index
-            frame = self
-
-        unionCols = sorted(set(frame.cols() + otherFrame.cols()))
-
-        result = {}
-        for col in unionCols:
-            if col in frame and col in otherFrame:
-                series = frame[col].view(np.ndarray)
-                otherSeries = otherFrame[col].view(np.ndarray)
-                sok = np.isfinite(series)
-                ook = np.isfinite(otherSeries)
-
-                result[col] = np.where(sok & ook, series + otherSeries,
-                                       np.where(sok, series, otherSeries))
-
-            elif col in frame:
-                result[col] = frame[col]
-            elif col in otherFrame:
-                result[col] = otherFrame[col]
-            else:
-                raise Exception('Phantom column, be very afraid')
-
-        return DataMatrix(result, index=unionIndex, columns=unionCols)
 
     # TODO, works though.
     def outerJoin(self, *frames):

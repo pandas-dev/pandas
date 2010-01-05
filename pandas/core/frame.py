@@ -1279,7 +1279,7 @@ class DataFrame(Picklable, Groupable):
             elif col in other:
                 result[col] = other[col]
 
-        return DataFrame(result, index = unionIndex)
+        return type(self)(result, index=unionIndex)
 
     def combineFirst(self, other):
         """

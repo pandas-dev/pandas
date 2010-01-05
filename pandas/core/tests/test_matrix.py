@@ -5,7 +5,7 @@ import unittest
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import DataMatrix
+from pandas.core.api import Series, DataMatrix
 import pandas.core.tests.test_frame as test_frame
 import pandas.core.tests.common as common
 
@@ -37,6 +37,22 @@ class TestDataMatrix(test_frame.TestDataFrame):
 
         # corner, silly
         self.assertRaises(Exception, self.klass, (1, 2, 3))
+
+    def test_copy(self):
+        # copy objects
+        copy = self.mixed_frame.copy()
+        self.assert_(copy.objects is not self.mixed_frame.objects)
+
+    def test_combineFirst_mixed(self):
+        a = Series(['a','b'], index=range(2))
+        b = Series(range(2), index=range(2))
+        f = DataMatrix.fromDict({'A' : a, 'B' : b})
+
+        a = Series(['a','b'], index=range(5, 7))
+        b = Series(range(2), index=range(5, 7))
+        g = DataMatrix.fromDict({'A' : a, 'B' : b})
+
+        combined = f.combineFirst(g)
 
     def test_setitem_corner(self):
         # corner case
