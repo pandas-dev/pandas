@@ -1,4 +1,3 @@
-from copy import deepcopy
 from datetime import datetime
 import unittest
 
@@ -7,7 +6,6 @@ import numpy as np
 
 from pandas.core.api import Series, DataMatrix
 import pandas.core.tests.test_frame as test_frame
-import pandas.core.tests.common as common
 
 #-------------------------------------------------------------------------------
 # DataMatrix test cases
