@@ -13,29 +13,28 @@ import operator
 import numpy as np
 from numpy.lib.format import write_array, read_array
 
+from pandas.core.common import _pickle_array, _unpickle_array
 from pandas.core.groupby import GroupBy
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
 from pandas.core.mixins import Picklable
+import pandas.lib.tseries as tseries
 
 class PanelError(Exception):
     pass
 
+def _arith_method(func, name):
+    # work only for scalars
 
-def _pickle(arr):
-    "Render text representation of array"
+    def f(self, other):
+        if not np.isscalar(other):
+            raise Exception('Simple arithmetic with WidePanel can only be '
+                            'done with scalar values')
 
-    io = StringIO()
-    write_array(io, arr)
+        return self._combine(other, func)
 
-    return io.getvalue()
-
-
-def _interpret(s):
-    "Read text representation of ndarray"
-    arr = read_array(StringIO(s))
-    return arr
+    return f
 
 class Panel(Picklable):
     """
@@ -276,19 +275,19 @@ class WidePanel(Panel):
     def __getstate__(self):
         "Returned pickled representation of the panel"
 
-        return (_pickle(self.values),
-                _pickle(self.items),
-                _pickle(self.major_axis),
-                _pickle(self.minor_axis))
+        return (_pickle_array(self.values),
+                _pickle_array(self.items),
+                _pickle_array(self.major_axis),
+                _pickle_array(self.minor_axis))
 
     def __setstate__(self, state):
         "Unpickle the panel"
         vals, items, major, minor = state
 
-        self.items = _interpret(items)
-        self.major_axis = _interpret(major)
-        self.minor_axis = _interpret(minor)
-        self.values = _interpret(vals)
+        self.items = _unpickle_array(items)
+        self.major_axis = _unpickle_array(major)
+        self.minor_axis = _unpickle_array(minor)
+        self.values = _unpickle_array(vals)
 
     def conform(self, frame, axis='items'):
         """
@@ -326,12 +325,11 @@ class WidePanel(Panel):
         -------
         WidePanel (new object)
         """
-        import pandas.lib.tseries as tseries
 
         axis_i = self._wide_axis_number(axis)
         current_axis = self._get_axis(axis)
 
-        if new_index is current_axis:
+        if new_index.equals(current_axis):
             return self.copy()
 
         if not isinstance(new_index, Index):
@@ -369,13 +367,37 @@ class WidePanel(Panel):
 
         return WidePanel(new_values, new_items, new_major, new_minor)
 
+    def _reindex_items(self, new_items):
+        pass
+
+    def _reindex_major(self, new_major):
+        pass
+
+    def _reindex_minor(self, new_minor):
+        pass
+
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
             return self._combineFrame(other, func, axis=axis)
         elif isinstance(other, Panel):
             return self._combinePanel(other, func)
         elif np.isscalar(other):
-            pass
+            newValues = func(self.values, other)
+
+            return WidePanel(newValues, self.items, self.major_axis,
+                             self.minor_axis)
+
+    __add__ = _arith_method(operator.add, '__add__')
+    __sub__ = _arith_method(operator.sub, '__sub__')
+    __mul__ = _arith_method(operator.mul, '__mul__')
+    __div__ = _arith_method(operator.div, '__div__')
+    __pow__ = _arith_method(operator.pow, '__pow__')
+
+    __radd__ = _arith_method(operator.add, '__radd__')
+    __rmul__ = _arith_method(operator.mul, '__rmul__')
+    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
+    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
+    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
     def _combineFrame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
@@ -397,6 +419,7 @@ class WidePanel(Panel):
 
     def _combinePanel(self, other, func):
         pass
+
 
     def add(self, other, axis='major'):
         """
@@ -552,15 +575,15 @@ class WidePanel(Panel):
         return WidePanel(new_values, intersection, self.major_axis,
                          self.minor_axis)
 
-    def _apply(self, func, axis='major', fill_na=True):
+    def _apply(self, func, axis='major', fill_value=None):
         """
         Parameters
         ----------
         func : numpy function
             Signature should match numpy.{sum, mean, var, std} etc.
         axis : {'major', 'minor', 'items'}
-        fill_na : boolean, default True
-            Replace NaN values with 0 first
+        fill_value : boolean, default True
+            Replace NaN values with specified first
 
         Returns
         -------
@@ -572,9 +595,10 @@ class WidePanel(Panel):
 
         values = self.values
         mask = np.isfinite(values)
-        if fill_na:
+
+        if fill_value is not None:
             values = values.copy()
-            values[-mask] = 0
+            values[-mask] = fill_value
 
         result = func(values, axis=i)
         count = mask.sum(axis=i)
@@ -589,23 +613,109 @@ class WidePanel(Panel):
 
         return DataMatrix(result, index=index, columns=columns)
 
+    def count(self, axis='major'):
+        """
+        Return DataMatrix of observation counts along desired axis
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        i = self._wide_axis_number(axis)
+        index, columns = self._get_plane_axes(axis)
+
+        values = self.values
+        mask = np.isfinite(values)
+
+        result = mask.sum(axis=i)
+
+        if axis != 'items':
+            result = result.T
+
+        return DataMatrix(result, index=index, columns=columns)
+
     def sum(self, axis='major'):
-        return self._apply(np.sum, axis=axis)
+        """
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        return self._apply(np.sum, axis=axis, fill_value=0)
+
+    def cumsum(self, axis='major'):
+        """
+
+        Returns
+        -------
+        y : WidePanel
+        """
+        return self._apply(np.cumsum, axis=axis, fill_value=0)
 
     def mean(self, axis='major'):
-        return self._apply(np.mean, axis=axis)
+        """
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        return self.sum(axis=axis) / self.count(axis=axis)
 
     def var(self, axis='major'):
-        def _var(arr, axis=0):
-            return np.std(arr, axis=axis, ddof=1)
+        """
 
-        return self._apply(_var, axis=axis)
+        Returns
+        -------
+        y : DataMatrix
+        """
+        i = self._wide_axis_number(axis)
+        index, columns = self._get_plane_axes(axis)
+
+        y = np.array(self.values)
+        mask = np.isnan(y)
+
+        count = (-mask).sum(axis=i).astype(float)
+        y[mask] = 0
+
+        X = y.sum(axis=i)
+        XX = (y ** 2).sum(axis=i)
+
+        theVar = (XX - X**2 / count) / (count - 1)
+
+        if axis != 'items':
+            theVar = theVar.T
+
+        return DataMatrix(theVar, index=index, columns=columns)
 
     def std(self, axis='major'):
-        def _std(arr, axis=0):
-            return np.std(arr, axis=axis, ddof=1)
+        """
 
-        return self._apply(_std, axis=axis)
+        Returns
+        -------
+        y : DataMatrix
+        """
+        return self.var(axis=axis).apply(np.sqrt)
+
+    def skew(self, axis='major'):
+        raise NotImplementedError
+
+    def prod(self, axis='major'):
+        """
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        return self._apply(np.prod, axis=axis, fill_value=1)
+
+    def compound(self, axis='major'):
+        """
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        return (1 + self).prod(axis=axis) - 1
 
     def shift(self, lags, axis='major'):
         values = self.values
@@ -643,19 +753,19 @@ class LongPanelIndex(object):
         self._mask = mask
 
     def __getstate__(self):
-        return (_pickle(self.major_axis),
-                _pickle(self.minor_axis),
-                _pickle(self.major_labels),
-                _pickle(self.minor_labels))
+        return (_pickle_array(self.major_axis),
+                _pickle_array(self.minor_axis),
+                _pickle_array(self.major_labels),
+                _pickle_array(self.minor_labels))
 
     def __setstate__(self, state):
         major, minor, major_labels, minor_labels = state
 
-        self.major_axis = _interpret(major)
-        self.minor_axis = _interpret(minor)
+        self.major_axis = _unpickle_array(major)
+        self.minor_axis = _unpickle_array(minor)
 
-        self.major_axis = _interpret(major_labels)
-        self.minor_axis = _interpret(minor_labels)
+        self.major_axis = _unpickle_array(major_labels)
+        self.minor_axis = _unpickle_array(minor_labels)
 
     def isConsistent(self):
         offset = max(len(self.major_axis), len(self.minor_axis))
@@ -927,17 +1037,17 @@ class LongPanel(Panel):
     def __getstate__(self):
         "Returned pickled representation of the panel"
 
-        return (_pickle(self.values),
-                _pickle(self.items),
+        return (_pickle_array(self.values),
+                _pickle_array(self.items),
                 self.index)
 
     def __setstate__(self, state):
         "Unpickle the panel"
         (vals, items, index) = state
 
-        self.items = _interpret(items)
+        self.items = _unpickle_array(items)
         self.index = index
-        self.values = _interpret(vals)
+        self.values = _unpickle_array(vals)
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
@@ -1493,8 +1603,6 @@ def pivot(index, columns, values):
     -------
     DataMatrix
     """
-    import pandas.lib.tseries as tseries
-
     if not (len(index) == len(columns) == len(values)):
         raise Exception('Pivot inputs must all be same length!')
 

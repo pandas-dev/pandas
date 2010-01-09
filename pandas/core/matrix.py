@@ -341,8 +341,8 @@ class DataMatrix(DataFrame):
             print 'CSV file written successfully: %s' % path
 
     def toString(self, buffer=sys.stdout, verbose=False,
-                 columns=None, colSpace=15, formatters=None,
-                 float_format=None):
+                 columns=None, colSpace=15, nanRep='NaN',
+                 formatters=None, float_format=None):
         """
         Output a string version of this DataMatrix
         """
@@ -377,7 +377,8 @@ class DataMatrix(DataFrame):
                 for j, col in enumerate(columns):
                     formatter = formatters.get(col, ident)
                     buffer.write(_pfixed(formatter(values[i, j]), colSpace,
-                                         float_format=float_format))
+                                         float_format=float_format,
+                                         nanRep=nanRep))
                 buffer.write('\n')
 
     def info(self, buffer=sys.stdout):

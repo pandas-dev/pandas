@@ -560,8 +560,6 @@ class DataFrame(Picklable, Groupable):
             columns = [c for c in columns if c in self]
 
         formatters = formatters or {}
-
-        # TODO
         ident = lambda x: x
 
         if len(columns) == 0 or len(self.index) == 0:
