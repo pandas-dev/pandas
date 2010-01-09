@@ -1054,103 +1054,24 @@ class DataMatrix(DataFrame):
 
                 return myCopy
 
-    def getTS(self, colName=None, fromDate=None, toDate=None, nPeriods=None):
-        """
-        Return a DataMatrix / TimeSeries corresponding to given arguments
-
-        Parameters
-        ----------
-        colName : string or None
-            particular column name requested, fine to leave blank
-        fromDate : datetime
-        toDate : datetime
-        nPeriods : int/float
-
-        Note
-        ----
-        Error thrown if all of fromDate, toDate, nPeriods specified.
-
-        Returns
-        -------
-        DataMatrix or TimeSeries
-        """
-        # Should use bisect in here
-
-        if toDate:
-            if toDate not in self.index:
-                if toDate > self.index[0]:
-                    toDate = self.index.asOfDate(toDate)
-                else:
-                    raise Exception('End date after last date in this index!')
-        if fromDate:
-            if fromDate not in self.index:
-                if fromDate < self.index[-1]:
-                    fromDate = self.index.asOfDate(fromDate)
-                else:
-                    raise Exception('Begin date after last date in this index!')
-
-        haveFrom = fromDate is not None
-        haveTo = toDate is not None
-
-        if haveFrom and haveTo:
-            if nPeriods:
-                raise Exception('fromDate/toDate, toDate/nPeriods, ' +
-                                'fromDate/nPeriods are mutually exclusive')
-            beg_slice = self.index.indexMap[fromDate]
-            end_slice = self.index.indexMap[toDate] + 1
-        elif haveFrom and nPeriods:
-            beg_slice = self.index.indexMap[fromDate]
-            end_slice = self.index.indexMap[fromDate] + nPeriods
-        elif haveTo and nPeriods:
-            beg_slice = self.index.indexMap[toDate] - nPeriods + 1
-            end_slice = self.index.indexMap[toDate] + 1
-        else:
-            raise Exception('Not enough arguments provided to getTS')
-
-        # Fix indices in case they fall out of the boundaries
-        beg_slice = max(0, beg_slice)
-        end_slice = min(len(self.index), end_slice)
-        dateRange = self.index[beg_slice:end_slice]
-
-        if colName:
-            return self[colName][beg_slice:end_slice]
-        else:
-            newValues = self.values[beg_slice:end_slice]
-
-            newLinks = None
-            if self.objects is not None and len(self.objects.columns) > 0:
-                newLinks = self.objects.reindex(dateRange)
-
-            return DataMatrix(newValues, index=dateRange,
-                              columns=self.columns, objects=newLinks)
-
-    def getXS(self, key, subset=None):
+    def getXS(self, key):
         """
         Returns a row from the DataMatrix as a Series object.
 
         Parameters
         ----------
         key : some index contained in the index
-        subset : iterable (list, array, set, etc.), optional
-            columns to be included
 
-        Note
-        ----
-        Will try to return a TimeSeries if the columns are dates.
+        Returns
+        -------
+        Series
         """
         if key not in self.index:
             raise Exception('No cross-section for %s' % key)
 
         loc = self.index.indexMap[key]
-
-        if subset:
-            subset = sorted(set(subset))
-            indexer = [self.columns.indexMap[col] for col in subset]
-            theSlice = self.values[loc, indexer].copy()
-            xsIndex = subset
-        else:
-            theSlice = self.values[loc, :].copy()
-            xsIndex = self.columns
+        theSlice = self.values[loc, :].copy()
+        xsIndex = self.columns
 
         result = Series(theSlice, index=xsIndex)
 
@@ -1391,46 +1312,6 @@ class DataMatrix(DataFrame):
         except Exception:
             return DataFrame.fromMatrix(results, self.columns, self.index)
         return DataMatrix(data=results, index=self.index, columns=self.columns)
-
-    # Utility methods
-
-    def filterItems(self, items):
-        """
-        Restrict frame's columns to input set of items.
-
-        Parameters
-        ----------
-        items : list-like
-            List of columns to restrict to (must not all be present)
-
-        Returns
-        -------
-        DataMatrix with filtered columns
-        """
-        if len(self.cols()) == 0:
-            return self
-        intersection = Index(self.cols()).intersection(items)
-
-        indexer = [self.columns.indexMap[col] for col in intersection]
-        newValues = self.values[:, indexer].copy()
-        return DataMatrix(newValues, index=self.index, columns=intersection)
-
-    def filterLike(self, arg):
-        """
-        Filter to columns partially matching the import argument.
-
-        Keep columns where "arg in col == True"
-
-        Parameter
-        ---------
-        arg : string
-
-        Return
-        ------
-        DataMatrix with matching columns
-        """
-        newCols = Index([c for c in self.columns if arg in c])
-        return self.reindex(columns=newCols)
 
     def append(self, otherFrame):
         if not otherFrame:

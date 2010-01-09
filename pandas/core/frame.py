@@ -878,24 +878,24 @@ class DataFrame(Picklable, Groupable):
 
         return beg_slice, end_slice
 
-    def getXS(self, key, subset=None):
+    def getXS(self, key):
         """
         Returns a row from the DataFrame as a Series object.
 
         Parameters
         ----------
         key : some index contained in the index
-        subset : iterable (list, array, set, etc.), optional
-            columns to be included
 
-        Note
-        ----
-        Will try to return a TimeSeries if the columns are dates.
+        Returns
+        -------
+        Series
         """
-        subset = list(set(subset) if subset else set(self._series.keys()))
-        subset.sort()
+        if key not in self.index:
+            raise Exception('No cross-section for %s' % key)
 
-        rowValues = [self._series[k].get(key) for k in subset]
+        subset = sorted(self._series)
+
+        rowValues = [self._series[k][key] for k in subset]
 
         if len(set(map(type, rowValues))) > 1:
             return Series(np.array(rowValues, dtype=np.object_), index=subset)

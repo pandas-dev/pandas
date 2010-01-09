@@ -585,6 +585,9 @@ class TestDataFrame(unittest.TestCase):
             else:
                 self.assertEqual(value, self.frame[item][idx])
 
+        self.assertRaises(Exception, self.tsframe.getXS,
+                          self.tsframe.index[0] - datetools.bday)
+
     def test_pivot(self):
         data = {
             'index' : ['A', 'B', 'C', 'C', 'B', 'A'],
