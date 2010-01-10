@@ -3,7 +3,7 @@ from pandas.stats.tests.common import assert_almost_equal, BaseTest
 
 class TestFamaMacBeth(BaseTest):
     def testFamaMacBethRolling(self):
-        self.checkFamaMacBethExtended(ROLLING, self.panel_x, self.panel_y)
+        self.checkFamaMacBethExtended('rolling', self.panel_x, self.panel_y)
 
     def checkFamaMacBethExtended(self, window_type, x, y, **kwds):
         window = 25
@@ -15,7 +15,7 @@ class TestFamaMacBeth(BaseTest):
         time = len(index)
 
         for i in xrange(time - window + 1):
-            if window_type == ROLLING:
+            if window_type == 'rolling':
                 start = index[i]
             else:
                 start = index[0]

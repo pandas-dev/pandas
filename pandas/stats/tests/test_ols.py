@@ -57,12 +57,12 @@ class TestOLS(BaseTest):
         self.checkOLS(exog, endog, x, y)
 
         if not skip_moving:
-            self.checkMovingOLS(ROLLING, x, y)
-            self.checkMovingOLS(ROLLING, x, y, nw_lags=0)
-            self.checkMovingOLS(EXPANDING, x, y, nw_lags=0)
-            self.checkMovingOLS(ROLLING, x, y, nw_lags=1)
-            self.checkMovingOLS(EXPANDING, x, y, nw_lags=1)
-            self.checkMovingOLS(EXPANDING, x, y, nw_lags=1, nw_overlap=True)
+            self.checkMovingOLS('rolling', x, y)
+            self.checkMovingOLS('rolling', x, y, nw_lags=0)
+            self.checkMovingOLS('expanding', x, y, nw_lags=0)
+            self.checkMovingOLS('rolling', x, y, nw_lags=1)
+            self.checkMovingOLS('expanding', x, y, nw_lags=1)
+            self.checkMovingOLS('expanding', x, y, nw_lags=1, nw_overlap=True)
 
     def checkOLS(self, exog, endog, x, y):
         reference = sm.OLS(endog, sm.add_constant(exog)).fit()
@@ -95,7 +95,7 @@ class TestOLS(BaseTest):
             index = moving.y.major_axis
 
         for n, i in enumerate(moving._valid_indices):
-            if window_type == ROLLING and i >= window:
+            if window_type == 'rolling' and i >= window:
                 prior_date = index[i - window + 1]
             else:
                 prior_date = index[0]
@@ -347,31 +347,32 @@ class TestPanelOLS(BaseTest):
 
     def testRollingWithEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
-                            cluster=ENTITY)
+                            cluster='entity')
 
     def testRollingWithTimeEffectsAndEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
-                            time_effects=True, cluster=ENTITY)
+                            time_effects=True, cluster='entity')
 
     def testRollingWithTimeCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
-                            cluster=TIME)
+                            cluster='time')
 
     def testRollingWithNeweyWestAndEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
-                            nw_lags=1, cluster=ENTITY)
+                            nw_lags=1, cluster='entity')
 
     def testRollingWithNeweyWestAndTimeEffectsAndEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
-                            nw_lags=1, cluster=ENTITY, time_effects=True)
+                            nw_lags=1, cluster='entity',
+                            time_effects=True)
 
     def testExpanding(self):
-        self.checkMovingOLS(self.panel_x, self.panel_y, window_type=EXPANDING)
+        self.checkMovingOLS(self.panel_x, self.panel_y, window_type='expanding')
 
     def testNonPooled(self):
         self.checkNonPooled(y=self.panel_y, x=self.panel_x)
         self.checkNonPooled(y=self.panel_y, x=self.panel_x,
-                            window_type=ROLLING, window=25, min_periods=10)
+                            window_type='rolling', window=25, min_periods=10)
 
     def checkNonPooled(self, x, y, **kwds):
         # For now, just check that it doesn't crash
@@ -381,7 +382,7 @@ class TestPanelOLS(BaseTest):
         for attr in NonPooledPanelOLS.ATTRIBUTES:
             _check_repr(getattr(result, attr))
 
-    def checkMovingOLS(self, x, y, window_type=ROLLING, **kwds):
+    def checkMovingOLS(self, x, y, window_type='rolling', **kwds):
         window = 25  # must be larger than rank of x
 
         moving = ols(y=y, x=x, window_type=window_type,
@@ -393,7 +394,7 @@ class TestPanelOLS(BaseTest):
             index = moving.y.major_axis
 
         for n, i in enumerate(moving._valid_indices):
-            if window_type == ROLLING and i >= window:
+            if window_type == 'rolling' and i >= window:
                 prior_date = index[i - window + 1]
             else:
                 prior_date = index[0]
