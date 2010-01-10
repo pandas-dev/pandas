@@ -22,6 +22,10 @@ accomplish the following:
 * Implement common statistical models with a convenient interface,
   handling missing data and other common problems associated with
   messy statistical data sets
+
+Note
+----
+Windows binaries built against NumPy 1.3.0
 """
 
 DISTNAME = 'pandas'
