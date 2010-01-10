@@ -19,6 +19,7 @@ from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
 from pandas.core.mixins import Picklable
+from pandas.lib.tseries import notnull
 import pandas.lib.tseries as tseries
 
 class PanelError(Exception):
@@ -108,17 +109,6 @@ class Panel(Picklable):
 
     minor_axis = property(fget=_get_minor_axis, fset=_set_minor_axis)
 
-    def _get_values(self):
-        return self._values
-
-    def _set_values(self, values):
-        if not values.flags.contiguous:
-            values = values.copy()
-
-        self._values = values
-
-    values = property(fget=_get_values, fset=_set_values)
-
     @property
     def dims(self):
         return len(self.items), len(self.major_axis), len(self.minor_axis)
@@ -192,6 +182,17 @@ class WidePanel(Panel):
 
         return index, columns
 
+    def copy(self):
+        """
+        Return a copy of WidePanel (only values ndarray copied)
+
+        Returns
+        -------
+        y : WidePanel
+        """
+        return WidePanel(self.values.copy(), self.items, self.major_axis,
+                         self.minor_axis)
+
     @classmethod
     def fromDict(cls, data, intersect=True, dtype=float):
         """
@@ -247,9 +248,6 @@ class WidePanel(Panel):
         return DataMatrix(mat, index=self.major_axis, columns=self.minor_axis)
 
     def __setitem__(self, key, value):
-        """
-        Insert item at end of items for now
-        """
         _, N, K = self.dims
 
         # XXX
@@ -269,8 +267,14 @@ class WidePanel(Panel):
             mat = np.empty((1, N, K), dtype=float)
             mat.fill(value)
 
-        self.items = Index(list(self.items) + [key])
-        self.values = np.row_stack((self.values, mat))
+        if key in self.items:
+            loc = self.items.indexMap[key]
+            self.values[loc] = mat
+        else:
+            self.items = Index(list(self.items) + [key])
+
+            # Insert item at end of items for now
+            self.values = np.row_stack((self.values, mat))
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
@@ -309,15 +313,15 @@ class WidePanel(Panel):
 
         return frame.reindex(index=index, columns=columns)
 
-    def reindex(self, new_index, axis='major', fill_method=None):
+    def reindex(self, major=None, items=None, minor=None, fill_method=None):
         """
-        Conform
+        Conform panel to new axis or axes
 
         Parameters
         ----------
-        new_index : Index or sequence
-        axis : {'items', 'major', 'minor'}
-            Axis to reindex
+        major : Index or sequence, default None
+        items : Index or sequence, default None
+        minor : Index or sequence, default None
         fill_method : {'backfill', 'pad', 'interpolate', None}
             Method to use for filling holes in reindexed panel
 
@@ -325,56 +329,64 @@ class WidePanel(Panel):
         -------
         WidePanel (new object)
         """
+        result = self
 
-        axis_i = self._wide_axis_number(axis)
-        current_axis = self._get_axis(axis)
+        if major is not None:
+            result = result._reindex_major(major, fill_method)
 
-        if new_index.equals(current_axis):
+        if minor is not None:
+            result = result._reindex_minor(minor, fill_method)
+
+        if items is not None:
+            result = result._reindex_items(items, fill_method)
+
+        if result is self:
+            raise Exception('Must specify at least one axis')
+
+        return result
+
+    def _reindex_items(self, new_index, fill_method):
+        if self.items.equals(new_index):
             return self.copy()
 
         if not isinstance(new_index, Index):
             new_index = Index(new_index)
 
-        if not fill_method:
-            fill_method = ''
+        indexer, mask = _get_indexer(self.items, new_index, fill_method)
 
-        fill_method = fill_method.upper()
+        new_values = self.values.take(indexer, axis=0)
+        new_values[-mask] = np.NaN
 
-        if fill_method not in ['BACKFILL', 'PAD', '']:
-            raise Exception("Don't recognize fill_method: %s" % fill_method)
+        return WidePanel(new_values, new_index, self.major_axis,
+                         self.minor_axis)
 
-        indexer, mask = tseries.getFillVec(current_axis, new_index,
-                                           current_axis.indexMap,
-                                           new_index.indexMap, fill_method)
+    def _reindex_major(self, new_index, fill_method):
+        if self.major_axis.equals(new_index):
+            return self.copy()
 
-        new_values = self.values.take(indexer, axis=axis_i)
+        if not isinstance(new_index, Index):
+            new_index = Index(new_index)
 
-        new_items = self.items
-        new_major = self.major_axis
-        new_minor = self.minor_axis
-#        new_factors = dict((k, v.take(indexer))
-#                           for k, v in self.factors.iteritems())
+        indexer, mask = _get_indexer(self.major_axis, new_index, fill_method)
 
-        if axis_i == 0:
-            new_values[-mask] = np.NaN
-            new_items = new_index
-        elif axis_i == 1:
-            new_values[:, -mask, :] = np.NaN
-            new_major = new_index
-        else:
-            new_values[:, :, -mask] = np.NaN
-            new_minor = new_index
+        new_values = self.values.take(indexer, axis=1)
+        new_values[:, -mask, :] = np.NaN
 
-        return WidePanel(new_values, new_items, new_major, new_minor)
+        return WidePanel(new_values, self.items, new_index, self.minor_axis)
 
-    def _reindex_items(self, new_items):
-        pass
+    def _reindex_minor(self, new_index, fill_method):
+        if self.minor_axis.equals(new_index):
+            return self.copy()
 
-    def _reindex_major(self, new_major):
-        pass
+        if not isinstance(new_index, Index):
+            new_index = Index(new_index)
 
-    def _reindex_minor(self, new_minor):
-        pass
+        indexer, mask = _get_indexer(self.minor_axis, new_index, fill_method)
+
+        new_values = self.values.take(indexer, axis=2)
+        new_values[:, :, -mask] = np.NaN
+
+        return WidePanel(new_values, self.items, self.major_axis, new_index)
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
@@ -419,7 +431,6 @@ class WidePanel(Panel):
 
     def _combinePanel(self, other, func):
         pass
-
 
     def add(self, other, axis='major'):
         """
@@ -575,7 +586,44 @@ class WidePanel(Panel):
         return WidePanel(new_values, intersection, self.major_axis,
                          self.minor_axis)
 
-    def _apply(self, func, axis='major', fill_value=None):
+    def apply(self, func, axis='major'):
+        """
+        Apply
+
+        Parameters
+        ----------
+        func : numpy function
+            Signature should match numpy.{sum, mean, var, std} etc.
+        axis : {'major', 'minor', 'items'}
+        fill_value : boolean, default True
+            Replace NaN values with specified first
+
+        Returns
+        -------
+        result : DataMatrix or WidePanel
+        """
+        i = self._wide_axis_number(axis)
+
+        result = np.apply_along_axis(func, i, self.values)
+
+        return self._wrap_result(result, axis=axis)
+
+    def _values_aggregate(self, func, axis, fill_value):
+        values = self.values
+        mask = np.isfinite(values)
+
+        if fill_value is not None:
+            values = values.copy()
+            values[-mask] = fill_value
+
+        result = func(values, axis=axis)
+        count = mask.sum(axis=axis)
+
+        result[count == 0] = np.NaN
+
+        return result
+
+    def _array_method(self, func, axis='major', fill_value=None):
         """
         Parameters
         ----------
@@ -589,29 +637,10 @@ class WidePanel(Panel):
         -------
         DataMatrix
         """
-
         i = self._wide_axis_number(axis)
-        index, columns = self._get_plane_axes(axis)
 
-        values = self.values
-        mask = np.isfinite(values)
-
-        if fill_value is not None:
-            values = values.copy()
-            values[-mask] = fill_value
-
-        result = func(values, axis=i)
-        count = mask.sum(axis=i)
-
-        result[count == 0] = np.NaN
-
-        if axis != 'items':
-            result = result.T
-
-        if not result.ndim == 2:
-            raise Exception('function %s incompatible' % func)
-
-        return DataMatrix(result, index=index, columns=columns)
+        result = self._values_aggregate(func, i, fill_value)
+        return self._wrap_result(result, axis=axis)
 
     def count(self, axis='major'):
         """
@@ -622,17 +651,12 @@ class WidePanel(Panel):
         y : DataMatrix
         """
         i = self._wide_axis_number(axis)
-        index, columns = self._get_plane_axes(axis)
 
         values = self.values
         mask = np.isfinite(values)
-
         result = mask.sum(axis=i)
 
-        if axis != 'items':
-            result = result.T
-
-        return DataMatrix(result, index=index, columns=columns)
+        return self._wrap_result(result, axis)
 
     def sum(self, axis='major'):
         """
@@ -641,7 +665,7 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        return self._apply(np.sum, axis=axis, fill_value=0)
+        return self._array_method(np.sum, axis=axis, fill_value=0)
 
     def cumsum(self, axis='major'):
         """
@@ -650,7 +674,7 @@ class WidePanel(Panel):
         -------
         y : WidePanel
         """
-        return self._apply(np.cumsum, axis=axis, fill_value=0)
+        return self._array_method(np.cumsum, axis=axis, fill_value=0)
 
     def mean(self, axis='major'):
         """
@@ -682,10 +706,7 @@ class WidePanel(Panel):
 
         theVar = (XX - X**2 / count) / (count - 1)
 
-        if axis != 'items':
-            theVar = theVar.T
-
-        return DataMatrix(theVar, index=index, columns=columns)
+        return self._wrap_result(theVar, axis)
 
     def std(self, axis='major'):
         """
@@ -706,7 +727,7 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        return self._apply(np.prod, axis=axis, fill_value=1)
+        return self._array_method(np.prod, axis=axis, fill_value=1)
 
     def compound(self, axis='major'):
         """
@@ -716,6 +737,74 @@ class WidePanel(Panel):
         y : DataMatrix
         """
         return (1 + self).prod(axis=axis) - 1
+
+    def median(self, axis='major'):
+        """
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        def f(arr):
+            return tseries.median(arr[notnull(arr)])
+
+        return self.apply(f, axis=axis)
+
+    def max(self, axis='major'):
+        """
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        i = self._wide_axis_number(axis)
+
+        y = np.array(self.values)
+        mask = np.isfinite(y)
+
+        fill_value = y.flat[mask.ravel()].min() - 1
+
+        y[-mask] = fill_value
+
+        result = y.max(axis=i)
+        result[result == fill_value] = np.NaN
+
+        return self._wrap_result(result, axis)
+
+    def min(self, axis='major'):
+        """
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        i = self._wide_axis_number(axis)
+
+        y = np.array(self.values)
+        mask = np.isfinite(y)
+
+        fill_value = y.flat[mask.ravel()].max() + 1
+
+        y[-mask] = fill_value
+
+        result = y.min(axis=i)
+        result[result == fill_value] = np.NaN
+
+        return self._wrap_result(result, axis)
+
+    def _wrap_result(self, result, axis):
+        axis = self._wide_axis_name(axis)
+
+        if result.ndim == 2:
+            index, columns = self._get_plane_axes(axis)
+
+            if axis != 'items':
+                result = result.T
+
+            return DataMatrix(result, index=index, columns=columns)
+        else:
+            return WidePanel(result, self.items, self.major_axis,
+                             self.minor_axis)
 
     def shift(self, lags, axis='major'):
         values = self.values
@@ -764,8 +853,8 @@ class LongPanelIndex(object):
         self.major_axis = _unpickle_array(major)
         self.minor_axis = _unpickle_array(minor)
 
-        self.major_axis = _unpickle_array(major_labels)
-        self.minor_axis = _unpickle_array(minor_labels)
+        self.major_labels = _unpickle_array(major_labels)
+        self.minor_labels = _unpickle_array(minor_labels)
 
     def isConsistent(self):
         offset = max(len(self.major_axis), len(self.minor_axis))
@@ -1517,6 +1606,19 @@ class Factor(object):
             new_labels = self.labels[key]
             return Factor(new_labels, self.levels)
 
+def _get_indexer(source, target, fill_method):
+    if not fill_method:
+        fill_method = ''
+
+    fill_method = fill_method.upper()
+
+    if fill_method not in ['BACKFILL', 'PAD', '']:
+        raise Exception("Don't recognize fill_method: %s" % fill_method)
+
+    indexer, mask = tseries.getFillVec(source, target, source.indexMap,
+                                       target.indexMap, fill_method)
+
+    return indexer, mask
 
 def _makeItemName(item, prefix=None):
     if prefix is None:
@@ -1681,49 +1783,3 @@ class WidePanelGroupBy(GroupBy):
 
 class LongPanelGroupBy(GroupBy):
     pass
-
-if __name__ == '__main__':
-    from datetime import datetime
-    import string
-
-    import numpy as np
-
-    from pandas.core.api import DataMatrix, DateRange
-
-    N = 50
-    K = 4
-
-    start = datetime(2009, 9, 2)
-    dateRange = DateRange(start, periods=N)
-
-    cols = ['Col' + c for c in string.ascii_uppercase[:K]]
-
-    def makeDataMatrix():
-        data = DataMatrix(np.random.randn(N, K),
-                          columns=cols,
-                          index=dateRange)
-
-        return data
-
-    def makeDataMatrixForWeekday():
-        values = [d.weekday() for d in dateRange]
-        data = DataMatrix(dict((k, values) for k in cols),
-                          index=dateRange)
-
-        return data
-
-    data = {
-        'ItemA' : makeDataMatrix(),
-        'ItemB' : makeDataMatrix(),
-        'ItemC' : makeDataMatrix(),
-#        'ItemD' : makeDataMatrixForWeekday(),
-    }
-
-    Y = makeDataMatrix()
-
-    data['ItemA']['ColA'][:10] = np.NaN
-
-    panel = WidePanel.fromDict(data)
-
-    longPanel = panel.toLong(filter_observations=True)
-    widePanel = longPanel.toWide()

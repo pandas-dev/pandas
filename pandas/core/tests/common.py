@@ -7,7 +7,8 @@ import string
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import DateRange, Index, Series, DataFrame, DataMatrix
+from pandas.core.api import (DateRange, Index, Series, DataFrame,
+                             DataMatrix, WidePanel)
 
 N = 30
 K = 4
@@ -142,3 +143,21 @@ def makeDataMatrix():
 def makeTimeDataMatrix():
     data = getTimeSeriesData()
     return DataMatrix(data)
+
+def makeWidePanel():
+    cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+    data = dict((c, makeTimeDataMatrix()) for c in cols)
+    return WidePanel.fromDict(data)
+
+def add_nans(panel):
+    I, J, N = panel.dims
+    for i, item in enumerate(panel.items):
+        dm = panel[item]
+        for j, col in enumerate(dm.columns):
+            dm[col][:i + j] = np.NaN
+
+def makeLongPanel():
+    wp = makeWidePanel()
+    add_nans(wp)
+
+    return wp.toLong()

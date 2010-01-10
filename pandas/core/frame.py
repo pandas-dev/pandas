@@ -1588,11 +1588,14 @@ class DataFrame(Picklable, Groupable):
         -------
         Series or TimeSeries
         """
+        def f(arr):
+            return tseries.median(arr[notnull(arr)])
+
         if axis == 0:
-            med = [np.median(self[col].valid()) for col in self.columns]
+            med = [f(self[col].values()) for col in self.columns]
             return Series(med, index=self.columns)
         elif axis == 1:
-            med = [np.median(self.getXS(k).valid()) for k in self.index]
+            med = [f(self.getXS(k).values()) for k in self.index]
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
