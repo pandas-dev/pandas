@@ -1528,11 +1528,38 @@ class DataFrame(Picklable, Groupable):
         """
         def get_cumsum(y):
             y = np.array(y)
+            mask = isnull(y)
             if not issubclass(y.dtype.type, np.int_):
-                y[np.isnan(y)] = 0
-            return y.cumsum()
+                y[mask] = 0
+            result = y.cumsum()
+
+            return result
 
         return self.apply(get_cumsum, axis=axis)
+
+    def cumprod(self, axis=0):
+        """
+        Return cumulative product over requested axis as DataFrame
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        def get_cumprod(y):
+            y = np.array(y)
+            mask = isnull(y)
+            if not issubclass(y.dtype.type, np.int_):
+                y[mask] = 1
+            result = y.cumprod()
+
+            return result
+
+        return self.apply(get_cumprod, axis=axis)
 
     def product(self, axis=0):
         """

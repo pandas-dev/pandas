@@ -1008,5 +1008,11 @@ class TestDataFrame(unittest.TestCase):
 
         assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fill(0)))
 
+    def test_cumprod(self):
+        cumprod = self.tsframe.cumprod()
+
+        assert_series_equal(cumprod['A'],
+                            np.cumprod(self.tsframe['A'].fill(1)))
+
 if __name__ == '__main__':
     unittest.main()

@@ -9,11 +9,13 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 from cStringIO import StringIO
 from functools import partial
 import operator
+import sys
 
 import numpy as np
 from numpy.lib.format import write_array, read_array
 
-from pandas.core.common import _pickle_array, _unpickle_array
+from pandas.core.common import (_pickle_array, _unpickle_array,
+                                _pfixed)
 from pandas.core.groupby import GroupBy
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
@@ -247,6 +249,44 @@ class WidePanel(Panel):
 
         return DataMatrix(mat, index=self.major_axis, columns=self.minor_axis)
 
+    def __delitem__(self, key):
+        try:
+            loc = self.items.indexMap[key]
+        except KeyError:
+            raise KeyError('%s not contained in panel data items!' % key)
+
+        if loc == 0:
+            new_items = self.items[1:]
+            new_values = self.values[1:]
+        elif loc == (len(self.items) - 1):
+            new_items = self.items[:-1]
+            new_values = self.values[:-1]
+        else:
+            new_items = Index(np.concatenate((self.items[:loc],
+                                              self.items[loc + 1:])))
+            new_values = np.row_stack(self.values[:loc],
+                                      self.values[loc + 1:])
+
+        self.items = new_items
+        self.values = new_values
+
+    def pop(self, key):
+        """
+        Return item slice from panel and delete from panel
+
+        Parameters
+        ----------
+        key : object
+            Must be contained in panel's items
+
+        Returns
+        -------
+        y : DataMatrix
+        """
+        result = self[key]
+        del self[key]
+        return result
+
     def __setitem__(self, key, value):
         _, N, K = self.dims
 
@@ -463,7 +503,8 @@ class WidePanel(Panel):
 
         Returns
         -------
-        DataMatrix: index -> minor axis, columns -> items
+        y : DataMatrix
+            index -> minor axis, columns -> items
         """
         try:
             loc = self.major_axis.indexMap[key]
@@ -480,7 +521,8 @@ class WidePanel(Panel):
 
         Returns
         -------
-        DataMatrix: index -> major axis, columns -> items
+        y : DataMatrix
+            index -> major axis, columns -> items
         """
         try:
             loc = self.minor_axis.indexMap[key]
@@ -504,19 +546,27 @@ class WidePanel(Panel):
         """
         return WidePanelGroupBy(self, function, axis=axis)
 
-    def swapaxes(self):
+    def swapaxes(self, axis1='major', axis2='minor'):
         """
-        Switch minor and major axes (and transpose values to reflect
-        the change)
+        Interchange axes and swap values axes appropriately
 
         Returns
         -------
-        WidePanel (new object)
+        y : WidePanel (new object)
         """
-        new_values = self.values.swapaxes(1, 2)
+        i = self._wide_axis_number(axis1)
+        j = self._wide_axis_number(axis2)
 
-        return WidePanel(new_values, self.items,
-                         self.minor_axis, self.major_axis)
+        if i == j:
+            raise Exception('Cannot specify the same axis')
+
+        mapping = {i : j, j : i}
+
+        new_axes = (self._get_axis(mapping.get(k, k))
+                    for k in range(3))
+        new_values = self.values.swapaxes(i, j).copy()
+
+        return WidePanel(new_values, *new_axes)
 
     def toLong(self, filter_observations=True):
         """
@@ -530,7 +580,7 @@ class WidePanel(Panel):
 
         Returns
         -------
-        LongPanel
+        y : LongPanel
         """
         I, N, K = self.dims
 
@@ -577,7 +627,7 @@ class WidePanel(Panel):
 
         Returns
         -------
-        WidePanel
+        y : WidePanel
         """
         intersection = self.items.intersection(items)
         indexer = [self.items.indexMap[col] for col in intersection]
@@ -635,7 +685,7 @@ class WidePanel(Panel):
 
         Returns
         -------
-        DataMatrix
+        y : DataMatrix
         """
         i = self._wide_axis_number(axis)
 
@@ -807,6 +857,12 @@ class WidePanel(Panel):
                              self.minor_axis)
 
     def shift(self, lags, axis='major'):
+        """
+
+        Returns
+        -------
+        y : WidePanel
+        """
         values = self.values
         items = self.items
         major_axis = self.major_axis
@@ -835,6 +891,8 @@ class LongPanelIndex(object):
 
         self.major_axis = major_axis
         self.minor_axis = minor_axis
+
+        assert(len(minor_labels) == len(major_labels))
 
         self.major_labels = major_labels
         self.minor_labels = minor_labels
@@ -875,7 +933,8 @@ class LongPanelIndex(object):
 
     def truncate(self, before=None, after=None):
         """
-        Slice index between two major axis values, return complete LongPanel
+        Slice index between two major axis values, return new
+        LongPanelIndex
 
         Parameters
         ----------
@@ -887,7 +946,7 @@ class LongPanelIndex(object):
 
         Returns
         -------
-        LongPanel
+        LongPanelIndex
         """
         i, j = self._getAxisBounds(before, after)
         left, right = self._getLabelBounds(i, j)
@@ -899,7 +958,18 @@ class LongPanelIndex(object):
 
     def getMajorBounds(self, begin=None, end=None):
         """
+        Return index bounds for slicing LongPanel labels and / or
+        values
 
+        Parameters
+        ----------
+        begin : axis value or None
+        end : axis value or None
+
+        Returns
+        -------
+        y : tuple
+            (left, right) absolute bounds on LongPanel values
         """
         i, j = self._getAxisBounds(begin, end)
         left, right = self._getLabelBounds(i, j)
@@ -955,9 +1025,6 @@ class LongPanelIndex(object):
 
     @property
     def mask(self):
-        """
-
-        """
         if self._mask is None:
             self._mask = self._makeMask()
 
@@ -984,6 +1051,18 @@ class LongPanelIndex(object):
 class LongPanel(Panel):
     """
     Represents long or "stacked" format panel data
+
+    Parameters
+    ----------
+    values : ndarray (N x K)
+    items : sequence
+    index : LongPanelIndex
+
+    Note
+    ----
+    Constructor should probably not be called directly since it
+    requires creating the major and minor axis label vectors for for
+    the LongPanelIndex
     """
 
     def __init__(self, values, items, index, factors=None):
@@ -998,7 +1077,8 @@ class LongPanel(Panel):
     def fromRecords(cls, data, major_field, minor_field,
                     factors=None, exclude=None):
         """
-        Convert LongPanel
+        Create LongPanel from DataFrame or record / structured ndarray
+        object
 
         Parameters
         ----------
@@ -1060,6 +1140,17 @@ class LongPanel(Panel):
 
         return LongPanel(values, items, index, factors=factor_dict)
 
+    def toRecords(self):
+        major = np.asarray(self.major_axis).take(self.index.major_labels)
+        minor = np.asarray(self.minor_axis).take(self.index.minor_labels)
+
+        arrays = [major, minor] + list(self.values[:, i]
+                                       for i in range(len(self.items)))
+
+        names = ['major', 'minor'] + list(self.items)
+
+        return np.rec.fromarrays(arrays, names=names)
+
     @property
     def columns(self):
         """
@@ -1072,20 +1163,23 @@ class LongPanel(Panel):
         return self.columns
 
     def copy(self):
-        values = self.values.copy()
-        items = self.items
-        index = self.index
-        return LongPanel(values, items, index, factors=self.factors)
+        """
+        Return copy of LongPanel (copies ndarray)
 
-    def _get_major_axis(self):
+        Returns
+        -------
+        y : LongPanel
+        """
+        return LongPanel(self.values.copy(), self.items, self.index,
+                         factors=self.factors)
+
+    @property
+    def major_axis(self):
         return self.index.major_axis
 
-    major_axis = property(fget=_get_major_axis)
-
-    def _get_minor_axis(self):
+    @property
+    def minor_axis(self):
         return self.index.minor_axis
-
-    minor_axis = property(fget=_get_minor_axis)
 
     def _get_values(self):
         return self._values
@@ -1113,13 +1207,20 @@ class LongPanel(Panel):
                         [key], self.index, factors=self.factors)
 
     def __setitem__(self, key, value):
-        """
-        Insert item at end of items for now
-        """
         if np.isscalar(value):
             mat = np.empty((len(self.values), 1), dtype=float)
             mat.fill(value)
+        elif isinstance(value, LongPanel):
+            if len(value.items) > 1:
+                raise Exception('input LongPanel must only have one column')
 
+            if value.index is not self.index:
+                raise Exception('Only can set identically-indexed LongPanel '
+                                'items for now')
+
+            mat = value.values
+
+        # Insert item at end of items for now
         self.items = Index(list(self.items) + [key])
         self.values = np.column_stack((self.values, mat))
 
@@ -1263,18 +1364,14 @@ class LongPanel(Panel):
             vals = ','.join('%.12f' % val for val in values)
             return '%s,%s,%s' % (major, minor, vals)
 
-        output = self._textConvert(format_cols, format_row)
-
         f = open(path, 'w')
-        f.write(output)
+        self._textConvert(f, format_cols, format_row)
         f.close()
 
-    def toString(self, col_space=15, return_=False):
+    def toString(self, buffer=sys.stdout, col_space=15):
         """
         Output a screen-friendly version of this Panel
         """
-        from pandas.core.frame import _pfixed
-
         major_space = max(max([len(str(idx))
                                for idx in self.major_axis]) + 4, 9)
         minor_space = max(max([len(str(idx))
@@ -1290,25 +1387,17 @@ class LongPanel(Panel):
                                _pfixed(minor, minor_space),
                                ''.join(_pfixed(v, col_space) for v in values))
 
-        output = self._textConvert(format_cols, format_row)
+        self._textConvert(buffer, format_cols, format_row)
 
-        if return_:
-            return output
-        else:
-            print output
-
-    def _textConvert(self, format_cols, format_row):
-        output = StringIO()
-        print >> output, format_cols(self.items)
+    def _textConvert(self, buffer, format_cols, format_row):
+        print >> buffer, format_cols(self.items)
 
         label_pairs = zip(self.index.major_labels,
                           self.index.minor_labels)
         major, minor = self.major_axis, self.minor_axis
         for i, (major_i, minor_i) in enumerate(label_pairs):
             row = format_row(major[major_i], minor[minor_i], self.values[i])
-            print >> output, row
-
-        return output.getvalue()
+            print >> buffer, row
 
     def swapaxes(self):
         """
@@ -1321,7 +1410,7 @@ class LongPanel(Panel):
         """
         # Order everything by minor labels. Have to use mergesort
         # because NumPy quicksort is not stable. Here of course I'm
-        # using the invariant that the major labels are ordered.
+        # using the property that the major labels are ordered.
         indexer = self.index.minor_labels.argsort(kind='mergesort')
 
         new_major = self.index.minor_labels.take(indexer)
@@ -1524,9 +1613,6 @@ class LongPanel(Panel):
 
     def apply(self, f):
         return LongPanel(f(self.values), self.items, self.index)
-
-    def square(self):
-        return self.apply(np.square)
 
     def count(self, axis=0):
         if axis == 0:

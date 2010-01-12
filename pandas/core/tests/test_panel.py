@@ -1,11 +1,13 @@
-import unittest
+import os
 import operator
+import unittest
 
+from numpy.random import randint
 import numpy as np
 
-from pandas.core.api import notnull
+from pandas.core.api import Index, notnull
 from pandas.core.datetools import bday
-from pandas.core.panel import WidePanel, LongPanel
+from pandas.core.panel import WidePanel, LongPanelIndex, LongPanel
 from pandas.core.tests.common import (assert_frame_equal,
                                       assert_series_equal,
                                       assert_almost_equal)
@@ -214,6 +216,12 @@ class TestWidePanel(unittest.TestCase, PanelTests):
     def test_getitem(self):
         pass
 
+    def test_delitem_pop(self):
+        expected = self.panel['ItemA']
+        result = self.panel.pop('ItemA')
+        assert_frame_equal(expected, result)
+        self.assert_('ItemA' not in self.panel.items)
+
     def test_setitem(self):
 
         # LongPanel with one item
@@ -349,7 +357,18 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         pass
 
     def test_swapaxes(self):
-        pass
+        result = self.panel.swapaxes('items', 'minor')
+        self.assert_(result.items is self.panel.minor_axis)
+
+        result = self.panel.swapaxes('items', 'major')
+        self.assert_(result.items is self.panel.major_axis)
+
+        result = self.panel.swapaxes('major', 'minor')
+        self.assert_(result.major_axis is self.panel.minor_axis)
+
+        # this should also work
+        result = self.panel.swapaxes(0, 1)
+        self.assert_(result.items is self.panel.major_axis)
 
     def test_toLong(self):
         # filtered
@@ -389,6 +408,75 @@ class TestWidePanel(unittest.TestCase, PanelTests):
 class TestLongPanelIndex(unittest.TestCase):
 
     def setUp(self):
+        major_axis = Index([1, 2, 3, 4])
+        minor_axis = Index([1, 2])
+
+        major_labels = np.array([0, 0, 1, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 0, 1])
+
+        self.index = LongPanelIndex(major_axis, minor_axis,
+                                    major_labels, minor_labels)
+
+        major_labels = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
+
+        self.incon = LongPanelIndex(major_axis, minor_axis,
+                                    major_labels, minor_labels)
+
+    def test_isConsistent(self):
+        self.assert_(self.index.isConsistent())
+        self.assert_(not self.incon.isConsistent())
+
+        # need to construct an overflow
+        major_axis = range(70000)
+        minor_axis = range(10)
+
+        major_labels = np.arange(70000)
+        minor_labels = np.repeat(range(10), 7000)
+
+        index = LongPanelIndex(major_axis, minor_axis,
+                               major_labels, minor_labels)
+
+        self.assert_(index.isConsistent())
+
+    def test_truncate(self):
+        result = self.index.truncate(before=1)
+        self.assert_(0 not in result.major_axis)
+        self.assert_(1 in result.major_axis)
+
+        result = self.index.truncate(after=1)
+        self.assert_(2 not in result.major_axis)
+        self.assert_(1 in result.major_axis)
+
+        result = self.index.truncate(before=1, after=2)
+        self.assertEqual(len(result.major_axis), 2)
+
+    def test_getMajorBounds(self):
+        pass
+
+    def test_getAxisBounds(self):
+        pass
+
+    def test_getLabelBounds(self):
+        pass
+
+    def test_bounds(self):
+        pass
+
+    def test_makeMask(self):
+        mask =  self.index.mask
+        expected = np.array([True, True,
+                             True, False,
+                             False, True,
+                             True, True], dtype=bool)
+        self.assert_(np.array_equal(mask, expected))
+
+    def test_dims(self):
+        pass
+
+class TestLongPanel(unittest.TestCase):
+
+    def setUp(self):
         panel = common.makeWidePanel()
         common.add_nans(panel)
 
@@ -407,35 +495,6 @@ class TestLongPanelIndex(unittest.TestCase):
     def test_constructor(self):
         pass
 
-    def test_isConsistent(self):
-        pass
-
-    def test_truncate(self):
-        pass
-
-    def test_getMajorBounds(self):
-        pass
-
-    def test_getAxisBounds(self):
-        pass
-
-    def test_getLabelBounds(self):
-        pass
-
-    def test_bounds(self):
-        pass
-
-    def test_makeMask(self):
-        pass
-
-    def test_dims(self):
-        pass
-
-class TestLongPanel(unittest.TestCase):
-
-    def test_constructor(self):
-        pass
-
     def test_fromRecords(self):
         pass
 
@@ -449,10 +508,10 @@ class TestLongPanel(unittest.TestCase):
         pass
 
     def test_getitem(self):
-        pass
+        col = self.panel['ItemA']
 
     def test_setitem(self):
-        pass
+        self.panel['ItemE'] = self.panel['ItemA']
 
     def test_pickle(self):
         pass
@@ -467,19 +526,35 @@ class TestLongPanel(unittest.TestCase):
         pass
 
     def test_sort(self):
-        pass
+        def is_sorted(arr):
+            return (arr[1:] > arr[:-1]).any()
+
+        sorted_minor = self.panel.sort(axis='minor')
+        self.assert_(is_sorted(sorted_minor.index.minor_labels))
+
+        sorted_major = sorted_minor.sort(axis='major')
+        self.assert_(is_sorted(sorted_major.index.major_labels))
 
     def test_toWide(self):
         pass
 
     def test_toCSV(self):
-        pass
+        self.panel.toCSV('__tmp__')
+        os.remove('__tmp__')
 
     def test_toString(self):
-        pass
+        from cStringIO import StringIO
+
+        buf = StringIO()
+        self.panel.toString(buf)
+        self.panel.toString(buf, col_space=12)
 
     def test_swapaxes(self):
-        pass
+        swapped = self.panel.swapaxes()
+
+        self.assert_(swapped.major_axis is self.panel.minor_axis)
+
+        # what else to test here?
 
     def test_truncate(self):
         pass

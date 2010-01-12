@@ -2,6 +2,7 @@
 from random import Random
 import base64
 import functools
+import itertools
 import os
 import string
 
@@ -18,7 +19,11 @@ def adjoin(space, *lists):
     """
     outLines = []
     newLists = []
-    lengths = [max(map(len, x)) + space for x in lists]
+    lengths = [max(map(len, x)) + space for x in lists[:-1]]
+
+    # not the last one
+    lengths.append(max(map(len, lists[-1])))
+
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = [x.ljust(lengths[i]) for x in lst]
@@ -45,20 +50,12 @@ def iterpairs(seq):
     >>> iterpairs([1, 2, 3, 4])
     [(1, 2), (2, 3), (3, 4)
     """
-    if len(seq) < 2:
-        raise Exception('Only works on sequences length 2 or greater!')
+    # input may not be sliceable
+    seq_it = iter(seq)
+    seq_it_next = iter(seq)
+    _ = seq_it_next.next()
 
-    seqiter = iter(seq)
-    current = seqiter.next()
-    while True:
-        try:
-            next = seqiter.next()
-            yield current, next
-
-            current = next
-
-        except StopIteration:
-            break
+    return itertools.izip(seq_it, seq_it_next)
 
 def indent(string, spaces=4):
     dent = ' ' * spaces
@@ -70,7 +67,6 @@ def banner(message):
     """
     bar = '=' * 80
     return '%s\n%s\n%s' % (bar, message, bar)
-
 
 class groupby(dict):
     """
@@ -85,10 +81,10 @@ class groupby(dict):
             self.setdefault(k, []).append(value)
     __iter__ = dict.iteritems
 
-    
+
 def map_indices_py(arr):
     """
-    Returns a dictionary with (element, index) pairs for each element in the 
+    Returns a dictionary with (element, index) pairs for each element in the
     given array/list
     """
     return dict([(x, i) for i, x in enumerate(arr)])

@@ -2,6 +2,10 @@
 
 __docformat__ = 'restructuredtext'
 
+from datetime import datetime
+
+import numpy as np
+
 from pandas.version import __version__
 from pandas.info import __doc__
 

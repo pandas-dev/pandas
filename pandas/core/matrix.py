@@ -578,10 +578,7 @@ class DataMatrix(DataFrame):
                     if value.dtype.type == np.str_:
                         value = np.array(value, dtype=object)
         else:
-            try:
-                value = np.repeat(value, len(self.index))
-            except Exception:
-                raise Exception('Could not put %s in the matrix!' % value)
+            value = np.repeat(value, len(self.index))
 
         if value.dtype not in self._dataTypes:
             isObject = True
