@@ -2,21 +2,21 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 
-from pandas.core.index import Index
-from pandas.core.frame import DataFrame
-from pandas.core.matrix import DataMatrix
-from pandas.core.series import Series
-
 from datetime import datetime, timedelta
-
 from itertools import izip
-import numpy as np
 import string
 
-def simpleParser(nestedList, forceFloat=True, colNames=None,
-                 header=0, indexCol=0):
+from dateutil import parser
+import numpy as np
+
+from pandas.core.index import Index
+from pandas.core.frame import DataFrame
+
+def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
     """
     Workhorse function for processing nested list into DataFrame
+
+    Should be replaced by np.genfromtxt
     """
     naValues = set(['-1.#IND', '1.#QNAN', '1.#IND',
                     '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
@@ -59,7 +59,7 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
                     val = np.float64(val)
                     if np.isinf(val):
                         val = tmp
-                except:
+                except Exception:
                     pass
             data[c].append(val)
 
@@ -69,13 +69,13 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
             for s in data[columns[0]]:
                 try:
                     dates.append(parser.parse(s))
-                except:
+                except Exception:
                     dates.append(s)
             data[columns[0]] = dates
     for c, values in data.iteritems():
         try:
             data[c] = np.array(values, dtype = np.float64)
-        except:
+        except Exception:
             data[c] = np.array(values, dtype = np.object_)
     if indexCol is not None:
         index = Index(data[columns[indexCol]])
@@ -130,6 +130,6 @@ def parseExcel(filepath, header = None, indexCol = 0, dateCol = 0,
         for row in data:
             try:
                 row[dateCol] = ole2datetime(row[dateCol])
-            except:
+            except Exception:
                 pass
     return simpleParser(data, header = header, indexCol = indexCol)
