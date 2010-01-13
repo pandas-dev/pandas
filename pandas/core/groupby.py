@@ -1,6 +1,5 @@
 import numpy as np
 
-from collections import defaultdict
 from cStringIO import StringIO
 
 from pandas.core.frame import DataFrame
@@ -16,12 +15,12 @@ def groupby_withnull(index, mapper):
     if issubclass(mapped_index.dtype.type, basestring):
         mapped_index = mapped_index.astype(object)
 
-    result = GroupDict(list)
+    result = GroupDict()
 
     mask = isnull(mapped_index)
     nullkeys = index[mask]
 
-    if any(nullkeys):
+    if nullkeys:
         result[np.NaN] = nullkeys
 
     notmask = -mask
@@ -29,11 +28,11 @@ def groupby_withnull(index, mapper):
     mapped_index = mapped_index[notmask]
 
     for idx, key in zip(index, mapped_index):
-        result[key].append(idx)
+        result.setdefault(key, []).append(idx)
 
     return result
 
-class GroupDict(defaultdict):
+class GroupDict(dict):
     def __repr__(self):
         stringDict = dict((str(x), x) for x in self)
         sortedKeys = sorted(stringDict)

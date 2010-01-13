@@ -133,8 +133,11 @@ class PanelTests(object):
         self._check_statistic(self.panel, 'std', f)
 
     def test_skew(self):
-        return
-        from scipy.stats import skew
+        try:
+            from scipy.stats import skew
+        except ImportError:
+            return
+
         def f(x):
             x = np.asarray(x)
             return skew(x[notnull(x)], bias=False)

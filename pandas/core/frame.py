@@ -64,6 +64,7 @@ class DataFrame(Picklable, Groupable):
         >>> d = {'col1' : ts1, 'col2' : ts2}
         >>> df = DataFrame(data=d, index=someIndex)
     """
+
     def __init__(self, data=None, index=None, columns=None):
         self._series = {}
         if data is not None and len(data) > 0:
@@ -517,7 +518,8 @@ class DataFrame(Picklable, Groupable):
         """
         f = open(path, 'w')
 
-        cols = self.cols() if cols is None else cols
+        if cols is None:
+            cols = self.cols()
 
         if header:
             if index:
@@ -868,7 +870,10 @@ class DataFrame(Picklable, Groupable):
             after = self.index[-1]
         elif after not in self.index:
             loc = self.index.searchsorted(after, side='right') - 1
-            loc = loc if loc < len(self.index) else -1
+
+            if loc >= len(self.index):
+                loc = -1
+
             after = self.index[loc]
 
         beg_slice = self.index.indexMap[before]
@@ -934,7 +939,10 @@ class DataFrame(Picklable, Groupable):
         -------
         y : same type as calling instance
         """
-        fillMethod = fillMethod.upper() if fillMethod else ''
+        if fillMethod:
+            fillMethod = fillMethod.upper()
+        else:
+            fillMethod = ''
 
         if fillMethod not in ['BACKFILL', 'PAD', '']:
             raise Exception("Don't recognize fillMethod: %s" % fillMethod)
@@ -1152,17 +1160,15 @@ class DataFrame(Picklable, Groupable):
         TODO
         """
         import re
-
         if items is not None:
-            data = dict([(r, self[r]) for r in items if r in self])
-            return DataFrame(data=data, index=self.index)
+            columns = [r for r in items if r in self]
         elif like:
             columns = [c for c in self.cols() if like in c]
-            return self.reindex(columns=columns)
         elif regex:
             matcher = re.compile(regex)
             columns = [c for c in self.cols() if matcher.match(c)]
-            return self.reindex(columns=columns)
+
+        return self.reindex(columns=columns)
 
     def filterItems(self, items):
         """
@@ -1277,7 +1283,7 @@ class DataFrame(Picklable, Groupable):
             elif col in other:
                 result[col] = other[col]
 
-        return type(self)(result, index=unionIndex)
+        return DataFrame(result, index=unionIndex)
 
     def combineFirst(self, other):
         """
@@ -1403,7 +1409,7 @@ class DataFrame(Picklable, Groupable):
         # Check for column overlap
         overlap = set(self.cols()) & set(other.cols())
 
-        if any(overlap):
+        if overlap:
             raise Exception('Columns overlap: %s' % sorted(overlap))
 
         fillVec, mask = tseries.getMergeVec(self[on], other.index.indexMap)

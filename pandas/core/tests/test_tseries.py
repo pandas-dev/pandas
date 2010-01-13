@@ -1,7 +1,7 @@
+import unittest
+
 import pandas.core.tests.common as common
 import pandas.lib.tseries as tseries
-
-import unittest
 
 class TestUtil(unittest.TestCase):
 

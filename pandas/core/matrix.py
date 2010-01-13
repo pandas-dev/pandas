@@ -178,7 +178,11 @@ class DataMatrix(DataFrame):
 
     def _matrix_state(self, pickle_index=True):
         columns = _pickle_array(self.columns)
-        index = _pickle_array(self.index) if pickle_index else None
+
+        if pickle_index:
+            index = _pickle_array(self.index)
+        else:
+            index = None
 
         return self.values, index, columns
 
@@ -722,6 +726,65 @@ class DataMatrix(DataFrame):
             raise Exception('No time has %d values!' % N)
 
         return self.index[selector][0]
+
+    # XXX
+
+    def combine(self, other, func, fill_value=None):
+        """
+        Add two DataFrame / DataMatrix objects and do not propagate NaN values,
+        so if for a (column, time) one frame is missing a value, it will
+        default to the other frame's value (which might be NaN as well)
+
+        Parameters
+        ----------
+        other : DataFrame / Matrix
+
+        Returns
+        -------
+        DataFrame
+        """
+        if not other:
+            return self
+
+        if not self:
+            return other
+
+        if self.index is not other.index:
+            unionIndex = self.index + other.index
+            frame = self.reindex(unionIndex)
+            other = other.reindex(unionIndex)
+        else:
+            unionIndex = self.index
+            frame = self
+
+        do_fill = fill_value is not None
+        unionCols = sorted(set(frame.cols() + other.cols()))
+
+        result = {}
+        for col in unionCols:
+            if col in frame and col in other:
+                series = frame[col].values()
+                otherSeries = other[col].values()
+
+                if do_fill:
+                    this_mask = isnull(series)
+                    other_mask = isnull(otherSeries)
+                    series = series.copy()
+                    otherSeries = otherSeries.copy()
+                    series[this_mask] = fill_value
+                    otherSeries[other_mask] = fill_value
+
+                result[col] = func(series, otherSeries)
+
+                if do_fill:
+                    result[col][this_mask & other_mask] = np.NaN
+
+            elif col in frame:
+                result[col] = frame[col]
+            elif col in other:
+                result[col] = other[col]
+
+        return DataMatrix(result, index=unionIndex)
 
     def _combineFrame(self, other, func):
         """
@@ -1383,7 +1446,7 @@ class DataMatrix(DataFrame):
 
         for frame in frames:
             cols = set(frame.columns)
-            if any(unionCols & cols):
+            if unionCols & cols:
                 raise Exception('Overlapping columns!')
             unionCols |= cols
 

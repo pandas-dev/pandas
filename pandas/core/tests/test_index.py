@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pandas.core.index import Index
 import pandas.core.tests.common as common
 import pandas.lib.tseries as tseries
@@ -55,11 +55,6 @@ class TestIndex(unittest.TestCase):
 
         # Must also be an Index
         self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
-
-    def test_md5(self):
-        self.strIndex._md5
-        self.dateIndex._md5
-        self.intIndex._md5
 
     def test_asOfDate(self):
         d = self.dateIndex[0]

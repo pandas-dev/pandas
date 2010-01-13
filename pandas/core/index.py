@@ -26,7 +26,6 @@ class Index(np.ndarray):
     Note that the Index can ONLY contain immutable objects. Mutable objects are not
     hashable, and that's bad!
     """
-    __md5 = None
     def __new__(cls, data, dtype=object, copy=False):
         subarr = np.array(data, dtype=dtype, copy=copy)
 
@@ -99,9 +98,6 @@ class Index(np.ndarray):
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
-
-        If the compared object is of the right type and length, the MD5
-        checksum is compared
         """
         if self is other:
             return True
@@ -110,21 +106,6 @@ class Index(np.ndarray):
             return False
 
         return np.array_equal(self, other)
-
-    def _computeMD5(self):
-        import hashlib
-        return hashlib.md5(self.data).hexdigest()
-
-    @property
-    def _md5(self):
-        """
-        Return MD5 hex-digested hash for the Index elements. Note that
-        this quantity is only computed once.
-        """
-        if self.__md5 is None:
-            self.__md5 = self._computeMD5()
-
-        return self.__md5
 
     def asOfDate(self, date):
         if date not in self.indexMap:

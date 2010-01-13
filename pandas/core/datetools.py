@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
+
 import calendar
 
 #-------------------------------------------------------------------------------
@@ -23,14 +24,14 @@ def ole2datetime(oledt):
         raise Exception("Value is outside of acceptable range: %s " % val)
     return OLE_TIME_ZERO + timedelta(days=val)
 
-def to_datetime(input):
-    """Attempts to convert input to datetime"""
-    if input is None or isinstance(input, datetime):
-        return input
+def to_datetime(arg):
+    """Attempts to convert arg to datetime"""
+    if arg is None or isinstance(arg, datetime):
+        return arg
     try:
-        return parser.parse(input)
+        return parser.parse(arg)
     except Exception:
-        return input
+        return arg
 
 def normalize_date(dt):
     return datetime(dt.year, dt.month, dt.day)
@@ -122,7 +123,13 @@ class DateOffset(object):
                 continue
             if attr not in exclude:
                 attrs.append('='.join((attr, repr(getattr(self, attr)))))
-        out = '<%s ' % self.n + className + ('s' if abs(self.n) != 1 else '')
+
+        if abs(self.n) != 1:
+            plural = 's'
+        else:
+            plural = ''
+
+        out = '<%s ' % self.n + className + plural
         if attrs:
             out += ': ' + ', '.join(attrs)
         out += '>'
@@ -208,7 +215,12 @@ class BDay(DateOffset):
         if self.offset:
             attrs = ['offset=%s' % self.offset]
 
-        out = '<%s ' % self.n + className + ('s' if abs(self.n) != 1 else '')
+        if abs(self.n) != 1:
+            plural = 's'
+        else:
+            plural = ''
+
+        out = '<%s ' % self.n + className + plural
         if attrs:
             out += ': ' + ', '.join(attrs)
         out += '>'

@@ -205,8 +205,6 @@ class TestSeries(unittest.TestCase):
             self.assertEqual(val, self.ts[idx])
 
     def test_stats(self):
-        from scipy.stats import skew
-
         self.series[5:15] = np.NaN
 
         s1 = np.array(self.series)
@@ -218,7 +216,12 @@ class TestSeries(unittest.TestCase):
         self.assertEquals(np.mean(s1), self.series.mean())
         self.assertEquals(np.std(s1, ddof=1), self.series.std())
         self.assertEquals(np.var(s1, ddof=1), self.series.var())
-        self.assertEquals(skew(s1, bias=False), self.series.skew())
+
+        try:
+            from scipy.stats import skew
+            self.assertEquals(skew(s1, bias=False), self.series.skew())
+        except ImportError:
+            pass
 
         self.assert_(not np.isnan(np.sum(self.series)))
         self.assert_(not np.isnan(np.mean(self.series)))

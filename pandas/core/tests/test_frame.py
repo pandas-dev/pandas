@@ -1,5 +1,4 @@
 # pylint: disable-msg=W0612
-
 from copy import deepcopy
 from cStringIO import StringIO
 import os
@@ -996,7 +995,11 @@ class TestDataFrame(unittest.TestCase):
         self._check_statistic(self.frame, 'std', f)
 
     def test_skew(self):
-        from scipy.stats import skew
+        try:
+            from scipy.stats import skew
+        except ImportError:
+            return
+
         def f(x):
             x = np.asarray(x)
             return skew(x[notnull(x)], bias=False)

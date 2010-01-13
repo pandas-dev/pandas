@@ -7,7 +7,6 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable-msg=W0621
 
 from cStringIO import StringIO
-from functools import partial
 import operator
 import sys
 
@@ -264,8 +263,8 @@ class WidePanel(Panel):
         else:
             new_items = Index(np.concatenate((self.items[:loc],
                                               self.items[loc + 1:])))
-            new_values = np.row_stack(self.values[:loc],
-                                      self.values[loc + 1:])
+            new_values = np.row_stack((self.values[:loc],
+                                      self.values[loc + 1:]))
 
         self.items = new_items
         self.values = new_values
@@ -1105,7 +1104,10 @@ class LongPanel(Panel):
         elif isinstance(data, DataFrame):
             data = data._series.copy()
 
-        exclude = set(exclude) if exclude is not None else set()
+        if exclude is None:
+            exclude = set()
+        else:
+            exclude = set(exclude)
 
         if major_field in data:
             major_vec = data.pop(major_field)
@@ -1606,10 +1608,12 @@ class LongPanel(Panel):
         return panel
 
     def mean(self, axis='major', broadcast=False):
-        return self.applyToAxis(partial(np.mean, axis=0), axis, broadcast)
+        return self.applyToAxis(lambda x: np.mean(x, axis=0),
+                                axis, broadcast)
 
     def sum(self, axis='major', broadcast=False):
-        return self.applyToAxis(partial(np.sum, axis=0), axis, broadcast)
+        return self.applyToAxis(lambda x: np.sum(x, axis=0),
+                                axis, broadcast)
 
     def apply(self, f):
         return LongPanel(f(self.values), self.items, self.index)
@@ -1710,7 +1714,11 @@ def _makeItemName(item, prefix=None):
     if prefix is None:
         return item
 
-    template = '%g%s' if isinstance(item, float) else '%s%s'
+    if isinstance(item, float):
+        template = '%g%s'
+    else:
+        template = '%s%s'
+
     return template % (prefix, item)
 
 def _homogenize(frames, intersect=True):

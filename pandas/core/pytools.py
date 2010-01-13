@@ -1,9 +1,6 @@
 """A collection of tools for various purely Python operations"""
 from random import Random
-import base64
-import functools
 import itertools
-import os
 import string
 
 # In theory should be few to no imports outside perhaps stdlib here

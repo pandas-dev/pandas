@@ -9,18 +9,6 @@ from pandas.core.series import Series
 
 from datetime import datetime, timedelta
 
-try:
-    from dateutil import parser
-except ImportError:
-    # just a little hack for now
-    class parser(object):
-        @classmethod
-        def parse(cls, val):
-            try:
-                return datetime.strptime(val, '%m/%d/%Y')
-            except:
-                return val
-
 from itertools import izip
 import numpy as np
 import string
@@ -36,9 +24,13 @@ def simpleParser(nestedList, forceFloat=True, colNames=None,
     lines = nestedList
     data = {}
     if header is not None:
-        columns = lines[header]
-        columns = [c if c != '' else 'Unnamed: ' + string.ascii_uppercase[i]
-                   for i, c in enumerate(columns)]
+        columns = []
+        for i, c in enumerate(lines[header]):
+            if c == '':
+                columns.append('Unnamed: ' + string.ascii_uppercase[i])
+            else:
+                columns.append(c)
+
         content = lines[header+1:]
 
         colCounts = dict(((col, 0) for col in columns))

@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 import cPickle
 
 #-------------------------------------------------------------------------------
@@ -7,15 +5,19 @@ import cPickle
 
 class Picklable(object):
     def save(self, fileName):
-        with open(fileName, 'wb') as f:
+        f = open(fileName, 'wb')
+        try:
             cPickle.dump(self, f, protocol=cPickle.HIGHEST_PROTOCOL)
+        finally:
+            f.close()
 
     @classmethod
     def load(cls, fileName):
-        with open(fileName, 'rb') as f:
-            obj = cPickle.load(f)
-            return obj
-        raise Exception("Error trying to unpickle %s" % fileName)
+        f = open(fileName, 'rb')
+        try:
+            return cPickle.load(f)
+        finally:
+            f.close()
 
 #-------------------------------------------------------------------------------
 # Groupable mixin

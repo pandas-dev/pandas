@@ -79,7 +79,8 @@ def _rollingMoment(arg, window, func, minp=None, timeRule=None):
     minp : int
         Minimum number of observations required to have a value
     """
-    minp = minp if minp is not None else window
+    if minp is None:
+        minp = window
 
     types = (DataFrame, DataMatrix, TimeSeries)
     if timeRule is not None and isinstance(arg, types):

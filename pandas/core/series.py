@@ -429,30 +429,24 @@ class Series(np.ndarray, Picklable, Groupable):
             return NaN
         return ndarray.var(nona, axis, dtype, out, ddof)
 
-    def skew(self, bias=False):
+    def skew(self):
         """
         Computes the skewness of the non-null values
 
-        Parameters
-        ----------
-        bias : bool
-            If False, then the calculations are corrected for
-            statistical bias.
+        Returns
+        -------
+        float
         """
+        y = np.array(self.values())
+        mask = notnull(y)
+        count = mask.sum()
+        y[-mask] = 0
 
-        from scipy.stats import skew
-        nona = remove_na(self.values())
+        A = y.sum() / count
+        B = (y**2).sum() / count  - A**2
+        C = (y**3).sum() / count - A**3 - 3*A*B
 
-        if len(nona) < 3:
-            return NaN
-
-        theSkew = skew(nona, bias=bias)
-
-        # Hack for SciPy < 0.8
-        if isinstance(theSkew, ndarray):
-            theSkew = theSkew.item()
-
-        return theSkew
+        return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
     def keys(self):
         """
@@ -716,7 +710,11 @@ class Series(np.ndarray, Picklable, Groupable):
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             plt.bar(xinds, self.values(), 0.5, bottom=np.zeros(N), linewidth=1)
-            fontsize = 12 if N < 10 else 10
+
+            if N < 10:
+                fontsize = 12
+            else:
+                fontsize = 10
 
             plt.xticks(xinds + 0.25, self.index, rotation=rot,
                        fontsize=fontsize)
@@ -852,7 +850,10 @@ class Series(np.ndarray, Picklable, Groupable):
             after = self.index[-1]
         elif after not in self.index:
             loc = self.index.searchsorted(after, side='right') - 1
-            loc = loc if loc < len(self.index) else -1
+
+            if loc >= len(self.index):
+                loc = -1
+
             after = self.index[loc]
 
         beg_slice = self.index.indexMap[before]
@@ -883,8 +884,8 @@ class Series(np.ndarray, Picklable, Groupable):
             candidates = self.index[notnull(self)]
             candidates = candidates[candidates <= date]
 
-            if any(candidates):
-                asOfDate = max(candidates)
+            if candidates.any():
+                asOfDate = candidates[-1]
             else:
                 return NaN
 

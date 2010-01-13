@@ -22,9 +22,14 @@ def _pfixed(s, space, nanRep=None, float_format=None):
         if nanRep is not None and isnull(s):
             return nanRep.ljust(space)
 
-        formatted = float_format(s) if float_format else '%.4g' % s
+        if float_format:
+            formatted = float_format(s)
+        else:
+            formatted = '%.4g' % s
 
         return formatted.ljust(space)
     else:
         return str(s)[:space-4].ljust(space)
 
+#-------------------------------------------------------------------------------
+# Functions needed from scipy

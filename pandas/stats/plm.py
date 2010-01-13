@@ -163,11 +163,19 @@ class PanelOLS(OLS):
         data_long = data.toLong()
 
         x_filt = filtered.filterItems(x_names)
-        weights_filt = filtered['__weights__'] if self._weights else None
+
+        if self._weights:
+            weights_filt = filtered['__weights__']
+        else:
+            weights_filt = None
 
         x = data_long.filterItems(x_names)
         y = data_long['__y__']
-        weights = data_long['__weights__'] if self._weights else None
+
+        if self._weights:
+            weights = data_long['__weights__']
+        else:
+            weights = None
 
         return x, x_filt, y, weights, weights_filt, cat_mapping
 
@@ -269,8 +277,10 @@ class PanelOLS(OLS):
 
             if dropped_dummy or not self._use_all_dummies:
                 if effect in self._dropped_dummies:
-                    to_exclude = self._dropped_dummies.get(effect)
-                    mapped_name = val_map[to_exclude] if val_map else to_exclude
+                    to_exclude = mapped_name = self._dropped_dummies.get(effect)
+
+                    if val_map:
+                        mapped_name = val_map[to_exclude]
                 else:
                     to_exclude = mapped_name = dummies.items[0]
 
@@ -493,7 +503,11 @@ def _convertDummies(dummies, mapping):
     new_items = []
     for item in dummies.items:
         if not mapping:
-            var = '%g' % item if isinstance(item, float) else '%s' % item
+            if isinstance(item, float):
+                var = '%g' % item
+            else:
+                var = '%s' % item
+
             new_items.append(var)
         else:
             # renames the dummies if a conversion dict is provided
@@ -591,7 +605,11 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
         self._window_type = common._get_window_type(window_type)
         self._window = window
-        self._min_periods = window if min_periods is None else min_periods
+
+        if min_periods is None:
+            min_periods = window
+
+        self._min_periods = min_periods
 
     @cache_readonly
     def resid(self):
