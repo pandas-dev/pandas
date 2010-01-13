@@ -210,7 +210,7 @@ class DataFrame(Picklable, Groupable):
         DataFrame
         """
         # Dtype when you have records
-        if data.dtype.type != np.void:
+        if not issubclass(data.dtype.type, np.void):
             raise Exception('Input was not a structured array!')
 
         dataDict = dict((k, data[k]) for k in data.dtype.names)

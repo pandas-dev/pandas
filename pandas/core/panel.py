@@ -1096,7 +1096,7 @@ class LongPanel(Panel):
 
         if isinstance(data, np.ndarray):
             # Dtype when you have data
-            if data.dtype.type != np.void:
+            if not issubclass(data.dtype.type, np.void):
                 raise Exception('Input was not a structured array!')
 
             columns = data.dtype.names
