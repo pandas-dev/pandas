@@ -166,6 +166,10 @@ class DataMatrix(DataFrame):
         self.columns = columns
         self.objects = objects
 
+    @property
+    def _constructor(self):
+        return DataMatrix
+
     def __getstate__(self):
         if self.objects is not None:
             objects = self.objects._matrix_state(pickle_index=False)
@@ -195,7 +199,7 @@ class DataMatrix(DataFrame):
 
         if object_state:
             ovals, _, ocols = object_state
-            self.objects = DataMatrix(_unpickle_array(ovals),
+            self.objects = DataMatrix(ovals,
                                       index=self.index,
                                       columns=_unpickle_array(ocols))
         else:
@@ -507,7 +511,7 @@ class DataMatrix(DataFrame):
         """Return a string representation for a particular DataMatrix"""
         buffer = StringIO()
 
-        if self.values is None or len(self.columns) == 0:
+        if len(self.cols()) == 0:
             buffer.write('Empty DataMatrix\nIndex: %s' % repr(self.index))
         elif 0 < len(self.index) < 500 and self.values.shape[1] < 10:
             self.toString(buffer=buffer)
@@ -726,65 +730,6 @@ class DataMatrix(DataFrame):
             raise Exception('No time has %d values!' % N)
 
         return self.index[selector][0]
-
-    # XXX
-
-    def combine(self, other, func, fill_value=None):
-        """
-        Add two DataFrame / DataMatrix objects and do not propagate NaN values,
-        so if for a (column, time) one frame is missing a value, it will
-        default to the other frame's value (which might be NaN as well)
-
-        Parameters
-        ----------
-        other : DataFrame / Matrix
-
-        Returns
-        -------
-        DataFrame
-        """
-        if not other:
-            return self
-
-        if not self:
-            return other
-
-        if self.index is not other.index:
-            unionIndex = self.index + other.index
-            frame = self.reindex(unionIndex)
-            other = other.reindex(unionIndex)
-        else:
-            unionIndex = self.index
-            frame = self
-
-        do_fill = fill_value is not None
-        unionCols = sorted(set(frame.cols() + other.cols()))
-
-        result = {}
-        for col in unionCols:
-            if col in frame and col in other:
-                series = frame[col].values()
-                otherSeries = other[col].values()
-
-                if do_fill:
-                    this_mask = isnull(series)
-                    other_mask = isnull(otherSeries)
-                    series = series.copy()
-                    otherSeries = otherSeries.copy()
-                    series[this_mask] = fill_value
-                    otherSeries[other_mask] = fill_value
-
-                result[col] = func(series, otherSeries)
-
-                if do_fill:
-                    result[col][this_mask & other_mask] = np.NaN
-
-            elif col in frame:
-                result[col] = frame[col]
-            elif col in other:
-                result[col] = other[col]
-
-        return DataMatrix(result, index=unionIndex)
 
     def _combineFrame(self, other, func):
         """
@@ -1141,13 +1086,13 @@ class DataMatrix(DataFrame):
 
         return result
 
-    def merge(self, otherFrame, on=None):
+    def merge(self, other, on=None):
         """
         Merge DataFrame or DataMatrix with this one on some many-to-one index
 
         Parameters
         ----------
-        otherFrame : DataFrame
+        other : DataFrame
             Index should be similar to one of the columns in this one
         on : string
             Column name to use
@@ -1161,14 +1106,14 @@ class DataMatrix(DataFrame):
         c   1
         d   0
         """
-        if len(otherFrame.index) == 0:
+        if len(other.index) == 0:
             return self
 
         if on not in self:
             raise Exception('%s column not contained in this frame!' % on)
 
-        otherM = otherFrame.asMatrix()
-        indexMap = otherFrame.index.indexMap
+        otherM = other.values
+        indexMap = other.index.indexMap
 
         fillVec, mask = tseries.getMergeVec(self[on], indexMap)
 
@@ -1176,12 +1121,11 @@ class DataMatrix(DataFrame):
         tmpMatrix[-mask] = NaN
 
         seriesDict = dict((col, tmpMatrix[:, j])
-                           for j, col in enumerate(otherFrame.columns))
+                           for j, col in enumerate(other.columns))
 
-        if getattr(otherFrame, 'objects'):
-            objects = otherFrame.objects
-
-            objM = objects.asMatrix()
+        if getattr(other, 'objects'):
+            objects = other.objects
+            objM = objects.values
 
             tmpMat = objM.take(fillVec, axis=0)
             tmpMat[-mask] = NaN
@@ -1230,15 +1174,25 @@ class DataMatrix(DataFrame):
         if not isinstance(columns, Index):
             columns = Index(columns)
 
+        if self.objects is not None:
+            object_columns = columns.intersection(self.objects.columns)
+            columns = columns - object_columns
+
         indexer, mask = tseries.getFillVec(self.columns, columns,
                                            self.columns.indexMap,
                                            columns.indexMap, '')
 
         newValues = self.values.take(indexer, axis=1)
-        newValues[:, -mask] = NaN
+        if len(mask) > 0:
+            newValues[:, -mask] = NaN
+
+        if self.objects is not None:
+            objects = self.objects._reindex_columns(object_columns)
+        else:
+            objects = None
 
         return DataMatrix(newValues, index=self.index, columns=columns,
-                          objects=self.objects)
+                          objects=objects)
 
     @property
     def T(self):

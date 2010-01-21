@@ -20,7 +20,7 @@ def groupby_withnull(index, mapper):
     mask = isnull(mapped_index)
     nullkeys = index[mask]
 
-    if nullkeys:
+    if len(nullkeys) > 0:
         result[np.NaN] = nullkeys
 
     notmask = -mask

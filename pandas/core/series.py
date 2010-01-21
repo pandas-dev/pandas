@@ -6,7 +6,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable-msg=E1103
 # pylint: disable-msg=W0703
 
-from itertools import izip
+import itertools
 
 from numpy import NaN, ndarray
 import numpy as np
@@ -464,7 +464,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Lazily iterate over (index, value) tuples
         """
-        return izip(iter(self.index), iter(self))
+        return itertools.izip(iter(self.index), iter(self))
 
     def append(self, other):
         """
@@ -1123,7 +1123,23 @@ def remove_na(arr):
     return arr[notnull(arr)]
 
 def _seriesRepr(index, vals):
-    maxlen = max([len(str(idx)) for idx in index])
+    string_index = [str(x) for x in index]
+    maxlen = max(map(len, string_index))
     padSpace = min(maxlen, 60)
-    return '\n'.join([str(x).ljust(padSpace) + '\t' + str(v)
-                      for x, v in izip(index, vals)])
+
+    if vals.dtype == np.object_:
+        def _format(k, v):
+            return '%s    %s' % (str(k).ljust(padSpace), v)
+    else:
+        def _format(k, v):
+            if isnull(v):
+                v = 'NaN'
+            else:
+                v = str(v)
+
+            return '%s    %s' % (str(k).ljust(padSpace), v)
+
+    it = itertools.starmap(_format,
+                           itertools.izip(string_index, vals))
+
+    return '\n'.join(it)

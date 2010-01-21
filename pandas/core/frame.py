@@ -90,6 +90,10 @@ class DataFrame(Picklable, Groupable):
         else:
             self.index = NULL_INDEX
 
+    @property
+    def _constructor(self):
+        return DataFrame
+
     def __getstate__(self):
         series = dict((k, v.values()) for k, v in self.iteritems())
         index = _pickle_array(self.index)
@@ -1283,7 +1287,7 @@ class DataFrame(Picklable, Groupable):
             elif col in other:
                 result[col] = other[col]
 
-        return DataFrame(result, index=unionIndex)
+        return self._constructor(result, index=unionIndex)
 
     def combineFirst(self, other):
         """
@@ -1424,7 +1428,7 @@ class DataFrame(Picklable, Groupable):
 
         newSeries.update(self._series)
 
-        return DataFrame(newSeries, index=self.index)
+        return self._constructor(newSeries, index=self.index)
 
     def plot(self, kind='line', **kwds): # pragma: no cover
         """

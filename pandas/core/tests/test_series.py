@@ -219,7 +219,8 @@ class TestSeries(unittest.TestCase):
 
         try:
             from scipy.stats import skew
-            self.assertEquals(skew(s1, bias=False), self.series.skew())
+            common.assert_almost_equal(skew(s1, bias=False),
+                                       self.series.skew())
         except ImportError:
             pass
 
