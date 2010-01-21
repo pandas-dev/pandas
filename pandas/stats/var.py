@@ -107,7 +107,7 @@ class VAR(object):
         and 'p-value' returns the DataMatrix containing the corresponding
         p-values of the f-stats.
         """
-        from aqr.stats.api import ols
+        from pandas.stats.api import ols
 
         params = self._k * self._p
 
@@ -173,7 +173,7 @@ class VAR(object):
         -------
         dict
         """
-        from aqr.stats.api import ols
+        from pandas.stats.api import ols
 
         d = {}
         for i in xrange(1, 1 + self._p):
