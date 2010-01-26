@@ -340,11 +340,61 @@ Filling, padding, and interpolating values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is often desirable to deal with missing values in some specific
-way, especially for time series data.
+way, especially for time series data. As seen above, reindexing can be
+a useful approach, however we frequently will want to deal
+specifically with missing data in a particular way.
+
+The **fill** method provides two distinct behaviors: filling in NaNs
+with a static value or alternately padding / backfilling as with
+**reindex**:
+
+::
+
+    >>> ts
+    2009-01-01 00:00:00	0.0
+    2009-01-02 00:00:00	1.0
+    2009-01-05 00:00:00	nan
+    2009-01-06 00:00:00	nan
+    2009-01-07 00:00:00	4.0
+
+    >>> ts.fill(value=6)
+    2009-01-01 00:00:00	0.0
+    2009-01-02 00:00:00	1.0
+    2009-01-05 00:00:00	6.0
+    2009-01-06 00:00:00	6.0
+    2009-01-07 00:00:00	4.0
+
+    >>> ts.fill(method='pad')
+    2009-01-01 00:00:00	0.0
+    2009-01-02 00:00:00	1.0
+    2009-01-05 00:00:00	1.0
+    2009-01-06 00:00:00	1.0
+    2009-01-07 00:00:00	4.0
+
+
+In a similar vein, values can be linearly interpolated in either a
+naive way or in a time-spaced way
+
+::
+
+    >>> ts.interpolate()
+    2009-01-01 00:00:00	0.0
+    2009-01-02 00:00:00	1.0
+    2009-01-05 00:00:00	2.0
+    2009-01-06 00:00:00	3.0
+    2009-01-07 00:00:00	4.0
+
+    >>> ts.interpolate(method='time')
+    2009-01-01 00:00:00	0.0
+    2009-01-02 00:00:00	1.0
+    2009-01-05 00:00:00	2.8
+    2009-01-06 00:00:00	3.4
+    2009-01-07 00:00:00	4.0
 
 .. autosummary::
    :toctree: generated/
 
+   Series.reindex
    Series.fill
    Series.interpolate
 
@@ -355,6 +405,25 @@ Series iterates by default over its values as though it were a regular
 ndarray.
 
 Otherwise, methods providing dict-like iteration are available:
+
+::
+
+    >>> for x in ts:
+            print x
+    0.0
+    1.0
+    2.0
+    3.0
+    4.0
+
+    >>> for index, value in ts.iteritems():
+            print index, value
+    2009-01-01 00:00:00 0.0
+    2009-01-02 00:00:00 1.0
+    2009-01-05 00:00:00 2.0
+    2009-01-06 00:00:00 3.0
+    2009-01-07 00:00:00 4.0
+
 
 .. autosummary::
    :toctree: generated/
@@ -436,7 +505,32 @@ implemented:
 Merging Series based on key
 ---------------------------
 
-TODO
+You may be occasionally interested in joining data sets which are
+keyed on different index values. This comes down to a simple mapping
+problem in the one dimensional case and will be more interesting in
+the 2- and 3-D cases, but the basic concept is the same:
+
+::
+
+    >>> s = Series(['six', 'seven', 'six', 'seven', 'six'],
+                   index=['a', 'b', 'c', 'd', 'e'])
+    >>> t = Series.fromDict({'six' : 6., 'seven' : 7.})
+
+    >>> s
+    a	six
+    b	seven
+    c	six
+    d	seven
+    e	six
+
+    >>> s.merge(t)
+    a	6.0
+    b	7.0
+    c	6.0
+    d	7.0
+    e	6.0
+
+
 
 .. autosummary::
    :toctree: generated/

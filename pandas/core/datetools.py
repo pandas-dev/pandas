@@ -85,7 +85,7 @@ class DateOffset(object):
     # For some offsets, want to drop the time information off the
     # first date
     _normalizeFirst = False
-    def __init__(self, n = 1, **kwds):
+    def __init__(self, n=1, **kwds):
         self.n = int(n)
         self.kwds = kwds
 
@@ -114,7 +114,7 @@ class DateOffset(object):
         return params
 
     def __repr__(self):
-        className = getattr(self, '_outputName', self.__class__.__name__)
+        className = getattr(self, '_outputName', type(self).__name__)
         exclude = set(['n', 'inc'])
         attrs = []
         for attr in self.__dict__:
@@ -157,10 +157,10 @@ class DateOffset(object):
         return self.__class__(-self.n, **self.kwds) + other
 
     def __mul__(self, someInt):
-        return self.__class__(n = someInt * self.n, **self.kwds)
+        return self.__class__(n=someInt * self.n, **self.kwds)
 
     def __rmul__(self, someInt):
-        return self.__class__(n = someInt * self.n, **self.kwds)
+        return self.__mul__(someInt)
 
     def __neg__(self):
         return self.__class__(-self.n, **self.kwds)
@@ -209,7 +209,6 @@ class BDay(DateOffset):
 
     def __repr__(self):
         className = getattr(self, '_outputName', self.__class__.__name__)
-        exclude = set(['n', 'inc'])
         attrs = []
 
         if self.offset:

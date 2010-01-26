@@ -8,6 +8,7 @@ import pickle
 import unittest
 
 class TestIndex(unittest.TestCase):
+
     def setUp(self):
         self.strIndex = common.makeStringIndex(100)
         self.dateIndex = common.makeDateIndex(100)
@@ -158,20 +159,13 @@ class TestIndex(unittest.TestCase):
 
     def test_pickle(self):
         def testit(index):
-            f = open('__tmp__', 'wb')
-            pickle.dump(index, f)
-            f.close()
+            pickled = pickle.dumps(index)
+            unpickled = pickle.loads(pickled)
 
-            f = open('__tmp__', 'rb')
-            unPickled = pickle.load(f)
-            f.close()
+            self.assert_(isinstance(unpickled, Index))
+            self.assert_(np.array_equal(unpickled, index))
 
-            os.remove('__tmp__')
-
-            self.assert_(isinstance(unPickled, Index))
-            self.assert_(np.array_equal(unPickled, index))
-
-            common.assert_dict_equal(unPickled.indexMap, index.indexMap)
+            common.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
         testit(self.strIndex)
         testit(self.dateIndex)

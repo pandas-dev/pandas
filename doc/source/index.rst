@@ -42,9 +42,13 @@ User manual
 
 .. module:: pandas
 
+**Date**: |today|
+
+**Version**: |version|
+
 **License:** BSD
 
-**Requirements:** python 2.4 to 2.6 and latest NumPy
+**Requirements:** python 2.4 to 2.6, NumPy, and dateutil
 
 **Code Repository:** http://pandas.googlecode.com
 
