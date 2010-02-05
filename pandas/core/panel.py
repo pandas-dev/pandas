@@ -143,14 +143,14 @@ class WidePanel(Panel):
         self.values = values
 
     @classmethod
-    def _wide_axis_number(cls, axis):
+    def _get_axis_number(cls, axis):
         if axis in (0, 1, 2):
             return axis
         else:
             return _WIDE_AXIS_NUMBERS[axis]
 
     @classmethod
-    def _wide_axis_name(cls, axis):
+    def _get_axis_name(cls, axis):
         if axis in _WIDE_AXIS_NUMBERS:
             return axis
         else:
@@ -163,13 +163,13 @@ class WidePanel(Panel):
             2 : self.minor_axis
         }
 
-        return results[self._wide_axis_number(axis)]
+        return results[self._get_axis_number(axis)]
 
     def _get_plane_axes(self, axis):
         """
 
         """
-        axis = self._wide_axis_name(axis)
+        axis = self._get_axis_name(axis)
 
         if axis == 'major':
             index = self.minor_axis
@@ -450,9 +450,13 @@ class WidePanel(Panel):
     __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
+    def __neg__(self):
+        return WidePanel(-self.values, self.items, self.major_axis,
+                          self.minor_axis)
+
     def _combineFrame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
-        axis = self._wide_axis_number(axis)
+        axis = self._get_axis_number(axis)
 
         other = other.reindex(index=index, columns=columns)
 
@@ -469,7 +473,21 @@ class WidePanel(Panel):
                          self.minor_axis)
 
     def _combinePanel(self, other, func):
-        pass
+        if isinstance(other, LongPanel):
+            other = other.toWide()
+
+        items = self.items + other.items
+        major = self.major_axis + other.major_axis
+        minor = self.minor_axis + other.minor_axis
+
+        # could check that everything's the same size, but forget it
+
+        this = self.reindex(items=items, major=major, minor=minor)
+        other = other.reindex(items=items, major=major, minor=minor)
+
+        result_values = func(this.values, other.values)
+
+        return WidePanel(result_values, items, major, minor)
 
     def add(self, other, axis='major'):
         """
@@ -553,8 +571,8 @@ class WidePanel(Panel):
         -------
         y : WidePanel (new object)
         """
-        i = self._wide_axis_number(axis1)
-        j = self._wide_axis_number(axis2)
+        i = self._get_axis_number(axis1)
+        j = self._get_axis_number(axis2)
 
         if i == j:
             raise Exception('Cannot specify the same axis')
@@ -651,7 +669,7 @@ class WidePanel(Panel):
         -------
         result : DataMatrix or WidePanel
         """
-        i = self._wide_axis_number(axis)
+        i = self._get_axis_number(axis)
 
         result = np.apply_along_axis(func, i, self.values)
 
@@ -686,7 +704,7 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        i = self._wide_axis_number(axis)
+        i = self._get_axis_number(axis)
 
         result = self._values_aggregate(func, i, fill_value)
         return self._wrap_result(result, axis=axis)
@@ -699,7 +717,7 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        i = self._wide_axis_number(axis)
+        i = self._get_axis_number(axis)
 
         values = self.values
         mask = np.isfinite(values)
@@ -741,7 +759,7 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        i = self._wide_axis_number(axis)
+        i = self._get_axis_number(axis)
         index, columns = self._get_plane_axes(axis)
 
         y = np.array(self.values)
@@ -806,7 +824,7 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        i = self._wide_axis_number(axis)
+        i = self._get_axis_number(axis)
 
         y = np.array(self.values)
         mask = np.isfinite(y)
@@ -827,7 +845,7 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        i = self._wide_axis_number(axis)
+        i = self._get_axis_number(axis)
 
         y = np.array(self.values)
         mask = np.isfinite(y)
@@ -842,7 +860,7 @@ class WidePanel(Panel):
         return self._wrap_result(result, axis)
 
     def _wrap_result(self, result, axis):
-        axis = self._wide_axis_name(axis)
+        axis = self._get_axis_name(axis)
 
         if result.ndim == 2:
             index, columns = self._get_plane_axes(axis)
@@ -879,172 +897,57 @@ class WidePanel(Panel):
         return WidePanel(values=values, items=items, major_axis=major_axis,
                          minor_axis=minor_axis)
 
-class LongPanelIndex(object):
-    """
-    Parameters
-    ----------
 
-    """
-    def __init__(self, major_axis, minor_axis, major_labels,
-                 minor_labels, mask=None):
-
-        self.major_axis = major_axis
-        self.minor_axis = minor_axis
-
-        assert(len(minor_labels) == len(major_labels))
-
-        self.major_labels = major_labels
-        self.minor_labels = minor_labels
-
-        self._mask = mask
-
-    def __getstate__(self):
-        return (_pickle_array(self.major_axis),
-                _pickle_array(self.minor_axis),
-                _pickle_array(self.major_labels),
-                _pickle_array(self.minor_labels))
-
-    def __setstate__(self, state):
-        major, minor, major_labels, minor_labels = state
-
-        self.major_axis = _unpickle_array(major)
-        self.minor_axis = _unpickle_array(minor)
-
-        self.major_labels = _unpickle_array(major_labels)
-        self.minor_labels = _unpickle_array(minor_labels)
-
-    def isConsistent(self):
-        offset = max(len(self.major_axis), len(self.minor_axis))
-
-        # overflow risk
-        if (offset + 1) ** 2 > 2**32:
-            keys = (self.major_labels.astype(np.int64) * offset +
-                    self.minor_labels.astype(np.int64))
-        else:
-            keys = self.major_labels * offset + self.minor_labels
-
-        unique_keys = np.unique(keys)
-
-        if len(unique_keys) < len(keys):
-            return False
-
-        return True
-
-    def truncate(self, before=None, after=None):
-        """
-        Slice index between two major axis values, return new
-        LongPanelIndex
+    def truncate(self, before=None, after=None, axis='major'):
+        """Function truncate a sorted DataFrame before and/or after
+        some particular dates.
 
         Parameters
         ----------
-        before : type of major_axis values or None, default None
-            None defaults to start of panel
-
-        after : type of major_axis values or None, default None
-            None defaults to after of panel
-
-        Returns
-        -------
-        LongPanelIndex
-        """
-        i, j = self._getAxisBounds(before, after)
-        left, right = self._getLabelBounds(i, j)
-
-        return LongPanelIndex(self.major_axis[i : j],
-                              self.minor_axis,
-                              self.major_labels[left : right] - i,
-                              self.minor_labels[left : right])
-
-    def getMajorBounds(self, begin=None, end=None):
-        """
-        Return index bounds for slicing LongPanel labels and / or
-        values
-
-        Parameters
-        ----------
-        begin : axis value or None
-        end : axis value or None
+        before : date
+            Truncate before date
+        after : date
+            Truncate after date
 
         Returns
         -------
-        y : tuple
-            (left, right) absolute bounds on LongPanel values
+        DataFrame
         """
-        i, j = self._getAxisBounds(begin, end)
-        left, right = self._getLabelBounds(i, j)
+        axis = self._get_axis_name(axis)
+        index = self._get_axis(axis)
 
-        return left, right
+        beg_slice, end_slice = self._getIndices(before, after, axis=axis)
+        new_index = index[beg_slice:end_slice]
 
-    def _getAxisBounds(self, begin, end):
-        """
-        Return major axis locations corresponding to interval values
-        """
-        if begin is not None:
-            i = self.major_axis.indexMap.get(begin)
-            if i is None:
-                i = self.major_axis.searchsorted(begin, side='right')
-        else:
-            i = 0
+        return self.reindex(**{axis : new_index})
 
-        if end is not None:
-            j = self.major_axis.indexMap.get(end)
-            if j is None:
-                j = self.major_axis.searchsorted(end)
-            else:
-                j = j + 1
-        else:
-            j = len(self.major_axis)
+    def _getIndices(self, before, after, axis='major'):
+        index = self._get_axis(axis)
 
-        if i > j:
-            raise Exception('Must have begin <= end!')
+        if before is None:
+            before = index[0]
+        elif before not in index:
+            loc = index.searchsorted(before, side='left')
+            before = index[loc]
 
-        return i, j
+        if after is None:
+            after = index[-1]
+        elif after not in index:
+            loc = index.searchsorted(after, side='right') - 1
 
-    def _getLabelBounds(self, i, j):
-        "Return slice points between two major axis locations"
+            if loc >= len(index):
+                loc = -1
 
-        left = self._bounds[i]
+            after = index[loc]
 
-        if j >= len(self.major_axis):
-            right = len(self.major_labels)
-        else:
-            right = self._bounds[j]
+        beg_slice = index.indexMap[before]
+        end_slice = index.indexMap[after] + 1
 
-        return left, right
+        return beg_slice, end_slice
 
-    __bounds = None
-    @property
-    def _bounds(self):
-        "Return or compute and return slice points for major axis"
-        if self.__bounds is None:
-            inds = np.arange(len(self.major_axis))
-            self.__bounds = self.major_labels.searchsorted(inds)
 
-        return self.__bounds
-
-    @property
-    def mask(self):
-        if self._mask is None:
-            self._mask = self._makeMask()
-
-        return self._mask
-
-    def _makeMask(self):
-        """
-        Create observation selection vector using major and minor
-        labels, for converting to wide format.
-        """
-        N, K = self.dims
-        selector = self.minor_labels + K * self.major_labels
-
-        mask = np.zeros(N * K, dtype=bool)
-        mask[selector] = True
-
-        return mask
-
-    @property
-    def dims(self):
-        return len(self.major_axis), len(self.minor_axis)
+#-------------------------------------------------------------------------------
+# LongPanel and friends
 
 
 class LongPanel(Panel):
@@ -1662,6 +1565,174 @@ class LongPanel(Panel):
         new_items = [_makeItemName(item, prefix) for item in self.items]
 
         return LongPanel(self.values, new_items, self.index)
+
+
+class LongPanelIndex(object):
+    """
+    Parameters
+    ----------
+
+    """
+    def __init__(self, major_axis, minor_axis, major_labels,
+                 minor_labels, mask=None):
+
+        self.major_axis = major_axis
+        self.minor_axis = minor_axis
+
+        assert(len(minor_labels) == len(major_labels))
+
+        self.major_labels = major_labels
+        self.minor_labels = minor_labels
+
+        self._mask = mask
+
+    def __getstate__(self):
+        return (_pickle_array(self.major_axis),
+                _pickle_array(self.minor_axis),
+                _pickle_array(self.major_labels),
+                _pickle_array(self.minor_labels))
+
+    def __setstate__(self, state):
+        major, minor, major_labels, minor_labels = state
+
+        self.major_axis = _unpickle_array(major)
+        self.minor_axis = _unpickle_array(minor)
+
+        self.major_labels = _unpickle_array(major_labels)
+        self.minor_labels = _unpickle_array(minor_labels)
+
+    def isConsistent(self):
+        offset = max(len(self.major_axis), len(self.minor_axis))
+
+        # overflow risk
+        if (offset + 1) ** 2 > 2**32:
+            keys = (self.major_labels.astype(np.int64) * offset +
+                    self.minor_labels.astype(np.int64))
+        else:
+            keys = self.major_labels * offset + self.minor_labels
+
+        unique_keys = np.unique(keys)
+
+        if len(unique_keys) < len(keys):
+            return False
+
+        return True
+
+    def truncate(self, before=None, after=None):
+        """
+        Slice index between two major axis values, return new
+        LongPanelIndex
+
+        Parameters
+        ----------
+        before : type of major_axis values or None, default None
+            None defaults to start of panel
+
+        after : type of major_axis values or None, default None
+            None defaults to after of panel
+
+        Returns
+        -------
+        LongPanelIndex
+        """
+        i, j = self._getAxisBounds(before, after)
+        left, right = self._getLabelBounds(i, j)
+
+        return LongPanelIndex(self.major_axis[i : j],
+                              self.minor_axis,
+                              self.major_labels[left : right] - i,
+                              self.minor_labels[left : right])
+
+    def getMajorBounds(self, begin=None, end=None):
+        """
+        Return index bounds for slicing LongPanel labels and / or
+        values
+
+        Parameters
+        ----------
+        begin : axis value or None
+        end : axis value or None
+
+        Returns
+        -------
+        y : tuple
+            (left, right) absolute bounds on LongPanel values
+        """
+        i, j = self._getAxisBounds(begin, end)
+        left, right = self._getLabelBounds(i, j)
+
+        return left, right
+
+    def _getAxisBounds(self, begin, end):
+        """
+        Return major axis locations corresponding to interval values
+        """
+        if begin is not None:
+            i = self.major_axis.indexMap.get(begin)
+            if i is None:
+                i = self.major_axis.searchsorted(begin, side='right')
+        else:
+            i = 0
+
+        if end is not None:
+            j = self.major_axis.indexMap.get(end)
+            if j is None:
+                j = self.major_axis.searchsorted(end)
+            else:
+                j = j + 1
+        else:
+            j = len(self.major_axis)
+
+        if i > j:
+            raise Exception('Must have begin <= end!')
+
+        return i, j
+
+    def _getLabelBounds(self, i, j):
+        "Return slice points between two major axis locations"
+
+        left = self._bounds[i]
+
+        if j >= len(self.major_axis):
+            right = len(self.major_labels)
+        else:
+            right = self._bounds[j]
+
+        return left, right
+
+    __bounds = None
+    @property
+    def _bounds(self):
+        "Return or compute and return slice points for major axis"
+        if self.__bounds is None:
+            inds = np.arange(len(self.major_axis))
+            self.__bounds = self.major_labels.searchsorted(inds)
+
+        return self.__bounds
+
+    @property
+    def mask(self):
+        if self._mask is None:
+            self._mask = self._makeMask()
+
+        return self._mask
+
+    def _makeMask(self):
+        """
+        Create observation selection vector using major and minor
+        labels, for converting to wide format.
+        """
+        N, K = self.dims
+        selector = self.minor_labels + K * self.major_labels
+
+        mask = np.zeros(N * K, dtype=bool)
+        mask[selector] = True
+
+        return mask
+
+    @property
+    def dims(self):
+        return len(self.major_axis), len(self.minor_axis)
 
 
 class Factor(object):

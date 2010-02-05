@@ -58,7 +58,9 @@ copyright = u'2008-2010, AQR Capital Management, LLC'
 #
 # The short X.Y version.
 import pandas
-version = pandas.__version__
+# version = pandas.__version__
+version = 0.2
+
 # The full version, including alpha/beta/rc tags.
 release = version
 

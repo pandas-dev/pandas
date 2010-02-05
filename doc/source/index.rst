@@ -60,19 +60,19 @@ User manual
     datetools
     stats
 
-Quick Reference
----------------
+.. Quick Reference
+.. ---------------
 
-.. autosummary::
-   :toctree: generated/
+.. .. autosummary::
+..    :toctree: generated/
 
-   Index
-   Series
-   TimeSeries
-   DataFrame
-   DataMatrix
-   WidePanel
-   LongPanel
+..    Index
+..    Series
+..    TimeSeries
+..    DataFrame
+..    DataMatrix
+..    WidePanel
+..    LongPanel
 
 Indices and tables
 ------------------

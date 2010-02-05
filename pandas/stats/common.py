@@ -6,8 +6,9 @@ TIME = 0
 ENTITY = 1
 
 def _get_cluster_type(cluster_type):
-    if cluster_type in (TIME, ENTITY):
+    if cluster_type in (TIME, ENTITY, None):
         return cluster_type
+
     elif isinstance(cluster_type, basestring):
         cluster_type_up = cluster_type.upper()
 

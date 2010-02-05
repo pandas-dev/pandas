@@ -69,7 +69,7 @@ class PanelOLS(OLS):
         self._time_effects = time_effects
         self._x_effects = x_effects
         self._dropped_dummies = dropped_dummies or {}
-        self._cluster = cluster
+        self._cluster = common._get_cluster_type(cluster)
         self._verbose = verbose
 
         (self._x, self._x_trans,

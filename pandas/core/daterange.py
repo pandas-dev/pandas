@@ -133,9 +133,21 @@ class DateRange(Index):
             if not periods:
                 periods = kwds.get('nPeriods')
 
-            if offset.isAnchored() and not isinstance(offset, datetools.Tick):
+            fromDate = datetools.to_datetime(fromDate)
+            toDate = datetools.to_datetime(toDate)
+
+            # inside cache range
+            fromInside = fromDate is not None and fromDate > CACHE_START
+            toInside = toDate is not None and toDate < CACHE_END
+
+            useCache = fromInside and toInside
+
+            if (useCache and offset.isAnchored() and
+                not isinstance(offset, datetools.Tick)):
+
                 index = cls.getCachedRange(fromDate, toDate, periods=periods,
                                            offset=offset, timeRule=timeRule)
+
             else:
                 xdr = XDateRange(fromDate=fromDate, toDate=toDate,
                                  nPeriods=periods, offset=offset,
@@ -161,9 +173,6 @@ class DateRange(Index):
 
         if offset is None:
             raise Exception('Must provide a DateOffset!')
-
-        start = datetools.to_datetime(start)
-        end = datetools.to_datetime(end)
 
         if start is not None and not isinstance(start, datetime):
             raise Exception('%s is not a valid date!' % start)

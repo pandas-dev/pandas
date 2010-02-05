@@ -14,22 +14,22 @@ Least-squares entry-point
 
    ols
 
-Class reference
----------------
+.. Class reference
+.. ---------------
 
-.. currentmodule:: pandas.stats.ols
+.. .. currentmodule:: pandas.stats.ols
 
-.. autosummary::
-   :toctree: generated/
+.. .. autosummary::
+..    :toctree: generated/
 
-   OLS
-   MovingOLS
+..    OLS
+..    MovingOLS
 
-.. currentmodule:: pandas.stats.plm
+.. .. currentmodule:: pandas.stats.plm
 
-.. autosummary::
-   :toctree: generated/
+.. .. autosummary::
+..    :toctree: generated/
 
-   PanelOLS
-   MovingPanelOLS
+..    PanelOLS
+..    MovingPanelOLS
 

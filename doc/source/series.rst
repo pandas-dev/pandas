@@ -16,6 +16,25 @@ different-sized Series by matching index values.
 Because Series is an ndarray, it can be used interchangeably in
 NumPy-based functions expecting one-dimensional ndarrays.
 
+.. class:: Series
+
+   A subclass of :class:`~numpy.ndarray` designed for labeled
+   1-dimensional data.
+
+   :Parameters:
+       **data** : {array_like}
+           Data portion of the array. Any data that is valid for
+           constructing a :class:`~numpy.ndarray` can be used here:
+
+           * a sequence of objects (numbers, characters, objects)
+           * an :class:`~numpy.ndarray` or one of its subclass.
+
+       **index** : {array_like}
+           A :class:`DateArray` instance storing the date information.
+
+   .. seealso::
+       :func:`Series.fromDict`
+
 .. note::
 
     The basic concepts presented here apply to the higher dimensional
@@ -102,7 +121,7 @@ Summary of constructors
 .. autosummary::
    :toctree: generated/
 
-   Series
+   Series.__new__
    Series.fromDict
    Series.fromValue
 

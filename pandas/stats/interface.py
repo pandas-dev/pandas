@@ -43,8 +43,8 @@ def ols(**kwargs):
             For entity fixed effects, key equals 'entity'.
 
             By default, the first dummy is dropped if no dummy is specified.
-        cluster: int
-            ENTITY or TIME, indicating entity/time clustering
+        cluster: {'time', 'entity'}
+            cluster variances
 
     Returns
     -------

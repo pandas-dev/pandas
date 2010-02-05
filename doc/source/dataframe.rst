@@ -1,13 +1,25 @@
 .. _dataframe:
 
+.. currentmodule:: pandas
+
 ************************
 DataFrame and DataMatrix
 ************************
 
+.. class:: DataFrame
+
+   :Parameters:
+       **data** : dict
+           * a sequence of objects (numbers, characters, objects)
+           * an :class:`~numpy.ndarray` or one of its subclass.
+
+       **index** : {array_like}
+
+   .. seealso::
+       :func:`DataFrame.fromDict`
+
 Basics
 ------
-
-.. currentmodule:: pandas
 
 **DataFrame** is a both 2D-matrix- and dict-like object implementing a
 named collection of identically-indexed Series objects. There is
@@ -105,7 +117,7 @@ There are several ways to create a DataFrame:
 .. autosummary::
    :toctree: generated/
 
-   DataFrame
+   DataFrame.__init__
    DataFrame.fromDict
    DataFrame.fromMatrix
    DataFrame.fromRecords
