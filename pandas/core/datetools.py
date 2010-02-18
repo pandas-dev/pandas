@@ -17,11 +17,13 @@ OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
 
 def ole2datetime(oledt):
     """function for converting excel date to normal date format"""
+    val = float(oledt)
+
     # Excel has a bug where it thinks the date 2/29/1900 exists
     # we just reject any date before 3/1/1900.
-    val = float(oledt)
     if val < 61:
         raise Exception("Value is outside of acceptable range: %s " % val)
+
     return OLE_TIME_ZERO + timedelta(days=val)
 
 def to_datetime(arg):
@@ -165,9 +167,6 @@ class DateOffset(object):
     def __neg__(self):
         return self.__class__(-self.n, **self.kwds)
 
-    def __contains__(self, other):
-        return self.onOffset(other)
-
     def rollback(self, someDate):
         """Roll provided date backward to next offset only if not on offset"""
         if self._normalizeFirst:
@@ -212,7 +211,7 @@ class BDay(DateOffset):
         attrs = []
 
         if self.offset:
-            attrs = ['offset=%s' % self.offset]
+            attrs = ['offset=%s' % repr(self.offset)]
 
         if abs(self.n) != 1:
             plural = 's'

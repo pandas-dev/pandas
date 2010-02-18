@@ -8,6 +8,7 @@ from pandas.core.datetools import (
 from pandas.core.daterange import XDateRange, DateRange
 import pandas.core.datetools as datetools
 
+
 ####
 ## Misc function tests
 ####
@@ -18,6 +19,13 @@ def test_format():
 def test_ole2datetime():
     actual = datetools.ole2datetime(60000)
     assert actual == datetime(2064, 4, 8)
+
+    try:
+        datetools.ole2datetime(60)
+    except Exception:
+        pass
+    else:
+        raise Exception('should have raised an exception')
 
 def test_to_datetime1():
     actual = datetools.to_datetime(datetime(2008, 1, 15))
@@ -84,6 +92,9 @@ class TestBusinessDay(unittest.TestCase):
         assert repr(self.offset) == '<1 BusinessDay>'
         assert repr(self.offset2) == '<2 BusinessDays>'
 
+        expected = '<1 BusinessDay: offset=datetime.timedelta(1)>'
+        assert repr(self.offset + timedelta(1)) == expected
+
     def test_with_offset(self):
         offset = self.offset + timedelta(hours=2)
 
@@ -137,7 +148,7 @@ class TestBusinessDay(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
-    def test_offset(self):
+    def test_apply(self):
         tests = []
 
         tests.append((bday,
@@ -182,7 +193,8 @@ class TestBusinessDay(unittest.TestCase):
             for baseDate, expected in cases.iteritems():
                 assertEq(dateOffset, baseDate, expected)
 
-
+    def test_apply_corner(self):
+        self.assertRaises(Exception, BDay().apply, BMonthEnd())
 
 def assertOnOffset(offset, date, expected):
     actual = offset.onOffset(date)

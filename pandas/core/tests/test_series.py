@@ -10,7 +10,8 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import (Index, Series, TimeSeries, DataFrame, isnull)
+from pandas.core.api import (Index, Series, TimeSeries, DataFrame)
+from pandas.core.tests.common import assert_series_equal
 import pandas.core.datetools as datetools
 import pandas.core.tests.common as common
 
@@ -22,6 +23,8 @@ class TestSeries(unittest.TestCase):
         self.ts = common.makeTimeSeries()
         self.series = common.makeStringSeries()
         self.objSeries = common.makeObjectSeries()
+
+        self.empty = Series([], index=[])
 
     def test_constructor(self):
         # Recognize TimeSeries
@@ -131,6 +134,10 @@ class TestSeries(unittest.TestCase):
         self.assert_(self.series.get(-1) is None)
         self.assertEqual(self.series[5], self.series.get(self.series.index[5]))
 
+        # missing
+        d = self.ts.index[0] - datetools.bday
+        self.assertRaises(Exception, self.ts.__getitem__, d),
+
     def test_fancy(self):
         slice1 = self.series[[1,2,3]]
         slice2 = self.objSeries[[1,2,3]]
@@ -183,6 +190,13 @@ class TestSeries(unittest.TestCase):
         str(self.objSeries)
 
         str(Series(common.randn(1000), index=np.arange(1000)))
+
+        # empty
+        str(self.empty)
+
+        # with NaNs
+        self.series[5:7] = np.NaN
+        str(self.series)
 
     def test_iter(self):
         for i, val in enumerate(self.series):
@@ -344,7 +358,7 @@ class TestSeries(unittest.TestCase):
         # corner case
         s = Series([1., 2, 3], index=[0, 1, 2])
         result = s.combineFirst(Series([], index=[]))
-        common.assert_series_equal(s, result)
+        assert_series_equal(s, result)
 
     def test_overloads(self):
         methods = ['argsort', 'cumsum', 'cumprod']
@@ -460,19 +474,19 @@ class TestSeries(unittest.TestCase):
         shifted = self.ts.shift(1, offset=offset)
         unshifted = shifted.shift(-1, offset=offset)
 
-        common.assert_series_equal(unshifted, self.ts)
+        assert_series_equal(unshifted, self.ts)
 
         unshifted = self.ts.shift(0, offset=offset)
-        common.assert_series_equal(unshifted, self.ts)
+        assert_series_equal(unshifted, self.ts)
 
         shifted = self.ts.shift(1, timeRule='WEEKDAY')
         unshifted = shifted.shift(-1, timeRule='WEEKDAY')
 
-        common.assert_series_equal(unshifted, self.ts)
+        assert_series_equal(unshifted, self.ts)
 
         # corner case
         unshifted = self.ts.shift(0)
-        common.assert_series_equal(unshifted, self.ts)
+        assert_series_equal(unshifted, self.ts)
 
     def test_truncate(self):
         offset = datetools.bday
@@ -484,34 +498,45 @@ class TestSeries(unittest.TestCase):
 
         # neither specified
         truncated = ts.truncate()
-        common.assert_series_equal(truncated, ts)
+        assert_series_equal(truncated, ts)
 
         # both specified
         expected = ts[1:3]
 
         truncated = ts.truncate(start, end)
-        common.assert_series_equal(truncated, expected)
+        assert_series_equal(truncated, expected)
 
         truncated = ts.truncate(start_missing, end_missing)
-        common.assert_series_equal(truncated, expected)
+        assert_series_equal(truncated, expected)
 
         # start specified
         expected = ts[1:]
 
         truncated = ts.truncate(before=start)
-        common.assert_series_equal(truncated, expected)
+        assert_series_equal(truncated, expected)
 
         truncated = ts.truncate(before=start_missing)
-        common.assert_series_equal(truncated, expected)
+        assert_series_equal(truncated, expected)
 
         # end specified
         expected = ts[:3]
 
         truncated = ts.truncate(after=end)
-        common.assert_series_equal(truncated, expected)
+        assert_series_equal(truncated, expected)
 
         truncated = ts.truncate(after=end_missing)
-        common.assert_series_equal(truncated, expected)
+        assert_series_equal(truncated, expected)
+
+        # corner case, empty series returned
+        truncated = ts.truncate(after=self.ts.index[0] - offset)
+        assert(len(truncated) == 0)
+
+        truncated = ts.truncate(before=self.ts.index[-1] + offset)
+        assert(len(truncated) == 0)
+
+        truncated = ts.truncate(before=self.ts.index[-1] + offset,
+                                after=self.ts.index[0] - offset)
+        assert(len(truncated) == 0)
 
     def test_asOf(self):
         self.ts[5:10] = np.NaN
@@ -529,6 +554,10 @@ class TestSeries(unittest.TestCase):
 
         # in there
         self.assertEqual(self.ts.asOf(self.ts.index[3]), self.ts[3])
+
+        # no as of value
+        d = self.ts.index[0] - datetools.bday
+        self.assert_(np.isnan(self.ts.asOf(d)))
 
     def test_merge(self):
         index, data = common.getMixedTypeDict()
@@ -550,15 +579,20 @@ class TestSeries(unittest.TestCase):
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
         self.assertEqual(id(self.series.index), id(identity.index))
+
         subIndex = self.series.index[10:20]
         subSeries = self.series.reindex(subIndex)
+
         for idx, val in subSeries.iteritems():
             self.assertEqual(val, self.series[idx])
+
         subIndex2 = self.ts.index[10:20]
         subTS = self.ts.reindex(subIndex2)
+
         for idx, val in subTS.iteritems():
             self.assertEqual(val, self.ts[idx])
         crapSeries = self.ts.reindex(subIndex)
+
         self.assert_(np.isnan(crapSeries).all())
 
         # This is extremely important for the Cython code to not screw up
@@ -572,8 +606,11 @@ class TestSeries(unittest.TestCase):
         self.assertRaises(Exception, ts.reindex, self.ts.index, fillMethod='foo')
 
         # corner case: pad empty series
-        s = Series([], index=[])
-        reindexed = s.reindex(self.ts.index, fillMethod='pad')
+        reindexed = self.empty.reindex(self.ts.index, fillMethod='pad')
+
+        # pass non-Index
+        reindexed = self.ts.reindex(list(self.ts.index))
+        assert_series_equal(self.ts, reindexed)
 
     def test_reindex_bool(self):
 
@@ -656,6 +693,9 @@ class TestSeries(unittest.TestCase):
 
         time_interp = ord_ts_copy.interpolate(method='time')
         self.assert_(np.array_equal(time_interp, ord_ts))
+
+        # try time interpolation on a non-TimeSeries
+        self.assertRaises(Exception, self.series.interpolate, method='time')
 
     def test_weekday(self):
         # Just run the function

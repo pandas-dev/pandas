@@ -162,15 +162,15 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         assert(self.panel._get_axis(1) is self.panel.major_axis)
         assert(self.panel._get_axis(2) is self.panel.minor_axis)
 
-    def test_wide_axis_number(self):
-        assert(self.panel._wide_axis_number('items'), 0)
-        assert(self.panel._wide_axis_number('major'), 1)
-        assert(self.panel._wide_axis_number('minor'), 2)
+    def test_get_axis_number(self):
+        assert(self.panel._get_axis_number('items'), 0)
+        assert(self.panel._get_axis_number('major'), 1)
+        assert(self.panel._get_axis_number('minor'), 2)
 
-    def test_wide_axis_name(self):
-        assert(self.panel._wide_axis_name(0), 'items')
-        assert(self.panel._wide_axis_name(1), 'major')
-        assert(self.panel._wide_axis_name(2), 'minor')
+    def test_get_axis_name(self):
+        assert(self.panel._get_axis_name(0), 'items')
+        assert(self.panel._get_axis_name(1), 'major')
+        assert(self.panel._get_axis_name(2), 'minor')
 
     def test_get_plane_axes(self):
         # what to do here?
