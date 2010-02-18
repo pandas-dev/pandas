@@ -12,7 +12,7 @@ from numpy import NaN, ndarray
 import numpy as np
 
 from pandas.core.daterange import DateRange
-from pandas.core.index import Index
+from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
 import pandas.core.datetools as datetools
 
@@ -841,28 +841,24 @@ class Series(np.ndarray, Picklable, Groupable):
         after = arg_after = datetools.to_datetime(after)
 
         if before is None:
-            before = self.index[0]
-        elif before not in self.index:
-            loc = self.index.searchsorted(before, side='left')
-            before = self.index[loc]
+            beg_slice = 0
+        elif before in self.index:
+            beg_slice = self.index.indexMap[before]
+        elif before < self.index[-1]:
+            beg_slice = self.index.searchsorted(before, side='left')
+        else:
+            return Series([], index=NULL_INDEX)
 
         if after is None:
-            after = self.index[-1]
-        elif after not in self.index:
-            loc = self.index.searchsorted(after, side='right') - 1
-
-            if loc >= len(self.index):
-                loc = -1
-
-            after = self.index[loc]
-
-        beg_slice = self.index.indexMap[before]
-        end_slice = self.index.indexMap[after] + 1
+            end_slice = len(self)
+        elif after in self.index:
+            end_slice = self.index.indexMap[after] + 1
+        elif after > self.index[0]:
+            end_slice = self.index.searchsorted(after, side='right')
+        else:
+            return Series([], index=NULL_INDEX)
 
         return self[beg_slice:end_slice]
-
-    def slice(self, before, after):
-        return self.truncate(before=before, after=after)
 
     def asOf(self, date):
         """
@@ -1032,13 +1028,13 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         TimeSeries
         """
+        if self.index is newIndex:
+            return self.copy()
+
+        if not isinstance(newIndex, Index):
+            newIndex = Index(newIndex)
+
         if fillMethod is None:
-            if self.index is newIndex:
-                return self.copy()
-
-            if not isinstance(newIndex, Index):
-                newIndex = Index(newIndex)
-
             idxMap = self.index.indexMap
 
             if self.dtype == float:
@@ -1058,21 +1054,15 @@ class Series(np.ndarray, Picklable, Groupable):
 
             return self.__class__(vals, index=newIndex)
 
-        if not isinstance(newIndex, Index):
-            newIndex = Index(newIndex)
-
         if len(self.index) == 0:
             return self.__class__.fromValue(NaN, index=newIndex)
 
         oldMap = self.index.indexMap
         newMap = newIndex.indexMap
 
-        if not fillMethod:
-            fillMethod = ''
-
         fillMethod = fillMethod.upper()
 
-        if fillMethod not in ['BACKFILL', 'PAD', '']:
+        if fillMethod not in ['BACKFILL', 'PAD']:
             raise Exception("Don't recognize fillMethod: %s" % fillMethod)
 
         # Cython for blazing speed
