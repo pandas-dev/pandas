@@ -231,7 +231,10 @@ class OLS(object):
     @cache_readonly
     def _r2_raw(self):
         """Returns the raw r-squared values."""
-        return self.sm_ols.rsquared
+        if self._intercept:
+            return self.sm_ols.rsquared
+        else:
+            return 1 - self.sm_ols.ssr / self.sm_ols.uncentered_tss
 
     @cache_readonly
     def r2(self):
@@ -812,11 +815,13 @@ class MovingOLS(OLS):
 
     @cache_readonly
     def _resid_stats(self):
+        uncentered_sst = []
         sst = []
         sse = []
 
-        Y = self._y_trans
-        X = self._x_trans
+        Y = self._y
+        X = self._x
+
         dates = self._index
         window = self._window
         for n, index in enumerate(self._valid_indices):
@@ -832,19 +837,19 @@ class MovingOLS(OLS):
             Y_slice = _y_converter(Y.truncate(before=prior_date, after=date))
 
             resid = Y_slice - np.dot(X_slice, beta)
-            SS_err = (resid ** 2).sum()
 
+            SS_err = (resid ** 2).sum()
             SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
+            SST_uncentered = (Y_slice ** 2).sum()
 
             sse.append(SS_err)
             sst.append(SS_total)
-
-        sse = np.array(sse)
-        sst = np.array(sst)
+            uncentered_sst.append(SST_uncentered)
 
         return {
-            'sse' : sse,
-            'sst' : sst,
+            'sse' : np.array(sse),
+            'centered_tss' : np.array(sst),
+            'uncentered_tss' : np.array(uncentered_sst),
         }
 
     @cache_readonly
@@ -855,7 +860,11 @@ class MovingOLS(OLS):
     @cache_readonly
     def _r2_raw(self):
         rs = self._resid_stats
-        return 1 - rs['sse'] / rs['sst']
+
+        if self._intercept:
+            return 1 - rs['sse'] / rs['centered_tss']
+        else:
+            return 1 - rs['sse'] / rs['uncentered_tss']
 
     @cache_readonly
     def _r2_adj_raw(self):

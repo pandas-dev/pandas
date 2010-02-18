@@ -707,45 +707,6 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         return np.array(results)
 
     @cache_readonly
-    def _resid_stats(self):
-        Y = self._y
-        X = self._x
-        dates = self._index
-        window = self._window
-
-        sst = []
-        sse = []
-
-        for n, i in enumerate(self._valid_indices):
-            if self._is_rolling and i >= window:
-                prior_date = dates[i - window + 1]
-            else:
-                prior_date = dates[0]
-
-            date = dates[i]
-
-            X_slice = X.truncate(prior_date, date).values
-            Y_slice = Y.truncate(prior_date, date).values.squeeze()
-
-            beta_slice = self._beta_raw[n]
-
-            resid = Y_slice - np.dot(X_slice, beta_slice)
-            SS_err = (resid ** 2).sum()
-
-            SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
-
-            sse.append(SS_err)
-            sst.append(SS_total)
-
-        sse = np.array(sse)
-        sst = np.array(sst)
-
-        return {
-            'sse' : sse,
-            'sst' : sst,
-        }
-
-    @cache_readonly
     def _resid_raw(self):
         beta_matrix = self._beta_matrix(lag=0)
 
