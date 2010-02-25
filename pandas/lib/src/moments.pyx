@@ -1,6 +1,8 @@
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
 
+include "skiplist.pyx"
+
 cdef extern from "wirth.h":
     double kth_smallest(double *a, int n, int k)
 
@@ -566,22 +568,6 @@ def median(ndarray arr):
         return (kth_smallest(values, n, n / 2) +
                 kth_smallest(values, n, n / 2 - 1)) / 2
 
-def roll_median(ndarray[npy_float64, ndim=1] arr, int window, int minp):
-    cdef char *mask_data
-    cdef ndarray mask
-    cdef ndarray[npy_float64, ndim=1] result
-    cdef int i, n
-
-    n = len(arr)
-    arr = arr.copy()
-
-    mask = <ndarray> np.isfinite(arr)
-    mask_data = <char *> mask.data
-
-    result = np.empty(len(arr), dtype=float)
-
-    for i from minp <= i <= n:
-        pass
 
 
 #-------------------------------------------------------------------------------
@@ -652,6 +638,52 @@ def _roll_min_noncontig(ndarray[double_t, ndim=1] input,
             val = min(val, input[j])
 
         output[j] = val
+
+def roll_median(ndarray[npy_float64, ndim=1] arr, int window, int minp):
+    cdef char *mask_data
+    cdef ndarray mask
+    cdef ndarray[npy_float64, ndim=1] result
+    cdef int i, n
+
+    n = len(arr)
+    arr = arr.copy()
+
+    mask = <ndarray> np.isfinite(arr)
+    mask_data = <char *> mask.data
+
+    result = np.empty(len(arr), dtype=float)
+
+    for i from minp <= i <= n:
+        pass
+
+def rolling_median(ndarray[double, ndim=1] arr, int window):
+    cdef int i, n, midpoint
+    cdef IndexableSkiplist skiplist
+    cdef ndarray[double, ndim=1] result
+
+    n = len(arr)
+    skiplist = IndexableSkiplist(window)
+    result = np.empty(n, dtype=float)
+    result[:window] = NaN
+
+    for i from 0 <= i < window:
+        skiplist.insert(arr[i])
+
+    midpoint = window / 2
+
+    cdef int flag = window % 2
+
+    for i from window <= i < n:
+        skiplist.remove(arr[i - window])
+        skiplist.insert(arr[i])
+
+        if flag:
+            result[i] = skiplist.get(midpoint)
+        else:
+            result[i] = (skiplist.get(midpoint) +
+                         skiplist.get(midpoint - 1)) / 2
+
+    return result
 
 #-------------------------------------------------------------------------------
 # Python interface
@@ -793,3 +825,4 @@ def rolling_kurt(ndarray input, window, minp=None):
         _roll_kurt_noncontig(input, output, window, minp, N)
 
     return output
+
