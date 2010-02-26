@@ -1,6 +1,30 @@
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
 
+cdef extern from "wirth.h":
+    double kth_smallest(double *a, int n, int k)
+
+def median(ndarray arr):
+    '''
+    A faster median
+    '''
+    cdef double *values
+    cdef int n = len(arr)
+
+    if len(arr) == 0:
+        return np.NaN
+
+    if not np.PyArray_CHKFLAGS(arr, np.NPY_C_CONTIGUOUS):
+        arr = np.array(arr)
+
+    values = <double *> arr.data
+
+    if n % 2:
+        return kth_smallest(values, n, n / 2)
+    else:
+        return (kth_smallest(values, n, n / 2) +
+                kth_smallest(values, n, n / 2 - 1)) / 2
+
 #-------------------------------------------------------------------------------
 # Rolling sum
 
