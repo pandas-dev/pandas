@@ -26,13 +26,15 @@ class DataMatrix(DataFrame):
 
     Parameters
     ----------
-    data : numpy ndarray or dict of Series
+    data : numpy ndarray or dict of sequence-like objects
+        Dict can contain Series, arrays, or list-like objects
         Constructor can understand various kinds of inputs
     index : Index or array-like
         Index to use for resulting frame (optional if provided dict of Series)
     columns : Index or array-like
-    dtype : dtype, default=float
-        Data type to use
+        Required if data is ndarray
+    dtype : dtype, default None (infer)
+        Data type to force
 
     Notes
     -----
@@ -43,98 +45,14 @@ class DataMatrix(DataFrame):
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  objects=None):
 
-        def handleDict(data, index, columns, objects, dtype):
-            """
-            Segregate Series based on type and coerce into matrices.
-
-            Needs to handle a lot of exceptional cases.
-            """
-            if len(data) == 0:
-                if index is None:
-                    index = NULL_INDEX
-                values = np.empty((len(index), 0), dtype=dtype)
-                columns = NULL_INDEX
-            else:
-                if index is None:
-                    s = data.values()[0]
-                    if isinstance(s, Series):
-                        index = s.index
-                    else:
-                        index = Index(np.arange(len(s)))
-
-                if columns is not None:
-                    if len(columns) != len(data):
-                        raise Exception('Supplied columns does not match dict!')
-
-                if not isinstance(index, Index):
-                    index = Index(index)
-
-                objectDict = {}
-                if objects is not None and isinstance(objects, dict):
-                    objectDict.update(objects)
-
-                valueDict = {}
-                for k, v in data.iteritems():
-                    # Forces homogoneity
-                    if isinstance(v, Series):
-                        v = v.reindex(index)
-                    else:
-                        assert(len(v) == len(index))
-                        v = Series(v, index=index)
-
-                    if issubclass(v.dtype.type, (np.bool_, float, int)):
-                        valueDict[k] = v
-                    else:
-                        objectDict[k] = v
-
-                if columns is None:
-                    columns = Index(sorted(valueDict))
-                    objectColumns = Index(sorted(objectDict))
-                else:
-                    objectColumns = Index([c for c in columns if c in objectDict])
-                    columns = Index([c for c in columns if c in valueDict])
-
-                if len(valueDict) == 0:
-                    dtype = np.object_
-                    valueDict = objectDict
-                    columns = objectColumns
-                else:
-                    dtype = np.float_
-                    if len(objectDict) > 0:
-                        new_objects = DataMatrix(objectDict,
-                                                 dtype=np.object_,
-                                                 index=index,
-                                                 columns=objectColumns)
-                        if isinstance(objects, DataMatrix):
-                            objects = objects.leftJoin(new_objects)
-                        else:
-                            objects = new_objects
-
-                values = np.empty((len(index), len(columns)), dtype=dtype)
-
-                for i, col in enumerate(columns):
-                    values[:, i] = valueDict[col]
-
-            return index, columns, values, objects
-
         if isinstance(data, dict):
-            index, columns, values, objects = handleDict(data, index,
-                                                         columns, objects,
-                                                         dtype)
+            (index, columns,
+             values, objects) = self._initDict(data, index, columns, objects,
+                                               dtype)
         elif isinstance(data, np.ndarray):
-            if data.ndim == 1:
-                N = data.shape[0]
-                if N == 0:
-                    data = data.reshape((data.shape[0], 0))
-                else:
-                    data = data.reshape((data.shape[0], 1))
-
-            if issubclass(data.dtype.type, (np.str_, np.object_)):
-                values = np.asarray(data, dtype=object)
-            else:
-                # We're allowing things to be boolean
-                values = np.asarray(data)
-
+            (index, columns,
+             values, objects) = self._initMatrix(data, index, columns, objects,
+                                                 dtype)
         elif data is None:
             if index is None:
                 N = 0
@@ -165,6 +83,123 @@ class DataMatrix(DataFrame):
         self.index = index
         self.columns = columns
         self.objects = objects
+
+    def _initDict(self, data, index, columns, objects, dtype):
+        """
+        Segregate Series based on type and coerce into matrices.
+
+        Needs to handle a lot of exceptional cases.
+
+        Somehow this got outrageously complicated
+        """
+        if len(data) == 0:
+            if index is None:
+                index = NULL_INDEX
+            values = np.empty((len(index), 0), dtype=dtype)
+            columns = NULL_INDEX
+            return index, columns, values, objects
+
+        # pre-filter out columns if we passed it
+        if columns is not None:
+            colset = set(columns)
+            data = dict((k, v) for k, v in data.iteritems() if k in colset)
+
+        index = self._extract_index(data, index)
+
+        objectDict = {}
+        if objects is not None and isinstance(objects, dict):
+            objectDict.update(objects)
+
+        valueDict = {}
+        for k, v in data.iteritems():
+            if isinstance(v, Series):
+                # Forces alignment, copies data
+                v = v.reindex(index)
+            else:
+                if isinstance(v, dict):
+                    v = [v.get(i, NaN) for i in index]
+                else:
+                    assert(len(v) == len(index))
+
+                try:
+                    v = Series(v, dtype=dtype, index=index)
+                except Exception:
+                    v = Series(v, index=index)
+
+                # copy data
+                v = v.copy()
+
+            if issubclass(v.dtype.type, (np.bool_, float, int)):
+                valueDict[k] = v
+            else:
+                objectDict[k] = v
+
+        if columns is None:
+            columns = Index(sorted(valueDict))
+            objectColumns = Index(sorted(objectDict))
+        else:
+            objectColumns = Index([c for c in columns if c in objectDict])
+            columns = Index([c for c in columns if c not in objectDict])
+
+        if len(valueDict) == 0:
+            dtype = np.object_
+            valueDict = objectDict
+            columns = objectColumns
+        else:
+            dtype = np.float_
+            if len(objectDict) > 0:
+                new_objects = DataMatrix(objectDict,
+                                         dtype=np.object_,
+                                         index=index,
+                                         columns=objectColumns)
+                if isinstance(objects, DataMatrix):
+                    objects = objects.leftJoin(new_objects)
+                else:
+                    objects = new_objects
+
+        values = np.empty((len(index), len(columns)), dtype=dtype)
+
+        for i, col in enumerate(columns):
+            if col in valueDict:
+                values[:, i] = valueDict[col]
+            else:
+                values[:, i] = np.NaN
+
+        return index, columns, values, objects
+
+    def _initMatrix(self, data, index, columns, objects, dtype):
+        if data.ndim == 1:
+            N = data.shape[0]
+            if N == 0:
+                data = data.reshape((data.shape[0], 0))
+            else:
+                data = data.reshape((data.shape[0], 1))
+
+        if issubclass(data.dtype.type, (np.str_, np.object_)):
+            values = np.asarray(data, dtype=object)
+        else:
+            # We're allowing things to be boolean
+            values = np.asarray(data)
+
+        if dtype is not None:
+            try:
+                data = data.astype(dtype)
+            except Exception:
+                pass
+
+        if index is None:
+            if data.shape[0] == 0:
+                index = NULL_INDEX
+            else:
+                raise Exception('Must pass index!')
+
+        if columns is None:
+            if data.shape[1] == 0:
+                columns = NULL_INDEX
+            else:
+                raise Exception('Must pass columns!')
+
+        return index, columns, values, objects
 
     @property
     def _constructor(self):
@@ -207,94 +242,6 @@ class DataMatrix(DataFrame):
 
     # Because of DataFrame property
     values = None
-#-------------------------------------------------------------------------------
-# Alternate constructors
-
-    @classmethod
-    def fromDict(cls, inputDict=None, castFloat=True, **kwds):
-        """
-        Convert a two-level tree representation of a series or time series
-        to a DataMatrix.
-
-        tree is structured as:
-            {'col1' : {
-                idx1 : value1,
-                ...
-                idxn : valueN
-                    },
-            ...}
-        e.g. tree['returns'][curDate] --> return value for curDate
-
-        Parameters
-        ----------
-        input : dict object
-            Keys become column names of returned frame
-        kwds : optionally provide arguments as keywords
-
-        Examples
-        --------
-        df1 = DataMatrix.fromDict(myDict)
-        df2 = DataMatrix.fromDict(A=seriesA, B=seriesB)
-        """
-        if inputDict is None:
-            inputDict = {}
-        else:
-            if not hasattr(inputDict, 'iteritems'):
-                raise Exception('Input must be a dict or dict-like!')
-            inputDict = inputDict.copy()
-
-        inputDict.update(kwds)
-
-        # Get set of indices
-        indices = set([])
-        for branch in inputDict.values():
-            indices = indices | set(branch.keys())
-
-        index = Index(sorted(indices))
-        # Convert to Series
-        series = {}
-        for col, mapping in inputDict.iteritems():
-            if not isinstance(mapping, Series):
-                mapping = Series.fromDict(mapping, castFloat=castFloat)
-            series[col] = mapping.reindex(index)
-
-        return DataMatrix(series, index=index)
-
-    @classmethod
-    def fromMatrix(cls, mat, colNames, rowNames):
-        """
-        Compatibility method for operations in DataFrame that use
-        fromMatrix.
-
-        Parameters
-        ----------
-        mat : ndarray
-            Dimension T x N
-        colNames : iterable
-            Dimension N
-        rowNames : iterable
-            Dimension T
-
-        Returns
-        -------
-        DataMatrix
-
-        See also
-        --------
-        DataFrame.fromMatrix
-        """
-        rows, cols = mat.shape
-        try:
-            assert(rows == len(rowNames))
-            assert(cols == len(colNames))
-        except AssertionError:
-            raise Exception('Dimensions do not match: %s, %s, %s' %
-                            (mat.shape, len(rowNames), len(colNames)))
-
-        index = Index(rowNames)
-        colIndex = Index(colNames)
-
-        return DataMatrix(mat, index=index, columns=colIndex)
 
 #-------------------------------------------------------------------------------
 # Outputting
@@ -349,7 +296,7 @@ class DataMatrix(DataFrame):
             print 'CSV file written successfully: %s' % path
 
     def toString(self, buffer=sys.stdout, verbose=False,
-                 columns=None, colSpace=15, nanRep='NaN',
+                 columns=None, colSpace=10, nanRep='NaN',
                  formatters=None, float_format=None):
         """
         Output a string version of this DataMatrix
@@ -445,13 +392,6 @@ class DataMatrix(DataFrame):
         return self._columns
 
     def _set_columns(self, cols):
-        if cols is None:
-            if self.values is not None and self.values.shape[1] > 0:
-                raise Exception('Columns cannot be None here!')
-            else:
-                self._columns = NULL_INDEX
-                return
-
         if len(cols) != self.values.shape[1]:
             raise Exception('Columns length %d did not match values %d!' %
                             (len(cols), self.values.shape[1]))
@@ -464,13 +404,6 @@ class DataMatrix(DataFrame):
     columns = property(fget=_get_columns, fset=_set_columns)
 
     def _set_index(self, index):
-        if index is None:
-            if self.values is not None and self.values.shape[0] > 0:
-                raise Exception('Index cannot be None here!')
-            else:
-                self._index = NULL_INDEX
-                return
-
         if len(index) > 0:
             if len(index) != self.values.shape[0]:
                 raise Exception('Index length %d did not match values %d!' %
@@ -668,8 +601,7 @@ class DataMatrix(DataFrame):
         """
         if key in self.columns:
             loc = self.columns.indexMap[key]
-            T, N = self.values.shape
-            if loc == N:
+            if loc == self.values.shape[1]:
                 newValues = self.values[:, :loc]
                 newColumns = self.columns[:loc]
             else:
@@ -790,15 +722,16 @@ class DataMatrix(DataFrame):
     def _combineSeries(self, other, func):
         newIndex = self.index
         newCols = self.columns
+
+        if not self:
+            return DataFrame(index=NULL_INDEX)
+
         if self.index._allDates and other.index._allDates:
             # Operate row-wise
             if self.index.equals(other.index):
                 newIndex = self.index
             else:
                 newIndex = self.index + other.index
-
-            if not self:
-                return DataMatrix(index=newIndex)
 
             other = other.reindex(newIndex).view(np.ndarray)
             myReindex = self.reindex(newIndex)
@@ -985,7 +918,8 @@ class DataMatrix(DataFrame):
         -------
         This DataFrame with rows containing any NaN values deleted
         """
-        T, N = self.values.shape
+        N = self.values.shape[1]
+
         if specificColumns:
             cols = self.columns.intersection(specificColumns)
             theCount = self.filterItems(cols).count(axis=1)
@@ -1349,7 +1283,6 @@ class DataMatrix(DataFrame):
         else:
             return super(DataMatrix, self).append(otherFrame)
 
-    # TODO, works though.
     def outerJoin(self, *frames):
         """
         Form union of input frames.
@@ -1377,7 +1310,7 @@ class DataMatrix(DataFrame):
                     raise Exception('Overlapping columns!')
                 mergedSeries[col] = series
 
-        return DataMatrix.fromDict(mergedSeries)
+        return DataMatrix(mergedSeries)
 
     def leftJoin(self, *frames):
         """

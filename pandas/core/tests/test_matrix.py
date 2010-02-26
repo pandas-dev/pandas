@@ -44,11 +44,11 @@ class TestDataMatrix(test_frame.TestDataFrame):
     def test_combineFirst_mixed(self):
         a = Series(['a','b'], index=range(2))
         b = Series(range(2), index=range(2))
-        f = DataMatrix.fromDict({'A' : a, 'B' : b})
+        f = DataMatrix({'A' : a, 'B' : b})
 
         a = Series(['a','b'], index=range(5, 7))
         b = Series(range(2), index=range(5, 7))
-        g = DataMatrix.fromDict({'A' : a, 'B' : b})
+        g = DataMatrix({'A' : a, 'B' : b})
 
         combined = f.combineFirst(g)
 

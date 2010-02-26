@@ -8,7 +8,6 @@ from pandas.core.api import (DataFrame, TimeSeries, DataMatrix,
                                  Series, notnull)
 
 import pandas.lib.tseries as tseries
-from pandas.lib.tseries import median as wirth_median
 import numpy as np
 
 __all__ = ['rolling_count', 'rolling_sum', 'rolling_mean',
@@ -195,7 +194,8 @@ def rolling_var(arg, window, minPeriods=None, timeRule=None):
     timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
-    return rolling_std(arg, window, minp=minPeriods, timeRule=timeRule)**2
+    return _rollingMoment(arg, window, tseries.rolling_var,
+                          minp=minPeriods, timeRule=timeRule)
 
 def rolling_skew(arg, window, minPeriods=None, timeRule=None):
     """
@@ -210,8 +210,8 @@ def rolling_skew(arg, window, minPeriods=None, timeRule=None):
     timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
-    return _rollingMoment(arg, window, tseries.rolling_skew, minp=minPeriods,
-                          timeRule=timeRule)
+    return _rollingMoment(arg, window, tseries.rolling_skew,
+                          minp=minPeriods, timeRule=timeRule)
 
 def rolling_kurt(arg, window, minPeriods=None, timeRule=None):
     """
@@ -229,30 +229,9 @@ def rolling_kurt(arg, window, minPeriods=None, timeRule=None):
     return _rollingMoment(arg, window, tseries.rolling_kurt,
                           minp=minPeriods, timeRule=timeRule)
 
-def _median(arr, mask):
-    arr = arr[mask]
-    return wirth_median(arr)
-
-def _rollmedian(series, window, minp=None):
-    if len(series) < window:
-        window = len(series)
-
-    minp = int(minp)
-    mask = notnull(series)
-
-    result = np.empty(len(series), dtype=float)
-    result[:minp - 1] = np.nan
-    result[minp - 1:] = [_median(series[max(i-window, 0):i],
-                                 mask[max(i-window, 0):i])
-                         for i in xrange(minp, len(series)+1)]
-
-    return result
-
 def rolling_median(arg, window, minPeriods=None, timeRule=None):
-    # Sort at each point, can't really do much better.
-
-    return _rollingMoment(arg, window, _rollmedian, minp=minPeriods,
-                          timeRule=timeRule)
+    return _rollingMoment(arg, window, tseries.rolling_median,
+                          minp=minPeriods, timeRule=timeRule)
 
 def test_rolling_median():
     arr = np.random.randn(100)
@@ -263,6 +242,12 @@ def test_rolling_median():
     assert(np.isnan(result[20]))
 
     assert(result[-1] == np.median(arr[-50:]))
+
+    result = rolling_median(arr, 49)
+
+    assert(np.isnan(result[20]))
+
+    assert(result[-1] == np.median(arr[-49:]))
 
 #-------------------------------------------------------------------------------
 # Exponential moving moments

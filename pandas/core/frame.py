@@ -41,13 +41,15 @@ class DataFrame(Picklable, Groupable):
 
     Parameters
     ----------
-    data : dict
-        Mapping of column name --> array or Series/TimeSeries objects
-    index : array-like, optional
-        Specific index to use for the Frame, Series will be conformed
-        to this if you provide it. If not input, index will be
-        inferred from input Series
-    columns : array-like, optional
+    data : numpy ndarray or dict of sequence-like objects
+        Dict can contain Series, arrays, or list-like objects
+        Constructor can understand various kinds of inputs
+    index : Index or array-like
+        Index to use for resulting frame (optional if provided dict of Series)
+    columns : Index or array-like
+        Required if data is ndarray
+    dtype : dtype, default None (infer)
+        Data type to force
 
     Notes
     -----
@@ -65,30 +67,119 @@ class DataFrame(Picklable, Groupable):
         >>> df = DataFrame(data=d, index=someIndex)
     """
 
-    def __init__(self, data=None, index=None, columns=None):
-        self._series = {}
-        if data is not None and len(data) > 0:
-            if index is None:
-                s = data.values()[0]
-                if isinstance(s, Series):
-                    self.index = s.index
-                else:
-                    self.index = np.arange(len(s))
-            else:
-                self.index = index
+    def __init__(self, data=None, index=None, columns=None, dtype=None):
+        if isinstance(data, dict):
+            self._series, self.index = self._initDict(data, index,
+                                                      columns, dtype)
 
+        elif isinstance(data, np.ndarray):
+            if columns is None:
+                raise Exception('Must pass column names with ndarray!')
+            if index is None:
+                raise Exception('Must pass index with ndarray!')
+
+            if data.ndim == 1:
+                data = data.reshape((len(data), 1))
+            elif data.ndim != 2:
+                raise Exception('Must pass 2-d input!')
+
+            self._series, self.index = self._initMatrix(data, index,
+                                                        columns, dtype)
+
+        elif data is None:
+            if index is None:
+                index = NULL_INDEX
+
+            self._series, self.index = {}, index
+
+    def _initDict(self, data, index, columns, dtype):
+        # pre-filter out columns if we passed it
+        if columns is not None:
+            colset = set(columns)
+            data = dict((k, v) for k, v in data.iteritems() if k in colset)
+
+        index = self._extract_index(data, index)
+
+        series = {}
+        for k, v in data.iteritems():
+            if isinstance(v, Series):
+                # Forces alignment and copies data
+                series[k] = v.reindex(index)
+            else:
+                if isinstance(v, dict):
+                    v = [v.get(i, NaN) for i in index]
+
+                try:
+                    v = Series(v, dtype=dtype, index=index)
+                except Exception:
+                    v = Series(v, index=index)
+
+                series[k] = v.copy()
+
+        # add in any other columns we want to have (completeness)
+        if columns is not None:
+            for c in columns:
+                if c not in series:
+                    series[c] = Series.fromValue(np.NaN, index=index)
+
+        return series, index
+
+    @staticmethod
+    def _extract_index(data, index):
+        if len(data) == 0:
+            index = NULL_INDEX
+        elif len(data) > 0 and index is None:
+            # aggregate union of indices
+            need_labels = False
+
+            # this is pretty kludgy, better way?
             for k, v in data.iteritems():
                 if isinstance(v, Series):
-                    # Forces homogeneity and copies data
-                    self._series[k] = v.reindex(self.index)
-                else:
-                    # Copies data and checks length
-                    self._series[k] = Series(v, index=self.index)
+                    if index is None:
+                        index = v.index
+                    elif need_labels:
+                        raise Exception('Cannot mix Series / dict objects'
+                                        ' with ndarray / sequence input')
+                    elif not index.equals(v.index):
+                        index = index + v.index
 
-        elif index is not None:
-            self.index = index
-        else:
-            self.index = NULL_INDEX
+                elif isinstance(v, dict):
+                    if index is None:
+                        index = Index(sorted(v.keys()))
+                    elif need_labels:
+                        raise Exception('Cannot mix Series / dict objects'
+                                        ' with ndarray / sequence input')
+                    else:
+                        index = index + Index(v.keys())
+
+                else: # not dict-like, assign integer labels
+                    if index is not None and not need_labels:
+                        raise Exception('Cannot mix Series / dict objects'
+                                        ' with ndarray / sequence input')
+
+                    need_labels = True
+                    index = Index(np.arange(len(v)))
+
+        if len(index) == 0 or index is None:
+            index = NULL_INDEX
+
+        if not isinstance(index, Index):
+            index = Index(index)
+
+        return index
+
+    def _initMatrix(self, data, index, columns, dtype):
+        N, K = data.shape
+
+        if len(index) != N:
+            raise Exception('Index length mismatch: %d vs. %d' %
+                            (len(index), N))
+        if len(columns) != K:
+            raise Exception('Index length mismatch: %d vs. %d' %
+                            (len(columns), K))
+
+        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
+        return self._initDict(data, index, columns, dtype)
 
     @property
     def _constructor(self):
@@ -118,76 +209,6 @@ class DataFrame(Picklable, Groupable):
         return self._index
 
     index = property(fget=_get_index, fset=_set_index)
-
-    # Alternate constructors
-    @classmethod
-    def fromDict(cls, inputDict=None, castFloat=True, **kwds):
-        """
-        Convert a two-level tree representation of a series or time series
-        to a DataFrame.
-
-        tree is structured as:
-            {'col1' : {
-                idx1 : value1,
-                ...
-                idxn : valueN
-                    },
-            ...}
-        e.g. tree['returns'][curDate] --> return value for curDate
-
-        Parameters
-        ----------
-        input : dict object
-            Keys become column names of returned frame
-        kwds : optionally provide arguments as keywords
-
-        Returns
-        -------
-        DataFrame
-
-        Examples
-        --------
-        df1 = DataFrame.fromDict(myDict)
-        df2 = DataFrame.fromDict(A=seriesA, B=seriesB)
-        """
-        if inputDict is None:
-            inputDict = {}
-        else:
-            if not hasattr(inputDict, 'iteritems'):
-                raise Exception('Input must be a dict or dict-like!')
-            inputDict = inputDict.copy()
-
-        inputDict.update(kwds)
-
-        if len(inputDict) == 0:
-            return DataFrame(index=NULL_INDEX)
-        elif len(inputDict) == 1:
-            index = inputDict.values()[0].keys()
-            if not isinstance(index, Index):
-                index = Index(sorted(index))
-        else:
-            # GET set of indices
-            indices = set([])
-            for key, branch in inputDict.iteritems():
-                indices = indices | set(branch.keys())
-            index = Index(sorted(indices))
-
-        columns = {}
-        for key, branch in inputDict.iteritems():
-            if isinstance(branch, Series):
-                tmp = branch.reindex(index)
-            else:
-                tmp = [branch.get(i, NaN) for i in index]
-
-            try:
-                if castFloat:
-                    columns[key] = Series(tmp, dtype=float, index=index)
-                else:
-                    columns[key] = Series(tmp, index=index)
-            except Exception:
-                columns[key] = Series(tmp, index=index)
-
-        return DataFrame(data=columns, index=index)
 
     def toDict(self):
         """
@@ -239,40 +260,6 @@ class DataFrame(Picklable, Groupable):
         names = ['index'] + list(self.cols())
 
         return np.rec.fromarrays(arrays, names=names)
-
-    @classmethod
-    def fromMatrix(cls, mat, colNames, rowNames):
-        """
-        Convert input matrix to DataFrame given column and row names (index)
-
-        Parameters
-        ----------
-        mat : ndarray
-            Dimension T x N
-        colNames : iterable
-            Dimension N
-        rowNames : iterable
-            Dimension T
-
-        Returns
-        -------
-        DataFrame
-        """
-        rows, cols = mat.shape
-        try:
-            assert(rows == len(rowNames))
-            assert(cols == len(colNames))
-        except AssertionError:
-            raise Exception('Dimensions do not match: %s, %s, %s' %
-                            (mat.shape, len(rowNames), len(colNames)))
-
-        index = Index(rowNames)
-        colIndex = Index(colNames)
-
-        idxMap = colIndex.indexMap
-
-        data = dict([(idx, mat[:, idxMap[idx]]) for idx in colIndex])
-        return DataFrame(data=data, index=index)
 
 #-------------------------------------------------------------------------------
 # Magic methods
@@ -450,17 +437,15 @@ class DataFrame(Picklable, Groupable):
         if len(other) == 0:
             return self * NaN
 
-        if self.index._allDates and other.index._allDates:
-            if not self:
-                return DataFrame(index=other.index)
+        if not self:
+            return DataFrame(index=NULL_INDEX)
 
+        if self.index._allDates and other.index._allDates:
             if self.index.equals(other.index):
                 newIndex = self.index
-
                 this = self
             else:
                 newIndex = self.index + other.index
-
                 this = self.reindex(newIndex)
                 other = other.reindex(newIndex)
 
@@ -468,7 +453,6 @@ class DataFrame(Picklable, Groupable):
                 newColumns[col] = func(series, other)
 
             result = DataFrame(newColumns, index=newIndex)
-
         else:
             union = other.index.union(self.cols())
             intersection = other.index.intersection(self.cols())
@@ -555,7 +539,7 @@ class DataFrame(Picklable, Groupable):
         return DataMatrix(self._series, index=self.index)
 
     def toString(self, buffer=sys.stdout, verbose=False,
-                 columns=None, colSpace=15, nanRep='NaN',
+                 columns=None, colSpace=10, nanRep='NaN',
                  formatters=None, float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
@@ -717,7 +701,7 @@ class DataFrame(Picklable, Groupable):
                         correl[i, j] = c
                         correl[j, i] = c
 
-        return self.fromMatrix(correl, cols, cols)
+        return self._constructor(correl, index=cols, columns=cols)
 
     def dropEmptyRows(self, specificColumns=None):
         """
@@ -806,41 +790,6 @@ class DataFrame(Picklable, Groupable):
 
         return mycopy
 
-    def getTS(self, colName=None, fromDate=None, toDate=None, nPeriods=None):
-        """
-        Return a DataFrame / TimeSeries corresponding to given arguments
-
-        Parameters
-        ----------
-        colName : particular column name requested
-        fromDate : datetime
-        toDate : datetime
-        nPeriods : int/float
-
-        Note
-        ----
-        Error thrown if all of fromDate, toDate, nPeriods specified.
-        """
-        beg_slice, end_slice = self._getIndices(fromDate, toDate)
-
-        if nPeriods:
-            if fromDate and toDate:
-                raise Exception('fromDate/toDate, toDate/nPeriods, ' + \
-                                ' fromDate/nPeriods are mutually exclusive')
-            elif fromDate:
-                end_slice = min(len(self), beg_slice + nPeriods)
-            elif toDate:
-                beg_slice = max(0, end_slice - nPeriods)
-            else:
-                raise Exception('Not enough arguments provided to getTS')
-
-        dateRange = self.index[beg_slice:end_slice]
-
-        if colName:
-            return self[colName].reindex(dateRange)
-        else:
-            return self.reindex(dateRange)
-
     def truncate(self, before=None, after=None):
         """Function truncate a sorted DataFrame before and/or after
         some particular dates.
@@ -900,11 +849,10 @@ class DataFrame(Picklable, Groupable):
         if key not in self.index:
             raise Exception('No cross-section for %s' % key)
 
-        subset = sorted(self._series)
-
+        subset = self.cols()
         rowValues = [self._series[k][key] for k in subset]
 
-        if len(set(map(type, rowValues))) > 1:
+        if len(set((type(x) for x in rowValues))) > 1:
             return Series(np.array(rowValues, dtype=np.object_), index=subset)
         else:
             return Series(np.array(rowValues), index=subset)

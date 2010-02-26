@@ -14,6 +14,12 @@ class TestIndex(unittest.TestCase):
         self.dateIndex = common.makeDateIndex(100)
         self.intIndex = common.makeIntIndex(100)
 
+    def test_deepcopy(self):
+        from copy import deepcopy
+
+        copy = deepcopy(self.strIndex)
+        self.assert_(copy is self.strIndex)
+
     def test_duplicates(self):
         self.assertRaises(Exception, Index, [0, 0, 0])
 

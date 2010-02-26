@@ -218,10 +218,8 @@ class OLS(object):
     @cache_readonly
     def _p_value_raw(self):
         """Returns the raw p values."""
-        t_stat = self._t_stat_raw
-        p_value = 2 * (1 - stats.t.cdf(np.fabs(t_stat),
-            (self._nobs - self._df_raw)))
-        return np.array(p_value)
+        return 2 * stats.t.sf(np.fabs(self._t_stat_raw),
+                              self._df_resid_raw)
 
     @cache_readonly
     def p_value(self):
@@ -276,7 +274,7 @@ class OLS(object):
     @cache_readonly
     def _std_err_raw(self):
         """Returns the raw standard err values."""
-        return np.nan_to_num(np.sqrt(np.diag(self._var_beta_raw)))
+        return np.sqrt(np.diag(self._var_beta_raw))
 
     @cache_readonly
     def std_err(self):
@@ -286,7 +284,7 @@ class OLS(object):
     @cache_readonly
     def _t_stat_raw(self):
         """Returns the raw t-stat value."""
-        return np.nan_to_num(self._beta_raw / self._std_err_raw)
+        return self._beta_raw / self._std_err_raw
 
     @cache_readonly
     def t_stat(self):
@@ -554,7 +552,7 @@ class MovingOLS(OLS):
                             for date, f_stat in zip(self.beta.index,
                                                     self._f_stat_raw))
 
-        return DataFrame.fromDict(f_stat_dicts).T
+        return DataFrame(f_stat_dicts).T
 
     def f_test(self, hypothesis):
         raise Exception('f_test not supported for rolling/expanding OLS')
@@ -804,14 +802,11 @@ class MovingOLS(OLS):
     @cache_readonly
     def _p_value_raw(self):
         """Returns the raw p values."""
-        get_prob = lambda a, b: 2 * (1 - stats.t.cdf(a, b))
+        result = [2 * stats.t.sf(a, b)
+                  for a, b in izip(np.fabs(self._t_stat_raw),
+                                   self._df_resid_raw)]
 
-        result = starmap(get_prob,
-                         izip(np.fabs(self._t_stat_raw), self._df_resid_raw))
-
-        result = np.array(list(result))
-
-        return result
+        return np.array(result)
 
     @cache_readonly
     def _resid_stats(self):
@@ -885,12 +880,12 @@ class MovingOLS(OLS):
         for i in xrange(len(self._var_beta_raw)):
             results.append(np.sqrt(np.diag(self._var_beta_raw[i])))
 
-        return np.nan_to_num(np.array(results))
+        return np.array(results)
 
     @cache_readonly
     def _t_stat_raw(self):
         """Returns the raw t-stat value."""
-        return np.nan_to_num(self._beta_raw / self._std_err_raw)
+        return self._beta_raw / self._std_err_raw
 
     @cache_readonly
     def _var_beta_raw(self):
@@ -1070,11 +1065,11 @@ def _filter_data(lhs, rhs):
 
     combined_rhs = _combine_rhs(rhs)
 
-    pre_filtered_rhs = DataMatrix.fromDict(combined_rhs).dropIncompleteRows()
+    pre_filtered_rhs = DataMatrix(combined_rhs).dropIncompleteRows()
 
     # Union of all indices
     combined_rhs['_y'] = lhs
-    full_dataset = DataMatrix.fromDict(combined_rhs)
+    full_dataset = DataMatrix(combined_rhs)
 
     index = full_dataset.index
 

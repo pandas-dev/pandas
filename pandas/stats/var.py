@@ -14,7 +14,7 @@ from pandas.stats.ols import _combine_rhs
 
 class VAR(object):
     def __init__(self, data, lags):
-        self._data = DataFrame.fromDict(_combine_rhs(data))
+        self._data = DataFrame(_combine_rhs(data))
         self._p = lags
 
         self._columns = self._data.columns
@@ -43,7 +43,7 @@ class VAR(object):
         """
         d = dict([(key, value.beta)
                   for (key, value) in self.ols_results.iteritems()])
-        return DataFrame.fromDict(d)
+        return DataFrame(d)
 
     def forecast(self, h):
         """
@@ -148,8 +148,8 @@ class VAR(object):
             f_stat_dict[col] = Series(f_stats, self._columns)
             p_value_dict[col] = Series(p_values, self._columns)
 
-        f_stat_mat = DataFrame.fromDict(f_stat_dict)
-        p_value_mat = DataFrame.fromDict(p_value_dict)
+        f_stat_mat = DataFrame(f_stat_dict)
+        p_value_mat = DataFrame(p_value_dict)
 
         return {
             'f-stat' : f_stat_mat,

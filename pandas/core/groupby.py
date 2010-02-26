@@ -158,7 +158,7 @@ class SeriesGroupBy(GroupBy):
 
                 results[func.__name__] = result
 
-            retVal = DataFrame.fromDict(results)
+            retVal = DataFrame(results)
         else:
             try:
                 result = groupby(self.obj.index, self.obj,

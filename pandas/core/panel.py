@@ -1916,7 +1916,7 @@ def _slow_pivot(index, columns, values):
         branch = tree[col]
         branch[idx] = values[i]
 
-    return DataFrame.fromDict(tree)
+    return DataFrame(tree)
 
 def test():
     return pivot(np.array([1, 2, 3, 4, 4]),

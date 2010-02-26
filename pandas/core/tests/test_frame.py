@@ -59,23 +59,54 @@ class TestDataFrame(unittest.TestCase):
         indexed_frame = self.klass(data, index=index)
         unindexed_frame = self.klass(data)
 
-    def test_fromDict(self):
-        frame = self.klass.fromDict(col1=self.ts1, col2 = self.ts2)
+    def test_constructor_dict(self):
+        frame = self.klass({'col1' : self.ts1,
+                            'col2' : self.ts2})
 
         common.assert_dict_equal(self.ts1, frame['col1'], compare_keys=False)
         common.assert_dict_equal(self.ts2, frame['col2'], compare_keys=False)
 
+        frame = self.klass({'col1' : self.ts1,
+                            'col2' : self.ts2},
+                           columns=['col2', 'col3', 'col4'])
+
+        self.assertEqual(len(frame), len(self.ts2))
+        self.assert_('col1' not in frame)
+        self.assert_(np.isnan(frame['col3']).all())
+
+        # Corner cases
+        self.assertEqual(len(self.klass({})), 0)
+        self.assertRaises(Exception, lambda x: self.klass([self.ts1, self.ts2]))
+
+        # pass dict and array, nicht nicht
+        self.assertRaises(Exception, self.klass,
+                          {'A' : {'a' : 'a', 'b' : 'b'},
+                           'B' : ['a', 'b']})
+
+        # can I rely on the order?
+        self.assertRaises(Exception, self.klass,
+                          {'A' : ['a', 'b'],
+                           'B' : {'a' : 'a', 'b' : 'b'}})
+        self.assertRaises(Exception, self.klass,
+                          {'A' : ['a', 'b'],
+                           'B' : Series(['a', 'b'], index=['a', 'b'])})
+
+        # Length-one dict micro-optimization
+        frame = self.klass({'A' : {'1' : 1, '2' : 2}})
+        self.assert_(np.array_equal(frame.index, ['1', '2']))
+
+    def test_constructor_dict_cast(self):
         # cast float tests
         test_data = {
                 'A' : {'1' : 1, '2' : 2},
                 'B' : {'1' : '1', '2' : '2', '3' : '3'},
         }
-        frame = self.klass.fromDict(test_data)
+        frame = self.klass(test_data, dtype=float)
         self.assertEqual(len(frame), 3)
         self.assert_(frame['B'].dtype == np.float_)
         self.assert_(frame['A'].dtype == np.float_)
 
-        frame = self.klass.fromDict(test_data, castFloat=False)
+        frame = self.klass(test_data)
         self.assertEqual(len(frame), 3)
         self.assert_(frame['B'].dtype == np.object_)
         self.assert_(frame['A'].dtype == np.float_)
@@ -85,26 +116,47 @@ class TestDataFrame(unittest.TestCase):
                 'A' : dict(zip(range(20), common.makeDateIndex(20))),
                 'B' : dict(zip(range(15), randn(15)))
         }
-        frame = self.klass.fromDict(test_data)
+        frame = self.klass(test_data, dtype=float)
         self.assertEqual(len(frame), 20)
         self.assert_(frame['A'].dtype == np.object_)
         self.assert_(frame['B'].dtype == np.float_)
 
-        # Corner cases
-        self.assertEqual(len(self.klass.fromDict({})), 0)
-        self.assertEqual(len(self.klass.fromDict()), 0)
-        self.assertRaises(Exception, self.klass.fromDict, [self.ts1, self.ts2])
+    def test_constructor_ndarray(self):
+        mat = np.zeros((2, 3), dtype=float)
 
-        # Length-one dict micro-optimization
-        frame = self.klass.fromDict({'A' : {'1' : 1, '2' : 2}})
-        self.assert_(np.array_equal(frame.index, ['1', '2']))
+        # 2-D input
+        frame = self.klass(mat, columns=['A', 'B', 'C'], index=[1, 2])
+
+        self.assertEqual(len(frame.index), 2)
+        self.assertEqual(len(frame.cols()), 3)
+
+        # 1-D input
+        frame = self.klass(np.zeros(3), columns=['A'], index=[1, 2, 3])
+        self.assertEqual(len(frame.index), 3)
+        self.assertEqual(len(frame.cols()), 1)
+
+        # higher dim raise exception
+        self.assertRaises(Exception, self.klass, np.zeros((3, 3, 3)),
+                          columns=['A', 'B', 'C'], index=[1])
+
+        # wrong size axis labels
+        self.assertRaises(Exception, self.klass, mat,
+                          columns=['A', 'B', 'C'], index=[1])
+
+        self.assertRaises(Exception, self.klass, mat,
+                          columns=['A', 'B'], index=[1, 2])
+
+        # have to pass columns and index
+        self.assertRaises(Exception, self.klass, mat, index=[1])
+        self.assertRaises(Exception, self.klass, mat, columns=['A', 'B', 'C'])
+
 
     def test_toDict(self):
         test_data = {
                 'A' : {'1' : 1, '2' : 2},
                 'B' : {'1' : '1', '2' : '2', '3' : '3'},
         }
-        recons_data = self.klass.fromDict(test_data, castFloat=False).toDict()
+        recons_data = self.klass(test_data).toDict()
 
         for k, v in test_data.iteritems():
             for k2, v2 in v.iteritems():
@@ -123,19 +175,6 @@ class TestDataFrame(unittest.TestCase):
         # what to do?
         records = indexed_frame.toRecords()
         self.assertEqual(len(records.dtype.names), 3)
-
-    def test_fromMatrix(self):
-        mat = np.zeros((2, 3), dtype=float)
-
-        frame = self.klass.fromMatrix(mat, ['A', 'B', 'C'], [1, 2])
-
-        self.assertEqual(len(frame.index), 2)
-        self.assertEqual(len(frame.cols()), 3)
-
-        self.assertRaises(Exception, self.klass.fromMatrix,
-                          mat, ['A', 'B', 'C'], [1])
-        self.assertRaises(Exception, self.klass.fromMatrix,
-                          mat, ['A', 'B'], [1, 2])
 
     def test_nonzero(self):
         self.assertFalse(self.empty)
@@ -162,8 +201,8 @@ class TestDataFrame(unittest.TestCase):
         foo = repr(self.frame)
 
         # big one
-        biggie = self.klass.fromMatrix(np.zeros((1000, 4)),
-                                       range(4), range(1000))
+        biggie = self.klass(np.zeros((1000, 4)), columns=range(4),
+                            index=range(1000))
         foo = repr(biggie)
 
         # mixed
@@ -190,6 +229,7 @@ class TestDataFrame(unittest.TestCase):
         biggie.toString(buffer=buf)
 
         biggie.toString(buffer=buf, columns=['B', 'A'], colSpace=17)
+        biggie.toString(buffer=buf, columns=['B', 'A'], verbose=True)
         biggie.toString(buffer=buf, columns=['B', 'A'],
                         formatters={'A' : lambda x: '%.1f' % x})
 
@@ -270,8 +310,10 @@ class TestDataFrame(unittest.TestCase):
     def test_operators(self):
         garbage = random.random(4)
         colSeries = Series(garbage, index=np.array(self.frame.cols()))
+
         idSum = self.frame + self.frame
         seriesSum = self.frame + colSeries
+
         for col, series in idSum.iteritems():
             for idx, val in series.iteritems():
                 origVal = self.frame[col][idx] * 2
@@ -279,6 +321,7 @@ class TestDataFrame(unittest.TestCase):
                     self.assertEqual(val, origVal)
                 else:
                     self.assert_(np.isnan(origVal))
+
         for col, series in seriesSum.iteritems():
             for idx, val in series.iteritems():
                 origVal = self.frame[col][idx] + colSeries[col]
@@ -375,6 +418,13 @@ class TestDataFrame(unittest.TestCase):
 
         self.assert_(smaller_added.index.equals(self.tsframe.index))
 
+        # length 0
+        result = self.tsframe + ts[:0]
+
+        # Frame is length 0
+        result = self.tsframe[:0] + ts
+        self.assertEqual(len(result), 0)
+
     def test_combineFunc(self):
         pass
 
@@ -397,10 +447,10 @@ class TestDataFrame(unittest.TestCase):
         pass
 
     def test_rows(self):
-        pass
+        self.assert_(self.tsframe.rows() is self.tsframe.index)
 
     def test_cols(self):
-        pass
+        self.assert_(self.tsframe.cols() == list(self.tsframe.columns))
 
     def test_columns(self):
         pass
@@ -517,23 +567,6 @@ class TestDataFrame(unittest.TestCase):
 
         result = self.mixed_frame.fill(value=0)
 
-    def test_getTS(self):
-        frame = self.tsframe
-
-        tsFrame = frame.getTS(fromDate=frame.index[5], nPeriods=5)
-        assert_frame_equal(tsFrame, frame[5:10])
-
-        tsFrame = frame.getTS(fromDate=frame.index[5], toDate=frame.index[9])
-        assert_frame_equal(tsFrame, frame[5:10])
-
-        tsFrame = frame.getTS(nPeriods=5, toDate=frame.index[9])
-        assert_frame_equal(tsFrame, frame[5:10])
-
-        A = frame.getTS(colName='A', nPeriods=5, toDate=frame.index[9])
-        assert_series_equal(A, frame['A'][5:10])
-
-        self.assertRaises(Exception, frame.getTS, nPeriods=5)
-
     def test_truncate(self):
         offset = datetools.bday
 
@@ -597,7 +630,7 @@ class TestDataFrame(unittest.TestCase):
         frame = DataFrame(data)
         pivoted = frame.pivot(index='index', columns='columns', values='values')
 
-        expected = DataFrame.fromDict({
+        expected = DataFrame({
             'One' : {'A' : 1., 'B' : 2., 'C' : 3.},
             'Two' : {'A' : 1., 'B' : 2., 'C' : 3.}
         })
