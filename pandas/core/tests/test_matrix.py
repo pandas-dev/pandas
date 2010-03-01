@@ -36,6 +36,29 @@ class TestDataMatrix(test_frame.TestDataFrame):
         # corner, silly
         self.assertRaises(Exception, self.klass, (1, 2, 3))
 
+    def test_constructor_with_objects(self):
+        index = self.mixed_frame.index[:5]
+
+        dm = DataMatrix(data=None, index=index,
+                        objects=self.mixed_frame.objects)
+        self.assert_(dm.index is index)
+        self.assert_(dm.objects.index is index)
+
+        dm = DataMatrix(data=None, index=index,
+                        objects=self.mixed_frame.objects._series)
+        self.assert_(dm.index is index)
+        self.assert_(dm.objects.index is index)
+
+        index = self.mixed_frame.index
+        dm = DataMatrix(data=None, index=index,
+                        objects=self.mixed_frame.objects)
+        self.assert_(dm.index is index)
+        self.assert_(dm.objects.index is index)
+
+        index = self.mixed_frame.index
+        dm = DataMatrix(objects=self.mixed_frame.objects)
+        self.assert_(dm.index is self.mixed_frame.index)
+
     def test_copy(self):
         # copy objects
         copy = self.mixed_frame.copy()
@@ -67,6 +90,19 @@ class TestDataMatrix(test_frame.TestDataFrame):
         df['D'] = 'bar'
         df[datetime.now()] = 'date'
         df[datetime.now()] = 5.
+
+        # what to do when empty frame with index
+        dm = DataMatrix(index=self.frame.index)
+        dm['A'] = 'foo'
+        dm['B'] = 'bar'
+        self.assertEqual(len(dm.objects.columns), 2)
+
+        dm['C'] = 1
+        self.assertEqual(len(dm.columns), 1)
+
+        # set existing column
+        dm['A'] = 'bar'
+        self.assertEqual('bar', dm['A'][0])
 
     def test_more_fromDict(self):
         pass

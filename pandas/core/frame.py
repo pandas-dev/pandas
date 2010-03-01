@@ -1352,17 +1352,19 @@ class DataFrame(Picklable, Groupable):
         c   1
         d   0
         """
-        if len(other.index) == 0:
-            return self
-
-        if on not in self:
-            raise Exception('%s column not contained in this frame!' % on)
-
         # Check for column overlap
         overlap = set(self.cols()) & set(other.cols())
 
         if overlap:
             raise Exception('Columns overlap: %s' % sorted(overlap))
+
+        if len(other.index) == 0:
+            result = self.copy()
+
+            for col in other:
+                result[col] = np.NaN
+
+            return result
 
         fillVec, mask = tseries.getMergeVec(self[on], other.index.indexMap)
 
@@ -1401,7 +1403,7 @@ class DataFrame(Picklable, Groupable):
             s = self[col]
             plot(s.index, s, label=col)
 
-    def _get_axis(self, axis_num):
+    def _get_agg_axis(self, axis_num):
         if axis_num == 0:
             return self.columns
         elif axis_num == 1:
@@ -1429,7 +1431,7 @@ class DataFrame(Picklable, Groupable):
             f = lambda s: notnull(s).sum()
             theCount = self.apply(f, axis=axis)
 
-        return Series(theCount, index=self._get_axis(axis))
+        return Series(theCount, index=self._get_agg_axis(axis))
 
     def sum(self, axis=0):
         """
@@ -1469,7 +1471,7 @@ class DataFrame(Picklable, Groupable):
         except Exception:
             theSum = self.apply(np.sum, axis=axis)
 
-        return Series(theSum, index=self._get_axis(axis))
+        return Series(theSum, index=self._get_agg_axis(axis))
 
     def cumsum(self, axis=0):
         """
@@ -1543,7 +1545,7 @@ class DataFrame(Picklable, Groupable):
         except Exception:
             theProd = self.apply(np.prod, axis=axis)
 
-        return Series(theProd, index=self._get_axis(axis))
+        return Series(theProd, index=self._get_agg_axis(axis))
 
     def mean(self, axis=0):
         """
@@ -1683,7 +1685,7 @@ class DataFrame(Picklable, Groupable):
 
         theVar = (XX - X**2 / count) / (count - 1)
 
-        return Series(theVar, index=self._get_axis(axis))
+        return Series(theVar, index=self._get_agg_axis(axis))
 
     def std(self, axis=0):
         """
@@ -1724,5 +1726,5 @@ class DataFrame(Picklable, Groupable):
 
         theSkew = (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
-        return Series(theSkew, index=self._get_axis(axis))
+        return Series(theSkew, index=self._get_agg_axis(axis))
 

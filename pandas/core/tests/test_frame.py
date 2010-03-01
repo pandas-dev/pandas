@@ -150,6 +150,11 @@ class TestDataFrame(unittest.TestCase):
         self.assertRaises(Exception, self.klass, mat, index=[1])
         self.assertRaises(Exception, self.klass, mat, columns=['A', 'B', 'C'])
 
+    def test_pickle(self):
+        import cPickle as pickle
+
+        unpickled = pickle.loads(pickle.dumps(self.mixed_frame))
+        assert_frame_equal(self.mixed_frame, unpickled)
 
     def test_toDict(self):
         test_data = {
@@ -175,6 +180,15 @@ class TestDataFrame(unittest.TestCase):
         # what to do?
         records = indexed_frame.toRecords()
         self.assertEqual(len(records.dtype.names), 3)
+
+    def test_get_agg_axis(self):
+        cols = self.frame._get_agg_axis(0)
+        self.assert_(list(cols) == list(self.frame.columns))
+
+        idx = self.frame._get_agg_axis(1)
+        self.assert_(idx is self.frame.index)
+
+        self.assertRaises(Exception, self.frame._get_agg_axis, 2)
 
     def test_nonzero(self):
         self.assertFalse(self.empty)
@@ -475,6 +489,16 @@ class TestDataFrame(unittest.TestCase):
         partial_appended = end_frame.append(begin_frame)
         self.assert_('A' in partial_appended)
 
+        # mixed type handling
+        appended = self.mixed_frame[:5].append(self.mixed_frame[5:])
+        assert_frame_equal(appended, self.mixed_frame)
+
+        # what to test here
+        mixed_appended = self.mixed_frame[:5].append(self.frame[5:])
+        mixed_appended2 = self.frame[:5].append(self.mixed_frame[5:])
+
+        assert_frame_equal(mixed_appended, mixed_appended2)
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
         rule_monthly = self.tsframe.asfreq('EOM')
@@ -694,6 +718,10 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(np.isnan(newFrame['E']).all())
         self.assert_('C' not in newFrame)
 
+        # length zero
+        newFrame = self.frame.reindex(columns=[])
+        self.assert_(not newFrame)
+
     def test_reindex_mixed(self):
         pass
 
@@ -735,6 +763,10 @@ class TestDataFrame(unittest.TestCase):
         shiftedSeries = self.tsframe['A'].shift(-5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
 
+        # shift by 0
+        unshifted = self.tsframe.shift(0)
+        assert_frame_equal(unshifted, self.tsframe)
+
         # shift by DateOffset
         shiftedFrame = self.tsframe.shift(5, offset=datetools.BDay())
         self.assert_(len(shiftedFrame) == len(self.tsframe))
@@ -763,10 +795,10 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(tapplied[d], np.mean(self.frame.getXS(d)))
 
     def test_applymap(self):
-        f = lambda x: x * 2
-        applied = self.frame.applymap(f)
-
+        applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
+
+        result = self.frame.applymap(type)
 
     def test_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
@@ -942,7 +974,15 @@ class TestDataFrame(unittest.TestCase):
 
         # Test when some are missing
 
-        # corner case
+        # corner cases
+
+        # nothing to merge
+        merged = target.merge(source[:0], on='C')
+
+        # overlap
+        source_copy = source.copy()
+        source_copy['A'] = 0
+        self.assertRaises(Exception, target.merge, source_copy, on='A')
 
     def test_statistics(self):
         sumFrame = self.frame.apply(np.sum)

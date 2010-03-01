@@ -50,10 +50,27 @@ class DataMatrix(DataFrame):
              values, objects) = self._initDict(data, index, columns, objects,
                                                dtype)
         elif isinstance(data, np.ndarray):
-            (index, columns,
-             values, objects) = self._initMatrix(data, index, columns, objects,
-                                                 dtype)
+            (index, columns, values) = self._initMatrix(data, index,
+                                                        columns, dtype)
+
+            if objects is not None:
+                if isinstance(objects, DataMatrix):
+                    if objects.index is not index:
+                        objects = objects.reindex(index)
+                else:
+                    objects = DataMatrix(objects, index=index)
+
         elif data is None:
+            # this is a touch convoluted...
+            if objects is not None:
+                if isinstance(objects, DataMatrix):
+                    if index is not None and objects.index is not index:
+                        objects = objects.reindex(index)
+                else:
+                    objects = DataMatrix(objects, index=index)
+
+                index = objects.index
+
             if index is None:
                 N = 0
                 index = NULL_INDEX
@@ -68,16 +85,8 @@ class DataMatrix(DataFrame):
 
             values = np.empty((N, K), dtype=dtype)
             values[:] = NaN
-
         else:
             raise Exception('DataMatrix constructor not properly called!')
-
-        if objects is not None:
-            if isinstance(objects, DataMatrix):
-                if objects.index is not index:
-                    self.objects = objects.reindex(index)
-            else:
-                objects = DataMatrix(objects, index=index)
 
         self.values = values
         self.index = index
@@ -167,7 +176,7 @@ class DataMatrix(DataFrame):
 
         return index, columns, values, objects
 
-    def _initMatrix(self, data, index, columns, objects, dtype):
+    def _initMatrix(self, data, index, columns, dtype):
         if data.ndim == 1:
             N = data.shape[0]
             if N == 0:
@@ -199,7 +208,7 @@ class DataMatrix(DataFrame):
             else:
                 raise Exception('Must pass columns!')
 
-        return index, columns, values, objects
+        return index, columns, values
 
     @property
     def _constructor(self):
@@ -780,10 +789,7 @@ class DataMatrix(DataFrame):
 
             # Constant of some kind
             newCols = self.columns
-            try:
-                resultMatrix = func(self.values, other)
-            except Exception:
-                raise Exception('Bad operator value: %s' % other)
+            resultMatrix = func(self.values, other)
 
         # TODO: deal with objects
         return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
@@ -1259,29 +1265,42 @@ class DataMatrix(DataFrame):
         try:
             results = results.astype(self.values.dtype)
         except Exception:
-            return DataFrame.fromMatrix(results, self.columns, self.index)
-        return DataMatrix(data=results, index=self.index, columns=self.columns)
+            pass
 
-    def append(self, otherFrame):
-        if not otherFrame:
+        return DataMatrix(results, index=self.index, columns=self.columns)
+
+    def append(self, other):
+        """
+        Glue together DataFrame objects having non-overlapping indices
+
+        Parameters
+        ----------
+        other : DataFrame
+        """
+        if not other:
             return self
         if not self:
-            return otherFrame
-        if (isinstance(otherFrame, DataMatrix) and
-            list(self.columns) == list(otherFrame.columns)):
+            return other
+        if (isinstance(other, DataMatrix) and
+            self.columns.equals(other.columns)):
 
-            idx = Index(np.concatenate([self.index, otherFrame.index]))
-            mat = np.vstack((self.values, otherFrame.values))
-            dm = DataMatrix(mat, idx, self.columns)
-            if otherFrame.objects is None:
-                dm.objects = self.objects
+            idx = Index(np.concatenate([self.index, other.index]))
+            mat = np.vstack((self.values, other.values))
+
+            if other.objects is None:
+                objects = self.objects
             elif self.objects is None:
-                dm.objects = otherFrame.objects
+                objects = other.objects
             else:
-                dm.objects = self.objects.append(otherFrame.objects)
+                objects = self.objects.append(other.objects)
+
+            if objects:
+                objects = objects.reindex(idx)
+
+            dm = DataMatrix(mat, idx, self.columns, objects=objects)
             return dm
         else:
-            return super(DataMatrix, self).append(otherFrame)
+            return super(DataMatrix, self).append(other)
 
     def outerJoin(self, *frames):
         """
