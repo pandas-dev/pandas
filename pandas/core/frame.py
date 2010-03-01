@@ -379,16 +379,6 @@ class DataFrame(Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # Private / helper methods
 
-    def _firstTimeWithNValues(self):
-        # Need to test this!
-        N = len(self._series)
-        theCount = np.isfinite(self.asMatrix()).sum(1)
-        selector = (theCount == N)
-        if not selector.any():
-            raise Exception('No time has %d values!' % N)
-
-        return self.index[selector][0]
-
     def _firstTimeWithValue(self):
         return self.index[self.count(1) > 0][0]
 
@@ -539,7 +529,7 @@ class DataFrame(Picklable, Groupable):
         return DataMatrix(self._series, index=self.index)
 
     def toString(self, buffer=sys.stdout, verbose=False,
-                 columns=None, colSpace=10, nanRep='NaN',
+                 columns=None, colSpace=15, nanRep='NaN',
                  formatters=None, float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
@@ -810,8 +800,8 @@ class DataFrame(Picklable, Groupable):
         return self[beg_slice:end_slice]
 
     def _getIndices(self, before, after):
-        before = arg_before = datetools.to_datetime(before)
-        after = arg_after = datetools.to_datetime(after)
+        before = datetools.to_datetime(before)
+        after = datetools.to_datetime(after)
 
         if before is None:
             before = self.index[0]

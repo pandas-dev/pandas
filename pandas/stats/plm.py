@@ -745,7 +745,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         # XXX: what's the best way to determine where to start?
 
         return self._nobs_raw >= max(self._min_periods,
-                                     len(self._x.items) * 2)
+                                     len(self._x.items) + 1)
 
 def create_ols_dict(attr):
     def attr_getter(self):

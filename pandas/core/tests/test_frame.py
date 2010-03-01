@@ -346,13 +346,7 @@ class TestDataFrame(unittest.TestCase):
 
     def test_neg(self):
         # what to do?
-        f = -self.frame
-
-    def test_firstTimeWithNValues(self):
-        self.frame['A'][:5] = np.NaN
-
-        index = self.frame._firstTimeWithNValues()
-        self.assert_(index == self.frame.index[5])
+        assert_frame_equal(-self.frame, -1 * self.frame)
 
     def test_firstLastValid(self):
         N = len(self.frame.index)
