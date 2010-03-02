@@ -3,9 +3,10 @@ Linear regression objects for panel data
 """
 
 # pylint: disable-msg=W0231
-# pylint: disable-msg=E1103
+# pylint: disable-msg=E1101,E1103
 
 from __future__ import division
+import warnings
 
 import numpy as np
 
@@ -547,40 +548,47 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
     Parameters
     ----------
-    y: DataFrame
-    x: Dict of DataFrame
-    intercept: bool
+    y : DataFrame
+    x : Dict of DataFrame
+    intercept : bool
         True if you want an intercept.
-    nw_lags: None or int
+    nw_lags : None or int
         Number of Newey-West lags.
-    window_type: int
+    window_type : int
         FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
-    window: int
+    window : int
         size of window (for rolling/expanding OLS)
-    weights: DataFrame
+    min_periods : int
+        Minimum number of time periods to include in the window
+    min_obs : int
+        Minimum number of total observations to require. Default is
+        rank(X matrix) + 1. In some cases we might want to be able to
+        relax this number.
+    weights : DataFrame
         Weight for each observation.  The weights are not normalized;
         they're multiplied directly by each observation.
-    pool: bool
+    pool : bool
         Whether to run pooled panel regression.  Defaults to true.
-    entity_effects: bool
+    entity_effects : bool
         Whether to account for entity fixed effects.  Defaults to false.
-    time_effects: bool
+    time_effects : bool
         Whether to account for time fixed effects.  Defaults to false.
-    x_effects: list
+    x_effects : list
         List of x's to account for fixed effects.  Defaults to none.
-    dropped_dummies: dict
+    dropped_dummies : dict
         Key is the name of the variable for the fixed effect.
         Value is the value of that variable for which we drop the dummy.
 
         For entity fixed effects, key equals 'entity'.
 
         By default, the first dummy is dropped if no dummy is specified.
-    cluster: int
+    cluster : int
         ENTITY or TIME, indicating entity/time clustering
     """
     def __init__(self, y, x, weights=None,
                  window_type=common.ROLLING, window=10,
                  min_periods=None,
+                 min_obs=None,
                  intercept=True,
                  nw_lags=None, nw_overlap=False,
                  entity_effects=False,
@@ -610,6 +618,11 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
             min_periods = window
 
         self._min_periods = min_periods
+
+        if min_obs is None:
+            min_obs = len(self._x.items) + 1
+
+        self._min_obs = min_obs
 
     @cache_readonly
     def resid(self):
@@ -743,9 +756,15 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
     @cache_readonly
     def _enough_obs(self):
         # XXX: what's the best way to determine where to start?
+        # TODO: write unit tests for this
 
-        return self._nobs_raw >= max(self._min_periods,
-                                     len(self._x.items) + 1)
+        rank_threshold = len(self._x.items) + 1
+        if self._min_obs < rank_threshold:
+            warnings.warn('min_obs is smaller than rank of X matrix')
+
+        enough_observations = self._nobs_raw >= self._min_obs
+        enough_time_periods = self._window_time_obs >= self._min_periods
+        return enough_time_periods & enough_observations
 
 def create_ols_dict(attr):
     def attr_getter(self):
@@ -766,15 +785,15 @@ class NonPooledPanelOLS(object):
 
     Parameters
     ----------
-    y: DataFrame
-    x: Series, DataFrame, or dict of Series
-    intercept: bool
+    y : DataFrame
+    x : Series, DataFrame, or dict of Series
+    intercept : bool
         True if you want an intercept.
-    nw_lags: None or int
+    nw_lags : None or int
         Number of Newey-West lags.
-    window_type: int
+    window_type : int
         FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
-    window: int
+    window : int
         size of window (for rolling/expanding OLS)
     """
 

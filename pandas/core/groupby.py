@@ -20,7 +20,7 @@ def groupby_withnull(index, mapper):
     mask = isnull(mapped_index)
     nullkeys = index[mask]
 
-    if len(nullkeys) > 0:
+    if nullkeys is not None and len(nullkeys) > 0:
         result[np.NaN] = nullkeys
 
     notmask = -mask
@@ -169,7 +169,9 @@ class SeriesGroupBy(GroupBy):
                 for groupName, groupList in self.groups.iteritems():
                     groupList = list(groupList)
                     theUnion.update(groupList)
-                    output = applyfunc(self.getGroup(groupList))
+                    grp = self.getGroup(groupList)
+                    grp.groupName = groupName
+                    output = applyfunc(grp)
 
                     if isinstance(output, Series):
                         raise Exception('Given applyfunc did not return a '

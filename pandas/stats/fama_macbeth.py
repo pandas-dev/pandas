@@ -33,11 +33,16 @@ class FamaMacBeth(object):
 
         from pandas.stats.plm import MovingPanelOLS
         self._ols_result = MovingPanelOLS(
-            y=y, x=x, weights=weights, window_type=ROLLING, window=1,
+            y=y, x=x, weights=weights,
+            window_type=ROLLING, window=1,
             intercept=intercept,
-            nw_lags=nw_lags, entity_effects=entity_effects,
-            time_effects=time_effects, x_effects=x_effects, cluster=cluster,
-            dropped_dummies=dropped_dummies, verbose=verbose)
+            nw_lags=nw_lags,
+            entity_effects=entity_effects,
+            time_effects=time_effects,
+            x_effects=x_effects,
+            cluster=cluster,
+            dropped_dummies=dropped_dummies,
+            verbose=verbose)
 
         self._cols = self._ols_result._x.items
 
