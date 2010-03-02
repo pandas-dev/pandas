@@ -518,4 +518,4 @@ def ewma(ndarray input, com):
     if not issubclass(input.dtype.type, float):
         input = input.astype(float)
 
-    return _ewma(input, com, N)
+    return _ewma(input, com)
