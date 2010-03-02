@@ -212,8 +212,7 @@ class DataFrame(Picklable, Groupable):
 
     def toDict(self):
         """
-        Simpler pseudo-inverse operation of DataFrame.fromDict, NaN
-        values will be included in the resulting dict-tree.
+        Convert DataFrame to nested dictionary (non-pandas)
 
         Return
         ------
@@ -1058,7 +1057,7 @@ class DataFrame(Picklable, Groupable):
         if hasattr(results.values()[0], '__iter__'):
             return DataFrame(data=results, index=target.index)
         else:
-            return Series.fromDict(results)
+            return Series(results)
 
     def tapply(self, func):
         """
@@ -1109,6 +1108,8 @@ class DataFrame(Picklable, Groupable):
         elif regex:
             matcher = re.compile(regex)
             columns = [c for c in self.cols() if matcher.match(c)]
+        else:
+            raise Exception('items was None!')
 
         return self.reindex(columns=columns)
 

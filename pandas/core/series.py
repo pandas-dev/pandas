@@ -108,8 +108,13 @@ class Series(np.ndarray, Picklable, Groupable):
         >>> s[d]    # Valid
     """
     def __new__(cls, data, index=None, dtype=None, copy=False):
-        if index is None and isinstance(data, Series):
-            index = data.index
+        if isinstance(data, Series):
+            if index is None:
+                index = data.index
+        elif isinstance(data, dict):
+            if index is None:
+                index = Index(sorted(data.keys()))
+            data = [data[idx] for idx in index]
 
         # Make a copy of the data, infer type
         subarr = np.array(data, dtype=dtype, copy=copy)
@@ -122,7 +127,6 @@ class Series(np.ndarray, Picklable, Groupable):
 
         # This is to prevent mixed-type Series getting all casted to
         # NumPy string type, e.g. NaN --> '-1#IND'.
-
         if issubclass(subarr.dtype.type, basestring):
             subarr = np.array(data, dtype=object, copy=copy)
 
@@ -164,34 +168,6 @@ class Series(np.ndarray, Picklable, Groupable):
         to pass on the index.
         """
         self._index = getattr(obj, '_index', None)
-
-    @classmethod
-    def fromDict(cls, input, castFloat=True, **kwds):
-        """
-        Construct Series from dict
-
-        Parameters
-        ----------
-        input : dict object
-            Keys become indices of returned Series
-        kwds : optionally provide arguments as keywords
-
-        Returns
-        -------
-        y : Series
-        """
-        input = input.copy()
-        input.update(kwds)
-
-        index = Index(sorted(input.keys()))
-        if castFloat:
-            try:
-                useData = [float(input[idx]) for idx in index]
-            except Exception:
-                useData = [input[idx] for idx in index]
-        else:
-            useData = [input[idx] for idx in index]
-        return Series(useData, index=index)
 
     def toDict(self):
         return dict(self.iteritems())
@@ -997,7 +973,7 @@ class Series(np.ndarray, Picklable, Groupable):
         input Series
         """
         if isinstance(other, dict):
-            other = Series.fromDict(other)
+            other = Series(other)
 
         if not isinstance(other, Series): # pragma: no cover
             raise Exception('Argument must be a Series!')

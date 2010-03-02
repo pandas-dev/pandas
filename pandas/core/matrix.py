@@ -1243,7 +1243,7 @@ class DataMatrix(DataFrame):
                                   columns=self.columns,
                                   objects=self.objects)
             else:
-                return Series.fromDict(results)
+                return Series(results)
         else:
             raise Exception('Should not reach here')
 

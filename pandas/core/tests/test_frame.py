@@ -406,7 +406,7 @@ class TestDataFrame(unittest.TestCase):
 
         larger_series = series.toDict()
         larger_series['E'] = 1
-        larger_series = Series.fromDict(larger_series)
+        larger_series = Series(larger_series)
         larger_added = self.frame + larger_series
 
         for key, s in self.frame.iteritems():
@@ -842,6 +842,9 @@ class TestDataFrame(unittest.TestCase):
         filterd = fcopy.filter(regex='[A]+')
         self.assertEqual(len(filtered.cols()), 2)
         self.assert_('AA' in filtered)
+
+        # pass in None
+        self.assertRaises(Exception, self.frame.filter, items=None)
 
     def test_sortUp(self):
         # what to do?

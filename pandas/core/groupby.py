@@ -180,7 +180,7 @@ class SeriesGroupBy(GroupBy):
                 for missingIdx in (self.obj.index - list(theUnion)):
                     result[missingIdx] = np.nan
 
-            retVal = Series.fromDict(result)
+            retVal = Series(result)
 
         return retVal
 
@@ -228,7 +228,7 @@ class SeriesGroupBy(GroupBy):
         for val, subseries in result.iteritems():
             allSeries.update(subseries.iteritems())
 
-        return Series.fromDict(allSeries)
+        return Series(allSeries)
 
 class DataFrameGroupBy(GroupBy):
     def __init__(self, obj, grouper):

@@ -49,6 +49,24 @@ class TestSeries(unittest.TestCase):
 
         self.assertRaises(Exception, Series, [0, 1, 2], index=None)
 
+    def test_fromDict(self):
+        data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
+
+        series = Series(data)
+        self.assert_(common.is_sorted(series.index))
+
+        data = {'a' : 0, 'b' : '1', 'c' : '2', 'd' : datetime.now()}
+        series = Series(data)
+        self.assert_(series.dtype == np.object_)
+
+        data = {'a' : 0, 'b' : '1', 'c' : '2', 'd' : '3'}
+        series = Series(data)
+        self.assert_(series.dtype == np.object_)
+
+        data = {'a' : '0', 'b' : '1'}
+        series = Series(data, dtype=float)
+        self.assert_(series.dtype == np.float64)
+
     def test_setindex(self):
         # wrong type
         series = self.series.copy()
@@ -66,20 +84,6 @@ class TestSeries(unittest.TestCase):
 
     def test_array_finalize(self):
         pass
-
-    def test_fromDict(self):
-        data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
-
-        series = Series.fromDict(data)
-        self.assert_(common.is_sorted(series.index))
-
-        data = {'a' : 0, 'b' : '1', 'c' : '2', 'd' : datetime.now()}
-        series = Series.fromDict(data)
-        self.assert_(series.dtype == np.object_)
-
-        data = {'a' : 0, 'b' : '1', 'c' : '2', 'd' : '3'}
-        series = Series.fromDict(data, castFloat=False)
-        self.assert_(series.dtype == np.object_)
 
     def test_fromValue(self):
         nans = Series.fromValue(np.NaN, index=self.ts.index)
@@ -443,7 +447,7 @@ class TestSeries(unittest.TestCase):
         os.remove('_foo')
 
     def test_toDict(self):
-        self.assert_(np.array_equal(Series.fromDict(self.ts.toDict()), self.ts))
+        self.assert_(np.array_equal(Series(self.ts.toDict()), self.ts))
 
     def test_cap(self):
         val = self.ts.median()
