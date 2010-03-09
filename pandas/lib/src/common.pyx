@@ -1,4 +1,3 @@
-include "datetime.pxi"
 include "Python.pxi"
 
 cimport numpy as np
@@ -53,6 +52,36 @@ cdef double_t *get_double_ptr(ndarray arr):
 
     return <double_t *> arr.data
 
+cdef extern from "math.h":
+    double sqrt(double x)
+
+cdef extern from "cobject.h":
+    pass # for datetime API
+
+cdef extern from "datetime.h":
+
+    ctypedef class datetime.datetime [object PyDateTime_DateTime]:
+        # cdef int *data
+        # cdef long hashcode
+        # cdef char hastzinfo
+        pass
+
+    int PyDateTime_GET_YEAR(datetime o)
+    int PyDateTime_GET_MONTH(datetime o)
+    int PyDateTime_GET_DAY(datetime o)
+    int PyDateTime_TIME_GET_HOUR(datetime o)
+    int PyDateTime_TIME_GET_MINUTE(datetime o)
+    int PyDateTime_TIME_GET_SECOND(datetime o)
+    int PyDateTime_TIME_GET_MICROSECOND(datetime o)
+    bint PyDateTime_Check(object o)
+    void PyDateTime_IMPORT()
+
+# import datetime C API
+PyDateTime_IMPORT
+
+# initialize numpy
+import_array()
+
 cpdef map_indices(ndarray index):
     '''
     Produce a dict mapping the values of the input array to their respective
@@ -80,10 +109,38 @@ cpdef map_indices(ndarray index):
 
     return result
 
-cdef extern from "math.h":
-    double sqrt(double x)
+def isAllDates(ndarray index):
+    cdef int i, length
+    cdef flatiter iter
+    cdef object date
 
+    iter = <flatiter> PyArray_IterNew(index)
+    length = PyArray_SIZE(index)
 
-# initialize numpy
-import_array()
+    for i from 0 <= i < length:
+        date = PyArray_GETITEM(index, PyArray_ITER_DATA(iter))
 
+        if not PyDateTime_Check(date):
+            return False
+        PyArray_ITER_NEXT(iter)
+
+    return True
+
+def isAllDates2(ndarray[object, ndim=1] arr):
+    '''
+    cannot use
+    '''
+
+    cdef int i, size = len(arr)
+    cdef object date
+
+    if size == 0:
+        return False
+
+    for i from 0 <= i < size:
+        date = arr[i]
+
+        if not PyDateTime_Check(date):
+            return False
+
+    return True

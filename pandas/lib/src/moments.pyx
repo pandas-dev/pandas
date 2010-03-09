@@ -157,8 +157,8 @@ def _ewma(ndarray[double_t, ndim=1] input,
 
 def _roll_var(ndarray[double_t, ndim=1] input,
               int win, int minp):
-    cdef double val, prev, sum_x = 0, sum_xx = 0
-    cdef int nobs = 0, i
+    cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
+    cdef int i
     cdef int N = len(input)
 
     cdef ndarray[double_t, ndim=1] output = np.empty(N, dtype=float)

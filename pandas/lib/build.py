@@ -6,7 +6,7 @@ import numpy
 from Cython.Distutils import build_ext
 
 pyx_ext = Extension('tseries', ['src/tseries.pyx',
-                                 'src/wirth.c'],
+                                'src/wirth.c'],
                     include_dirs=[numpy.get_include(),
                                   'include/'])
 

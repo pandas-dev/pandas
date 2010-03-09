@@ -30,7 +30,5 @@ def configuration(parent_package='', top_path=None):
                                   'src/wirth.c'],
                          include_dirs=[numpy.get_include(),
                                        'include/'])
-    config.add_extension('tdates',
-                         sources=['src/tdates.c'])
 
     return config
