@@ -102,8 +102,18 @@ class DataMatrix(DataFrame):
         Somehow this got outrageously complicated
         """
         if len(data) == 0:
+            if objects is not None:
+                if isinstance(objects, DataMatrix):
+                    if index is not None and objects.index is not index:
+                        objects = objects.reindex(index)
+                else:
+                    objects = DataMatrix(objects, index=index)
+
+                index = objects.index
+
             if index is None:
                 index = NULL_INDEX
+
             values = np.empty((len(index), 0), dtype=dtype)
             columns = NULL_INDEX
             return index, columns, values, objects
@@ -364,8 +374,6 @@ class DataMatrix(DataFrame):
         space = max([len(str(k)) for k in self.cols()]) + 4
 
         counts = self.apply(notnull).sum(0)
-        if self.objects is not None:
-            counts = counts.append(self.objects.apply(notnull).sum(0))
 
         columns = []
         for j, col in enumerate(self.columns):
@@ -1082,9 +1090,6 @@ class DataMatrix(DataFrame):
         if index is self.index:
             return self.copy()
 
-        if len(index) == 0:
-            return DataMatrix(index=NULL_INDEX)
-
         if not isinstance(index, Index):
             index = Index(index)
 
@@ -1096,7 +1101,8 @@ class DataMatrix(DataFrame):
                                            index.indexMap, method)
 
         tmpMatrix = self.values.take(fillVec, axis=0)
-        tmpMatrix[-mask] = NaN
+        if len(index) > 0:
+            tmpMatrix[-mask] = NaN
 
         if self.objects is not None and len(self.objects.columns) > 0:
             newObjects = self.objects.reindex(index)
@@ -1221,31 +1227,12 @@ class DataMatrix(DataFrame):
         if not len(self.cols()):
             return self
 
-        results = {}
-
         if isinstance(func, np.ufunc):
             results = func(self.values)
-        else:
-            if axis == 0:
-                target = self
-            elif axis == 1:
-                target = self.T
-
-            results = dict([(k, func(target[k])) for k in target.columns])
-
-        if isinstance(results, np.ndarray):
             return DataMatrix(data=results, index=self.index,
                               columns=self.columns, objects=self.objects)
-
-        elif isinstance(results, dict):
-            if isinstance(results.values()[0], np.ndarray):
-                return DataMatrix(results, index=self.index,
-                                  columns=self.columns,
-                                  objects=self.objects)
-            else:
-                return Series(results)
         else:
-            raise Exception('Should not reach here')
+            return DataFrame.apply(self, func, axis=axis)
 
     def applymap(self, func):
         """
@@ -1278,9 +1265,11 @@ class DataMatrix(DataFrame):
         other : DataFrame
         """
         if not other:
-            return self
+            return self.copy()
+
         if not self:
-            return other
+            return other.copy()
+
         if (isinstance(other, DataMatrix) and
             self.columns.equals(other.columns)):
 

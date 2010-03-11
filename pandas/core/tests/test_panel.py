@@ -8,10 +8,10 @@ import numpy as np
 from pandas.core.api import Index, notnull
 from pandas.core.datetools import bday
 from pandas.core.panel import WidePanel, LongPanelIndex, LongPanel
-from pandas.core.tests.common import (assert_frame_equal,
+from pandas.util.testing import (assert_frame_equal,
                                       assert_series_equal,
                                       assert_almost_equal)
-import pandas.core.tests.common as common
+import pandas.util.testing as common
 
 class PanelTests(object):
 
@@ -163,14 +163,14 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         assert(self.panel._get_axis(2) is self.panel.minor_axis)
 
     def test_get_axis_number(self):
-        assert(self.panel._get_axis_number('items'), 0)
-        assert(self.panel._get_axis_number('major'), 1)
-        assert(self.panel._get_axis_number('minor'), 2)
+        self.assertEqual(self.panel._get_axis_number('items'), 0)
+        self.assertEqual(self.panel._get_axis_number('major'), 1)
+        self.assertEqual(self.panel._get_axis_number('minor'), 2)
 
     def test_get_axis_name(self):
-        assert(self.panel._get_axis_name(0), 'items')
-        assert(self.panel._get_axis_name(1), 'major')
-        assert(self.panel._get_axis_name(2), 'minor')
+        self.assertEqual(self.panel._get_axis_name(0), 'items')
+        self.assertEqual(self.panel._get_axis_name(1), 'major')
+        self.assertEqual(self.panel._get_axis_name(2), 'minor')
 
     def test_get_plane_axes(self):
         # what to do here?

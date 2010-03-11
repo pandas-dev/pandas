@@ -586,7 +586,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         ENTITY or TIME, indicating entity/time clustering
     """
     def __init__(self, y, x, weights=None,
-                 window_type=common.ROLLING, window=10,
+                 window_type='expanding', window=None,
                  min_periods=None,
                  min_obs=None,
                  intercept=True,
@@ -611,13 +611,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
         PanelOLS.__init__(self, y=y, x=x, **self._args)
 
-        self._window_type = common._get_window_type(window_type)
-        self._window = window
-
-        if min_periods is None:
-            min_periods = window
-
-        self._min_periods = min_periods
+        self._set_window(window_type, window, min_periods)
 
         if min_obs is None:
             min_obs = len(self._x.items) + 1

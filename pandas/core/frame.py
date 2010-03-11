@@ -803,23 +803,18 @@ class DataFrame(Picklable, Groupable):
         after = datetools.to_datetime(after)
 
         if before is None:
-            before = self.index[0]
+            beg_slice = 0
         elif before not in self.index:
-            loc = self.index.searchsorted(before, side='left')
-            before = self.index[loc]
+            beg_slice = self.index.searchsorted(before, side='left')
+        else:
+            beg_slice = self.index.indexMap[before]
 
         if after is None:
-            after = self.index[-1]
+            end_slice = len(self.index)
         elif after not in self.index:
-            loc = self.index.searchsorted(after, side='right') - 1
-
-            if loc >= len(self.index):
-                loc = -1
-
-            after = self.index[loc]
-
-        beg_slice = self.index.indexMap[before]
-        end_slice = self.index.indexMap[after] + 1
+            end_slice = self.index.searchsorted(after, side='right')
+        else:
+            end_slice = self.index.indexMap[after] + 1
 
         return beg_slice, end_slice
 
@@ -902,8 +897,8 @@ class DataFrame(Picklable, Groupable):
         if self.index.equals(index):
             return self.copy()
 
-        if len(index) == 0:
-            return DataFrame(index=NULL_INDEX)
+        # if len(index) == 0:
+        #     return DataFrame(index=NULL_INDEX)
 
         if not isinstance(index, Index):
             index = Index(index)
@@ -989,7 +984,7 @@ class DataFrame(Picklable, Groupable):
         if periods == 0:
             return self
 
-        if timeRule is not None and offset is None:
+        if timeRule and not offset:
             offset = datetools.getOffset(timeRule)
 
         N = len(self)
@@ -1049,15 +1044,19 @@ class DataFrame(Picklable, Groupable):
 
         if axis == 0:
             target = self
+            agg_index = self.cols()
         elif axis == 1:
             target = self.T
+            agg_index = self.index
 
-        results = dict([(k, func(target[k])) for k in target.columns])
+        results = {}
+        for k in target.cols():
+            results[k] = func(target[k])
 
         if hasattr(results.values()[0], '__iter__'):
-            return DataFrame(data=results, index=target.index)
+            return self._constructor(data=results, index=target.index)
         else:
-            return Series(results)
+            return Series(results, index=agg_index)
 
     def tapply(self, func):
         """
@@ -1350,6 +1349,8 @@ class DataFrame(Picklable, Groupable):
             raise Exception('Columns overlap: %s' % sorted(overlap))
 
         if len(other.index) == 0:
+            print other.cols()
+
             result = self.copy()
 
             for col in other:
@@ -1417,12 +1418,20 @@ class DataFrame(Picklable, Groupable):
         Series or TimeSeries
         """
         try:
-            theCount = np.isfinite(self.values).sum(axis)
+            cols = self.cols()
+            values = self.asMatrix(cols)
+
+            if axis == 0:
+                axis_labels = cols
+            else:
+                axis_labels = self.index
+
+            mask = np.empty(values.shape, dtype=bool)
+            mask.flat = notnull(values.ravel())
+            return Series(mask.sum(axis), index=axis_labels)
         except Exception:
             f = lambda s: notnull(s).sum()
-            theCount = self.apply(f, axis=axis)
-
-        return Series(theCount, index=self._get_agg_axis(axis))
+            return self.apply(f, axis=axis)
 
     def sum(self, axis=0):
         """
@@ -1453,16 +1462,18 @@ class DataFrame(Picklable, Groupable):
         """
         y = np.array(self.values, subok=True)
 
+        axis_labels = self._get_agg_axis(axis)
         try:
+            mask = np.isfinite(y)
             if not issubclass(y.dtype.type, np.int_):
-                y[np.isnan(y)] = 0
+                y[-mask] = 0
             theSum = y.sum(axis)
-            theCount = self.count(axis)
+            theCount = mask.sum(axis)
             theSum[theCount == 0] = NaN
         except Exception:
             theSum = self.apply(np.sum, axis=axis)
 
-        return Series(theSum, index=self._get_agg_axis(axis))
+        return Series(theSum, index=axis_labels)
 
     def cumsum(self, axis=0):
         """
@@ -1551,7 +1562,10 @@ class DataFrame(Picklable, Groupable):
         -------
         Series or TimeSeries
         """
-        return self.sum(axis) / self.count(axis).values().astype(float)
+        summed = self.sum(axis)
+        count = self.count(axis).astype(float)
+
+        return summed / count.reindex(summed.index)
 
     def median(self, axis=0):
         """

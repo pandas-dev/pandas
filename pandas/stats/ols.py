@@ -1,7 +1,8 @@
 """
-Simple OLS.
+Ordinary least squares regression
 """
-from __future__ import division
+
+# pylint: disable-msg=W0201
 
 from itertools import izip, starmap
 from StringIO import StringIO
@@ -499,8 +500,8 @@ class MovingOLS(OLS):
     window: int
         size of window (for rolling/expanding OLS)
     """
-    def __init__(self, y, x, window_type=common.ROLLING,
-                 window=10, min_periods=None, intercept=True,
+    def __init__(self, y, x, window_type='expanding',
+                 window=None, min_periods=None, intercept=True,
                  nw_lags=None, nw_overlap=False):
 
         self._args = dict(intercept=intercept, nw_lags=nw_lags,
@@ -508,12 +509,24 @@ class MovingOLS(OLS):
 
         OLS.__init__(self, y=y, x=x, **self._args)
 
-        self._window = int(window)
+        self._set_window(window_type, window, min_periods)
+
+    def _set_window(self, window_type, window, min_periods):
         self._window_type = common._get_window_type(window_type)
 
-        if min_periods is None:
-            min_periods = window
+        if self._is_rolling:
+            if window is None:
+                raise Exception('Must pass window when doing rolling '
+                                'regression')
 
+            if min_periods is None:
+                min_periods = window
+        else:
+            window = len(self._x)
+            if min_periods is None:
+                min_periods = 1
+
+        self._window = int(window)
         self._min_periods = min_periods
 
 #-------------------------------------------------------------------------------
@@ -556,6 +569,14 @@ class MovingOLS(OLS):
 
     def f_test(self, hypothesis):
         raise Exception('f_test not supported for rolling/expanding OLS')
+
+    @cache_readonly
+    def forecast_mean(self):
+        return Series(self._forecast_mean_raw, index=self._result_index)
+
+    @cache_readonly
+    def forecast_vol(self):
+        return Series(self._forecast_vol_raw, index=self._result_index)
 
     @cache_readonly
     def p_value(self):
@@ -929,6 +950,55 @@ class MovingOLS(OLS):
                 result = np.dot(xx_inv, np.dot(xeps, xx_inv))
 
             results.append(result)
+
+        return np.array(results)
+
+    @cache_readonly
+    def _forecast_mean_raw(self):
+        """Returns the raw covariance of beta."""
+        nobs = self._nobs
+        window = self._window
+
+        # x should be ones
+        dummy = DataMatrix(index=self._y.index)
+        dummy['y'] = 1
+
+        cum_xy = self._cum_xy(dummy, self._y)
+
+        results = []
+        for n, i in enumerate(self._valid_indices):
+            sumy = cum_xy[i]
+
+            if self._is_rolling and i >= window:
+                sumy = sumy - cum_xy[i - window]
+
+            results.append(sumy[0] / nobs[n])
+
+        return np.array(results)
+
+    @cache_readonly
+    def _forecast_vol_raw(self):
+        """Returns the raw covariance of beta."""
+        beta = self._beta_raw
+        window = self._window
+        dates = self._index
+        x = self._x
+
+        results = []
+        for n, i in enumerate(self._valid_indices):
+            date = dates[i]
+            if self._is_rolling and i >= window:
+                prior_date = dates[i - window + 1]
+            else:
+                prior_date = dates[0]
+
+            x_slice = x.truncate(prior_date, date).values
+            x_demeaned = x_slice - x_slice.mean(0)
+            x_cov = np.dot(x_demeaned.T, x_demeaned) / (len(x_slice) - 1)
+
+            B = beta[n]
+            result = np.dot(B, np.dot(x_cov, B))
+            results.append(np.sqrt(result))
 
         return np.array(results)
 

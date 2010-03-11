@@ -975,6 +975,9 @@ class LongPanel(Panel):
 
         self.factors = factors or {}
 
+    def __len__(self):
+        return len(self.index)
+
     @classmethod
     def fromRecords(cls, data, major_field, minor_field,
                     factors=None, exclude=None):
@@ -1585,6 +1588,9 @@ class LongPanelIndex(object):
         self.minor_labels = minor_labels
 
         self._mask = mask
+
+    def __len__(self):
+        return len(self.major_labels)
 
     def __getstate__(self):
         return (_pickle_array(self.major_axis),

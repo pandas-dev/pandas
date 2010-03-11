@@ -1,6 +1,6 @@
 from datetime import timedelta
 from pandas.core.index import Index
-import pandas.core.tests.common as common
+import pandas.util.testing as common
 import pandas.lib.tseries as tseries
 import numpy as np
 import os

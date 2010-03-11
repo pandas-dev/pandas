@@ -10,12 +10,12 @@ import numpy as np
 from pandas.core.api import DataFrame, Index, Series, notnull
 import pandas.core.datetools as datetools
 
-from pandas.core.tests.common import (assert_almost_equal,
-                                      assert_series_equal,
-                                      assert_frame_equal,
-                                      randn)
+from pandas.util.testing import (assert_almost_equal,
+                                 assert_series_equal,
+                                 assert_frame_equal,
+                                 randn)
 
-import pandas.core.tests.common as common
+import pandas.util.testing as common
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases
@@ -493,6 +493,15 @@ class TestDataFrame(unittest.TestCase):
 
         assert_frame_equal(mixed_appended, mixed_appended2)
 
+        # append empty
+        appended = self.frame.append(self.empty)
+        assert_frame_equal(self.frame, appended)
+        self.assert_(appended is not self.frame)
+
+        appended = self.empty.append(self.frame)
+        assert_frame_equal(self.frame, appended)
+        self.assert_(appended is not self.frame)
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
         rule_monthly = self.tsframe.asfreq('EOM')
@@ -635,6 +644,17 @@ class TestDataFrame(unittest.TestCase):
             else:
                 self.assertEqual(value, self.frame[item][idx])
 
+        # mixed-type getXS
+        test_data = {
+                'A' : {'1' : 1, '2' : 2},
+                'B' : {'1' : '1', '2' : '2', '3' : '3'},
+        }
+        frame = self.klass(test_data)
+        xs = frame.getXS('1')
+        self.assert_(xs.dtype == np.object_)
+        self.assertEqual(xs['A'], 1)
+        self.assertEqual(xs['B'], '1')
+
         self.assertRaises(Exception, self.tsframe.getXS,
                           self.tsframe.index[0] - datetools.bday)
 
@@ -700,6 +720,7 @@ class TestDataFrame(unittest.TestCase):
         # length zero
         newFrame = self.frame.reindex([])
         self.assert_(not newFrame)
+        self.assertEqual(len(newFrame.cols()), len(self.frame.cols()))
 
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
@@ -765,6 +786,9 @@ class TestDataFrame(unittest.TestCase):
         shiftedFrame = self.tsframe.shift(5, offset=datetools.BDay())
         self.assert_(len(shiftedFrame) == len(self.tsframe))
 
+        shiftedFrame2 = self.tsframe.shift(5, timeRule='WEEKDAY')
+        assert_frame_equal(shiftedFrame, shiftedFrame2)
+
         d = self.tsframe.index[0]
         shifted_d = d + datetools.BDay(5)
         assert_series_equal(self.tsframe.getXS(d),
@@ -782,6 +806,14 @@ class TestDataFrame(unittest.TestCase):
         d = self.frame.index[0]
         applied = self.frame.apply(np.mean, axis=1)
         self.assertEqual(applied[d], np.mean(self.frame.getXS(d)))
+        self.assert_(applied.index is self.frame.index) # want this
+
+        # empty
+        applied = self.empty.apply(np.sqrt)
+        self.assert_(not applied)
+
+        applied = self.empty.apply(np.mean)
+        self.assert_(not applied)
 
     def test_tapply(self):
         d = self.frame.index[0]
@@ -974,7 +1006,7 @@ class TestDataFrame(unittest.TestCase):
         # corner cases
 
         # nothing to merge
-        merged = target.merge(source[:0], on='C')
+        merged = target.merge(source.reindex([]), on='C')
 
         # overlap
         source_copy = source.copy()

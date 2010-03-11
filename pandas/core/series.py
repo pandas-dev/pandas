@@ -843,6 +843,14 @@ class Series(np.ndarray, Picklable, Groupable):
 
         If there is no good value, NaN is returned.
 
+        Parameters
+        ----------
+        date : datetime or similar value
+
+        Note
+        ----
+        Dates are assumed to be sorted
+
         Returns
         -------
         value or NaN
@@ -854,10 +862,10 @@ class Series(np.ndarray, Picklable, Groupable):
 
         if isnull(v):
             candidates = self.index[notnull(self)]
-            candidates = candidates[candidates <= date]
+            index = candidates.searchsorted(date)
 
-            if candidates.any():
-                asOfDate = candidates[-1]
+            if index > 0:
+                asOfDate = candidates[index - 1]
             else:
                 return NaN
 

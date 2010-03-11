@@ -4,8 +4,10 @@ import unittest
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import Series, DataMatrix
-import pandas.core.tests.test_frame as test_frame
+from pandas.core.api import Series, DataMatrix, DataFrame
+
+import pandas.util.testing as common
+import test_frame
 
 #-------------------------------------------------------------------------------
 # DataMatrix test cases
@@ -58,6 +60,17 @@ class TestDataMatrix(test_frame.TestDataFrame):
         index = self.mixed_frame.index
         dm = DataMatrix(objects=self.mixed_frame.objects)
         self.assert_(dm.index is self.mixed_frame.index)
+
+        # take dict of objects
+        index = self.mixed_frame.index
+        dm = DataMatrix(data={}, objects=self.mixed_frame.objects._series)
+        self.assert_(isinstance(dm.objects, DataMatrix))
+        self.assert_(dm.index is dm.objects.index)
+
+        index = self.mixed_frame.index
+        dm = DataMatrix(objects=self.mixed_frame.objects._series)
+        self.assert_(isinstance(dm.objects, DataMatrix))
+        self.assert_(dm.index is dm.objects.index)
 
     def test_copy(self):
         # copy objects
@@ -118,6 +131,12 @@ class TestDataMatrix(test_frame.TestDataFrame):
         # XXX
         obj_result = self.mixed_frame.objects.fill(value=0)
 
+    def test_count_objects(self):
+        dm = DataMatrix(self.mixed_frame._series)
+        df = DataFrame(self.mixed_frame._series)
+
+        common.assert_series_equal(dm.count(), df.count())
+        common.assert_series_equal(dm.count(1), df.count(1))
 
 if __name__ == '__main__':
     unittest.main()

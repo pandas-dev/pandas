@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 
 from pandas.core.api import DataMatrix, DateRange
-from pandas.core.tests.common import assert_almost_equal
+from pandas.util.testing import assert_almost_equal
 
 N = 100
 K = 4

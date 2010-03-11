@@ -163,6 +163,14 @@ class DateRange(Index):
         return index
 
 
+    @property
+    def _allDates(self):
+        return True
+        # if not hasattr(self, '_cache_allDates'):
+        #     self._cache_allDates = isAllDates(self)
+
+        # return self._cache_allDates
+
     @classmethod
     def getCachedRange(cls, start=None, end=None, periods=None, offset=None,
                        timeRule=None):
@@ -231,14 +239,14 @@ class DateRange(Index):
         if self.ndim == 0:
             return self.item()
 
-        if len(self) > 0:
-            self.indexMap = map_indices(self)
-        else:
-            self.indexMap = {}
+        # if len(self) > 0:
+        #     self.indexMap = map_indices(self)
+        # else:
+        #     self.indexMap = {}
 
         self.offset = getattr(obj, 'offset', None)
         self._parent = getattr(obj, '_parent',  None)
-        self._allDates = True
+        # self._allDates = True
 
     def __lt__(self, other):
         return self.view(np.ndarray) < other

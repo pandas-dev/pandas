@@ -73,7 +73,7 @@ class GroupBy(object):
         elif isinstance(obj, DataFrame):
             klass = DataFrameGroupBy
 
-        return object.__new__(klass, obj, grouper)
+        return object.__new__(klass)
 
     def __init__(self, obj, grouper):
         self.obj = obj

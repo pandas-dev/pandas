@@ -3,8 +3,7 @@
 # pylint: disable-msg=W0232
 
 import numpy as np
-from pandas.lib.tdates import isAllDates
-from pandas.lib.tseries import map_indices
+from pandas.lib.tseries import map_indices, isAllDates
 
 def _indexOp(opname):
     """
@@ -17,14 +16,15 @@ def _indexOp(opname):
     return wrapper
 
 
+
 class Index(np.ndarray):
     """Extension of numpy-array to represent a series index,
     dates or otherwise.
 
     Index is immutable always (don't even try to change elements!).
 
-    Note that the Index can ONLY contain immutable objects. Mutable objects are not
-    hashable, and that's bad!
+    Note that the Index can ONLY contain immutable objects. Mutable
+    objects are not hashable, and that's bad!
     """
     def __new__(cls, data, dtype=object, copy=False):
         subarr = np.array(data, dtype=dtype, copy=copy)
@@ -41,26 +41,37 @@ class Index(np.ndarray):
             # tolist will cause a bus error if this is not here, hmm
 
             return self.item()
-
-
             # raise Exception('Cannot create 0-dimensional Index!')
 
         # New instance creation
         if obj is None:
-            self.indexMap = map_indices(self)
-            self._allDates = isAllDates(self)
+            pass
 
         # New from template / slicing
         elif isinstance(obj, type(self)) and len(self) != len(obj.indexMap):
-            self.indexMap = map_indices(self)
-            self._allDates = isAllDates(self)
+            pass
 
         # View casting
         else:
-            self.indexMap = getattr(obj, 'indexMap', map_indices(self))
-            self._allDates = getattr(obj, '_allDates', isAllDates(self))
+            if hasattr(obj, '_cache_indexMap'):
+                self._cache_indexMap = obj._cache_indexMap
+                self._cache_allDates = getattr(obj, '_cache_allDates', None)
 
         self._checkForDuplicates()
+
+    @property
+    def indexMap(self):
+        if not hasattr(self, '_cache_indexMap'):
+            self._cache_indexMap = map_indices(self)
+
+        return self._cache_indexMap
+
+    @property
+    def _allDates(self):
+        if not hasattr(self, '_cache_allDates'):
+            self._cache_allDates = isAllDates(self)
+
+        return self._cache_allDates
 
     def _checkForDuplicates(self):
         if len(self.indexMap) < len(self):
@@ -71,9 +82,9 @@ class Index(np.ndarray):
 
     def __setstate__(self,state):
         """Necessary for making this object picklable"""
-        np.ndarray.__setstate__(self,state)
-        self.indexMap = map_indices(self)
-        self._allDates = isAllDates(self)
+        np.ndarray.__setstate__(self, state)
+        self._cache_indexMap = map_indices(self)
+        self._cache_allDates = isAllDates(self)
 
     def __deepcopy__(self, memo={}):
         """

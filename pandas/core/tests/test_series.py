@@ -11,9 +11,9 @@ import unittest
 import numpy as np
 
 from pandas.core.api import (Index, Series, TimeSeries, DataFrame)
-from pandas.core.tests.common import assert_series_equal
 import pandas.core.datetools as datetools
-import pandas.core.tests.common as common
+from pandas.util.testing import assert_series_equal
+import pandas.util.testing as common
 
 #-------------------------------------------------------------------------------
 # Series test cases
@@ -48,6 +48,9 @@ class TestSeries(unittest.TestCase):
         self.assert_(mixed[1] is np.NaN)
 
         self.assertRaises(Exception, Series, [0, 1, 2], index=None)
+
+        self.assert_(not isinstance(self.empty, TimeSeries))
+        self.assert_(not isinstance(Series({}), TimeSeries))
 
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}

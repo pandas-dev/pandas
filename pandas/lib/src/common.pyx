@@ -117,6 +117,9 @@ def isAllDates(ndarray index):
     iter = <flatiter> PyArray_IterNew(index)
     length = PyArray_SIZE(index)
 
+    if length == 0:
+        return False
+
     for i from 0 <= i < length:
         date = PyArray_GETITEM(index, PyArray_ITER_DATA(iter))
 
