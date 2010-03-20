@@ -1046,9 +1046,6 @@ class Series(np.ndarray, Picklable, Groupable):
 
         fillMethod = fillMethod.upper()
 
-        if fillMethod not in ['BACKFILL', 'PAD']:
-            raise Exception("Don't recognize fillMethod: %s" % fillMethod)
-
         # Cython for blazing speed
         fillVec, mask = tseries.getFillVec(self.index, newIndex, oldMap,
                                            newMap, kind=fillMethod)

@@ -880,9 +880,6 @@ class DataFrame(Picklable, Groupable):
         else:
             fillMethod = ''
 
-        if fillMethod not in ['BACKFILL', 'PAD', '']:
-            raise Exception("Don't recognize fillMethod: %s" % fillMethod)
-
         frame = self
 
         if index is not None:

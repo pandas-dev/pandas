@@ -43,10 +43,26 @@ def test_map_indices_py():
     assert(result == expected)
 
 def test_union():
-    pass
+    a = [1, 2, 3]
+    b = [4, 5, 6]
+
+    union = sorted(pytools.union(a, b))
+
+    assert((a + b) == union)
 
 def test_difference():
-    pass
+    a = [1, 2, 3]
+    b = [1, 2, 3, 4, 5, 6]
+
+    inter = sorted(pytools.difference(b, a))
+
+    assert([4, 5, 6] == inter)
 
 def test_intersection():
-    pass
+    a = [1, 2, 3]
+    b = [1, 2, 3, 4, 5, 6]
+
+    inter = sorted(pytools.intersection(a, b))
+
+    assert(a == inter)
+

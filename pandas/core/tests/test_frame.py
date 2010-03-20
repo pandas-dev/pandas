@@ -1,5 +1,6 @@
 # pylint: disable-msg=W0612
 from copy import deepcopy
+from datetime import timedelta
 from cStringIO import StringIO
 import os
 import unittest
@@ -246,6 +247,10 @@ class TestDataFrame(unittest.TestCase):
         biggie.toString(buffer=buf, columns=['B', 'A'], verbose=True)
         biggie.toString(buffer=buf, columns=['B', 'A'],
                         formatters={'A' : lambda x: '%.1f' % x})
+
+        biggie.toString(buffer=buf, columns=['B', 'A'],
+                        float_format=str)
+
 
     def test_getitem(self):
         # slicing
@@ -1041,6 +1046,10 @@ class TestDataFrame(unittest.TestCase):
             return x[notnull(x)].sum()
 
         self._check_statistic(self.frame, 'sum', f)
+
+    def test_sum_object(self):
+        deltas = self.frame.apply(lambda x: x.astype(int)) * timedelta(1)
+        deltas.sum()
 
     def test_product(self):
         def f(x):
