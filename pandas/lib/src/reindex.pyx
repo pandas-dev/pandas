@@ -390,7 +390,7 @@ def getFillVec(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap,
     elif kind == 'BACKFILL':
         fillVec, maskVec = _backfill(oldIndex, newIndex, oldMap, newMap)
     else:
-        raise Exception("Don't recognize fillMethod: %s" % fillMethod)
+        raise Exception("Don't recognize fillMethod: %s" % kind)
 
     return fillVec, maskVec.astype(np.bool)
 
