@@ -131,6 +131,11 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(len(frame.index), 2)
         self.assertEqual(len(frame.cols()), 3)
 
+        # cast type
+        frame = self.klass(mat, columns=['A', 'B', 'C'],
+                           index=[1, 2], dtype=int)
+        self.assert_(frame.values.dtype == np.int_)
+
         # 1-D input
         frame = self.klass(np.zeros(3), columns=['A'], index=[1, 2, 3])
         self.assertEqual(len(frame.index), 3)
@@ -251,6 +256,8 @@ class TestDataFrame(unittest.TestCase):
         biggie.toString(buffer=buf, columns=['B', 'A'],
                         float_format=str)
 
+        frame = self.klass(index=np.arange(1000))
+        frame.toString(buffer=buf)
 
     def test_getitem(self):
         # slicing
@@ -307,6 +314,11 @@ class TestDataFrame(unittest.TestCase):
 
         self.frame['col8'] = 'foo'
         assert((self.frame['col8'] == 'foo').all())
+
+        smaller = self.frame[:2]
+        smaller['col10'] = ['1', '2']
+        self.assertEqual(smaller['col10'].dtype, np.object_)
+        self.assert_((smaller['col10'] == ['1', '2']).all())
 
     def test_delitem(self):
         del self.frame['A']

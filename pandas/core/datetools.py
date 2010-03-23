@@ -267,13 +267,12 @@ class MonthEnd(DateOffset):
 
     def apply(self, other):
         n = self.n
-        __junk, nDaysInMonth = calendar.monthrange(other.year, other.month)
+        _, nDaysInMonth = calendar.monthrange(other.year, other.month)
         if other.day != nDaysInMonth:
             other = other + relativedelta(months=-1, day=31)
             if n <= 0:
                 n = n + 1
         other = other + relativedelta(months=n, day=31)
-        #other = datetime(other.year, other.month, nDaysInMonth)
         return other
 
     @classmethod
@@ -441,7 +440,7 @@ class YearEnd(DateOffset):
             other = datetime(other.year - 1, 12, 31)
             if n <= 0:
                 n = n + 1
-        other = other + relativedelta(years = n)
+        other = other + relativedelta(years=n)
         return other
 
     @classmethod
@@ -561,8 +560,8 @@ _offsetMap = {
 _offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
 
 def inferTimeRule(index):
-    if len(index) <= 1:
-        raise Exception('Need at least two dates to infer time rule!')
+    if len(index) < 3:
+        raise Exception('Need at least three dates to infer time rule!')
 
     first, second, third = index[:3]
     for rule, offset in _offsetMap.iteritems():

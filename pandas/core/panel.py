@@ -1879,6 +1879,9 @@ def pivot(index, columns, values):
     if not (len(index) == len(columns) == len(values)):
         raise Exception('Pivot inputs must all be same length!')
 
+    if len(index) == 0:
+        return DataMatrix(index=[])
+
     major_axis = Index(sorted(set(index)))
     minor_axis = Index(sorted(set(columns)))
 

@@ -72,6 +72,28 @@ class TestDataMatrix(test_frame.TestDataFrame):
         self.assert_(isinstance(dm.objects, DataMatrix))
         self.assert_(dm.index is dm.objects.index)
 
+        index = self.mixed_frame.index
+        dm = DataMatrix(data=self.frame._series,
+                        objects=self.mixed_frame.objects._series)
+        self.assert_(isinstance(dm.objects, DataMatrix))
+        self.assert_(dm.objects.columns.equals(
+                self.mixed_frame.objects.columns))
+
+    def test_constructor_objects_corner(self):
+        obj = {'A' : {1 : '1', 2 : '2'}}
+        obj_dm = DataMatrix(obj)
+        mat = np.zeros((3, 3), dtype=float)
+
+        dm = DataMatrix(mat, index=[1, 2, 3], columns=['B', 'C', 'D'],
+                        objects=obj_dm)
+        assert dm.index is not obj_dm.index
+
+        dm = DataMatrix(mat, index=[1, 2, 3], columns=['B', 'C', 'D'],
+                        objects=obj)
+
+        dm = DataMatrix(index=[1, 2, 3], objects=obj_dm)
+        dm = DataMatrix(index=[1, 2, 3], objects=obj)
+
     def test_copy(self):
         # copy objects
         copy = self.mixed_frame.copy()
@@ -119,6 +141,17 @@ class TestDataMatrix(test_frame.TestDataFrame):
 
     def test_more_fromDict(self):
         pass
+
+    def test_more_asMatrix(self):
+        values = self.mixed_frame.asMatrix()
+        self.assertEqual(values.shape[1], len(self.mixed_frame.cols()))
+
+    def test_reindex_objects(self):
+        reindexed = self.mixed_frame.reindex(columns=['foo', 'A', 'B'])
+        self.assert_('foo' in reindexed)
+
+        reindexed = self.mixed_frame.reindex(columns=['A', 'B'])
+        self.assert_('foo' not in reindexed)
 
     def test_fill_corner(self):
         self.mixed_frame['foo'][5:20] = np.NaN

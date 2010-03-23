@@ -1346,8 +1346,6 @@ class DataFrame(Picklable, Groupable):
             raise Exception('Columns overlap: %s' % sorted(overlap))
 
         if len(other.index) == 0:
-            print other.cols()
-
             result = self.copy()
 
             for col in other:
@@ -1457,19 +1455,19 @@ class DataFrame(Picklable, Groupable):
         c1: 4
         c2: 6
         """
-        y = np.array(self.values, subok=True)
-
-        axis_labels = self._get_agg_axis(axis)
         try:
+            y = self.values.copy()
             mask = np.isfinite(y)
             if not issubclass(y.dtype.type, np.int_):
                 y[-mask] = 0
             theSum = y.sum(axis)
             theCount = mask.sum(axis)
             theSum[theCount == 0] = NaN
+
         except Exception:
             theSum = self.apply(np.sum, axis=axis)
 
+        axis_labels = self._get_agg_axis(axis)
         return Series(theSum, index=axis_labels)
 
     def cumsum(self, axis=0):

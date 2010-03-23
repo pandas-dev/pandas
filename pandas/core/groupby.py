@@ -49,6 +49,22 @@ class GroupDict(dict):
 
         return output.getvalue()
 
+def groupby(obj, grouper):
+    """
+    Intercepts creation and dispatches to the appropriate class based
+    on type.
+    """
+    if isinstance(obj, Series):
+        klass = SeriesGroupBy
+    elif isinstance(obj, DataMatrix):
+        klass = DataMatrixGroupBy
+    elif isinstance(obj, DataFrame):
+        klass = DataFrameGroupBy
+    else:
+        raise TypeError('invalid type: %s' % type(obj))
+
+    return klass(obj, grouper)
+
 class GroupBy(object):
     """
     Class for grouping and aggregating relational data.

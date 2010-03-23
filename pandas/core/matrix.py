@@ -45,7 +45,7 @@ class DataMatrix(DataFrame):
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  objects=None):
 
-        if isinstance(data, dict):
+        if isinstance(data, dict) and len(data) > 0:
             (index, columns,
              values, objects) = self._initDict(data, index, columns, objects,
                                                dtype)
@@ -55,12 +55,12 @@ class DataMatrix(DataFrame):
 
             if objects is not None:
                 if isinstance(objects, DataMatrix):
-                    if objects.index is not index:
+                    if not objects.index.equals(index):
                         objects = objects.reindex(index)
                 else:
                     objects = DataMatrix(objects, index=index)
 
-        elif data is None:
+        elif data is None or len(data) == 0:
             # this is a touch convoluted...
             if objects is not None:
                 if isinstance(objects, DataMatrix):
@@ -101,23 +101,6 @@ class DataMatrix(DataFrame):
 
         Somehow this got outrageously complicated
         """
-        if len(data) == 0:
-            if objects is not None:
-                if isinstance(objects, DataMatrix):
-                    if index is not None and objects.index is not index:
-                        objects = objects.reindex(index)
-                else:
-                    objects = DataMatrix(objects, index=index)
-
-                index = objects.index
-
-            if index is None:
-                index = NULL_INDEX
-
-            values = np.empty((len(index), 0), dtype=dtype)
-            columns = NULL_INDEX
-            return index, columns, values, objects
-
         # pre-filter out columns if we passed it
         if columns is not None:
             colset = set(columns)
@@ -202,7 +185,7 @@ class DataMatrix(DataFrame):
 
         if dtype is not None:
             try:
-                data = data.astype(dtype)
+                values = values.astype(dtype)
             except Exception:
                 pass
 
@@ -315,7 +298,7 @@ class DataMatrix(DataFrame):
             print 'CSV file written successfully: %s' % path
 
     def toString(self, buffer=sys.stdout, verbose=False,
-                 columns=None, colSpace=10, nanRep='NaN',
+                 columns=None, colSpace=15, nanRep='NaN',
                  formatters=None, float_format=None):
         """
         Output a string version of this DataMatrix
@@ -339,7 +322,7 @@ class DataMatrix(DataFrame):
 
         if len(self.cols()) == 0:
             buffer.write('DataMatrix is empty!\n')
-            buffer.write(self.index.__repr__())
+            buffer.write(repr(self.index))
         else:
             buffer.write(_pfixed('', idxSpace))
             for h in columns:
@@ -670,15 +653,6 @@ class DataMatrix(DataFrame):
 
         return series
     _series = property(_getSeriesDict)
-
-    def _firstTimeWithNValues(self):
-        # Need to test this!
-        N = len(self._series)
-        selector = (self.count(1) == N)
-        if not selector.any():
-            raise Exception('No time has %d values!' % N)
-
-        return self.index[selector][0]
 
     def _combineFrame(self, other, func):
         """

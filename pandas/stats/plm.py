@@ -23,38 +23,45 @@ class PanelOLS(OLS):
 
     Parameters
     ----------
-    y: DataFrame
-    x: Dict of DataFrame or WidePanel
-    intercept: bool
+    y : DataFrame
+    x : Dict of DataFrame or WidePanel
+    intercept : bool
         True if you want an intercept.  True by default.
-    nw_lags: None or int
+    nw_lags : None or int
         Number of Newey-West lags.  None by default.
-    nw_overlap: bool
+    nw_overlap : bool
         Whether there are overlaps in the NW lags.  Defaults to False.
-    window_type: int
+    window_type : int
         FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
-    window: int
+    window : int
         size of window (for rolling/expanding OLS)
-    weights: DataFrame
+    weights : DataFrame
         Weight for each observation.  The weights are not normalized;
         they're multiplied directly by each observation.
-    pool: bool, default True
+    pool : bool, default True
         Whether to run pooled panel regression
-    entity_effects: bool, deafult False
+    entity_effects : bool, deafult False
         Whether to account for entity fixed effects
-    time_effects: bool, default False
+    time_effects : bool, default False
         Whether to account for time fixed effects
-    x_effects: list, default None
+    x_effects : list, default None
         List of x's to account for fixed effects
-    dropped_dummies: dict
+    dropped_dummies : dict
         Key is the name of the variable for the fixed effect.
         Value is the value of that variable for which we drop the dummy.
 
         For entity fixed effects, key equals 'entity', e.g. {'entity' : 'US'}
 
         By default, the first item is dropped if one is not specified.
-    cluster: int
+    cluster : int
         ENTITY or TIME, indicating entity/time clustering
+        A cluster is a grouping within which observations are correlated.
+
+        For example, if you have a panel data with countries over time and you suspect that:
+
+        1. Countries are correlated - use 'time'
+        2. There is autocorrelation - use 'entity' 
+        
     """
     def __init__(self, y, x, weights=None,
                  intercept=True, nw_lags=None, entity_effects=False,
@@ -584,6 +591,12 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         By default, the first dummy is dropped if no dummy is specified.
     cluster : int
         ENTITY or TIME, indicating entity/time clustering
+        A cluster is a grouping within which observations are correlated.
+
+        For example, if you have a panel data with countries over time and you suspect that:
+
+        1. Countries are correlated - use 'time'
+        2. There is autocorrelation - use 'entity' 
     """
     def __init__(self, y, x, weights=None,
                  window_type='expanding', window=None,
