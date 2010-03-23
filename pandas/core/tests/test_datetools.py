@@ -207,14 +207,14 @@ class TestWeek(unittest.TestCase):
                        datetime(2008, 1, 6): datetime(2008, 1, 13),
                        datetime(2008, 1, 7): datetime(2008, 1, 14)}))
 
-        tests.append((Week(dayOfWeek=0), # Mon
+        tests.append((Week(weekday=0), # Mon
                       {datetime(2007, 12, 31): datetime(2008, 1, 7),
                        datetime(2008, 1, 4): datetime(2008, 1, 7),
                        datetime(2008, 1, 5): datetime(2008, 1, 7),
                        datetime(2008, 1, 6): datetime(2008, 1, 7),
                        datetime(2008, 1, 7): datetime(2008, 1, 14)}))
 
-        tests.append((Week(0, dayOfWeek=0), # n=0 -> roll forward. Mon
+        tests.append((Week(0, weekday=0), # n=0 -> roll forward. Mon
                       {datetime(2007, 12, 31): datetime(2007, 12, 31),
                        datetime(2008, 1, 4): datetime(2008, 1, 7),
                        datetime(2008, 1, 5): datetime(2008, 1, 7),
@@ -227,61 +227,61 @@ class TestWeek(unittest.TestCase):
 
     def test_onOffset(self):
 
-        tests = [(Week(dayOfWeek=0), datetime(2008, 1, 1), False),
-                 (Week(dayOfWeek=0), datetime(2008, 1, 2), False),
-                 (Week(dayOfWeek=0), datetime(2008, 1, 3), False),
-                 (Week(dayOfWeek=0), datetime(2008, 1, 4), False),
-                 (Week(dayOfWeek=0), datetime(2008, 1, 5), False),
-                 (Week(dayOfWeek=0), datetime(2008, 1, 6), False),
-                 (Week(dayOfWeek=0), datetime(2008, 1, 7), True),
+        tests = [(Week(weekday=0), datetime(2008, 1, 1), False),
+                 (Week(weekday=0), datetime(2008, 1, 2), False),
+                 (Week(weekday=0), datetime(2008, 1, 3), False),
+                 (Week(weekday=0), datetime(2008, 1, 4), False),
+                 (Week(weekday=0), datetime(2008, 1, 5), False),
+                 (Week(weekday=0), datetime(2008, 1, 6), False),
+                 (Week(weekday=0), datetime(2008, 1, 7), True),
 
-                 (Week(dayOfWeek=1), datetime(2008, 1, 1), True),
-                 (Week(dayOfWeek=1), datetime(2008, 1, 2), False),
-                 (Week(dayOfWeek=1), datetime(2008, 1, 3), False),
-                 (Week(dayOfWeek=1), datetime(2008, 1, 4), False),
-                 (Week(dayOfWeek=1), datetime(2008, 1, 5), False),
-                 (Week(dayOfWeek=1), datetime(2008, 1, 6), False),
-                 (Week(dayOfWeek=1), datetime(2008, 1, 7), False),
+                 (Week(weekday=1), datetime(2008, 1, 1), True),
+                 (Week(weekday=1), datetime(2008, 1, 2), False),
+                 (Week(weekday=1), datetime(2008, 1, 3), False),
+                 (Week(weekday=1), datetime(2008, 1, 4), False),
+                 (Week(weekday=1), datetime(2008, 1, 5), False),
+                 (Week(weekday=1), datetime(2008, 1, 6), False),
+                 (Week(weekday=1), datetime(2008, 1, 7), False),
 
-                 (Week(dayOfWeek=2), datetime(2008, 1, 1), False),
-                 (Week(dayOfWeek=2), datetime(2008, 1, 2), True),
-                 (Week(dayOfWeek=2), datetime(2008, 1, 3), False),
-                 (Week(dayOfWeek=2), datetime(2008, 1, 4), False),
-                 (Week(dayOfWeek=2), datetime(2008, 1, 5), False),
-                 (Week(dayOfWeek=2), datetime(2008, 1, 6), False),
-                 (Week(dayOfWeek=2), datetime(2008, 1, 7), False),
+                 (Week(weekday=2), datetime(2008, 1, 1), False),
+                 (Week(weekday=2), datetime(2008, 1, 2), True),
+                 (Week(weekday=2), datetime(2008, 1, 3), False),
+                 (Week(weekday=2), datetime(2008, 1, 4), False),
+                 (Week(weekday=2), datetime(2008, 1, 5), False),
+                 (Week(weekday=2), datetime(2008, 1, 6), False),
+                 (Week(weekday=2), datetime(2008, 1, 7), False),
 
-                 (Week(dayOfWeek=3), datetime(2008, 1, 1), False),
-                 (Week(dayOfWeek=3), datetime(2008, 1, 2), False),
-                 (Week(dayOfWeek=3), datetime(2008, 1, 3), True),
-                 (Week(dayOfWeek=3), datetime(2008, 1, 4), False),
-                 (Week(dayOfWeek=3), datetime(2008, 1, 5), False),
-                 (Week(dayOfWeek=3), datetime(2008, 1, 6), False),
-                 (Week(dayOfWeek=3), datetime(2008, 1, 7), False),
+                 (Week(weekday=3), datetime(2008, 1, 1), False),
+                 (Week(weekday=3), datetime(2008, 1, 2), False),
+                 (Week(weekday=3), datetime(2008, 1, 3), True),
+                 (Week(weekday=3), datetime(2008, 1, 4), False),
+                 (Week(weekday=3), datetime(2008, 1, 5), False),
+                 (Week(weekday=3), datetime(2008, 1, 6), False),
+                 (Week(weekday=3), datetime(2008, 1, 7), False),
 
-                 (Week(dayOfWeek=4), datetime(2008, 1, 1), False),
-                 (Week(dayOfWeek=4), datetime(2008, 1, 2), False),
-                 (Week(dayOfWeek=4), datetime(2008, 1, 3), False),
-                 (Week(dayOfWeek=4), datetime(2008, 1, 4), True),
-                 (Week(dayOfWeek=4), datetime(2008, 1, 5), False),
-                 (Week(dayOfWeek=4), datetime(2008, 1, 6), False),
-                 (Week(dayOfWeek=4), datetime(2008, 1, 7), False),
+                 (Week(weekday=4), datetime(2008, 1, 1), False),
+                 (Week(weekday=4), datetime(2008, 1, 2), False),
+                 (Week(weekday=4), datetime(2008, 1, 3), False),
+                 (Week(weekday=4), datetime(2008, 1, 4), True),
+                 (Week(weekday=4), datetime(2008, 1, 5), False),
+                 (Week(weekday=4), datetime(2008, 1, 6), False),
+                 (Week(weekday=4), datetime(2008, 1, 7), False),
 
-                 (Week(dayOfWeek=5), datetime(2008, 1, 1), False),
-                 (Week(dayOfWeek=5), datetime(2008, 1, 2), False),
-                 (Week(dayOfWeek=5), datetime(2008, 1, 3), False),
-                 (Week(dayOfWeek=5), datetime(2008, 1, 4), False),
-                 (Week(dayOfWeek=5), datetime(2008, 1, 5), True),
-                 (Week(dayOfWeek=5), datetime(2008, 1, 6), False),
-                 (Week(dayOfWeek=5), datetime(2008, 1, 7), False),
+                 (Week(weekday=5), datetime(2008, 1, 1), False),
+                 (Week(weekday=5), datetime(2008, 1, 2), False),
+                 (Week(weekday=5), datetime(2008, 1, 3), False),
+                 (Week(weekday=5), datetime(2008, 1, 4), False),
+                 (Week(weekday=5), datetime(2008, 1, 5), True),
+                 (Week(weekday=5), datetime(2008, 1, 6), False),
+                 (Week(weekday=5), datetime(2008, 1, 7), False),
 
-                 (Week(dayOfWeek=6), datetime(2008, 1, 1), False),
-                 (Week(dayOfWeek=6), datetime(2008, 1, 2), False),
-                 (Week(dayOfWeek=6), datetime(2008, 1, 3), False),
-                 (Week(dayOfWeek=6), datetime(2008, 1, 4), False),
-                 (Week(dayOfWeek=6), datetime(2008, 1, 5), False),
-                 (Week(dayOfWeek=6), datetime(2008, 1, 6), True),
-                 (Week(dayOfWeek=6), datetime(2008, 1, 7), False),
+                 (Week(weekday=6), datetime(2008, 1, 1), False),
+                 (Week(weekday=6), datetime(2008, 1, 2), False),
+                 (Week(weekday=6), datetime(2008, 1, 3), False),
+                 (Week(weekday=6), datetime(2008, 1, 4), False),
+                 (Week(weekday=6), datetime(2008, 1, 5), False),
+                 (Week(weekday=6), datetime(2008, 1, 6), True),
+                 (Week(weekday=6), datetime(2008, 1, 7), False),
              ]
 
         for offset, date, expected in tests:
@@ -706,11 +706,11 @@ def test_getOffsetName():
 
     assert datetools.getOffsetName(BDay()) == 'WEEKDAY'
     assert datetools.getOffsetName(BMonthEnd()) == 'EOM'
-    assert datetools.getOffsetName(Week(dayOfWeek=0)) == 'W@MON'
-    assert datetools.getOffsetName(Week(dayOfWeek=1)) == 'W@TUE'
-    assert datetools.getOffsetName(Week(dayOfWeek=2)) == 'W@WED'
-    assert datetools.getOffsetName(Week(dayOfWeek=3)) == 'W@THU'
-    assert datetools.getOffsetName(Week(dayOfWeek=4)) == 'W@FRI'
+    assert datetools.getOffsetName(Week(weekday=0)) == 'W@MON'
+    assert datetools.getOffsetName(Week(weekday=1)) == 'W@TUE'
+    assert datetools.getOffsetName(Week(weekday=2)) == 'W@WED'
+    assert datetools.getOffsetName(Week(weekday=3)) == 'W@THU'
+    assert datetools.getOffsetName(Week(weekday=4)) == 'W@FRI'
 
 
 def test_getOffset():
@@ -718,11 +718,11 @@ def test_getOffset():
 
     assert datetools.getOffset('WEEKDAY') == BDay()
     assert datetools.getOffset('EOM') == BMonthEnd()
-    assert datetools.getOffset('W@MON') == Week(dayOfWeek=0)
-    assert datetools.getOffset('W@TUE') == Week(dayOfWeek=1)
-    assert datetools.getOffset('W@WED') == Week(dayOfWeek=2)
-    assert datetools.getOffset('W@THU') == Week(dayOfWeek=3)
-    assert datetools.getOffset('W@FRI') == Week(dayOfWeek=4)
+    assert datetools.getOffset('W@MON') == Week(weekday=0)
+    assert datetools.getOffset('W@TUE') == Week(weekday=1)
+    assert datetools.getOffset('W@WED') == Week(weekday=2)
+    assert datetools.getOffset('W@THU') == Week(weekday=3)
+    assert datetools.getOffset('W@FRI') == Week(weekday=4)
 
 ####
 ## XDateRange Tests

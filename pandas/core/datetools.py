@@ -308,7 +308,7 @@ class BMonthEnd(DateOffset):
 
 class Week(DateOffset):
     """
-    dayOfWeek
+    weekday
     0: Mondays
     1: Tuedays
     2: Wednesdays
@@ -320,41 +320,42 @@ class Week(DateOffset):
     _normalizeFirst = True
     def __init__(self, n=1, **kwds):
         self.n = n
-        self.dayOfWeek = kwds.get('dayOfWeek', None)
+        self.weekday = kwds.get('weekday', None)
 
-        if self.dayOfWeek is not None:
-            if self.dayOfWeek < 0 or self.dayOfWeek > 6:
-                raise Exception('Day must be 0<=day<=6, got %d' % self.dayOfWeek)
+        if self.weekday is not None:
+            if self.weekday < 0 or self.weekday > 6:
+                raise Exception('Day must be 0<=day<=6, got %d' %
+                                self.weekday)
 
         self.inc = timedelta(weeks=1)
         self.kwds = kwds
 
     def isAnchored(self):
-        return (self.n == 1 and self.dayOfWeek is not None)
+        return (self.n == 1 and self.weekday is not None)
 
     def apply(self, other):
-        if self.dayOfWeek is None:
+        if self.weekday is None:
             return other + self.n * self.inc
 
         if self.n > 0:
             k = self.n
             otherDay = other.weekday()
-            if otherDay != self.dayOfWeek:
-                other = other + timedelta((self.dayOfWeek - otherDay) % 7)
+            if otherDay != self.weekday:
+                other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
             for i in xrange(k):
                 other = other + self.inc
         else:
             k = self.n
             otherDay = other.weekday()
-            if otherDay != self.dayOfWeek:
-                other = other + timedelta((self.dayOfWeek - otherDay) % 7)
+            if otherDay != self.weekday:
+                other = other + timedelta((self.weekday - otherDay) % 7)
             for i in xrange(-k):
                 other = other - self.inc
         return other
 
     def onOffset(self, someDate):
-        return someDate.weekday() == self.dayOfWeek
+        return someDate.weekday() == self.weekday
 
 
 class BQuarterEnd(DateOffset):
@@ -546,11 +547,11 @@ isBMonthEnd = BMonthEnd.onOffset
 _offsetMap = {
     "WEEKDAY"  : BDay(1),
     "EOM"      : BMonthEnd(1),
-    "W@MON"    : Week(dayOfWeek=0),
-    "W@TUE"    : Week(dayOfWeek=1),
-    "W@WED"    : Week(dayOfWeek=2),
-    "W@THU"    : Week(dayOfWeek=3),
-    "W@FRI"    : Week(dayOfWeek=4),
+    "W@MON"    : Week(weekday=0),
+    "W@TUE"    : Week(weekday=1),
+    "W@WED"    : Week(weekday=2),
+    "W@THU"    : Week(weekday=3),
+    "W@FRI"    : Week(weekday=4),
     "Q@JAN"    : BQuarterEnd(startingMonth=1),
     "Q@FEB"    : BQuarterEnd(startingMonth=2),
     "Q@MAR"    : BQuarterEnd(startingMonth=3),
@@ -600,3 +601,17 @@ def getOffsetName(offset):
         return name
     else:
         raise Exception('Bad offset name requested: %s!' % offset)
+
+# OK aqr/gaa/backtest/docs.py
+# OK aqr/gaa/tests/test_timerule.py
+# OK aqr/gaa/timerule.py
+# OK pandas/core/datetools.py
+# OK pandas/core/tests/test_datetools.py
+# OK prod/gaa/pmtools/utils/dateUtils.py
+# OK research/credit/timing.py
+# OK research/eq/eqe_com_factor/com_factor_test.py
+# research/eq/ExporterImporter/analysis.py
+# research/eq/ExporterImporter/factors.py
+# research/fx/Returns/IMM_Forward_Points.py
+# users/mst/mispricing.py
+# users/sargent/XSReturnVol.py
