@@ -16,6 +16,8 @@ import pandas.lib.tseries as tseries
 import pandas.stats.common as common
 import pandas.stats.math as math
 
+_FP_ERR = 1e-13
+
 class OLS(object):
     """
     Runs a full sample ordinary least squares regression

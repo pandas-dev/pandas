@@ -1177,9 +1177,15 @@ class DataMatrix(DataFrame):
             newValues = self.values.copy()
 
         if self.objects is not None:
-            pass
+            shifted_objects = self.objects.shift(periods, offset=offset,
+                                                 timeRule=timeRule)
 
-        return DataMatrix(data=newValues, index=newIndex, columns=self.columns)
+            shifted_objects.index = newIndex
+        else:
+            shifted_objects = None
+
+        return DataMatrix(data=newValues, index=newIndex, columns=self.columns,
+                          objects=shifted_objects)
 
     def apply(self, func, axis=0):
         """

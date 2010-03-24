@@ -60,7 +60,7 @@ def groupby(obj, grouper):
         klass = DataMatrixGroupBy
     elif isinstance(obj, DataFrame):
         klass = DataFrameGroupBy
-    else:
+    else: # pragma: no cover
         raise TypeError('invalid type: %s' % type(obj))
 
     return klass(obj, grouper)
@@ -75,21 +75,6 @@ class GroupBy(object):
     DataFrame / DataMatrix (and derivatives thereof)
     """
     _groups = None
-    def __new__(cls, obj, grouper):
-        """
-        Intercepts creation and dispatches to the appropriate class based
-        on type.
-        """
-        klass = None
-
-        if isinstance(obj, Series):
-            klass = SeriesGroupBy
-        elif isinstance(obj, DataMatrix):
-            klass = DataMatrixGroupBy
-        elif isinstance(obj, DataFrame):
-            klass = DataFrameGroupBy
-
-        return object.__new__(klass)
 
     def __init__(self, obj, grouper):
         self.obj = obj
@@ -117,7 +102,7 @@ class GroupBy(object):
         """
         try:
             groupNames = sorted(self.groups)
-        except Exception, e:
+        except Exception: # pragma: no cover
             groupNames = self.groups.keys()
 
         for groupName in groupNames:
@@ -132,9 +117,6 @@ class GroupBy(object):
 
     def transform(self, func):
         raise NotImplementedError
-
-    def apply(self, func):
-        return self.transform(func)
 
     def __getitem__(self, key):
         return self.getGroup(self.groups[key])
@@ -160,25 +142,24 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
-        from pandas.lib.tseries import groupbyfunc as groupby
+        from pandas.lib.tseries import groupbyfunc
 
         if hasattr(applyfunc,'__iter__'):
+
+            if not isinstance(applyfunc, dict):
+                applyfunc = dict((func.__name__, func) for func in applyfunc)
+
             results = {}
 
-            for func in applyfunc:
+            for name, func in applyfunc.iteritems():
                 result = self.aggregate(func)
-
-                if isinstance(result, Series):
-                    raise Exception('Given applyfunc did not return a value '
-                                    'from the subseries as expected!')
-
-                results[func.__name__] = result
+                results[name] = result
 
             retVal = DataFrame(results)
         else:
             try:
-                result = groupby(self.obj.index, self.obj,
-                                 self.grouper, applyfunc)
+                result = groupbyfunc(self.obj.index, self.obj,
+                                     self.grouper, applyfunc)
             except Exception:
                 result = {}
                 theUnion = set([])
@@ -250,15 +231,10 @@ class SeriesGroupBy(GroupBy):
 
 class DataFrameGroupBy(GroupBy):
     def __init__(self, obj, grouper):
-        self.obj = obj
-
-        if hasattr(grouper, 'get'):
-            grouper = grouper.get
-
         if isinstance(grouper, basestring) and grouper in obj:
             grouper = obj[grouper].get
 
-        self.grouper = grouper
+        GroupBy.__init__(self, obj, grouper)
 
     def aggregate(self, applyfunc):
         """

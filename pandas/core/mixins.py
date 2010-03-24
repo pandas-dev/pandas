@@ -24,6 +24,7 @@ class Picklable(object):
 
 
 class Groupable(object):
+
     def groupby(self, mapper):
         """
         Goup series using mapper (dict or key function, apply given
@@ -41,7 +42,5 @@ class Groupable(object):
         GroupBy object
         """
 
-        from pandas.core.groupby import GroupBy
-        return GroupBy(self, mapper)
-
-
+        from pandas.core.groupby import groupby
+        return groupby(self, mapper)

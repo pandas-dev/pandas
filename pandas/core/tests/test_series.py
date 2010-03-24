@@ -734,5 +734,39 @@ class TestSeries(unittest.TestCase):
     def test_lastValid(self):
         pass
 
+#-------------------------------------------------------------------------------
+# GroupBy
+
+    def test_groupby(self):
+        data = Series(np.arange(9) / 3, index=np.arange(9))
+
+        index = np.arange(9)
+        np.random.shuffle(index)
+        data = data.reindex(index)
+
+        grouped = data.groupby(lambda x: x // 3)
+
+        repr(grouped.groups) # nothing else here
+
+        for k, v in grouped:
+            self.assertEqual(len(v), 3)
+
+        agged = grouped.aggregate(np.mean)
+        self.assertEqual(agged[1], 1)
+
+        assert_series_equal(agged, grouped.agg(np.mean)) # shorthand
+
+        transformed = grouped.transform(lambda x: x * x.sum())
+        self.assertEqual(transformed[7], 12)
+
+        value_grouped = data.groupby(data)
+        assert_series_equal(value_grouped.aggregate(np.mean), agged)
+
+        # complex agg
+        agged = grouped.aggregate([np.mean, np.std])
+        agged = grouped.aggregate({'one' : np.mean,
+                                   'two' : np.std})
+
+
 if __name__ == '__main__':
     unittest.main()

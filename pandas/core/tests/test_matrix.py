@@ -139,8 +139,13 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm['A'] = 'bar'
         self.assertEqual('bar', dm['A'][0])
 
-    def test_more_fromDict(self):
-        pass
+    def test_shift_objects(self):
+        tsf = self.tsframe.copy()
+        tsf['foo'] = 'bar'
+
+        shifted = tsf.shift(1)
+        self.assert_(shifted.objects is not None)
+        self.assert_(shifted.objects.index is shifted.index)
 
     def test_more_asMatrix(self):
         values = self.mixed_frame.asMatrix()

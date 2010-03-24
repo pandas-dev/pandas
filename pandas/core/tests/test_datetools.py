@@ -197,6 +197,16 @@ def assertOnOffset(offset, date, expected):
     assert actual == expected
 
 class TestWeek(unittest.TestCase):
+    def test_corner(self):
+        self.assertRaises(Exception, Week, weekday=7)
+        self.assertRaises(Exception, Week, weekday=-1)
+
+    def test_isAnchored(self):
+        self.assert_(Week(weekday=0).isAnchored())
+        self.assert_(not Week().isAnchored())
+        self.assert_(not Week(2, weekday=2).isAnchored())
+        self.assert_(not Week(2).isAnchored())
+
     def test_offset(self):
         tests = []
 
@@ -385,6 +395,15 @@ class TestMonthEnd(unittest.TestCase):
             assertOnOffset(offset, date, expected)
 
 class TestBQuarterEnd(unittest.TestCase):
+    def test_corner(self):
+        self.assertRaises(Exception, BQuarterEnd, startingMonth=4)
+        self.assertRaises(Exception, BQuarterEnd, startingMonth=-1)
+
+    def test_isAnchored(self):
+        self.assert_(BQuarterEnd(startingMonth=1).isAnchored())
+        self.assert_(BQuarterEnd().isAnchored())
+        self.assert_(not BQuarterEnd(2, startingMonth=1).isAnchored())
+
     def test_offset(self):
         tests = []
 
@@ -440,6 +459,10 @@ class TestBQuarterEnd(unittest.TestCase):
         for dateOffset, cases in tests:
             for baseDate, expected in cases.iteritems():
                 assertEq(dateOffset, baseDate, expected)
+
+        # corner
+        offset = BQuarterEnd(n=-1, startingMonth=1)
+        self.assertEqual(datetime(2010, 1, 31) + offset, datetime(2010, 1, 29))
 
     def test_onOffset(self):
 
@@ -700,6 +723,10 @@ def test_inferTimeRule():
 
     assert_raises(Exception, datetools.inferTimeRule, index1[:2])
     assert_raises(Exception, datetools.inferTimeRule, index3)
+
+def test_hasOffsetName():
+    assert datetools.hasOffsetName(BDay())
+    assert not datetools.hasOffsetName(BDay(2))
 
 def test_getOffsetName():
     assert_raises(Exception, datetools.getOffsetName, BDay(2))

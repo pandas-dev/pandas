@@ -372,7 +372,7 @@ class BQuarterEnd(DateOffset):
         self.startingMonth = kwds.get('startingMonth', 3)
 
         if self.startingMonth < 1 or self.startingMonth > 3:
-            raise Exception('Start month must be 1<=day<=12, got %d'
+            raise Exception('Start month must be 1<=day<=3, got %d'
                             % self.startingMonth)
 
         self.offset = BMonthEnd(3)
