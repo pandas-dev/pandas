@@ -601,17 +601,3 @@ def getOffsetName(offset):
         return name
     else:
         raise Exception('Bad offset name requested: %s!' % offset)
-
-# OK aqr/gaa/backtest/docs.py
-# OK aqr/gaa/tests/test_timerule.py
-# OK aqr/gaa/timerule.py
-# OK pandas/core/datetools.py
-# OK pandas/core/tests/test_datetools.py
-# OK prod/gaa/pmtools/utils/dateUtils.py
-# OK research/credit/timing.py
-# OK research/eq/eqe_com_factor/com_factor_test.py
-# research/eq/ExporterImporter/analysis.py
-# research/eq/ExporterImporter/factors.py
-# research/fx/Returns/IMM_Forward_Points.py
-# users/mst/mispricing.py
-# users/sargent/XSReturnVol.py

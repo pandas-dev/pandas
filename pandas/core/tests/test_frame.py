@@ -411,6 +411,11 @@ class TestDataFrame(unittest.TestCase):
         empty_empty = self.empty + self.empty
         self.assert_(not empty_empty)
 
+        # out of order
+        reverse = self.frame.reindex(columns=self.frame.columns[::-1])
+
+        assert_frame_equal(reverse + self.frame, self.frame * 2)
+
     def test_combineSeries(self):
 
         # Series

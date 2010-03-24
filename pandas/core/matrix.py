@@ -684,16 +684,19 @@ class DataMatrix(DataFrame):
             return self * NaN
 
         myValues = myReindex.values
-        if self.columns.equals(other.columns):
+        safe = self.columns.equals(other.columns)
+
+        if safe:
             newCols = self.columns
             commonCols = self.columns
         else:
             newCols = self.columns.union(other.columns)
             commonCols = self.columns.intersection(other.columns)
+
         hisValues = hisReindex.values
         hisCols = hisReindex.columns
 
-        if len(newCols) == len(commonCols):
+        if safe:
             resultMatrix = func(myValues, hisValues)
         else:
             T, N = len(newIndex), len(newCols)
