@@ -6,21 +6,6 @@
 DataFrame and DataMatrix
 ************************
 
-.. class:: DataFrame
-
-   :Parameters:
-       **data** : dict
-           * a sequence of objects (numbers, characters, objects)
-           * an :class:`~numpy.ndarray` or one of its subclass.
-
-       **index** : {array_like}
-
-   .. seealso::
-       :func:`DataFrame.fromDict`
-
-Basics
-------
-
 **DataFrame** is a both 2D-matrix- and dict-like object implementing a
 named collection of identically-indexed Series objects. There is
 another important class called **DataMatrix** which has almost
@@ -29,15 +14,37 @@ implementation. Rather than create confusion, we will focus on
 DataFrame for this guide and explain later why to use one over the
 other depending on your application.
 
+For many users, DataFrame will be the most commonly used object in
+pandas, as it can serve as the primary container for a full data set
+of interest. As we will see below, it enables operations involving
+multiple time series or cross sections with ease.
+
+.. class:: DataFrame
+
+   :Parameters:
+       **data** : dict or 2-D ndarray
+           * If the dict contains Series, an index need not be specified.
+             The resulting frame will be the union of all the contained
+             Series indices.
+
+       **index** : {array_like}
+           Explicit index to conform to, required for ndarray data argument
+
+       **columns** : {array_like}
+           Explicit set of columns to include, required for ndarray data argument
+
+       **dtype** : Python type alias or :class:`~numpy.dtype`
+           Type to attempt to cast data to
+
+:class:`~pandas.DataMatrix` has a similar constructor and can be used interchangeably.
+
+Basics
+------
+
 .. note::
 
     Unlike Series, neither DataFrame nor DataMatrix is a subclass of
     numpy.ndarray.
-
-For many users, DataFrame / DataMatrix is the most commonly used
-object in pandas, as it can serve as the primary container for a full
-data set of interest. As we will see below, it enables operations
-involving multiple time series or cross sections with ease.
 
 The canonical DataFrame containing time series data takes this form,
 which will be used for many examples to follow:
@@ -107,10 +114,10 @@ attribute and **cols** method, respectively:
 Construction
 ------------
 
-There are several ways to create a DataFrame:
+There are many ways to create a DataFrame:
 
    * From a dict of ndarrays or Series
-   * From a 2D ndarray and arrays of index and column names
+   * From a 2D ndarray plus corresponding row and column labels
    * From a NumPy structured (record) array
    * From a nested dictionary
 
@@ -118,8 +125,6 @@ There are several ways to create a DataFrame:
    :toctree: generated/
 
    DataFrame.__init__
-   DataFrame.fromDict
-   DataFrame.fromMatrix
    DataFrame.fromRecords
 
 Indexing

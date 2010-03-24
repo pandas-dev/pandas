@@ -22,18 +22,21 @@ NumPy-based functions expecting one-dimensional ndarrays.
    1-dimensional data.
 
    :Parameters:
-       **data** : {array_like}
-           Data portion of the array. Any data that is valid for
-           constructing a :class:`~numpy.ndarray` can be used here:
+       **data** : {array_like, dict}
+           Data to store in the array. Any data that is valid for
+           constructing a :class:`~numpy.ndarray` can be used here.
 
            * a sequence of objects (numbers, characters, objects)
            * an :class:`~numpy.ndarray` or one of its subclass.
 
+	   Additionally, :class:`dict` is a valid input, allowing the
+	   user to optionally forgo specifying an index.
+
        **index** : {array_like}
-           A :class:`DateArray` instance storing the date information.
+           Sequence of labels for input data.
 
    .. seealso::
-       :func:`Series.fromDict`
+       :func:`Series.fromValue`
 
 .. note::
 
