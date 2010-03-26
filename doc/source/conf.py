@@ -23,8 +23,6 @@ sys.path.extend([
     # numpy standard doc extensions
     os.path.join(os.path.dirname(__file__), '..', 'sphinxext')
 
-    # timeseries specific doc extensions
-    #os.path.join(os.path.dirname(__file__), '..', 'sphinxext_ts')
 ])
 
 # -- General configuration -----------------------------------------------------
