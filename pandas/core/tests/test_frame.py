@@ -96,6 +96,11 @@ class TestDataFrame(unittest.TestCase):
         frame = self.klass({'A' : {'1' : 1, '2' : 2}})
         self.assert_(np.array_equal(frame.index, ['1', '2']))
 
+        # empty dict plus index
+        idx = Index([0, 1, 2])
+        frame = self.klass({}, index=idx)
+        self.assert_(frame.index is idx)
+
     def test_constructor_dict_cast(self):
         # cast float tests
         test_data = {

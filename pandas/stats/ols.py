@@ -8,7 +8,6 @@ from itertools import izip, starmap
 from StringIO import StringIO
 
 import numpy as np
-from scipy import stats
 
 from pandas.core.api import DataFrame, DataMatrix, Series
 from pandas.util.decorators import cache_readonly
@@ -136,6 +135,8 @@ class OLS(object):
     @cache_readonly
     def _f_stat_raw(self):
         """Returns the raw f-stat value."""
+        from scipy.stats import f
+
         cols = self._x.columns
 
         if self._nw_lags is None:
@@ -146,7 +147,7 @@ class OLS(object):
                 q -= 1
 
             shape = q, self.df_resid
-            p_value = 1 - stats.f.cdf(F, shape[0], shape[1])
+            p_value = 1 - f.cdf(F, shape[0], shape[1])
             return F, shape, p_value
 
         k = len(cols)
@@ -221,8 +222,10 @@ class OLS(object):
     @cache_readonly
     def _p_value_raw(self):
         """Returns the raw p values."""
-        return 2 * stats.t.sf(np.fabs(self._t_stat_raw),
-                              self._df_resid_raw)
+        from scipy.stats import t
+
+        return 2 * t.sf(np.fabs(self._t_stat_raw),
+                        self._df_resid_raw)
 
     @cache_readonly
     def p_value(self):
@@ -232,8 +235,10 @@ class OLS(object):
     @cache_readonly
     def _r2_raw(self):
         """Returns the raw r-squared values."""
+        has_intercept = np.abs(self._resid_raw.sum()) < _FP_ERR
+
         if self._intercept:
-            return self.sm_ols.rsquared
+            return 1 - self.sm_ols.ssr / self.sm_ols.centered_tss
         else:
             return 1 - self.sm_ols.ssr / self.sm_ols.uncentered_tss
 
@@ -729,13 +734,21 @@ class MovingOLS(OLS):
         valid = self._time_has_obs
         cum_xx = []
 
+        if isinstance(x, DataFrame):
+            _indexMap = x.index.indexMap
+            def slicer(df, dt):
+                i = _indexMap[dt]
+                return df.values[i:i+1, :]
+        else:
+            slicer = lambda df, dt: df.truncate(dt, dt).values
+
         last = np.zeros((K, K))
         for i, date in enumerate(dates):
             if not valid[i]:
                 cum_xx.append(last)
                 continue
 
-            x_slice = x.truncate(date, date).values
+            x_slice = slicer(x, date)
             xx = last = last + np.dot(x_slice.T, x_slice)
             cum_xx.append(xx)
 
@@ -746,14 +759,32 @@ class MovingOLS(OLS):
         valid = self._time_has_obs
         cum_xy = []
 
+        if isinstance(x, DataFrame):
+            _x_indexMap = x.index.indexMap
+            def x_slicer(df, dt):
+                i = _x_indexMap[dt]
+                return df.values[i:i+1, :]
+        else:
+            x_slicer = lambda df, dt: df.truncate(dt, dt).values
+
+
+        if isinstance(y, Series):
+            _y_indexMap = y.index.indexMap
+            _values = y.values()
+            def y_slicer(df, dt):
+                i = _y_indexMap[dt]
+                return _values[i:i+1]
+        else:
+            y_slicer = lambda s, dt: _y_converter(s.truncate(dt, dt))
+
         last = np.zeros(len(x.cols()))
         for i, date in enumerate(dates):
             if not valid[i]:
                 cum_xy.append(last)
                 continue
 
-            x_slice = x.truncate(date, date).values
-            y_slice = _y_converter(y.truncate(date, date))
+            x_slice = x_slicer(x, date)
+            y_slice = y_slicer(y, date)
 
             xy = last = last + np.dot(x_slice.T, y_slice)
             cum_xy.append(xy)
@@ -783,6 +814,8 @@ class MovingOLS(OLS):
     @cache_readonly
     def _f_stat_raw(self):
         """Returns the raw f-stat value."""
+        from scipy.stats import f
+
         items = self.beta.columns
         nobs = self._nobs
         df = self._df_raw
@@ -797,7 +830,7 @@ class MovingOLS(OLS):
                 q -= 1
 
             def get_result_simple(Fst, d):
-                return Fst, (q, d), 1 - stats.f.cdf(Fst, q, d)
+                return Fst, (q, d), 1 - f.cdf(Fst, q, d)
 
             # Compute the P-value for each pair
             result = starmap(get_result_simple, izip(F, df_resid))
@@ -825,7 +858,9 @@ class MovingOLS(OLS):
     @cache_readonly
     def _p_value_raw(self):
         """Returns the raw p values."""
-        result = [2 * stats.t.sf(a, b)
+        from scipy.stats import t
+
+        result = [2 * t.sf(a, b)
                   for a, b in izip(np.fabs(self._t_stat_raw),
                                    self._df_resid_raw)]
 
@@ -1102,7 +1137,7 @@ def _combine_rhs(rhs):
     if isinstance(rhs, Series):
         series['x'] = rhs
     elif isinstance(rhs, DataFrame):
-        _safe_update(series, rhs)
+        return rhs
     elif isinstance(rhs, dict):
         for name, value in rhs.iteritems():
             if isinstance(value, Series):
@@ -1137,23 +1172,34 @@ def _filter_data(lhs, rhs):
 
     combined_rhs = _combine_rhs(rhs)
 
-    pre_filtered_rhs = DataMatrix(combined_rhs).dropIncompleteRows()
+    if not isinstance(combined_rhs, DataFrame):
+        rhs = DataMatrix(combined_rhs)
 
-    # Union of all indices
-    combined_rhs['_y'] = lhs
-    full_dataset = DataMatrix(combined_rhs)
+    rhs_valid = np.isfinite(rhs.values).sum(1) == len(rhs.columns)
 
-    index = full_dataset.index
+    if not rhs_valid.all():
+        pre_filtered_rhs = rhs[rhs_valid]
+    else:
+        pre_filtered_rhs = rhs
 
-    obs_count = full_dataset.count(axis=1).values()
-    valid = obs_count == len(full_dataset.cols())
+    index = lhs.index + rhs.index
+    if not index.equals(rhs.index) or not index.equals(lhs.index):
+        rhs = rhs.reindex(index)
+        lhs = lhs.reindex(index)
 
-    filtered_rhs = full_dataset.reindex(index[valid])
-    filtered_lhs = filtered_rhs.pop('_y')
+        rhs_valid = np.isfinite(rhs.values).sum(1) == len(rhs.columns)
+
+    lhs_valid = np.isfinite(lhs.values())
+    valid = rhs_valid & lhs_valid
+
+    if not valid.all():
+        filt_index = rhs.index[valid]
+        filtered_rhs = rhs.reindex(filt_index)
+        filtered_lhs = lhs.reindex(filt_index)
+    else:
+        filtered_rhs, filtered_lhs = rhs, lhs
 
     return filtered_lhs, filtered_rhs, pre_filtered_rhs, index, valid
-
-
 
 # A little kludge so we can use this method for both
 # MovingOLS and MovingPanelOLS

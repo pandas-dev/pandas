@@ -41,10 +41,10 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 2
+MINOR = '2beta'
 
 def get_version():
-    return '%d.%d' % (MAJOR, MINOR)
+    return '%s.%s' % (MAJOR, MINOR)
 
 
 def configuration(parent_package='', top_path=None):

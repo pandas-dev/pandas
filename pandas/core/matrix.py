@@ -360,16 +360,19 @@ class DataMatrix(DataFrame):
 
         columns = []
         for j, col in enumerate(self.columns):
-            columns.append('%s%d  non-null values' %
-                           (_pfixed(col, space), counts[j]))
+            columns.append((col, '%s%d  non-null values' %
+                           (_pfixed(col, space), counts[j])))
 
         if self.objects is not None and len(self.objects.columns) > 0:
             n = len(self.objects.index)
             for col in self.objects:
                 line = '%s%d  non-null values' % (_pfixed(col, space), n)
-                columns.append(line)
+                columns.append((col, line))
 
-        columns.sort()
+        try:
+            columns = [c[1] for c in sorted(columns)]
+        except TypeError:
+            columns = sorted([c[1] for c in columns])
 
         dtypeLine = ''
 
@@ -861,10 +864,15 @@ class DataMatrix(DataFrame):
         """
         y = np.array(self.values, subok=True)
         if not issubclass(y.dtype.type, np.int_):
-            y[np.isnan(self.values)] = 0
-        theSum = y.cumsum(axis)
+            mask = np.isnan(self.values)
+            y[mask] = 0
+            result = y.cumsum(axis)
+            has_obs = (-mask).astype(int).cumsum(axis) > 0
+            result[-has_obs] = np.NaN
+        else:
+            result = y.cumsum(axis)
 
-        return DataMatrix(theSum, index=self.index,
+        return DataMatrix(result, index=self.index,
                           columns=self.columns, objects=self.objects)
 
     def dropEmptyRows(self, specificColumns=None):

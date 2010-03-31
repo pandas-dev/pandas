@@ -127,7 +127,8 @@ class DataFrame(Picklable, Groupable):
     @staticmethod
     def _extract_index(data, index):
         if len(data) == 0:
-            index = NULL_INDEX
+            if index is None:
+                index = NULL_INDEX
         elif len(data) > 0 and index is None:
             # aggregate union of indices
             need_labels = False
@@ -1485,10 +1486,16 @@ class DataFrame(Picklable, Groupable):
         """
         def get_cumsum(y):
             y = np.array(y)
-            mask = isnull(y)
+
             if not issubclass(y.dtype.type, np.int_):
+                mask = isnull(y)
                 y[mask] = 0
-            result = y.cumsum()
+                result = y.cumsum()
+
+                has_obs = (-mask).astype(int).cumsum() > 0
+                result[-has_obs] = np.NaN
+            else:
+                result = y.cumsum()
 
             return result
 

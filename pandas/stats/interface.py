@@ -72,6 +72,11 @@ def ols(**kwargs):
     # Run expanding panel OLS with window 10 and entity clustering.
     result = ols(y=y, x=x, cluster=ENTITY, window_type=EXPANDING, window=10)
     """
+    try:
+        import scipy as _
+    except ImportError:
+        raise Exception('Must install SciPy to use OLS functionality')
+
     pool = kwargs.get('pool')
     if 'pool' in kwargs:
         del kwargs['pool']

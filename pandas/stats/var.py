@@ -2,7 +2,6 @@ from __future__ import division
 
 from itertools import izip
 import numpy as np
-import scipy as sp
 
 from pandas.util.decorators import cache_readonly
 from pandas.core.matrix import DataFrame, DataMatrix
@@ -108,6 +107,7 @@ class VAR(object):
         p-values of the f-stats.
         """
         from pandas.stats.api import ols
+        from scipy.stats import f
 
         params = self._k * self._p
 
@@ -142,7 +142,7 @@ class VAR(object):
                 f_stat = ((ssr_reduced - ssr_full) / M) / (ssr_full / (N - K))
                 f_stats.append(f_stat)
 
-                p_value = 1 - sp.stats.f.cdf(f_stat, M, N - K)
+                p_value = 1 - f.cdf(f_stat, M, N - K)
                 p_values.append(p_value)
 
             f_stat_dict[col] = Series(f_stats, self._columns)

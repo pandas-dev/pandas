@@ -1817,8 +1817,15 @@ def _homogenize(frames, intersect=True):
     index = None
     columns = None
 
+    adj_frames = {}
+    for k, v in frames.iteritems():
+        if isinstance(v, dict):
+            adj_frames[k] = DataMatrix(v)
+        else:
+            adj_frames[k] = v
+
     if intersect:
-        for key, frame in frames.iteritems():
+        for key, frame in adj_frames.iteritems():
             if index is None:
                 index = frame.index
             elif index is not frame.index:
@@ -1829,7 +1836,7 @@ def _homogenize(frames, intersect=True):
             else:
                 columns &= set(frame.cols())
     else:
-        for key, frame in frames.iteritems():
+        for key, frame in adj_frames.iteritems():
             if index is None:
                 index = frame.index
             elif index is not frame.index:
@@ -1843,10 +1850,10 @@ def _homogenize(frames, intersect=True):
     columns = sorted(columns)
 
     if intersect:
-        for key, frame in frames.iteritems():
+        for key, frame in adj_frames.iteritems():
             result[key] = frame.filterItems(columns).reindex(index)
     else:
-        for key, frame in frames.iteritems():
+        for key, frame in adj_frames.iteritems():
             if not isinstance(frame, DataMatrix):
                 frame = frame.toDataMatrix()
 

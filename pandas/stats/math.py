@@ -3,7 +3,6 @@
 
 from __future__ import division
 
-from scipy import stats
 import numpy as np
 import numpy.linalg as linalg
 
@@ -109,6 +108,7 @@ def calc_F(R, r, beta, var_beta, nobs, df):
     -------
     F value, (q, df_resid), p value
     """
+    from scipy.stats import f
 
     hyp = np.dot(R, beta.reshape(len(beta), 1)) - r
     RSR = np.dot(R, np.dot(var_beta, R.T))
@@ -117,7 +117,7 @@ def calc_F(R, r, beta, var_beta, nobs, df):
 
     F = np.dot(hyp.T, np.dot(inv(RSR), hyp)).squeeze() / q
 
-    p_value = 1 - stats.f.cdf(F, q, nobs - df)
+    p_value = 1 - f.cdf(F, q, nobs - df)
 
     return F, (q, nobs - df), p_value
 

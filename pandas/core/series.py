@@ -70,7 +70,7 @@ def _seriesOpWrap(opname):
 
 class Series(np.ndarray, Picklable, Groupable):
     """
-    Generic indexed series (time series or otherwise) object.
+    Generic indexed series (time series or cross-section)
 
     Contains values in a numpy-ndarray with an optional bound index
     (also an array of dates, strings, or whatever you want the 'row
@@ -87,10 +87,13 @@ class Series(np.ndarray, Picklable, Groupable):
 
     Parameters
     ----------
-    data : array-like
-        Underlying values of Series, preferably as numpy ndarray
+    data : array-like or dict
+        Contains data stored in Series
     index : array-like
         Index object (or other iterable of same length as data)
+        Must be input if first argument is not a dict. If both a dict
+        and index sequence are used, the index will override the keys
+        found in the dict.
 
     Note
     ----
