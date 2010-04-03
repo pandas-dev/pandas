@@ -79,6 +79,10 @@ class TestDataMatrix(test_frame.TestDataFrame):
         self.assert_(dm.objects.columns.equals(
                 self.mixed_frame.objects.columns))
 
+        objs = DataMatrix({'bar' : ['bar'] * len(self.mixed_frame)})
+        dm = DataMatrix(self.mixed_frame._series, objects=objs)
+        self.assert_('foo' in dm.objects)
+
     def test_constructor_objects_corner(self):
         obj = {'A' : {1 : '1', 2 : '2'}}
         obj_dm = DataMatrix(obj)
