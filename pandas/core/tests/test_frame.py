@@ -1,6 +1,6 @@
 # pylint: disable-msg=W0612
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from cStringIO import StringIO
 import os
 import unittest
@@ -46,6 +46,19 @@ class TestDataFrame(unittest.TestCase):
             'col4' : self.ts4,
         }
         self.empty = self.klass({})
+
+        self.unsortable = self.klass(
+            {'foo' : [1] * 1000,
+             datetime.today() : [1] * 1000,
+             'bar' : ['bar'] * 1000,
+             datetime.today() + timedelta(1) : ['bar'] * 1000},
+            index=np.arange(1000))
+
+    def test_set_index(self):
+        idx = Index(np.arange(len(self.mixed_frame)))
+        self.mixed_frame.index = idx
+
+        self.assert_(self.mixed_frame['foo'].index  is idx)
 
     def test_constructor(self):
         df = self.klass()
@@ -241,6 +254,19 @@ class TestDataFrame(unittest.TestCase):
         biggie['B'][:20] = np.NaN
 
         foo = repr(biggie)
+
+        # exhausting cases in DataMatrix.info
+
+        # columns but no index
+        no_index = self.klass(columns=[0, 1, 3])
+        foo = repr(no_index)
+
+        # no columns or index
+        buf = StringIO()
+        self.empty.info(buffer=buf)
+
+        # columns are not sortable
+        foo = repr(self.unsortable)
 
     def test_toString(self):
         # big mixed
@@ -461,7 +487,13 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(len(result), 0)
 
     def test_combineFunc(self):
-        pass
+        result = self.frame * 2
+        self.assert_(np.array_equal(result.values, self.frame.values * 2))
+
+        result = self.empty * 2
+        self.assert_(result.index is self.empty.index)
+        self.assertEqual(len(result.columns), 0)
+
 
     def test_toCSV(self):
         path = '__tmp__'
@@ -1030,6 +1062,9 @@ class TestDataFrame(unittest.TestCase):
 
         # Test when some are missing
 
+        # merge column not p resent
+        self.assertRaises(Exception, target.merge, source, on='E')
+
         # corner cases
 
         # nothing to merge
@@ -1143,6 +1178,11 @@ class TestDataFrame(unittest.TestCase):
         cumsum = self.tsframe.cumsum()
 
         assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fill(0)))
+
+        df = DataFrame({'A' : np.arange(20)}, index=np.arange(20))
+
+        # works
+        result = df.cumsum()
 
     def test_cumprod(self):
         cumprod = self.tsframe.cumprod()

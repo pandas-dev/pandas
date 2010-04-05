@@ -100,15 +100,6 @@ class Series(np.ndarray, Picklable, Groupable):
     If you combine two series, all values for an index position must
     be present or the value for that index position will be nan. The
     new index is the sorted union of the two Series indices.
-
-    Examples
-    --------
-        >>> s = Series(arr, index=Index(dates))
-        >>> t = Series(otherArr, index=Index(otherDates))
-        >>> s / t # --> new Series resulting from by-index division of elements
-        >>> d = s.index[5]
-        >>> s[5]
-        >>> s[d]    # Valid
     """
     def __new__(cls, data, index=None, dtype=None, copy=False):
         if isinstance(data, Series):
@@ -124,6 +115,8 @@ class Series(np.ndarray, Picklable, Groupable):
 
         if subarr.ndim == 0:
             return subarr.item()
+        elif subarr.ndim > 1:
+            raise Exception('Data must be 1-dimensional')
 
         if index is None:
             raise Exception('Index cannot be None!')
@@ -145,6 +138,7 @@ class Series(np.ndarray, Picklable, Groupable):
     def __hash__(self):
         raise TypeError('unhashable type')
 
+    _index = None
     def _get_index(self):
         return self._index
 
@@ -162,7 +156,6 @@ class Series(np.ndarray, Picklable, Groupable):
 
         self._index = index
 
-    _index = None
     index = property(fget=_get_index, fset=_set_index)
 
     def __array_finalize__(self, obj):
@@ -256,16 +249,16 @@ class Series(np.ndarray, Picklable, Groupable):
         indices = Index(self.index.view(ndarray)[key])
         return self.__class__(dataSlice, index=indices)
 
-    def get(self, key, missingVal=None):
+    def get(self, key, default=None):
         """
-        Returns value occupying requested index, default to missingVal
-        if not present
+        Returns value occupying requested index, default to specified
+        missing value if not present
 
         Parameters
         ----------
         key : object
             Index value looking for
-        missingVal : object, optional
+        default : object, optional
             Value to return if key not in index
 
         Returns
@@ -275,7 +268,7 @@ class Series(np.ndarray, Picklable, Groupable):
         if key in self.index:
             return ndarray.__getitem__(self, self.index.indexMap[key])
         else:
-            return missingVal
+            return default
 
     def __getslice__(self, i, j):
         """
@@ -352,7 +345,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        int (# obs)
+        nobs : int
         """
         return notnull(self.values()).sum()
 
@@ -414,7 +407,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         Returns
         -------
-        float
+        skew : float
         """
         y = np.array(self.values())
         mask = notnull(y)
@@ -430,12 +423,20 @@ class Series(np.ndarray, Picklable, Groupable):
     def keys(self):
         """
         Return Series index
+
+        Returns
+        -------
+        index : Index
         """
         return self.index
 
     def values(self):
         """
         Return Series as ndarray
+
+        Returns
+        -------
+        arr : numpy.ndarray
         """
         return self.view(ndarray)
 

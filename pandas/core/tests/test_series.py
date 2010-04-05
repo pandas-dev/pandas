@@ -1,9 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
-from copy import deepcopy
-from cStringIO import StringIO
 from datetime import datetime, timedelta
-import cPickle as pickle
 import os
 import operator
 import unittest
@@ -51,6 +48,9 @@ class TestSeries(unittest.TestCase):
 
         self.assert_(not isinstance(self.empty, TimeSeries))
         self.assert_(not isinstance(Series({}), TimeSeries))
+
+        self.assertRaises(Exception, Series, np.random.randn(3, 3),
+                          index=np.arange(3))
 
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
@@ -102,31 +102,15 @@ class TestSeries(unittest.TestCase):
     def test_contains(self):
         common.assert_contains_all(self.ts.index, self.ts)
 
-    def test_pickle(self):
-        f = open('tmp1', 'wb')
-        h = open('tmp3', 'wb')
-        pickle.dump(self.series, f)
-        pickle.dump(self.ts, h)
-        f.close()
-        h.close()
-        f = open('tmp1', 'rb')
-        h = open('tmp3', 'rb')
-        unPickledf = pickle.load(f)
-        unPickledh = pickle.load(h)
-        f.close()
-        h.close()
+    def test_save_load(self):
+        self.series.save('tmp1')
+        self.ts.save('tmp3')
+        unp_series = Series.load('tmp1')
+        unp_ts = Series.load('tmp3')
         os.remove('tmp1')
         os.remove('tmp3')
-        self.assert_(isinstance(unPickledf, Series))
-        self.assert_(isinstance(unPickledh, Series))
-        self.assert_(common.equalContents(unPickledf, self.series))
-        self.assert_(common.equalContents(unPickledh, self.ts))
-        for idx in self.series.index:
-            self.assert_(idx in unPickledf.index)
-            self.assertEqual(unPickledf[idx], self.series[idx])
-        for idx in self.ts.index:
-            self.assert_(idx in unPickledh.index)
-            self.assertEqual(unPickledh[idx], self.ts[idx])
+        assert_series_equal(unp_series, self.series)
+        assert_series_equal(unp_ts, self.ts)
 
     def test_getitem_get(self):
         idx1 = self.series.index[5]

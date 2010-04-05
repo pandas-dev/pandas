@@ -1,5 +1,4 @@
-# pylint: disable-msg=E1101
-# pylint: disable-msg=E1103
+# pylint: disable-msg=E1101,E1103
 # pylint: disable-msg=W0212,W0231,W0703,W0622
 
 from cStringIO import StringIO
@@ -146,7 +145,7 @@ class DataFrame(Picklable, Groupable):
 
                 elif isinstance(v, dict):
                     if index is None:
-                        index = Index(sorted(v.keys()))
+                        index = Index(_try_sort(v))
                     elif need_labels:
                         raise Exception('Cannot mix Series / dict objects'
                                         ' with ndarray / sequence input')
@@ -195,9 +194,10 @@ class DataFrame(Picklable, Groupable):
     def __setstate__(self, state):
         series, idx = state
 
-        self.index = index = _unpickle_array(idx)
+        index = _unpickle_array(idx)
         self._series = dict((k, Series(v, index=index))
                             for k, v in series.iteritems())
+        self.index = index
 
     _index = None
     def _set_index(self, index):
@@ -205,6 +205,9 @@ class DataFrame(Picklable, Groupable):
             self._index = index
         else:
             self._index = Index(index)
+
+        for v in self._series.values():
+            v.index = self._index
 
     def _get_index(self):
         return self._index
@@ -535,7 +538,7 @@ class DataFrame(Picklable, Groupable):
         series = self._series
 
         if columns is None:
-            columns = sorted(series.keys())
+            columns = _try_sort(series)
         else:
             columns = [c for c in columns if c in self]
 
@@ -567,17 +570,18 @@ class DataFrame(Picklable, Groupable):
 
     def info(self, buffer=sys.stdout):
         """Concise summary of a DataFrame, used in __repr__ when very large."""
-        print >> buffer, 'Index: %s entries, %s to %s' % (len(self.index),
-                                                          min(self.index),
-                                                          max(self.index))
-        print >> buffer, 'Data columns:'
+        print >> buffer, 'Index: %s entries' % len(self.index),
+        if len(self.index) > 0:
+            print >> buffer, ', %s to %s' % (self.index[0], self.index[-1])
+        else:
+            print >> buffer, ''
 
         if len(self._series) == 0:
             print >> buffer, 'DataFrame is empty!'
             return
 
         series = self._series
-        columns = sorted(self.cols())
+        columns = _try_sort(self.cols())
         space = max([len(str(k)) for k in columns]) + 4
         for k in columns:
             out = _pfixed(k, space)
@@ -591,7 +595,7 @@ class DataFrame(Picklable, Groupable):
 
     def cols(self):
         """Return sorted list of frame's columns"""
-        return sorted(self._series.keys())
+        return _try_sort(self._series)
 
     # For DataMatrix compatibility
     columns = property(lambda self: Index(self.cols()))
@@ -1197,7 +1201,7 @@ class DataFrame(Picklable, Groupable):
             frame = self
 
         do_fill = fill_value is not None
-        unionCols = sorted(set(frame.cols() + other.cols()))
+        unionCols = _try_sort(set(frame.cols() + other.cols()))
 
         result = {}
         for col in unionCols:
@@ -1344,7 +1348,7 @@ class DataFrame(Picklable, Groupable):
         overlap = set(self.cols()) & set(other.cols())
 
         if overlap:
-            raise Exception('Columns overlap: %s' % sorted(overlap))
+            raise Exception('Columns overlap: %s' % _try_sort(overlap))
 
         if len(other.index) == 0:
             result = self.copy()
@@ -1387,7 +1391,7 @@ class DataFrame(Picklable, Groupable):
         """
         from pylab import plot
 
-        for col in sorted(self.columns):
+        for col in _try_sort(self.columns):
             s = self[col]
             plot(s.index, s, label=col)
 
@@ -1735,3 +1739,9 @@ class DataFrame(Picklable, Groupable):
 
         return Series(theSkew, index=self._get_agg_axis(axis))
 
+def _try_sort(iterable):
+    listed = list(iterable)
+    try:
+        return sorted(listed)
+    except Exception:
+        return listed

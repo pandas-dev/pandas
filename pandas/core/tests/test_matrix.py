@@ -1,3 +1,5 @@
+# pylint: disable-msg=W0612
+
 from datetime import datetime
 import unittest
 
@@ -37,6 +39,11 @@ class TestDataMatrix(test_frame.TestDataFrame):
 
         # corner, silly
         self.assertRaises(Exception, self.klass, (1, 2, 3))
+
+        # can't cast
+        mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
+        df = DataMatrix(mat, index=[0, 1], columns=[0], dtype=float)
+        self.assert_(df.values.dtype == np.object_)
 
     def test_constructor_with_objects(self):
         index = self.mixed_frame.index[:5]
@@ -143,6 +150,21 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm['A'] = 'bar'
         self.assertEqual('bar', dm['A'][0])
 
+        dm = DataMatrix(index=np.arange(3))
+        dm['A'] = 1
+        dm['foo'] = 'bar'
+        del dm['foo']
+        dm['foo'] = 'bar'
+        self.assertEqual(len(dm.objects.columns), 1)
+
+    def test_delitem_corner(self):
+        f = self.frame.copy()
+        del f['D']
+        self.assertEqual(len(f.columns), 3)
+        self.assertRaises(KeyError, f.__delitem__, 'D')
+        del f['B']
+        self.assertEqual(len(f.columns), 2)
+
     def test_shift_objects(self):
         tsf = self.tsframe.copy()
         tsf['foo'] = 'bar'
@@ -173,12 +195,20 @@ class TestDataMatrix(test_frame.TestDataFrame):
         # XXX
         obj_result = self.mixed_frame.objects.fill(value=0)
 
+	empty_float = self.frame.reindex(columns=[])
+        result = empty_float.fill(value=0)
+
     def test_count_objects(self):
         dm = DataMatrix(self.mixed_frame._series)
         df = DataFrame(self.mixed_frame._series)
 
         common.assert_series_equal(dm.count(), df.count())
         common.assert_series_equal(dm.count(1), df.count(1))
+
+    def test_cumsum_corner(self):
+        dm = DataMatrix(np.arange(20).reshape(4, 5),
+                        index=range(4), columns=range(5))
+        result = dm.cumsum()
 
 if __name__ == '__main__':
     unittest.main()

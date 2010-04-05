@@ -8,7 +8,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.common import _pfixed, _pickle_array, _unpickle_array
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame, _try_sort
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
 from pandas.lib.tseries import isnull, notnull
@@ -137,8 +137,8 @@ class DataMatrix(DataFrame):
                 objectDict[k] = v
 
         if columns is None:
-            columns = Index(sorted(valueDict))
-            objectColumns = Index(sorted(objectDict))
+            columns = Index(_try_sort(valueDict))
+            objectColumns = Index(_try_sort(objectDict))
         else:
             objectColumns = Index([c for c in columns if c in objectDict])
             columns = Index([c for c in columns if c not in objectDict])
@@ -527,18 +527,6 @@ class DataMatrix(DataFrame):
         if value.dtype not in self._dataTypes:
             isObject = True
 
-        if len(self.columns) == 0:
-            if isObject:
-                if self.objects is None:
-                    self.objects = DataMatrix({key : value},
-                                              index=self.index)
-                else:
-                    self.objects[key] = value
-            else:
-                self.values = value.reshape((len(value), 1)).copy()
-                self.columns = Index([key])
-            return
-
         if self.values.dtype == np.object_:
             if key in self.columns:
                 loc = self.columns.indexMap[key]
@@ -604,7 +592,7 @@ class DataMatrix(DataFrame):
         """
         if key in self.columns:
             loc = self.columns.indexMap[key]
-            if loc == self.values.shape[1]:
+            if loc == self.values.shape[1] - 1:
                 newValues = self.values[:, :loc]
                 newColumns = self.columns[:loc]
             else:
@@ -613,9 +601,11 @@ class DataMatrix(DataFrame):
                                                    self.columns[loc+1:])))
             self.values = newValues
             self.columns = newColumns
-
-        if self.objects is not None and key in self.objects:
-            del self.objects[key]
+        else:
+            if self.objects is not None and key in self.objects:
+                del self.objects[key]
+            else:
+                raise KeyError('%s' % key)
 
     def __iter__(self):
         """Iterate over columns of the frame."""
@@ -947,23 +937,22 @@ class DataMatrix(DataFrame):
 
         Returns
         -------
-        DataMatrix with NaN's filled
+        y : DataMatrix
 
         See also
         --------
-        reindex, asfreq
+        DataMatrix.reindex, DataMatrix.asfreq
         """
         if value is None:
             result = {}
-            for col in self._series:
-                series = self._series[col]
-                filledSeries = series.fill(method=method, value=value)
+            series = self._series
+            for col, s in series.iteritems():
+                result[col] = s.fill(method=method, value=value)
 
-                result[col] = filledSeries
             return DataMatrix(result, index=self.index, objects=self.objects)
         else:
-            gotFloat = isinstance(value, (int, float))
-            if gotFloat and self.values.dtype == np.float64:
+            if (isinstance(value, (int, float))
+                and self.values.dtype == np.float64):
                 # Float type values
                 if len(self.columns) == 0:
                     return self
@@ -971,13 +960,13 @@ class DataMatrix(DataFrame):
                 vals = self.values.copy()
                 vals.flat[isnull(vals.ravel())] = value
 
-                objectsToUse = None
+                objects = None
 
                 if self.objects is not None:
-                    objectsToUse = self.objects.copy()
+                    objects = self.objects.copy()
 
                 return DataMatrix(vals, index=self.index, columns=self.columns,
-                                  objects=objectsToUse)
+                                  objects=objects)
 
             else:
                 # Object type values
@@ -1019,7 +1008,7 @@ class DataMatrix(DataFrame):
 
         return result
 
-    def merge(self, other, on=None):
+    def merge(self, other, on=None, how='left'):
         """
         Merge DataFrame or DataMatrix with this one on some many-to-one index
 
@@ -1029,6 +1018,12 @@ class DataMatrix(DataFrame):
             Index should be similar to one of the columns in this one
         on : string
             Column name to use
+        how : {'left', 'right', 'outer', 'inner'}
+            How to handle indexes of the two objects.
+              * left: use calling frame's index
+              * right: use input frame's index
+              * outer: form union of indexes
+              * inner: use intersection of indexes
 
         Examples
         --------
@@ -1045,12 +1040,10 @@ class DataMatrix(DataFrame):
         if on not in self:
             raise Exception('%s column not contained in this frame!' % on)
 
-        otherM = other.values
-        indexMap = other.index.indexMap
+        fillVec, mask = tseries.getMergeVec(self[on],
+                                            other.index.indexMap)
 
-        fillVec, mask = tseries.getMergeVec(self[on], indexMap)
-
-        tmpMatrix = otherM.take(fillVec, axis=0)
+        tmpMatrix = other.values.take(fillVec, axis=0)
         tmpMatrix[-mask] = NaN
 
         seriesDict = dict((col, tmpMatrix[:, j])
@@ -1058,9 +1051,8 @@ class DataMatrix(DataFrame):
 
         if getattr(other, 'objects'):
             objects = other.objects
-            objM = objects.values
 
-            tmpMat = objM.take(fillVec, axis=0)
+            tmpMat = objects.values.take(fillVec, axis=0)
             tmpMat[-mask] = NaN
             objDict = dict((col, tmpMat[:, j])
                            for j, col in enumerate(objects.columns))
@@ -1070,6 +1062,67 @@ class DataMatrix(DataFrame):
         filledFrame = DataFrame(data=seriesDict, index=self.index)
 
         return self.leftJoin(filledFrame)
+
+    def leftJoin(self, *frames):
+        """
+        Insert columns of input DataFrames / dicts into this one.
+
+        Columns must not overlap. Returns a copy.
+
+        Parameters
+        ----------
+        *frames : list-like
+            List of frames (DataMatrix or DataFrame) as function arguments
+
+        Returns
+        -------
+        DataMatrix
+        """
+        unionCols = set(self.columns)
+        frames = list(frames)
+
+        for frame in frames:
+            cols = set(frame.columns)
+            if unionCols & cols:
+                raise Exception('Overlapping columns!')
+            unionCols |= cols
+
+        seriesDict = self._series
+
+        for frame in frames:
+            frame = frame.reindex(self.index)
+            seriesDict.update(frame._series)
+
+        return DataMatrix(seriesDict, index=self.index)
+
+    def outerJoin(self, *frames):
+        """
+        Form union of input frames.
+
+        Columns must not overlap. Returns a copy.
+
+        Parameters
+        ----------
+        *frames : list-like
+            List of frames (DataMatrix or DataFrame) as function arguments
+
+        Returns
+        -------
+        DataMatrix
+        """
+        mergedSeries = self._series.copy()
+
+        unionIndex = self.index
+        for frame in frames:
+            unionIndex  = unionIndex + frame.index
+
+        for frame in frames:
+            for col, series in frame.iteritems():
+                if col in mergedSeries:
+                    raise Exception('Overlapping columns!')
+                mergedSeries[col] = series
+
+        return DataMatrix(mergedSeries)
 
     def _reindex_index(self, index, method):
         if index is self.index:
@@ -1281,68 +1334,6 @@ class DataMatrix(DataFrame):
             return dm
         else:
             return super(DataMatrix, self).append(other)
-
-    def outerJoin(self, *frames):
-        """
-        Form union of input frames.
-
-        Columns must not overlap. Returns a copy.
-
-        Parameters
-        ----------
-        *frames : list-like
-            List of frames (DataMatrix or DataFrame) as function arguments
-
-        Returns
-        -------
-        DataMatrix
-        """
-        mergedSeries = self._series.copy()
-
-        unionIndex = self.index
-        for frame in frames:
-            unionIndex  = unionIndex + frame.index
-
-        for frame in frames:
-            for col, series in frame.iteritems():
-                if col in mergedSeries:
-                    raise Exception('Overlapping columns!')
-                mergedSeries[col] = series
-
-        return DataMatrix(mergedSeries)
-
-    def leftJoin(self, *frames):
-        """
-        Insert columns of input DataFrames / dicts into this one.
-
-        Columns must not overlap. Returns a copy.
-
-        Parameters
-        ----------
-        *frames : list-like
-            List of frames (DataMatrix or DataFrame) as function arguments
-
-        Returns
-        -------
-        DataMatrix
-        """
-
-        unionCols = set(self.columns)
-        frames = list(frames)
-
-        for frame in frames:
-            cols = set(frame.columns)
-            if unionCols & cols:
-                raise Exception('Overlapping columns!')
-            unionCols |= cols
-
-        seriesDict = self._series
-
-        for frame in frames:
-            frame = frame.reindex(self.index)
-            seriesDict.update(frame._series)
-
-        return DataMatrix(seriesDict, index=self.index)
 
 def _reorder_columns(mat, current, desired):
     fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,
