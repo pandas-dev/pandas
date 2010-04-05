@@ -108,49 +108,6 @@ def reindexObject(ndarray[object, ndim=1] index,
 
     return result
 
-cdef tuple _nofill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
-    cdef int *fillLocs
-    cdef char *mask
-
-
-
-
-
-
-
-    cdef int i, j, length, newLength
-
-    cdef flatiter iterold
-    cdef object idx
-    cdef ndarray fillVec
-    cdef ndarray maskVec
-
-    fillVec = <ndarray> np.empty(len(newIndex), dtype = np.int32)
-    maskVec = <ndarray> np.zeros(len(newIndex), dtype = np.int8)
-
-    fillLocs = <int *> fillVec.data
-    mask = <char *> maskVec.data
-
-    newLength = PyArray_SIZE(fillVec)
-
-    length = PyArray_SIZE(oldIndex)
-    iterold = <flatiter> PyArray_IterNew(oldIndex)
-
-    for i from 0 <= i < length:
-        idx = PyArray_GETITEM(oldIndex, PyArray_ITER_DATA(iterold))
-        if i < length - 1:
-           PyArray_ITER_NEXT(iterold)
-        if idx in newMap:
-            j = newMap[idx]
-            fillLocs[j] = i
-            mask[j] = 1
-
-    for i from 0 <= i < newLength:
-        if mask[i] == 0:
-            fillLocs[i] = -1
-
-    return fillVec, maskVec
-
 cdef tuple _backfill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
     '''
     Backfilling logic for generating fill vector
@@ -384,7 +341,7 @@ def getFillVec(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap,
                object kind):
 
     if kind == '':
-        fillVec, maskVec = _nofill(oldIndex, newIndex, oldMap, newMap)
+        fillVec, maskVec = getMergeVec(newIndex, oldMap)
     elif kind == 'PAD':
         fillVec, maskVec = _pad(oldIndex, newIndex, oldMap, newMap)
     elif kind == 'BACKFILL':
@@ -394,39 +351,33 @@ def getFillVec(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap,
 
     return fillVec, maskVec.astype(np.bool)
 
-def getMergeVec(ndarray values, dict indexMap):
-    cdef int *fillLocs
-    cdef char *mask
-    cdef int i, j, length
+@cython.boundscheck(False)
+def getMergeVec(ndarray values, dict oldMap):
+    cdef int i, j, length, newLength
 
-    cdef flatiter itervals
-    cdef object val
-    cdef ndarray fillVec
-    cdef ndarray maskVec
+    cdef flatiter iternew
+    cdef object idx
+    cdef ndarray[int32_t, ndim=1] fillLocs
+    cdef ndarray[int8_t, ndim=1] mask
 
-    cdef int newLength = len(values)
+    newLength = len(values)
+    fillLocs = np.empty(newLength, dtype=np.int32)
+    mask = np.zeros(newLength, dtype=np.int8)
 
-    fillVec = <ndarray> np.empty(newLength, dtype = np.int32)
-    maskVec = <ndarray> np.zeros(newLength, dtype = np.int8)
+    iternew = <flatiter> PyArray_IterNew(values)
 
-    fillLocs = <int *> fillVec.data
-    mask = <char *> maskVec.data
+    for i from 0 <= i < newLength:
+        idx = PyArray_GETITEM(values, PyArray_ITER_DATA(iternew))
 
-    length = PyArray_SIZE(values)
-    itervals = <flatiter> PyArray_IterNew(values)
-
-    for i from 0 <= i < length:
-        val = PyArray_GETITEM(values, PyArray_ITER_DATA(itervals))
-        if val in indexMap:
-            j = indexMap[val]
-            fillLocs[i] = j
+        if idx in oldMap:
+            fillLocs[i] = oldMap[idx]
             mask[i] = 1
 
-        PyArray_ITER_NEXT(itervals)
+        PyArray_ITER_NEXT(iternew)
 
     for i from 0 <= i < newLength:
         if mask[i] == 0:
             fillLocs[i] = -1
 
-    return fillVec, maskVec.astype(np.bool)
+    return fillLocs, mask.astype(bool)
 
