@@ -1,12 +1,10 @@
-# pylint: disable-msg=E1101
-# pylint: disable-msg=E1103
+# pylint: disable-msg=E1101,E1103
 
 from datetime import datetime
 
 import numpy as np
 
 from pandas.core.index import Index
-from pandas.lib.tseries import map_indices
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------

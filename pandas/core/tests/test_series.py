@@ -7,7 +7,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import (Index, Series, TimeSeries, DataFrame)
+from pandas.core.api import (Index, Series, TimeSeries, DataFrame, isnull)
 import pandas.core.datetools as datetools
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as common
@@ -603,6 +603,20 @@ class TestSeries(unittest.TestCase):
         reindexed = self.ts.reindex(list(self.ts.index))
         assert_series_equal(self.ts, reindexed)
 
+    def test_reindex_int(self):
+        ts = self.ts[::2]
+        int_ts = Series(np.zeros(len(ts), dtype=int), index=ts.index)
+
+        # this should work fine
+        reindexed_int = int_ts.reindex(self.ts.index)
+
+        # if NaNs introduced
+        self.assert_(reindexed_int.dtype == np.float_)
+
+        # NO NaNs introduced
+        reindexed_int = int_ts.reindex(int_ts.index[::2])
+        self.assert_(reindexed_int.dtype == np.int_)
+
     def test_reindex_bool(self):
 
         # A series other than float, int, string, or object
@@ -619,13 +633,12 @@ class TestSeries(unittest.TestCase):
         reindexed_bool = bool_ts.reindex(bool_ts.index[::2])
         self.assert_(reindexed_bool.dtype == np.bool_)
 
-    @np.testing.decorators.knownfailureif(True)
     def test_reindex_bool_pad(self):
         # fail
         ts = self.ts[5:]
         bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
         filled_bool = bool_ts.reindex(self.ts.index, fillMethod='pad')
-        self.assert_(filled_bool.dtype == np.object_)
+        self.assert_(isnull(filled_bool[:5]).all())
 
     def test_preserveRefs(self):
         sl = self.ts[5:10]
@@ -751,6 +764,33 @@ class TestSeries(unittest.TestCase):
         agged = grouped.aggregate({'one' : np.mean,
                                    'two' : np.std})
 
+        group_constants = {
+            0 : 10,
+            1 : 20,
+            2 : 30
+        }
+        agged = grouped.agg(lambda x: group_constants[x.groupName] + x.mean())
+        self.assertEqual(agged[1], 21)
+
+        # corner cases
+        self.assertRaises(Exception, grouped._aggregate_named,
+                          lambda x: x * 2)
+
+    def test_groupby_transform(self):
+        data = Series(np.arange(9) / 3, index=np.arange(9))
+
+        index = np.arange(9)
+        np.random.shuffle(index)
+        data = data.reindex(index)
+
+        grouped = data.groupby(lambda x: x // 3)
+
+        transformed = grouped.transform(lambda x: x * x.sum())
+        self.assertEqual(transformed[7], 12)
+
+        # corner cases
+        self.assertRaises(Exception, grouped.transform,
+                          lambda x: x.mean())
 
 if __name__ == '__main__':
     unittest.main()

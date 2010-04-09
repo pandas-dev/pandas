@@ -13,6 +13,11 @@ from pandas.core.api import (DateRange, Index, Series, DataFrame,
 N = 30
 K = 4
 
+def debug(f, *args, **kwargs):
+    from IPython.Debugger import Pdb
+    Pdb(color_scheme='Linux').set_trace()
+    return f(*args, **kwargs)
+
 def rands(n):
     choices = string.letters + string.digits
     return ''.join([random.choice(choices) for _ in xrange(n)])

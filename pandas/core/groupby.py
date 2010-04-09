@@ -1,43 +1,18 @@
 import numpy as np
 
-from cStringIO import StringIO
-
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
 from pandas.core.series import Series
-from pandas.lib.tseries import isnull
-
-def groupby_withnull(index, mapper):
-    index = np.asarray(index)
-    mapped_index = np.array([mapper(x) for x in index])
-
-    # A little hack here
-    if issubclass(mapped_index.dtype.type, basestring):
-        mapped_index = mapped_index.astype(object)
-
-    result = GroupDict()
-
-    mask = isnull(mapped_index)
-    nullkeys = index[mask]
-
-    if nullkeys is not None and len(nullkeys) > 0:
-        result[np.NaN] = nullkeys
-
-    notmask = -mask
-    index = index[notmask]
-    mapped_index = mapped_index[notmask]
-
-    for idx, key in zip(index, mapped_index):
-        result.setdefault(key, []).append(idx)
-
-    return result
+import pandas.lib.tseries as tseries
 
 class GroupDict(dict):
     def __repr__(self):
-        stringDict = dict((str(x), x) for x in self)
+        from cStringIO import StringIO
+
+        stringDict = dict([(str(x), x) for x in self])
         sortedKeys = sorted(stringDict)
 
-        maxLen = max(len(x) for x in stringDict)
+        maxLen = max([len(x) for x in stringDict])
 
         output = StringIO()
         output.write(str(self.__class__))
@@ -75,6 +50,7 @@ class GroupBy(object):
     DataFrame / DataMatrix (and derivatives thereof)
     """
     _groups = None
+    _group_indices = None
 
     def __init__(self, obj, grouper):
         self.obj = obj
@@ -85,9 +61,18 @@ class GroupBy(object):
     @property
     def groups(self):
         if self._groups is None:
-            self._groups = groupby_withnull(self.obj.index, self.grouper)
+            self._groups = tseries.groupby(self.obj.index, self.grouper,
+                                           output=GroupDict())
 
         return self._groups
+
+    @property
+    def group_indices(self):
+        if self._group_indices is None:
+            self._group_indices = tseries.groupby_indices(self.obj.index,
+                                                          self.grouper)
+
+        return self._group_indices
 
     def getGroup(self, groupList):
         return self.obj.reindex(groupList)
@@ -106,8 +91,7 @@ class GroupBy(object):
             groupNames = self.groups.keys()
 
         for groupName in groupNames:
-            groupList = self.groups[groupName]
-            yield groupName, self.getGroup(groupList)
+            yield groupName, self[groupName]
 
     def aggregate(self, func):
         raise NotImplementedError
@@ -142,46 +126,52 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
-        from pandas.lib.tseries import groupbyfunc
-
         if hasattr(applyfunc,'__iter__'):
-
-            if not isinstance(applyfunc, dict):
-                applyfunc = dict((func.__name__, func) for func in applyfunc)
-
-            results = {}
-
-            for name, func in applyfunc.iteritems():
-                result = self.aggregate(func)
-                results[name] = result
-
-            retVal = DataFrame(results)
+            retVal = self._aggregate_multiple(applyfunc)
         else:
             try:
-                result = groupbyfunc(self.obj.index, self.obj,
-                                     self.grouper, applyfunc)
+                result = self._aggregate_simple(applyfunc)
             except Exception:
-                result = {}
-                theUnion = set([])
-                for groupName, groupList in self.groups.iteritems():
-                    groupList = list(groupList)
-                    theUnion.update(groupList)
-                    grp = self.getGroup(groupList)
-                    grp.groupName = groupName
-                    output = applyfunc(grp)
-
-                    if isinstance(output, Series):
-                        raise Exception('Given applyfunc did not return a '
-                                        'value from the subseries as expected!')
-
-                    result[groupName] = output
-
-                for missingIdx in (self.obj.index - list(theUnion)):
-                    result[missingIdx] = np.nan
+                result = self._aggregate_named(applyfunc)
 
             retVal = Series(result)
 
         return retVal
+
+    def _aggregate_multiple(self, applyfunc):
+        if not isinstance(applyfunc, dict):
+            applyfunc = dict((func.__name__, func) for func in applyfunc)
+
+        results = {}
+
+        for name, func in applyfunc.iteritems():
+            result = self.aggregate(func)
+            results[name] = result
+
+        return DataFrame(results)
+
+    def _aggregate_simple(self, applyfunc):
+        values = self.obj.values()
+        result = {}
+        for k, v in self.group_indices.iteritems():
+            result[k] = applyfunc(values.take(v))
+
+        return result
+
+    def _aggregate_named(self, applyfunc):
+        result = {}
+        for groupName in self.groups:
+            grp = self[groupName]
+            grp.groupName = groupName
+            output = applyfunc(grp)
+
+            if isinstance(output, Series):
+                raise Exception('Given applyfunc did not return a '
+                                'value from the subseries as expected!')
+
+            result[groupName] = output
+
+        return result
 
     def transform(self, applyfunc):
         """
@@ -215,7 +205,7 @@ class SeriesGroupBy(GroupBy):
         """
 
         result = {}
-        for val, subseries in iter(self):
+        for val, subseries in self:
             subseries.groupName = val
             result[val] = applyfunc(subseries)
 
@@ -257,14 +247,9 @@ class DataFrameGroupBy(GroupBy):
         Optional: provide set mapping as dictionary
         """
         result = {}
-        theUnion = set([])
-        for val, group in self.groups.iteritems():
-            groupList = list(group)
-            theUnion.update(groupList)
-            result[val] = self.getGroup(groupList).apply(applyfunc)
-            assert(isinstance(result[val], Series))
-        for missingIdx in (set(self.obj.index) - theUnion):
-            result[missingIdx] = np.repeat(np.nan, len(self.obj.cols()))
+        for groupName in self.groups:
+            result[groupName] = self[groupName].apply(applyfunc)
+            assert(isinstance(result[groupName], Series))
 
         return DataFrame(data=result).T
 
@@ -330,15 +315,9 @@ class DataMatrixGroupBy(DataFrameGroupBy):
             Function to use to aggregate each group
         """
         result = {}
-        theUnion = set([])
-        for val, group in self.groups.iteritems():
-            groupList = list(group)
-            theUnion.update(groupList)
-            result[val] = self.getGroup(groupList).apply(applyfunc)
-            assert(isinstance(result[val], Series))
-        for missingIdx in (set(self.obj.index) - theUnion):
-            result[missingIdx] = np.repeat(np.nan, len(self.obj.cols()))
-
+        for groupName in self.groups:
+            result[groupName] = self[groupName].apply(applyfunc)
+            assert(isinstance(result[groupName], Series))
         return DataMatrix(data=result).T
 
     def transform(self, applyfunc):

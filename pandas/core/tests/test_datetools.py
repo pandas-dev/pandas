@@ -3,10 +3,9 @@ import unittest
 
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
-    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second)
-
-from pandas.core.daterange import XDateRange, DateRange
-import pandas.core.datetools as datetools
+    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
+    format, ole2datetime, to_datetime, normalize_date,
+    getOffset, getOffsetName, inferTimeRule, hasOffsetName)
 
 from nose.tools import assert_raises
 
@@ -14,28 +13,28 @@ from nose.tools import assert_raises
 ## Misc function tests
 ####
 def test_format():
-    actual = datetools.format(datetime(2008, 1, 15))
+    actual = format(datetime(2008, 1, 15))
     assert actual == '20080115'
 
 def test_ole2datetime():
-    actual = datetools.ole2datetime(60000)
+    actual = ole2datetime(60000)
     assert actual == datetime(2064, 4, 8)
 
-    assert_raises(Exception, datetools.ole2datetime, 60)
+    assert_raises(Exception, ole2datetime, 60)
 
 def test_to_datetime1():
-    actual = datetools.to_datetime(datetime(2008, 1, 15))
+    actual = to_datetime(datetime(2008, 1, 15))
     assert actual == datetime(2008, 1, 15)
 
-    actual = datetools.to_datetime('20080115')
+    actual = to_datetime('20080115')
     assert actual == datetime(2008, 1, 15)
 
     # unparseable
     s = 'Month 1, 1999'
-    assert datetools.to_datetime(s) == s
+    assert to_datetime(s) == s
 
 def test_normalize_date():
-    actual = datetools.normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
+    actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
     assert actual == datetime(2007, 10, 1)
 
 #####
@@ -210,7 +209,7 @@ class TestWeek(unittest.TestCase):
     def test_offset(self):
         tests = []
 
-        tests.append((datetools.week, # not business week
+        tests.append((Week(), # not business week
                       {datetime(2008, 1, 1): datetime(2008, 1, 8),
                        datetime(2008, 1, 4): datetime(2008, 1, 11),
                        datetime(2008, 1, 5): datetime(2008, 1, 12),
@@ -230,6 +229,11 @@ class TestWeek(unittest.TestCase):
                        datetime(2008, 1, 5): datetime(2008, 1, 7),
                        datetime(2008, 1, 6): datetime(2008, 1, 7),
                        datetime(2008, 1, 7): datetime(2008, 1, 7)}))
+
+        tests.append((Week(-2, weekday=1), # n=0 -> roll forward. Mon
+                      {datetime(2010, 4, 6): datetime(2010, 3, 23),
+                       datetime(2010, 4, 8): datetime(2010, 3, 30),
+                       datetime(2010, 4, 5): datetime(2010, 3, 23)}))
 
         for dateOffset, cases in tests:
             for baseDate, expected in cases.iteritems():
@@ -507,14 +511,14 @@ class TestYearBegin(unittest.TestCase):
     def test_offset(self):
         tests = []
 
-        tests.append((datetools.YearBegin(),
+        tests.append((YearBegin(),
                       {datetime(2008, 1, 1): datetime(2009, 1, 1),
                        datetime(2008, 6, 30): datetime(2009, 1, 1),
                        datetime(2008, 12, 31): datetime(2009, 1, 1),
                        datetime(2005, 12, 30): datetime(2006, 1, 1),
                        datetime(2005, 12, 31): datetime(2006, 1, 1),}))
 
-        tests.append((datetools.YearBegin(0),
+        tests.append((YearBegin(0),
                       {datetime(2008, 1, 1): datetime(2008, 1, 1),
                        datetime(2008, 6, 30): datetime(2009, 1, 1),
                        datetime(2008, 12, 31): datetime(2009, 1, 1),
@@ -522,7 +526,7 @@ class TestYearBegin(unittest.TestCase):
                        datetime(2005, 12, 31): datetime(2006, 1, 1),}))
 
 
-        tests.append((datetools.YearBegin(-1),
+        tests.append((YearBegin(-1),
                       {datetime(2007, 1, 1): datetime(2006, 1, 1),
                        datetime(2008, 6, 30): datetime(2008, 1, 1),
                        datetime(2008, 12, 31): datetime(2008, 1, 1),
@@ -530,7 +534,7 @@ class TestYearBegin(unittest.TestCase):
                        datetime(2006, 12, 30): datetime(2006, 1, 1),
                        datetime(2007, 1, 1): datetime(2006, 1, 1),}))
 
-        tests.append((datetools.YearBegin(-2),
+        tests.append((YearBegin(-2),
                       {datetime(2007, 1, 1): datetime(2005, 1, 1),
                        datetime(2008, 6, 30): datetime(2007, 1, 1),
                        datetime(2008, 12, 31): datetime(2007, 1, 1),}))
@@ -718,72 +722,36 @@ def test_inferTimeRule():
               datetime(2010, 3, 27, 0, 0),
               datetime(2010, 3, 29, 0, 0)]
 
-    assert datetools.inferTimeRule(index1) == 'EOM'
-    assert datetools.inferTimeRule(index2) == 'WEEKDAY'
+    assert inferTimeRule(index1) == 'EOM'
+    assert inferTimeRule(index2) == 'WEEKDAY'
 
-    assert_raises(Exception, datetools.inferTimeRule, index1[:2])
-    assert_raises(Exception, datetools.inferTimeRule, index3)
+    assert_raises(Exception, inferTimeRule, index1[:2])
+    assert_raises(Exception, inferTimeRule, index3)
 
 def test_hasOffsetName():
-    assert datetools.hasOffsetName(BDay())
-    assert not datetools.hasOffsetName(BDay(2))
+    assert hasOffsetName(BDay())
+    assert not hasOffsetName(BDay(2))
 
 def test_getOffsetName():
-    assert_raises(Exception, datetools.getOffsetName, BDay(2))
+    assert_raises(Exception, getOffsetName, BDay(2))
 
-    assert datetools.getOffsetName(BDay()) == 'WEEKDAY'
-    assert datetools.getOffsetName(BMonthEnd()) == 'EOM'
-    assert datetools.getOffsetName(Week(weekday=0)) == 'W@MON'
-    assert datetools.getOffsetName(Week(weekday=1)) == 'W@TUE'
-    assert datetools.getOffsetName(Week(weekday=2)) == 'W@WED'
-    assert datetools.getOffsetName(Week(weekday=3)) == 'W@THU'
-    assert datetools.getOffsetName(Week(weekday=4)) == 'W@FRI'
+    assert getOffsetName(BDay()) == 'WEEKDAY'
+    assert getOffsetName(BMonthEnd()) == 'EOM'
+    assert getOffsetName(Week(weekday=0)) == 'W@MON'
+    assert getOffsetName(Week(weekday=1)) == 'W@TUE'
+    assert getOffsetName(Week(weekday=2)) == 'W@WED'
+    assert getOffsetName(Week(weekday=3)) == 'W@THU'
+    assert getOffsetName(Week(weekday=4)) == 'W@FRI'
 
 
 def test_getOffset():
-    assert_raises(Exception, datetools.getOffset, 'gibberish')
+    assert_raises(Exception, getOffset, 'gibberish')
 
-    assert datetools.getOffset('WEEKDAY') == BDay()
-    assert datetools.getOffset('EOM') == BMonthEnd()
-    assert datetools.getOffset('W@MON') == Week(weekday=0)
-    assert datetools.getOffset('W@TUE') == Week(weekday=1)
-    assert datetools.getOffset('W@WED') == Week(weekday=2)
-    assert datetools.getOffset('W@THU') == Week(weekday=3)
-    assert datetools.getOffset('W@FRI') == Week(weekday=4)
+    assert getOffset('WEEKDAY') == BDay()
+    assert getOffset('EOM') == BMonthEnd()
+    assert getOffset('W@MON') == Week(weekday=0)
+    assert getOffset('W@TUE') == Week(weekday=1)
+    assert getOffset('W@WED') == Week(weekday=2)
+    assert getOffset('W@THU') == Week(weekday=3)
+    assert getOffset('W@FRI') == Week(weekday=4)
 
-####
-## XDateRange Tests
-####
-def eqXDateRange(kwargs, expected):
-    actual = list(XDateRange(**kwargs))
-    assert actual == expected
-
-def testXDateRange1():
-    eqXDateRange(dict(fromDate = datetime(2009, 3, 25),
-                      nPeriods = 2),
-                 [datetime(2009, 3, 25), datetime(2009, 3, 26)])
-
-def testXDateRange2():
-    eqXDateRange(dict(fromDate = datetime(2008, 1, 1),
-                      toDate = datetime(2008, 1, 3)),
-                 [datetime(2008, 1, 1),
-                  datetime(2008, 1, 2),
-                  datetime(2008, 1, 3)])
-
-def testXDateRange3():
-    eqXDateRange(dict(fromDate = datetime(2008, 1, 5),
-                      toDate = datetime(2008, 1, 6)),
-                 [])
-
-
-
-# DateRange test
-
-def testDateRange1():
-    toDate = datetime(2009, 5, 13)
-    dr = DateRange(toDate=toDate, periods=20)
-    firstDate = toDate - 19 * bday
-
-    assert len(dr) == 20
-    assert dr[0] == firstDate
-    assert dr[-1] == toDate

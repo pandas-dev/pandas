@@ -1,113 +1,4 @@
 
-def reindex(ndarray index, ndarray arr, dict idxMap):
-    '''
-    Using the provided new index, a given array, and a mapping of index-value
-    correpondences in the value array, return a new ndarray conforming to
-    the new index.
-
-    This is significantly faster than doing it in pure Python.
-    '''
-    cdef ndarray result
-    cdef double *result_data
-    cdef int i, length
-    cdef flatiter itera, iteridx
-    cdef double nan
-    cdef object idx
-
-    nan = <double> np.NaN
-
-    length = PyArray_SIZE(index)
-
-    result = <ndarray> np.empty(length, np.float64)
-
-    result_data = <double *> result.data
-
-    itera = <flatiter> PyArray_IterNew(arr)
-    iteridx = <flatiter> PyArray_IterNew(index)
-
-    for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iteridx))
-        PyArray_ITER_NEXT(iteridx)
-        if idx not in idxMap:
-            result_data[i] = nan
-            continue
-        PyArray_ITER_GOTO1D(itera, idxMap[idx])
-        result_data[i] = (<double *>PyArray_ITER_DATA(itera))[0]
-
-    return result
-
-def reindexObj(ndarray index, ndarray arr, dict idxMap):
-    '''
-    Using the provided new index, a given array, and a mapping of index-value
-    correpondences in the value array, return a new ndarray conforming to
-    the new index.
-
-    This is significantly faster than doing it in pure Python.
-    '''
-    cdef ndarray result
-    cdef int i, length
-    cdef flatiter itera, iteridx, iterresult
-    cdef object idx, nan, obj
-
-    nan = np.NaN
-    length = PyArray_SIZE(index)
-
-    result = <ndarray> np.empty(length, dtype=np.object_)
-
-    itera = <flatiter> PyArray_IterNew(arr)
-    iteridx = <flatiter> PyArray_IterNew(index)
-    iterresult = <flatiter> PyArray_IterNew(result)
-
-    cdef int res
-
-    for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iteridx))
-        PyArray_ITER_NEXT(iteridx)
-
-        if idx not in idxMap:
-            PyArray_SETITEM(result, PyArray_ITER_DATA(iterresult), nan)
-            PyArray_ITER_NEXT(iterresult)
-            continue
-
-        PyArray_ITER_GOTO1D(itera, idxMap[idx])
-        obj = PyArray_GETITEM(arr, PyArray_ITER_DATA(itera))
-
-        res = PyArray_SETITEM(result, PyArray_ITER_DATA(iterresult), obj)
-        PyArray_ITER_NEXT(iterresult)
-
-    return result
-
-@cython.boundscheck(False)
-def reindexObject(ndarray[object, ndim=1] index,
-                  ndarray[object, ndim=1] arr,
-                  dict idxMap):
-    '''
-    Using the provided new index, a given array, and a mapping of index-value
-    correpondences in the value array, return a new ndarray conforming to
-    the new index.
-
-    Returns
-    -------
-    ndarray
-    '''
-    cdef ndarray[object, ndim = 1] result
-    cdef int i, loc, length
-    cdef object idx, value
-    cdef object nan = np.NaN
-
-    length = index.shape[0]
-    result = np.empty(length, dtype=object)
-
-    for i from 0 <= i < length:
-        idx = index[i]
-        if idx not in idxMap:
-            result[i] = nan
-            continue
-
-        result[i] = arr[idxMap[idx]]
-
-    return result
-
 cdef tuple _backfill(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
     '''
     Backfilling logic for generating fill vector
@@ -340,7 +231,7 @@ cdef tuple _pad(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap):
 def getFillVec(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap,
                object kind):
 
-    if kind == '':
+    if kind is None:
         fillVec, maskVec = getMergeVec(newIndex, oldMap)
     elif kind == 'PAD':
         fillVec, maskVec = _pad(oldIndex, newIndex, oldMap, newMap)

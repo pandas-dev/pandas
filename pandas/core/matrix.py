@@ -1162,18 +1162,21 @@ class DataMatrix(DataFrame):
             object_columns = columns.intersection(self.objects.columns)
             columns = columns - object_columns
 
+            objects = self.objects._reindex_columns(object_columns)
+        else:
+            objects = None
+
+        if len(columns) > 0 and len(self.columns) == 0:
+            return DataMatrix(index=self.index, columns=columns,
+                              objects=objects)
+
         indexer, mask = tseries.getFillVec(self.columns, columns,
                                            self.columns.indexMap,
-                                           columns.indexMap, '')
+                                           columns.indexMap, None)
 
         newValues = self.values.take(indexer, axis=1)
         if len(mask) > 0:
             newValues[:, -mask] = NaN
-
-        if self.objects is not None:
-            objects = self.objects._reindex_columns(object_columns)
-        else:
-            objects = None
 
         return DataMatrix(newValues, index=self.index, columns=columns,
                           objects=objects)
@@ -1337,7 +1340,7 @@ class DataMatrix(DataFrame):
 
 def _reorder_columns(mat, current, desired):
     fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,
-                                       desired.indexMap, '')
+                                       desired.indexMap, None)
 
     fillVec = fillVec[mask]
 

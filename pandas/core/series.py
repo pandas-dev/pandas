@@ -2,11 +2,11 @@
 Data structure for 1-dimensional cross-sectional and time series data
 """
 
-# pylint: disable-msg=E1101
-# pylint: disable-msg=E1103
+# pylint: disable-msg=E1101,E1103
 # pylint: disable-msg=W0703
 
 import itertools
+import sys
 
 from numpy import NaN, ndarray
 import numpy as np
@@ -314,6 +314,10 @@ class Series(np.ndarray, Picklable, Groupable):
         else:
             return '%s' % ndarray.__repr__(self)
 
+    def toString(self, buffer=sys.stdout, nanRep='NaN'):
+        print >> buffer, _seriesRepr(self.index, self.values(),
+                                     nanRep=nanRep)
+
     def __str__(self):
         return repr(self)
 
@@ -412,7 +416,7 @@ class Series(np.ndarray, Picklable, Groupable):
         y = np.array(self.values())
         mask = notnull(y)
         count = mask.sum()
-        y[-mask] = 0
+        np.putmask(y, -mask, 0)
 
         A = y.sum() / count
         B = (y**2).sum() / count  - A**2
@@ -817,8 +821,8 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         TimeSeries
         """
-        before = arg_before = datetools.to_datetime(before)
-        after = arg_after = datetools.to_datetime(after)
+        before = datetools.to_datetime(before)
+        after = datetools.to_datetime(after)
 
         if before is None:
             beg_slice = 0
@@ -993,7 +997,7 @@ class Series(np.ndarray, Picklable, Groupable):
         fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)
 
         newValues = other.view(np.ndarray).take(fillVec)
-        newValues[-mask] = np.nan
+        np.putmask(newValues, -mask, np.nan)
 
         newSer = Series(newValues, index=self.index)
         return newSer
@@ -1022,40 +1026,31 @@ class Series(np.ndarray, Picklable, Groupable):
         if not isinstance(newIndex, Index):
             newIndex = Index(newIndex)
 
-        if fillMethod is None:
-            idxMap = self.index.indexMap
-
-            if self.dtype == float:
-                vals = tseries.reindex(newIndex, self, idxMap)
-            elif self.dtype == int:
-                # This could be unsafe, but NaN will not work in int arrays.
-                vals = tseries.reindex(newIndex, self.astype(float), idxMap)
-            else:
-                if self.dtype.type == np.object_:
-                    vals = tseries.reindexObj(newIndex, self, idxMap)
-                else:
-                    thisVals = self.values().astype(object)
-                    vals = tseries.reindexObj(newIndex, thisVals, idxMap)
-
-                    if not isnull(vals).any():
-                        vals = vals.astype(self.dtype)
-
-            return self.__class__(vals, index=newIndex)
-
         if len(self.index) == 0:
             return self.__class__.fromValue(NaN, index=newIndex)
 
-        oldMap = self.index.indexMap
-        newMap = newIndex.indexMap
-
-        fillMethod = fillMethod.upper()
+        if fillMethod is not None:
+            fillMethod = fillMethod.upper()
 
         # Cython for blazing speed
-        fillVec, mask = tseries.getFillVec(self.index, newIndex, oldMap,
-                                           newMap, kind=fillMethod)
+        fillVec, mask = tseries.getFillVec(self.index, newIndex,
+                                           self.index.indexMap,
+                                           newIndex.indexMap,
+                                           kind=fillMethod)
 
         newValues = self.values().take(fillVec)
-        newValues[-mask] = NaN
+
+        notmask = -mask
+        if issubclass(newValues.dtype.type, np.int_):
+            if notmask.any():
+                newValues = newValues.astype(float)
+                np.putmask(newValues, notmask, NaN)
+        elif issubclass(newValues.dtype.type, np.bool_):
+            if notmask.any():
+                newValues = newValues.astype(object)
+                np.putmask(newValues, notmask, NaN)
+        else:
+            np.putmask(newValues, notmask, NaN)
 
         return self.__class__(newValues, index=newIndex)
 
@@ -1097,9 +1092,9 @@ def remove_na(arr):
     """
     return arr[notnull(arr)]
 
-def _seriesRepr(index, vals):
+def _seriesRepr(index, vals, nanRep='NaN'):
     string_index = [str(x) for x in index]
-    maxlen = max(map(len, string_index))
+    maxlen = max(len(x) for x in string_index)
     padSpace = min(maxlen, 60)
 
     if vals.dtype == np.object_:
@@ -1108,7 +1103,7 @@ def _seriesRepr(index, vals):
     else:
         def _format(k, v):
             if isnull(v):
-                v = 'NaN'
+                v = nanRep
             else:
                 v = str(v)
 

@@ -60,8 +60,8 @@ class PanelOLS(OLS):
         For example, if you have a panel data with countries over time and you suspect that:
 
         1. Countries are correlated - use 'time'
-        2. There is autocorrelation - use 'entity' 
-        
+        2. There is autocorrelation - use 'entity'
+
     """
     def __init__(self, y, x, weights=None,
                  intercept=True, nw_lags=None, entity_effects=False,
@@ -156,7 +156,7 @@ class PanelOLS(OLS):
             data, cat_mapping = self._convert_x(data)
 
             if not isinstance(data, WidePanel):
-                data = WidePanel.fromDict(data)
+                data = WidePanel.fromDict(data, intersect=True)
 
         x_names = data.items
 
@@ -596,7 +596,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         For example, if you have a panel data with countries over time and you suspect that:
 
         1. Countries are correlated - use 'time'
-        2. There is autocorrelation - use 'entity' 
+        2. There is autocorrelation - use 'entity'
     """
     def __init__(self, y, x, weights=None,
                  window_type='expanding', window=None,

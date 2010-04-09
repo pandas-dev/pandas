@@ -129,7 +129,7 @@ class Index(np.ndarray):
         return date
 
     def sort(self, *args, **kwargs):
-        raise Exception('Tried to sort an Index object, too dangerous to be OK!')
+        raise Exception('Cannot sort an Index object')
 
     def argsort(self, *args, **kwargs):
         return self.view(np.ndarray).argsort(*args, **kwargs)

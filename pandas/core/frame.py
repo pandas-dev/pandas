@@ -71,16 +71,23 @@ class DataFrame(Picklable, Groupable):
             self._series, self.index = self._initDict(data, index,
                                                       columns, dtype)
 
-        elif isinstance(data, np.ndarray):
-            if columns is None:
-                raise Exception('Must pass column names with ndarray!')
-            if index is None:
-                raise Exception('Must pass index with ndarray!')
+        elif isinstance(data, (np.ndarray, list)):
+            if not isinstance(data, np.ndarray):
+                arr = np.array(data)
+                if issubclass(arr.dtype.type, basestring):
+                    arr = np.array(data, dtype=object, copy=True)
+
+                data = arr
 
             if data.ndim == 1:
                 data = data.reshape((len(data), 1))
             elif data.ndim != 2:
                 raise Exception('Must pass 2-d input!')
+
+            if columns is None:
+                raise Exception('Must pass column names with array!')
+            if index is None:
+                raise Exception('Must pass index with array!')
 
             self._series, self.index = self._initMatrix(data, index,
                                                         columns, dtype)
@@ -882,8 +889,6 @@ class DataFrame(Picklable, Groupable):
         """
         if fillMethod:
             fillMethod = fillMethod.upper()
-        else:
-            fillMethod = ''
 
         frame = self
 

@@ -6,7 +6,7 @@ import unittest
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import Series, DataMatrix, DataFrame
+from pandas.core.api import Index, Series, DataMatrix, DataFrame
 
 import pandas.util.testing as common
 import test_frame
@@ -183,6 +183,12 @@ class TestDataMatrix(test_frame.TestDataFrame):
 
         reindexed = self.mixed_frame.reindex(columns=['A', 'B'])
         self.assert_('foo' not in reindexed)
+
+    def test_reindex_corner(self):
+        index = Index(['a', 'b', 'c'])
+        dm = self.empty.reindex(index=[1, 2, 3])
+        reindexed = dm.reindex(columns=index)
+        self.assert_(reindexed.columns.equals(index))
 
     def test_fill_corner(self):
         self.mixed_frame['foo'][5:20] = np.NaN

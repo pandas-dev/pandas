@@ -195,7 +195,7 @@ class WidePanel(Panel):
                          self.minor_axis)
 
     @classmethod
-    def fromDict(cls, data, intersect=True, dtype=float):
+    def fromDict(cls, data, intersect=False, dtype=float):
         """
         Construct WidePanel from dict of DataFrame objects
 
@@ -676,6 +676,8 @@ class WidePanel(Panel):
         return self._wrap_result(result, axis=axis)
 
     def _values_aggregate(self, func, axis, fill_value):
+        axis = self._get_axis_number(axis)
+
         values = self.values
         mask = np.isfinite(values)
 
@@ -687,6 +689,23 @@ class WidePanel(Panel):
         count = mask.sum(axis=axis)
 
         result[count == 0] = np.NaN
+
+        return result
+
+    def _values_accum(self, func, axis, fill_value):
+        axis = self._get_axis_number(axis)
+
+        values = self.values
+        mask = np.isfinite(values)
+
+        if fill_value is not None:
+            values = values.copy()
+            values[-mask] = fill_value
+
+        result = func(values, axis=axis)
+
+        if fill_value is not None:
+            result[-mask] = np.NaN
 
         return result
 
@@ -704,10 +723,22 @@ class WidePanel(Panel):
         -------
         y : DataMatrix
         """
-        i = self._get_axis_number(axis)
-
-        result = self._values_aggregate(func, i, fill_value)
+        result = self._values_aggregate(func, axis, fill_value)
         return self._wrap_result(result, axis=axis)
+
+    def _wrap_result(self, result, axis):
+        axis = self._get_axis_name(axis)
+
+        if result.ndim == 2:
+            index, columns = self._get_plane_axes(axis)
+
+            if axis != 'items':
+                result = result.T
+
+            return DataMatrix(result, index=index, columns=columns)
+        else:
+            return WidePanel(result, self.items, self.major_axis,
+                             self.minor_axis)
 
     def count(self, axis='major'):
         """
@@ -741,7 +772,8 @@ class WidePanel(Panel):
         -------
         y : WidePanel
         """
-        return self._array_method(np.cumsum, axis=axis, fill_value=0)
+        result = self._values_accum(np.cumsum, axis=axis, fill_value=0)
+        return self._wrap_result(result, axis)
 
     def mean(self, axis='major'):
         """
@@ -858,20 +890,6 @@ class WidePanel(Panel):
         result[result == fill_value] = np.NaN
 
         return self._wrap_result(result, axis)
-
-    def _wrap_result(self, result, axis):
-        axis = self._get_axis_name(axis)
-
-        if result.ndim == 2:
-            index, columns = self._get_plane_axes(axis)
-
-            if axis != 'items':
-                result = result.T
-
-            return DataMatrix(result, index=index, columns=columns)
-        else:
-            return WidePanel(result, self.items, self.major_axis,
-                             self.minor_axis)
 
     def shift(self, lags, axis='major'):
         """
@@ -1774,13 +1792,8 @@ class Factor(object):
             return Factor(new_labels, self.levels)
 
 def _get_indexer(source, target, fill_method):
-    if not fill_method:
-        fill_method = ''
-
-    fill_method = fill_method.upper()
-
-    if fill_method not in ['BACKFILL', 'PAD', '']:
-        raise Exception("Don't recognize fill_method: %s" % fill_method)
+    if fill_method:
+        fill_method = fill_method.upper()
 
     indexer, mask = tseries.getFillVec(source, target, source.indexMap,
                                        target.indexMap, fill_method)

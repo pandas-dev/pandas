@@ -8,8 +8,8 @@ import unittest
 from numpy import random
 import numpy as np
 
-from pandas.core.api import DataFrame, Index, Series, notnull
 import pandas.core.datetools as datetools
+from pandas.core.api import DataFrame, Index, Series, notnull
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -173,6 +173,9 @@ class TestDataFrame(unittest.TestCase):
         # have to pass columns and index
         self.assertRaises(Exception, self.klass, mat, index=[1])
         self.assertRaises(Exception, self.klass, mat, columns=['A', 'B', 'C'])
+
+        # weird case that used to succeed
+        self.assertRaises(Exception, self.klass, [], [])
 
     def test_pickle(self):
         import cPickle as pickle
@@ -893,6 +896,13 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(len(aggregated), 5)
         self.assertEqual(len(aggregated.cols()), 4)
 
+        # by string
+        tscopy = self.tsframe.copy()
+        tscopy['weekday'] = [x.weekday() for x in tscopy.index]
+        stragged = tscopy.groupby('weekday').aggregate(np.mean)
+        del stragged['weekday']
+        assert_frame_equal(stragged, aggregated)
+
         # transform
         transformed = grouped.transform(lambda x: x - x.mean())
         self.assertEqual(len(aggregated), 5)
@@ -1105,7 +1115,10 @@ class TestDataFrame(unittest.TestCase):
         self._check_statistic(self.frame, 'sum', f)
 
     def test_sum_object(self):
-        deltas = self.frame.apply(lambda x: x.astype(int)) * timedelta(1)
+        values = self.frame.values.astype(int)
+        frame = self.klass(values, index=self.frame.index,
+                           columns=self.frame.cols())
+        deltas = frame * timedelta(1)
         deltas.sum()
 
     def test_product(self):
