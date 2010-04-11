@@ -72,23 +72,6 @@ class DataFrame(Picklable, Groupable):
                                                       columns, dtype)
 
         elif isinstance(data, (np.ndarray, list)):
-            if not isinstance(data, np.ndarray):
-                arr = np.array(data)
-                if issubclass(arr.dtype.type, basestring):
-                    arr = np.array(data, dtype=object, copy=True)
-
-                data = arr
-
-            if data.ndim == 1:
-                data = data.reshape((len(data), 1))
-            elif data.ndim != 2:
-                raise Exception('Must pass 2-d input!')
-
-            if columns is None:
-                raise Exception('Must pass column names with array!')
-            if index is None:
-                raise Exception('Must pass index with array!')
-
             self._series, self.index = self._initMatrix(data, index,
                                                         columns, dtype)
 
@@ -176,6 +159,23 @@ class DataFrame(Picklable, Groupable):
         return index
 
     def _initMatrix(self, data, index, columns, dtype):
+        if not isinstance(data, np.ndarray):
+            arr = np.array(data)
+            if issubclass(arr.dtype.type, basestring):
+                arr = np.array(data, dtype=object, copy=True)
+
+            data = arr
+
+        if data.ndim == 1:
+            data = data.reshape((len(data), 1))
+        elif data.ndim != 2:
+            raise Exception('Must pass 2-d input!')
+
+        if columns is None:
+            raise Exception('Must pass column names')
+        if index is None:
+            raise Exception('Must pass index')
+
         N, K = data.shape
 
         if len(index) != N:

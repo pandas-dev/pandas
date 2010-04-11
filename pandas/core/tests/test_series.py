@@ -189,6 +189,10 @@ class TestSeries(unittest.TestCase):
         self.series[5:7] = np.NaN
         str(self.series)
 
+    def test_toString(self):
+        from cStringIO import StringIO
+        self.ts.toString(buffer=StringIO())
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])

@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,E1103
 
 from datetime import datetime
+import operator
 
 import numpy as np
 
@@ -40,7 +41,7 @@ class XDateRange(object):
     _cacheStart = {}
     _cacheEnd = {}
     def __init__(self, fromDate=None, toDate=None, nPeriods=None,
-                 offset = datetools.BDay(), timeRule=None):
+                 offset=datetools.BDay(), timeRule=None):
 
         if timeRule is not None:
             offset = datetools.getOffset(timeRule)
@@ -87,15 +88,14 @@ class XDateRange(object):
 CACHE_START = datetime(1950, 1, 1)
 CACHE_END   = datetime(2030, 1, 1)
 
-def _getIndexLoc(index, date):
-    if date in index.indexMap:
-        return index.indexMap[date]
-    else:
-        asOf = index.asOfDate(date)
-        return index.indexMap[asOf] + 1
-
 #-------------------------------------------------------------------------------
 # DateRange class
+
+def _bin_op(op):
+    def f(self, other):
+        return op(self.view(np.ndarray), other)
+
+    return f
 
 class DateRange(Index):
     """
@@ -117,6 +117,7 @@ class DateRange(Index):
     timeRule : timeRule to use
     """
     _cache = {}
+    _parent = None
     def __new__(cls, fromDate=None, toDate=None, periods=None,
                 offset=datetools.bday, timeRule=None, **kwds):
 
@@ -164,10 +165,6 @@ class DateRange(Index):
     @property
     def _allDates(self):
         return True
-        # if not hasattr(self, '_cache_allDates'):
-        #     self._cache_allDates = isAllDates(self)
-
-        # return self._cache_allDates
 
     @classmethod
     def getCachedRange(cls, start=None, end=None, periods=None, offset=None,
@@ -179,12 +176,6 @@ class DateRange(Index):
 
         if offset is None:
             raise Exception('Must provide a DateOffset!')
-
-        if start is not None and not isinstance(start, datetime):
-            raise Exception('%s is not a valid date!' % start)
-
-        if end is not None and not isinstance(end, datetime):
-            raise Exception('%s is not a valid date!' % end)
 
         if offset not in cls._cache:
             xdr = XDateRange(CACHE_START, CACHE_END, offset=offset)
@@ -203,25 +194,27 @@ class DateRange(Index):
             if periods is None:
                 raise Exception('Must provide number of periods!')
 
-            if end not in cachedRange:
-                endLoc = _getIndexLoc(cachedRange, end)
-            else:
-                endLoc = cachedRange.indexMap[end] + 1
+            assert(isinstance(end, datetime))
 
+            end = offset.rollback(end)
+
+            endLoc = cachedRange.indexMap[end] + 1
             startLoc = endLoc - periods
         elif end is None:
-            startLoc = _getIndexLoc(cachedRange, start)
+            assert(isinstance(start, datetime))
+            start = offset.rollforward(start)
+
+            startLoc = cachedRange.indexMap[start]
             if periods is None:
                 raise Exception('Must provide number of periods!')
 
             endLoc = startLoc + periods
         else:
-            startLoc = _getIndexLoc(cachedRange, start)
+            start = offset.rollforward(start)
+            end = offset.rollback(end)
 
-            if end not in cachedRange:
-                endLoc = _getIndexLoc(cachedRange, end)
-            else:
-                endLoc = cachedRange.indexMap[end] + 1
+            startLoc = cachedRange.indexMap[start]
+            endLoc = cachedRange.indexMap[end] + 1
 
         indexSlice = cachedRange[startLoc:endLoc]
         indexSlice._parent = cachedRange
@@ -234,48 +227,33 @@ class DateRange(Index):
         return index
 
     def __array_finalize__(self, obj):
-        if self.ndim == 0:
+        if self.ndim == 0: # pragma: no cover
             return self.item()
-
-        # if len(self) > 0:
-        #     self.indexMap = map_indices(self)
-        # else:
-        #     self.indexMap = {}
 
         self.offset = getattr(obj, 'offset', None)
         self._parent = getattr(obj, '_parent',  None)
-        # self._allDates = True
 
-    def __lt__(self, other):
-        return self.view(np.ndarray) < other
+    __lt__ = _bin_op(operator.lt)
+    __le__ = _bin_op(operator.le)
+    __gt__ = _bin_op(operator.gt)
+    __ge__ = _bin_op(operator.ge)
+    __eq__ = _bin_op(operator.eq)
 
-    def __le__(self, other):
-        return self.view(np.ndarray) <= other
-
-    def __gt__(self, other):
-        return self.view(np.ndarray) > other
-
-    def __ge__(self, other):
-        return self.view(np.ndarray) >= other
-
-    def __eq__(self, other):
-        return self.view(np.ndarray) == other
+    def __getslice__(self, i, j):
+        return self.__getitem__(slice(i, j))
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
         if isinstance(key, (int, np.int32)):
             return self.view(np.ndarray)[key]
         elif isinstance(key, slice):
-            if self.offset is None:
-                return Index.__getitem__(self, key)
+            newIndex = self.view(np.ndarray)[key].view(DateRange)
 
             if key.step is not None:
-                newOffset = key.step * self.offset
-                newRule = None
+                newIndex.offset = key.step * self.offset
             else:
-                newOffset = self.offset
-            newIndex = Index(self.view(np.ndarray)[key]).view(DateRange)
-            newIndex.offset = newOffset
+                newIndex.offset = self.offset
+
             return newIndex
         else:
             return Index(self.view(np.ndarray)[key])
@@ -287,8 +265,7 @@ class DateRange(Index):
         output += 'length: %d' % len(self)
         return output
 
-    def __str__(self):
-        return self.__repr__()
+    __str__ = __repr__
 
     def shift(self, n):
         if n > 0:

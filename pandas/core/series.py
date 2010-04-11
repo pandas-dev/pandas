@@ -3,7 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 
 # pylint: disable-msg=E1101,E1103
-# pylint: disable-msg=W0703
+# pylint: disable-msg=W0703,W0622
 
 import itertools
 import sys

@@ -49,7 +49,7 @@ class DataMatrix(DataFrame):
             (index, columns,
              values, objects) = self._initDict(data, index, columns, objects,
                                                dtype)
-        elif isinstance(data, np.ndarray):
+        elif isinstance(data, (np.ndarray, list)):
             (index, columns, values) = self._initMatrix(data, index,
                                                         columns, dtype)
 
@@ -169,19 +169,20 @@ class DataMatrix(DataFrame):
 
         return index, columns, values, objects
 
-    def _initMatrix(self, data, index, columns, dtype):
-        if data.ndim == 1:
-            N = data.shape[0]
-            if N == 0:
-                data = data.reshape((data.shape[0], 0))
-            else:
-                data = data.reshape((data.shape[0], 1))
+    def _initMatrix(self, values, index, columns, dtype):
+        if not isinstance(values, np.ndarray):
+            arr = np.array(values)
+            if issubclass(arr.dtype.type, basestring):
+                arr = np.array(values, dtype=object, copy=True)
 
-        if issubclass(data.dtype.type, (np.str_, np.object_)):
-            values = np.asarray(data, dtype=object)
-        else:
-            # We're allowing things to be boolean
-            values = np.asarray(data)
+            values = arr
+
+        if values.ndim == 1:
+            N = values.shape[0]
+            if N == 0:
+                values = values.reshape((values.shape[0], 0))
+            else:
+                values = values.reshape((values.shape[0], 1))
 
         if dtype is not None:
             try:
@@ -190,13 +191,13 @@ class DataMatrix(DataFrame):
                 pass
 
         if index is None:
-            if data.shape[0] == 0:
+            if values.shape[0] == 0:
                 index = NULL_INDEX
             else:
                 raise Exception('Must pass index!')
 
         if columns is None:
-            if data.shape[1] == 0:
+            if values.shape[1] == 0:
                 columns = NULL_INDEX
             else:
                 raise Exception('Must pass columns!')

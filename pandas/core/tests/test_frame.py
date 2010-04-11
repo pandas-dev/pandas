@@ -2,6 +2,7 @@
 from copy import deepcopy
 from datetime import datetime, timedelta
 from cStringIO import StringIO
+import cPickle as pickle
 import os
 import unittest
 
@@ -159,6 +160,9 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(len(frame.index), 3)
         self.assertEqual(len(frame.cols()), 1)
 
+        frame = self.klass(['foo', 'bar'], index=[0, 1], columns=['A'])
+        self.assertEqual(len(frame), 2)
+
         # higher dim raise exception
         self.assertRaises(Exception, self.klass, np.zeros((3, 3, 3)),
                           columns=['A', 'B', 'C'], index=[1])
@@ -174,12 +178,7 @@ class TestDataFrame(unittest.TestCase):
         self.assertRaises(Exception, self.klass, mat, index=[1])
         self.assertRaises(Exception, self.klass, mat, columns=['A', 'B', 'C'])
 
-        # weird case that used to succeed
-        self.assertRaises(Exception, self.klass, [], [])
-
     def test_pickle(self):
-        import cPickle as pickle
-
         unpickled = pickle.loads(pickle.dumps(self.mixed_frame))
         assert_frame_equal(self.mixed_frame, unpickled)
 
