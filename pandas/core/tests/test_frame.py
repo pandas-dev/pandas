@@ -1057,14 +1057,14 @@ class TestDataFrame(unittest.TestCase):
         # corner case
         self.assertRaises(Exception, self.frame.outerJoin, self.frame)
 
-    def test_merge(self):
+    def test_join(self):
         index, data = common.getMixedTypeDict()
         target = self.klass(data, index=index)
 
-        # Merge on string value
+        # Join on string value
         source = self.klass({'MergedA' : data['A'], 'MergedD' : data['D']},
                             index=data['C'])
-        merged = target.merge(source, on='C')
+        merged = target.join(source, on='C')
 
         self.assert_(np.array_equal(merged['MergedA'], target['A']))
         self.assert_(np.array_equal(merged['MergedD'], target['D']))
@@ -1072,17 +1072,21 @@ class TestDataFrame(unittest.TestCase):
         # Test when some are missing
 
         # merge column not p resent
-        self.assertRaises(Exception, target.merge, source, on='E')
+        self.assertRaises(Exception, target.join, source, on='E')
 
         # corner cases
 
         # nothing to merge
-        merged = target.merge(source.reindex([]), on='C')
+        merged = target.join(source.reindex([]), on='C')
 
         # overlap
         source_copy = source.copy()
         source_copy['A'] = 0
-        self.assertRaises(Exception, target.merge, source_copy, on='A')
+        self.assertRaises(Exception, target.join, source_copy, on='A')
+
+        # can't specify how
+        self.assertRaises(Exception, target.join, source, on='C',
+                          how='left')
 
     def test_statistics(self):
         sumFrame = self.frame.apply(np.sum)

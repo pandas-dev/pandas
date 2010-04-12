@@ -244,10 +244,12 @@ class DateRange(Index):
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
+        result = self.view(np.ndarray)[key]
+
         if isinstance(key, (int, np.int32)):
-            return self.view(np.ndarray)[key]
+            return result
         elif isinstance(key, slice):
-            newIndex = self.view(np.ndarray)[key].view(DateRange)
+            newIndex = result.view(DateRange)
 
             if key.step is not None:
                 newIndex.offset = key.step * self.offset
@@ -256,7 +258,7 @@ class DateRange(Index):
 
             return newIndex
         else:
-            return Index(self.view(np.ndarray)[key])
+            return Index(result)
 
     def __repr__(self):
         output = str(self.__class__) + '\n'

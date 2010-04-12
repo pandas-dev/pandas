@@ -1289,56 +1289,24 @@ class DataFrame(Picklable, Groupable):
         """
         return self.combine(other, np.multiply, fill_value=1.)
 
-    def outerJoin(self, *frames):
-        unionIndex = self.index
-        for frame in frames:
-            unionIndex  = unionIndex + frame.index
-
-        joined = self.reindex(unionIndex)
-        for frame in frames:
-            frame = frame.reindex(unionIndex)
-            for col, series in frame.iteritems():
-                if col in joined:
-                    raise Exception('Overlapping columns!')
-                joined[col] = series
-
-        return joined
-
-    def leftJoin(self, *frames):
+    def join(self, other, on=None, how=None):
         """
-        Insert columns of input DataFrames / dicts into this one.
-
-        Columns must not overlap. Returns a copy.
-
-        Parameters
-        ----------
-        *frames : list-like
-            List of frames (DataMatrix or DataFrame) as function arguments
-
-        Returns
-        -------
-        DataFrame
-        """
-        joined = self.copy()
-
-        for frame in frames:
-            for col, series in frame.iteritems():
-                if col in joined:
-                    raise Exception('Overlapping columns!')
-                joined[col] = series.copy()
-
-        return joined
-
-    def merge(self, other, on=None):
-        """
-        Merge DataFrame or DataMatrix with this one on some many-to-one index
+        Join columns with other DataFrame either on index or on a key
+        column
 
         Parameters
         ----------
         other : DataFrame
             Index should be similar to one of the columns in this one
-        on : string
-            Column name to use
+        on : string, default None
+            Column name to use, otherwise join on index
+        how : {'left', 'right', 'outer', 'inner'}
+            default: 'left' for joining on index, None otherwise
+            How to handle indexes of the two objects.
+              * left: use calling frame's index
+              * right: use input frame's index
+              * outer: form union of indexes
+              * inner: use intersection of indexes
 
         Examples
         --------
@@ -1349,6 +1317,17 @@ class DataFrame(Picklable, Groupable):
         c   1
         d   0
         """
+        if on is not None:
+            if how is not None:
+                raise Exception('how parameter is not valid when '
+                                '*on* specified')
+            return self._join_on(other, on)
+        else:
+            return self._join_index(other, how)
+
+    merge = join
+
+    def _join_on(self, other, on):
         # Check for column overlap
         overlap = set(self.cols()) & set(other.cols())
 
@@ -1376,6 +1355,35 @@ class DataFrame(Picklable, Groupable):
         newSeries.update(self._series)
 
         return self._constructor(newSeries, index=self.index)
+
+    def _join_index(self, other, how):
+        if how == 'left':
+            join_index = self.index
+        elif how == 'right':
+            join_index = other.index
+        elif how == 'inner':
+            join_index = self.index.intersection(other.index)
+        elif how == 'outer':
+            join_index = self.index.union(other.index)
+        else:
+            raise Exception('do not recognize join method %s' % how)
+
+        result_series = self.reindex(join_index)._series
+        other_series = other.reindex(join_index)._series
+
+        for col in other_series:
+            if col in result_series:
+                raise Exception('Overlapping columns!')
+
+        result_series.update(other_series)
+
+        return self._constructor(result_series, index=join_index)
+
+    def outerJoin(self, frame):
+        return self.join(frame, how='outer')
+
+    def leftJoin(self, frame):
+        return self.join(frame, how='left')
 
     def plot(self, kind='line', **kwds): # pragma: no cover
         """

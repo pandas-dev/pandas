@@ -1009,32 +1009,7 @@ class DataMatrix(DataFrame):
 
         return result
 
-    def merge(self, other, on=None, how='left'):
-        """
-        Merge DataFrame or DataMatrix with this one on some many-to-one index
-
-        Parameters
-        ----------
-        other : DataFrame
-            Index should be similar to one of the columns in this one
-        on : string
-            Column name to use
-        how : {'left', 'right', 'outer', 'inner'}
-            How to handle indexes of the two objects.
-              * left: use calling frame's index
-              * right: use input frame's index
-              * outer: form union of indexes
-              * inner: use intersection of indexes
-
-        Examples
-        --------
-        This frame         Other frame
-            c1                 q1
-        a   1              0   v1
-        b   0              1   v2
-        c   1
-        d   0
-        """
+    def _join_on(self, other, on):
         if len(other.index) == 0:
             return self
 
@@ -1063,67 +1038,6 @@ class DataMatrix(DataFrame):
         filledFrame = DataFrame(data=seriesDict, index=self.index)
 
         return self.leftJoin(filledFrame)
-
-    def leftJoin(self, *frames):
-        """
-        Insert columns of input DataFrames / dicts into this one.
-
-        Columns must not overlap. Returns a copy.
-
-        Parameters
-        ----------
-        *frames : list-like
-            List of frames (DataMatrix or DataFrame) as function arguments
-
-        Returns
-        -------
-        DataMatrix
-        """
-        unionCols = set(self.columns)
-        frames = list(frames)
-
-        for frame in frames:
-            cols = set(frame.columns)
-            if unionCols & cols:
-                raise Exception('Overlapping columns!')
-            unionCols |= cols
-
-        seriesDict = self._series
-
-        for frame in frames:
-            frame = frame.reindex(self.index)
-            seriesDict.update(frame._series)
-
-        return DataMatrix(seriesDict, index=self.index)
-
-    def outerJoin(self, *frames):
-        """
-        Form union of input frames.
-
-        Columns must not overlap. Returns a copy.
-
-        Parameters
-        ----------
-        *frames : list-like
-            List of frames (DataMatrix or DataFrame) as function arguments
-
-        Returns
-        -------
-        DataMatrix
-        """
-        mergedSeries = self._series.copy()
-
-        unionIndex = self.index
-        for frame in frames:
-            unionIndex  = unionIndex + frame.index
-
-        for frame in frames:
-            for col, series in frame.iteritems():
-                if col in mergedSeries:
-                    raise Exception('Overlapping columns!')
-                mergedSeries[col] = series
-
-        return DataMatrix(mergedSeries)
 
     def _reindex_index(self, index, method):
         if index is self.index:
