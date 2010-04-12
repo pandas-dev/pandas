@@ -720,7 +720,12 @@ class DataFrame(Picklable, Groupable):
         -------
         This DataFrame with rows containing any NaN values deleted
         """
-        newIndex = self.index[self.count(1) != 0]
+        if specificColumns:
+            theCount = self.filterItems(specificColumns).count(axis=1)
+        else:
+            theCount = self.count(axis=1)
+
+        newIndex = self.index[theCount != 0]
         return self.reindex(newIndex)
 
     def dropIncompleteRows(self, specificColumns=None, minObs=None):
@@ -742,7 +747,7 @@ class DataFrame(Picklable, Groupable):
         -------
         This DataFrame with rows containing any NaN values deleted
         """
-        N = len(self._series)
+        N = len(self.cols())
 
         if specificColumns:
             colSet = set(specificColumns)
@@ -904,9 +909,6 @@ class DataFrame(Picklable, Groupable):
         if self.index.equals(index):
             return self.copy()
 
-        # if len(index) == 0:
-        #     return DataFrame(index=NULL_INDEX)
-
         if not isinstance(index, Index):
             index = Index(index)
 
@@ -929,7 +931,7 @@ class DataFrame(Picklable, Groupable):
 
         missingValue = {
             float  : NaN,
-            object : None,
+            object : NaN,
             np.bool_ : False
         }
 

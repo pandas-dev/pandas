@@ -866,62 +866,6 @@ class DataMatrix(DataFrame):
         return DataMatrix(result, index=self.index,
                           columns=self.columns, objects=self.objects)
 
-    def dropEmptyRows(self, specificColumns=None):
-        """
-        Return DataMatrix with rows omitted containing ALL NaN values
-        for optionally specified set of columns.
-
-        Parameters
-        ----------
-        specificColumns : list-like, optional keyword
-            Columns to consider in removing NaN values. As a typical
-            application, you might provide the list of the columns involved in
-            a regression to exclude all the missing data in one shot.
-
-        Returns
-        -------
-        DataMatrix with rows containing any NaN values deleted
-        """
-        if specificColumns:
-            theCount = self.filterItems(specificColumns).count(axis=1)
-        else:
-            theCount = self.count(axis=1)
-
-        return self.reindex(self.index[theCount > 0])
-
-    def dropIncompleteRows(self, specificColumns=None, minObs=None):
-        """
-        Return DataFrame with rows omitted containing ANY NaN values for
-        optionally specified set of columns.
-
-        Parameters
-        ----------
-        minObs : int or None (default)
-           Instead of requiring all the columns to have observations, require
-           only minObs observations
-        specificColumns : list-like, optional keyword
-            Columns to consider in removing NaN values. As a typical
-            application, you might provide the list of the columns involved in
-            a regression to exlude all the missing data in one shot.
-
-        Returns
-        -------
-        This DataFrame with rows containing any NaN values deleted
-        """
-        N = self.values.shape[1]
-
-        if specificColumns:
-            cols = self.columns.intersection(specificColumns)
-            theCount = self.filterItems(cols).count(axis=1)
-            N = len(cols)
-        else:
-            theCount = self.count(axis=1)
-
-        if minObs is None:
-            minObs = N
-
-        return self.reindex(self.index[theCount >= minObs])
-
     def fill(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.
