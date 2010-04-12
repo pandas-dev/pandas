@@ -208,185 +208,223 @@ class DataMatrix(DataFrame):
     def _constructor(self):
         return DataMatrix
 
-    def __getstate__(self):
-        if self.objects is not None:
-            objects = self.objects._matrix_state(pickle_index=False)
-        else:
-            objects = None
-
-        state = self._matrix_state()
-
-        return (state, objects)
-
-    def _matrix_state(self, pickle_index=True):
-        columns = _pickle_array(self.columns)
-
-        if pickle_index:
-            index = _pickle_array(self.index)
-        else:
-            index = None
-
-        return self.values, index, columns
-
-    def __setstate__(self, state):
-        (vals, idx, cols), object_state = state
-
-        self.values = vals
-        self.index = _unpickle_array(idx)
-        self.columns = _unpickle_array(cols)
-
-        if object_state:
-            ovals, _, ocols = object_state
-            self.objects = DataMatrix(ovals,
-                                      index=self.index,
-                                      columns=_unpickle_array(ocols))
-        else:
-            self.objects = None
-
     # Because of DataFrame property
     values = None
 
 #-------------------------------------------------------------------------------
-# Outputting
+# DataMatrix-specific implementation of private API
 
-    def toCSV(self, path, nanRep='', writeMode='wb', index=True,
-              header=True, cols=None, verbose=False):
-        """
-        Write the DataMatrix to a CSV file
+    def _join_on(self, other, on):
+        if len(other.index) == 0:
+            return self
 
-        Parameters
-        ----------
-        path : string
-            Output file path
-        nanRep : string, default=''
-            Appearance of NaN values in output
-        index : boolean, default=True
-            Prints index if True
-        header : boolean, default=True
-            Prints header if True
-        cols : list of strings
-            Prints the values in order specified by cols.
-            By default, prints all columns in lexicographical order.
-        """
-        f = open(path, writeMode)
+        if on not in self:
+            raise Exception('%s column not contained in this frame!' % on)
 
-        if cols is None:
-            cols = self.cols()
-        series = self._series
+        fillVec, mask = tseries.getMergeVec(self[on],
+                                            other.index.indexMap)
 
-        if header:
-            if index:
-                f.write(',')
-            f.write(','.join([str(c) for c in cols]))
-            f.write('\n')
+        tmpMatrix = other.values.take(fillVec, axis=0)
+        tmpMatrix[-mask] = NaN
 
-        for idx in self.index:
-            if index:
-                f.write(str(idx) + ',')
+        seriesDict = dict((col, tmpMatrix[:, j])
+                           for j, col in enumerate(other.columns))
 
-            for col in cols:
-                val = series[col][idx]
-                if isnull(val):
-                    val = nanRep
-                else:
-                    val = str(val)
-                f.write(val + ',')
-            f.write('\n')
+        if getattr(other, 'objects'):
+            objects = other.objects
 
-        f.close()
+            tmpMat = objects.values.take(fillVec, axis=0)
+            tmpMat[-mask] = NaN
+            objDict = dict((col, tmpMat[:, j])
+                           for j, col in enumerate(objects.columns))
 
-        if verbose: # pragma: no cover
-            print 'CSV file written successfully: %s' % path
+            seriesDict.update(objDict)
 
-    def toString(self, buffer=sys.stdout, verbose=False,
-                 columns=None, colSpace=15, nanRep='NaN',
-                 formatters=None, float_format=None):
-        """
-        Output a string version of this DataMatrix
-        """
-        formatters = formatters or {}
+        filledFrame = DataFrame(data=seriesDict, index=self.index)
 
-        if columns is None:
-            columns = self.columns
-            values = self.values
-            if self.objects:
-                columns = list(columns) + list(self.objects.columns)
-                values = np.column_stack((values.astype(object),
-                                          self.objects.values))
-        else:
-            columns = [c for c in columns if c in self]
-            values = self.asMatrix(columns)
+        return self.leftJoin(filledFrame)
 
-        ident = lambda x: x
+    def _reindex_index(self, index, method):
+        if index is self.index:
+            return self.copy()
 
-        idxSpace = max([len(str(idx)) for idx in self.index]) + 4
+        if not isinstance(index, Index):
+            index = Index(index)
 
-        if len(self.cols()) == 0:
-            buffer.write('DataMatrix is empty!\n')
-            buffer.write(repr(self.index))
-        else:
-            buffer.write(_pfixed('', idxSpace))
-            for h in columns:
-                buffer.write(_pfixed(h, colSpace))
-            buffer.write('\n')
+        if len(self.index) == 0:
+            return DataMatrix(index=index, columns=self.columns)
 
-            for i, idx in enumerate(self.index):
-                buffer.write(_pfixed(idx, idxSpace))
-                for j, col in enumerate(columns):
-                    formatter = formatters.get(col, ident)
-                    buffer.write(_pfixed(formatter(values[i, j]), colSpace,
-                                         float_format=float_format,
-                                         nanRep=nanRep))
-                buffer.write('\n')
+        fillVec, mask = tseries.getFillVec(self.index, index,
+                                           self.index.indexMap,
+                                           index.indexMap, method)
 
-    def info(self, buffer=sys.stdout):
-        """
-        Concise summary of a DataMatrix, used in __repr__ when very large.
-        """
-        print >> buffer, 'Index: %s entries' % len(self.index),
-        if len(self.index) > 0:
-            print >> buffer, ', %s to %s' % (self.index[0], self.index[-1])
-        else:
-            print >> buffer, ''
-
-        if len(self.columns) == 0:
-            print >> buffer, 'DataMatrix is empty!'
-            print >> buffer, repr(self.index)
-            return
-
-        print >> buffer, 'Data columns:'
-        space = max([len(str(k)) for k in self.cols()]) + 4
-
-        counts = self.apply(notnull).sum(0)
-
-        columns = []
-        for j, col in enumerate(self.columns):
-            columns.append((col, '%s%d  non-null values' %
-                           (_pfixed(col, space), counts[j])))
+        tmpMatrix = self.values.take(fillVec, axis=0)
+        if len(index) > 0:
+            tmpMatrix[-mask] = NaN
 
         if self.objects is not None and len(self.objects.columns) > 0:
-            n = len(self.objects.index)
-            for col in self.objects:
-                line = '%s%d  non-null values' % (_pfixed(col, space), n)
-                columns.append((col, line))
-
-        try:
-            columns = [c[1] for c in sorted(columns)]
-        except TypeError:
-            columns = sorted([c[1] for c in columns])
-
-        dtypeLine = ''
-
-        nf = len(self.columns)
-        df = self.values.dtype
-        if self.objects is not None:
-            no = len(self.objects.columns)
-            do = self.objects.values.dtype
-            dtypeLine = '\ndtypes: %s(%d), %s(%d)' % (df, nf, do, no)
+            newObjects = self.objects.reindex(index)
         else:
-            dtypeLine = '\ndtype: %s(%d)' % (df, nf)
+            newObjects = None
 
-        buffer.write('\n'.join(columns) + dtypeLine)
+        return DataMatrix(tmpMatrix, index=index,
+                          columns=self.columns,
+                          objects=newObjects)
+
+    def _reindex_columns(self, columns):
+        if len(columns) == 0:
+            return DataMatrix(index=self.index)
+
+        if not isinstance(columns, Index):
+            columns = Index(columns)
+
+        if self.objects is not None:
+            object_columns = columns.intersection(self.objects.columns)
+            columns = columns - object_columns
+
+            objects = self.objects._reindex_columns(object_columns)
+        else:
+            objects = None
+
+        if len(columns) > 0 and len(self.columns) == 0:
+            return DataMatrix(index=self.index, columns=columns,
+                              objects=objects)
+
+        indexer, mask = tseries.getFillVec(self.columns, columns,
+                                           self.columns.indexMap,
+                                           columns.indexMap, None)
+
+        newValues = self.values.take(indexer, axis=1)
+        if len(mask) > 0:
+            newValues[:, -mask] = NaN
+
+        return DataMatrix(newValues, index=self.index, columns=columns,
+                          objects=objects)
+
+    def _combineFrame(self, other, func):
+        """
+        Methodology, briefly
+        - Really concerned here about speed, space
+
+        - Get new index
+        - Reindex to new index
+        - Determine newColumns and commonColumns
+        - Add common columns over all (new) indices
+        - Fill to new set of columns
+
+        Could probably deal with some Cython action in here at some point
+        """
+        if self.index.equals(other.index):
+            newIndex = self.index
+            myReindex = self
+            hisReindex = other
+        else:
+            newIndex = self.index.union(other.index)
+            myReindex = self.reindex(newIndex)
+            hisReindex = other.reindex(newIndex)
+
+        if not self and not other:
+            return DataMatrix(index=newIndex)
+        elif not self:
+            return other * NaN
+        elif not other:
+            return self * NaN
+
+        myValues = myReindex.values
+        safe = self.columns.equals(other.columns)
+
+        if safe:
+            newCols = self.columns
+            commonCols = self.columns
+        else:
+            newCols = self.columns.union(other.columns)
+            commonCols = self.columns.intersection(other.columns)
+
+        hisValues = hisReindex.values
+        hisCols = hisReindex.columns
+
+        if safe:
+            resultMatrix = func(myValues, hisValues)
+        else:
+            T, N = len(newIndex), len(newCols)
+            resultMatrix = np.empty((T, N), dtype=self.values.dtype)
+            resultMatrix.fill(NaN)
+
+            myIndexer = [self.columns.indexMap[idx] for idx in commonCols]
+            hisIndexer =  [hisCols.indexMap[idx] for idx in commonCols]
+            resultIndexer = [newCols.indexMap[idx] for idx in commonCols]
+
+            resultMatrix[:, resultIndexer] = func(myValues[:, myIndexer],
+                                                  hisValues[:, hisIndexer])
+
+        # TODO: deal with objects
+        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
+
+    def _combineSeries(self, other, func):
+        newIndex = self.index
+        newCols = self.columns
+
+        if not self:
+            return DataFrame(index=NULL_INDEX)
+
+        if self.index._allDates and other.index._allDates:
+            # Operate row-wise
+            if self.index.equals(other.index):
+                newIndex = self.index
+            else:
+                newIndex = self.index + other.index
+
+            other = other.reindex(newIndex).view(np.ndarray)
+            myReindex = self.reindex(newIndex)
+            resultMatrix = func(myReindex.values.T, other).T
+        else:
+            if len(other) == 0:
+                return self * NaN
+
+            newCols = self.columns.union(other.index)
+
+            # Operate column-wise
+            this = self.reindex(columns=newCols)
+            other = other.reindex(newCols).values()
+
+            resultMatrix = func(this.values, other)
+
+        # TODO: deal with objects
+        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
+
+    def _combineFunc(self, other, func):
+        """
+        Combine DataMatrix objects with other Series- or DataFrame-like objects
+
+        This is the core method used for the overloaded arithmetic methods
+
+        Result hierarchy
+        ----------------
+        DataMatrix + DataFrame --> DataMatrix
+        DataMatrix + DataMatrix --> DataMatrix
+        DataMatrix + Series --> DataMatrix
+        DataMatrix + constant --> DataMatrix
+
+        The reason for 'upcasting' the result is that if addition succeed,
+        we can assume that the input DataFrame was homogeneous.
+        """
+        newIndex = self.index
+        if isinstance(other, DataFrame):
+            return self._combineFrame(other, func)
+
+        elif isinstance(other, Series):
+            return self._combineSeries(other, func)
+
+        else:
+            if not self:
+                return self
+
+            # Constant of some kind
+            newCols = self.columns
+            resultMatrix = func(self.values, other)
+
+        # TODO: deal with objects
+        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
 
 #-------------------------------------------------------------------------------
 # Properties for index and columns
@@ -428,6 +466,41 @@ class DataMatrix(DataFrame):
 
 #-------------------------------------------------------------------------------
 # "Magic methods"
+
+    def __getstate__(self):
+        if self.objects is not None:
+            objects = self.objects._matrix_state(pickle_index=False)
+        else:
+            objects = None
+
+        state = self._matrix_state()
+
+        return (state, objects)
+
+    def _matrix_state(self, pickle_index=True):
+        columns = _pickle_array(self.columns)
+
+        if pickle_index:
+            index = _pickle_array(self.index)
+        else:
+            index = None
+
+        return self.values, index, columns
+
+    def __setstate__(self, state):
+        (vals, idx, cols), object_state = state
+
+        self.values = vals
+        self.index = _unpickle_array(idx)
+        self.columns = _unpickle_array(cols)
+
+        if object_state:
+            ovals, _, ocols = object_state
+            self.objects = DataMatrix(ovals,
+                                      index=self.index,
+                                      columns=_unpickle_array(ocols))
+        else:
+            self.objects = None
 
     def __nonzero__(self):
         N, K = self.values.shape
@@ -648,133 +721,237 @@ class DataMatrix(DataFrame):
         return series
     _series = property(_getSeriesDict)
 
-    def _combineFrame(self, other, func):
+#-------------------------------------------------------------------------------
+# Outputting
+
+    def toCSV(self, path, nanRep='', writeMode='wb', index=True,
+              header=True, cols=None, verbose=False):
         """
-        Methodology, briefly
-        - Really concerned here about speed, space
+        Write the DataMatrix to a CSV file
 
-        - Get new index
-        - Reindex to new index
-        - Determine newColumns and commonColumns
-        - Add common columns over all (new) indices
-        - Fill to new set of columns
-
-        Could probably deal with some Cython action in here at some point
+        Parameters
+        ----------
+        path : string
+            Output file path
+        nanRep : string, default=''
+            Appearance of NaN values in output
+        index : boolean, default=True
+            Prints index if True
+        header : boolean, default=True
+            Prints header if True
+        cols : list of strings
+            Prints the values in order specified by cols.
+            By default, prints all columns in lexicographical order.
         """
-        if self.index.equals(other.index):
-            newIndex = self.index
-            myReindex = self
-            hisReindex = other
-        else:
-            newIndex = self.index.union(other.index)
-            myReindex = self.reindex(newIndex)
-            hisReindex = other.reindex(newIndex)
+        f = open(path, writeMode)
 
-        if not self and not other:
-            return DataMatrix(index=newIndex)
-        elif not self:
-            return other * NaN
-        elif not other:
-            return self * NaN
+        if cols is None:
+            cols = self.cols()
+        series = self._series
 
-        myValues = myReindex.values
-        safe = self.columns.equals(other.columns)
+        if header:
+            if index:
+                f.write(',')
+            f.write(','.join([str(c) for c in cols]))
+            f.write('\n')
 
-        if safe:
-            newCols = self.columns
-            commonCols = self.columns
-        else:
-            newCols = self.columns.union(other.columns)
-            commonCols = self.columns.intersection(other.columns)
+        for idx in self.index:
+            if index:
+                f.write(str(idx) + ',')
 
-        hisValues = hisReindex.values
-        hisCols = hisReindex.columns
+            for col in cols:
+                val = series[col][idx]
+                if isnull(val):
+                    val = nanRep
+                else:
+                    val = str(val)
+                f.write(val + ',')
+            f.write('\n')
 
-        if safe:
-            resultMatrix = func(myValues, hisValues)
-        else:
-            T, N = len(newIndex), len(newCols)
-            resultMatrix = np.empty((T, N), dtype=self.values.dtype)
-            resultMatrix.fill(NaN)
+        f.close()
 
-            myIndexer = [self.columns.indexMap[idx] for idx in commonCols]
-            hisIndexer =  [hisCols.indexMap[idx] for idx in commonCols]
-            resultIndexer = [newCols.indexMap[idx] for idx in commonCols]
+        if verbose: # pragma: no cover
+            print 'CSV file written successfully: %s' % path
 
-            resultMatrix[:, resultIndexer] = func(myValues[:, myIndexer],
-                                                  hisValues[:, hisIndexer])
-
-        # TODO: deal with objects
-        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
-
-    def _combineSeries(self, other, func):
-        newIndex = self.index
-        newCols = self.columns
-
-        if not self:
-            return DataFrame(index=NULL_INDEX)
-
-        if self.index._allDates and other.index._allDates:
-            # Operate row-wise
-            if self.index.equals(other.index):
-                newIndex = self.index
-            else:
-                newIndex = self.index + other.index
-
-            other = other.reindex(newIndex).view(np.ndarray)
-            myReindex = self.reindex(newIndex)
-            resultMatrix = func(myReindex.values.T, other).T
-        else:
-            if len(other) == 0:
-                return self * NaN
-
-            newCols = self.columns.union(other.index)
-
-            # Operate column-wise
-            this = self.reindex(columns=newCols)
-            other = other.reindex(newCols).values()
-
-            resultMatrix = func(this.values, other)
-
-        # TODO: deal with objects
-        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
-
-    def _combineFunc(self, other, func):
+    def toString(self, buffer=sys.stdout, columns=None, colSpace=15,
+                 nanRep='NaN', formatters=None, float_format=None):
         """
-        Combine DataMatrix objects with other Series- or DataFrame-like objects
-
-        This is the core method used for the overloaded arithmetic methods
-
-        Result hierarchy
-        ----------------
-        DataMatrix + DataFrame --> DataMatrix
-        DataMatrix + DataMatrix --> DataMatrix
-        DataMatrix + Series --> DataMatrix
-        DataMatrix + constant --> DataMatrix
-
-        The reason for 'upcasting' the result is that if addition succeed,
-        we can assume that the input DataFrame was homogeneous.
+        Output a string version of this DataMatrix
         """
-        newIndex = self.index
-        if isinstance(other, DataFrame):
-            return self._combineFrame(other, func)
+        formatters = formatters or {}
 
-        elif isinstance(other, Series):
-            return self._combineSeries(other, func)
-
+        if columns is None:
+            columns = self.columns
+            values = self.values
+            if self.objects:
+                columns = list(columns) + list(self.objects.columns)
+                values = np.column_stack((values.astype(object),
+                                          self.objects.values))
         else:
-            if not self:
-                return self
+            columns = [c for c in columns if c in self]
+            values = self.asMatrix(columns)
 
-            # Constant of some kind
-            newCols = self.columns
-            resultMatrix = func(self.values, other)
+        ident = lambda x: x
 
-        # TODO: deal with objects
-        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
+        idxSpace = max([len(str(idx)) for idx in self.index]) + 4
+
+        if len(self.cols()) == 0:
+            buffer.write('DataMatrix is empty!\n')
+            buffer.write(repr(self.index))
+        else:
+            buffer.write(_pfixed('', idxSpace))
+            for h in columns:
+                buffer.write(_pfixed(h, colSpace))
+            buffer.write('\n')
+
+            for i, idx in enumerate(self.index):
+                buffer.write(_pfixed(idx, idxSpace))
+                for j, col in enumerate(columns):
+                    formatter = formatters.get(col, ident)
+                    buffer.write(_pfixed(formatter(values[i, j]), colSpace,
+                                         float_format=float_format,
+                                         nanRep=nanRep))
+                buffer.write('\n')
+
+    def info(self, buffer=sys.stdout):
+        """
+        Concise summary of a DataMatrix, used in __repr__ when very large.
+        """
+        print >> buffer, 'Index: %s entries' % len(self.index),
+        if len(self.index) > 0:
+            print >> buffer, ', %s to %s' % (self.index[0], self.index[-1])
+        else:
+            print >> buffer, ''
+
+        if len(self.columns) == 0:
+            print >> buffer, 'DataMatrix is empty!'
+            print >> buffer, repr(self.index)
+            return
+
+        print >> buffer, 'Data columns:'
+        space = max([len(str(k)) for k in self.cols()]) + 4
+
+        counts = self.apply(notnull).sum(0)
+
+        columns = []
+        for j, col in enumerate(self.columns):
+            columns.append((col, '%s%d  non-null values' %
+                           (_pfixed(col, space), counts[j])))
+
+        if self.objects is not None and len(self.objects.columns) > 0:
+            n = len(self.objects.index)
+            for col in self.objects:
+                line = '%s%d  non-null values' % (_pfixed(col, space), n)
+                columns.append((col, line))
+
+        try:
+            columns = [c[1] for c in sorted(columns)]
+        except TypeError:
+            columns = sorted([c[1] for c in columns])
+
+        dtypeLine = ''
+
+        nf = len(self.columns)
+        df = self.values.dtype
+        if self.objects is not None:
+            no = len(self.objects.columns)
+            do = self.objects.values.dtype
+            dtypeLine = '\ndtypes: %s(%d), %s(%d)' % (df, nf, do, no)
+        else:
+            dtypeLine = '\ndtype: %s(%d)' % (df, nf)
+
+        buffer.write('\n'.join(columns) + dtypeLine)
+
 
 #-------------------------------------------------------------------------------
 # Public methods
+
+    def apply(self, func, axis=0):
+        """
+        Applies func to columns (Series) of this DataMatrix and returns either
+        a DataMatrix (if the function produces another series) or a Series
+        indexed on the column names of the DataFrame if the function produces
+        a value.
+
+        Parameters
+        ----------
+        func : function
+            Function to apply to each column
+
+        Examples
+        --------
+
+            >>> df.apply(numpy.sqrt) --> DataMatrix
+            >>> df.apply(numpy.sum) --> Series
+
+        N.B.: Do NOT use functions that might toy with the index.
+        """
+        if not len(self.cols()):
+            return self
+
+        if isinstance(func, np.ufunc):
+            results = func(self.values)
+            return DataMatrix(data=results, index=self.index,
+                              columns=self.columns, objects=self.objects)
+        else:
+            return DataFrame.apply(self, func, axis=axis)
+
+    def applymap(self, func):
+        """
+        Apply a function to a DataMatrix that is intended to operate
+        elementwise, i.e. like doing
+            map(func, series) for each series in the DataMatrix
+
+        Parameters
+        ----------
+        func : function
+            Python function, returns a single value from a single value
+
+        Note : try to avoid using this function if you can, very slow.
+        """
+        npfunc = np.frompyfunc(func, 1, 1)
+        results = npfunc(self.values)
+        try:
+            results = results.astype(self.values.dtype)
+        except Exception:
+            pass
+
+        return DataMatrix(results, index=self.index, columns=self.columns)
+
+    def append(self, other):
+        """
+        Glue together DataFrame objects having non-overlapping indices
+
+        Parameters
+        ----------
+        other : DataFrame
+        """
+        if not other:
+            return self.copy()
+
+        if not self:
+            return other.copy()
+
+        if (isinstance(other, DataMatrix) and
+            self.columns.equals(other.columns)):
+
+            idx = Index(np.concatenate([self.index, other.index]))
+            mat = np.vstack((self.values, other.values))
+
+            if other.objects is None:
+                objects = self.objects
+            elif self.objects is None:
+                objects = other.objects
+            else:
+                objects = self.objects.append(other.objects)
+
+            if objects:
+                objects = objects.reindex(idx)
+
+            dm = DataMatrix(mat, idx, self.columns, objects=objects)
+            return dm
+        else:
+            return super(DataMatrix, self).append(other)
 
     def asMatrix(self, columns=None):
         """
@@ -953,93 +1130,6 @@ class DataMatrix(DataFrame):
 
         return result
 
-    def _join_on(self, other, on):
-        if len(other.index) == 0:
-            return self
-
-        if on not in self:
-            raise Exception('%s column not contained in this frame!' % on)
-
-        fillVec, mask = tseries.getMergeVec(self[on],
-                                            other.index.indexMap)
-
-        tmpMatrix = other.values.take(fillVec, axis=0)
-        tmpMatrix[-mask] = NaN
-
-        seriesDict = dict((col, tmpMatrix[:, j])
-                           for j, col in enumerate(other.columns))
-
-        if getattr(other, 'objects'):
-            objects = other.objects
-
-            tmpMat = objects.values.take(fillVec, axis=0)
-            tmpMat[-mask] = NaN
-            objDict = dict((col, tmpMat[:, j])
-                           for j, col in enumerate(objects.columns))
-
-            seriesDict.update(objDict)
-
-        filledFrame = DataFrame(data=seriesDict, index=self.index)
-
-        return self.leftJoin(filledFrame)
-
-    def _reindex_index(self, index, method):
-        if index is self.index:
-            return self.copy()
-
-        if not isinstance(index, Index):
-            index = Index(index)
-
-        if len(self.index) == 0:
-            return DataMatrix(index=index, columns=self.columns)
-
-        fillVec, mask = tseries.getFillVec(self.index, index,
-                                           self.index.indexMap,
-                                           index.indexMap, method)
-
-        tmpMatrix = self.values.take(fillVec, axis=0)
-        if len(index) > 0:
-            tmpMatrix[-mask] = NaN
-
-        if self.objects is not None and len(self.objects.columns) > 0:
-            newObjects = self.objects.reindex(index)
-        else:
-            newObjects = None
-
-        return DataMatrix(tmpMatrix, index=index,
-                          columns=self.columns,
-                          objects=newObjects)
-
-    def _reindex_columns(self, columns):
-        if len(columns) == 0:
-            return DataMatrix(index=self.index)
-
-        if not isinstance(columns, Index):
-            columns = Index(columns)
-
-        if self.objects is not None:
-            object_columns = columns.intersection(self.objects.columns)
-            columns = columns - object_columns
-
-            objects = self.objects._reindex_columns(object_columns)
-        else:
-            objects = None
-
-        if len(columns) > 0 and len(self.columns) == 0:
-            return DataMatrix(index=self.index, columns=columns,
-                              objects=objects)
-
-        indexer, mask = tseries.getFillVec(self.columns, columns,
-                                           self.columns.indexMap,
-                                           columns.indexMap, None)
-
-        newValues = self.values.take(indexer, axis=1)
-        if len(mask) > 0:
-            newValues[:, -mask] = NaN
-
-        return DataMatrix(newValues, index=self.index, columns=columns,
-                          objects=objects)
-
     @property
     def T(self):
         """
@@ -1109,93 +1199,6 @@ class DataMatrix(DataFrame):
 
         return DataMatrix(data=newValues, index=newIndex, columns=self.columns,
                           objects=shifted_objects)
-
-    def apply(self, func, axis=0):
-        """
-        Applies func to columns (Series) of this DataMatrix and returns either
-        a DataMatrix (if the function produces another series) or a Series
-        indexed on the column names of the DataFrame if the function produces
-        a value.
-
-        Parameters
-        ----------
-        func : function
-            Function to apply to each column
-
-        Examples
-        --------
-
-            >>> df.apply(numpy.sqrt) --> DataMatrix
-            >>> df.apply(numpy.sum) --> Series
-
-        N.B.: Do NOT use functions that might toy with the index.
-        """
-        if not len(self.cols()):
-            return self
-
-        if isinstance(func, np.ufunc):
-            results = func(self.values)
-            return DataMatrix(data=results, index=self.index,
-                              columns=self.columns, objects=self.objects)
-        else:
-            return DataFrame.apply(self, func, axis=axis)
-
-    def applymap(self, func):
-        """
-        Apply a function to a DataMatrix that is intended to operate
-        elementwise, i.e. like doing
-            map(func, series) for each series in the DataMatrix
-
-        Parameters
-        ----------
-        func : function
-            Python function, returns a single value from a single value
-
-        Note : try to avoid using this function if you can, very slow.
-        """
-        npfunc = np.frompyfunc(func, 1, 1)
-        results = npfunc(self.values)
-        try:
-            results = results.astype(self.values.dtype)
-        except Exception:
-            pass
-
-        return DataMatrix(results, index=self.index, columns=self.columns)
-
-    def append(self, other):
-        """
-        Glue together DataFrame objects having non-overlapping indices
-
-        Parameters
-        ----------
-        other : DataFrame
-        """
-        if not other:
-            return self.copy()
-
-        if not self:
-            return other.copy()
-
-        if (isinstance(other, DataMatrix) and
-            self.columns.equals(other.columns)):
-
-            idx = Index(np.concatenate([self.index, other.index]))
-            mat = np.vstack((self.values, other.values))
-
-            if other.objects is None:
-                objects = self.objects
-            elif self.objects is None:
-                objects = other.objects
-            else:
-                objects = self.objects.append(other.objects)
-
-            if objects:
-                objects = objects.reindex(idx)
-
-            dm = DataMatrix(mat, idx, self.columns, objects=objects)
-            return dm
-        else:
-            return super(DataMatrix, self).append(other)
 
 def _reorder_columns(mat, current, desired):
     fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,

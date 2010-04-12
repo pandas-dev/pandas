@@ -538,9 +538,8 @@ class DataFrame(Picklable, Groupable):
 
         return DataMatrix(self._series, index=self.index)
 
-    def toString(self, buffer=sys.stdout, verbose=False,
-                 columns=None, colSpace=15, nanRep='NaN',
-                 formatters=None, float_format=None):
+    def toString(self, buffer=sys.stdout, columns=None, colSpace=15,
+                 nanRep='NaN', formatters=None, float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
 
@@ -558,8 +557,6 @@ class DataFrame(Picklable, Groupable):
         else:
             idxSpace = max([len(str(idx)) for idx in self.index]) + 4
             head = _pfixed('', idxSpace)
-            if verbose:
-                colSpace = max([len(c) for c in columns]) + 4
 
             for h in columns:
                 head += _pfixed(h, colSpace)

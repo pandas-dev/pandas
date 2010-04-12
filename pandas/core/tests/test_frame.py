@@ -282,7 +282,6 @@ class TestDataFrame(unittest.TestCase):
         biggie.toString(buffer=buf)
 
         biggie.toString(buffer=buf, columns=['B', 'A'], colSpace=17)
-        biggie.toString(buffer=buf, columns=['B', 'A'], verbose=True)
         biggie.toString(buffer=buf, columns=['B', 'A'],
                         formatters={'A' : lambda x: '%.1f' % x})
 
