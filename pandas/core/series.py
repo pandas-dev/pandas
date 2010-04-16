@@ -114,7 +114,11 @@ class Series(np.ndarray, Picklable, Groupable):
         subarr = np.array(data, dtype=dtype, copy=copy)
 
         if subarr.ndim == 0:
-            return subarr.item()
+            if isinstance(data, list):
+                subarr = np.array(data, dtype=object)
+            else:
+                return subarr.item()
+
         elif subarr.ndim > 1:
             raise Exception('Data must be 1-dimensional')
 

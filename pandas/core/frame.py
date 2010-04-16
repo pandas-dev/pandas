@@ -274,6 +274,12 @@ class DataFrame(Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # Magic methods
 
+    def __array__(self):
+        return self.values
+
+    def __array_wrap__(self, result):
+        return DataFrame(result, index=self.index, columns=self.columns)
+
     def __nonzero__(self):
         return len(self._series) > 0 and len(self.index) > 0
 
@@ -1322,6 +1328,8 @@ class DataFrame(Picklable, Groupable):
                                 '*on* specified')
             return self._join_on(other, on)
         else:
+            if how is None:
+                how = 'left'
             return self._join_index(other, how)
 
     merge = join
@@ -1378,12 +1386,6 @@ class DataFrame(Picklable, Groupable):
 
         return self._constructor(result_series, index=join_index)
 
-    def outerJoin(self, frame):
-        return self.join(frame, how='outer')
-
-    def leftJoin(self, frame):
-        return self.join(frame, how='left')
-
     def plot(self, kind='line', **kwds): # pragma: no cover
         """
         Plot the DataFrame's series with the index on the x-axis using
@@ -1404,8 +1406,7 @@ class DataFrame(Picklable, Groupable):
         from pylab import plot
 
         for col in _try_sort(self.columns):
-            s = self[col]
-            plot(s.index, s, label=col)
+            plot(self.index, self[col].values(), label=col)
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:

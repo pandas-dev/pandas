@@ -1038,23 +1038,25 @@ class TestDataFrame(unittest.TestCase):
         f = self.frame.reindex(columns=['A', 'B'])[:10]
         f2 = self.frame.reindex(columns=['C', 'D'])
 
-        joined = f.leftJoin(f2)
+        joined = f.join(f2, how='left')
         self.assert_(f.index.equals(joined.index))
         self.assertEqual(len(joined.cols()), 4)
 
         # corner case
-        self.assertRaises(Exception, self.frame.leftJoin, self.frame)
+        self.assertRaises(Exception, self.frame.join, self.frame,
+                          how='left')
 
     def test_outerJoin(self):
         f = self.frame.reindex(columns=['A', 'B'])[:10]
         f2 = self.frame.reindex(columns=['C', 'D'])
 
-        joined = f.outerJoin(f2)
+        joined = f.join(f2, how='outer')
         self.assert_(common.equalContents(self.frame.index, joined.index))
         self.assertEqual(len(joined.cols()), 4)
 
         # corner case
-        self.assertRaises(Exception, self.frame.outerJoin, self.frame)
+        self.assertRaises(Exception, self.frame.join, self.frame,
+                          how='outer')
 
     def test_join(self):
         index, data = common.getMixedTypeDict()

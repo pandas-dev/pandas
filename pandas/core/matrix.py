@@ -155,7 +155,7 @@ class DataMatrix(DataFrame):
                                          index=index,
                                          columns=objectColumns)
                 if isinstance(objects, DataMatrix):
-                    objects = objects.leftJoin(new_objects)
+                    objects = objects.join(new_objects, how='left')
                 else:
                     objects = new_objects
 
@@ -211,6 +211,12 @@ class DataMatrix(DataFrame):
     # Because of DataFrame property
     values = None
 
+    def __array__(self):
+        return self.values
+
+    def __array_wrap__(self, result):
+        return DataMatrix(result, index=self.index, columns=self.columns)
+
 #-------------------------------------------------------------------------------
 # DataMatrix-specific implementation of private API
 
@@ -242,7 +248,7 @@ class DataMatrix(DataFrame):
 
         filledFrame = DataFrame(data=seriesDict, index=self.index)
 
-        return self.leftJoin(filledFrame)
+        return self.join(filledFrame, how='left')
 
     def _reindex_index(self, index, method):
         if index is self.index:
