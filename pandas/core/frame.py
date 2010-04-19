@@ -724,7 +724,7 @@ class DataFrame(Picklable, Groupable):
         This DataFrame with rows containing any NaN values deleted
         """
         if specificColumns:
-            theCount = self.filterItems(specificColumns).count(axis=1)
+            theCount = self.filter(items=specificColumns).count(axis=1)
         else:
             theCount = self.count(axis=1)
 
@@ -758,7 +758,7 @@ class DataFrame(Picklable, Groupable):
 
             N = len(intersection)
 
-            filtered = self.filterItems(intersection)
+            filtered = self.filter(items=intersection)
             theCount = filtered.count(axis=1)
         else:
             theCount = self.count(axis=1)
@@ -1109,7 +1109,24 @@ class DataFrame(Picklable, Groupable):
 
     def filter(self, items=None, like=None, regex=None):
         """
-        TODO
+        Restrict frame's columns to set of items or wildcard
+
+        Parameters
+        ----------
+        items : list-like
+            List of columns to restrict to (must not all be present)
+        like : string
+            Keep columns where "arg in col == True"
+        regex : string (regular expression)
+            Keep columns with re.search(regex, col) == True
+
+        Notes
+        -----
+        Arguments are mutually exclusive!
+
+        Returns
+        -------
+        DataFrame with filtered columns
         """
         import re
         if items is not None:
@@ -1123,37 +1140,6 @@ class DataFrame(Picklable, Groupable):
             raise Exception('items was None!')
 
         return self.reindex(columns=columns)
-
-    def filterItems(self, items):
-        """
-        Restrict frame's columns to input set of items.
-
-        Parameters
-        ----------
-        items : list-like
-            List of columns to restrict to (must not all be present)
-
-        Returns
-        -------
-        DataFrame with filtered columns
-        """
-        return self.filter(items=items)
-
-    def filterLike(self, arg):
-        """
-        Filter to columns partially matching the import argument.
-
-        Keep columns where "arg in col == True"
-
-        Parameter
-        ---------
-        arg : string
-
-        Return
-        ------
-        DataFrame with matching columns
-        """
-        return self.filter(like=arg)
 
     def sortUp(self, column=None):
         """

@@ -57,8 +57,11 @@ User manual
 
     installation
     core
+    groupby
     datetools
     stats
+    examples
+    missing_data
 
 .. Quick Reference
 .. ---------------

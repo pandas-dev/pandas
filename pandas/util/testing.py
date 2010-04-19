@@ -77,6 +77,14 @@ def assert_frame_equal(left, right):
     for col in right:
         assert(col in left)
 
+def assert_panel_equal(left, right):
+    for col, series in left.iteritems():
+        assert(col in right)
+        assert_frame_equal(series, right[col])
+
+    for col in right:
+        assert(col in left)
+
 def assert_contains_all(iterable, dic):
     for k in iterable:
         assert(k in dic)

@@ -1,5 +1,8 @@
-DateRange and DateOffset objects
-================================
+.. _datetools:
+
+***************************************
+DateRange, date offsets, and time rules
+***************************************
 
 It is often necessary to do non-standard date logic, adding business
 days, rolling to the next month or quarter end, rolling to the next

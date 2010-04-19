@@ -95,8 +95,8 @@ class Series(np.ndarray, Picklable, Groupable):
         and index sequence are used, the index will override the keys
         found in the dict.
 
-    Note
-    ----
+    Notes
+    -----
     If you combine two series, all values for an index position must
     be present or the value for that index position will be nan. The
     new index is the sorted union of the two Series indices.
@@ -111,10 +111,16 @@ class Series(np.ndarray, Picklable, Groupable):
             data = [data[idx] for idx in index]
 
         # Make a copy of the data, infer type
-        subarr = np.array(data, dtype=dtype, copy=copy)
+        try:
+            subarr = np.array(data, dtype=dtype, copy=copy)
+        except ValueError:
+            if dtype:
+                raise
+
+            subarr = np.array(data, dtype=object)
 
         if subarr.ndim == 0:
-            if isinstance(data, list):
+            if isinstance(data, list): # pragma: no cover
                 subarr = np.array(data, dtype=object)
             else:
                 return subarr.item()
@@ -532,15 +538,6 @@ class Series(np.ndarray, Picklable, Groupable):
         result = Series(np.where(isnull(this), other, this), index=newIndex)
         return result
 
-    def argsort(self, axis=0, kind='quicksort', order=None):
-        """
-        Overriding numpy's built-in cumsum functionality
-        """
-        arr = self.values().copy()
-        okLocs = notnull(arr)
-        arr[okLocs] = np.argsort(arr[okLocs])
-        return self.__class__(arr, index=self.index)
-
     def cumsum(self, axis=0, dtype=None, out=None):
         """
         Overriding numpy's built-in cumsum functionality
@@ -599,6 +596,21 @@ class Series(np.ndarray, Picklable, Groupable):
         sortedSeries = self.order(missingAtEnd=True)
         self[:] = sortedSeries
         self.index = sortedSeries.index
+
+    def argsort(self, axis=0, kind='quicksort', order=None):
+        """
+        Overriding numpy's built-in cumsum functionality
+        """
+        values = self.values()
+        mask = isnull(values)
+
+        if mask.any():
+            result = values.copy()
+            notmask = -mask
+            result[notmask] = np.argsort(values[notmask])
+            return Series(result, index=self.index)
+        else:
+            return Series(np.argsort(values), index=self.index)
 
     def order(self, missingAtEnd=True):
         """

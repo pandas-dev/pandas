@@ -115,8 +115,7 @@ class VAR(object):
         for col in self._columns:
             d[col] = {}
             for i in xrange(1, 1 + self._p):
-                lagged_data = self._lagged_data[i].filterItems(
-                    self._columns - [col])
+                lagged_data = self._lagged_data[i].filter(self._columns - [col])
 
                 for key, value in lagged_data.iteritems():
                     d[col][_make_param_name(i, key)] = value

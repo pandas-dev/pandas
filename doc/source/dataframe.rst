@@ -838,8 +838,7 @@ TODO
    DataFrame.combineFirst
    DataFrame.combineAdd
    DataFrame.combineMult
-   DataFrame.outerJoin
-   DataFrame.leftJoin
+   DataFrame.join
    DataFrame.plot
 
 DataFrame vs. DataMatrix

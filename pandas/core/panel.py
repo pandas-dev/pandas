@@ -219,10 +219,6 @@ class WidePanel(Panel):
     def keys(self):
         return list(self.items)
 
-    def iteritems(self):
-        for item in self.items:
-            yield item, self[item]
-
     def _get_values(self):
         return self._values
 
@@ -254,20 +250,9 @@ class WidePanel(Panel):
         except KeyError:
             raise KeyError('%s not contained in panel data items!' % key)
 
-        if loc == 0:
-            new_items = self.items[1:]
-            new_values = self.values[1:]
-        elif loc == (len(self.items) - 1):
-            new_items = self.items[:-1]
-            new_values = self.values[:-1]
-        else:
-            new_items = Index(np.concatenate((self.items[:loc],
-                                              self.items[loc + 1:])))
-            new_values = np.row_stack((self.values[:loc],
-                                      self.values[loc + 1:]))
-
-        self.items = new_items
-        self.values = new_values
+        indices = range(loc) + range(loc + 1, len(self.items))
+        self.items = self.items[indices]
+        self.values = self.values.take(indices, axis=0)
 
     def pop(self, key):
         """
@@ -634,7 +619,7 @@ class WidePanel(Panel):
 
         return LongPanel(values, self.items, index)
 
-    def filterItems(self, items):
+    def filter(self, items):
         """
         Restrict items in panel to input list
 
@@ -917,19 +902,19 @@ class WidePanel(Panel):
 
 
     def truncate(self, before=None, after=None, axis='major'):
-        """Function truncate a sorted DataFrame before and/or after
-        some particular dates.
+        """Function truncates a sorted Panel before and/or after
+        some particular dates
 
         Parameters
         ----------
         before : date
-            Truncate before date
+            Left boundary
         after : date
-            Truncate after date
+            Right boundary
 
         Returns
         -------
-        DataFrame
+        WidePanel
         """
         axis = self._get_axis_name(axis)
         index = self._get_axis(axis)
@@ -1374,7 +1359,7 @@ class LongPanel(Panel):
         return LongPanel(self.values[left : right],
                          self.items, new_index)
 
-    def filterItems(self, items):
+    def filter(self, items):
         """
         Restrict items in panel to input list
 
@@ -1864,7 +1849,7 @@ def _homogenize(frames, intersect=True):
 
     if intersect:
         for key, frame in adj_frames.iteritems():
-            result[key] = frame.filterItems(columns).reindex(index)
+            result[key] = frame.filter(columns).reindex(index)
     else:
         for key, frame in adj_frames.iteritems():
             if not isinstance(frame, DataMatrix):

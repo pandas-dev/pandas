@@ -2,9 +2,9 @@
 
 .. _stats:
 
-*****************
-Statistical tools
-*****************
+*************************
+Statistical functionality
+*************************
 
 Least-squares entry-point
 -------------------------

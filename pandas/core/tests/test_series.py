@@ -52,6 +52,12 @@ class TestSeries(unittest.TestCase):
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
+    def test_constructor_corner(self):
+        df = common.makeTimeDataFrame()
+        objs = [df, df]
+        s = Series(objs, index=[0, 1])
+        self.assert_(isinstance(s, Series))
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 
@@ -371,6 +377,9 @@ class TestSeries(unittest.TestCase):
             expected = func(np.array(ts.valid()))
 
             self.assert_(np.array_equal(result, expected))
+
+        argsorted = self.ts.argsort()
+        self.assert_(argsorted.dtype == np.int_)
 
     def test_median(self):
         self.assertAlmostEqual(np.median(self.ts), self.ts.median())

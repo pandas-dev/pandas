@@ -178,6 +178,14 @@ class TestDataFrame(unittest.TestCase):
         self.assertRaises(Exception, self.klass, mat, index=[1])
         self.assertRaises(Exception, self.klass, mat, columns=['A', 'B', 'C'])
 
+    def test_array_interface(self):
+        result = np.sqrt(self.frame)
+        self.assert_(type(result) is type(self.frame))
+        self.assert_(result.index is self.frame.index)
+        self.assert_(result.cols() == self.frame.cols())
+
+        assert_frame_equal(result, self.frame.apply(np.sqrt))
+
     def test_pickle(self):
         unpickled = pickle.loads(pickle.dumps(self.mixed_frame))
         assert_frame_equal(self.mixed_frame, unpickled)
@@ -925,7 +933,7 @@ class TestDataFrame(unittest.TestCase):
     def test_filter(self):
         # items
 
-        filtered = self.frame.filterItems(['A', 'B', 'E'])
+        filtered = self.frame.filter(['A', 'B', 'E'])
         self.assertEqual(len(filtered.cols()), 2)
         self.assert_('E' not in filtered)
 
@@ -933,7 +941,7 @@ class TestDataFrame(unittest.TestCase):
         fcopy = self.frame.copy()
         fcopy['AA'] = 1
 
-        filtered = fcopy.filterLike('A')
+        filtered = fcopy.filter(like='A')
         self.assertEqual(len(filtered.cols()), 2)
         self.assert_('AA' in filtered)
 
@@ -1034,19 +1042,43 @@ class TestDataFrame(unittest.TestCase):
         comb = self.empty.combineMult(self.frame)
         self.assert_(comb is self.frame)
 
-    def test_leftJoin(self):
+    def test_join_index(self):
+        # left / right
+
         f = self.frame.reindex(columns=['A', 'B'])[:10]
         f2 = self.frame.reindex(columns=['C', 'D'])
 
-        joined = f.join(f2, how='left')
+        joined = f.join(f2)
         self.assert_(f.index.equals(joined.index))
+        self.assertEqual(len(joined.cols()), 4)
+
+        joined = f.join(f2, how='left')
+        self.assert_(joined.index.equals(f.index))
+        self.assertEqual(len(joined.cols()), 4)
+
+        joined = f.join(f2, how='right')
+        self.assert_(joined.index.equals(f2.index))
         self.assertEqual(len(joined.cols()), 4)
 
         # corner case
         self.assertRaises(Exception, self.frame.join, self.frame,
                           how='left')
 
-    def test_outerJoin(self):
+        # inner
+
+        f = self.frame.reindex(columns=['A', 'B'])[:10]
+        f2 = self.frame.reindex(columns=['C', 'D'])
+
+        joined = f.join(f2, how='inner')
+        self.assert_(joined.index.equals(f.index.intersection(f2.index)))
+        self.assertEqual(len(joined.cols()), 4)
+
+        # corner case
+        self.assertRaises(Exception, self.frame.join, self.frame,
+                          how='inner')
+
+        # outer
+
         f = self.frame.reindex(columns=['A', 'B'])[:10]
         f2 = self.frame.reindex(columns=['C', 'D'])
 
@@ -1057,6 +1089,8 @@ class TestDataFrame(unittest.TestCase):
         # corner case
         self.assertRaises(Exception, self.frame.join, self.frame,
                           how='outer')
+
+        self.assertRaises(Exception, f.join, f2, how='foo')
 
     def test_join(self):
         index, data = common.getMixedTypeDict()

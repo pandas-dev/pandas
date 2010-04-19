@@ -117,9 +117,8 @@ class PanelOLS(OLS):
         x_filtered = self._add_dummies(x_filtered, cat_mapping)
 
         if self._x_effects:
-            x = x.filterItems(x.items - self._x_effects)
-            x_filtered = x_filtered.filterItems(x_filtered.items
-                                                - self._x_effects)
+            x = x.filter(x.items - self._x_effects)
+            x_filtered = x_filtered.filter(x_filtered.items - self._x_effects)
 
         if self._time_effects:
             x_regressor = x.subtract(x.mean(broadcast=True))
@@ -170,14 +169,14 @@ class PanelOLS(OLS):
         data['__y__'] = self._y_orig
         data_long = data.toLong()
 
-        x_filt = filtered.filterItems(x_names)
+        x_filt = filtered.filter(x_names)
 
         if self._weights:
             weights_filt = filtered['__weights__']
         else:
             weights_filt = None
 
-        x = data_long.filterItems(x_names)
+        x = data_long.filter(x_names)
         y = data_long['__y__']
 
         if self._weights:
@@ -254,7 +253,7 @@ class PanelOLS(OLS):
 
             self.log('-- Excluding dummy for entity: %s' % to_exclude)
 
-            dummies = dummies.filterItems(dummies.items - [to_exclude])
+            dummies = dummies.filter(dummies.items - [to_exclude])
 
         dummies = dummies.addPrefix('FE_')
         panel = panel.leftJoin(dummies)
@@ -298,7 +297,7 @@ class PanelOLS(OLS):
 
                 self.log('-- Excluding dummy for %s: %s' % (effect, to_exclude))
 
-                dummies = dummies.filterItems(dummies.items - [mapped_name])
+                dummies = dummies.filter(dummies.items - [mapped_name])
                 dropped_dummy = True
 
             dummies = _convertDummies(dummies, cat_mappings.get(effect))

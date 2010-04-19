@@ -10,6 +10,7 @@ from StringIO import StringIO
 import numpy as np
 
 from pandas.core.api import DataFrame, DataMatrix, Series
+from pandas.core.panel import WidePanel
 from pandas.util.decorators import cache_readonly
 import pandas.lib.tseries as tseries
 import pandas.stats.common as common
@@ -630,13 +631,14 @@ class MovingOLS(OLS):
     @cache_readonly
     def var_beta(self):
         """Returns the covariance of beta."""
-        result = []
+        result = {}
+        result_index = self._result_index
         for i in xrange(len(self._var_beta_raw)):
             dm = DataMatrix(self._var_beta_raw[i], columns=self.beta.cols(),
                             index=self.beta.cols())
-            result.append(dm)
+            result[result_index[i]] = dm
 
-        return Series(result, index=self._result_index)
+        return WidePanel.fromDict(result, intersect=False)
 
     @cache_readonly
     def y_fitted(self):
