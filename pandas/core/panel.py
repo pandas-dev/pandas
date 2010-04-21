@@ -6,12 +6,10 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable-msg=W0212
 # pylint: disable-msg=W0621
 
-from cStringIO import StringIO
 import operator
 import sys
 
 import numpy as np
-from numpy.lib.format import write_array, read_array
 
 from pandas.core.common import (_pickle_array, _unpickle_array,
                                 _pfixed)
@@ -1012,6 +1010,9 @@ class LongPanel(Panel):
             data = dict((k, data[k]) for k in columns)
         elif isinstance(data, DataFrame):
             data = data._series.copy()
+        elif isinstance(data, dict):
+            # otherwise will pop columns out of original
+            data = data.copy()
 
         if exclude is None:
             exclude = set()

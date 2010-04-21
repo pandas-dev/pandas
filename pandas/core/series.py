@@ -1070,6 +1070,31 @@ class Series(np.ndarray, Picklable, Groupable):
 
         return self.__class__(newValues, index=newIndex)
 
+    def rename(self, mapper):
+        """
+        Alter Series index using dict or function
+
+        Parameters
+        ----------
+        mapper : dict-like or function
+            Transformation to apply to each index
+
+        Notes
+        -----
+        Function / dict values must be unique (1-to-1)
+
+        Returns
+        -------
+        y : Series (new object)
+        """
+        if isinstance(mapper, (dict, Series)):
+            mapper = mapper.__getitem__
+
+        result = self.copy()
+        result.index = [mapper(x) for x in self.index]
+
+        return result
+
     @property
     def weekday(self):
         return self.__class__([d.weekday() for d in self.index],

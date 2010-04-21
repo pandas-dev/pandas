@@ -964,6 +964,54 @@ class DataFrame(Picklable, Groupable):
 
         return result
 
+    def rename(self, index=None, columns=None):
+        """
+        Alter index and / or columns using input function or functions
+
+        Parameters
+        ----------
+        index : dict-like or function, optional
+            Transformation to apply to index values
+        columns : dict-like or function, optional
+            Transformation to apply to column values
+
+        See also
+        --------
+        Series.rename
+
+        Notes
+        -----
+        Function / dict values must be unique (1-to-1)
+
+        Returns
+        -------
+        y : DataFrame (new object)
+        """
+        if isinstance(index, (dict, Series)):
+            index = index.__getitem__
+
+        if isinstance(columns, (dict, Series)):
+            columns = columns.__getitem__
+
+        if index is None and columns is None:
+            raise Exception('must pass either index or columns')
+
+        result = self.copy()
+
+        if index is not None:
+            result._rename_index_inplace(index)
+
+        if columns is not None:
+            result._rename_columns_inplace(columns)
+
+        return result
+
+    def _rename_index_inplace(self, mapper):
+        self.index = [mapper(x) for x in self.index]
+
+    def _rename_columns_inplace(self, mapper):
+        self._series = dict((mapper(k), v) for k, v in self._series.iteritems())
+
     @property
     def T(self):
         """

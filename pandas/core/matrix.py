@@ -307,6 +307,12 @@ class DataMatrix(DataFrame):
         return DataMatrix(newValues, index=self.index, columns=columns,
                           objects=objects)
 
+    def _rename_columns_inplace(self, mapper):
+        self.columns = [mapper(x) for x in self.columns]
+
+        if self.objects is not None:
+            self.objects._rename_columns_inplace(mapper)
+
     def _combineFrame(self, other, func):
         """
         Methodology, briefly
