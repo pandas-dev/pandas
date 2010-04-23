@@ -735,17 +735,13 @@ class Series(np.ndarray, Picklable, Groupable):
 
         f.close()
 
-    def cap(self, value):
+    def cap(self, threshold):
         """Return copy of series with values above given value truncated"""
-        myCopy = self.copy()
-        myCopy[notnull(myCopy) & (myCopy > value)] = value
-        return myCopy
+        return np.where(self > threshold, threshold, self)
 
-    def floor(self, value):
+    def floor(self, threshold):
         """Return copy of series with values BELOW given value truncated"""
-        myCopy = self.copy()
-        myCopy[notnull(myCopy) & (myCopy < value)] = value
-        return myCopy
+        return np.where(self < threshold, threshold, self)
 
     def valid(self):
         """

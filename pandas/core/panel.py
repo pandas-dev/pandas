@@ -926,26 +926,16 @@ class WidePanel(Panel):
         index = self._get_axis(axis)
 
         if before is None:
-            before = index[0]
-        elif before not in index:
-            loc = index.searchsorted(before, side='left')
-            before = index[loc]
+            beg_slice = 0
+        else:
+            beg_slice = index.searchsorted(before, side='left')
 
         if after is None:
-            after = index[-1]
-        elif after not in index:
-            loc = index.searchsorted(after, side='right') - 1
-
-            if loc >= len(index):
-                loc = -1
-
-            after = index[loc]
-
-        beg_slice = index.indexMap[before]
-        end_slice = index.indexMap[after] + 1
+            end_slice = len(index)
+        else:
+            end_slice = index.searchsorted(after, side='right')
 
         return beg_slice, end_slice
-
 
 #-------------------------------------------------------------------------------
 # LongPanel and friends
@@ -1034,6 +1024,9 @@ class LongPanel(Panel):
 
         major_labels, _ = getMergeVec(major_vec, major_axis.indexMap)
         minor_labels, _ = getMergeVec(minor_vec, minor_axis.indexMap)
+
+        for col in exclude:
+            del data[col]
 
         factor_dict = {}
         for col in data.keys():

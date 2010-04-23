@@ -824,17 +824,13 @@ class DataFrame(Picklable, Groupable):
 
         if before is None:
             beg_slice = 0
-        elif before not in self.index:
-            beg_slice = self.index.searchsorted(before, side='left')
         else:
-            beg_slice = self.index.indexMap[before]
+            beg_slice = self.index.searchsorted(before, side='left')
 
         if after is None:
             end_slice = len(self.index)
-        elif after not in self.index:
-            end_slice = self.index.searchsorted(after, side='right')
         else:
-            end_slice = self.index.indexMap[after] + 1
+            end_slice = self.index.searchsorted(after, side='right')
 
         return beg_slice, end_slice
 
@@ -1449,6 +1445,26 @@ class DataFrame(Picklable, Groupable):
             return self.index
         else:
             raise Exception('Must have 0<= axis <= 1')
+
+    def cap(self, threshold):
+        """
+        Trim values at threshold
+
+        Returns
+        -------
+        DataFrame
+        """
+        return self.apply(lambda x: x.cap(threshold))
+
+    def floor(self, threshold):
+        """
+        Trim values below threshold
+
+        Returns
+        -------
+        DataFrame
+        """
+        return self.apply(lambda x: x.floor(threshold))
 
     # ndarray-like stats methods
     def count(self, axis=0):

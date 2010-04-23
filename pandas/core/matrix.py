@@ -1212,6 +1212,32 @@ class DataMatrix(DataFrame):
         return DataMatrix(data=newValues, index=newIndex, columns=self.columns,
                           objects=shifted_objects)
 
+    def cap(self, threshold):
+        """
+        Trim values at threshold
+
+        Returns
+        -------
+        DataMatrix
+        """
+        return DataMatrix(np.where(self.values > threshold,
+                                   threshold, self.values),
+                          index=self.index, columns=self.columns,
+                          objects=self.objects)
+
+    def floor(self, threshold):
+        """
+        Trim values below threshold
+
+        Returns
+        -------
+        DataMatrix
+        """
+        return DataMatrix(np.where(self.values < threshold,
+                                   threshold, self.values),
+                          index=self.index, columns=self.columns,
+                          objects=self.objects)
+
 def _reorder_columns(mat, current, desired):
     fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,
                                        desired.indexMap, None)

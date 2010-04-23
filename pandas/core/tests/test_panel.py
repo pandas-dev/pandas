@@ -457,6 +457,27 @@ class TestWidePanel(unittest.TestCase, PanelTests):
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 
+    def test_truncate(self):
+        dates = self.panel.major_axis
+        start, end = dates[1], dates[5]
+
+        trunced = self.panel.truncate(start, end, axis='major')
+        expected = self.panel['ItemA'].truncate(start, end)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        trunced = self.panel.truncate(before=start, axis='major')
+        expected = self.panel['ItemA'].truncate(before=start)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        trunced = self.panel.truncate(after=end, axis='major')
+        expected = self.panel['ItemA'].truncate(after=end)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        # XXX test other axes
+
 class TestLongPanelIndex(unittest.TestCase):
 
     def setUp(self):
