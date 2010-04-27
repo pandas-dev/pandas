@@ -944,7 +944,7 @@ class WidePanel(Panel):
 def _long_arith_method(op, name):
     def f(self, other, axis='major'):
         """
-        Wrapper method for %s operation
+        Wrapper method for %s
 
         Parameters
         ----------
