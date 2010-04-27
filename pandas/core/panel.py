@@ -941,6 +941,28 @@ class WidePanel(Panel):
 # LongPanel and friends
 
 
+def _long_arith_method(op, name):
+    def f(self, other, axis='major'):
+        """
+        Wrapper method for %s operation
+
+        Parameters
+        ----------
+        other : DataFrame or Panel class
+        axis : {'items', 'major', 'minor'}
+
+        Returns
+        -------
+        LongPanel
+        """
+        return self._combine(other, op, axis=axis)
+
+    f.__name__ = name
+    f.__doc__ = f.__doc__ % str(op)
+
+    return f
+
+
 class LongPanel(Panel):
     """
     Represents long or "stacked" format panel data
@@ -989,8 +1011,6 @@ class LongPanel(Panel):
         -------
         LongPanel
         """
-        from pandas.lib.tseries import getMergeVec
-
         if isinstance(data, np.ndarray):
             # Dtype when you have data
             if not issubclass(data.dtype.type, np.void):
@@ -1009,21 +1029,14 @@ class LongPanel(Panel):
         else:
             exclude = set(exclude)
 
-        if major_field in data:
-            major_vec = data.pop(major_field)
-        else:
-            raise Exception('No field named %s' % major_field)
-
-        if minor_field in data:
-            minor_vec = data.pop(minor_field)
-        else:
-            raise Exception('No field named %s' % minor_field)
+        major_vec = data.pop(major_field)
+        minor_vec = data.pop(minor_field)
 
         major_axis = Index(sorted(set(major_vec)))
         minor_axis = Index(sorted(set(minor_vec)))
 
-        major_labels, _ = getMergeVec(major_vec, major_axis.indexMap)
-        minor_labels, _ = getMergeVec(minor_vec, minor_axis.indexMap)
+        major_labels, _ = tseries.getMergeVec(major_vec, major_axis.indexMap)
+        minor_labels, _ = tseries.getMergeVec(minor_vec, minor_axis.indexMap)
 
         for col in exclude:
             del data[col]
@@ -1175,29 +1188,10 @@ class LongPanel(Panel):
         return LongPanel(new_values, self.items, self.index,
                          factors=self.factors)
 
-    def add(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.add, axis=axis)
-
-    def subtract(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.sub, axis=axis)
-
-    def multiply(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.mul, axis=axis)
-
-    def divide(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.div, axis=axis)
+    add = _long_arith_method(operator.add, 'add')
+    subtract = _long_arith_method(operator.sub, 'subtract')
+    divide = _long_arith_method(operator.div, 'divide')
+    multiply = _long_arith_method(operator.mul, 'multiply')
 
     def sort(self, axis='major'):
         """
@@ -1926,17 +1920,22 @@ def _slow_pivot(index, columns, values):
 
     return DataFrame(tree)
 
-def test():
-    return pivot(np.array([1, 2, 3, 4, 4]),
-                 np.array(['a', 'a', 'a', 'a', 'a']),
-                 np.array([1, 2, 3, 5, 4]))
-
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
 
 def group_agg(values, bounds, f):
     """
     R-style aggregator
+
+    Parameters
+    ----------
+    values : N x K ndarray
+    bounds : B-length ndarray
+    f : ndarray aggregation function
+
+    Returns
+    -------
+    ndarray with same length as bounds array
     """
     N, K = values.shape
     result = np.empty((len(bounds), K), dtype=float)

@@ -11,7 +11,7 @@ from pandas.core.common import _pfixed, _pickle_array, _unpickle_array
 from pandas.core.frame import DataFrame, _try_sort
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
-from pandas.lib.tseries import isnull, notnull
+from pandas.lib.tseries import isnull
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
@@ -264,17 +264,24 @@ class DataMatrix(DataFrame):
                                            self.index.indexMap,
                                            index.indexMap, method)
 
-        tmpMatrix = self.values.take(fillVec, axis=0)
+        mat = self.values.take(fillVec, axis=0)
+
+        notmask = -mask
         if len(index) > 0:
-            tmpMatrix[-mask] = NaN
+            if notmask.any():
+                if issubclass(mat.dtype.type, np.int_):
+                    mat = mat.astype(float)
+                elif issubclass(mat.dtype.type, np.bool_):
+                    mat = mat.astype(object)
+
+                mat[-mask] = NaN
 
         if self.objects is not None and len(self.objects.columns) > 0:
             newObjects = self.objects.reindex(index)
         else:
             newObjects = None
 
-        return DataMatrix(tmpMatrix, index=index,
-                          columns=self.columns,
+        return DataMatrix(mat, index=index, columns=self.columns,
                           objects=newObjects)
 
     def _reindex_columns(self, columns):
@@ -300,11 +307,19 @@ class DataMatrix(DataFrame):
                                            self.columns.indexMap,
                                            columns.indexMap, None)
 
-        newValues = self.values.take(indexer, axis=1)
-        if len(mask) > 0:
-            newValues[:, -mask] = NaN
+        mat = self.values.take(indexer, axis=1)
 
-        return DataMatrix(newValues, index=self.index, columns=columns,
+        notmask = -mask
+        if len(mask) > 0:
+            if notmask.any():
+                if issubclass(mat.dtype.type, np.int_):
+                    mat = mat.astype(float)
+                elif issubclass(mat.dtype.type, np.bool_):
+                    mat = mat.astype(object)
+
+                mat[:, -mask] = NaN
+
+        return DataMatrix(mat, index=self.index, columns=columns,
                           objects=objects)
 
     def _rename_columns_inplace(self, mapper):
@@ -843,7 +858,7 @@ class DataMatrix(DataFrame):
         print >> buffer, 'Data columns:'
         space = max([len(str(k)) for k in self.cols()]) + 4
 
-        counts = self.apply(notnull).sum(0)
+        counts = self.count()
 
         columns = []
         for j, col in enumerate(self.columns):

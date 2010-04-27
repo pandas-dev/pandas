@@ -1053,15 +1053,12 @@ class Series(np.ndarray, Picklable, Groupable):
         newValues = self.values().take(fillVec)
 
         notmask = -mask
-        if issubclass(newValues.dtype.type, np.int_):
-            if notmask.any():
+        if notmask.any():
+            if issubclass(newValues.dtype.type, np.int_):
                 newValues = newValues.astype(float)
-                np.putmask(newValues, notmask, NaN)
-        elif issubclass(newValues.dtype.type, np.bool_):
-            if notmask.any():
+            elif issubclass(newValues.dtype.type, np.bool_):
                 newValues = newValues.astype(object)
-                np.putmask(newValues, notmask, NaN)
-        else:
+
             np.putmask(newValues, notmask, NaN)
 
         return self.__class__(newValues, index=newIndex)
