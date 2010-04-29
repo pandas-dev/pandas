@@ -46,6 +46,18 @@ class Panel(Picklable):
     _values = None
     factors = None
 
+    __add__ = _arith_method(operator.add, '__add__')
+    __sub__ = _arith_method(operator.sub, '__sub__')
+    __mul__ = _arith_method(operator.mul, '__mul__')
+    __div__ = _arith_method(operator.div, '__div__')
+    __pow__ = _arith_method(operator.pow, '__pow__')
+
+    __radd__ = _arith_method(operator.add, '__radd__')
+    __rmul__ = _arith_method(operator.mul, '__rmul__')
+    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
+    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
+    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
+
     def __repr__(self):
         class_name = str(self.__class__)
 
@@ -420,18 +432,6 @@ class WidePanel(Panel):
 
             return WidePanel(newValues, self.items, self.major_axis,
                              self.minor_axis)
-
-    __add__ = _arith_method(operator.add, '__add__')
-    __sub__ = _arith_method(operator.sub, '__sub__')
-    __mul__ = _arith_method(operator.mul, '__mul__')
-    __div__ = _arith_method(operator.div, '__div__')
-    __pow__ = _arith_method(operator.pow, '__pow__')
-
-    __radd__ = _arith_method(operator.add, '__radd__')
-    __rmul__ = _arith_method(operator.mul, '__rmul__')
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
     def __neg__(self):
         return WidePanel(-self.values, self.items, self.major_axis,
@@ -942,7 +942,7 @@ class WidePanel(Panel):
 
 
 def _long_arith_method(op, name):
-    def f(self, other, axis='major'):
+    def f(self, other, axis='items'):
         """
         Wrapper method for %s
 
@@ -1157,19 +1157,31 @@ class LongPanel(Panel):
         self.index = index
         self.values = _unpickle_array(vals)
 
-    def _combine(self, other, func, axis=0):
+    def _combine(self, other, func, axis='items'):
         if isinstance(other, DataFrame):
             return self._combineFrame(other, func, axis=axis)
         elif isinstance(other, Panel):
             return self._combinePanel(other, func)
         elif np.isscalar(other):
-            pass
+            return LongPanel(func(self.values, other), self.items,
+                             self.index, factors=self.factors)
 
-    def _combineFrame(self, other, func, axis=0):
+    def _combineFrame(self, other, func, axis='items'):
+        """
+        Arithmetic op
+
+        Parameters
+        ----------
+        other : DataFrame
+        func : function
+        axis : int / string
+
+        Returns
+        -------
+        y : LongPanel
+        """
         wide = self.toWide()
-
         result = wide._combineFrame(other, func, axis=axis)
-
         return result.toLong()
 
     def _combinePanel(self, other, func):

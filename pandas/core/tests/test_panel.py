@@ -642,17 +642,24 @@ class TestLongPanel(unittest.TestCase):
 
         # check exceptions raised
         lp = self.panel.filter(['ItemA', 'ItemB'])
-        lp2 = self.panel.filter(['ItemC', 'ItemD'])
-        self.assertRaises(Exception, lp.__setitem__, lp2)
+        lp2 = self.panel.filter(['ItemC', 'ItemE'])
+        self.assertRaises(Exception, lp.__setitem__, 'foo', lp2)
 
     def test_combineFrame(self):
-        pass
+        wp = self.panel.toWide()
+        result = self.panel.add(wp['ItemA'])
+        assert_frame_equal(result.toWide()['ItemA'], wp['ItemA'] * 2)
 
     def test_combinePanel(self):
-        pass
+        wp = self.panel.toWide()
+        result = self.panel.add(self.panel)
+        wide_result = result.toWide()
+        assert_frame_equal(wp['ItemA'] * 2, wide_result['ItemA'])
 
     def test_operators(self):
-        pass
+        wp = self.panel.toWide()
+        result = (self.panel + 1).toWide()
+        assert_frame_equal(wp['ItemA'] + 1, result['ItemA'])
 
     def test_sort(self):
         def is_sorted(arr):
