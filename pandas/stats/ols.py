@@ -266,9 +266,7 @@ class OLS(object):
     @cache_readonly
     def resid(self):
         """Returns the residuals."""
-        index = self._x.index
-
-        return Series(self._resid_raw, index=index)
+        return Series(self._resid_raw, index=self._x.index)
 
     @cache_readonly
     def _rmse_raw(self):
@@ -336,8 +334,8 @@ class OLS(object):
     @cache_readonly
     def y_fitted(self):
         """Returns the fitted y values.  This equals BX."""
-        index = self._x_filtered.index
-        return Series(self._y_fitted_raw, index=index)
+        result = Series(self._y_fitted_raw, index=self._y.index)
+        return result.reindex(self._y_orig.index)
 
     @cache_readonly
     def _y_predict_raw(self):

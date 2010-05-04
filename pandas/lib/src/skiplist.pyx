@@ -11,7 +11,12 @@ cdef extern from "numpy/arrayobject.h":
     void import_array()
 
 cdef extern from "math.h":
-    double log2(double x)
+    double log(double x)
+
+# MSVC does not have log2!
+
+cdef double Log2(double x):
+    return log(x) / log(2.)
 
 cimport numpy as np
 from numpy cimport *
@@ -50,7 +55,7 @@ cdef class IndexableSkiplist:
 
     def __init__(self, expected_size=100):
         self.size = 0
-        self.maxlevels = int(1 + log2(expected_size))
+        self.maxlevels = int(1 + Log2(expected_size))
 
         self.head = Node(np.NaN, [NIL] * self.maxlevels,
                          np.ones(self.maxlevels, dtype=int))
@@ -97,7 +102,7 @@ cdef class IndexableSkiplist:
             chain[level] = node
 
         # insert a link to the newnode at each level
-        d = min(self.maxlevels, 1 - int(log2(random())))
+        d = min(self.maxlevels, 1 - int(Log2(random())))
         newnode = Node(value, [None] * d, np.empty(d, dtype=int))
         steps = 0
 

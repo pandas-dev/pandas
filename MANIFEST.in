@@ -1,4 +1,9 @@
-include TODO.txt LICENSE.txt README.txt
-include setup.py setupegg.py
-include examples/data/*
-recursive-include examples *
+include MANIFEST.in
+include LICENSE.txt
+include README.txt
+include setup.py
+include setupegg.py
+# include examples/data/*
+recursive-include examples *.py
+# recursive-include doc/source *
+# recursive-include doc/sphinxext *

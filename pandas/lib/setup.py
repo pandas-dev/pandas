@@ -22,13 +22,12 @@ def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
     config = Configuration('lib', parent_package, top_path)
-    config.set_options(assume_default_configuration=True,
-                       quiet=True)
-
     config.add_extension('tseries',
                          sources=['src/tseries.c',
-                                  'src/wirth.c'],
+                                  'src/wirth.c',
+                                  'include/wirth.h'],
                          include_dirs=[numpy.get_include(),
                                        'include/'])
+    config.add_data_dir('include')
 
     return config
