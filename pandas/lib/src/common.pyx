@@ -1,5 +1,3 @@
-include "Python.pxi"
-
 cimport numpy as np
 cimport cython
 from numpy cimport *
