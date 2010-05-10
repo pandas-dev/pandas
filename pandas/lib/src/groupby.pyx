@@ -36,16 +36,15 @@ def groupby(object index, object mapper, output=None):
 
     index_buf = np.asarray(index)
     mapped_index = arrmap(index_buf, mapper)
-
     mask = _isnullobj(mapped_index)
     nullkeys = index_buf[mask.astype(bool)]
-
-    if nullkeys.any():
+    if len(nullkeys) > 0:
         result[np.NaN] = nullkeys
 
     for i from 0 <= i < length:
         if mask[i]:
             continue
+
         key = mapped_index[i]
         idx = index_buf[i]
         if key in result:
