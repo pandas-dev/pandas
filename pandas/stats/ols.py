@@ -1137,7 +1137,7 @@ def _combine_rhs(rhs):
     if isinstance(rhs, Series):
         series['x'] = rhs
     elif isinstance(rhs, DataFrame):
-        return rhs
+        series = rhs
     elif isinstance(rhs, dict):
         for name, value in rhs.iteritems():
             if isinstance(value, Series):
@@ -1148,6 +1148,9 @@ def _combine_rhs(rhs):
                 raise Exception('Invalid RHS data type: %s' % type(value))
     else:
         raise Exception('Invalid RHS type: %s' % type(rhs))
+
+    if not isinstance(series, DataFrame):
+        series = DataMatrix(series)
 
     return series
 
@@ -1170,10 +1173,7 @@ def _filter_data(lhs, rhs):
     if not isinstance(lhs, Series):
         raise Exception('lhs must be a Series')
 
-    combined_rhs = _combine_rhs(rhs)
-
-    if not isinstance(combined_rhs, DataFrame):
-        rhs = DataMatrix(combined_rhs)
+    rhs = _combine_rhs(rhs)
 
     rhs_valid = np.isfinite(rhs.values).sum(1) == len(rhs.columns)
 

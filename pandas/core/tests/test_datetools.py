@@ -114,7 +114,7 @@ class TestBusinessDay(unittest.TestCase):
         myAssert(self.d - self.offset2,  self.d + BDay(-2))
 
     def testRSub(self):
-        myAssert(self.d - self.offset2, self.offset2 - self.d)
+        myAssert(self.d - self.offset2, (-self.offset2).apply(self.d))
 
     def testMult1(self):
         myAssert(self.d + 10*self.offset, self.d + BDay(10))

@@ -8,7 +8,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.common import _pfixed, _pickle_array, _unpickle_array
-from pandas.core.frame import DataFrame, _try_sort
+from pandas.core.frame import DataFrame, _try_sort, _extract_index
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
 from pandas.lib.tseries import isnull
@@ -106,7 +106,7 @@ class DataMatrix(DataFrame):
             colset = set(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in colset)
 
-        index = self._extract_index(data, index)
+        index = _extract_index(data, index)
 
         objectDict = {}
         if objects is not None and isinstance(objects, dict):
@@ -391,8 +391,10 @@ class DataMatrix(DataFrame):
         newIndex = self.index
         newCols = self.columns
 
-        if not self:
-            return DataFrame(index=NULL_INDEX)
+        if len(self) == 0:
+            # Ambiguous case
+            return DataMatrix(index=self.index, columns=self.columns,
+                              objects=self.objects)
 
         if self.index._allDates and other.index._allDates:
             # Operate row-wise

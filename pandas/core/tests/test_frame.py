@@ -495,6 +495,11 @@ class TestDataFrame(unittest.TestCase):
         result = self.tsframe[:0] + ts
         self.assertEqual(len(result), 0)
 
+        # empty but with non-empty index
+        frame = self.tsframe[:1].reindex(columns=[])
+        result = frame * ts
+        self.assertEqual(len(result), len(ts))
+
     def test_combineFunc(self):
         result = self.frame * 2
         self.assert_(np.array_equal(result.values, self.frame.values * 2))
@@ -502,7 +507,6 @@ class TestDataFrame(unittest.TestCase):
         result = self.empty * 2
         self.assert_(result.index is self.empty.index)
         self.assertEqual(len(result.columns), 0)
-
 
     def test_toCSV(self):
         path = '__tmp__'

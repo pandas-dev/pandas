@@ -12,12 +12,14 @@ from pandas.stats.math import chain_dot, inv
 from pandas.stats.ols import _combine_rhs
 
 class VAR(object):
-    def __init__(self, data, lags):
+    def __init__(self, data, lags, intercept=True):
         self._data = DataFrame(_combine_rhs(data))
         self._p = lags
 
         self._columns = self._data.columns
         self._index = self._data.index
+
+        self._intercept = intercept
 
     @cache_readonly
     def aic(self):
@@ -179,7 +181,7 @@ class VAR(object):
             for col, series in self._lagged_data[i].iteritems():
                 d[_make_param_name(i, col)] = series
 
-        result = dict([(col, ols(y=y, x=d))
+        result = dict([(col, ols(y=y, x=d, intercept=self._intercept))
                        for col, y in self._data.iteritems()])
 
         return result
@@ -230,7 +232,10 @@ BIC:                            %(bic).3f
         Returns array where the i-th element contains the intercept
         when regressing the i-th column of self._data with the lagged data.
         """
-        return self._beta_raw[-1]
+        if self._intercept:
+            return self._beta_raw[-1]
+        else:
+            return np.zeros(self._k)
 
     @cache_readonly
     def _beta_raw(self):
@@ -266,9 +271,7 @@ BIC:                            %(bic).3f
         return result
 
     @cache_readonly
-    def _cov_beta(self):
-        cov_resid = self._sigma
-
+    def _x(self):
         values = np.array([
             self._lagged_data[i][col].values()
             for i in xrange(1, 1 + self._p)
@@ -276,6 +279,14 @@ BIC:                            %(bic).3f
         ]).T
 
         x = np.hstack((np.ones((len(values), 1)), values))[self._p:]
+
+        return x
+
+    @cache_readonly
+    def _cov_beta(self):
+        cov_resid = self._sigma
+
+        x = self._x
 
         inv_cov_x = inv(np.dot(x.T, x))
 
@@ -288,10 +299,13 @@ BIC:                            %(bic).3f
         return self._data.values[i]
 
     def _forecast_cov_raw(self, n):
-        beta = self._forecast_cov_beta_raw(n)
         resid = self._forecast_cov_resid_raw(n)
+        #beta = self._forecast_cov_beta_raw(n)
 
-        return [a + b for a, b in izip(beta, resid)]
+        #return [a + b for a, b in izip(resid, beta)]
+        # TODO: ignore the beta forecast std err until it's verified
+
+        return resid
 
     def _forecast_cov_beta_raw(self, n):
         """
@@ -462,9 +476,10 @@ class PanelVAR(VAR):
     data: WidePanel or dict of DataFrame
     lags: int
     """
-    def __init__(self, data, lags):
+    def __init__(self, data, lags, intercept=True):
         self._data = PanelVAR._prepare_data(data)
         self._p = lags
+        self._intercept = intercept
 
         self._columns = self._data.items
 

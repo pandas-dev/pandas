@@ -74,7 +74,9 @@ class DataFrame(Picklable, Groupable):
         elif isinstance(data, (np.ndarray, list)):
             self._series, self.index = self._initMatrix(data, index,
                                                         columns, dtype)
-
+        elif isinstance(data, DataFrame):
+            self._series = data._series.copy()
+            self.index = data.index
         elif data is None:
             if index is None:
                 index = NULL_INDEX
@@ -87,7 +89,7 @@ class DataFrame(Picklable, Groupable):
             colset = set(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in colset)
 
-        index = self._extract_index(data, index)
+        index = _extract_index(data, index)
 
         series = {}
         for k, v in data.iteritems():
@@ -112,51 +114,6 @@ class DataFrame(Picklable, Groupable):
                     series[c] = Series.fromValue(np.NaN, index=index)
 
         return series, index
-
-    @staticmethod
-    def _extract_index(data, index):
-        if len(data) == 0:
-            if index is None:
-                index = NULL_INDEX
-        elif len(data) > 0 and index is None:
-            # aggregate union of indices
-            need_labels = False
-
-            # this is pretty kludgy, better way?
-            for k, v in data.iteritems():
-                if isinstance(v, Series):
-                    if index is None:
-                        index = v.index
-                    elif need_labels:
-                        raise Exception('Cannot mix Series / dict objects'
-                                        ' with ndarray / sequence input')
-                    elif not index.equals(v.index):
-                        index = index + v.index
-
-                elif isinstance(v, dict):
-                    if index is None:
-                        index = Index(_try_sort(v))
-                    elif need_labels:
-                        raise Exception('Cannot mix Series / dict objects'
-                                        ' with ndarray / sequence input')
-                    else:
-                        index = index + Index(v.keys())
-
-                else: # not dict-like, assign integer labels
-                    if index is not None and not need_labels:
-                        raise Exception('Cannot mix Series / dict objects'
-                                        ' with ndarray / sequence input')
-
-                    need_labels = True
-                    index = Index(np.arange(len(v)))
-
-        if len(index) == 0 or index is None:
-            index = NULL_INDEX
-
-        if not isinstance(index, Index):
-            index = Index(index)
-
-        return index
 
     def _initMatrix(self, data, index, columns, dtype):
         if not isinstance(data, np.ndarray):
@@ -443,8 +400,9 @@ class DataFrame(Picklable, Groupable):
         if len(other) == 0:
             return self * NaN
 
-        if not self:
-            return DataFrame(index=NULL_INDEX)
+        if len(self) == 0:
+            # Ambiguous case
+            return DataFrame(index=self.index, columns=self.cols())
 
         if self.index._allDates and other.index._allDates:
             if self.index.equals(other.index):
@@ -489,18 +447,18 @@ class DataFrame(Picklable, Groupable):
         --------
         frame._combineFunc(otherFrame, lambda x, y: x + y)
         """
-        newColumns = {}
-        newIndex = self.index
-
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combineFrame(other, func)
         elif isinstance(other, Series):
             return self._combineSeries(other, func)
         else:
+            newColumns = {}
+            newIndex = self.index
+
             for col, series in self.iteritems():
                 newColumns[col] = func(series, other)
 
-        return DataFrame(data=newColumns, index=newIndex)
+            return DataFrame(data=newColumns, index=newIndex)
 
 #-------------------------------------------------------------------------------
 # Public methods
@@ -766,7 +724,7 @@ class DataFrame(Picklable, Groupable):
         if minObs is None:
             minObs = N
 
-        newIndex = self.index[theCount >= N]
+        newIndex = self.index[theCount >= minObs]
         return self.reindex(newIndex)
 
     def fill(self, value=None, method='pad'):
@@ -1808,3 +1766,48 @@ def _try_sort(iterable):
         return sorted(listed)
     except Exception:
         return listed
+
+def _extract_index(data, index):
+    if len(data) == 0:
+        if index is None:
+            index = NULL_INDEX
+    elif len(data) > 0 and index is None:
+        # aggregate union of indices
+        need_labels = False
+
+        # this is pretty kludgy, better way?
+        for v in data.values():
+            if isinstance(v, Series):
+                if index is None:
+                    index = v.index
+                elif need_labels:
+                    raise Exception('Cannot mix Series / dict objects'
+                                    ' with ndarray / sequence input')
+                elif not index.equals(v.index):
+                    index = index + v.index
+
+            elif isinstance(v, dict):
+                if index is None:
+                    index = Index(_try_sort(v))
+                elif need_labels:
+                    raise Exception('Cannot mix Series / dict objects'
+                                    ' with ndarray / sequence input')
+                else:
+                    index = index + Index(v.keys())
+
+            else: # not dict-like, assign integer labels
+                if index is not None and not need_labels:
+                    raise Exception('Cannot mix Series / dict objects'
+                                    ' with ndarray / sequence input')
+
+                need_labels = True
+                index = Index(np.arange(len(v)))
+
+    if len(index) == 0 or index is None:
+        index = NULL_INDEX
+
+    if not isinstance(index, Index):
+        index = Index(index)
+
+    return index
+

@@ -153,7 +153,13 @@ class DateOffset(object):
         return self.__add__(other)
 
     def __sub__(self, other):
-        return self.__class__(-self.n, **self.kwds) + other
+        if isinstance(other, datetime):
+            raise Exception('Cannot subtract datetime from offset!')
+        elif type(other) == type(self):
+            return self.__class__(self.n - other.n, **self.kwds)
+        else:
+            raise Exception('Cannot subtract %s from %s'
+                            % (type(other), type(self)))
 
     def __rsub__(self, other):
         return self.__class__(-self.n, **self.kwds) + other
