@@ -124,6 +124,13 @@ class DateRange(Index):
         # Allow us to circumvent hitting the cache
         index = kwds.get('index')
         if index is None:
+            if timeRule is not None:
+                offset = datetools.getOffset(timeRule)
+
+            if timeRule is None:
+                if offset in datetools._offsetNames:
+                    timeRule = datetools._offsetNames[offset]
+
             # Cachable
             if not fromDate:
                 fromDate = kwds.get('begin')
@@ -270,18 +277,9 @@ class DateRange(Index):
     __str__ = __repr__
 
     def shift(self, n):
-        if n > 0:
-            start = self[-1] + self.offset
-            tail = DateRange(fromDate=start, periods=n)
-            newArr = np.concatenate((self[n:], tail)).view(DateRange)
-            newArr.offset = self.offset
-            return newArr
-        elif n < 0:
-            end = self[0] - self.offset
-            head = DateRange(toDate=end, periods=-n)
-
-            newArr = np.concatenate((head, self[:n])).view(DateRange)
-            newArr.offset = self.offset
-            return newArr
-        else:
+        if n == 0:
             return self
+
+        start = self[0] + n * self.offset
+        end = self[-1] + n * self.offset
+        return DateRange(start, end, offset=self.offset)

@@ -8,6 +8,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.common import _pfixed, _pickle_array, _unpickle_array
+from pandas.core.daterange import DateRange
 from pandas.core.frame import DataFrame, _try_sort, _extract_index
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
@@ -1214,8 +1215,12 @@ class DataMatrix(DataFrame):
                 newValues = self.values.take(indexer, axis=0)
                 newValues[periods:] = NaN
         else:
-            offset = periods * offset
-            newIndex = Index([x + offset for x in self.index])
+            if (isinstance(self.index, DateRange) and
+                offset == self.index.offset):
+                newIndex = self.index.shift(periods)
+            else:
+                tot_offset = periods * offset
+                newIndex = Index([idx + tot_offset for idx in self.index])
             newValues = self.values.copy()
 
         if self.objects is not None:

@@ -660,7 +660,7 @@ class MovingOLS(OLS):
     @cache_readonly
     def _beta_raw(self):
         """Runs the regression and returns the beta."""
-        beta, indices = self._rolling_ols_call
+        beta, indices, mask = self._rolling_ols_call
 
         return beta[indices]
 
@@ -703,9 +703,10 @@ class MovingOLS(OLS):
 
             betas[i] = math.solve(xx, xy)
 
-        have_betas = np.arange(N)[-np.isnan(betas).any(axis=1)]
+        mask = -np.isnan(betas).any(axis=1)
+        have_betas = np.arange(N)[mask]
 
-        return betas, have_betas
+        return betas, have_betas, mask
 
     def _rolling_rank(self):
         dates = self._index

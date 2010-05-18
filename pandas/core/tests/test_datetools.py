@@ -556,6 +556,42 @@ class TestYearBegin(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
+class TestBYearEndLagged(unittest.TestCase):
+
+    def test_offset(self):
+        tests = []
+
+        tests.append((BYearEnd(month=6),
+                      {datetime(2008, 1, 1): datetime(2008, 6, 30),
+                      datetime(2007, 6, 30): datetime(2008, 6, 30)},
+                      ))
+
+        tests.append((BYearEnd(n=-1, month=6),
+                      {datetime(2008, 1, 1): datetime(2007, 6, 29),
+                      datetime(2007, 6, 30): datetime(2007, 6, 29)},
+                      ))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                self.assertEqual(baseDate + dateOffset, expected)
+
+    def test_roll(self):
+        offset = BYearEnd(month=6)
+        date = datetime(2009, 11, 30)
+
+        self.assertEqual(offset.rollforward(date), datetime(2010, 6, 30))
+        self.assertEqual(offset.rollback(date), datetime(2009, 6, 30))
+
+    def test_onOffset(self):
+
+        tests = [
+            (BYearEnd(month=2), datetime(2007, 2, 28), True),
+            (BYearEnd(month=6), datetime(2007, 6, 30), False),
+        ]
+
+        for offset, date, expected in tests:
+            assertOnOffset(offset, date, expected)
+
 class TestBYearEnd(unittest.TestCase):
 
     def test_offset(self):
@@ -602,7 +638,6 @@ class TestBYearEnd(unittest.TestCase):
 
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
-
 
 class TestYearEnd(unittest.TestCase):
 

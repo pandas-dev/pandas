@@ -3,8 +3,9 @@ from cStringIO import StringIO
 import numpy as np
 
 from pandas.core.api import Series, DataMatrix
-from pandas.stats.common import banner, FULL_SAMPLE, ROLLING, EXPANDING
+import pandas.stats.common as common
 from pandas.util.decorators import cache_readonly
+import pandas.lib.tseries as tseries
 
 def fama_macbeth(**kwargs):
     """Runs Fama-MacBeth regression.
@@ -33,7 +34,7 @@ class FamaMacBeth(object):
 
         from pandas.stats.plm import MovingPanelOLS
         self._ols_result = MovingPanelOLS(
-            y=y, x=x, weights=weights, window_type=ROLLING, window=1,
+            y=y, x=x, weights=weights, window_type='rolling', window=1,
             intercept=intercept,
             nw_lags=nw_lags, entity_effects=entity_effects,
             time_effects=time_effects, x_effects=x_effects, cluster=cluster,
@@ -78,7 +79,8 @@ class FamaMacBeth(object):
 
     @cache_readonly
     def _result_index(self):
-        return self._index[-len(self._stats[0]):]
+        mask = self._ols_result._rolling_ols_call[1]
+        return self._index[mask]
 
     @cache_readonly
     def _results(self):
@@ -97,7 +99,7 @@ class FamaMacBeth(object):
 
         for i, name in enumerate(self._cols):
             if i and not (i % 5):
-                buffer.write('\n' + banner(''))
+                buffer.write('\n' + common.banner(''))
 
             mean_beta = self._results['mean_beta'][i]
             std_beta = self._results['std_beta'][i]
@@ -140,53 +142,62 @@ Formula: Y ~ %(formulaRHS)s
         return template % params
 
 class MovingFamaMacBeth(FamaMacBeth):
-    def __init__(self, y, x, weights=None, window_type=ROLLING, window=10,
+    def __init__(self, y, x, weights=None, window_type='rolling', window=10,
                  intercept=True, nw_lags=None, nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
                  cluster=None, dropped_dummies={}, verbose=False):
-        self._window_type = window_type
+        self._window_type = common._get_window_type(window_type)
         self._window = window
 
         FamaMacBeth.__init__(
-            self, y=y, x=x, weights=weights, intercept=intercept, nw_lags=nw_lags,
-            nw_lags_beta=nw_lags_beta, entity_effects=entity_effects,
-            time_effects=time_effects, x_effects=x_effects, cluster=cluster,
+            self, y=y, x=x, weights=weights, intercept=intercept,
+            nw_lags=nw_lags, nw_lags_beta=nw_lags_beta,
+            entity_effects=entity_effects, time_effects=time_effects,
+            x_effects=x_effects, cluster=cluster,
             dropped_dummies=dropped_dummies, verbose=verbose)
 
         self._index = self._ols_result._y.major_axis
         self._T = len(self._index)
 
-    @cache_readonly
-    def _stats(self):
+    @property
+    def _is_rolling(self):
+        return self._window_type == common.ROLLING
+
+    def _calc_stats(self):
         mean_betas = []
         std_betas = []
         t_stats = []
 
-        start = self._window - 1
+        # XXX
 
+        mask = self._ols_result._rolling_ols_call[2]
+        obs_total = mask.astype(int).cumsum()
+
+        start = self._window - 1
+        betas = self._beta_raw
         for i in xrange(start, self._T):
-            if self._window_type == ROLLING:
+            if self._is_rolling:
                 begin = i - start
             else:
                 begin = 0
 
-            beta = self._beta_raw[begin : i + 1]
-            result = _calc_t_stat(beta, self._nw_lags_beta)
-
-            mean_beta, std_beta, t_stat = result
-
+            B = betas[max(obs_total[begin] - 1, 0) : obs_total[i]]
+            mean_beta, std_beta, t_stat = _calc_t_stat(B, self._nw_lags_beta)
             mean_betas.append(mean_beta)
             std_betas.append(std_beta)
             t_stats.append(t_stat)
 
         return np.array([mean_betas, std_betas, t_stats])
 
+    _stats = cache_readonly(_calc_stats)
+
     def _make_result(self, result):
         return DataMatrix(result, index=self._result_index, columns=self._cols)
 
     @cache_readonly
     def _result_index(self):
-        return self._index[-len(self._stats[0]):]
+        mask = self._ols_result._rolling_ols_call[1]
+        return self._index[mask]
 
     @cache_readonly
     def _results(self):

@@ -1024,8 +1024,13 @@ class DataFrame(Picklable, Groupable):
             newValues = dict([(col, do_shift(series))
                               for col, series in self.iteritems()])
         else:
-            offset = periods * offset
-            newIndex = Index([idx + offset for idx in self.index])
+            if (isinstance(self.index, DateRange) and
+                offset == self.index.offset):
+                newIndex = self.index.shift(periods)
+            else:
+                offset = periods * offset
+                newIndex = Index([idx + offset for idx in self.index])
+
             newValues = dict([(col, np.asarray(series))
                                for col, series in self.iteritems()])
 
