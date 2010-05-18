@@ -6,11 +6,9 @@ Unit test suite for OLS and PanelOLS classes
 
 from __future__ import division
 
-from cStringIO import StringIO
 from datetime import datetime
 import unittest
 
-from numpy.testing import dec
 import numpy as np
 import scikits.statsmodels as sm
 import scikits.statsmodels.datasets as datasets
@@ -18,12 +16,14 @@ from scikits.statsmodels import tools
 
 from pandas.core.panel import LongPanel
 from pandas.core.api import DataMatrix, Index, Series
-from pandas.stats.api import *
+from pandas.stats.api import ols
 from pandas.stats.plm import NonPooledPanelOLS
-from pandas.stats.tests.common import assert_almost_equal, BaseTest
+from pandas.util.testing import assert_almost_equal
+
+from common import BaseTest
 
 def _check_repr(obj):
-    str = '%s' % obj
+    '%s' % obj
 
 class TestOLS(BaseTest):
 

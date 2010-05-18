@@ -1,5 +1,5 @@
-from pandas.stats.api import *
-from pandas.stats.tests.common import assert_almost_equal, BaseTest
+from pandas.stats.api import fama_macbeth
+from common import assert_almost_equal, BaseTest
 
 class TestFamaMacBeth(BaseTest):
     def testFamaMacBethRolling(self):

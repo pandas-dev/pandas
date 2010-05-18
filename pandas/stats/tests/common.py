@@ -42,7 +42,6 @@ class BaseTest(unittest.TestCase):
     def createData1(self):
         date = datetime(2007, 1, 1)
         date2 = datetime(2007, 1, 15)
-        date3 = datetime(2007, 1, 22)
 
         A = self.A.copy()
         B = self.B.copy()
