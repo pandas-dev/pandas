@@ -60,7 +60,13 @@ class DataMatrix(DataFrame):
                         objects = objects.reindex(index)
                 else:
                     objects = DataMatrix(objects, index=index)
-
+        elif isinstance(data, DataFrame):
+            if not isinstance(data, DataMatrix):
+                data = data.toDataMatrix()
+            values = data.values
+            index = data.index
+            columns = data.columns
+            objects = data.objects
         elif data is None or len(data) == 0:
             # this is a touch convoluted...
             if objects is not None:
@@ -382,8 +388,10 @@ class DataMatrix(DataFrame):
             hisIndexer =  [hisCols.indexMap[idx] for idx in commonCols]
             resultIndexer = [newCols.indexMap[idx] for idx in commonCols]
 
-            resultMatrix[:, resultIndexer] = func(myValues[:, myIndexer],
-                                                  hisValues[:, hisIndexer])
+            left = myValues.take(myIndexer, axis=1)
+            right = hisValues.take(hisIndexer, axis=1)
+
+            resultMatrix[:, resultIndexer] = func(left, right)
 
         # TODO: deal with objects
         return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
@@ -1215,12 +1223,7 @@ class DataMatrix(DataFrame):
                 newValues = self.values.take(indexer, axis=0)
                 newValues[periods:] = NaN
         else:
-            if (isinstance(self.index, DateRange) and
-                offset == self.index.offset):
-                newIndex = self.index.shift(periods)
-            else:
-                tot_offset = periods * offset
-                newIndex = Index([idx + tot_offset for idx in self.index])
+            newIndex = self.index.shift(periods, offset)
             newValues = self.values.copy()
 
         if self.objects is not None:

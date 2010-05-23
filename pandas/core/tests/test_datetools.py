@@ -41,9 +41,6 @@ def test_normalize_date():
 ### DateOffset Tests
 #####
 
-def myAssert(actual, expected):
-    assert actual == expected
-
 class TestDateOffset(object):
 
     def setUp(self):
@@ -96,45 +93,49 @@ class TestBusinessDay(unittest.TestCase):
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
 
     def testEQ(self):
-        myAssert(self.offset2, self.offset2)
+        self.assertEqual(self.offset2, self.offset2)
 
     def test_mul(self):
         pass
 
     def test_hash(self):
-        myAssert(hash(self.offset2), hash(self.offset2))
+        self.assertEqual(hash(self.offset2), hash(self.offset2))
 
     def testCall(self):
-        myAssert(self.offset2(self.d), datetime(2008, 1, 3))
+        self.assertEqual(self.offset2(self.d), datetime(2008, 1, 3))
 
     def testRAdd(self):
-        myAssert(self.d + self.offset2, self.offset2 + self.d)
+        self.assertEqual(self.d + self.offset2, self.offset2 + self.d)
 
     def testSub(self):
-        myAssert(self.d - self.offset2,  self.d + BDay(-2))
+        off = self.offset2
+        self.assertRaises(Exception, off.__sub__, self.d)
+        self.assertEqual(2 * off - off, off)
+
+        self.assertEqual(self.d - self.offset2,  self.d + BDay(-2))
 
     def testRSub(self):
-        myAssert(self.d - self.offset2, (-self.offset2).apply(self.d))
+        self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
 
     def testMult1(self):
-        myAssert(self.d + 10*self.offset, self.d + BDay(10))
+        self.assertEqual(self.d + 10*self.offset, self.d + BDay(10))
 
     def testMult2(self):
-        myAssert(self.d + (-5*BDay(-10)),
-                 self.d + BDay(50))
+        self.assertEqual(self.d + (-5*BDay(-10)),
+                         self.d + BDay(50))
 
 
     def testRollback1(self):
-        myAssert(BDay(10).rollback(self.d), self.d)
+        self.assertEqual(BDay(10).rollback(self.d), self.d)
 
     def testRollback2(self):
-        myAssert(BDay(10).rollback(datetime(2008, 1, 5)), datetime(2008, 1, 4))
+        self.assertEqual(BDay(10).rollback(datetime(2008, 1, 5)), datetime(2008, 1, 4))
 
     def testRollforward1(self):
-        myAssert(BDay(10).rollforward(self.d), self.d)
+        self.assertEqual(BDay(10).rollforward(self.d), self.d)
 
     def testRollforward2(self):
-        myAssert(BDay(10).rollforward(datetime(2008, 1, 5)), datetime(2008, 1, 7))
+        self.assertEqual(BDay(10).rollforward(datetime(2008, 1, 5)), datetime(2008, 1, 7))
 
     def test_onOffset(self):
         tests = [(BDay(), datetime(2008, 1, 1), True),
@@ -557,6 +558,10 @@ class TestYearBegin(unittest.TestCase):
             assertOnOffset(offset, date, expected)
 
 class TestBYearEndLagged(unittest.TestCase):
+
+    def test_bad_month_fail(self):
+        self.assertRaises(Exception, BYearEnd, month=13)
+        self.assertRaises(Exception, BYearEnd, month=0)
 
     def test_offset(self):
         tests = []

@@ -3,6 +3,7 @@
 # pylint: disable-msg=W0232
 
 import numpy as np
+from pandas.core.datetools import DateOffset
 from pandas.lib.tseries import map_indices, isAllDates
 
 def _indexOp(opname):
@@ -130,6 +131,17 @@ class Index(np.ndarray):
 
     def sort(self, *args, **kwargs):
         raise Exception('Cannot sort an Index object')
+
+    def shift(self, periods, offset):
+        if not isinstance(offset, DateOffset):
+            raise TypeError('must pass DateOffset')
+
+        if periods == 0:
+            # OK because immutable
+            return self
+
+        offset = periods * offset
+        return Index([idx + offset for idx in self])
 
     def argsort(self, *args, **kwargs):
         return self.view(np.ndarray).argsort(*args, **kwargs)

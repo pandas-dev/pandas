@@ -68,6 +68,9 @@ class TestDataFrame(unittest.TestCase):
         df = self.klass(data={})
         self.assert_(len(df.index) == 0)
 
+        df = self.klass(self.frame)
+        assert_frame_equal(df, self.frame)
+
     def test_constructor_mixed(self):
         index, data = common.getMixedTypeDict()
 
@@ -797,6 +800,47 @@ class TestDataFrame(unittest.TestCase):
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
+
+    def test_rename(self):
+        mapping = {
+            'A' : 'a',
+            'B' : 'b',
+            'C' : 'c',
+            'D' : 'd'
+        }
+        bad_mapping = {
+            'A' : 'a',
+            'B' : 'b',
+            'C' : 'b',
+            'D' : 'd'
+        }
+
+        renamed = self.frame.rename(columns=mapping)
+        renamed2 = self.frame.rename(columns=str.lower)
+
+        assert_frame_equal(renamed, renamed2)
+        assert_frame_equal(renamed2.rename(columns=str.upper),
+                           self.frame)
+
+        self.assertRaises(Exception, self.frame.rename,
+                          columns=bad_mapping)
+
+        # index
+
+        data = {
+            'A' : {'foo' : 0, 'bar' : 1}
+        }
+
+        # gets sorted alphabetical
+        df = self.klass(data)
+        renamed = df.rename(index={'foo' : 'bar', 'bar' : 'foo'})
+        self.assert_(np.array_equal(renamed.index, ['foo', 'bar']))
+
+        renamed = df.rename(index=str.upper)
+        self.assert_(np.array_equal(renamed.index, ['BAR', 'FOO']))
+
+        # have to pass something
+        self.assertRaises(Exception, self.frame.rename)
 
     def test_reindex_columns(self):
         newFrame = self.frame.reindex(columns=['A', 'B', 'E'])

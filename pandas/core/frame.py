@@ -918,6 +918,25 @@ class DataFrame(Picklable, Groupable):
 
         return result
 
+    def groupby(self, mapper, axis=0):
+        """
+        Goup series using mapper (dict or key function, apply given
+        function to group, return result as series).
+
+        Parameters
+        ----------
+        mapper : function, dict or Series
+            Called on each element of the object index to determine
+            the groups.  If a dict or Series is passed, the Series or
+            dict VALUES will be used to determine the groups
+
+        Returns
+        -------
+        GroupBy object
+        """
+        from pandas.core.groupby import groupby
+        return groupby(self, mapper, axis=axis)
+
     def rename(self, index=None, columns=None):
         """
         Alter index and / or columns using input function or functions
@@ -964,7 +983,13 @@ class DataFrame(Picklable, Groupable):
         self.index = [mapper(x) for x in self.index]
 
     def _rename_columns_inplace(self, mapper):
-        self._series = dict((mapper(k), v) for k, v in self._series.iteritems())
+        new_series = {}
+        for k, v in self._series.iteritems():
+            new_k = mapper(k)
+            if new_k in new_series:
+                raise Exception('Non-unique mapping!')
+            new_series[new_k] = v
+        self._series = new_series
 
     @property
     def T(self):
@@ -1024,13 +1049,7 @@ class DataFrame(Picklable, Groupable):
             newValues = dict([(col, do_shift(series))
                               for col, series in self.iteritems()])
         else:
-            if (isinstance(self.index, DateRange) and
-                offset == self.index.offset):
-                newIndex = self.index.shift(periods)
-            else:
-                offset = periods * offset
-                newIndex = Index([idx + offset for idx in self.index])
-
+            newIndex = self.index.shift(periods, offset)
             newValues = dict([(col, np.asarray(series))
                                for col, series in self.iteritems()])
 

@@ -1,4 +1,4 @@
-import numpy as np
+from cStringIO import StringIO
 
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
@@ -7,8 +7,6 @@ import pandas.lib.tseries as tseries
 
 class GroupDict(dict):
     def __repr__(self):
-        from cStringIO import StringIO
-
         stringDict = dict([(str(x), x) for x in self])
         sortedKeys = sorted(stringDict)
 
@@ -24,7 +22,7 @@ class GroupDict(dict):
 
         return output.getvalue()
 
-def groupby(obj, grouper):
+def groupby(obj, grouper, **kwds):
     """
     Intercepts creation and dispatches to the appropriate class based
     on type.
@@ -38,16 +36,13 @@ def groupby(obj, grouper):
     else: # pragma: no cover
         raise TypeError('invalid type: %s' % type(obj))
 
-    return klass(obj, grouper)
+    return klass(obj, grouper, **kwds)
 
 class GroupBy(object):
     """
     Class for grouping and aggregating relational data.
 
-    Supported classes
-    -----------------
-    Series / TimeSeries
-    DataFrame / DataMatrix (and derivatives thereof)
+    Supported classes: Series, DataFrame, DataMatrix
     """
     _groups = None
     _group_indices = None
@@ -61,7 +56,8 @@ class GroupBy(object):
     @property
     def groups(self):
         if self._groups is None:
-            self._groups = tseries.groupby(self.obj.index, self.grouper,
+            axis = self._group_axis
+            self._groups = tseries.groupby(axis, self.grouper,
                                            output=GroupDict())
 
         return self._groups
@@ -69,10 +65,16 @@ class GroupBy(object):
     @property
     def group_indices(self):
         if self._group_indices is None:
-            self._group_indices = tseries.groupby_indices(self.obj.index,
+            axis = self._group_axis
+            self._group_indices = tseries.groupby_indices(axis,
                                                           self.grouper)
 
         return self._group_indices
+
+    @property
+    def _group_axis(self):
+        # default
+        return self.obj.index
 
     def getGroup(self, groupList):
         return self.obj.reindex(groupList)
@@ -220,11 +222,23 @@ class SeriesGroupBy(GroupBy):
         return Series(allSeries)
 
 class DataFrameGroupBy(GroupBy):
-    def __init__(self, obj, grouper):
-        if isinstance(grouper, basestring) and grouper in obj:
+    def __init__(self, obj, grouper, axis=0):
+        if isinstance(grouper, basestring):
             grouper = obj[grouper].get
 
+        self.axis = axis
+
+        if axis not in (0, 1): # pragma: no cover
+            raise Exception('invalid axis')
+
         GroupBy.__init__(self, obj, grouper)
+
+    @property
+    def _group_axis(self):
+        if self.axis == 0:
+            return self.obj.index
+        else:
+            return self.obj.columns
 
     def aggregate(self, applyfunc):
         """
@@ -246,12 +260,21 @@ class DataFrameGroupBy(GroupBy):
 
         Optional: provide set mapping as dictionary
         """
+        if self.axis == 0:
+            return self._aggregate_index(applyfunc)
+        else:
+            return self._aggregate_columns(applyfunc)
+
+    def _aggregate_index(self, applyfunc):
         result = {}
         for groupName in self.groups:
             result[groupName] = self[groupName].apply(applyfunc)
             assert(isinstance(result[groupName], Series))
 
         return DataFrame(data=result).T
+
+    def _aggregate_columns(self, applyfunc):
+        pass
 
     def transform(self, applyfunc):
         """

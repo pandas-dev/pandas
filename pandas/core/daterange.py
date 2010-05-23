@@ -276,8 +276,12 @@ class DateRange(Index):
 
     __str__ = __repr__
 
-    def shift(self, n):
+    def shift(self, n, offset=None):
+        if offset is not None and offset != self.offset:
+            return Index.shift(self, n, offset)
+
         if n == 0:
+            # immutable so OK
             return self
 
         start = self[0] + n * self.offset
