@@ -222,6 +222,8 @@ class SeriesGroupBy(GroupBy):
         return Series(allSeries)
 
 class DataFrameGroupBy(GroupBy):
+    _klass = DataFrame
+
     def __init__(self, obj, grouper, axis=0):
         if isinstance(grouper, basestring):
             grouper = obj[grouper].get
@@ -265,16 +267,38 @@ class DataFrameGroupBy(GroupBy):
         else:
             return self._aggregate_columns(applyfunc)
 
-    def _aggregate_index(self, applyfunc):
+    def _aggregate_index(self, func):
         result = {}
-        for groupName in self.groups:
-            result[groupName] = self[groupName].apply(applyfunc)
-            assert(isinstance(result[groupName], Series))
+        for name in self.groups:
+            data = self[name]
+            try:
+                result[name] = func(data)
+            except Exception:
+                result[name] = data.apply(func)
 
-        return DataFrame(data=result).T
+            assert(isinstance(result[name], Series))
 
-    def _aggregate_columns(self, applyfunc):
-        pass
+        return self._klass(data=result).T
+
+    def _aggregate_columns(self, func):
+        result = {}
+        for name, group in self.groups.iteritems():
+            data = self.obj.reindex(columns=group)
+
+            try:
+                result[name] = func(data)
+            except Exception:
+                result[name] = data.apply(func, axis=1)
+
+            assert(isinstance(result[name], Series))
+
+        return self._klass(data=result)
+
+    def getGroup(self, groupList):
+        if self.axis == 0:
+            return self.obj.reindex(groupList)
+        else:
+            return self.obj.reindex(columns=groupList)
 
     def transform(self, applyfunc):
         """
@@ -317,70 +341,8 @@ class DataFrameGroupBy(GroupBy):
         for val, frame in result.iteritems():
             allSeries.update(frame._series)
 
-        return DataFrame(data=allSeries).T
+        return self._klass(data=allSeries).T
 
 
 class DataMatrixGroupBy(DataFrameGroupBy):
-    def aggregate(self, applyfunc):
-        """
-        Group series using mapper function (dict or key function, apply
-        given function to group, return result as series)
-
-        Main difference here is that applyfunc must return a value, so that the
-        result is a sensible series.
-
-        Parameters
-        ----------
-        mapper : function, dict-like, or string
-            Mapping or mapping function. If string given, must be a column
-            name in the frame
-        applyfunc : function
-            Function to use to aggregate each group
-        """
-        result = {}
-        for groupName in self.groups:
-            result[groupName] = self[groupName].apply(applyfunc)
-            assert(isinstance(result[groupName], Series))
-        return DataMatrix(data=result).T
-
-    def transform(self, applyfunc):
-        """
-        For given DataMatrix, group index by given mapper function or dict, take
-        the sub-DataMatrix (reindex) for this group and call apply(applyfunc)
-        on this sub-DataMatrix. Return a DataMatrix of the results for each
-        key.
-
-        Note: this function does not aggregate like groupby/tgroupby,
-        the results of the given function on the subDataMatrix should be another
-        DataMatrix.
-
-        Parameters
-        ----------
-        mapper : function
-            Function to apply to each index value
-        applyfunc : function
-            Function to apply to each subframe
-
-        Note
-        ----
-        Each subframe is endowed the attribute 'groupName' in case
-        you need to know which group you are working on.
-
-        Example
-        --------
-        df.fgroupby(lambda x: mapping[x],
-                    lambda x: (x - x.apply(mean)) / x.apply(std))
-
-        DataMatrix standardized by each unique value of mapping
-        """
-        result = {}
-        for val, group in self.groups.iteritems():
-            subframe = self.obj.reindex(list(group))
-            subframe.groupName = val
-            result[val] = applyfunc(subframe).T
-
-        allSeries = {}
-        for val, frame in result.iteritems():
-            allSeries.update(frame._series)
-
-        return DataMatrix(data = allSeries).T
+    _klass = DataMatrix

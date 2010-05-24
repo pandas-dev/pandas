@@ -118,6 +118,13 @@ class TestIndex(unittest.TestCase):
         # this is valid too
         shifted = self.dateIndex + timedelta(1)
 
+    def test_shift(self):
+        shifted = self.dateIndex.shift(0, timedelta(1))
+        self.assert_(shifted is self.dateIndex)
+
+        shifted = self.dateIndex.shift(5, timedelta(1))
+        self.assert_(np.array_equal(shifted, self.dateIndex + timedelta(5)))
+
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]

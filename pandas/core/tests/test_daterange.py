@@ -5,7 +5,6 @@ import numpy as np
 
 import pandas.core.datetools as datetools
 from pandas.core.daterange import DateRange, XDateRange
-from pandas.util.testing import assert_almost_equal
 
 ####
 ## XDateRange Tests
@@ -97,6 +96,9 @@ class TestDateRange(unittest.TestCase):
         shifted = self.rng.shift(-5)
 
         shifted = self.rng.shift(0)
+
+        rng = DateRange(START, END, offset=datetools.bmonthEnd)
+        shifted = rng.shift(1, offset=datetools.bday)
 
 # DateRange test
 

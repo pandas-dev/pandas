@@ -45,6 +45,9 @@ class TestDataMatrix(test_frame.TestDataFrame):
         df = DataMatrix(mat, index=[0, 1], columns=[0], dtype=float)
         self.assert_(df.values.dtype == np.object_)
 
+        dm = self.klass(DataFrame(self.frame._series))
+        common.assert_frame_equal(dm, self.frame)
+
     def test_constructor_with_objects(self):
         index = self.mixed_frame.index[:5]
 

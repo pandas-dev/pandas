@@ -966,7 +966,22 @@ class TestDataFrame(unittest.TestCase):
         for weekday, group in grouped:
             self.assert_(group.index[0].weekday() == weekday)
 
-    def test_tgroupby(self):
+    def test_groupby_columns(self):
+        mapping = {
+            'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1
+        }
+        grouped = self.tsframe.groupby(mapping, axis=1)
+
+        # aggregate
+        aggregated = grouped.aggregate(np.mean)
+        self.assertEqual(len(aggregated), len(self.tsframe))
+        self.assertEqual(len(aggregated.cols()), 2)
+
+        # iterate
+        for k, v in grouped:
+            self.assertEqual(len(v.cols()), 2)
+
+        # tgroupby
         grouping = {
             'A' : 0,
             'B' : 1,
@@ -1170,6 +1185,15 @@ class TestDataFrame(unittest.TestCase):
         # can't specify how
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
+
+    def test_cap_floor(self):
+        median = self.frame.median().median()
+
+        capped = self.frame.cap(median)
+        self.assert_(not (capped.values > median).any())
+
+        floored = self.frame.floor(median)
+        self.assert_(not (floored.values < median).any())
 
     def test_statistics(self):
         sumFrame = self.frame.apply(np.sum)

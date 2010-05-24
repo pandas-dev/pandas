@@ -133,9 +133,6 @@ class Index(np.ndarray):
         raise Exception('Cannot sort an Index object')
 
     def shift(self, periods, offset):
-        if not isinstance(offset, DateOffset):
-            raise TypeError('must pass DateOffset')
-
         if periods == 0:
             # OK because immutable
             return self
