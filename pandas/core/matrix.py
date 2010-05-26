@@ -152,7 +152,13 @@ class DataMatrix(DataFrame):
             valueDict = objectDict
             columns = objectColumns
         else:
-            dtype = np.float_
+            dtypes = set(v.dtype for v in valueDict.values())
+
+            if len(dtypes) > 1:
+                dtype = np.float_
+            else:
+                dtype = list(dtypes)[0]
+
             if len(objectDict) > 0:
                 new_objects = DataMatrix(objectDict,
                                          dtype=np.object_,

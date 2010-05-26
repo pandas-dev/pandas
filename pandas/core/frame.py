@@ -892,13 +892,20 @@ class DataFrame(Picklable, Groupable):
             np.bool_ : False
         }
 
+        notmask = -mask
+        need_cast = notmask.any()
+
         newSeries = {}
         for col, series in self.iteritems():
             series = series.view(np.ndarray)
             for klass, dest in typeHierarchy:
                 if issubclass(series.dtype.type, klass):
-                    new = series.take(fillVec).astype(dest)
-                    new[-mask] = missingValue[dest]
+                    new = series.take(fillVec)
+
+                    if need_cast:
+                        new = new.astype(dest)
+                        new[notmask] = missingValue[dest]
+
                     newSeries[col] = new
                     break
 

@@ -386,7 +386,8 @@ class Series(np.ndarray, Picklable, Groupable):
         Compute minimum of non-null values
         """
         arr = self.values().copy()
-        arr[isnull(arr)] = np.inf
+        if not self._int_type:
+            arr[isnull(arr)] = np.inf
         return arr.min()
 
     def max(self, axis=None, out=None):
@@ -394,8 +395,13 @@ class Series(np.ndarray, Picklable, Groupable):
         Compute maximum of non-null values
         """
         arr = self.values().copy()
-        arr[isnull(arr)] = -np.inf
+        if not self._int_type:
+            arr[isnull(arr)] = -np.inf
         return arr.max()
+
+    @property
+    def _int_type(self):
+        return issubclass(self.dtype.type, np.int_)
 
     def std(self, axis=None, dtype=None, out=None, ddof=1):
         """
@@ -562,7 +568,9 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Compute median value of non-null values
         """
-        return tseries.median(self.valid())
+        arr = self.values()
+        arr = arr[notnull(arr)]
+        return tseries.median(arr)
 
     def copy(self):
         return Series(self.values().copy(), index=self.index)

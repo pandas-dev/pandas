@@ -48,6 +48,14 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm = self.klass(DataFrame(self.frame._series))
         common.assert_frame_equal(dm, self.frame)
 
+        # int cast
+        dm = DataMatrix({'A' : np.ones(10, dtype=int),
+                         'B' : np.ones(10, dtype=float)},
+                        index=np.arange(10))
+
+        self.assertEqual(len(dm.columns), 2)
+        self.assert_(dm.values.dtype == np.float_)
+
     def test_constructor_with_objects(self):
         index = self.mixed_frame.index[:5]
 
@@ -192,6 +200,11 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm = self.empty.reindex(index=[1, 2, 3])
         reindexed = dm.reindex(columns=index)
         self.assert_(reindexed.columns.equals(index))
+
+        # ints are weird
+
+        smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
+        self.assert_(smaller['E'].dtype == np.float_)
 
     def test_fill_corner(self):
         self.mixed_frame['foo'][5:20] = np.NaN

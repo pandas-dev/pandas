@@ -30,6 +30,9 @@ class TestDataFrame(unittest.TestCase):
         self.tsd = common.getTimeSeriesData()
 
         self.frame = self.klass(self.seriesd)
+        self.intframe = self.klass(dict((k, v.astype(int))
+                                        for k, v in self.seriesd.iteritems()))
+
         self.tsframe = self.klass(self.tsd)
 
         self.mixed_frame = self.frame.copy()
@@ -800,6 +803,17 @@ class TestDataFrame(unittest.TestCase):
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
+
+    def test_reindex_int(self):
+        smaller = self.intframe.reindex(self.intframe.index[::2])
+
+        self.assert_(smaller['A'].dtype == np.int_)
+
+        bigger = smaller.reindex(self.intframe.index)
+        self.assert_(bigger['A'].dtype == np.float_)
+
+        smaller = self.intframe.reindex(columns=['A', 'B'])
+        self.assert_(smaller['A'].dtype == np.int_)
 
     def test_rename(self):
         mapping = {
