@@ -1074,10 +1074,10 @@ class TestDataFrame(unittest.TestCase):
 
         # corner cases
         comb = self.frame.combineFirst(self.empty)
-        self.assert_(comb is self.frame)
+        assert_frame_equal(comb, self.frame)
 
         comb = self.empty.combineFirst(self.frame)
-        self.assert_(comb is self.frame)
+        assert_frame_equal(comb, self.frame)
 
     def test_combineAdd(self):
         # trivial
@@ -1087,10 +1087,10 @@ class TestDataFrame(unittest.TestCase):
 
         # corner cases
         comb = self.frame.combineAdd(self.empty)
-        self.assert_(comb is self.frame)
+        assert_frame_equal(comb, self.frame)
 
         comb = self.empty.combineAdd(self.frame)
-        self.assert_(comb is self.frame)
+        assert_frame_equal(comb, self.frame)
 
     def test_combineMult(self):
         # trivial
@@ -1100,10 +1100,10 @@ class TestDataFrame(unittest.TestCase):
 
         # corner cases
         comb = self.frame.combineMult(self.empty)
-        self.assert_(comb is self.frame)
+        assert_frame_equal(comb, self.frame)
 
         comb = self.empty.combineMult(self.frame)
-        self.assert_(comb is self.frame)
+        assert_frame_equal(comb, self.frame)
 
     def test_join_index(self):
         # left / right

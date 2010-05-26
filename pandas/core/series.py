@@ -37,10 +37,9 @@ def _seriesOpWrap(opname):
         from pandas.core.frame import DataFrame
 
         func = getattr(self.values(), opname)
-        cls = self.__class__
         if isinstance(other, Series):
             if self.index.equals(other.index):
-                return cls(func(other.values()), index=self.index)
+                return Series(func(other.values()), index=self.index)
 
             newIndex = self.index + other.index
 
@@ -51,7 +50,7 @@ def _seriesOpWrap(opname):
             except Exception:
                 arr = Series.combineFunc(self, other,
                                          getattr(type(self[0]), opname))
-            result = cls(arr, index=newIndex)
+            result = Series(arr, index=newIndex)
             return result
 
         elif isinstance(other, DataFrame):
@@ -62,7 +61,7 @@ def _seriesOpWrap(opname):
 
             return getattr(other, reverse_op)(self)
         else:
-            return cls(func(other), index=self.index)
+            return Series(func(other), index=self.index)
     return wrapper
 
 #-------------------------------------------------------------------------------
@@ -70,7 +69,7 @@ def _seriesOpWrap(opname):
 
 class Series(np.ndarray, Picklable, Groupable):
     """
-    Generic indexed series (time series or cross-section)
+    Generic indexed (labeled) vector (time series or cross-section)
 
     Contains values in a numpy-ndarray with an optional bound index
     (also an array of dates, strings, or whatever you want the 'row
@@ -79,11 +78,8 @@ class Series(np.ndarray, Picklable, Groupable):
     Rows can be retrieved by index value (date, string, etc.) or
     relative position in the underlying array.
 
-    Operations between Series (+, -, /, *, **) objects are
-    *index-safe*, meaning that values will be combined by their
-    respective index positions rather than relative positions in the
-    underlying ndarray. In other words, there is no 'matching' or
-    'aligning' to do, it's all taken care of for you.
+    Operations between Series (+, -, /, *, **) align values based on
+    their associated index values-- they need not be the same length.
 
     Parameters
     ----------
@@ -257,7 +253,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
         dataSlice = values[key]
         indices = Index(self.index.view(ndarray)[key])
-        return self.__class__(dataSlice, index=indices)
+        return Series(dataSlice, index=indices)
 
     def get(self, key, default=None):
         """
@@ -293,7 +289,7 @@ class Series(np.ndarray, Picklable, Groupable):
         newArr = self.values()[i:j].copy()
         newIndex = self.index[i:j]
 
-        return self.__class__(newArr, index=newIndex)
+        return Series(newArr, index=newIndex)
 
     def __setitem__(self, key, value):
         """
@@ -389,13 +385,17 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Compute minimum of non-null values
         """
-        return self._ndarray_statistic('min')
+        arr = self.values().copy()
+        arr[isnull(arr)] = np.inf
+        return arr.min()
 
     def max(self, axis=None, out=None):
         """
         Compute maximum of non-null values
         """
-        return self._ndarray_statistic('max')
+        arr = self.values().copy()
+        arr[isnull(arr)] = -np.inf
+        return arr.max()
 
     def std(self, axis=None, dtype=None, out=None, ddof=1):
         """
@@ -481,7 +481,7 @@ class Series(np.ndarray, Picklable, Groupable):
             raise
 
         newValues = np.concatenate((self, other))
-        return self.__class__(newValues, index=newIndex)
+        return Series(newValues, index=newIndex)
 
     def combineFunc(self, other, func):
         """
@@ -510,7 +510,7 @@ class Series(np.ndarray, Picklable, Groupable):
             newIndex = self.index
             newArr = func(self.values(), other)
 
-        return self.__class__(newArr, index=newIndex)
+        return Series(newArr, index=newIndex)
 
     def combineFirst(self, other):
         """
@@ -565,7 +565,7 @@ class Series(np.ndarray, Picklable, Groupable):
         return tseries.median(self.valid())
 
     def copy(self):
-        return self.__class__(self.values().copy(), index=self.index)
+        return Series(self.values().copy(), index=self.index)
 
     def corr(self, other):
         """
@@ -740,7 +740,7 @@ class Series(np.ndarray, Picklable, Groupable):
         return np.where(self > threshold, threshold, self)
 
     def floor(self, threshold):
-        """Return copy of series with values BELOW given value truncated"""
+        """Return copy of series with values below given value truncated"""
         return np.where(self < threshold, threshold, self)
 
     def valid(self):
@@ -806,12 +806,12 @@ class Series(np.ndarray, Picklable, Groupable):
                 newValues[:periods] = self.values()[-periods:]
                 newValues[periods:] = np.NaN
 
-            return self.__class__(newValues, index=self.index)
+            return Series(newValues, index=self.index)
         else:
             offset = periods * offset
             newIndex = Index([idx + offset for idx in self.index])
 
-            return self.__class__(self, index=newIndex)
+            return Series(self, index=newIndex)
 
     def truncate(self, before=None, after=None):
         """Function truncate a sorted TimeSeries before and/or after
@@ -1039,7 +1039,7 @@ class Series(np.ndarray, Picklable, Groupable):
             newIndex = Index(newIndex)
 
         if len(self.index) == 0:
-            return self.__class__.fromValue(NaN, index=newIndex)
+            return Series.fromValue(NaN, index=newIndex)
 
         if fillMethod is not None:
             fillMethod = fillMethod.upper()
@@ -1061,7 +1061,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
             np.putmask(newValues, notmask, NaN)
 
-        return self.__class__(newValues, index=newIndex)
+        return Series(newValues, index=newIndex)
 
     def rename(self, mapper):
         """
@@ -1090,8 +1090,8 @@ class Series(np.ndarray, Picklable, Groupable):
 
     @property
     def weekday(self):
-        return self.__class__([d.weekday() for d in self.index],
-                              index = self.index)
+        return Series([d.weekday() for d in self.index],
+                      index=self.index)
 
     def diff(self):
         """
@@ -1105,7 +1105,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def autocorr(self):
         """
-        1st period autocorrelation coefficient
+        Lag-1 autocorrelation
 
         Returns
         -------

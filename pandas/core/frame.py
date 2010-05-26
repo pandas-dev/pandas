@@ -1209,10 +1209,10 @@ class DataFrame(Picklable, Groupable):
         DataFrame
         """
         if not other:
-            return self
+            return self.copy()
 
         if not self:
-            return other
+            return other.copy()
 
         if self.index is not other.index:
             unionIndex = self.index + other.index
@@ -1656,14 +1656,7 @@ class DataFrame(Picklable, Groupable):
         -------
         Series or TimeSeries
         """
-        if axis == 0:
-            med = [np.min(self[col].valid()) for col in self.columns]
-            return Series(med, index=self.columns)
-        elif axis == 1:
-            med = [np.min(self.getXS(k).valid()) for k in self.index]
-            return Series(med, index=self.index)
-        else:
-            raise Exception('Must have 0<= axis <= 1')
+        return self.apply(Series.min, axis=axis)
 
     def max(self, axis=0):
         """
@@ -1678,14 +1671,7 @@ class DataFrame(Picklable, Groupable):
         -------
         Series or TimeSeries
         """
-        if axis == 0:
-            med = [np.max(self[col].valid()) for col in self.columns]
-            return Series(med, index=self.columns)
-        elif axis == 1:
-            med = [np.max(self.getXS(k).valid()) for k in self.index]
-            return Series(med, index=self.index)
-        else:
-            raise Exception('Must have 0<= axis <= 1')
+        return self.apply(Series.max, axis=axis)
 
     def mad(self, axis=0):
         """

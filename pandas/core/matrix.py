@@ -135,9 +135,6 @@ class DataMatrix(DataFrame):
                 except Exception:
                     v = Series(v, index=index)
 
-                # copy data
-                v = v.copy()
-
             if issubclass(v.dtype.type, (np.bool_, float, int)):
                 valueDict[k] = v
             else:
@@ -619,9 +616,6 @@ class DataMatrix(DataFrame):
         Series/TimeSeries will be conformed to the DataMatrix's index to
         ensure homogeneity.
         """
-        import bisect
-
-        isObject = False
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
                 value = np.asarray(value.reindex(self.index))
@@ -636,67 +630,73 @@ class DataMatrix(DataFrame):
         else:
             value = np.repeat(value, len(self.index))
 
-        if value.dtype not in self._dataTypes:
-            isObject = True
-
         if self.values.dtype == np.object_:
-            if key in self.columns:
-                loc = self.columns.indexMap[key]
-                self.values[:, loc] = value
-            elif len(self.columns) == 0:
-                self.values = value.reshape((len(value), 1)).copy()
-                self.columns = Index([key])
-            else:
-                try:
-                    loc = bisect.bisect_right(self.columns, key)
-                except TypeError:
-                    loc = len(self.columns)
-
-                if loc == self.values.shape[1]:
-                    newValues = np.c_[self.values, value]
-                    newColumns = Index(np.concatenate((self.columns, [key])))
-                elif loc == 0:
-                    newValues = np.c_[value, self.values]
-                    newColumns = Index(np.concatenate(([key], self.columns)))
-                else:
-                    newValues = np.c_[self.values[:, :loc], value,
-                                      self.values[:, loc:]]
-                    toConcat = (self.columns[:loc], [key], self.columns[loc:])
-                    newColumns = Index(np.concatenate(toConcat))
-                self.values = newValues
-                self.columns = newColumns
+            self._insert_object_dtype(key, value)
         else:
-            if key in self.columns:
-                loc = self.columns.indexMap[key]
-                self.values[:, loc] = value
-            elif isObject:
-                if self.objects is None:
-                    self.objects = DataMatrix({key : value},
-                                              index=self.index)
-                else:
-                    self.objects[key] = value
-            elif len(self.columns) == 0:
-                self.values = value.reshape((len(value), 1)).astype(np.float)
-                self.columns = Index([key])
-            else:
-                try:
-                    loc = bisect.bisect_right(self.columns, key)
-                except TypeError:
-                    loc = len(self.columns)
+            self._insert_float_dtype(key, value)
 
-                if loc == self.values.shape[1]:
-                    newValues = np.c_[self.values, value]
-                    newColumns = Index(np.concatenate((self.columns, [key])))
-                elif loc == 0:
-                    newValues = np.c_[value, self.values]
-                    newColumns = Index(np.concatenate(([key], self.columns)))
-                else:
-                    newValues = np.c_[self.values[:, :loc], value,
-                                      self.values[:, loc:]]
-                    toConcat = (self.columns[:loc], [key], self.columns[loc:])
-                    newColumns = Index(np.concatenate(toConcat))
-                self.values = newValues
-                self.columns = newColumns
+    def _insert_float_dtype(self, key, value):
+        isObject = value.dtype not in self._dataTypes
+
+        if key in self.columns:
+            loc = self.columns.indexMap[key]
+            self.values[:, loc] = value
+        elif isObject:
+            if self.objects is None:
+                self.objects = DataMatrix({key : value},
+                                          index=self.index)
+            else:
+                self.objects[key] = value
+        elif len(self.columns) == 0:
+            self.values = value.reshape((len(value), 1)).astype(np.float)
+            self.columns = Index([key])
+        else:
+            try:
+                loc = self.columns.searchsorted(key)
+            except TypeError:
+                loc = len(self.columns)
+
+            if loc == self.values.shape[1]:
+                newValues = np.c_[self.values, value]
+                newColumns = Index(np.concatenate((self.columns, [key])))
+            elif loc == 0:
+                newValues = np.c_[value, self.values]
+                newColumns = Index(np.concatenate(([key], self.columns)))
+            else:
+                newValues = np.c_[self.values[:, :loc], value,
+                                  self.values[:, loc:]]
+                toConcat = (self.columns[:loc], [key], self.columns[loc:])
+                newColumns = Index(np.concatenate(toConcat))
+            self.values = newValues
+            self.columns = newColumns
+
+    def _insert_object_dtype(self, key, value):
+        if key in self.columns:
+            loc = self.columns.indexMap[key]
+            self.values[:, loc] = value
+        elif len(self.columns) == 0:
+            self.values = value.reshape((len(value), 1)).copy()
+            self.columns = Index([key])
+        else:
+            try:
+                loc = self.columns.searchsorted(key)
+            except TypeError:
+                loc = len(self.columns)
+
+            if loc == self.values.shape[1]:
+                newValues = np.c_[self.values, value]
+                newColumns = Index(np.concatenate((self.columns, [key])))
+            elif loc == 0:
+                newValues = np.c_[value, self.values]
+                newColumns = Index(np.concatenate(([key], self.columns)))
+            else:
+                newValues = np.c_[self.values[:, :loc], value,
+                                  self.values[:, loc:]]
+                toConcat = (self.columns[:loc], [key], self.columns[loc:])
+                newColumns = Index(np.concatenate(toConcat))
+            self.values = newValues
+            self.columns = newColumns
+
 
     def __delitem__(self, key):
         """
@@ -1262,6 +1262,40 @@ class DataMatrix(DataFrame):
                                    threshold, self.values),
                           index=self.index, columns=self.columns,
                           objects=self.objects)
+
+    def min(self, axis=0):
+        """
+        Return array or Series of minimums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        values = self.values.copy()
+        np.putmask(values, -np.isfinite(values), np.inf)
+        return Series(values.min(axis), index=self._get_agg_axis(axis))
+
+    def max(self, axis=0):
+        """
+        Return array or Series of maximums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        values = self.values.copy()
+        np.putmask(values, -np.isfinite(values), -np.inf)
+        return Series(values.max(axis), index=self._get_agg_axis(axis))
 
 def _reorder_columns(mat, current, desired):
     fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,

@@ -430,6 +430,29 @@ naive way or in a time-spaced way
    Series.fill
    Series.interpolate
 
+Relabeling (renaming) Series index
+----------------------------------
+
+One might want to relabel the index based on a mapping or
+function. For this the :func:`Series.rename` method is provided. It
+can accept either a dict or a function:
+
+::
+
+    >>> s
+	a    -0.544970223484
+	b    -0.946388873158
+	c    0.0360854957476
+	d    -0.795018577574
+	e    0.195977583894
+
+	>>> s.rename(str.upper)
+	A    -0.544970223484
+	B    -0.946388873158
+	C    0.0360854957476
+	D    -0.795018577574
+	E    0.195977583894
+
 Iterating
 ---------
 
@@ -471,7 +494,7 @@ Basic statistical functions
 
 There are many built-in ndarray methods providing basic descriptive
 statistics. Since these do not handle missing observations (which are
-represented in our case as NaN), we've overrided these methods to do
+represented in our case as NaN), we've overridden these methods to do
 the appropriate handling.
 
 For example:
@@ -643,6 +666,7 @@ is the new sorting behavior in NumPy >= 1.4.0:
    Series.sort
    Series.order
 
+
 TimeSeries-oriented methods
 ---------------------------
 
@@ -745,7 +769,8 @@ A convenience method for selecting weekdays, similar to
 GroupBy functionality
 ---------------------
 
-TODO
+.. seealso::
+    :ref:`GroupBy operations <groupby>`
 
 Plotting
 --------

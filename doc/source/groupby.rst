@@ -1,7 +1,7 @@
 .. _groupby:
 
 *******************
-Group-by operations
+GroupBy operations
 *******************
 
 .. currentmodule:: pandas
