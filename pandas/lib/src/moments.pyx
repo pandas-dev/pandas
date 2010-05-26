@@ -62,10 +62,10 @@ def median(ndarray arr):
     arr = arr.copy()
 
     if n % 2:
-        return kth_smallest(arr, n, n / 2)
+        return kth_smallest(arr, n / 2)
     else:
-        return (kth_smallest(arr, n, n / 2) +
-                kth_smallest(arr, n, n / 2 - 1)) / 2
+        return (kth_smallest(arr, n / 2) +
+                kth_smallest(arr, n / 2 - 1)) / 2
 
 #-------------------------------------------------------------------------------
 # Rolling sum
