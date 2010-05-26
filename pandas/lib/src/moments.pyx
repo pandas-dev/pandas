@@ -17,10 +17,12 @@
 #               Series: Prentice-Hall Series in Automatic Computation
 
 
-def kth_smallest(ndarray[double_t, ndim=1] a, int n, int k):
+def kth_smallest(ndarray[double_t, ndim=1] a, int k):
     cdef:
-        int i,j,l,m
+        int i,j,l,m,n
         double_t x, t
+
+    n = len(a)
 
     l = 0
     m = n-1
@@ -52,11 +54,12 @@ def median(ndarray arr):
     '''
     A faster median
     '''
-    cdef double *values
     cdef int n = len(arr)
 
     if len(arr) == 0:
         return np.NaN
+
+    arr = arr.copy()
 
     if n % 2:
         return kth_smallest(arr, n, n / 2)
