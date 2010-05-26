@@ -6,8 +6,7 @@ import numpy
 def get_cython_ext():
     from Cython.Distutils import build_ext
 
-    pyx_ext = Extension('tseries', ['pandas/lib/src/tseries.pyx',
-                                    'pandas/lib/src/wirth.c'],
+    pyx_ext = Extension('tseries', ['pandas/lib/src/tseries.pyx'],
                         include_dirs=[numpy.get_include(),
                                       'pandas/lib/include/'])
 
@@ -23,9 +22,7 @@ def configuration(parent_package='', top_path=None):
 
     config = Configuration('lib', parent_package, top_path)
     config.add_extension('tseries',
-                         sources=['src/tseries.c',
-                                  'src/wirth.c',
-                                  'include/wirth.h'],
+                         sources=['src/tseries.c'],
                          include_dirs=[numpy.get_include(),
                                        'include/'])
     config.add_data_dir('include')

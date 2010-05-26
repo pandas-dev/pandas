@@ -1,8 +1,52 @@
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
 
-cdef extern from "wirth.h":
-    double kth_smallest(double *a, int n, int k)
+# original C implementation by N. Devillard.
+# This code in public domain.
+# Function :   kth_smallest()
+# In       :   array of elements, # of elements in the array, rank k
+# Out      :   one element
+# Job      :   find the kth smallest element in the array
+
+#             Reference:
+
+#               Author: Wirth, Niklaus
+#                Title: Algorithms + data structures = programs
+#            Publisher: Englewood Cliffs: Prentice-Hall, 1976
+# Physical description: 366 p.
+#               Series: Prentice-Hall Series in Automatic Computation
+
+
+def kth_smallest(ndarray[double_t, ndim=1] a, int n, int k):
+    cdef:
+        int i,j,l,m
+        double_t x, t
+
+    l = 0
+    m = n-1
+    while (l<m):
+        x = a[k]
+        i = l
+        j = m
+
+        while 1:
+            while a[i] < x:
+                i += 1
+            while x < a[j]:
+                j -= 1
+            if i <= j:
+                t = a[i]
+                a[i] = a[j]
+                a[j] = t
+                i += 1
+                j -= 1
+            if i > j:
+                break
+
+        if j < k: l = i
+        if k < i: m = j
+    return a[k]
+
 
 def median(ndarray arr):
     '''
@@ -14,16 +58,11 @@ def median(ndarray arr):
     if len(arr) == 0:
         return np.NaN
 
-    if not np.PyArray_CHKFLAGS(arr, np.NPY_C_CONTIGUOUS):
-        arr = np.array(arr)
-
-    values = <double *> arr.data
-
     if n % 2:
-        return kth_smallest(values, n, n / 2)
+        return kth_smallest(arr, n, n / 2)
     else:
-        return (kth_smallest(values, n, n / 2) +
-                kth_smallest(values, n, n / 2 - 1)) / 2
+        return (kth_smallest(arr, n, n / 2) +
+                kth_smallest(arr, n, n / 2 - 1)) / 2
 
 #-------------------------------------------------------------------------------
 # Rolling sum

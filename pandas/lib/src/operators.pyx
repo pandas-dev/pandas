@@ -19,47 +19,47 @@ cdef double __pow(double a, double b):
 
 ctypedef double (* double_func)(double a, double b)
 
-cdef ndarray _applyFunc(double_func func, ndarray index, object ao,
-                        object bo, dict aMap, dict bMap):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef ndarray _applyFunc(double_func func, ndarray index, ndarray ao,
+                        ndarray bo, dict aMap, dict bMap):
     '''
     C function taking a function pointer for quickly adding two Series objects.
     '''
-    cdef ndarray A, B, result
-    cdef double *result_data
-    cdef int i, length
-    cdef flatiter itera, iteridx
+    cdef ndarray result
+    cdef double *result_data, *a_data, *b_data
+    cdef int length
+    cdef Py_ssize_t i, aidx, bidx
     cdef double nan
     cdef object idx
+    cdef ndarray[object, ndim=1] ibuf
+    cdef ndarray[double_t, ndim=1] A, B
 
-    # This is EXTREMELY important, otherwise you will get very
-    # undesired results
-    A = PyArray_ContiguousFromAny(ao, NPY_DOUBLE, 1, 1)
-    B = PyArray_ContiguousFromAny(bo, NPY_DOUBLE, 1, 1)
+    A = ao
+    B = bo
+
+    ibuf = index
 
     nan = <double> np.NaN
-    length = PyArray_SIZE(index)
-
-    result = <ndarray> np.empty(length, np.float64)
-    result_data = <double *>result.data
-
-    itera = <flatiter> PyArray_IterNew(A)
-    iteridx = PyArray_IterNew(index)
+    length = len(index)
+    result = <ndarray> np.empty(length, dtype=float)
+    result_data = <double *> result.data
 
     for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iteridx))
-        PyArray_ITER_NEXT(iteridx)
+        idx = ibuf[i]
 
         if idx not in aMap or idx not in bMap:
             result_data[i] = nan
             continue
 
-        result_data[i] = func((<double *>A.data)[aMap[idx]],
-                            (<double *>B.data)[bMap[idx]])
+        aidx = aMap[idx]
+        bidx = bMap[idx]
+        result_data[i] = func(A[aidx], B[bidx])
 
     return result
 
-def combineFunc(object name, ndarray index, object ao,
-                object bo, dict aMap, dict bMap):
+def combineFunc(object name, ndarray index, ndarray ao,
+                ndarray bo, dict aMap, dict bMap):
     '''
     Combine two series (values and index maps for each passed in) using the
     indicated function.
