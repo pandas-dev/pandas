@@ -210,7 +210,7 @@ def _convert_index(index):
         converted = np.array(list(values), dtype=np.str_)
         return converted, 'string'
     else:
-        return values, 'other'
+        return np.array(list(values)), 'other'
 
 def _unconvert_index(data, kind):
     if kind == 'datetime':
