@@ -44,7 +44,18 @@ def _seriesOpWrap(opname):
             newIndex = self.index + other.index
 
             try:
-                arr = tseries.combineFunc(opname, newIndex, self, other,
+                if self.dtype != np.float_:
+                    this = self.astype(float)
+                else:
+                    this = self
+
+                if other.dtype != np.float_:
+                    other = other.astype(float)
+
+                # buffered Cython function expects double type
+
+                arr = tseries.combineFunc(opname, newIndex,
+                                          this, other,
                                           self.index.indexMap,
                                           other.index.indexMap)
             except Exception:

@@ -553,8 +553,7 @@ class DataFrame(Picklable, Groupable):
         space = max([len(str(k)) for k in columns]) + 4
         for k in columns:
             out = _pfixed(k, space)
-            N = notnull(series[k]).sum()
-            out += '%d  non-null values' % N
+            out += '%d  non-null values' % series[k].count()
             print >> buffer, out
 
     def rows(self):
