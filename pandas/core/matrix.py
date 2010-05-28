@@ -877,26 +877,19 @@ class DataMatrix(DataFrame):
 
         counts = self.count()
 
+        cols = self.cols()
+        assert(len(cols) == len(counts))
+
         columns = []
-        for j, col in enumerate(self.columns):
-            columns.append((col, '%s%d  non-null values' %
-                           (_pfixed(col, space), counts[j])))
-
-        if self.objects is not None and len(self.objects.columns) > 0:
-            n = len(self.objects.index)
-            for col in self.objects:
-                line = '%s%d  non-null values' % (_pfixed(col, space), n)
-                columns.append((col, line))
-
-        try:
-            columns = [c[1] for c in sorted(columns)]
-        except TypeError:
-            columns = sorted([c[1] for c in columns])
+        for col, count in counts.iteritems():
+            columns.append('%s%d  non-null values' %
+                           (_pfixed(col, space), count))
 
         dtypeLine = ''
 
         nf = len(self.columns)
         df = self.values.dtype
+
         if self.objects is not None:
             no = len(self.objects.columns)
             do = self.objects.values.dtype

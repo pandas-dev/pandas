@@ -386,7 +386,7 @@ class Series(np.ndarray, Picklable, Groupable):
         Compute minimum of non-null values
         """
         arr = self.values().copy()
-        if not self._int_type:
+        if not issubclass(arr.dtype.type, np.int_):
             arr[isnull(arr)] = np.inf
         return arr.min()
 
@@ -395,13 +395,9 @@ class Series(np.ndarray, Picklable, Groupable):
         Compute maximum of non-null values
         """
         arr = self.values().copy()
-        if not self._int_type:
+        if not issubclass(arr.dtype.type, np.int_):
             arr[isnull(arr)] = -np.inf
         return arr.max()
-
-    @property
-    def _int_type(self):
-        return issubclass(self.dtype.type, np.int_)
 
     def std(self, axis=None, dtype=None, out=None, ddof=1):
         """
