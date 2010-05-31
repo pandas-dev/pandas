@@ -351,14 +351,13 @@ class DataMatrix(DataFrame):
 
         Could probably deal with some Cython action in here at some point
         """
+        need_reindex = False
+
         if self.index.equals(other.index):
             newIndex = self.index
-            myReindex = self
-            hisReindex = other
         else:
             newIndex = self.index.union(other.index)
-            myReindex = self.reindex(newIndex)
-            hisReindex = other.reindex(newIndex)
+            need_reindex = True
 
         if not self and not other:
             return DataMatrix(index=newIndex)
@@ -367,37 +366,26 @@ class DataMatrix(DataFrame):
         elif not other:
             return self * NaN
 
+        if self.columns.equals(other.columns):
+            newColumns = self.columns
+        else:
+            newColumns = self.columns.union(other.columns)
+            need_reindex = True or need_reindex
+
+        if need_reindex:
+            myReindex = self.reindex(index=newIndex,
+                                     columns=newColumns)
+            hisReindex = other.reindex(index=newIndex,
+                                       columns=newColumns)
+        else:
+            myReindex = self
+            hisReindex = other
+
         myValues = myReindex.values
-        safe = self.columns.equals(other.columns)
-
-        if safe:
-            newCols = self.columns
-            commonCols = self.columns
-        else:
-            newCols = self.columns.union(other.columns)
-            commonCols = self.columns.intersection(other.columns)
-
         hisValues = hisReindex.values
-        hisCols = hisReindex.columns
 
-        if safe:
-            resultMatrix = func(myValues, hisValues)
-        else:
-            T, N = len(newIndex), len(newCols)
-            resultMatrix = np.empty((T, N), dtype=self.values.dtype)
-            resultMatrix.fill(NaN)
-
-            myIndexer = [self.columns.indexMap[idx] for idx in commonCols]
-            hisIndexer =  [hisCols.indexMap[idx] for idx in commonCols]
-            resultIndexer = [newCols.indexMap[idx] for idx in commonCols]
-
-            left = myValues.take(myIndexer, axis=1)
-            right = hisValues.take(hisIndexer, axis=1)
-
-            resultMatrix[:, resultIndexer] = func(left, right)
-
-        # TODO: deal with objects
-        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
+        return DataMatrix(func(myValues, hisValues),
+                          index=newIndex, columns=newColumns)
 
     def _combineSeries(self, other, func):
         newIndex = self.index

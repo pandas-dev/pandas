@@ -1200,6 +1200,9 @@ class DataFrame(Picklable, Groupable):
             newIndex = self.index[idx.astype(int)]
             return self.reindex(newIndex)
 
+    def sort(self, column=None, ascending=True):
+        pass
+
     def combine(self, other, func, fill_value=None):
         """
         Add two DataFrame / DataMatrix objects and do not propagate NaN values,
@@ -1324,21 +1327,16 @@ class DataFrame(Picklable, Groupable):
         on : string, default None
             Column name to use, otherwise join on index
         how : {'left', 'right', 'outer', 'inner'}
-            default: 'left' for joining on index, None otherwise
-            How to handle indexes of the two objects.
-              * left: use calling frame's index
-              * right: use input frame's index
-              * outer: form union of indexes
-              * inner: use intersection of indexes
+            How to handle indexes of the two objects. Default: 'left'
+            for joining on index, None otherwise
+            * left: use calling frame's index
+            * right: use input frame's index
+            * outer: form union of indexes
+            * inner: use intersection of indexes
 
-        Examples
-        --------
-        This frame         Other frame
-            c1                 q1
-        a   1              0   v1
-        b   0              1   v2
-        c   1
-        d   0
+        Returns
+        -------
+        joined : DataFrame
         """
         if on is not None:
             if how is not None:
