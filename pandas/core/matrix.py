@@ -8,7 +8,6 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.common import _pfixed, _pickle_array, _unpickle_array
-from pandas.core.daterange import DateRange
 from pandas.core.frame import DataFrame, _try_sort, _extract_index
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series

@@ -86,3 +86,29 @@ To prevent undesired behavior, Index instances are immutable:
 
 	Exception: <class 'pandas.core.index.Index'> object is immutable
 
+Convenience methods
+-------------------
+
+A number of methods are provided for performing common set-like
+operations and comparisons:
+
+::
+
+    >>> index1 = Index(['a', 'b', 'c'])
+    >>> index2 = Index(['c', 'd', 'e'])
+
+    >>> index1.intersection(index2)
+    Index([c], dtype=object)
+
+    >>> index1.union(index2)
+    Index([a, b, c, d, e], dtype=object)
+
+    >>> index1.equals(index2)
+    False
+
+.. autosummary::
+   :toctree: generated/
+
+   Index.equals
+   Index.intersection
+   Index.union

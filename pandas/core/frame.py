@@ -1173,35 +1173,19 @@ class DataFrame(Picklable, Groupable):
 
         return self.reindex(columns=columns)
 
-    def sortUp(self, column=None):
-        """
-        Sort DataFrame in ascending order according to specified column,
-        otherwise by the index.
-        """
-        if column:
-            series = self[column].order(missingAtEnd=True)
-            return self.reindex(series.index)
-        else:
-            idx = np.array(np.argsort(self.index))
-            newIndex = self.index[idx.astype(int)]
-            return self.reindex(newIndex)
-
-    def sortDown(self, column=None):
-        """
-        Sort DataFrame in ascending order according to specified column,
-        otherwise by the index.
-        """
+    def sort(self, column=None, ascending=True):
         if column:
             series = self[column].order(missingAtEnd=False)
-            return self.reindex(series.index[::-1])
+            sort_index = series.index
         else:
-            idx = np.array(np.argsort(self.index))
-            idx = idx[::-1]  # Reverses array
-            newIndex = self.index[idx.astype(int)]
-            return self.reindex(newIndex)
+            index = np.asarray(self.index)
+            argsorted = np.argsort(index)
+            sort_index = index[argsorted.astype(int)]
 
-    def sort(self, column=None, ascending=True):
-        pass
+        if not ascending:
+            sort_index = sort_index[::-1]
+
+        return self.reindex(sort_index)
 
     def combine(self, other, func, fill_value=None):
         """

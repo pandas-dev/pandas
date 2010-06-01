@@ -1023,23 +1023,20 @@ class TestDataFrame(unittest.TestCase):
         self.assert_('AA' in filtered)
 
         # regex
-        filterd = fcopy.filter(regex='[A]+')
+        filtered = fcopy.filter(regex='[A]+')
         self.assertEqual(len(filtered.cols()), 2)
         self.assert_('AA' in filtered)
 
         # pass in None
         self.assertRaises(Exception, self.frame.filter, items=None)
 
-    def test_sortUp(self):
-        # what to do?
-        sorted = self.frame.sortUp()
+    def test_sort(self):
+        # what to test?
+        sorted = self.frame.sort()
+        sorted_A = self.frame.sort(column='A')
 
-        sorted_A = self.frame.sortUp(column='A')
-
-    def test_sortDown(self):
-        sorted = self.frame.sortDown()
-
-        sorted_A = self.frame.sortDown(column='A')
+        sorted = self.frame.sort(ascending=False)
+        sorted_A = self.frame.sort(column='A', ascending=False)
 
     def test_combineFirst(self):
         # disjoint

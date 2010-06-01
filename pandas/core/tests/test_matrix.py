@@ -6,7 +6,7 @@ import unittest
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import Index, Series, DataMatrix, DataFrame
+from pandas.core.api import Index, Series, DataMatrix, DataFrame, isnull
 
 import pandas.util.testing as common
 import test_frame
@@ -188,6 +188,19 @@ class TestDataMatrix(test_frame.TestDataFrame):
         values = self.mixed_frame.asMatrix()
         self.assertEqual(values.shape[1], len(self.mixed_frame.cols()))
 
+    def test_reindex_bool(self):
+        frame = DataMatrix(np.ones((10, 2), dtype=bool),
+                           index=np.arange(0, 20, 2),
+                           columns=[0, 2])
+
+        reindexed = frame.reindex(np.arange(10))
+        self.assert_(reindexed.values.dtype == np.object_)
+        self.assert_(np.isnan(reindexed[0][1]))
+
+        reindexed = frame.reindex(columns=range(3))
+        self.assert_(reindexed.values.dtype == np.object_)
+        self.assert_(isnull(reindexed[1]).all())
+
     def test_reindex_objects(self):
         reindexed = self.mixed_frame.reindex(columns=['foo', 'A', 'B'])
         self.assert_('foo' in reindexed)
@@ -205,6 +218,11 @@ class TestDataMatrix(test_frame.TestDataFrame):
 
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
         self.assert_(smaller['E'].dtype == np.float_)
+
+    def test_rename_objects(self):
+        renamed = self.mixed_frame.rename(columns=str.upper)
+        self.assert_('FOO' in renamed)
+        self.assert_('foo' not in renamed)
 
     def test_fill_corner(self):
         self.mixed_frame['foo'][5:20] = np.NaN

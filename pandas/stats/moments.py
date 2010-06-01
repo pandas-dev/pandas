@@ -18,7 +18,7 @@ __all__ = ['rolling_count', 'rolling_sum', 'rolling_mean',
 #-------------------------------------------------------------------------------
 # Rolling statistics
 
-def rolling_count(arg, window, timeRule=None):
+def rolling_count(arg, window, time_rule=None):
     """
     Rolling count of number of observations inside provided window.
 
@@ -32,28 +32,28 @@ def rolling_count(arg, window, timeRule=None):
     Uses Cython
     """
     types = (DataFrame, DataMatrix, TimeSeries)
-    if timeRule is not None and isinstance(arg, types):
+    if time_rule is not None and isinstance(arg, types):
         # Conform to whatever frequency needed.
-        arg = arg.asfreq(timeRule)
+        arg = arg.asfreq(time_rule)
 
     window = min(window, len(arg))
     if isinstance(arg, DataMatrix):
         arg = arg.copy()
         arg.values = np.isfinite(arg.values).astype(float)
-        result = rolling_sum(arg, window, minPeriods=1, timeRule=timeRule)
+        result = rolling_sum(arg, window, min_periods=1, time_rule=time_rule)
         result.values[np.isnan(result.values)] = 0
     elif isinstance(arg, DataFrame):
         converter = lambda x: np.isfinite(x).astype(float)
         arg = arg.apply(converter)
-        result = rolling_sum(arg, window, minPeriods=1, timeRule=timeRule)
+        result = rolling_sum(arg, window, min_periods=1, time_rule=time_rule)
         result = result.fill(value=0)
     else:
         arg = np.isfinite(arg).astype(float)
-        result = rolling_sum(arg, window, minPeriods=1, timeRule=timeRule)
+        result = rolling_sum(arg, window, min_periods=1, time_rule=time_rule)
         result[np.isnan(result)] = 0
     return result
 
-def rolling_sum(arg, window=0, minPeriods=None, timeRule=None):
+def rolling_sum(arg, window=0, min_periods=None, time_rule=None):
     """
     Rolling sum of observations inside provided window.
 
@@ -62,10 +62,10 @@ def rolling_sum(arg, window=0, minPeriods=None, timeRule=None):
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
     """
-    return _rollingMoment(arg, window, tseries.rolling_sum, minp=minPeriods,
-                          timeRule=timeRule)
+    return _rollingMoment(arg, window, tseries.rolling_sum, minp=min_periods,
+                          time_rule=time_rule)
 
-def _rollingMoment(arg, window, func, minp=None, timeRule=None):
+def _rollingMoment(arg, window, func, minp=None, time_rule=None):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -82,9 +82,9 @@ def _rollingMoment(arg, window, func, minp=None, timeRule=None):
         minp = window
 
     types = (DataFrame, DataMatrix, TimeSeries)
-    if timeRule is not None and isinstance(arg, types):
+    if time_rule is not None and isinstance(arg, types):
         # Conform to whatever frequency needed.
-        arg = arg.asfreq(timeRule)
+        arg = arg.asfreq(time_rule)
 
     if isinstance(arg, DataMatrix):
         T, N = arg.values.shape
@@ -113,7 +113,7 @@ def _rollingMoment(arg, window, func, minp=None, timeRule=None):
         output = func(arg, window, minp=minp)
     return output
 
-def rolling_cov(arg1, arg2, window, minPeriods=None, timeRule=None):
+def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
     """
     Unbiased Rolling Covariance
 
@@ -121,17 +121,17 @@ def rolling_cov(arg1, arg2, window, minPeriods=None, timeRule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
-    minPeriods : int
+    min_periods : int
         Minimum number of observations in window required to have a value
-    timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
-    num1 = rolling_mean(arg1*arg2, window, minPeriods, timeRule) #E(XY)
-    num2 = (rolling_mean(arg1, window, minPeriods, timeRule) *
-            rolling_mean(arg2, window, minPeriods, timeRule)) #E(X)E(Y)
+    num1 = rolling_mean(arg1*arg2, window, min_periods, time_rule) #E(XY)
+    num2 = (rolling_mean(arg1, window, min_periods, time_rule) *
+            rolling_mean(arg2, window, min_periods, time_rule)) #E(X)E(Y)
     return (num1-num2)*window/(window-1)
 
-def rolling_corr(arg1, arg2, window, minPeriods=None, timeRule=None):
+def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
     """
     Rolling Correl
 
@@ -139,17 +139,17 @@ def rolling_corr(arg1, arg2, window, minPeriods=None, timeRule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
-    minPeriods : int
+    min_periods : int
         Minimum number of observations in window required to have a value
-    timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
-    num = rolling_cov(arg1, arg2, window, minPeriods, timeRule) #Cov(X,Y)
-    den  = (rolling_std(arg1, window, minPeriods, timeRule) *
-            rolling_std(arg2, window, minPeriods, timeRule)) #STDEV(X)STDEV(Y)
+    num = rolling_cov(arg1, arg2, window, min_periods, time_rule) #Cov(X,Y)
+    den  = (rolling_std(arg1, window, min_periods, time_rule) *
+            rolling_std(arg2, window, min_periods, time_rule)) #STDEV(X)STDEV(Y)
     return (num/den)
 
-def rolling_mean(arg, window, minPeriods=None, timeRule=None):
+def rolling_mean(arg, window, min_periods=None, time_rule=None):
     """
     Unbiased Rolling Mean
 
@@ -157,15 +157,15 @@ def rolling_mean(arg, window, minPeriods=None, timeRule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
-    minPeriods : int
+    min_periods : int
         Minimum number of observations in window required to have a value
-    timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
     return _rollingMoment(arg, window, tseries.rolling_mean,
-                          minp=minPeriods, timeRule=timeRule)
+                          minp=min_periods, time_rule=time_rule)
 
-def rolling_std(arg, window, minPeriods=None, timeRule=None):
+def rolling_std(arg, window, min_periods=None, time_rule=None):
     """
     Unbiased Rolling Volatility
 
@@ -173,15 +173,15 @@ def rolling_std(arg, window, minPeriods=None, timeRule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
-    minPeriods : int
+    min_periods : int
         Minimum number of observations in window required to have a value
-    timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
     return _rollingMoment(arg, window, tseries.rolling_std,
-                          minp=minPeriods, timeRule=timeRule)
+                          minp=min_periods, time_rule=time_rule)
 
-def rolling_var(arg, window, minPeriods=None, timeRule=None):
+def rolling_var(arg, window, min_periods=None, time_rule=None):
     """
     Unbiased Rolling Variance
 
@@ -189,15 +189,15 @@ def rolling_var(arg, window, minPeriods=None, timeRule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
-    minPeriods : int
+    min_periods : int
         Minimum number of observations in window required to have a value
-    timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
     return _rollingMoment(arg, window, tseries.rolling_var,
-                          minp=minPeriods, timeRule=timeRule)
+                          minp=min_periods, time_rule=time_rule)
 
-def rolling_skew(arg, window, minPeriods=None, timeRule=None):
+def rolling_skew(arg, window, min_periods=None, time_rule=None):
     """
     Unbiased Rolling Skewness
 
@@ -205,15 +205,15 @@ def rolling_skew(arg, window, minPeriods=None, timeRule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
-    minPeriods : int
+    min_periods : int
         Minimum number of observations in window required to have a value
-    timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
     return _rollingMoment(arg, window, tseries.rolling_skew,
-                          minp=minPeriods, timeRule=timeRule)
+                          minp=min_periods, time_rule=time_rule)
 
-def rolling_kurt(arg, window, minPeriods=None, timeRule=None):
+def rolling_kurt(arg, window, min_periods=None, time_rule=None):
     """
     Unbiased Rolling Kurtosis
 
@@ -221,17 +221,17 @@ def rolling_kurt(arg, window, minPeriods=None, timeRule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
-    minPeriods : int
+    min_periods : int
         Minimum number of observations in window required to have a value
-    timeRule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
         Name of time rule to conform to before computing statistic
     """
     return _rollingMoment(arg, window, tseries.rolling_kurt,
-                          minp=minPeriods, timeRule=timeRule)
+                          minp=min_periods, time_rule=time_rule)
 
-def rolling_median(arg, window, minPeriods=None, timeRule=None):
+def rolling_median(arg, window, min_periods=None, time_rule=None):
     return _rollingMoment(arg, window, tseries.rolling_median,
-                          minp=minPeriods, timeRule=timeRule)
+                          minp=min_periods, time_rule=time_rule)
 
 def test_rolling_median():
     arr = np.random.randn(100)
@@ -261,7 +261,7 @@ def _getMinPeriods(minPct, rho):
 
     return int(np.ceil(np.log(minPct) / np.log(rho)))
 
-def _ewmoment(values, func, minPeriods=None, minPct=0.95,
+def _ewmoment(values, func, min_periods=None, minPct=0.95,
               biasCorrection=None):
     """
     Generic rolling exponential moment function using blended accumulator
@@ -280,7 +280,7 @@ def _ewmoment(values, func, minPeriods=None, minPct=0.95,
 
     minPct : float
         Minimum percentage of weight "in window" to require to have a value
-    minPeriods : int, optional
+    min_periods : int, optional
         require a particular number of periods "in window" to compute statistic
         If provided, overrides the minPct argument
 
@@ -299,11 +299,11 @@ def _ewmoment(values, func, minPeriods=None, minPct=0.95,
     result = np.frompyfunc(func, 2, 1).accumulate(cleanValues)
     result = result.astype(float)
 
-    if minPeriods is not None:
-        if minPeriods < 0:
-            raise Exception('minPeriods cannot be less than 0!')
+    if min_periods is not None:
+        if min_periods < 0:
+            raise Exception('min_periods cannot be less than 0!')
 
-        result[:minPeriods] = np.NaN
+        result[:min_periods] = np.NaN
 
     output = values.copy()
     output[okLocs] = result

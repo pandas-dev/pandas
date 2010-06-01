@@ -6,4 +6,3 @@ GroupBy operations
 
 .. currentmodule:: pandas
 
-

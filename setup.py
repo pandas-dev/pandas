@@ -41,7 +41,7 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = '2beta'
+MINOR = 2
 
 def get_version():
     return '%s.%s' % (MAJOR, MINOR)

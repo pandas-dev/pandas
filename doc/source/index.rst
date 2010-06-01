@@ -37,6 +37,18 @@ such as :mod:`scikits.statsmodels`.
    haven't used NumPy much or at all, please check out the `NumPy
    documentation <http://docs.scipy.org>`__ first.
 
+Who is pandas for?
+------------------
+
+ * Users of R or MATLAB who wish to switch to Python for interactive
+   data analysis and implementation of statistical models
+
+ * NumPy users who are looking for richer data structures for working
+   with time series and cross-sectional data.
+
+ * System developers who wish to have a robust and well-tested library
+   for building production applications involving such data sets.
+
 User manual
 -----------
 
@@ -55,27 +67,15 @@ User manual
 .. toctree::
     :maxdepth: 2
 
-    installation
+    overview
     core
     groupby
     datetools
     stats
+    r_interface
     examples
     missing_data
-
-.. Quick Reference
-.. ---------------
-
-.. .. autosummary::
-..    :toctree: generated/
-
-..    Index
-..    Series
-..    TimeSeries
-..    DataFrame
-..    DataMatrix
-..    WidePanel
-..    LongPanel
+    related
 
 Indices and tables
 ------------------

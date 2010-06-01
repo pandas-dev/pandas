@@ -30,9 +30,15 @@ sys.path.extend([
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.  sphinxext.
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest','numpydoc',
-'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
-'sphinx.ext.pngmath', 'sphinx.ext.ifconfig', 'sphinx.ext.autosummary']
+extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.doctest',
+              'numpydoc',
+              'sphinx.ext.intersphinx',
+              'sphinx.ext.todo',
+              'sphinx.ext.coverage',
+              'sphinx.ext.pngmath',
+              'sphinx.ext.ifconfig',
+              'sphinx.ext.autosummary']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates', '_templates/autosummary']

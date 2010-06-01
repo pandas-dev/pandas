@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Python script for building documentation.
 
@@ -18,6 +20,8 @@ import os
 import shutil
 import sys
 import sphinx
+
+os.environ['PYTHONPATH'] = '..'
 
 SPHINX_BUILD = 'sphinxbuild'
 NEED_AUTOSUMMARY = sphinx.__version__ < 0.7

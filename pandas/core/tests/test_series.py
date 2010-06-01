@@ -320,6 +320,12 @@ class TestSeries(unittest.TestCase):
         deltas5 = deltas * 5
         deltas = deltas + sub_deltas
 
+        # float + int
+        int_ts = self.ts.astype(int)[:-5]
+        added = self.ts + int_ts
+        expected = self.ts.values()[:-5] + int_ts.values()
+        self.assert_(np.array_equal(added[:-5], expected))
+
     def test_operators_frame(self):
         # rpow does not work with DataFrame
         df = DataFrame({'A' : self.ts})
@@ -652,6 +658,16 @@ class TestSeries(unittest.TestCase):
         bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
         filled_bool = bool_ts.reindex(self.ts.index, fillMethod='pad')
         self.assert_(isnull(filled_bool[:5]).all())
+
+    def test_rename(self):
+        renamer = lambda x: x.strftime('%Y%m%d')
+        renamed = self.ts.rename(renamer)
+        self.assertEqual(renamed.index[0], renamer(self.ts.index[0]))
+
+        # dict
+        rename_dict = dict(zip(self.ts.index, renamed.index))
+        renamed2 = self.ts.rename(rename_dict)
+        assert_series_equal(renamed, renamed2)
 
     def test_preserveRefs(self):
         sl = self.ts[5:10]

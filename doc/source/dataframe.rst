@@ -38,6 +38,7 @@ multiple time series or cross sections with ease.
 
 :class:`~pandas.DataMatrix` has a similar constructor and can be used interchangeably.
 
+
 Basics
 ------
 
@@ -731,8 +732,7 @@ new index or list of columns.
    DataFrame.dropIncompleteRows
    DataFrame.merge
    DataFrame.fill
-   DataFrame.filterItems
-   DataFrame.filterLike
+   DataFrame.filter
 
 Sorting
 -------
@@ -742,28 +742,22 @@ TODO
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.reindex
-   DataFrame.dropEmptyRows
-   DataFrame.dropIncompleteRows
-   DataFrame.merge
-   DataFrame.fill
-   DataFrame.filterItems
-   DataFrame.filterLike
+   DataFrame.sort
 
 Converting to ndarray
 ---------------------
 
 TODO
 
-Merging DataFrames based on key
--------------------------------
+Joining / merging DataFrames
+----------------------------
 
 TODO
 
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.merge
+   DataFrame.join
 
 TimeSeries-oriented methods
 ---------------------------
@@ -833,12 +827,10 @@ TODO
    DataFrame.apply
    DataFrame.tapply
    DataFrame.applymap
-   DataFrame.sortUp
-   DataFrame.sortDown
+   DataFrame.sort
    DataFrame.combineFirst
    DataFrame.combineAdd
    DataFrame.combineMult
-   DataFrame.join
    DataFrame.plot
 
 DataFrame vs. DataMatrix
