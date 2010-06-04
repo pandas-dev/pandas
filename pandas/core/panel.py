@@ -544,6 +544,7 @@ class WidePanel(Panel):
         -------
         WidePanelGroupBy
         """
+        axis = self._get_axis_number(axis)
         return WidePanelGroupBy(self, function, axis=axis)
 
     def swapaxes(self, axis1='major', axis2='minor'):
@@ -1776,6 +1777,61 @@ class Factor(object):
             new_labels = self.labels[key]
             return Factor(new_labels, self.levels)
 
+def factor_agg(factor, vec, func):
+    """
+    Parameters
+    ----------
+    factor : Factor
+        length n
+    vec : sequence
+        length n
+    func : function
+        1D array aggregation function
+
+    Returns
+    -------
+    ndarray corresponding to Factor levels
+    """
+    indexer = np.argsort(factor.labels)
+    unique_labels = np.arange(len(factor.levels))
+
+    ordered_labels = factor.labels.take(indexer)
+    ordered_vec = np.asarray(vec).take(indexer)
+    bounds = ordered_labels.searchsorted(unique_labels)
+
+    return group_agg(ordered_vec, bounds, func)
+
+def group_agg(values, bounds, f):
+    """
+    R-style aggregator
+
+    Parameters
+    ----------
+    values : N-length or N x K ndarray
+    bounds : B-length ndarray
+    f : ndarray aggregation function
+
+    Returns
+    -------
+    ndarray with same length as bounds array
+    """
+    if values.ndim == 1:
+        N = len(values)
+        result = np.empty(len(bounds), dtype=float)
+    elif values.ndim == 2:
+        N, K = values.shape
+        result = np.empty((len(bounds), K), dtype=float)
+
+    for i, left_bound in enumerate(bounds):
+        if i == len(bounds) - 1:
+            right_bound = N
+        else:
+            right_bound = bounds[i + 1]
+
+        result[i] = f(values[left_bound : right_bound])
+
+    return result
+
 def _get_indexer(source, target, fill_method):
     if fill_method:
         fill_method = fill_method.upper()
@@ -1935,35 +1991,51 @@ def _slow_pivot(index, columns, values):
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
 
-def group_agg(values, bounds, f):
-    """
-    R-style aggregator
-
-    Parameters
-    ----------
-    values : N x K ndarray
-    bounds : B-length ndarray
-    f : ndarray aggregation function
-
-    Returns
-    -------
-    ndarray with same length as bounds array
-    """
-    N, K = values.shape
-    result = np.empty((len(bounds), K), dtype=float)
-
-    for i, left_bound in enumerate(bounds):
-        if i == len(bounds) - 1:
-            right_bound = N
-        else:
-            right_bound = bounds[i + 1]
-
-        result[i] = f(values[left_bound : right_bound])
-
-    return result
-
 class WidePanelGroupBy(GroupBy):
-    pass
+
+    def __init__(self, obj, grouper, axis=0):
+        self.axis = axis
+
+        if axis not in (0, 1, 2): # pragma: no cover
+            raise Exception('invalid axis')
+
+        GroupBy.__init__(self, obj, grouper)
+
+    @property
+    def _group_axis(self):
+        return self.obj._get_axis(self.axis)
+
+    def aggregate(self, applyfunc):
+        """
+        For given DataFrame, group index by given mapper function or dict, take
+        the sub-DataFrame (reindex) for this group and call apply(applyfunc)
+        on this sub-DataFrame. Return a DataFrame of the results for each
+        key.
+
+        Parameters
+        ----------
+        mapper : function, dict-like, or string
+            Mapping or mapping function. If string given, must be a column
+            name in the frame
+        applyfunc : function
+            Function to use for aggregating groups
+
+        N.B.: applyfunc must produce one value from a Series, otherwise
+        an error will occur.
+
+        Optional: provide set mapping as dictionary
+        """
+        axis_name = self.obj._get_axis_name(self.axis)
+        getter = lambda p, group: p.reindex(**{axis_name : group})
+        result_d = self._aggregate_generic(getter, applyfunc,
+                                           axis=self.axis)
+
+        result = WidePanel.fromDict(result_d, intersect=False)
+
+        if self.axis > 0:
+            result = result.swapaxes(0, self.axis)
+
+        return result
 
 class LongPanelGroupBy(GroupBy):
     pass

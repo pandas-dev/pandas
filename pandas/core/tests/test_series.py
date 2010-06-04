@@ -210,7 +210,7 @@ class TestSeries(unittest.TestCase):
         self.assert_(self.ts.keys() is self.ts.index)
 
     def test_values(self):
-        self.assert_(np.array_equal(self.ts, self.ts.values()))
+        self.assert_(np.array_equal(self.ts, self.ts.values))
 
     def test_iteritems(self):
         for idx, val in self.series.iteritems():
@@ -323,7 +323,7 @@ class TestSeries(unittest.TestCase):
         # float + int
         int_ts = self.ts.astype(int)[:-5]
         added = self.ts + int_ts
-        expected = self.ts.values()[:-5] + int_ts.values()
+        expected = self.ts.values[:-5] + int_ts.values
         self.assert_(np.array_equal(added[:-5], expected))
 
     def test_operators_frame(self):
@@ -433,7 +433,7 @@ class TestSeries(unittest.TestCase):
 
         ts = self.ts.copy()
         ts[:5] = np.NaN
-        vals = ts.values()
+        vals = ts.values
 
         result = ts.order()
         self.assert_(np.isnan(result[-5:]).all())

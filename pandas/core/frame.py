@@ -128,16 +128,20 @@ class DataFrame(Picklable, Groupable):
         elif data.ndim != 2:
             raise Exception('Must pass 2-d input!')
 
-        if columns is None:
-            raise Exception('Must pass column names')
-        if index is None:
-            raise Exception('Must pass index')
-
         N, K = data.shape
 
-        if len(index) != N:
-            raise Exception('Index length mismatch: %d vs. %d' %
-                            (len(index), N))
+        if index is None:
+            if N == 0:
+                index = NULL_INDEX
+            else:
+                index = np.arange(N)
+
+        if columns is None:
+            if K == 0:
+                columns = NULL_INDEX
+            else:
+                columns = np.arange(K)
+
         if len(columns) != K:
             raise Exception('Index length mismatch: %d vs. %d' %
                             (len(columns), K))
@@ -150,7 +154,7 @@ class DataFrame(Picklable, Groupable):
         return DataFrame
 
     def __getstate__(self):
-        series = dict((k, v.values()) for k, v in self.iteritems())
+        series = dict((k, v.values) for k, v in self.iteritems())
         index = _pickle_array(self.index)
 
         return series, index
@@ -227,6 +231,9 @@ class DataFrame(Picklable, Groupable):
         names = ['index'] + list(self.cols())
 
         return np.rec.fromarrays(arrays, names=names)
+
+    def fromcsv(self, path, header=0):
+        pass
 
 #-------------------------------------------------------------------------------
 # Magic methods
@@ -791,7 +798,7 @@ class DataFrame(Picklable, Groupable):
 
         return beg_slice, end_slice
 
-    def getXS(self, key):
+    def xs(self, key):
         """
         Returns a row from the DataFrame as a Series object.
 
@@ -813,6 +820,8 @@ class DataFrame(Picklable, Groupable):
             return Series(np.array(rowValues, dtype=np.object_), index=subset)
         else:
             return Series(np.array(rowValues), index=subset)
+
+    getXS = lambda self, key: self.xs(key)
 
     def pivot(self, index=None, columns=None, values=None):
         """
@@ -1079,8 +1088,8 @@ class DataFrame(Picklable, Groupable):
             >>> df.apply(numpy.sqrt) --> DataFrame
             >>> df.apply(numpy.sum) --> Series
 
-        Note
-        ----
+        Notes
+        -----
         Functions altering the index are not supported (yet)
         """
         if not len(self.cols()):
@@ -1221,8 +1230,8 @@ class DataFrame(Picklable, Groupable):
         result = {}
         for col in unionCols:
             if col in frame and col in other:
-                series = frame[col].values()
-                otherSeries = other[col].values()
+                series = frame[col].values
+                otherSeries = other[col].values
 
                 if do_fill:
                     this_mask = isnull(series)
@@ -1406,7 +1415,7 @@ class DataFrame(Picklable, Groupable):
         from pylab import plot
 
         for col in _try_sort(self.columns):
-            plot(self.index, self[col].values(), label=col)
+            plot(self.index, self[col].values, label=col)
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:
@@ -1623,10 +1632,10 @@ class DataFrame(Picklable, Groupable):
             return tseries.median(arr[notnull(arr)])
 
         if axis == 0:
-            med = [f(self[col].values()) for col in self.columns]
+            med = [f(self[col].values) for col in self.columns]
             return Series(med, index=self.columns)
         elif axis == 1:
-            med = [f(self.getXS(k).values()) for k in self.index]
+            med = [f(self.getXS(k).values) for k in self.index]
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')

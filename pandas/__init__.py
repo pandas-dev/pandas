@@ -6,7 +6,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas.version import __version__
+from pandas.version import version as __version__
 from pandas.info import __doc__
 
 from pandas.core.api import *

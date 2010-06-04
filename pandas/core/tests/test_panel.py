@@ -12,6 +12,7 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
+import pandas.core.panel as panelm
 import pandas.util.testing as common
 
 class PanelTests(object):
@@ -406,7 +407,20 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         self.assertRaises(Exception, self.panel.getMinorXS, 'E')
 
     def test_groupby(self):
-        pass
+        grouped = self.panel.groupby({'ItemA' : 0, 'ItemB' : 0, 'ItemC' : 1},
+                                     axis='items')
+        agged = grouped.agg(np.mean)
+        self.assert_(np.array_equal(agged.items, [0, 1]))
+
+        grouped = self.panel.groupby(lambda x: x.month, axis='major')
+        agged = grouped.agg(np.mean)
+
+        self.assert_(np.array_equal(agged.major_axis, [1, 2]))
+
+        grouped = self.panel.groupby({'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1},
+                                     axis='minor')
+        agged = grouped.agg(np.mean)
+        self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
 
     def test_swapaxes(self):
         result = self.panel.swapaxes('items', 'minor')
@@ -774,6 +788,19 @@ def test_group_agg():
 
     assert(agged[1][0] == 2.5)
     assert(agged[2][0] == 4.5)
+
+def test_monotonic():
+    pos = np.array([1, 2, 3, 5])
+
+    assert panelm._monotonic(pos)
+
+    neg = np.array([1, 2, 3, 4, 3])
+
+    assert not panelm._monotonic(neg)
+
+    neg2 = np.array([5, 1, 2, 3, 4, 5])
+
+    assert not panelm._monotonic(neg2)
 
 class TestFactor(unittest.TestCase):
 

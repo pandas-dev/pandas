@@ -101,6 +101,18 @@ class GroupBy(object):
     def agg(self, func):
         return self.aggregate(func)
 
+    def _aggregate_generic(self, getter, agger, axis=0):
+        result = {}
+        for name, group in self.groups.iteritems():
+            data = getter(self.obj, group)
+
+            try:
+                result[name] = agger(data)
+            except Exception:
+                result[name] = data.apply(agger, axis=axis)
+
+        return result
+
     def transform(self, func):
         raise NotImplementedError
 
@@ -262,37 +274,17 @@ class DataFrameGroupBy(GroupBy):
 
         Optional: provide set mapping as dictionary
         """
+        axis_name = 'columns' if self.axis else 'index'
+        getter = lambda df, group: df.reindex(**{axis_name : group})
+        result_d = self._aggregate_generic(getter, applyfunc,
+                                           axis=self.axis)
+
+        result = DataMatrix(result_d)
+
         if self.axis == 0:
-            return self._aggregate_index(applyfunc)
-        else:
-            return self._aggregate_columns(applyfunc)
+            result = result.T
 
-    def _aggregate_index(self, func):
-        result = {}
-        for name in self.groups:
-            data = self[name]
-            try:
-                result[name] = func(data)
-            except Exception:
-                result[name] = data.apply(func)
-
-            assert(isinstance(result[name], Series))
-
-        return self._klass(data=result).T
-
-    def _aggregate_columns(self, func):
-        result = {}
-        for name, group in self.groups.iteritems():
-            data = self.obj.reindex(columns=group)
-
-            try:
-                result[name] = func(data)
-            except Exception:
-                result[name] = data.apply(func, axis=1)
-
-            assert(isinstance(result[name], Series))
-
-        return self._klass(data=result)
+        return result
 
     def getGroup(self, groupList):
         if self.axis == 0:

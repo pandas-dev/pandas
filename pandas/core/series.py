@@ -36,10 +36,10 @@ def _seriesOpWrap(opname):
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
 
-        func = getattr(self.values(), opname)
+        func = getattr(self.values, opname)
         if isinstance(other, Series):
             if self.index.equals(other.index):
-                return Series(func(other.values()), index=self.index)
+                return Series(func(other.values), index=self.index)
 
             newIndex = self.index + other.index
 
@@ -246,7 +246,7 @@ class Series(np.ndarray, Picklable, Groupable):
               of a sequence, a 'slice' of the series (with corresponding dates)
               will be returned, otherwise a single value.
         """
-        values = self.values()
+        values = self.values
 
         try:
             # Check that we can even look for this in the index
@@ -297,7 +297,7 @@ class Series(np.ndarray, Picklable, Groupable):
         will have a reference to the original series which could be
         inadvertently changed if the slice were altered (made mutable).
         """
-        newArr = self.values()[i:j].copy()
+        newArr = self.values[i:j].copy()
         newIndex = self.index[i:j]
 
         return Series(newArr, index=newIndex)
@@ -310,7 +310,7 @@ class Series(np.ndarray, Picklable, Groupable):
             loc = self.index.indexMap[key]
             ndarray.__setitem__(self, loc, value)
         except Exception:
-            values = self.values()
+            values = self.values
             values[key] = value
 
     def __setslice__(self, i, j, value):
@@ -319,7 +319,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def __repr__(self):
         """Clean string representation of a Series"""
-        vals = self.values()
+        vals = self.values
         index = self.index
 
         if len(index) > 500:
@@ -332,14 +332,17 @@ class Series(np.ndarray, Picklable, Groupable):
             return '%s' % ndarray.__repr__(self)
 
     def toString(self, buffer=sys.stdout, nanRep='NaN'):
-        print >> buffer, _seriesRepr(self.index, self.values(),
+        print >> buffer, _seriesRepr(self.index, self.values,
                                      nanRep=nanRep)
 
     def __str__(self):
         return repr(self)
 
     def __iter__(self):
-        return iter(self.values())
+        return iter(self.values)
+
+    def copy(self):
+        return Series(self.values.copy(), index=self.index)
 
 #-------------------------------------------------------------------------------
 #   Arithmetic operators
@@ -358,7 +361,7 @@ class Series(np.ndarray, Picklable, Groupable):
     __ipow__ = __pow__
 
 #-------------------------------------------------------------------------------
-# Overridden ndarray methods
+# Statistics, overridden ndarray methods
 
     def count(self):
         """
@@ -368,17 +371,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         nobs : int
         """
-        return notnull(self.values()).sum()
-
-    def _ndarray_statistic(self, funcname):
-        arr = self.values()
-        retVal = getattr(arr, funcname)()
-
-        if isnull(retVal):
-            arr = remove_na(arr)
-            retVal = getattr(arr, funcname)()
-
-        return retVal
+        return notnull(self.values).sum()
 
     def sum(self, axis=None, dtype=None, out=None):
         """
@@ -392,11 +385,21 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         return self._ndarray_statistic('mean')
 
+    def _ndarray_statistic(self, funcname):
+        arr = self.values
+        retVal = getattr(arr, funcname)()
+
+        if isnull(retVal):
+            arr = remove_na(arr)
+            retVal = getattr(arr, funcname)()
+
+        return retVal
+
     def min(self, axis=None, out=None):
         """
         Compute minimum of non-null values
         """
-        arr = self.values().copy()
+        arr = self.values.copy()
         if not issubclass(arr.dtype.type, np.int_):
             arr[isnull(arr)] = np.inf
         return arr.min()
@@ -405,7 +408,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Compute maximum of non-null values
         """
-        arr = self.values().copy()
+        arr = self.values.copy()
         if not issubclass(arr.dtype.type, np.int_):
             arr[isnull(arr)] = -np.inf
         return arr.max()
@@ -414,7 +417,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Compute unbiased standard deviation of non-null values
         """
-        nona = remove_na(self.values())
+        nona = remove_na(self.values)
         if len(nona) < 2:
             return NaN
         return ndarray.std(nona, axis, dtype, out, ddof)
@@ -423,7 +426,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Compute unbiased variance of non-null values
         """
-        nona = remove_na(self.values())
+        nona = remove_na(self.values)
         if len(nona) < 2:
             return NaN
         return ndarray.var(nona, axis, dtype, out, ddof)
@@ -436,7 +439,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         skew : float
         """
-        y = np.array(self.values())
+        y = np.array(self.values)
         mask = notnull(y)
         count = mask.sum()
         np.putmask(y, -mask, 0)
@@ -447,16 +450,92 @@ class Series(np.ndarray, Picklable, Groupable):
 
         return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
-    def keys(self):
+    def cumsum(self, axis=0, dtype=None, out=None):
         """
-        Return Series index
+        Overriding numpy's built-in cumsum functionality
+        """
+        arr = self.copy()
+        okLocs = notnull(arr)
+        result = np.cumsum(arr.view(ndarray)[okLocs])
+        arr = arr.astype(result.dtype)
+        arr[okLocs] = result
+        return arr
+
+    def cumprod(self, axis=0, dtype=None, out=None):
+        """
+        Overriding numpy's built-in cumprod functionality
+        """
+        arr = self.copy()
+        okLocs = notnull(arr)
+        arr[okLocs] = np.cumprod(arr.view(ndarray)[okLocs])
+        return arr
+
+    def median(self):
+        """
+        Compute median value of non-null values
+        """
+        arr = self.values
+        arr = arr[notnull(arr)]
+        return tseries.median(arr)
+
+    def corr(self, other):
+        """
+        Compute correlation two Series, excluding missing values
+
+        Parameters
+        ----------
+        other : Series object
 
         Returns
         -------
-        index : Index
+        correlation : float
         """
+        commonIdx = remove_na(self).index.intersection(remove_na(other).index)
+
+        if len(commonIdx) == 0:
+            return NaN
+
+        this = self.reindex(commonIdx)
+        that = other.reindex(commonIdx)
+
+        return np.corrcoef(this, that)[0, 1]
+
+    def diff(self):
+        """
+        1st discrete difference of object
+
+        Returns
+        -------
+        TimeSeries
+        """
+        return (self - self.shift(1))
+
+    def autocorr(self):
+        """
+        Lag-1 autocorrelation
+
+        Returns
+        -------
+        TimeSeries
+        """
+        return self.corr(self.shift(1))
+
+    def cap(self, threshold):
+        """Return copy of series with values above given value truncated"""
+        return np.where(self > threshold, threshold, self)
+
+    def floor(self, threshold):
+        """Return copy of series with values below given value truncated"""
+        return np.where(self < threshold, threshold, self)
+
+#-------------------------------------------------------------------------------
+# Iteration
+
+    def keys(self):
+        "Alias for Series index"
         return self.index
 
+    @property
     def values(self):
         """
         Return Series as ndarray
@@ -472,6 +551,9 @@ class Series(np.ndarray, Picklable, Groupable):
         Lazily iterate over (index, value) tuples
         """
         return itertools.izip(iter(self.index), iter(self))
+
+#-------------------------------------------------------------------------------
+# Combination
 
     def append(self, other):
         """
@@ -521,7 +603,7 @@ class Series(np.ndarray, Picklable, Groupable):
                 newArr[i] = func(self.get(idx, NaN), other.get(idx, NaN))
         else:
             newIndex = self.index
-            newArr = func(self.values(), other)
+            newArr = func(self.values, other)
 
         return Series(newArr, index=newIndex)
 
@@ -551,58 +633,8 @@ class Series(np.ndarray, Picklable, Groupable):
         result = Series(np.where(isnull(this), other, this), index=newIndex)
         return result
 
-    def cumsum(self, axis=0, dtype=None, out=None):
-        """
-        Overriding numpy's built-in cumsum functionality
-        """
-        arr = self.copy()
-        okLocs = notnull(arr)
-        result = np.cumsum(arr.view(ndarray)[okLocs])
-        arr = arr.astype(result.dtype)
-        arr[okLocs] = result
-        return arr
-
-    def cumprod(self, axis=0, dtype=None, out=None):
-        """
-        Overriding numpy's built-in cumprod functionality
-        """
-        arr = self.copy()
-        okLocs = notnull(arr)
-        arr[okLocs] = np.cumprod(arr.view(ndarray)[okLocs])
-        return arr
-
-    def median(self):
-        """
-        Compute median value of non-null values
-        """
-        arr = self.values()
-        arr = arr[notnull(arr)]
-        return tseries.median(arr)
-
-    def copy(self):
-        return Series(self.values().copy(), index=self.index)
-
-    def corr(self, other):
-        """
-        Compute correlation two Series, excluding missing values
-
-        Parameters
-        ----------
-        other : Series object
-
-        Returns
-        -------
-        correlation : float
-        """
-        commonIdx = remove_na(self).index.intersection(remove_na(other).index)
-
-        if len(commonIdx) == 0:
-            return NaN
-
-        this = self.reindex(commonIdx)
-        that = other.reindex(commonIdx)
-
-        return np.corrcoef(this, that)[0, 1]
+#-------------------------------------------------------------------------------
+# Reindexing, sorting
 
     def sort(self, axis=0, kind='quicksort', order=None):
         """
@@ -616,7 +648,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         Overriding numpy's built-in cumsum functionality
         """
-        values = self.values()
+        values = self.values
         mask = isnull(values)
 
         if mask.any():
@@ -643,7 +675,7 @@ class Series(np.ndarray, Picklable, Groupable):
         y : Series
             sorted by values
         """
-        arr = self.values()
+        arr = self.values
         sortedIdx = np.empty(len(self), dtype=np.int32)
 
         bad = isnull(arr)
@@ -677,6 +709,114 @@ class Series(np.ndarray, Picklable, Groupable):
             same index as caller
         """
         return Series([func(x) for x in self], index=self.index)
+
+    def merge(self, other):
+        """
+        If self is {A}->{B} and other is another mapping of {B}->{C}
+        then returns a new Series that is {A}->{C}
+
+        Parameters
+        ----------
+        other : dict or Series
+
+        Returns
+        -------
+        Series having same index as calling instance, with values from
+        input Series
+        """
+        if isinstance(other, dict):
+            other = Series(other)
+
+        if not isinstance(other, Series): # pragma: no cover
+            raise Exception('Argument must be a Series!')
+
+        fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)
+
+        newValues = other.view(np.ndarray).take(fillVec)
+        np.putmask(newValues, -mask, np.nan)
+
+        newSer = Series(newValues, index=self.index)
+        return newSer
+
+    def reindex(self, newIndex, fillMethod=None):
+        """Overloaded version of reindex for TimeSeries. Supports filling
+        with values based on new index.
+
+        See analogous method for DataFrame, will be faster for multiple
+        TimeSeries
+
+        Parameters
+        ----------
+        newIndex :   array-like, preferably an Index object (to avoid
+                    duplicating data)
+        fillMethod : {'backfill', 'pad', 'interpolate', None}
+                    Method to use for filling holes in reindexed Series
+
+        Returns
+        -------
+        TimeSeries
+        """
+        if self.index is newIndex:
+            return self.copy()
+
+        if not isinstance(newIndex, Index):
+            newIndex = Index(newIndex)
+
+        if len(self.index) == 0:
+            return Series.fromValue(NaN, index=newIndex)
+
+        if fillMethod is not None:
+            fillMethod = fillMethod.upper()
+
+        # Cython for blazing speed
+        fillVec, mask = tseries.getFillVec(self.index, newIndex,
+                                           self.index.indexMap,
+                                           newIndex.indexMap,
+                                           kind=fillMethod)
+
+        newValues = self.values.take(fillVec)
+
+        notmask = -mask
+        if notmask.any():
+            if issubclass(newValues.dtype.type, np.int_):
+                newValues = newValues.astype(float)
+            elif issubclass(newValues.dtype.type, np.bool_):
+                newValues = newValues.astype(object)
+
+            np.putmask(newValues, notmask, NaN)
+
+        return Series(newValues, index=newIndex)
+
+    def fill(self, value=None, method='pad'):
+        """
+        Fill NaN values using the specified method.
+
+        Parameters
+        ----------
+        value : any kind (should be same type as array)
+            Value to use to fill holes (e.g. 0)
+
+        method : {'backfill', 'pad', None}
+            Method to use for filling holes in new inde
+
+        Returns
+        -------
+        TimeSeries with NaN's filled
+
+        See also
+        --------
+        reindex, asfreq
+        """
+        if value is not None:
+            newSeries = self.copy()
+            newSeries[isnull(newSeries)] = value
+            return newSeries
+        else: # Using reindex to pad / backfill
+            withoutna = remove_na(self)
+            return withoutna.reindex(self.index, fillMethod=method)
+
+#-------------------------------------------------------------------------------
+# Miscellaneous
 
     def plot(self, label=None, kind='line', rot=30, **kwds): # pragma: no cover
         """
@@ -713,18 +853,10 @@ class Series(np.ndarray, Picklable, Groupable):
         N = len(self)
 
         if kind == 'line':
-            plt.plot(self.index, self.values(), **kwds)
-
-#             ax = plt.gca()
-#             ax.autoscale_view(scalex=True, scaley=True)
-
-#             locs, labels = plt.xticks()
-#             new_locs = locs[::len(locs) // 8]
-#             plt.xticks(new_locs, rotation=20)
-
+            plt.plot(self.index, self.values, **kwds)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
-            plt.bar(xinds, self.values(), 0.5, bottom=np.zeros(N), linewidth=1)
+            plt.bar(xinds, self.values, 0.5, bottom=np.zeros(N), linewidth=1)
 
             if N < 10:
                 fontsize = 12
@@ -749,14 +881,6 @@ class Series(np.ndarray, Picklable, Groupable):
             f.write(str(idx) + ',' + str(value) + ',\n')
 
         f.close()
-
-    def cap(self, threshold):
-        """Return copy of series with values above given value truncated"""
-        return np.where(self > threshold, threshold, self)
-
-    def floor(self, threshold):
-        """Return copy of series with values below given value truncated"""
-        return np.where(self < threshold, threshold, self)
 
     def valid(self):
         """
@@ -785,7 +909,7 @@ class Series(np.ndarray, Picklable, Groupable):
             return None
 
 #-------------------------------------------------------------------------------
-# TimeSeries methods
+# Time series-oriented methods
 
     def shift(self, periods, offset=None, timeRule=None):
         """
@@ -815,10 +939,10 @@ class Series(np.ndarray, Picklable, Groupable):
             newValues = np.empty(len(self), dtype=self.dtype)
 
             if periods > 0:
-                newValues[periods:] = self.values()[:-periods]
+                newValues[periods:] = self.values[:-periods]
                 newValues[:periods] = np.NaN
             elif periods < 0:
-                newValues[:periods] = self.values()[-periods:]
+                newValues[:periods] = self.values[-periods:]
                 newValues[periods:] = np.NaN
 
             return Series(newValues, index=self.index)
@@ -908,34 +1032,6 @@ class Series(np.ndarray, Picklable, Groupable):
         else:
             return v
 
-    def fill(self, value=None, method='pad'):
-        """
-        Fill NaN values using the specified method.
-
-        Parameters
-        ----------
-        value : any kind (should be same type as array)
-            Value to use to fill holes (e.g. 0)
-
-        method : {'backfill', 'pad', None}
-            Method to use for filling holes in new inde
-
-        Returns
-        -------
-        TimeSeries with NaN's filled
-
-        See also
-        --------
-        reindex, asfreq
-        """
-        if value is not None:
-            newSeries = self.copy()
-            newSeries[isnull(newSeries)] = value
-            return newSeries
-        else: # Using reindex to pad / backfill
-            withoutna = remove_na(self)
-            return withoutna.reindex(self.index, fillMethod=method)
-
     def asfreq(self, freq, fillMethod=None):
         """
         Convert this TimeSeries to the provided frequency using DateOffset
@@ -985,7 +1081,7 @@ class Series(np.ndarray, Picklable, Groupable):
         else:
             inds = np.arange(len(self))
 
-        values = self.values()
+        values = self.values
 
         invalid = isnull(values)
         valid = -invalid
@@ -1000,83 +1096,6 @@ class Series(np.ndarray, Picklable, Groupable):
                                                  values[firstIndex:][valid])
 
         return Series(result, index=self.index)
-
-    def merge(self, other):
-        """
-        If self is {A}->{B} and other is another mapping of {B}->{C}
-        then returns a new Series that is {A}->{C}
-
-        Parameters
-        ----------
-        other : dict or Series
-
-        Returns
-        -------
-        Series having same index as calling instance, with values from
-        input Series
-        """
-        if isinstance(other, dict):
-            other = Series(other)
-
-        if not isinstance(other, Series): # pragma: no cover
-            raise Exception('Argument must be a Series!')
-
-        fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)
-
-        newValues = other.view(np.ndarray).take(fillVec)
-        np.putmask(newValues, -mask, np.nan)
-
-        newSer = Series(newValues, index=self.index)
-        return newSer
-
-    def reindex(self, newIndex, fillMethod=None):
-        """Overloaded version of reindex for TimeSeries. Supports filling
-        with values based on new index.
-
-        See analogous method for DataFrame, will be faster for multiple
-        TimeSeries
-
-        Parameters
-        ----------
-        newIndex :   array-like, preferably an Index object (to avoid
-                    duplicating data)
-        fillMethod : {'backfill', 'pad', 'interpolate', None}
-                    Method to use for filling holes in reindexed Series
-
-        Returns
-        -------
-        TimeSeries
-        """
-        if self.index is newIndex:
-            return self.copy()
-
-        if not isinstance(newIndex, Index):
-            newIndex = Index(newIndex)
-
-        if len(self.index) == 0:
-            return Series.fromValue(NaN, index=newIndex)
-
-        if fillMethod is not None:
-            fillMethod = fillMethod.upper()
-
-        # Cython for blazing speed
-        fillVec, mask = tseries.getFillVec(self.index, newIndex,
-                                           self.index.indexMap,
-                                           newIndex.indexMap,
-                                           kind=fillMethod)
-
-        newValues = self.values().take(fillVec)
-
-        notmask = -mask
-        if notmask.any():
-            if issubclass(newValues.dtype.type, np.int_):
-                newValues = newValues.astype(float)
-            elif issubclass(newValues.dtype.type, np.bool_):
-                newValues = newValues.astype(object)
-
-            np.putmask(newValues, notmask, NaN)
-
-        return Series(newValues, index=newIndex)
 
     def rename(self, mapper):
         """
@@ -1107,26 +1126,6 @@ class Series(np.ndarray, Picklable, Groupable):
     def weekday(self):
         return Series([d.weekday() for d in self.index],
                       index=self.index)
-
-    def diff(self):
-        """
-        1st discrete difference of object
-
-        Returns
-        -------
-        TimeSeries
-        """
-        return (self - self.shift(1))
-
-    def autocorr(self):
-        """
-        Lag-1 autocorrelation
-
-        Returns
-        -------
-        TimeSeries
-        """
-        return self.corr(self.shift(1))
 
 
 class TimeSeries(Series):

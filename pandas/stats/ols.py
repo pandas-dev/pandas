@@ -771,7 +771,7 @@ class MovingOLS(OLS):
 
         if isinstance(y, Series):
             _y_indexMap = y.index.indexMap
-            _values = y.values()
+            _values = y.values
             def y_slicer(df, dt):
                 i = _y_indexMap[dt]
                 return _values[i:i+1]
@@ -1190,7 +1190,7 @@ def _filter_data(lhs, rhs):
 
         rhs_valid = np.isfinite(rhs.values).sum(1) == len(rhs.columns)
 
-    lhs_valid = np.isfinite(lhs.values())
+    lhs_valid = np.isfinite(lhs.values)
     valid = rhs_valid & lhs_valid
 
     if not valid.all():

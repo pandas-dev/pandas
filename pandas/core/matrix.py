@@ -199,17 +199,19 @@ class DataMatrix(DataFrame):
             except Exception:
                 pass
 
+        N, K = values.shape
+
         if index is None:
-            if values.shape[0] == 0:
+            if N == 0:
                 index = NULL_INDEX
             else:
-                raise Exception('Must pass index!')
+                index = np.arange(N)
 
         if columns is None:
-            if values.shape[1] == 0:
+            if K == 0:
                 columns = NULL_INDEX
             else:
-                raise Exception('Must pass columns!')
+                columns = np.arange(K)
 
         return index, columns, values
 
@@ -413,7 +415,7 @@ class DataMatrix(DataFrame):
 
             # Operate column-wise
             this = self.reindex(columns=newCols)
-            other = other.reindex(newCols).values()
+            other = other.reindex(newCols).values
 
             resultMatrix = func(this.values, other)
 
@@ -1128,7 +1130,7 @@ class DataMatrix(DataFrame):
 
                 return myCopy
 
-    def getXS(self, key):
+    def xs(self, key):
         """
         Returns a row from the DataMatrix as a Series object.
 
