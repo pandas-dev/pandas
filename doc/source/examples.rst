@@ -1,9 +1,10 @@
+.. currentmodule:: pandas
+
 .. _examples:
 
 ********************
 Example applications
 ********************
 
-.. currentmodule:: pandas
-
-
+Financial data
+--------------

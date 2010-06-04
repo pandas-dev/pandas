@@ -233,11 +233,11 @@ Retrieving cross sections, transposing
 It is often desirable to retrieve all data associated with a
 particular index values (we have been calling this a *cross
 section*). Rather than use *__getitem__* and extra notation to do
-this, DataFrame has the **getXS** method:
+this, DataFrame has the **xs** method:
 
 ::
 
-    >>> df.getXS(datetime(2009, 8, 31))
+    >>> df.xs(datetime(2009, 8, 31))
     A    0.060396849998
     D    nan
     N    7
@@ -419,7 +419,7 @@ index.
 
 ::
 
-    >>> df - df.getXS(df.index[5])
+    >>> df - df.xs(df.index[5])
 			   A              B              C
     2009-01-30 00:00:00    -1.1677        -0.179934      2.90215
     2009-02-27 00:00:00    -2.69939       -1.1941        0.902293
@@ -822,7 +822,6 @@ TODO
    DataFrame.values
    DataFrame.copy
    DataFrame.pivot
-   DataFrame.getXS
    DataFrame.T
    DataFrame.apply
    DataFrame.tapply

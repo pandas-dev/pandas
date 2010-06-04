@@ -195,6 +195,14 @@ Of course, the same behavior applies to *setting* values:
 
 .. _series.arithmetic:
 
+Accessing underlying data
+-------------------------
+
+The data stored in a Series can be accessed via the **values**
+attribute (which is a property returning a view of the Series as an
+ndarray). The higher dimensional pandas data structures observe the
+same interface for accessing the underlying data.
+
 Arithmetic, data alignment
 --------------------------
 
@@ -483,7 +491,6 @@ Otherwise, methods providing dict-like iteration are available:
 .. autosummary::
    :toctree: generated/
 
-   Series.keys
    Series.values
    Series.iteritems
 

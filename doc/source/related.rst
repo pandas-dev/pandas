@@ -2,6 +2,9 @@
 Related Python libraries
 ************************
 
+la (larry)
+----------
+
 scikits.statsmodels
 -------------------
 

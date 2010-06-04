@@ -21,7 +21,9 @@ sys.path.insert(0, os.path.abspath('../sphinxext'))
 sys.path.extend([
 
     # numpy standard doc extensions
-    os.path.join(os.path.dirname(__file__), '..', 'sphinxext')
+    os.path.join(os.path.dirname(__file__),
+                 '..', '../..',
+                 'sphinxext')
 
 ])
 
@@ -62,8 +64,7 @@ copyright = u'2008-2010, AQR Capital Management, LLC'
 #
 # The short X.Y version.
 import pandas
-# version = pandas.__version__
-version = 0.2
+version = pandas.__version__
 
 # The full version, including alpha/beta/rc tags.
 release = version

@@ -37,17 +37,7 @@ such as :mod:`scikits.statsmodels`.
    haven't used NumPy much or at all, please check out the `NumPy
    documentation <http://docs.scipy.org>`__ first.
 
-Who is pandas for?
-------------------
-
- * Users of R or MATLAB who wish to switch to Python for interactive
-   data analysis and implementation of statistical models
-
- * NumPy users who are looking for richer data structures for working
-   with time series and cross-sectional data.
-
- * System developers who wish to have a robust and well-tested library
-   for building production applications involving such data sets.
+See the package overview for more detail about what's in the library.
 
 User manual
 -----------
@@ -73,6 +63,7 @@ User manual
     datetools
     stats
     r_interface
+    io
     examples
     missing_data
     related

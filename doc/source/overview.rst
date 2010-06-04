@@ -6,17 +6,28 @@
 Package overview
 ****************
 
-:mod:`pandas` is a library providing a set of convenient and powerful
-data structures for working with labeled statistical (financial,
-economic, econometric) data sets. We will refer to this data as *time
-series* and *cross-sectional* (or *longitudinal*) which are common
-terms in statistics and econometrics. It has multiple target audiences:
+:mod:`pandas` is a library providing, among other things, a set of
+convenient and powerful data structures for working with labeled
+statistical (financial, economic, econometric) data sets. We will
+refer to this data as *time series* and *cross-sectional* (or
+*longitudinal*) which are common terms in statistics and
+econometrics. pdnas has multiple target audiences:
 
-  * Non-developers who wish to be able to easily manipulate data sets
-in an interactive research environment.
+ * Users of R or MATLAB who wish to switch to Python for interactive
+   data analysis and implementation of statistical models
+
+ * NumPy users who are looking for richer data structures for working
+   with time series and cross-sectional data.
+
+ * System developers who wish to have a robust and well-tested library
+   for building production applications involving such data sets.
 
 History
 -------
+
+pandas development began at AQR Capital Management (a quantitative
+hedge fund) in April 2008. It was open-sourced at the end of 2009 and
+continues to be actively used and maintained.
 
 Data structures at a glance
 ---------------------------
@@ -35,7 +46,47 @@ Data structures at a glance
 Why more than 1 data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The best way to think about the pandas data tructures is as flexible
+containers for lower dimensional data. For example, DataFrame /
+DataMatrix are containers for Series, and WidePanel is a container for
+DataFrame / DataMatrix objects. We would like to be able to insert and
+remove objects from these containers in a dictionary-like fashion.
 
+Also, we would like sensible default behaviors for the common API
+functions which take into account the typical orientation of time
+series and cross-sectional data sets. When using ndarrays to store 2-
+and 3-dimensional data, a burden is placed on the user to consider the
+orientation of the data set when writing functions; axes are
+considered more or less equivalent (except when C- or
+Fortran-contiguousness matters for performance). In pandas, the axes
+are intended to lend more semantic meaning to the data; i.e., for a
+particular data set there is likely to be a "right" way to orient the
+data. The goal, then, is to reduce the amount of thought required to
+code up data transformations in downstream functions.
+
+Lest we be too hand-wavy, here are some common use cases to
+illustrate:
+
+ (A) :ref:`DataFrame <dataframe>` containing multiple related time series
+
+  * **columns**: "data type" associated with each time series
+  * **index**:  dates shared by time series
+
+ (B) :ref:`DataFrame <dataframe>` containing multiple cross-sections
+
+  * **columns**: "data type" associated with each cross-section
+  * **index**:  individual / entity common to cross-sections
+
+ (C) :ref:`WidePanel <panel>` containing panel data
+
+  * **items**: "data type" associated with each collection of time series
+  * **major_axis**: dates shared by time series
+  * **minor_axis**: individual / entity labels common to time series
+
+Lastly, particularly if you don't buy the above explanation, having a
+specialized vocabulary to refer to types of data sets often serves as
+a benefit when discussing a dataset with other users (or reading their
+code).
 
 A quick note on mutation
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -44,6 +95,11 @@ You will find that very few methods are capable of mutating a pandas
 data structure like DataFrame. In general, the result of method calls
 will return a new object (protecting the underlying data in the
 calling object). So we like to "favor immutability" where sensible.
+
+What else is in the package?
+----------------------------
+
+
 
 Installation
 ------------
@@ -68,9 +124,10 @@ Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
+  * `PyTables <<http://www.pytables.org>>`__: necessary for HDF5-based storage
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
-     * Needed for many parts of :mod:`pandas.stats`
+     * Needed for parts of :mod:`pandas.stats`
 
 .. note::
 
@@ -93,9 +150,10 @@ checked out using SVN and compiled / installed like so:
 
 On Windows, you will need to download and install `gcc / MinGW
 <http://www.mingw.org/wiki/HOWTO_Install_the_MinGW_GCC_Compiler_Suite>`__.
-After adding it to your system path , you can install pandas by typing
+After adding it to your system path, you can install pandas by typing
 instead:
 
 ::
 
-  python setup.py install --compiler=mingw32
+  python setup.py build --compiler=mingw32
+  python setup.py install
