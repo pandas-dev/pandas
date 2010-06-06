@@ -1,3 +1,0 @@
-Ordinary least squares
-----------------------
-

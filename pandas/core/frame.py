@@ -1407,8 +1407,8 @@ class DataFrame(Picklable, Groupable):
 
         kwds : other plotting keyword arguments
 
-        Note
-        ----
+        Notes
+        -----
         This method doesn't make much sense for cross-sections,
         and will error.
         """
@@ -1490,17 +1490,16 @@ class DataFrame(Picklable, Groupable):
 
         Examples
         --------
-        self:
+        >>> df
             c1  c2
         a   1   0
         b   0   2
         c   3   0
         d   0   4
 
-        >>>self.sum(axis=0)
-        Series:
-        c1: 4
-        c2: 6
+        >>> df.sum(axis=0)
+        c1    4
+        c2    6
         """
         try:
             y = self.values.copy()

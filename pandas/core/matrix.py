@@ -580,8 +580,8 @@ class DataMatrix(DataFrame):
 
         dmSelect = dm[dm.count(axis=1) > 10]
 
-        Note
-        ----
+        Notes
+        -----
         This is a magic method. Do NOT call explicity.
         """
         if isinstance(item, slice):

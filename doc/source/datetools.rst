@@ -1,8 +1,17 @@
+.. currentmodule:: pandas
+
 .. _datetools:
 
-***************************************
-DateRange, date offsets, and time rules
-***************************************
+************************
+Date and frequency tools
+************************
+
+
+
+.. _datetools.offsets:
+
+DateOffset and subclasses
+-------------------------
 
 It is often necessary to do non-standard date logic, adding business
 days, rolling to the next month or quarter end, rolling to the next
@@ -22,7 +31,7 @@ dateutil.relativedelta, which works like:
 
     In [319]: d = datetime(2008, 8, 18)
 
-    In [321]: d + relativedelta(months = 4, days = 5)
+    In [321]: d + relativedelta(months=4, days=5)
     Out[321]: datetime.datetime(2008, 12, 23, 0, 0)
 
 
@@ -33,7 +42,7 @@ name):
 
 ::
 
-	In [323]: d + daterange.DateOffset(months = 4, days = 5)
+	In [323]: d + daterange.DateOffset(months=4, days=5)
 	Out[323]: datetime.datetime(2008, 12, 23, 0, 0)
 
 
@@ -93,23 +102,6 @@ where you might otherwise create a lambda, for example:
     map(daterange.bday, dateList) versus
     map(lambda x: x + daterange.bday, dateList)
 
-The DateRange class utilizes these offsets (and any ones that we might
-add) to generate lists of dates for general purposes:
-
-::
-
-    In [327]: DateRange(fromDate = d, nPeriods = 10, offset = daterange.bmonthEnd)
-    Out[327]:
-    [datetime.datetime(2008, 8, 29, 0, 0),
-     datetime.datetime(2008, 9, 30, 0, 0),
-     datetime.datetime(2008, 10, 31, 0, 0),
-     datetime.datetime(2008, 11, 28, 0, 0),
-     datetime.datetime(2008, 12, 31, 0, 0),
-     datetime.datetime(2009, 1, 30, 0, 0),
-     datetime.datetime(2009, 2, 27, 0, 0),
-     datetime.datetime(2009, 3, 31, 0, 0),
-     datetime.datetime(2009, 4, 30, 0, 0),
-     datetime.datetime(2009, 5, 29, 0, 0)]
 
 
 One can also specify a 'toDate', the endpoints are included if and
@@ -142,7 +134,7 @@ by some amount:
     2008-05-30 00:00:00     0.031957
     2008-06-30 00:00:00     -0.058455
 
-    In [335]: ts.shift(5, offset = daterange.bday)
+    In [335]: ts.shift(5, offset=daterange.bday)
     Out[335]:
     2007-10-05 00:00:00     0.01025
     2007-11-07 00:00:00     0.0059684
@@ -155,7 +147,80 @@ by some amount:
     2008-06-06 00:00:00     0.031957
     2008-07-07 00:00:00     -0.058455
 
+.. csv-table::
+    :header: "Class name", "Description"
+    :widths: 15, 65
+
+    DateOffset, ""
+    BDay, ""
+    Week, ""
+    MonthEnd, ""
+    BMonthEnd, ""
+    YearEnd, ""
+    YearBegin, ""
+    BYearEnd, ""
+    Hour, ""
+    Minute, ""
+    Second, ""
+
+.. _daterange:
+
+Creating date ranges (DateRange)
+--------------------------------
+
+The DateRange class utilizes these offsets (and any ones that we might
+add) to generate lists of dates for general purposes:
+
+::
+
+    In [327]: DateRange(fromDate=d, nPeriods=10, offset=daterange.bmonthEnd)
+    Out[327]:
+    [datetime.datetime(2008, 8, 29, 0, 0),
+     datetime.datetime(2008, 9, 30, 0, 0),
+     datetime.datetime(2008, 10, 31, 0, 0),
+     datetime.datetime(2008, 11, 28, 0, 0),
+     datetime.datetime(2008, 12, 31, 0, 0),
+     datetime.datetime(2009, 1, 30, 0, 0),
+     datetime.datetime(2009, 2, 27, 0, 0),
+     datetime.datetime(2009, 3, 31, 0, 0),
+     datetime.datetime(2009, 4, 30, 0, 0),
+     datetime.datetime(2009, 5, 29, 0, 0)]
+
+Defining custom frequencies
+---------------------------
+
 .. _datetools.timerules:
 
 Time rules
 ----------
+
+A number of string aliases are given to useful common time series
+frequencies. We will refer to these aliases as *time rules*.
+
+.. csv-table::
+    :header: "Rule name", "Description"
+    :widths: 15, 65
+
+    "WEEKDAY", "business day frequency"
+    "EOM", "business month end frequency"
+    "W\@MON", "weekly frequency (mondays)"
+    "W\@TUE", "weekly frequency (tuesdays)"
+    "W\@WED", "weekly frequency (wednesdays)"
+    "W\@THU", "weekly frequency (thursdays)"
+    "W\@FRI", "weekly frequency (fridays)"
+    "Q\@JAN", "quarterly frequency, starting January"
+    "Q\@FEB", "quarterly frequency, starting February"
+    "Q\@MAR", "quarterly frequency, starting March"
+    "A\@DEC", "annual frequency, year end (December)"
+    "A\@JAN", "annual frequency, anchored end of January"
+    "A\@FEB", "annual frequency, anchored end of February"
+    "A\@MAR", "annual frequency, anchored end of March"
+    "A\@APR", "annual frequency, anchored end of April"
+    "A\@MAY", "annual frequency, anchored end of May"
+    "A\@JUN", "annual frequency, anchored end of June"
+    "A\@JUL", "annual frequency, anchored end of July"
+    "A\@AUG", "annual frequency, anchored end of August"
+    "A\@SEP", "annual frequency, anchored end of September"
+    "A\@OCT", "annual frequency, anchored end of October"
+    "A\@NOV", "annual frequency, anchored end of November"
+

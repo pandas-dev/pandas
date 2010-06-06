@@ -14,8 +14,11 @@ general rule, I would recommend using the latest revision of rpy2 from
 bitbucket:
 
 ::
-    hg clone ... # if installing for the first time
 
+    # if installing for the first time
+    hg clone http://bitbucket.org/lgautier/rpy2
+
+    cd rpy2
     hg pull
     hg update
     sudo python setup.py install

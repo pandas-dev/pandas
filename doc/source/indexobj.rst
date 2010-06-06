@@ -1,5 +1,4 @@
-.. _indexobj.rst
-
+.. _indexobj:
 
 *****
 Index

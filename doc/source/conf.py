@@ -64,7 +64,30 @@ copyright = u'2008-2010, AQR Capital Management, LLC'
 #
 # The short X.Y version.
 import pandas
-version = pandas.__version__
+
+def svn_version():
+    import os, subprocess, re, warnings
+    env = os.environ.copy()
+    env['LC_ALL'] = 'C'
+    try:
+        out = subprocess.Popen(['svn', 'info'], stdout=subprocess.PIPE,
+                env=env).communicate()[0]
+    except OSError:
+        warnings.warn(" --- Could not run svn info --- ")
+        return ""
+
+    r = re.compile('Revision: ([0-9]+)')
+    svnver = None
+    for line in out.split('\n'):
+        m = r.match(line)
+        if m:
+            svnver = m.group(1)
+
+    if not svnver:
+        raise ValueError("Error while parsing svn version ?")
+    return svnver
+
+version = '%s r%s' % (pandas.__version__, svn_version())
 
 # The full version, including alpha/beta/rc tags.
 release = version

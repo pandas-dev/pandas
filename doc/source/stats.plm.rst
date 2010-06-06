@@ -1,2 +1,0 @@
-OLS Panel regression
---------------------

@@ -54,6 +54,9 @@ User manual
 
 **Code Repository:** http://pandas.googlecode.com
 
+Library documentation
+~~~~~~~~~~~~~~~~~~~~~
+
 .. toctree::
     :maxdepth: 2
 
@@ -64,7 +67,15 @@ User manual
     stats
     r_interface
     io
+
+Other topics of interest
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 2
+
     examples
+    r_guide
     missing_data
     related
 

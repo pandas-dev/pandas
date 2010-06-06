@@ -124,7 +124,7 @@ Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
-  * `PyTables <<http://www.pytables.org>>`__: necessary for HDF5-based storage
+  * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`

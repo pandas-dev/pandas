@@ -16,8 +16,8 @@ class XDateRange(object):
     XDateRange generates a sequence of dates corresponding to the
     specified time offset
 
-    Note
-    ----
+    Notes
+    -----
     If both fromDate and toDate are specified, the returned dates will
     satisfy:
 

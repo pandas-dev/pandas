@@ -1,8 +1,12 @@
+.. currentmodule:: pandas
 .. _groupby:
 
 *******************
 GroupBy operations
 *******************
 
-.. currentmodule:: pandas
+Aggregation
+-----------
 
+Transformation
+--------------

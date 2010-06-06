@@ -112,13 +112,15 @@ attribute and **cols** method, respectively:
    DataFrame.cols
    DataFrame.info
 
+.. _dataframe.cons:
+
 Construction
 ------------
 
 There are many ways to create a DataFrame:
 
    * From a dict of ndarrays or Series
-   * From a 2D ndarray plus corresponding row and column labels
+   * From a 2D ndarray, optionally providing row and column labels
    * From a NumPy structured (record) array
    * From a nested dictionary
 
@@ -137,7 +139,6 @@ Indexing
     explicit and maintaining DataFrame's status as a "dict of
     Series". However, it is always desirable to keep the interface
     simple and intuitive.
-
 
 DataFrame's basic indexing accesses the **columns** by name, producing
 Series:

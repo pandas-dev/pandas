@@ -826,23 +826,17 @@ class Series(np.ndarray, Picklable, Groupable):
         Parameters
         ----------
         label : label argument to provide to plot
-
         kind : {'line', 'bar', 'hist'}
             Default: line for TimeSeries, hist for Series
-
         kwds : other plotting keyword arguments
 
-        Default plot-types:
-            TimeSeries: line chart
-            Series: histogram
-                Also support for bar charts
-
-        Type show() (make sure to do 'from pylab import *') to see graph if you
-        do not.
-
-        Note
-        ----
+        Notes
+        -----
         See matplotlib documentation online for more on this subject
+
+        Default plot-types: TimeSeries (line), Series (bar)
+
+        Intended to be used in ipython -pylab mode
         """
         import matplotlib.pyplot as plt
 
@@ -963,8 +957,8 @@ class Series(np.ndarray, Picklable, Groupable):
         after : date
             Truncate after date
 
-        Note
-        ----
+        Notes
+        -----
         If TimeSeries is contained in a DataFrame, consider using the version
         of the function there.
 
@@ -1006,8 +1000,8 @@ class Series(np.ndarray, Picklable, Groupable):
         ----------
         date : datetime or similar value
 
-        Note
-        ----
+        Notes
+        -----
         Dates are assumed to be sorted
 
         Returns
