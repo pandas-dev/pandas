@@ -1171,7 +1171,12 @@ class DataFrame(Picklable, Groupable):
             results[k] = func(target[k])
 
         if hasattr(results.values()[0], '__iter__'):
-            return self._constructor(data=results, index=target.index)
+            result = self._constructor(data=results, index=target.index)
+
+            if axis == 1:
+                result = result.T
+
+            return result
         else:
             return Series(results, index=agg_index)
 

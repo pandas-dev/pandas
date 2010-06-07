@@ -1,6 +1,6 @@
 # THIS FILE IS GENERATED FROM PANDAS setup.py
-short_version='0.3.0'
-version='0.3.0'
+short_version='0.2.1'
+version='0.2.1'
 release=False
 
 if not release:

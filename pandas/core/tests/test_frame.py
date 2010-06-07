@@ -1353,10 +1353,14 @@ class TestDataFrame(unittest.TestCase):
 
         assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fill(0)))
 
-        df = DataFrame({'A' : np.arange(20)}, index=np.arange(20))
+        df = self.klass({'A' : np.arange(20)}, index=np.arange(20))
 
         # works
         result = df.cumsum()
+
+        # fix issue
+        cumsum_xs = self.tsframe.cumsum(axis=1)
+        self.assertEqual(np.shape(cumsum_xs), np.shape(self.tsframe))
 
     def test_cumprod(self):
         cumprod = self.tsframe.cumprod()
@@ -1364,5 +1368,10 @@ class TestDataFrame(unittest.TestCase):
         assert_series_equal(cumprod['A'],
                             np.cumprod(self.tsframe['A'].fill(1)))
 
+        # fix issue
+        cumprod_xs = self.tsframe.cumprod(axis=1)
+        self.assertEqual(np.shape(cumprod_xs), np.shape(self.tsframe))
+
 if __name__ == '__main__':
     unittest.main()
+

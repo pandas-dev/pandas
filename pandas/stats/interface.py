@@ -51,7 +51,7 @@ def ols(**kwargs):
     The appropriate OLS object, which allows you to obtain betas and various
     statistics, such as std err, t-stat, etc.
 
-    Example
+    Examples
     --------
     # Run simple OLS.
     result = ols(y=y, x=x)

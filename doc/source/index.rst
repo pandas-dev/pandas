@@ -54,6 +54,9 @@ User manual
 
 **Code Repository:** http://pandas.googlecode.com
 
+**Pardon the dust, documentation will be updated frequently in the
+coming weeks and months but will be incomplete in many places.**
+
 Library documentation
 ~~~~~~~~~~~~~~~~~~~~~
 

@@ -182,8 +182,7 @@ def _getMinPeriods(minPct, rho):
 
     return int(np.ceil(np.log(minPct) / np.log(rho)))
 
-def _ewmoment(values, func, min_periods=None, minPct=0.95,
-              biasCorrection=None):
+def _ewmoment(values, func, min_periods=None, biasCorrection=None):
     """
     Generic rolling exponential moment function using blended accumulator
     method.
@@ -197,10 +196,6 @@ def _ewmoment(values, func, min_periods=None, minPct=0.95,
     biasCorrection : float
         Optional bias correction
 
-    ** Mutually exclusive options **
-
-    minPct : float
-        Minimum percentage of weight "in window" to require to have a value
     min_periods : int, optional
         require a particular number of periods "in window" to compute statistic
         If provided, overrides the minPct argument
@@ -368,14 +363,14 @@ def ewmcov(seriesA, seriesB, com, minCom=0, correctBias=True):
     cleanSeriesA = seriesA[okLocs]
     cleanSeriesB = seriesB.reindex(cleanSeriesA.index)
 
-    XY = ewma(cleanSeriesA * cleanSeriesB, com = com, minCom = minCom)
-    X  = ewma(cleanSeriesA, com = com, minCom = minCom)
-    Y  = ewma(cleanSeriesB, com = com, minCom = minCom)
+    XY = ewma(cleanSeriesA * cleanSeriesB, com=com, minCom=minCom)
+    X  = ewma(cleanSeriesA, com=com, minCom=minCom)
+    Y  = ewma(cleanSeriesB, com=com, minCom=minCom)
 
     return biasCorrection * (XY - X * Y)
 
 
-def ewmcorr(seriesA, seriesB, com, minCom = 0):
+def ewmcorr(seriesA, seriesB, com, minCom=0):
     """
     Calculates a rolling exponentially weighted moving correlation of
     2 series.
@@ -406,12 +401,11 @@ def ewmcorr(seriesA, seriesB, com, minCom = 0):
     cleanSeriesA = seriesA[okLocs]
     cleanSeriesB = seriesB.reindex(cleanSeriesA.index)
 
-    XY = ewma(cleanSeriesA * cleanSeriesB, com = com, minCom = minCom)
-    X  = ewma(cleanSeriesA, com = com, minCom = minCom)
-    Y  = ewma(cleanSeriesB, com = com, minCom = minCom)
-    varX = ewmvar(cleanSeriesA, com = com, minCom = minCom, correctBias = False)
-    varY = ewmvar(cleanSeriesB, com = com, minCom = minCom, correctBias = False)
+    XY = ewma(cleanSeriesA * cleanSeriesB, com=com, minCom=minCom)
+    X  = ewma(cleanSeriesA, com=com, minCom=minCom)
+    Y  = ewma(cleanSeriesB, com=com, minCom=minCom)
+    varX = ewmvar(cleanSeriesA, com=com, minCom=minCom, correctBias=False)
+    varY = ewmvar(cleanSeriesB, com=com, minCom=minCom, correctBias=False)
 
-
-    return (XY - X * Y) / np.sqrt( varX * varY )
+    return (XY - X * Y) / np.sqrt(varX * varY)
 

@@ -180,7 +180,8 @@ class OLS(object):
         The equations can be passed as either a single string or a
         list of strings.
 
-        Examples:
+        Examples
+        --------
         o = ols(...)
         o.f_test('1*x1+2*x2=0,1*x3=0')
         o.f_test(['1*x1+2*x2=0','1*x3=0'])
