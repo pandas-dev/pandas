@@ -757,55 +757,6 @@ class DataMatrix(DataFrame):
 #-------------------------------------------------------------------------------
 # Outputting
 
-    def toCSV(self, path, nanRep='', writeMode='wb', index=True,
-              header=True, cols=None, verbose=False):
-        """
-        Write the DataMatrix to a CSV file
-
-        Parameters
-        ----------
-        path : string
-            Output file path
-        nanRep : string, default=''
-            Appearance of NaN values in output
-        index : boolean, default=True
-            Prints index if True
-        header : boolean, default=True
-            Prints header if True
-        cols : list of strings
-            Prints the values in order specified by cols.
-            By default, prints all columns in lexicographical order.
-        """
-        f = open(path, writeMode)
-
-        if cols is None:
-            cols = self.cols()
-        series = self._series
-
-        if header:
-            if index:
-                f.write(',')
-            f.write(','.join([str(c) for c in cols]))
-            f.write('\n')
-
-        for idx in self.index:
-            if index:
-                f.write(str(idx) + ',')
-
-            for col in cols:
-                val = series[col][idx]
-                if isnull(val):
-                    val = nanRep
-                else:
-                    val = str(val)
-                f.write(val + ',')
-            f.write('\n')
-
-        f.close()
-
-        if verbose: # pragma: no cover
-            print 'CSV file written successfully: %s' % path
-
     def toString(self, buffer=sys.stdout, columns=None, colSpace=15,
                  nanRep='NaN', formatters=None, float_format=None):
         """

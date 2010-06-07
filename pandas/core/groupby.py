@@ -83,9 +83,10 @@ class GroupBy(object):
         """
         Groupby iterator
 
-        Yields
-        ------
-        Sequence of (groupName, subsetted object) for each group
+        Returns
+        -------
+        Generator yielding sequence of (groupName, subsetted object)
+        for each group
         """
         try:
             groupNames = sorted(self.groups)
@@ -165,7 +166,7 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results)
 
     def _aggregate_simple(self, applyfunc):
-        values = self.obj.values()
+        values = self.obj.values
         result = {}
         for k, v in self.group_indices.iteritems():
             result[k] = applyfunc(values.take(v))

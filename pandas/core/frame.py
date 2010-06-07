@@ -218,6 +218,45 @@ class DataFrame(Picklable, Groupable):
 
         return cls(dataDict, index=index)
 
+    @classmethod
+    def fromcsv(cls, path, header=0, delimiter=',', index_col=0):
+        """
+        Read delimited file into DataFrame
+
+        Parameters
+        ----------
+        path : string
+        header : int, default 0
+            Row to use at header (skip prior rows)
+        delimiter : string, default ','
+        index_col : int
+            Column to use for index
+
+        Notes
+        -----
+        Will attempt to convert index to datetimes for time series
+        data. Uses numpy.genfromtxt to do the actual parsing into
+        ndarray
+
+        Returns
+        -------
+        y : DataFrame or DataMatrix
+        """
+        from datetime import datetime
+
+        data = np.genfromtxt(path, delimiter=delimiter, dtype=None,
+                             skip_header=header, names=True)
+
+        field = data.dtype.names[index_col]
+        df = cls.fromRecords(data, indexField=field)
+
+        # have dates?
+        test_val = datetools.to_datetime(df.index[0])
+        if isinstance(test_val, datetime):
+            df = df.rename(index=datetools.to_datetime)
+
+        return df
+
     def toRecords(self):
         """
         Convert DataFrame to record array. Index will be put in the
@@ -231,9 +270,6 @@ class DataFrame(Picklable, Groupable):
         names = ['index'] + list(self.cols())
 
         return np.rec.fromarrays(arrays, names=names)
-
-    def fromcsv(self, path, header=0):
-        pass
 
 #-------------------------------------------------------------------------------
 # Magic methods
@@ -471,38 +507,50 @@ class DataFrame(Picklable, Groupable):
 # Public methods
 
     def toCSV(self, path, nanRep='', cols=None, header=True,
-              index=True, verbose=False):
+              index=True, mode='wb'):
         """
         Write the DataFrame to a CSV file
+
+        Parameters
+        ----------
+        path : string
+            File path
+        nanRep : string, default ''
+            Missing data rep'n
+        cols : sequence, optional
+        header : boolean, default True
+            Write out column names
+        index : boolean, default True
+            Write row names (index)
         """
-        f = open(path, 'w')
+        f = open(path, mode)
 
         if cols is None:
             cols = self.cols()
 
+        series = self._series
         if header:
+            joined_cols = ','.join([str(c) for c in cols])
             if index:
-                f.write(',' + ','.join([str(c) for c in cols]))
+                # this could be dangerous
+                f.write('index,%s' % joined_cols)
             else:
-                f.write(','.join([str(c) for c in cols]))
+                f.write(joined_cols)
             f.write('\n')
 
         for idx in self.index:
             if index:
-                f.write(str(idx) + ',')
+                f.write(str(idx))
             for col in cols:
-                val = self._series[col].get(idx)
+                val = series[col].get(idx)
                 if isnull(val):
                     val = nanRep
                 else:
                     val = str(val)
-                f.write(val + ',')
+                f.write(',%s' % val)
             f.write('\n')
 
         f.close()
-
-        if verbose: # pragma: no cover
-            print 'CSV file written successfully: %s' % path
 
     def toDataMatrix(self):
         from pandas.core.matrix import DataMatrix
@@ -542,6 +590,22 @@ class DataFrame(Picklable, Groupable):
                                   colSpace, nanRep=nanRep,
                                   float_format=float_format)
                 print >> buffer, ot
+
+    def head(self, buffer=sys.stdout):
+        chunk = self[:5]
+        if len(self.cols()) > 6:
+            print 'Probably too wide to display, transposing'
+            chunk = chunk.T
+
+        chunk.toString(buffer=buffer)
+
+    def tail(self, buffer=sys.stdout):
+        chunk = self[-5:]
+        if len(self.cols()) > 6:
+            print 'Probably too wide to display, transposing'
+            chunk = chunk.T
+
+        chunk.toString(buffer=buffer)
 
     def info(self, buffer=sys.stdout):
         """Concise summary of a DataFrame, used in __repr__ when very large."""

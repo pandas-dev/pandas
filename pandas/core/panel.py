@@ -1048,8 +1048,8 @@ class LongPanel(Panel):
 
             # Is it a factor?
             if not np.issctype(series.dtype):
-                factor_dict[col] = Factor.fromarray(series)
-                del data[col]
+                factor_dict[col] = factor = Factor.fromarray(series)
+                data[col] = factor.labels
 
         items = sorted(data)
         values = np.array([data[k] for k in items]).T
@@ -1310,6 +1310,9 @@ class LongPanel(Panel):
         for i, (major_i, minor_i) in enumerate(label_pairs):
             row = format_row(major[major_i], minor[minor_i], self.values[i])
             print >> buffer, row
+
+    def _fill_factors(self):
+        values = self.values.astype(object)
 
     def swapaxes(self):
         """

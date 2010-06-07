@@ -40,5 +40,10 @@ Calling R functions with pandas objects
 Transferring R data sets into Python
 ------------------------------------
 
+The **load_data** function retrieves an R data set and converts
+it to the appropriate pandas object (most likely a DataFrame):
+
+
+
 High-level interface to R estimators
 ------------------------------------

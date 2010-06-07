@@ -10,6 +10,7 @@ from numpy import random
 import numpy as np
 
 import pandas.core.datetools as datetools
+from pandas.core.index import NULL_INDEX
 from pandas.core.api import DataFrame, Index, Series, notnull
 
 from pandas.util.testing import (assert_almost_equal,
@@ -180,9 +181,23 @@ class TestDataFrame(unittest.TestCase):
         self.assertRaises(Exception, self.klass, mat,
                           columns=['A', 'B'], index=[1, 2])
 
-        # have to pass columns and index
-        self.assertRaises(Exception, self.klass, mat, index=[1])
-        self.assertRaises(Exception, self.klass, mat, columns=['A', 'B', 'C'])
+        # automatic labeling
+        frame = self.klass(mat)
+        self.assert_(np.array_equal(frame.index, range(2)))
+        self.assert_(np.array_equal(frame.cols(), range(3)))
+
+        frame = self.klass(mat, index=[1, 2])
+        self.assert_(np.array_equal(frame.cols(), range(3)))
+
+        frame = self.klass(mat, columns=['A', 'B', 'C'])
+        self.assert_(np.array_equal(frame.index, range(2)))
+
+        # 0-length axis
+        frame = self.klass(np.empty((0, 3)))
+        self.assert_(frame.index is NULL_INDEX)
+
+        frame = self.klass(np.empty((3, 0)))
+        self.assert_(len(frame.cols()) == 0)
 
     def test_array_interface(self):
         result = np.sqrt(self.frame)
@@ -283,6 +298,16 @@ class TestDataFrame(unittest.TestCase):
 
         # columns are not sortable
         foo = repr(self.unsortable)
+
+        # do not fail!
+        self.frame.head(buffer=buf)
+        self.frame.tail(buffer=buf)
+
+        for i in range(5):
+            self.frame['foo%d' % i] = 1
+
+        self.frame.head(buffer=buf)
+        self.frame.tail(buffer=buf)
 
     def test_toString(self):
         # big mixed
@@ -514,7 +539,7 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(result.index is self.empty.index)
         self.assertEqual(len(result.columns), 0)
 
-    def test_toCSV(self):
+    def test_toCSV_fromcsv(self):
         path = '__tmp__'
 
         self.frame['A'][:5] = np.NaN
@@ -523,6 +548,13 @@ class TestDataFrame(unittest.TestCase):
         self.frame.toCSV(path, cols=['A', 'B'])
         self.frame.toCSV(path, header=False)
         self.frame.toCSV(path, index=False)
+
+        # test roundtrip
+
+        self.tsframe.toCSV(path)
+        recons = self.klass.fromcsv(path)
+
+        assert_frame_equal(self.tsframe, recons)
 
         os.remove(path)
 
@@ -973,12 +1005,20 @@ class TestDataFrame(unittest.TestCase):
 
         # transform
         transformed = grouped.transform(lambda x: x - x.mean())
-        self.assertEqual(len(aggregated), 5)
-        self.assertEqual(len(aggregated.cols()), 4)
+        self.assertEqual(len(transformed), 30)
+        self.assertEqual(len(transformed.cols()), 4)
 
         # iterate
         for weekday, group in grouped:
             self.assert_(group.index[0].weekday() == weekday)
+
+        # groups / group_indices
+        groups = grouped.groups
+        indices = grouped.group_indices
+
+        for k, v in groups.iteritems():
+            samething = self.tsframe.index.take(indices[k])
+            self.assert_(np.array_equal(v, samething))
 
     def test_groupby_columns(self):
         mapping = {

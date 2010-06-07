@@ -220,6 +220,10 @@ class Index(np.ndarray):
 
     __sub__ = diff
 
+    def take(self, *args, **kwargs):
+        taken = self.view(np.ndarray).take(*args, **kwargs)
+        return Index(taken)
+
 # For utility purposes
 
 NULL_INDEX = Index([])

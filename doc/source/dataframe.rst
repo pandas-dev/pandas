@@ -28,16 +28,20 @@ multiple time series or cross sections with ease.
              Series indices.
 
        **index** : {array_like}
-           Explicit index to conform to, required for ndarray data argument
+           Explicit index to conform to, defaults to range(N) if not input
 
        **columns** : {array_like}
-           Explicit set of columns to include, required for ndarray data argument
+           Explicit set of columns to include, defaults to range(N) if not input
 
        **dtype** : Python type alias or :class:`~numpy.dtype`
-           Type to attempt to cast data to
+           Type to *attempt* to cast data to
 
-:class:`~pandas.DataMatrix` has a similar constructor and can be used interchangeably.
-
+:class:`~pandas.DataMatrix` has an identical constructor (barring an
+extra keyword argument necessary for supporting mixed-type data, which
+you can safely ignore). :ref:`Elsewhere in the documentation
+<framevs>` we will explain the difference between the objects (which
+**only** matters in performance sensitive applications and can be
+ignored by most users).
 
 Basics
 ------
@@ -605,9 +609,9 @@ Function application
 You will often want to perform some other computation with the
 DataFrame other than the statistical operators above. Likewise, you
 may want to transform the data in some way (like taking the square
-root or natural logarithm). To solve these problems, you should use
-the **apply** function. In short, **apply** will call a function that
-you pass on each row or column of the DataFrame and, depending on the
+root or natural logarithm). In most cases, you will want to use the
+**apply** function. In short, **apply** will call a function that you
+pass on each row or column of the DataFrame and, depending on the
 return type of the function, return a Series or DataFrame.
 
 ::
@@ -655,8 +659,17 @@ the date where the maximum value for each column occurred:
     B    2009-02-27 00:00:00
     C    2009-06-30 00:00:00
 
+DataFrame and DataMatrix also implement the ndarray *array interface*
+which allows you to call ufuncs (like sqrt, exp, log, etc.) directly
+on the object. So the following two expressions would be equivalent:
+
+::
+
+    >>> np.sqrt(df)
+    >>> df.apply(np.sqrt)
+
 Another useful feature is the ability to pass Series methods to carry
-out some Series operation on each columns or row:
+out some Series operation on each column or row:
 
 ::
 
@@ -717,22 +730,40 @@ DataFrame's iterator functions are consistent with the dict interface:
    DataFrame.cols
    DataFrame.iteritems
 
-Reindexing
-----------
+Reindexing and filling / padding values
+---------------------------------------
 
 .. seealso:: :ref:`Series reindexing <series.reindexing>`
 
 Similar to Series, the **reindex** method conforms a DataFrame to a
 new index or list of columns.
 
+::
+
+    >>> reindexed = df.reindex(index=new_index,
+                               columns=new_columns)
+
+For time series data, if the new index is higher frequency than the
+old one, you may wish to "fill" holes with the values as of each date:
+
+::
+
+    >>> filled = df.reindex(new_index, fillMethod='pad')
+
 .. autosummary::
    :toctree: generated/
 
    DataFrame.reindex
+   DataFrame.fill
+
+Filtering / selecting columns or indices
+----------------------------------------
+
+.. autosummary::
+   :toctree: generated/
+
    DataFrame.dropEmptyRows
    DataFrame.dropIncompleteRows
-   DataFrame.merge
-   DataFrame.fill
    DataFrame.filter
 
 Sorting
@@ -753,7 +784,84 @@ TODO
 Joining / merging DataFrames
 ----------------------------
 
-TODO
+The **join** method provides effectively SQL-like semantic for
+combining related data sets. The basic join consists of two DataFrame
+arguments and
+
+::
+
+    >>> df1
+			   A              B
+    2000-01-03 00:00:00    -0.1174        -0.941
+    2000-01-04 00:00:00    -0.6034        -0.008094
+    2000-01-05 00:00:00    -0.3816        -0.9338
+    2000-01-06 00:00:00    -0.3298        -0.9548
+    2000-01-07 00:00:00    0.9576         0.4652
+    2000-01-10 00:00:00    -0.7208        -1.131
+    2000-01-11 00:00:00    1.568          0.8498
+    2000-01-12 00:00:00    0.3717         -0.2323
+    2000-01-13 00:00:00    -1.428         -1.997
+    2000-01-14 00:00:00    -1.084         -0.271
+
+    >>> df2
+			   C              D
+    2000-01-03 00:00:00    0.2833         -0.1937
+    2000-01-05 00:00:00    1.868          1.207
+    2000-01-07 00:00:00    -0.8586        -0.7367
+    2000-01-11 00:00:00    2.121          0.9104
+    2000-01-13 00:00:00    0.7856         0.9063
+
+
+    df1.join(df2)
+			   A              B              C              D
+    2000-01-03 00:00:00    -0.1174        -0.941         0.2833         -0.1937
+    2000-01-04 00:00:00    -0.6034        -0.008094      NaN            NaN
+    2000-01-05 00:00:00    -0.3816        -0.9338        1.868          1.207
+    2000-01-06 00:00:00    -0.3298        -0.9548        NaN            NaN
+    2000-01-07 00:00:00    0.9576         0.4652         -0.8586        -0.7367
+    2000-01-10 00:00:00    -0.7208        -1.131         NaN            NaN
+    2000-01-11 00:00:00    1.568          0.8498         2.121          0.9104
+    2000-01-12 00:00:00    0.3717         -0.2323        NaN            NaN
+    2000-01-13 00:00:00    -1.428         -1.997         0.7856         0.9063
+    2000-01-14 00:00:00    -1.084         -0.271         NaN            NaN
+
+::
+
+    >>> df1.join(df2, how='inner')
+			   A              B              C              D
+    2000-01-03 00:00:00    -0.1174        -0.941         0.2833         -0.1937
+    2000-01-05 00:00:00    -0.3816        -0.9338        1.868          1.207
+    2000-01-07 00:00:00    0.9576         0.4652         -0.8586        -0.7367
+    2000-01-11 00:00:00    1.568          0.8498         2.121          0.9104
+    2000-01-13 00:00:00    -1.428         -1.997         0.7856         0.9063
+
+The index (row labels) are the default key for joining, but a column
+can also be used for a similar SQL-like join: It is also frequently
+necessary to join (or *merge*) data sets based on some other key
+mapping.
+
+::
+
+    >>> df2
+			   C              D              key
+    2000-01-03 00:00:00    0.2833         -0.1937        0
+    2000-01-05 00:00:00    1.868          1.207          1
+    2000-01-07 00:00:00    -0.8586        -0.7367        0
+    2000-01-11 00:00:00    2.121          0.9104         1
+    2000-01-13 00:00:00    0.7856         0.9063         0
+
+    >>> df3
+	 code
+    0    foo
+    1    bar
+
+    >>> df2.join(df3, on='key')
+			   C              D              code           key
+    2000-01-03 00:00:00    0.2833         -0.1937        foo            0
+    2000-01-05 00:00:00    1.868          1.207          bar            1
+    2000-01-07 00:00:00    -0.8586        -0.7367        foo            0
+    2000-01-11 00:00:00    2.121          0.9104         bar            1
+    2000-01-13 00:00:00    0.7856         0.9063         foo            0
 
 .. autosummary::
    :toctree: generated/

@@ -628,6 +628,20 @@ class TestLongPanel(unittest.TestCase):
         self.assertRaises(Exception, LongPanel.fromRecords, np.zeros((3, 3)),
                           0, 1)
 
+    def test_factors(self):
+        # structured array
+        K = 10
+
+        recs = np.zeros(K, dtype='O,O,f8,f8,O,O')
+        recs['f0'] = ['one'] * 5 + ['two'] * 5
+        recs['f1'] = ['A', 'B', 'C', 'D', 'E'] * 2
+        recs['f2'] = np.arange(K) * 2
+        recs['f3'] = np.arange(K)
+        recs['f4'] = ['A', 'B', 'C', 'D', 'E'] * 2
+        recs['f5'] = ['foo', 'bar'] * 5
+
+        lp = LongPanel.fromRecords(recs, 'f0', 'f1')
+
     def test_columns(self):
         self.assert_(np.array_equal(self.panel.items, self.panel.columns))
         self.assert_(np.array_equal(self.panel.items, self.panel.cols()))

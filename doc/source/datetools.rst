@@ -6,102 +6,123 @@
 Date and frequency tools
 ************************
 
+In dealing with the economic realities of time series data, we will
+frequently seek to:
 
+* generate sequences of fixed-frequency dates
+
+* conform or convert time series to a particular frequency
+
+* compute "relative" dates based on various non-standard time
+  increments (e.g. 5 business days before the last business day of the
+  year), or "roll" dates forward or backward
+
+pandas provides a relatively compact and self-contained set of tools
+for performing the above tasks. The functionality revolves around the
+**DateOffset** class and its subclasses, which are objects which can
+be added and subtracted from regular Python **datetime** objects.
 
 .. _datetools.offsets:
 
 DateOffset and subclasses
 -------------------------
 
-It is often necessary to do non-standard date logic, adding business
-days, rolling to the next month or quarter end, rolling to the next
-business month end, etc. One might wish to aggregate more granular
-data based on these fixed-frequency periods, or maybe you want to
-shift a TimeSeries in some particular way without resorting to a hack.
-
-In searching for the most "pythonic" approach to this problem (and I
-don't know if I have found it or not), I chose to create objects
-representing the frequency increments in the form of the DateOffset
-object specifying the mechanics of the "increment", and one can then
-define different offset logic via subclasses. The vanilla version of
-the DateOffset works identically to an object in the dateutil package,
+A **DateOffset** instance represents a frequency increment. Different
+offset logic via subclasses. The vanilla version of the DateOffset
+works identically to an object in the dateutil package,
 dateutil.relativedelta, which works like:
 
 ::
 
-    In [319]: d = datetime(2008, 8, 18)
+    >>> d = datetime(2008, 8, 18)
+    >>> d + relativedelta(months=4, days=5)
+    datetime.datetime(2008, 12, 23, 0, 0)
 
-    In [321]: d + relativedelta(months=4, days=5)
-    Out[321]: datetime.datetime(2008, 12, 23, 0, 0)
-
-
-You could write this using DateOffset in nearly the same way (here I
-have not imported the DateOffset name in this example, so you could do
-"from daterange import DateOffset" to avoid having to write the module
-name):
+The basic DateOffset class accepts the same set of arguments that
+relativedelta does:
 
 ::
 
-	In [323]: d + daterange.DateOffset(months=4, days=5)
-	Out[323]: datetime.datetime(2008, 12, 23, 0, 0)
+    >>> d + DateOffset(months=4, days=5)
+    datetime.datetime(2008, 12, 23, 0, 0)
 
+The key characteristics of a DateOffset are:
 
-The key characteristics of the DateOffset are:
+* it can be added / subtracted to/from a datetime object to obtain a
+  shifted date
 
-  - it can be added / subtracted to/from a datetime object to obtain a
-    shifted date
-  - it can be multiplied by an integer to multiple the effect as
-    desired
+* it can be multiplied by an integer to multiple the effect as
+  desired
 
-::
-    In [325]: d - 5 * daterange.BDay()
-    Out[325]: datetime.datetime(2008, 8, 11, 0, 0)
-
-  - in the subclass one only need redefine the method 'apply' which
-    describes the interaction with a datetime object.
+Subclasses of DateOffset define specialized logic for various
+increments of interest, such a weekday / business day.
 
 ::
 
-    class BMonthEnd(DateOffset):
-	"""DateOffset increments between business EOM dates"""
+    class BDay(DateOffset):
+	"""DateOffset increments between business days"""
 	def apply(self, other):
 	    ...
 
-Turns out each of these 'apply' methods for various standard offsets
-are pretty easy to write (the longest is 10 lines), and I've written a
-few so far:
+::
 
-business day (BDay)
-business month end aka EOM (BMonthEnd)
-month end (MonthEnd), quarter end (QuarterEnd), year end/begin (YearEnd / YearBegin)
+    >>> d - 5 * BDay()
+    datetime.datetime(2008, 8, 11, 0, 0)
 
-Each of these when initialized with the parameter 0 (e.g. BMonthEnd(0)
-) have the effect of rolling forward to the nearest date lying on a
-particular offset:
+A subclass need only redefine the method 'apply' which describes the
+interaction with a datetime object.
 
 ::
 
-    In [324]: d + daterange.BMonthEnd(0)
-    Out[324]: datetime.datetime(2008, 8, 29, 0, 0)
+    >>> d + BMonthEnd(0)
+    datetime.datetime(2008, 8, 29, 0, 0)
 
-
-For convenience, the daterange module has shorthand instances of these
-classes available for a number of reasons:
-
-bday, monthEnd, bmonthEnd, yearEnd, etc.
+An offset is also *callable* as functions to avoid those times where
+you might otherwise create a lambda, for example:
 
 ::
 
-    In [326]: d - 5 * daterange.bday
-    Out[326]: datetime.datetime(2008, 8, 11, 0, 0)
+    map(BDay(), dateList) versus
+    map(lambda x: x + BDay(), dateList)
 
+.. csv-table::
+    :header: "Class name", "Description"
+    :widths: 15, 65
 
-These offsets are also *callable* as functions to avoid those times
-where you might otherwise create a lambda, for example:
+    DateOffset, "Generic offset, arguments as **datetime.relativedelta**"
+    BDay, "business day (weekday)"
+    Week, "one week, optionally anchored on a day of the week"
+    MonthEnd, "calendar month end"
+    BMonthEnd, "business month end"
+    YearEnd, "calendar year end"
+    YearBegin, "calendar year begin"
+    BYearEnd, "business year end"
+    Hour, "one hour"
+    Minute, "one minute"
+    Second, "one second"
 
-    map(daterange.bday, dateList) versus
-    map(lambda x: x + daterange.bday, dateList)
+.. _daterange:
 
+Creating date ranges (DateRange)
+--------------------------------
+
+The DateRange class utilizes these offsets (and any ones that we might
+add) to generate lists of dates for general purposes:
+
+::
+
+    In [327]: DateRange(fromDate=d, nPeriods=10, offset=daterange.bmonthEnd)
+    Out[327]:
+    [datetime.datetime(2008, 8, 29, 0, 0),
+     datetime.datetime(2008, 9, 30, 0, 0),
+     datetime.datetime(2008, 10, 31, 0, 0),
+     datetime.datetime(2008, 11, 28, 0, 0),
+     datetime.datetime(2008, 12, 31, 0, 0),
+     datetime.datetime(2009, 1, 30, 0, 0),
+     datetime.datetime(2009, 2, 27, 0, 0),
+     datetime.datetime(2009, 3, 31, 0, 0),
+     datetime.datetime(2009, 4, 30, 0, 0),
+     datetime.datetime(2009, 5, 29, 0, 0)]
 
 
 One can also specify a 'toDate', the endpoints are included if and
@@ -147,46 +168,7 @@ by some amount:
     2008-06-06 00:00:00     0.031957
     2008-07-07 00:00:00     -0.058455
 
-.. csv-table::
-    :header: "Class name", "Description"
-    :widths: 15, 65
-
-    DateOffset, ""
-    BDay, ""
-    Week, ""
-    MonthEnd, ""
-    BMonthEnd, ""
-    YearEnd, ""
-    YearBegin, ""
-    BYearEnd, ""
-    Hour, ""
-    Minute, ""
-    Second, ""
-
-.. _daterange:
-
-Creating date ranges (DateRange)
---------------------------------
-
-The DateRange class utilizes these offsets (and any ones that we might
-add) to generate lists of dates for general purposes:
-
-::
-
-    In [327]: DateRange(fromDate=d, nPeriods=10, offset=daterange.bmonthEnd)
-    Out[327]:
-    [datetime.datetime(2008, 8, 29, 0, 0),
-     datetime.datetime(2008, 9, 30, 0, 0),
-     datetime.datetime(2008, 10, 31, 0, 0),
-     datetime.datetime(2008, 11, 28, 0, 0),
-     datetime.datetime(2008, 12, 31, 0, 0),
-     datetime.datetime(2009, 1, 30, 0, 0),
-     datetime.datetime(2009, 2, 27, 0, 0),
-     datetime.datetime(2009, 3, 31, 0, 0),
-     datetime.datetime(2009, 4, 30, 0, 0),
-     datetime.datetime(2009, 5, 29, 0, 0)]
-
-Defining custom frequencies
+Tips for custom frequencies
 ---------------------------
 
 .. _datetools.timerules:
