@@ -11,7 +11,7 @@ convenient and powerful data structures for working with labeled
 statistical (financial, economic, econometric) data sets. We will
 refer to this data as *time series* and *cross-sectional* (or
 *longitudinal*) which are common terms in statistics and
-econometrics. pdnas has multiple target audiences:
+econometrics. pandas has multiple target audiences:
 
  * Users of R or MATLAB who wish to switch to Python for interactive
    data analysis and implementation of statistical models
@@ -75,7 +75,7 @@ illustrate:
  (B) :ref:`DataFrame <dataframe>` containing multiple cross-sections
 
   * **columns**: "data type" associated with each cross-section
-  * **index**:  individual / entity common to cross-sections
+  * **index**:  individual / entity labels common to cross-sections
 
  (C) :ref:`WidePanel <panel>` containing panel data
 
@@ -91,10 +91,11 @@ code).
 A quick note on mutation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-You will find that very few methods are capable of mutating a pandas
-data structure like DataFrame. In general, the result of method calls
-will return a new object (protecting the underlying data in the
-calling object). So we like to "favor immutability" where sensible.
+Most instance methods on the pandas data structures return a new
+object, rather than updating the original object in-place. However,
+when working with the contents (e.g. a column in a DataFrame),
+mutations **will** be reflected in the original structure. In general,
+though, we like to "favor immutability" where sensible.
 
 What else is in the package?
 ----------------------------

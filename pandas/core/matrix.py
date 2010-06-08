@@ -7,11 +7,11 @@ import sys
 from numpy import NaN
 import numpy as np
 
-from pandas.core.common import _pfixed, _pickle_array, _unpickle_array
+from pandas.core.common import (_pfixed, _pickle_array, _unpickle_array,
+                                isnull)
 from pandas.core.frame import DataFrame, _try_sort, _extract_index
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
-from pandas.lib.tseries import isnull
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
@@ -1050,36 +1050,20 @@ class DataMatrix(DataFrame):
 
             return DataMatrix(result, index=self.index, objects=self.objects)
         else:
-            if (isinstance(value, (int, float))
-                and self.values.dtype == np.float64):
-                # Float type values
-                if len(self.columns) == 0:
-                    return self
+            # Float type values
+            if len(self.columns) == 0:
+                return self
 
-                vals = self.values.copy()
-                vals.flat[isnull(vals.ravel())] = value
+            vals = self.values.copy()
+            vals.flat[isnull(vals.ravel())] = value
 
-                objects = None
+            objects = None
 
-                if self.objects is not None:
-                    objects = self.objects.copy()
+            if self.objects is not None:
+                objects = self.objects.copy()
 
-                return DataMatrix(vals, index=self.index, columns=self.columns,
-                                  objects=objects)
-
-            else:
-                # Object type values
-                if len(self.columns) == 0:
-                    return self
-
-                # XXX
-
-                myCopy = self.copy()
-                vals = myCopy.values
-                vals = self.values.copy()
-                vals.flat[isnull(vals.ravel())] = value
-
-                return myCopy
+            return DataMatrix(vals, index=self.index, columns=self.columns,
+                              objects=objects)
 
     def xs(self, key):
         """

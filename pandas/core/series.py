@@ -11,12 +11,11 @@ import sys
 from numpy import NaN, ndarray
 import numpy as np
 
+from pandas.core.common import isnull, notnull
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
 import pandas.core.datetools as datetools
-
-from pandas.lib.tseries import isnull, notnull
 import pandas.lib.tseries as tseries
 
 #-------------------------------------------------------------------------------

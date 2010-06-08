@@ -4,3 +4,6 @@
 
 Linear and panel regression
 ---------------------------
+
+.. automodule:: pandas.stats.interface
+   :members:

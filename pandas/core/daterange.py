@@ -18,10 +18,10 @@ class XDateRange(object):
 
     Notes
     -----
-    If both fromDate and toDate are specified, the returned dates will
+    If both start and end are specified, the returned dates will
     satisfy:
 
-    fromDate <= date <= toDate
+    start <= date <= end
 
     In other words, dates are constrained to lie in the specifed range
     as you would expect, though no dates which do NOT lie on the
@@ -40,7 +40,7 @@ class XDateRange(object):
     _cache = {}
     _cacheStart = {}
     _cacheEnd = {}
-    def __init__(self, fromDate=None, toDate=None, nPeriods=None,
+    def __init__(self, start=None, end=None, nPeriods=None,
                  offset=datetools.BDay(), timeRule=None):
 
         if timeRule is not None:
@@ -50,35 +50,35 @@ class XDateRange(object):
             if offset in datetools._offsetNames:
                 timeRule = datetools._offsetNames[offset]
 
-        fromDate = datetools.to_datetime(fromDate)
-        toDate = datetools.to_datetime(toDate)
+        start = datetools.to_datetime(start)
+        end = datetools.to_datetime(end)
 
-        if fromDate and not offset.onOffset(fromDate):
-            fromDate = fromDate + offset.__class__(n=1, **offset.kwds)
-        if toDate and not offset.onOffset(toDate):
-            toDate = toDate - offset.__class__(n=1, **offset.kwds)
-            if nPeriods == None and toDate < fromDate:
-                toDate = None
+        if start and not offset.onOffset(start):
+            start = start + offset.__class__(n=1, **offset.kwds)
+        if end and not offset.onOffset(end):
+            end = end - offset.__class__(n=1, **offset.kwds)
+            if nPeriods == None and end < start:
+                end = None
                 nPeriods = 0
 
-        if toDate is None:
-            toDate = fromDate + (nPeriods - 1) * offset
+        if end is None:
+            end = start + (nPeriods - 1) * offset
 
-        if fromDate is None:
-            fromDate = toDate - (nPeriods - 1) * offset
+        if start is None:
+            start = end - (nPeriods - 1) * offset
 
         self.offset = offset
         self.timeRule = timeRule
-        self.fromDate = fromDate
-        self.toDate = toDate
+        self.start = start
+        self.end = end
         self.nPeriods = nPeriods
 
     def __iter__(self):
         offset = self.offset
-        cur = self.fromDate
+        cur = self.start
         if offset._normalizeFirst:
             cur = datetools.normalize_date(cur)
-        while cur <= self.toDate:
+        while cur <= self.end:
             yield cur
             cur = cur + offset
 
@@ -106,9 +106,9 @@ class DateRange(Index):
 
     Parameters
     ----------
-    fromDate : {datetime, None}
+    start : {datetime, None}
         left boundary for range
-    toDate : {datetime, None}
+    end : {datetime, None}
         right boundary for range
     periods : int
         Number of periods to generate.
@@ -118,7 +118,7 @@ class DateRange(Index):
     """
     _cache = {}
     _parent = None
-    def __new__(cls, fromDate=None, toDate=None, periods=None,
+    def __new__(cls, start=None, end=None, periods=None,
                 offset=datetools.bday, timeRule=None, **kwds):
 
         # Allow us to circumvent hitting the cache
@@ -132,30 +132,30 @@ class DateRange(Index):
                     timeRule = datetools._offsetNames[offset]
 
             # Cachable
-            if not fromDate:
-                fromDate = kwds.get('begin')
-            if not toDate:
-                toDate = kwds.get('end')
+            if not start:
+                start = kwds.get('begin')
+            if not end:
+                end = kwds.get('end')
             if not periods:
                 periods = kwds.get('nPeriods')
 
-            fromDate = datetools.to_datetime(fromDate)
-            toDate = datetools.to_datetime(toDate)
+            start = datetools.to_datetime(start)
+            end = datetools.to_datetime(end)
 
             # inside cache range
-            fromInside = fromDate is not None and fromDate > CACHE_START
-            toInside = toDate is not None and toDate < CACHE_END
+            fromInside = start is not None and start > CACHE_START
+            toInside = end is not None and end < CACHE_END
 
             useCache = fromInside and toInside
 
             if (useCache and offset.isAnchored() and
                 not isinstance(offset, datetools.Tick)):
 
-                index = cls.getCachedRange(fromDate, toDate, periods=periods,
+                index = cls.getCachedRange(start, end, periods=periods,
                                            offset=offset, timeRule=timeRule)
 
             else:
-                xdr = XDateRange(fromDate=fromDate, toDate=toDate,
+                xdr = XDateRange(start=start, end=end,
                                  nPeriods=periods, offset=offset,
                                  timeRule=timeRule)
 

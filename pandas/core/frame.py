@@ -8,12 +8,12 @@ import sys
 from numpy import NaN
 import numpy as np
 
-from pandas.core.common import _pickle_array, _unpickle_array, _pfixed
+from pandas.core.common import (_pickle_array, _unpickle_array, _pfixed,
+                                isnull, notnull)
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
 from pandas.core.series import Series
-from pandas.lib.tseries import isnull, notnull
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 

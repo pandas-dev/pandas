@@ -15,20 +15,20 @@ def eqXDateRange(kwargs, expected):
     assert(np.array_equal(list(XDateRange(**kwargs)), expected))
 
 def testXDateRange1():
-    eqXDateRange(dict(fromDate = datetime(2009, 3, 25),
+    eqXDateRange(dict(start = datetime(2009, 3, 25),
                       nPeriods = 2),
                  [datetime(2009, 3, 25), datetime(2009, 3, 26)])
 
 def testXDateRange2():
-    eqXDateRange(dict(fromDate = datetime(2008, 1, 1),
-                      toDate = datetime(2008, 1, 3)),
+    eqXDateRange(dict(start = datetime(2008, 1, 1),
+                      end = datetime(2008, 1, 3)),
                  [datetime(2008, 1, 1),
                   datetime(2008, 1, 2),
                   datetime(2008, 1, 3)])
 
 def testXDateRange3():
-    eqXDateRange(dict(fromDate = datetime(2008, 1, 5),
-                      toDate = datetime(2008, 1, 6)),
+    eqXDateRange(dict(start = datetime(2008, 1, 5),
+                      end = datetime(2008, 1, 6)),
                  [])
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
@@ -50,7 +50,7 @@ class TestDateRange(unittest.TestCase):
 
         rng = DateRange(START, periods=20, offset=datetools.bday)
 
-        rng = DateRange(toDate=START, periods=20, offset=datetools.bday)
+        rng = DateRange(end=START, periods=20, offset=datetools.bday)
 
     def test_getCachedRange(self):
         rng = DateRange.getCachedRange(START, END, offset=datetools.bday)
@@ -103,11 +103,11 @@ class TestDateRange(unittest.TestCase):
 # DateRange test
 
 def testDateRange1():
-    toDate = datetime(2009, 5, 13)
-    dr = DateRange(toDate=toDate, periods=20)
-    firstDate = toDate - 19 * datetools.bday
+    end = datetime(2009, 5, 13)
+    dr = DateRange(end=end, periods=20)
+    firstDate = end - 19 * datetools.bday
 
     assert len(dr) == 20
     assert dr[0] == firstDate
-    assert dr[-1] == toDate
+    assert dr[-1] == end
 

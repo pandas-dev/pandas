@@ -111,7 +111,7 @@ add) to generate lists of dates for general purposes:
 
 ::
 
-    In [327]: DateRange(fromDate=d, nPeriods=10, offset=daterange.bmonthEnd)
+    In [327]: DateRange(start=d, nPeriods=10, offset=daterange.bmonthEnd)
     Out[327]:
     [datetime.datetime(2008, 8, 29, 0, 0),
      datetime.datetime(2008, 9, 30, 0, 0),

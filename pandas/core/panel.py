@@ -12,13 +12,12 @@ import sys
 import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array,
-                                _pfixed)
+                                _pfixed, notnull, isnull)
 from pandas.core.groupby import GroupBy
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
 from pandas.core.mixins import Picklable
-from pandas.lib.tseries import notnull
 import pandas.lib.tseries as tseries
 
 class PanelError(Exception):
@@ -454,6 +453,44 @@ class WidePanel(Panel):
 
         return WidePanel(newValues, self.items, self.major_axis,
                          self.minor_axis)
+
+    def fill(self, value=None, method='pad'):
+        """
+        Fill NaN values using the specified method.
+
+        Member Series / TimeSeries are filled separately.
+
+        Parameters
+        ----------
+        value : any kind (should be same type as array)
+            Value to use to fill holes (e.g. 0)
+
+        method : {'backfill', 'pad', None}
+            Method to use for filling holes in new inde
+
+        Returns
+        -------
+        y : DataMatrix
+
+        See also
+        --------
+        DataMatrix.reindex, DataMatrix.asfreq
+        """
+        if value is None:
+            result = {}
+            for col, s in self.iteritems():
+                result[col] = s.fill(method=method, value=value)
+
+            return WidePanel.fromDict(result)
+        else:
+            # Float type values
+            if len(self.items) == 0:
+                return self
+            vals = self.values.copy()
+            vals.flat[isnull(vals.ravel())] = value
+
+            return WidePanel(vals, self.items, self.major_axis,
+                             self.minor_axis)
 
     def _combinePanel(self, other, func):
         if isinstance(other, LongPanel):

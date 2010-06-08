@@ -1,5 +1,7 @@
 .. _io:
 
+.. currentmodule:: pandas
+
 ********************
 Input / Output Tools
 ********************
@@ -7,8 +9,11 @@ Input / Output Tools
 HDF5 (PyTables)
 ---------------
 
+.. automodule:: pandas.io.pytables
+   :members:
+
 Text files
 ----------
 
-.. currentmodule:: pandas
-
+.. automodule:: pandas.io.parsers
+   :members:

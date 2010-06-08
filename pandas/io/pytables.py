@@ -53,14 +53,24 @@ class HDFStore(object):
 
     def get(self, key):
         """
+        Retrieve pandas object stored in file
 
+        Parameters
+        ----------
+        key : object
         """
 
         return self[key]
 
     def put(self, key, value):
         """
+        Store object in file
 
+        Parameters
+        ----------
+        key : object
+        value : {Series, DataFrame, WidePanel, LongPanel}
+            pandas data structure
         """
         self[key] = value
 

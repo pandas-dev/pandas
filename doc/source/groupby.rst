@@ -5,6 +5,9 @@
 GroupBy operations
 *******************
 
+.. automodule:: pandas.core.groupby
+   :members:
+
 Aggregation
 -----------
 
