@@ -18,13 +18,10 @@ def isnull(input):
     -------
     boolean ndarray or boolean
     '''
-    from pandas.core.series import Series
-
     if isinstance(input, np.ndarray):
         if input.dtype.kind in ('O', 'S'):
-            result = isnullobj(input).astype(bool)
-            if isinstance(input, Series):
-                result = Series(result, index=input.index)
+            result = input.astype(bool)
+            result[:] = isnullobj(input)
         else:
             result = -np.isfinite(input)
     else:

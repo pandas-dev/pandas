@@ -492,52 +492,31 @@ class YearBegin(DateOffset):
 # Ticks
 
 class Tick(DateOffset):
-    pass
+    _normalizeFirst = False
+    _delta = None
+    _inc = timedelta(microseconds=1000)
+
+    @property
+    def delta(self):
+        if self._delta is None:
+            self._delta = self.n * self._inc
+
+        return self._delta
+
+    def apply(self, other):
+        if isinstance(other, (datetime, timedelta)):
+            return other + self.delta
+        elif isinstance(other, type(self)):
+            return type(self)(self.n + other.n)
 
 class Hour(Tick):
-    _normalizeFirst = False
-    _delta = None
     _inc = timedelta(0, 3600)
 
-    @property
-    def delta(self):
-        if self._delta is None:
-            self._delta = self.n * self._inc
-
-        return self._delta
-
-    def apply(self, other):
-        return other + self.delta
-
 class Minute(Tick):
-    _normalizeFirst = False
-    _delta = None
     _inc = timedelta(0, 60)
 
-    @property
-    def delta(self):
-        if self._delta is None:
-            self._delta = self.n * self._inc
-
-        return self._delta
-
-    def apply(self, other):
-        return other + self.delta
-
 class Second(Tick):
-    _normalizeFirst = False
-    _delta = None
     _inc = timedelta(0, 1)
-
-    @property
-    def delta(self):
-        if self._delta is None:
-            self._delta = self.n * self._inc
-
-        return self._delta
-
-    def apply(self, other):
-        return other + self.delta
 
 day = DateOffset()
 bday = BDay(normalize=True)
@@ -559,9 +538,9 @@ thisYearBegin = YearBegin(0)
 thisBQuarterEnd = BQuarterEnd(0)
 
 # Functions to check where a date lies
-isBusinessDay = BDay.onOffset
-isMonthEnd = MonthEnd.onOffset
-isBMonthEnd = BMonthEnd.onOffset
+isBusinessDay = BDay().onOffset
+isMonthEnd = MonthEnd().onOffset
+isBMonthEnd = BMonthEnd().onOffset
 
 #-------------------------------------------------------------------------------
 # Offset names ("time rules") and related functions

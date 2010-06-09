@@ -301,7 +301,6 @@ class TestWeek(unittest.TestCase):
 
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
-            pass
 
 class TestBMonthEnd(unittest.TestCase):
 
@@ -737,17 +736,26 @@ def test_Hour():
     assertEq(2 * Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 2))
     assertEq(-1 * Hour(), datetime(2010, 1, 1, 1), datetime(2010, 1, 1))
 
+    assert (Hour(3) + Hour(2)) == Hour(5)
+    assert (Hour(3) - Hour(2)) == Hour()
+
 def test_Minute():
     assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
     assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
     assertEq(2 * Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 2))
     assertEq(-1 * Minute(), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
 
+    assert (Minute(3) + Minute(2)) == Minute(5)
+    assert (Minute(3) - Minute(2)) == Minute()
+
 def test_Second():
     assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
     assertEq(Second(-1), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
     assertEq(2 * Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 2))
     assertEq(-1 * Second(), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
+
+    assert (Second(3) + Second(2)) == Second(5)
+    assert (Second(3) - Second(2)) == Second()
 
 def test_inferTimeRule():
     index1 = [datetime(2010, 1, 29, 0, 0),
