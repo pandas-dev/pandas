@@ -519,11 +519,32 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         return self.corr(self.shift(1))
 
-    def cap(self, threshold):
+    def clip(self, upper=None, lower=None):
+        """
+        Trim values at input threshold(s)
+
+        Parameters
+        ----------
+        lower : float, default None
+        upper : float, default None
+
+        Returns
+        -------
+        y : Series
+        """
+        result = self
+        if lower is not None:
+            result = result.caplower(lower)
+        if upper is not None:
+            result = result.capupper(upper)
+
+        return result
+
+    def clip_upper(self, threshold):
         """Return copy of series with values above given value truncated"""
         return np.where(self > threshold, threshold, self)
 
-    def floor(self, threshold):
+    def clip_lower(self, threshold):
         """Return copy of series with values below given value truncated"""
         return np.where(self < threshold, threshold, self)
 
@@ -755,7 +776,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         TimeSeries
         """
-        if self.index is newIndex:
+        if self.index.equals(newIndex):
             return self.copy()
 
         if not isinstance(newIndex, Index):
@@ -940,9 +961,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
             return Series(newValues, index=self.index)
         else:
-            offset = periods * offset
-            newIndex = Index([idx + offset for idx in self.index])
-
+            newIndex = self.index.shift(periods, offset)
             return Series(self, index=newIndex)
 
     def truncate(self, before=None, after=None):

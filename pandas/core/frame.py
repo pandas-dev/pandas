@@ -1494,25 +1494,40 @@ class DataFrame(Picklable, Groupable):
         else:
             raise Exception('Must have 0<= axis <= 1')
 
-    def cap(self, threshold):
+    def clip(self, upper=None, lower=None):
         """
-        Trim values at threshold
+        Trim values at input threshold(s)
+
+        Parameters
+        ----------
+        lower : float, default None
+        upper : float, default None
 
         Returns
         -------
-        DataFrame
+        y : DataFrame
         """
-        return self.apply(lambda x: x.cap(threshold))
+        return self.apply(lambda x: x.clip(lower=lower, upper=upper))
 
-    def floor(self, threshold):
+    def clip_upper(self, threshold):
+        """
+        Trim values above threshold
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        return self.apply(lambda x: x.clip_upper(threshold))
+
+    def clip_lower(self, threshold):
         """
         Trim values below threshold
 
         Returns
         -------
-        DataFrame
+        y : DataFrame
         """
-        return self.apply(lambda x: x.floor(threshold))
+        return self.apply(lambda x: x.clip_lower(threshold))
 
     # ndarray-like stats methods
     def count(self, axis=0):
@@ -1681,7 +1696,10 @@ class DataFrame(Picklable, Groupable):
         summed = self.sum(axis)
         count = self.count(axis).astype(float)
 
-        return summed / count.reindex(summed.index)
+        if not count.index.equals(summed.index):
+            count= count.reindex(summed.index)
+
+        return summed / count
 
     def median(self, axis=0):
         """

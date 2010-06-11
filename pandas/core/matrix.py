@@ -121,8 +121,10 @@ class DataMatrix(DataFrame):
         valueDict = {}
         for k, v in data.iteritems():
             if isinstance(v, Series):
-                # Forces alignment, copies data
-                v = v.reindex(index)
+                if v.index is not index:
+                    # Forces alignment. No need to copy data since we
+                    # are putting it into an ndarray later
+                    v = v.reindex(index)
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, NaN) for i in index]
@@ -401,12 +403,22 @@ class DataMatrix(DataFrame):
             # Operate row-wise
             if self.index.equals(other.index):
                 newIndex = self.index
+                other_vals = other.values
+                values = self.values
             else:
                 newIndex = self.index + other.index
 
-            other = other.reindex(newIndex).view(np.ndarray)
-            myReindex = self.reindex(newIndex)
-            resultMatrix = func(myReindex.values.T, other).T
+                if other.index.equals(newIndex):
+                    other_vals = other.values
+                else:
+                    other_vals = other.reindex(newIndex).values
+
+                if self.index.equals(newIndex):
+                    values = self.values
+                else:
+                    values = self.reindex(newIndex).values
+
+            resultMatrix = func(values.T, other_vals).T
         else:
             if len(other) == 0:
                 return self * NaN
@@ -613,8 +625,11 @@ class DataMatrix(DataFrame):
         """
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
-                value = np.asarray(value.reindex(self.index))
-
+                if value.index.equals(self.index):
+                    # no need to copy
+                    value = value.values
+                else:
+                    value = value.reindex(self.index).values
             else:
                 assert(len(value) == len(self.index))
 
