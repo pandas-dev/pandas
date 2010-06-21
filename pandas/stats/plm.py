@@ -121,8 +121,8 @@ class PanelOLS(OLS):
             x_filtered = x_filtered.filter(x_filtered.items - self._x_effects)
 
         if self._time_effects:
-            x_regressor = x.subtract(x.mean(broadcast=True))
-            y_regressor = y.subtract(y.mean(broadcast=True))
+            x_regressor = x.subtract(x.mean('minor', broadcast=True))
+            y_regressor = y.subtract(y.mean('minor', broadcast=True))
 
         elif self._intercept:
             # only add intercept when no time effects
@@ -897,7 +897,7 @@ def _xx_time_effects(x, y):
     """
     # X'X
     xx = np.dot(x.values.T, x.values)
-    xt = x.sum().values
+    xt = x.sum('minor').values
 
     count = y.count()
     selector = count > 0

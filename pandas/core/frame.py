@@ -951,8 +951,8 @@ class DataFrame(Picklable, Groupable):
         typeHierarchy = [
             (float, float),
             (int, float),
-            (bool, np.bool_),
-            (np.bool_, np.bool_),
+            (bool, float),
+            (np.bool_, float),
             (basestring, object),
             (object, object)
         ]

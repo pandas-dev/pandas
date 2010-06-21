@@ -282,7 +282,7 @@ class DataMatrix(DataFrame):
                 if issubclass(mat.dtype.type, np.int_):
                     mat = mat.astype(float)
                 elif issubclass(mat.dtype.type, np.bool_):
-                    mat = mat.astype(object)
+                    mat = mat.astype(float)
 
                 common.null_out_axis(mat, notmask, 0)
 
@@ -322,7 +322,7 @@ class DataMatrix(DataFrame):
                 if issubclass(mat.dtype.type, np.int_):
                     mat = mat.astype(float)
                 elif issubclass(mat.dtype.type, np.bool_):
-                    mat = mat.astype(object)
+                    mat = mat.astype(float)
 
                 common.null_out_axis(mat, notmask, 1)
 

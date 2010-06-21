@@ -194,11 +194,11 @@ class TestDataMatrix(test_frame.TestDataFrame):
                            columns=[0, 2])
 
         reindexed = frame.reindex(np.arange(10))
-        self.assert_(reindexed.values.dtype == np.object_)
+        self.assert_(reindexed.values.dtype == np.float_)
         self.assert_(np.isnan(reindexed[0][1]))
 
         reindexed = frame.reindex(columns=range(3))
-        self.assert_(reindexed.values.dtype == np.object_)
+        self.assert_(reindexed.values.dtype == np.float_)
         self.assert_(isnull(reindexed[1]).all())
 
     def test_reindex_objects(self):
