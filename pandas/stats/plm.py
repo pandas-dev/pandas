@@ -239,7 +239,7 @@ class PanelOLS(OLS):
 
         self.log('-- Adding entity fixed effect dummies')
 
-        dummies = panel.getAxisDummies(axis='minor')
+        dummies = panel.get_axis_dummies(axis='minor')
 
         if not self._use_all_dummies:
             if 'entity' in self._dropped_dummies:
@@ -276,7 +276,7 @@ class PanelOLS(OLS):
         for effect in self._x_effects:
             self.log('-- Adding fixed effect dummies for %s' % effect)
 
-            dummies = panel.getItemDummies(effect)
+            dummies = panel.get_dummies(effect)
 
             val_map = cat_mappings.get(effect)
             if val_map:

@@ -335,6 +335,14 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         assert_frame_equal(larger.getMajorXS(self.panel.major_axis[1]),
                            smaller.getMajorXS(smaller_major[0]))
 
+    def test_fill(self):
+        filled = self.panel.fill(0)
+        self.assert_(np.isfinite(filled.values).all())
+
+        filled = self.panel.fill(method='backfill')
+        assert_frame_equal(filled['ItemA'],
+                           self.panel['ItemA'].fill(method='backfill'))
+
     def test_combineFrame(self):
         def check_op(op, name):
             # items
@@ -520,9 +528,9 @@ class TestLongPanelIndex(unittest.TestCase):
         self.incon = LongPanelIndex(major_axis, minor_axis,
                                     major_labels, minor_labels)
 
-    def test_isConsistent(self):
-        self.assert_(self.index.isConsistent())
-        self.assert_(not self.incon.isConsistent())
+    def test_consistency(self):
+        self.assert_(self.index.consistent)
+        self.assert_(not self.incon.consistent)
 
         # need to construct an overflow
         major_axis = range(70000)
@@ -534,7 +542,7 @@ class TestLongPanelIndex(unittest.TestCase):
         index = LongPanelIndex(major_axis, minor_axis,
                                major_labels, minor_labels)
 
-        self.assert_(index.isConsistent())
+        self.assert_(index.consistent)
 
     def test_truncate(self):
         result = self.index.truncate(before=1)
@@ -742,26 +750,59 @@ class TestLongPanel(unittest.TestCase):
     def test_filter(self):
         pass
 
-    def test_getAxisDummies(self):
-        pass
+    def test_axis_dummies(self):
+        minor_dummies = self.panel.get_axis_dummies('minor')
+        self.assertEqual(len(minor_dummies.items),
+                         len(self.panel.minor_axis))
 
-    def test_getFrameDummies(self):
-        pass
+        major_dummies = self.panel.get_axis_dummies('major')
+        self.assertEqual(len(major_dummies.items),
+                         len(self.panel.major_axis))
 
-    def test_getItemDummies(self):
-        pass
+        mapping = {'A' : 'one',
+                   'B' : 'one',
+                   'C' : 'two',
+                   'D' : 'two'}
 
-    def test_applyToAxis(self):
-        pass
+        transformed = self.panel.get_axis_dummies('minor',
+                                                  transform=mapping.get)
+        self.assertEqual(len(transformed.items), 2)
+        self.assert_(np.array_equal(transformed.items, ['one', 'two']))
 
-    def test_mean(self):
-        pass
+        # TODO: test correctness
 
-    def test_sum(self):
-        pass
+    def test_get_dummies(self):
+        self.panel['Label'] = self.panel.index.minor_labels
+
+        minor_dummies = self.panel.get_axis_dummies('minor')
+        dummies = self.panel.get_dummies('Label')
+
+        self.assert_(np.array_equal(dummies.values, minor_dummies.values))
 
     def test_apply(self):
-        pass
+        # ufunc
+        applied = self.panel.apply(np.sqrt)
+        self.assert_(assert_almost_equal(
+                applied.values, np.sqrt(self.panel.values)))
+
+    def test_mean(self):
+        means = self.panel.mean('major')
+
+        # test versus WidePanel version
+        wide_means = self.panel.toWide().mean('major')
+        assert_frame_equal(means, wide_means)
+
+        means_broadcast = self.panel.mean('major', broadcast=True)
+        self.assert_(isinstance(means_broadcast, LongPanel))
+
+        # how to check correctness?
+
+    def test_sum(self):
+        sums = self.panel.sum('major')
+
+        # test versus WidePanel version
+        wide_sums = self.panel.toWide().sum('major')
+        assert_frame_equal(sums, wide_sums)
 
     def test_count(self):
         pass

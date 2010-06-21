@@ -14,6 +14,7 @@ from pandas.core.daterange import DateRange
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
 from pandas.core.series import Series
+import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
@@ -247,13 +248,16 @@ class DataFrame(Picklable, Groupable):
         data = np.genfromtxt(path, delimiter=delimiter, dtype=None,
                              skip_header=header, names=True)
 
-        field = data.dtype.names[index_col]
-        df = cls.fromRecords(data, indexField=field)
+        if index_col is not None:
+            field = data.dtype.names[index_col]
+            df = cls.fromRecords(data, indexField=field)
 
-        # have dates?
-        test_val = datetools.to_datetime(df.index[0])
-        if isinstance(test_val, datetime):
-            df = df.rename(index=datetools.to_datetime)
+            # have dates?
+            test_val = datetools.to_datetime(df.index[0])
+            if isinstance(test_val, datetime):
+                df = df.rename(index=datetools.to_datetime)
+        else:
+            df = cls.fromRecords(data, indexField=None)
 
         return df
 
@@ -921,9 +925,6 @@ class DataFrame(Picklable, Groupable):
         -------
         y : same type as calling instance
         """
-        if fillMethod:
-            fillMethod = fillMethod.upper()
-
         frame = self
 
         if index is not None:
@@ -944,9 +945,7 @@ class DataFrame(Picklable, Groupable):
         if len(self.index) == 0:
             return DataFrame(index=index)
 
-        fillVec, mask = tseries.getFillVec(self.index, index,
-                                           self.index.indexMap,
-                                           index.indexMap, method)
+        indexer, mask = common.get_indexer(self.index, index, method)
 
         # Maybe this is a bit much? Wish I had unit tests...
         typeHierarchy = [
@@ -972,7 +971,7 @@ class DataFrame(Picklable, Groupable):
             series = series.view(np.ndarray)
             for klass, dest in typeHierarchy:
                 if issubclass(series.dtype.type, klass):
-                    new = series.take(fillVec)
+                    new = series.take(indexer)
 
                     if need_cast:
                         new = new.astype(dest)
@@ -1427,12 +1426,12 @@ class DataFrame(Picklable, Groupable):
 
             return result
 
-        fillVec, mask = tseries.getMergeVec(self[on], other.index.indexMap)
+        indexer, mask = tseries.getMergeVec(self[on], other.index.indexMap)
 
         newSeries = {}
 
         for col, series in other.iteritems():
-            arr = series.view(np.ndarray).take(fillVec)
+            arr = series.view(np.ndarray).take(indexer)
             arr[-mask] = NaN
 
             newSeries[col] = arr
@@ -1903,4 +1902,3 @@ def _extract_index(data, index):
         index = Index(index)
 
     return index
-

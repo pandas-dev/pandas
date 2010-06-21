@@ -6,6 +6,7 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('core')
     config.add_subpackage('io')
     config.add_subpackage('lib')
+    config.add_subpackage('rpy')
     config.add_subpackage('sandbox')
     config.add_subpackage('stats')
     config.add_subpackage('util')

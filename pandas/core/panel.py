@@ -11,13 +11,12 @@ import sys
 
 import numpy as np
 
-from pandas.core.common import (_pickle_array, _unpickle_array,
-                                _pfixed, notnull, isnull)
 from pandas.core.groupby import GroupBy
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
 from pandas.core.mixins import Picklable
+import pandas.core.common as common
 import pandas.lib.tseries as tseries
 
 class PanelError(Exception):
@@ -32,6 +31,48 @@ def _arith_method(func, name):
                             'done with scalar values')
 
         return self._combine(other, func)
+
+    return f
+
+def _long_arith_method(op, name):
+    def f(self, other, axis='items'):
+        """
+        Wrapper method for %s
+
+        Parameters
+        ----------
+        other : DataFrame or Panel class
+        axis : {'items', 'major', 'minor'}
+
+        Returns
+        -------
+        LongPanel
+        """
+        return self._combine(other, op, axis=axis)
+
+    f.__name__ = name
+    f.__doc__ = f.__doc__ % str(op)
+
+    return f
+
+def _wide_arith_method(op, name):
+    def f(self, other, axis='items'):
+        """
+        Wrapper method for %s
+
+        Parameters
+        ----------
+        other : DataFrame or Panel class
+        axis : {'items', 'major', 'minor'}
+
+        Returns
+        -------
+        WidePanel
+        """
+        return self._combine(other, op, axis=axis)
+
+    f.__name__ = name
+    f.__doc__ = f.__doc__ % str(op)
 
     return f
 
@@ -70,7 +111,10 @@ class Panel(Picklable):
         minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
                                           self.minor_axis[-1])
 
-        items = 'Items: %s to %s' % (self.items[0], self.items[-1])
+        if len(self.items) > 0:
+            items = 'Items: %s to %s' % (self.items[0], self.items[-1])
+        else:
+            items = 'Items: None'
 
         output = '%s\n%s\n%s\n%s\n%s' % (class_name, dims, items, major, minor)
 
@@ -311,20 +355,20 @@ class WidePanel(Panel):
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
+        _pickle = common._pickle_array
 
-        return (_pickle_array(self.values),
-                _pickle_array(self.items),
-                _pickle_array(self.major_axis),
-                _pickle_array(self.minor_axis))
+        return (_pickle(self.values), _pickle(self.items),
+                _pickle(self.major_axis), _pickle(self.minor_axis))
 
     def __setstate__(self, state):
         "Unpickle the panel"
+        _unpickle = common._unpickle_array
         vals, items, major, minor = state
 
-        self.items = _unpickle_array(items)
-        self.major_axis = _unpickle_array(major)
-        self.minor_axis = _unpickle_array(minor)
-        self.values = _unpickle_array(vals)
+        self.items = _unpickle(items)
+        self.major_axis = _unpickle(major)
+        self.minor_axis = _unpickle(minor)
+        self.values = _unpickle(vals)
 
     def conform(self, frame, axis='items'):
         """
@@ -365,61 +409,37 @@ class WidePanel(Panel):
         result = self
 
         if major is not None:
-            result = result._reindex_major(major, fill_method)
+            result = result._reindex_axis(major, fill_method, 1)
 
         if minor is not None:
-            result = result._reindex_minor(minor, fill_method)
+            result = result._reindex_axis(minor, fill_method, 2)
 
         if items is not None:
-            result = result._reindex_items(items, fill_method)
+            result = result._reindex_axis(items, fill_method, 0)
 
         if result is self:
             raise Exception('Must specify at least one axis')
 
         return result
 
-    def _reindex_items(self, new_index, fill_method):
-        if self.items.equals(new_index):
+    def _reindex_axis(self, new_index, fill_method, axis):
+        old_index = self._get_axis(axis)
+
+        if old_index.equals(new_index):
             return self.copy()
 
         if not isinstance(new_index, Index):
             new_index = Index(new_index)
 
-        indexer, mask = _get_indexer(self.items, new_index, fill_method)
+        indexer, mask = common.get_indexer(old_index, new_index, fill_method)
 
-        new_values = self.values.take(indexer, axis=0)
-        new_values[-mask] = np.NaN
+        new_values = self.values.take(indexer, axis=axis)
+        common.null_out_axis(new_values, -mask, axis)
 
-        return WidePanel(new_values, new_index, self.major_axis,
-                         self.minor_axis)
+        new_axes = [self._get_axis(i) for i in range(3)]
+        new_axes[axis] = new_index
 
-    def _reindex_major(self, new_index, fill_method):
-        if self.major_axis.equals(new_index):
-            return self.copy()
-
-        if not isinstance(new_index, Index):
-            new_index = Index(new_index)
-
-        indexer, mask = _get_indexer(self.major_axis, new_index, fill_method)
-
-        new_values = self.values.take(indexer, axis=1)
-        new_values[:, -mask, :] = np.NaN
-
-        return WidePanel(new_values, self.items, new_index, self.minor_axis)
-
-    def _reindex_minor(self, new_index, fill_method):
-        if self.minor_axis.equals(new_index):
-            return self.copy()
-
-        if not isinstance(new_index, Index):
-            new_index = Index(new_index)
-
-        indexer, mask = _get_indexer(self.minor_axis, new_index, fill_method)
-
-        new_values = self.values.take(indexer, axis=2)
-        new_values[:, :, -mask] = np.NaN
-
-        return WidePanel(new_values, self.items, self.major_axis, new_index)
+        return WidePanel(new_values, *new_axes)
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
@@ -484,10 +504,8 @@ class WidePanel(Panel):
             return WidePanel.fromDict(result)
         else:
             # Float type values
-            if len(self.items) == 0:
-                return self
             vals = self.values.copy()
-            vals.flat[isnull(vals.ravel())] = value
+            vals.flat[common.isnull(vals.ravel())] = value
 
             return WidePanel(vals, self.items, self.major_axis,
                              self.minor_axis)
@@ -509,29 +527,10 @@ class WidePanel(Panel):
 
         return WidePanel(result_values, items, major, minor)
 
-    def add(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.add, axis=axis)
-
-    def subtract(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.sub, axis=axis)
-
-    def multiply(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.mul, axis=axis)
-
-    def divide(self, other, axis='major'):
-        """
-
-        """
-        return self._combine(other, operator.div, axis=axis)
+    add = _wide_arith_method(operator.add, 'add')
+    subtract = _wide_arith_method(operator.sub, 'subtract')
+    divide = _wide_arith_method(operator.div, 'divide')
+    multiply = _wide_arith_method(operator.mul, 'multiply')
 
     def getMajorXS(self, key):
         """
@@ -866,7 +865,7 @@ class WidePanel(Panel):
         y : DataMatrix
         """
         def f(arr):
-            return tseries.median(arr[notnull(arr)])
+            return tseries.median(arr[common.notnull(arr)])
 
         return self.apply(f, axis=axis)
 
@@ -977,28 +976,6 @@ class WidePanel(Panel):
 
 #-------------------------------------------------------------------------------
 # LongPanel and friends
-
-
-def _long_arith_method(op, name):
-    def f(self, other, axis='items'):
-        """
-        Wrapper method for %s
-
-        Parameters
-        ----------
-        other : DataFrame or Panel class
-        axis : {'items', 'major', 'minor'}
-
-        Returns
-        -------
-        LongPanel
-        """
-        return self._combine(other, op, axis=axis)
-
-    f.__name__ = name
-    f.__doc__ = f.__doc__ % str(op)
-
-    return f
 
 
 class LongPanel(Panel):
@@ -1166,6 +1143,10 @@ class LongPanel(Panel):
         if np.isscalar(value):
             mat = np.empty((len(self.values), 1), dtype=float)
             mat.fill(value)
+        elif isinstance(value, np.ndarray):
+            mat = value
+#             if value.ndim == 1:
+#                 value = value.reshape((len(value), 1))
         elif isinstance(value, LongPanel):
             if len(value.items) > 1:
                 raise Exception('input LongPanel must only have one column')
@@ -1183,17 +1164,17 @@ class LongPanel(Panel):
     def __getstate__(self):
         "Returned pickled representation of the panel"
 
-        return (_pickle_array(self.values),
-                _pickle_array(self.items),
+        return (common._pickle_array(self.values),
+                common._pickle_array(self.items),
                 self.index)
 
     def __setstate__(self, state):
         "Unpickle the panel"
         (vals, items, index) = state
 
-        self.items = _unpickle_array(items)
+        self.items = common._unpickle_array(items)
         self.index = index
-        self.values = _unpickle_array(vals)
+        self.values = common._unpickle_array(vals)
 
     def _combine(self, other, func, axis='items'):
         if isinstance(other, DataFrame):
@@ -1287,7 +1268,7 @@ class LongPanel(Panel):
         -------
         WidePanel
         """
-        if not self.index.isConsistent():
+        if not self.index.consistent:
             raise PanelError('Panel has duplicate (major, minor) pairs, '
                              'cannot be reliably converted to wide format.')
 
@@ -1321,20 +1302,21 @@ class LongPanel(Panel):
         """
         Output a screen-friendly version of this Panel
         """
+        _pf = common._pfixed
         major_space = max(max([len(str(idx))
                                for idx in self.major_axis]) + 4, 9)
         minor_space = max(max([len(str(idx))
                                for idx in self.minor_axis]) + 4, 9)
 
         def format_cols(items):
-            return '%s%s%s' % (_pfixed('Major', major_space),
-                               _pfixed('Minor', minor_space),
-                               ''.join(_pfixed(h, col_space) for h in items))
+            return '%s%s%s' % (_pf('Major', major_space),
+                               _pf('Minor', minor_space),
+                               ''.join(_pf(h, col_space) for h in items))
 
         def format_row(major, minor, values):
-            return '%s%s%s' % (_pfixed(major, major_space),
-                               _pfixed(minor, minor_space),
-                               ''.join(_pfixed(v, col_space) for v in values))
+            return '%s%s%s' % (_pf(major, major_space),
+                               _pf(minor, minor_space),
+                               ''.join(_pf(v, col_space) for v in values))
 
         self._textConvert(buffer, format_cols, format_row)
 
@@ -1394,7 +1376,7 @@ class LongPanel(Panel):
         -------
         LongPanel
         """
-        left, right = self.index.getMajorBounds(before, after)
+        left, right = self.index.get_major_bounds(before, after)
         new_index = self.index.truncate(before, after)
 
         return LongPanel(self.values[left : right],
@@ -1418,8 +1400,8 @@ class LongPanel(Panel):
         new_values = self.values.take(indexer, axis=1)
         return LongPanel(new_values, intersection, self.index)
 
-    def getAxisDummies(self, axis='minor', transform=None,
-                       prefix=None):
+    def get_axis_dummies(self, axis='minor', transform=None,
+                         prefix=None):
         """
         Construct 1-0 dummy variables corresponding to designated axis
         labels
@@ -1433,8 +1415,8 @@ class LongPanel(Panel):
             get "day of week" dummies in a time series regression you might
             call:
 
-                panel.getAxisDummies(axis='major',
-                                     transform=lambda d: d.weekday())
+                panel.get_axis_dummies(axis='major',
+                                       transform=lambda d: d.weekday())
         Returns
         -------
         LongPanel, item names taken from chosen axis
@@ -1454,7 +1436,7 @@ class LongPanel(Panel):
             mapped = np.array([transform(val) for val in items])
 
             items = np.array(sorted(set(mapped)))
-            labels = mapped[labels]
+            labels = items.searchsorted(mapped[labels])
             dim = len(items)
 
         values = np.eye(dim, dtype=float)
@@ -1469,29 +1451,7 @@ class LongPanel(Panel):
 
         return result
 
-    def getFrameDummies(self, dataFrame, axis='minor', prefix=None):
-        """
-
-        Returns
-        -------
-        LongPanel
-        """
-        if axis == 'minor':
-            dataFrame = dataFrame.reindex(self.minor_axis)
-            labels = self.index.minor_labels
-        elif axis == 'major':
-            dataFrame = dataFrame.reindex(self.major_axis)
-            labels = self.index.major_labels
-
-        values = dataFrame.values.take(labels, axis=0)
-        result = LongPanel(values, dataFrame.columns, self.index)
-
-        if prefix is not None:
-            result = result.addPrefix(prefix)
-
-        return result
-
-    def getItemDummies(self, item):
+    def get_dummies(self, item):
         """
         Use unique values in column of panel to construct LongPanel
         containing dummy
@@ -1517,7 +1477,13 @@ class LongPanel(Panel):
 
         return LongPanel(dummy_mat, distinct_values, self.index)
 
-    def applyToAxis(self, f, axis='major', broadcast=False):
+    def mean(self, axis='major', broadcast=False):
+        return self.apply(lambda x: np.mean(x, axis=0), axis, broadcast)
+
+    def sum(self, axis='major', broadcast=False):
+        return self.apply(lambda x: np.sum(x, axis=0), axis, broadcast)
+
+    def apply(self, f, axis='major', broadcast=False):
         """
         Aggregate over a particular axis
 
@@ -1534,9 +1500,17 @@ class LongPanel(Panel):
         broadcast=True  -> LongPanel
         broadcast=False -> DataMatrix
         """
-        if axis == 'minor':
+        try:
+            return self._apply_axis(f, axis=axis, broadcast=broadcast)
+        except Exception:
+            # ufunc
+            new_values = f(self.values)
+            return LongPanel(new_values, self.items, self.index)
+
+    def _apply_axis(self, f, axis='major', broadcast=False):
+        if axis == 'major':
             panel = self.swapaxes()
-            result = panel.applyToAxis(f, axis='major', broadcast=broadcast)
+            result = panel._apply_axis(f, axis='minor', broadcast=broadcast)
             if broadcast:
                 result = result.swapaxes()
 
@@ -1556,17 +1530,6 @@ class LongPanel(Panel):
                                columns=self.items)
 
         return panel
-
-    def mean(self, axis='major', broadcast=False):
-        return self.applyToAxis(lambda x: np.mean(x, axis=0),
-                                axis, broadcast)
-
-    def sum(self, axis='major', broadcast=False):
-        return self.applyToAxis(lambda x: np.sum(x, axis=0),
-                                axis, broadcast)
-
-    def apply(self, f):
-        return LongPanel(f(self.values), self.items, self.index)
 
     def count(self, axis=0):
         if axis == 0:
@@ -1609,7 +1572,7 @@ class LongPanel(Panel):
         ----
         does *not* copy values matrix
         """
-        new_items = [_makeItemName(item, prefix) for item in self.items]
+        new_items = [_prefix_item(item, prefix) for item in self.items]
 
         return LongPanel(self.values, new_items, self.index)
 
@@ -1637,21 +1600,25 @@ class LongPanelIndex(object):
         return len(self.major_labels)
 
     def __getstate__(self):
-        return (_pickle_array(self.major_axis),
-                _pickle_array(self.minor_axis),
-                _pickle_array(self.major_labels),
-                _pickle_array(self.minor_labels))
+        _pickle = common._pickle_array
+        return (_pickle(self.major_axis),
+                _pickle(self.minor_axis),
+                _pickle(self.major_labels),
+                _pickle(self.minor_labels))
 
     def __setstate__(self, state):
+        _unpickle = common._unpickle_array
+
         major, minor, major_labels, minor_labels = state
 
-        self.major_axis = _unpickle_array(major)
-        self.minor_axis = _unpickle_array(minor)
+        self.major_axis = _unpickle(major)
+        self.minor_axis = _unpickle(minor)
 
-        self.major_labels = _unpickle_array(major_labels)
-        self.minor_labels = _unpickle_array(minor_labels)
+        self.major_labels = _unpickle(major_labels)
+        self.minor_labels = _unpickle(minor_labels)
 
-    def isConsistent(self):
+    @property
+    def consistent(self):
         offset = max(len(self.major_axis), len(self.minor_axis))
 
         # overflow risk
@@ -1685,15 +1652,15 @@ class LongPanelIndex(object):
         -------
         LongPanelIndex
         """
-        i, j = self._getAxisBounds(before, after)
-        left, right = self._getLabelBounds(i, j)
+        i, j = self._get_axis_bounds(before, after)
+        left, right = self._get_label_bounds(i, j)
 
         return LongPanelIndex(self.major_axis[i : j],
                               self.minor_axis,
                               self.major_labels[left : right] - i,
                               self.minor_labels[left : right])
 
-    def getMajorBounds(self, begin=None, end=None):
+    def get_major_bounds(self, begin=None, end=None):
         """
         Return index bounds for slicing LongPanel labels and / or
         values
@@ -1708,12 +1675,12 @@ class LongPanelIndex(object):
         y : tuple
             (left, right) absolute bounds on LongPanel values
         """
-        i, j = self._getAxisBounds(begin, end)
-        left, right = self._getLabelBounds(i, j)
+        i, j = self._get_axis_bounds(begin, end)
+        left, right = self._get_label_bounds(i, j)
 
         return left, right
 
-    def _getAxisBounds(self, begin, end):
+    def _get_axis_bounds(self, begin, end):
         """
         Return major axis locations corresponding to interval values
         """
@@ -1738,7 +1705,7 @@ class LongPanelIndex(object):
 
         return i, j
 
-    def _getLabelBounds(self, i, j):
+    def _get_label_bounds(self, i, j):
         "Return slice points between two major axis locations"
 
         left = self._bounds[i]
@@ -1862,6 +1829,10 @@ def group_agg(values, bounds, f):
         N, K = values.shape
         result = np.empty((len(bounds), K), dtype=float)
 
+    testagg = f(values[:min(1, len(values))])
+    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
+        raise Exception('Passed function does not aggregate!')
+
     for i, left_bound in enumerate(bounds):
         if i == len(bounds) - 1:
             right_bound = N
@@ -1872,16 +1843,7 @@ def group_agg(values, bounds, f):
 
     return result
 
-def _get_indexer(source, target, fill_method):
-    if fill_method:
-        fill_method = fill_method.upper()
-
-    indexer, mask = tseries.getFillVec(source, target, source.indexMap,
-                                       target.indexMap, fill_method)
-
-    return indexer, mask
-
-def _makeItemName(item, prefix=None):
+def _prefix_item(item, prefix=None):
     if prefix is None:
         return item
 
@@ -2030,6 +1992,9 @@ def _slow_pivot(index, columns, values):
 
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
+
+#-------------------------------------------------------------------------------
+# GroupBy
 
 class WidePanelGroupBy(GroupBy):
 

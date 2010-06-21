@@ -534,9 +534,9 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         result = self
         if lower is not None:
-            result = result.caplower(lower)
+            result = result.clip_lower(lower)
         if upper is not None:
-            result = result.capupper(upper)
+            result = result.clip_upper(upper)
 
         return result
 
@@ -704,59 +704,44 @@ class Series(np.ndarray, Picklable, Groupable):
         idx = np.arange(len(self))
         if missingAtEnd:
             n = sum(good)
-            sortedIdx[:n] = idx[good][arr[good].argsort()]
+            sortedIdx[:n] = idx[good][arr[good].argsort(kind='mergesort')]
             sortedIdx[n:] = idx[bad]
         else:
             n = sum(bad)
-            sortedIdx[n:] = idx[good][arr[good].argsort()]
+            sortedIdx[n:] = idx[good][arr[good].argsort(kind='mergesort')]
             sortedIdx[:n] = idx[bad]
 
         return Series(arr[sortedIdx], index=self.index[sortedIdx])
 
-    def map(self, func):
+    def map(self, arg):
         """
-        Apply input Python function element-wise to each element of
-        Series.
+        Map values of Series using input correspondence (which can be
+        a dict, Series, or function).
 
         Parameters
         ----------
-        func : function
-            Element-wise function to apply
+        arg : function, dict, or Series
 
         Returns
         -------
         y : Series
             same index as caller
         """
-        return Series([func(x) for x in self], index=self.index)
+        if isinstance(arg, (dict, Series)):
+            if isinstance(arg, dict):
+                arg = Series(arg)
 
-    def merge(self, other):
-        """
-        If self is {A}->{B} and other is another mapping of {B}->{C}
-        then returns a new Series that is {A}->{C}
+            indexer, mask = tseries.getMergeVec(self, arg.index.indexMap)
 
-        Parameters
-        ----------
-        other : dict or Series
+            newValues = arg.view(np.ndarray).take(indexer)
+            np.putmask(newValues, -mask, np.nan)
 
-        Returns
-        -------
-        Series having same index as calling instance, with values from
-        input Series
-        """
-        if isinstance(other, dict):
-            other = Series(other)
+            newSer = Series(newValues, index=self.index)
+            return newSer
+        else:
+            return Series([arg(x) for x in self], index=self.index)
 
-        if not isinstance(other, Series): # pragma: no cover
-            raise Exception('Argument must be a Series!')
-
-        fillVec, mask = tseries.getMergeVec(self, other.index.indexMap)
-
-        newValues = other.view(np.ndarray).take(fillVec)
-        np.putmask(newValues, -mask, np.nan)
-
-        newSer = Series(newValues, index=self.index)
-        return newSer
+    merge = map
 
     def reindex(self, newIndex, fillMethod=None):
         """Overloaded version of reindex for TimeSeries. Supports filling

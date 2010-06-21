@@ -1237,13 +1237,13 @@ class TestDataFrame(unittest.TestCase):
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
 
-    def test_cap_floor(self):
+    def test_clip(self):
         median = self.frame.median().median()
 
-        capped = self.frame.cap(median)
+        capped = self.frame.clip_upper(median)
         self.assert_(not (capped.values > median).any())
 
-        floored = self.frame.floor(median)
+        floored = self.frame.clip_lower(median)
         self.assert_(not (floored.values < median).any())
 
     def test_statistics(self):

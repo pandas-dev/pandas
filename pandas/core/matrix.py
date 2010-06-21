@@ -7,11 +7,11 @@ import sys
 from numpy import NaN
 import numpy as np
 
-from pandas.core.common import (_pfixed, _pickle_array, _unpickle_array,
-                                isnull)
+from pandas.core.common import (_pickle_array, _unpickle_array)
 from pandas.core.frame import DataFrame, _try_sort, _extract_index
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
+import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
@@ -273,11 +273,8 @@ class DataMatrix(DataFrame):
         if len(self.index) == 0:
             return DataMatrix(index=index, columns=self.columns)
 
-        fillVec, mask = tseries.getFillVec(self.index, index,
-                                           self.index.indexMap,
-                                           index.indexMap, method)
-
-        mat = self.values.take(fillVec, axis=0)
+        indexer, mask = common.get_indexer(self.index, index, method)
+        mat = self.values.take(indexer, axis=0)
 
         notmask = -mask
         if len(index) > 0:
@@ -287,7 +284,7 @@ class DataMatrix(DataFrame):
                 elif issubclass(mat.dtype.type, np.bool_):
                     mat = mat.astype(object)
 
-                mat[-mask] = NaN
+                common.null_out_axis(mat, notmask, 0)
 
         if self.objects is not None and len(self.objects.columns) > 0:
             newObjects = self.objects.reindex(index)
@@ -316,10 +313,7 @@ class DataMatrix(DataFrame):
             return DataMatrix(index=self.index, columns=columns,
                               objects=objects)
 
-        indexer, mask = tseries.getFillVec(self.columns, columns,
-                                           self.columns.indexMap,
-                                           columns.indexMap, None)
-
+        indexer, mask = common.get_indexer(self.columns, columns, None)
         mat = self.values.take(indexer, axis=1)
 
         notmask = -mask
@@ -330,7 +324,7 @@ class DataMatrix(DataFrame):
                 elif issubclass(mat.dtype.type, np.bool_):
                     mat = mat.astype(object)
 
-                mat[:, -mask] = NaN
+                common.null_out_axis(mat, notmask, 1)
 
         return DataMatrix(mat, index=self.index, columns=columns,
                           objects=objects)
@@ -777,6 +771,7 @@ class DataMatrix(DataFrame):
         """
         Output a string version of this DataMatrix
         """
+        _pf = common._pfixed
         formatters = formatters or {}
 
         if columns is None:
@@ -798,16 +793,16 @@ class DataMatrix(DataFrame):
             buffer.write('DataMatrix is empty!\n')
             buffer.write(repr(self.index))
         else:
-            buffer.write(_pfixed('', idxSpace))
+            buffer.write(_pf('', idxSpace))
             for h in columns:
-                buffer.write(_pfixed(h, colSpace))
+                buffer.write(_pf(h, colSpace))
             buffer.write('\n')
 
             for i, idx in enumerate(self.index):
-                buffer.write(_pfixed(idx, idxSpace))
+                buffer.write(_pf(idx, idxSpace))
                 for j, col in enumerate(columns):
                     formatter = formatters.get(col, ident)
-                    buffer.write(_pfixed(formatter(values[i, j]), colSpace,
+                    buffer.write(_pf(formatter(values[i, j]), colSpace,
                                          float_format=float_format,
                                          nanRep=nanRep))
                 buffer.write('\n')
@@ -838,7 +833,7 @@ class DataMatrix(DataFrame):
         columns = []
         for col, count in counts.iteritems():
             columns.append('%s%d  non-null values' %
-                           (_pfixed(col, space), count))
+                           (common._pfixed(col, space), count))
 
         dtypeLine = ''
 
@@ -1070,7 +1065,7 @@ class DataMatrix(DataFrame):
                 return self
 
             vals = self.values.copy()
-            vals.flat[isnull(vals.ravel())] = value
+            vals.flat[common.isnull(vals.ravel())] = value
 
             objects = None
 
@@ -1236,9 +1231,5 @@ class DataMatrix(DataFrame):
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 
 def _reorder_columns(mat, current, desired):
-    fillVec, mask = tseries.getFillVec(current, desired, current.indexMap,
-                                       desired.indexMap, None)
-
-    fillVec = fillVec[mask]
-
-    return mat.take(fillVec, axis=1)
+    indexer, mask = common.get_indexer(current, desired, None)
+    return mat.take(indexer[mask], axis=1)

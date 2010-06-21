@@ -553,16 +553,10 @@ Method summary
    Series.median
    Series.cumsum
    Series.cumprod
-
-Additionally, some other useful methods not present in ndarray are
-implemented:
-
-.. autosummary::
-   :toctree: generated/
-
+   Series.clip
+   Series.clip_upper
+   Series.clip_lower
    Series.corr
-   Series.cap
-   Series.floor
 
 Merging Series based on key
 ---------------------------

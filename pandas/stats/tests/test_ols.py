@@ -462,7 +462,7 @@ def _period_slice(panelModel, i):
     index = panelModel._x_trans.index
     period = index.major_axis[i]
 
-    L, R = index.getMajorBounds(period, period)
+    L, R = index.get_major_bounds(period, period)
 
     return slice(L, R)
 

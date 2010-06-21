@@ -3,7 +3,7 @@ from cStringIO import StringIO
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
-from pandas.lib.tseries import isnullobj, checknull
+import pandas.lib.tseries as tseries
 
 def isnull(input):
     '''
@@ -21,11 +21,11 @@ def isnull(input):
     if isinstance(input, np.ndarray):
         if input.dtype.kind in ('O', 'S'):
             result = input.astype(bool)
-            result[:] = isnullobj(input)
+            result[:] = tseries.isnullobj(input)
         else:
             result = -np.isfinite(input)
     else:
-        result = checknull(input)
+        result = tseries.checknull(input)
 
     return result
 
@@ -45,7 +45,7 @@ def notnull(input):
     if isinstance(input, np.ndarray):
         return -isnull(input)
     else:
-        return not checknull(input)
+        return not tseries.checknull(input)
 
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)
@@ -73,5 +73,22 @@ def _pfixed(s, space, nanRep=None, float_format=None):
     else:
         return str(s)[:space-4].ljust(space)
 
-#-------------------------------------------------------------------------------
-# Functions needed from scipy
+
+
+def get_indexer(source, target, fill_method):
+    if fill_method:
+        fill_method = fill_method.upper()
+
+    indexer, mask = tseries.getFillVec(source, target, source.indexMap,
+                                       target.indexMap, fill_method)
+
+    return indexer, mask
+
+def null_out_axis(arr, mask, axis):
+    if axis == 0:
+        arr[mask] = np.NaN
+    else:
+        indexer = [slice(None)] * arr.ndim
+        indexer[axis] = mask
+
+        arr[tuple(indexer)] = np.NaN

@@ -455,15 +455,14 @@ class TestSeries(unittest.TestCase):
     def test_toDict(self):
         self.assert_(np.array_equal(Series(self.ts.toDict()), self.ts))
 
-    def test_cap(self):
+    def test_clip(self):
         val = self.ts.median()
 
-        self.assertEqual(self.ts.cap(val).max(), val)
+        self.assertEqual(self.ts.clip_lower(val).min(), val)
+        self.assertEqual(self.ts.clip_upper(val).max(), val)
 
-    def test_floor(self):
-        val = self.ts.median()
-
-        self.assertEqual(self.ts.floor(val).min(), val)
+        self.assertEqual(self.ts.clip(lower=val).min(), val)
+        self.assertEqual(self.ts.clip(upper=val).max(), val)
 
     def test_valid(self):
         ts = self.ts.copy()
