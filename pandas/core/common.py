@@ -20,7 +20,8 @@ def isnull(input):
     '''
     if isinstance(input, np.ndarray):
         if input.dtype.kind in ('O', 'S'):
-            result = input.astype(bool)
+            # Working around NumPy ticket 1542
+            result = input.copy().astype(bool)
             result[:] = tseries.isnullobj(input)
         else:
             result = -np.isfinite(input)
@@ -62,7 +63,10 @@ def _unpickle_array(bytes):
 def _pfixed(s, space, nanRep=None, float_format=None):
     if isinstance(s, float):
         if nanRep is not None and isnull(s):
-            return nanRep.ljust(space)
+            if np.isnan(s):
+                return nanRep.ljust(space)
+            else:
+                return str(s).ljust(space)
 
         if float_format:
             formatted = float_format(s)

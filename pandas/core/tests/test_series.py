@@ -184,6 +184,7 @@ class TestSeries(unittest.TestCase):
     def test_repr(self):
         str(self.ts)
         str(self.series)
+        str(self.series.astype(int))
         str(self.objSeries)
 
         str(Series(common.randn(1000), index=np.arange(1000)))
@@ -442,6 +443,11 @@ class TestSeries(unittest.TestCase):
         result = ts.order(missingAtEnd=False)
         self.assert_(np.isnan(result[:5]).all())
         self.assert_(np.array_equal(result[5:], np.sort(vals[5:])))
+
+        # something object-type
+        ser = Series(['A', 'B'], [1, 2])
+        # no failure
+        ser.order()
 
     def test_map(self):
         result = self.ts.map(lambda x: x * 2)

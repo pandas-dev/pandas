@@ -7,8 +7,7 @@ from functools import wraps
 from numpy import NaN
 import numpy as np
 
-from pandas.core.api import (DataFrame, TimeSeries, DataMatrix,
-                             Series, notnull)
+from pandas.core.api import (DataFrame, DataMatrix, Series, notnull)
 import pandas.lib.tseries as tseries
 
 __all__ = ['rolling_count', 'rolling_sum', 'rolling_mean',
@@ -55,7 +54,7 @@ def rolling_count(arg, window, time_rule=None):
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
     """
-    types = (DataFrame, DataMatrix, TimeSeries)
+    types = (DataFrame, DataMatrix, Series)
     if time_rule is not None and isinstance(arg, types):
         # Conform to whatever frequency needed.
         arg = arg.asfreq(time_rule)
@@ -138,7 +137,7 @@ def _rollingMoment(arg, window, func, minp=None, time_rule=None):
     if minp is None:
         minp = window
 
-    types = (DataFrame, DataMatrix, TimeSeries)
+    types = (DataFrame, DataMatrix, Series)
     if time_rule is not None and isinstance(arg, types):
         # Conform to whatever frequency needed.
         arg = arg.asfreq(time_rule)
@@ -158,7 +157,7 @@ def _rollingMoment(arg, window, func, minp=None, time_rule=None):
             series[np.isinf(series)] = NaN
             output[col] = Series(func(series, window, minp=minp),
                                      index = series.index)
-    elif isinstance(arg, TimeSeries):
+    elif isinstance(arg, Series):
         arg[np.isinf(arg)] = NaN
         output = Series(func(arg, window, minp=minp), index=arg.index)
     else:
@@ -204,11 +203,7 @@ def _ewmoment(values, func, min_periods=None, biasCorrection=None):
     -------
     Same type and length as values argument
     """
-    isSeries = isinstance(values, Series)
     okLocs = notnull(values)
-
-    if isSeries:
-        index = values.index
 
     cleanValues = values[okLocs]
 
@@ -257,7 +252,7 @@ def ewma(arg, com, minCom=0):
         result = Series(result, index=arg.index)
         return result
 
-    if isinstance(arg, TimeSeries):
+    if isinstance(arg, Series):
         output = ewmaFunc(arg)
     elif isinstance(arg, DataFrame):
         output = arg.apply(ewmaFunc)

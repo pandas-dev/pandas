@@ -803,8 +803,8 @@ class DataMatrix(DataFrame):
                 for j, col in enumerate(columns):
                     formatter = formatters.get(col, ident)
                     buffer.write(_pf(formatter(values[i, j]), colSpace,
-                                         float_format=float_format,
-                                         nanRep=nanRep))
+                                     float_format=float_format,
+                                     nanRep=nanRep))
                 buffer.write('\n')
 
     def info(self, buffer=sys.stdout):

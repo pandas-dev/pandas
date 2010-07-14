@@ -287,3 +287,16 @@ class DateRange(Index):
         start = self[0] + n * self.offset
         end = self[-1] + n * self.offset
         return DateRange(start, end, offset=self.offset)
+
+    def union(self, other):
+        if isinstance(other, DateRange) and other.offset == self.offset:
+            # overlap condition
+            if self[-1] >= other[0] or other[-1] >= self[0]:
+                start = min(self[0], other[0])
+                end = max(self[-1], other[-1])
+
+                return DateRange(start, end, offset=self.offset)
+            else:
+                return Index.union(self, other)
+        else:
+            return Index.union(self, other)

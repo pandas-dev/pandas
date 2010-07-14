@@ -695,6 +695,14 @@ class Series(np.ndarray, Picklable, Groupable):
         y : Series
             sorted by values
         """
+        def _try_mergesort(arr):
+            # easier to ask forgiveness than permission
+            try:
+                return arr.argsort(kind='mergesort')
+            except TypeError:
+                # stable sort not available for object dtype
+                return arr.argsort()
+
         arr = self.values
         sortedIdx = np.empty(len(self), dtype=np.int32)
 
@@ -704,11 +712,11 @@ class Series(np.ndarray, Picklable, Groupable):
         idx = np.arange(len(self))
         if missingAtEnd:
             n = sum(good)
-            sortedIdx[:n] = idx[good][arr[good].argsort(kind='mergesort')]
+            sortedIdx[:n] = idx[good][_try_mergesort(arr[good])]
             sortedIdx[n:] = idx[bad]
         else:
             n = sum(bad)
-            sortedIdx[n:] = idx[good][arr[good].argsort(kind='mergesort')]
+            sortedIdx[n:] = idx[good][_try_mergesort(arr[good])]
             sortedIdx[:n] = idx[bad]
 
         return Series(arr[sortedIdx], index=self.index[sortedIdx])
@@ -1145,13 +1153,16 @@ def _seriesRepr(index, vals, nanRep='NaN'):
     if vals.dtype == np.object_:
         def _format(k, v):
             return '%s    %s' % (str(k).ljust(padSpace), v)
-    else:
+    elif vals.dtype == np.float_:
         def _format(k, v):
-            if isnull(v):
+            if np.isnan(v):
                 v = nanRep
             else:
                 v = str(v)
 
+            return '%s    %s' % (str(k).ljust(padSpace), v)
+    else:
+        def _format(k, v):
             return '%s    %s' % (str(k).ljust(padSpace), v)
 
     it = itertools.starmap(_format,
