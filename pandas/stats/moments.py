@@ -10,10 +10,54 @@ import numpy as np
 from pandas.core.api import (DataFrame, DataMatrix, Series, notnull)
 import pandas.lib.tseries as tseries
 
-__all__ = ['rolling_count', 'rolling_sum', 'rolling_mean',
-           'rolling_std', 'rolling_cov', 'rolling_corr',
-           'rolling_var', 'rolling_skew', 'rolling_kurt',
+__all__ = ['rolling_count', 'rolling_max', 'rolling_min',
+           'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
+           'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
            'rolling_median', 'ewma', 'ewmvol', 'ewmcorr', 'ewmcov']
+
+
+#-------------------------------------------------------------------------------
+# Python interface to Cython functions
+
+def _check_arg(arg):
+    if not issubclass(arg.dtype.type, float):
+        arg = arg.astype(float)
+
+    return arg
+
+def _two_periods(minp, window):
+    if minp is None:
+        return window
+    else:
+        return max(2, minp)
+
+def _use_window(minp, window):
+    if minp is None:
+        return window
+    else:
+        return minp
+
+def _wrap_cython(f, check_minp=_use_window):
+    def wrapper(arg, window, minp=None):
+        minp = check_minp(minp, window)
+        arg = _check_arg(arg)
+        return f(arg, window, minp)
+
+    return wrapper
+
+_rolling_sum = _wrap_cython(tseries.roll_sum)
+_rolling_max = _wrap_cython(tseries.roll_max)
+_rolling_min = _wrap_cython(tseries.roll_min)
+_rolling_mean = _wrap_cython(tseries.roll_mean)
+_rolling_median = _wrap_cython(tseries.roll_median)
+_rolling_var = _wrap_cython(tseries.roll_var, check_minp=_two_periods)
+_rolling_skew = _wrap_cython(tseries.roll_skew, check_minp=_two_periods)
+_rolling_kurt = _wrap_cython(tseries.roll_kurt, check_minp=_two_periods)
+_rolling_std = lambda *a, **kw: np.sqrt(_rolling_var(*a, **kw))
+
+def _ewma(arg, com):
+    arg = _check_arg(arg)
+    return tseries.ewma(arg, com)
 
 #-------------------------------------------------------------------------------
 # Rolling statistics
@@ -38,7 +82,7 @@ y : type of input argument
 def _rolling_func(func, desc):
     @wraps(func)
     def f(arg, window, min_periods=None, time_rule=None):
-        return _rollingMoment(arg, window, func, minp=min_periods,
+        return _rollingMoment(arg, window, func, min_periods,
                               time_rule=time_rule)
 
     f.__doc__ = _doc_template % desc
@@ -112,16 +156,18 @@ def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
             rolling_std(arg2, window, min_periods, time_rule))
     return num / den
 
-rolling_sum = _rolling_func(tseries.rolling_sum, 'Moving sum')
-rolling_mean = _rolling_func(tseries.rolling_mean, 'Moving mean')
-rolling_median = _rolling_func(tseries.rolling_median, 'Moving median')
-rolling_std = _rolling_func(tseries.rolling_std,
+rolling_max = _rolling_func(_rolling_max, 'Moving maximum')
+rolling_min = _rolling_func(_rolling_min, 'Moving minimum')
+rolling_sum = _rolling_func(_rolling_sum, 'Moving sum')
+rolling_mean = _rolling_func(_rolling_mean, 'Moving mean')
+rolling_median = _rolling_func(_rolling_median, 'Moving median')
+rolling_std = _rolling_func(_rolling_std,
                             'Unbiased moving standard deviation')
-rolling_var = _rolling_func(tseries.rolling_var, 'Unbiased moving variance')
-rolling_skew = _rolling_func(tseries.rolling_skew, 'Unbiased moving skewness')
-rolling_kurt = _rolling_func(tseries.rolling_kurt, 'Unbiased moving kurtosis')
+rolling_var = _rolling_func(_rolling_var, 'Unbiased moving variance')
+rolling_skew = _rolling_func(_rolling_skew, 'Unbiased moving skewness')
+rolling_kurt = _rolling_func(_rolling_kurt, 'Unbiased moving kurtosis')
 
-def _rollingMoment(arg, window, func, minp=None, time_rule=None):
+def _rollingMoment(arg, window, func, minp, time_rule=None):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -134,9 +180,6 @@ def _rollingMoment(arg, window, func, minp=None, time_rule=None):
     minp : int
         Minimum number of observations required to have a value
     """
-    if minp is None:
-        minp = window
-
     types = (DataFrame, DataMatrix, Series)
     if time_rule is not None and isinstance(arg, types):
         # Conform to whatever frequency needed.
@@ -156,7 +199,7 @@ def _rollingMoment(arg, window, func, minp=None, time_rule=None):
         for col, series in arg.iteritems():
             series[np.isinf(series)] = NaN
             output[col] = Series(func(series, window, minp=minp),
-                                     index = series.index)
+                                 index=series.index)
     elif isinstance(arg, Series):
         arg[np.isinf(arg)] = NaN
         output = Series(func(arg, window, minp=minp), index=arg.index)
@@ -244,7 +287,7 @@ def ewma(arg, com, minCom=0):
     """
     def ewmaFunc(series):
         series[np.isinf(series)] = NaN
-        result = tseries.ewma(series, com)
+        result = _ewma(series, com)
 
         firstIndex = np.arange(len(series))[notnull(series)][0]
 
@@ -257,7 +300,7 @@ def ewma(arg, com, minCom=0):
     elif isinstance(arg, DataFrame):
         output = arg.apply(ewmaFunc)
     else:
-        output = tseries.ewma(arg, com)
+        output = _ewma(arg, com)
         firstIndex = np.arange(len(arg))[notnull(arg)][0]
         output[firstIndex : firstIndex + minCom * com] = NaN
 

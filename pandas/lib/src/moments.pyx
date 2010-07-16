@@ -70,7 +70,7 @@ def median(ndarray arr):
 #-------------------------------------------------------------------------------
 # Rolling sum
 
-def _roll_sum(ndarray[double_t, ndim=1] input,
+def roll_sum(ndarray[double_t, ndim=1] input,
               int win, int minp):
     cdef double val, prev, sum_x = 0
     cdef int nobs = 0, i
@@ -114,7 +114,7 @@ def _roll_sum(ndarray[double_t, ndim=1] input,
 #-------------------------------------------------------------------------------
 # Rolling mean
 
-def _roll_mean(ndarray[double_t, ndim=1] input,
+def roll_mean(ndarray[double_t, ndim=1] input,
                int win, int minp):
     cdef double val, prev, sum_x = 0
     cdef int nobs = 0, i
@@ -158,8 +158,8 @@ def _roll_mean(ndarray[double_t, ndim=1] input,
 #-------------------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def _ewma(ndarray[double_t, ndim=1] input,
-          int com):
+def ewma(ndarray[double_t, ndim=1] input,
+         int com):
     cdef double cur, prev, neww, oldw, adj
     cdef int i
     cdef int N = len(input)
@@ -197,7 +197,7 @@ def _ewma(ndarray[double_t, ndim=1] input,
 #-------------------------------------------------------------------------------
 # Rolling variance
 
-def _roll_var(ndarray[double_t, ndim=1] input,
+def roll_var(ndarray[double_t, ndim=1] input,
               int win, int minp):
     cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
     cdef int i
@@ -244,7 +244,7 @@ def _roll_var(ndarray[double_t, ndim=1] input,
 #-------------------------------------------------------------------------------
 # Rolling skewness
 
-def _roll_skew(ndarray[double_t, ndim=1] input,
+def roll_skew(ndarray[double_t, ndim=1] input,
                int win, int minp):
     cdef double val, prev
     cdef double x = 0, xx = 0, xxx = 0
@@ -307,7 +307,7 @@ def _roll_skew(ndarray[double_t, ndim=1] input,
 # Rolling kurtosis
 
 
-def _roll_kurt(ndarray[double_t, ndim=1] input,
+def roll_kurt(ndarray[double_t, ndim=1] input,
                int win, int minp):
     cdef double val, prev
     cdef double x = 0, xx = 0, xxx = 0, xxxx = 0
@@ -376,16 +376,17 @@ def _roll_kurt(ndarray[double_t, ndim=1] input,
     return output
 
 #-------------------------------------------------------------------------------
-# Rolling median
+# Rolling median, min, max
 
-def _roll_median(ndarray[double_t, ndim=1] input,
-                 int win, int minp):
+ctypedef double_t (* skiplist_f)(IndexableSkiplist sl, int n, int p)
 
+cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
+    cdef ndarray[double_t, ndim=1] input = arg
     cdef double val, prev, midpoint
     cdef IndexableSkiplist skiplist
     cdef int nobs = 0, i
-    cdef int N = len(input)
 
+    cdef int N = len(input)
     cdef ndarray[double_t, ndim=1] output = np.empty(N, dtype=float)
 
     skiplist = IndexableSkiplist(win)
@@ -417,147 +418,42 @@ def _roll_median(ndarray[double_t, ndim=1] input,
             nobs += 1
             skiplist.insert(val)
 
-        if nobs >= minp:
-            midpoint = nobs / 2
-            if nobs % 2:
-                output[i] = skiplist.get(midpoint)
-            else:
-                output[i] = (skiplist.get(midpoint) +
-                             skiplist.get(midpoint - 1)) / 2
+        output[i] = op(skiplist, nobs, minp)
+
+    return output
+
+def roll_median(ndarray input, int win, int minp):
+    return _roll_skiplist_op(input, win, minp, _get_median)
+
+def roll_max(ndarray input, int win, int minp):
+    return _roll_skiplist_op(input, win, minp, _get_max)
+
+def roll_min(ndarray input, int win, int minp):
+    return _roll_skiplist_op(input, win, minp, _get_min)
+
+cdef double_t _get_median(IndexableSkiplist skiplist, int nobs,
+                          int minp):
+    cdef int midpoint
+    if nobs >= minp:
+        midpoint = nobs / 2
+        if nobs % 2:
+            return skiplist.get(midpoint)
         else:
-            output[i] = NaN
-
-    return output
-
-#-------------------------------------------------------------------------------
-# Rolling min / max
-
-def _roll_max(ndarray[double_t, ndim=1] input,
-              int win):
-    cdef double val
-    cdef int i, j
-    cdef int N = len(input)
-
-    cdef ndarray[double_t, ndim=1] output = np.empty(N, dtype=float)
-
-    for i from 0 <= i < win - 1:
-        output[i] = NaN
-
-    for i from win - 1 <= i < N:
-        val = input[i - win + 1]
-
-        for j from (i - win + 1) <= j <= i:
-            val = max(val, input[j])
-
-        output[j] = val
-
-    return output
-
-def _roll_min(ndarray[double_t, ndim=1] input,
-              int win):
-    cdef double val
-    cdef int i, j
-    cdef int N = len(input)
-
-    cdef ndarray[double_t, ndim=1] output = np.empty(N, dtype=float)
-
-    for i from 0 <= i < win - 1:
-        output[i] = NaN
-
-    for i from win - 1 <= i < N:
-        val = input[i - win + 1]
-
-        for j from (i - win + 1) <= j <= i:
-            val = min(val, input[j])
-
-        output[j] = val
-
-    return output
-
-#-------------------------------------------------------------------------------
-# Python interface
-
-def rolling_sum(ndarray input, window, minp=None):
-    '''
-    Compute rolling sum of input array
-
-    Parameters
-    ----------
-    input: ndarray
-    window: int
-    minp: int
-
-    Returns
-    -------
-    ndarray with length of input
-    '''
-    if minp is None:
-        minp = window
-
-    if not issubclass(input.dtype.type, float):
-        input = input.astype(float)
-
-    return _roll_sum(input, window, minp)
-
-def rolling_mean(ndarray input, window, minp=None):
-    if minp is None:
-        minp = window
-
-    if not issubclass(input.dtype.type, float):
-        input = input.astype(float)
-
-    return _roll_mean(input, window, minp)
-
-def rolling_median(ndarray input, window, minp=None):
-    if minp is None:
-        minp = window
-
-    if not issubclass(input.dtype.type, float):
-        input = input.astype(float)
-
-    return _roll_median(input, window, minp)
-
-def rolling_var(ndarray input, window, minp=None):
-    if minp is None:
-        minp = window
+            return (skiplist.get(midpoint) +
+                    skiplist.get(midpoint - 1)) / 2
     else:
-        minp = max(2, minp)
+        return NaN
 
-    if not issubclass(input.dtype.type, float):
-        input = input.astype(float)
-
-    return _roll_var(input, window, minp)
-
-def rolling_std(ndarray input, window, minp=None):
-    output = rolling_var(input, window, minp=minp)
-    return np.sqrt(output)
-
-def rolling_skew(ndarray input, window, minp=None):
-    if minp is None:
-        minp = window
+cdef double_t _get_max(IndexableSkiplist skiplist, int nobs,
+                       int minp):
+    if nobs >= minp:
+        return skiplist.get(nobs - 1)
     else:
-        minp = max(2, minp)
+        return NaN
 
-    if not issubclass(input.dtype.type, float):
-        input = input.astype(float)
-
-    return _roll_skew(input, window, minp)
-
-def rolling_kurt(ndarray input, window, minp=None):
-    if minp is None:
-        minp = window
+cdef double_t _get_min(IndexableSkiplist skiplist, int nobs,
+                       int minp):
+    if nobs >= minp:
+        return skiplist.get(0)
     else:
-        minp = max(2, minp)
-
-    if not issubclass(input.dtype.type, float):
-        input = input.astype(float)
-
-    return _roll_kurt(input, window, minp)
-
-def ewma(ndarray input, com):
-    N = len(input)
-
-    if not issubclass(input.dtype.type, float):
-        input = input.astype(float)
-
-    return _ewma(input, com)
+        return NaN

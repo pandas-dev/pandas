@@ -12,9 +12,9 @@ import numpy as np
 from pandas.core.api import DataFrame, DataMatrix, Series
 from pandas.core.panel import WidePanel
 from pandas.util.decorators import cache_readonly
-import pandas.lib.tseries as tseries
 import pandas.stats.common as common
 import pandas.stats.math as math
+import pandas.stats.moments as moments
 
 _FP_ERR = 1e-13
 
@@ -1070,8 +1070,8 @@ class MovingOLS(OLS):
 
     @cache_readonly
     def _window_time_obs(self):
-        window_obs = tseries.rolling_sum(self._time_obs_count > 0,
-                                         self._window, minp=1)
+        window_obs = moments._rolling_sum(self._time_obs_count > 0,
+                                          self._window, minp=1)
 
         window_obs[np.isnan(window_obs)] = 0
         return window_obs.astype(int)
@@ -1084,8 +1084,8 @@ class MovingOLS(OLS):
             # expanding case
             window = len(self._index)
 
-        result = tseries.rolling_sum(self._time_obs_count, window,
-                                     minp=1)
+        result = moments._rolling_sum(self._time_obs_count, window,
+                                      minp=1)
 
         return result.astype(int)
 
