@@ -60,6 +60,10 @@ def _unpickle_array(bytes):
     arr = read_array(StringIO(bytes))
     return arr
 
+def _to_str(x):
+    # str(x) fails when x contains unicode
+    return '%s' % x
+
 def _pfixed(s, space, nanRep=None, float_format=None):
     if isinstance(s, float):
         if nanRep is not None and isnull(s):
@@ -75,7 +79,7 @@ def _pfixed(s, space, nanRep=None, float_format=None):
 
         return formatted.ljust(space)
     else:
-        return str(s)[:space-4].ljust(space)
+        return _to_str(s)[:space].ljust(space)
 
 
 

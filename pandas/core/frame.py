@@ -681,6 +681,9 @@ class DataFrame(Picklable, Groupable):
         fillMethod : {'backfill', 'pad', None}
                     Method to use for filling holes in new inde
         """
+        if len(self.index) == 0:
+            return self.copy()
+
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
         else:

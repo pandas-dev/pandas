@@ -1139,7 +1139,7 @@ def _combine_rhs(rhs):
     if isinstance(rhs, Series):
         series['x'] = rhs
     elif isinstance(rhs, DataFrame):
-        series = rhs
+        series = rhs.copy()
     elif isinstance(rhs, dict):
         for name, value in rhs.iteritems():
             if isinstance(value, Series):
