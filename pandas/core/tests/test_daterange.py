@@ -100,6 +100,14 @@ class TestDateRange(unittest.TestCase):
         rng = DateRange(START, END, offset=datetools.bmonthEnd)
         shifted = rng.shift(1, offset=datetools.bday)
 
+    def test_pickle_unpickle(self):
+        import pickle
+
+        pickled = pickle.dumps(self.rng)
+        unpickled = pickle.loads(pickled)
+
+        self.assert_(unpickled.offset is not None)
+
 # DateRange test
 
 def testDateRange1():

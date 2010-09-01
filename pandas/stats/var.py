@@ -1,6 +1,5 @@
 from __future__ import division
 
-from itertools import izip
 import numpy as np
 
 from pandas.util.decorators import cache_readonly
@@ -110,8 +109,6 @@ class VAR(object):
         """
         from pandas.stats.api import ols
         from scipy.stats import f
-
-        params = self._k * self._p
 
         d = {}
         for col in self._columns:

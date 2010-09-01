@@ -168,6 +168,19 @@ class DateRange(Index):
 
         return index
 
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        a, b, state = Index.__reduce__(self)
+        aug_state = state, self.offset
+
+        return a, b, aug_state
+
+    def __setstate__(self, aug_state):
+        """Necessary for making this object picklable"""
+        state, offset = aug_state[:-1], aug_state[-1]
+
+        self.offset = offset
+        Index.__setstate__(self, *state)
 
     @property
     def _allDates(self):

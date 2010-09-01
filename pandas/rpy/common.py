@@ -3,9 +3,9 @@ import numpy as np
 from pandas import DataFrame, DataMatrix
 
 from rpy2.robjects.packages import importr
-import rpy2.robjects as robjects
+# import rpy2.robjects as robjects
 
-r = robjects.r
+# r = robjects.r
 
 def load_data(name, package=None):
     if package:

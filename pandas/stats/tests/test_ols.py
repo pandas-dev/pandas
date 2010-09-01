@@ -42,7 +42,6 @@ class TestOLS(BaseTest):
         self.checkDataSet(datasets.cpunish.Load(), skip_moving=True)
         self.checkDataSet(datasets.longley.Load(), skip_moving=True)
         self.checkDataSet(datasets.stackloss.Load(), skip_moving=True)
-
         self.checkDataSet(datasets.ccard.Load(), 39, 49) # one col in X all 0s
         self.checkDataSet(datasets.copper.Load())
         self.checkDataSet(datasets.scotland.Load())

@@ -3,7 +3,6 @@
 # pylint: disable-msg=W0232
 
 import numpy as np
-from pandas.core.datetools import DateOffset
 from pandas.lib.tseries import map_indices, isAllDates
 
 def _indexOp(opname):

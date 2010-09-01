@@ -76,13 +76,24 @@ def _wide_arith_method(op, name):
 
     return f
 
+class PanelAxis(object):
+
+    def __init__(self, cache_field):
+        self.cache_field = cache_field
+
+    def __get__(self, obj, type=None):
+        return getattr(obj, self.cache_field)
+
+    def __set__(self, obj, value):
+        if not isinstance(value, Index):
+            value = Index(value)
+
+        setattr(obj, self.cache_field, value)
+
 class Panel(Picklable):
     """
     Abstract superclass for LongPanel and WidePanel data structures
     """
-    _items = None
-    _major_axis = None
-    _minor_axis = None
     _values = None
     factors = None
 
@@ -97,6 +108,10 @@ class Panel(Picklable):
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
     __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
+
+    items = PanelAxis('_items')
+    major_axis = PanelAxis('_major_axis')
+    minor_axis = PanelAxis('_minor_axis')
 
     def __repr__(self):
         class_name = str(self.__class__)
@@ -130,39 +145,6 @@ class Panel(Picklable):
         for item in self:
             yield item, self[item]
 
-    def _get_items(self):
-        return self._items
-
-    def _set_items(self, items):
-        if not isinstance(items, Index):
-            items = Index(items)
-
-        self._items = items
-
-    items = property(fget=_get_items, fset=_set_items)
-
-    def _get_major_axis(self):
-        return self._major_axis
-
-    def _set_major_axis(self, major_axis):
-        if not isinstance(major_axis, Index):
-            major_axis = Index(major_axis)
-
-        self._major_axis = major_axis
-
-    major_axis = property(fget=_get_major_axis, fset=_set_major_axis)
-
-    def _get_minor_axis(self):
-        return self._minor_axis
-
-    def _set_minor_axis(self, minor_axis):
-        if not isinstance(minor_axis, Index):
-            minor_axis = Index(minor_axis)
-
-        self._minor_axis = minor_axis
-
-    minor_axis = property(fget=_get_minor_axis, fset=_set_minor_axis)
-
     @property
     def dims(self):
         return len(self.items), len(self.major_axis), len(self.minor_axis)
@@ -172,6 +154,7 @@ _WIDE_AXIS_NUMBERS = {
     'major' : 1,
     'minor' : 2
 }
+
 _WIDE_AXIS_NAMES = dict((v, k) for k, v in _WIDE_AXIS_NUMBERS.iteritems())
 
 
