@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas.core.api import (DataFrame, DataMatrix, Series, notnull)
 import pandas.lib.tseries as tseries
+import pandas.util.misc as misc_util
 
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
@@ -270,26 +271,52 @@ def _ewmoment(values, func, min_periods=None, biasCorrection=None):
 
     return output
 
-def ewma(arg, com, minCom=0):
+def ewma(arg, com=None, span=None, minCom=0):
     """
     Calculates the rolling exponentially weighted moving average of a series.
 
     Parameters
     ----------
     arg : Series, DataFrame, or DataMatrix
-    com : integer
-        Center of Mass for exponentially weighted moving average
-        decay = com / (1 + com) maps center of mass to decay parameter
-
+    com : float. optional
+        Center of mass: \alpha = com / (1 + com),
+    span : float, optional
+        Specify decay in terms of span, \alpha = 2 / (span + 1)
     minCom : int, default 0
         Optionally require that at least a certain number of periods as
         a multiple of the Center of Mass be included in the sample.
+
+    Returns
+    -------
+    y : type of input argument
+
+    Note
+    ----
+    Either center of mass or span must be specified
+
+    EWMA is sometimes specified using a "span" parameter s, we have
+    have that the decay parameter \alpha is related to the span in the
+    following way:
+
+    \alpha = 1 - 2 / (span + 1) = c / (1 + c)
+
+    where c is the center of mass. Given a span, the
+    associated center of mass is:
+
+    c = (s - 1) / 2
+
+    So a "20-day EWMA" would have center 9.5
     """
+    if com is None and span is None:
+        raise Exception("Must pass either com or span")
+    elif com is not None and span is not None:
+        raise Exception("com and span are mutually exclusive")
+
     def ewmaFunc(series):
         series[np.isinf(series)] = NaN
         result = _ewma(series, com)
 
-        firstIndex = np.arange(len(series))[notnull(series)][0]
+        firstIndex = _first_valid_index(series)
 
         result[firstIndex : firstIndex + minCom*com] = NaN
         result = Series(result, index=arg.index)
@@ -301,10 +328,14 @@ def ewma(arg, com, minCom=0):
         output = arg.apply(ewmaFunc)
     else:
         output = _ewma(arg, com)
-        firstIndex = np.arange(len(arg))[notnull(arg)][0]
+        firstIndex = _first_valid_index(arg)
         output[firstIndex : firstIndex + minCom * com] = NaN
 
     return output
+
+def _first_valid_index(arr):
+    # argmax scans from left
+    return notnull(arr).argmax()
 
 def ewmvar(arg, com, minCom = 0, correctBias = True):
     """

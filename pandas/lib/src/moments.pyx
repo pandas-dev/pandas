@@ -1,5 +1,13 @@
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
+#
+# Misc implementation notes
+# -------------------------
+#
+# - In Cython x * x is faster than x ** 2 for C types, this should be
+#   periodically revisited to see if it's still true.
+#
+# -
 
 # original C implementation by N. Devillard.
 # This code in public domain.
@@ -32,18 +40,15 @@ def kth_smallest(ndarray[double_t, ndim=1] a, int k):
         j = m
 
         while 1:
-            while a[i] < x:
-                i += 1
-            while x < a[j]:
-                j -= 1
+            while a[i] < x: i += 1
+            while x < a[j]: j -= 1
             if i <= j:
                 t = a[i]
                 a[i] = a[j]
                 a[j] = t
-                i += 1
-                j -= 1
-            if i > j:
-                break
+                i += 1; j -= 1
+
+            if i > j: break
 
         if j < k: l = i
         if k < i: m = j
@@ -158,8 +163,20 @@ def roll_mean(ndarray[double_t, ndim=1] input,
 #-------------------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma(ndarray[double_t, ndim=1] input,
-         int com):
+def ewma(ndarray[double_t, ndim=1] input, double_t com):
+    '''
+    Compute exponentially-weighted moving average using center-of-mass.
+
+    Parameters
+    ----------
+    input : ndarray (float64 type)
+    com : float64
+
+    Returns
+    -------
+    y : ndarray
+    '''
+
     cdef double cur, prev, neww, oldw, adj
     cdef int i
     cdef int N = len(input)
@@ -423,12 +440,21 @@ cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
     return output
 
 def roll_median(ndarray input, int win, int minp):
+    '''
+    O(N log(window)) implementation using skip list
+    '''
     return _roll_skiplist_op(input, win, minp, _get_median)
 
 def roll_max(ndarray input, int win, int minp):
+    '''
+    O(N log(window)) implementation using skip list
+    '''
     return _roll_skiplist_op(input, win, minp, _get_max)
 
 def roll_min(ndarray input, int win, int minp):
+    '''
+    O(N log(window)) implementation using skip list
+    '''
     return _roll_skiplist_op(input, win, minp, _get_min)
 
 cdef double_t _get_median(IndexableSkiplist skiplist, int nobs,
