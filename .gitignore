@@ -1,0 +1,7 @@
+*.pyc
+build
+dist
+MANIFEST
+*.so
+*.pyd
+doc/source/generated
