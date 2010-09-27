@@ -1,19 +1,62 @@
+
+import rpy2.robjects as robj
 from rpy2.robjects import r
 from rpy2.robjects.packages import importr
+import pandas.rpy.common as rpy
+
+import scikits.statsmodels.tsa.var as sm_var
+import pandas.stats.var as pvar
 
 vars = importr('vars')
 urca = importr('urca')
 
 class RVAR(object):
-    pass
+    """
+    Estimates VAR model using R vars package and rpy
+    """
+
+    def __init__(self, data, p=1, type='both'):
+        self.rdata = data
+        self.p = p
+        self.type = type
+
+        self.pydata = rpy.convert_robj(data)
+
+        self._estimate = None
+
+        self.estimate()
+
+    def summary(self, equation=None):
+        print r.summary(self._estimate, equation=equation)
+
+    def output(self):
+        print self._estimate
+
+    def estimate(self):
+        self._estimate = r.VAR(self.rdata, p=self.p, type=self.type)
+
+    def plot(self, names=None):
+        r.plot(model._estimate, names=names)
+
+    def serial_test(self, lags_pt=16, type='PT.asymptotic'):
+        f = r['serial.test']
+
+        test = f(self._estimate, **{'lags.pt' : lags_pt,
+                                    'type' : type})
+
+        return test
+
+    @property
+    def beta(self):
+        return rpy.convert_robj(r.coef(self._estimate))
+
+    def data_summary(self):
+        print r.summary(self.rdata)
 
 if __name__ == '__main__':
-    r.data("Canada")
-    can = r['Canada']
-    p1ct = r('p1ct <- VAR(Canada, p=1, type="both")')
-    coefs = r('coefs <- coef(p1ct)')
+    canada = rpy.load_data('Canada', package='vars', convert=False)
 
-    ecoef = coefs.rx2('e')
+    model = RVAR(canada, p=1)
 
     # summary(Canada)
 

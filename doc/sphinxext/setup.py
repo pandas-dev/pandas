@@ -2,7 +2,7 @@ from distutils.core import setup
 import setuptools
 import sys, os
 
-version = "0.2.dev"
+version = "0.3.dev"
 
 setup(
     name="numpydoc",
@@ -22,7 +22,7 @@ setup(
     license="BSD",
     zip_safe=False,
     install_requires=["Sphinx >= 0.5"],
-    package_data={'numpydoc': 'tests'},
+    package_data={'numpydoc': 'tests', '': ''},
     entry_points={
         "console_scripts": [
             "autosummary_generate = numpydoc.autosummary_generate:main",

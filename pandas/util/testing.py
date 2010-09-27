@@ -3,6 +3,7 @@
 from datetime import datetime
 import random
 import string
+import sys
 
 from numpy.random import randn
 import numpy as np
@@ -13,14 +14,28 @@ from pandas.core.api import (DateRange, Index, Series, DataFrame,
 N = 30
 K = 4
 
+def rands(n):
+    choices = string.letters + string.digits
+    return ''.join([random.choice(choices) for _ in xrange(n)])
+
+#-------------------------------------------------------------------------------
+# Console debugging tools
+
 def debug(f, *args, **kwargs):
     from IPython.Debugger import Pdb
     Pdb(color_scheme='Linux').set_trace()
     return f(*args, **kwargs)
 
-def rands(n):
-    choices = string.letters + string.digits
-    return ''.join([random.choice(choices) for _ in xrange(n)])
+def set_trace():
+    from IPython.Debugger import Pdb
+    try:
+        Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
+    except:
+        from pdb import Pdb as OldPdb
+        OldPdb().set_trace(sys._getframe().f_back)
+
+#-------------------------------------------------------------------------------
+# Comparators
 
 def equalContents(arr1, arr2):
     """Checks if the set of unique elements of arr1 and arr2 are equivalent.
@@ -31,6 +46,9 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 def assert_almost_equal(a, b):
+    if isinstance(a, dict) or isinstance(b, dict):
+        return assert_dict_equal(a, b)
+
     if isiterable(a):
         np.testing.assert_(isiterable(b))
         np.testing.assert_equal(len(a), len(b))

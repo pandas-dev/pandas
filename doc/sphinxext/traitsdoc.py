@@ -111,7 +111,7 @@ def looks_like_issubclass(obj, classname):
             return True
     return False
 
-def get_doc_object(obj, what=None):
+def get_doc_object(obj, what=None, config=None):
     if what is None:
         if inspect.isclass(obj):
             what = 'class'
@@ -122,7 +122,7 @@ def get_doc_object(obj, what=None):
         else:
             what = 'object'
     if what == 'class':
-        doc = SphinxTraitsDoc(obj, '', func_doc=SphinxFunctionDoc)
+        doc = SphinxTraitsDoc(obj, '', func_doc=SphinxFunctionDoc, config=config)
         if looks_like_issubclass(obj, 'HasTraits'):
             for name, trait, comment in comment_eater.get_class_traits(obj):
                 # Exclude private traits.
@@ -130,9 +130,9 @@ def get_doc_object(obj, what=None):
                     doc['Traits'].append((name, trait, comment.splitlines()))
         return doc
     elif what in ('function', 'method'):
-        return SphinxFunctionDoc(obj, '')
+        return SphinxFunctionDoc(obj, '', config=config)
     else:
-        return SphinxDocString(pydoc.getdoc(obj))
+        return SphinxDocString(pydoc.getdoc(obj), config=config)
 
 def setup(app):
     # init numpydoc

@@ -1,10 +1,11 @@
 cimport numpy as np
 cimport cython
+
 from numpy cimport *
 
-from python_dict cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
+from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                           PyDict_Contains, PyDict_Keys)
-from python_float cimport PyFloat_Check
+from cpython cimport PyFloat_Check
 
 import numpy as np
 isnan = np.isnan

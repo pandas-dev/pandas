@@ -66,7 +66,7 @@ cdef class IndexableSkiplist:
     def __getitem__(self, i):
         return self.get(i)
 
-    def get(self, int i):
+    cpdef get(self, int i):
         cdef int level
         cdef Node node
 
@@ -80,7 +80,7 @@ cdef class IndexableSkiplist:
 
         return node.value
 
-    def insert(self, double value):
+    cpdef insert(self, double value):
         cdef int level, steps, d
         cdef Node node, prevnode, newnode, next_at_level
         cdef list chain, steps_at_level
@@ -122,7 +122,7 @@ cdef class IndexableSkiplist:
 
         self.size += 1
 
-    def remove(self, double value):
+    cpdef remove(self, double value):
         cdef int level, d
         cdef Node node, prevnode, tmpnode, next_at_level
         cdef list chain

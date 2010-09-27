@@ -84,7 +84,7 @@ class Reader(object):
 
 
 class NumpyDocString(object):
-    def __init__(self,docstring):
+    def __init__(self, docstring, config={}):
         docstring = textwrap.dedent(docstring).split('\n')
 
         self._doc = Reader(docstring)
@@ -183,7 +183,7 @@ class NumpyDocString(object):
 
         return params
 
-    
+
     _name_rgx = re.compile(r"^\s*(:(?P<role>\w+):`(?P<name>[a-zA-Z0-9_.-]+)`|"
                            r" (?P<name2>[a-zA-Z0-9_.-]+))\s*", re.X)
     def _parse_see_also(self, content):
@@ -216,7 +216,7 @@ class NumpyDocString(object):
 
         current_func = None
         rest = []
-        
+
         for line in content:
             if not line.strip(): continue
 
@@ -232,7 +232,8 @@ class NumpyDocString(object):
                 current_func = None
                 if ',' in line:
                     for func in line.split(','):
-                        push_item(func, [])
+                        if func.strip():
+                            push_item(func, [])
                 elif line.strip():
                     current_func = line
             elif current_func is not None:
@@ -258,7 +259,7 @@ class NumpyDocString(object):
             if len(line) > 2:
                 out[line[1]] = strip_each_in(line[2].split(','))
         return out
-    
+
     def _parse_summary(self):
         """Grab signature (if given) and summary"""
         if self._is_at_section():
@@ -275,7 +276,7 @@ class NumpyDocString(object):
 
         if not self._is_at_section():
             self['Extended Summary'] = self._read_to_next_section()
-    
+
     def _parse(self):
         self._doc.reset()
         self._parse_summary()
@@ -408,22 +409,17 @@ def header(text, style='-'):
 
 
 class FunctionDoc(NumpyDocString):
-    def __init__(self, func, role='func', doc=None):
+    def __init__(self, func, role='func', doc=None, config={}):
         self._f = func
         self._role = role # e.g. "func" or "meth"
-        if doc is None:
-            doc = inspect.getdoc(func) or ''
-        try:
-            NumpyDocString.__init__(self, doc)
-        except ValueError, e:
-            print '*'*78
-            print "ERROR: '%s' while parsing `%s`" % (e, self._f)
-            print '*'*78
-            #print "Docstring follows:"
-            #print doclines
-            #print '='*78
 
-        if not self['Signature']:
+        if doc is None:
+            if func is None:
+                raise ValueError("No function or docstring given")
+            doc = inspect.getdoc(func) or ''
+        NumpyDocString.__init__(self, doc)
+
+        if not self['Signature'] and func is not None:
             func, func_name = self.get_func()
             try:
                 # try to read signature
@@ -442,7 +438,7 @@ class FunctionDoc(NumpyDocString):
         else:
             func = self._f
         return func, func_name
-            
+
     def __str__(self):
         out = ''
 
@@ -463,35 +459,41 @@ class FunctionDoc(NumpyDocString):
 
 
 class ClassDoc(NumpyDocString):
-    def __init__(self,cls,modulename='',func_doc=FunctionDoc,doc=None):
-        if not inspect.isclass(cls):
-            raise ValueError("Initialise using a class. Got %r" % cls)
+    def __init__(self, cls, doc=None, modulename='', func_doc=FunctionDoc,
+                 config={}):
+        if not inspect.isclass(cls) and cls is not None:
+            raise ValueError("Expected a class or None, but got %r" % cls)
         self._cls = cls
 
         if modulename and not modulename.endswith('.'):
             modulename += '.'
         self._mod = modulename
-        self._name = cls.__name__
-        self._func_doc = func_doc
 
         if doc is None:
+            if cls is None:
+                raise ValueError("No class or documentation string given")
             doc = pydoc.getdoc(cls)
 
         NumpyDocString.__init__(self, doc)
 
-        if not self['Methods']:
-            self['Methods'] = [(name, '', '') for name in sorted(self.methods)]
-
-        if not self['Attributes']:
-            self['Attributes'] = [(name, '', '')
-                                  for name in sorted(self.properties)]
+        if config.get('show_class_members', True):
+            if not self['Methods']:
+                self['Methods'] = [(name, '', '')
+                                   for name in sorted(self.methods)]
+            if not self['Attributes']:
+                self['Attributes'] = [(name, '', '')
+                                      for name in sorted(self.properties)]
 
     @property
     def methods(self):
+        if self._cls is None:
+            return []
         return [name for name,func in inspect.getmembers(self._cls)
                 if not name.startswith('_') and callable(func)]
 
     @property
     def properties(self):
+        if self._cls is None:
+            return []
         return [name for name,func in inspect.getmembers(self._cls)
                 if not name.startswith('_') and func is None]

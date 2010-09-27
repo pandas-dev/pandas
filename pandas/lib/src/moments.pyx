@@ -395,7 +395,7 @@ def roll_kurt(ndarray[double_t, ndim=1] input,
 #-------------------------------------------------------------------------------
 # Rolling median, min, max
 
-ctypedef double_t (* skiplist_f)(IndexableSkiplist sl, int n, int p)
+ctypedef double_t (* skiplist_f)(object sl, int n, int p)
 
 cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
     cdef ndarray[double_t, ndim=1] input = arg
@@ -457,9 +457,12 @@ def roll_min(ndarray input, int win, int minp):
     '''
     return _roll_skiplist_op(input, win, minp, _get_min)
 
-cdef double_t _get_median(IndexableSkiplist skiplist, int nobs,
-                          int minp):
+# Unfortunately had to resort to some hackery here, would like for
+# Cython to be able to get this right.
+
+cdef double_t _get_median(object sl, int nobs, int minp):
     cdef int midpoint
+    cdef IndexableSkiplist skiplist = <IndexableSkiplist> sl
     if nobs >= minp:
         midpoint = nobs / 2
         if nobs % 2:
@@ -470,16 +473,14 @@ cdef double_t _get_median(IndexableSkiplist skiplist, int nobs,
     else:
         return NaN
 
-cdef double_t _get_max(IndexableSkiplist skiplist, int nobs,
-                       int minp):
+cdef double_t _get_max(object skiplist, int nobs, int minp):
     if nobs >= minp:
-        return skiplist.get(nobs - 1)
+        return <IndexableSkiplist> skiplist.get(nobs - 1)
     else:
         return NaN
 
-cdef double_t _get_min(IndexableSkiplist skiplist, int nobs,
-                       int minp):
+cdef double_t _get_min(object skiplist, int nobs, int minp):
     if nobs >= minp:
-        return skiplist.get(0)
+        return <IndexableSkiplist> skiplist.get(0)
     else:
         return NaN

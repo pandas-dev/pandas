@@ -82,7 +82,7 @@ class PanelAxis(object):
         self.cache_field = cache_field
 
     def __get__(self, obj, type=None):
-        return getattr(obj, self.cache_field)
+        return getattr(obj, self.cache_field, None)
 
     def __set__(self, obj, value):
         if not isinstance(value, Index):

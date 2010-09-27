@@ -3,8 +3,8 @@
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from docscrape import NumpyDocString, FunctionDoc
-from docscrape_sphinx import SphinxDocString
+from docscrape import NumpyDocString, FunctionDoc, ClassDoc
+from docscrape_sphinx import SphinxDocString, SphinxClassDoc
 from nose.tools import *
 
 doc_txt = '''\
@@ -329,6 +329,10 @@ definite.
 .. [2] R.O. Duda, P.E. Hart, and D.G. Stork, "Pattern Classification,"
        2nd ed., Wiley, 2001.
 
+.. only:: latex
+
+   [1]_, [2]_
+
 .. rubric:: Examples
 
 >>> mean = (1,2)
@@ -490,13 +494,15 @@ def test_unicode():
     assert doc['Summary'][0] == u'öäöäöäöäöåååå'.encode('utf-8')
 
 def test_plot_examples():
+    cfg = dict(use_plots=True)
+
     doc = SphinxDocString("""
     Examples
     --------
     >>> import matplotlib.pyplot as plt
     >>> plt.plot([1,2,3],[4,5,6])
     >>> plt.show()
-    """)
+    """, config=cfg)
     assert 'plot::' in str(doc), str(doc)
 
     doc = SphinxDocString("""
@@ -507,5 +513,33 @@ def test_plot_examples():
        import matplotlib.pyplot as plt
        plt.plot([1,2,3],[4,5,6])
        plt.show()
-    """)
+    """, config=cfg)
     assert str(doc).count('plot::') == 1, str(doc)
+
+def test_class_members():
+
+    class Dummy(object):
+        """
+        Dummy class.
+
+        """
+        def spam(self, a, b):
+            """Spam\n\nSpam spam."""
+            pass
+        def ham(self, c, d):
+            """Cheese\n\nNo cheese."""
+            pass
+
+    for cls in (ClassDoc, SphinxClassDoc):
+        doc = cls(Dummy, config=dict(show_class_members=False))
+        assert 'Methods' not in str(doc), (cls, str(doc))
+        assert 'spam' not in str(doc), (cls, str(doc))
+        assert 'ham' not in str(doc), (cls, str(doc))
+
+        doc = cls(Dummy, config=dict(show_class_members=True))
+        assert 'Methods' in str(doc), (cls, str(doc))
+        assert 'spam' in str(doc), (cls, str(doc))
+        assert 'ham' in str(doc), (cls, str(doc))
+
+        if cls is SphinxClassDoc:
+            assert '.. autosummary::' in str(doc), str(doc)

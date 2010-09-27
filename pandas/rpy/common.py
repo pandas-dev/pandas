@@ -5,7 +5,8 @@ developer-friendly.
 
 import numpy as np
 
-from pandas import DataFrame, DataMatrix
+import pandas as pandas
+import pandas.util.testing as _test
 
 from rpy2.robjects.packages import importr
 from rpy2.robjects import r
@@ -13,12 +14,18 @@ import rpy2.robjects as robj
 
 __all__ = ['convert_robj', 'load_data']
 
-def load_data(name, package=None):
+def load_data(name, package=None, convert=True):
     if package:
         pack = importr(package)
 
     r.data(name)
-    return convert_robj(r[name])
+
+    robj = r[name]
+
+    if convert:
+        return convert_robj(robj)
+    else:
+        return robj
 
 def _rclass(obj):
     """
@@ -30,10 +37,14 @@ def _is_null(obj):
     return _rclass(obj) == 'NULL'
 
 def _convert_list(obj):
-    pass
+    """
+    Convert named Vector to dict
+    """
+    values = [convert_robj(x) for x in obj]
+    return dict(zip(obj.names, values))
 
-def _convert_named_list(obj):
-    pass
+def _convert_vector(obj):
+    return list(obj)
 
 def _convert_DataFrame(rdf):
     columns = list(rdf.colnames)
@@ -44,16 +55,18 @@ def _convert_DataFrame(rdf):
         vec = rdf.rx2(i + 1)
         data[col] = list(vec)
 
-    return DataFrame(data, index=rows)
+    return pandas.DataFrame(data, index=_check_int(rows))
 
 def _convert_Matrix(mat):
     columns = mat.colnames
     rows = mat.rownames
 
     columns = None if _is_null(columns) else list(columns)
-    index = None if _is_null(index) else list(index)
+    index = None if _is_null(rows) else list(rows)
 
-    return DataMatrix(np.array(mat), index=index, columns=columns)
+    return pandas.DataMatrix(np.array(mat),
+                             index=_check_int(index),
+                             columns=columns)
 
 def _check_int(vec):
     try:
@@ -67,6 +80,9 @@ def _check_int(vec):
 _converters = [
     (robj.DataFrame , _convert_DataFrame),
     (robj.Matrix , _convert_Matrix),
+    (robj.StrVector, _convert_vector),
+    (robj.FloatVector, _convert_vector),
+    (robj.Vector, _convert_list),
 ]
 
 def convert_robj(obj):
@@ -81,31 +97,41 @@ def convert_robj(obj):
     -------
     Non-rpy data structure, mix of NumPy and pandas objects
     """
-    if not isinstance(obj, orbj.RObjectMixin):
+    if not isinstance(obj, robj.RObjectMixin):
         return obj
 
     for rpy_type, converter in _converters:
         if isinstance(obj, rpy_type):
             return converter(obj)
 
-    raise Exception('Do not know what to do with %s object' % klass)
-
-
-import pandas.util.testing as _test
+    raise Exception('Do not know what to do with %s object' % type(obj))
 
 def test_convert_list():
     obj = r('list(a=1, b=2, c=3)')
-    converted = convert_robj(obj)
 
-    _test.assert_dict_equal
+    converted = convert_robj(obj)
+    expected = {'a' : [1], 'b' : [2], 'c' : [3]}
+
+    _test.assert_dict_equal(converted, expected)
+
+def test_convert_nested_list():
+    obj = r('list(a=list(foo=1, bar=2))')
+
+    converted = convert_robj(obj)
+    expected = {'a' : {'foo' : [1], 'bar' : [2]}}
+
+    _test.assert_dict_equal(converted, expected)
 
 def test_convert_frame():
     # built-in dataset
     df = r['faithful']
 
-    converted = convert_robj(obj)
+    converted = convert_robj(df)
 
-def _named_matrix():
+    assert np.array_equal(converted.columns, ['eruptions', 'waiting'])
+    assert np.array_equal(converted.index, np.arange(1, 273))
+
+def _test_matrix():
     r('mat <- matrix(rnorm(9), ncol=3)')
     r('colnames(mat) <- c("one", "two", "three")')
     r('rownames(mat) <- c("a", "b", "c")')
@@ -113,14 +139,13 @@ def _named_matrix():
     return r['mat']
 
 def test_convert_matrix():
-    mat = _named_matrix()
+    mat = _test_matrix()
 
     converted = convert_robj(mat)
 
     assert np.array_equal(converted.index, ['a', 'b', 'c'])
     assert np.array_equal(converted.columns, ['one', 'two', 'three'])
 
-def test_convert_nested():
+
+if __name__ == '__main__':
     pass
-
-
