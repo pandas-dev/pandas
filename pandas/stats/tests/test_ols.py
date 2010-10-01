@@ -38,13 +38,13 @@ class TestOLS(BaseTest):
     # TODO: Add tests for non pooled OLS.
 
     def testOLSWithDatasets(self):
-        self.checkDataSet(datasets.ccard.Load(), skip_moving=True)
-        self.checkDataSet(datasets.cpunish.Load(), skip_moving=True)
-        self.checkDataSet(datasets.longley.Load(), skip_moving=True)
-        self.checkDataSet(datasets.stackloss.Load(), skip_moving=True)
-        self.checkDataSet(datasets.ccard.Load(), 39, 49) # one col in X all 0s
-        self.checkDataSet(datasets.copper.Load())
-        self.checkDataSet(datasets.scotland.Load())
+        self.checkDataSet(datasets.ccard.load(), skip_moving=True)
+        self.checkDataSet(datasets.cpunish.load(), skip_moving=True)
+        self.checkDataSet(datasets.longley.load(), skip_moving=True)
+        self.checkDataSet(datasets.stackloss.load(), skip_moving=True)
+        self.checkDataSet(datasets.ccard.load(), 39, 49) # one col in X all 0s
+        self.checkDataSet(datasets.copper.load())
+        self.checkDataSet(datasets.scotland.load())
 
     def checkDataSet(self, dataset, start=None, end=None, skip_moving=False):
         exog = dataset.exog[start : end]
