@@ -1,4 +1,4 @@
-# pylint: disable-msg=W0614,W0401,W0611
+# pylint: disable=W0614,W0401,W0611
 
 import numpy as np
 

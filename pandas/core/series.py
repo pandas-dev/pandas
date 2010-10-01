@@ -2,8 +2,8 @@
 Data structure for 1-dimensional cross-sectional and time series data
 """
 
-# pylint: disable-msg=E1101,E1103
-# pylint: disable-msg=W0703,W0622
+# pylint: disable=E1101,E1103
+# pylint: disable=W0703,W0622
 
 import itertools
 import sys
@@ -374,13 +374,13 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def sum(self, axis=None, dtype=None, out=None):
         """
-        Compute sum of non-null values
+        Sum of non-null values
         """
         return self._ndarray_statistic('sum')
 
     def mean(self, axis=None, dtype=None, out=None):
         """
-        Compute mean of non-null values
+        Mean of non-null values
         """
         return self._ndarray_statistic('mean')
 
@@ -396,7 +396,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def min(self, axis=None, out=None):
         """
-        Compute minimum of non-null values
+        Minimum of non-null values
         """
         arr = self.values.copy()
         if not issubclass(arr.dtype.type, np.int_):
@@ -405,7 +405,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def max(self, axis=None, out=None):
         """
-        Compute maximum of non-null values
+        Maximum of non-null values
         """
         arr = self.values.copy()
         if not issubclass(arr.dtype.type, np.int_):
@@ -414,7 +414,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def std(self, axis=None, dtype=None, out=None, ddof=1):
         """
-        Compute unbiased standard deviation of non-null values
+        Unbiased standard deviation of non-null values
         """
         nona = remove_na(self.values)
         if len(nona) < 2:
@@ -423,7 +423,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def var(self, axis=None, dtype=None, out=None, ddof=1):
         """
-        Compute unbiased variance of non-null values
+        Unbiased variance of non-null values
         """
         nona = remove_na(self.values)
         if len(nona) < 2:
@@ -432,7 +432,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def skew(self):
         """
-        Computes the skewness of the non-null values
+        Unbiased skewness of the non-null values
 
         Returns
         -------
@@ -451,7 +451,13 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def cumsum(self, axis=0, dtype=None, out=None):
         """
-        Overriding numpy's built-in cumsum functionality
+        Cumulative sum of values. Preserves NaN values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Returns
+        -------
+
         """
         arr = self.copy()
         okLocs = notnull(arr)

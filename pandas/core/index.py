@@ -1,9 +1,9 @@
-# pylint: disable-msg=E1101
-# pylint: disable-msg=E1103
-# pylint: disable-msg=W0232
+# pylint: disable=E1101,E1103,W0232
 
 import numpy as np
-from pandas.lib.tseries import map_indices, isAllDates
+import pandas.lib.tseries as _tseries
+
+__all__ = ['Index']
 
 def _indexOp(opname):
     """
@@ -15,16 +15,21 @@ def _indexOp(opname):
         return func(other)
     return wrapper
 
-
-
 class Index(np.ndarray):
-    """Extension of numpy-array to represent a series index,
-    dates or otherwise.
+    """
+    Immutable ndarray implementing an ordered, sliceable set
 
-    Index is immutable always (don't even try to change elements!).
+    Parameters
+    ----------
+    data : array-like (1-dimensional)
+    dtype : NumPy dtype (default: object)
+    copy : bool
+        Make a copy of input ndarray
 
-    Note that the Index can ONLY contain immutable objects. Mutable
-    objects are not hashable, and that's bad!
+    Note
+    ----
+    An Index instance can **only** contain immutable objects for
+    reasons of hashability.
     """
     def __new__(cls, data, dtype=object, copy=False):
         subarr = np.array(data, dtype=dtype, copy=copy)
@@ -33,13 +38,11 @@ class Index(np.ndarray):
             raise Exception('Index(...) must be called with a collection '
                             'of some kind, %s was passed' % repr(data))
 
-        subarr = subarr.view(cls)
-        return subarr
+        return subarr.view(cls)
 
     def __array_finalize__(self, obj):
         if self.ndim == 0:
             # tolist will cause a bus error if this is not here, hmm
-
             return self.item()
             # raise Exception('Cannot create 0-dimensional Index!')
 
@@ -62,14 +65,14 @@ class Index(np.ndarray):
     @property
     def indexMap(self):
         if not hasattr(self, '_cache_indexMap'):
-            self._cache_indexMap = map_indices(self)
+            self._cache_indexMap = _tseries.map_indices(self)
 
         return self._cache_indexMap
 
     @property
     def _allDates(self):
         if not hasattr(self, '_cache_allDates'):
-            self._cache_allDates = isAllDates(self)
+            self._cache_allDates = _tseries.isAllDates(self)
 
         return self._cache_allDates
 
@@ -83,8 +86,8 @@ class Index(np.ndarray):
     def __setstate__(self,state):
         """Necessary for making this object picklable"""
         np.ndarray.__setstate__(self, state)
-        self._cache_indexMap = map_indices(self)
-        self._cache_allDates = isAllDates(self)
+        self._cache_indexMap = _tseries.map_indices(self)
+        self._cache_allDates = _tseries.isAllDates(self)
 
     def __deepcopy__(self, memo={}):
         """

@@ -1,5 +1,5 @@
-# pylint: disable-msg=E1101,E1103
-# pylint: disable-msg=W0212,W0231,W0703,W0622
+# pylint: disable=E1101,E1103
+# pylint: disable=W0212,W0231,W0703,W0622
 
 from cStringIO import StringIO
 import operator

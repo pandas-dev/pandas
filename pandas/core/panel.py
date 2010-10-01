@@ -1,10 +1,10 @@
 """
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
-# pylint: disable-msg=E1103
-# pylint: disable-msg=W0231
-# pylint: disable-msg=W0212
-# pylint: disable-msg=W0621
+# pylint: disable=E1103
+# pylint: disable=W0231
+# pylint: disable=W0212
+# pylint: disable=W0621
 
 import operator
 import sys
