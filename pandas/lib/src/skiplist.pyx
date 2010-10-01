@@ -27,27 +27,26 @@ from random import random
 # initialize numpy
 import_array()
 
+# TODO: optimize this, make less messy
+
 cdef class Node:
-
     cdef public:
-        double value
+        double_t value
         list next
-        ndarray width_arr
+        list width
 
-    cdef:
-        int *width
-
-    def __init__(self, double value, list next, ndarray width):
+    def __init__(self, double_t value, list next, list width):
         self.value = value
         self.next = next
-        self.width_arr = width
-        self.width = <int *> width.data
+        self.width = width
 
-NIL = Node(np.inf, [], np.array([])) # Singleton terminator node
+# Singleton terminator node
+NIL = Node(np.inf, [], [])
 
 cdef class IndexableSkiplist:
     '''
-    Sorted collection supporting O(lg n) insertion, removal, and lookup by rank.
+    Sorted collection supporting O(lg n) insertion, removal, and
+    lookup by rank.
     '''
     cdef:
         int size, maxlevels
@@ -56,9 +55,7 @@ cdef class IndexableSkiplist:
     def __init__(self, expected_size=100):
         self.size = 0
         self.maxlevels = int(1 + Log2(expected_size))
-
-        self.head = Node(np.NaN, [NIL] * self.maxlevels,
-                         np.ones(self.maxlevels, dtype=int))
+        self.head = Node(np.NaN, [NIL] * self.maxlevels, [1] * self.maxlevels)
 
     def __len__(self):
         return self.size
@@ -82,14 +79,14 @@ cdef class IndexableSkiplist:
 
     cpdef insert(self, double value):
         cdef int level, steps, d
-        cdef Node node, prevnode, newnode, next_at_level
+        cdef Node node, prevnode, newnode, next_at_level, tmp
         cdef list chain, steps_at_level
 
         # find first node on each level where node.next[levels].value > value
         chain = [None] * self.maxlevels
         steps_at_level = [0] * self.maxlevels
-
         node = self.head
+
         for level in range(self.maxlevels - 1, -1, -1):
             next_at_level = node.next[level]
 
@@ -103,19 +100,16 @@ cdef class IndexableSkiplist:
 
         # insert a link to the newnode at each level
         d = min(self.maxlevels, 1 - int(Log2(random())))
-        newnode = Node(value, [None] * d, np.empty(d, dtype=int))
+        newnode = Node(value, [None] * d, [None] * d)
         steps = 0
 
         for level in range(d):
             prevnode = chain[level]
-
             newnode.next[level] = prevnode.next[level]
             prevnode.next[level] = newnode
-
-            newnode.width[level] = prevnode.width[level] - steps
+            newnode.width[level] = (prevnode.width[level] - steps)
             prevnode.width[level] = steps + 1
-
-            steps = steps + steps_at_level[level]
+            steps += steps_at_level[level]
 
         for level in range(d, self.maxlevels):
             (<Node> chain[level]).width[level] += 1
@@ -139,11 +133,11 @@ cdef class IndexableSkiplist:
 
             chain[level] = node
 
-        if value != chain[0].next[0].value:
+        if value != (<Node> (<Node> (<Node> chain[0]).next)[0]).value:
             raise KeyError('Not Found')
 
         # remove one link at each level
-        d = len(chain[0].next[0].next)
+        d = len((<Node> (<Node> (<Node> chain[0]).next)[0]).next)
 
         for level in range(d):
             prevnode = chain[level]
