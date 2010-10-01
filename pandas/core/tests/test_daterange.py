@@ -1,74 +1,67 @@
 from datetime import datetime
+import pickle
 import unittest
 
 import numpy as np
 
 import pandas.core.datetools as datetools
-from pandas.core.daterange import DateRange, XDateRange
-
-####
-## XDateRange Tests
-####
-
+from pandas.core.index import Index
+from pandas.core.daterange import DateRange, generate_range
 
 def eqXDateRange(kwargs, expected):
-    assert(np.array_equal(list(XDateRange(**kwargs)), expected))
-
-def testXDateRange1():
-    eqXDateRange(dict(start = datetime(2009, 3, 25),
-                      nPeriods = 2),
-                 [datetime(2009, 3, 25), datetime(2009, 3, 26)])
-
-def testXDateRange2():
-    eqXDateRange(dict(start = datetime(2008, 1, 1),
-                      end = datetime(2008, 1, 3)),
-                 [datetime(2008, 1, 1),
-                  datetime(2008, 1, 2),
-                  datetime(2008, 1, 3)])
-
-def testXDateRange3():
-    eqXDateRange(dict(start = datetime(2008, 1, 5),
-                      end = datetime(2008, 1, 6)),
-                 [])
+    rng = generate_range(**kwargs)
+    assert(np.array_equal(list(rng), expected))
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
-class TestXDateRange(unittest.TestCase):
-    def test_constructor(self):
-        rng = XDateRange(START, END, offset=datetools.bday)
-        self.assertEquals(rng.timeRule, 'WEEKDAY')
+class TestGeneration(unittest.TestCase):
+    def test_generate(self):
+        rng1 = list(generate_range(START, END, offset=datetools.bday))
+        rng2 = list(generate_range(START, END, timeRule='WEEKDAY'))
+        self.assert_(np.array_equal(rng1, rng2))
 
-        rng = XDateRange(START, END, timeRule='WEEKDAY')
-        self.assertEquals(rng.offset, datetools.bday)
+    def test_1(self):
+        eqXDateRange(dict(start=datetime(2009, 3, 25),
+                          periods=2),
+                     [datetime(2009, 3, 25), datetime(2009, 3, 26)])
+
+    def test_2(self):
+        eqXDateRange(dict(start=datetime(2008, 1, 1),
+                          end=datetime(2008, 1, 3)),
+                     [datetime(2008, 1, 1),
+                      datetime(2008, 1, 2),
+                      datetime(2008, 1, 3)])
+
+    def test_3(self):
+        eqXDateRange(dict(start = datetime(2008, 1, 5),
+                          end = datetime(2008, 1, 6)),
+                     [])
 
 class TestDateRange(unittest.TestCase):
+
     def setUp(self):
         self.rng = DateRange(START, END, offset=datetools.bday)
 
     def test_constructor(self):
         rng = DateRange(START, END, offset=datetools.bday)
-
         rng = DateRange(START, periods=20, offset=datetools.bday)
-
         rng = DateRange(end=START, periods=20, offset=datetools.bday)
 
-    def test_getCachedRange(self):
-        rng = DateRange.getCachedRange(START, END, offset=datetools.bday)
-
-        rng = DateRange.getCachedRange(START, periods=20, offset=datetools.bday)
-
-        rng = DateRange.getCachedRange(end=START, periods=20,
+    def test_cached_range(self):
+        rng = DateRange._cached_range(START, END, offset=datetools.bday)
+        rng = DateRange._cached_range(START, periods=20, offset=datetools.bday)
+        rng = DateRange._cached_range(end=START, periods=20,
                                        offset=datetools.bday)
 
-        self.assertRaises(Exception, DateRange.getCachedRange, START, END)
+        self.assertRaises(Exception, DateRange._cached_range, START, END)
 
-        self.assertRaises(Exception, DateRange.getCachedRange, START,
+        self.assertRaises(Exception, DateRange._cached_range, START,
                           offset=datetools.bday)
 
-        self.assertRaises(Exception, DateRange.getCachedRange, end=END,
+        self.assertRaises(Exception, DateRange._cached_range, end=END,
                           offset=datetools.bday)
 
-        self.assertRaises(Exception, DateRange.getCachedRange, periods=20,
+        self.assertRaises(Exception, DateRange._cached_range, periods=20,
                           offset=datetools.bday)
 
     def test_comparison(self):
@@ -79,34 +72,78 @@ class TestDateRange(unittest.TestCase):
         self.assert_(not comp[9])
 
     def test_repr(self):
-        foo = repr(self.rng)
+        # only really care that it works
+        repr(self.rng)
 
     def test_getitem(self):
-        sliced = self.rng[10:20]
+        smaller = self.rng[:5]
+        self.assert_(np.array_equal(smaller, self.rng.view(np.ndarray)[:5]))
+        self.assertEquals(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
+        self.assertEquals(sliced.offset, datetools.bday * 5)
 
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
         self.assertEquals(len(fancy_indexed), 5)
         self.assert_(not isinstance(fancy_indexed, DateRange))
 
+        # 32-bit vs. 64-bit platforms
+        self.assertEquals(self.rng[4], self.rng[np.int_(4)])
+
     def test_shift(self):
         shifted = self.rng.shift(5)
+        self.assertEquals(shifted[0], self.rng[5])
+        self.assertEquals(shifted.offset, self.rng.offset)
 
         shifted = self.rng.shift(-5)
+        self.assertEquals(shifted[5], self.rng[0])
+        self.assertEquals(shifted.offset, self.rng.offset)
 
         shifted = self.rng.shift(0)
+        self.assertEquals(shifted[0], self.rng[0])
+        self.assertEquals(shifted.offset, self.rng.offset)
 
         rng = DateRange(START, END, offset=datetools.bmonthEnd)
         shifted = rng.shift(1, offset=datetools.bday)
+        self.assertEquals(shifted[0], rng[0] + datetools.bday)
 
     def test_pickle_unpickle(self):
-        import pickle
-
         pickled = pickle.dumps(self.rng)
         unpickled = pickle.loads(pickled)
 
         self.assert_(unpickled.offset is not None)
+
+    def test_union(self):
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        self.assert_(isinstance(the_union, DateRange))
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_union = left.union(right)
+        self.assert_(isinstance(the_union, Index))
+        self.assert_(not isinstance(the_union, DateRange))
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        self.assert_(isinstance(the_union, DateRange))
+
+        # order does not matter
+        self.assert_(np.array_equal(right.union(left), the_union))
+
+        # overlapping, but different offset
+        rng = DateRange(START, END, offset=datetools.bmonthEnd)
+
+        the_union = self.rng.union(rng)
+        self.assert_(not isinstance(the_union, DateRange))
 
 # DateRange test
 
