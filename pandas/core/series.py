@@ -18,6 +18,8 @@ from pandas.core.mixins import Picklable, Groupable
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
+__all__ = ['Series', 'TimeSeries']
+
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
@@ -495,7 +497,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         correlation : float
         """
-        commonIdx = remove_na(self).index.intersection(remove_na(other).index)
+        commonIdx = self.valid().index.intersection(other.valid().index)
 
         if len(commonIdx) == 0:
             return NaN

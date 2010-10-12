@@ -742,6 +742,12 @@ class DataFrame(Picklable, Groupable):
 
         return self._constructor(correl, index=cols, columns=cols)
 
+    def corr_with(self, other, axis=0):
+        """
+
+        """
+        pass
+
     def dropEmptyRows(self, specificColumns=None):
         """
         Return DataFrame with rows omitted containing ALL NaN values
