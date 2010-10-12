@@ -49,8 +49,8 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 2
-MICRO = 1
+MINOR = 3
+MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
@@ -87,22 +87,14 @@ if not ISRELEASED:
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
 # THIS FILE IS GENERATED FROM PANDAS setup.py
+from datetime import datetime
+
 short_version='%(version)s'
 version='%(version)s'
 release=%(isrelease)s
 
 if not release:
-    version += '.dev'
-    import os
-    svn_version_file = os.path.join(os.path.dirname(__file__),
-                                    '__svn_version__.py')
-    if os.path.isfile(svn_version_file):
-        import imp
-        svn = imp.load_module('pandas.__svn_version__',
-                              open(svn_version_file),
-                              svn_version_file,
-                              ('.py','U',1))
-        version += svn.version
+    version += '.dev%s' % datetime.today().strftime('%Y%m%d')
 """
     a = open(filename, 'w')
     try:

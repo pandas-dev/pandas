@@ -6,3 +6,4 @@ MANIFEST
 *.pyd
 doc/source/generated
 scikits
+.coverage

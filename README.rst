@@ -7,7 +7,8 @@ python setup.py install
 
 On Windows, you will need to install MinGW and execute
 
-python setup.py install --compiler=mingw32
+python setup.py build --compiler=mingw32
+python setup.py install
 
 See
 
