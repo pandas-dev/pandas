@@ -11,5 +11,5 @@ Built-in statistical functionality
 .. toctree::
    :maxdepth: 2
 
-   moments
-   ols
+   stats_moments
+   stats_ols

@@ -1,3 +1,4 @@
+.. currentmodule:: pandas
 
 .. _panel:
 

@@ -1,11 +1,11 @@
 .. currentmodule:: pandas.stats.api
 
-.. _moments:
+.. _stats_moments:
 
-Moving statistical statistics / moments
----------------------------------------
+Moving (rolling) statistics / moments
+-------------------------------------
 
-For TimeSeries-oriented operations, a number of functions are provided
+For working with time series data, a number of functions are provided
 for computing common *moving* or *rolling* statistics. Among these are
 count, sum, mean, median, correlation, variance, covariance, standard
 deviation, skewness, and kurtosis. All of these methods are in the
@@ -94,5 +94,23 @@ Method summary
    rolling_skew
    rolling_kurt
 
-Exponentially weighted moving average
--------------------------------------
+Exponentially weighted moment functions
+---------------------------------------
+
+.. autofunction:: pandas.stats.moments.ewma
+
+.. plot:: plots/stats/moments_ewma.py
+
+There are similar functions for other basic moments, like standard
+deviation (a.k.a. volatility):
+
+.. plot:: plots/stats/moments_ewmvol.py
+
+.. autosummary::
+   :toctree: generated/
+
+   ewma
+   ewmvol
+   ewmvar
+   ewmcorr
+   ewmcov

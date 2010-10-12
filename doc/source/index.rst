@@ -52,10 +52,7 @@ User manual
 
 **Requirements:** python 2.4 to 2.6, NumPy, and dateutil
 
-**Code Repository:** http://pandas.googlecode.com
-
-**Pardon the dust, documentation will be updated frequently in the
-coming weeks and months but will be incomplete in many places.**
+**Code Repository:** http://github.com/wesm/pandas
 
 Library documentation
 ~~~~~~~~~~~~~~~~~~~~~
@@ -78,6 +75,7 @@ Other topics of interest
     :maxdepth: 2
 
     examples
+    frame_vs_matrix
     r_guide
     missing_data
     related

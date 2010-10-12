@@ -46,7 +46,7 @@ Data structures at a glance
 Why more than 1 data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The best way to think about the pandas data tructures is as flexible
+The best way to think about the pandas data structures is as flexible
 containers for lower dimensional data. For example, DataFrame /
 DataMatrix are containers for Series, and WidePanel is a container for
 DataFrame / DataMatrix objects. We would like to be able to insert and
