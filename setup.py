@@ -1,9 +1,6 @@
 #/usr/bin/env python
 
-import os
-import re
-import subprocess
-import warnings
+from datetime import datetime
 
 from numpy.distutils.misc_util import Configuration
 from numpy.distutils.core import setup
@@ -54,51 +51,20 @@ MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
-# klau'd from SciPy's setup.py
-
-def svn_version():
-    env = os.environ.copy()
-    env['LC_ALL'] = 'C'
-    try:
-        out = subprocess.Popen(['svn', 'info'], stdout=subprocess.PIPE,
-                env=env).communicate()[0]
-    except OSError:
-        warnings.warn(" --- Could not run svn info --- ")
-        return ""
-
-    r = re.compile('Revision: ([0-9]+)')
-    svnver = None
-    for line in out.split('\n'):
-        m = r.match(line)
-        if m:
-            svnver = m.group(1)
-
-    if not svnver:
-        raise ValueError("Error while parsing svn version ?")
-    return svnver
-
 FULLVERSION = VERSION
 if not ISRELEASED:
-    FULLVERSION += '.dev'
+    FULLVERSION += '.dev' + datetime.today().strftime('%Y%m%d')
     # If in git or something, bypass the svn rev
-    if os.path.exists('.svn'):
-        FULLVERSION += svn_version()
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
-# THIS FILE IS GENERATED FROM PANDAS setup.py
 from datetime import datetime
 
-short_version='%(version)s'
-version='%(version)s'
-release=%(isrelease)s
-
-if not release:
-    version += '.dev%s' % datetime.today().strftime('%Y%m%d')
+version = %s
 """
     a = open(filename, 'w')
     try:
-        a.write(cnt % {'version': VERSION, 'isrelease': str(ISRELEASED)})
+        a.write(cnt % FULLVERSION)
     finally:
         a.close()
 
