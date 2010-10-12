@@ -1,7 +1,3 @@
-short_version='0.3.0'
-version='0.3.0'
-release=False
+from datetime import datetime
 
-if not release:
-    version += '.dev'
-
+version = '0.3.0.dev20101012'
