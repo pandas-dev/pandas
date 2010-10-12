@@ -59,7 +59,7 @@ def write_version_py(filename='pandas/version.py'):
     cnt = """\
 from datetime import datetime
 
-version = %s
+version = '%s'
 """
     a = open(filename, 'w')
     try:
