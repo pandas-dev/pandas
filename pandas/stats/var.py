@@ -11,9 +11,22 @@ from pandas.stats.math import chain_dot, inv
 from pandas.stats.ols import _combine_rhs
 
 class VAR(object):
-    def __init__(self, data, lags, intercept=True):
+    """
+    Estimates VAR(p) regression on multivariate time series data
+    presented in pandas data structures.
+
+    Parameters
+    ----------
+    data : DataFrame or dict of Series
+    p : lags to include
+
+    """
+
+    def __init__(self, data, p=1, intercept=True):
+        import scikits.statsmodels.tsa.var as sm_var
+
         self._data = DataFrame(_combine_rhs(data))
-        self._p = lags
+        self._p = p
 
         self._columns = self._data.columns
         self._index = self._data.index
@@ -464,6 +477,24 @@ BIC:                            %(bic).3f
     def __repr__(self):
         return self.summary
 
+def lag_select(data, max_lags=5, ic=None):
+    """
+    Select number of lags based on a variety of information criteria
+
+    Parameters
+    ----------
+    data : DataFrame-like
+    max_lags : int
+        Maximum number of lags to evaluate
+    ic : {None, 'aic', 'bic', ...}
+        Choosing None will just display the results
+
+    Returns
+    -------
+    None
+    """
+    pass
+
 class PanelVAR(VAR):
     """
     Performs Vector Autoregression on panel data.
@@ -474,7 +505,7 @@ class PanelVAR(VAR):
     lags: int
     """
     def __init__(self, data, lags, intercept=True):
-        self._data = PanelVAR._prepare_data(data)
+        self._data = _prep_panel_data(data)
         self._p = lags
         self._intercept = intercept
 
@@ -485,14 +516,6 @@ class PanelVAR(VAR):
         """Returns the number of observations."""
         _, timesteps, entities = self._data.values.shape
         return (timesteps - self._p) * entities
-
-    @staticmethod
-    def _prepare_data(data):
-        """Converts the given data into a WidePanel."""
-        if isinstance(data, WidePanel):
-            return data
-
-        return WidePanel.fromDict(data)
 
     @cache_readonly
     def _rss(self):
@@ -534,6 +557,14 @@ class PanelVAR(VAR):
         resid = _drop_incomplete_rows(self.resid.toLong().values)
         n = len(resid)
         return np.dot(resid.T, resid) / (n - k)
+
+
+def _prep_panel_data(data):
+    """Converts the given data into a WidePanel."""
+    if isinstance(data, WidePanel):
+        return data
+
+    return WidePanel.fromDict(data)
 
 def _drop_incomplete_rows(array):
     mask = np.isfinite(array).all(1)

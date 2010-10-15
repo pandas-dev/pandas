@@ -182,13 +182,15 @@ class TestMoments(unittest.TestCase):
     def test_ewmvar(self):
         self._check_ew(moments.ewmvar)
 
-    def test_ewmvar(self):
+    def test_ewmvol(self):
         self._check_ew(moments.ewmvol)
 
     def test_ewma_span_com(self):
         A = moments.ewma(self.arr, com=9.5)
         B = moments.ewma(self.arr, span=20)
         assert_almost_equal(A, B)
+
+        self.assertRaises(Exception, moments.ewma, com=9.5, span=20)
 
     def _check_ew(self, func):
         self._check_ew_ndarray(func)

@@ -153,52 +153,6 @@ def _process_data_structure(arg, kill_inf=True):
 #-------------------------------------------------------------------------------
 # Exponential moving moments
 
-def _ewmoment(values, func, min_periods=None, bias_adj=None):
-    """
-    Generic rolling exponential moment function using blended accumulator
-    method.
-
-    Parameters
-    ----------
-    values : ndarray or Series
-    func : function
-        taking previous value and next value
-
-    bias_adj : float
-        Optional bias correction
-
-    min_periods : int, optional
-        require a particular number of periods "in window" to compute statistic
-        If provided, overrides the minPct argument
-
-    Returns
-    -------
-    Same type and length as values argument
-    """
-    okLocs = notnull(values)
-
-    cleanValues = values[okLocs]
-
-    result = np.frompyfunc(func, 2, 1).accumulate(cleanValues)
-    result = result.astype(float)
-
-    if min_periods is not None:
-        if min_periods < 0:
-            raise Exception('min_periods cannot be less than 0!')
-
-        result[:min_periods] = np.NaN
-
-    output = values.copy()
-    output[okLocs] = result
-
-    if bias_adj is not None:
-        if bias_adj <= 0:
-            raise Exception('Bias correction cannot be negative!')
-
-        output *= bias_adj
-
-    return output
-
 def _get_center_of_mass(com, span):
     if span is not None:
         if com is not None:
@@ -287,7 +241,8 @@ ewmvar.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving variance",
                              _bias_doc)
 
 def ewmvol(arg, com=None, span=None, min_periods=0, bias=False):
-    result = ewmvar(arg, com=com, min_periods=min_periods, bias=bias)
+    result = ewmvar(arg, com=com, span=span,
+                    min_periods=min_periods, bias=bias)
     return np.sqrt(result)
 ewmvol.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving std",
                              _bias_doc)
