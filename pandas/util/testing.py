@@ -27,7 +27,7 @@ def debug(f, *args, **kwargs):
     return f(*args, **kwargs)
 
 def set_trace():
-    from IPython.Debugger import Pdb
+    from IPython.core.debugger import Pdb
     try:
         Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
     except:
