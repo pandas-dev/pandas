@@ -626,6 +626,9 @@ class TestDataFrame(unittest.TestCase):
 
         filled = rule_monthly.asfreq('WEEKDAY', method='pad')
 
+        # don't forget!
+        filled_dep = rule_monthly.asfreq('WEEKDAY', fillMethod='pad')
+
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
         result = zero_length.asfreq('EOM')

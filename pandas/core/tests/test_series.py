@@ -623,6 +623,9 @@ class TestSeries(unittest.TestCase):
         # corner case: pad empty series
         reindexed = self.empty.reindex(self.ts.index, method='pad')
 
+        # don't forget to fix this
+        reindexed_dep = self.empty.reindex(self.ts.index, fillMethod='pad')
+
         # pass non-Index
         reindexed = self.ts.reindex(list(self.ts.index))
         assert_series_equal(self.ts, reindexed)

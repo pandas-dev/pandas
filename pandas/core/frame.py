@@ -1019,7 +1019,7 @@ class DataFrame(Picklable, Groupable):
 
         indexer, mask = common.get_indexer(self.index, index, method)
 
-        # Maybe this is a bit much? Wish I had unit tests...
+        # Maybe this is a bit much? Wish I had more unit tests...
         typeHierarchy = [
             (float, float),
             (int, float),
