@@ -203,7 +203,7 @@ class Index(np.ndarray):
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
 
-        if other is self:
+        if self.equals(other):
             return self
 
         theIntersection = sorted(set(self) & set(other))
@@ -213,7 +213,7 @@ class Index(np.ndarray):
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
 
-        if other is self:
+        if self.equals(other):
             return Index([])
 
         otherArr = np.asarray(other)

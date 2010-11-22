@@ -11,7 +11,7 @@ import numpy as np
 
 import pandas.core.datetools as datetools
 from pandas.core.index import NULL_INDEX
-from pandas.core.api import DataFrame, Index, Series, notnull
+from pandas.core.api import DataFrame, DataMatrix, Index, Series, notnull
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -556,13 +556,19 @@ class TestDataFrame(unittest.TestCase):
 
         assert_frame_equal(self.tsframe, recons)
 
+        recons = self.klass.fromcsv(path, index_col=None)
+        assert(len(recons.cols()) == len(self.tsframe.cols()) + 1)
+
         os.remove(path)
 
     def test_toDataMatrix(self):
         dm = self.frame.toDataMatrix()
 
+        self.assert_(isinstance(dm, DataMatrix))
+
     def test_info(self):
-        pass
+        self.frame.info()
+        self.tsframe.info()
 
     def test_rows(self):
         self.assert_(self.tsframe.rows() is self.tsframe.index)
@@ -620,6 +626,11 @@ class TestDataFrame(unittest.TestCase):
 
         filled = rule_monthly.asfreq('WEEKDAY', fillMethod='pad')
 
+        # test does not blow up on length-0 DataFrame
+        zero_length = self.tsframe.reindex([])
+        result = zero_length.asfreq('EOM')
+        self.assert_(result is not zero_length)
+
     def test_asMatrix(self):
         frame = self.frame
         mat = frame.asMatrix()
@@ -659,6 +670,29 @@ class TestDataFrame(unittest.TestCase):
 
         assert_almost_equal(correls['A']['C'],
                             self.frame['A'].corr(self.frame['C']))
+
+    def test_corrwith(self):
+        a = self.tsframe
+        noise = Series(np.random.randn(len(a)), index=a.index)
+
+        b = self.tsframe + noise
+
+        # make sure order does not matter
+        b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
+        del b['B']
+
+        colcorr = a.corrwith(b, axis=0)
+        assert_almost_equal(colcorr['A'], a['A'].corr(b['A']))
+
+        rowcorr = a.corrwith(b, axis=1)
+        assert_series_equal(rowcorr, a.T.corrwith(b.T, axis=0))
+
+        dropped = a.corrwith(b, axis=0, drop=True)
+        assert_almost_equal(dropped['A'], a['A'].corr(b['A']))
+        self.assert_('B' not in dropped)
+
+        dropped = a.corrwith(b, axis=1, drop=True)
+        self.assert_(a.index[-1] not in dropped.index)
 
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
@@ -1252,6 +1286,9 @@ class TestDataFrame(unittest.TestCase):
         floored = self.frame.clip_lower(median)
         self.assert_(not (floored.values < median).any())
 
+        double = self.frame.clip(upper=median, lower=median)
+        self.assert_(not (double.values != median).any())
+
     def test_statistics(self):
         sumFrame = self.frame.apply(np.sum)
         for col, series in self.frame.iteritems():
@@ -1301,6 +1338,8 @@ class TestDataFrame(unittest.TestCase):
             return x[notnull(x)].mean()
 
         self._check_statistic(self.frame, 'mean', f)
+
+        # TODO: unit test when have object data
 
     def test_median(self):
         def f(x):

@@ -153,7 +153,7 @@ class VAR(object):
                 f_stat = ((ssr_reduced - ssr_full) / M) / (ssr_full / (N - K))
                 f_stats.append(f_stat)
 
-                p_value = 1 - f.cdf(f_stat, M, N - K)
+                p_value = f.sf(f_stat, M, N - K)
                 p_values.append(p_value)
 
             f_stat_dict[col] = Series(f_stats, self._columns)

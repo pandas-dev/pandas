@@ -742,11 +742,66 @@ class DataFrame(Picklable, Groupable):
 
         return self._constructor(correl, index=cols, columns=cols)
 
-    def corr_with(self, other, axis=0):
+    def corrwith(self, other, axis=0, drop=False):
         """
+        Compute pairwise correlation between rows or columns of two DataFrame
+        objects.
 
+        Parameters
+        ----------
+        other : DataFrame
+        axis : int
+        drop : boolean, default False
+            Drop missing indices from result, default returns union of all
+
+        Returns
+        -------
+        correls : Series
         """
-        pass
+        com_index, com_cols = self._intersect_labels(other)
+
+        # feels hackish
+        if axis == 0:
+            result_index = com_index
+            if not drop:
+                result_index = self.columns.union(other.columns)
+        else:
+            result_index = com_cols
+            if not drop:
+                result_index = self.index.union(other.index)
+
+        left = self.reindex(index=com_index, columns=com_cols)
+        right = other.reindex(index=com_index, columns=com_cols)
+
+        # mask missing values
+        left += right * 0
+        right += left * 0
+
+        # demeaned data
+        ldem = left - left.mean(axis)
+        rdem = right - right.mean(axis)
+
+        num = (ldem * rdem).sum(axis)
+        dom = (left.count(axis) - 1) * left.std(axis) * right.std(axis)
+
+        correl = num / dom
+
+        if not drop:
+            correl = correl.reindex(result_index)
+
+        return correl
+
+    def _intersect_labels(self, other):
+        common_cols = self.columns
+        common_index = self.index
+
+        if not common_index.equals(other.index):
+            common_index = common_index.intersection(other.index)
+
+        if not common_cols.equals(other.columns):
+            common_cols = common_cols.intersection(other.columns)
+
+        return common_index, common_cols
 
     def dropEmptyRows(self, specificColumns=None):
         """
@@ -1567,6 +1622,10 @@ class DataFrame(Picklable, Groupable):
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
+        Notes
+        -----
+        Also examines non-float data and checks for None and NaN in such data
+
         Returns
         -------
         Series or TimeSeries
@@ -1725,7 +1784,7 @@ class DataFrame(Picklable, Groupable):
         count = self.count(axis).astype(float)
 
         if not count.index.equals(summed.index):
-            count= count.reindex(summed.index)
+            count = count.reindex(summed.index)
 
         return summed / count
 

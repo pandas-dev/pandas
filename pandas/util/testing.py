@@ -8,8 +8,23 @@ import sys
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import (DateRange, Index, Series, DataFrame,
-                             DataMatrix, WidePanel)
+import pandas.core.index as index
+import pandas.core.daterange as daterange
+import pandas.core.series as series
+import pandas.core.frame as frame
+import pandas.core.matrix as matrix
+import pandas.core.panel as panel
+
+# to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
+# for mod in to_reload:
+#     reload(locals()[mod])
+
+DateRange = daterange.DateRange
+Index = index.Index
+Series = series.Series
+DataFrame = frame.DataFrame
+DataMatrix = matrix.DataMatrix
+WidePanel = panel.WidePanel
 
 N = 30
 K = 4
