@@ -519,6 +519,10 @@ class TestDataFrame(unittest.TestCase):
 
         self.assert_(smaller_added.index.equals(self.tsframe.index))
 
+        smaller_ts = ts[:-5]
+        smaller_added2 = self.tsframe + smaller_ts
+        assert_frame_equal(smaller_added, smaller_added2)
+
         # length 0
         result = self.tsframe + ts[:0]
 
@@ -625,6 +629,7 @@ class TestDataFrame(unittest.TestCase):
         assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
         filled = rule_monthly.asfreq('WEEKDAY', method='pad')
+        # TODO: actually check that this worked.
 
         # don't forget!
         filled_dep = rule_monthly.asfreq('WEEKDAY', fillMethod='pad')

@@ -77,8 +77,6 @@ def _pfixed(s, space, nanRep=None, float_format=None):
     else:
         return ('%s' % s)[:space].ljust(space)
 
-
-
 def get_indexer(source, target, fill_method):
     if fill_method:
         fill_method = fill_method.upper()

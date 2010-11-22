@@ -21,8 +21,8 @@ import pandas.lib.tseries as tseries
 class DataMatrix(DataFrame):
     """
     Matrix version of DataFrame, optimized for cross-section operations,
-    numerical computation, and other operations that do not require the
-    frame to change size.
+    numerical computation, and other operations that do not require the frame to
+    change size.
 
     Parameters
     ----------
@@ -38,8 +38,9 @@ class DataMatrix(DataFrame):
 
     Notes
     -----
-    Transposing is much faster in this regime, as is calling getXS, so please
-    take note of this.
+    Most operations are faster with DataMatrix. You should use it primarily
+    unless you are doing a lot of column insertion / deletion (which causes the
+    underlying ndarray to have to be reallocated!).
     """
     objects = None
     def __init__(self, data=None, index=None, columns=None, dtype=None,
@@ -47,11 +48,11 @@ class DataMatrix(DataFrame):
 
         if isinstance(data, dict) and len(data) > 0:
             (index, columns,
-             values, objects) = self._initDict(data, index, columns, objects,
-                                               dtype)
+             values, objects) = self._init_dict(data, index, columns, objects,
+                                                dtype)
         elif isinstance(data, (np.ndarray, list)):
-            (index, columns, values) = self._initMatrix(data, index,
-                                                        columns, dtype)
+            (index, columns, values) = self._init_matrix(data, index,
+                                                         columns, dtype)
 
             if objects is not None:
                 if isinstance(objects, DataMatrix):
@@ -99,7 +100,7 @@ class DataMatrix(DataFrame):
         self.columns = columns
         self.objects = objects
 
-    def _initDict(self, data, index, columns, objects, dtype):
+    def _init_dict(self, data, index, columns, objects, dtype):
         """
         Segregate Series based on type and coerce into matrices.
 
@@ -180,7 +181,7 @@ class DataMatrix(DataFrame):
 
         return index, columns, values, objects
 
-    def _initMatrix(self, values, index, columns, dtype):
+    def _init_matrix(self, values, index, columns, dtype):
         if not isinstance(values, np.ndarray):
             arr = np.array(values)
             if issubclass(arr.dtype.type, basestring):
@@ -204,16 +205,10 @@ class DataMatrix(DataFrame):
         N, K = values.shape
 
         if index is None:
-            if N == 0:
-                index = NULL_INDEX
-            else:
-                index = np.arange(N)
+            index = _default_index(N)
 
         if columns is None:
-            if K == 0:
-                columns = NULL_INDEX
-            else:
-                columns = np.arange(K)
+            columns = _default_index(K)
 
         return index, columns, values
 
@@ -412,7 +407,7 @@ class DataMatrix(DataFrame):
                 else:
                     values = self.reindex(newIndex).values
 
-            resultMatrix = func(values.T, other_vals).T
+            result = func(values.T, other_vals).T
         else:
             if len(other) == 0:
                 return self * NaN
@@ -423,10 +418,10 @@ class DataMatrix(DataFrame):
             this = self.reindex(columns=newCols)
             other = other.reindex(newCols).values
 
-            resultMatrix = func(this.values, other)
+            result = func(this.values, other)
 
         # TODO: deal with objects
-        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
+        return DataMatrix(result, index=newIndex, columns=newCols)
 
     def _combineFunc(self, other, func):
         """
@@ -444,7 +439,6 @@ class DataMatrix(DataFrame):
         The reason for 'upcasting' the result is that if addition succeed,
         we can assume that the input DataFrame was homogeneous.
         """
-        newIndex = self.index
         if isinstance(other, DataFrame):
             return self._combineFrame(other, func)
 
@@ -455,12 +449,9 @@ class DataMatrix(DataFrame):
             if not self:
                 return self
 
-            # Constant of some kind
-            newCols = self.columns
-            resultMatrix = func(self.values, other)
-
-        # TODO: deal with objects
-        return DataMatrix(resultMatrix, index=newIndex, columns=newCols)
+            # TODO: deal with objects
+            return DataMatrix(func(self.values, other), index=self.index,
+                              columns=self.columns)
 
 #-------------------------------------------------------------------------------
 # Properties for index and columns
@@ -547,11 +538,6 @@ class DataMatrix(DataFrame):
                 return self.objects.__nonzero__()
         else:
             return True
-
-    def __neg__(self):
-        mycopy = self.copy()
-        mycopy.values = -mycopy.values
-        return mycopy
 
     def __repr__(self):
         """Return a string representation for a particular DataMatrix"""
@@ -700,7 +686,6 @@ class DataMatrix(DataFrame):
                 newColumns = Index(np.concatenate(toConcat))
             self.values = newValues
             self.columns = newColumns
-
 
     def __delitem__(self, key):
         """
@@ -1170,32 +1155,6 @@ class DataMatrix(DataFrame):
         return DataMatrix(data=newValues, index=newIndex, columns=self.columns,
                           objects=shifted_objects)
 
-    def cap(self, threshold):
-        """
-        Trim values at threshold
-
-        Returns
-        -------
-        DataMatrix
-        """
-        return DataMatrix(np.where(self.values > threshold,
-                                   threshold, self.values),
-                          index=self.index, columns=self.columns,
-                          objects=self.objects)
-
-    def floor(self, threshold):
-        """
-        Trim values below threshold
-
-        Returns
-        -------
-        DataMatrix
-        """
-        return DataMatrix(np.where(self.values < threshold,
-                                   threshold, self.values),
-                          index=self.index, columns=self.columns,
-                          objects=self.objects)
-
     def min(self, axis=0):
         """
         Return array or Series of minimums over requested axis.
@@ -1233,3 +1192,10 @@ class DataMatrix(DataFrame):
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
     return mat.take(indexer[mask], axis=1)
+
+
+def _default_index(n):
+    if n == 0:
+        return NULL_INDEX
+    else:
+        return np.arange(n)
