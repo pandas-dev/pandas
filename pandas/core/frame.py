@@ -1197,21 +1197,16 @@ class DataFrame(Picklable, Groupable):
         if timeRule and not offset:
             offset = datetools.getOffset(timeRule)
 
-        N = len(self)
-
         if offset is None:
             newIndex = self.index
+            indexer = self._shift_indexer(periods)
 
-            indexer = np.zeros(N, dtype=int)
             if periods > 0:
-                indexer[periods:] = np.arange(N - periods)
                 def do_shift(series):
                     values = np.asarray(series).take(indexer)
                     values[:periods] = NaN
                     return values
-
             else:
-                indexer[:periods] = np.arange(-periods, N)
                 def do_shift(series):
                     values = np.asarray(series).take(indexer)
                     values[periods:] = NaN
@@ -1225,6 +1220,18 @@ class DataFrame(Picklable, Groupable):
                                for col, series in self.iteritems()])
 
         return DataFrame(data=newValues, index=newIndex)
+
+    def _shift_indexer(self, periods):
+        # small reusable utility
+        N = len(self)
+        indexer = np.zeros(N, dtype=int)
+
+        if periods > 0:
+            indexer[periods:] = np.arange(N - periods)
+        else:
+            indexer[:periods] = np.arange(-periods, N)
+
+        return indexer
 
     def apply(self, func, axis=0):
         """

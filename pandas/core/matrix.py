@@ -362,7 +362,7 @@ class DataMatrix(DataFrame):
             newColumns = self.columns
         else:
             newColumns = self.columns.union(other.columns)
-            need_reindex = True or need_reindex
+            need_reindex = True
 
         if need_reindex:
             myReindex = self.reindex(index=newIndex,
@@ -1015,6 +1015,40 @@ class DataMatrix(DataFrame):
         return DataMatrix(result, index=self.index,
                           columns=self.columns, objects=self.objects)
 
+    def min(self, axis=0):
+        """
+        Return array or Series of minimums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        values = self.values.copy()
+        np.putmask(values, -np.isfinite(values), np.inf)
+        return Series(values.min(axis), index=self._get_agg_axis(axis))
+
+    def max(self, axis=0):
+        """
+        Return array or Series of maximums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        values = self.values.copy()
+        np.putmask(values, -np.isfinite(values), -np.inf)
+        return Series(values.max(axis), index=self._get_agg_axis(axis))
+
     def fill(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.
@@ -1127,18 +1161,13 @@ class DataMatrix(DataFrame):
         if timeRule is not None and offset is None:
             offset = datetools.getOffset(timeRule)
 
-        N = len(self)
-
         if offset is None:
+            indexer = self._shift_indexer(periods)
+            newValues = self.values.take(indexer, axis=0)
             newIndex = self.index
-            indexer = np.zeros(N, dtype=int)
             if periods > 0:
-                indexer[periods:] = np.arange(N - periods)
-                newValues = self.values.take(indexer, axis=0)
                 newValues[:periods] = NaN
             else:
-                indexer[:periods] = np.arange(-periods, N)
-                newValues = self.values.take(indexer, axis=0)
                 newValues[periods:] = NaN
         else:
             newIndex = self.index.shift(periods, offset)
@@ -1154,40 +1183,6 @@ class DataMatrix(DataFrame):
 
         return DataMatrix(data=newValues, index=newIndex, columns=self.columns,
                           objects=shifted_objects)
-
-    def min(self, axis=0):
-        """
-        Return array or Series of minimums over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Returns
-        -------
-        Series or TimeSeries
-        """
-        values = self.values.copy()
-        np.putmask(values, -np.isfinite(values), np.inf)
-        return Series(values.min(axis), index=self._get_agg_axis(axis))
-
-    def max(self, axis=0):
-        """
-        Return array or Series of maximums over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Returns
-        -------
-        Series or TimeSeries
-        """
-        values = self.values.copy()
-        np.putmask(values, -np.isfinite(values), -np.inf)
-        return Series(values.max(axis), index=self._get_agg_axis(axis))
 
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
