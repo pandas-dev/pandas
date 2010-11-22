@@ -664,6 +664,11 @@ class TestSeries(unittest.TestCase):
         filled_bool = bool_ts.reindex(self.ts.index, fillMethod='pad')
         self.assert_(isnull(filled_bool[:5]).all())
 
+    def test_reindex_like(self):
+        other = self.ts[::2]
+        assert_series_equal(self.ts.reindex(other.index),
+                            self.ts.reindex_like(other))
+
     def test_rename(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         renamed = self.ts.rename(renamer)

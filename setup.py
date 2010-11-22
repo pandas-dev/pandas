@@ -31,6 +31,7 @@ Windows binaries built against NumPy 1.3.0
 
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
+AUTHOR = "AQR Capital Management, LLC"
 MAINTAINER = "AQR Capital Management, LLC"
 MAINTAINER_EMAIL = "wesmckinn@gmail.com"
 URL = "http://pandas.sourceforge.net"

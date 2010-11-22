@@ -808,6 +808,25 @@ class Series(np.ndarray, Picklable, Groupable):
 
         return Series(newValues, index=newIndex)
 
+    def reindex_like(self, other, fillMethod=None):
+        """
+        Reindex Series to match index of another Series
+
+        Parameters
+        ----------
+        other : Series
+        fillMethod : string or None
+
+        Notes
+        -----
+        Like calling s.reindex(other.index)
+
+        Returns
+        -------
+        reindexed : Series
+        """
+        return self.reindex(other.index, fillMethod=fillMethod)
+
     def fill(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.

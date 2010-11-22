@@ -847,6 +847,12 @@ class TestDataFrame(unittest.TestCase):
         smaller = self.intframe.reindex(columns=['A', 'B'])
         self.assert_(smaller['A'].dtype == np.int_)
 
+    def test_reindex_like(self):
+        other = self.frame.reindex(index=self.frame.index[:10],
+                                   columns=['C', 'B'])
+
+        assert_frame_equal(other, self.frame.reindex_like(other))
+
     def test_rename(self):
         mapping = {
             'A' : 'a',

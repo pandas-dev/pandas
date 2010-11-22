@@ -1005,6 +1005,26 @@ class DataFrame(Picklable, Groupable):
 
         return result
 
+    def reindex_like(self, other, fillMethod=None):
+        """
+        Reindex DataFrame to match indices of another DataFrame
+
+        Parameters
+        ----------
+        other : DataFrame
+        fillMethod : string or None
+
+        Notes
+        -----
+        Like calling s.reindex(index=other.index, columns=other.columns)
+
+        Returns
+        -------
+        reindexed : DataFrame
+        """
+        # todo: object columns
+        return self.reindex(index=other.index, columns=other.columns)
+
     def groupby(self, mapper, axis=0):
         """
         Goup series using mapper (dict or key function, apply given
