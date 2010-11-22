@@ -667,7 +667,7 @@ class DataFrame(Picklable, Groupable):
 
         return DataFrame(data=newValues, index=newIndex)
 
-    def asfreq(self, freq, fillMethod=None):
+    def asfreq(self, freq, method=None, fillMethod=None):
         """
         Convert all TimeSeries inside to specified frequency using
         DateOffset objects. Optionally provide fill method to pad or
@@ -689,7 +689,7 @@ class DataFrame(Picklable, Groupable):
         else:
             dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
 
-        return self.reindex(dateRange, fillMethod=fillMethod)
+        return self.reindex(dateRange, method=method, fillMethod=fillMethod)
 
     def asMatrix(self, columns=None):
         """
@@ -973,7 +973,7 @@ class DataFrame(Picklable, Groupable):
 
         return _slow_pivot(self[index], self[columns], self[values])
 
-    def reindex(self, index=None, columns=None, fillMethod=None):
+    def reindex(self, index=None, columns=None, method=None, fillMethod=None):
         """
         Reindex data inside, optionally filling according to some rule.
 
@@ -982,17 +982,25 @@ class DataFrame(Picklable, Groupable):
         index : array-like, optional
             preferably an Index object (to avoid duplicating data)
         columns : array-like, optional
-        fillMethod : {'backfill', 'pad', None}
-            Method to use for filling data holes using the index
+        method : {'backfill', 'pad', None}
+            Method to use for filling data holes using the index. See
+            Series.reindex for more information
 
         Returns
         -------
         y : same type as calling instance
         """
+        import warnings
+        if fillMethod is not None:
+            warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
+                          DeprecationWarning)
+
+            method = fillMethod
+
         frame = self
 
         if index is not None:
-            frame = frame._reindex_index(index, fillMethod)
+            frame = frame._reindex_index(index, method)
 
         if columns is not None:
             frame = frame._reindex_columns(columns)
@@ -1060,14 +1068,14 @@ class DataFrame(Picklable, Groupable):
 
         return result
 
-    def reindex_like(self, other, fillMethod=None):
+    def reindex_like(self, other, method=None):
         """
         Reindex DataFrame to match indices of another DataFrame
 
         Parameters
         ----------
         other : DataFrame
-        fillMethod : string or None
+        method : string or None
 
         Notes
         -----
@@ -1078,7 +1086,8 @@ class DataFrame(Picklable, Groupable):
         reindexed : DataFrame
         """
         # todo: object columns
-        return self.reindex(index=other.index, columns=other.columns)
+        return self.reindex(index=other.index, columns=other.columns,
+                            method=method)
 
     def groupby(self, mapper, axis=0):
         """

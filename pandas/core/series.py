@@ -759,41 +759,47 @@ class Series(np.ndarray, Picklable, Groupable):
 
     merge = map
 
-    def reindex(self, newIndex, fillMethod=None):
-        """Overloaded version of reindex for TimeSeries. Supports filling
-        with values based on new index.
-
-        See analogous method for DataFrame, will be faster for multiple
-        TimeSeries
+    def reindex(self, new_index, method=None, fillMethod=None):
+        """Conform Series to new Index
 
         Parameters
         ----------
-        newIndex :   array-like, preferably an Index object (to avoid
-                    duplicating data)
-        fillMethod : {'backfill', 'pad', 'interpolate', None}
-                    Method to use for filling holes in reindexed Series
+        new_index :   array-like
+            Preferably an Index object (to avoid duplicating data)
+        method : {'backfill', 'pad', None}
+            Method to use for filling holes in reindexed Series
+
+            pad : propagate last valid observation forward to next valid
+            backfill : use NEXT valid observation to fill gap
 
         Returns
         -------
-        TimeSeries
+        reindexed : Series
         """
-        if self.index.equals(newIndex):
+        import warnings
+        if fillMethod is not None:
+            warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
+                          DeprecationWarning)
+
+            method = fillMethod
+
+        if self.index.equals(new_index):
             return self.copy()
 
-        if not isinstance(newIndex, Index):
-            newIndex = Index(newIndex)
+        if not isinstance(new_index, Index):
+            new_index = Index(new_index)
 
         if len(self.index) == 0:
-            return Series.fromValue(NaN, index=newIndex)
+            return Series.fromValue(NaN, index=new_index)
 
-        if fillMethod is not None:
-            fillMethod = fillMethod.upper()
+        if method is not None:
+            method = method.upper()
 
         # Cython for blazing speed
-        fillVec, mask = tseries.getFillVec(self.index, newIndex,
+        fillVec, mask = tseries.getFillVec(self.index, new_index,
                                            self.index.indexMap,
-                                           newIndex.indexMap,
-                                           kind=fillMethod)
+                                           new_index.indexMap,
+                                           kind=method)
 
         newValues = self.values.take(fillVec)
 
@@ -806,16 +812,17 @@ class Series(np.ndarray, Picklable, Groupable):
 
             np.putmask(newValues, notmask, NaN)
 
-        return Series(newValues, index=newIndex)
+        return Series(newValues, index=new_index)
 
-    def reindex_like(self, other, fillMethod=None):
+    def reindex_like(self, other, method=None):
         """
         Reindex Series to match index of another Series
 
         Parameters
         ----------
         other : Series
-        fillMethod : string or None
+        method : string or None
+            See Series.reindex docstring
 
         Notes
         -----
@@ -825,7 +832,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         reindexed : Series
         """
-        return self.reindex(other.index, fillMethod=fillMethod)
+        return self.reindex(other.index, method=method)
 
     def fill(self, value=None, method='pad'):
         """
@@ -853,7 +860,7 @@ class Series(np.ndarray, Picklable, Groupable):
             return newSeries
         else: # Using reindex to pad / backfill
             withoutna = remove_na(self)
-            return withoutna.reindex(self.index, fillMethod=method)
+            return withoutna.reindex(self.index, method=method)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous
@@ -981,8 +988,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
             return Series(newValues, index=self.index)
         else:
-            newIndex = self.index.shift(periods, offset)
-            return Series(self, index=newIndex)
+            return Series(self, index=self.index.shift(periods, offset))
 
     def truncate(self, before=None, after=None):
         """Function truncate a sorted TimeSeries before and/or after
@@ -1064,7 +1070,7 @@ class Series(np.ndarray, Picklable, Groupable):
         else:
             return v
 
-    def asfreq(self, freq, fillMethod=None):
+    def asfreq(self, freq, method=None, fillMethod=None):
         """
         Convert this TimeSeries to the provided frequency using DateOffset
         objects. Optionally provide fill method to pad/backfill/interpolate
@@ -1074,9 +1080,8 @@ class Series(np.ndarray, Picklable, Groupable):
         ----------
         offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
             DateOffset object or subclass (e.g. monthEnd)
-
-        fillMethod : {'backfill', 'pad', 'interpolate', None}
-                    Method to use for filling holes in new inde
+        method : {'backfill', 'pad', None}
+            Method to use for filling holes in new index
 
         Returns
         -------
@@ -1087,7 +1092,7 @@ class Series(np.ndarray, Picklable, Groupable):
         else:
             dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
 
-        return self.reindex(dateRange, fillMethod=fillMethod)
+        return self.reindex(dateRange, method=method, fillMethod=fillMethod)
 
     def interpolate(self, method='linear'):
         """

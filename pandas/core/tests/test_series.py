@@ -618,10 +618,10 @@ class TestSeries(unittest.TestCase):
 
         # bad fill method
         ts = self.ts[::2]
-        self.assertRaises(Exception, ts.reindex, self.ts.index, fillMethod='foo')
+        self.assertRaises(Exception, ts.reindex, self.ts.index, method='foo')
 
         # corner case: pad empty series
-        reindexed = self.empty.reindex(self.ts.index, fillMethod='pad')
+        reindexed = self.empty.reindex(self.ts.index, method='pad')
 
         # pass non-Index
         reindexed = self.ts.reindex(list(self.ts.index))
@@ -661,7 +661,7 @@ class TestSeries(unittest.TestCase):
         # fail
         ts = self.ts[5:]
         bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
-        filled_bool = bool_ts.reindex(self.ts.index, fillMethod='pad')
+        filled_bool = bool_ts.reindex(self.ts.index, method='pad')
         self.assert_(isnull(filled_bool[:5]).all())
 
     def test_reindex_like(self):
@@ -711,7 +711,7 @@ class TestSeries(unittest.TestCase):
         monthly_ts = daily_ts.asfreq('EOM')
         self.assert_(np.array_equal(monthly_ts, ts))
 
-        daily_ts = ts.asfreq('WEEKDAY', fillMethod='pad')
+        daily_ts = ts.asfreq('WEEKDAY', method='pad')
         monthly_ts = daily_ts.asfreq('EOM')
         self.assert_(np.array_equal(monthly_ts, ts))
 

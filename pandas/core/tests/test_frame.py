@@ -624,7 +624,7 @@ class TestDataFrame(unittest.TestCase):
 
         assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
-        filled = rule_monthly.asfreq('WEEKDAY', fillMethod='pad')
+        filled = rule_monthly.asfreq('WEEKDAY', method='pad')
 
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
