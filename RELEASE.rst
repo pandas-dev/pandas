@@ -9,6 +9,10 @@ pandas 0.3.0
 
 **New features / modules**
 
+* DataFrame / DataMatrix classes
+ * `corrwith` function to compute column- or row-wise correlations between two
+   objects
+
 * pandas.stats
  * `pandas.stats.covest` module for covariance matrix estimation
 
@@ -28,6 +32,8 @@ pandas 0.3.0
 * Exponentially-weighted moment functions in `pandas.stats.moments`
   have a more consistent API and accept a min_periods argument like
   their regular moving counterparts.
+* **fillMethod** argument in Series, DataFrame changed to **method**,
+    `DeprecationWarning` added.
 
 **Bug fixes**
 
