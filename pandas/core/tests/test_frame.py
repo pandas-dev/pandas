@@ -119,6 +119,13 @@ class TestDataFrame(unittest.TestCase):
         frame = self.klass({}, index=idx)
         self.assert_(frame.index is idx)
 
+        # empty with index and columns
+        idx = Index([0, 1, 2])
+        frame = self.klass({}, index=idx, columns=idx)
+        self.assert_(frame.index is idx)
+        self.assert_(frame.columns is idx)
+        self.assertEqual(len(frame._series), 3)
+
     def test_constructor_dict_cast(self):
         # cast float tests
         test_data = {
@@ -207,7 +214,7 @@ class TestDataFrame(unittest.TestCase):
         result = np.sqrt(self.frame)
         self.assert_(type(result) is type(self.frame))
         self.assert_(result.index is self.frame.index)
-        self.assert_(result.cols() == self.frame.cols())
+        self.assert_(result.columns is self.frame.columns)
 
         assert_frame_equal(result, self.frame.apply(np.sqrt))
 
@@ -242,7 +249,7 @@ class TestDataFrame(unittest.TestCase):
 
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
-        self.assert_(list(cols) == list(self.frame.columns))
+        self.assert_(cols is self.frame.columns)
 
         idx = self.frame._get_agg_axis(1)
         self.assert_(idx is self.frame.index)
@@ -582,7 +589,7 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(self.tsframe.rows() is self.tsframe.index)
 
     def test_cols(self):
-        self.assert_(self.tsframe.cols() == list(self.tsframe.columns))
+        self.assert_(self.tsframe.cols() is self.tsframe.columns)
 
     def test_columns(self):
         pass

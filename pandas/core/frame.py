@@ -2,6 +2,7 @@
 # pylint: disable=W0212,W0231,W0703,W0622
 
 from cStringIO import StringIO
+from datetime import datetime
 import operator
 import sys
 
@@ -23,7 +24,7 @@ import pandas.lib.tseries as tseries
 
 def arith_method(func, name):
     def f(self, other):
-        return self._combineFunc(other, func)
+        return self._combine(other, func)
 
     f.__name__ = name
     f.__doc__ = 'Wrapper for arithmetic method %s' % name
@@ -35,9 +36,9 @@ def arith_method(func, name):
 
 class DataFrame(Picklable, Groupable):
     """
-    Homogenously indexed table with named columns, with intelligent
-    arithmetic operations, slicing, reindexing, aggregation, etc. Can
-    function interchangeably as a dictionary.
+    Homogenously indexed table with named columns, with intelligent arithmetic
+    operations, slicing, reindexing, aggregation, etc. Can function
+    interchangeably as a dictionary.
 
     Parameters
     ----------
@@ -53,9 +54,9 @@ class DataFrame(Picklable, Groupable):
 
     Notes
     -----
-    Data contained within is COPIED from input arrays, this is to
-    prevent silly behavior like altering the original arrays and
-    having those changes reflected in the frame.
+    Data contained within is COPIED from input arrays, this is to prevent silly
+    behavior like altering the original arrays and having those changes
+    reflected in the frame.
 
     See also
     --------
@@ -66,42 +67,54 @@ class DataFrame(Picklable, Groupable):
         >>> d = {'col1' : ts1, 'col2' : ts2}
         >>> df = DataFrame(data=d, index=someIndex)
     """
+    _columns = None
 
     def __init__(self, data=None, index=None, columns=None, dtype=None):
         if isinstance(data, dict):
-            self._series, self.index = self._initDict(data, index,
-                                                      columns, dtype)
-
+            sdict, columns, index = self._initDict(data, index, columns, dtype)
         elif isinstance(data, (np.ndarray, list)):
-            self._series, self.index = self._initMatrix(data, index,
-                                                        columns, dtype)
+            sdict, columns, index = self._initMatrix(data, index, columns,
+                                                     dtype)
         elif isinstance(data, DataFrame):
-            self._series = data._series.copy()
+            sdict = data._series.copy()
 
             if dtype is not None:
-                self._series = dict((k, v.astype(dtype))
-                                    for k, v in self._series.iteritems())
-
-            self.index = data.index
+                sdict = dict((k, v.astype(dtype)) for k, v in data.iteritems())
+            index = data.index
+            columns = data.columns
         elif data is None:
+            sdict = {}
+
             if index is None:
                 index = NULL_INDEX
 
-            self._series, self.index = {}, index
+            if columns is None:
+                columns = NULL_INDEX
+            else:
+                for c in columns:
+                    sdict[c] = Series.fromValue(np.NaN, index=index)
+
+        self._series = sdict
+        self.columns = columns
+        self.index = index
 
     def _initDict(self, data, index, columns, dtype):
         # pre-filter out columns if we passed it
         if columns is not None:
-            colset = set(columns)
-            data = dict((k, v) for k, v in data.iteritems() if k in colset)
+            if not isinstance(columns, Index):
+                columns = Index(columns)
+
+            data = dict((k, v) for k, v in data.iteritems() if k in columns)
+        else:
+            columns = Index(_try_sort(data.keys()))
 
         index = _extract_index(data, index)
 
-        series = {}
+        sdict = {}
         for k, v in data.iteritems():
             if isinstance(v, Series):
                 # Forces alignment and copies data
-                series[k] = v.reindex(index)
+                sdict[k] = v.reindex(index)
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, NaN) for i in index]
@@ -111,15 +124,14 @@ class DataFrame(Picklable, Groupable):
                 except Exception:
                     v = Series(v, index=index)
 
-                series[k] = v.copy()
+                sdict[k] = v.copy()
 
         # add in any other columns we want to have (completeness)
-        if columns is not None:
-            for c in columns:
-                if c not in series:
-                    series[c] = Series.fromValue(np.NaN, index=index)
+        for c in columns:
+            if c not in sdict:
+                sdict[c] = Series.fromValue(np.NaN, index=index)
 
-        return series, index
+        return sdict, columns, index
 
     def _initMatrix(self, data, index, columns, dtype):
         if not isinstance(data, np.ndarray):
@@ -137,19 +149,13 @@ class DataFrame(Picklable, Groupable):
         N, K = data.shape
 
         if index is None:
-            if N == 0:
-                index = NULL_INDEX
-            else:
-                index = np.arange(N)
+            index = _default_index(N)
 
         if columns is None:
-            if K == 0:
-                columns = NULL_INDEX
-            else:
-                columns = np.arange(K)
+            columns = _default_index(K)
 
         if len(columns) != K:
-            raise Exception('Index length mismatch: %d vs. %d' %
+            raise Exception('Column length mismatch: %d vs. %d' %
                             (len(columns), K))
 
         data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
@@ -161,17 +167,20 @@ class DataFrame(Picklable, Groupable):
 
     def __getstate__(self):
         series = dict((k, v.values) for k, v in self.iteritems())
+        columns = _pickle_array(self.columns)
         index = _pickle_array(self.index)
 
-        return series, index
+        return series, columns, index
 
     def __setstate__(self, state):
-        series, idx = state
+        series, cols, idx = state
 
         index = _unpickle_array(idx)
+        columns = _unpickle_array(cols)
         self._series = dict((k, Series(v, index=index))
                             for k, v in series.iteritems())
         self.index = index
+        self.columns = columns
 
     _index = None
     def _set_index(self, index):
@@ -186,7 +195,38 @@ class DataFrame(Picklable, Groupable):
     def _get_index(self):
         return self._index
 
-    index = property(fget=_get_index, fset=_set_index)
+    index = property(fget=lambda self: self._get_index(),
+                     fset=lambda self, x: self._set_index(x))
+
+    def _get_columns(self):
+        return self._columns
+
+    def _set_columns(self, cols):
+        if len(cols) != len(self._series):
+            raise Exception('Columns length %d did not match data %d!' %
+                            (len(cols), len(self._series)))
+
+        if not isinstance(cols, Index):
+            cols = Index(cols)
+
+        self._columns = cols
+
+    def _insert_column_index(self, key):
+        if len(self.columns) == 0:
+            self.columns = Index([key])
+        else:
+            self.columns = Index(np.concatenate((self.columns, [key])))
+
+    def _delete_column_index(self, loc):
+        if loc == len(self.columns) - 1:
+            new_columns = self.columns[:loc]
+        else:
+            new_columns = Index(np.concatenate((self.columns[:loc],
+                                               self.columns[loc+1:])))
+        self.columns = new_columns
+
+    columns = property(fget=lambda self: self._get_columns(),
+                     fset=lambda self, x: self._set_columns(x))
 
     def toDict(self):
         """
@@ -215,14 +255,16 @@ class DataFrame(Picklable, Groupable):
         if not issubclass(data.dtype.type, np.void):
             raise Exception('Input was not a structured array!')
 
-        dataDict = dict((k, data[k]) for k in data.dtype.names)
+        columns = data.dtype.names
+        sdict = dict((k, data[k]) for k in columns)
 
         if indexField is not None:
-            index = dataDict.pop(indexField)
+            index = sdict.pop(indexField)
+            columns = [c for c in columns if c != indexField]
         else:
             index = np.arange(len(data))
 
-        return cls(dataDict, index=index)
+        return cls(sdict, index=index, columns=columns)
 
     @classmethod
     def fromcsv(cls, path, header=0, delimiter=',', index_col=0):
@@ -248,8 +290,6 @@ class DataFrame(Picklable, Groupable):
         -------
         y : DataFrame or DataMatrix
         """
-        from datetime import datetime
-
         data = np.genfromtxt(path, delimiter=delimiter, dtype=None,
                              skip_header=header, names=True)
 
@@ -273,7 +313,7 @@ class DataFrame(Picklable, Groupable):
 
         Returns
         -------
-        recarray
+        y : recarray
         """
         arrays = [self.index] + [self[c] for c in self.cols()]
         names = ['index'] + list(self.cols())
@@ -290,14 +330,14 @@ class DataFrame(Picklable, Groupable):
         return DataFrame(result, index=self.index, columns=self.columns)
 
     def __nonzero__(self):
-        return len(self._series) > 0 and len(self.index) > 0
+        return len(self.columns) > 0 and len(self.index) > 0
 
     def __repr__(self):
         """
         Return a string representation for a particular DataFrame
         """
         buf = StringIO()
-        if len(self.index) < 500 and len(self._series) < 10:
+        if len(self.index) < 500 and len(self.columns) < 10:
             self.toString(buffer=buf)
         else:
             buf.write(str(self.__class__) + '\n')
@@ -348,11 +388,16 @@ class DataFrame(Picklable, Groupable):
         else:
             self._series[key] = Series.fromValue(value, index=self.index)
 
+        if key not in self.columns:
+            self._insert_column_index(key)
+
     def __delitem__(self, key):
         """
         Delete column from DataFrame
         """
+        loc = self.columns.indexMap[key]
         del self._series[key]
+        self._delete_column_index(loc)
 
     def pop(self, item):
         """
@@ -365,14 +410,13 @@ class DataFrame(Picklable, Groupable):
         """
         result = self[item]
         del self[item]
-
         return result
 
     def __iter__(self):
         """
         Iterate over columns of the frame.
         """
-        return iter(self._series)
+        return iter(self.columns)
 
     def __len__(self):
         """
@@ -384,7 +428,7 @@ class DataFrame(Picklable, Groupable):
         """
         True if DataFrame has this column
         """
-        return key in self._series
+        return key in self.columns
 
     __add__ = arith_method(operator.add, '__add__')
     __sub__ = arith_method(operator.sub, '__sub__')
@@ -404,28 +448,32 @@ class DataFrame(Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # Private / helper methods
 
-    def _firstTimeWithValue(self):
+    def first_valid_index(self):
         return self.index[self.count(1) > 0][0]
 
-    def _lastTimeWithValue(self):
+    def last_valid_index(self):
         return self.index[self.count(1) > 0][-1]
 
+    # to avoid API breakage
+    _firstTimeWithValue = first_valid_index
+    _lastTimeWithValue = last_valid_index
+
     def _combineFrame(self, other, func):
-        newColumns = {}
-        newIndex = self.index
+        new_data = {}
+        new_index = self.index
+        new_columns = self.columns
+        this = self
 
-        if self.index.equals(other.index):
-            newIndex = self.index
+        if not self.index.equals(other.index):
+            new_index = self.index + other.index
+            this = self.reindex(new_index)
+            other = other.reindex(new_index)
 
-            this = self
-        else:
-            newIndex = self.index + other.index
-
-            this = self.reindex(newIndex)
-            other = other.reindex(newIndex)
+        if not self.columns.equals(other.columns):
+            new_columns = self.columns + other.columns
 
         if not self and not other:
-            return DataFrame(index=newIndex)
+            return DataFrame(index=new_index)
 
         if not other:
             return self * NaN
@@ -433,57 +481,54 @@ class DataFrame(Picklable, Groupable):
         if not self:
             return other * NaN
 
-        for col, series in this.iteritems():
-            if col in other:
-                newColumns[col] = func(series, other[col])
+        for col in new_columns:
+            if col in this and col in other:
+                new_data[col] = func(this[col], other[col])
             else:
-                newColumns[col] = series.fromValue(np.NaN, index=newIndex)
+                new_data[col] = Series.fromValue(np.NaN, index=new_index)
 
-        for col, series in other.iteritems():
-            if col not in self:
-                newColumns[col] = series.fromValue(np.NaN, index=newIndex)
-
-        return DataFrame(data=newColumns, index=newIndex)
+        return DataFrame(data=new_data, index=new_index, columns=new_columns)
 
     def _combineSeries(self, other, func):
-        newColumns = {}
-        newIndex = self.index
+        new_data = {}
+        new_index = self.index
 
         if len(other) == 0:
             return self * NaN
 
         if len(self) == 0:
             # Ambiguous case
-            return DataFrame(index=self.index, columns=self.cols())
+            return DataFrame(index=self.index, columns=self.columns)
 
+        # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index._allDates and other.index._allDates:
             if self.index.equals(other.index):
-                newIndex = self.index
+                new_index = self.index
                 this = self
             else:
-                newIndex = self.index + other.index
-                this = self.reindex(newIndex)
-                other = other.reindex(newIndex)
+                new_index = self.index + other.index
+                this = self.reindex(new_index)
+                other = other.reindex(new_index)
 
             for col, series in this.iteritems():
-                newColumns[col] = func(series, other)
+                new_data[col] = func(series, other)
 
-            result = DataFrame(newColumns, index=newIndex)
+            result = DataFrame(new_data, index=new_index, columns=self.columns)
         else:
-            union = other.index.union(self.cols())
-            intersection = other.index.intersection(self.cols())
+            union = intersection = self.columns
+
+            if not union.equals(other.index):
+                union = other.index.union(self.columns)
+                intersection = other.index.intersection(self.columns)
 
             for col in intersection:
-                newColumns[col] = func(self[col], other[col])
+                new_data[col] = func(self[col], other[col])
 
-            result = DataFrame(newColumns, index=self.index)
-
-            for col in (x for x in union if x not in intersection):
-                result[col] = NaN
+            result = DataFrame(new_data, index=self.index, columns=union)
 
         return result
 
-    def _combineFunc(self, other, func):
+    def _combine(self, other, func):
         """
         Combine DataFrame objects or a single DataFrame and a constant
         or other object using the supplied function.
@@ -497,20 +542,18 @@ class DataFrame(Picklable, Groupable):
 
         Examples
         --------
-        frame._combineFunc(otherFrame, lambda x, y: x + y)
+        frame._combine(otherFrame, lambda x, y: x + y)
         """
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combineFrame(other, func)
         elif isinstance(other, Series):
             return self._combineSeries(other, func)
         else:
-            newColumns = {}
-            newIndex = self.index
-
+            new_data = {}
             for col, series in self.iteritems():
-                newColumns[col] = func(series, other)
+                new_data[col] = func(series, other)
 
-            return DataFrame(data=newColumns, index=newIndex)
+            return DataFrame(data=new_data, index=self.index)
 
 #-------------------------------------------------------------------------------
 # Public methods
@@ -563,16 +606,14 @@ class DataFrame(Picklable, Groupable):
 
     def toDataMatrix(self):
         from pandas.core.matrix import DataMatrix
-
         return DataMatrix(self._series, index=self.index)
 
     def toString(self, buffer=sys.stdout, columns=None, colSpace=15,
                  nanRep='NaN', formatters=None, float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
-
         if columns is None:
-            columns = _try_sort(series)
+            columns = self.columns
         else:
             columns = [c for c in columns if c in self]
 
@@ -629,7 +670,7 @@ class DataFrame(Picklable, Groupable):
             return
 
         series = self._series
-        columns = _try_sort(self.cols())
+        columns = self.columns
         space = max([len(str(k)) for k in columns]) + 4
         for k in columns:
             out = _pfixed(k, space)
@@ -642,35 +683,32 @@ class DataFrame(Picklable, Groupable):
 
     def cols(self):
         """Return sorted list of frame's columns"""
-        return _try_sort(self._series)
-
-    # For DataMatrix compatibility
-    columns = property(lambda self: Index(self.cols()))
+        return self.columns
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
-        return self._series.iteritems()
+        return ((k, self._series[k]) for k in self.columns)
 
-    def append(self, otherFrame):
+    def append(self, other):
         """
-        Append columns of otherFrame to end of this frame's columns and index.
+        Append columns of other to end of this frame's columns and index.
 
         Columns not in this frame are added as new columns.
         """
-        newIndex = np.concatenate((self.index, otherFrame.index))
+        new_index = np.concatenate((self.index, other.index))
         newValues = {}
 
         for column, series in self.iteritems():
-            if column in otherFrame:
-                newValues[column] = series.append(otherFrame[column])
+            if column in other:
+                newValues[column] = series.append(other[column])
             else:
                 newValues[column] = series
 
-        for column, series in otherFrame.iteritems():
+        for column, series in other.iteritems():
             if column not in self:
                 newValues[column] = series
 
-        return DataFrame(data=newValues, index=newIndex)
+        return DataFrame(data=newValues, index=new_index)
 
     def asfreq(self, freq, method=None, fillMethod=None):
         """
@@ -715,9 +753,8 @@ class DataFrame(Picklable, Groupable):
         """
         Make a deep copy of this frame
         """
-        newFrame = DataFrame(index=self.index)
-        newFrame._series = dict((k, v.copy()) for k, v in self.iteritems())
-        return newFrame
+        return DataFrame(self._series, index=self.index,
+                         columns=self.columns)
 
     def corr(self):
         """
@@ -829,8 +866,7 @@ class DataFrame(Picklable, Groupable):
         else:
             theCount = self.count(axis=1)
 
-        newIndex = self.index[theCount != 0]
-        return self.reindex(newIndex)
+        return self.reindex(self.index[theCount != 0])
 
     def dropIncompleteRows(self, specificColumns=None, minObs=None):
         """
@@ -867,8 +903,7 @@ class DataFrame(Picklable, Groupable):
         if minObs is None:
             minObs = N
 
-        newIndex = self.index[theCount >= minObs]
-        return self.reindex(newIndex)
+        return self.reindex(self.index[theCount >= minObs])
 
     def fill(self, value=None, method='pad'):
         """
@@ -1160,11 +1195,16 @@ class DataFrame(Picklable, Groupable):
 
     def _rename_columns_inplace(self, mapper):
         new_series = {}
-        for k, v in self._series.iteritems():
-            new_k = mapper(k)
-            if new_k in new_series:
+        new_columns = []
+
+        for col in self.columns:
+            new_col = mapper(col)
+            if new_col in new_series:
                 raise Exception('Non-unique mapping!')
-            new_series[new_k] = v
+            new_series[new_col] = self[col]
+            new_columns.append(new_col)
+
+        self.columns = new_columns
         self._series = new_series
 
     @property
@@ -1203,7 +1243,7 @@ class DataFrame(Picklable, Groupable):
             offset = datetools.getOffset(timeRule)
 
         if offset is None:
-            newIndex = self.index
+            new_index = self.index
             indexer = self._shift_indexer(periods)
 
             if periods > 0:
@@ -1220,11 +1260,11 @@ class DataFrame(Picklable, Groupable):
             newValues = dict([(col, do_shift(series))
                               for col, series in self.iteritems()])
         else:
-            newIndex = self.index.shift(periods, offset)
+            new_index = self.index.shift(periods, offset)
             newValues = dict([(col, np.asarray(series))
                                for col, series in self.iteritems()])
 
-        return DataFrame(data=newValues, index=newIndex)
+        return DataFrame(data=newValues, index=new_index)
 
     def _shift_indexer(self, periods):
         # small reusable utility
@@ -2011,3 +2051,10 @@ def _extract_index(data, index):
         index = Index(index)
 
     return index
+
+
+def _default_index(n):
+    if n == 0:
+        return NULL_INDEX
+    else:
+        return np.arange(n)

@@ -8,7 +8,8 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array)
-from pandas.core.frame import DataFrame, _try_sort, _extract_index
+from pandas.core.frame import (DataFrame, _try_sort, _extract_index,
+                               _default_index)
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
 import pandas.core.common as common
@@ -341,7 +342,7 @@ class DataMatrix(DataFrame):
 
         - Get new index
         - Reindex to new index
-        - Determine newColumns and commonColumns
+        - Determine new_columns and commonColumns
         - Add common columns over all (new) indices
         - Fill to new set of columns
 
@@ -363,16 +364,16 @@ class DataMatrix(DataFrame):
             return self * NaN
 
         if self.columns.equals(other.columns):
-            newColumns = self.columns
+            new_columns = self.columns
         else:
-            newColumns = self.columns.union(other.columns)
+            new_columns = self.columns.union(other.columns)
             need_reindex = True
 
         if need_reindex:
             myReindex = self.reindex(index=newIndex,
-                                     columns=newColumns)
+                                     columns=new_columns)
             hisReindex = other.reindex(index=newIndex,
-                                       columns=newColumns)
+                                       columns=new_columns)
         else:
             myReindex = self
             hisReindex = other
@@ -381,7 +382,7 @@ class DataMatrix(DataFrame):
         hisValues = hisReindex.values
 
         return DataMatrix(func(myValues, hisValues),
-                          index=newIndex, columns=newColumns)
+                          index=newIndex, columns=new_columns)
 
     def _combineSeries(self, other, func):
         newIndex = self.index
@@ -427,7 +428,7 @@ class DataMatrix(DataFrame):
         # TODO: deal with objects
         return DataMatrix(result, index=newIndex, columns=newCols)
 
-    def _combineFunc(self, other, func):
+    def _combine(self, other, func):
         """
         Combine DataMatrix objects with other Series- or DataFrame-like objects
 
@@ -460,10 +461,6 @@ class DataMatrix(DataFrame):
 #-------------------------------------------------------------------------------
 # Properties for index and columns
 
-    _columns = None
-    def _get_columns(self):
-        return self._columns
-
     def _set_columns(self, cols):
         if len(cols) != self.values.shape[1]:
             raise Exception('Columns length %d did not match values %d!' %
@@ -473,8 +470,6 @@ class DataMatrix(DataFrame):
             cols = Index(cols)
 
         self._columns = cols
-
-    columns = property(fget=_get_columns, fset=_set_columns)
 
     def _set_index(self, index):
         if len(index) > 0:
@@ -489,11 +484,6 @@ class DataMatrix(DataFrame):
 
         if self.objects is not None:
             self.objects._index = index
-
-    def _get_index(self):
-        return self._index
-
-    index = property(fget=_get_index, fset=_set_index)
 
 #-------------------------------------------------------------------------------
 # "Magic methods"
@@ -632,64 +622,33 @@ class DataMatrix(DataFrame):
     def _insert_float_dtype(self, key, value):
         isObject = value.dtype not in self._dataTypes
 
-        if key in self.columns:
-            loc = self.columns.indexMap[key]
-            self.values[:, loc] = value
-        elif isObject:
+        if isObject:
             if self.objects is None:
                 self.objects = DataMatrix({key : value},
                                           index=self.index)
             else:
                 self.objects[key] = value
-        elif len(self.columns) == 0:
-            self.values = value.reshape((len(value), 1)).astype(np.float)
-            self.columns = Index([key])
+        elif key in self.columns:
+            self.values[:, self.columns.indexMap[key]] = value
         else:
-            try:
-                loc = self.columns.searchsorted(key)
-            except TypeError:
-                loc = len(self.columns)
-
-            if loc == self.values.shape[1]:
-                newValues = np.c_[self.values, value]
-                newColumns = Index(np.concatenate((self.columns, [key])))
-            elif loc == 0:
-                newValues = np.c_[value, self.values]
-                newColumns = Index(np.concatenate(([key], self.columns)))
+            if len(self.columns) == 0:
+                self.values = value.reshape((len(value), 1)).astype(np.float)
             else:
-                newValues = np.c_[self.values[:, :loc], value,
-                                  self.values[:, loc:]]
-                toConcat = (self.columns[:loc], [key], self.columns[loc:])
-                newColumns = Index(np.concatenate(toConcat))
-            self.values = newValues
-            self.columns = newColumns
+                self.values = np.c_[self.values, value]
+
+            self._insert_column_index(key)
 
     def _insert_object_dtype(self, key, value):
         if key in self.columns:
             loc = self.columns.indexMap[key]
             self.values[:, loc] = value
-        elif len(self.columns) == 0:
-            self.values = value.reshape((len(value), 1)).copy()
-            self.columns = Index([key])
         else:
-            try:
-                loc = self.columns.searchsorted(key)
-            except TypeError:
-                loc = len(self.columns)
-
-            if loc == self.values.shape[1]:
-                newValues = np.c_[self.values, value]
-                newColumns = Index(np.concatenate((self.columns, [key])))
-            elif loc == 0:
-                newValues = np.c_[value, self.values]
-                newColumns = Index(np.concatenate(([key], self.columns)))
+            if len(self.columns) == 0:
+                self.values = value.reshape((len(value), 1)).copy()
             else:
-                newValues = np.c_[self.values[:, :loc], value,
-                                  self.values[:, loc:]]
-                toConcat = (self.columns[:loc], [key], self.columns[loc:])
-                newColumns = Index(np.concatenate(toConcat))
-            self.values = newValues
-            self.columns = newColumns
+                self.values = np.c_[self.values, value]
+
+            self._insert_column_index(key)
 
     def __delitem__(self, key):
         """
@@ -699,13 +658,11 @@ class DataMatrix(DataFrame):
             loc = self.columns.indexMap[key]
             if loc == self.values.shape[1] - 1:
                 newValues = self.values[:, :loc]
-                newColumns = self.columns[:loc]
             else:
                 newValues = np.c_[self.values[:, :loc], self.values[:, loc+1:]]
-                newColumns = Index(np.concatenate((self.columns[:loc],
-                                                   self.columns[loc+1:])))
             self.values = newValues
-            self.columns = newColumns
+
+            self._delete_column_index(loc)
         else:
             if self.objects is not None and key in self.objects:
                 del self.objects[key]
@@ -977,9 +934,9 @@ class DataMatrix(DataFrame):
     def cols(self):
         """Return sorted list of frame's columns"""
         if self.objects is not None and len(self.objects.columns) > 0:
-            return list(self.columns.union(self.objects.columns))
+            return self.columns.union(self.objects.columns)
         else:
-            return list(self.columns)
+            return self.columns
 
     def copy(self):
         """
@@ -1191,10 +1148,3 @@ class DataMatrix(DataFrame):
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
     return mat.take(indexer[mask], axis=1)
-
-
-def _default_index(n):
-    if n == 0:
-        return NULL_INDEX
-    else:
-        return np.arange(n)
