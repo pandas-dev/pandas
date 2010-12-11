@@ -15,7 +15,8 @@ import pandas.lib.tseries as tseries
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
-           'rolling_median', 'ewma', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov']
+           'rolling_median', 'ewma', 'ewmvar', 'ewmstd', 'ewmvol',
+           'ewmcorr', 'ewmcov']
 
 def rolling_count(arg, window, time_rule=None):
     """
@@ -26,10 +27,7 @@ def rolling_count(arg, window, time_rule=None):
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
     """
-    if time_rule is not None and isinstance(arg, (DataFrame, Series)):
-        # Conform to whatever frequency needed.
-        arg = arg.asfreq(time_rule)
-
+    arg = _conv_timerule(arg, time_rule)
     window = min(window, len(arg))
 
     return_hook, values = _process_data_structure(arg, kill_inf=False)
@@ -108,15 +106,9 @@ def _rolling_moment(arg, window, func, minp, axis=0, time_rule=None):
     -------
     y : type of input
     """
-    types = (DataFrame, Series)
-    if time_rule is not None and isinstance(arg, types):
-        # Conform to whatever frequency needed.
-        arg = arg.asfreq(time_rule)
-
+    arg = _conv_timerule(arg, time_rule)
     calc = lambda x: func(x, window, minp=minp)
-
     return_hook, values = _process_data_structure(arg)
-
     # actually calculate the moment. Faster way to do this?
     result = np.apply_along_axis(calc, axis, values)
 
@@ -177,6 +169,8 @@ span : float, optional
 min_periods : int, default 0
     Number of observations in sample to require (only affects
     beginning)
+time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default None
+    Name of time rule to conform to before computing statistic
 %s
 Returns
 -------
@@ -208,8 +202,9 @@ _bias_doc = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
 
-def ewma(arg, com=None, span=None, min_periods=0):
+def ewma(arg, com=None, span=None, min_periods=0, time_rule=None):
     com = _get_center_of_mass(com, span)
+    arg = _conv_timerule(arg, time_rule)
 
     def _ewma(v):
         result = tseries.ewma(v, com)
@@ -220,15 +215,17 @@ def ewma(arg, com=None, span=None, min_periods=0):
     return_hook, values = _process_data_structure(arg)
     output = np.apply_along_axis(_ewma, 0, values)
     return return_hook(output)
-ewma.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving average",
+ewma.__doc__ = _ewm_doc % ("Exponentially-weighted moving average",
                            _unary_arg, "")
 
 def _first_valid_index(arr):
     # argmax scans from left
     return notnull(arr).argmax()
 
-def ewmvar(arg, com=None, span=None, min_periods=0, bias=False):
+def ewmvar(arg, com=None, span=None, min_periods=0, bias=False,
+           time_rule=None):
     com = _get_center_of_mass(com, span)
+    arg = _conv_timerule(arg, time_rule)
     moment2nd = ewma(arg * arg, com=com, min_periods=min_periods)
     moment1st = ewma(arg, com=com, min_periods=min_periods)
 
@@ -237,20 +234,26 @@ def ewmvar(arg, com=None, span=None, min_periods=0, bias=False):
         result *= (1.0 + 2.0 * com) / (2.0 * com)
 
     return result
-ewmvar.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving variance",
+ewmvar.__doc__ = _ewm_doc % ("Exponentially-weighted moving variance",
                              _unary_arg, _bias_doc)
 
-def ewmstd(arg, com=None, span=None, min_periods=0, bias=False):
-    result = ewmvar(arg, com=com, span=span,
+def ewmstd(arg, com=None, span=None, min_periods=0, bias=False,
+           time_rule=None):
+    result = ewmvar(arg, com=com, span=span, time_rule=time_rule,
                     min_periods=min_periods, bias=bias)
     return np.sqrt(result)
-ewmstd.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving std",
+ewmstd.__doc__ = _ewm_doc % ("Exponentially-weighted moving std",
                              _unary_arg, _bias_doc)
 
 ewmvol = ewmstd
 
-def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False):
+def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False,
+           time_rule=None):
     X, Y = _prep_binary(arg1, arg2)
+
+    X = _conv_timerule(X, time_rule)
+    Y = _conv_timerule(Y, time_rule)
+
     mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
 
     result = (mean(X*Y) - mean(X) * mean(Y))
@@ -259,16 +262,21 @@ def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False):
         result *= (1.0 + 2.0 * com) / (2.0 * com)
 
     return result
-ewmcov.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving covariance",
+ewmcov.__doc__ = _ewm_doc % ("Exponentially-weighted moving covariance",
                              _binary_arg, "")
 
-def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0):
+def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0,
+            time_rule=None):
     X, Y = _prep_binary(arg1, arg2)
+
+    X = _conv_timerule(X, time_rule)
+    Y = _conv_timerule(Y, time_rule)
+
     mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
     var = lambda x: ewmvar(x, com=com, span=span, min_periods=min_periods,
                            bias=True)
     return (mean(X*Y) - mean(X)*mean(Y)) / np.sqrt(var(X) * var(Y))
-ewmcorr.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving "
+ewmcorr.__doc__ = _ewm_doc % ("Exponentially-weighted moving "
                               "correlation", _binary_arg, "")
 
 def _prep_binary(arg1, arg2):
@@ -300,6 +308,14 @@ Returns
 -------
 y : type of input argument
 """
+
+def _conv_timerule(arg, time_rule):
+    types = (DataFrame, Series)
+    if time_rule is not None and isinstance(arg, types):
+        # Conform to whatever frequency needed.
+        arg = arg.asfreq(time_rule)
+
+    return arg
 
 def _two_periods(minp, window):
     if minp is None:

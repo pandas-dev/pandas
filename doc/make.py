@@ -24,7 +24,6 @@ import sphinx
 os.environ['PYTHONPATH'] = '..'
 
 SPHINX_BUILD = 'sphinxbuild'
-NEED_AUTOSUMMARY = sphinx.__version__ < 0.7
 
 def sf():
     'push a copy to the sf site'
@@ -55,20 +54,8 @@ def check_build():
         except OSError:
             pass
 
-    if NEED_AUTOSUMMARY:
-        generate_autosummary()
-
-def generate_autosummary():
-    as_gen = "python ./sphinxext/autosummary_generate.py "
-    as_cmd = as_gen + "%s -p dump.xml -o source/generated"
-
-    for path in glob.glob('source/*.rst'):
-        if os.system(as_cmd % path):
-            raise SystemExit("Failed to auto generate "
-                             "summary for %s" % path)
-
 def all():
-    clean()
+    # clean()
     html()
 
 funcd = {

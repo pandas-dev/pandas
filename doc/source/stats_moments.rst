@@ -15,6 +15,41 @@ deviation, skewness, and kurtosis. All of these methods are in the
 Each of these methods observes the same interface (with relevant
 methods accepting two Series arguments instead of one):
 
+.. function:: Unary moment functions
+
+   :Parameters:
+       **arg** : ndarray, Series, DataFrame, etc.
+	       If a DataFrame is passed, function will be applied to **columns**
+
+       **window** : int
+           Number of periods to include in window
+
+       **min_periods** : int or None
+	       Number of periods to require to compute a value (defaults to
+	       **window**)
+
+       **time_rule** : string or DateOffset
+            Frequency to pre-convert data to
+
+.. function:: Binary moment functions
+
+   :Parameters:
+       **arg1** : ndarray, Series
+	       If a DataFrame is passed, function will be applied to **columns**
+
+       **arg2** : ndarray, Series
+	       Must be same type as **arg1**
+
+       **window** : int
+           Number of periods to include in window
+
+       **min_periods** : int or None
+	       Number of periods to require to compute a value (defaults to
+	       **window**)
+
+       **time_rule** : string or DateOffset
+            Frequency to pre-convert data to
+
 ::
 
     >>> ts
@@ -75,7 +110,15 @@ applied independently to the columns:
 Each of these methods can optionally accept a **time_rule** argument
 (see :ref:`time rules <datetools.timerules>`) which is provided as a
 convenience when the user wishes to guarantee that the window of the
-statistic
+statistic.
+
+Here are some plots of the unary moment functions:
+
+.. plot:: plots/stats/moments_rolling.py
+
+And the binary moment functions:
+
+.. plot:: plots/stats/moments_rolling_binary.py
 
 Method summary
 ~~~~~~~~~~~~~~
@@ -97,20 +140,47 @@ Method summary
 Exponentially weighted moment functions
 ---------------------------------------
 
+It's also quite common to want to do non-equally weighted moving statistics,
+such as exponentially weighted (EW) moving average or EW moving standard
+deviation. A number of EW functions are provided using the blending method. For
+example, where :math:`y_t` is the result and :math:`x_t` the input, we compute
+an exponentially weighted moving average as
+
+.. math::
+
+    y_t = (1-\alpha) y_{t-1} + \alpha x_t
+
+One must have :math:`0 < \alpha \leq 1`, but rather than pass :math:`\alpha`
+directly, it's easier to think about either the **span** or **center of mass
+(com)** of an EW moment:
+
+.. math::
+
+   \alpha =
+    \begin{cases}
+	\frac{2}{s + 1}, s = \text{span}\\
+	\frac{1}{c + 1}, c = \text{center of mass}
+    \end{cases}
+
+You can pass one or the other to these functions but not both. **Span**
+corresponds to what is commonly called a "20-day EW moving average" for
+example. **Center of mass** has a more physical interpretation. For example,
+**span** = 20 corresponds to **com** = 9.5.
+
+Here are some examples for a univariate time series:
+
+.. plot:: plots/stats/moments_expw.py
+
+The binary `emwcov` and `ewmcorr` are similar to their equal-weighted
+counterparts above.
+
 .. autofunction:: pandas.stats.moments.ewma
-
-.. plot:: plots/stats/moments_ewma.py
-
-There are similar functions for other basic moments, like standard
-deviation (a.k.a. volatility):
-
-.. plot:: plots/stats/moments_ewmvol.py
 
 .. autosummary::
    :toctree: generated/
 
    ewma
-   ewmvol
+   ewmstd
    ewmvar
    ewmcorr
    ewmcov
