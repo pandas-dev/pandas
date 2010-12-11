@@ -42,44 +42,12 @@ def rolling_count(arg, window, time_rule=None):
     return return_hook(result)
 
 def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
-    """
-    Unbiased moving covariance
-
-    Parameters
-    ----------
-    arg :  DataFrame or numpy ndarray-like
-    window : Number of observations used for calculating statistic
-    min_periods : int
-        Minimum number of observations in window required to have a value
-    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
-        Name of time rule to conform to before computing statistic
-
-    Returns
-    -------
-    y : type of input
-    """
     X, Y = _prep_binary(arg1, arg2)
     mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
     bias_adj = window / (window - 1)
     return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
 def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
-    """
-    Moving correlation
-
-    Parameters
-    ----------
-    arg :  DataFrame or numpy ndarray-like
-    window : Number of observations used for calculating statistic
-    min_periods : int
-        Minimum number of observations in window required to have a value
-    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
-        Name of time rule to conform to before computing statistic
-
-    Returns
-    -------
-    y : type of input
-    """
     X, Y = _prep_binary(arg1, arg2)
     num = rolling_cov(X, Y, window, min_periods, time_rule)
     den  = (rolling_std(X, window, min_periods, time_rule) *
@@ -157,51 +125,6 @@ def _get_center_of_mass(com, span):
     return float(com)
 
 
-_ewm_doc = r"""%s
-
-Parameters
-----------
-%s
-com : float. optional
-    Center of mass: \alpha = com / (1 + com),
-span : float, optional
-    Specify decay in terms of span, \alpha = 2 / (span + 1)
-min_periods : int, default 0
-    Number of observations in sample to require (only affects
-    beginning)
-time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default None
-    Name of time rule to conform to before computing statistic
-%s
-Returns
--------
-y : type of input argument
-
-Note
-----
-Either center of mass or span must be specified
-
-EWMA is sometimes specified using a "span" parameter s, we have
-have that the decay parameter \alpha is related to the span in the
-following way:
-
-\alpha = 1 - 2 / (span + 1) = c / (1 + c)
-
-where c is the center of mass. Given a span, the
-associated center of mass is:
-
-c = (s - 1) / 2
-
-So a "20-day EWMA" would have center 9.5
-"""
-
-_unary_arg = "arg : Series, DataFrame, or DataMatrix"
-_binary_arg = """arg1 : Series, DataFrame, or DataMatrix, or ndarray
-arg2 : type of arg1"""
-
-_bias_doc = r"""bias : boolean, default False
-    Use a standard estimation bias correction
-"""
-
 def ewma(arg, com=None, span=None, min_periods=0, time_rule=None):
     com = _get_center_of_mass(com, span)
     arg = _conv_timerule(arg, time_rule)
@@ -215,8 +138,6 @@ def ewma(arg, com=None, span=None, min_periods=0, time_rule=None):
     return_hook, values = _process_data_structure(arg)
     output = np.apply_along_axis(_ewma, 0, values)
     return return_hook(output)
-ewma.__doc__ = _ewm_doc % ("Exponentially-weighted moving average",
-                           _unary_arg, "")
 
 def _first_valid_index(arr):
     # argmax scans from left
@@ -234,16 +155,12 @@ def ewmvar(arg, com=None, span=None, min_periods=0, bias=False,
         result *= (1.0 + 2.0 * com) / (2.0 * com)
 
     return result
-ewmvar.__doc__ = _ewm_doc % ("Exponentially-weighted moving variance",
-                             _unary_arg, _bias_doc)
 
 def ewmstd(arg, com=None, span=None, min_periods=0, bias=False,
            time_rule=None):
     result = ewmvar(arg, com=com, span=span, time_rule=time_rule,
                     min_periods=min_periods, bias=bias)
     return np.sqrt(result)
-ewmstd.__doc__ = _ewm_doc % ("Exponentially-weighted moving std",
-                             _unary_arg, _bias_doc)
 
 ewmvol = ewmstd
 
@@ -262,8 +179,6 @@ def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False,
         result *= (1.0 + 2.0 * com) / (2.0 * com)
 
     return result
-ewmcov.__doc__ = _ewm_doc % ("Exponentially-weighted moving covariance",
-                             _binary_arg, "")
 
 def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0,
             time_rule=None):
@@ -276,8 +191,6 @@ def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0,
     var = lambda x: ewmvar(x, com=com, span=span, min_periods=min_periods,
                            bias=True)
     return (mean(X*Y) - mean(X)*mean(Y)) / np.sqrt(var(X) * var(Y))
-ewmcorr.__doc__ = _ewm_doc % ("Exponentially-weighted moving "
-                              "correlation", _binary_arg, "")
 
 def _prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
@@ -290,14 +203,14 @@ def _prep_binary(arg1, arg2):
     return X, Y
 
 #-------------------------------------------------------------------------------
-# Python interface to Cython functions
+# Docs
 
 _doc_template = """
 %s
 
 Parameters
 ----------
-arg : 1D ndarray, Series, or DataFrame/DataMatrix
+%s
 window : Number of observations used for calculating statistic
 min_periods : int
     Minimum number of observations in window required to have a value
@@ -308,6 +221,67 @@ Returns
 -------
 y : type of input argument
 """
+
+
+_ewm_doc = r"""%s
+
+Parameters
+----------
+%s
+com : float. optional
+    Center of mass: \alpha = com / (1 + com),
+span : float, optional
+    Specify decay in terms of span, \alpha = 2 / (span + 1)
+min_periods : int, default 0
+    Number of observations in sample to require (only affects
+    beginning)
+time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default None
+    Name of time rule to conform to before computing statistic
+%s
+Notes
+-----
+Either center of mass or span must be specified
+
+EWMA is sometimes specified using a "span" parameter s, we have have that the
+decay parameter \alpha is related to the span as :math:`\alpha = 1 - 2 / (s + 1)
+= c / (1 + c)`
+
+where c is the center of mass. Given a span, the associated center of mass is
+:math:`c = (s - 1) / 2`
+
+So a "20-day EWMA" would have center 9.5.
+
+Returns
+-------
+y : type of input argument
+"""
+
+_unary_arg = "arg : Series, DataFrame, or DataMatrix"
+_binary_arg = """arg1 : Series, DataFrame, or DataMatrix, or ndarray
+arg2 : type of arg1"""
+
+_bias_doc = r"""bias : boolean, default False
+    Use a standard estimation bias correction
+"""
+
+rolling_cov.__doc__ = _doc_template % ("Unbiased moving covariance",
+                                       _binary_arg)
+rolling_corr.__doc__ = _doc_template % ("Moving sample correlation",
+                                        _binary_arg)
+
+ewma.__doc__ = _ewm_doc % ("Exponentially-weighted moving average",
+                           _unary_arg, "")
+ewmstd.__doc__ = _ewm_doc % ("Exponentially-weighted moving std",
+                             _unary_arg, _bias_doc)
+ewmvar.__doc__ = _ewm_doc % ("Exponentially-weighted moving variance",
+                             _unary_arg, _bias_doc)
+ewmcorr.__doc__ = _ewm_doc % ("Exponentially-weighted moving "
+                              "correlation", _binary_arg, "")
+ewmcov.__doc__ = _ewm_doc % ("Exponentially-weighted moving covariance",
+                             _binary_arg, "")
+
+#-------------------------------------------------------------------------------
+# Python interface to Cython functions
 
 def _conv_timerule(arg, time_rule):
     types = (DataFrame, Series)
@@ -338,7 +312,7 @@ def _rolling_func(func, desc, check_minp=_use_window):
         return _rolling_moment(arg, window, call_cython, min_periods,
                                time_rule=time_rule)
 
-    f.__doc__ = _doc_template % desc
+    f.__doc__ = _doc_template % (desc, _unary_arg)
 
     return f
 
@@ -357,3 +331,4 @@ rolling_skew = _rolling_func(tseries.roll_skew, 'Unbiased moving skewness',
                              check_minp=_two_periods)
 rolling_kurt = _rolling_func(tseries.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_two_periods)
+
