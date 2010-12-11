@@ -759,6 +759,14 @@ class Series(np.ndarray, Picklable, Groupable):
 
     merge = map
 
+    def apply(self, func):
+        try:
+            return func(self)
+        except Exception:
+            return Series([func(x) for x in self], index=self.index)
+
+    applymap = apply
+
     def reindex(self, new_index, method=None, fillMethod=None):
         """Conform Series to new Index
 
