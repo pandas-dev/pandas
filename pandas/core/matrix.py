@@ -64,6 +64,10 @@ class DataMatrix(DataFrame):
             if not isinstance(data, DataMatrix):
                 data = data.toDataMatrix()
             values = data.values
+
+            if dtype is not None:
+                values = values.astype(dtype)
+
             index = data.index
             columns = data.columns
             objects = data.objects

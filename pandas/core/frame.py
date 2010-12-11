@@ -77,6 +77,11 @@ class DataFrame(Picklable, Groupable):
                                                         columns, dtype)
         elif isinstance(data, DataFrame):
             self._series = data._series.copy()
+
+            if dtype is not None:
+                self._series = dict((k, v.astype(dtype))
+                                    for k, v in self._series.iteritems())
+
             self.index = data.index
         elif data is None:
             if index is None:

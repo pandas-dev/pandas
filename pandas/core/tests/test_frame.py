@@ -72,9 +72,6 @@ class TestDataFrame(unittest.TestCase):
         df = self.klass(data={})
         self.assert_(len(df.index) == 0)
 
-        df = self.klass(self.frame)
-        assert_frame_equal(df, self.frame)
-
     def test_constructor_mixed(self):
         index, data = common.getMixedTypeDict()
 
@@ -198,6 +195,13 @@ class TestDataFrame(unittest.TestCase):
 
         frame = self.klass(np.empty((3, 0)))
         self.assert_(len(frame.cols()) == 0)
+
+    def test_constructor_DataFrame(self):
+        df = self.klass(self.frame)
+        assert_frame_equal(df, self.frame)
+
+        df_casted = self.klass(self.frame, dtype=int)
+        self.assert_(df_casted.values.dtype == np.int_)
 
     def test_array_interface(self):
         result = np.sqrt(self.frame)
