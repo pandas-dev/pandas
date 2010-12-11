@@ -158,26 +158,8 @@ class TestMoments(unittest.TestCase):
             assert_almost_equal(matrix_result.xs(last_date),
                                 trunc_matrix.apply(static_comp))
 
-    # binary moments
-    def test_rolling_cov(self):
-        A = self.series
-        B = A + randn(len(A))
-
-        result = moments.rolling_cov(A, B, 50, min_periods=25)
-        assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
-
-    def test_rolling_corr(self):
-        A = self.series
-        B = A + randn(len(A))
-
-        result = moments.rolling_corr(A, B, 50, min_periods=25)
-        assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
-
     def test_ewma(self):
         self._check_ew(moments.ewma)
-
-    def test_ewmcorr(self):
-        pass
 
     def test_ewmvar(self):
         self._check_ew(moments.ewmvar)
@@ -185,12 +167,13 @@ class TestMoments(unittest.TestCase):
     def test_ewmvol(self):
         self._check_ew(moments.ewmvol)
 
-    def test_ewma_span_com(self):
+    def test_ewma_span_com_args(self):
         A = moments.ewma(self.arr, com=9.5)
         B = moments.ewma(self.arr, span=20)
         assert_almost_equal(A, B)
 
-        self.assertRaises(Exception, moments.ewma, com=9.5, span=20)
+        self.assertRaises(Exception, moments.ewma, self.arr, com=9.5, span=20)
+        self.assertRaises(Exception, moments.ewma, self.arr)
 
     def _check_ew(self, func):
         self._check_ew_ndarray(func)
@@ -206,6 +189,12 @@ class TestMoments(unittest.TestCase):
         arr[:10] = np.NaN
         arr[-10:] = np.NaN
 
+        # ??? check something
+
+        # pass in ints
+        result2 = func(np.arange(50), span=10)
+        self.assert_(result.dtype == np.float_)
+
     def _check_ew_structures(self, func):
         series_result = func(self.series, com=10)
         self.assert_(isinstance(series_result, Series))
@@ -213,6 +202,41 @@ class TestMoments(unittest.TestCase):
         self.assertEquals(type(frame_result), DataFrame)
         matrix_result = func(self.matrix, com=10)
         self.assertEquals(type(matrix_result), DataMatrix)
+
+    # binary moments
+    def test_rolling_cov(self):
+        A = self.series
+        B = A + randn(len(A))
+
+        result = moments.rolling_cov(A, B, 50, min_periods=25)
+        assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
+
+    def test_rolling_corr(self):
+        A = self.series
+        B = A + randn(len(A))
+
+        result = moments.rolling_corr(A, B, 50, min_periods=25)
+        assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
+
+    def test_ewmcov(self):
+        self._check_binary_ew(moments.ewmcov)
+
+    def test_ewmcorr(self):
+        self._check_binary_ew(moments.ewmcorr)
+
+    def _check_binary_ew(self, func):
+        A = Series(randn(50), index=np.arange(50))
+        B = A[2:] + randn(48)
+
+        A[:10] = np.NaN
+        B[-10:] = np.NaN
+
+        result = func(A, B, 20, min_periods=5)
+
+        self.assert_(np.isnan(result[:15]).all())
+        self.assert_(not np.isnan(result[15:]).any())
+
+        self.assertRaises(Exception, func, A, randn(50), 20, min_periods=5)
 
 if __name__ == '__main__':
     unittest.main()

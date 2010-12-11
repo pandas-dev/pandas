@@ -1070,8 +1070,8 @@ class MovingOLS(OLS):
 
     @cache_readonly
     def _window_time_obs(self):
-        window_obs = moments._rolling_sum(self._time_obs_count > 0,
-                                          self._window, minp=1)
+        window_obs = moments.rolling_sum(self._time_obs_count > 0,
+                                         self._window, min_periods=1)
 
         window_obs[np.isnan(window_obs)] = 0
         return window_obs.astype(int)
@@ -1084,8 +1084,8 @@ class MovingOLS(OLS):
             # expanding case
             window = len(self._index)
 
-        result = moments._rolling_sum(self._time_obs_count, window,
-                                      minp=1)
+        result = moments.rolling_sum(self._time_obs_count, window,
+                                     min_periods=1)
 
         return result.astype(int)
 

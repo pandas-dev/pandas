@@ -2,6 +2,8 @@
 Provides rolling statistical moments and related descriptive
 statistics implemented in Cython
 """
+from __future__ import division
+
 from functools import wraps
 
 from numpy import NaN
@@ -13,11 +15,11 @@ import pandas.lib.tseries as tseries
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
-           'rolling_median', 'ewma', 'ewmvol', 'ewmcorr', 'ewmcov']
+           'rolling_median', 'ewma', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov']
 
 def rolling_count(arg, window, time_rule=None):
     """
-    Rolling count of number of observations inside provided window.
+    Rolling count of number of non-NaN observations inside provided window.
 
     Parameters
     ----------
@@ -57,19 +59,11 @@ def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
     Returns
     -------
     y : type of input
-
-    Note
-    ----
-    cov(X,Y) = (E(X * Y) - E(X)E(Y)) * window / (window - 1)
     """
-    # TODO: filter down to common region
-    # E(XY)
-    num1 = rolling_mean(arg1 * arg2, window, min_periods, time_rule)
-
-    # E(X)E (Y)
-    num2 = (rolling_mean(arg1, window, min_periods, time_rule) *
-            rolling_mean(arg2, window, min_periods, time_rule))
-    return (num1 - num2) * window / (window - 1)
+    X, Y = _prep_binary(arg1, arg2)
+    mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
+    bias_adj = window / (window - 1)
+    return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
 def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
     """
@@ -88,9 +82,10 @@ def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
     -------
     y : type of input
     """
-    num = rolling_cov(arg1, arg2, window, min_periods, time_rule)
-    den  = (rolling_std(arg1, window, min_periods, time_rule) *
-            rolling_std(arg2, window, min_periods, time_rule))
+    X, Y = _prep_binary(arg1, arg2)
+    num = rolling_cov(X, Y, window, min_periods, time_rule)
+    den  = (rolling_std(X, window, min_periods, time_rule) *
+            rolling_std(Y, window, min_periods, time_rule))
     return num / den
 
 def _rolling_moment(arg, window, func, minp, axis=0, time_rule=None):
@@ -144,6 +139,9 @@ def _process_data_structure(arg, kill_inf=True):
         return_hook = lambda v: v
         values = arg
 
+    if not issubclass(values.dtype.type, float):
+        values = values.astype(float)
+
     if kill_inf:
         values = values.copy()
         values[np.isinf(values)] = np.NaN
@@ -171,7 +169,7 @@ _ewm_doc = r"""%s
 
 Parameters
 ----------
-arg : Series, DataFrame, or DataMatrix
+%s
 com : float. optional
     Center of mass: \alpha = com / (1 + com),
 span : float, optional
@@ -202,25 +200,28 @@ c = (s - 1) / 2
 So a "20-day EWMA" would have center 9.5
 """
 
+_unary_arg = "arg : Series, DataFrame, or DataMatrix"
+_binary_arg = """arg1 : Series, DataFrame, or DataMatrix, or ndarray
+arg2 : type of arg1"""
+
 _bias_doc = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
 
 def ewma(arg, com=None, span=None, min_periods=0):
     com = _get_center_of_mass(com, span)
-    if min_periods is None:
-        min_periods = 0
 
-    def ewmaFunc(v):
-        result = _ewma(v, com)
+    def _ewma(v):
+        result = tseries.ewma(v, com)
         first_index = _first_valid_index(v)
         result[first_index : first_index + min_periods] = NaN
         return result
 
     return_hook, values = _process_data_structure(arg)
-    output = np.apply_along_axis(ewmaFunc, 0, values)
+    output = np.apply_along_axis(_ewma, 0, values)
     return return_hook(output)
-ewma.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving average", "")
+ewma.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving average",
+                           _unary_arg, "")
 
 def _first_valid_index(arr):
     # argmax scans from left
@@ -228,7 +229,6 @@ def _first_valid_index(arr):
 
 def ewmvar(arg, com=None, span=None, min_periods=0, bias=False):
     com = _get_center_of_mass(com, span)
-
     moment2nd = ewma(arg * arg, com=com, min_periods=min_periods)
     moment1st = ewma(arg, com=com, min_periods=min_periods)
 
@@ -238,146 +238,51 @@ def ewmvar(arg, com=None, span=None, min_periods=0, bias=False):
 
     return result
 ewmvar.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving variance",
-                             _bias_doc)
+                             _unary_arg, _bias_doc)
 
-def ewmvol(arg, com=None, span=None, min_periods=0, bias=False):
+def ewmstd(arg, com=None, span=None, min_periods=0, bias=False):
     result = ewmvar(arg, com=com, span=span,
                     min_periods=min_periods, bias=bias)
     return np.sqrt(result)
-ewmvol.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving std",
-                             _bias_doc)
+ewmstd.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving std",
+                             _unary_arg, _bias_doc)
 
-def ewmcov(seriesA, seriesB, com, minCom=0, correctBias=True):
-    """
-    Calculates the rolling exponentially weighted moving variance of a
-    series.
+ewmvol = ewmstd
 
-    Parameters
-    ----------
-    series : Series
-    com : integer
-        Center of Mass for exponentially weighted moving average
-        decay = com / (1 + com) maps center of mass to decay parameter
+def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False):
+    X, Y = _prep_binary(arg1, arg2)
+    mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
 
-    minCom : int, default None
-        Optionally require that at least a certain number of periods as
-        a multiple of the Center of Mass be included in the sample.
+    result = (mean(X*Y) - mean(X) * mean(Y))
 
-    correctBias : boolean
-        Use a standard bias correction
-    """
+    if not bias:
+        result *= (1.0 + 2.0 * com) / (2.0 * com)
 
-    if correctBias:
-        bias_adj = ( 1.0 + 2.0 * com ) / (2.0 * com)
-    else:
-        bias_adj = 1.0
+    return result
+ewmcov.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving covariance",
+                             _binary_arg, "")
 
-    if not isinstance(seriesB, type(seriesA)):
+def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0):
+    X, Y = _prep_binary(arg1, arg2)
+    mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
+    var = lambda x: ewmvar(x, com=com, span=span, min_periods=min_periods,
+                           bias=True)
+    return (mean(X*Y) - mean(X)*mean(Y)) / np.sqrt(var(X) * var(Y))
+ewmcorr.__doc__ = _ewm_doc % ("Moving exponentially-weighted moving "
+                              "correlation", _binary_arg, "")
+
+def _prep_binary(arg1, arg2):
+    if not isinstance(arg2, type(arg1)):
         raise Exception('Input arrays must be of the same type!')
 
-    if isinstance(seriesA, Series):
-        if seriesA.index is not seriesB.index:
-            commonIndex = seriesA.index.intersection(seriesB.index)
-            seriesA = seriesA.reindex(commonIndex)
-            seriesB = seriesB.reindex(commonIndex)
+    # mask out values, this also makes a common index...
+    X = arg1 + 0 * arg2
+    Y = arg2 + 0 * arg1
 
-    okLocs = notnull(seriesA) & notnull(seriesB)
-
-    cleanSeriesA = seriesA[okLocs]
-    cleanSeriesB = seriesB.reindex(cleanSeriesA.index)
-
-    XY = ewma(cleanSeriesA * cleanSeriesB, com=com, minCom=minCom)
-    X  = ewma(cleanSeriesA, com=com, minCom=minCom)
-    Y  = ewma(cleanSeriesB, com=com, minCom=minCom)
-
-    return bias_adj * (XY - X * Y)
-
-
-def ewmcorr(seriesA, seriesB, com, minCom=0):
-    """
-    Calculates a rolling exponentially weighted moving correlation of
-    2 series.
-
-    Parameters
-    ----------
-    seriesA : Series
-    seriesB : Series
-    com : integer
-        Center of Mass for exponentially weighted moving average
-        decay = com / (1 + com) maps center of mass to decay parameter
-
-    minCom : int, default None
-        Optionally require that at least a certain number of periods as
-        a multiple of the Center of Mass be included in the sample.
-    """
-    if not isinstance(seriesB, type(seriesA)):
-        raise Exception('Input arrays must be of the same type!')
-
-    if isinstance(seriesA, Series):
-        if seriesA.index is not seriesB.index:
-            commonIndex = seriesA.index.intersection(seriesB.index)
-            seriesA = seriesA.reindex(commonIndex)
-            seriesB = seriesB.reindex(commonIndex)
-
-    okLocs = notnull(seriesA) & notnull(seriesB)
-
-    cleanSeriesA = seriesA[okLocs]
-    cleanSeriesB = seriesB.reindex(cleanSeriesA.index)
-
-    XY = ewma(cleanSeriesA * cleanSeriesB, com=com, minCom=minCom)
-    X  = ewma(cleanSeriesA, com=com, minCom=minCom)
-    Y  = ewma(cleanSeriesB, com=com, minCom=minCom)
-    varX = ewmvar(cleanSeriesA, com=com, minCom=minCom, correctBias=False)
-    varY = ewmvar(cleanSeriesB, com=com, minCom=minCom, correctBias=False)
-
-    return (XY - X * Y) / np.sqrt(varX * varY)
-
+    return X, Y
 
 #-------------------------------------------------------------------------------
 # Python interface to Cython functions
-
-def _check_arg(arg):
-    if not issubclass(arg.dtype.type, float):
-        arg = arg.astype(float)
-
-    return arg
-
-def _two_periods(minp, window):
-    if minp is None:
-        return window
-    else:
-        return max(2, minp)
-
-def _use_window(minp, window):
-    if minp is None:
-        return window
-    else:
-        return minp
-
-def _wrap_cython(f, check_minp=_use_window):
-    def wrapper(arg, window, minp=None):
-        minp = check_minp(minp, window)
-        arg = _check_arg(arg)
-        return f(arg, window, minp)
-
-    return wrapper
-
-_rolling_sum = _wrap_cython(tseries.roll_sum)
-_rolling_max = _wrap_cython(tseries.roll_max)
-_rolling_min = _wrap_cython(tseries.roll_min)
-_rolling_mean = _wrap_cython(tseries.roll_mean)
-_rolling_median = _wrap_cython(tseries.roll_median)
-_rolling_var = _wrap_cython(tseries.roll_var, check_minp=_two_periods)
-_rolling_skew = _wrap_cython(tseries.roll_skew, check_minp=_two_periods)
-_rolling_kurt = _wrap_cython(tseries.roll_kurt, check_minp=_two_periods)
-_rolling_std = lambda *a, **kw: np.sqrt(_rolling_var(*a, **kw))
-
-def _ewma(arg, com):
-    arg = _check_arg(arg)
-    return tseries.ewma(arg, com)
-
-#-------------------------------------------------------------------------------
-# Rolling statistics
 
 _doc_template = """
 %s
@@ -396,25 +301,43 @@ Returns
 y : type of input argument
 """
 
-def _rolling_func(func, desc):
+def _two_periods(minp, window):
+    if minp is None:
+        return window
+    else:
+        return max(2, minp)
+
+def _use_window(minp, window):
+    if minp is None:
+        return window
+    else:
+        return minp
+
+def _rolling_func(func, desc, check_minp=_use_window):
     @wraps(func)
     def f(arg, window, min_periods=None, time_rule=None):
-        return _rolling_moment(arg, window, func, min_periods,
-                              time_rule=time_rule)
+        def call_cython(arg, window, minp):
+            minp = check_minp(minp, window)
+            return func(arg, window, minp)
+        return _rolling_moment(arg, window, call_cython, min_periods,
+                               time_rule=time_rule)
 
     f.__doc__ = _doc_template % desc
 
     return f
 
-rolling_max = _rolling_func(_rolling_max, 'Moving maximum')
-rolling_min = _rolling_func(_rolling_min, 'Moving minimum')
-rolling_sum = _rolling_func(_rolling_sum, 'Moving sum')
-rolling_mean = _rolling_func(_rolling_mean, 'Moving mean')
-rolling_median = _rolling_func(_rolling_median, 'Moving median')
+rolling_max = _rolling_func(tseries.roll_max, 'Moving maximum')
+rolling_min = _rolling_func(tseries.roll_min, 'Moving minimum')
+rolling_sum = _rolling_func(tseries.roll_sum, 'Moving sum')
+rolling_mean = _rolling_func(tseries.roll_mean, 'Moving mean')
+rolling_median = _rolling_func(tseries.roll_median, 'Moving median')
 
-rolling_std = _rolling_func(_rolling_std,
-                            'Unbiased moving standard deviation')
-
-rolling_var = _rolling_func(_rolling_var, 'Unbiased moving variance')
-rolling_skew = _rolling_func(_rolling_skew, 'Unbiased moving skewness')
-rolling_kurt = _rolling_func(_rolling_kurt, 'Unbiased moving kurtosis')
+_ts_std = lambda *a, **kw: np.sqrt(tseries.roll_var(*a, **kw))
+rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
+                            check_minp=_two_periods)
+rolling_var = _rolling_func(tseries.roll_var, 'Unbiased moving variance',
+                            check_minp=_two_periods)
+rolling_skew = _rolling_func(tseries.roll_skew, 'Unbiased moving skewness',
+                             check_minp=_two_periods)
+rolling_kurt = _rolling_func(tseries.roll_kurt, 'Unbiased moving kurtosis',
+                             check_minp=_two_periods)
