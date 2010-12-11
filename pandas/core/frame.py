@@ -24,7 +24,12 @@ import pandas.lib.tseries as tseries
 
 def arith_method(func, name):
     def f(self, other):
-        return self._combine(other, func)
+        if isinstance(other, DataFrame):    # Another DataFrame
+            return self._combine_frame(other, func)
+        elif isinstance(other, Series):
+            return self._combine_series(other, func)
+        else:
+            return self._combine_const(other, func)
 
     f.__name__ = name
     f.__doc__ = 'Wrapper for arithmetic method %s' % name
@@ -458,7 +463,7 @@ class DataFrame(Picklable, Groupable):
     _firstTimeWithValue = first_valid_index
     _lastTimeWithValue = last_valid_index
 
-    def _combineFrame(self, other, func):
+    def _combine_frame(self, other, func):
         new_data = {}
         new_index = self.index
         new_columns = self.columns
@@ -489,7 +494,7 @@ class DataFrame(Picklable, Groupable):
 
         return DataFrame(data=new_data, index=new_index, columns=new_columns)
 
-    def _combineSeries(self, other, func):
+    def _combine_series(self, other, func):
         new_data = {}
         new_index = self.index
 
@@ -528,32 +533,13 @@ class DataFrame(Picklable, Groupable):
 
         return result
 
-    def _combine(self, other, func):
-        """
-        Combine DataFrame objects or a single DataFrame and a constant
-        or other object using the supplied function.
+    def _combine_const(self, other, func):
+        new_data = {}
+        for col, series in self.iteritems():
+            new_data[col] = func(series, other)
 
-        This is the core method used for all the 'magic' DataFrame methods.
-
-        Parameters
-        ----------
-        other : constant, array, or DataFrame/Matrix
-        func : function taking two arguments
-
-        Examples
-        --------
-        frame._combine(otherFrame, lambda x, y: x + y)
-        """
-        if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combineFrame(other, func)
-        elif isinstance(other, Series):
-            return self._combineSeries(other, func)
-        else:
-            new_data = {}
-            for col, series in self.iteritems():
-                new_data[col] = func(series, other)
-
-            return DataFrame(data=new_data, index=self.index)
+        return DataFrame(data=new_data, index=self.index,
+                         columns=self.columns)
 
 #-------------------------------------------------------------------------------
 # Public methods
@@ -696,19 +682,25 @@ class DataFrame(Picklable, Groupable):
         Columns not in this frame are added as new columns.
         """
         new_index = np.concatenate((self.index, other.index))
-        newValues = {}
+        new_columns = self.columns
+        new_data = {}
+
+        if not new_columns.equals(other.columns):
+            new_columns = self.columns + other.columns
 
         for column, series in self.iteritems():
             if column in other:
-                newValues[column] = series.append(other[column])
+                new_data[column] = series.append(other[column])
             else:
-                newValues[column] = series
+                new_data[column] = series
 
         for column, series in other.iteritems():
             if column not in self:
-                newValues[column] = series
+                new_data[column] = series
 
-        return DataFrame(data=newValues, index=new_index)
+        # TODO: column ordering issues?
+        return DataFrame(data=new_data, index=new_index,
+                         columns=new_columns)
 
     def asfreq(self, freq, method=None, fillMethod=None):
         """
@@ -742,7 +734,7 @@ class DataFrame(Picklable, Groupable):
         of columns is provided.
         """
         if columns is None:
-            return np.array([self[col] for col in self.cols()]).T
+            return np.array([self[col] for col in self.columns]).T
         else:
             return np.array([self[col] for col in columns]).T
 
@@ -758,10 +750,11 @@ class DataFrame(Picklable, Groupable):
 
     def corr(self):
         """
-        Compute correlation of columns. Returns DataFrame of result matrix.
+        Compute pairwise correlation of columns, excluding NaN values
 
-        In the presence of NaN values in any column, tries to compute the
-        pairwise correlation between the column and the other columns.
+        Returns
+        -------
+        y : DataFrame
         """
         cols = self.columns
         mat = self.asMatrix(cols).T
@@ -844,6 +837,18 @@ class DataFrame(Picklable, Groupable):
             common_cols = common_cols.intersection(other.columns)
 
         return common_index, common_cols
+
+    def _union_labels(self, other):
+        union_cols = self.columns
+        union_index = self.index
+
+        if not union_index.equals(other.index):
+            union_index = union_index.union(other.index)
+
+        if not union_cols.equals(other.columns):
+            union_cols = union_cols.union(other.columns)
+
+        return union_index, union_cols
 
     def dropEmptyRows(self, specificColumns=None):
         """
@@ -1055,7 +1060,7 @@ class DataFrame(Picklable, Groupable):
             index = Index(index)
 
         if len(self.index) == 0:
-            return DataFrame(index=index)
+            return DataFrame(index=index, columns=self.columns)
 
         indexer, mask = common.get_indexer(self.index, index, method)
 
@@ -1092,21 +1097,14 @@ class DataFrame(Picklable, Groupable):
                     newSeries[col] = new
                     break
 
-        return DataFrame(newSeries, index=index)
+        return DataFrame(newSeries, index=index, columns=self.columns)
 
     def _reindex_columns(self, columns):
-        result = DataFrame(index=self.index)
+        if not isinstance(columns, Index):
+            columns = Index(columns)
 
-        if len(columns) == 0:
-            return result
-
-        for col in columns:
-            if col in self:
-                result[col] = self[col]
-            else:
-                result[col] = NaN
-
-        return result
+        sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
+        return DataFrame(sdict, index=self.index, columns=columns)
 
     def reindex_like(self, other, method=None):
         """
@@ -1220,11 +1218,11 @@ class DataFrame(Picklable, Groupable):
         else:
             theDtype = dtypes[0]
 
-        selfM = np.array([self[col] for col in self.cols()], dtype=theDtype)
-        idxMap = self.index.indexMap
-        return DataFrame(data=dict([(idx, selfM[:, idxMap[idx]])
-                                        for idx in self.index]),
-                                        index=Index(self.cols()))
+        valuesT = np.array([self[col] for col in self.columns],
+                           dtype=theDtype).T
+
+        return DataFrame(data=dict(zip(self.index, valuesT)),
+                         index=self.columns, columns=self.index)
 
     def diff(self, periods=1):
         return self - self.shift(periods)
@@ -1257,14 +1255,15 @@ class DataFrame(Picklable, Groupable):
                     values[periods:] = NaN
                     return values
 
-            newValues = dict([(col, do_shift(series))
+            new_data = dict([(col, do_shift(series))
                               for col, series in self.iteritems()])
         else:
             new_index = self.index.shift(periods, offset)
-            newValues = dict([(col, np.asarray(series))
+            new_data = dict([(col, np.asarray(series))
                                for col, series in self.iteritems()])
 
-        return DataFrame(data=newValues, index=new_index)
+        return DataFrame(data=new_data, index=new_index,
+                         columns=self.columns)
 
     def _shift_indexer(self, periods):
         # small reusable utility
@@ -1315,7 +1314,8 @@ class DataFrame(Picklable, Groupable):
             results[k] = func(target[k])
 
         if hasattr(results.values()[0], '__iter__'):
-            result = self._constructor(data=results, index=target.index)
+            result = self._constructor(data=results, index=target.index,
+                                       columns=target.columns)
 
             if axis == 1:
                 result = result.T
@@ -1344,7 +1344,7 @@ class DataFrame(Picklable, Groupable):
         results = {}
         for col, series in self.iteritems():
             results[col] = [func(v) for v in series]
-        return DataFrame(data=results, index=self.index)
+        return DataFrame(data=results, index=self.index, columns=self.columns)
 
     def tgroupby(self, keyfunc, applyfunc):
         """
@@ -1429,21 +1429,24 @@ class DataFrame(Picklable, Groupable):
         if not self:
             return other.copy()
 
-        if self.index is not other.index:
-            unionIndex = self.index + other.index
-            frame = self.reindex(unionIndex)
-            other = other.reindex(unionIndex)
-        else:
-            unionIndex = self.index
-            frame = self
+        new_index = self.index
+        new_columns = self.columns
+        this = self
+
+        if not self.index.equals(other.index):
+            new_index = self.index + other.index
+            this = self.reindex(new_index)
+            other = other.reindex(new_index)
+
+        if not self.columns.equals(other.columns):
+            new_columns = self.columns + other.columns
 
         do_fill = fill_value is not None
-        unionCols = _try_sort(set(frame.cols() + other.cols()))
 
         result = {}
-        for col in unionCols:
-            if col in frame and col in other:
-                series = frame[col].values
+        for col in new_columns:
+            if col in this and col in other:
+                series = this[col].values
                 otherSeries = other[col].values
 
                 if do_fill:
@@ -1459,12 +1462,12 @@ class DataFrame(Picklable, Groupable):
                 if do_fill:
                     result[col][this_mask & other_mask] = np.NaN
 
-            elif col in frame:
-                result[col] = frame[col]
+            elif col in this:
+                result[col] = this[col]
             elif col in other:
                 result[col] = other[col]
 
-        return self._constructor(result, index=unionIndex)
+        return self._constructor(result, index=new_index, columns=new_columns)
 
     def combineFirst(self, other):
         """
@@ -1573,17 +1576,17 @@ class DataFrame(Picklable, Groupable):
 
         indexer, mask = tseries.getMergeVec(self[on], other.index.indexMap)
 
-        newSeries = {}
+        new_data = {}
 
         for col, series in other.iteritems():
             arr = series.view(np.ndarray).take(indexer)
             arr[-mask] = NaN
 
-            newSeries[col] = arr
+            new_data[col] = arr
 
-        newSeries.update(self._series)
+        new_data.update(self._series)
 
-        return self._constructor(newSeries, index=self.index)
+        return self._constructor(new_data, index=self.index)
 
     def _join_index(self, other, how):
         if how == 'left':

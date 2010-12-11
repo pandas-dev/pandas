@@ -335,7 +335,7 @@ class DataMatrix(DataFrame):
         if self.objects is not None:
             self.objects._rename_columns_inplace(mapper)
 
-    def _combineFrame(self, other, func):
+    def _combine_frame(self, other, func):
         """
         Methodology, briefly
         - Really concerned here about speed, space
@@ -384,8 +384,8 @@ class DataMatrix(DataFrame):
         return DataMatrix(func(myValues, hisValues),
                           index=newIndex, columns=new_columns)
 
-    def _combineSeries(self, other, func):
-        newIndex = self.index
+    def _combine_series(self, other, func):
+        new_index = self.index
         newCols = self.columns
 
         if len(self) == 0:
@@ -396,21 +396,21 @@ class DataMatrix(DataFrame):
         if self.index._allDates and other.index._allDates:
             # Operate row-wise
             if self.index.equals(other.index):
-                newIndex = self.index
+                new_index = self.index
                 other_vals = other.values
                 values = self.values
             else:
-                newIndex = self.index + other.index
+                new_index = self.index + other.index
 
-                if other.index.equals(newIndex):
+                if other.index.equals(new_index):
                     other_vals = other.values
                 else:
-                    other_vals = other.reindex(newIndex).values
+                    other_vals = other.reindex(new_index).values
 
-                if self.index.equals(newIndex):
+                if self.index.equals(new_index):
                     values = self.values
                 else:
-                    values = self.reindex(newIndex).values
+                    values = self.reindex(new_index).values
 
             result = func(values.T, other_vals).T
         else:
@@ -426,37 +426,16 @@ class DataMatrix(DataFrame):
             result = func(this.values, other)
 
         # TODO: deal with objects
-        return DataMatrix(result, index=newIndex, columns=newCols)
+        return DataMatrix(result, index=new_index, columns=newCols)
 
-    def _combine(self, other, func):
-        """
-        Combine DataMatrix objects with other Series- or DataFrame-like objects
+    def _combine_const(self, other, func):
+        if not self:
+            return self
 
-        This is the core method used for the overloaded arithmetic methods
+        # TODO: deal with objects
+        return DataMatrix(func(self.values, other), index=self.index,
+                          columns=self.columns)
 
-        Result hierarchy
-        ----------------
-        DataMatrix + DataFrame --> DataMatrix
-        DataMatrix + DataMatrix --> DataMatrix
-        DataMatrix + Series --> DataMatrix
-        DataMatrix + constant --> DataMatrix
-
-        The reason for 'upcasting' the result is that if addition succeed,
-        we can assume that the input DataFrame was homogeneous.
-        """
-        if isinstance(other, DataFrame):
-            return self._combineFrame(other, func)
-
-        elif isinstance(other, Series):
-            return self._combineSeries(other, func)
-
-        else:
-            if not self:
-                return self
-
-            # TODO: deal with objects
-            return DataMatrix(func(self.values, other), index=self.index,
-                              columns=self.columns)
 
 #-------------------------------------------------------------------------------
 # Properties for index and columns
