@@ -1588,7 +1588,7 @@ class DataFrame(Picklable, Groupable):
         from pylab import plot
 
         for col in _try_sort(self.columns):
-            plot(self.index, self[col].values, label=col)
+            plot(self.index, self[col].values, label=col, **kwds)
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:
