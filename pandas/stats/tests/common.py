@@ -3,12 +3,12 @@
 from datetime import datetime
 import string
 import unittest
+import nose
 
 import numpy as np
 
 from pandas.core.api import DataMatrix, DateRange
-from pandas.util.testing import assert_almost_equal
-
+from pandas.util.testing import assert_almost_equal # imported in other tests
 N = 100
 K = 4
 
@@ -31,8 +31,25 @@ def getBasicDatasets():
 
     return A, B, C
 
+def check_for_scipy():
+    try:
+        import scipy
+    except ImportError:
+        raise nose.SkipTest('no scipy')
+
+def check_for_statsmodels():
+    try:
+        import scikits.statsmodels as sm
+    except Exception:
+        raise nose.SkipTest('no statsmodels')
+
+
 class BaseTest(unittest.TestCase):
     def setUp(self):
+        check_for_scipy()
+        check_for_statsmodels()
+
+
         self.A, self.B, self.C = getBasicDatasets()
 
         self.createData1()

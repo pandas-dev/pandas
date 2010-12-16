@@ -622,7 +622,9 @@ class TestDataFrame(unittest.TestCase):
         mixed_appended = self.mixed_frame[:5].append(self.frame[5:])
         mixed_appended2 = self.frame[:5].append(self.mixed_frame[5:])
 
-        assert_frame_equal(mixed_appended, mixed_appended2)
+        # all equal except 'foo' column
+        assert_frame_equal(mixed_appended.reindex(columns=['A', 'B', 'C', 'D']),
+                           mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
         # append empty
         appended = self.frame.append(self.empty)

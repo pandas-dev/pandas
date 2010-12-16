@@ -8,6 +8,7 @@ import sys
 from numpy.random import randn
 import numpy as np
 
+from pandas.core.common import isnull
 import pandas.core.index as index
 import pandas.core.daterange as daterange
 import pandas.core.series as series
@@ -73,17 +74,20 @@ def assert_almost_equal(a, b):
 
     err_msg = lambda a, b: 'expected %.5f but got %.5f' % (a, b)
 
-    if np.isnan(a):
-        np.testing.assert_(np.isnan(b))
+    if isnull(a):
+        np.testing.assert_(isnull(b))
         return
 
-    # case for zero
-    if abs(a) < 1e-5:
-        np.testing.assert_almost_equal(
-            a, b, decimal=5, err_msg=err_msg(a, b), verbose=False)
+    if isinstance(a, (bool, float, int)):
+        # case for zero
+        if abs(a) < 1e-5:
+            np.testing.assert_almost_equal(
+                a, b, decimal=5, err_msg=err_msg(a, b), verbose=False)
+        else:
+            np.testing.assert_almost_equal(
+                1, a/b, decimal=5, err_msg=err_msg(a, b), verbose=False)
     else:
-        np.testing.assert_almost_equal(
-            1, a/b, decimal=5, err_msg=err_msg(a, b), verbose=False)
+        assert(a == b)
 
 def is_sorted(seq):
     return assert_almost_equal(seq, np.sort(np.array(seq)))

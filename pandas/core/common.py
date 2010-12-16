@@ -5,6 +5,12 @@ import numpy as np
 
 import pandas.lib.tseries as tseries
 
+# XXX: HACK for NumPy 1.5.1 to suppress warnings
+try:
+    np.seterr(all='ignore')
+except Exception:
+    pass
+
 def isnull(input):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable

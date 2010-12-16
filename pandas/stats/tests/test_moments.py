@@ -1,4 +1,5 @@
 import unittest
+import nose
 
 from datetime import datetime
 from numpy.random import randn
@@ -61,12 +62,18 @@ class TestMoments(unittest.TestCase):
                                 lambda x: np.var(x, ddof=1))
 
     def test_rolling_skew(self):
-        from scipy.stats import skew
+        try:
+            from scipy.stats import skew
+        except ImportError:
+            raise nose.SkipTest('no scipy')
         self._check_moment_func(moments.rolling_skew,
                                 lambda x: skew(x, bias=False))
 
     def test_rolling_kurt(self):
-        from scipy.stats import kurtosis
+        try:
+            from scipy.stats import kurtosis
+        except ImportError:
+            raise nose.SkipTest('no scipy')
         self._check_moment_func(moments.rolling_kurt,
                                 lambda x: kurtosis(x, bias=False))
 

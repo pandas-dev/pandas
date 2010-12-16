@@ -8,11 +8,7 @@ from __future__ import division
 
 from datetime import datetime
 import unittest
-
 import numpy as np
-import scikits.statsmodels as sm
-import scikits.statsmodels.datasets as datasets
-from scikits.statsmodels import tools
 
 from pandas.core.panel import LongPanel
 from pandas.core.api import DataMatrix, Index, Series
@@ -38,6 +34,8 @@ class TestOLS(BaseTest):
     # TODO: Add tests for non pooled OLS.
 
     def testOLSWithDatasets(self):
+        import scikits.statsmodels.datasets as datasets
+
         self.checkDataSet(datasets.ccard.load(), skip_moving=True)
         self.checkDataSet(datasets.cpunish.load(), skip_moving=True)
         self.checkDataSet(datasets.longley.load(), skip_moving=True)
@@ -64,7 +62,11 @@ class TestOLS(BaseTest):
             self.checkMovingOLS('expanding', x, y, nw_lags=1, nw_overlap=True)
 
     def checkOLS(self, exog, endog, x, y):
+
+        import scikits.statsmodels as sm
+
         reference = sm.OLS(endog, sm.add_constant(exog)).fit()
+
         result = ols(y=y, x=x)
 
         assert_almost_equal(reference.params, result._beta_raw)
@@ -83,6 +85,8 @@ class TestOLS(BaseTest):
         _check_non_raw_results(result)
 
     def checkMovingOLS(self, window_type, x, y, **kwds):
+        from scikits.statsmodels import tools
+
         window = tools.rank(x.values) * 2
 
         moving = ols(y=y, x=x, window_type=window_type,
