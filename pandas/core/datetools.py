@@ -1,8 +1,12 @@
 """A collection of random tools for dealing with dates in Python"""
 
 from datetime import datetime, timedelta
-from dateutil import parser
-from dateutil.relativedelta import relativedelta
+
+try:
+    from dateutil import parser
+    from dateutil.relativedelta import relativedelta
+except ImportError:
+    print 'Please install python-dateutil via easy_install or some method!'
 
 import calendar
 
