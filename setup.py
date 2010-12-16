@@ -26,13 +26,13 @@ accomplish the following:
 
 Note
 ----
-Windows binaries built against NumPy 1.3.0
+Windows binaries built against NumPy 1.4.0+
 """
 
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
 AUTHOR = "AQR Capital Management, LLC"
-MAINTAINER = "AQR Capital Management, LLC"
+MAINTAINER = "Wes McKinney"
 MAINTAINER_EMAIL = "wesmckinn@gmail.com"
 URL = "http://pandas.sourceforge.net"
 DOWNLOAD_URL = ''
