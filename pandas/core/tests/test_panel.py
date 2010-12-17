@@ -330,10 +330,13 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         smaller = self.panel.reindex(major=smaller_major)
 
         larger = smaller.reindex(major=self.panel.major_axis,
-                                 fill_method='pad')
+                                 method='pad')
 
-        assert_frame_equal(larger.getMajorXS(self.panel.major_axis[1]),
-                           smaller.getMajorXS(smaller_major[0]))
+        assert_frame_equal(larger.major_xs(self.panel.major_axis[1]),
+                           smaller.major_xs(smaller_major[0]))
+
+        # reindex_like
+
 
     def test_fill(self):
         filled = self.panel.fill(0)
@@ -355,22 +358,22 @@ class TestWidePanel(unittest.TestCase, PanelTests):
             assert_frame_equal(result['ItemB'], op(self.panel['ItemB'], df))
 
             # major
-            xs = self.panel.getMajorXS(self.panel.major_axis[0])
+            xs = self.panel.major_xs(self.panel.major_axis[0])
             result = func(xs, axis='major')
 
             idx = self.panel.major_axis[1]
 
-            assert_frame_equal(result.getMajorXS(idx),
-                               op(self.panel.getMajorXS(idx), xs))
+            assert_frame_equal(result.major_xs(idx),
+                               op(self.panel.major_xs(idx), xs))
 
             # minor
-            xs = self.panel.getMinorXS(self.panel.minor_axis[0])
+            xs = self.panel.minor_xs(self.panel.minor_axis[0])
             result = func(xs, axis='minor')
 
             idx = self.panel.minor_axis[1]
 
-            assert_frame_equal(result.getMinorXS(idx),
-                               op(self.panel.getMinorXS(idx), xs))
+            assert_frame_equal(result.minor_xs(idx),
+                               op(self.panel.minor_xs(idx), xs))
 
         check_op(operator.add, 'add')
         check_op(operator.sub, 'subtract')
@@ -391,28 +394,28 @@ class TestWidePanel(unittest.TestCase, PanelTests):
     def test_neg(self):
         assert_panel_equal(-self.panel, self.panel * -1)
 
-    def test_getMajorXS(self):
+    def test_major_xs(self):
         ref = self.panel['ItemA']
 
         idx = self.panel.major_axis[5]
-        xs = self.panel.getMajorXS(idx)
+        xs = self.panel.major_xs(idx)
 
         assert_series_equal(xs['ItemA'], ref.getXS(idx))
 
         # not contained
         idx = self.panel.major_axis[0] - bday
-        self.assertRaises(Exception, self.panel.getMajorXS, idx)
+        self.assertRaises(Exception, self.panel.major_xs, idx)
 
-    def test_getMinorXS(self):
+    def test_minor_xs(self):
         ref = self.panel['ItemA']
 
         idx = self.panel.minor_axis[1]
-        xs = self.panel.getMinorXS(idx)
+        xs = self.panel.minor_xs(idx)
 
         assert_series_equal(xs['ItemA'], ref[idx])
 
         # not contained
-        self.assertRaises(Exception, self.panel.getMinorXS, 'E')
+        self.assertRaises(Exception, self.panel.minor_xs, 'E')
 
     def test_groupby(self):
         grouped = self.panel.groupby({'ItemA' : 0, 'ItemB' : 0, 'ItemC' : 1},
@@ -475,8 +478,8 @@ class TestWidePanel(unittest.TestCase, PanelTests):
 
         shifted = self.panel.shift(1)
 
-        assert_frame_equal(self.panel.getMajorXS(idx),
-                           shifted.getMajorXS(idx_lag))
+        assert_frame_equal(self.panel.major_xs(idx),
+                           shifted.major_xs(idx_lag))
 
         # minor
         idx = self.panel.minor_axis[0]
@@ -484,8 +487,8 @@ class TestWidePanel(unittest.TestCase, PanelTests):
 
         shifted = self.panel.shift(1, axis='minor')
 
-        assert_frame_equal(self.panel.getMinorXS(idx),
-                           shifted.getMinorXS(idx_lag))
+        assert_frame_equal(self.panel.minor_xs(idx),
+                           shifted.minor_xs(idx_lag))
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 

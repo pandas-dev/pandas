@@ -373,7 +373,7 @@ class WidePanel(Panel):
 
         return frame.reindex(index=index, columns=columns)
 
-    def reindex(self, major=None, items=None, minor=None, fill_method=None):
+    def reindex(self, major=None, items=None, minor=None, method=None):
         """
         Conform panel to new axis or axes
 
@@ -382,7 +382,7 @@ class WidePanel(Panel):
         major : Index or sequence, default None
         items : Index or sequence, default None
         minor : Index or sequence, default None
-        fill_method : {'backfill', 'pad', 'interpolate', None}
+        method : {'backfill', 'pad', 'interpolate', None}
             Method to use for filling holes in reindexed panel
 
         Returns
@@ -392,18 +392,35 @@ class WidePanel(Panel):
         result = self
 
         if major is not None:
-            result = result._reindex_axis(major, fill_method, 1)
+            result = result._reindex_axis(major, method, 1)
 
         if minor is not None:
-            result = result._reindex_axis(minor, fill_method, 2)
+            result = result._reindex_axis(minor, method, 2)
 
         if items is not None:
-            result = result._reindex_axis(items, fill_method, 0)
+            result = result._reindex_axis(items, method, 0)
 
         if result is self:
             raise Exception('Must specify at least one axis')
 
         return result
+
+    def reindex_like(self, other, method=None):
+        """
+        Reindex WidePanel to match indices of another WidePanel
+
+        Parameters
+        ----------
+        other : WidePanel
+        method : string or None
+
+        Returns
+        -------
+        reindexed : WidePanel
+        """
+        # todo: object columns
+        return self.reindex(major=other.major_axis, items=other.items,
+                            minor=other.minor_axis, method=method)
 
     def _reindex_axis(self, new_index, fill_method, axis):
         old_index = self._get_axis(axis)
@@ -515,7 +532,7 @@ class WidePanel(Panel):
     divide = _wide_arith_method(operator.div, 'divide')
     multiply = _wide_arith_method(operator.mul, 'multiply')
 
-    def getMajorXS(self, key):
+    def major_xs(self, key):
         """
         Parameters
         ----------
@@ -533,7 +550,7 @@ class WidePanel(Panel):
         mat = np.array(self.values[:, loc, :].T)
         return DataMatrix(mat, index=self.minor_axis, columns=self.items)
 
-    def getMinorXS(self, key):
+    def minor_xs(self, key):
         """
         Parameters
         ----------
@@ -550,6 +567,9 @@ class WidePanel(Panel):
 
         mat = np.array(self.values[:, :, loc].T)
         return DataMatrix(mat, index=self.major_axis, columns=self.items)
+
+    getMinorXS = minor_xs
+    getMajorXS = major_xs
 
     def groupby(self, function, axis='major'):
         """
