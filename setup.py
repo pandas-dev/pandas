@@ -55,7 +55,7 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 FULLVERSION = VERSION
 if not ISRELEASED:
     # FULLVERSION += '.dev' + datetime.today().strftime('%Y%m%d')
-    FULLVERSION += '.beta'
+    FULLVERSION += '.beta2'
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
