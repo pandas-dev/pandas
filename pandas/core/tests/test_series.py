@@ -386,7 +386,7 @@ class TestSeries(unittest.TestCase):
             self.assert_(np.array_equal(result, expected))
 
         argsorted = self.ts.argsort()
-        self.assert_(argsorted.dtype == np.int_)
+        self.assert_(issubclass(argsorted.dtype.type, np.integer))
 
     def test_median(self):
         self.assertAlmostEqual(np.median(self.ts), self.ts.median())
@@ -395,6 +395,10 @@ class TestSeries(unittest.TestCase):
         ts[::2] = np.NaN
 
         self.assertAlmostEqual(np.median(ts.valid()), ts.median())
+
+        # test with integers, test failure
+        int_ts = TimeSeries(np.ones(10, dtype=int), index=range(10))
+        self.assertAlmostEqual(np.median(int_ts), int_ts.median())
 
     def test_corr(self):
         # full overlap

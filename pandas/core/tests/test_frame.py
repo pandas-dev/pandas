@@ -1367,6 +1367,7 @@ class TestDataFrame(unittest.TestCase):
             x = np.asarray(x)
             return np.median(x[notnull(x)])
 
+        self._check_statistic(self.intframe, 'median', f)
         self._check_statistic(self.frame, 'median', f)
 
     def test_min(self):
