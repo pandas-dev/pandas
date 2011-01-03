@@ -192,10 +192,15 @@ class DataFrame(Picklable, Groupable):
         return series, columns, index
 
     def __setstate__(self, state):
-        series, cols, idx = state
+        # for compatibility with old pickle files
+        if len(state) == 2: # pragma: no cover
+            series, idx = state
+            columns = sorted(series)
+        else:
+            series, cols, idx = state
+            columns = _unpickle_array(cols)
 
         index = _unpickle_array(idx)
-        columns = _unpickle_array(cols)
         self._series = dict((k, Series(v, index=index))
                             for k, v in series.iteritems())
         self.index = index
