@@ -366,6 +366,70 @@ class Week(DateOffset):
         return someDate.weekday() == self.weekday
 
 
+
+class WeekOfMonth(DateOffset):
+    """
+    weekday
+    0: Mondays
+    1: Tuedays
+    2: Wednesdays
+    3: Thursdays
+    4: Fridays
+    5: Saturdays
+    6: Sundays
+
+    week: 0 means 1st week of month, 1 means 2nd week, etc.
+    """
+    _normalizeFirst = True
+    def __init__(self, n=1, **kwds):
+        self.n = n
+        self.weekday = kwds['weekday']
+        self.week = kwds['week']
+
+        if self.n != 1 and self.n != -1:
+            raise Exception('N must be -1 or 1, got %d' % self.n)
+
+        if self.weekday < 0 or self.weekday > 6:
+            raise Exception('Day must be 0<=day<=6, got %d' %
+                            self.weekday)
+        if self.week < 0 or self.week > 3:
+            raise Exception('Week must be 0<=day<=3, got %d' %
+                            self.week)
+
+        self.kwds = kwds
+
+    def apply(self, other):
+        offsetOfMonth = self.getOffsetOfMonth(other)
+        offsetOfPrevMonth = self.getOffsetOfMonth(other + relativedelta(months=-1, day=1))
+        offsetOfNextMonth = self.getOffsetOfMonth(other + relativedelta(months=1, day=1))
+
+        if other < offsetOfMonth:
+            if self.n == 1:
+                return offsetOfMonth
+            elif self.n == -1:
+                return offsetOfPrevMonth
+        elif other == offsetOfMonth:
+            return self.getOffsetOfMonth(other + relativedelta(months=self.n, day=1))
+        else:
+            if self.n == 1:
+                return offsetOfNextMonth
+            else:
+                return offsetOfMonth
+
+    def getOffsetOfMonth(self, someDate):
+        w = Week(weekday=self.weekday)
+        d = datetime(someDate.year, someDate.month, 1)
+
+        d = w.rollforward(d)
+
+        for i in xrange(self.week):
+            d = w.apply(d)
+
+        return d
+
+    def onOffset(self, someDate):
+        return someDate == self.getOffsetOfMonth(someDate)
+
 class BQuarterEnd(DateOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
@@ -573,6 +637,12 @@ _offsetMap = {
     "A@NOV"    : BYearEnd(month=11),
     "A@DEC"    : BYearEnd()
 }
+
+
+for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
+    for week in xrange(4):
+        _offsetMap['WOM@%d%s' % (week + 1, weekday)] = \
+            WeekOfMonth(week=week, weekday=i)
 
 _offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
 
