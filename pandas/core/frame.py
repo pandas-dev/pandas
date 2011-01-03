@@ -36,6 +36,20 @@ def arith_method(func, name):
 
     return f
 
+def comp_method(func, name):
+    def f(self, other):
+        if isinstance(other, DataFrame):    # Another DataFrame
+            return self._combine_frame(other, func)
+        elif isinstance(other, Series):
+            return self._combine_series(other, func)
+        else:
+            return self._combine_const(other, func)
+
+    f.__name__ = name
+    f.__doc__ = 'Wrapper for arithmetic method %s' % name
+
+    return f
+
 #-------------------------------------------------------------------------------
 # DataFrame class
 

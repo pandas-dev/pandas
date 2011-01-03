@@ -26,7 +26,7 @@ accomplish the following:
 
 Note
 ----
-Windows binaries built against NumPy 1.4.0+
+Windows binaries built against NumPy 1.5.1
 """
 
 DISTNAME = 'pandas'
