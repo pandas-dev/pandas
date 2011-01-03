@@ -1880,6 +1880,8 @@ class DataFrame(Picklable, Groupable):
         Series or TimeSeries
         """
         def f(arr):
+            if arr.dtype != np.float_:
+                arr = arr.astype(float)
             return tseries.median(arr[notnull(arr)])
 
         if axis == 0:

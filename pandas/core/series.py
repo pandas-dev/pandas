@@ -482,6 +482,10 @@ class Series(np.ndarray, Picklable, Groupable):
         Compute median value of non-null values
         """
         arr = self.values
+
+        if arr.dtype != np.float_:
+            arr = arr.astype(float)
+
         arr = arr[notnull(arr)]
         return tseries.median(arr)
 
