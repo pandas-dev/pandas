@@ -394,6 +394,9 @@ class TestDataFrame(unittest.TestCase):
         self.frame['col7'] = 5
         assert((self.frame['col7'] == 5).all())
 
+        self.frame['col0'] = 3.14
+        assert((self.frame['col0'] == 3.14).all())
+
         self.frame['col8'] = 'foo'
         assert((self.frame['col8'] == 'foo').all())
 
@@ -589,7 +592,17 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(self.tsframe.rows() is self.tsframe.index)
 
     def test_cols(self):
-        self.assert_(self.tsframe.cols() is self.tsframe.columns)
+        cols = self.tsframe.cols()
+        self.assert_(isinstance(cols, list))
+        self.assert_(np.array_equal(self.tsframe.columns, cols))
+
+        mcols = self.mixed_frame.cols()
+
+        if hasattr(self.mixed_frame, 'objects'):
+            self.assert_(not np.array_equal(self.mixed_frame.columns,
+                                            mcols))
+        else:
+            self.assert_(np.array_equal(self.mixed_frame.columns, mcols))
 
     def test_columns(self):
         pass

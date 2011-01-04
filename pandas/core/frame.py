@@ -235,11 +235,24 @@ class DataFrame(Picklable, Groupable):
 
         self._columns = cols
 
-    def _insert_column_index(self, key):
-        if len(self.columns) == 0:
-            self.columns = Index([key])
+    def _insert_column_index(self, key, loc):
+        if loc == len(self.columns):
+            columns = Index(np.concatenate((self.columns, [key])))
+        elif loc == 0:
+            columns = Index(np.concatenate(([key], self.columns)))
         else:
-            self.columns = Index(np.concatenate((self.columns, [key])))
+            columns = Index(np.concatenate((self.columns[:loc], [key],
+                                            self.columns[loc:])))
+
+        self.columns = columns
+
+    def _get_insert_loc(self, key):
+        try:
+            loc = self.columns.searchsorted(key)
+        except TypeError:
+            loc = len(self.columns)
+
+        return loc
 
     def _delete_column_index(self, loc):
         if loc == len(self.columns) - 1:
@@ -413,7 +426,8 @@ class DataFrame(Picklable, Groupable):
             self._series[key] = Series.fromValue(value, index=self.index)
 
         if key not in self.columns:
-            self._insert_column_index(key)
+            loc = self._get_insert_loc(key)
+            self._insert_column_index(key, loc)
 
     def __delitem__(self, key):
         """

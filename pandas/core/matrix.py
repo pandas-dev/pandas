@@ -610,24 +610,33 @@ class DataMatrix(DataFrame):
         elif key in self.columns:
             self.values[:, self.columns.indexMap[key]] = value
         else:
-            if len(self.columns) == 0:
-                self.values = value.reshape((len(value), 1)).astype(np.float)
-            else:
-                self.values = np.c_[self.values, value]
-
-            self._insert_column_index(key)
+            loc = self._get_insert_loc(key)
+            self._insert_column( value.astype(float), loc)
+            self._insert_column_index(key, loc)
 
     def _insert_object_dtype(self, key, value):
         if key in self.columns:
             loc = self.columns.indexMap[key]
             self.values[:, loc] = value
         else:
-            if len(self.columns) == 0:
-                self.values = value.reshape((len(value), 1)).copy()
-            else:
-                self.values = np.c_[self.values, value]
+            loc = self._get_insert_loc(key)
+            self._insert_column(value, loc)
+            self._insert_column_index(key, loc)
 
-            self._insert_column_index(key)
+    def _insert_column(self, column, loc):
+        mat = self.values
+
+        if column.ndim == 1:
+            column = column.reshape((len(column), 1))
+
+        if loc == mat.shape[1]:
+            values = np.hstack((mat, column))
+        elif loc == 0:
+            values = np.hstack((column, mat))
+        else:
+            values = np.hstack((mat[:, :loc], column, mat[:, loc:]))
+
+        self.values = values
 
     def __delitem__(self, key):
         """
