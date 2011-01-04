@@ -913,9 +913,9 @@ class DataMatrix(DataFrame):
     def cols(self):
         """Return sorted list of frame's columns"""
         if self.objects is not None and len(self.objects.columns) > 0:
-            return self.columns.union(self.objects.columns)
+            return list(self.columns.union(self.objects.columns))
         else:
-            return self.columns
+            return list(self.columns)
 
     def copy(self):
         """

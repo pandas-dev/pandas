@@ -688,7 +688,7 @@ class DataFrame(Picklable, Groupable):
 
     def cols(self):
         """Return sorted list of frame's columns"""
-        return self.columns
+        return list(self.columns)
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
