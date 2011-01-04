@@ -601,17 +601,31 @@ class DataMatrix(DataFrame):
     def _insert_float_dtype(self, key, value):
         isObject = value.dtype not in self._dataTypes
 
-        if isObject:
+        # sanity check
+        if len(value) != len(self.index): # pragma: no cover
+            raise Exception('Column is wrong length')
+
+        def _put_object(value):
             if self.objects is None:
                 self.objects = DataMatrix({key : value},
                                           index=self.index)
             else:
                 self.objects[key] = value
-        elif key in self.columns:
-            self.values[:, self.columns.indexMap[key]] = value
+
+        if key in self.columns:
+            loc = self.columns.indexMap[key]
+            try:
+                # attempt coercion
+                self.values[:, loc] = value
+            except ValueError:
+                self._delete_column(loc)
+                self._delete_column_index(loc)
+                _put_object(value)
+        elif isObject:
+            _put_object(value)
         else:
             loc = self._get_insert_loc(key)
-            self._insert_column( value.astype(float), loc)
+            self._insert_column(value.astype(float), loc)
             self._insert_column_index(key, loc)
 
     def _insert_object_dtype(self, key, value):
@@ -622,6 +636,20 @@ class DataMatrix(DataFrame):
             loc = self._get_insert_loc(key)
             self._insert_column(value, loc)
             self._insert_column_index(key, loc)
+
+    def __delitem__(self, key):
+        """
+        Delete column from DataMatrix
+        """
+        if key in self.columns:
+            loc = self.columns.indexMap[key]
+            self._delete_column(loc)
+            self._delete_column_index(loc)
+        else:
+            if self.objects is not None and key in self.objects:
+                del self.objects[key]
+            else:
+                raise KeyError('%s' % key)
 
     def _insert_column(self, column, loc):
         mat = self.values
@@ -638,24 +666,12 @@ class DataMatrix(DataFrame):
 
         self.values = values
 
-    def __delitem__(self, key):
-        """
-        Delete column from DataMatrix
-        """
-        if key in self.columns:
-            loc = self.columns.indexMap[key]
-            if loc == self.values.shape[1] - 1:
-                newValues = self.values[:, :loc]
-            else:
-                newValues = np.c_[self.values[:, :loc], self.values[:, loc+1:]]
-            self.values = newValues
-
-            self._delete_column_index(loc)
+    def _delete_column(self, loc):
+        if loc == self.values.shape[1] - 1:
+            newValues = self.values[:, :loc]
         else:
-            if self.objects is not None and key in self.objects:
-                del self.objects[key]
-            else:
-                raise KeyError('%s' % key)
+            newValues = np.c_[self.values[:, :loc], self.values[:, loc+1:]]
+        self.values = newValues
 
     def __iter__(self):
         """Iterate over columns of the frame."""
@@ -751,7 +767,7 @@ class DataMatrix(DataFrame):
         else:
             print >> buffer, ''
 
-        if len(self.columns) == 0:
+        if len(self.cols()) == 0:
             print >> buffer, 'DataMatrix is empty!'
             print >> buffer, repr(self.index)
             return

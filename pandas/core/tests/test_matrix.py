@@ -168,6 +168,31 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm['foo'] = 'bar'
         self.assertEqual(len(dm.objects.columns), 1)
 
+    def test_setitem_ambig(self):
+        # difficulties with mixed-type data
+        from decimal import Decimal
+
+        # created as float type
+        dm = DataMatrix(index=range(3), columns=range(3))
+
+        coercable_series = Series([Decimal(1) for _ in range(3)],
+                                  index=range(3))
+        uncoercable_series = Series(['foo', 'bzr', 'baz'], index=range(3))
+
+        dm[0] = np.ones(3)
+        self.assertEqual(len(dm.cols()), 3)
+        self.assert_(dm.objects is None)
+
+        dm[1] = coercable_series
+        self.assertEqual(len(dm.cols()), 3)
+        self.assert_(dm.objects is None)
+
+        dm[2] = uncoercable_series
+        self.assertEqual(len(dm.cols()), 3)
+        self.assert_(dm.objects is not None)
+        self.assert_(2 in dm.objects)
+        self.assert_(2 not in dm.columns)
+
     def test_delitem_corner(self):
         f = self.frame.copy()
         del f['D']
