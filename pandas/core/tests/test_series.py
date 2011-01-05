@@ -628,7 +628,7 @@ class TestSeries(unittest.TestCase):
         reindexed = self.empty.reindex(self.ts.index, method='pad')
 
         # don't forget to fix this
-        reindexed_dep = self.empty.reindex(self.ts.index, fillMethod='pad')
+        reindexed_dep = self.empty.reindex(self.ts.index, method='pad')
 
         # pass non-Index
         reindexed = self.ts.reindex(list(self.ts.index))

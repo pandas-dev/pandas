@@ -767,7 +767,7 @@ class DataFrame(Picklable, Groupable):
         of columns is provided.
         """
         if columns is None:
-            return np.array([self[col] for col in self.columns]).T
+            return np.array([self[col] for col in self.cols()]).T
         else:
             return np.array([self[col] for col in columns]).T
 
@@ -1463,7 +1463,6 @@ class DataFrame(Picklable, Groupable):
             return other.copy()
 
         new_index = self.index
-        new_columns = self.columns
         this = self
 
         if not self.index.equals(other.index):
@@ -1471,9 +1470,7 @@ class DataFrame(Picklable, Groupable):
             this = self.reindex(new_index)
             other = other.reindex(new_index)
 
-        if not self.columns.equals(other.columns):
-            new_columns = self.columns + other.columns
-
+        new_columns = _try_sort(set(this.cols() + other.cols()))
         do_fill = fill_value is not None
 
         result = {}

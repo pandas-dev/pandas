@@ -70,7 +70,7 @@ version = '%s'
         a.close()
 
 def configuration(parent_package='', top_path=None):
-    write_version_py()
+    # write_version_py()
 
     config = Configuration(None, parent_package, top_path,
                            version=FULLVERSION)

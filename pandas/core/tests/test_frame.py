@@ -1204,6 +1204,29 @@ class TestDataFrame(unittest.TestCase):
         comb = self.empty.combineFirst(self.frame)
         assert_frame_equal(comb, self.frame)
 
+    def test_combineFirst_mixed_bug(self):
+	idx = Index(['a','b','c','e'])
+	ser1 = Series([5.0,-9.0,4.0,100.],index=idx)
+	ser2 = Series(['a', 'b', 'c', 'e'], index=idx)
+	ser3 = Series([12,4,5,97], index=idx)
+
+	frame1 = self.klass({"col0" : ser1,
+                             "col2" : ser2,
+                             "col3" : ser3})
+
+	idx = Index(['a','b','c','f'])
+	ser1 = Series([5.0,-9.0,4.0,100.], index=idx)
+	ser2 = Series(['a','b','c','f'], index=idx)
+	ser3 = Series([12,4,5,97],index=idx)
+
+	frame2 = self.klass({"col1" : ser1,
+                             "col2" : ser2,
+                             "col5" : ser3})
+
+
+        combined = frame1.combineFirst(frame2)
+        self.assertEqual(len(combined.cols()), 5)
+
     def test_combineAdd(self):
         # trivial
         comb = self.frame.combineAdd(self.frame)

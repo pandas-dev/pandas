@@ -911,8 +911,12 @@ class DataMatrix(DataFrame):
 
             if self.objects:
                 values = np.column_stack((values, self.objects.values))
+                order = Index(np.concatenate((self.columns,
+                                                self.objects.columns)))
+            else:
+                order = self.columns
 
-            return values
+            columns = Index(self.cols())
         else:
             if not isinstance(columns, Index):
                 columns = Index(columns)
@@ -927,13 +931,11 @@ class DataMatrix(DataFrame):
                 obj_values = self.objects.values.take(indexer, axis=1)
 
                 values = np.column_stack((values, obj_values))
+
                 order = Index(np.concatenate((order, self.objects.columns)))
 
-                # now put in the right order
-
-            values = _reorder_columns(values, order, columns)
-
-            return values
+        # now put in the right order
+        return _reorder_columns(values, order, columns)
 
     def cols(self):
         """Return sorted list of frame's columns"""
