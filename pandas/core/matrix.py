@@ -242,9 +242,10 @@ class DataMatrix(DataFrame):
 
         fillVec, mask = tseries.getMergeVec(self[on],
                                             other.index.indexMap)
+        notmask = -mask
 
         tmpMatrix = other.values.take(fillVec, axis=0)
-        tmpMatrix[-mask] = NaN
+        tmpMatrix[notmask] = NaN
 
         seriesDict = dict((col, tmpMatrix[:, j])
                            for j, col in enumerate(other.columns))
@@ -253,7 +254,7 @@ class DataMatrix(DataFrame):
             objects = other.objects
 
             tmpMat = objects.values.take(fillVec, axis=0)
-            tmpMat[-mask] = NaN
+            tmpMat[notmask] = NaN
             objDict = dict((col, tmpMat[:, j])
                            for j, col in enumerate(objects.columns))
 

@@ -760,7 +760,7 @@ class Series(np.ndarray, Picklable, Groupable):
                 if issubclass(newValues.dtype.type, np.integer):
                     newValues = newValues.astype(float)
 
-                np.putmask(newValues, -mask, np.nan)
+                np.putmask(newValues, notmask, np.nan)
 
             newSer = Series(newValues, index=self.index)
             return newSer

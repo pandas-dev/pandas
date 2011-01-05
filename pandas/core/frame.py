@@ -1605,12 +1605,18 @@ class DataFrame(Picklable, Groupable):
             return result
 
         indexer, mask = tseries.getMergeVec(self[on], other.index.indexMap)
+        notmask = -mask
+        need_mask = notmask.any()
 
         new_data = {}
 
         for col, series in other.iteritems():
             arr = series.view(np.ndarray).take(indexer)
-            arr[-mask] = NaN
+
+            if need_mask:
+                if issubclass(arr.dtype.type, np.integer):
+                    arr = arr.astype(float)
+                arr[notmask] = NaN
 
             new_data[col] = arr
 
