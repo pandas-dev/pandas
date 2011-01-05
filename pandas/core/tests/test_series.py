@@ -595,6 +595,18 @@ class TestSeries(unittest.TestCase):
         for k, v in merged.iteritems():
             self.assertEqual(v, source[target[k]])
 
+    def test_merge_int(self):
+        left = Series({'a' : 1., 'b' : 2., 'c' : 3., 'd' : 4})
+        right = Series({1 : 11, 2 : 22, 3 : 33})
+
+        self.assert_(left.dtype == np.float_)
+        self.assert_(issubclass(right.dtype.type, np.integer))
+
+        merged = left.merge(right)
+        self.assert_(merged.dtype == np.float_)
+        self.assert_(isnull(merged['d']))
+        self.assert_(not isnull(merged['c']))
+
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
         self.assertEqual(id(self.series.index), id(identity.index))

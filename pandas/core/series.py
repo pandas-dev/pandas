@@ -752,9 +752,15 @@ class Series(np.ndarray, Picklable, Groupable):
                 arg = Series(arg)
 
             indexer, mask = tseries.getMergeVec(self, arg.index.indexMap)
+            notmask = -mask
 
             newValues = arg.view(np.ndarray).take(indexer)
-            np.putmask(newValues, -mask, np.nan)
+
+            if notmask.any():
+                if issubclass(newValues.dtype.type, np.integer):
+                    newValues = newValues.astype(float)
+
+                np.putmask(newValues, -mask, np.nan)
 
             newSer = Series(newValues, index=self.index)
             return newSer
