@@ -118,6 +118,14 @@ class TestIndex(unittest.TestCase):
         # this is valid too
         shifted = self.dateIndex + timedelta(1)
 
+    def test_add_string(self):
+        # from bug report
+        index = Index(['a', 'b', 'c'])
+        index2 = index + 'foo'
+
+        self.assert_('a' not in index2.indexMap)
+        self.assert_('afoo' in index2.indexMap)
+
     def test_shift(self):
         shifted = self.dateIndex.shift(0, timedelta(1))
         self.assert_(shifted is self.dateIndex)

@@ -12,6 +12,7 @@ from pandas.info import __doc__
 from pandas.core.api import *
 from pandas.io.parsers import parseCSV, parseText, parseExcel
 from pandas.stats.api import *
+from pandas.util.testing import debug
 
 from numpy.testing import Tester
 class NoseWrapper(Tester):

@@ -38,8 +38,7 @@ def rands(n):
 # Console debugging tools
 
 def debug(f, *args, **kwargs):
-    from IPython.Debugger import Pdb
-    Pdb(color_scheme='Linux').set_trace()
+    set_trace()
     return f(*args, **kwargs)
 
 def set_trace():

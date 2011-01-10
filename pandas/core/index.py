@@ -149,7 +149,7 @@ class Index(np.ndarray):
         if isinstance(other, Index):
             return self.union(other)
         else:
-            return np.ndarray.__add__(self, other)
+            return Index(self.view(np.ndarray) + other)
 
     __eq__ = _indexOp('__eq__')
     __lt__ = _indexOp('__lt__')

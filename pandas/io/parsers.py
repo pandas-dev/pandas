@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from itertools import izip
 import string
 
-from dateutil import parser
 import numpy as np
 
 from pandas.core.index import Index
@@ -18,6 +17,16 @@ def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
 
     Should be replaced by np.genfromtxt
     """
+    try:
+        from dateutil import parser
+        parse_date = parser.parse
+    except ImportError:
+        def parse_date(s):
+            try:
+                return datetime.strptime(s, '%m/%d/%Y')
+            except Exception:
+                return s
+
     naValues = set(['-1.#IND', '1.#QNAN', '1.#IND',
                     '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
                     'NA', 'NULL', 'NaN', 'nan', ''])
@@ -68,7 +77,7 @@ def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
             dates = []
             for s in data[columns[0]]:
                 try:
-                    dates.append(parser.parse(s))
+                    dates.append(parse_date(s))
                 except Exception:
                     dates.append(s)
             data[columns[0]] = dates
