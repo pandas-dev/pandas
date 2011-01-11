@@ -22,33 +22,73 @@ import pandas.lib.tseries as tseries
 #-------------------------------------------------------------------------------
 # Factory helper methods
 
-def arith_method(func, name):
+def arith_method_infer(func, name):
     def f(self, other):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combine_frame(other, func)
         elif isinstance(other, Series):
-            return self._combine_series(other, func)
+            return self._combine_series_infer(other, func)
         else:
             return self._combine_const(other, func)
 
     f.__name__ = name
     f.__doc__ = 'Wrapper for arithmetic method %s' % name
+
+    return f
+
+_arith_doc ="""
+Arithmetic method: %s
+
+Parameters
+----------
+other : Series, DataFrame, or constant
+axis : {0, 1, 'index', 'columns'}
+    For Series input, axis to match Series index on
+
+Returns
+-------
+result : DataFrame
+"""
+
+def arith_method_flex(func, name):
+    def f(self, other, axis='columns'):
+        axis = self._get_axis_name(axis)
+        if isinstance(other, DataFrame):    # Another DataFrame
+            return self._combine_frame(other, func)
+        elif isinstance(other, Series):
+            if axis == 'index':
+                return self._combine_match_index(other, func)
+            else:
+                return self._combine_match_columns (other, func)
+            return self._combine_series_infer(other, func)
+        else:
+            return self._combine_const(other, func)
+
+    f.__name__ = name
+    f.__doc__ = _arith_doc % name
 
     return f
 
 def comp_method(func, name):
     def f(self, other):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, func)
+            return self._compare_frame(other, func)
         elif isinstance(other, Series):
             return self._combine_series(other, func)
         else:
             return self._combine_const(other, func)
 
     f.__name__ = name
-    f.__doc__ = 'Wrapper for arithmetic method %s' % name
+    f.__doc__ = 'Wrapper for comparison method %s' % name
 
     return f
+
+_AXIS_NUMBERS = {
+    'index' : 0,
+    'columns' : 1
+}
+
+_AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
 #-------------------------------------------------------------------------------
 # DataFrame class
@@ -90,10 +130,10 @@ class DataFrame(Picklable, Groupable):
 
     def __init__(self, data=None, index=None, columns=None, dtype=None):
         if isinstance(data, dict):
-            sdict, columns, index = self._initDict(data, index, columns, dtype)
+            sdict, columns, index = self._init_dict(data, index, columns, dtype)
         elif isinstance(data, (np.ndarray, list)):
-            sdict, columns, index = self._initMatrix(data, index, columns,
-                                                     dtype)
+            sdict, columns, index = self._init_matrix(data, index, columns,
+                                                      dtype)
         elif isinstance(data, DataFrame):
             sdict = data._series.copy()
 
@@ -117,7 +157,7 @@ class DataFrame(Picklable, Groupable):
         self.columns = columns
         self.index = index
 
-    def _initDict(self, data, index, columns, dtype):
+    def _init_dict(self, data, index, columns, dtype):
         # pre-filter out columns if we passed it
         if columns is not None:
             if not isinstance(columns, Index):
@@ -152,7 +192,7 @@ class DataFrame(Picklable, Groupable):
 
         return sdict, columns, index
 
-    def _initMatrix(self, data, index, columns, dtype):
+    def _init_matrix(self, data, index, columns, dtype):
         if not isinstance(data, np.ndarray):
             arr = np.array(data)
             if issubclass(arr.dtype.type, basestring):
@@ -178,7 +218,30 @@ class DataFrame(Picklable, Groupable):
                             (len(columns), K))
 
         data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
-        return self._initDict(data, index, columns, dtype)
+        return self._init_dict(data, index, columns, dtype)
+
+    @classmethod
+    def _get_axis_number(cls, axis):
+        if axis in (0, 1):
+            return axis
+        else:
+            return _AXIS_NUMBERS[axis]
+
+    @classmethod
+    def _get_axis_name(cls, axis):
+        if axis in _AXIS_NUMBERS:
+            return axis
+        else:
+            return _AXIS_NAMES[axis]
+
+    def _get_axis(self, axis):
+        results = {
+            0 : self.items,
+            1 : self.major_axis,
+            2 : self.minor_axis
+        }
+
+        return results[self._get_axis_number(axis)]
 
     @property
     def _constructor(self):
@@ -468,20 +531,42 @@ class DataFrame(Picklable, Groupable):
         """
         return key in self.columns
 
-    __add__ = arith_method(operator.add, '__add__')
-    __sub__ = arith_method(operator.sub, '__sub__')
-    __mul__ = arith_method(operator.mul, '__mul__')
-    __div__ = arith_method(operator.div, '__div__')
-    __pow__ = arith_method(operator.pow, '__pow__')
+#-------------------------------------------------------------------------------
+# Arithmetic methods
 
-    __radd__ = arith_method(operator.add, '__radd__')
-    __rmul__ = arith_method(operator.mul, '__rmul__')
-    __rsub__ = arith_method(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = arith_method(lambda x, y: y / x, '__rdiv__')
-    __rpow__ = arith_method(lambda x, y: y ** x, '__rpow__')
+    add = arith_method_flex(operator.add, 'add')
+    mul = arith_method_flex(operator.mul, 'multiply')
+    sub = arith_method_flex(operator.sub, 'subtract')
+    div = arith_method_flex(operator.div, 'divide')
+
+    radd = arith_method_flex(operator.add, 'add')
+    rmul = arith_method_flex(operator.mul, 'multiply')
+    rsub = arith_method_flex(lambda x, y: y - x, 'subtract')
+    rdiv = arith_method_flex(lambda x, y: y / x, 'divide')
+
+    __add__ = arith_method_infer(operator.add, '__add__')
+    __sub__ = arith_method_infer(operator.sub, '__sub__')
+    __mul__ = arith_method_infer(operator.mul, '__mul__')
+    __div__ = arith_method_infer(operator.div, '__div__')
+    __pow__ = arith_method_infer(operator.pow, '__pow__')
+
+    __radd__ = arith_method_infer(operator.add, '__radd__')
+    __rmul__ = arith_method_infer(operator.mul, '__rmul__')
+    __rsub__ = arith_method_infer(lambda x, y: y - x, '__rsub__')
+    __rdiv__ = arith_method_infer(lambda x, y: y / x, '__rdiv__')
+    __rpow__ = arith_method_infer(lambda x, y: y ** x, '__rpow__')
 
     def __neg__(self):
         return self * -1
+
+#-------------------------------------------------------------------------------
+# Comparison methods
+
+    __eq__ = comp_method(operator.eq, '__eq__')
+    __lt__ = comp_method(operator.lt, '__lt__')
+    __gt__ = comp_method(operator.gt, '__gt__')
+    __le__ = comp_method(operator.le, '__le__')
+    __ge__ = comp_method(operator.ge, '__ge__')
 
 #-------------------------------------------------------------------------------
 # Private / helper methods
@@ -497,18 +582,13 @@ class DataFrame(Picklable, Groupable):
     _lastTimeWithValue = last_valid_index
 
     def _combine_frame(self, other, func):
-        new_data = {}
-        new_index = self.index
-        new_columns = self.columns
-        this = self
+        new_index = self._union_index(other)
+        new_columns = self._union_columns(other)
 
-        if not self.index.equals(other.index):
-            new_index = self.index + other.index
+        this = self
+        if self.index is not new_index:
             this = self.reindex(new_index)
             other = other.reindex(new_index)
-
-        if not self.columns.equals(other.columns):
-            new_columns = self.columns + other.columns
 
         if not self and not other:
             return DataFrame(index=new_index)
@@ -519,52 +599,75 @@ class DataFrame(Picklable, Groupable):
         if not self:
             return other * NaN
 
+        new_data = {}
         for col in new_columns:
             if col in this and col in other:
                 new_data[col] = func(this[col], other[col])
-            else:
-                new_data[col] = Series.fromValue(np.NaN, index=new_index)
 
         return DataFrame(data=new_data, index=new_index, columns=new_columns)
 
-    def _combine_series(self, other, func):
-        new_data = {}
-        new_index = self.index
+    def _compare_frame(self, other, func):
+        if not self._indexed_same(other):
+            raise Exception('Can only compare identically-labeled '
+                            'DataFrame objects')
 
+        new_data = {}
+        for col in self.columns:
+            new_data[col] = func(self[col], other[col])
+
+        return DataFrame(data=new_data, index=self.index,
+                         columns=self.columns)
+
+    def _indexed_same(self, other):
+        same_index = self.index.equals(other.index)
+
+        # for DataMatrix compat
+        same_columns = Index(self.cols()).equals(Index(other.cols()))
+
+        return same_index and same_columns
+
+    def _combine_series_infer(self, other, func):
         if len(other) == 0:
             return self * NaN
 
         if len(self) == 0:
-            # Ambiguous case
-            return DataFrame(index=self.index, columns=self.columns)
+            # Ambiguous case, use _series so works with DataMatrix
+            return self._constructor(data=self._series, index=self.index,
+                                     columns=self.columns)
 
         # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index._allDates and other.index._allDates:
-            if self.index.equals(other.index):
-                new_index = self.index
-                this = self
-            else:
-                new_index = self.index + other.index
-                this = self.reindex(new_index)
-                other = other.reindex(new_index)
-
-            for col, series in this.iteritems():
-                new_data[col] = func(series, other)
-
-            result = DataFrame(new_data, index=new_index, columns=self.columns)
+            return self._combine_match_index(other, func)
         else:
-            union = intersection = self.columns
+            return self._combine_match_columns(other, func)
 
-            if not union.equals(other.index):
-                union = other.index.union(self.columns)
-                intersection = other.index.intersection(self.columns)
+    def _combine_match_index(self, other, func):
+        new_data = {}
 
-            for col in intersection:
-                new_data[col] = func(self[col], other[col])
+        new_index = self._union_index(other)
+        this = self
+        if self.index is not new_index:
+            this = self.reindex(new_index)
+            other = other.reindex(new_index)
 
-            result = DataFrame(new_data, index=self.index, columns=union)
+        for col, series in this.iteritems():
+            new_data[col] = func(series, other)
 
-        return result
+        return DataFrame(new_data, index=new_index, columns=self.columns)
+
+    def _combine_match_columns(self, other, func):
+        new_data = {}
+
+        union = intersection = self.columns
+
+        if not union.equals(other.index):
+            union = other.index.union(self.columns)
+            intersection = other.index.intersection(self.columns)
+
+        for col in intersection:
+            new_data[col] = func(self[col], other[col])
+
+        return DataFrame(new_data, index=self.index, columns=union)
 
     def _combine_const(self, other, func):
         new_data = {}
@@ -826,7 +929,8 @@ class DataFrame(Picklable, Groupable):
         -------
         correls : Series
         """
-        com_index, com_cols = self._intersect_labels(other)
+        com_index = self._intersect_index(other)
+        com_cols = self._intersect_columns(other)
 
         # feels hackish
         if axis == 0:
@@ -859,29 +963,37 @@ class DataFrame(Picklable, Groupable):
 
         return correl
 
-    def _intersect_labels(self, other):
-        common_cols = self.columns
+    def _intersect_index(self, other):
         common_index = self.index
 
         if not common_index.equals(other.index):
             common_index = common_index.intersection(other.index)
 
+        return common_index
+
+    def _intersect_columns(self, other):
+        common_cols = self.columns
+
         if not common_cols.equals(other.columns):
             common_cols = common_cols.intersection(other.columns)
 
-        return common_index, common_cols
+        return common_cols
 
-    def _union_labels(self, other):
+    def _union_columns(self, other):
         union_cols = self.columns
+
+        if not union_cols.equals(other.columns):
+            union_cols = union_cols.union(other.columns)
+
+        return union_cols
+
+    def _union_index(self, other):
         union_index = self.index
 
         if not union_index.equals(other.index):
             union_index = union_index.union(other.index)
 
-        if not union_cols.equals(other.columns):
-            union_cols = union_cols.union(other.columns)
-
-        return union_index, union_cols
+        return union_index
 
     def dropEmptyRows(self, specificColumns=None):
         """

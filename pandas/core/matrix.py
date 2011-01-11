@@ -349,85 +349,54 @@ class DataMatrix(DataFrame):
 
         Could probably deal with some Cython action in here at some point
         """
-        need_reindex = False
-
-        if self.index.equals(other.index):
-            newIndex = self.index
-        else:
-            newIndex = self.index.union(other.index)
-            need_reindex = True
+        new_index = self._union_index(other)
 
         if not self and not other:
-            return DataMatrix(index=newIndex)
+            return DataMatrix(index=new_index)
         elif not self:
             return other * NaN
         elif not other:
             return self * NaN
 
-        if self.columns.equals(other.columns):
-            new_columns = self.columns
-        else:
-            new_columns = self.columns.union(other.columns)
-            need_reindex = True
+        need_reindex = False
+        new_columns = self._union_columns(other)
+        need_reindex = (need_reindex or new_index is not self.index
+                        or new_index is not other.index)
+        need_reindex = (need_reindex or new_columns is not self.columns
+                        or new_columns is not other.columns)
 
+        this = self
         if need_reindex:
-            myReindex = self.reindex(index=newIndex,
-                                     columns=new_columns)
-            hisReindex = other.reindex(index=newIndex,
-                                       columns=new_columns)
-        else:
-            myReindex = self
-            hisReindex = other
+            this = self.reindex(index=new_index, columns=new_columns)
+            other = other.reindex(index=new_index, columns=new_columns)
 
-        myValues = myReindex.values
-        hisValues = hisReindex.values
+        return DataMatrix(func(this.values, other.values),
+                          index=new_index, columns=new_columns)
 
-        return DataMatrix(func(myValues, hisValues),
-                          index=newIndex, columns=new_columns)
+    def _combine_match_index(self, other, func):
+        new_index = self._union_index(other)
+        values = self.values
+        other_vals = other.values
 
-    def _combine_series(self, other, func):
-        new_index = self.index
-        newCols = self.columns
+        # Operate row-wise
+        if not other.index.equals(new_index):
+            other_vals = other.reindex(new_index).values
 
-        if len(self) == 0:
-            # Ambiguous case
-            return DataMatrix(index=self.index, columns=self.columns,
-                              objects=self.objects)
+        if not self.index.equals(new_index):
+            values = self.reindex(new_index).values
 
-        if self.index._allDates and other.index._allDates:
-            # Operate row-wise
-            if self.index.equals(other.index):
-                new_index = self.index
-                other_vals = other.values
-                values = self.values
-            else:
-                new_index = self.index + other.index
+        return DataMatrix(func(values.T, other_vals).T,
+                          index=new_index, columns=self.columns)
 
-                if other.index.equals(new_index):
-                    other_vals = other.values
-                else:
-                    other_vals = other.reindex(new_index).values
+    def _combine_match_columns(self, other, func):
+        newCols = self.columns.union(other.index)
 
-                if self.index.equals(new_index):
-                    values = self.values
-                else:
-                    values = self.reindex(new_index).values
+        # Operate column-wise
+        this = self.reindex(columns=newCols)
+        other = other.reindex(newCols).values
 
-            result = func(values.T, other_vals).T
-        else:
-            if len(other) == 0:
-                return self * NaN
-
-            newCols = self.columns.union(other.index)
-
-            # Operate column-wise
-            this = self.reindex(columns=newCols)
-            other = other.reindex(newCols).values
-
-            result = func(this.values, other)
-
-        # TODO: deal with objects
-        return DataMatrix(result, index=new_index, columns=newCols)
+        return DataMatrix(func(this.values, other),
+                          index=self.index, columns=newCols)
 
     def _combine_const(self, other, func):
         if not self:
