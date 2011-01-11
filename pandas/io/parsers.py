@@ -11,26 +11,39 @@ import numpy as np
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
-NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND',
-                 '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
-                 'NA', 'NULL', 'NaN', 'nan', ''])
+def parseCSV(filepath, header=0, indexCol=0):
+    """
+    Parse CSV file into a DataFrame object. Try to parse dates if possible.
+    """
+    import csv
+    f = open(filepath,'rb')
+    reader = csv.reader(f, dialect='excel')
+    lines = [l for l in reader]
+    f.close()
+    return simpleParser(lines, header=header, indexCol=indexCol)
 
-def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
+def read_table(path, header=0, index_col=0, delimiter=','):
+    data = np.genfromtext(path, delimiter=delimiter,
+                          names=header is not None,
+                          dtype=object)
+
+    columns = data.dtype.names
+
+def parseText(filepath, sep='\t', header=0, indexCol=0, colNames = None):
+    """
+    Parse whitespace separated file into a DataFrame object.
+    Try to parse dates if possible.
+    """
+    lines = [l.rstrip().split(sep) for l in open(filepath,'rb').readlines()]
+    return simpleParser(lines, header=header, indexCol=indexCol,
+                        colNames = colNames)
+
+def simpleParser(lines, colNames=None, header=0, indexCol=0):
     """
     Workhorse function for processing nested list into DataFrame
 
-    Should be replaced by np.genfromtxt
+    Should be replaced by np.genfromtxt eventually?
     """
-    try:
-        from dateutil import parser
-        parse_date = parser.parse
-    except ImportError:
-        def parse_date(s):
-            try:
-                return datetime.strptime(s, '%m/%d/%Y')
-            except Exception:
-                return s
-    lines = nestedList
     data = {}
     if header is not None:
         columns = []
@@ -54,66 +67,68 @@ def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
             columns = colNames
         content = lines
 
-    index_name = columns[indexCol]
-
-    def _convert_float(val):
-        if val in NA_VALUES:
-            return np.nan
-        else:
-            try:
-                parsed = np.float64(val)
-                if np.isinf(parsed):
-                    return val
-                return parsed
-            except Exception:
-                return val
-
-    for i, (name, values) in enumerate(izip(columns, izip(*content))):
-        if i == indexCol:
-            data[name] = values
-            continue
-        data[name] = [_convert_float(val) for val in values]
-
-    # try to parse dates
-    try:
-        # easier to ask forgiveness than permission
-        result = [parse_date(idx) for idx in data[index_name]]
-        data[index_name] = result
-    except Exception:
-        pass
-
-    for c, values in data.iteritems():
-        try:
-            data[c] = np.array(values, dtype=float)
-        except Exception:
-            data[c] = np.array(values, dtype=object)
-
+    data = dict(izip(columns, izip(*content)))
     if indexCol is not None:
-        index = Index(data.pop(index_name))
-        return DataFrame(data=data, index=index)
+        index_name = columns[indexCol]
+        # try to parse dates
+        index = _try_parse_dates(data.pop(index_name))
     else:
         index = np.arange(len(data.values()[0]))
-        return DataFrame(data=data, index=index)
 
-def parseCSV(filepath, header=0, indexCol=0):
-    """
-    Parse CSV file into a DataFrame object. Try to parse dates if possible.
-    """
-    import csv
-    f = open(filepath,'rb')
-    reader = csv.reader(f, dialect='excel')
-    lines = [l for l in reader]
-    f.close()
-    return simpleParser(lines, header=header, indexCol=indexCol)
+    data = _floatify(data)
+    data = _convert_to_ndarrays(data)
+    return DataFrame(data=data, index=Index(index))
 
-def parseText(filepath, sep='\t', header=0, indexCol=0, colNames = None):
-    """
-    Parse whitespace separated file into a DataFrame object.
-    Try to parse dates if possible.
-    """
-    lines = [l.rstrip().split(sep) for l in open(filepath,'rb').readlines()]
-    return simpleParser(lines, header=header, indexCol=indexCol,
-                        colNames = colNames)
+NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND',
+                 '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
+                 'NA', 'NULL', 'NaN', 'nan', ''])
+
+def _floatify(data_dict):
+    result = {}
+    for col, values in data_dict.iteritems():
+        result[col] = [_convert_float(val) for val in values]
+
+    return result
+
+def _convert_float(val):
+    if val in NA_VALUES:
+        return np.nan
+    else:
+        try:
+            parsed = np.float64(val)
+            if np.isinf(parsed):
+                return val
+            return parsed
+        except Exception:
+            return val
+
+def _convert_to_ndarrays(dct):
+    result = {}
+    for c, values in dct.iteritems():
+        try:
+            result[c] = np.array(values, dtype=float)
+        except Exception:
+            result[c] = np.array(values, dtype=object)
+
+    return result
+
+def _try_parse_dates(values):
+    try:
+        from dateutil import parser
+        parse_date = parser.parse
+    except ImportError:
+        def parse_date(s):
+            try:
+                return datetime.strptime(s, '%m/%d/%Y')
+            except Exception:
+                return s
+
+    try:
+        # easier to ask forgiveness than permission
+        return [parse_date(val) for val in values]
+    except Exception:
+        # failed
+        return values
 
 #===============================================================================
 # Excel tools
