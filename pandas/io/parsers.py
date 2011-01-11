@@ -11,6 +11,10 @@ import numpy as np
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
+NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND',
+                 '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
+                 'NA', 'NULL', 'NaN', 'nan', ''])
+
 def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
     """
     Workhorse function for processing nested list into DataFrame
@@ -26,10 +30,6 @@ def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
                 return datetime.strptime(s, '%m/%d/%Y')
             except Exception:
                 return s
-
-    naValues = set(['-1.#IND', '1.#QNAN', '1.#IND',
-                    '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
-                    'NA', 'NULL', 'NaN', 'nan', ''])
     lines = nestedList
     data = {}
     if header is not None:
@@ -54,47 +54,46 @@ def simpleParser(nestedList, colNames=None, header=0, indexCol=0):
             columns = colNames
         content = lines
 
-    for i, (c, col) in enumerate(izip(columns, izip(*content))):
-        if i == indexCol:
-            data[c] = col
-            continue
-        data[c] = []
-        for val in col:
-            if val in naValues:
-                val = np.nan
-            else:
-                try:
-                    tmp = val
-                    val = np.float64(val)
-                    if np.isinf(val):
-                        val = tmp
-                except Exception:
-                    pass
-            data[c].append(val)
+    index_name = columns[indexCol]
 
-    if header is not None:
-        if 'date' in columns[0].lower() or 'Unnamed' in columns[0]:
-            dates = []
-            for s in data[columns[0]]:
-                try:
-                    dates.append(parse_date(s))
-                except Exception:
-                    dates.append(s)
-            data[columns[0]] = dates
+    def _convert_float(val):
+        if val in NA_VALUES:
+            return np.nan
+        else:
+            try:
+                parsed = np.float64(val)
+                if np.isinf(parsed):
+                    return val
+                return parsed
+            except Exception:
+                return val
+
+    for i, (name, values) in enumerate(izip(columns, izip(*content))):
+        if i == indexCol:
+            data[name] = values
+            continue
+        data[name] = [_convert_float(val) for val in values]
+
+    # try to parse dates
+    try:
+        # easier to ask forgiveness than permission
+        result = [parse_date(idx) for idx in data[index_name]]
+        data[index_name] = result
+    except Exception:
+        pass
+
     for c, values in data.iteritems():
         try:
-            data[c] = np.array(values, dtype = np.float64)
+            data[c] = np.array(values, dtype=float)
         except Exception:
-            data[c] = np.array(values, dtype = np.object_)
+            data[c] = np.array(values, dtype=object)
+
     if indexCol is not None:
-        index = Index(data[columns[indexCol]])
-        frameData = dict([(col, data[col]) for col in columns \
-                        if col != columns[indexCol]])
-        return DataFrame(data=frameData, index=index)
+        index = Index(data.pop(index_name))
+        return DataFrame(data=data, index=index)
     else:
         index = np.arange(len(data.values()[0]))
-        frameData = dict([(col, data[col]) for col in columns])
-        return DataFrame(data=frameData, index=index)
+        return DataFrame(data=data, index=index)
 
 def parseCSV(filepath, header=0, indexCol=0):
     """
