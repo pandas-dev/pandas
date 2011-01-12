@@ -4,7 +4,7 @@ import unittest
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
-    format, ole2datetime, to_datetime, normalize_date,
+    WeekOfMonth, format, ole2datetime, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName)
 
 from nose.tools import assert_raises
@@ -241,66 +241,77 @@ class TestWeek(unittest.TestCase):
                 assertEq(dateOffset, baseDate, expected)
 
     def test_onOffset(self):
+        for weekday in range(7):
+            offset = Week(weekday=weekday)
 
-        tests = [(Week(weekday=0), datetime(2008, 1, 1), False),
-                 (Week(weekday=0), datetime(2008, 1, 2), False),
-                 (Week(weekday=0), datetime(2008, 1, 3), False),
-                 (Week(weekday=0), datetime(2008, 1, 4), False),
-                 (Week(weekday=0), datetime(2008, 1, 5), False),
-                 (Week(weekday=0), datetime(2008, 1, 6), False),
-                 (Week(weekday=0), datetime(2008, 1, 7), True),
+            for day in range(1, 8):
+                date = datetime(2008, 1, day)
 
-                 (Week(weekday=1), datetime(2008, 1, 1), True),
-                 (Week(weekday=1), datetime(2008, 1, 2), False),
-                 (Week(weekday=1), datetime(2008, 1, 3), False),
-                 (Week(weekday=1), datetime(2008, 1, 4), False),
-                 (Week(weekday=1), datetime(2008, 1, 5), False),
-                 (Week(weekday=1), datetime(2008, 1, 6), False),
-                 (Week(weekday=1), datetime(2008, 1, 7), False),
-
-                 (Week(weekday=2), datetime(2008, 1, 1), False),
-                 (Week(weekday=2), datetime(2008, 1, 2), True),
-                 (Week(weekday=2), datetime(2008, 1, 3), False),
-                 (Week(weekday=2), datetime(2008, 1, 4), False),
-                 (Week(weekday=2), datetime(2008, 1, 5), False),
-                 (Week(weekday=2), datetime(2008, 1, 6), False),
-                 (Week(weekday=2), datetime(2008, 1, 7), False),
-
-                 (Week(weekday=3), datetime(2008, 1, 1), False),
-                 (Week(weekday=3), datetime(2008, 1, 2), False),
-                 (Week(weekday=3), datetime(2008, 1, 3), True),
-                 (Week(weekday=3), datetime(2008, 1, 4), False),
-                 (Week(weekday=3), datetime(2008, 1, 5), False),
-                 (Week(weekday=3), datetime(2008, 1, 6), False),
-                 (Week(weekday=3), datetime(2008, 1, 7), False),
-
-                 (Week(weekday=4), datetime(2008, 1, 1), False),
-                 (Week(weekday=4), datetime(2008, 1, 2), False),
-                 (Week(weekday=4), datetime(2008, 1, 3), False),
-                 (Week(weekday=4), datetime(2008, 1, 4), True),
-                 (Week(weekday=4), datetime(2008, 1, 5), False),
-                 (Week(weekday=4), datetime(2008, 1, 6), False),
-                 (Week(weekday=4), datetime(2008, 1, 7), False),
-
-                 (Week(weekday=5), datetime(2008, 1, 1), False),
-                 (Week(weekday=5), datetime(2008, 1, 2), False),
-                 (Week(weekday=5), datetime(2008, 1, 3), False),
-                 (Week(weekday=5), datetime(2008, 1, 4), False),
-                 (Week(weekday=5), datetime(2008, 1, 5), True),
-                 (Week(weekday=5), datetime(2008, 1, 6), False),
-                 (Week(weekday=5), datetime(2008, 1, 7), False),
-
-                 (Week(weekday=6), datetime(2008, 1, 1), False),
-                 (Week(weekday=6), datetime(2008, 1, 2), False),
-                 (Week(weekday=6), datetime(2008, 1, 3), False),
-                 (Week(weekday=6), datetime(2008, 1, 4), False),
-                 (Week(weekday=6), datetime(2008, 1, 5), False),
-                 (Week(weekday=6), datetime(2008, 1, 6), True),
-                 (Week(weekday=6), datetime(2008, 1, 7), False),
-             ]
-
-        for offset, date, expected in tests:
+                if day % 7 == weekday:
+                    expected = True
+                else:
+                    expected = False
             assertOnOffset(offset, date, expected)
+
+class TestWeekOfMonth(unittest.TestCase):
+
+    def test_constructor(self):
+        self.assertRaises(Exception, WeekOfMonth, n=2, week=0, weekday=0)
+        self.assertRaises(Exception, WeekOfMonth, n=1, week=4, weekday=0)
+        self.assertRaises(Exception, WeekOfMonth, n=1, week=-1, weekday=0)
+        self.assertRaises(Exception, WeekOfMonth, n=1, week=0, weekday=-1)
+        self.assertRaises(Exception, WeekOfMonth, n=1, week=0, weekday=7)
+
+    def test_offset(self):
+        date1 = datetime(2011, 1, 11) # 1st Tuesday of Month
+        date2 = datetime(2011, 1, 11) # 2nd Tuesday of Month
+        date3 = datetime(2011, 1, 18) # 3rd Tuesday of Month
+        date4 = datetime(2011, 1, 25) # 3rd Tuesday of Month
+
+        # see for loop for structure
+        test_cases = [
+            (0, 0, date1, datetime(2011, 2, 7)),
+            (0, 0, date2, datetime(2011, 2, 7)),
+            (0, 0, date3, datetime(2011, 2, 7)),
+            (0, 0, date4, datetime(2011, 2, 7)),
+            (0, 1, date1, datetime(2011, 2, 1)),
+            (0, 1, date2, datetime(2011, 2, 1)),
+            (0, 1, date3, datetime(2011, 2, 1)),
+            (0, 1, date4, datetime(2011, 2, 1)),
+            (0, 2, date1, datetime(2011, 2, 2)),
+            (0, 2, date2, datetime(2011, 2, 2)),
+            (0, 2, date3, datetime(2011, 2, 2)),
+            (0, 2, date4, datetime(2011, 2, 2)),
+
+            (2, 1, date1, datetime(2011, 1, 18)),
+            (2, 1, date2, datetime(2011, 1, 18)),
+            (2, 1, date3, datetime(2011, 2, 15)),
+            (2, 1, date4, datetime(2011, 2, 15)),
+        ]
+
+        for week, weekday, date, expected in test_cases:
+            offset = WeekOfMonth(week=week, weekday=weekday)
+            assertEq(offset, date, expected)
+
+        # try subtracting
+        result = datetime(2011, 2, 1) - WeekOfMonth(week=1, weekday=2)
+        self.assertEqual(result, datetime(2011, 1, 12))
+        result = datetime(2011, 2, 3) - WeekOfMonth(week=0, weekday=2)
+        self.assertEqual(result, datetime(2011, 2, 2))
+
+    def test_onOffset(self):
+        test_cases = [
+            (0, 0, datetime(2011, 2, 7), True),
+            (0, 0, datetime(2011, 2, 6), False),
+            (0, 0, datetime(2011, 2, 14), False),
+            (1, 0, datetime(2011, 2, 14), True),
+            (0, 1, datetime(2011, 2, 1), True),
+            (0, 1, datetime(2011, 2, 8), False),
+        ]
+
+        for week, weekday, date, expected in test_cases:
+            offset = WeekOfMonth(week=week, weekday=weekday)
+            self.assert_(offset.onOffset(date) == expected)
 
 class TestBMonthEnd(unittest.TestCase):
 

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 try:
     from dateutil import parser
     from dateutil.relativedelta import relativedelta
-except ImportError:
+except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
 
 import calendar
@@ -369,16 +369,21 @@ class Week(DateOffset):
 
 class WeekOfMonth(DateOffset):
     """
-    weekday
-    0: Mondays
-    1: Tuedays
-    2: Wednesdays
-    3: Thursdays
-    4: Fridays
-    5: Saturdays
-    6: Sundays
+    Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
-    week: 0 means 1st week of month, 1 means 2nd week, etc.
+    Parameters
+    ----------
+    n : int
+    week : {0, 1, 2, 3, ...}
+        0 is 1st week of month, 1 2nd week, etc.
+    weekday : {0, 1, ..., 6}
+        0: Mondays
+        1: Tuedays
+        2: Wednesdays
+        3: Thursdays
+        4: Fridays
+        5: Saturdays
+        6: Sundays
     """
     _normalizeFirst = True
     def __init__(self, n=1, **kwds):
@@ -400,8 +405,10 @@ class WeekOfMonth(DateOffset):
 
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
-        offsetOfPrevMonth = self.getOffsetOfMonth(other + relativedelta(months=-1, day=1))
-        offsetOfNextMonth = self.getOffsetOfMonth(other + relativedelta(months=1, day=1))
+
+        one_month = relativedelta(months=1, day=1)
+        offsetOfPrevMonth = self.getOffsetOfMonth(other - one_month)
+        offsetOfNextMonth = self.getOffsetOfMonth(other + one_month)
 
         if other < offsetOfMonth:
             if self.n == 1:
@@ -409,7 +416,8 @@ class WeekOfMonth(DateOffset):
             elif self.n == -1:
                 return offsetOfPrevMonth
         elif other == offsetOfMonth:
-            return self.getOffsetOfMonth(other + relativedelta(months=self.n, day=1))
+            delta = relativedelta(months=self.n, day=1)
+            return self.getOffsetOfMonth(other + delta)
         else:
             if self.n == 1:
                 return offsetOfNextMonth

@@ -134,14 +134,11 @@ def _try_parse_dates(values):
 # Excel tools
 #===============================================================================
 
-OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
-def ole2datetime(oledt):
-    """function for converting excel date to normal date format"""
-    return OLE_TIME_ZERO + timedelta(days=float(oledt))
 
 
 def parseExcel(filepath, header = None, indexCol = 0, dateCol = 0,
                sheetname = None):
+    from pandas.core.datetools import ole2datetime
     try:
         import xlrd
     except:

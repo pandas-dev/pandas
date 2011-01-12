@@ -236,9 +236,8 @@ class DataFrame(Picklable, Groupable):
 
     def _get_axis(self, axis):
         results = {
-            0 : self.items,
-            1 : self.major_axis,
-            2 : self.minor_axis
+            0 : self.index,
+            1 : self.columns,
         }
 
         return results[self._get_axis_number(axis)]
