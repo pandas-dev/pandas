@@ -770,6 +770,18 @@ class Series(np.ndarray, Picklable, Groupable):
     merge = map
 
     def apply(self, func):
+        """
+        Call function on elements on array. Can be ufunc or Python function
+        expecting only single values
+
+        Parameters
+        ----------
+        func : function
+
+        Returns
+        -------
+        y : Series
+        """
         try:
             return func(self)
         except Exception:
