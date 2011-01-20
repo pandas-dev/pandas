@@ -4,6 +4,7 @@ Module contains tools for processing files into DataFrames or other objects
 
 from datetime import datetime, timedelta
 from itertools import izip
+import re
 import string
 
 import numpy as np
@@ -34,7 +35,7 @@ def parseText(filepath, sep='\t', header=0, indexCol=0, colNames = None):
     Parse whitespace separated file into a DataFrame object.
     Try to parse dates if possible.
     """
-    lines = [l.rstrip().split(sep) for l in open(filepath,'rb').readlines()]
+    lines = [re.split(sep, l.rstrip()) for l in open(filepath,'rb').readlines()]
     return simpleParser(lines, header=header, indexCol=indexCol,
                         colNames = colNames)
 
@@ -81,7 +82,7 @@ def simpleParser(lines, colNames=None, header=0, indexCol=0):
 
 NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND',
                  '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
-                 'NA', 'NULL', 'NaN', 'nan', ''])
+                 'NA', '#NA', 'NULL', 'NaN', 'nan', ''])
 
 def _floatify(data_dict):
     result = {}

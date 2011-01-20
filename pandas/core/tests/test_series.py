@@ -607,6 +607,9 @@ class TestSeries(unittest.TestCase):
         self.assert_(isnull(merged['d']))
         self.assert_(not isnull(merged['c']))
 
+    def test_apply(self):
+
+
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
         self.assertEqual(id(self.series.index), id(identity.index))
