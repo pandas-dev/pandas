@@ -807,7 +807,7 @@ class Series(np.ndarray, Picklable, Groupable):
         reindexed : Series
         """
         import warnings
-        if fillMethod is not None:
+        if fillMethod is not None: # pragma: no cover
             warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
                           DeprecationWarning)
 

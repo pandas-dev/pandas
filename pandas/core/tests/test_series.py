@@ -608,7 +608,11 @@ class TestSeries(unittest.TestCase):
         self.assert_(not isnull(merged['c']))
 
     def test_apply(self):
+        assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
 
+        # elementwise-apply
+        import math
+        assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)

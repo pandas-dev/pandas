@@ -59,11 +59,41 @@ class TestDataFrame(unittest.TestCase):
              datetime.today() + timedelta(1) : ['bar'] * 1000},
             index=np.arange(1000))
 
+        arr = np.array([[1., 2., 3.],
+                        [4., 5., 6.],
+                        [7., 8., 9.]])
+
+        self.simple = self.klass(arr, columns=['one', 'two', 'three'],
+                                 index=['a', 'b', 'c'])
+
+    def test_get_axis(self):
+        self.assert_(self.klass._get_axis_name(0) == 'index')
+        self.assert_(self.klass._get_axis_name(1) == 'columns')
+        self.assert_(self.klass._get_axis_name('index') == 'index')
+        self.assert_(self.klass._get_axis_name('columns') == 'columns')
+        self.assertRaises(KeyError, self.klass._get_axis_name, 'foo')
+        self.assertRaises(KeyError, self.klass._get_axis_name, None)
+
+        self.assert_(self.klass._get_axis_number(0) == 0)
+        self.assert_(self.klass._get_axis_number(1) == 1)
+        self.assert_(self.klass._get_axis_number('index') == 0)
+        self.assert_(self.klass._get_axis_number('columns') == 1)
+        self.assertRaises(KeyError, self.klass._get_axis_number, 2)
+        self.assertRaises(KeyError, self.klass._get_axis_number, None)
+
+        self.assert_(self.frame._get_axis(0) is self.frame.index)
+        self.assert_(self.frame._get_axis(1) is self.frame.columns)
+
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
         self.mixed_frame.index = idx
-
         self.assert_(self.mixed_frame['foo'].index  is idx)
+        self.assertRaises(Exception, self.mixed_frame._set_index, idx[::2])
+
+    def test_set_columns(self):
+        cols = Index(np.arange(len(self.mixed_frame.columns)))
+        self.mixed_frame.columns = cols
+        self.assertRaises(Exception, self.mixed_frame._set_columns, cols[::2])
 
     def test_constructor(self):
         df = self.klass()
@@ -464,6 +494,37 @@ class TestDataFrame(unittest.TestCase):
         index = frame._lastTimeWithValue()
         self.assert_(index == frame.index[-6])
 
+    def test_arith_flex_frame(self):
+        res_add = self.frame.add(self.frame)
+        res_sub = self.frame.sub(self.frame)
+        res_mul = self.frame.mul(self.frame)
+        res_div = self.frame.div(2 * self.frame)
+
+        assert_frame_equal(res_add, self.frame + self.frame)
+        assert_frame_equal(res_sub, self.frame - self.frame)
+        assert_frame_equal(res_mul, self.frame * self.frame)
+        assert_frame_equal(res_div, self.frame / (2 * self.frame))
+
+        const_add = self.frame.add(1)
+        assert_frame_equal(const_add, self.frame + 1)
+
+    def test_arith_flex_series(self):
+        df = self.simple
+
+        row = df.xs('a')
+        col = df['two']
+
+        assert_frame_equal(df.add(row), df + row)
+        assert_frame_equal(df.add(row, axis=None), df + row)
+        assert_frame_equal(df.sub(row), df - row)
+        assert_frame_equal(df.div(row), df / row)
+        assert_frame_equal(df.mul(row), df * row)
+
+        assert_frame_equal(df.add(col, axis=0), (df.T + col).T)
+        assert_frame_equal(df.sub(col, axis=0), (df.T - col).T)
+        assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
+        assert_frame_equal(df.mul(col, axis=0), (df.T * col).T)
+
     def test_combineFrame(self):
         frame_copy = self.frame.reindex(self.frame.index[::2])
 
@@ -556,6 +617,33 @@ class TestDataFrame(unittest.TestCase):
         result = self.empty * 2
         self.assert_(result.index is self.empty.index)
         self.assertEqual(len(result.columns), 0)
+
+    def test_comparisons(self):
+        import operator
+
+        df1 = common.makeTimeDataFrame()
+        df2 = common.makeTimeDataFrame()
+
+        row = self.simple.xs('a')
+
+        def test_comp(func):
+            result = func(df1, df2)
+            self.assert_(np.array_equal(result.values,
+                                        func(df1.values, df2.values)))
+
+            result2 = func(self.simple, row)
+            self.assert_(np.array_equal(result2.values,
+                                        func(self.simple.values, row)))
+
+            result3 = func(self.frame, 0)
+            self.assert_(np.array_equal(result3.values,
+                                        func(self.frame.values, 0)))
+
+        test_comp(operator.eq)
+        test_comp(operator.lt)
+        test_comp(operator.gt)
+        test_comp(operator.ge)
+        test_comp(operator.le)
 
     def test_toCSV_fromcsv(self):
         path = '__tmp__'

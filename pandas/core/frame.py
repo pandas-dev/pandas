@@ -22,20 +22,6 @@ import pandas.lib.tseries as tseries
 #-------------------------------------------------------------------------------
 # Factory helper methods
 
-def arith_method_infer(func, name):
-    def f(self, other):
-        if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, func)
-        elif isinstance(other, Series):
-            return self._combine_series_infer(other, func)
-        else:
-            return self._combine_const(other, func)
-
-    f.__name__ = name
-    f.__doc__ = 'Wrapper for arithmetic method %s' % name
-
-    return f
-
 _arith_doc ="""
 Arithmetic method: %s
 
@@ -45,21 +31,26 @@ other : Series, DataFrame, or constant
 axis : {0, 1, 'index', 'columns'}
     For Series input, axis to match Series index on
 
+Notes
+-----
+Mismatched indices will be unioned together
+
 Returns
 -------
 result : DataFrame
 """
 
-def arith_method_flex(func, name):
-    def f(self, other, axis='columns'):
-        axis = self._get_axis_name(axis)
+def arith_method(func, name, default_axis='columns'):
+    def f(self, other, axis=default_axis):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combine_frame(other, func)
         elif isinstance(other, Series):
-            if axis == 'index':
-                return self._combine_match_index(other, func)
-            else:
-                return self._combine_match_columns (other, func)
+            if axis is not None:
+                axis = self._get_axis_name(axis)
+                if axis == 'index':
+                    return self._combine_match_index(other, func)
+                else:
+                    return self._combine_match_columns(other, func)
             return self._combine_series_infer(other, func)
         else:
             return self._combine_const(other, func)
@@ -74,7 +65,7 @@ def comp_method(func, name):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._compare_frame(other, func)
         elif isinstance(other, Series):
-            return self._combine_series(other, func)
+            return self._combine_series_infer(other, func)
         else:
             return self._combine_const(other, func)
 
@@ -533,27 +524,27 @@ class DataFrame(Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # Arithmetic methods
 
-    add = arith_method_flex(operator.add, 'add')
-    mul = arith_method_flex(operator.mul, 'multiply')
-    sub = arith_method_flex(operator.sub, 'subtract')
-    div = arith_method_flex(operator.div, 'divide')
+    add = arith_method(operator.add, 'add')
+    mul = arith_method(operator.mul, 'multiply')
+    sub = arith_method(operator.sub, 'subtract')
+    div = arith_method(operator.div, 'divide')
 
-    radd = arith_method_flex(operator.add, 'add')
-    rmul = arith_method_flex(operator.mul, 'multiply')
-    rsub = arith_method_flex(lambda x, y: y - x, 'subtract')
-    rdiv = arith_method_flex(lambda x, y: y / x, 'divide')
+    radd = arith_method(operator.add, 'add')
+    rmul = arith_method(operator.mul, 'multiply')
+    rsub = arith_method(lambda x, y: y - x, 'subtract')
+    rdiv = arith_method(lambda x, y: y / x, 'divide')
 
-    __add__ = arith_method_infer(operator.add, '__add__')
-    __sub__ = arith_method_infer(operator.sub, '__sub__')
-    __mul__ = arith_method_infer(operator.mul, '__mul__')
-    __div__ = arith_method_infer(operator.div, '__div__')
-    __pow__ = arith_method_infer(operator.pow, '__pow__')
+    __add__ = arith_method(operator.add, '__add__', default_axis=None)
+    __sub__ = arith_method(operator.sub, '__sub__', default_axis=None)
+    __mul__ = arith_method(operator.mul, '__mul__', default_axis=None)
+    __div__ = arith_method(operator.div, '__div__', default_axis=None)
+    __pow__ = arith_method(operator.pow, '__pow__', default_axis=None)
 
-    __radd__ = arith_method_infer(operator.add, '__radd__')
-    __rmul__ = arith_method_infer(operator.mul, '__rmul__')
-    __rsub__ = arith_method_infer(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = arith_method_infer(lambda x, y: y / x, '__rdiv__')
-    __rpow__ = arith_method_infer(lambda x, y: y ** x, '__rpow__')
+    __radd__ = arith_method(operator.add, '__radd__', default_axis=None)
+    __rmul__ = arith_method(operator.mul, '__rmul__', default_axis=None)
+    __rsub__ = arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
+    __rdiv__ = arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
+    __rpow__ = arith_method(lambda x, y: y ** x, '__rpow__', default_axis=None)
 
     def __neg__(self):
         return self * -1
