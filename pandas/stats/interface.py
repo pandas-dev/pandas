@@ -19,10 +19,11 @@ def ols(**kwargs):
         Number of Newey-West lags.  Defaults to None.
     nw_overlap: bool
         Whether there are overlaps in the NW lags.  Defaults to False.
-    window_type: int
-        FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
+    window_type: {'full sample', 'rolling', 'expanding'}
+        'full sample' by default
     window: int
-        size of window (for rolling/expanding OLS)
+        size of window (for rolling/expanding OLS). If window passed and no
+        explicit window_type, 'rolling" will be used as the window_type
 
     Panel OLS options:
         pool: bool
@@ -57,7 +58,7 @@ def ols(**kwargs):
     result = ols(y=y, x=x)
 
     # Run rolling simple OLS with window of size 10.
-    result = ols(y=y, x=x, window_type=ROLLING, window=10)
+    result = ols(y=y, x=x, window_type='rolling', window=10)
     print result.beta
 
     result = ols(y=y, x=x, nw_lags=1)
@@ -70,19 +71,22 @@ def ols(**kwargs):
     result = ols(y=y, x=x)
 
     # Run expanding panel OLS with window 10 and entity clustering.
-    result = ols(y=y, x=x, cluster=ENTITY, window_type=EXPANDING, window=10)
+    result = ols(y=y, x=x, cluster='entity', window_type='expanding', window=10)
     """
-    try:
-        import scipy as _
-    except ImportError:
-        raise Exception('Must install SciPy to use OLS functionality')
-
     pool = kwargs.get('pool')
     if 'pool' in kwargs:
         del kwargs['pool']
 
-    window_type = kwargs.get('window_type', common.FULL_SAMPLE)
-    window_type = common._get_window_type(window_type)
+    window_type = kwargs.get('window_type')
+    window = kwargs.get('window')
+
+    if window_type is None:
+        if window is None:
+            window_type = common.FULL_SAMPLE
+        else:
+            window_type = common.ROLLING
+    else:
+        window_type = common._get_window_type(window_type)
 
     y = kwargs.get('y')
     if window_type == common.FULL_SAMPLE:
