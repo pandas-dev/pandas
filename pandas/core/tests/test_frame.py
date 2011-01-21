@@ -639,6 +639,8 @@ class TestDataFrame(unittest.TestCase):
             self.assert_(np.array_equal(result3.values,
                                         func(self.frame.values, 0)))
 
+            self.assertRaises(Exception, func, self.simple, self.simple[:2])
+
         test_comp(operator.eq)
         test_comp(operator.lt)
         test_comp(operator.gt)
@@ -1404,6 +1406,16 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(np.array_equal(merged['MergedD'], target['D']))
 
         # Test when some are missing
+        df_a = DataFrame([[1], [2], [3]], index=['a', 'b', 'c'],
+                         columns=['one'])
+        df_b = DataFrame([['foo'], ['bar']], index=[1, 2],
+                         columns=['two'])
+        df_c = DataFrame([[1], [2]], index=[1, 2],
+                         columns=['three'])
+        joined = df_a.join(df_b, on='one')
+        joined = joined.join(df_c, on='one')
+        self.assert_(np.isnan(joined['two']['c']))
+        self.assert_(np.isnan(joined['three']['c']))
 
         # merge column not p resent
         self.assertRaises(Exception, target.join, source, on='E')

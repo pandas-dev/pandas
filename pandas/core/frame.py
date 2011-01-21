@@ -1170,8 +1170,9 @@ class DataFrame(Picklable, Groupable):
         -------
         y : same type as calling instance
         """
-        import warnings
-        if fillMethod is not None:
+        # TODO: remove this on next release
+        if fillMethod is not None: # pragma: no cover
+            import warnings
             warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
                           DeprecationWarning)
 
