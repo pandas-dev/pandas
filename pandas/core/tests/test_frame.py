@@ -1496,7 +1496,11 @@ class TestDataFrame(unittest.TestCase):
 
         self._check_statistic(self.frame, 'mean', f)
 
-        # TODO: unit test when have object data
+        # unit test when have object data
+        the_mean = self.mixed_frame.mean(axis=0)
+        the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
+        self.assert_(the_sum.index.equals(the_mean.index))
+        self.assert_(len(the_mean.index) < len(self.mixed_frame.cols()))
 
     def test_median(self):
         def f(x):

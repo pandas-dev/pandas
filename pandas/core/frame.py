@@ -852,7 +852,7 @@ class DataFrame(Picklable, Groupable):
 
         return self.reindex(dateRange, method=method, fillMethod=fillMethod)
 
-    def asMatrix(self, columns=None):
+    def as_matrix(self, columns=None):
         """
         Convert the frame to its Numpy-array matrix representation
 
@@ -864,8 +864,9 @@ class DataFrame(Picklable, Groupable):
         else:
             return np.array([self[col] for col in columns]).T
 
+    asMatrix = as_matrix
     # For DataMatrix compatibility
-    values = property(asMatrix)
+    values = property(as_matrix)
 
     def copy(self):
         """
@@ -1849,7 +1850,7 @@ class DataFrame(Picklable, Groupable):
             f = lambda s: notnull(s).sum()
             return self.apply(f, axis=axis)
 
-    def sum(self, axis=0):
+    def sum(self, axis=0, numeric_only=False):
         """
         Return array or Series of sums over requested axis.
 
@@ -1875,20 +1876,35 @@ class DataFrame(Picklable, Groupable):
         c1    4
         c2    6
         """
-        try:
+        num_cols = self._get_numeric_columns()
+
+        if len(num_cols) < len(self.cols()) and numeric_only:
+            y = self.as_matrix(num_cols)
+            axis_labels = num_cols
+        else:
             y = self.values.copy()
+            axis_labels = self._get_agg_axis(axis)
+
+        if len(axis_labels) == 0:
+            return Series([], index=[])
+
+        if y.dtype == np.object_:
+            the_sum = y.sum(axis)
+        else:
             mask = np.isfinite(y)
             if not issubclass(y.dtype.type, np.int_):
                 y[-mask] = 0
-            theSum = y.sum(axis)
-            theCount = mask.sum(axis)
-            theSum[theCount == 0] = NaN
+            the_sum = y.sum(axis)
+            the_count = mask.sum(axis)
+            the_sum[the_count == 0] = NaN
 
-        except Exception:
-            theSum = self.apply(np.sum, axis=axis)
+        return Series(the_sum, index=axis_labels)
 
-        axis_labels = self._get_agg_axis(axis)
-        return Series(theSum, index=axis_labels)
+    def _get_numeric_columns(self):
+        return [col for col in self.columns if self[col].dtype == np.number]
+
+    def _get_object_columns(self):
+        return [col for col in self.columns if self[col].dtype == np.object_]
 
     def cumsum(self, axis=0):
         """
@@ -1983,7 +1999,7 @@ class DataFrame(Picklable, Groupable):
         -------
         Series or TimeSeries
         """
-        summed = self.sum(axis)
+        summed = self.sum(axis, numeric_only=True)
         count = self.count(axis).astype(float)
 
         if not count.index.equals(summed.index):
