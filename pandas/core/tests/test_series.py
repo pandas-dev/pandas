@@ -135,6 +135,10 @@ class TestSeries(unittest.TestCase):
         d = self.ts.index[0] - datetools.bday
         self.assertRaises(Exception, self.ts.__getitem__, d),
 
+    def test_getitem_int64(self):
+        idx = np.int64(5)
+        self.assertEqual(self.ts[idx], self.ts[5])
+
     def test_fancy(self):
         slice1 = self.series[[1,2,3]]
         slice2 = self.objSeries[[1,2,3]]

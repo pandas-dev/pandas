@@ -253,7 +253,7 @@ class Series(np.ndarray, Picklable, Groupable):
             # Check that we can even look for this in the index
             return values[self.index.indexMap[key]]
         except KeyError:
-            if isinstance(key, int):
+            if isinstance(key, (int, np.integer)):
                 return values[key]
             raise Exception('Requested index not in this series!')
         except TypeError:
