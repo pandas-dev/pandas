@@ -43,6 +43,22 @@ def _convert_list(obj):
     values = [convert_robj(x) for x in obj]
     return dict(zip(obj.names, values))
 
+def _convert_array(obj):
+    """
+    Convert Array to ndarray
+    """
+    # this royally sucks. "Matrices" (arrays) with dimension > 3 in R aren't
+    # really matrices-- things come out Fortran order in the first two
+    # dimensions. Maybe I'm wrong?
+
+    dim = list(obj.dim)
+    values = np.array(list(obj))
+
+    if len(dim) == 3:
+        arr = values.reshape(dim[-1:] + dim[:-1]).swapaxes(1, 2)
+
+    return arr
+
 def _convert_vector(obj):
     return list(obj)
 
@@ -77,15 +93,25 @@ def _check_int(vec):
 
     return vec
 
-_converters = [
+_pandas_converters = [
     (robj.DataFrame , _convert_DataFrame),
     (robj.Matrix , _convert_Matrix),
     (robj.StrVector, _convert_vector),
     (robj.FloatVector, _convert_vector),
+    (robj.Array, _convert_array),
     (robj.Vector, _convert_list),
 ]
 
-def convert_robj(obj):
+_converters = [
+    (robj.DataFrame , lambda x: _convert_DataFrame(x).toRecords(index=False)),
+    (robj.Matrix , lambda x: _convert_Matrix(x).toRecords(index=False)),
+    (robj.StrVector, _convert_vector),
+    (robj.FloatVector, _convert_vector),
+    (robj.Array, _convert_array),
+    (robj.Vector, _convert_list),
+]
+
+def convert_robj(obj, use_pandas=False):
     """
     Convert rpy2 object to a pandas-friendly form
 
@@ -100,7 +126,9 @@ def convert_robj(obj):
     if not isinstance(obj, robj.RObjectMixin):
         return obj
 
-    for rpy_type, converter in _converters:
+    converters = _pandas_converters if use_pandas else _converters
+
+    for rpy_type, converter in converters:
         if isinstance(obj, rpy_type):
             return converter(obj)
 

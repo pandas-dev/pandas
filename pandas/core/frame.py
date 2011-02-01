@@ -396,7 +396,7 @@ class DataFrame(Picklable, Groupable):
 
         return df
 
-    def toRecords(self):
+    def toRecords(self, index=True):
         """
         Convert DataFrame to record array. Index will be put in the
         'index' field of the record array.
@@ -405,8 +405,12 @@ class DataFrame(Picklable, Groupable):
         -------
         y : recarray
         """
-        arrays = [self.index] + [self[c] for c in self.cols()]
-        names = ['index'] + list(self.cols())
+        if index:
+            arrays = [self.index] + [self[c] for c in self.cols()]
+            names = ['index'] + list(self.cols())
+        else:
+            arrays = [self[c] for c in self.cols()]
+            names = list(self.cols())
 
         return np.rec.fromarrays(arrays, names=names)
 

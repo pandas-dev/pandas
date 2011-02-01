@@ -277,6 +277,11 @@ class TestDataFrame(unittest.TestCase):
         records = indexed_frame.toRecords()
         self.assertEqual(len(records.dtype.names), 3)
 
+        records = indexed_frame.toRecords(index=False)
+        self.assertEqual(len(records.dtype.names), 2)
+        self.assert_('index' not in records.dtype.names)
+
+
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
         self.assert_(cols is self.frame.columns)
