@@ -187,7 +187,7 @@ class DateRange(Index):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
         result = self.view(np.ndarray)[key]
 
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             return result
         elif isinstance(key, slice):
             newIndex = result.view(DateRange)
