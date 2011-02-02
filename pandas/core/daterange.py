@@ -73,7 +73,7 @@ class DateRange(Index):
             useCache = fromInside and toInside
 
             if (useCache and offset.isAnchored() and
-                not isinstance(offset, datetools.Tick)):
+                isinstance(offset, datetools.CacheableOffset)):
 
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, timeRule=timeRule)

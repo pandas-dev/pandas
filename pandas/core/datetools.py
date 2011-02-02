@@ -45,6 +45,9 @@ def normalize_date(dt):
 #-------------------------------------------------------------------------------
 # DateOffset
 
+class CacheableOffset(object):
+    pass
+
 class DateOffset(object):
     """
     Standard kind of date increment used for a date range.
@@ -202,7 +205,7 @@ class DateOffset(object):
         return someDate == ((someDate + self) - self)
 
 
-class BDay(DateOffset):
+class BDay(DateOffset, CacheableOffset):
     """
     DateOffset subclass representing possibly n business days
     """
@@ -269,7 +272,7 @@ class BDay(DateOffset):
         return someDate.weekday() < 5
 
 
-class MonthEnd(DateOffset):
+class MonthEnd(DateOffset, CacheableOffset):
     _normalizeFirst = True
     """DateOffset of one month end"""
 
@@ -289,7 +292,7 @@ class MonthEnd(DateOffset):
                                                    someDate.month)
         return someDate.day == nDaysInMonth
 
-class BMonthEnd(DateOffset):
+class BMonthEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessMonthEnd'
     _normalizeFirst = True
@@ -314,7 +317,7 @@ class BMonthEnd(DateOffset):
         return other
 
 
-class Week(DateOffset):
+class Week(DateOffset, CacheableOffset):
     """
     weekday
     0: Mondays
@@ -367,7 +370,7 @@ class Week(DateOffset):
 
 
 
-class WeekOfMonth(DateOffset):
+class WeekOfMonth(DateOffset, CacheableOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
@@ -438,7 +441,7 @@ class WeekOfMonth(DateOffset):
     def onOffset(self, someDate):
         return someDate == self.getOffsetOfMonth(someDate)
 
-class BQuarterEnd(DateOffset):
+class BQuarterEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -487,7 +490,7 @@ class BQuarterEnd(DateOffset):
         modMonth = (someDate.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(someDate) and modMonth == 0
 
-class BYearEnd(DateOffset):
+class BYearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessYearEnd'
     _normalizeFirst = True
@@ -529,7 +532,7 @@ class BYearEnd(DateOffset):
 
         return result
 
-class YearEnd(DateOffset):
+class YearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year ends"""
     _normalizeFirst = True
 
@@ -547,7 +550,7 @@ class YearEnd(DateOffset):
         return someDate.month == 12 and someDate.day == 31
 
 
-class YearBegin(DateOffset):
+class YearBegin(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year begin dates"""
     _normalizeFirst = True
 

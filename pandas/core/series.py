@@ -955,7 +955,7 @@ class Series(np.ndarray, Picklable, Groupable):
         f = open(path, 'wb')
 
         for idx, value in self.iteritems():
-            f.write(str(idx) + ',' + str(value) + ',\n')
+            f.write(str(idx) + ',' + str(value) + '\n')
 
         f.close()
 

@@ -64,6 +64,12 @@ class TestDateRange(unittest.TestCase):
         self.assertRaises(Exception, DateRange._cached_range, periods=20,
                           offset=datetools.bday)
 
+    def test_cached_range_bug(self):
+        rng = DateRange('2010-09-01 05:00:00', periods=50,
+                        offset=datetools.DateOffset(hours=6))
+        self.assertEquals(len(rng), 50)
+        self.assertEquals(rng[0], datetime(2010, 9, 1, 5))
+
     def test_comparison(self):
         d = self.rng[10]
 
