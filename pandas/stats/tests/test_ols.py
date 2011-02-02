@@ -63,7 +63,10 @@ class TestOLS(BaseTest):
 
     def checkOLS(self, exog, endog, x, y):
 
-        import scikits.statsmodels as sm
+        try:
+            import scikits.statsmodels.api as sm
+        except ImportError:
+            import scikits.statsmodels as sm
 
         reference = sm.OLS(endog, sm.add_constant(exog)).fit()
 
@@ -85,9 +88,12 @@ class TestOLS(BaseTest):
         _check_non_raw_results(result)
 
     def checkMovingOLS(self, window_type, x, y, **kwds):
-        from scikits.statsmodels import tools
+        try:
+            from scikits.statsmodels.tools.tools import rank
+        except ImportError:
+            from scikits.statsmodels.tools import rank
 
-        window = tools.rank(x.values) * 2
+        window = rank(x.values) * 2
 
         moving = ols(y=y, x=x, window_type=window_type,
                      window=window, **kwds)

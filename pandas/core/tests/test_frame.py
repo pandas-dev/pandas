@@ -355,6 +355,11 @@ class TestDataFrame(unittest.TestCase):
         self.frame.head(buffer=buf)
         self.frame.tail(buffer=buf)
 
+    def test_repr_corner(self):
+        # representing infs poses no problems
+        df = DataFrame({'foo' : np.inf * np.empty(10)})
+        foo = repr(df)
+
     def test_toString(self):
         # big mixed
         biggie = self.klass({'A' : randn(1000),
@@ -1451,7 +1456,21 @@ class TestDataFrame(unittest.TestCase):
         double = self.frame.clip(upper=median, lower=median)
         self.assert_(not (double.values != median).any())
 
+    def test_get_X_columns(self):
+        # numeric and object columns
+
+        # Booleans get casted to float in DataMatrix, so skip for now
+        df = self.klass({'a' : [1, 2, 3],
+                         # 'b' : [True, False, True],
+                         'c' : ['foo', 'bar', 'baz'],
+                         'd' : [None, None, None],
+                         'e' : [3.14, 0.577, 2.773]})
+
+        self.assertEquals(df._get_numeric_columns(), ['a', 'e'])
+        self.assertEquals(df._get_object_columns(), ['c', 'd'])
+
     def test_statistics(self):
+        # unnecessary?
         sumFrame = self.frame.apply(np.sum)
         for col, series in self.frame.iteritems():
             self.assertEqual(sumFrame[col], series.sum())
@@ -1479,6 +1498,7 @@ class TestDataFrame(unittest.TestCase):
             return x[notnull(x)].sum()
 
         self._check_statistic(self.frame, 'sum', f)
+        self._check_statistic(self.empty, 'sum', f)
 
     def test_sum_object(self):
         values = self.frame.values.astype(int)

@@ -1905,10 +1905,11 @@ class DataFrame(Picklable, Groupable):
         return Series(the_sum, index=axis_labels)
 
     def _get_numeric_columns(self):
-        return [col for col in self.columns if self[col].dtype == np.number]
+        return [col for col in self.cols()
+                if issubclass(self[col].dtype.type, np.number)]
 
     def _get_object_columns(self):
-        return [col for col in self.columns if self[col].dtype == np.object_]
+        return [col for col in self.cols() if self[col].dtype == np.object_]
 
     def cumsum(self, axis=0):
         """

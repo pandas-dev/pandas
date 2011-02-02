@@ -8,7 +8,7 @@ import pandas.lib.tseries as tseries
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
     np.seterr(all='ignore')
-except Exception:
+except Exception: # pragma: no cover
     pass
 
 def isnull(input):
