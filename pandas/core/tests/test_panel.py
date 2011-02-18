@@ -1,3 +1,6 @@
+# pylint: disable=W0612
+
+
 import os
 import operator
 import unittest
@@ -16,6 +19,7 @@ import pandas.core.panel as panelm
 import pandas.util.testing as common
 
 class PanelTests(object):
+    panel = None
 
     def test_iter(self):
         common.equalContents(list(self.panel), self.panel.items)
@@ -337,6 +341,11 @@ class TestWidePanel(unittest.TestCase, PanelTests):
 
         # reindex_like
 
+        smaller = self.panel.reindex(items=self.panel.items[:-1],
+                                     major=self.panel.major_axis[:-1],
+                                     minor=self.panel.minor_axis[:-1])
+        smaller_like = self.panel.reindex_like(smaller)
+        assert_panel_equal(smaller, smaller_like)
 
     def test_fill(self):
         filled = self.panel.fill(0)
@@ -384,8 +393,8 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         result = self.panel.add(self.panel)
         assert_panel_equal(result, self.panel * 2)
 
-        long = self.panel.toLong(filter_observations=False)
-        result = self.panel.add(long)
+        lng = self.panel.toLong(filter_observations=False)
+        result = self.panel.add(lng)
         assert_panel_equal(result, self.panel * 2)
 
     def test_operators(self):

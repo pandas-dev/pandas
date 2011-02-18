@@ -1,13 +1,11 @@
 """
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
-# pylint: disable=E1103
-# pylint: disable=W0231
-# pylint: disable=W0212
-# pylint: disable=W0621
+# pylint: disable=E1103,W0231,W0212,W0621
 
 import operator
 import sys
+import warnings
 
 import numpy as np
 
@@ -475,6 +473,13 @@ class WidePanel(Panel):
                          self.minor_axis)
 
     def fill(self, value=None, method='pad'):
+        warnings.warn("fill is being replaced by fillna, and the fill function "
+                      "behavior will disappear in the next release: please "
+                      "modify your code accordingly",
+                      DeprecationWarning)
+        return self.fillna(value=value, method=method)
+
+    def fillna(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.
 

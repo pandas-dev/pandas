@@ -83,7 +83,7 @@ class Index(np.ndarray):
     def __iter__(self):
         return iter(self.view(np.ndarray))
 
-    def __setstate__(self,state):
+    def __setstate__(self, state):
         """Necessary for making this object picklable"""
         np.ndarray.__setstate__(self, state)
         self._cache_indexMap = _tseries.map_indices(self)

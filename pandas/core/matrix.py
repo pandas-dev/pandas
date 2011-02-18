@@ -986,7 +986,7 @@ class DataMatrix(DataFrame):
         np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 
-    def fill(self, value=None, method='pad'):
+    def fillna(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.
 

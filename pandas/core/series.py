@@ -7,6 +7,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 import itertools
 import sys
+import warnings
 
 from numpy import NaN, ndarray
 import numpy as np
@@ -806,7 +807,6 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         reindexed : Series
         """
-        import warnings
         if fillMethod is not None: # pragma: no cover
             warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
                           DeprecationWarning)
@@ -865,6 +865,13 @@ class Series(np.ndarray, Picklable, Groupable):
         return self.reindex(other.index, method=method)
 
     def fill(self, value=None, method='pad'):
+        warnings.warn("fill is being replaced by fillna, and the fill function "
+                      "behavior will disappear in the next release: please "
+                      "modify your code accordingly",
+                      DeprecationWarning)
+        return self.fillna(value=value, method=method)
+
+    def fillna(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.
 

@@ -5,6 +5,7 @@ from cStringIO import StringIO
 from datetime import datetime
 import operator
 import sys
+import warnings
 
 from numpy import NaN
 import numpy as np
@@ -1051,6 +1052,13 @@ class DataFrame(Picklable, Groupable):
         return self.reindex(self.index[theCount >= minObs])
 
     def fill(self, value=None, method='pad'):
+        warnings.warn("fill is being replaced by fillna, and the fill function "
+                      "behavior will disappear in the next release: please "
+                      "modify your code accordingly",
+                      DeprecationWarning)
+        return self.fillna(value=value, method=method)
+
+    def fillna(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.
 
@@ -1177,7 +1185,6 @@ class DataFrame(Picklable, Groupable):
         """
         # TODO: remove this on next release
         if fillMethod is not None: # pragma: no cover
-            import warnings
             warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
                           DeprecationWarning)
 
@@ -1755,7 +1762,8 @@ class DataFrame(Picklable, Groupable):
 
         return self._constructor(result_series, index=join_index)
 
-    def plot(self, kind='line', **kwds): # pragma: no cover
+    def plot(self, kind='line', subplots=False, sharex=True, sharey=False,
+             **kwds): # pragma: no cover
         """
         Plot the DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -1772,10 +1780,24 @@ class DataFrame(Picklable, Groupable):
         This method doesn't make much sense for cross-sections,
         and will error.
         """
-        from pylab import plot
+        import matplotlib.pyplot as plt
 
-        for col in _try_sort(self.columns):
-            plot(self.index, self[col].values, label=col, **kwds)
+        if subplots:
+            _, axes = plt.subplots(nrows=len(self.columns),
+                                   sharex=sharex, sharey=sharey)
+        else:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+
+        for i, col in enumerate(_try_sort(self.columns)):
+            if subplots:
+                ax = axes[i]
+                ax.plot(self.index, self[col].values, 'k', label=col,
+                        **kwds)
+                ax.legend(loc='best')
+            else:
+                ax.plot(self.index, self[col].values, label=col,
+                        **kwds)
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:
@@ -2034,7 +2056,7 @@ class DataFrame(Picklable, Groupable):
             med = [f(self[col].values) for col in self.columns]
             return Series(med, index=self.columns)
         elif axis == 1:
-            med = [f(self.getXS(k).values) for k in self.index]
+            med = [f(self.xs(k).values) for k in self.index]
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
