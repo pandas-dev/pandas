@@ -535,8 +535,16 @@ class DataMatrix(DataFrame):
             else:
                 return self._getSeries(item)
 
-    _dataTypes = [np.float_, np.bool_, np.int_]
-    def __setitem__(self, key, value):
+    # __setitem__ logic
+
+    def _boolean_set(self, key, value):
+        mask = key.values
+        if mask.dtype != np.bool_:
+            raise Exception('Must pass DataFrame with boolean values only')
+
+        self.values[mask] = value
+
+    def _insert_item(self, key, value):
         """
         Add series to DataMatrix in specified column.
 
@@ -568,6 +576,7 @@ class DataMatrix(DataFrame):
         else:
             self._insert_float_dtype(key, value)
 
+    _dataTypes = [np.float_, np.bool_, np.int_]
     def _insert_float_dtype(self, key, value):
         isObject = value.dtype not in self._dataTypes
 

@@ -472,6 +472,30 @@ class DataFrame(Picklable, Groupable):
         ensure homogeneity.
         """
         # Array
+        if isinstance(key, DataFrame):
+            if not (key.index.equals(self.index) and
+                    key.columns.equals(self.columns)):
+                raise Exception('Can only index with like-indexed '
+                                'DataFrame objects')
+
+            self._boolean_set(key, value)
+        else:
+            self._insert_item(key, value)
+
+    def _boolean_set(self, key, value):
+        mask = key.values
+        columns = self.columns
+        values = self.values
+
+        if mask.dtype != np.bool_:
+            raise Exception('Must pass DataFrame with boolean values only')
+
+        values[mask] = value
+        values = values.T
+        self._series = dict((c, Series(values[i], index=self.index))
+                            for i, c in enumerate(columns))
+
+    def _insert_item(self, key, value):
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
                 cleanSeries = value.reindex(self.index)
@@ -1054,7 +1078,7 @@ class DataFrame(Picklable, Groupable):
 
         return self.reindex(self.index[theCount >= minObs])
 
-    def fill(self, value=None, method='pad'):
+    def fill(self, value=None, method='pad'): # pragma: no cover
         warnings.warn("fill is being replaced by fillna, and the fill function "
                       "behavior will disappear in the next release: please "
                       "modify your code accordingly",
@@ -1149,7 +1173,7 @@ class DataFrame(Picklable, Groupable):
         else:
             return Series(np.array(rowValues), index=subset)
 
-    def getXS(self, key):
+    def getXS(self, key): # pragma: no cover
         warnings.warn("'getXS' is deprecated. Use 'xs' instead",
                       FutureWarning)
 

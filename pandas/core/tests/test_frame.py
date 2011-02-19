@@ -449,6 +449,21 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assert_((smaller['col10'] == ['1', '2']).all())
 
+    def test_setitem_boolean(self):
+        df = self.frame.copy()
+        values = self.frame.values
+
+        df[df > 0] = 5
+        values[values > 0] = 5
+        assert_almost_equal(df.values, values)
+
+        df[df == 5] = 0
+        values[values == 5] = 0
+        assert_almost_equal(df.values, values)
+
+        self.assertRaises(Exception, df.__setitem__, df[:-1] > 0, 2)
+        self.assertRaises(Exception, df.__setitem__, df * 0, 2)
+
     def test_delitem(self):
         del self.frame['A']
         self.assert_('A' not in self.frame)

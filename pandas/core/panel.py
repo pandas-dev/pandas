@@ -25,7 +25,7 @@ def _arith_method(func, name):
 
     def f(self, other):
         if not np.isscalar(other):
-            raise Exception('Simple arithmetic with WidePanel can only be '
+            raise ValueError('Simple arithmetic with WidePanel can only be '
                             'done with scalar values')
 
         return self._combine(other, func)
@@ -311,7 +311,7 @@ class WidePanel(Panel):
         # XXX
         if isinstance(value, LongPanel):
             if len(value.items) != 1:
-                raise Exception('Input panel must have only one item!')
+                raise ValueError('Input panel must have only one item!')
 
             value = value.toWide()[value.items[0]]
 
@@ -399,7 +399,7 @@ class WidePanel(Panel):
             result = result._reindex_axis(items, method, 0)
 
         if result is self:
-            raise Exception('Must specify at least one axis')
+            raise ValueError('Must specify at least one axis')
 
         return result
 
@@ -472,7 +472,7 @@ class WidePanel(Panel):
         return WidePanel(newValues, self.items, self.major_axis,
                          self.minor_axis)
 
-    def fill(self, value=None, method='pad'):
+    def fill(self, value=None, method='pad'): # pragma: no cover
         warnings.warn("fill is being replaced by fillna, and the fill function "
                       "behavior will disappear in the next release: please "
                       "modify your code accordingly",
@@ -603,7 +603,7 @@ class WidePanel(Panel):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            raise Exception('Cannot specify the same axis')
+            raise ValueError('Cannot specify the same axis')
 
         mapping = {i : j, j : i}
 
@@ -938,7 +938,7 @@ class WidePanel(Panel):
             values = values[:, :, :-lags]
             minor_axis = minor_axis[lags:]
         else:
-            raise Exception('Invalid axis')
+            raise ValueError('Invalid axis')
 
         return WidePanel(values=values, items=items, major_axis=major_axis,
                          minor_axis=minor_axis)
@@ -1037,7 +1037,7 @@ class LongPanel(Panel):
         if isinstance(data, np.ndarray):
             # Dtype when you have data
             if not issubclass(data.dtype.type, np.void):
-                raise Exception('Input was not a structured array!')
+                raise ValueError('Input was not a structured array!')
 
             columns = data.dtype.names
             data = dict((k, data[k]) for k in columns)
@@ -1132,7 +1132,7 @@ class LongPanel(Panel):
         shape = len(self.index.major_labels), len(self.items)
 
         if values.shape != shape:
-            raise Exception('Values shape %s mismatch to %s' % (values.shape,
+            raise ValueError('Values shape %s mismatch to %s' % (values.shape,
                                                                 shape))
 
         self._values = values
@@ -1155,10 +1155,10 @@ class LongPanel(Panel):
             mat = value
         elif isinstance(value, LongPanel):
             if len(value.items) > 1:
-                raise Exception('input LongPanel must only have one column')
+                raise ValueError('input LongPanel must only have one column')
 
             if value.index is not self.index:
-                raise Exception('Only can set identically-indexed LongPanel '
+                raise ValueError('Only can set identically-indexed LongPanel '
                                 'items for now')
 
             mat = value.values
@@ -1214,7 +1214,7 @@ class LongPanel(Panel):
         Arithmetic operation between panels
         """
         if self.index is not other.index:
-            raise Exception("Can only combine identically-indexed "
+            raise ValueError("Can only combine identically-indexed "
                             "panels for now")
 
         if len(other.items) == 1:
@@ -1433,7 +1433,7 @@ class LongPanel(Panel):
             items = self.major_axis
             labels = self.index.major_labels
         else: # pragma: no cover
-            raise Exception('Do not recognize axis %s' % axis)
+            raise ValueError('Do not recognize axis %s' % axis)
 
         if transform:
             mapped = np.array([transform(val) for val in items])
@@ -1554,7 +1554,7 @@ class LongPanel(Panel):
         elif axis == 'minor':
             lp = self.swapaxes()
         else: # pragma: no cover
-            raise Exception('invalid axis')
+            raise ValueError('invalid axis')
 
         N = len(lp.values)
         bounds = lp.index._bounds
@@ -1720,7 +1720,7 @@ class LongPanelIndex(object):
             j = len(self.major_axis)
 
         if i > j:
-            raise Exception('Must have begin <= end!')
+            raise ValueError('Must have begin <= end!')
 
         return i, j
 
@@ -2018,7 +2018,7 @@ class WidePanelGroupBy(GroupBy):
         self.axis = axis
 
         if axis not in (0, 1, 2): # pragma: no cover
-            raise Exception('invalid axis')
+            raise ValueError('invalid axis')
 
         GroupBy.__init__(self, obj, grouper)
 

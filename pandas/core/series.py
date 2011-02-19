@@ -864,7 +864,7 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         return self.reindex(other.index, method=method)
 
-    def fill(self, value=None, method='pad'):
+    def fill(self, value=None, method='pad'): # pragma: no cover
         warnings.warn("fill is being replaced by fillna, and the fill function "
                       "behavior will disappear in the next release: please "
                       "modify your code accordingly",
