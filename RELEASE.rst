@@ -5,8 +5,8 @@ Release Notes
 This major release of pandas represents approximately 1 year of continuous
 development work and brings with it many new features, bug fixes, speed
 enhancements, and general quality-of-life improvements. The most significant
-change from the 0.2 release has been the addition of a rigorous unit test suite
-covering all of the core functionality.
+change from the 0.2 release has been the completion of a rigorous unit test
+suite covering all of the core functionality.
 
 ==========
 What is it
@@ -43,9 +43,6 @@ pandas 0.3.0 release notes
 * WidePanel
  * Added `reindex_like` method
 
-* `pandas.stats`
- * `pandas.stats.covest` module for covariance matrix estimation
-
 * `pandas.io`: IO utilities
   * `pandas.io.sql` module
    * Convenience functions for accessing SQL-like databases
@@ -80,7 +77,6 @@ pandas 0.3.0 release notes
 * Renamed **DataFrame.getXS** to **xs**, `FutureWarning` added
 * Removed **cap** and **floor** functions from DataFrame, renamed to
   **clip_upper** and **clip_lower** for consistency with NumPy
-*
 
 **Bug fixes**
 
