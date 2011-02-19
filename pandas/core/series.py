@@ -96,19 +96,25 @@ class Series(np.ndarray, Picklable, Groupable):
 
     Parameters
     ----------
-    data : array-like or dict
+    data : array-like, dict, or scalar value
         Contains data stored in Series
     index : array-like
         Index object (or other iterable of same length as data)
         Must be input if first argument is not a dict. If both a dict
         and index sequence are used, the index will override the keys
         found in the dict.
+    dtype : numpy.dtype or None
+        If None, dtype will be inferred
+    copy : boolean, default False
+        Copy input data
 
     Notes
     -----
     If you combine two series, all values for an index position must
     be present or the value for that index position will be nan. The
     new index is the sorted union of the two Series indices.
+
+    Data is *not* copied from input arrays by default
     """
     def __new__(cls, data, index=None, dtype=None, copy=False):
         if isinstance(data, Series):
@@ -119,7 +125,7 @@ class Series(np.ndarray, Picklable, Groupable):
                 index = Index(sorted(data.keys()))
             data = [data[idx] for idx in index]
 
-        # Make a copy of the data, infer type
+        # Create array, do *not* copy data by default, infer type
         try:
             subarr = np.array(data, dtype=dtype, copy=copy)
         except ValueError:
@@ -131,6 +137,22 @@ class Series(np.ndarray, Picklable, Groupable):
         if subarr.ndim == 0:
             if isinstance(data, list): # pragma: no cover
                 subarr = np.array(data, dtype=object)
+            elif index is not None:
+                value = data
+
+                # If we create an empty array using a string to infer
+                # the dtype, NumPy will only allocate one character per entry
+                # so this is kind of bad. Alternately we could use np.repeat
+                # instead of np.empty (but then you still don't want things
+                # coming out as np.str_!
+                if isinstance(value, basestring) and dtype is None:
+                    dtype = np.object_
+
+                if dtype is None:
+                    subarr = np.empty(len(index), dtype=type(value))
+                else:
+                    subarr = np.empty(len(index), dtype=dtype)
+                subarr.fill(value)
             else:
                 return subarr.item()
 
@@ -188,35 +210,11 @@ class Series(np.ndarray, Picklable, Groupable):
         return dict(self.iteritems())
 
     @classmethod
-    def fromValue(cls, value=np.NaN, index=None, dtype=None):
-        """
-        Create Series with all values being the input scalar
+    def fromValue(cls, value=np.NaN, index=None, dtype=None): # pragma: no cover
+        warnings.warn("'fromValue', can call Series(value, index=index) now",
+                      FutureWarning)
 
-        Parameters
-        ----------
-        input : dict object
-            Keys become indices of returned Series
-        kwds : optionally provide arguments as keywords
-
-        Returns
-        -------
-        y : Series
-        """
-        # If we create an empty array using a string to infer
-        # the dtype, NumPy will only allocate one character per entry
-        # so this is kind of bad. Alternately we could use np.repeat
-        # instead of np.empty (but then you still don't want things
-        # coming out as np.str_!
-        if isinstance(value, basestring):
-            dtype = np.object_
-
-        if dtype is None:
-            arr = np.empty(len(index), dtype=type(value))
-        else:
-            arr = np.empty(len(index), dtype=dtype)
-        arr.fill(value)
-
-        return Series(arr, index=index)
+        return Series(value, index=index, dtype=dtype)
 
     def __contains__(self, key):
         return key in self.index
