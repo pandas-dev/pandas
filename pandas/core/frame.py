@@ -1055,7 +1055,7 @@ class DataFrame(Picklable, Groupable):
         warnings.warn("fill is being replaced by fillna, and the fill function "
                       "behavior will disappear in the next release: please "
                       "modify your code accordingly",
-                      DeprecationWarning)
+                      FutureWarning)
         return self.fillna(value=value, method=method)
 
     def fillna(self, value=None, method='pad'):
@@ -1186,7 +1186,7 @@ class DataFrame(Picklable, Groupable):
         # TODO: remove this on next release
         if fillMethod is not None: # pragma: no cover
             warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
-                          DeprecationWarning)
+                          FutureWarning)
 
             method = fillMethod
 

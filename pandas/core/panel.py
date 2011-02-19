@@ -476,7 +476,7 @@ class WidePanel(Panel):
         warnings.warn("fill is being replaced by fillna, and the fill function "
                       "behavior will disappear in the next release: please "
                       "modify your code accordingly",
-                      DeprecationWarning)
+                      FutureWarning)
         return self.fillna(value=value, method=method)
 
     def fillna(self, value=None, method='pad'):
@@ -1153,8 +1153,6 @@ class LongPanel(Panel):
             mat.fill(value)
         elif isinstance(value, np.ndarray):
             mat = value
-#             if value.ndim == 1:
-#                 value = value.reshape((len(value), 1))
         elif isinstance(value, LongPanel):
             if len(value.items) > 1:
                 raise Exception('input LongPanel must only have one column')
@@ -1338,9 +1336,6 @@ class LongPanel(Panel):
             row = format_row(major[major_i], minor[minor_i], self.values[i])
             print >> buffer, row
 
-    def _fill_factors(self):
-        values = self.values.astype(object)
-
     def swapaxes(self):
         """
         Swap major and minor axes and reorder values to be grouped by
@@ -1437,7 +1432,7 @@ class LongPanel(Panel):
             dim = len(self.major_axis)
             items = self.major_axis
             labels = self.index.major_labels
-        else:
+        else: # pragma: no cover
             raise Exception('Do not recognize axis %s' % axis)
 
         if transform:
@@ -1539,11 +1534,27 @@ class LongPanel(Panel):
 
         return panel
 
-    def count(self, axis=0):
-        if axis == 0:
+    def count(self, axis='major'):
+        """
+        Compute observation counts within each group
+
+        Parameters
+        ----------
+        axis : {'major', 'minor'}
+            major: compute minor_axis obs for each major axis value
+            minor: same but for each minor axis value
+
+        Returns
+        -------
+        counts : ndarray (1d)
+            Length will be length of input axis
+        """
+        if axis == 'major':
             lp = self
-        else:
+        elif axis == 'minor':
             lp = self.swapaxes()
+        else: # pragma: no cover
+            raise Exception('invalid axis')
 
         N = len(lp.values)
         bounds = lp.index._bounds
@@ -1564,7 +1575,7 @@ class LongPanel(Panel):
 
         return LongPanel(values, items, self.index)
 
-    def addPrefix(self, prefix):
+    def addPrefix(self, prefix=None):
         """
         Concatenate prefix string with panel items names.
 
@@ -1762,7 +1773,7 @@ class LongPanelIndex(object):
 
 class Factor(object):
     """
-    Represents a categorical variable in classic R / S+ fashion
+    Represents a categorical variable in classic R / S-plus fashion
     """
     def __init__(self, labels, levels):
         self.labels = labels
@@ -1775,17 +1786,19 @@ class Factor(object):
 
         return Factor(labels, levels=levels)
 
+    def asarray(self):
+        return self.levels[self.labels]
+
+    def __len__(self):
+        return len(self.labels)
+
     def __repr__(self):
         temp = 'Factor:\n%s\nLevels (%d): %s'
-
-        values = self.levels[self.labels]
+        values = self.asarray()
         return temp % (repr(values), len(self.levels), self.levels)
 
     def __getitem__(self, key):
-        if key is None and key not in self.index:
-            raise Exception('None/Null object requested of Series!')
-
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             i = self.labels[key]
             return self.levels[i]
         else:
@@ -1794,6 +1807,8 @@ class Factor(object):
 
 def factor_agg(factor, vec, func):
     """
+    Aggregate array based on Factor
+
     Parameters
     ----------
     factor : Factor
@@ -1855,11 +1870,7 @@ def _prefix_item(item, prefix=None):
     if prefix is None:
         return item
 
-    if isinstance(item, float):
-        template = '%g%s'
-    else:
-        template = '%s%s'
-
+    template = '%s%s'
     return template % (prefix, item)
 
 def _homogenize(frames, intersect=True):
@@ -1885,6 +1896,8 @@ def _homogenize(frames, intersect=True):
     for k, v in frames.iteritems():
         if isinstance(v, dict):
             adj_frames[k] = DataMatrix(v)
+        elif not isinstance(v, DataMatrix):
+            adj_frames[k] = v.toDataMatrix()
         else:
             adj_frames[k] = v
 
@@ -1918,9 +1931,6 @@ def _homogenize(frames, intersect=True):
             result[key] = frame.filter(columns).reindex(index)
     else:
         for key, frame in adj_frames.iteritems():
-            if not isinstance(frame, DataMatrix):
-                frame = frame.toDataMatrix()
-
             result[key] = frame.reindex(index=index, columns=columns)
 
     return result, index, columns
@@ -1947,8 +1957,7 @@ def pivot(index, columns, values):
     -------
     DataMatrix
     """
-    if not (len(index) == len(columns) == len(values)):
-        raise Exception('Pivot inputs must all be same length!')
+    assert(len(index) == len(columns) == len(values))
 
     if len(index) == 0:
         return DataMatrix(index=[])

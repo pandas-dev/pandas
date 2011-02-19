@@ -11,6 +11,8 @@ from pandas.core.api import DataFrame, Index, notnull
 from pandas.core.datetools import bday
 from pandas.core.panel import (WidePanel, LongPanelIndex, LongPanel,
                                group_agg, pivot)
+import pandas.core.panel as panelmod
+
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
@@ -211,9 +213,15 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         itemb = self.panel['ItemB']
 
         d = {'A' : itema, 'B' : itemb[5:]}
+        d2 = {'A' : itema._series, 'B' : itemb[5:]._series}
+        d3 = {'A' : DataFrame(itema._series),
+              'B' : DataFrame(itemb[5:]._series)}
 
         wp = WidePanel.fromDict(d)
+        wp2 = WidePanel.fromDict(d2) # nested Dict
+        wp3 = WidePanel.fromDict(d3)
         self.assert_(wp.major_axis.equals(self.panel.major_axis))
+        assert_panel_equal(wp, wp2)
 
         # intersect
         wp = WidePanel.fromDict(d, intersect=True)
@@ -693,6 +701,17 @@ class TestLongPanel(unittest.TestCase):
         lp2 = self.panel.filter(['ItemC', 'ItemE'])
         self.assertRaises(Exception, lp.__setitem__, 'foo', lp2)
 
+    def test_ops_differently_indexed(self):
+        # trying to set non-identically indexed panel
+        wp = self.panel.toWide()
+        wp2 = wp.reindex(major=wp.major_axis[:-1])
+        lp2 = wp2.toLong()
+
+        self.assertRaises(Exception, self.panel.__setitem__, 'foo',
+                          lp2.filter(['ItemA']))
+
+        self.assertRaises(Exception, self.panel.add, lp2)
+
     def test_combineFrame(self):
         wp = self.panel.toWide()
         result = self.panel.add(wp['ItemA'])
@@ -703,6 +722,9 @@ class TestLongPanel(unittest.TestCase):
         result = self.panel.add(self.panel)
         wide_result = result.toWide()
         assert_frame_equal(wp['ItemA'] * 2, wide_result['ItemA'])
+
+        # one item
+        result = self.panel.add(self.panel.filter(['ItemA']))
 
     def test_operators(self):
         wp = self.panel.toWide()
@@ -758,6 +780,24 @@ class TestLongPanel(unittest.TestCase):
         expected = self.panel.toWide()['ItemA'].truncate(after=end)
 
         assert_frame_equal(trunced['ItemA'], expected)
+
+        # truncate on dates that aren't in there
+        wp = self.panel.toWide()
+        new_index = wp.major_axis[::5]
+
+        wp2 = wp.reindex(major=new_index)
+
+        lp2 = wp2.toLong()
+        lp_trunc = lp2.truncate(wp.major_axis[2], wp.major_axis[-2])
+
+        wp_trunc = wp2.truncate(wp.major_axis[2], wp.major_axis[-2])
+
+        assert_panel_equal(wp_trunc, lp_trunc.toWide())
+
+        # throw proper exception
+        self.assertRaises(Exception, lp2.truncate, wp.major_axis[-2],
+                          wp.major_axis[2])
+
 
     def test_filter(self):
         pass
@@ -817,10 +857,28 @@ class TestLongPanel(unittest.TestCase):
         assert_frame_equal(sums, wide_sums)
 
     def test_count(self):
-        pass
+        index = self.panel.index
+
+        major_count = self.panel.count('major')
+        labels = index.major_labels
+        for i, idx in enumerate(index.major_axis):
+            self.assertEqual(major_count[i], (labels == i).sum())
+
+        minor_count = self.panel.count('minor')
+        labels = index.minor_labels
+        for i, idx in enumerate(index.minor_axis):
+            self.assertEqual(minor_count[i], (labels == i).sum())
 
     def test_leftJoin(self):
-        pass
+        lp1 = self.panel.filter(['ItemA', 'ItemB'])
+        lp2 = self.panel.filter(['ItemC'])
+
+        joined = lp1.leftJoin(lp2)
+
+        self.assertEqual(len(joined.items), 3)
+
+        self.assertRaises(Exception, lp1.leftJoin,
+                          self.panel.filter(['ItemB', 'ItemC']))
 
     def test_merge(self):
         pass
@@ -829,8 +887,10 @@ class TestLongPanel(unittest.TestCase):
         lp = self.panel.addPrefix('foo#')
         self.assertEqual(lp.items[0], 'foo#ItemA')
 
-    def test_pivot(self):
+        lp = self.panel.addPrefix()
+        assert_panel_equal(lp.toWide(), self.panel.toWide())
 
+    def test_pivot(self):
         df = pivot(np.array([1, 2, 3, 4, 5]),
                    np.array(['a', 'b', 'c', 'd', 'e']),
                    np.array([1, 2, 3, 5, 4.]))
@@ -840,11 +900,13 @@ class TestLongPanel(unittest.TestCase):
         self.assertEqual(df['d'][4], 5)
         self.assertEqual(df['e'][5], 4)
 
-
-        # weird overlap
+        # weird overlap, TODO: test?
         df = pivot(np.array([1, 2, 3, 4, 4]),
                    np.array(['a', 'a', 'a', 'a', 'a']),
                    np.array([1, 2, 3, 5, 4]))
+
+        # corner case, empty
+        df = pivot(np.array([]), np.array([]), np.array([]))
 
 def test_group_agg():
     values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
@@ -871,7 +933,25 @@ def test_monotonic():
 
 class TestFactor(unittest.TestCase):
 
-    def test_constructor(self):
-        pass
+    def setUp(self):
+        self.factor = panelmod.Factor.fromarray(['a', 'b', 'b', 'a',
+                                                 'a', 'c', 'c', 'c'])
 
+    def test_getitem(self):
+        self.assertEqual(self.factor[0], 'a')
+        self.assertEqual(self.factor[-1], 'c')
 
+        subf = self.factor[[0, 1, 2]]
+        common.assert_almost_equal(subf.labels, [0, 1, 1])
+
+        subf = self.factor[self.factor.asarray() == 'c']
+        common.assert_almost_equal(subf.labels, [2, 2, 2])
+
+    def test_factor_agg(self):
+        arr = np.arange(len(self.factor))
+
+        f = np.sum
+        agged = panelmod.factor_agg(self.factor, arr, f)
+        labels = self.factor.labels
+        for i, idx in enumerate(self.factor.levels):
+            self.assertEqual(f(arr[labels == i]), agged[i])
