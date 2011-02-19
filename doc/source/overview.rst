@@ -100,8 +100,6 @@ though, we like to "favor immutability" where sensible.
 What else is in the package?
 ----------------------------
 
-
-
 Installation
 ------------
 
@@ -138,12 +136,12 @@ Optional dependencies
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The source code is hosted at http://pandas.googlecode.com, it can be
-checked out using SVN and compiled / installed like so:
+The source code is hosted at http://github.com/wesm/pandas, it can be checked
+out using git and compiled / installed like so:
 
 ::
 
-  svn co http://pandas.googlecode.com/svn/trunk/ pandas
+  git clone git@github.com:wesm/pandas.git
 
   cd pandas
 
