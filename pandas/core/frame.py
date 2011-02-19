@@ -1632,10 +1632,14 @@ class DataFrame(Picklable, Groupable):
                     series[this_mask] = fill_value
                     otherSeries[other_mask] = fill_value
 
-                result[col] = func(series, otherSeries)
+                arr = func(series, otherSeries)
 
                 if do_fill:
-                    result[col][this_mask & other_mask] = np.NaN
+                    if issubclass(arr.dtype.type, np.integer):
+                        arr = arr.astype(float)
+                    arr[this_mask & other_mask] = np.NaN
+
+                result[col] = arr
 
             elif col in this:
                 result[col] = this[col]

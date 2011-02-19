@@ -1359,6 +1359,13 @@ class TestDataFrame(unittest.TestCase):
         comb = self.empty.combineAdd(self.frame)
         assert_frame_equal(comb, self.frame)
 
+        # integer corner case
+        df1 = DataFrame({'x':[5]})
+        df2 = DataFrame({'x':[1]})
+        df3 = DataFrame({'x':[6.]})
+        comb = df1.combineAdd(df2)
+        assert_frame_equal(comb, df3)
+
     def test_combineMult(self):
         # trivial
         comb = self.frame.combineMult(self.frame)
