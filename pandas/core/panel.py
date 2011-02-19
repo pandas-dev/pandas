@@ -504,7 +504,7 @@ class WidePanel(Panel):
         if value is None:
             result = {}
             for col, s in self.iteritems():
-                result[col] = s.fill(method=method, value=value)
+                result[col] = s.fillna(method=method, value=value)
 
             return WidePanel.fromDict(result)
         else:
@@ -1962,21 +1962,20 @@ def pivot(index, columns, values):
     if len(index) == 0:
         return DataMatrix(index=[])
 
-    major_axis = Index(sorted(set(index)))
-    minor_axis = Index(sorted(set(columns)))
-
-    major_labels, _ = tseries.getMergeVec(index, major_axis.indexMap)
-    minor_labels, _ = tseries.getMergeVec(columns, minor_axis.indexMap)
-
-    valueMat = values.view(np.ndarray).reshape(len(values), 1)
-
-    longIndex = LongPanelIndex(major_axis, minor_axis,
-                               major_labels, minor_labels)
-
-    longPanel = LongPanel(valueMat, ['foo'], longIndex)
-    longPanel = longPanel.sort()
-
     try:
+        major_axis = Index(sorted(set(index)))
+        minor_axis = Index(sorted(set(columns)))
+
+        major_labels, _ = tseries.getMergeVec(index, major_axis.indexMap)
+        minor_labels, _ = tseries.getMergeVec(columns, minor_axis.indexMap)
+
+        valueMat = values.view(np.ndarray).reshape(len(values), 1)
+
+        longIndex = LongPanelIndex(major_axis, minor_axis,
+                                   major_labels, minor_labels)
+
+        longPanel = LongPanel(valueMat, ['foo'], longIndex)
+        longPanel = longPanel.sort()
         return longPanel.toWide()['foo']
     except PanelError:
         return _slow_pivot(index, columns, values)

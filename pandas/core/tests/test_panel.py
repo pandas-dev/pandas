@@ -355,13 +355,13 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         smaller_like = self.panel.reindex_like(smaller)
         assert_panel_equal(smaller, smaller_like)
 
-    def test_fill(self):
-        filled = self.panel.fill(0)
+    def test_fillna(self):
+        filled = self.panel.fillna(0)
         self.assert_(np.isfinite(filled.values).all())
 
-        filled = self.panel.fill(method='backfill')
+        filled = self.panel.fillna(method='backfill')
         assert_frame_equal(filled['ItemA'],
-                           self.panel['ItemA'].fill(method='backfill'))
+                           self.panel['ItemA'].fillna(method='backfill'))
 
     def test_combineFrame(self):
         def check_op(op, name):
@@ -417,7 +417,7 @@ class TestWidePanel(unittest.TestCase, PanelTests):
         idx = self.panel.major_axis[5]
         xs = self.panel.major_xs(idx)
 
-        assert_series_equal(xs['ItemA'], ref.getXS(idx))
+        assert_series_equal(xs['ItemA'], ref.xs(idx))
 
         # not contained
         idx = self.panel.major_axis[0] - bday

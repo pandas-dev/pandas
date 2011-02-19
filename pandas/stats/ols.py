@@ -1064,7 +1064,7 @@ class MovingOLS(OLS):
             elif isinstance(value, Series):
                 value = value[self.beta.index[-1]]
             elif isinstance(value, DataFrame):
-                value = value.getXS(self.beta.index[-1])
+                value = value.xs(self.beta.index[-1])
             else:
                 raise Exception('Problem retrieving %s' % result)
             results[result] = value

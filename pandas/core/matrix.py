@@ -1012,7 +1012,7 @@ class DataMatrix(DataFrame):
             result = {}
             series = self._series
             for col, s in series.iteritems():
-                result[col] = s.fill(method=method, value=value)
+                result[col] = s.fillna(method=method, value=value)
 
             return DataMatrix(result, index=self.index, objects=self.objects)
         else:
@@ -1053,7 +1053,7 @@ class DataMatrix(DataFrame):
         result = Series(theSlice, index=xsIndex)
 
         if self.objects is not None and len(self.objects.columns) > 0:
-            result = result.append(self.objects.getXS(key))
+            result = result.append(self.objects.xs(key))
 
         return result
 

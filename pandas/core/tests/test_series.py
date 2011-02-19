@@ -720,17 +720,18 @@ class TestSeries(unittest.TestCase):
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
 
-    def test_fill(self):
+    def test_fillna(self):
         ts = Series([0., 1., 2., 3., 4.], index=common.makeDateIndex(5))
 
-        self.assert_(np.array_equal(ts, ts.fill()))
+        self.assert_(np.array_equal(ts, ts.fillna()))
 
         ts[2] = np.NaN
 
-        self.assert_(np.array_equal(ts.fill(), [0., 1., 1., 3., 4.]))
-        self.assert_(np.array_equal(ts.fill(method='backfill'), [0., 1., 3., 3., 4.]))
+        self.assert_(np.array_equal(ts.fillna(), [0., 1., 1., 3., 4.]))
+        self.assert_(np.array_equal(ts.fillna(method='backfill'),
+                                    [0., 1., 3., 3., 4.]))
 
-        self.assert_(np.array_equal(ts.fill(value=5), [0., 1., 5., 3., 4.]))
+        self.assert_(np.array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.]))
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),

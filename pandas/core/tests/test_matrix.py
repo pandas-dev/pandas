@@ -253,15 +253,15 @@ class TestDataMatrix(test_frame.TestDataFrame):
         self.mixed_frame['foo'][5:20] = np.NaN
         self.mixed_frame['A'][-10:] = np.NaN
 
-        obj_result = self.mixed_frame.objects.fill(value=0)
+        obj_result = self.mixed_frame.objects.fillna(value=0)
 
         del self.mixed_frame['foo']
 
         # XXX
-        obj_result = self.mixed_frame.objects.fill(value=0)
+        obj_result = self.mixed_frame.objects.fillna(value=0)
 
 	empty_float = self.frame.reindex(columns=[])
-        result = empty_float.fill(value=0)
+        result = empty_float.fillna(value=0)
 
     def test_count_objects(self):
         dm = DataMatrix(self.mixed_frame._series)

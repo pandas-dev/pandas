@@ -233,6 +233,10 @@ class TestDataFrame(unittest.TestCase):
         frame = self.klass(np.empty((3, 0)))
         self.assert_(len(frame.cols()) == 0)
 
+    def test_constructor_corner(self):
+        df = self.klass(index=[])
+        self.assertEqual(df.values.shape, (0, 0))
+
     def test_constructor_DataFrame(self):
         df = self.klass(self.frame)
         assert_frame_equal(df, self.frame)
@@ -575,7 +579,7 @@ class TestDataFrame(unittest.TestCase):
     def test_combineSeries(self):
 
         # Series
-        series = self.frame.getXS(self.frame.index[0])
+        series = self.frame.xs(self.frame.index[0])
 
         added = self.frame + series
 
@@ -855,14 +859,14 @@ class TestDataFrame(unittest.TestCase):
         samesize_frame = frame.dropIncompleteRows(specificColumns=['bar'])
         self.assert_(samesize_frame.index.equals(self.frame.index))
 
-    def test_fill(self):
+    def test_fillna(self):
         self.tsframe['A'][:5] = np.NaN
         self.tsframe['A'][-5:] = np.NaN
 
-        zero_filled = self.tsframe.fill(0)
+        zero_filled = self.tsframe.fillna(0)
         self.assert_((zero_filled['A'][:5] == 0).all())
 
-        padded = self.tsframe.fill(method='pad')
+        padded = self.tsframe.fillna(method='pad')
         self.assert_(np.isnan(padded['A'][:5]).all())
         self.assert_((padded['A'][-5:] == padded['A'][-5]).all())
 
@@ -870,7 +874,7 @@ class TestDataFrame(unittest.TestCase):
         self.mixed_frame['foo'][5:20] = np.NaN
         self.mixed_frame['A'][-10:] = np.NaN
 
-        result = self.mixed_frame.fill(value=0)
+        result = self.mixed_frame.fillna(value=0)
 
     def test_truncate(self):
         offset = datetools.bday
@@ -913,27 +917,27 @@ class TestDataFrame(unittest.TestCase):
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
-    def test_getXS(self):
+    def test_xs(self):
         idx = self.frame.index[5]
-        xs = self.frame.getXS(idx)
+        xs = self.frame.xs(idx)
         for item, value in xs.iteritems():
             if np.isnan(value):
                 self.assert_(np.isnan(self.frame[item][idx]))
             else:
                 self.assertEqual(value, self.frame[item][idx])
 
-        # mixed-type getXS
+        # mixed-type xs
         test_data = {
                 'A' : {'1' : 1, '2' : 2},
                 'B' : {'1' : '1', '2' : '2', '3' : '3'},
         }
         frame = self.klass(test_data)
-        xs = frame.getXS('1')
+        xs = frame.xs('1')
         self.assert_(xs.dtype == np.object_)
         self.assertEqual(xs['A'], 1)
         self.assertEqual(xs['B'], '1')
 
-        self.assertRaises(Exception, self.tsframe.getXS,
+        self.assertRaises(Exception, self.tsframe.xs,
                           self.tsframe.index[0] - datetools.bday)
 
     def test_pivot(self):
@@ -1127,8 +1131,8 @@ class TestDataFrame(unittest.TestCase):
 
         d = self.tsframe.index[0]
         shifted_d = d + datetools.BDay(5)
-        assert_series_equal(self.tsframe.getXS(d),
-                            shiftedFrame.getXS(shifted_d))
+        assert_series_equal(self.tsframe.xs(d),
+                            shiftedFrame.xs(shifted_d))
 
     def test_apply(self):
         # ufunc
@@ -1141,7 +1145,7 @@ class TestDataFrame(unittest.TestCase):
 
         d = self.frame.index[0]
         applied = self.frame.apply(np.mean, axis=1)
-        self.assertEqual(applied[d], np.mean(self.frame.getXS(d)))
+        self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
         self.assert_(applied.index is self.frame.index) # want this
 
         # empty
@@ -1154,7 +1158,7 @@ class TestDataFrame(unittest.TestCase):
     def test_tapply(self):
         d = self.frame.index[0]
         tapplied = self.frame.tapply(np.mean)
-        self.assertEqual(tapplied[d], np.mean(self.frame.getXS(d)))
+        self.assertEqual(tapplied[d], np.mean(self.frame.xs(d)))
 
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
@@ -1492,6 +1496,15 @@ class TestDataFrame(unittest.TestCase):
 
         self._check_statistic(self.frame, 'count', f)
 
+        # corner case
+
+        frame = self.klass()
+        ct1 = frame.count(1)
+        self.assert_(isinstance(ct1, Series))
+
+        ct2 = frame.count(0)
+        self.assert_(isinstance(ct2, Series))
+
     def test_sum(self):
         def f(x):
             x = np.asarray(x)
@@ -1583,7 +1596,7 @@ class TestDataFrame(unittest.TestCase):
     def test_cumsum(self):
         cumsum = self.tsframe.cumsum()
 
-        assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fill(0)))
+        assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fillna(0)))
 
         df = self.klass({'A' : np.arange(20)}, index=np.arange(20))
 
@@ -1598,7 +1611,7 @@ class TestDataFrame(unittest.TestCase):
         cumprod = self.tsframe.cumprod()
 
         assert_series_equal(cumprod['A'],
-                            np.cumprod(self.tsframe['A'].fill(1)))
+                            np.cumprod(self.tsframe['A'].fillna(1)))
 
         # fix issue
         cumprod_xs = self.tsframe.cumprod(axis=1)

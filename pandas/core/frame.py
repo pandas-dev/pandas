@@ -865,9 +865,12 @@ class DataFrame(Picklable, Groupable):
         of columns is provided.
         """
         if columns is None:
-            return np.array([self[col] for col in self.cols()]).T
-        else:
-            return np.array([self[col] for col in columns]).T
+            columns = self.cols()
+
+        if len(columns) == 0:
+            return np.zeros((0, 0))
+
+        return np.array([self[col] for col in columns]).T
 
     asMatrix = as_matrix
     # For DataMatrix compatibility
@@ -1083,7 +1086,7 @@ class DataFrame(Picklable, Groupable):
         mycopy = self.copy()
         for col in mycopy._series.keys():
             series = mycopy._series[col]
-            filledSeries = series.fill(method=method, value=value)
+            filledSeries = series.fillna(method=method, value=value)
             mycopy._series[col] = filledSeries
 
         return mycopy
@@ -1146,7 +1149,11 @@ class DataFrame(Picklable, Groupable):
         else:
             return Series(np.array(rowValues), index=subset)
 
-    getXS = lambda self, key: self.xs(key)
+    def getXS(self, key):
+        warnings.warn("'getXS' is deprecated. Use 'xs' instead",
+                      FutureWarning)
+
+        return self.xs(key)
 
     def pivot(self, index=None, columns=None, values=None):
         """
@@ -1162,9 +1169,8 @@ class DataFrame(Picklable, Groupable):
         values : string or object
             Column name to use for populating new frame's values
         """
-        from pandas.core.panel import _slow_pivot
-
-        return _slow_pivot(self[index], self[columns], self[values])
+        from pandas.core.panel import pivot
+        return pivot(self[index], self[columns], self[values])
 
     def reindex(self, index=None, columns=None, method=None, fillMethod=None):
         """
