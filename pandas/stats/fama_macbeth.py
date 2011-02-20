@@ -103,7 +103,7 @@ class FamaMacBeth(object):
 
             mean_beta = self._results['mean_beta'][i]
             std_beta = self._results['std_beta'][i]
-            t_stat = self._results['std_beta'][i]
+            t_stat = self._results['t_stat'][i]
             ci1 = mean_beta - 1.96 * std_beta
             ci2 = mean_beta + 1.96 * std_beta
 
