@@ -1,7 +1,3 @@
-FULL_SAMPLE = 0
-ROLLING = 1
-EXPANDING = 2
-
 TIME = 0
 ENTITY = 1
 
@@ -18,6 +14,10 @@ def _get_cluster_type(cluster_type):
             return TIME
 
     raise Exception('Unrecognized clustering type: %s' % cluster_type)
+
+FULL_SAMPLE = 0
+ROLLING = 1
+EXPANDING = 2
 
 def _get_window_type(window_type):
     if window_type in (FULL_SAMPLE, ROLLING, EXPANDING):

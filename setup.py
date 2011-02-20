@@ -49,13 +49,13 @@ CLASSIFIERS = [
 MAJOR = 0
 MINOR = 3
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 FULLVERSION = VERSION
 if not ISRELEASED:
     # FULLVERSION += '.dev' + datetime.today().strftime('%Y%m%d')
-    FULLVERSION += '.beta2'
+    FULLVERSION += '.beta'
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
