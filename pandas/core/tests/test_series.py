@@ -95,15 +95,18 @@ class TestSeries(unittest.TestCase):
         pass
 
     def test_fromValue(self):
-        nans = Series.fromValue(np.NaN, index=self.ts.index)
+        nans = Series(np.NaN, index=self.ts.index)
         self.assert_(nans.dtype == np.float_)
+        self.assertEqual(len(nans), len(self.ts))
 
-        strings = Series.fromValue('foo', index=self.ts.index)
+        strings = Series('foo', index=self.ts.index)
         self.assert_(strings.dtype == np.object_)
+        self.assertEqual(len(strings), len(self.ts))
 
         d = datetime.now()
-        dates = Series.fromValue(d, index=self.ts.index)
+        dates = Series(d, index=self.ts.index)
         self.assert_(dates.dtype == np.object_)
+        self.assertEqual(len(dates), len(self.ts))
 
     def test_contains(self):
         common.assert_contains_all(self.ts.index, self.ts)

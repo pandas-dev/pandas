@@ -143,7 +143,7 @@ class DataFrame(Picklable, Groupable):
                 columns = NULL_INDEX
             else:
                 for c in columns:
-                    sdict[c] = Series.fromValue(np.NaN, index=index)
+                    sdict[c] = Series(np.NaN, index=index)
 
         self._series = sdict
         self.columns = columns
@@ -180,7 +180,7 @@ class DataFrame(Picklable, Groupable):
         # add in any other columns we want to have (completeness)
         for c in columns:
             if c not in sdict:
-                sdict[c] = Series.fromValue(np.NaN, index=index)
+                sdict[c] = Series(np.NaN, index=index)
 
         return sdict, columns, index
 
@@ -505,7 +505,7 @@ class DataFrame(Picklable, Groupable):
             self._series[key] = cleanSeries
         # Scalar
         else:
-            self._series[key] = Series.fromValue(value, index=self.index)
+            self._series[key] = Series(value, index=self.index)
 
         if key not in self.columns:
             loc = self._get_insert_loc(key)
@@ -1425,11 +1425,13 @@ class DataFrame(Picklable, Groupable):
             if periods > 0:
                 def do_shift(series):
                     values = np.asarray(series).take(indexer)
+                    values = common.ensure_float(values)
                     values[:periods] = NaN
                     return values
             else:
                 def do_shift(series):
                     values = np.asarray(series).take(indexer)
+                    values = common.ensure_float(values)
                     values[periods:] = NaN
                     return values
 
@@ -1635,8 +1637,7 @@ class DataFrame(Picklable, Groupable):
                 arr = func(series, otherSeries)
 
                 if do_fill:
-                    if issubclass(arr.dtype.type, np.integer):
-                        arr = arr.astype(float)
+                    arr = common.ensure_float(arr)
                     arr[this_mask & other_mask] = np.NaN
 
                 result[col] = arr
@@ -1763,8 +1764,7 @@ class DataFrame(Picklable, Groupable):
             arr = series.view(np.ndarray).take(indexer)
 
             if need_mask:
-                if issubclass(arr.dtype.type, np.integer):
-                    arr = arr.astype(float)
+                arr = common.ensure_float(arr)
                 arr[notmask] = NaN
 
             new_data[col] = arr
@@ -2272,7 +2272,6 @@ def _extract_index(data, index):
         index = Index(index)
 
     return index
-
 
 def _default_index(n):
     if n == 0:

@@ -1149,6 +1149,9 @@ class TestDataFrame(unittest.TestCase):
         assert_series_equal(self.tsframe.xs(d),
                             shiftedFrame.xs(shifted_d))
 
+        # shift int frame
+        int_shifted = self.intframe.shift(1)
+
     def test_apply(self):
         # ufunc
         applied = self.frame.apply(np.sqrt)

@@ -1,3 +1,7 @@
+"""
+Misc tools for implementing data structures
+"""
+
 from cStringIO import StringIO
 
 from numpy.lib.format import read_array, write_array
@@ -100,3 +104,10 @@ def null_out_axis(arr, mask, axis):
         indexer[axis] = mask
 
         arr[tuple(indexer)] = np.NaN
+
+
+def ensure_float(arr):
+    if issubclass(arr.dtype.type, np.integer):
+        arr = arr.astype(float)
+
+    return arr

@@ -818,7 +818,7 @@ class Series(np.ndarray, Picklable, Groupable):
             new_index = Index(new_index)
 
         if len(self.index) == 0:
-            return Series.fromValue(NaN, index=new_index)
+            return Series(NaN, index=new_index)
 
         if method is not None:
             method = method.upper()

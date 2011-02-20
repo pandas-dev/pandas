@@ -1109,26 +1109,29 @@ class DataMatrix(DataFrame):
 
         if offset is None:
             indexer = self._shift_indexer(periods)
-            newValues = self.values.take(indexer, axis=0)
-            newIndex = self.index
+            new_values = self.values.take(indexer, axis=0)
+            new_index = self.index
+
+            new_values = common.ensure_float(new_values)
+
             if periods > 0:
-                newValues[:periods] = NaN
+                new_values[:periods] = NaN
             else:
-                newValues[periods:] = NaN
+                new_values[periods:] = NaN
         else:
-            newIndex = self.index.shift(periods, offset)
-            newValues = self.values.copy()
+            new_index = self.index.shift(periods, offset)
+            new_values = self.values.copy()
 
         if self.objects is not None:
             shifted_objects = self.objects.shift(periods, offset=offset,
                                                  timeRule=timeRule)
 
-            shifted_objects.index = newIndex
+            shifted_objects.index = new_index
         else:
             shifted_objects = None
 
-        return DataMatrix(data=newValues, index=newIndex, columns=self.columns,
-                          objects=shifted_objects)
+        return DataMatrix(data=new_values, index=new_index,
+                          columns=self.columns, objects=shifted_objects)
 
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
