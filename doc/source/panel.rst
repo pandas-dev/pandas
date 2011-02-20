@@ -6,5 +6,5 @@
 WidePanel / LongPanel
 *********************
 
-.. automodule:: pandas.core.panel
-   :members:
+# .. automodule:: pandas.core.panel
+#   :members:

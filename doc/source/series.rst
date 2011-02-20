@@ -119,12 +119,12 @@ the TimeSeries constructor):
     >>> type(ts)
     <class 'pandas.core.series.TimeSeries'>
 
-An alternate constructor, :func:`Series.fromValue`, is also available
-to facilitate creating a Series composed of a single value:
+Series can also be constructed from a single value, though it is necessary in
+this case to pass an index so it knows how long to make the resulting Series.
 
 ::
 
-    >>> Series.fromValue(1, index=labels)
+    >>> Series(1, index=labels)
     a    1
     b    1
     c    1

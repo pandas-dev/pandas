@@ -29,6 +29,10 @@ def sf():
     'push a copy to the sf site'
     os.system('cd build/html; rsync -avz . wesmckinn,pandas@web.sf.net'
               ':/home/groups/p/pa/pandas/htdocs/ -essh --cvs-exclude')
+def sfpdf():
+    'push a copy to the sf site'
+    os.system('cd build/latex; scp pandas.pdf wesmckinn,pandas@web.sf.net'
+              ':/home/groups/p/pa/pandas/htdocs/')
 
 def clean():
     if os.path.exists('build'):
@@ -42,6 +46,25 @@ def html():
     if os.system('sphinx-build -P -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
+
+def latex():
+    check_build()
+    if sys.platform != 'win32':
+        # LaTeX format.
+        if os.system('sphinx-build -b latex -d build/doctrees '
+                     'source build/latex'):
+            raise SystemExit("Building LaTeX failed.")
+        # Produce pdf.
+
+        os.chdir('build/latex')
+
+        # Call the makefile produced by sphinx...
+        if os.system('make'):
+            raise SystemExit("Rendering LaTeX failed.")
+
+        os.chdir('../..')
+    else:
+        print 'latex build has not been tested on windows'
 
 def check_build():
     build_dirs = [
@@ -60,8 +83,10 @@ def all():
 
 funcd = {
     'html'     : html,
+    'latex'    : latex,
     'clean'    : clean,
     'sf'       : sf,
+    'sfpdf'    : sfpdf,
     'all'      : all,
     }
 

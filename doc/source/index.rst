@@ -42,6 +42,8 @@ See the package overview for more detail about what's in the library.
 User manual
 -----------
 
+`PDF Version <pandas.pdf>`__
+
 .. module:: pandas
 
 **Date**: |today|
@@ -50,7 +52,7 @@ User manual
 
 **License:** BSD
 
-**Requirements:** python 2.4 to 2.6, NumPy, and dateutil
+**Requirements:** python 2.4 to 2.7, NumPy, and dateutil
 
 **Code Repository:** http://github.com/wesm/pandas
 
