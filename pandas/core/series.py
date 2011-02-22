@@ -895,7 +895,7 @@ class Series(np.ndarray, Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # Miscellaneous
 
-    def plot(self, label=None, kind='line', rot=30, axes=None, style='-',
+    def plot(self, label=None, kind='line', auto_x = False, rot=30, axes=None, style='-',
              **kwds): # pragma: no cover
         """
         Plot the input series with the index on the x-axis using
@@ -906,6 +906,7 @@ class Series(np.ndarray, Picklable, Groupable):
         label : label argument to provide to plot
         kind : {'line', 'bar', 'hist'}
             Default: line for TimeSeries, hist for Series
+        auto_x : if True, it will use range(len(self)) as x-axis
         kwds : other plotting keyword arguments
 
         Notes
@@ -928,7 +929,13 @@ class Series(np.ndarray, Picklable, Groupable):
             axes = plt.gca()
 
         if kind == 'line':
-            axes.plot(self.index, self.values, style, **kwds)
+            if auto_x:
+                x = range(len(self))
+            else:
+                x = self.index
+                
+            axes.plot(x, self.values, style, **kwds)
+            
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             axes.bar(xinds, self.values, 0.5, bottom=np.zeros(N), linewidth=1)
@@ -943,6 +950,25 @@ class Series(np.ndarray, Picklable, Groupable):
 
         plt.draw_if_interactive()
 
+    def hist(self, **kwds): # pragma: no cover
+        """
+        Draw histogram of the input series using matplotlib / pylab.
+
+        Parameters
+        ----------
+
+        Notes
+        -----
+        See matplotlib documentation online for more on this subject
+
+        Default plot-types: TimeSeries (line), Series (bar)
+
+        Intended to be used in ipython -pylab mode
+        """
+        import matplotlib.pyplot as plt
+
+        plt.hist(self.values)
+        
     def toCSV(self, path):
         """
         Write the Series to a CSV file

@@ -1755,7 +1755,7 @@ class DataFrame(Picklable, Groupable):
 
         return self._constructor(result_series, index=join_index)
 
-    def plot(self, kind='line', **kwds): # pragma: no cover
+    def plot(self, kind='line', auto_x = False, **kwds): # pragma: no cover
         """
         Plot the DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -1764,6 +1764,8 @@ class DataFrame(Picklable, Groupable):
         ----------
         kind : {'line', 'bar', 'hist'}
             Default: line for TimeSeries, hist for Series
+            
+        auto_x : If True, the method will use range(len(self)) as x-axis
 
         kwds : other plotting keyword arguments
 
@@ -1774,8 +1776,27 @@ class DataFrame(Picklable, Groupable):
         """
         from pylab import plot
 
+        if auto_x:
+            x = range(len(self))
+        else:
+            x = self.index
+        
         for col in _try_sort(self.columns):
-            plot(self.index, self[col].values, label=col, **kwds)
+            plot(x, self[col].values, label=col, **kwds)
+
+    def hist(self, **kwds):
+        """
+        Draw Histogram the DataFrame's series using matplotlib / pylab.
+
+        Parameters
+        ----------
+        kwds : other plotting keyword arguments
+
+        """
+        from pylab import hist
+
+        for col in _try_sort(self.columns):
+            hist(self[col].values, label=col, **kwds)
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:

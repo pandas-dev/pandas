@@ -908,7 +908,9 @@ class DataMatrix(DataFrame):
         return _reorder_columns(values, order, columns)
 
     def cols(self):
-        """Return sorted list of frame's columns"""
+        """
+        Return sorted list of frame's columns
+        """
         if self.objects is not None and len(self.objects.columns) > 0:
             return list(self.columns.union(self.objects.columns))
         else:
