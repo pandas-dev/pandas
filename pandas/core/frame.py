@@ -1797,7 +1797,7 @@ class DataFrame(Picklable, Groupable):
         return self._constructor(result_series, index=join_index)
 
     def plot(self, kind='line', subplots=False, sharex=True, sharey=False,
-             **kwds): # pragma: no cover
+             use_index=True, **kwds): # pragma: no cover
         """
         Plot the DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -1823,15 +1823,40 @@ class DataFrame(Picklable, Groupable):
             fig = plt.figure()
             ax = fig.add_subplot(111)
 
+        if use_index:
+            x = self.index
+        else:
+            x = range(len(self))
+
         for i, col in enumerate(_try_sort(self.columns)):
             if subplots:
                 ax = axes[i]
-                ax.plot(self.index, self[col].values, 'k', label=col,
-                        **kwds)
+                ax.plot(x, self[col].values, 'k', label=col, **kwds)
                 ax.legend(loc='best')
             else:
-                ax.plot(self.index, self[col].values, label=col,
-                        **kwds)
+                ax.plot(x, self[col].values, label=col, **kwds)
+
+    def hist(self): # pragma: no cover
+        """
+        Draw Histogram the DataFrame's series using matplotlib / pylab.
+
+        Parameters
+        ----------
+        kwds : other plotting keyword arguments
+
+        """
+        import matplotlib.pyplot as plt
+
+        n = len(self.columns)
+        k = 1
+        while k**2 < n:
+            k += 1
+        _, axes = plt.subplots(nrows=k, ncols=k)
+
+        for i, col in enumerate(_try_sort(self.columns)):
+            ax = axes[i / k][i % k]
+            ax.hist(self[col].values)
+            ax.set_title(col)
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:
