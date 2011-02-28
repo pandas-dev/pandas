@@ -520,8 +520,17 @@ class DataMatrix(DataFrame):
         This is a magic method. Do NOT call explicity.
         """
         if isinstance(item, slice):
-            indexRange = self.index[item]
-            return self.reindex(indexRange)
+            new_index = self.index[item]
+            new_values = self.values[item].copy()
+
+            if self.objects is not None:
+                new_objects = self.objects.reindex(new_index)
+            else:
+                new_objects = None
+
+            return DataMatrix(new_values, index=new_index,
+                              columns=self.columns,
+                              objects=new_objects)
 
         elif isinstance(item, np.ndarray):
             if len(item) != len(self.index):
