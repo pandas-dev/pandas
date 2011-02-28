@@ -567,12 +567,16 @@ class DataFrame(Picklable, Groupable):
     __sub__ = arith_method(operator.sub, '__sub__', default_axis=None)
     __mul__ = arith_method(operator.mul, '__mul__', default_axis=None)
     __div__ = arith_method(operator.div, '__div__', default_axis=None)
+    __truediv__ = arith_method(operator.truediv, '__truediv__',
+                               default_axis=None)
     __pow__ = arith_method(operator.pow, '__pow__', default_axis=None)
 
     __radd__ = arith_method(operator.add, '__radd__', default_axis=None)
     __rmul__ = arith_method(operator.mul, '__rmul__', default_axis=None)
     __rsub__ = arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
     __rdiv__ = arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
+    __rtruediv__ = arith_method(lambda x, y: y / x, '__rtruediv__',
+                                default_axis=None)
     __rpow__ = arith_method(lambda x, y: y ** x, '__rpow__', default_axis=None)
 
     def __neg__(self):

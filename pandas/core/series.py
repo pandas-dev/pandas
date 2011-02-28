@@ -351,6 +351,7 @@ class Series(np.ndarray, Picklable, Groupable):
     __sub__ = _seriesOpWrap('__sub__')
     __mul__ = _seriesOpWrap('__mul__')
     __div__ = _seriesOpWrap('__div__')
+    __truediv__ = _seriesOpWrap('__truediv__')
     __pow__ = _seriesOpWrap('__pow__')
 
     # Inplace operators
