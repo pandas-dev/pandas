@@ -1022,6 +1022,30 @@ class DataFrame(Picklable, Groupable):
 
         return union_index
 
+    def describe(self):
+        """
+        Generate various summary statistics of columns, excluding NaN values
+
+        Returns
+        -------
+        DataFrame
+        """
+        cols = self._get_numeric_columns()
+
+        tmp = self.reindex(columns=cols)
+
+        cols_destat = ['count', 'mean', 'std', 'min', '10%', '50%', '90%', 'max']
+
+        list_destat = [tmp.count(), tmp.mean(), tmp.std(), tmp.min(),
+                  tmp.scoreatpercentile(10), tmp.median(), tmp.scoreatpercentile(90), tmp.max()]
+
+        destats = self._constructor(np.zeros((len(cols), len(cols_destat))), index=cols, columns=cols_destat)
+
+        for i, k in enumerate(list_destat):
+            destats[cols_destat[i]] = k
+
+        return destats
+
     def dropEmptyRows(self, specificColumns=None):
         """
         Return DataFrame with rows omitted containing ALL NaN values
@@ -2096,6 +2120,38 @@ class DataFrame(Picklable, Groupable):
             count = count.reindex(summed.index)
 
         return summed / count
+
+    def scoreatpercentile(self, per=50, axis=0):
+        """
+        Return array or Series of score at the given `per` percentile
+        over requested axis.
+
+        Parameters
+        ----------
+        per : percentile
+
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        from scipy.stats import scoreatpercentile
+
+        def f(arr, per):
+            if arr.dtype != np.float_:
+                arr = arr.astype(float)
+            return scoreatpercentile(arr[notnull(arr)], per)
+
+        if axis == 0:
+            scoreatper = [f(self[col].values, per) for col in self.columns]
+            return Series(scoreatper, index=self.columns)
+        elif axis == 1:
+            scoreatper = [f(self.xs(k).values, per) for k in self.index]
+            return Series(scoreatper, index=self.index)
+        else:
+            raise Exception('Must have 0<= axis <= 1')
 
     def median(self, axis=0):
         """
