@@ -861,9 +861,11 @@ class TestSeries(unittest.TestCase):
         transformed = grouped.transform(lambda x: x * x.sum())
         self.assertEqual(transformed[7], 12)
 
-        # corner cases
-        self.assertRaises(Exception, grouped.transform,
-                          lambda x: x.mean())
+        transformed = grouped.transform(np.mean)
+        for name, group in grouped:
+            mean = group.mean()
+            for idx in group.index:
+                self.assertEqual(transformed[idx], mean)
 
 if __name__ == '__main__':
     unittest.main()

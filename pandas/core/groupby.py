@@ -1,8 +1,12 @@
+import numpy as np
+
 from cStringIO import StringIO
 
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
 from pandas.core.series import Series
+from pandas.core.panel import WidePanel
+import pandas.core.common as common
 import pandas.lib.tseries as tseries
 
 class GroupDict(dict):
@@ -117,6 +121,18 @@ class GroupBy(object):
     def transform(self, func):
         raise NotImplementedError
 
+    def mean(self):
+        """
+        Compute mean of groups, excluding missing values
+        """
+        return self.aggregate(np.mean)
+
+    def sum(self):
+        """
+        Compute sum of values, excluding missing values
+        """
+        return self.aggregate(np.sum)
+
     def __getitem__(self, key):
         return self.getGroup(self.groups[key])
 
@@ -218,21 +234,17 @@ class SeriesGroupBy(GroupBy):
         -------
         Series standardized by each unique value of mapping
         """
+        result = self.obj.copy()
 
-        result = {}
-        for val, subseries in self:
-            subseries.groupName = val
-            result[val] = applyfunc(subseries)
+        for name, group in self:
+            # XXX
+            group.groupName = name
+            res = applyfunc(group)
 
-        if not isinstance(result.values()[0], Series):
-            raise Exception('Given applyfunc did not return a Series from '
-                            ' the subseries as expected!')
+            indexer, _ = common.get_indexer(self.obj.index, group.index, None)
+            np.put(result, indexer, res)
 
-        allSeries = {}
-        for val, subseries in result.iteritems():
-            allSeries.update(subseries.iteritems())
-
-        return Series(allSeries)
+        return result
 
 class DataFrameGroupBy(GroupBy):
     _klass = DataFrame
@@ -293,10 +305,10 @@ class DataFrameGroupBy(GroupBy):
         else:
             return self.obj.reindex(columns=groupList)
 
-    def transform(self, applyfunc):
+    def transform(self, func):
         """
         For given DataFrame, group index by given mapper function or dict, take
-        the sub-DataFrame (reindex) for this group and call apply(applyfunc)
+        the sub-DataFrame (reindex) for this group and call apply(func)
         on this sub-DataFrame. Return a DataFrame of the results for each
         key.
 
@@ -309,7 +321,7 @@ class DataFrameGroupBy(GroupBy):
         mapper : function, dict-like, or string
             Mapping or mapping function. If string given, must be a column
             name in the frame
-        applyfunc : function
+        func : function
             Function to apply to each subframe
 
         Note
@@ -319,23 +331,101 @@ class DataFrameGroupBy(GroupBy):
 
         Example
         --------
-        df.fgroupby(lambda x: mapping[x],
-                    lambda x: (x - x.apply(mean)) / x.apply(std))
-
-            DataFrame standardized by each unique value of mapping
+        >>> grouped = df.groupby(lambda x: mapping[x])
+        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
         """
-        result = {}
+        # DataMatrix objects?
+        result_values = np.empty_like(self.obj.values)
+
+        if self.axis == 1:
+            result_values = result_values.T
+
+        # result = {}
         for val, group in self.groups.iteritems():
-            subframe = self.obj.reindex(list(group))
+            if not isinstance(group, list):
+                group = list(group)
+
+            if self.axis == 0:
+                indexer, _ = common.get_indexer(self.obj.index,
+                                                subframe.index, None)
+            else:
+                indexer, _ = common.get_indexer(self.obj.columns,
+                                                subframe.columns, None)
+
+            subframe = self.obj.reindex(group)
             subframe.groupName = val
-            result[val] = applyfunc(subframe).T
 
-        allSeries = {}
-        for val, frame in result.iteritems():
-            allSeries.update(frame._series)
+            try:
+                res = func(subframe)
+            except Exception:
+                res = subframe.apply(func, axis=self.axis)
 
-        return self._klass(data=allSeries).T
+            result_values[indexer] = res
+
+            # result[val] = res
+
+        if self.axis == 1:
+            result_values = result_values.T
+
+        return DataFrame(result_values, index=self.obj.index,
+                         columns=self.obj.columns)
+        # allSeries = {}
+        # for val, frame in result.iteritems():
+        #     allSeries.update(frame._series)
+
+        # return self._klass(data=allSeries).T
 
 
 class DataMatrixGroupBy(DataFrameGroupBy):
     _klass = DataMatrix
+
+
+class WidePanelGroupBy(GroupBy):
+
+    def __init__(self, obj, grouper, axis=0):
+        self.axis = axis
+
+        if axis not in (0, 1, 2): # pragma: no cover
+            raise ValueError('invalid axis')
+
+        GroupBy.__init__(self, obj, grouper)
+
+    @property
+    def _group_axis(self):
+        return self.obj._get_axis(self.axis)
+
+    def aggregate(self, func):
+        """
+        For given DataFrame, group index by given mapper function or dict, take
+        the sub-DataFrame (reindex) for this group and call apply(func)
+        on this sub-DataFrame. Return a DataFrame of the results for each
+        key.
+
+        Parameters
+        ----------
+        mapper : function, dict-like, or string
+            Mapping or mapping function. If string given, must be a column
+            name in the frame
+        func : function
+            Function to use for aggregating groups
+
+        N.B.: func must produce one value from a Series, otherwise
+        an error will occur.
+
+        Optional: provide set mapping as dictionary
+        """
+        axis_name = self.obj._get_axis_name(self.axis)
+        getter = lambda p, group: p.reindex(**{axis_name : group})
+        result_d = self._aggregate_generic(getter, func,
+                                           axis=self.axis)
+
+        result = WidePanel.fromDict(result_d, intersect=False)
+
+        if self.axis > 0:
+            result = result.swapaxes(0, self.axis)
+
+        return result
+
+class LongPanelGroupBy(GroupBy):
+    pass
+

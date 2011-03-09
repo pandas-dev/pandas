@@ -1204,6 +1204,13 @@ class TestDataFrame(unittest.TestCase):
         self.assertEqual(len(transformed), 30)
         self.assertEqual(len(transformed.cols()), 4)
 
+        # transform propagate
+        transformed = grouped.transform(lambda x: x.mean())
+        for name, group in grouped:
+            mean = group.mean()
+            for idx in group.index:
+                self.assertEqual(transformed[idx], mean)
+
         # iterate
         for weekday, group in grouped:
             self.assert_(group.index[0].weekday() == weekday)

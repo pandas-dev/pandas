@@ -9,11 +9,10 @@ import warnings
 
 import numpy as np
 
-from pandas.core.groupby import GroupBy
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 from pandas.core.matrix import DataMatrix
-from pandas.core.mixins import Picklable
+from pandas.core.mixins import Picklable, Groupable
 import pandas.core.common as common
 import pandas.lib.tseries as tseries
 
@@ -156,7 +155,7 @@ _WIDE_AXIS_NUMBERS = {
 _WIDE_AXIS_NAMES = dict((v, k) for k, v in _WIDE_AXIS_NUMBERS.iteritems())
 
 
-class WidePanel(Panel):
+class WidePanel(Panel, Groupable):
     """
     Represents wide format panel data, stored as 3-dimensional array
 
@@ -578,6 +577,8 @@ class WidePanel(Panel):
 
     def groupby(self, function, axis='major'):
         """
+        Group data on given axis, returning GroupBy object
+
         Parameters
         ----------
         function : callable
@@ -586,8 +587,9 @@ class WidePanel(Panel):
 
         Returns
         -------
-        WidePanelGroupBy
+        grouped : WidePanelGroupBy
         """
+        from pandas.core.groupby import WidePanelGroupBy
         axis = self._get_axis_number(axis)
         return WidePanelGroupBy(self, function, axis=axis)
 
@@ -2008,55 +2010,3 @@ def _slow_pivot(index, columns, values):
 
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
-
-#-------------------------------------------------------------------------------
-# GroupBy
-
-class WidePanelGroupBy(GroupBy):
-
-    def __init__(self, obj, grouper, axis=0):
-        self.axis = axis
-
-        if axis not in (0, 1, 2): # pragma: no cover
-            raise ValueError('invalid axis')
-
-        GroupBy.__init__(self, obj, grouper)
-
-    @property
-    def _group_axis(self):
-        return self.obj._get_axis(self.axis)
-
-    def aggregate(self, applyfunc):
-        """
-        For given DataFrame, group index by given mapper function or dict, take
-        the sub-DataFrame (reindex) for this group and call apply(applyfunc)
-        on this sub-DataFrame. Return a DataFrame of the results for each
-        key.
-
-        Parameters
-        ----------
-        mapper : function, dict-like, or string
-            Mapping or mapping function. If string given, must be a column
-            name in the frame
-        applyfunc : function
-            Function to use for aggregating groups
-
-        N.B.: applyfunc must produce one value from a Series, otherwise
-        an error will occur.
-
-        Optional: provide set mapping as dictionary
-        """
-        axis_name = self.obj._get_axis_name(self.axis)
-        getter = lambda p, group: p.reindex(**{axis_name : group})
-        result_d = self._aggregate_generic(getter, applyfunc,
-                                           axis=self.axis)
-
-        result = WidePanel.fromDict(result_d, intersect=False)
-
-        if self.axis > 0:
-            result = result.swapaxes(0, self.axis)
-
-        return result
-
-class LongPanelGroupBy(GroupBy):
-    pass

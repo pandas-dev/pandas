@@ -1461,7 +1461,7 @@ class DataFrame(Picklable, Groupable):
 
         return indexer
 
-    def apply(self, func, axis=0):
+    def apply(self, func, axis=0, broadcast=False):
         """
         Applies func to columns (Series) of this DataFrame and returns either
         a DataFrame (if the function produces another series) or a Series
@@ -1473,6 +1473,9 @@ class DataFrame(Picklable, Groupable):
         func : function
             Function to apply to each column
         axis : {0, 1}
+        broadcast : bool, default False
+            For aggregation functions, return object of same size with values
+            propagated
 
         Examples
         --------
@@ -1486,6 +1489,12 @@ class DataFrame(Picklable, Groupable):
         if not len(self.cols()):
             return self
 
+        if not broadcast:
+            return self._apply_standard(func, axis)
+        else:
+            return self._apply_broadcast(func, axis)
+
+    def _apply_standard(self, func, axis):
         if axis == 0:
             target = self
             agg_index = self.cols()
@@ -1507,6 +1516,27 @@ class DataFrame(Picklable, Groupable):
             return result
         else:
             return Series(results, index=agg_index)
+
+    def _apply_broadcast(self, func, axis):
+        if axis == 0:
+            target = self
+            agg_index = self.cols()
+        elif axis == 1:
+            target = self.T
+            agg_index = self.index
+
+        result_values = np.empty_like(target.values)
+        columns = target.cols()
+        for i, col in enumerate(columns):
+            result_values[:, i] = func(target[col])
+
+        result = self._constructor(result_values, index=target.index,
+                                   columns=target.columns)
+
+        if axis == 1:
+            result = result.T
+
+        return result
 
     def tapply(self, func):
         """

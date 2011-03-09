@@ -41,6 +41,5 @@ class Groupable(object):
         -------
         GroupBy object
         """
-
         from pandas.core.groupby import groupby
         return groupby(self, mapper)
