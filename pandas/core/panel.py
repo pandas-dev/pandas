@@ -572,8 +572,19 @@ class WidePanel(Panel, Groupable):
         mat = np.array(self.values[:, :, loc].T)
         return DataMatrix(mat, index=self.major_axis, columns=self.items)
 
-    getMinorXS = minor_xs
-    getMajorXS = major_xs
+    def getMinorXS(self, key): # pragma: no cover
+        warnings.warn("getMinorXS has been replaced by the minor_xs function "
+                      "please modify your code accordingly",
+                      FutureWarning)
+
+        return self.minor_xs(key)
+
+    def getMajorXS(self, key): # pragma: no cover
+        warnings.warn("getMajorXS has been replaced by the major_xs function "
+                      "please modify your code accordingly",
+                      FutureWarning)
+
+        return self.major_xs(key)
 
     def groupby(self, function, axis='major'):
         """
