@@ -1209,7 +1209,7 @@ class TestDataFrame(unittest.TestCase):
         for name, group in grouped:
             mean = group.mean()
             for idx in group.index:
-                self.assertEqual(transformed[idx], mean)
+                assert_almost_equal(transformed.xs(idx), mean)
 
         # iterate
         for weekday, group in grouped:

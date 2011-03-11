@@ -345,6 +345,9 @@ class DataFrameGroupBy(GroupBy):
             if not isinstance(group, list):
                 group = list(group)
 
+            subframe = self.obj.reindex(group)
+            subframe.groupName = val
+
             if self.axis == 0:
                 indexer, _ = common.get_indexer(self.obj.index,
                                                 subframe.index, None)
@@ -352,15 +355,12 @@ class DataFrameGroupBy(GroupBy):
                 indexer, _ = common.get_indexer(self.obj.columns,
                                                 subframe.columns, None)
 
-            subframe = self.obj.reindex(group)
-            subframe.groupName = val
-
             try:
                 res = func(subframe)
             except Exception:
                 res = subframe.apply(func, axis=self.axis)
 
-            result_values[indexer] = res
+            result_values[indexer] = res.values
 
             # result[val] = res
 

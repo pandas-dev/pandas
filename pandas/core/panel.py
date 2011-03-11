@@ -317,11 +317,10 @@ class WidePanel(Panel, Groupable):
         if isinstance(value, DataFrame):
             value = value.reindex(index=self.major_axis,
                                   columns=self.minor_axis)
-
-            mat = value.values.reshape((1, N, K))
+            mat = value.values
 
         elif np.isscalar(value):
-            mat = np.empty((1, N, K), dtype=float)
+            mat = np.empty((N, K), dtype=float)
             mat.fill(value)
 
         if key in self.items:
@@ -329,7 +328,7 @@ class WidePanel(Panel, Groupable):
             self.values[loc] = mat
         else:
             self.items = Index(list(self.items) + [key])
-
+            mat = mat.reshape((1, N, K))
             # Insert item at end of items for now
             self.values = np.row_stack((self.values, mat))
 
