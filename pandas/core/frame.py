@@ -738,13 +738,18 @@ class DataFrame(Picklable, Groupable):
         for idx in self.index:
             if index:
                 f.write(str(idx))
-            for col in cols:
+            for i, col in enumerate(cols):
                 val = series[col].get(idx)
                 if isnull(val):
                     val = nanRep
                 else:
                     val = str(val)
-                f.write(',%s' % val)
+
+                if i > 0 or index:
+                    f.write(',%s' % val)
+                else:
+                    f.write('%s' % val)
+
             f.write('\n')
 
         f.close()

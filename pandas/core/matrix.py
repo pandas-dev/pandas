@@ -791,7 +791,7 @@ class DataMatrix(DataFrame):
 #-------------------------------------------------------------------------------
 # Public methods
 
-    def apply(self, func, axis=0):
+    def apply(self, func, axis=0, broadcast=False):
         """
         Applies func to columns (Series) of this DataMatrix and returns either
         a DataMatrix (if the function produces another series) or a Series
@@ -802,6 +802,9 @@ class DataMatrix(DataFrame):
         ----------
         func : function
             Function to apply to each column
+        broadcast : bool, default False
+            For aggregation functions, return object of same size with values
+            propagated
 
         Examples
         --------
@@ -819,7 +822,8 @@ class DataMatrix(DataFrame):
             return DataMatrix(data=results, index=self.index,
                               columns=self.columns, objects=self.objects)
         else:
-            return DataFrame.apply(self, func, axis=axis)
+            return DataFrame.apply(self, func, axis=axis,
+                                   broadcast=broadcast)
 
     def applymap(self, func):
         """

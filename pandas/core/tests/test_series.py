@@ -825,6 +825,10 @@ class TestSeries(unittest.TestCase):
         self.assertEqual(agged[1], 1)
 
         assert_series_equal(agged, grouped.agg(np.mean)) # shorthand
+        assert_series_equal(agged, grouped.mean())
+
+        assert_series_equal(grouped.agg(np.sum), grouped.sum())
+
 
         transformed = grouped.transform(lambda x: x * x.sum())
         self.assertEqual(transformed[7], 12)
@@ -866,6 +870,7 @@ class TestSeries(unittest.TestCase):
             mean = group.mean()
             for idx in group.index:
                 self.assertEqual(transformed[idx], mean)
+
 
 if __name__ == '__main__':
     unittest.main()

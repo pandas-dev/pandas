@@ -337,44 +337,38 @@ class DataFrameGroupBy(GroupBy):
         # DataMatrix objects?
         result_values = np.empty_like(self.obj.values)
 
-        if self.axis == 1:
-            result_values = result_values.T
+        if self.axis == 0:
+            trans = lambda x: x
+        elif self.axis == 1:
+            trans = lambda x: x.T
 
-        # result = {}
+        result_values = trans(result_values)
+
         for val, group in self.groups.iteritems():
-            if not isinstance(group, list):
+            if not isinstance(group, list): # pragma: no cover
                 group = list(group)
 
-            subframe = self.obj.reindex(group)
-            subframe.groupName = val
-
             if self.axis == 0:
+                subframe = self.obj.reindex(group)
                 indexer, _ = common.get_indexer(self.obj.index,
                                                 subframe.index, None)
             else:
+                subframe = self.obj.reindex(columns=group)
                 indexer, _ = common.get_indexer(self.obj.columns,
                                                 subframe.columns, None)
+            subframe.groupName = val
 
             try:
-                res = func(subframe)
-            except Exception:
                 res = subframe.apply(func, axis=self.axis)
+            except Exception: # pragma: no cover
+                res = func(subframe)
 
-            result_values[indexer] = res.values
+            result_values[indexer] = trans(res.values)
 
-            # result[val] = res
-
-        if self.axis == 1:
-            result_values = result_values.T
+        result_values = trans(result_values)
 
         return DataFrame(result_values, index=self.obj.index,
                          columns=self.obj.columns)
-        # allSeries = {}
-        # for val, frame in result.iteritems():
-        #     allSeries.update(frame._series)
-
-        # return self._klass(data=allSeries).T
-
 
 class DataMatrixGroupBy(DataFrameGroupBy):
     _klass = DataMatrix

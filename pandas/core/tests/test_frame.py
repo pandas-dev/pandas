@@ -696,6 +696,12 @@ class TestDataFrame(unittest.TestCase):
         recons = self.klass.fromcsv(path, index_col=None)
         assert(len(recons.cols()) == len(self.tsframe.cols()) + 1)
 
+
+        # no index
+        self.tsframe.toCSV(path, index=False)
+        recons = self.klass.fromcsv(path, index_col=None)
+        assert_almost_equal(self.tsframe.values, recons.values)
+
         os.remove(path)
 
     def test_toDataMatrix(self):
@@ -1173,6 +1179,19 @@ class TestDataFrame(unittest.TestCase):
         applied = self.empty.apply(np.mean)
         self.assert_(not applied)
 
+
+    def test_apply_broadcast(self):
+        broadcasted = self.frame.apply(np.mean, broadcast=True)
+        agged = self.frame.apply(np.mean)
+
+        for col, ts in broadcasted.iteritems():
+            self.assert_((ts == agged[col]).all())
+
+        broadcasted = self.frame.apply(np.mean, axis=1, broadcast=True)
+        agged = self.frame.apply(np.mean, axis=1)
+        for idx in broadcasted.index:
+            self.assert_((broadcasted.xs(idx) == agged[idx]).all())
+
     def test_tapply(self):
         d = self.frame.index[0]
         tapplied = self.frame.tapply(np.mean)
@@ -1233,6 +1252,11 @@ class TestDataFrame(unittest.TestCase):
         aggregated = grouped.aggregate(np.mean)
         self.assertEqual(len(aggregated), len(self.tsframe))
         self.assertEqual(len(aggregated.cols()), 2)
+
+        # transform
+        tf = lambda x: x - x.mean()
+        groupedT = self.tsframe.T.groupby(mapping, axis=0)
+        assert_frame_equal(groupedT.transform(tf).T, grouped.transform(tf))
 
         # iterate
         for k, v in grouped:
