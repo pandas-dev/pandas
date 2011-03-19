@@ -1649,11 +1649,21 @@ class TestDataFrame(unittest.TestCase):
 
         self._check_statistic(self.frame, 'skew', f)
 
+    def test_quantile(self):
+        try:
+            from scipy.stats import scoreatpercentile
+        except ImportError:
+            return
+
+        q = self.tsframe.quantile(0.1, axis=0)
+        self.assertEqual(q['A'], scoreatpercentile(self.tsframe['A'], 10))
+        q = self.tsframe.quantile(0.9, axis=1)
+        q = self.intframe.quantile(0.1)
+        self.assertEqual(q['A'], scoreatpercentile(self.intframe['A'], 10))
+
     def test_cumsum(self):
         cumsum = self.tsframe.cumsum()
-
         assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fillna(0)))
-
         df = self.klass({'A' : np.arange(20)}, index=np.arange(20))
 
         # works
@@ -1672,6 +1682,11 @@ class TestDataFrame(unittest.TestCase):
         # fix issue
         cumprod_xs = self.tsframe.cumprod(axis=1)
         self.assertEqual(np.shape(cumprod_xs), np.shape(self.tsframe))
+
+    def test_describe(self):
+        desc = self.tsframe.describe()
+        desc = self.mixed_frame.describe()
+        desc = self.frame.describe()
 
 if __name__ == '__main__':
     unittest.main()
