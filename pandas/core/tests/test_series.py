@@ -258,6 +258,19 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.isnan(Series([1.], index=[1]).var()))
         self.assert_(np.isnan(Series([1.], index=[1]).skew()))
 
+    def test_quantile(self):
+        from scipy.stats import scoreatpercentile
+
+        q = self.ts.quantile(0.1)
+        self.assertEqual(q, scoreatpercentile(self.ts.valid(), 10))
+
+        q = self.ts.quantile(0.9)
+        self.assertEqual(q, scoreatpercentile(self.ts.valid(), 90))
+
+    def test_describe(self):
+        _ = self.series.describe()
+        _ = self.ts.describe()
+
     def test_append(self):
         appendedSeries = self.series.append(self.ts)
         for idx, value in appendedSeries.iteritems():

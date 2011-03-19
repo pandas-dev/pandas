@@ -2154,8 +2154,8 @@ class DataFrame(Picklable, Groupable):
 
     def quantile(self, q=0.5, axis=0):
         """
-        Return array or Series of score at the given `per` percentile
-        over requested axis.
+        Return array or Series of values at the given quantile over requested
+        axis.
 
         Parameters
         ----------

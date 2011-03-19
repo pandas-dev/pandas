@@ -386,6 +386,39 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         return self._ndarray_statistic('mean')
 
+    def quantile(self, q=0.5):
+        """
+        Return value at the given quantile
+
+        Parameters
+        ----------
+        q : quantile
+            0 <= q <= 1
+
+        Returns
+        -------
+        q : float
+        """
+        from scipy.stats import scoreatpercentile
+        return scoreatpercentile(self.valid().values, q * 100)
+
+    def describe(self):
+        """
+        Generate various summary statistics of columns, excluding NaN values
+
+        Returns
+        -------
+        DataFrame
+        """
+        names = ['count', 'mean', 'std', 'min',
+                 '10%', '50%', '90%', 'max']
+
+        data = [self.count(), self.mean(), self.std(), self.min(),
+                self.quantile(.1), self.median(), self.quantile(.9),
+                self.max()]
+
+        return Series(data, index=names)
+
     def _ndarray_statistic(self, funcname):
         arr = self.values
         retVal = getattr(arr, funcname)()
