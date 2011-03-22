@@ -758,7 +758,7 @@ class DataFrame(Picklable, Groupable):
         from pandas.core.matrix import DataMatrix
         return DataMatrix(self._series, index=self.index)
 
-    def toString(self, buffer=sys.stdout, columns=None, colSpace=15,
+    def toString(self, buffer=sys.stdout, columns=None, colSpace=None,
                  nanRep='NaN', formatters=None, float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
@@ -770,6 +770,18 @@ class DataFrame(Picklable, Groupable):
         formatters = formatters or {}
         ident = lambda x: x
 
+        if colSpace is None:
+            colSpace = {}
+
+            for c in columns:
+                if np.issctype(self[c].dtype):
+                    colSpace[c] = max(len(str(c)) + 4, 12)
+                else:
+                    # hack
+                    colSpace[c] = 15
+        else:
+            colSpace = dict((k, 15) for k in columns)
+
         if len(columns) == 0 or len(self.index) == 0:
             print >> buffer, 'Empty DataFrame'
             print >> buffer, repr(self.index)
@@ -778,16 +790,17 @@ class DataFrame(Picklable, Groupable):
             head = _pfixed('', idxSpace)
 
             for h in columns:
-                head += _pfixed(h, colSpace)
+                head += _pfixed(h, colSpace[h])
 
             print >> buffer, head
 
             for idx in self.index:
-                ot = _pfixed(idx, idxSpace)
+
+                ot = _pfixed(idx, idxSpace - 1)
                 for k in columns:
                     formatter = formatters.get(k, ident)
                     ot += _pfixed(formatter(series[k][idx]),
-                                  colSpace, nanRep=nanRep,
+                                  colSpace[k], nanRep=nanRep,
                                   float_format=float_format)
                 print >> buffer, ot
 

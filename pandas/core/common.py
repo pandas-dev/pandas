@@ -81,11 +81,13 @@ def _pfixed(s, space, nanRep=None, float_format=None):
         if float_format:
             formatted = float_format(s)
         else:
-            formatted = '%.4g' % s
+            is_pos = s >= 0
+            formatted = '%.4g' % np.abs(s)
 
-            if formatted[0] != '-':
+            if is_pos:
                 formatted = ' ' + formatted
-
+            else:
+                formatted = '-' + formatted
         return formatted.ljust(space)
     else:
         return ('%s' % s)[:space].ljust(space)

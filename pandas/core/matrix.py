@@ -704,7 +704,7 @@ class DataMatrix(DataFrame):
 #-------------------------------------------------------------------------------
 # Outputting
 
-    def toString(self, buffer=sys.stdout, columns=None, colSpace=15,
+    def toString(self, buffer=sys.stdout, columns=None, colSpace=None,
                  nanRep='NaN', formatters=None, float_format=None):
         """
         Output a string version of this DataMatrix
@@ -727,20 +727,32 @@ class DataMatrix(DataFrame):
 
         idxSpace = max([len(str(idx)) for idx in self.index]) + 4
 
+        if colSpace is None:
+            colSpace = {}
+
+            for c in columns:
+                if np.issctype(self[c].dtype):
+                    colSpace[c] = max(len(str(c)) + 4, 12)
+                else:
+                    # hack
+                    colSpace[c] = 15
+        else:
+            colSpace = dict((k, 15) for k in columns)
+
         if len(self.cols()) == 0:
             buffer.write('DataMatrix is empty!\n')
             buffer.write(repr(self.index))
         else:
             buffer.write(_pf('', idxSpace))
             for h in columns:
-                buffer.write(_pf(h, colSpace))
+                buffer.write(_pf(h, colSpace[h]))
             buffer.write('\n')
 
             for i, idx in enumerate(self.index):
-                buffer.write(_pf(idx, idxSpace))
+                buffer.write(_pf(idx, idxSpace - 1))
                 for j, col in enumerate(columns):
                     formatter = formatters.get(col, ident)
-                    buffer.write(_pf(formatter(values[i, j]), colSpace,
+                    buffer.write(_pf(formatter(values[i, j]), colSpace[col],
                                      float_format=float_format,
                                      nanRep=nanRep))
                 buffer.write('\n')
