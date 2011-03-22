@@ -83,6 +83,9 @@ def _pfixed(s, space, nanRep=None, float_format=None):
         else:
             formatted = '%.4g' % s
 
+            if formatted[0] != '-':
+                formatted = ' ' + formatted
+
         return formatted.ljust(space)
     else:
         return ('%s' % s)[:space].ljust(space)
