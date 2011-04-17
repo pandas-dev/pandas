@@ -235,22 +235,26 @@ cdef class SparseVector:
         self.vbuf = <float64_t*> self.values.data
 
     def __repr__(self):
-        pass
+        # just for devel...
+        output = 'sparse.SparseVector\n'
+        output += 'Values: %s\n' % repr(self.values)
+        output += '%s\n' % repr(self.index)
+        return output
 
     cpdef reindex(self):
         pass
 
     cpdef add(self, SparseVector other):
-        cdef double_func op = __add
+        return self._combine(other, __add)
 
     cpdef sub(self, SparseVector other):
-        pass
+        return self._combine(other, __sub)
 
     cpdef mul(self, SparseVector other):
-        pass
+        return self._combine(other, __mul)
 
     cpdef div(self, SparseVector other):
-        pass
+        return self._combine(other, __div)
 
     cdef ndarray _combine(self, SparseVector other, double_func op):
         cdef SparseIndex out_index = self.index.intersect(other.index)
