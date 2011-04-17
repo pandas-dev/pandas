@@ -38,9 +38,11 @@ ctypedef float64_t (* double_func)(float64_t a, float64_t b)
 #-------------------------------------------------------------------------------
 
 cdef class SparseIndex:
-    pass
 
-cdef class DenseIndex(SparseIndex):
+    def __init__(self):
+        raise NotImplementedError
+
+cdef class IntIndex(SparseIndex):
 
     cdef readonly:
         pyst length, npoints
@@ -53,21 +55,46 @@ cdef class DenseIndex(SparseIndex):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
 
+        self.npoints = len(self.indices)
+
         self.indp = <int32_t*> self.indices.data
 
     def __repr__(self):
-        output = 'sparse.DenseIndex\n'
+        output = 'sparse.IntIndex\n'
         output += 'Indices: %s\n' % repr(self.indices)
         return output
 
-    def to_dense(self):
+    def to_int(self):
         return self
 
     def to_block(self):
         pass
 
-    cpdef intersect(self, SparseIndex):
-        pass
+    cpdef intersect(self, SparseIndex y_):
+        cdef:
+            pyst i, xi, yi = 0
+            int32_t xind
+            list new_list = []
+            IntIndex y
+
+        if not isinstance(y_, IntIndex):
+            y_ = y_.to_int()
+
+        y = y_
+
+        for xi from 0 <= xi < self.npoints:
+            xind = self.indp[xi]
+
+            while yi < y.npoints and y.indp[yi] < xind:
+                yi += 1
+
+            if yi >= y.npoints:
+                break
+
+            if y.indp[yi] == xind:
+                new_list.append(xind)
+
+        return IntIndex(self.length, new_list)
 
 #-------------------------------------------------------------------------------
 # BlockIndex
@@ -145,7 +172,7 @@ cdef class BlockIndex(SparseIndex):
     def to_block(self):
         return self
 
-    def to_dense(self):
+    def to_int(self):
         cdef:
             pyst i = 0, j, b
             int32_t offset
@@ -160,7 +187,7 @@ cdef class BlockIndex(SparseIndex):
                 indices[i] = offset + j
                 i += 1
 
-        return DenseIndex(self.length, indices)
+        return IntIndex(self.length, indices)
 
     cpdef BlockIndex intersect(self, BlockIndex other):
         return block_intersect(self, other)
@@ -255,6 +282,7 @@ cdef class SparseVector:
 
     def __init__(self, ndarray values, SparseIndex index, fill_value=None):
         self.values = np.ascontiguousarray(values, dtype=np.float64)
+        self.index = index
         self.vbuf = <float64_t*> self.values.data
 
         self.length = len(values)
@@ -298,7 +326,7 @@ cdef class SparseVector:
     cdef SparseVector _combine_vector(self, SparseVector other, double_func op):
         if isinstance(self.index, BlockIndex):
             return block_op(self, other, op)
-        elif isinstance(self.index, DenseIndex):
+        elif isinstance(self.index, IntIndex):
             return dense_op(self, other, op)
 
 # faster to convert everything to dense?
@@ -307,7 +335,7 @@ cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
     cdef:
         BlockIndex xindex, yindex, out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
-        int xbp, ybp, obp # block positions
+        int xbp = 0, ybp = 0, obp = 0 # block positions
         pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
 
         SparseVector out
@@ -327,18 +355,18 @@ cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
         # I have a feeling this is inefficient
 
         # walk x
-        while xindex.locp[xblock] + xbp < out_index.locp[outblock] + obp:
+        while xindex.locbuf[xblock] + xbp < out_index.locbuf[outblock] + obp:
             xbp += 1
             xi += 1
-            if xbp == xindex.lenp[xblock]:
+            if xbp == xindex.lenbuf[xblock]:
                 xblock += 1
                 xbp = 0
 
         # walk y
-        while yindex.locp[yblock] + ybp < out_index.locp[outblock] + obp:
+        while yindex.locbuf[yblock] + ybp < out_index.locbuf[outblock] + obp:
             ybp += 1
             yi += 1
-            if ybp == yindex.lenp[yblock]:
+            if ybp == yindex.lenbuf[yblock]:
                 yblock += 1
                 ybp = 0
 
@@ -349,34 +377,34 @@ cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
         yi += 1
 
         xbp += 1
-        if xbp == xindex.lenp[xblock]:
+        if xbp == xindex.lenbuf[xblock]:
             xblock += 1
             xbp = 0
 
         ybp += 1
-        if ybp == yindex.lenp[yblock]:
+        if ybp == yindex.lenbuf[yblock]:
             yblock += 1
             ybp = 0
 
         obp += 1
-        if obp == out_index.lenp[oblock]:
-            oblock += 1
+        if obp == out_index.lenbuf[outblock]:
+            outblock += 1
             obp = 0
 
     return out
 
 cdef SparseVector dense_op(SparseVector x, SparseVector y, double_func op):
     cdef:
-        DenseIndex xindex, yindex, out_index
+        IntIndex xindex, yindex, out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
 
         SparseVector out
 
-    xindex = x.index.to_dense()
-    yindex = y.index.to_dense()
+    xindex = x.index.to_int()
+    yindex = y.index.to_int()
 
     # need to do this first to know size of result array
-    out_index = x.index.intersect(y.index).to_dense()
+    out_index = x.index.intersect(y.index).to_int()
     outarr = np.empty(out_index.npoints, dtype=np.float64)
     out = SparseVector(outarr, out_index)
 
