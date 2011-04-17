@@ -138,11 +138,10 @@ class TestSparseVector(TestCase):
 
     def _arith_op_tests(self, op):
 
-        def _check_case_dict(case, expected):
-            _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'],
-                        expected)
+        def _check_case_dict(case):
+            _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'])
 
-        def _check_case(xloc, xlen, yloc, ylen, expected):
+        def _check_case(xloc, xlen, yloc, ylen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
 
@@ -167,7 +166,15 @@ class TestSparseVector(TestCase):
             series_result = op(xseries, yseries).valid()
             assert_equal(result_block.values, series_result.values)
 
-        _check_case_dict(plain_case, [])
+        _check_case_dict(plain_case)
+        _check_case_dict(delete_blocks)
+        _check_case_dict(split_blocks)
+        _check_case_dict(skip_block)
+        _check_case_dict(no_intersect)
+
+        # one or both is empty
+        _check_case([0], [5], [], [])
+        _check_case([], [], [], [])
 
 # too cute? oh but how I abhor code duplication
 

@@ -280,7 +280,7 @@ cdef class SparseVector:
     cdef:
         float64_t* vbuf
 
-    def __init__(self, ndarray values, SparseIndex index, fill_value=None):
+    def __init__(self, ndarray values, SparseIndex index, fill_value=np.NaN):
         self.values = np.ascontiguousarray(values, dtype=np.float64)
         self.index = index
         self.vbuf = <float64_t*> self.values.data
@@ -293,6 +293,15 @@ cdef class SparseVector:
         output = 'sparse.SparseVector\n'
         output += 'Values: %s\n' % repr(self.values)
         output += '%s\n' % repr(self.index)
+        return output
+
+    def to_ndarray(self):
+        output = np.empty(self.index.length, dtype=np.float64)
+        dense_index = self.index.to_dense()
+
+        output.fill(self.fill_value)
+        output.put(dense_index.indices, self.values)
+
         return output
 
     cpdef reindex(self):
