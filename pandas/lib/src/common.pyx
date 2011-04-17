@@ -150,3 +150,25 @@ def isAllDates2(ndarray[object, ndim=1] arr):
             return False
 
     return True
+
+cdef double __add(double a, double b):
+    return a + b
+cdef double __sub(double a, double b):
+    return a - b
+cdef double __div(double a, double b):
+    return a / b
+cdef double __mul(double a, double b):
+    return a * b
+cdef double __eq(double a, double b):
+    return a == b
+cdef double __ne(double a, double b):
+    return a != b
+cdef double __lt(double a, double b):
+    return a < b
+cdef double __gt(double a, double b):
+    return a > b
+cdef double __pow(double a, double b):
+    return a ** b
+
+ctypedef double (* double_func)(double a, double b)
+

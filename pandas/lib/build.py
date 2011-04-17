@@ -8,8 +8,11 @@ from Cython.Distutils import build_ext
 pyx_ext = Extension('tseries', ['src/tseries.pyx'],
                     include_dirs=[numpy.get_include()])
 
+sparse_ext = Extension('sparse', ['src/sparse.pyx'],
+                       include_dirs=[numpy.get_include()])
+
 setup(name='pandas.lib.tseries', description='Nothing',
-      ext_modules=[pyx_ext],
+      ext_modules=[pyx_ext, sparse_ext],
       cmdclass = {
           'build_ext' : build_ext
       })
