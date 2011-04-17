@@ -43,28 +43,34 @@ cdef class SparseIndex:
 cdef class DenseIndex(SparseIndex):
 
     cdef readonly:
-        pyst length
+        pyst length, npoints
         ndarray indices
 
     cdef:
-        int32_t* indbuf
+        int32_t* indp
 
     def __init__(self, pyst length, indices):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
 
-        self.indbuf = <int32_t*> self.indices.data
+        self.indp = <int32_t*> self.indices.data
 
     def __repr__(self):
         output = 'sparse.DenseIndex\n'
         output += 'Indices: %s\n' % repr(self.indices)
         return output
 
+    def to_dense(self):
+        return self
+
     def to_block(self):
         pass
 
     cpdef intersect(self, SparseIndex):
         pass
+
+#-------------------------------------------------------------------------------
+# BlockIndex
 
 cdef class BlockIndex(SparseIndex):
     '''
@@ -136,6 +142,9 @@ cdef class BlockIndex(SparseIndex):
             if self.blengths[i] == 0:
                 raise ValueError('Zero-length block %d' % i)
 
+    def to_block(self):
+        return self
+
     def to_dense(self):
         cdef:
             pyst i = 0, j, b
@@ -154,85 +163,102 @@ cdef class BlockIndex(SparseIndex):
         return DenseIndex(self.length, indices)
 
     cpdef BlockIndex intersect(self, BlockIndex other):
-        cdef:
-            pyst out_length
-            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
+        return block_intersect(self, other)
 
-            list out_blocs = []
-            list out_blengths = []
+cdef BlockIndex block_intersect(BlockIndex x, BlockIndex y):
+    cdef:
+        pyst out_length
+        ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
 
-        # unwise? should enforce same length?
-        out_length = int_max(self.length, other.length)
+        list out_blocs = []
+        list out_blengths = []
 
-        xloc = self.blocs
-        xlen = self.blengths
-        yloc = other.blocs
-        ylen = other.blengths
+        pyst xi = 0, yi = 0
+        int32_t cur_loc, cur_length, xend, yend, diff
 
-        cdef pyst xi = 0, yi = 0
-        cdef int32_t cur_loc, cur_length, xend, yend, diff
-        while True:
-            # we are done (or possibly never began)
-            if xi >= self.nblocks or yi >= other.nblocks:
-                break
+    # unwise? should enforce same length?
+    out_length = int_max(x.length, y.length)
 
-            # completely symmetric...would like to avoid code dup but oh well
-            if xloc[xi] >= yloc[yi]:
-                cur_loc = xloc[xi]
-                diff = xloc[xi] - yloc[yi]
+    xloc = x.blocs
+    xlen = x.blengths
+    yloc = y.blocs
+    ylen = y.blengths
 
-                if ylen[yi] - diff <= 0:
-                    # have to skip this block
-                    yi += 1
-                    continue
+    while True:
+        # we are done (or possibly never began)
+        if xi >= x.nblocks or yi >= y.nblocks:
+            break
 
-                if ylen[yi] - diff < xlen[xi]:
-                    # take end of y block, move onward
-                    cur_length = ylen[yi] - diff
-                    yi += 1
-                else:
-                    # take end of x block
-                    cur_length = xlen[xi]
-                    xi += 1
+        # completely symmetric...would like to avoid code dup but oh well
+        if xloc[xi] >= yloc[yi]:
+            cur_loc = xloc[xi]
+            diff = xloc[xi] - yloc[yi]
 
-            else: # xloc[xi] < yloc[yi]
-                cur_loc = yloc[yi]
-                diff = yloc[yi] - xloc[xi]
+            if ylen[yi] - diff <= 0:
+                # have to skip this block
+                yi += 1
+                continue
 
-                if xlen[xi] - diff <= 0:
-                    # have to skip this block
-                    xi += 1
-                    continue
+            if ylen[yi] - diff < xlen[xi]:
+                # take end of y block, move onward
+                cur_length = ylen[yi] - diff
+                yi += 1
+            else:
+                # take end of x block
+                cur_length = xlen[xi]
+                xi += 1
 
-                if xlen[xi] - diff < ylen[yi]:
-                    # take end of x block, move onward
-                    cur_length = xlen[xi] - diff
-                    xi += 1
-                else:
-                    # take end of y block
-                    cur_length = ylen[yi]
-                    yi += 1
+        else: # xloc[xi] < yloc[yi]
+            cur_loc = yloc[yi]
+            diff = yloc[yi] - xloc[xi]
 
-            out_blocs.append(cur_loc)
-            out_blengths.append(cur_length)
+            if xlen[xi] - diff <= 0:
+                # have to skip this block
+                xi += 1
+                continue
 
-        return BlockIndex(self.length, out_blocs, out_blengths)
+            if xlen[xi] - diff < ylen[yi]:
+                # take end of x block, move onward
+                cur_length = xlen[xi] - diff
+                xi += 1
+            else:
+                # take end of y block
+                cur_length = ylen[yi]
+                yi += 1
+
+        out_blocs.append(cur_loc)
+        out_blengths.append(cur_length)
+
+    return BlockIndex(x.length, out_blocs, out_blengths)
+
+#-------------------------------------------------------------------------------
+# SparseVector
 
 cdef class SparseVector:
     '''
     Data structure for storing sparse representation of floating point data
+
+    Parameters
+    ----------
     '''
 
-    cdef public:
+    cdef readonly:
+        pyst length
         ndarray values
+
+    cdef public:
         SparseIndex index
+        object fill_value
 
     cdef:
         float64_t* vbuf
 
-    def __init__(self, ndarray values, SparseIndex index):
+    def __init__(self, ndarray values, SparseIndex index, fill_value=None):
         self.values = np.ascontiguousarray(values, dtype=np.float64)
         self.vbuf = <float64_t*> self.values.data
+
+        self.length = len(values)
+        self.fill_value = fill_value
 
     def __repr__(self):
         # just for devel...
@@ -244,31 +270,131 @@ cdef class SparseVector:
     cpdef reindex(self):
         pass
 
-    cpdef add(self, SparseVector other):
-        return self._combine(other, __add)
+    def __add__(self, other):
+        return self.add(other)
+    def __sub__(self, other):
+        return self.sub(other)
+    def __mul__(self, other):
+        return self.mul(other)
+    def __div__(self, other):
+        return self.div(other)
 
-    cpdef sub(self, SparseVector other):
-        return self._combine(other, __sub)
+    cpdef add(self, other):
+        return self._combine_vector(other, __add)
 
-    cpdef mul(self, SparseVector other):
-        return self._combine(other, __mul)
+    cpdef sub(self, other):
+        return self._combine_vector(other, __sub)
 
-    cpdef div(self, SparseVector other):
-        return self._combine(other, __div)
+    cpdef mul(self, other):
+        return self._combine_vector(other, __mul)
 
-    cdef ndarray _combine(self, SparseVector other, double_func op):
-        cdef SparseIndex out_index = self.index.intersect(other.index)
-        cdef ndarray out = np.empty(out_index.npoints, dtype=np.float64)
+    cpdef div(self, other):
+        return self._combine_vector(other, __div)
 
-        if isinstance(out_index, BlockIndex):
-            block_op(self.vbuf, other.vbuf, <float64_t*> out.data,
-                     op, self.index, other.index)
-        elif isinstance(out_index, DenseIndex):
-            pass
+    cdef SparseVector _combine_scalar(self, float64_t other, object op):
+        new_values = op(self.values, other)
+        return SparseVector(new_values, self.index)
 
-        return SparseVector(out, out_index)
+    cdef SparseVector _combine_vector(self, SparseVector other, double_func op):
+        if isinstance(self.index, BlockIndex):
+            return block_op(self, other, op)
+        elif isinstance(self.index, DenseIndex):
+            return dense_op(self, other, op)
 
-cdef block_op(float64_t* xbuf, float64_t* ybuf, float64_t* out,
-              double_func op,
-              BlockIndex xindex, BlockIndex yindex) except -1:
-    pass
+# faster to convert everything to dense?
+
+cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
+    cdef:
+        BlockIndex xindex, yindex, out_index
+        int xi = 0, yi = 0, out_i = 0 # fp buf indices
+        int xbp, ybp, obp # block positions
+        pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
+
+        SparseVector out
+
+    xindex = x.index.to_block()
+    yindex = y.index.to_block()
+
+    # need to do this first to know size of result array
+    out_index = x.index.intersect(y.index).to_block()
+
+    outarr = np.empty(out_index.npoints, dtype=np.float64)
+    out = SparseVector(outarr, out_index)
+
+    # walk the two SparseVectors, adding matched locations...
+    for out_i from 0 <= out_i < out.length:
+
+        # I have a feeling this is inefficient
+
+        # walk x
+        while xindex.locp[xblock] + xbp < out_index.locp[outblock] + obp:
+            xbp += 1
+            xi += 1
+            if xbp == xindex.lenp[xblock]:
+                xblock += 1
+                xbp = 0
+
+        # walk y
+        while yindex.locp[yblock] + ybp < out_index.locp[outblock] + obp:
+            ybp += 1
+            yi += 1
+            if ybp == yindex.lenp[yblock]:
+                yblock += 1
+                ybp = 0
+
+        out.vbuf[out_i] = op(x.vbuf[xi], y.vbuf[yi])
+
+        # advance. strikes me as too complicated
+        xi += 1
+        yi += 1
+
+        xbp += 1
+        if xbp == xindex.lenp[xblock]:
+            xblock += 1
+            xbp = 0
+
+        ybp += 1
+        if ybp == yindex.lenp[yblock]:
+            yblock += 1
+            ybp = 0
+
+        obp += 1
+        if obp == out_index.lenp[oblock]:
+            oblock += 1
+            obp = 0
+
+    return out
+
+cdef SparseVector dense_op(SparseVector x, SparseVector y, double_func op):
+    cdef:
+        DenseIndex xindex, yindex, out_index
+        int xi = 0, yi = 0, out_i = 0 # fp buf indices
+
+        SparseVector out
+
+    xindex = x.index.to_dense()
+    yindex = y.index.to_dense()
+
+    # need to do this first to know size of result array
+    out_index = x.index.intersect(y.index).to_dense()
+    outarr = np.empty(out_index.npoints, dtype=np.float64)
+    out = SparseVector(outarr, out_index)
+
+    # walk the two SparseVectors, adding matched locations...
+    for out_i from 0 <= out_i < out.length:
+
+        # walk x
+        while xindex.indp[xi] < out_index.indp[out_i]:
+            xi += 1
+
+        # walk y
+        while yindex.indp[yi] < out_index.indp[out_i]:
+            yi += 1
+
+        out.vbuf[out_i] = op(x.vbuf[xi], y.vbuf[yi])
+
+        # advance
+        xi += 1
+        yi += 1
+
+    return out
