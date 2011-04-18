@@ -64,11 +64,46 @@ cdef class IntIndex(SparseIndex):
         output += 'Indices: %s\n' % repr(self.indices)
         return output
 
-    def to_int(self):
+    def equals(self, other):
+        if not isinstance(other, IntIndex):
+            raise Exception('Can only compare with like object')
+
+        same_length = self.length == other.length
+        same_indices = np.array_equal(self.indices, other.indices)
+        return same_length and same_indices
+
+    def to_int_index(self):
         return self
 
-    def to_block(self):
-        pass
+    def to_block_index(self):
+        cdef:
+            pyst i
+            int32_t block, length = 1, cur, prev
+            list locs = [], lens = []
+
+        # just handle the special empty case separately
+        if self.npoints == 0:
+            return BlockIndex(self.length, [], [])
+
+        # TODO: two-pass algorithm faster?
+        prev = block = self.indp[0]
+        for i from 1 <= i < self.npoints:
+            cur = self.indp[i]
+            if cur - prev > 1:
+                # new block
+                locs.append(block)
+                lens.append(length)
+                block = cur
+                length = 1
+            else:
+                # same block, increment length
+                length += 1
+
+            prev = cur
+
+        locs.append(block)
+        lens.append(length)
+        return BlockIndex(self.length, locs, lens)
 
     cpdef intersect(self, SparseIndex y_):
         cdef:
@@ -77,10 +112,8 @@ cdef class IntIndex(SparseIndex):
             list new_list = []
             IntIndex y
 
-        if not isinstance(y_, IntIndex):
-            y_ = y_.to_int()
-
-        y = y_
+        # if is one already, returns self
+        y = y_.to_int_index()
 
         for xi from 0 <= xi < self.npoints:
             xind = self.indp[xi]
@@ -91,6 +124,7 @@ cdef class IntIndex(SparseIndex):
             if yi >= y.npoints:
                 break
 
+            # TODO: would a two-pass algorithm be faster?
             if y.indp[yi] == xind:
                 new_list.append(xind)
 
@@ -169,10 +203,19 @@ cdef class BlockIndex(SparseIndex):
             if self.blengths[i] == 0:
                 raise ValueError('Zero-length block %d' % i)
 
-    def to_block(self):
+    def equals(self, other):
+        if not isinstance(other, BlockIndex):
+            raise Exception('Can only compare with like object')
+
+        same_length = self.length == other.length
+        same_blocks = (np.array_equal(self.blocs, other.blocs) and
+                       np.array_equal(self.blengths, other.blengths))
+        return same_length and same_blocks
+
+    def to_block_index(self):
         return self
 
-    def to_int(self):
+    def to_int_index(self):
         cdef:
             pyst i = 0, j, b
             int32_t offset
@@ -295,6 +338,9 @@ cdef class SparseVector:
         output += '%s\n' % repr(self.index)
         return output
 
+    def copy(self):
+        return SparseVector(self.values.copy(), self.index)
+
     def to_ndarray(self):
         output = np.empty(self.index.length, dtype=np.float64)
         dense_index = self.index.to_dense()
@@ -349,11 +395,11 @@ cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
 
         SparseVector out
 
-    xindex = x.index.to_block()
-    yindex = y.index.to_block()
+    xindex = x.index.to_block_index()
+    yindex = y.index.to_block_index()
 
     # need to do this first to know size of result array
-    out_index = x.index.intersect(y.index).to_block()
+    out_index = x.index.intersect(y.index).to_block_index()
 
     outarr = np.empty(out_index.npoints, dtype=np.float64)
     out = SparseVector(outarr, out_index)
@@ -409,11 +455,11 @@ cdef SparseVector dense_op(SparseVector x, SparseVector y, double_func op):
 
         SparseVector out
 
-    xindex = x.index.to_int()
-    yindex = y.index.to_int()
+    xindex = x.index.to_int_index()
+    yindex = y.index.to_int_index()
 
     # need to do this first to know size of result array
-    out_index = x.index.intersect(y.index).to_int()
+    out_index = x.index.intersect(y.index).to_int_index()
     outarr = np.empty(out_index.npoints, dtype=np.float64)
     out = SparseVector(outarr, out_index)
 

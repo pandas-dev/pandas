@@ -91,20 +91,42 @@ class TestBlockIndex(TestCase):
         _check_case([0], [5], [], [], [], [])
         _check_case([], [], [], [], [], [])
 
-    def test_to_int(self):
+    def test_to_int_index(self):
         locs = [0, 10]
         lengths = [4, 6]
         exp_inds = [0, 1, 2, 3, 10, 11, 12, 13, 14, 15]
 
         block = BlockIndex(20, locs, lengths)
-        dense = block.to_int()
+        dense = block.to_int_index()
 
         assert_equal(dense.indices, exp_inds)
 
 class TestIntIndex(TestCase):
 
-    def test_to_block(self):
-        pass
+    def test_to_block_index(self):
+        def _check_case_dict(case):
+            _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'])
+
+        def _check_case(xloc, xlen, yloc, ylen):
+            xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
+            yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+
+            # see if survive the round trip
+            xbindex = xindex.to_int_index().to_block_index()
+            ybindex = yindex.to_int_index().to_block_index()
+            self.assert_(isinstance(xbindex, BlockIndex))
+            self.assert_(xbindex.equals(xindex))
+            self.assert_(ybindex.equals(yindex))
+
+        _check_case_dict(plain_case)
+        _check_case_dict(delete_blocks)
+        _check_case_dict(split_blocks)
+        _check_case_dict(skip_block)
+        _check_case_dict(no_intersect)
+
+        # one or both is empty
+        _check_case([0], [5], [], [])
+        _check_case([], [], [], [])
 
     def test_intersect(self):
 
@@ -113,10 +135,9 @@ class TestIntIndex(TestCase):
                         case['eloc'], case['elen'])
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
-            xindex = BlockIndex(TEST_LENGTH, xloc, xlen).to_int()
-            yindex = BlockIndex(TEST_LENGTH, yloc, ylen).to_int()
-
-            expected = BlockIndex(TEST_LENGTH, eloc, elen).to_int()
+            xindex = BlockIndex(TEST_LENGTH, xloc, xlen).to_int_index()
+            yindex = BlockIndex(TEST_LENGTH, yloc, ylen).to_int_index()
+            expected = BlockIndex(TEST_LENGTH, eloc, elen).to_int_index()
 
             result = xindex.intersect(yindex)
             self.assert_(isinstance(result, IntIndex))
@@ -145,8 +166,8 @@ class TestSparseVector(TestCase):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
 
-            xdindex = xindex.to_int()
-            ydindex = yindex.to_int()
+            xdindex = xindex.to_int_index()
+            ydindex = yindex.to_int_index()
 
             xvals = np.arange(xindex.npoints) * 10 + 1
             yvals = np.arange(yindex.npoints) * 100 + 1
