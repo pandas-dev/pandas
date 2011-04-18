@@ -4,6 +4,7 @@ cimport numpy as np
 cimport cython
 
 import numpy as np
+import operator
 import sys
 
 ctypedef Py_ssize_t pyst
@@ -363,16 +364,22 @@ cdef class SparseVector:
         return self.div(other)
 
     cpdef add(self, other):
-        return self._combine_vector(other, __add)
+        return self._combine(other, operator.add, __add)
 
     cpdef sub(self, other):
-        return self._combine_vector(other, __sub)
+        return self._combine(other, operator.sub, __sub)
 
     cpdef mul(self, other):
-        return self._combine_vector(other, __mul)
+        return self._combine(other, operator.mul, __mul)
 
     cpdef div(self, other):
-        return self._combine_vector(other, __div)
+        return self._combine(other, operator.div, __div)
+
+    cdef _combine(self, object other, object op, double_func cop):
+        if isinstance(other, SparseVector):
+            return self._combine_vector(other, cop)
+        elif np.isscalar(other):
+            return self._combine_scalar(other, op)
 
     cdef SparseVector _combine_scalar(self, float64_t other, object op):
         new_values = op(self.values, other)

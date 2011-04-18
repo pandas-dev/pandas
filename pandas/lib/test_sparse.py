@@ -44,10 +44,28 @@ no_intersect = dict(xloc = [0, 10],
                     eloc = [],
                     elen = [])
 
+def check_cases(_check_case):
+    def _check_case_dict(case):
+        _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'],
+                    case['eloc'], case['elen'])
+
+    _check_case_dict(plain_case)
+    _check_case_dict(delete_blocks)
+    _check_case_dict(split_blocks)
+    _check_case_dict(skip_block)
+    _check_case_dict(no_intersect)
+
+    # one or both is empty
+    _check_case([0], [5], [], [], [], [])
+    _check_case([], [], [], [], [], [])
+
 class TestBlockIndex(TestCase):
 
-    def setUp(self):
-        pass
+    def test_equals(self):
+        index = BlockIndex(10, [0, 4], [2, 5])
+
+        self.assert_(index.equals(index))
+        self.assert_(not index.equals(BlockIndex(10, [0, 4], [2, 6])))
 
     def test_check_integrity(self):
         locs = []
@@ -66,11 +84,6 @@ class TestBlockIndex(TestCase):
         self.assertRaises(Exception, BlockIndex, 10, [2, 5], [5, 3])
 
     def test_intersect(self):
-
-        def _check_case_dict(case):
-            _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'],
-                        case['eloc'], case['elen'])
-
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
@@ -81,15 +94,7 @@ class TestBlockIndex(TestCase):
             assert_equal(result.blocs, eloc)
             assert_equal(result.blengths, elen)
 
-        _check_case_dict(plain_case)
-        _check_case_dict(delete_blocks)
-        _check_case_dict(split_blocks)
-        _check_case_dict(skip_block)
-        _check_case_dict(no_intersect)
-
-        # one or both is empty
-        _check_case([0], [5], [], [], [], [])
-        _check_case([], [], [], [], [], [])
+        check_cases(_check_case)
 
     def test_to_int_index(self):
         locs = [0, 10]
@@ -101,13 +106,19 @@ class TestBlockIndex(TestCase):
 
         assert_equal(dense.indices, exp_inds)
 
+    def test_to_block_index(self):
+        index = BlockIndex(10, [0, 5], [4, 5])
+        self.assert_(index.to_block_index() is index)
+
 class TestIntIndex(TestCase):
 
-    def test_to_block_index(self):
-        def _check_case_dict(case):
-            _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'])
+    def test_equals(self):
+        index = IntIndex(10, [0, 1, 2, 3, 4])
+        self.assert_(index.equals(index))
+        self.assert_(not index.equals(IntIndex(10, [0, 1, 2, 3])))
 
-        def _check_case(xloc, xlen, yloc, ylen):
+    def test_to_block_index(self):
+        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
 
@@ -118,21 +129,13 @@ class TestIntIndex(TestCase):
             self.assert_(xbindex.equals(xindex))
             self.assert_(ybindex.equals(yindex))
 
-        _check_case_dict(plain_case)
-        _check_case_dict(delete_blocks)
-        _check_case_dict(split_blocks)
-        _check_case_dict(skip_block)
-        _check_case_dict(no_intersect)
+        check_cases(_check_case)
 
-        # one or both is empty
-        _check_case([0], [5], [], [])
-        _check_case([], [], [], [])
+    def test_to_int_index(self):
+        index = IntIndex(10, [2, 3, 4, 5, 6])
+        self.assert_(index.to_int_index() is index)
 
     def test_intersect(self):
-
-        def _check_case_dict(case):
-            _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'],
-                        case['eloc'], case['elen'])
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen).to_int_index()
@@ -144,25 +147,12 @@ class TestIntIndex(TestCase):
 
             assert_equal(result.indices, expected.indices)
 
-        _check_case_dict(plain_case)
-        _check_case_dict(delete_blocks)
-        _check_case_dict(split_blocks)
-        _check_case_dict(skip_block)
-        _check_case_dict(no_intersect)
-
-        # one or both is empty
-        _check_case([0], [5], [], [], [], [])
-        _check_case([], [], [], [], [], [])
-
+        check_cases(_check_case)
 
 class TestSparseVector(TestCase):
 
     def _arith_op_tests(self, op):
-
-        def _check_case_dict(case):
-            _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'])
-
-        def _check_case(xloc, xlen, yloc, ylen):
+        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
 
@@ -187,15 +177,7 @@ class TestSparseVector(TestCase):
             series_result = op(xseries, yseries).valid()
             assert_equal(result_block.values, series_result.values)
 
-        _check_case_dict(plain_case)
-        _check_case_dict(delete_blocks)
-        _check_case_dict(split_blocks)
-        _check_case_dict(skip_block)
-        _check_case_dict(no_intersect)
-
-        # one or both is empty
-        _check_case([0], [5], [], [])
-        _check_case([], [], [], [])
+        check_cases(_check_case)
 
 # too cute? oh but how I abhor code duplication
 
