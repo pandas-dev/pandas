@@ -77,38 +77,8 @@ cdef class IntIndex(SparseIndex):
         return self
 
     def to_block_index(self):
-        cdef:
-            pyst i
-            int32_t block, length = 1, cur, prev
-            list locs = [], lens = []
-
-        # just handle the special empty case separately
-        if self.npoints == 0:
-            return BlockIndex(self.length, [], [])
-
-        # TODO: two-pass algorithm faster?
-        prev = block = self.indp[0]
-        for i from 1 <= i < self.npoints:
-            cur = self.indp[i]
-            if cur - prev > 1:
-                # new block
-                locs.append(block)
-                lens.append(length)
-                block = cur
-                length = 1
-            else:
-                # same block, increment length
-                length += 1
-
-            prev = cur
-
-        locs.append(block)
-        lens.append(length)
+        locs, lens = get_blocks(self.indices)
         return BlockIndex(self.length, locs, lens)
-
-    # def to_block_index(self):
-    #     locs, lens = get_blocks(self.indices)
-    #     return BlockIndex(self.length, locs, lens)
 
     cpdef intersect(self, SparseIndex y_):
         cdef:
@@ -204,7 +174,7 @@ cdef class BlockIndex(SparseIndex):
     def __repr__(self):
         output = 'sparse.BlockIndex\n'
         output += 'Block locations: %s\n' % repr(self.blocs)
-        output += 'Block lengths: %s\n' % repr(self.blengths)
+        output += 'Block lengths: %s' % repr(self.blengths)
 
         return output
 
@@ -374,7 +344,7 @@ cdef class SparseVector:
         # just for devel...
         output = 'sparse.SparseVector\n'
         output += 'Values: %s\n' % repr(self.values)
-        output += '%s\n' % repr(self.index)
+        output += 'Index: %s' % repr(self.index)
         return output
 
     def copy(self):
@@ -382,12 +352,15 @@ cdef class SparseVector:
 
     def to_ndarray(self):
         output = np.empty(self.index.length, dtype=np.float64)
-        dense_index = self.index.to_dense()
+        dense_index = self.index.to_int_index()
 
         output.fill(self.fill_value)
         output.put(dense_index.indices, self.values)
 
         return output
+
+    def slice(self, start, end):
+        pass
 
     cpdef reindex(self):
         pass

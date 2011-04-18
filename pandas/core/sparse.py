@@ -9,19 +9,42 @@ from pandas.core.frame import DataFrame
 from pandas.lib.sparse import BlockIndex, IntIndex, SparseVector
 import pandas.lib.sparse as splib
 
-def make_sparse(series, kind='block', sparse_value=np.NaN):
+def make_sparse(arr, kind='block', sparse_value=np.NaN):
     """
+    Convert ndarray to SparseVector
 
+    Parameters
+    ----------
+    arr : ndarray
     kind : {'block', 'integer'}
+    sparse_value : NaN or another value
+
+    Returns
+    -------
+    vector : SparseVector
     """
-    assert(isinstance(series, Series))
+    if isinstance(arr, Series):
+        arr = arr.values
+
+    length = len(arr)
+
+    if np.isnan(sparse_value):
+        mask = -np.isnan(arr)
+    else:
+        mask = arr != sparse_value
+
+    indices = np.arange(length, dtype=np.int32)[mask]
 
     if kind == 'block':
-        pass
+        locs, lens = splib.get_blocks(indices)
+        index = BlockIndex(length, locs, lens)
     elif kind == 'integer':
-        pass
+        index = IntIndex(length, indices)
     else:
         raise ValueError('must be block or integer type')
+
+    sparsified_values = arr[mask]
+    return SparseVector(sparsified_values, index)
 
 class SparseSeries(Series):
     """
@@ -31,6 +54,8 @@ class SparseSeries(Series):
     ----------
 
     """
+    _vector = None
+    _sparse_value = None
 
     def __new__(cls, data, index=None, copy=False, kind='block',
                 sparse_value=np.NaN):
@@ -44,6 +69,8 @@ class SparseSeries(Series):
             if index is None:
                 index = data.index
 
+            data = make_sparse(data.values, kind=kind)
+        elif isinstance(data, np.ndarray):
             data = make_sparse(data, kind=kind)
 
         if index is None:
@@ -60,48 +87,18 @@ class SparseSeries(Series):
         if issubclass(subarr.dtype.type, basestring):
             subarr = np.array(data, dtype=object, copy=copy)
 
-        if subarr.index._allDates:
+        if index._allDates:
             cls = SparseTimeSeries
 
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)
-        subarr.index = index
         subarr._vector = data
         subarr._sparse_value = sparse_value
+        subarr.index = index
         return subarr
-
-    def __hash__(self):
-        raise TypeError('unhashable type')
-
-    def __setslice__(self, i, j, value):
-        """Set slice equal to given value(s)"""
-        ndarray.__setslice__(self, i, j, value)
-
-    def __repr__(self):
-        """Clean string representation of a Series"""
-        vals = self.values
-        index = self.index
-
-        if len(index) > 500:
-            head = _seriesRepr(index[:50], vals[:50])
-            tail = _seriesRepr(index[-50:], vals[-50:])
-            return head + '\n...\n' + tail + '\nlength: %d' % len(vals)
-        elif len(index) > 0:
-            return _seriesRepr(index, vals)
-        else:
-            return '%s' % ndarray.__repr__(self)
-
-    def __contains__(self, key):
-        return key in self.index
 
     def __len__(self):
         return self._vector.length
-
-    def __str__(self):
-        return repr(self)
-
-    def __iter__(self):
-        return iter(self.values)
 
     def __array_finalize__(self, obj):
         """
@@ -112,69 +109,13 @@ class SparseSeries(Series):
         self._vector = getattr(obj, '_vector', None)
         self._sparse_value = getattr(obj, '_sparse_value', None)
 
-    def toDict(self):
-        return dict(self.iteritems())
+    def astype(self, dtype):
+        # HACK
+        return self.copy()
 
-    @classmethod
-    def fromValue(cls, value=np.NaN, index=None, dtype=None): # pragma: no cover
-        warnings.warn("'fromValue', can call Series(value, index=index) now",
-                      FutureWarning)
-
-        return Series(value, index=index, dtype=dtype)
-
-    def __getitem__(self, key):
-        """
-        Returns item(s) for requested index/sequence, overrides default behavior
-        for series[key].
-
-        Logic is as follows:
-            - If key is in the index, return the value corresponding
-              to that index
-            - Otherwise, use key (presumably one integer or a sequence
-              of integers) to obtain values from the series. In the case
-              of a sequence, a 'slice' of the series (with corresponding dates)
-              will be returned, otherwise a single value.
-        """
-        values = self.values
-
-        try:
-            # Check that we can even look for this in the index
-            return values[self.index.indexMap[key]]
-        except KeyError:
-            if isinstance(key, (int, np.integer)):
-                return values[key]
-            raise Exception('Requested index not in this series!')
-        except TypeError:
-            # Could not hash item
-            pass
-
-        # is there a case where this would NOT be an ndarray?
-        # need to find an example, I took out the case for now
-
-        dataSlice = values[key]
-        indices = Index(self.index.view(ndarray)[key])
-        return Series(dataSlice, index=indices)
-
-    def get(self, key, default=None):
-        """
-        Returns value occupying requested index, default to specified
-        missing value if not present
-
-        Parameters
-        ----------
-        key : object
-            Index value looking for
-        default : object, optional
-            Value to return if key not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        if key in self.index:
-            return ndarray.__getitem__(self, self.index.indexMap[key])
-        else:
-            return default
+    def copy(self):
+        vec_copy = self._vector.copy()
+        return SparseSeries(vec_copy, index=self.index)
 
     @property
     def values(self):
@@ -185,10 +126,6 @@ class SparseSeries(Series):
         Convert SparseSeries to (dense) Series
         """
         return Series(self.values, index=self.index)
-
-    def copy(self):
-        vec_copy = self._vector.copy()
-        return SparseSeries(vec_copy, index=self.index)
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass
