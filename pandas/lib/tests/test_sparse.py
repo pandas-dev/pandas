@@ -7,8 +7,8 @@ import numpy as np
 import operator
 from numpy.testing import assert_almost_equal, assert_equal
 
-from sparse import IntIndex, BlockIndex, SparseVector
-import sparse
+from pandas.lib.sparse import IntIndex, BlockIndex, SparseVector
+import pandas.lib.sparse as sparse
 
 TEST_LENGTH = 20
 

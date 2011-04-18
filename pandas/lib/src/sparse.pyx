@@ -106,6 +106,10 @@ cdef class IntIndex(SparseIndex):
         lens.append(length)
         return BlockIndex(self.length, locs, lens)
 
+    # def to_block_index(self):
+    #     locs, lens = get_blocks(self.indices)
+    #     return BlockIndex(self.length, locs, lens)
+
     cpdef intersect(self, SparseIndex y_):
         cdef:
             pyst i, xi, yi = 0
@@ -130,6 +134,39 @@ cdef class IntIndex(SparseIndex):
                 new_list.append(xind)
 
         return IntIndex(self.length, new_list)
+
+
+cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
+    cdef:
+        pyst i, npoints
+        int32_t block, length = 1, cur, prev
+        list locs = [], lens = []
+
+    npoints = len(indices)
+
+    # just handle the special empty case separately
+    if npoints == 0:
+        return [], []
+
+    # TODO: two-pass algorithm faster?
+    prev = block = indices[0]
+    for i from 1 <= i < npoints:
+        cur = indices[i]
+        if cur - prev > 1:
+            # new block
+            locs.append(block)
+            lens.append(length)
+            block = cur
+            length = 1
+        else:
+            # same block, increment length
+            length += 1
+
+        prev = cur
+
+    locs.append(block)
+    lens.append(length)
+    return locs, lens
 
 #-------------------------------------------------------------------------------
 # BlockIndex
@@ -329,7 +366,7 @@ cdef class SparseVector:
         self.index = index
         self.vbuf = <float64_t*> self.values.data
 
-        self.length = len(values)
+        self.length = index.length
         self.fill_value = fill_value
 
     def __repr__(self):
