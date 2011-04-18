@@ -351,7 +351,7 @@ cdef class SparseVector:
     '''
 
     cdef readonly:
-        pyst length
+        pyst length, npoints
         ndarray values
 
     cdef public:
@@ -366,6 +366,7 @@ cdef class SparseVector:
         self.index = index
         self.vbuf = <float64_t*> self.values.data
 
+        self.npoints= index.npoints
         self.length = index.length
         self.fill_value = fill_value
 
@@ -449,7 +450,7 @@ cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
     out = SparseVector(outarr, out_index)
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out.length:
+    for out_i from 0 <= out_i < out.npoints:
 
         # I have a feeling this is inefficient
 
@@ -508,7 +509,7 @@ cdef SparseVector dense_op(SparseVector x, SparseVector y, double_func op):
     out = SparseVector(outarr, out_index)
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out.length:
+    for out_i from 0 <= out_i < out.npoints:
 
         # walk x
         while xindex.indp[xi] < out_index.indp[out_i]:
