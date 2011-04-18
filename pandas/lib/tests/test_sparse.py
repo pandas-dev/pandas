@@ -7,8 +7,8 @@ import numpy as np
 import operator
 from numpy.testing import assert_almost_equal, assert_equal
 
-from pandas.lib.sparse import IntIndex, BlockIndex, SparseVector
-import pandas.lib.sparse as sparse
+from pandas.lib.sparse import IntIndex, BlockIndex
+import pandas.lib.sparse as sparselib
 
 TEST_LENGTH = 20
 
@@ -16,38 +16,38 @@ plain_case = dict(xloc = [0, 7, 15],
                   xlen = [3, 5, 5],
                   yloc = [2, 9, 14],
                   ylen = [2, 3, 5],
-                  eloc = [2, 9, 15],
-                  elen = [1, 3, 4])
+                  intersect_loc = [2, 9, 15],
+                  intersect_len = [1, 3, 4])
 delete_blocks = dict(xloc = [0, 5],
                      xlen = [4, 4],
                      yloc = [1],
                      ylen = [4],
-                     eloc = [1],
-                     elen = [3])
+                     intersect_loc = [1],
+                     intersect_len = [3])
 split_blocks = dict(xloc = [0],
                     xlen = [10],
                     yloc = [0, 5],
                     ylen = [3, 7],
-                    eloc = [0, 5],
-                    elen = [3, 5])
+                    intersect_loc = [0, 5],
+                    intersect_len = [3, 5])
 skip_block = dict(xloc = [10],
                   xlen = [5],
                   yloc = [0, 12],
                   ylen = [5, 3],
-                  eloc = [12],
-                  elen = [3])
+                  intersect_loc = [12],
+                  intersect_len = [3])
 
 no_intersect = dict(xloc = [0, 10],
                     xlen = [4, 6],
                     yloc = [5, 17],
                     ylen = [4, 2],
-                    eloc = [],
-                    elen = [])
+                    intersect_loc = [],
+                    intersect_len = [])
 
 def check_cases(_check_case):
     def _check_case_dict(case):
         _check_case(case['xloc'], case['xlen'], case['yloc'], case['ylen'],
-                    case['eloc'], case['elen'])
+                    case['intersect_loc'], case['intersect_len'])
 
     _check_case_dict(plain_case)
     _check_case_dict(delete_blocks)
@@ -149,9 +149,12 @@ class TestIntIndex(TestCase):
 
         check_cases(_check_case)
 
-class TestSparseVector(TestCase):
+    def test_union(self):
+        pass
 
-    def _arith_op_tests(self, op):
+class TestSparseOperators(TestCase):
+
+    def _arith_op_tests(self, sparse_op, python_op):
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
@@ -159,38 +162,37 @@ class TestSparseVector(TestCase):
             xdindex = xindex.to_int_index()
             ydindex = yindex.to_int_index()
 
-            xvals = np.arange(xindex.npoints) * 10 + 1
-            yvals = np.arange(yindex.npoints) * 100 + 1
-            x = SparseVector(xvals, xindex)
-            y = SparseVector(yvals, yindex)
-            xd = SparseVector(xvals, xdindex)
-            yd = SparseVector(yvals, ydindex)
+            x = np.arange(xindex.npoints) * 10. + 1
+            y = np.arange(yindex.npoints) * 100. + 1
 
-            result_block = op(x, y)
-            result_dense = op(xd, yd)
+            result_block_vals, rb_index = sparse_op(x, xindex, y, yindex)
+            result_int_vals, ri_index = sparse_op(x, xdindex, y, ydindex)
 
-            assert_equal(result_block.values, result_dense.values)
+            self.assert_(rb_index.to_int_index().equals(ri_index))
+            assert_equal(result_block_vals, result_int_vals)
 
             # check versus Series...
-            xseries = Series(xvals, xdindex.indices)
-            yseries = Series(yvals, ydindex.indices)
-            series_result = op(xseries, yseries).valid()
-            assert_equal(result_block.values, series_result.values)
+            xseries = Series(x, xdindex.indices)
+            yseries = Series(y, ydindex.indices)
+            series_result = python_op(xseries, yseries).valid()
+            assert_equal(result_block_vals, series_result.values)
 
         check_cases(_check_case)
 
 # too cute? oh but how I abhor code duplication
 
 check_ops = ['add', 'sub', 'mul', 'div']
-def make_optestf(op):
+def make_nanoptestf(op):
     def f(self):
-        self._arith_op_tests(getattr(operator, op))
-    f.__name__ = 'test_%s' % op
+        sparse_op = getattr(sparselib, 'sparse_nan%s' % op)
+        python_op = getattr(operator, op)
+        self._arith_op_tests(sparse_op, python_op)
+    f.__name__ = 'test_nan%s' % op
     return f
 
 for op in check_ops:
-    f = make_optestf(op)
-    setattr(TestSparseVector, f.__name__, f)
+    f = make_nanoptestf(op)
+    setattr(TestSparseOperators, f.__name__, f)
     del f
 
 if __name__ == '__main__':

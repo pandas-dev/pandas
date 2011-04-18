@@ -6,12 +6,12 @@ from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame
 
-from pandas.lib.sparse import BlockIndex, IntIndex, SparseVector
+from pandas.lib.sparse import BlockIndex, IntIndex
 import pandas.lib.sparse as splib
 
 def make_sparse(arr, kind='block', sparse_value=np.NaN):
     """
-    Convert ndarray to SparseVector
+    Convert ndarray to sparse format
 
     Parameters
     ----------
@@ -44,7 +44,7 @@ def make_sparse(arr, kind='block', sparse_value=np.NaN):
         raise ValueError('must be block or integer type')
 
     sparsified_values = arr[mask]
-    return SparseVector(sparsified_values, index)
+    return sparsified_values, index
 
 class SparseSeries(Series):
     """
@@ -52,53 +52,56 @@ class SparseSeries(Series):
 
     Parameters
     ----------
-
+    kind : {'block', 'integer'}
+    sparse_value : float
+        Defaults to NaN (code for missing)
     """
-    _vector = None
-    _sparse_value = None
+    sparse_index = None
+    sparse_value = None
 
-    def __new__(cls, data, index=None, copy=False, kind='block',
-                sparse_value=np.NaN):
+    def __new__(cls, data, index=None, sparse_index=None, copy=False,
+                kind='block', sparse_value=None):
 
-        if isinstance(data, SparseVector):
+        if isinstance(data, SparseSeries):
+            if index is None:
+                index = data.index
+
+            if sparse_value is None:
+                sparse_index = data.sparse_value
+
             if index is not None:
                 assert(len(index) == data.length)
+
+            values = np.asarray(data)
         elif isinstance(data, (Series, dict)):
             data = Series(data)
 
             if index is None:
                 index = data.index
 
-            data = make_sparse(data.values, kind=kind)
+            values, sparse_index = make_sparse(data.values, kind=kind)
         elif isinstance(data, np.ndarray):
-            data = make_sparse(data, kind=kind)
+            if sparse_index is None:
+                values, sparse_index = make_sparse(data, kind=kind)
+            else:
+                values = data
+                assert(len(values) == sparse_index.npoints)
 
         if index is None:
-            index = Index(np.arange(data.length))
+            index = Index(np.arange(sparse_index.length))
 
-        # Create array, do *not* copy data by default, infer type
-        subarr = np.array(data.values, dtype=np.float64, copy=False)
-
-        if index is None:
-            raise Exception('Index cannot be None!')
-
-        # This is to prevent mixed-type Series getting all casted to
-        # NumPy string type, e.g. NaN --> '-1#IND'.
-        if issubclass(subarr.dtype.type, basestring):
-            subarr = np.array(data, dtype=object, copy=copy)
+        # Create array, do *not* copy data by default
+        subarr = np.array(values, dtype=np.float64, copy=False)
 
         if index._allDates:
             cls = SparseTimeSeries
 
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)
-        subarr._vector = data
-        subarr._sparse_value = sparse_value
+        subarr.sparse_index = sparse_index
+        subarr.sparse_value = sparse_value
         subarr.index = index
         return subarr
-
-    def __len__(self):
-        return self._vector.length
 
     def __array_finalize__(self, obj):
         """
@@ -106,26 +109,34 @@ class SparseSeries(Series):
         to pass on the index.
         """
         self._index = getattr(obj, '_index', None)
-        self._vector = getattr(obj, '_vector', None)
-        self._sparse_value = getattr(obj, '_sparse_value', None)
+        self.sparse_index = getattr(obj, 'sparse_index', None)
+        self.sparse_value = getattr(obj, 'sparse_value', None)
 
-    def astype(self, dtype):
-        # HACK
-        return self.copy()
-
-    def copy(self):
-        vec_copy = self._vector.copy()
-        return SparseSeries(vec_copy, index=self.index)
+    def __len__(self):
+        return self.sparse_index.length
 
     @property
     def values(self):
-        return self._vector.to_ndarray()
+        output = np.empty(self.sparse_index.length, dtype=np.float64)
+        int_index = self.sparse_index.to_int_index()
+        output.fill(self.sparse_value)
+        output.put(int_index.indices, self)
+        return output
 
     def to_dense(self):
         """
         Convert SparseSeries to (dense) Series
         """
         return Series(self.values, index=self.index)
+
+    def astype(self, dtype):
+        # HACK
+        return self.copy()
+
+    def copy(self):
+        values = np.asarray(self).copy()
+        return SparseSeries(values, index=self.index,
+                            sparse_index=self.sparse_index)
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass

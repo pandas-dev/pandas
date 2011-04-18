@@ -240,190 +240,152 @@ cdef class BlockIndex(SparseIndex):
 
         return IntIndex(self.length, indices)
 
-    cpdef BlockIndex intersect(self, BlockIndex other):
-        return block_intersect(self, other)
+    cpdef BlockIndex intersect(self, SparseIndex other):
+        '''
+        Intersect two BlockIndex objects
 
-cdef BlockIndex block_intersect(BlockIndex x, BlockIndex y):
-    cdef:
-        pyst out_length
-        ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
+        Parameters
+        ----------
 
-        list out_blocs = []
-        list out_blengths = []
+        Returns
+        -------
+        intersection : BlockIndex
+        '''
+        cdef:
+            BlockIndex y
+            pyst out_length
+            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
 
-        pyst xi = 0, yi = 0
-        int32_t cur_loc, cur_length, xend, yend, diff
+            list out_blocs = []
+            list out_blengths = []
 
-    # unwise? should enforce same length?
-    out_length = int_max(x.length, y.length)
+            pyst xi = 0, yi = 0
+            int32_t cur_loc, cur_length, xend, yend, diff
 
-    xloc = x.blocs
-    xlen = x.blengths
-    yloc = y.blocs
-    ylen = y.blengths
 
-    while True:
-        # we are done (or possibly never began)
-        if xi >= x.nblocks or yi >= y.nblocks:
-            break
+        y = other.to_block_index()
 
-        # completely symmetric...would like to avoid code dup but oh well
-        if xloc[xi] >= yloc[yi]:
-            cur_loc = xloc[xi]
-            diff = xloc[xi] - yloc[yi]
+        # unwise? should enforce same length?
+        out_length = int_max(self.length, y.length)
 
-            if ylen[yi] - diff <= 0:
-                # have to skip this block
-                yi += 1
-                continue
+        xloc = self.blocs
+        xlen = self.blengths
+        yloc = y.blocs
+        ylen = y.blengths
 
-            if ylen[yi] - diff < xlen[xi]:
-                # take end of y block, move onward
-                cur_length = ylen[yi] - diff
-                yi += 1
-            else:
-                # take end of x block
-                cur_length = xlen[xi]
-                xi += 1
+        while True:
+            # we are done (or possibly never began)
+            if xi >= self.nblocks or yi >= y.nblocks:
+                break
 
-        else: # xloc[xi] < yloc[yi]
-            cur_loc = yloc[yi]
-            diff = yloc[yi] - xloc[xi]
+            # completely symmetric...would like to avoid code dup but oh well
+            if xloc[xi] >= yloc[yi]:
+                cur_loc = xloc[xi]
+                diff = xloc[xi] - yloc[yi]
 
-            if xlen[xi] - diff <= 0:
-                # have to skip this block
-                xi += 1
-                continue
+                if ylen[yi] - diff <= 0:
+                    # have to skip this block
+                    yi += 1
+                    continue
 
-            if xlen[xi] - diff < ylen[yi]:
-                # take end of x block, move onward
-                cur_length = xlen[xi] - diff
-                xi += 1
-            else:
-                # take end of y block
-                cur_length = ylen[yi]
-                yi += 1
+                if ylen[yi] - diff < xlen[xi]:
+                    # take end of y block, move onward
+                    cur_length = ylen[yi] - diff
+                    yi += 1
+                else:
+                    # take end of x block
+                    cur_length = xlen[xi]
+                    xi += 1
 
-        out_blocs.append(cur_loc)
-        out_blengths.append(cur_length)
+            else: # xloc[xi] < yloc[yi]
+                cur_loc = yloc[yi]
+                diff = yloc[yi] - xloc[xi]
 
-    return BlockIndex(x.length, out_blocs, out_blengths)
+                if xlen[xi] - diff <= 0:
+                    # have to skip this block
+                    xi += 1
+                    continue
+
+                if xlen[xi] - diff < ylen[yi]:
+                    # take end of x block, move onward
+                    cur_length = xlen[xi] - diff
+                    xi += 1
+                else:
+                    # take end of y block
+                    cur_length = ylen[yi]
+                    yi += 1
+
+            out_blocs.append(cur_loc)
+            out_blengths.append(cur_length)
+
+        return BlockIndex(self.length, out_blocs, out_blengths)
+
+    cpdef BlockIndex make_union(self, SparseIndex other):
+        '''
+        Combine together two BlockIndex objects, accepting indices if contained
+        in one or the other
+
+        Parameters
+        ----------
+        other : SparseIndex
+
+        Notes
+        -----
+        union is a protected keyword in Cython, hence make_union
+
+        Returns
+        -------
+        union : BlockIndex
+        '''
+        pass
 
 #-------------------------------------------------------------------------------
-# SparseVector
+# Sparse operations
 
-cdef class SparseVector:
-    '''
-    Data structure for storing sparse representation of floating point data
+cpdef sparse_nanadd(ndarray x, SparseIndex xindex,
+                    ndarray y, SparseIndex yindex):
+    return sparse_nancombine(x, xindex, y, yindex, __add)
 
-    Parameters
-    ----------
-    '''
+cpdef sparse_nansub(ndarray x, SparseIndex xindex,
+                    ndarray y, SparseIndex yindex):
+    return sparse_nancombine(x, xindex, y, yindex, __sub)
 
-    cdef readonly:
-        pyst length, npoints
-        ndarray values
+cpdef sparse_nanmul(ndarray x, SparseIndex xindex,
+                    ndarray y, SparseIndex yindex):
+    return sparse_nancombine(x, xindex, y, yindex, __mul)
 
-    cdef public:
-        SparseIndex index
-        object fill_value
+cpdef sparse_nandiv(ndarray x, SparseIndex xindex,
+                    ndarray y, SparseIndex yindex):
+    return sparse_nancombine(x, xindex, y, yindex, __div)
 
+cdef tuple sparse_nancombine(ndarray x, SparseIndex xindex,
+                             ndarray y, SparseIndex yindex, double_func op):
+    if isinstance(xindex, BlockIndex):
+        return block_nanop(x, xindex.to_block_index(),
+                           y, yindex.to_block_index(), op)
+    elif isinstance(xindex, IntIndex):
+        return int_nanop(x, xindex.to_int_index(),
+                         y, yindex.to_int_index(), op)
+
+# NaN-based arithmetic operation-- no handling of fill values
+# TODO: faster to convert everything to dense?
+
+cdef tuple block_nanop(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
+                       ndarray[float64_t, ndim=1] y, BlockIndex yindex,
+                       double_func op):
     cdef:
-        float64_t* vbuf
-
-    def __init__(self, ndarray values, SparseIndex index, fill_value=np.NaN):
-        self.values = np.ascontiguousarray(values, dtype=np.float64)
-        self.index = index
-        self.vbuf = <float64_t*> self.values.data
-
-        self.npoints= index.npoints
-        self.length = index.length
-        self.fill_value = fill_value
-
-    def __repr__(self):
-        # just for devel...
-        output = 'sparse.SparseVector\n'
-        output += 'Values: %s\n' % repr(self.values)
-        output += 'Index: %s' % repr(self.index)
-        return output
-
-    def copy(self):
-        return SparseVector(self.values.copy(), self.index)
-
-    def to_ndarray(self):
-        output = np.empty(self.index.length, dtype=np.float64)
-        dense_index = self.index.to_int_index()
-
-        output.fill(self.fill_value)
-        output.put(dense_index.indices, self.values)
-
-        return output
-
-    def slice(self, start, end):
-        pass
-
-    cpdef reindex(self):
-        pass
-
-    def __add__(self, other):
-        return self.add(other)
-    def __sub__(self, other):
-        return self.sub(other)
-    def __mul__(self, other):
-        return self.mul(other)
-    def __div__(self, other):
-        return self.div(other)
-
-    cpdef add(self, other):
-        return self._combine(other, operator.add, __add)
-
-    cpdef sub(self, other):
-        return self._combine(other, operator.sub, __sub)
-
-    cpdef mul(self, other):
-        return self._combine(other, operator.mul, __mul)
-
-    cpdef div(self, other):
-        return self._combine(other, operator.div, __div)
-
-    cdef _combine(self, object other, object op, double_func cop):
-        if isinstance(other, SparseVector):
-            return self._combine_vector(other, cop)
-        elif np.isscalar(other):
-            return self._combine_scalar(other, op)
-
-    cdef SparseVector _combine_scalar(self, float64_t other, object op):
-        new_values = op(self.values, other)
-        return SparseVector(new_values, self.index)
-
-    cdef SparseVector _combine_vector(self, SparseVector other, double_func op):
-        if isinstance(self.index, BlockIndex):
-            return block_op(self, other, op)
-        elif isinstance(self.index, IntIndex):
-            return dense_op(self, other, op)
-
-# faster to convert everything to dense?
-
-cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
-    cdef:
-        BlockIndex xindex, yindex, out_index
+        BlockIndex out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
         int xbp = 0, ybp = 0, obp = 0 # block positions
         pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
 
-        SparseVector out
+        ndarray[float64_t, ndim=1] out
 
-    xindex = x.index.to_block_index()
-    yindex = y.index.to_block_index()
-
-    # need to do this first to know size of result array
-    out_index = x.index.intersect(y.index).to_block_index()
-
-    outarr = np.empty(out_index.npoints, dtype=np.float64)
-    out = SparseVector(outarr, out_index)
+    out_index = xindex.intersect(yindex)
+    out = np.empty(out_index.npoints, dtype=np.float64)
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out.npoints:
+    for out_i from 0 <= out_i < out_index.npoints:
 
         # I have a feeling this is inefficient
 
@@ -443,7 +405,7 @@ cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
                 yblock += 1
                 ybp = 0
 
-        out.vbuf[out_i] = op(x.vbuf[xi], y.vbuf[yi])
+        out[out_i] = op(x[xi], y[yi])
 
         # advance. strikes me as too complicated
         xi += 1
@@ -464,25 +426,22 @@ cdef SparseVector block_op(SparseVector x, SparseVector y, double_func op):
             outblock += 1
             obp = 0
 
-    return out
+    return out, out_index
 
-cdef SparseVector dense_op(SparseVector x, SparseVector y, double_func op):
+cdef tuple int_nanop(ndarray[float64_t, ndim=1] x, IntIndex xindex,
+                     ndarray[float64_t, ndim=1] y, IntIndex yindex,
+                     double_func op):
     cdef:
-        IntIndex xindex, yindex, out_index
+        IntIndex out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
-
-        SparseVector out
-
-    xindex = x.index.to_int_index()
-    yindex = y.index.to_int_index()
+        ndarray[float64_t, ndim=1] out
 
     # need to do this first to know size of result array
-    out_index = x.index.intersect(y.index).to_int_index()
-    outarr = np.empty(out_index.npoints, dtype=np.float64)
-    out = SparseVector(outarr, out_index)
+    out_index = xindex.intersect(yindex).to_int_index()
+    out = np.empty(out_index.npoints, dtype=np.float64)
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out.npoints:
+    for out_i from 0 <= out_i < out_index.npoints:
 
         # walk x
         while xindex.indp[xi] < out_index.indp[out_i]:
@@ -492,10 +451,10 @@ cdef SparseVector dense_op(SparseVector x, SparseVector y, double_func op):
         while yindex.indp[yi] < out_index.indp[out_i]:
             yi += 1
 
-        out.vbuf[out_i] = op(x.vbuf[xi], y.vbuf[yi])
+        out[out_i] = op(x[xi], y[yi])
 
         # advance
         xi += 1
         yi += 1
 
-    return out
+    return out, out_index
