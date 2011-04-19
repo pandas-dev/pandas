@@ -857,7 +857,6 @@ class Series(np.ndarray, Picklable, Groupable):
         if method is not None:
             method = method.upper()
 
-        # Cython for blazing speed
         fillVec, mask = tseries.getFillVec(self.index, new_index,
                                            self.index.indexMap,
                                            new_index.indexMap,

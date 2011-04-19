@@ -157,9 +157,9 @@ class DataFrame(Picklable, Groupable):
 
             data = dict((k, v) for k, v in data.iteritems() if k in columns)
         else:
-            columns = Index(_try_sort(data.keys()))
+            columns = Index(try_sort(data.keys()))
 
-        index = _extract_index(data, index)
+        index = extract_index(data, index)
 
         sdict = {}
         for k, v in data.iteritems():
@@ -1265,9 +1265,13 @@ class DataFrame(Picklable, Groupable):
         frame = self
 
         if index is not None:
+            if not isinstance(index, Index):
+                index = Index(index)
             frame = frame._reindex_index(index, method)
 
         if columns is not None:
+            if not isinstance(columns, Index):
+                columns = Index(columns)
             frame = frame._reindex_columns(columns)
 
         return frame
@@ -1275,9 +1279,6 @@ class DataFrame(Picklable, Groupable):
     def _reindex_index(self, index, method):
         if self.index.equals(index):
             return self.copy()
-
-        if not isinstance(index, Index):
-            index = Index(index)
 
         if len(self.index) == 0:
             return DataFrame(index=index, columns=self.columns)
@@ -1320,11 +1321,8 @@ class DataFrame(Picklable, Groupable):
         return DataFrame(newSeries, index=index, columns=self.columns)
 
     def _reindex_columns(self, columns):
-        if not isinstance(columns, Index):
-            columns = Index(columns)
-
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
-        return DataFrame(sdict, index=self.index, columns=columns)
+        return self._constructor(sdict, index=self.index, columns=columns)
 
     def reindex_like(self, other, method=None):
         """
@@ -1689,7 +1687,7 @@ class DataFrame(Picklable, Groupable):
             this = self.reindex(new_index)
             other = other.reindex(new_index)
 
-        new_columns = _try_sort(set(this.cols() + other.cols()))
+        new_columns = try_sort(set(this.cols() + other.cols()))
         do_fill = fill_value is not None
 
         result = {}
@@ -1816,7 +1814,7 @@ class DataFrame(Picklable, Groupable):
         overlap = set(self.cols()) & set(other.cols())
 
         if overlap:
-            raise Exception('Columns overlap: %s' % _try_sort(overlap))
+            raise Exception('Columns overlap: %s' % try_sort(overlap))
 
         if len(other.index) == 0:
             result = self.copy()
@@ -1900,7 +1898,7 @@ class DataFrame(Picklable, Groupable):
         else:
             x = range(len(self))
 
-        for i, col in enumerate(_try_sort(self.columns)):
+        for i, col in enumerate(try_sort(self.columns)):
             if subplots:
                 ax = axes[i]
                 ax.plot(x, self[col].values, 'k', label=col, **kwds)
@@ -1925,7 +1923,7 @@ class DataFrame(Picklable, Groupable):
             k += 1
         _, axes = plt.subplots(nrows=k, ncols=k)
 
-        for i, col in enumerate(_try_sort(self.columns)):
+        for i, col in enumerate(try_sort(self.columns)):
             ax = axes[i / k][i % k]
             ax.hist(self[col].values)
             ax.set_title(col)
@@ -2347,14 +2345,14 @@ class DataFrame(Picklable, Groupable):
 
         return Series(theSkew, index=self._get_agg_axis(axis))
 
-def _try_sort(iterable):
+def try_sort(iterable):
     listed = list(iterable)
     try:
         return sorted(listed)
     except Exception:
         return listed
 
-def _extract_index(data, index):
+def extract_index(data, index):
     if len(data) == 0:
         if index is None:
             index = NULL_INDEX
@@ -2375,7 +2373,7 @@ def _extract_index(data, index):
 
             elif isinstance(v, dict):
                 if index is None:
-                    index = Index(_try_sort(v))
+                    index = Index(try_sort(v))
                 elif need_labels:
                     raise Exception('Cannot mix Series / dict objects'
                                     ' with ndarray / sequence input')

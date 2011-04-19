@@ -8,7 +8,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array)
-from pandas.core.frame import (DataFrame, _try_sort, _extract_index,
+from pandas.core.frame import (DataFrame, try_sort, extract_index,
                                _default_index)
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
@@ -118,7 +118,7 @@ class DataMatrix(DataFrame):
             colset = set(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in colset)
 
-        index = _extract_index(data, index)
+        index = extract_index(data, index)
 
         objectDict = {}
         if objects is not None and isinstance(objects, dict):
@@ -148,8 +148,8 @@ class DataMatrix(DataFrame):
                 objectDict[k] = v
 
         if columns is None:
-            columns = Index(_try_sort(valueDict))
-            objectColumns = Index(_try_sort(objectDict))
+            columns = Index(try_sort(valueDict))
+            objectColumns = Index(try_sort(objectDict))
         else:
             objectColumns = Index([c for c in columns if c in objectDict])
             columns = Index([c for c in columns if c not in objectDict])
@@ -268,9 +268,6 @@ class DataMatrix(DataFrame):
         if index is self.index:
             return self.copy()
 
-        if not isinstance(index, Index):
-            index = Index(index)
-
         if len(self.index) == 0:
             return DataMatrix(index=index, columns=self.columns)
 
@@ -298,9 +295,6 @@ class DataMatrix(DataFrame):
     def _reindex_columns(self, columns):
         if len(columns) == 0:
             return DataMatrix(index=self.index)
-
-        if not isinstance(columns, Index):
-            columns = Index(columns)
 
         if self.objects is not None:
             object_columns = columns.intersection(self.objects.columns)

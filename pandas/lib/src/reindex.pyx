@@ -1,5 +1,5 @@
 def getFillVec(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap,
-               object kind):
+               kind=None):
 
     if kind is None:
         fillVec, maskVec = getMergeVec(newIndex, oldMap)

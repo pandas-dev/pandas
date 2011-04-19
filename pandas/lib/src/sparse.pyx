@@ -12,6 +12,8 @@ ctypedef Py_ssize_t pyst
 #-------------------------------------------------------------------------------
 # Preamble stuff
 
+cdef float64_t NaN = <float64_t> np.NaN
+
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
@@ -44,7 +46,15 @@ cdef class SparseIndex:
         raise NotImplementedError
 
 cdef class IntIndex(SparseIndex):
+    '''
+    Object for holding exact integer sparse indexing information
 
+    Parameters
+    ----------
+    length : integer
+    indices : array-like
+        Contains integers corresponding to
+    '''
     cdef readonly:
         pyst length, npoints
         ndarray indices
@@ -64,6 +74,13 @@ cdef class IntIndex(SparseIndex):
         output = 'sparse.IntIndex\n'
         output += 'Indices: %s\n' % repr(self.indices)
         return output
+
+    def check_integrity(self):
+        '''
+        Only need be strictly ascending and nothing less than 0 or greater than
+        totall ength
+        '''
+        pass
 
     def equals(self, other):
         if not isinstance(other, IntIndex):
@@ -143,9 +160,11 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
 
 cdef class BlockIndex(SparseIndex):
     '''
+    Object for holding block-based sparse indexing information
 
+    Parameters
+    ----------
     '''
-
     cdef readonly:
         pyst nblocks, npoints, length
         ndarray blocs, blengths
@@ -340,7 +359,7 @@ cdef class BlockIndex(SparseIndex):
         pass
 
 #-------------------------------------------------------------------------------
-# Sparse operations
+# Sparse arithmetic
 
 cpdef sparse_nanadd(ndarray x, SparseIndex xindex,
                     ndarray y, SparseIndex yindex):
@@ -358,6 +377,10 @@ cpdef sparse_nandiv(ndarray x, SparseIndex xindex,
                     ndarray y, SparseIndex yindex):
     return sparse_nancombine(x, xindex, y, yindex, __div)
 
+cpdef sparse_nanpow(ndarray x, SparseIndex xindex,
+                    ndarray y, SparseIndex yindex):
+    return sparse_nancombine(x, xindex, y, yindex, __pow)
+
 cdef tuple sparse_nancombine(ndarray x, SparseIndex xindex,
                              ndarray y, SparseIndex yindex, double_func op):
     if isinstance(xindex, BlockIndex):
@@ -370,6 +393,7 @@ cdef tuple sparse_nancombine(ndarray x, SparseIndex xindex,
 # NaN-based arithmetic operation-- no handling of fill values
 # TODO: faster to convert everything to dense?
 
+@cython.boundscheck(False)
 cdef tuple block_nanop(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
                        ndarray[float64_t, ndim=1] y, BlockIndex yindex,
                        double_func op):
@@ -428,6 +452,7 @@ cdef tuple block_nanop(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
 
     return out, out_index
 
+@cython.boundscheck(False)
 cdef tuple int_nanop(ndarray[float64_t, ndim=1] x, IntIndex xindex,
                      ndarray[float64_t, ndim=1] y, IntIndex yindex,
                      double_func op):
@@ -458,3 +483,61 @@ cdef tuple int_nanop(ndarray[float64_t, ndim=1] x, IntIndex xindex,
         yi += 1
 
     return out, out_index
+
+
+cdef tuple block_op(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
+                    ndarray[float64_t, ndim=1] y, BlockIndex yindex,
+                    float64_t fill_value, double_func op):
+    pass
+
+cdef tuple int_op(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
+                  ndarray[float64_t, ndim=1] y, BlockIndex yindex,
+                  float64_t fill_value, double_func op):
+    pass
+
+#-------------------------------------------------------------------------------
+# Indexing operations
+
+def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
+    cdef object idx
+    cdef Py_ssize_t i
+    cdef int new_length = len(values)
+    cdef ndarray[int32_t, ndim=1] indexer
+
+    indexer = np.empty(new_length, dtype=np.int32)
+
+    for i from 0 <= i < new_length:
+        idx = values[i]
+        if idx in index_map:
+            indexer[i] = index_map[idx]
+        else:
+            indexer[i] = -1
+
+    return indexer
+
+def reindex_block(ndarray[float64_t, ndim=1] values,
+                  BlockIndex sparse_index,
+                  ndarray[int32_t, ndim=1] indexer):
+    cdef:
+        pyst i, length
+        ndarray[float64_t, ndim=1] out
+
+    out = np.empty(length, dtype=np.float64)
+
+    for i from 0 <= i < length:
+        if indexer[i] == -1:
+            pass
+
+def reindex_integer(ndarray[float64_t, ndim=1] values,
+                    IntIndex sparse_index,
+                    ndarray[int32_t, ndim=1] indexer):
+    pass
+
+def sparse_put(ndarray[float64_t, ndim=1] values, SparseIndex index,
+               ndarray[int32_t, ndim=1] indices, object to_put):
+    pass
+
+def sparse_take(ndarray[float64_t, ndim=1] values, SparseIndex index,
+                ndarray[int32_t, ndim=1] indices):
+    pass
+
