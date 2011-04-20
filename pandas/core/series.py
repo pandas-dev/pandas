@@ -171,7 +171,7 @@ class Series(np.ndarray, Picklable, Groupable):
         subarr = subarr.view(cls)
         subarr.index = index
 
-        if subarr.index._allDates:
+        if subarr.index.is_all_dates():
             subarr = subarr.view(TimeSeries)
 
         return subarr

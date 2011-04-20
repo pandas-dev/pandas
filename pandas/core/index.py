@@ -76,6 +76,9 @@ class Index(np.ndarray):
 
         return self._cache_allDates
 
+    def is_all_dates(self):
+        return self._allDates
+
     def _checkForDuplicates(self):
         if len(self.indexMap) < len(self):
             raise Exception('Index cannot contain duplicate values!')

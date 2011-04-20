@@ -659,7 +659,7 @@ class DataFrame(Picklable, Groupable):
                                      columns=self.columns)
 
         # teeny hack because one does DataFrame + TimeSeries all the time
-        if self.index._allDates and other.index._allDates:
+        if self.index.is_all_dates() and other.index.is_all_dates():
             return self._combine_match_index(other, func)
         else:
             return self._combine_match_columns(other, func)

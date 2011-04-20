@@ -3,7 +3,7 @@ Data structures for sparse float data. Life is made simpler by dealing only with
 float64 data
 """
 
-from numpy import NaN
+from numpy import nan
 import numpy as np
 
 import operator
@@ -17,7 +17,7 @@ from pandas.lib.sparse import BlockIndex, IntIndex
 import pandas.lib.sparse as splib
 import pandas.lib.tseries as tseries
 
-def make_sparse(arr, kind='block', fill_value=np.NaN):
+def make_sparse(arr, kind='block', fill_value=nan):
     """
     Convert ndarray to sparse format
 
@@ -31,9 +31,7 @@ def make_sparse(arr, kind='block', fill_value=np.NaN):
     -------
     vector : SparseVector
     """
-    if isinstance(arr, Series):
-        arr = arr.values
-
+    arr = np.asarray(arr)
     length = len(arr)
 
     if np.isnan(fill_value):
@@ -48,13 +46,13 @@ def make_sparse(arr, kind='block', fill_value=np.NaN):
         index = BlockIndex(length, locs, lens)
     elif kind == 'integer':
         index = IntIndex(length, indices)
-    else:
+    else: # pragma: no cover
         raise ValueError('must be block or integer type')
 
     sparsified_values = arr[mask]
     return sparsified_values, index
 
-def to_sparse_series(series, kind='block', fill_value=np.NaN):
+def to_sparse_series(series, kind='block', fill_value=nan):
     sp_values, sp_index = make_sparse(series, kind=kind, fill_value=fill_value)
     return SparseSeries(sp_values, index=series.index, sparse_index=sp_index,
                         fill_value=fill_value)
@@ -81,8 +79,6 @@ def _sparse_op_wrap(name):
             if np.isnan(self.fill_value):
                 sparse_op = lambda a, b: _sparse_nanop(a, b, name)
             else:
-                if self.fill_value != other.fill_value:
-                    raise Exception('Fill values must be the same')
                 sparse_op = lambda a, b: _sparse_fillop(a, b, name)
 
             new_index = self.index + other.index
@@ -92,15 +88,20 @@ def _sparse_op_wrap(name):
                 this = self.reindex(new_index)
                 other = other.reindex(new_index)
 
-            if self.sparse_index.equals(other.sparse_index):
-                result = py_op(this.sparse_values, other.sparse_values)
-                result_index = self.sparse_index
+            if self.sp_index.equals(other.sp_index):
+                result = py_op(this.sp_values, other.sp_values)
+                result_index = self.sp_index
             else:
                 result, result_index = sparse_op(this, other)
 
-            return SparseSeries(result, index=self.index,
+            try:
+                fill_value = py_op(this.fill_value, other.fill_value)
+            except ZeroDivisionError:
+                fill_value = nan
+
+            return SparseSeries(result, index=new_index,
                                 sparse_index=result_index,
-                                fill_value=self.fill_value)
+                                fill_value=fill_value)
 
         elif isinstance(other, SparseDataFrame):
             reverse_op = _MIRROR_OPS.get(name)
@@ -108,32 +109,44 @@ def _sparse_op_wrap(name):
                 raise Exception('Cannot do %s op, sorry!')
             return getattr(other, reverse_op)(self)
         elif np.isscalar(other):
-            return SparseSeries(py_op(self.sparse_values, other),
+            return SparseSeries(py_op(self.sp_values, other),
                                 index=self.index,
-                                sparse_index=self.sparse_index,
+                                sparse_index=self.sp_index,
                                 fill_value=py_op(self.fill_value, other))
 
     wrapper.__name__ = name
     return wrapper
 
 def _sparse_nanop(this, other, name):
-    sparse_op = getattr(splib, 'sparse_nan%d' % name)
-    result, result_index = sparse_op(this.sparse_values,
-                                     this.sparse_index,
-                                     other.sparse_values,
-                                     other.sparse_index)
+    sparse_op = getattr(splib, 'sparse_nan%s' % name)
+    result, result_index = sparse_op(this.sp_values,
+                                     this.sp_index,
+                                     other.sp_values,
+                                     other.sp_index)
 
     return result, result_index
 
 def _sparse_fillop(this, other, name):
     # TODO!
-    sparse_op = getattr(splib, 'sparse_%d' % name)
-    result, result_index = sparse_op(this.sparse_values,
-                                     this.sparse_index,
-                                     other.sparse_values,
-                                     other.sparse_index)
+    sparse_op = getattr(splib, 'sparse_%s' % name)
+    result, result_index = sparse_op(this.sp_values,
+                                     this.sp_index,
+                                     this.fill_value,
+                                     other.sp_values,
+                                     other.sp_index,
+                                     other.fill_value)
 
     return result, result_index
+
+"""
+Notes.
+
+- Not sure if subclassing is the way to go, could just lead to trouble on down
+  the road (e.g. if putting a SparseSeries in a regular DataFrame...). But on
+  the other hand you do get many things for free...
+
+- Will need to "disable" a number of methods?
+"""
 
 class SparseSeries(Series):
     """
@@ -141,11 +154,12 @@ class SparseSeries(Series):
 
     Parameters
     ----------
+    data : {array-like, Series, SparseSeries, dict}
     kind : {'block', 'integer'}
     fill_value : float
         Defaults to NaN (code for missing)
     """
-    sparse_index = None
+    sp_index = None
     fill_value = None
 
     def __new__(cls, data, index=None, sparse_index=None,
@@ -163,31 +177,40 @@ class SparseSeries(Series):
 
             values = np.asarray(data)
         elif isinstance(data, (Series, dict)):
-            data = Series(data)
+            if fill_value is None:
+                fill_value = nan
 
+            data = Series(data)
             if index is None:
                 index = data.index
+            values, sparse_index = make_sparse(data, kind=kind,
+                                               fill_value=fill_value)
+        else:
+            if fill_value is None:
+                fill_value = nan
 
-            values, sparse_index = make_sparse(data.values, kind=kind)
-        elif isinstance(data, np.ndarray):
+            # array-like
             if sparse_index is None:
-                values, sparse_index = make_sparse(data, kind=kind)
+                values, sparse_index = make_sparse(data, kind=kind,
+                                                   fill_value=fill_value)
             else:
                 values = data
                 assert(len(values) == sparse_index.npoints)
 
         if index is None:
             index = Index(np.arange(sparse_index.length))
+        elif not isinstance(index, Index):
+            index = Index(index)
 
         # Create array, do *not* copy data by default
         subarr = np.array(values, dtype=np.float64, copy=False)
 
-        if index._allDates:
+        if index.is_all_dates():
             cls = SparseTimeSeries
 
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)
-        subarr.sparse_index = sparse_index
+        subarr.sp_index = sparse_index
         subarr.fill_value = fill_value
         subarr.index = index
         return subarr
@@ -198,11 +221,11 @@ class SparseSeries(Series):
         to pass on the index.
         """
         self._index = getattr(obj, '_index', None)
-        self.sparse_index = getattr(obj, 'sparse_index', None)
+        self.sp_index = getattr(obj, 'sp_index', None)
         self.fill_value = getattr(obj, 'fill_value', None)
 
     def __len__(self):
-        return self.sparse_index.length
+        return self.sp_index.length
 
     # Arithmetic operators
 
@@ -222,14 +245,14 @@ class SparseSeries(Series):
 
     @property
     def values(self):
-        output = np.empty(self.sparse_index.length, dtype=np.float64)
-        int_index = self.sparse_index.to_int_index()
+        output = np.empty(self.sp_index.length, dtype=np.float64)
+        int_index = self.sp_index.to_int_index()
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
         return output
 
     @property
-    def sparse_values(self):
+    def sp_values(self):
         return np.asarray(self)
 
     def to_dense(self):
@@ -243,9 +266,9 @@ class SparseSeries(Series):
         return self.copy()
 
     def copy(self):
-        values = self.sparse_values.copy()
+        values = self.sp_values.copy()
         return SparseSeries(values, index=self.index,
-                            sparse_index=self.sparse_index)
+                            sparse_index=self.sp_index)
 
     def reindex(self, new_index):
         return SparseSeries(self.to_dense().reindex(new_index))
@@ -257,7 +280,7 @@ class SparseSeries(Series):
             new_index = Index(new_index)
 
         if len(self.index) == 0:
-            return Series(NaN, index=new_index)
+            return Series(nan, index=new_index)
 
         indexer, mask = tseries.getFillVec(self.index, new_index,
                                            self.index.indexMap,
@@ -312,7 +335,7 @@ class SparseDataFrame(DataFrame):
                                          fill_value=self.fill_value)
             else:
                 if isinstance(v, dict):
-                    v = [v.get(i, NaN) for i in index]
+                    v = [v.get(i, nan) for i in index]
 
                 v = SparseSeries(v, index=index, kind=self.kind).copy()
 
@@ -347,7 +370,7 @@ class SparseDataFrame(DataFrame):
             new = values.take(indexer)
 
             if need_mask:
-                new[notmask] = np.NaN
+                new[notmask] = nan
 
             new_series[col] = new
 

@@ -17,23 +17,31 @@ cdef float64_t NaN = <float64_t> np.NaN
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
-cdef float64_t __add(float64_t a, float64_t b):
+cdef inline float64_t __add(float64_t a, float64_t b):
     return a + b
-cdef float64_t __sub(float64_t a, float64_t b):
+cdef inline float64_t __sub(float64_t a, float64_t b):
     return a - b
-cdef float64_t __div(float64_t a, float64_t b):
-    return a / b
-cdef float64_t __mul(float64_t a, float64_t b):
+cdef inline float64_t __div(float64_t a, float64_t b):
+    if b == 0:
+        return NaN
+    else:
+        return a / b
+
+cdef inline float64_t __mul(float64_t a, float64_t b):
     return a * b
-cdef float64_t __eq(float64_t a, float64_t b):
+cdef inline float64_t __eq(float64_t a, float64_t b):
     return a == b
-cdef float64_t __ne(float64_t a, float64_t b):
+cdef inline float64_t __ne(float64_t a, float64_t b):
     return a != b
-cdef float64_t __lt(float64_t a, float64_t b):
+cdef inline float64_t __lt(float64_t a, float64_t b):
     return a < b
-cdef float64_t __gt(float64_t a, float64_t b):
+cdef inline float64_t __gt(float64_t a, float64_t b):
     return a > b
-cdef float64_t __pow(float64_t a, float64_t b):
+
+cdef inline float64_t __pow(float64_t a, float64_t b):
+    # NaN
+    if a != a or b != b:
+        return NaN
     return a ** b
 
 ctypedef float64_t (* double_func)(float64_t a, float64_t b)
@@ -84,7 +92,7 @@ cdef class IntIndex(SparseIndex):
 
     def equals(self, other):
         if not isinstance(other, IntIndex):
-            raise Exception('Can only compare with like object')
+            return False
 
         same_length = self.length == other.length
         same_indices = np.array_equal(self.indices, other.indices)
@@ -232,7 +240,7 @@ cdef class BlockIndex(SparseIndex):
 
     def equals(self, other):
         if not isinstance(other, BlockIndex):
-            raise Exception('Can only compare with like object')
+            return False
 
         same_length = self.length == other.length
         same_blocks = (np.array_equal(self.blocs, other.blocs) and
@@ -356,7 +364,74 @@ cdef class BlockIndex(SparseIndex):
         -------
         union : BlockIndex
         '''
-        pass
+        cdef:
+            BlockIndex y
+            pyst out_length
+            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
+
+            list out_blocs = []
+            list out_blengths = []
+
+            pyst xi = 0, yi = 0 # block indices
+            int32_t cur_loc, cur_length, xend, yend, diff
+
+
+        y = other.to_block_index()
+
+        # unwise? should enforce same length?
+        out_length = int_max(self.length, y.length)
+
+        xloc = self.blocs
+        xlen = self.blengths
+        yloc = y.blocs
+        ylen = y.blengths
+
+        while True:
+            # we are done (or possibly never began)
+            if xi >= self.nblocks or yi >= y.nblocks:
+                break
+
+            # completely symmetric...would like to avoid code dup but oh well
+            if xloc[xi] >= yloc[yi]:
+                cur_loc = xloc[xi]
+                diff = xloc[xi] - yloc[yi]
+
+                if ylen[yi] - diff <= 0:
+                    # have to skip this block
+                    yi += 1
+                    continue
+
+                if ylen[yi] - diff < xlen[xi]:
+                    # take end of y block, move onward
+                    cur_length = ylen[yi] - diff
+                    yi += 1
+                else:
+                    # take end of x block
+                    cur_length = xlen[xi]
+                    xi += 1
+
+            else: # xloc[xi] < yloc[yi]
+                cur_loc = yloc[yi]
+                diff = yloc[yi] - xloc[xi]
+
+                if xlen[xi] - diff <= 0:
+                    # have to skip this block
+                    xi += 1
+                    continue
+
+                if xlen[xi] - diff < ylen[yi]:
+                    # take end of x block, move onward
+                    cur_length = xlen[xi] - diff
+                    xi += 1
+                else:
+                    # take end of y block
+                    cur_length = ylen[yi]
+                    yi += 1
+
+            out_blocs.append(cur_loc)
+            out_blengths.append(cur_length)
+
+        return BlockIndex(self.length, out_blocs, out_blengths)
 
 #-------------------------------------------------------------------------------
 # Sparse arithmetic
@@ -389,6 +464,41 @@ cdef tuple sparse_nancombine(ndarray x, SparseIndex xindex,
     elif isinstance(xindex, IntIndex):
         return int_nanop(x, xindex.to_int_index(),
                          y, yindex.to_int_index(), op)
+
+cpdef sparse_add(ndarray x, SparseIndex xindex, float64_t xfill,
+                 ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_nancombine(x, xindex, xfill,
+                             y, yindex, yfill, __add)
+
+cpdef sparse_sub(ndarray x, SparseIndex xindex, float64_t xfill,
+                 ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_nancombine(x, xindex, xfill,
+                             y, yindex, yfill, __sub)
+
+cpdef sparse_mul(ndarray x, SparseIndex xindex, float64_t xfill,
+                 ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_nancombine(x, xindex, xfill,
+                             y, yindex, yfill, __mul)
+
+cpdef sparse_div(ndarray x, SparseIndex xindex, float64_t xfill,
+                 ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_nancombine(x, xindex, xfill,
+                             y, yindex, yfill, __div)
+
+cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
+                 ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_nancombine(x, xindex, xfill,
+                             y, yindex, yfill, __pow)
+
+cdef tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
+                          ndarray y, SparseIndex yindex, float64_t yfill,
+                          double_func op):
+    if isinstance(xindex, BlockIndex):
+        return block_op(x, xindex.to_block_index(), xfill,
+                        y, yindex.to_block_index(), yfill, op)
+    elif isinstance(xindex, IntIndex):
+        return int_op(x, xindex.to_int_index(), xfill,
+                      y, yindex.to_int_index(), yfill, op)
 
 # NaN-based arithmetic operation-- no handling of fill values
 # TODO: faster to convert everything to dense?
@@ -486,13 +596,68 @@ cdef tuple int_nanop(ndarray[float64_t, ndim=1] x, IntIndex xindex,
 
 
 cdef tuple block_op(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
+                    float64_t xfill,
                     ndarray[float64_t, ndim=1] y, BlockIndex yindex,
-                    float64_t fill_value, double_func op):
-    pass
+                    float64_t yfill, double_func op):
+    cdef:
+        BlockIndex out_index
+        int xi = 0, yi = 0, out_i = 0 # fp buf indices
+        int xbp = 0, ybp = 0, obp = 0 # block positions
+        pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
+
+        ndarray[float64_t, ndim=1] out
+
+    out_index = xindex.make_union(yindex)
+    out = np.empty(out_index.npoints, dtype=np.float64)
+
+    # walk the two SparseVectors, adding matched locations...
+    for out_i from 0 <= out_i < out_index.npoints:
+
+        # I have a feeling this is inefficient
+
+        # walk x
+        while xindex.locbuf[xblock] + xbp < out_index.locbuf[outblock] + obp:
+            xbp += 1
+            xi += 1
+            if xbp == xindex.lenbuf[xblock]:
+                xblock += 1
+                xbp = 0
+
+        # walk y
+        while yindex.locbuf[yblock] + ybp < out_index.locbuf[outblock] + obp:
+            ybp += 1
+            yi += 1
+            if ybp == yindex.lenbuf[yblock]:
+                yblock += 1
+                ybp = 0
+
+        out[out_i] = op(x[xi], y[yi])
+
+        # advance. strikes me as too complicated
+        xi += 1
+        yi += 1
+
+        xbp += 1
+        if xbp == xindex.lenbuf[xblock]:
+            xblock += 1
+            xbp = 0
+
+        ybp += 1
+        if ybp == yindex.lenbuf[yblock]:
+            yblock += 1
+            ybp = 0
+
+        obp += 1
+        if obp == out_index.lenbuf[outblock]:
+            outblock += 1
+            obp = 0
+
+    return out, out_index
 
 cdef tuple int_op(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
+                  float64_t xfill,
                   ndarray[float64_t, ndim=1] y, BlockIndex yindex,
-                  float64_t fill_value, double_func op):
+                  float64_t yfill, double_func op):
     pass
 
 #-------------------------------------------------------------------------------
