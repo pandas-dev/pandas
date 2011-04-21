@@ -287,8 +287,7 @@ cdef class BlockIndex(SparseIndex):
             list out_blengths = []
 
             pyst xi = 0, yi = 0
-            int32_t cur_loc, cur_length, xend, yend, diff
-
+            int32_t cur_loc, cur_length, diff
 
         y = other.to_block_index()
 
@@ -345,7 +344,7 @@ cdef class BlockIndex(SparseIndex):
             out_blocs.append(cur_loc)
             out_blengths.append(cur_length)
 
-        return BlockIndex(self.length, out_blocs, out_blengths)
+        return BlockIndex(out_length, out_blocs, out_blengths)
 
     cpdef BlockIndex make_union(self, SparseIndex other):
         '''
@@ -364,74 +363,150 @@ cdef class BlockIndex(SparseIndex):
         -------
         union : BlockIndex
         '''
+        return BlockUnion(self, other.to_block_index()).result
+
+# class BlockIntersection(object):
+
+#     def __init__(self, BlockIndex x, BlockIndex y):
+#         pass
+
+cdef class BlockUnion(object):
+    '''
+    Object-oriented approach makes sharing state between recursive functions a
+    lot easier and reduces code duplication
+    '''
+    cdef:
+        BlockIndex x, y, result
+        ndarray xstart, xend, ystart, yend
+        int32_t xi, yi # block indices
+
+    def __init__(self, BlockIndex x, BlockIndex y):
+        self.x = x
+        self.y = y
+
+        self.xstart = self.x.blocs
+        self.xend = self.x.blocs + self.x.blengths
+        self.ystart = self.y.blocs
+        self.yend = self.y.blocs + self.y.blengths
+
+        self.xi = 0
+        self.yi = 0
+
+        self.result = self._make_merged_blocks()
+
+    cdef _make_merged_blocks(self):
         cdef:
-            BlockIndex y
             pyst out_length
-            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
+            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
+            int32_t nstart, nend, diff
+            list out_blocs = [], out_blengths = []
 
-            list out_blocs = []
-            list out_blengths = []
+        out_length = int_max(self.x.length, self.y.length)
 
-            pyst xi = 0, yi = 0 # block indices
-            int32_t cur_loc, cur_length, xend, yend, diff
-
-
-        y = other.to_block_index()
-
-        # unwise? should enforce same length?
-        out_length = int_max(self.length, y.length)
-
-        xloc = self.blocs
-        xlen = self.blengths
-        yloc = y.blocs
-        ylen = y.blengths
+        xstart = self.xstart
+        xend = self.xend
+        ystart = self.ystart
+        yend = self.yend
 
         while True:
             # we are done (or possibly never began)
-            if xi >= self.nblocks or yi >= y.nblocks:
+            if self.xi >= self.x.nblocks and self.yi >= self.y.nblocks:
                 break
-
-            # completely symmetric...would like to avoid code dup but oh well
-            if xloc[xi] >= yloc[yi]:
-                cur_loc = xloc[xi]
-                diff = xloc[xi] - yloc[yi]
-
-                if ylen[yi] - diff <= 0:
-                    # have to skip this block
-                    yi += 1
-                    continue
-
-                if ylen[yi] - diff < xlen[xi]:
-                    # take end of y block, move onward
-                    cur_length = ylen[yi] - diff
-                    yi += 1
+            elif self.yi >= self.y.nblocks:
+                # through with y, just pass through x blocks
+                nstart = xstart[self.xi]
+                nend = xend[self.xi]
+                self.xi += 1
+            elif self.xi >= self.x.nblocks:
+                # through with x, just pass through y blocks
+                nstart = ystart[self.yi]
+                nend = yend[self.yi]
+                self.yi += 1
+            else:
+                # find end of new block
+                if xstart[self.xi] < ystart[self.yi]:
+                    nstart = xstart[self.xi]
+                    nend = self._find_next_block_end(0)
                 else:
-                    # take end of x block
-                    cur_length = xlen[xi]
-                    xi += 1
+                    nstart = ystart[self.yi]
+                    nend = self._find_next_block_end(1)
 
-            else: # xloc[xi] < yloc[yi]
-                cur_loc = yloc[yi]
-                diff = yloc[yi] - xloc[xi]
+            out_blocs.append(nstart)
+            out_blengths.append(nend - nstart)
 
-                if xlen[xi] - diff <= 0:
-                    # have to skip this block
-                    xi += 1
-                    continue
+        return BlockIndex(out_length, out_blocs, out_blengths)
 
-                if xlen[xi] - diff < ylen[yi]:
-                    # take end of x block, move onward
-                    cur_length = xlen[xi] - diff
-                    xi += 1
-                else:
-                    # take end of y block
-                    cur_length = ylen[yi]
-                    yi += 1
+    cdef int32_t _find_next_block_end(self, bint mode) except -1:
+        '''
+        Wow, this got complicated in a hurry
 
-            out_blocs.append(cur_loc)
-            out_blengths.append(cur_length)
+        mode 0: block started in index x
+        mode 1: block started in index y
+        '''
+        cdef:
+            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
+            int32_t xi, yi, xnblocks, ynblocks, nend
 
-        return BlockIndex(self.length, out_blocs, out_blengths)
+        if mode != 0 and mode != 1:
+            raise Exception('Mode must be 0 or 1')
+
+        # so symmetric code will work
+        if mode == 0:
+            xstart = self.xstart
+            xend = self.xend
+            xi = self.xi
+
+            ystart = self.ystart
+            yend = self.yend
+            yi = self.yi
+            ynblocks = self.y.nblocks
+        else:
+            xstart = self.ystart
+            xend = self.yend
+            xi = self.yi
+
+            ystart = self.xstart
+            yend = self.xend
+            yi = self.xi
+            ynblocks = self.x.nblocks
+
+        nend = xend[xi]
+
+        # print 'here xi=%d, yi=%d, mode=%d, nend=%d' % (self.xi, self.yi,
+        #                                                mode, nend)
+
+        # done with y?
+        if yi == ynblocks:
+            self._set_current_indices(xi + 1, yi, mode)
+            return nend
+        elif nend < ystart[yi]:
+            # block ends before y block
+            self._set_current_indices(xi + 1, yi, mode)
+            return nend
+        else:
+            while yi < ynblocks and nend > yend[yi]:
+                yi += 1
+
+            self._set_current_indices(xi + 1, yi, mode)
+
+            if yi == ynblocks:
+                return nend
+
+            if nend < ystart[yi]:
+                # we're done, return the block end
+                return nend
+            else:
+                # merge blocks, continue searching
+                # this also catches the case where blocks
+                return self._find_next_block_end(1 - mode)
+
+    cdef _set_current_indices(self, int32_t xi, int32_t yi, bint mode):
+        if mode == 0:
+            self.xi = xi
+            self.yi = yi
+        else:
+            self.xi = yi
+            self.yi = xi
 
 #-------------------------------------------------------------------------------
 # Sparse arithmetic
@@ -467,27 +542,27 @@ cdef tuple sparse_nancombine(ndarray x, SparseIndex xindex,
 
 cpdef sparse_add(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
-    return sparse_nancombine(x, xindex, xfill,
+    return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __add)
 
 cpdef sparse_sub(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
-    return sparse_nancombine(x, xindex, xfill,
+    return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __sub)
 
 cpdef sparse_mul(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
-    return sparse_nancombine(x, xindex, xfill,
+    return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __mul)
 
 cpdef sparse_div(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
-    return sparse_nancombine(x, xindex, xfill,
+    return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __div)
 
 cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
-    return sparse_nancombine(x, xindex, xfill,
+    return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __pow)
 
 cdef tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
