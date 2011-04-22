@@ -67,16 +67,10 @@ cdef class IntIndex(SparseIndex):
         pyst length, npoints
         ndarray indices
 
-    cdef:
-        int32_t* indp
-
     def __init__(self, pyst length, indices):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
-
         self.npoints = len(self.indices)
-
-        self.indp = <int32_t*> self.indices.data
 
     def __repr__(self):
         output = 'sparse.IntIndex\n'
@@ -105,31 +99,79 @@ cdef class IntIndex(SparseIndex):
         locs, lens = get_blocks(self.indices)
         return BlockIndex(self.length, locs, lens)
 
-    cpdef intersect(self, SparseIndex y_):
+    cpdef IntIndex intersect(self, SparseIndex y_):
         cdef:
-            pyst i, xi, yi = 0
+            pyst out_length, xi, yi = 0
             int32_t xind
+            ndarray[int32_t, ndim=1] xindices, yindices
             list new_list = []
             IntIndex y
 
         # if is one already, returns self
         y = y_.to_int_index()
 
-        for xi from 0 <= xi < self.npoints:
-            xind = self.indp[xi]
+        xindices = self.indices
+        yindices = y.indices
 
-            while yi < y.npoints and y.indp[yi] < xind:
+        for xi from 0 <= xi < self.npoints:
+            xind = xindices[xi]
+
+            while yi < y.npoints and yindices[yi] < xind:
                 yi += 1
 
             if yi >= y.npoints:
                 break
 
             # TODO: would a two-pass algorithm be faster?
-            if y.indp[yi] == xind:
+            if yindices[yi] == xind:
                 new_list.append(xind)
 
         return IntIndex(self.length, new_list)
 
+    cpdef IntIndex make_union(self, SparseIndex y_):
+        cdef:
+            pyst out_length, i, xi, yi
+            int32_t xind
+            ndarray[int32_t, ndim=1] xindices, yindices
+            list new_list = []
+            IntIndex x, y
+
+        x = self
+
+        # if is one already, returns self
+        y = y_.to_int_index()
+
+        xindices = self.indices
+        yindices = y.indices
+
+        xi = yi = 0
+        while True:
+            if xi == x.npoints:
+                while yi < y.npoints:
+                    new_list.append(yindices[yi])
+                    yi += 1
+                break
+            elif yi == y.npoints:
+                while xi < x.npoints:
+                    new_list.append(xindices[xi])
+                    xi += 1
+                break
+
+            xind = xindices[xi]
+            yind = yindices[yi]
+
+            if xind == yind:
+                new_list.append(xind)
+                xi += 1
+                yi += 1
+            elif xind < yind:
+                new_list.append(xind)
+                xi += 1
+            else:
+                new_list.append(yind)
+                yi += 1
+
+        return IntIndex(x.length, new_list)
 
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
@@ -280,7 +322,6 @@ cdef class BlockIndex(SparseIndex):
         '''
         cdef:
             BlockIndex y
-            pyst out_length
             ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
 
             list out_blocs = []
@@ -290,9 +331,6 @@ cdef class BlockIndex(SparseIndex):
             int32_t cur_loc, cur_length, diff
 
         y = other.to_block_index()
-
-        # unwise? should enforce same length?
-        out_length = int_max(self.length, y.length)
 
         xloc = self.blocs
         xlen = self.blengths
@@ -309,7 +347,7 @@ cdef class BlockIndex(SparseIndex):
                 cur_loc = xloc[xi]
                 diff = xloc[xi] - yloc[yi]
 
-                if ylen[yi] - diff <= 0:
+                if ylen[yi] <= diff:
                     # have to skip this block
                     yi += 1
                     continue
@@ -327,7 +365,7 @@ cdef class BlockIndex(SparseIndex):
                 cur_loc = yloc[yi]
                 diff = yloc[yi] - xloc[xi]
 
-                if xlen[xi] - diff <= 0:
+                if xlen[xi] <= diff:
                     # have to skip this block
                     xi += 1
                     continue
@@ -344,9 +382,9 @@ cdef class BlockIndex(SparseIndex):
             out_blocs.append(cur_loc)
             out_blengths.append(cur_length)
 
-        return BlockIndex(out_length, out_blocs, out_blengths)
+        return BlockIndex(self.length, out_blocs, out_blengths)
 
-    cpdef BlockIndex make_union(self, SparseIndex other):
+    cpdef BlockIndex make_union(self, SparseIndex y):
         '''
         Combine together two BlockIndex objects, accepting indices if contained
         in one or the other
@@ -363,21 +401,17 @@ cdef class BlockIndex(SparseIndex):
         -------
         union : BlockIndex
         '''
-        return BlockUnion(self, other.to_block_index()).result
+        return BlockUnion(self, y.to_block_index()).result
 
-# class BlockIntersection(object):
 
-#     def __init__(self, BlockIndex x, BlockIndex y):
-#         pass
-
-cdef class BlockUnion(object):
+cdef class BlockMerge(object):
     '''
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication
     '''
     cdef:
         BlockIndex x, y, result
-        ndarray xstart, xend, ystart, yend
+        ndarray xstart, xlen, xend, ystart, ylen, yend
         int32_t xi, yi # block indices
 
     def __init__(self, BlockIndex x, BlockIndex y):
@@ -385,9 +419,13 @@ cdef class BlockUnion(object):
         self.y = y
 
         self.xstart = self.x.blocs
-        self.xend = self.x.blocs + self.x.blengths
         self.ystart = self.y.blocs
+
+        self.xend = self.x.blocs + self.x.blengths
         self.yend = self.y.blocs + self.y.blengths
+
+        # self.xlen = self.x.blengths
+        # self.ylen = self.y.blengths
 
         self.xi = 0
         self.yi = 0
@@ -395,13 +433,33 @@ cdef class BlockUnion(object):
         self.result = self._make_merged_blocks()
 
     cdef _make_merged_blocks(self):
+        raise NotImplementedError
+
+    cdef _set_current_indices(self, int32_t xi, int32_t yi, bint mode):
+        if mode == 0:
+            self.xi = xi
+            self.yi = yi
+        else:
+            self.xi = yi
+            self.yi = xi
+
+cdef class BlockIntersection(BlockMerge):
+    '''
+    not done yet
+    '''
+    pass
+
+cdef class BlockUnion(BlockMerge):
+    '''
+    Object-oriented approach makes sharing state between recursive functions a
+    lot easier and reduces code duplication
+    '''
+
+    cdef _make_merged_blocks(self):
         cdef:
-            pyst out_length
             ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
             int32_t nstart, nend, diff
             list out_blocs = [], out_blengths = []
-
-        out_length = int_max(self.x.length, self.y.length)
 
         xstart = self.xstart
         xend = self.xend
@@ -434,7 +492,7 @@ cdef class BlockUnion(object):
             out_blocs.append(nstart)
             out_blengths.append(nend - nstart)
 
-        return BlockIndex(out_length, out_blocs, out_blengths)
+        return BlockIndex(self.x.length, out_blocs, out_blengths)
 
     cdef int32_t _find_next_block_end(self, bint mode) except -1:
         '''
@@ -500,16 +558,12 @@ cdef class BlockUnion(object):
                 # this also catches the case where blocks
                 return self._find_next_block_end(1 - mode)
 
-    cdef _set_current_indices(self, int32_t xi, int32_t yi, bint mode):
-        if mode == 0:
-            self.xi = xi
-            self.yi = yi
-        else:
-            self.xi = yi
-            self.yi = xi
 
 #-------------------------------------------------------------------------------
 # Sparse arithmetic
+
+# This probably needs to be "templated" to achieve maximum performance.
+# TODO: quantify performance boost to "templating"
 
 cpdef sparse_nanadd(ndarray x, SparseIndex xindex,
                     ndarray y, SparseIndex yindex):
@@ -531,8 +585,9 @@ cpdef sparse_nanpow(ndarray x, SparseIndex xindex,
                     ndarray y, SparseIndex yindex):
     return sparse_nancombine(x, xindex, y, yindex, __pow)
 
-cdef tuple sparse_nancombine(ndarray x, SparseIndex xindex,
-                             ndarray y, SparseIndex yindex, double_func op):
+cdef inline tuple sparse_nancombine(ndarray x, SparseIndex xindex,
+                                    ndarray y, SparseIndex yindex,
+                                    double_func op):
     if isinstance(xindex, BlockIndex):
         return block_nanop(x, xindex.to_block_index(),
                            y, yindex.to_block_index(), op)
@@ -565,9 +620,9 @@ cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
     return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __pow)
 
-cdef tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
-                          ndarray y, SparseIndex yindex, float64_t yfill,
-                          double_func op):
+cdef inline tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
+                                 ndarray y, SparseIndex yindex, float64_t yfill,
+                                 double_func op):
     if isinstance(xindex, BlockIndex):
         return block_op(x, xindex.to_block_index(), xfill,
                         y, yindex.to_block_index(), yfill, op)
@@ -579,16 +634,21 @@ cdef tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
 # TODO: faster to convert everything to dense?
 
 @cython.boundscheck(False)
-cdef tuple block_nanop(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
-                       ndarray[float64_t, ndim=1] y, BlockIndex yindex,
-                       double_func op):
+cdef inline tuple block_nanop(ndarray x_, BlockIndex xindex,
+                              ndarray y_, BlockIndex yindex,
+                              double_func op):
     cdef:
         BlockIndex out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
         int xbp = 0, ybp = 0, obp = 0 # block positions
         pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
 
+        ndarray[float64_t, ndim=1] x, y
         ndarray[float64_t, ndim=1] out
+
+    # suppress Cython compiler warnings due to inlining
+    x = x_
+    y = y_
 
     out_index = xindex.intersect(yindex)
     out = np.empty(out_index.npoints, dtype=np.float64)
@@ -638,27 +698,37 @@ cdef tuple block_nanop(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
     return out, out_index
 
 @cython.boundscheck(False)
-cdef tuple int_nanop(ndarray[float64_t, ndim=1] x, IntIndex xindex,
-                     ndarray[float64_t, ndim=1] y, IntIndex yindex,
-                     double_func op):
+cdef inline tuple int_nanop(ndarray x_, IntIndex xindex,
+                            ndarray y_, IntIndex yindex,
+                            double_func op):
     cdef:
         IntIndex out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
+        ndarray[int32_t, ndim=1] xindices, yindices, out_indices
+        ndarray[float64_t, ndim=1] x, y
         ndarray[float64_t, ndim=1] out
 
+    # suppress Cython compiler warnings due to inlining
+    x = x_
+    y = y_
+
     # need to do this first to know size of result array
-    out_index = xindex.intersect(yindex).to_int_index()
+    out_index = xindex.intersect(yindex)
     out = np.empty(out_index.npoints, dtype=np.float64)
+
+    xindices = xindex.indices
+    yindices = yindex.indices
+    out_indices = out_index.indices
 
     # walk the two SparseVectors, adding matched locations...
     for out_i from 0 <= out_i < out_index.npoints:
 
         # walk x
-        while xindex.indp[xi] < out_index.indp[out_i]:
+        while xindices[xi] < out_indices[out_i]:
             xi += 1
 
         # walk y
-        while yindex.indp[yi] < out_index.indp[out_i]:
+        while yindices[yi] < out_indices[out_i]:
             yi += 1
 
         out[out_i] = op(x[xi], y[yi])
@@ -670,70 +740,159 @@ cdef tuple int_nanop(ndarray[float64_t, ndim=1] x, IntIndex xindex,
     return out, out_index
 
 
-cdef tuple block_op(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
-                    float64_t xfill,
-                    ndarray[float64_t, ndim=1] y, BlockIndex yindex,
-                    float64_t yfill, double_func op):
+@cython.boundscheck(False)
+cdef inline tuple block_op(ndarray x_, BlockIndex xindex, float64_t xfill,
+                           ndarray y_, BlockIndex yindex, float64_t yfill,
+                           double_func op):
+    '''
+    Binary operator on BlockIndex objects with fill values
+    '''
+
     cdef:
         BlockIndex out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
-        int xbp = 0, ybp = 0, obp = 0 # block positions
-        pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
+        int xbp = 0, ybp = 0 # block positions
+        int32_t xloc, yloc
+        pyst xblock = 0, yblock = 0 # block numbers
 
+        ndarray[float64_t, ndim=1] x, y
         ndarray[float64_t, ndim=1] out
+
+    # to suppress Cython warning
+    x = x_
+    y = y_
 
     out_index = xindex.make_union(yindex)
     out = np.empty(out_index.npoints, dtype=np.float64)
 
+    # Wow, what a hack job. Need to do something about this
+
     # walk the two SparseVectors, adding matched locations...
     for out_i from 0 <= out_i < out_index.npoints:
-
-        # I have a feeling this is inefficient
-
-        # walk x
-        while xindex.locbuf[xblock] + xbp < out_index.locbuf[outblock] + obp:
-            xbp += 1
+        if yblock == yindex.nblocks:
+            # use y fill value
+            out[out_i] = op(x[xi], yfill)
             xi += 1
+
+            # advance x location
+            xbp += 1
+            if xbp == xindex.lenbuf[xblock]:
+                xblock += 1
+                xbp = 0
+            continue
+
+        if xblock == xindex.nblocks:
+            # use x fill value
+            out[out_i] = op(xfill, y[yi])
+            yi += 1
+
+            # advance y location
+            ybp += 1
+            if ybp == yindex.lenbuf[yblock]:
+                yblock += 1
+                ybp = 0
+            continue
+
+        yloc = yindex.locbuf[yblock] + ybp
+        xloc = xindex.locbuf[xblock] + xbp
+
+        # each index in the out_index had to come from either x, y, or both
+        if xloc == yloc:
+            out[out_i] = op(x[xi], y[yi])
+            xi += 1
+            yi += 1
+
+            # advance both locations
+            xbp += 1
             if xbp == xindex.lenbuf[xblock]:
                 xblock += 1
                 xbp = 0
 
-        # walk y
-        while yindex.locbuf[yblock] + ybp < out_index.locbuf[outblock] + obp:
             ybp += 1
-            yi += 1
             if ybp == yindex.lenbuf[yblock]:
                 yblock += 1
                 ybp = 0
 
-        out[out_i] = op(x[xi], y[yi])
+        elif xloc < yloc:
+            # use y fill value
+            out[out_i] = op(x[xi], yfill)
+            xi += 1
 
-        # advance. strikes me as too complicated
-        xi += 1
-        yi += 1
+            # advance x location
+            xbp += 1
+            if xbp == xindex.lenbuf[xblock]:
+                xblock += 1
+                xbp = 0
+        else:
+            # use x fill value
+            out[out_i] = op(xfill, y[yi])
+            yi += 1
 
-        xbp += 1
-        if xbp == xindex.lenbuf[xblock]:
-            xblock += 1
-            xbp = 0
-
-        ybp += 1
-        if ybp == yindex.lenbuf[yblock]:
-            yblock += 1
-            ybp = 0
-
-        obp += 1
-        if obp == out_index.lenbuf[outblock]:
-            outblock += 1
-            obp = 0
+            # advance y location
+            ybp += 1
+            if ybp == yindex.lenbuf[yblock]:
+                yblock += 1
+                ybp = 0
 
     return out, out_index
 
-cdef tuple int_op(ndarray[float64_t, ndim=1] x, BlockIndex xindex,
-                  float64_t xfill,
-                  ndarray[float64_t, ndim=1] y, BlockIndex yindex,
-                  float64_t yfill, double_func op):
-    pass
+
+@cython.boundscheck(False)
+cdef inline tuple int_op(ndarray x_, IntIndex xindex, float64_t xfill,
+                         ndarray y_, IntIndex yindex, float64_t yfill,
+                         double_func op):
+    cdef:
+        IntIndex out_index
+        int xi = 0, yi = 0, out_i = 0 # fp buf indices
+        int32_t xloc, yloc
+        ndarray[int32_t, ndim=1] xindices, yindices, out_indices
+        ndarray[float64_t, ndim=1] x, y
+        ndarray[float64_t, ndim=1] out
+
+    # suppress Cython compiler warnings due to inlining
+    x = x_
+    y = y_
+
+    # need to do this first to know size of result array
+    out_index = xindex.make_union(yindex)
+    out = np.empty(out_index.npoints, dtype=np.float64)
+
+    xindices = xindex.indices
+    yindices = yindex.indices
+    out_indices = out_index.indices
+
+    # walk the two SparseVectors, adding matched locations...
+    for out_i from 0 <= out_i < out_index.npoints:
+        if xi == xindex.npoints:
+            # use x fill value
+            out[out_i] = op(xfill, y[yi])
+            yi += 1
+            continue
+
+        if yi == yindex.npoints:
+            # use y fill value
+            out[out_i] = op(x[xi], yfill)
+            xi += 1
+            continue
+
+        xloc = xindices[xi]
+        yloc = yindices[yi]
+
+        # each index in the out_index had to come from either x, y, or both
+        if xloc == yloc:
+            out[out_i] = op(x[xi], y[yi])
+            xi += 1
+            yi += 1
+        elif xloc < yloc:
+            # use y fill value
+            out[out_i] = op(x[xi], yfill)
+            xi += 1
+        else:
+            # use x fill value
+            out[out_i] = op(xfill, y[yi])
+            yi += 1
+
+    return out, out_index
 
 #-------------------------------------------------------------------------------
 # Indexing operations

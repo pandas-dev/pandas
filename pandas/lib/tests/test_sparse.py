@@ -59,6 +59,101 @@ def check_cases(_check_case):
     _check_case([0], [5], [], [], [], [])
     _check_case([], [], [], [], [], [])
 
+def test_index_make_union():
+    def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
+        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
+        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+        bresult = xindex.make_union(yindex)
+        assert(isinstance(bresult, BlockIndex))
+        assert_equal(bresult.blocs, eloc)
+        assert_equal(bresult.blengths, elen)
+
+        ixindex = xindex.to_int_index()
+        iyindex = yindex.to_int_index()
+        iresult = ixindex.make_union(iyindex)
+        assert(isinstance(iresult, IntIndex))
+        assert_equal(iresult.indices, bresult.to_int_index().indices)
+
+    """
+    x: ----
+    y:     ----
+    r: --------
+    """
+    xloc = [0]; xlen = [5]
+    yloc = [5]; ylen = [4]
+    eloc = [0]; elen = [9]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    """
+    x: -----     -----
+    y:   -----          --
+    """
+    xloc = [0, 10]; xlen = [5, 5]
+    yloc = [2, 17]; ylen = [5, 2]
+    eloc = [0, 10, 17]; elen = [7, 5, 2]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    """
+    x: ------
+    y:    -------
+    r: ----------
+    """
+    xloc = [1]; xlen = [5]
+    yloc = [3]; ylen = [5]
+    eloc = [1]; elen = [7]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    """
+    x: ------  -----
+    y:    -------
+    r: -------------
+    """
+    xloc = [2, 10]; xlen = [4, 4]
+    yloc = [4]; ylen = [8]
+    eloc = [2]; elen = [12]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    """
+    x: ---  -----
+    y: -------
+    r: -------------
+    """
+    xloc = [0, 5]; xlen = [3, 5]
+    yloc = [0]; ylen = [7]
+    eloc = [0]; elen = [10]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    """
+    x: ------  -----
+    y:    -------  ---
+    r: -------------
+    """
+    xloc = [2, 10]; xlen = [4, 4]
+    yloc = [4, 13]; ylen = [8, 4]
+    eloc = [2]; elen = [15]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    """
+    x: ----------------------
+    y:   ----  ----   ---
+    r: ----------------------
+    """
+    xloc = [2]; xlen = [15]
+    yloc = [4, 9, 14]; ylen = [3, 2, 2]
+    eloc = [2]; elen = [15]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    """
+    x: ----       ---
+    y:       ---       ---
+    """
+    xloc = [0, 10]; xlen = [3, 3]
+    yloc = [5, 15]; ylen = [2, 2]
+    eloc = [0, 5, 10, 15]; elen = [3, 2, 3, 2]
+    _check_case(xloc, xlen, yloc, ylen, eloc, elen)
+
+    # TODO: different-length index objects
+
 class TestBlockIndex(TestCase):
 
     def test_equals(self):
@@ -95,93 +190,6 @@ class TestBlockIndex(TestCase):
             assert_equal(result.blengths, elen)
 
         check_cases(_check_case)
-
-    def test_make_union(self):
-        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
-            xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-            yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
-            result = xindex.make_union(yindex)
-            self.assert_(isinstance(result, BlockIndex))
-            assert_equal(result.blocs, eloc)
-            assert_equal(result.blengths, elen)
-
-        """
-        x: ----
-        y:     ----
-        r: --------
-        """
-        xloc = [0]; xlen = [5]
-        yloc = [5]; ylen = [4]
-        eloc = [0]; elen = [9]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-
-        """
-        x: -----     -----
-        y:   -----          --
-        """
-        xloc = [0, 10]; xlen = [5, 5]
-        yloc = [2, 17]; ylen = [5, 2]
-        eloc = [0, 10, 17]; elen = [7, 5, 2]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-
-        """
-        x: ------
-        y:    -------
-        r: ----------
-        """
-        xloc = [1]; xlen = [5]
-        yloc = [3]; ylen = [5]
-        eloc = [1]; elen = [7]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-
-        """
-        x: ------  -----
-        y:    -------
-        r: -------------
-        """
-        xloc = [2, 10]; xlen = [4, 4]
-        yloc = [4]; ylen = [8]
-        eloc = [2]; elen = [12]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-
-        """
-        x: ---  -----
-        y: -------
-        r: -------------
-        """
-        xloc = [0, 5]; xlen = [3, 5]
-        yloc = [0]; ylen = [7]
-        eloc = [0]; elen = [10]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-
-        """
-        x: ------  -----
-        y:    -------  ---
-        r: -------------
-        """
-        xloc = [2, 10]; xlen = [4, 4]
-        yloc = [4, 13]; ylen = [8, 4]
-        eloc = [2]; elen = [15]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-
-        """
-        x: ----------------------
-        y:   ----  ----   ---
-        r: ----------------------
-        """
-        xloc = [2]; xlen = [15]
-        yloc = [4, 9, 14]; ylen = [3, 2, 2]
-        eloc = [2]; elen = [15]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
-
-        """
-        x: ----       ---
-        y:       ---       ---
-        """
-        xloc = [0, 10]; xlen = [3, 3]
-        yloc = [5, 15]; ylen = [2, 2]
-        eloc = [0, 5, 10, 15]; elen = [3, 2, 3, 2]
-        _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     def test_to_int_index(self):
         locs = [0, 10]
@@ -239,10 +247,12 @@ class TestIntIndex(TestCase):
     def test_make_union(self):
         pass
 
+from pandas.core.sparse import SparseSeries
+from pandas import DataFrame
 
 class TestSparseOperators(TestCase):
 
-    def _arith_op_tests(self, sparse_op, python_op):
+    def _nan_op_tests(self, sparse_op, python_op):
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
             yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
@@ -264,6 +274,43 @@ class TestSparseOperators(TestCase):
             yseries = Series(y, ydindex.indices)
             series_result = python_op(xseries, yseries).valid()
             assert_equal(result_block_vals, series_result.values)
+            assert_equal(result_int_vals, series_result.values)
+
+        check_cases(_check_case)
+
+    def _op_tests(self, sparse_op, python_op):
+        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
+            xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
+            yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+
+            xdindex = xindex.to_int_index()
+            ydindex = yindex.to_int_index()
+
+            x = np.arange(xindex.npoints) * 10. + 1
+            y = np.arange(yindex.npoints) * 100. + 1
+
+            xfill = 0
+            yfill = 2
+
+            result_block_vals, rb_index = sparse_op(x, xindex, xfill, y, yindex, yfill)
+            result_int_vals, ri_index = sparse_op(x, xdindex, xfill,
+                                                  y, ydindex, yfill)
+
+            self.assert_(rb_index.to_int_index().equals(ri_index))
+            assert_equal(result_block_vals, result_int_vals)
+
+            # check versus Series...
+            xseries = Series(x, xdindex.indices)
+            xseries = xseries.reindex(np.arange(TEST_LENGTH)).fillna(xfill)
+
+            yseries = Series(y, ydindex.indices)
+            yseries = yseries.reindex(np.arange(TEST_LENGTH)).fillna(yfill)
+
+            series_result = python_op(xseries, yseries)
+            series_result = series_result.reindex(ri_index.indices)
+
+            assert_equal(result_block_vals, series_result.values)
+            assert_equal(result_int_vals, series_result.values)
 
         check_cases(_check_case)
 
@@ -274,14 +321,25 @@ def make_nanoptestf(op):
     def f(self):
         sparse_op = getattr(sparselib, 'sparse_nan%s' % op)
         python_op = getattr(operator, op)
-        self._arith_op_tests(sparse_op, python_op)
+        self._nan_op_tests(sparse_op, python_op)
     f.__name__ = 'test_nan%s' % op
+    return f
+
+def make_optestf(op):
+    def f(self):
+        sparse_op = getattr(sparselib, 'sparse_%s' % op)
+        python_op = getattr(operator, op)
+        self._op_tests(sparse_op, python_op)
+    f.__name__ = 'test_%s' % op
     return f
 
 for op in check_ops:
     f = make_nanoptestf(op)
+    g = make_optestf(op)
     setattr(TestSparseOperators, f.__name__, f)
+    setattr(TestSparseOperators, g.__name__, g)
     del f
+    del g
 
 if __name__ == '__main__':
     import nose
