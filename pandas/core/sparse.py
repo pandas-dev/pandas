@@ -86,6 +86,8 @@ def _sparse_op_wrap(name):
                 this = self
             else:
                 this = self.reindex(new_index)
+
+            if not other.index.equals(new_index):
                 other = other.reindex(new_index)
 
             if self.sp_index.equals(other.sp_index):
@@ -127,7 +129,6 @@ def _sparse_nanop(this, other, name):
     return result, result_index
 
 def _sparse_fillop(this, other, name):
-    # TODO!
     sparse_op = getattr(splib, 'sparse_%s' % name)
     result, result_index = sparse_op(this.sp_values,
                                      this.sp_index,
