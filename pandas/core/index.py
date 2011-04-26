@@ -229,6 +229,28 @@ class Index(np.ndarray):
         taken = self.view(np.ndarray).take(*args, **kwargs)
         return Index(taken)
 
+    def get_indexer(self, target, method=None):
+        """
+
+        Parameters
+        ----------
+        target : Index
+        method :
+
+        Returns
+        -------
+        (indexer, mask)
+        """
+        import pandas.lib.tseries as tseries
+
+        if method:
+            method = method.upper()
+
+        indexer, mask = tseries.getFillVec(self, target, self.indexMap,
+                                           target.indexMap, method)
+
+        return indexer, mask
+
 # For utility purposes
 
 NULL_INDEX = Index([])

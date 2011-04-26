@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 from pandas.core.index import Index
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame, _pfixed
 from pandas.core.matrix import DataMatrix
 from pandas.core.mixins import Picklable, Groupable
 import pandas.core.common as common
@@ -1316,11 +1316,11 @@ class LongPanel(Panel):
         self._textConvert(f, format_cols, format_row)
         f.close()
 
-    def toString(self, buffer=sys.stdout, col_space=15):
+    def toString(self, buf=sys.stdout, col_space=15):
         """
         Output a screen-friendly version of this Panel
         """
-        _pf = common._pfixed
+        _pf = _pfixed
         major_space = max(max([len(str(idx))
                                for idx in self.major_axis]) + 4, 9)
         minor_space = max(max([len(str(idx))
@@ -1336,17 +1336,17 @@ class LongPanel(Panel):
                                _pf(minor, minor_space),
                                ''.join(_pf(v, col_space) for v in values))
 
-        self._textConvert(buffer, format_cols, format_row)
+        self._textConvert(buf, format_cols, format_row)
 
-    def _textConvert(self, buffer, format_cols, format_row):
-        print >> buffer, format_cols(self.items)
+    def _textConvert(self, buf, format_cols, format_row):
+        print >> buf, format_cols(self.items)
 
         label_pairs = zip(self.index.major_labels,
                           self.index.minor_labels)
         major, minor = self.major_axis, self.minor_axis
         for i, (major_i, minor_i) in enumerate(label_pairs):
             row = format_row(major[major_i], minor[minor_i], self.values[i])
-            print >> buffer, row
+            print >> buf, row
 
     def swapaxes(self):
         """

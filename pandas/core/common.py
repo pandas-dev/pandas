@@ -70,28 +70,6 @@ def _unpickle_array(bytes):
     arr = read_array(StringIO(bytes))
     return arr
 
-def _pfixed(s, space, nanRep=None, float_format=None):
-    if isinstance(s, float):
-        if nanRep is not None and isnull(s):
-            if np.isnan(s):
-                return nanRep.ljust(space)
-            else:
-                return ('%s' % s).ljust(space)
-
-        if float_format:
-            formatted = float_format(s)
-        else:
-            is_pos = s >= 0
-            formatted = '%.4g' % np.abs(s)
-
-            if is_pos:
-                formatted = ' ' + formatted
-            else:
-                formatted = '-' + formatted
-        return formatted.ljust(space)
-    else:
-        return ('%s' % s)[:space].ljust(space)
-
 def get_indexer(source, target, fill_method):
     if fill_method:
         fill_method = fill_method.upper()

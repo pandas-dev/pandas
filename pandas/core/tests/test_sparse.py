@@ -1,3 +1,5 @@
+# pylint: disable-msg=E1101,W0612
+
 from unittest import TestCase
 import operator
 
@@ -7,8 +9,10 @@ import numpy as np
 from pandas.util.testing import assert_almost_equal, assert_series_equal
 from numpy.testing import assert_equal
 
+from pandas import DateRange
+from pandas.core.series import remove_na
 from pandas.core.sparse import (IntIndex, BlockIndex, SparseSeries)
-import pandas.core.sparse as sparsem
+import pandas.core.sparse as spm
 
 """
 Testing TODO
@@ -92,19 +96,17 @@ class TestSparseSeries(TestCase):
         series = self.iseries.to_dense()
         assert_equal(series, arr)
 
-    def test_to_sparse_series(self):
+    def test_to_sparse(self):
         series = self.bseries.to_dense()
-        bseries = sparsem.to_sparse_series(series, kind='block')
-        iseries = sparsem.to_sparse_series(series, kind='integer')
+        bseries = series.to_sparse(kind='block')
+        iseries = series.to_sparse(kind='integer')
         assert_sp_series_equal(bseries, self.bseries)
         assert_sp_series_equal(iseries, self.iseries)
 
         # non-NaN fill value
         series = self.zbseries.to_dense()
-        zbseries = sparsem.to_sparse_series(series, kind='block',
-                                            fill_value=0)
-        ziseries = sparsem.to_sparse_series(series, kind='integer',
-                                            fill_value=0)
+        zbseries = series.to_sparse(kind='block', fill_value=0)
+        ziseries = series.to_sparse(kind='integer', fill_value=0)
         assert_sp_series_equal(zbseries, self.zbseries)
         assert_sp_series_equal(ziseries, self.ziseries)
 
@@ -119,18 +121,56 @@ class TestSparseSeries(TestCase):
         assert_equal(self.zbseries.values, self.bseries.to_dense().fillna(0))
 
         # pass SparseSeries
+        s2 = SparseSeries(self.bseries)
+        s3 = SparseSeries(self.iseries)
+        s4 = SparseSeries(self.zbseries)
+        assert_sp_series_equal(s2, self.bseries)
+        assert_sp_series_equal(s3, self.iseries)
+        assert_sp_series_equal(s4, self.zbseries)
+
+        # Sparse time series works
+        date_index = DateRange('1/1/2000', periods=len(self.bseries))
+        s5 = SparseSeries(self.bseries, index=date_index)
+        self.assert_(isinstance(s5, spm.SparseTimeSeries))
 
         # pass Series
-        series = self.bseries.to_dense()
-        bseries2 = SparseSeries(series)
+        bseries2 = SparseSeries(self.bseries.to_dense())
         assert_equal(self.bseries.sp_values, bseries2.sp_values)
 
         # pass dict
+
+        # don't copy the data by default
+        values = np.ones(len(self.bseries.sp_values))
+        sp = SparseSeries(values, sparse_index=self.bseries.sp_index)
+        sp.sp_values[:5] = 97
+        self.assert_(values[0] == 97)
+
+        # but can make it copy!
+        sp = SparseSeries(values, sparse_index=self.bseries.sp_index,
+                          copy=True)
+        sp.sp_values[:5] = 100
+        self.assert_(values[0] == 97)
 
     def test_constructor_nonnan(self):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
         assert_equal(sp_series.values, arr)
+
+    def test_copy_astype(self):
+        cop = self.bseries.astype(np.int32)
+        self.assert_(cop is not self.bseries)
+        self.assert_(cop.sp_index is self.bseries.sp_index)
+        self.assert_(cop.dtype == np.float64)
+
+        cop2 = self.iseries.copy()
+
+        assert_sp_series_equal(cop, self.bseries)
+        assert_sp_series_equal(cop2, self.iseries)
+
+        # test that data is copied
+        cop.sp_values[:5] = 97
+        self.assert_(cop.sp_values[0] == 97)
+        self.assert_(self.bseries.sp_values[0] != 97)
 
     def test_getitem(self):
         pass
@@ -187,7 +227,34 @@ class TestSparseSeries(TestCase):
         check(self.ziseries, self.ziseries2)
 
     def test_reindex(self):
-        pass
+        def _compare_with_series(sps, new_index):
+            spsre = sps.reindex(new_index)
+
+            series = sps.to_dense()
+            seriesre = series.reindex(new_index)
+            seriesre = seriesre.to_sparse(fill_value=sps.fill_value)
+
+            assert_sp_series_equal(spsre, seriesre)
+            assert_series_equal(spsre.to_dense(), seriesre.to_dense())
+
+        _compare_with_series(self.bseries, self.bseries.index[::2])
+        _compare_with_series(self.bseries, list(self.bseries.index[::2]))
+        _compare_with_series(self.bseries, self.bseries.index[:10])
+        _compare_with_series(self.bseries, self.bseries.index[5:])
+
+        _compare_with_series(self.zbseries, self.zbseries.index[::2])
+        _compare_with_series(self.zbseries, self.zbseries.index[:10])
+        _compare_with_series(self.zbseries, self.zbseries.index[5:])
+
+        # special cases
+        same_index = self.bseries.reindex(self.bseries.index)
+        assert_sp_series_equal(self.bseries, same_index)
+        self.assert_(same_index is not self.bseries)
+
+        # corner cases
+        sp = SparseSeries([], index=[])
+        sp_zero = SparseSeries([], index=[], fill_value=0)
+        _compare_with_series(sp, np.arange(10))
 
     def test_repr(self):
         pass
@@ -204,9 +271,32 @@ class TestSparseSeries(TestCase):
     def test_groupby(self):
         pass
 
+    def test_reductions(self):
+        self.assertEquals(self.bseries.count(), len(self.bseries.sp_values))
+        self.assertEquals(self.bseries.sum(), self.bseries.sp_values.sum())
+        self.assertEquals(self.bseries.mean(), self.bseries.sp_values.mean())
+
+        self.bseries.sp_values[5:10] = np.NaN
+        self.assertEquals(self.bseries.count(), len(self.bseries.sp_values) - 5)
+        self.assertEquals(self.bseries.sum(), remove_na(self.bseries.sp_values).sum())
+
+        self.assertEquals(self.zbseries.count(), len(self.zbseries))
+        self.zbseries.sp_values[5:10] = np.NaN
+        self.assertEquals(self.zbseries.count(), len(self.zbseries) - 5)
+
+        series = self.zbseries.copy()
+        series.fill_value = 2
+        num_sparse = len(self.zbseries) - len(self.zbseries.sp_values)
+        self.assertEquals(series.sum(), self.zbseries.sum() + 2 * num_sparse)
+
+    def test_mean(self):
+        pass
+
 class TestSparseTimeSeries(TestCase):
     pass
 
+class TestSparseDataFrame(TestCase):
+    pass
 
 if __name__ == '__main__':
     import nose

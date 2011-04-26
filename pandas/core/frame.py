@@ -10,8 +10,7 @@ import warnings
 from numpy import NaN
 import numpy as np
 
-from pandas.core.common import (_pickle_array, _unpickle_array, _pfixed,
-                                isnull, notnull)
+from pandas.core.common import (_pickle_array, _unpickle_array, isnull, notnull)
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
@@ -415,6 +414,22 @@ class DataFrame(Picklable, Groupable):
 
         return np.rec.fromarrays(arrays, names=names)
 
+    def to_sparse(self, fill_value=None, kind='block'):
+        """
+
+        Parameters
+        ----------
+        fill_value : float, default NaN
+        kind : {'block', 'integer'}
+        """
+        from pandas.core.sparse import SparseDataFrame
+
+        sparse_data = {}
+        for k, v in self.iteritems():
+            sparse_data[k] = v.to_sparse(fill_value=fill_value, kind=kind)
+
+        return SparseDataFrame(sparse_data, index=self.index)
+
 #-------------------------------------------------------------------------------
 # Magic methods
 
@@ -433,10 +448,9 @@ class DataFrame(Picklable, Groupable):
         """
         buf = StringIO()
         if len(self.index) < 500 and len(self.columns) < 10:
-            self.toString(buffer=buf)
+            self.toString(buf=buf)
         else:
-            buf.write(str(self.__class__) + '\n')
-            self.info(buffer=buf)
+            self.info(buf=buf)
 
         return buf.getvalue()
 
@@ -758,12 +772,12 @@ class DataFrame(Picklable, Groupable):
         from pandas.core.matrix import DataMatrix
         return DataMatrix(self._series, index=self.index)
 
-    def toString(self, buffer=sys.stdout, columns=None, colSpace=None,
+    def toString(self, buf=sys.stdout, columns=None, colSpace=None,
                  nanRep='NaN', formatters=None, float_format=None):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
         if columns is None:
-            columns = self.columns
+            columns = self._output_columns()
         else:
             columns = [c for c in columns if c in self]
 
@@ -774,71 +788,103 @@ class DataFrame(Picklable, Groupable):
             colSpace = {}
 
             for c in columns:
-                if np.issctype(self[c].dtype):
+                if np.issctype(series[c].dtype):
                     colSpace[c] = max(len(str(c)) + 4, 12)
                 else:
-                    # hack
+                    # HACK
                     colSpace[c] = 15
         else:
-            colSpace = dict((k, 15) for k in columns)
+            colSpace = dict((k, colSpace) for k in columns)
 
         if len(columns) == 0 or len(self.index) == 0:
-            print >> buffer, 'Empty DataFrame'
-            print >> buffer, repr(self.index)
+            print >> buf, 'Empty %s' % type(self).__name__
+            print >> buf, repr(self.index)
         else:
             idxSpace = max([len(str(idx)) for idx in self.index]) + 4
-            head = _pfixed('', idxSpace)
+            head = ' ' * idxSpace
 
             for h in columns:
-                head += _pfixed(h, colSpace[h])
+                head += _put_str(h, colSpace[h])
 
-            print >> buffer, head
+            print >> buf, head
 
             for idx in self.index:
-
-                ot = _pfixed(idx, idxSpace - 1)
+                ot = _put_str(idx, idxSpace - 1)
                 for k in columns:
                     formatter = formatters.get(k, ident)
                     ot += _pfixed(formatter(series[k][idx]),
                                   colSpace[k], nanRep=nanRep,
                                   float_format=float_format)
-                print >> buffer, ot
+                print >> buf, ot
 
-    def head(self, buffer=sys.stdout):
+    def _output_columns(self):
+        return list(self.columns)
+
+    def head(self, buf=sys.stdout):
         chunk = self[:5]
         if len(self.cols()) > 6:
             print 'Probably too wide to display, transposing'
             chunk = chunk.T
 
-        chunk.toString(buffer=buffer)
+        chunk.toString(buf=buf)
 
-    def tail(self, buffer=sys.stdout):
+    def tail(self, buf=sys.stdout):
         chunk = self[-5:]
         if len(self.cols()) > 6:
             print 'Probably too wide to display, transposing'
             chunk = chunk.T
 
-        chunk.toString(buffer=buffer)
+        chunk.toString(buf=buf)
 
-    def info(self, buffer=sys.stdout):
-        """Concise summary of a DataFrame, used in __repr__ when very large."""
-        print >> buffer, 'Index: %s entries' % len(self.index),
+    def info(self, verbose=True, buf=sys.stdout):
+        """
+        Concise summary of a DataFrame, used in __repr__ when very large.
+        """
+        print >> buf, str(type(self))
         if len(self.index) > 0:
-            print >> buffer, ', %s to %s' % (self.index[0], self.index[-1])
+            index_summary = ', %s to %s' % (self.index[0], self.index[-1])
         else:
-            print >> buffer, ''
+            index_summary = ''
+        print >> buf, 'Index: %s entries%s' % (len(self.index), index_summary)
 
-        if len(self._series) == 0:
-            print >> buffer, 'DataFrame is empty!'
+        if len(self.cols()) == 0:
+            name = type(self).__name__
+            print >> buf, 'Empty',
             return
 
-        series = self._series
-        columns = self.columns
-        space = max([len(str(k)) for k in columns]) + 4
-        for k in columns:
-            out = _pfixed(k, space)
-            out += '%d  non-null values' % series[k].count()
-            print >> buffer, out
+        print >> buf, 'Data columns:'
+        space = max([len(str(k)) for k in self.cols()]) + 4
+
+        cols = self.cols()
+
+        if verbose:
+            col_counts = []
+            counts = self.count()
+            assert(len(cols) == len(counts))
+            for col, count in counts.iteritems():
+                col_counts.append('%s%d  non-null values' %
+                                  (_pfixed(col, space), count))
+
+            print >> buf, '\n'.join(col_counts)
+        else:
+            if len(columns) <= 2:
+                print >> buf, 'Columns: %s' % repr(columns)
+            else:
+                print >> buf, 'Columns: %s to %s' % (columns[0], columns[-1])
+
+        counts = self._get_dtype_counts()
+        dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
+        buf.write('dtypes: %s' % ', '.join(dtypes))
+
+    def _get_dtype_counts(self):
+        counts = {}
+        for _, series in self.iteritems():
+            if series.dtype in counts:
+                counts[series.dtype] += 1
+            else:
+                counts[series.dtype] = 1
+
+        return counts
 
     def rows(self):
         """Alias for the frame's index"""
@@ -1283,7 +1329,7 @@ class DataFrame(Picklable, Groupable):
         if len(self.index) == 0:
             return DataFrame(index=index, columns=self.columns)
 
-        indexer, mask = common.get_indexer(self.index, index, method)
+        indexer, mask = self.index.get_indexer(index, method=method)
 
         # Maybe this is a bit much? Wish I had more unit tests...
         typeHierarchy = [
@@ -2360,14 +2406,15 @@ def extract_index(data, index):
         # aggregate union of indices
         need_labels = False
 
+        msg = ('Cannot mix Series / dict objects'
+               ' with ndarray / sequence input')
         # this is pretty kludgy, better way?
         for v in data.values():
             if isinstance(v, Series):
                 if index is None:
                     index = v.index
                 elif need_labels:
-                    raise Exception('Cannot mix Series / dict objects'
-                                    ' with ndarray / sequence input')
+                    raise Exception(msg)
                 elif not index.equals(v.index):
                     index = index + v.index
 
@@ -2375,16 +2422,13 @@ def extract_index(data, index):
                 if index is None:
                     index = Index(try_sort(v))
                 elif need_labels:
-                    raise Exception('Cannot mix Series / dict objects'
-                                    ' with ndarray / sequence input')
+                    raise Exception(msg)
                 else:
                     index = index + Index(v.keys())
 
             else: # not dict-like, assign integer labels
                 if index is not None and not need_labels:
-                    raise Exception('Cannot mix Series / dict objects'
-                                    ' with ndarray / sequence input')
-
+                    raise Exception(msg)
                 need_labels = True
                 index = Index(np.arange(len(v)))
 
@@ -2401,3 +2445,28 @@ def _default_index(n):
         return NULL_INDEX
     else:
         return np.arange(n)
+
+def _pfixed(s, space, nanRep=None, float_format=None):
+    if isinstance(s, float):
+        if nanRep is not None and isnull(s):
+            if np.isnan(s):
+                return nanRep.ljust(space)
+            else:
+                return ('%s' % s).ljust(space)
+
+        if float_format:
+            formatted = float_format(s)
+        else:
+            is_pos = s >= 0
+            formatted = '%.4g' % np.abs(s)
+
+            if is_pos:
+                formatted = ' ' + formatted
+            else:
+                formatted = '-' + formatted
+        return formatted.ljust(space)
+    else:
+        return (' %s' % s)[:space].ljust(space)
+
+def _put_str(s, space):
+    return ('%s' % s)[:space].ljust(space)

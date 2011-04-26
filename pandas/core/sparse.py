@@ -9,7 +9,7 @@ import numpy as np
 import operator
 
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.series import Series, TimeSeries
+from pandas.core.series import Series, TimeSeries, remove_na
 from pandas.core.frame import DataFrame, extract_index, try_sort
 import pandas.core.common as common
 
@@ -51,11 +51,6 @@ def make_sparse(arr, kind='block', fill_value=nan):
 
     sparsified_values = arr[mask]
     return sparsified_values, index
-
-def to_sparse_series(series, kind='block', fill_value=nan):
-    sp_values, sp_index = make_sparse(series, kind=kind, fill_value=fill_value)
-    return SparseSeries(sp_values, index=series.index, sparse_index=sp_index,
-                        fill_value=fill_value)
 
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
@@ -163,19 +158,20 @@ class SparseSeries(Series):
     sp_index = None
     fill_value = None
 
-    def __new__(cls, data, index=None, sparse_index=None,
-                kind='block', fill_value=None, copy=False):
+    def __new__(cls, data, index=None, sparse_index=None, kind='block',
+                fill_value=None, copy=False):
 
         if isinstance(data, SparseSeries):
             if index is None:
                 index = data.index
 
             if fill_value is None:
-                sparse_index = data.fill_value
+                fill_value = data.fill_value
 
             if index is not None:
-                assert(len(index) == data.length)
+                assert(len(index) == len(data))
 
+            sparse_index = data.sp_index
             values = np.asarray(data)
         elif isinstance(data, (Series, dict)):
             if fill_value is None:
@@ -186,6 +182,8 @@ class SparseSeries(Series):
                 index = data.index
             values, sparse_index = make_sparse(data, kind=kind,
                                                fill_value=fill_value)
+        elif np.isscalar(data): # pragma: no cover
+            raise Exception('not supported yet')
         else:
             if fill_value is None:
                 fill_value = nan
@@ -204,7 +202,7 @@ class SparseSeries(Series):
             index = Index(index)
 
         # Create array, do *not* copy data by default
-        subarr = np.array(values, dtype=np.float64, copy=False)
+        subarr = np.array(values, dtype=np.float64, copy=copy)
 
         if index.is_all_dates():
             cls = SparseTimeSeries
@@ -227,6 +225,11 @@ class SparseSeries(Series):
 
     def __len__(self):
         return self.sp_index.length
+
+    def __repr__(self):
+        series_rep = Series.__repr__(self)
+        rep = '%s\n%s' % (series_rep, repr(self.sp_index))
+        return rep
 
     # Arithmetic operators
 
@@ -256,14 +259,19 @@ class SparseSeries(Series):
     def sp_values(self):
         return np.asarray(self)
 
-    def to_dense(self):
+    def to_dense(self, sparse_only=False):
         """
         Convert SparseSeries to (dense) Series
         """
-        return Series(self.values, index=self.index)
+        if sparse_only:
+            int_index = self.sp_index.to_int_index()
+            index = self.index.take(int_index.indices)
+            return Series(self.sp_values, index=index)
+        else:
+            return Series(self.values, index=self.index)
 
     def astype(self, dtype):
-        # HACK
+        # HACK?
         return self.copy()
 
     def copy(self):
@@ -271,27 +279,99 @@ class SparseSeries(Series):
         return SparseSeries(values, index=self.index,
                             sparse_index=self.sp_index)
 
-    def reindex(self, new_index):
-        return SparseSeries(self.to_dense().reindex(new_index))
+    def reindex(self, new_index, method=None):
+        """
+        Conform SparseSeries to new Index
+
+        See Series.reindex docstring for general behavior
+
+        Returns
+        -------
+        reindexed : SparseSeries
+        """
+        if not isinstance(new_index, Index):
+            new_index = Index(new_index)
 
         if self.index.equals(new_index):
             return self.copy()
 
-        if not isinstance(new_index, Index):
-            new_index = Index(new_index)
-
         if len(self.index) == 0:
-            return Series(nan, index=new_index)
+            # FIXME: inelegant / slow
+            values = np.empty(len(new_index), dtype=np.float64)
+            values.fill(nan)
+            return SparseSeries(values, index=new_index,
+                                fill_value=self.fill_value)
 
-        indexer, mask = tseries.getFillVec(self.index, new_index,
-                                           self.index.indexMap,
-                                           new_index.indexMap)
+        values = self.values
+        indexer, mask = self.index.get_indexer(new_index, method=method)
+        new_values = values.take(indexer)
+
+        # TODO: always use NaN here?
+        notmask = -mask
+        if notmask.any():
+            np.putmask(new_values, notmask, nan)
+
+        return SparseSeries(new_values, index=new_index,
+                            fill_value=self.fill_value)
 
     def take(self, indices):
+        """
+        Sparse-compatible version of ndarray.take
+
+        Returns
+        -------
+        y : SparseSeries
+        """
         pass
 
     def put(self, indices, values):
+        """
+        Sparse-compatible version of ndarray.put
+
+        Returns
+        -------
+        y : SparseSeries
+        """
         pass
+
+    def count(self):
+        sp_values = self.sp_values
+        valid_spvals = np.isfinite(sp_values).sum()
+        if self._null_fill_value:
+            return valid_spvals
+        else:
+            return valid_spvals + (len(self) - len(sp_values))
+
+    @property
+    def _null_fill_value(self):
+        return np.isnan(self.fill_value)
+
+    def sum(self, axis=None, dtype=None, out=None):
+        """
+        Sum of non-null values
+        """
+        sp_vals = self.sp_values
+        mask = np.isfinite(sp_vals)
+        sp_sum = sp_vals[mask].sum()
+        num_sparse = len(self) - len(sp_vals)
+        if self._null_fill_value:
+            return sp_sum
+        else:
+            return sp_sum + self.fill_value * num_sparse
+
+    def mean(self, axis=None, dtype=None, out=None):
+        """
+        Mean of non-null values
+        """
+        sp_vals = self.sp_values
+        mask = np.isfinite(sp_vals)
+        ct = mask.sum()
+        sp_sum = sp_vals[mask].sum()
+        num_sparse = len(self) - len(sp_vals)
+        if self._null_fill_value:
+            return sp_sum / ct
+        else:
+            return (sp_sum + self.fill_value * num_sparse) / (ct + num_sparse)
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass
@@ -331,9 +411,7 @@ class SparseDataFrame(DataFrame):
             if isinstance(v, Series):
                 # Forces alignment and copies data
                 v = v.reindex(index)
-                if not isinstance(v, SparseSeries):
-                    v = to_sparse_series(v, kind=self.kind,
-                                         fill_value=self.fill_value)
+                v = v.to_sparse()
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, nan) for i in index]
@@ -350,6 +428,17 @@ class SparseDataFrame(DataFrame):
                                         fill_value=self.fill_value)
 
         return sdict, columns, index
+
+    def to_dense(self):
+        """
+        Convert to dense DataFrame
+
+        Returns
+        -------
+        df : DataFrame
+        """
+        data = dict((k, v.to_dense) for k, v in self.iteritems())
+        return DataFrame(data, index=self.index)
 
     def _reindex_index(self, index, method):
         if self.index.equals(index):

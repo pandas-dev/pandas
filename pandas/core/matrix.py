@@ -476,20 +476,6 @@ class DataMatrix(DataFrame):
         else:
             return True
 
-    def __repr__(self):
-        """Return a string representation for a particular DataMatrix"""
-        buffer = StringIO()
-
-        if len(self.cols()) == 0:
-            buffer.write('Empty DataMatrix\nIndex: %s' % repr(self.index))
-        elif 0 < len(self.index) < 500 and self.values.shape[1] < 10:
-            self.toString(buffer=buffer)
-        else:
-            print >> buffer, str(self.__class__)
-            self.info(buffer=buffer)
-
-        return buffer.getvalue()
-
     def __getitem__(self, item):
         """
         Retrieve column, slice, or subset from DataMatrix.
@@ -695,104 +681,13 @@ class DataMatrix(DataFrame):
         return series
     _series = property(_getSeriesDict)
 
-#-------------------------------------------------------------------------------
-# Outputting
-
-    def toString(self, buffer=sys.stdout, columns=None, colSpace=None,
-                 nanRep='NaN', formatters=None, float_format=None):
-        """
-        Output a string version of this DataMatrix
-        """
-        _pf = common._pfixed
-        formatters = formatters or {}
-
-        if columns is None:
-            columns = self.columns
-            values = self.values
-            if self.objects:
-                columns = list(columns) + list(self.objects.columns)
-                values = np.column_stack((values.astype(object),
-                                          self.objects.values))
+    def _output_columns(self):
+        # for toString
+        cols = list(self.columns)
+        if self.objects is None:
+            return cols
         else:
-            columns = [c for c in columns if c in self]
-            values = self.asMatrix(columns)
-
-        ident = lambda x: x
-
-        idxSpace = max([len(str(idx)) for idx in self.index]) + 4
-
-        if colSpace is None:
-            colSpace = {}
-
-            for c in columns:
-                if np.issctype(self[c].dtype):
-                    colSpace[c] = max(len(str(c)) + 4, 12)
-                else:
-                    # hack
-                    colSpace[c] = 15
-        else:
-            colSpace = dict((k, 15) for k in columns)
-
-        if len(self.cols()) == 0:
-            buffer.write('DataMatrix is empty!\n')
-            buffer.write(repr(self.index))
-        else:
-            buffer.write(_pf('', idxSpace))
-            for h in columns:
-                buffer.write(_pf(h, colSpace[h]))
-            buffer.write('\n')
-
-            for i, idx in enumerate(self.index):
-                buffer.write(_pf(idx, idxSpace - 1))
-                for j, col in enumerate(columns):
-                    formatter = formatters.get(col, ident)
-                    buffer.write(_pf(formatter(values[i, j]), colSpace[col],
-                                     float_format=float_format,
-                                     nanRep=nanRep))
-                buffer.write('\n')
-
-    def info(self, buffer=sys.stdout):
-        """
-        Concise summary of a DataMatrix, used in __repr__ when very large.
-        """
-        print >> buffer, 'Index: %s entries' % len(self.index),
-        if len(self.index) > 0:
-            print >> buffer, ', %s to %s' % (self.index[0], self.index[-1])
-        else:
-            print >> buffer, ''
-
-        if len(self.cols()) == 0:
-            print >> buffer, 'DataMatrix is empty!'
-            print >> buffer, repr(self.index)
-            return
-
-        print >> buffer, 'Data columns:'
-        space = max([len(str(k)) for k in self.cols()]) + 4
-
-        counts = self.count()
-
-        cols = self.cols()
-        assert(len(cols) == len(counts))
-
-        columns = []
-        for col, count in counts.iteritems():
-            columns.append('%s%d  non-null values' %
-                           (common._pfixed(col, space), count))
-
-        dtypeLine = ''
-
-        nf = len(self.columns)
-        df = self.values.dtype
-
-        if self.objects is not None:
-            no = len(self.objects.columns)
-            do = self.objects.values.dtype
-            dtypeLine = '\ndtypes: %s(%d), %s(%d)' % (df, nf, do, no)
-        else:
-            dtypeLine = '\ndtype: %s(%d)' % (df, nf)
-
-        buffer.write('\n'.join(columns) + dtypeLine)
-
+            return cols + list(self.objects.columns)
 
 #-------------------------------------------------------------------------------
 # Public methods

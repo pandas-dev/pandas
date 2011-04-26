@@ -209,6 +209,22 @@ class Series(np.ndarray, Picklable, Groupable):
     def toDict(self):
         return dict(self.iteritems())
 
+    def to_sparse(self, kind='block', fill_value=None):
+        """
+        Convert Series to SparseSeries
+
+        Parameters
+        ----------
+        kind : {'block', 'integer'}
+        fill_value : float, defaults to NaN (missing)
+
+        Returns
+        -------
+        sp : SparseSeries
+        """
+        from pandas.core.sparse import SparseSeries
+        return SparseSeries(self, kind=kind, fill_value=fill_value)
+
     @classmethod
     def fromValue(cls, value=np.NaN, index=None, dtype=None): # pragma: no cover
         warnings.warn("'fromValue', can call Series(value, index=index) now",
@@ -319,17 +335,21 @@ class Series(np.ndarray, Picklable, Groupable):
 
     def __repr__(self):
         """Clean string representation of a Series"""
+        if len(self.index) > 500:
+            return self._make_repr(50)
+        elif len(self.index) > 0:
+            return _seriesRepr(self.index, self.values)
+        else:
+            return '%s' % ndarray.__repr__(self)
+
+    def _make_repr(self, max_vals=50):
         vals = self.values
         index = self.index
 
-        if len(index) > 500:
-            head = _seriesRepr(index[:50], vals[:50])
-            tail = _seriesRepr(index[-50:], vals[-50:])
-            return head + '\n...\n' + tail + '\nlength: %d' % len(vals)
-        elif len(index) > 0:
-            return _seriesRepr(index, vals)
-        else:
-            return '%s' % ndarray.__repr__(self)
+        num = max_vals // 2
+        head = _seriesRepr(index[:num], vals[:num])
+        tail = _seriesRepr(index[-(max_vals - num):], vals[-(max_vals - num):])
+        return head + '\n...\n' + tail + '\nlength: %d' % len(vals)
 
     def toString(self, buffer=sys.stdout, nanRep='NaN'):
         print >> buffer, _seriesRepr(self.index, self.values,
@@ -386,6 +406,16 @@ class Series(np.ndarray, Picklable, Groupable):
         """
         return self._ndarray_statistic('mean')
 
+    def _ndarray_statistic(self, funcname):
+        arr = self.values
+        retVal = getattr(arr, funcname)()
+
+        if isnull(retVal):
+            arr = remove_na(arr)
+            retVal = getattr(arr, funcname)()
+
+        return retVal
+
     def quantile(self, q=0.5):
         """
         Return value at the given quantile
@@ -418,16 +448,6 @@ class Series(np.ndarray, Picklable, Groupable):
                 self.max()]
 
         return Series(data, index=names)
-
-    def _ndarray_statistic(self, funcname):
-        arr = self.values
-        retVal = getattr(arr, funcname)()
-
-        if isnull(retVal):
-            arr = remove_na(arr)
-            retVal = getattr(arr, funcname)()
-
-        return retVal
 
     def min(self, axis=None, out=None):
         """
@@ -640,8 +660,8 @@ class Series(np.ndarray, Picklable, Groupable):
         except Exception:
             raise
 
-        newValues = np.concatenate((self, other))
-        return Series(newValues, index=newIndex)
+        new_values = np.concatenate((self, other))
+        return Series(new_values, index=newIndex)
 
     def combineFunc(self, other, func):
         """
@@ -787,15 +807,15 @@ class Series(np.ndarray, Picklable, Groupable):
             indexer, mask = tseries.getMergeVec(self, arg.index.indexMap)
             notmask = -mask
 
-            newValues = arg.view(np.ndarray).take(indexer)
+            new_values = arg.view(np.ndarray).take(indexer)
 
             if notmask.any():
-                if issubclass(newValues.dtype.type, np.integer):
-                    newValues = newValues.astype(float)
+                if issubclass(new_values.dtype.type, np.integer):
+                    new_values = new_values.astype(float)
 
-                np.putmask(newValues, notmask, np.nan)
+                np.putmask(new_values, notmask, np.nan)
 
-            newSer = Series(newValues, index=self.index)
+            newSer = Series(new_values, index=self.index)
             return newSer
         else:
             return Series([arg(x) for x in self], index=self.index)
@@ -854,26 +874,19 @@ class Series(np.ndarray, Picklable, Groupable):
         if len(self.index) == 0:
             return Series(NaN, index=new_index)
 
-        if method is not None:
-            method = method.upper()
-
-        fillVec, mask = tseries.getFillVec(self.index, new_index,
-                                           self.index.indexMap,
-                                           new_index.indexMap,
-                                           kind=method)
-
-        newValues = self.values.take(fillVec)
+        fill_vec, mask = self.index.get_indexer(new_index, method=method)
+        new_values = self.values.take(fill_vec)
 
         notmask = -mask
         if notmask.any():
-            if issubclass(newValues.dtype.type, np.int_):
-                newValues = newValues.astype(float)
-            elif issubclass(newValues.dtype.type, np.bool_):
-                newValues = newValues.astype(object)
+            if issubclass(new_values.dtype.type, np.int_):
+                new_values = new_values.astype(float)
+            elif issubclass(new_values.dtype.type, np.bool_):
+                new_values = new_values.astype(object)
 
-            np.putmask(newValues, notmask, NaN)
+            np.putmask(new_values, notmask, NaN)
 
-        return Series(newValues, index=new_index)
+        return Series(new_values, index=new_index)
 
     def reindex_like(self, other, method=None):
         """
@@ -1079,16 +1092,16 @@ class Series(np.ndarray, Picklable, Groupable):
             offset = datetools.getOffset(timeRule)
 
         if offset is None:
-            newValues = np.empty(len(self), dtype=self.dtype)
+            new_values = np.empty(len(self), dtype=self.dtype)
 
             if periods > 0:
-                newValues[periods:] = self.values[:-periods]
-                newValues[:periods] = np.NaN
+                new_values[periods:] = self.values[:-periods]
+                new_values[:periods] = np.NaN
             elif periods < 0:
-                newValues[:periods] = self.values[-periods:]
-                newValues[periods:] = np.NaN
+                new_values[:periods] = self.values[-periods:]
+                new_values[periods:] = np.NaN
 
-            return Series(newValues, index=self.index)
+            return Series(new_values, index=self.index)
         else:
             return Series(self, index=self.index.shift(periods, offset))
 

@@ -344,20 +344,20 @@ class TestDataFrame(unittest.TestCase):
 
         # no columns or index
         buf = StringIO()
-        self.empty.info(buffer=buf)
+        self.empty.info(buf=buf)
 
         # columns are not sortable
         foo = repr(self.unsortable)
 
         # do not fail!
-        self.frame.head(buffer=buf)
-        self.frame.tail(buffer=buf)
+        self.frame.head(buf=buf)
+        self.frame.tail(buf=buf)
 
         for i in range(5):
             self.frame['foo%d' % i] = 1
 
-        self.frame.head(buffer=buf)
-        self.frame.tail(buffer=buf)
+        self.frame.head(buf=buf)
+        self.frame.tail(buf=buf)
 
     def test_repr_corner(self):
         # representing infs poses no problems
@@ -373,17 +373,17 @@ class TestDataFrame(unittest.TestCase):
         biggie['A'][:20] = np.NaN
         biggie['B'][:20] = np.NaN
         buf = StringIO()
-        biggie.toString(buffer=buf)
+        biggie.toString(buf=buf)
 
-        biggie.toString(buffer=buf, columns=['B', 'A'], colSpace=17)
-        biggie.toString(buffer=buf, columns=['B', 'A'],
+        biggie.toString(buf=buf, columns=['B', 'A'], colSpace=17)
+        biggie.toString(buf=buf, columns=['B', 'A'],
                         formatters={'A' : lambda x: '%.1f' % x})
 
-        biggie.toString(buffer=buf, columns=['B', 'A'],
+        biggie.toString(buf=buf, columns=['B', 'A'],
                         float_format=str)
 
         frame = self.klass(index=np.arange(1000))
-        frame.toString(buffer=buf)
+        frame.toString(buf=buf)
 
     def test_getitem(self):
         # slicing

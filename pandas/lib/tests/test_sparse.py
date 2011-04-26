@@ -8,7 +8,7 @@ import operator
 from numpy.testing import assert_almost_equal, assert_equal
 
 from pandas.lib.sparse import IntIndex, BlockIndex
-import pandas.lib.sparse as sparselib
+import pandas.lib.sparse as splib
 
 TEST_LENGTH = 20
 
@@ -153,6 +153,22 @@ def test_index_make_union():
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     # TODO: different-length index objects
+
+def test_lookup():
+
+    def _check(index):
+        assert(index.lookup(0) == -1)
+        assert(index.lookup(5) == 0)
+        assert(index.lookup(7) == 2)
+        assert(index.lookup(8) == -1)
+        assert(index.lookup(12) == 3)
+        assert(index.lookup(17) == 8)
+
+    bindex = BlockIndex(20, [5, 12], [3, 6])
+    iindex = bindex.to_int_index()
+
+    _check(bindex)
+    _check(iindex)
 
 class TestBlockIndex(TestCase):
 
@@ -319,7 +335,7 @@ class TestSparseOperators(TestCase):
 check_ops = ['add', 'sub', 'mul', 'div']
 def make_nanoptestf(op):
     def f(self):
-        sparse_op = getattr(sparselib, 'sparse_nan%s' % op)
+        sparse_op = getattr(splib, 'sparse_nan%s' % op)
         python_op = getattr(operator, op)
         self._nan_op_tests(sparse_op, python_op)
     f.__name__ = 'test_nan%s' % op
@@ -327,7 +343,7 @@ def make_nanoptestf(op):
 
 def make_optestf(op):
     def f(self):
-        sparse_op = getattr(sparselib, 'sparse_%s' % op)
+        sparse_op = getattr(splib, 'sparse_%s' % op)
         python_op = getattr(operator, op)
         self._op_tests(sparse_op, python_op)
     f.__name__ = 'test_%s' % op

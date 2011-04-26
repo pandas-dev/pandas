@@ -173,6 +173,27 @@ cdef class IntIndex(SparseIndex):
 
         return IntIndex(x.length, new_list)
 
+    @cython.wraparound(False)
+    cpdef lookup(self, pyst index):
+        cdef:
+            pyst res, n, cum_len = 0
+            ndarray[int32_t, ndim=1] inds
+
+        inds = self.indices
+        res = inds.searchsorted(index)
+        if inds[res] == index:
+            return res
+        else:
+            return -1
+
+    cpdef put(self, ndarray[float64_t, ndim=1] values,
+              ndarray[int32_t, ndim=1] indices, object to_put):
+        pass
+
+    cpdef take(self, ndarray[float64_t, ndim=1] values,
+               ndarray[int32_t, ndim=1] indices):
+        pass
+
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
         pyst i, npoints
@@ -402,6 +423,38 @@ cdef class BlockIndex(SparseIndex):
         union : BlockIndex
         '''
         return BlockUnion(self, y.to_block_index()).result
+
+    cpdef lookup(self, pyst index):
+        '''
+
+        Returns -1 if not found
+        '''
+        cdef:
+            pyst i, cum_len = 0
+            ndarray[int32_t, ndim=1] locs, lens
+
+        locs = self.blocs
+        lens = self.blengths
+
+        if self.nblocks == 0:
+            return -1
+        elif index < locs[0]:
+            return -1
+
+        for i from 0 <= i < self.nblocks:
+            if index < locs[i] + lens[i]:
+                return cum_len + index - locs[i]
+            cum_len += lens[i]
+
+        return -1
+
+    cpdef put(self, ndarray[float64_t, ndim=1] values,
+              ndarray[int32_t, ndim=1] indices, object to_put):
+        pass
+
+    cpdef take(self, ndarray[float64_t, ndim=1] values,
+               ndarray[int32_t, ndim=1] indices):
+        pass
 
 
 cdef class BlockMerge(object):
@@ -927,16 +980,24 @@ def reindex_block(ndarray[float64_t, ndim=1] values,
         if indexer[i] == -1:
             pass
 
+
+# cdef class SparseCruncher(object):
+#     '''
+#     Class to acquire float pointer for convenient operations on sparse data
+#     structures
+#     '''
+#     cdef:
+#         SparseIndex index
+#         float64_t* buf
+
+#     def __init__(self, ndarray[float64_t, ndim=1, mode='c'] values,
+#                  SparseIndex index):
+
+#         self.index = index
+#         self.buf = <float64_t*> values.data
+
+
 def reindex_integer(ndarray[float64_t, ndim=1] values,
                     IntIndex sparse_index,
                     ndarray[int32_t, ndim=1] indexer):
     pass
-
-def sparse_put(ndarray[float64_t, ndim=1] values, SparseIndex index,
-               ndarray[int32_t, ndim=1] indices, object to_put):
-    pass
-
-def sparse_take(ndarray[float64_t, ndim=1] values, SparseIndex index,
-                ndarray[int32_t, ndim=1] indices):
-    pass
-

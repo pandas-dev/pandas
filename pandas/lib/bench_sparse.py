@@ -1,7 +1,9 @@
 import numpy as np
 
-from pandas.core.sparse import SparseSeries
-from pandas.core.index import Index
+from pandas import *
+import pandas.core.sparse as spm
+reload(spm)
+from pandas.core.sparse import SparseSeries, SparseDataFrame
 
 N = 10000.
 
@@ -25,3 +27,11 @@ is2 = SparseSeries(arr2, kind='integer', index=index)
 
 s1_dense = s1.to_dense()
 s2_dense = s2.to_dense()
+
+dm = DataMatrix.load('/home/wesm/code/pandas/example')
+
+data = {}
+for col, ser in dm.iteritems():
+    data[col] = SparseSeries(ser)
+
+sdf = SparseDataFrame(data)
