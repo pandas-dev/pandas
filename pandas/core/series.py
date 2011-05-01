@@ -985,10 +985,11 @@ class Series(np.ndarray, Picklable, Groupable):
             else:
                 x = range(len(self))
 
-            ax.plot(x, self.values, style, **kwds)
+            ax.plot(x, self.values.astype(float), style, **kwds)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
-            ax.bar(xinds, self.values, 0.5, bottom=np.zeros(N), linewidth=1)
+            ax.bar(xinds, self.values.astype(float), 0.5,
+                   bottom=np.zeros(N), linewidth=1)
 
             if N < 10:
                 fontsize = 12
