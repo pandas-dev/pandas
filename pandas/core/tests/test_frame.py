@@ -309,6 +309,8 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(df)
 
     def test_repr(self):
+        buf = StringIO()
+
         # empty
         foo = repr(self.empty)
 
@@ -318,6 +320,11 @@ class TestDataFrame(unittest.TestCase):
 
         # small one
         foo = repr(self.frame)
+        self.frame.info(verbose=False, buf=buf)
+
+        # even smaller
+        self.frame.reindex(columns=['A']).info(verbose=False, buf=buf)
+        self.frame.reindex(columns=['A', 'B']).info(verbose=False, buf=buf)
 
         # big one
         biggie = self.klass(np.zeros((1000, 4)), columns=range(4),
@@ -326,6 +333,7 @@ class TestDataFrame(unittest.TestCase):
 
         # mixed
         foo = repr(self.mixed_frame)
+        self.mixed_frame.info(verbose=False, buf=buf)
 
         # big mixed
         biggie = self.klass({'A' : randn(1000),
@@ -343,7 +351,6 @@ class TestDataFrame(unittest.TestCase):
         foo = repr(no_index)
 
         # no columns or index
-        buf = StringIO()
         self.empty.info(buf=buf)
 
         # columns are not sortable

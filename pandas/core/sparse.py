@@ -55,11 +55,11 @@ def make_sparse(arr, kind='block', fill_value=nan):
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 _MIRROR_OPS = {
-    '__add__' : '__radd__',
-    '__sub__' : '__rsub__',
-    '__div__' : '__rdiv__',
-    '__truediv__' : '__rdiv__',
-    '__mul__' : '__rmul__',
+    'add' : '__radd__',
+    'sub' : '__rsub__',
+    'div' : '__rdiv__',
+    'truediv' : '__rdiv__',
+    'mul' : '__rmul__',
 }
 
 def _sparse_op_wrap(name):
@@ -102,7 +102,7 @@ def _sparse_op_wrap(name):
 
         elif isinstance(other, SparseDataFrame):
             reverse_op = _MIRROR_OPS.get(name)
-            if reverse_op is None:
+            if reverse_op is None: # pragma: no cover
                 raise Exception('Cannot do %s op, sorry!')
             return getattr(other, reverse_op)(self)
         elif np.isscalar(other):
@@ -346,32 +346,37 @@ class SparseSeries(Series):
     def _null_fill_value(self):
         return np.isnan(self.fill_value)
 
+    @property
+    def _valid_sp_values(self):
+        sp_vals = self.sp_values
+        mask = np.isfinite(sp_vals)
+        return sp_vals[mask]
+
     def sum(self, axis=None, dtype=None, out=None):
         """
         Sum of non-null values
         """
-        sp_vals = self.sp_values
-        mask = np.isfinite(sp_vals)
-        sp_sum = sp_vals[mask].sum()
-        num_sparse = len(self) - len(sp_vals)
+        valid_vals = self._valid_sp_values
+        sp_sum = valid_vals.sum()
         if self._null_fill_value:
             return sp_sum
         else:
-            return sp_sum + self.fill_value * num_sparse
+            nsparse = self.sp_index.npoints
+            return sp_sum + self.fill_value * nsparse
 
     def mean(self, axis=None, dtype=None, out=None):
         """
         Mean of non-null values
         """
-        sp_vals = self.sp_values
-        mask = np.isfinite(sp_vals)
-        ct = mask.sum()
-        sp_sum = sp_vals[mask].sum()
-        num_sparse = len(self) - len(sp_vals)
+        valid_vals = self._valid_sp_values
+        sp_sum = valid_vals.sum()
+        ct = len(valid_vals)
+
         if self._null_fill_value:
             return sp_sum / ct
         else:
-            return (sp_sum + self.fill_value * num_sparse) / (ct + num_sparse)
+            nsparse = self.sp_index.npoints
+            return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass
@@ -384,9 +389,13 @@ class SparseDataFrame(DataFrame):
     _columns = None
 
     def __init__(self, data=None, index=None, columns=None, kind='block',
-                 fill_value=None):
-        self.kind = kind
-        self.fill_value = fill_value
+                 default_fill_value=None):
+        if default_fill_value is None:
+            default_fill_value = nan
+
+        self.default_kind = kind
+        self.default_fill_value = default_fill_value
+
         DataFrame.__init__(self, data, index=index, columns=columns,
                            dtype=None)
 
@@ -406,28 +415,50 @@ class SparseDataFrame(DataFrame):
 
         index = extract_index(data, index)
 
+        sp_maker = lambda x: SparseSeries(x, index=index,
+                                          kind=self.default_kind,
+                                          fill_value=self.default_fill_value)
+
         sdict = {}
         for k, v in data.iteritems():
             if isinstance(v, Series):
                 # Forces alignment and copies data
                 v = v.reindex(index)
-                v = v.to_sparse()
+
+                if not isinstance(v, SparseSeries):
+                    v = sp_maker(v)
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, nan) for i in index]
 
-                v = SparseSeries(v, index=index, kind=self.kind).copy()
-
+                v = sp_maker(v).copy()
             sdict[k] = v
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)
         for c in columns:
             if c not in sdict:
-                sdict[c] = SparseSeries([], index=index,
-                                        fill_value=self.fill_value)
+                sdict[c] = sp_maker([])
 
         return sdict, columns, index
+
+    def _insert_item(self, key, value):
+        if hasattr(value, '__iter__'):
+            if isinstance(value, Series):
+                cleanSeries = value.reindex(self.index)
+                if not isinstance(value, SparseSeries):
+                    cleanSeries = SparseSeries(cleanSeries)
+            else:
+                cleanSeries = Series(value, index=self.index)
+
+            self._series[key] = cleanSeries
+        # Scalar
+        else:
+            self._series[key] = SparseSeries(value, index=self.index)
+
+        if key not in self.columns:
+            loc = self._get_insert_loc(key)
+            self._insert_column_index(key, loc)
 
     def to_dense(self):
         """
@@ -437,7 +468,7 @@ class SparseDataFrame(DataFrame):
         -------
         df : DataFrame
         """
-        data = dict((k, v.to_dense) for k, v in self.iteritems())
+        data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
 
     def _reindex_index(self, index, method):

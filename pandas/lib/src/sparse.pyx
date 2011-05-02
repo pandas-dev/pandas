@@ -13,6 +13,7 @@ ctypedef Py_ssize_t pyst
 # Preamble stuff
 
 cdef float64_t NaN = <float64_t> np.NaN
+cdef float64_t INF = <float64_t> np.inf
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
@@ -23,7 +24,7 @@ cdef inline float64_t __sub(float64_t a, float64_t b):
     return a - b
 cdef inline float64_t __div(float64_t a, float64_t b):
     if b == 0:
-        return NaN
+        return INF
     else:
         return a / b
 
@@ -49,7 +50,9 @@ ctypedef float64_t (* double_func)(float64_t a, float64_t b)
 #-------------------------------------------------------------------------------
 
 cdef class SparseIndex:
-
+    '''
+    Abstract superclass for sparse index types
+    '''
     def __init__(self):
         raise NotImplementedError
 

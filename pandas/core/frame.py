@@ -416,19 +416,20 @@ class DataFrame(Picklable, Groupable):
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
+        Convert to SparseDataFrame
 
         Parameters
         ----------
         fill_value : float, default NaN
         kind : {'block', 'integer'}
+
+        Returns
+        -------
+        y : SparseDataFrame
         """
         from pandas.core.sparse import SparseDataFrame
-
-        sparse_data = {}
-        for k, v in self.iteritems():
-            sparse_data[k] = v.to_sparse(fill_value=fill_value, kind=kind)
-
-        return SparseDataFrame(sparse_data, index=self.index)
+        return SparseDataFrame(self._series, index=self.index,
+                               kind=kind, default_fill_value=fill_value)
 
 #-------------------------------------------------------------------------------
 # Magic methods
@@ -863,14 +864,14 @@ class DataFrame(Picklable, Groupable):
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
                 col_counts.append('%s%d  non-null values' %
-                                  (_pfixed(col, space), count))
+                                  (_put_str(col, space), count))
 
             print >> buf, '\n'.join(col_counts)
         else:
-            if len(columns) <= 2:
-                print >> buf, 'Columns: %s' % repr(columns)
+            if len(cols) <= 2:
+                print >> buf, 'Columns: %s' % repr(cols)
             else:
-                print >> buf, 'Columns: %s to %s' % (columns[0], columns[-1])
+                print >> buf, 'Columns: %s to %s' % (cols[0], cols[-1])
 
         counts = self._get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
@@ -962,7 +963,7 @@ class DataFrame(Picklable, Groupable):
         if len(columns) == 0:
             return np.zeros((0, 0))
 
-        return np.array([self[col] for col in columns]).T
+        return np.array([self[col].values for col in columns]).T
 
     asMatrix = as_matrix
     # For DataMatrix compatibility
@@ -2450,20 +2451,20 @@ def _pfixed(s, space, nanRep=None, float_format=None):
     if isinstance(s, float):
         if nanRep is not None and isnull(s):
             if np.isnan(s):
-                return nanRep.ljust(space)
-            else:
-                return ('%s' % s).ljust(space)
+                s = nanRep
+            return (' %s' % s).ljust(space)
 
         if float_format:
             formatted = float_format(s)
         else:
-            is_pos = s >= 0
+            is_neg = s < 0
             formatted = '%.4g' % np.abs(s)
 
-            if is_pos:
-                formatted = ' ' + formatted
-            else:
+            if is_neg:
                 formatted = '-' + formatted
+            else:
+                formatted = ' ' + formatted
+
         return formatted.ljust(space)
     else:
         return (' %s' % s)[:space].ljust(space)
