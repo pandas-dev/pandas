@@ -24,7 +24,10 @@ cdef inline float64_t __sub(float64_t a, float64_t b):
     return a - b
 cdef inline float64_t __div(float64_t a, float64_t b):
     if b == 0:
-        return INF
+        if a >= 0:
+            return INF
+        else:
+            return -INF
     else:
         return a / b
 

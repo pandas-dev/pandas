@@ -176,6 +176,10 @@ class Series(np.ndarray, Picklable, Groupable):
 
         return subarr
 
+    # @property
+    # def _constructor(self):
+    #     return Series
+
     def __hash__(self):
         raise TypeError('unhashable type')
 
@@ -277,10 +281,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
         # is there a case where this would NOT be an ndarray?
         # need to find an example, I took out the case for now
-
         dataSlice = values[key]
-        indices = Index(self.index.view(ndarray)[key])
-        return Series(dataSlice, index=indices)
+        new_index = Index(self.index.view(ndarray)[key])
+        return Series(dataSlice, index=new_index)
 
     def get(self, key, default=None):
         """
@@ -311,12 +314,9 @@ class Series(np.ndarray, Picklable, Groupable):
 
         The reason that the getslice returns copies is that otherwise you
         will have a reference to the original series which could be
-        inadvertently changed if the slice were altered (made mutable).
+        inadvertently changed
         """
-        newArr = self.values[i:j].copy()
-        newIndex = self.index[i:j]
-
-        return Series(newArr, index=newIndex)
+        return Series(self.values[i:j].copy(), index=self.index[i:j])
 
     def __setitem__(self, key, value):
         """

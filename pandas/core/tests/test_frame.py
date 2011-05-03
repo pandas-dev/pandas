@@ -1696,5 +1696,7 @@ class TestDataFrame(unittest.TestCase):
         desc = self.frame.describe()
 
 if __name__ == '__main__':
-    unittest.main()
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
 

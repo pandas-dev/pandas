@@ -3,7 +3,7 @@ Data structures for sparse float data. Life is made simpler by dealing only with
 float64 data
 """
 
-from numpy import nan
+from numpy import nan, ndarray
 import numpy as np
 
 import operator
@@ -214,6 +214,21 @@ class SparseSeries(Series):
         subarr.index = index
         return subarr
 
+    @property
+    def _constructor(self):
+        def make_sp_series(data, index=None):
+            return SparseSeries(data, index=index, fill_value=self.fill_value,
+                                kind=self.kind)
+
+        return make_sp_series
+
+    @property
+    def kind(self):
+        if isinstance(self.sp_index, BlockIndex):
+            return 'block'
+        elif isinstance(self.sp_index, IntIndex):
+            return 'integer'
+
     def __array_finalize__(self, obj):
         """
         Gets called after any ufunc or other array operations, necessary
@@ -222,6 +237,21 @@ class SparseSeries(Series):
         self._index = getattr(obj, '_index', None)
         self.sp_index = getattr(obj, 'sp_index', None)
         self.fill_value = getattr(obj, 'fill_value', None)
+
+    # TODO
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(ndarray.__reduce__(self))
+        subclass_state = (self.index, )
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+        nd_state, own_state = state
+        ndarray.__setstate__(self, nd_state)
+        index, = own_state
+        self.index = index
 
     def __len__(self):
         return self.sp_index.length
@@ -247,9 +277,78 @@ class SparseSeries(Series):
     __idiv__ = __div__
     __ipow__ = __pow__
 
+    def __getitem__(self, key):
+        """
+
+        """
+        try:
+            return self._get_val_at(self.index.indexMap[key])
+
+        except KeyError:
+            if isinstance(key, (int, np.integer)):
+                return self._get_val_at(key)
+            raise Exception('Requested index not in this series!')
+
+        except TypeError:
+            # Could not hash item, must be array-like?
+            pass
+
+        # is there a case where this would NOT be an ndarray?
+        # need to find an example, I took out the case for now
+
+        dataSlice = self.values[key]
+        new_index = Index(self.index.view(ndarray)[key])
+        return self._constructor(dataSlice, index=new_index)
+
+    def _get_val_at(self, loc):
+        sp_loc = self.sp_index.lookup(loc)
+        if sp_loc == -1:
+            return self.fill_value
+        else:
+            return self.sp_values[sp_loc]
+
+    def __getslice__(self, i, j):
+        return self._constructor(self.values[i:j], index=self.index[i:j])
+
+    def get(self, key, default=None):
+        """
+        Returns value occupying requested index, default to specified
+        missing value if not present
+
+        Parameters
+        ----------
+        key : object
+            Index value looking for
+        default : object, optional
+            Value to return if key not in index
+
+        Returns
+        -------
+        y : scalar
+        """
+        if key in self.index:
+            return ndarray.__getitem__(self, self.index.indexMap[key])
+        else:
+            return default
+
+    def __setitem__(self, key, value):
+        """
+        If this series is mutable, set specified indices equal to given values.
+        """
+        try:
+            loc = self.index.indexMap[key]
+            ndarray.__setitem__(self, loc, value)
+        except Exception:
+            values = self.values
+            values[key] = value
+
+    def __setslice__(self, i, j, value):
+        """Set slice equal to given value(s)"""
+        ndarray.__setslice__(self, i, j, value)
+
     @property
     def values(self):
-        output = np.empty(self.sp_index.length, dtype=np.float64)
+        output = np.empty(len(self), dtype=np.float64)
         int_index = self.sp_index.to_int_index()
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
@@ -306,7 +405,6 @@ class SparseSeries(Series):
         indexer, mask = self.index.get_indexer(new_index, method=method)
         new_values = values.take(indexer)
 
-        # TODO: always use NaN here?
         notmask = -mask
         if notmask.any():
             np.putmask(new_values, notmask, nan)
@@ -399,6 +497,11 @@ class SparseDataFrame(DataFrame):
         DataFrame.__init__(self, data, index=index, columns=columns,
                            dtype=None)
 
+    def __array_wrap__(self, result):
+        return SparseDataFrame(result, index=self.index, columns=self.columns,
+                               kind=self.default_kind,
+                               default_fill_value=self.default_fill_value)
+
     @property
     def _constructor(self):
         return SparseDataFrame
@@ -436,11 +539,22 @@ class SparseDataFrame(DataFrame):
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)
+        nan_vec = np.empty(len(index))
+        nan_vec.fill(nan)
         for c in columns:
             if c not in sdict:
-                sdict[c] = sp_maker([])
+                sdict[c] = sp_maker(nan_vec)
 
         return sdict, columns, index
+
+    def copy(self):
+        """
+        Make a deep copy of this frame
+        """
+        return SparseDataFrame(self._series, index=self.index,
+                               columns=self.columns,
+                               default_fill_value=self.default_fill_value,
+                               kind=self.default_kind)
 
     def _insert_item(self, key, value):
         if hasattr(value, '__iter__'):
@@ -449,7 +563,8 @@ class SparseDataFrame(DataFrame):
                 if not isinstance(value, SparseSeries):
                     cleanSeries = SparseSeries(cleanSeries)
             else:
-                cleanSeries = Series(value, index=self.index)
+                cleanSeries = SparseSeries(value, index=self.index,
+                                           fill_value=self.default_fill_value)
 
             self._series[key] = cleanSeries
         # Scalar
@@ -497,12 +612,196 @@ class SparseDataFrame(DataFrame):
 
         return SparseDataFrame(new_series, index=index, columns=self.columns)
 
-class SparsePanel(object):
+    def _reindex_columns(self, columns):
+        # TODO: fill value handling
+        sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
+        return self._constructor(sdict, index=self.index, columns=columns)
+
+def stack_sparse_frame(frame, filter_observations=True):
     """
 
     """
+    I, N, K = self.dims
 
+    if filter_observations:
+        mask = np.isfinite(self.values).all(axis=0)
+        size = mask.sum()
+        selector = mask.ravel()
+    else:
+        size = N * K
+        selector = slice(None, None)
+
+    values = np.empty((size, I), dtype=float)
+
+    for i in xrange(len(self.items)):
+        values[:, i] = self.values[i].ravel()[selector]
+
+    major_labels = np.arange(N).repeat(K)[selector]
+
+    # Anyone think of a better way to do this? np.repeat does not
+    # do what I want
+    minor_labels = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
+    minor_labels = minor_labels.ravel()[selector]
+
+    if filter_observations:
+        mask = selector
+    else:
+        mask = None
+
+    index = LongPanelIndex(self.major_axis,
+                           self.minor_axis,
+                           major_labels,
+                           minor_labels,
+                           mask=mask)
+
+    return LongPanel(values, self.items, index)
+
+from pandas.core.panel import WidePanel
+
+class SparsePanel(WidePanel):
+    """
+
+    """
     def __init__(self, frames):
+        self.frames = frames
+        # self.items = Index(sorted(
+
+    def __getitem__(self, key):
+        """
+        """
         pass
 
+    def __setitem__(self, key, value):
+        pass
+
+    def __delitem__(self, key):
+        pass
+
+    def pop(self, key):
+        pass
+
+    #----------------------------------------------------------------------
+    # pickling
+
+    def __getstate__(self):
+        pass
+
+    def __setstate__(self, state):
+        pass
+
+    @property
+    def values(self):
+        """
+
+        """
+        pass
+
+    @classmethod
+    def from_dict(cls, data, intersect=False):
+        pass
+
+    def copy(self):
+        pass
+
+    def to_long(self):
+        pass
+
+    def reindex(self, major=None, items=None, minor=None, method=None):
+        result = self
+
+        if major is not None:
+            result = result._reindex_axis(major, method, 1)
+
+        if minor is not None:
+            result = result._reindex_axis(minor, method, 2)
+
+        if items is not None:
+            result = result._reindex_axis(items, method, 0)
+
+        if result is self:
+            raise ValueError('Must specify at least one axis')
+
+        return result
+
+    def _combine(self, other, func, axis=0):
+        if isinstance(other, DataFrame):
+            return self._combineFrame(other, func, axis=axis)
+        elif isinstance(other, Panel):
+            return self._combinePanel(other, func)
+        elif np.isscalar(other):
+            newValues = func(self.values, other)
+
+            return WidePanel(newValues, self.items, self.major_axis,
+                             self.minor_axis)
+
+    def _combineFrame(self, other, func, axis=0):
+        index, columns = self._get_plane_axes(axis)
+        axis = self._get_axis_number(axis)
+
+        other = other.reindex(index=index, columns=columns)
+
+        if axis == 0:
+            newValues = func(self.values, other.values)
+        elif axis == 1:
+            newValues = func(self.values.swapaxes(0, 1), other.values.T)
+            newValues = newValues.swapaxes(0, 1)
+        elif axis == 2:
+            newValues = func(self.values.swapaxes(0, 2), other.values)
+            newValues = newValues.swapaxes(0, 2)
+
+        return WidePanel(newValues, self.items, self.major_axis,
+                         self.minor_axis)
+
+    def _combinePanel(self, other, func):
+        if isinstance(other, LongPanel):
+            other = other.to_wide()
+
+        items = self.items + other.items
+        major = self.major_axis + other.major_axis
+        minor = self.minor_axis + other.minor_axis
+
+        # could check that everything's the same size, but forget it
+
+        this = self.reindex(items=items, major=major, minor=minor)
+        other = other.reindex(items=items, major=major, minor=minor)
+
+        result_values = func(this.values, other.values)
+
+        return WidePanel(result_values, items, major, minor)
+
+    def major_xs(self, key):
+        """
+        Parameters
+        ----------
+
+        Returns
+        -------
+        y : DataMatrix
+            index -> minor axis, columns -> items
+        """
+        try:
+            loc = self.major_axis.indexMap[key]
+        except KeyError:
+            raise KeyError('%s not contained in major axis!' % key)
+
+        mat = np.array(self.values[:, loc, :].T)
+        return DataMatrix(mat, index=self.minor_axis, columns=self.items)
+
+    def minor_xs(self, key):
+        """
+        Parameters
+        ----------
+
+        Returns
+        -------
+        y : DataMatrix
+            index -> major axis, columns -> items
+        """
+        try:
+            loc = self.minor_axis.indexMap[key]
+        except KeyError:
+            raise KeyError('%s not contained in minor axis!' % key)
+
+        mat = np.array(self.values[:, :, loc].T)
+        return DataMatrix(mat, index=self.major_axis, columns=self.items)
 

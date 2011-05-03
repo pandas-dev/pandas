@@ -228,7 +228,7 @@ class WidePanel(Panel, Groupable):
                          self.minor_axis)
 
     @classmethod
-    def fromDict(cls, data, intersect=False, dtype=float):
+    def from_dict(cls, data, intersect=False, dtype=float):
         """
         Construct WidePanel from dict of DataFrame objects
 
@@ -248,6 +248,8 @@ class WidePanel(Panel, Groupable):
         values = np.array([data[k].values for k in items], dtype=dtype)
 
         return cls(values, items, index, columns)
+
+    fromDict = from_dict
 
     def keys(self):
         return list(self.items)
@@ -312,7 +314,7 @@ class WidePanel(Panel, Groupable):
             if len(value.items) != 1:
                 raise ValueError('Input panel must have only one item!')
 
-            value = value.toWide()[value.items[0]]
+            value = value.to_wide()[value.items[0]]
 
         if isinstance(value, DataFrame):
             value = value.reindex(index=self.major_axis,
@@ -449,8 +451,7 @@ class WidePanel(Panel, Groupable):
                              self.minor_axis)
 
     def __neg__(self):
-        return WidePanel(-self.values, self.items, self.major_axis,
-                          self.minor_axis)
+        return -1 * self
 
     def _combineFrame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
@@ -469,6 +470,23 @@ class WidePanel(Panel, Groupable):
 
         return WidePanel(newValues, self.items, self.major_axis,
                          self.minor_axis)
+
+    def _combinePanel(self, other, func):
+        if isinstance(other, LongPanel):
+            other = other.to_wide()
+
+        items = self.items + other.items
+        major = self.major_axis + other.major_axis
+        minor = self.minor_axis + other.minor_axis
+
+        # could check that everything's the same size, but forget it
+
+        this = self.reindex(items=items, major=major, minor=minor)
+        other = other.reindex(items=items, major=major, minor=minor)
+
+        result_values = func(this.values, other.values)
+
+        return WidePanel(result_values, items, major, minor)
 
     def fill(self, value=None, method='pad'): # pragma: no cover
         warnings.warn("fill is being replaced by fillna, and the fill function "
@@ -504,7 +522,7 @@ class WidePanel(Panel, Groupable):
             for col, s in self.iteritems():
                 result[col] = s.fillna(method=method, value=value)
 
-            return WidePanel.fromDict(result)
+            return WidePanel.from_dict(result)
         else:
             # Float type values
             vals = self.values.copy()
@@ -512,23 +530,6 @@ class WidePanel(Panel, Groupable):
 
             return WidePanel(vals, self.items, self.major_axis,
                              self.minor_axis)
-
-    def _combinePanel(self, other, func):
-        if isinstance(other, LongPanel):
-            other = other.toWide()
-
-        items = self.items + other.items
-        major = self.major_axis + other.major_axis
-        minor = self.minor_axis + other.minor_axis
-
-        # could check that everything's the same size, but forget it
-
-        this = self.reindex(items=items, major=major, minor=minor)
-        other = other.reindex(items=items, major=major, minor=minor)
-
-        result_values = func(this.values, other.values)
-
-        return WidePanel(result_values, items, major, minor)
 
     add = _wide_arith_method(operator.add, 'add')
     subtract = _wide_arith_method(operator.sub, 'subtract')
@@ -625,7 +626,7 @@ class WidePanel(Panel, Groupable):
 
         return WidePanel(new_values, *new_axes)
 
-    def toLong(self, filter_observations=True):
+    def to_long(self, filter_observations=True):
         """
         Transform wide format into long (stacked) format
 
@@ -673,6 +674,8 @@ class WidePanel(Panel, Groupable):
                                mask=mask)
 
         return LongPanel(values, self.items, index)
+
+    toLong = to_long
 
     def filter(self, items):
         """
@@ -1217,9 +1220,9 @@ class LongPanel(Panel):
         -------
         y : LongPanel
         """
-        wide = self.toWide()
+        wide = self.to_wide()
         result = wide._combineFrame(other, func, axis=axis)
-        return result.toLong()
+        return result.to_long()
 
     def _combinePanel(self, other, func):
         """
@@ -1278,7 +1281,7 @@ class LongPanel(Panel):
         return LongPanel(new_values, self.items, new_index,
                          factors=new_factors)
 
-    def toWide(self):
+    def to_wide(self):
         """
         Transform long (stacked) format into wide format
 
@@ -1302,6 +1305,8 @@ class LongPanel(Panel):
             values[i].flat[notmask] = np.NaN
 
         return WidePanel(values, self.items, self.major_axis, self.minor_axis)
+
+    toWide = to_wide
 
     def toCSV(self, path):
         def format_cols(items):
@@ -1988,7 +1993,7 @@ def pivot(index, columns, values):
 
         longPanel = LongPanel(valueMat, ['foo'], longIndex)
         longPanel = longPanel.sort()
-        return longPanel.toWide()['foo']
+        return longPanel.to_wide()['foo']
     except PanelError:
         return _slow_pivot(index, columns, values)
 

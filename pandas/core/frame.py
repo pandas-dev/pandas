@@ -642,7 +642,8 @@ class DataFrame(Picklable, Groupable):
             if col in this and col in other:
                 new_data[col] = func(this[col], other[col])
 
-        return DataFrame(data=new_data, index=new_index, columns=new_columns)
+        return self._constructor(data=new_data, index=new_index,
+                                 columns=new_columns)
 
     def _compare_frame(self, other, func):
         if not self._indexed_same(other):
@@ -653,8 +654,8 @@ class DataFrame(Picklable, Groupable):
         for col in self.columns:
             new_data[col] = func(self[col], other[col])
 
-        return DataFrame(data=new_data, index=self.index,
-                         columns=self.columns)
+        return self._constructor(data=new_data, index=self.index,
+                                 columns=self.columns)
 
     def _indexed_same(self, other):
         same_index = self.index.equals(other.index)
@@ -686,12 +687,15 @@ class DataFrame(Picklable, Groupable):
         this = self
         if self.index is not new_index:
             this = self.reindex(new_index)
+
+        if other.index is not new_index:
             other = other.reindex(new_index)
 
         for col, series in this.iteritems():
-            new_data[col] = func(series, other)
+            new_data[col] = func(series.values, other.values)
 
-        return DataFrame(new_data, index=new_index, columns=self.columns)
+        return self._constructor(new_data, index=new_index,
+                                 columns=self.columns)
 
     def _combine_match_columns(self, other, func):
         new_data = {}
@@ -705,15 +709,16 @@ class DataFrame(Picklable, Groupable):
         for col in intersection:
             new_data[col] = func(self[col], other[col])
 
-        return DataFrame(new_data, index=self.index, columns=union)
+        return self._constructor(new_data, index=self.index,
+                                 columns=union)
 
     def _combine_const(self, other, func):
         new_data = {}
         for col, series in self.iteritems():
             new_data[col] = func(series, other)
 
-        return DataFrame(data=new_data, index=self.index,
-                         columns=self.columns)
+        return self._constructor(data=new_data, index=self.index,
+                                 columns=self.columns)
 
 #-------------------------------------------------------------------------------
 # Public methods

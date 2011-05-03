@@ -103,7 +103,7 @@ def assert_dict_equal(a, b, compare_keys=True):
 
 def assert_series_equal(left, right):
     assert_almost_equal(left, right)
-    assert(np.array_equal(left.index, right.index))
+    assert(left.index.equals(right.index))
 
 def assert_frame_equal(left, right):
     for col, series in left.iteritems():

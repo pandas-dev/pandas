@@ -6,7 +6,8 @@ import operator
 from numpy import nan
 import numpy as np
 
-from pandas.util.testing import assert_almost_equal, assert_series_equal
+from pandas.util.testing import (assert_almost_equal, assert_series_equal,
+                                 assert_frame_equal)
 from numpy.testing import assert_equal
 
 from pandas import DataFrame, DateRange
@@ -194,7 +195,30 @@ class TestSparseSeries(TestCase):
         self.assert_(self.bseries.sp_values[0] != 97)
 
     def test_getitem(self):
-        pass
+        def _check_indexing(sp, dense):
+            for idx, val in dense.iteritems():
+                assert_almost_equal(val, sp[idx])
+
+            for i in xrange(len(dense)):
+                assert_almost_equal(sp[i], dense[i])
+
+        _check_indexing(self.bseries, self.bseries.to_dense())
+        _check_indexing(self.zbseries, self.zbseries.to_dense())
+        _check_indexing(self.iseries, self.iseries.to_dense())
+        _check_indexing(self.ziseries, self.ziseries.to_dense())
+
+    def test_getitem_fancy_index(self):
+        idx = self.bseries.index
+        res = self.bseries[::2]
+        self.assert_(isinstance(res, SparseSeries))
+        assert_sp_series_equal(res, self.bseries.reindex(idx[::2]))
+
+        res = self.bseries[:5]
+        self.assert_(isinstance(res, SparseSeries))
+        assert_sp_series_equal(res, self.bseries.reindex(idx[:5]))
+
+        res = self.bseries[5:]
+        assert_sp_series_equal(res, self.bseries.reindex(idx[5:]))
 
     def test_setitem(self):
         pass
@@ -337,6 +361,8 @@ class TestSparseDataFrame(TestCase):
         self.dates = DateRange('1/1/2011', periods=10)
 
         self.frame = SparseDataFrame(self.data, index=self.dates)
+        self.iframe = SparseDataFrame(self.data, index=self.dates,
+                                      kind='integer')
 
         values = self.frame.values.copy()
         values[np.isnan(values)] = 0
@@ -345,9 +371,38 @@ class TestSparseDataFrame(TestCase):
                                       default_fill_value=0,
                                       index=self.dates)
 
+        values = self.frame.values.copy()
+        values[np.isnan(values)] = 2
+        self.fill_frame = SparseDataFrame(values, columns=['A', 'B', 'C', 'D'],
+                                          default_fill_value=2,
+                                          index=self.dates)
+
+    def test_copy(self):
+        cp = self.frame.copy()
+        self.assert_(isinstance(cp, SparseDataFrame))
+        assert_sp_frame_equal(cp, self.frame)
+        self.assert_(cp.index is self.frame.index)
+
+        # TODO: Test that DATA is copied!
+
     def test_constructor(self):
         for col, series in self.frame.iteritems():
             self.assert_(isinstance(series, SparseSeries))
+
+        self.assert_(isinstance(self.iframe['A'].sp_index, IntIndex))
+
+        # construct from nested dict
+        data = {}
+        for c, s in self.frame.iteritems():
+            data[c] = s.toDict()
+
+        sdf = SparseDataFrame(data)
+        assert_sp_frame_equal(sdf, self.frame)
+
+    def test_array_interface(self):
+        res = np.sqrt(self.frame)
+        dres = np.sqrt(self.frame.to_dense())
+        assert_frame_equal(res.to_dense(), dres)
 
     def test_dense_to_sparse(self):
         df = DataFrame({'A' : [nan, nan, nan, 1, 2],
@@ -371,49 +426,98 @@ class TestSparseDataFrame(TestCase):
         pass
 
     def test_sparse_series_ops(self):
-        def _compare_to_dense(a, b, op, fill=np.NaN):
-            sparse_result = op(a, b)
-            dense_result = op(a.to_dense(), b.to_dense())
-            dense_result = dense_result.to_sparse(fill_value=fill)
-            assert_sp_frame_equal(sparse_result, dense_result,
-                                  exact_indices=False)
+        self._check_frame_ops(self.frame)
+        self._check_frame_ops(self.iframe)
 
-        def _compare_to_dense_rev(a, b, op):
-            sparse_result = op(b, a)
-            dense_result = op(b.to_dense(), a.to_dense())
-            dense_result = dense_result.to_sparse(fill_value=a.fill_value)
+        self._check_frame_ops(self.zframe)
+        self._check_frame_ops(self.fill_frame)
+
+    def _check_frame_ops(self, frame):
+        def _compare_to_dense(a, b, da, db, op, fill=np.NaN):
+            sparse_result = op(a, b)
+            dense_result = op(da, db)
+            dense_result = dense_result.to_sparse(fill_value=fill)
             assert_sp_frame_equal(sparse_result, dense_result,
                                   exact_indices=False)
 
         opnames = ['add', 'sub', 'mul', 'div']
         ops = [getattr(operator, name) for name in opnames]
 
-        fidx = self.frame.index
+        fidx = frame.index
 
         # time series operations
 
-        series = [self.frame['A'],
-                  self.frame['B'],
-                  self.frame['C'],
-                  self.frame['D'],
-                  self.frame['A'].reindex(fidx[:7]),
-                  self.frame['A'].reindex(fidx[::2])]
+        series = [frame['A'], frame['B'],
+                  frame['C'], frame['D'],
+                  frame['A'].reindex(fidx[:7]),
+                  frame['A'].reindex(fidx[::2]),
+                  SparseSeries([], index=[])]
 
         for op in ops:
             for s in series:
-                _compare_to_dense(self.frame, s, op)
-                _compare_to_dense(s, self.frame, op)
+                _compare_to_dense(frame, s, frame.to_dense(),
+                                  s.to_dense(), op)
+                _compare_to_dense(s, frame, s.to_dense(),
+                                  frame.to_dense(), op)
 
         # cross-sectional operations
+        series = [frame.xs(fidx[0]),
+                  frame.xs(fidx[3]),
+                  frame.xs(fidx[5]),
+                  frame.xs(fidx[7]),
+                  frame.xs(fidx[5])[:2]]
 
-
-        # TODO: fill value consistency?
+        for op in ops:
+            for s in series:
+                _compare_to_dense(frame, s, frame.to_dense(),
+                                  s, op)
+                _compare_to_dense(s, frame, s,
+                                  frame.to_dense(), op)
 
     def test_scalar_ops(self):
         pass
+
+    def test_insert_col(self):
+        sdf = self.frame.copy()
+
+        # insert SparseSeries
+        sdf['E'] = sdf['A']
+        self.assert_(isinstance(sdf['E'], SparseSeries))
+        assert_sp_series_equal(sdf['E'], sdf['A'])
+
+        # TODO insert SparseSeries differently-indexed
+        sdf['E'] = sdf['A'][::2]
+
+        # insert Series
+        sdf['F'] = sdf['A'].to_dense()
+        self.assert_(isinstance(sdf['F'], SparseSeries))
+        assert_sp_series_equal(sdf['F'], sdf['A'])
+
+        # insert Series differently-indexed
+
+        # insert ndarray
+
+        # insert ndarray wrong size
+
+
+    def test_corr(self):
+        res = self.frame.corr()
+        self.assert_(isinstance(res, SparseDataFrame))
+        assert_frame_equal(res.to_dense(), self.frame.to_dense().corr())
+
+    def test_reindex(self):
+        # propagate CORRECT fill value
+
+        pass
+
+class TestSparseWidePanel(TestCase):
+    pass
 
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
 
+    # nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',
+    #                      '--with-profile'],
+    #                exit=False)
