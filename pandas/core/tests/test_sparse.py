@@ -211,6 +211,7 @@ class TestSparseSeries(TestCase):
             pickled = pickle.dumps(series)
             unpickled = pickle.loads(pickled)
             assert_sp_series_equal(series, unpickled)
+            assert_series_equal(series.to_dense(), unpickled.to_dense())
 
         _test_roundtrip(self.bseries)
         _test_roundtrip(self.iseries)
@@ -218,19 +219,23 @@ class TestSparseSeries(TestCase):
         _test_roundtrip(self.ziseries)
 
     def test_getitem(self):
-        def _check_indexing(sp, dense):
+        def _check_getitem(sp, dense):
             for idx, val in dense.iteritems():
                 assert_almost_equal(val, sp[idx])
 
             for i in xrange(len(dense)):
                 assert_almost_equal(sp[i], dense[i])
 
-        _check_indexing(self.bseries, self.bseries.to_dense())
-        _check_indexing(self.btseries, self.btseries.to_dense())
+            # negative getitem works
+            for i in xrange(len(dense)):
+                assert_almost_equal(sp[-i], dense[-i])
 
-        _check_indexing(self.zbseries, self.zbseries.to_dense())
-        _check_indexing(self.iseries, self.iseries.to_dense())
-        _check_indexing(self.ziseries, self.ziseries.to_dense())
+        _check_getitem(self.bseries, self.bseries.to_dense())
+        _check_getitem(self.btseries, self.btseries.to_dense())
+
+        _check_getitem(self.zbseries, self.zbseries.to_dense())
+        _check_getitem(self.iseries, self.iseries.to_dense())
+        _check_getitem(self.ziseries, self.ziseries.to_dense())
 
         # exception handling
         self.assertRaises(Exception, self.bseries.__getitem__,
@@ -239,6 +244,10 @@ class TestSparseSeries(TestCase):
         # index not contained
         self.assertRaises(Exception, self.btseries.__getitem__,
                           self.btseries.index[-1] + BDay())
+
+    def test_get(self):
+        assert_almost_equal(self.bseries.get(10), self.bseries[10])
+        self.assert_(self.bseries.get(len(self.bseries) + 1) is None)
 
     def test_getitem_fancy_index(self):
         idx = self.bseries.index
@@ -253,17 +262,15 @@ class TestSparseSeries(TestCase):
         res = self.bseries[5:]
         assert_sp_series_equal(res, self.bseries.reindex(idx[5:]))
 
-    def test_setitem(self):
+    def test_getslice(self):
         pass
 
-    def test_slice(self):
-        pass
+    def test_setitem(self):
+        self.assertRaises(Exception, self.bseries.__setitem__, 5, 7.)
+        self.assertRaises(Exception, self.iseries.__setitem__, 5, 7.)
 
     def test_setslice(self):
-        pass
-
-    def test_serialize(self):
-        pass
+        self.assertRaises(Exception, lambda: eval('self.bseries[5:10] = 10'))
 
     def test_operators(self):
         def _check_op(a, b, op):

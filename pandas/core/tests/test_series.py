@@ -885,5 +885,9 @@ class TestSeries(unittest.TestCase):
                 self.assertEqual(transformed[idx], mean)
 
 
+
 if __name__ == '__main__':
-    unittest.main()
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
+

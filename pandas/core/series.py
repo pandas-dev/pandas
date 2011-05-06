@@ -302,9 +302,13 @@ class Series(np.ndarray, Picklable, Groupable):
         y : scalar
         """
         if key in self.index:
-            return ndarray.__getitem__(self, self.index.indexMap[key])
+            return self._get_val_at(self.index.indexMap[key])
         else:
             return default
+
+    # help out SparseSeries
+    def _get_val_at(self, i):
+        return _ndgi(self, i)
 
     def __getslice__(self, i, j):
         """
@@ -319,9 +323,6 @@ class Series(np.ndarray, Picklable, Groupable):
         return Series(self.values[i:j].copy(), index=self.index[i:j])
 
     def __setitem__(self, key, value):
-        """
-        If this series is mutable, set specified indices equal to given values.
-        """
         try:
             loc = self.index.indexMap[key]
             ndarray.__setitem__(self, loc, value)
@@ -1286,6 +1287,8 @@ class TimeSeries(Series):
 
 #-------------------------------------------------------------------------------
 # Supplementary functions
+
+_ndgi = ndarray.__getitem__
 
 def remove_na(arr):
     """

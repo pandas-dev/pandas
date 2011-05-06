@@ -154,6 +154,12 @@ class SparseSeries(Series):
     kind : {'block', 'integer'}
     fill_value : float
         Defaults to NaN (code for missing)
+
+    Notes
+    -----
+    SparseSeries objects are immutable via the typical Python means. If you must
+    change values, convert to dense, make your changes, then convert back to
+    sparse
     """
     sp_index = None
     fill_value = None
@@ -281,6 +287,18 @@ class SparseSeries(Series):
     __idiv__ = __div__
     __ipow__ = __pow__
 
+    @property
+    def values(self):
+        output = np.empty(len(self), dtype=np.float64)
+        int_index = self.sp_index.to_int_index()
+        output.fill(self.fill_value)
+        output.put(int_index.indices, self)
+        return output
+
+    @property
+    def sp_values(self):
+        return np.asarray(self)
+
     def __getitem__(self, key):
         """
 
@@ -321,53 +339,11 @@ class SparseSeries(Series):
     def __getslice__(self, i, j):
         return self._constructor(self.values[i:j], index=self.index[i:j])
 
-    def get(self, key, default=None):
-        """
-        Returns value occupying requested index, default to specified
-        missing value if not present
-
-        Parameters
-        ----------
-        key : object
-            Index value looking for
-        default : object, optional
-            Value to return if key not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        if key in self.index:
-            return ndarray.__getitem__(self, self.index.indexMap[key])
-        else:
-            return default
-
     def __setitem__(self, key, value):
-        """
-        If this series is mutable, set specified indices equal to given values.
-        """
-        try:
-            loc = self.index.indexMap[key]
-            ndarray.__setitem__(self, loc, value)
-        except Exception:
-            values = self.values
-            values[key] = value
+        raise Exception('SparseSeries objects are immutable')
 
     def __setslice__(self, i, j, value):
-        """Set slice equal to given value(s)"""
-        ndarray.__setslice__(self, i, j, value)
-
-    @property
-    def values(self):
-        output = np.empty(len(self), dtype=np.float64)
-        int_index = self.sp_index.to_int_index()
-        output.fill(self.fill_value)
-        output.put(int_index.indices, self)
-        return output
-
-    @property
-    def sp_values(self):
-        return np.asarray(self)
+        raise Exception('SparseSeries objects are immutable')
 
     def to_dense(self, sparse_only=False):
         """
