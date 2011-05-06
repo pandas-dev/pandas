@@ -187,7 +187,9 @@ cdef class IntIndex(SparseIndex):
 
         inds = self.indices
         res = inds.searchsorted(index)
-        if inds[res] == index:
+        if res == self.npoints:
+            return -1
+        elif inds[res] == index:
             return res
         else:
             return -1
@@ -247,6 +249,7 @@ cdef class BlockIndex(SparseIndex):
         ndarray blocs, blengths
 
     cdef:
+        object __weakref__ # need to be picklable
         int32_t* locbuf, *lenbuf
 
     def __init__(self, length, blocs, blengths):
@@ -266,6 +269,10 @@ cdef class BlockIndex(SparseIndex):
         # self.block_end = blocs + blengths
 
         self.check_integrity()
+
+    def __reduce__(self):
+        args = (self.length, self.blocs, self.blengths)
+        return (BlockIndex, args)
 
     def __repr__(self):
         output = 'sparse.BlockIndex\n'
@@ -436,7 +443,7 @@ cdef class BlockIndex(SparseIndex):
         Returns -1 if not found
         '''
         cdef:
-            pyst i, cum_len = 0
+            pyst i, cum_len
             ndarray[int32_t, ndim=1] locs, lens
 
         locs = self.blocs
@@ -447,8 +454,9 @@ cdef class BlockIndex(SparseIndex):
         elif index < locs[0]:
             return -1
 
+        cum_len = 0
         for i from 0 <= i < self.nblocks:
-            if index < locs[i] + lens[i]:
+            if index >= locs[i] and index < locs[i] + lens[i]:
                 return cum_len + index - locs[i]
             cum_len += lens[i]
 

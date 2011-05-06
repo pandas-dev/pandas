@@ -100,6 +100,10 @@ class TestSparseSeries(TestCase):
         self.ziseries2 = SparseSeries(arr, index=index, kind='integer',
                                       fill_value=0)
 
+    def test_kind(self):
+        self.assertEquals(self.bseries.kind, 'block')
+        self.assertEquals(self.iseries.kind, 'integer')
+
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
         series = self.bseries.to_dense()

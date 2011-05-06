@@ -29,7 +29,7 @@ def make_sparse(arr, kind='block', fill_value=nan):
 
     Returns
     -------
-    vector : SparseVector
+    (sparse_values, index) : (ndarray, SparseIndex)
     """
     arr = np.asarray(arr)
     length = len(arr)
