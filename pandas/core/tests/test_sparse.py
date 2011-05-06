@@ -11,6 +11,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
 from numpy.testing import assert_equal
 
 from pandas import DataFrame, DateRange
+from pandas.core.datetools import BDay
 from pandas.core.series import remove_na
 from pandas.core.sparse import (IntIndex, BlockIndex,
                                 SparseSeries, SparseDataFrame)
@@ -81,7 +82,12 @@ class TestSparseSeries(TestCase):
 
     def setUp(self):
         arr, index = _test_data1()
+
+        date_index = DateRange('1/1/2011', periods=len(index))
+
         self.bseries = SparseSeries(arr, index=index, kind='block')
+        self.btseries = SparseSeries(arr, index=date_index, kind='block')
+
         self.iseries = SparseSeries(arr, index=index, kind='integer')
 
         arr, index = _test_data2()
@@ -99,10 +105,6 @@ class TestSparseSeries(TestCase):
                                       fill_value=0)
         self.ziseries2 = SparseSeries(arr, index=index, kind='integer',
                                       fill_value=0)
-
-    def test_kind(self):
-        self.assertEquals(self.bseries.kind, 'block')
-        self.assertEquals(self.iseries.kind, 'integer')
 
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
@@ -198,6 +200,23 @@ class TestSparseSeries(TestCase):
         self.assert_(cop.sp_values[0] == 97)
         self.assert_(self.bseries.sp_values[0] != 97)
 
+    def test_kind(self):
+        self.assertEquals(self.bseries.kind, 'block')
+        self.assertEquals(self.iseries.kind, 'integer')
+
+    def test_pickle(self):
+        import pickle
+
+        def _test_roundtrip(series):
+            pickled = pickle.dumps(series)
+            unpickled = pickle.loads(pickled)
+            assert_sp_series_equal(series, unpickled)
+
+        _test_roundtrip(self.bseries)
+        _test_roundtrip(self.iseries)
+        _test_roundtrip(self.zbseries)
+        _test_roundtrip(self.ziseries)
+
     def test_getitem(self):
         def _check_indexing(sp, dense):
             for idx, val in dense.iteritems():
@@ -207,9 +226,19 @@ class TestSparseSeries(TestCase):
                 assert_almost_equal(sp[i], dense[i])
 
         _check_indexing(self.bseries, self.bseries.to_dense())
+        _check_indexing(self.btseries, self.btseries.to_dense())
+
         _check_indexing(self.zbseries, self.zbseries.to_dense())
         _check_indexing(self.iseries, self.iseries.to_dense())
         _check_indexing(self.ziseries, self.ziseries.to_dense())
+
+        # exception handling
+        self.assertRaises(Exception, self.bseries.__getitem__,
+                          len(self.bseries) + 1)
+
+        # index not contained
+        self.assertRaises(Exception, self.btseries.__getitem__,
+                          self.btseries.index[-1] + BDay())
 
     def test_getitem_fancy_index(self):
         idx = self.bseries.index

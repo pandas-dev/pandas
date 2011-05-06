@@ -131,6 +131,7 @@ class GroupBy(object):
         """
         Compute sum of values, excluding missing values
         """
+        # TODO: make NaN-friendly
         return self.aggregate(np.sum)
 
     def __getitem__(self, key):

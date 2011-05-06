@@ -238,11 +238,11 @@ class SparseSeries(Series):
         self.sp_index = getattr(obj, 'sp_index', None)
         self.fill_value = getattr(obj, 'fill_value', None)
 
-    # TODO
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(ndarray.__reduce__(self))
-        subclass_state = (self.index, )
+
+        subclass_state = (self.index, self.fill_value, self.sp_index)
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -250,7 +250,11 @@ class SparseSeries(Series):
         """Necessary for making this object picklable"""
         nd_state, own_state = state
         ndarray.__setstate__(self, nd_state)
-        index, = own_state
+
+        index, fill_value, sp_index = own_state
+
+        self.sp_index = sp_index
+        self.fill_value = fill_value
         self.index = index
 
     def __len__(self):
@@ -301,6 +305,13 @@ class SparseSeries(Series):
         return self._constructor(dataSlice, index=new_index)
 
     def _get_val_at(self, loc):
+        n = len(self)
+        if loc < 0:
+            loc += n
+
+        if loc >= len(self) or loc < 0:
+            raise Exception('Out of bounds access')
+
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
             return self.fill_value

@@ -78,8 +78,12 @@ cdef class IntIndex(SparseIndex):
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
 
+    def __reduce__(self):
+        args = (self.length, self.indices)
+        return (IntIndex, args)
+
     def __repr__(self):
-        output = 'sparse.IntIndex\n'
+        output = 'IntIndex\n'
         output += 'Indices: %s\n' % repr(self.indices)
         return output
 
@@ -275,7 +279,7 @@ cdef class BlockIndex(SparseIndex):
         return (BlockIndex, args)
 
     def __repr__(self):
-        output = 'sparse.BlockIndex\n'
+        output = 'BlockIndex\n'
         output += 'Block locations: %s\n' % repr(self.blocs)
         output += 'Block lengths: %s' % repr(self.blengths)
 

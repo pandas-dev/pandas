@@ -5,10 +5,10 @@ from numpy.distutils.core import setup
 import numpy
 from Cython.Distutils import build_ext
 
-pyx_ext = Extension('tseries', ['src/tseries.pyx'],
+pyx_ext = Extension('pandas.lib.tseries', ['pandas/lib/src/tseries.pyx'],
                     include_dirs=[numpy.get_include()])
 
-sparse_ext = Extension('pandas.lib.sparse', ['src/sparse.pyx'],
+sparse_ext = Extension('pandas.lib.sparse', ['pandas/lib/src/sparse.pyx'],
                        include_dirs=[numpy.get_include()])
 
 setup(name='pandas.lib.tseries', description='Nothing',
