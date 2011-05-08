@@ -3,8 +3,11 @@
 from unittest import TestCase
 import operator
 
+import nose
+
 from numpy import nan
 import numpy as np
+dec = np.testing.dec
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal)
@@ -200,6 +203,13 @@ class TestSparseSeries(TestCase):
         self.assert_(cop.sp_values[0] == 97)
         self.assert_(self.bseries.sp_values[0] != 97)
 
+        # correct fill value
+        zbcop = self.zbseries.copy()
+        zicop = self.ziseries.copy()
+
+        assert_sp_series_equal(zbcop, self.zbseries)
+        assert_sp_series_equal(zicop, self.ziseries)
+
     def test_kind(self):
         self.assertEquals(self.bseries.kind, 'block')
         self.assertEquals(self.iseries.kind, 'integer')
@@ -270,7 +280,7 @@ class TestSparseSeries(TestCase):
         self.assertRaises(Exception, self.iseries.__setitem__, 5, 7.)
 
     def test_setslice(self):
-        self.assertRaises(Exception, lambda: eval('self.bseries[5:10] = 10'))
+        self.assertRaises(Exception, self.bseries.__setslice__, 5, 10, 7.)
 
     def test_operators(self):
         def _check_op(a, b, op):
@@ -311,6 +321,19 @@ class TestSparseSeries(TestCase):
         check(self.zbseries, self.zbseries2)
         check(self.ziseries, self.ziseries2)
 
+    def test_operators_corner(self):
+        self.assertRaises(Exception, self.bseries.__add__,
+                          self.bseries.to_dense())
+
+    # @dec.knownfailureif(True, 'Known NumPy failer as of 1.5.1')
+    def test_operators_corner2(self):
+        raise nose.SkipTest('known failer on numpy 1.5.1')
+
+        # NumPy circumvents __r*__ operations
+        val = np.float64(3.0)
+        result = val - self.zbseries
+        assert_sp_series_equal(result, 3 - self.zbseries)
+
     def test_reindex(self):
         def _compare_with_series(sps, new_index):
             spsre = sps.reindex(new_index)
@@ -342,7 +365,8 @@ class TestSparseSeries(TestCase):
         _compare_with_series(sp, np.arange(10))
 
     def test_repr(self):
-        pass
+        bsrepr = repr(self.bseries)
+        isrepr = repr(self.iseries)
 
     def test_iter(self):
         pass
@@ -431,6 +455,11 @@ class TestSparseDataFrame(TestCase):
 
         self.assert_(isinstance(self.iframe['A'].sp_index, IntIndex))
 
+        # constructed zframe from matrix above
+        self.assertEquals(self.zframe['A'].fill_value, 0)
+        assert_almost_equal([0, 0, 0, 0, 1, 2, 3, 4, 5, 6],
+                            self.zframe['A'].values)
+
         # construct from nested dict
         data = {}
         for c, s in self.frame.iteritems():
@@ -438,6 +467,8 @@ class TestSparseDataFrame(TestCase):
 
         sdf = SparseDataFrame(data)
         assert_sp_frame_equal(sdf, self.frame)
+
+        # TODO: test data is copied from inputs
 
     def test_array_interface(self):
         res = np.sqrt(self.frame)
@@ -468,9 +499,8 @@ class TestSparseDataFrame(TestCase):
     def test_sparse_series_ops(self):
         self._check_frame_ops(self.frame)
         self._check_frame_ops(self.iframe)
-
-        self._check_frame_ops(self.zframe)
         self._check_frame_ops(self.fill_frame)
+        self._check_frame_ops(self.zframe)
 
     def _check_frame_ops(self, frame):
         def _compare_to_dense(a, b, da, db, op, fill=np.NaN):
@@ -517,28 +547,56 @@ class TestSparseDataFrame(TestCase):
     def test_scalar_ops(self):
         pass
 
-    def test_insert_col(self):
-        sdf = self.frame.copy()
+    def test_insert_item(self):
+        def _check_frame(frame):
+            N = len(frame)
 
-        # insert SparseSeries
-        sdf['E'] = sdf['A']
-        self.assert_(isinstance(sdf['E'], SparseSeries))
-        assert_sp_series_equal(sdf['E'], sdf['A'])
+            # insert SparseSeries
+            frame['E'] = frame['A']
+            self.assert_(isinstance(frame['E'], SparseSeries))
+            assert_sp_series_equal(frame['E'], frame['A'])
 
-        # TODO insert SparseSeries differently-indexed
-        sdf['E'] = sdf['A'][::2]
+            # insert SparseSeries differently-indexed
+            to_insert = frame['A'][::2]
+            frame['E'] = to_insert
+            assert_series_equal(frame['E'].to_dense(),
+                                to_insert.to_dense().reindex(frame.index))
 
-        # insert Series
-        sdf['F'] = sdf['A'].to_dense()
-        self.assert_(isinstance(sdf['F'], SparseSeries))
-        assert_sp_series_equal(sdf['F'], sdf['A'])
+            # insert Series
+            frame['F'] = frame['A'].to_dense()
+            self.assert_(isinstance(frame['F'], SparseSeries))
+            assert_sp_series_equal(frame['F'], frame['A'])
 
-        # insert Series differently-indexed
+            # insert Series differently-indexed
+            to_insert = frame['A'].to_dense()[::2]
+            frame['G'] = to_insert
+            assert_series_equal(frame['G'].to_dense(),
+                                to_insert.reindex(frame.index))
 
-        # insert ndarray
+            # insert ndarray
+            frame['H'] = np.random.randn(N)
+            self.assert_(isinstance(frame['H'], SparseSeries))
 
-        # insert ndarray wrong size
+            to_sparsify = np.random.randn(N)
+            to_sparsify[N // 2:] = frame.default_fill_value
+            frame['I'] = to_sparsify
+            self.assertEquals(len(frame['I'].sp_values), N // 2)
 
+            # insert ndarray wrong size
+            self.assertRaises(Exception, frame.__setitem__, 'foo',
+                              np.random.randn(N - 1))
+
+            # scalar value
+            frame['J'] = 5
+            self.assertEquals(len(frame['J'].sp_values), N)
+            self.assert_((frame['J'].sp_values == 5).all())
+
+            frame['K'] = frame.default_fill_value
+            self.assertEquals(len(frame['K'].sp_values), 0)
+
+        _check_frame(self.frame)
+        _check_frame(self.zframe)
+        _check_frame(self.fill_frame)
 
     def test_corr(self):
         res = self.frame.corr()

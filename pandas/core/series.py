@@ -6,6 +6,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=W0703,W0622
 
 import itertools
+import operator
 import sys
 import warnings
 
@@ -24,7 +25,7 @@ __all__ = ['Series', 'TimeSeries']
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
-def _seriesOpWrap(opname):
+def _arith_method(op, name):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -38,10 +39,11 @@ def _seriesOpWrap(opname):
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
 
-        func = getattr(self.values, opname)
+        values = self.values
+
         if isinstance(other, Series):
             if self.index.equals(other.index):
-                return Series(func(other.values), index=self.index)
+                return Series(op(values, other.values), index=self.index)
 
             newIndex = self.index + other.index
 
@@ -56,25 +58,25 @@ def _seriesOpWrap(opname):
 
                 # buffered Cython function expects double type
 
-                arr = tseries.combineFunc(opname, newIndex,
+                arr = tseries.combineFunc(name, newIndex,
                                           this, other,
                                           self.index.indexMap,
                                           other.index.indexMap)
             except Exception:
                 arr = Series.combineFunc(self, other,
-                                         getattr(type(self[0]), opname))
+                                         getattr(type(self[0]), name))
             result = Series(arr, index=newIndex)
             return result
 
         elif isinstance(other, DataFrame):
-            reverse_op = MIRROR_OPS.get(opname)
+            reverse_op = MIRROR_OPS.get(name)
 
             if reverse_op is None:
                 raise Exception('Cannot do %s op, sorry!')
 
             return getattr(other, reverse_op)(self)
         else:
-            return Series(func(other), index=self.index)
+            return Series(op(values, other), index=self.index)
     return wrapper
 
 #-------------------------------------------------------------------------------
@@ -368,12 +370,12 @@ class Series(np.ndarray, Picklable, Groupable):
 #-------------------------------------------------------------------------------
 #   Arithmetic operators
 
-    __add__ = _seriesOpWrap('__add__')
-    __sub__ = _seriesOpWrap('__sub__')
-    __mul__ = _seriesOpWrap('__mul__')
-    __div__ = _seriesOpWrap('__div__')
-    __truediv__ = _seriesOpWrap('__truediv__')
-    __pow__ = _seriesOpWrap('__pow__')
+    __add__ = _arith_method(operator.add, '__add__')
+    __sub__ = _arith_method(operator.sub, '__sub__')
+    __mul__ = _arith_method(operator.mul, '__mul__')
+    __div__ = _arith_method(operator.div, '__div__')
+    __truediv__ = _arith_method(operator.truediv, '__truediv__')
+    __pow__ = _arith_method(operator.pow, '__pow__')
 
     # Inplace operators
     __iadd__ = __add__

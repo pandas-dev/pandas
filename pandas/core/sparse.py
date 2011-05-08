@@ -62,14 +62,12 @@ _MIRROR_OPS = {
     'mul' : '__rmul__',
 }
 
-def _sparse_op_wrap(name):
+def _sparse_op_wrap(op, name):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
     def wrapper(self, other):
-        py_op = getattr(operator, name)
-
         if isinstance(other, SparseSeries):
             if np.isnan(self.fill_value):
                 sparse_op = lambda a, b: _sparse_nanop(a, b, name)
@@ -86,13 +84,13 @@ def _sparse_op_wrap(name):
                 other = other.reindex(new_index)
 
             if self.sp_index.equals(other.sp_index):
-                result = py_op(this.sp_values, other.sp_values)
+                result = op(this.sp_values, other.sp_values)
                 result_index = self.sp_index
             else:
                 result, result_index = sparse_op(this, other)
 
             try:
-                fill_value = py_op(this.fill_value, other.fill_value)
+                fill_value = op(this.fill_value, other.fill_value)
             except ZeroDivisionError:
                 fill_value = nan
 
@@ -103,13 +101,18 @@ def _sparse_op_wrap(name):
         elif isinstance(other, SparseDataFrame):
             reverse_op = _MIRROR_OPS.get(name)
             if reverse_op is None: # pragma: no cover
-                raise Exception('Cannot do %s op, sorry!')
+                raise Exception('Cannot do %s op, sorry!' % name)
             return getattr(other, reverse_op)(self)
         elif np.isscalar(other):
-            return SparseSeries(py_op(self.sp_values, other),
+            new_fill_value = op(np.float64(self.fill_value),
+                                np.float64(other))
+
+            return SparseSeries(op(self.sp_values, other),
                                 index=self.index,
                                 sparse_index=self.sp_index,
-                                fill_value=py_op(self.fill_value, other))
+                                fill_value=new_fill_value)
+        else:
+            raise Exception('operation with %s not supported' % type(other))
 
     wrapper.__name__ = name
     return wrapper
@@ -161,39 +164,49 @@ class SparseSeries(Series):
     change values, convert to dense, make your changes, then convert back to
     sparse
     """
+    __array_priority__ = 15
+
     sp_index = None
     fill_value = None
 
     def __new__(cls, data, index=None, sparse_index=None, kind='block',
                 fill_value=None, copy=False):
 
-        if isinstance(data, SparseSeries):
+        is_sparse_series = isinstance(data, SparseSeries)
+        if fill_value is None:
+            if is_sparse_series:
+                fill_value = data.fill_value
+            else:
+                fill_value = nan
+
+        if is_sparse_series:
             if index is None:
                 index = data.index
-
-            if fill_value is None:
-                fill_value = data.fill_value
-
-            if index is not None:
+            else:
                 assert(len(index) == len(data))
 
             sparse_index = data.sp_index
             values = np.asarray(data)
         elif isinstance(data, (Series, dict)):
-            if fill_value is None:
-                fill_value = nan
-
-            data = Series(data)
             if index is None:
                 index = data.index
+
+            data = Series(data)
             values, sparse_index = make_sparse(data, kind=kind,
                                                fill_value=fill_value)
         elif np.isscalar(data): # pragma: no cover
-            raise Exception('not supported yet')
-        else:
-            if fill_value is None:
-                fill_value = nan
+            if index is None:
+                raise Exception('must pass index!')
 
+            values = np.empty(len(index))
+            values.fill(data)
+
+            # TODO: more efficient
+
+            values, sparse_index = make_sparse(values, kind=kind,
+                                               fill_value=fill_value)
+
+        else:
             # array-like
             if sparse_index is None:
                 values, sparse_index = make_sparse(data, kind=kind,
@@ -273,12 +286,20 @@ class SparseSeries(Series):
 
     # Arithmetic operators
 
-    __add__ = _sparse_op_wrap('add')
-    __sub__ = _sparse_op_wrap('sub')
-    __mul__ = _sparse_op_wrap('mul')
-    __div__ = _sparse_op_wrap('div')
-    __truediv__ = _sparse_op_wrap('div')
-    __pow__ = _sparse_op_wrap('pow')
+    __add__ = _sparse_op_wrap(operator.add, 'add')
+    __sub__ = _sparse_op_wrap(operator.sub, 'sub')
+    __mul__ = _sparse_op_wrap(operator.mul, 'mul')
+    __div__ = _sparse_op_wrap(operator.div, 'div')
+    __truediv__ = _sparse_op_wrap(operator.truediv, 'truediv')
+    __pow__ = _sparse_op_wrap(operator.pow, 'pow')
+
+    # reverse operators
+    __radd__ = _sparse_op_wrap(operator.add, '__radd__')
+    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
+    __rsub__ = _sparse_op_wrap(lambda x, y: y - x, '__rsub__')
+    __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+    __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, '__rtruediv__')
+    __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
 
     # Inplace operators
     __iadd__ = __add__
@@ -363,7 +384,8 @@ class SparseSeries(Series):
     def copy(self):
         values = self.sp_values.copy()
         return SparseSeries(values, index=self.index,
-                            sparse_index=self.sp_index)
+                            sparse_index=self.sp_index,
+                            fill_value=self.fill_value)
 
     def reindex(self, new_index, method=None):
         """
@@ -402,16 +424,6 @@ class SparseSeries(Series):
     def take(self, indices):
         """
         Sparse-compatible version of ndarray.take
-
-        Returns
-        -------
-        y : SparseSeries
-        """
-        pass
-
-    def put(self, indices, values):
-        """
-        Sparse-compatible version of ndarray.put
 
         Returns
         -------
@@ -507,7 +519,8 @@ class SparseDataFrame(DataFrame):
 
         sp_maker = lambda x: SparseSeries(x, index=index,
                                           kind=self.default_kind,
-                                          fill_value=self.default_fill_value)
+                                          fill_value=self.default_fill_value,
+                                          copy=True)
 
         sdict = {}
         for k, v in data.iteritems():
@@ -521,7 +534,7 @@ class SparseDataFrame(DataFrame):
                 if isinstance(v, dict):
                     v = [v.get(i, nan) for i in index]
 
-                v = sp_maker(v).copy()
+                v = sp_maker(v)
             sdict[k] = v
 
         # TODO: figure out how to handle this case, all nan's?
@@ -534,34 +547,6 @@ class SparseDataFrame(DataFrame):
 
         return sdict, columns, index
 
-    def copy(self):
-        """
-        Make a deep copy of this frame
-        """
-        return SparseDataFrame(self._series, index=self.index,
-                               columns=self.columns,
-                               default_fill_value=self.default_fill_value,
-                               kind=self.default_kind)
-
-    def _insert_item(self, key, value):
-        if hasattr(value, '__iter__'):
-            if isinstance(value, Series):
-                cleanSeries = value.reindex(self.index)
-                if not isinstance(value, SparseSeries):
-                    cleanSeries = SparseSeries(cleanSeries)
-            else:
-                cleanSeries = SparseSeries(value, index=self.index,
-                                           fill_value=self.default_fill_value)
-
-            self._series[key] = cleanSeries
-        # Scalar
-        else:
-            self._series[key] = SparseSeries(value, index=self.index)
-
-        if key not in self.columns:
-            loc = self._get_insert_loc(key)
-            self._insert_column_index(key, loc)
-
     def to_dense(self):
         """
         Convert to dense DataFrame
@@ -572,6 +557,55 @@ class SparseDataFrame(DataFrame):
         """
         data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
+
+    def copy(self):
+        """
+        Make a deep copy of this frame
+        """
+        return SparseDataFrame(self._series, index=self.index,
+                               columns=self.columns,
+                               default_fill_value=self.default_fill_value,
+                               kind=self.default_kind)
+
+    def _insert_item(self, key, value):
+        sp_maker = lambda x: SparseSeries(x, index=self.index,
+                                          fill_value=self.default_fill_value)
+        if hasattr(value, '__iter__'):
+            if isinstance(value, Series):
+                cleanSeries = value.reindex(self.index)
+                if not isinstance(value, SparseSeries):
+                    cleanSeries = sp_maker(cleanSeries)
+            else:
+                cleanSeries = sp_maker(value)
+
+            self._series[key] = cleanSeries
+        # Scalar
+        else:
+            self._series[key] = sp_maker(value)
+
+        if key not in self.columns:
+            loc = self._get_insert_loc(key)
+            self._insert_column_index(key, loc)
+
+    def _combine_match_columns(self, other, func):
+        # patched version of DataFrame._combine_match_columns to account for
+        # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
+        # where 3.0 is numpy.float64 and series is a SparseSeries. Still
+        # possible for this to happen, which is bothersome
+
+        new_data = {}
+
+        union = intersection = self.columns
+
+        if not union.equals(other.index):
+            union = other.index.union(self.columns)
+            intersection = other.index.intersection(self.columns)
+
+        for col in intersection:
+            new_data[col] = func(self[col], float(other[col]))
+
+        return self._constructor(new_data, index=self.index,
+                                 columns=union)
 
     def _reindex_index(self, index, method):
         if self.index.equals(index):

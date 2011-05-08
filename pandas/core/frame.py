@@ -40,7 +40,7 @@ Returns
 result : DataFrame
 """
 
-def arith_method(func, name, default_axis='columns'):
+def _arith_method(func, name, default_axis='columns'):
     def f(self, other, axis=default_axis):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combine_frame(other, func)
@@ -568,31 +568,31 @@ class DataFrame(Picklable, Groupable):
 #-------------------------------------------------------------------------------
 # Arithmetic methods
 
-    add = arith_method(operator.add, 'add')
-    mul = arith_method(operator.mul, 'multiply')
-    sub = arith_method(operator.sub, 'subtract')
-    div = arith_method(operator.div, 'divide')
+    add = _arith_method(operator.add, 'add')
+    mul = _arith_method(operator.mul, 'multiply')
+    sub = _arith_method(operator.sub, 'subtract')
+    div = _arith_method(operator.div, 'divide')
 
-    radd = arith_method(operator.add, 'add')
-    rmul = arith_method(operator.mul, 'multiply')
-    rsub = arith_method(lambda x, y: y - x, 'subtract')
-    rdiv = arith_method(lambda x, y: y / x, 'divide')
+    radd = _arith_method(operator.add, 'add')
+    rmul = _arith_method(operator.mul, 'multiply')
+    rsub = _arith_method(lambda x, y: y - x, 'subtract')
+    rdiv = _arith_method(lambda x, y: y / x, 'divide')
 
-    __add__ = arith_method(operator.add, '__add__', default_axis=None)
-    __sub__ = arith_method(operator.sub, '__sub__', default_axis=None)
-    __mul__ = arith_method(operator.mul, '__mul__', default_axis=None)
-    __div__ = arith_method(operator.div, '__div__', default_axis=None)
-    __truediv__ = arith_method(operator.truediv, '__truediv__',
+    __add__ = _arith_method(operator.add, '__add__', default_axis=None)
+    __sub__ = _arith_method(operator.sub, '__sub__', default_axis=None)
+    __mul__ = _arith_method(operator.mul, '__mul__', default_axis=None)
+    __div__ = _arith_method(operator.div, '__div__', default_axis=None)
+    __truediv__ = _arith_method(operator.truediv, '__truediv__',
                                default_axis=None)
-    __pow__ = arith_method(operator.pow, '__pow__', default_axis=None)
+    __pow__ = _arith_method(operator.pow, '__pow__', default_axis=None)
 
-    __radd__ = arith_method(operator.add, '__radd__', default_axis=None)
-    __rmul__ = arith_method(operator.mul, '__rmul__', default_axis=None)
-    __rsub__ = arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
-    __rdiv__ = arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
-    __rtruediv__ = arith_method(lambda x, y: y / x, '__rtruediv__',
+    __radd__ = _arith_method(operator.add, '__radd__', default_axis=None)
+    __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
+    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
+    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
+    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
                                 default_axis=None)
-    __rpow__ = arith_method(lambda x, y: y ** x, '__rpow__', default_axis=None)
+    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__', default_axis=None)
 
     def __neg__(self):
         return self * -1
