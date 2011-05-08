@@ -611,9 +611,6 @@ class SparseDataFrame(DataFrame):
         if self.index.equals(index):
             return self.copy()
 
-        if not isinstance(index, Index):
-            index = Index(index)
-
         if len(self.index) == 0:
             return SparseDataFrame(index=index, columns=self.columns)
 
@@ -631,12 +628,14 @@ class SparseDataFrame(DataFrame):
 
             new_series[col] = new
 
-        return SparseDataFrame(new_series, index=index, columns=self.columns)
+        return SparseDataFrame(new_series, index=index, columns=self.columns,
+                               default_fill_value=self.default_fill_value)
 
     def _reindex_columns(self, columns):
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
-        return self._constructor(sdict, index=self.index, columns=columns)
+        return SparseDataFrame(sdict, index=self.index, columns=columns,
+                               default_fill_value=self.default_fill_value)
 
 def stack_sparse_frame(frame, filter_observations=True):
     """

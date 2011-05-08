@@ -604,8 +604,54 @@ class TestSparseDataFrame(TestCase):
         assert_frame_equal(res.to_dense(), self.frame.to_dense().corr())
 
     def test_reindex(self):
-        # propagate CORRECT fill value
 
+        def _check_frame(frame):
+            index = frame.index
+            sidx = index[::2]
+            sidx2 = index[:5]
+
+            sparse_result = frame.reindex(sidx)
+            dense_result = frame.to_dense().reindex(sidx)
+            assert_frame_equal(sparse_result.to_dense(), dense_result)
+
+            assert_frame_equal(frame.reindex(list(sidx)).to_dense(),
+                               dense_result)
+
+            sparse_result2 = sparse_result.reindex(index)
+            dense_result2 = dense_result.reindex(index)
+            assert_frame_equal(sparse_result2.to_dense(), dense_result2)
+
+            # propagate CORRECT fill value
+            assert_almost_equal(sparse_result.default_fill_value,
+                                frame.default_fill_value)
+            assert_almost_equal(sparse_result['A'].fill_value,
+                                frame['A'].fill_value)
+
+            # length zero
+            length_zero = frame.reindex([])
+            self.assertEquals(len(length_zero), 0)
+            self.assertEquals(len(length_zero.columns), len(frame.columns))
+            self.assertEquals(len(length_zero['A']), 0)
+
+            # frame being reindexed has length zero
+            length_n = length_zero.reindex(index)
+            self.assertEquals(len(length_n), len(frame))
+            self.assertEquals(len(length_n.columns), len(frame.columns))
+            self.assertEquals(len(length_n['A']), len(frame))
+
+            # reindex columns
+            reindexed = frame.reindex(columns=['A', 'B', 'Z'])
+            self.assertEquals(len(reindexed.columns), 3)
+            assert_almost_equal(reindexed['Z'].fill_value,
+                                frame.default_fill_value)
+            self.assert_(np.isnan(reindexed['Z'].sp_values).all())
+
+        _check_frame(self.frame)
+        _check_frame(self.iframe)
+        _check_frame(self.zframe)
+        _check_frame(self.fill_frame)
+
+    def test_fillna(self):
         pass
 
 class TestSparseWidePanel(TestCase):
