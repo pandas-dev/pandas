@@ -34,6 +34,11 @@ data = {}
 for col, ser in dm.iteritems():
     data[col] = SparseSeries(ser)
 
+dwp = WidePanel.fromDict({'foo' : dm})
+
 sdf = SparseDataFrame(data)
 
 lp = stack_sparse_frame(sdf)
+
+swp = SparseWidePanel({'A' : sdf,
+                       'B' : sdf})

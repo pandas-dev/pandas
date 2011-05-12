@@ -9,13 +9,14 @@ import numpy as np
 import operator
 
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.series import Series, TimeSeries, remove_na
+from pandas.core.panel import _get_combined_index, _get_combined_columns
+from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame, extract_index, try_sort
+from pandas.core.matrix import DataMatrix
 import pandas.core.common as common
 
 from pandas.lib.sparse import BlockIndex, IntIndex
 import pandas.lib.sparse as splib
-import pandas.lib.tseries as tseries
 
 def make_sparse(arr, kind='block', fill_value=nan):
     """

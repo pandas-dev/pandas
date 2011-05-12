@@ -717,8 +717,8 @@ class TestSparseDataFrame(TestCase):
         _check(self.iframe)
 
         # for now
-        self.assertRaises(Exception, self.zframe)
-        self.assertRaises(Exception, self.fill_frame)
+        self.assertRaises(Exception, _check, self.zframe)
+        self.assertRaises(Exception, _check, self.fill_frame)
 
     def _check_all(self, check_func):
         check_func(self.frame)

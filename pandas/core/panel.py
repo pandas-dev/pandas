@@ -1914,9 +1914,6 @@ def _homogenize(frames, intersect=True):
     """
     result = {}
 
-    index = None
-    columns = None
-
     adj_frames = {}
     for k, v in frames.iteritems():
         if isinstance(v, dict):
@@ -1926,39 +1923,47 @@ def _homogenize(frames, intersect=True):
         else:
             adj_frames[k] = v
 
-    if intersect:
-        for key, frame in adj_frames.iteritems():
-            if index is None:
-                index = frame.index
-            elif index is not frame.index:
-                index = index.intersection(frame.index)
+    index = _get_combined_index(adj_frames, intersect=intersect)
+    columns = _get_combined_columns(adj_frames, intersect=intersect)
 
-            if columns is None:
-                columns = set(frame.cols())
-            else:
-                columns &= set(frame.cols())
-    else:
-        for key, frame in adj_frames.iteritems():
-            if index is None:
-                index = frame.index
-            elif index is not frame.index:
-                index = index.union(frame.index)
-
-            if columns is None:
-                columns = set(frame.cols())
-            else:
-                columns |= set(frame.cols())
-
-    columns = sorted(columns)
-
-    if intersect:
-        for key, frame in adj_frames.iteritems():
-            result[key] = frame.filter(columns).reindex(index)
-    else:
-        for key, frame in adj_frames.iteritems():
-            result[key] = frame.reindex(index=index, columns=columns)
+    for key, frame in adj_frames.iteritems():
+        result[key] = frame.reindex(index=index, columns=columns)
 
     return result, index, columns
+
+def _get_combined_columns(frames, intersect=False):
+    columns = None
+
+    if intersect:
+        combine = set.intersection
+    else:
+        combine = set.union
+
+    for _, frame in frames.iteritems():
+        this_cols = set(frame.cols())
+
+        if columns is None:
+            columns = this_cols
+        else:
+            columns = combine(columns, this_cols)
+
+    return Index(sorted(columns))
+
+def _get_combined_index(frames, intersect=False):
+    index = None
+
+    if intersect:
+        combine = Index.intersection
+    else:
+        combine = Index.union
+
+    for _, frame in frames.iteritems():
+        if index is None:
+            index = frame.index
+        elif index is not frame.index:
+            index = combine(index, frame.index)
+
+    return index
 
 def pivot(index, columns, values):
     """
