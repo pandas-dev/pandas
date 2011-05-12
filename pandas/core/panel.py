@@ -1615,9 +1615,17 @@ class LongPanel(Panel):
 
 class LongPanelIndex(object):
     """
+    Holds axis indexing information for a LongPanel instance
+
     Parameters
     ----------
-
+    major_axis : Index-like
+    minor_axis : Index-like
+    major_labels : ndarray
+    minor_labels : ndarray
+    mask : ndarray (bool), optional
+        observation selection vector using major and minor labels, for
+        converting to wide format.
     """
     def __init__(self, major_axis, minor_axis, major_labels,
                  minor_labels, mask=None):
@@ -1766,11 +1774,11 @@ class LongPanelIndex(object):
     @property
     def mask(self):
         if self._mask is None:
-            self._mask = self._makeMask()
+            self._mask = self._make_mask()
 
         return self._mask
 
-    def _makeMask(self):
+    def _make_mask(self):
         """
         Create observation selection vector using major and minor
         labels, for converting to wide format.

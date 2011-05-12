@@ -3,7 +3,7 @@ import numpy as np
 from pandas import *
 import pandas.core.sparse as spm
 reload(spm)
-from pandas.core.sparse import SparseSeries, SparseDataFrame
+from pandas.core.sparse import *
 
 N = 10000.
 
@@ -35,3 +35,5 @@ for col, ser in dm.iteritems():
     data[col] = SparseSeries(ser)
 
 sdf = SparseDataFrame(data)
+
+lp = stack_sparse_frame(sdf)

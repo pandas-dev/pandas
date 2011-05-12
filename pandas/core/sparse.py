@@ -355,7 +355,31 @@ class SparseSeries(Series):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return self.sp_values[sp_loc]
+            return ndarray.__getitem__(self, sp_loc)
+
+    def take(self, indices):
+        """
+        Sparse-compatible version of ndarray.take
+
+        Returns
+        -------
+        y : ndarray
+        """
+        indices = np.asarray(indices, dtype=int)
+
+        n = len(self)
+        if (indices < 0).any() or (indices >= n).any():
+            raise Exception('out of bounds access')
+
+        if self.sp_index.npoints > 0:
+            locs = np.array([self.sp_index.lookup(loc) for loc in indices])
+            result = self.sp_values.take(locs)
+            result[locs == -1] = self.fill_value
+        else:
+            result = np.empty(len(indices))
+            result.fill(self.fill_value)
+
+        return result
 
     def __getslice__(self, i, j):
         return self._constructor(self.values[i:j], index=self.index[i:j])
@@ -421,16 +445,6 @@ class SparseSeries(Series):
         return SparseSeries(new_values, index=new_index,
                             fill_value=self.fill_value)
 
-    def take(self, indices):
-        """
-        Sparse-compatible version of ndarray.take
-
-        Returns
-        -------
-        y : SparseSeries
-        """
-        pass
-
     def count(self):
         sp_values = self.sp_values
         valid_spvals = np.isfinite(sp_values).sum()
@@ -474,6 +488,14 @@ class SparseSeries(Series):
         else:
             nsparse = self.sp_index.npoints
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+
+    def valid(self):
+        """
+        Analogous to Series.valid
+        """
+        # TODO: make more efficient
+        dense_valid = self.to_dense().valid()
+        return dense_valid.to_sparse(fill_value=self.fill_value)
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass
@@ -547,6 +569,20 @@ class SparseDataFrame(DataFrame):
 
         return sdict, columns, index
 
+    def __repr__(self):
+        """
+        Return a string representation for a particular DataFrame
+        """
+        from cStringIO import StringIO
+
+        buf = StringIO()
+        if len(self.index) < 500 and len(self.columns) < 10:
+            self.toString(buf=buf)
+        else:
+            self.info(buf=buf, verbose=False)
+
+        return buf.getvalue()
+
     def to_dense(self):
         """
         Convert to dense DataFrame
@@ -567,9 +603,21 @@ class SparseDataFrame(DataFrame):
                                default_fill_value=self.default_fill_value,
                                kind=self.default_kind)
 
+    @property
+    def density(self):
+        """
+        Ratio of non-sparse points to total (dense) data points
+        represented in the frame
+        """
+        tot_nonsparse = sum([ser.sp_index.npoints
+                             for _, ser in self.iteritems()])
+        tot = len(self.index) * len(self.columns)
+        return tot_nonsparse / float(tot)
+
     def _insert_item(self, key, value):
         sp_maker = lambda x: SparseSeries(x, index=self.index,
-                                          fill_value=self.default_fill_value)
+                                          fill_value=self.default_fill_value,
+                                          kind=self.default_kind)
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
                 cleanSeries = value.reindex(self.index)
@@ -637,54 +685,67 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self.default_fill_value)
 
-def stack_sparse_frame(frame, filter_observations=True):
-    """
-
-    """
-    I, N, K = self.dims
-
-    if filter_observations:
-        mask = np.isfinite(self.values).all(axis=0)
-        size = mask.sum()
-        selector = mask.ravel()
-    else:
-        size = N * K
-        selector = slice(None, None)
-
-    values = np.empty((size, I), dtype=float)
-
-    for i in xrange(len(self.items)):
-        values[:, i] = self.values[i].ravel()[selector]
-
-    major_labels = np.arange(N).repeat(K)[selector]
-
-    # Anyone think of a better way to do this? np.repeat does not
-    # do what I want
-    minor_labels = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
-    minor_labels = minor_labels.ravel()[selector]
-
-    if filter_observations:
-        mask = selector
-    else:
-        mask = None
-
-    index = LongPanelIndex(self.major_axis,
-                           self.minor_axis,
-                           major_labels,
-                           minor_labels,
-                           mask=mask)
-
-    return LongPanel(values, self.items, index)
-
 from pandas.core.panel import WidePanel
 
-class SparsePanel(WidePanel):
+from line_profiler import LineProfiler
+prof = LineProfiler()
+
+def stack_sparse_frame(frame):
+    """
+    Only makes sense when fill_value is NaN
+    """
+    from pandas.core.panel import LongPanelIndex, LongPanel
+
+    lengths = [s.sp_index.npoints for _, s in frame.iteritems()]
+    nobs = sum(lengths)
+
+    # this is pretty fast
+    minor_labels = np.repeat(np.arange(len(frame.columns)), lengths)
+
+    # need to create
+    major_labels = np.empty(nobs, dtype=int)
+    stacked_values = np.empty(nobs, dtype=np.float64)
+
+    inds_to_concat = []
+    vals_to_concat = []
+    for _, series in frame.iteritems():
+        if not np.isnan(series.fill_value):
+            raise Exception('This routine assumes NaN fill value')
+
+        int_index = series.sp_index.to_int_index()
+        inds_to_concat.append(int_index.indices)
+        vals_to_concat.append(series.sp_values)
+
+    major_labels = np.concatenate(inds_to_concat)
+    stacked_values = np.concatenate(vals_to_concat)
+    index = LongPanelIndex(frame.index, frame.columns,
+                           major_labels, minor_labels)
+
+    lp = LongPanel(stacked_values.reshape((nobs, 1)), ['foo'], index)
+    return lp.sort('major')
+
+class SparseWidePanel(WidePanel):
     """
 
+
+
     """
-    def __init__(self, frames):
+    def __init__(self, frames, items=None, major_axis=None, minor_axis=None):
+        assert(isinstance(frames, dict))
+
         self.frames = frames
-        # self.items = Index(sorted(
+
+        self.items = Index(sorted(frames))
+        self.major_axis = foo
+
+    @classmethod
+    def from_dict(cls):
+        pass
+
+    @property
+    def values(self):
+        # return dense values
+        pass
 
     def __getitem__(self, key):
         """

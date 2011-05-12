@@ -180,7 +180,7 @@ class DataMatrix(DataFrame):
 
         for i, col in enumerate(columns):
             if col in valueDict:
-                values[:, i] = valueDict[col]
+                values[:, i] = valueDict[col].values
             else:
                 values[:, i] = np.NaN
 

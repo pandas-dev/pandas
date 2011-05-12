@@ -858,12 +858,11 @@ class DataFrame(Picklable, Groupable):
             print >> buf, 'Empty',
             return
 
-        print >> buf, 'Data columns:'
-        space = max([len(str(k)) for k in self.cols()]) + 4
-
         cols = self.cols()
 
         if verbose:
+            print >> buf, 'Data columns:'
+            space = max([len(str(k)) for k in self.cols()]) + 4
             col_counts = []
             counts = self.count()
             assert(len(cols) == len(counts))
