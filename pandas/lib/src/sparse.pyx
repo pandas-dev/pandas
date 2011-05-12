@@ -98,6 +98,9 @@ cdef class IntIndex(SparseIndex):
         if not isinstance(other, IntIndex):
             return False
 
+        if self is other:
+            return True
+
         same_length = self.length == other.length
         same_indices = np.array_equal(self.indices, other.indices)
         return same_length and same_indices
@@ -197,6 +200,37 @@ cdef class IntIndex(SparseIndex):
             return res
         else:
             return -1
+
+    cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
+                          float64_t fill_value, SparseIndex other_):
+        cdef:
+            pyst i = 0, j = 0
+            IntIndex other
+            ndarray[float64_t, ndim=1] result
+            ndarray[int32_t, ndim=1] sinds, oinds
+
+        other = other_.to_int_index()
+
+        oinds = other.indices
+        sinds = self.indices
+
+        result = np.empty(other.npoints, dtype=np.float64)
+        result.fill(fill_value)
+
+        for 0 <= i < other.npoints:
+            while oinds[i] > sinds[j] and j < self.npoints:
+                j += 1
+
+            if j == self.npoints:
+                break
+
+            if oinds[i] < sinds[j]:
+                continue
+            elif oinds[i] == sinds[j]:
+                result[i] = values[j]
+                j += 1
+
+        return result
 
     cpdef put(self, ndarray[float64_t, ndim=1] values,
               ndarray[int32_t, ndim=1] indices, object to_put):
@@ -321,6 +355,9 @@ cdef class BlockIndex(SparseIndex):
     def equals(self, other):
         if not isinstance(other, BlockIndex):
             return False
+
+        if self is other:
+            return True
 
         same_length = self.length == other.length
         same_blocks = (np.array_equal(self.blocs, other.blocs) and
@@ -465,6 +502,30 @@ cdef class BlockIndex(SparseIndex):
             cum_len += lens[i]
 
         return -1
+
+    cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
+                          float64_t fill_value, SparseIndex other_):
+        cdef:
+            pyst i = 0, j = 0, ocur, ocurlen
+            BlockIndex other
+            ndarray[float64_t, ndim=1] result
+            ndarray[int32_t, ndim=1] slocs, slens, olocs, olens
+
+        other = other_.to_block_index()
+
+        olocs = other.blocs
+        olens = other.blengths
+        slocs = self.blocs
+        slens = self.blengths
+
+        result = np.empty(other.npoints, dtype=np.float64)
+
+        for 0 <= i < other.nblocks:
+            ocur = olocs[i]
+            ocurlen = olens[i]
+
+            while slocs[j] + slens[j] < ocur:
+                j += 1
 
     cpdef put(self, ndarray[float64_t, ndim=1] values,
               ndarray[int32_t, ndim=1] indices, object to_put):

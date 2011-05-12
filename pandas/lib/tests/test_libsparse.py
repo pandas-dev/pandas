@@ -3,9 +3,13 @@ from unittest import TestCase
 from pandas import Series
 
 import nose
+from numpy import nan
 import numpy as np
 import operator
 from numpy.testing import assert_almost_equal, assert_equal
+
+from pandas.core.sparse import SparseSeries
+from pandas import DataFrame
 
 from pandas.lib.sparse import IntIndex, BlockIndex
 import pandas.lib.sparse as splib
@@ -245,7 +249,6 @@ class TestIntIndex(TestCase):
             self.assert_(isinstance(xbindex, BlockIndex))
             self.assert_(xbindex.equals(xindex))
             self.assert_(ybindex.equals(yindex))
-
         check_cases(_check_case)
 
     def test_to_int_index(self):
@@ -267,10 +270,8 @@ class TestIntIndex(TestCase):
         check_cases(_check_case)
 
     def test_make_union(self):
+        # TODO
         pass
-
-from pandas.core.sparse import SparseSeries
-from pandas import DataFrame
 
 class TestSparseOperators(TestCase):
 

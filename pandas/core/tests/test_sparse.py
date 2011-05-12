@@ -13,7 +13,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal)
 from numpy.testing import assert_equal
 
-from pandas import DataFrame, DateRange, WidePanel
+from pandas import Series, DataFrame, DateRange, WidePanel
 from pandas.core.datetools import BDay
 from pandas.core.series import remove_na
 from pandas.core.sparse import (IntIndex, BlockIndex,
@@ -388,6 +388,45 @@ class TestSparseSeries(TestCase):
         sp = SparseSeries([], index=[])
         sp_zero = SparseSeries([], index=[], fill_value=0)
         _compare_with_series(sp, np.arange(10))
+
+    def test_sparse_reindex(self):
+        length = 10
+
+        def _check(values, index1, index2, fill_value):
+            first_series = SparseSeries(values, sparse_index=index1,
+                                        fill_value=fill_value)
+            reindexed = first_series.sparse_reindex(index2)
+            self.assert_(reindexed.sp_index is index2)
+
+            int_indices1 = index1.to_int_index().indices
+            int_indices2 = index2.to_int_index().indices
+
+            expected = Series(values, index=int_indices1)
+            expected = expected.reindex(int_indices2).fillna(fill_value)
+            assert_almost_equal(expected.values, reindexed.sp_values)
+
+        def _check_with_fill_value(values, first, second, fill_value=nan):
+            i_index1 = IntIndex(length, first)
+            i_index2 = IntIndex(length, second)
+
+            b_index1 = i_index1.to_block_index()
+            b_index2 = i_index2.to_block_index()
+
+            _check(values, i_index1, i_index2, fill_value)
+            _check(values, b_index1, b_index2, fill_value)
+
+        def _check_all(values, first, second):
+            _check_with_fill_value(values, first, second, fill_value=nan)
+            _check_with_fill_value(values, first, second, fill_value=0)
+
+        index1 = [2, 4, 5, 6, 8, 9]
+        values1 = np.arange(6.)
+
+        _check_all(values1, index1, [2, 4, 5])
+        _check_all(values1, index1, [2, 3, 4, 5, 6, 7, 8, 9])
+        _check_all(values1, index1, [0, 1])
+        _check_all(values1, index1, [0, 1, 7, 8, 9])
+        _check_all(values1, index1, [])
 
     def test_repr(self):
         bsrepr = repr(self.bseries)

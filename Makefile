@@ -1,3 +1,5 @@
+clean:
+	-rm -rf build dist
 
 sparse: pandas/lib/src/sparse.pyx
 	-python build_cython.py build_ext --inplace

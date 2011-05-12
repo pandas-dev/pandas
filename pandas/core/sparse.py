@@ -446,6 +446,33 @@ class SparseSeries(Series):
         return SparseSeries(new_values, index=new_index,
                             fill_value=self.fill_value)
 
+    def sparse_reindex(self, new_index):
+        """
+        Conform sparse values to new SparseIndex
+
+        Parameters
+        ----------
+        new_index : {BlockIndex, IntIndex}
+
+        Returns
+        -------
+        reindexed : SparseSeries
+        """
+        assert(isinstance(new_index, splib.SparseIndex))
+
+        new_values = self.sp_index.to_int_index().reindex(self.sp_values,
+                                                          self.fill_value,
+                                                          new_index)
+
+        # indexer = self.sp_index.get_indexer(new_index)
+
+        # new_values = self.sp_values.take(indexer)
+        # new_values[indexer == -1] = self.fill_value
+
+        return SparseSeries(new_values, index=self.index,
+                            sparse_index=new_index,
+                            fill_value=self.fill_value)
+
     def count(self):
         sp_values = self.sp_values
         valid_spvals = np.isfinite(sp_values).sum()
@@ -688,8 +715,8 @@ class SparseDataFrame(DataFrame):
 
 from pandas.core.panel import WidePanel
 
-from line_profiler import LineProfiler
-prof = LineProfiler()
+# from line_profiler import LineProfiler
+# prof = LineProfiler()
 
 def stack_sparse_frame(frame):
     """
@@ -724,6 +751,37 @@ def stack_sparse_frame(frame):
 
     lp = LongPanel(stacked_values.reshape((nobs, 1)), ['foo'], index)
     return lp.sort('major')
+
+def homogenize(series_dict):
+    """
+    Conform a set of SparseSeries (with NaN fill_value) to a common SparseIndex
+    corresponding to the locations where they all have data
+
+    Notes
+    -----
+    Using the dumbest algorithm I could think of. Should put some more thought
+    into this
+
+    """
+    index = None
+
+    need_reindex = False
+
+    for _, series in series_dict.iteritems():
+        if index is None:
+            index = series.sp_index
+        elif not series.sp_index.equals(index):
+            need_reindex = True
+            index = index.intersect(series.sp_index)
+
+    if need_reindex:
+        output = {}
+        for name, series in series_dict.iteritems():
+            output[name] = series.sparse_reindex(index)
+    else:
+        output = series_dict
+
+    return output
 
 class SparseWidePanel(WidePanel):
     """
