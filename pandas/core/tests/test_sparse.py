@@ -16,10 +16,13 @@ from numpy.testing import assert_equal
 from pandas import Series, DataFrame, DateRange, WidePanel
 from pandas.core.datetools import BDay
 from pandas.core.series import remove_na
-from pandas.core.sparse import (IntIndex, BlockIndex,
-                                SparseSeries, SparseDataFrame)
-import pandas.core.sparse as spm
 import pandas.util.testing as testing
+
+import pandas.core.sparse as spm
+reload(spm)
+from pandas.core.sparse import (IntIndex, BlockIndex,
+                                SparseSeries, SparseDataFrame,
+                                SparseWidePanel)
 
 """
 Testing TODO
@@ -830,7 +833,12 @@ def panel_data3():
 class TestSparseWidePanel(TestCase):
 
     def setUp(self):
-        pass
+        self.data_dict = {
+            'item1' : panel_data1(),
+            'item2' : panel_data2(),
+            'item3' : panel_data3()
+        }
+        self.panel = SparseWidePanel(self.data_dict)
 
     def test_from_dict(self):
         pass
@@ -872,9 +880,16 @@ class TestSparseWidePanel(TestCase):
         pass
 
 if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
-                   exit=False)
+    data_dict = {
+        'item1' : panel_data1(),
+        'item2' : panel_data2(),
+        'item3' : panel_data3()
+    }
+    panel = SparseWidePanel(data_dict)
+
+    # import nose
+    # nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    #                exit=False)
 
     # nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',
     #                      '--with-profile'],

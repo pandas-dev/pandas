@@ -57,7 +57,8 @@ class PanelOLS(OLS):
         ENTITY or TIME, indicating entity/time clustering
         A cluster is a grouping within which observations are correlated.
 
-        For example, if you have a panel data with countries over time and you suspect that:
+        For example, if you have a panel data with countries over time and you
+        suspect that:
 
         1. Countries are correlated - use 'time'
         2. There is autocorrelation - use 'entity'

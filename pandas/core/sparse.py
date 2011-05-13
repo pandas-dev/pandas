@@ -791,15 +791,14 @@ def homogenize(series_dict):
 
     return output
 
-def _convert_frames(frames, index, columns, default_fill=nan,
-                    default_kind='block'):
+def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
     from pandas.core.panel import _get_combined_index, _get_combined_columns
 
     output = {}
     for item, df in frames.iteritems():
         if not isinstance(df, SparseDataFrame):
-            df = SparseDataFrame(output, default_kind=default_kind,
-                                 default_fill_value=default_fill_value)
+            df = SparseDataFrame(df, default_kind=kind,
+                                 default_fill_value=fill_value)
 
         output[item] = df
 
@@ -832,15 +831,19 @@ class SparseWidePanel(WidePanel):
 
         # pre-filter, if necessary
         if items is None:
-            self.items = Index(sorted(frames.keys()))
+            items = Index(sorted(frames.keys()))
         items = _ensure_index(items)
 
-        clean_frames, index, columns = _convert_frames(frames, major_axis,
-                                                       minor_axis, kind=kind,
-                                                       fill_value=fill_value)
+        (clean_frames,
+         major_axis,
+         minor_axis) = _convert_frames(frames, major_axis,
+                                       minor_axis, kind=kind,
+                                       fill_value=fill_value)
 
-        self.frames = frames
-        self.major_axis = foo
+        self._frames = clean_frames
+        self.items = items
+        self.major_axis = major_axis
+        self.minor_axis = minor_axis
 
     @classmethod
     def from_dict(cls):
@@ -849,12 +852,13 @@ class SparseWidePanel(WidePanel):
     @property
     def values(self):
         # return dense values
-        pass
+        return np.array([self._frames[item].values
+                         for item in self.items])
 
     def __getitem__(self, key):
         """
         """
-        pass
+        return self._frames[key]
 
     def __setitem__(self, key, value):
         pass
@@ -872,13 +876,6 @@ class SparseWidePanel(WidePanel):
         pass
 
     def __setstate__(self, state):
-        pass
-
-    @property
-    def values(self):
-        """
-
-        """
         pass
 
     @classmethod

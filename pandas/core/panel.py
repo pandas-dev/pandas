@@ -173,6 +173,14 @@ class WidePanel(Panel, Groupable):
         self.factors = {}
         self.values = values
 
+    def _get_values(self):
+        return self._values
+
+    def _set_values(self, values):
+        self._values = values
+
+    values = property(fget=_get_values, fset=_set_values)
+
     @classmethod
     def _get_axis_number(cls, axis):
         if axis in (0, 1, 2):
