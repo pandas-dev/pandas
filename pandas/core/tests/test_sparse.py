@@ -182,6 +182,9 @@ class TestSparseSeries(TestCase):
         sp.sp_values[:5] = 100
         self.assert_(values[0] == 97)
 
+    def test_constructor_ndarray(self):
+        pass
+
     def test_constructor_nonnan(self):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
@@ -483,6 +486,33 @@ class TestSparseSeries(TestCase):
         check_func(self.zbseries)
         check_func(self.ziseries)
 
+    def test_homogenize(self):
+        def _check_matches(indices, expected):
+            data = {}
+            for i, idx in enumerate(indices):
+                data[i] = SparseSeries(idx.to_int_index().indices,
+                                       sparse_index=idx)
+            homogenized = spm.homogenize(data)
+
+            for k, v in homogenized.iteritems():
+                assert(v.sp_index.equals(expected))
+
+        indices1 = [BlockIndex(10, [2], [7]),
+                   BlockIndex(10, [1, 6], [3, 4]),
+                   BlockIndex(10, [0], [10])]
+        expected1 = BlockIndex(10, [2, 6], [2, 3])
+        _check_matches(indices1, expected1)
+
+        indices2 = [BlockIndex(10, [2], [7]),
+                   BlockIndex(10, [2], [7])]
+        expected2 = indices2[0]
+        _check_matches(indices2, expected2)
+
+        # must have NaN fill value
+        data = {'a' : SparseSeries(np.arange(7), sparse_index=expected2,
+                                   fill_value=0)}
+        nose.tools.assert_raises(Exception, spm.homogenize, data)
+
 class TestSparseTimeSeries(TestCase):
     pass
 
@@ -499,7 +529,7 @@ class TestSparseDataFrame(TestCase):
 
         self.frame = SparseDataFrame(self.data, index=self.dates)
         self.iframe = SparseDataFrame(self.data, index=self.dates,
-                                      kind='integer')
+                                      default_kind='integer')
 
         values = self.frame.values.copy()
         values[np.isnan(values)] = 0
@@ -765,8 +795,81 @@ class TestSparseDataFrame(TestCase):
         check_func(self.zframe)
         check_func(self.fill_frame)
 
+def panel_data1():
+    index = DateRange('1/1/2011', periods=8)
+
+    return DataFrame({
+        'a' : [nan, nan, nan, 0, 1, 2, 3, 4],
+        'b' : [0, 1, 2, 3, 4, nan, nan, nan],
+        'c' : [0, 1, 2, nan, nan, nan, 3, 4],
+        'd' : [nan, 0, 1, nan, 2, 3, 4, nan]
+        }, index=index)
+
+
+def panel_data2():
+    index = DateRange('1/1/2011', periods=9)
+
+    return DataFrame({
+        'a' : [nan, nan, nan, 0, 1, 2, 3, 4, 5],
+        'b' : [0, 1, 2, 3, 4, 5, nan, nan, nan],
+        'c' : [0, 1, 2, nan, nan, nan, 3, 4, 5],
+        'd' : [nan, 0, 1, nan, 2, 3, 4, 5, nan]
+        }, index=index)
+
+
+def panel_data3():
+    index = DateRange('1/1/2011', periods=10).shift(-2)
+
+    return DataFrame({
+        'a' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+        'b' : [0, 1, 2, 3, 4, 5, 6, nan, nan, nan],
+        'c' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+        'd' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
+        }, index=index)
+
 class TestSparseWidePanel(TestCase):
-    pass
+
+    def setUp(self):
+        pass
+
+    def test_from_dict(self):
+        pass
+
+    def test_to_long(self):
+        pass
+
+    def test_long_to_wide_sparse(self):
+        pass
+
+    def test_values(self):
+        pass
+
+    def test_getitem(self):
+        pass
+
+    def test_delitem_pop(self):
+        pass
+
+    def test_pickle(self):
+        pass
+
+    def test_copy(self):
+        pass
+
+    def test_reindex(self):
+        pass
+
+    def test_operators(self):
+        pass
+
+    def test_truncate(self):
+        pass
+
+    def test_major_xs(self):
+        pass
+
+    def test_minor_xs(self):
+        pass
 
 if __name__ == '__main__':
     import nose

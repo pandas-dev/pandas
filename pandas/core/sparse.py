@@ -9,8 +9,7 @@ import numpy as np
 import operator
 
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.panel import _get_combined_index, _get_combined_columns
-from pandas.core.series import Series, TimeSeries
+from pandas.core.series import Series, TimeSeries, _ensure_index
 from pandas.core.frame import DataFrame, extract_index, try_sort
 from pandas.core.matrix import DataMatrix
 import pandas.core.common as common
@@ -218,8 +217,7 @@ class SparseSeries(Series):
 
         if index is None:
             index = Index(np.arange(sparse_index.length))
-        elif not isinstance(index, Index):
-            index = Index(index)
+        index = _ensure_index(index)
 
         # Create array, do *not* copy data by default
         subarr = np.array(values, dtype=np.float64, copy=copy)
@@ -422,8 +420,7 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
-        if not isinstance(new_index, Index):
-            new_index = Index(new_index)
+        new_index = _ensure_index(new_index)
 
         if self.index.equals(new_index):
             return self.copy()
@@ -535,12 +532,12 @@ class SparseDataFrame(DataFrame):
     """
     _columns = None
 
-    def __init__(self, data=None, index=None, columns=None, kind='block',
-                 default_fill_value=None):
+    def __init__(self, data=None, index=None, columns=None,
+                 default_kind='block', default_fill_value=None):
         if default_fill_value is None:
             default_fill_value = nan
 
-        self.default_kind = kind
+        self.default_kind = default_kind
         self.default_fill_value = default_fill_value
 
         DataFrame.__init__(self, data, index=index, columns=columns,
@@ -548,7 +545,7 @@ class SparseDataFrame(DataFrame):
 
     def __array_wrap__(self, result):
         return SparseDataFrame(result, index=self.index, columns=self.columns,
-                               kind=self.default_kind,
+                               default_kind=self.default_kind,
                                default_fill_value=self.default_fill_value)
 
     @property
@@ -558,9 +555,7 @@ class SparseDataFrame(DataFrame):
     def _init_dict(self, data, index, columns, dtype):
         # pre-filter out columns if we passed it
         if columns is not None:
-            if not isinstance(columns, Index):
-                columns = Index(columns)
-
+            columns = _ensure_index(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in columns)
         else:
             columns = Index(try_sort(data.keys()))
@@ -629,7 +624,7 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns,
                                default_fill_value=self.default_fill_value,
-                               kind=self.default_kind)
+                               default_kind=self.default_kind)
 
     @property
     def density(self):
@@ -757,17 +752,27 @@ def homogenize(series_dict):
     Conform a set of SparseSeries (with NaN fill_value) to a common SparseIndex
     corresponding to the locations where they all have data
 
+    Parameters
+    ----------
+    series_dict : dict or DataFrame
+
     Notes
     -----
     Using the dumbest algorithm I could think of. Should put some more thought
     into this
 
+    Returns
+    -------
+    homogenized : dict of SparseSeries
     """
     index = None
 
     need_reindex = False
 
     for _, series in series_dict.iteritems():
+        if not np.isnan(series.fill_value):
+            raise Exception('this method is only valid with NaN fill values')
+
         if index is None:
             index = series.sp_index
         elif not series.sp_index.equals(index):
@@ -777,11 +782,40 @@ def homogenize(series_dict):
     if need_reindex:
         output = {}
         for name, series in series_dict.iteritems():
-            output[name] = series.sparse_reindex(index)
+            if not series.sp_index.equals(index):
+                series = series.sparse_reindex(index)
+
+            output[name] = series
     else:
         output = series_dict
 
     return output
+
+def _convert_frames(frames, index, columns, default_fill=nan,
+                    default_kind='block'):
+    from pandas.core.panel import _get_combined_index, _get_combined_columns
+
+    output = {}
+    for item, df in frames.iteritems():
+        if not isinstance(df, SparseDataFrame):
+            df = SparseDataFrame(output, default_kind=default_kind,
+                                 default_fill_value=default_fill_value)
+
+        output[item] = df
+
+    if index is None:
+        index = _get_combined_index(output)
+    if columns is None:
+        columns = _get_combined_columns(output)
+
+    index = _ensure_index(index)
+    columns = _ensure_index(columns)
+
+    for item, df in output.iteritems():
+        if not (df.index.equals(index) and df.columns.equals(columns)):
+            output[item] = df.reindex(index=index, columns=columns)
+
+    return output, index, columns
 
 class SparseWidePanel(WidePanel):
     """
@@ -789,12 +823,23 @@ class SparseWidePanel(WidePanel):
 
 
     """
-    def __init__(self, frames, items=None, major_axis=None, minor_axis=None):
+    def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
+                 default_fill_value=nan, default_kind='block'):
         assert(isinstance(frames, dict))
 
-        self.frames = frames
+        self.default_fill_value = fill_value = default_fill_value
+        self.default_kind = kind = default_kind
 
-        self.items = Index(sorted(frames))
+        # pre-filter, if necessary
+        if items is None:
+            self.items = Index(sorted(frames.keys()))
+        items = _ensure_index(items)
+
+        clean_frames, index, columns = _convert_frames(frames, major_axis,
+                                                       minor_axis, kind=kind,
+                                                       fill_value=fill_value)
+
+        self.frames = frames
         self.major_axis = foo
 
     @classmethod

@@ -123,6 +123,9 @@ cdef class IntIndex(SparseIndex):
         # if is one already, returns self
         y = y_.to_int_index()
 
+        if self.length != y.length:
+            raise Exception('Indices must reference same underlying length')
+
         xindices = self.indices
         yindices = y.indices
 
@@ -153,6 +156,9 @@ cdef class IntIndex(SparseIndex):
 
         # if is one already, returns self
         y = y_.to_int_index()
+
+        if self.length != y.length:
+            raise Exception('Indices must reference same underlying length')
 
         xindices = self.indices
         yindices = y.indices
@@ -407,6 +413,9 @@ cdef class BlockIndex(SparseIndex):
 
         y = other.to_block_index()
 
+        if self.length != y.length:
+            raise Exception('Indices must reference same underlying length')
+
         xloc = self.blocs
         xlen = self.blengths
         yloc = y.blocs
@@ -549,6 +558,9 @@ cdef class BlockMerge(object):
     def __init__(self, BlockIndex x, BlockIndex y):
         self.x = x
         self.y = y
+
+        if x.length != y.length:
+            raise Exception('Indices must reference same underlying length')
 
         self.xstart = self.x.blocs
         self.ystart = self.y.blocs

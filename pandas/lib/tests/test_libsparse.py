@@ -180,6 +180,31 @@ def test_lookup():
 
     # corner cases
 
+def test_intersect():
+    def _check_correct(a, b, expected):
+        result = a.intersect(b)
+        assert(result.equals(expected))
+
+    def _check_length_exc(a, longer):
+        nose.tools.assert_raises(Exception, a.intersect, longer)
+
+    def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
+        xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
+        yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
+        expected = BlockIndex(TEST_LENGTH, eloc, elen)
+        longer_index = BlockIndex(TEST_LENGTH + 1, yloc, ylen)
+
+        _check_correct(xindex, yindex, expected)
+        _check_correct(xindex.to_int_index(),
+                       yindex.to_int_index(),
+                       expected.to_int_index())
+
+        _check_length_exc(xindex, longer_index)
+        _check_length_exc(xindex.to_int_index(),
+                          longer_index.to_int_index())
+
+    check_cases(_check_case)
+
 class TestBlockIndex(TestCase):
 
     def test_equals(self):
@@ -203,19 +228,6 @@ class TestBlockIndex(TestCase):
 
         # block overlap
         self.assertRaises(Exception, BlockIndex, 10, [2, 5], [5, 3])
-
-    def test_intersect(self):
-        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
-            xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-            yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
-            result = xindex.intersect(yindex)
-
-            self.assert_(isinstance(result, BlockIndex))
-
-            assert_equal(result.blocs, eloc)
-            assert_equal(result.blengths, elen)
-
-        check_cases(_check_case)
 
     def test_to_int_index(self):
         locs = [0, 10]
@@ -254,24 +266,6 @@ class TestIntIndex(TestCase):
     def test_to_int_index(self):
         index = IntIndex(10, [2, 3, 4, 5, 6])
         self.assert_(index.to_int_index() is index)
-
-    def test_intersect(self):
-
-        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
-            xindex = BlockIndex(TEST_LENGTH, xloc, xlen).to_int_index()
-            yindex = BlockIndex(TEST_LENGTH, yloc, ylen).to_int_index()
-            expected = BlockIndex(TEST_LENGTH, eloc, elen).to_int_index()
-
-            result = xindex.intersect(yindex)
-            self.assert_(isinstance(result, IntIndex))
-
-            assert_equal(result.indices, expected.indices)
-
-        check_cases(_check_case)
-
-    def test_make_union(self):
-        # TODO
-        pass
 
 class TestSparseOperators(TestCase):
 

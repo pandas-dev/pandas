@@ -14,7 +14,7 @@ from pandas.core.common import (_pickle_array, _unpickle_array, isnull, notnull)
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.mixins import Picklable, Groupable
-from pandas.core.series import Series
+from pandas.core.series import Series, _ensure_index
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
@@ -151,9 +151,7 @@ class DataFrame(Picklable, Groupable):
     def _init_dict(self, data, index, columns, dtype):
         # pre-filter out columns if we passed it
         if columns is not None:
-            if not isinstance(columns, Index):
-                columns = Index(columns)
-
+            columns = _ensure_index(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in columns)
         else:
             columns = Index(try_sort(data.keys()))
@@ -261,11 +259,7 @@ class DataFrame(Picklable, Groupable):
 
     _index = None
     def _set_index(self, index):
-        if isinstance(index, Index):
-            self._index = index
-        else:
-            self._index = Index(index)
-
+        self._index = _ensure_index(index)
         for v in self._series.values():
             v.index = self._index
 
@@ -282,11 +276,7 @@ class DataFrame(Picklable, Groupable):
         if len(cols) != len(self._series):
             raise Exception('Columns length %d did not match data %d!' %
                             (len(cols), len(self._series)))
-
-        if not isinstance(cols, Index):
-            cols = Index(cols)
-
-        self._columns = cols
+        self._columns = _ensure_index(cols)
 
     def _insert_column_index(self, key, loc):
         if loc == len(self.columns):
@@ -429,7 +419,7 @@ class DataFrame(Picklable, Groupable):
         """
         from pandas.core.sparse import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
-                               kind=kind, default_fill_value=fill_value)
+                               default_kind=kind, default_fill_value=fill_value)
 
 #-------------------------------------------------------------------------------
 # Magic methods
@@ -1316,13 +1306,11 @@ class DataFrame(Picklable, Groupable):
         frame = self
 
         if index is not None:
-            if not isinstance(index, Index):
-                index = Index(index)
+            index = _ensure_index(index)
             frame = frame._reindex_index(index, method)
 
         if columns is not None:
-            if not isinstance(columns, Index):
-                columns = Index(columns)
+            columns = _ensure_index(columns)
             frame = frame._reindex_columns(columns)
 
         return frame
@@ -2440,10 +2428,7 @@ def extract_index(data, index):
     if len(index) == 0 or index is None:
         index = NULL_INDEX
 
-    if not isinstance(index, Index):
-        index = Index(index)
-
-    return index
+    return _ensure_index(index)
 
 def _default_index(n):
     if n == 0:
@@ -2475,3 +2460,4 @@ def _pfixed(s, space, nanRep=None, float_format=None):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
+

@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 from pandas.core.index import Index
-from pandas.core.frame import DataFrame, _pfixed
+from pandas.core.frame import DataFrame, _pfixed, _ensure_index
 from pandas.core.matrix import DataMatrix
 from pandas.core.mixins import Picklable, Groupable
 import pandas.core.common as common
@@ -82,9 +82,7 @@ class PanelAxis(object):
         return getattr(obj, self.cache_field, None)
 
     def __set__(self, obj, value):
-        if not isinstance(value, Index):
-            value = Index(value)
-
+        value = _ensure_index(value)
         setattr(obj, self.cache_field, value)
 
 class Panel(Picklable):
@@ -426,9 +424,7 @@ class WidePanel(Panel, Groupable):
         if old_index.equals(new_index):
             return self.copy()
 
-        if not isinstance(new_index, Index):
-            new_index = Index(new_index)
-
+        new_index = _ensure_index(new_index)
         indexer, mask = common.get_indexer(old_index, new_index, fill_method)
 
         new_values = self.values.take(indexer, axis=axis)

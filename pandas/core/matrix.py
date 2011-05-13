@@ -11,7 +11,7 @@ from pandas.core.common import (_pickle_array, _unpickle_array)
 from pandas.core.frame import (DataFrame, try_sort, extract_index,
                                _default_index)
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.series import Series
+from pandas.core.series import Series, _ensure_index
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
@@ -409,10 +409,7 @@ class DataMatrix(DataFrame):
             raise Exception('Columns length %d did not match values %d!' %
                             (len(cols), self.values.shape[1]))
 
-        if not isinstance(cols, Index):
-            cols = Index(cols)
-
-        self._columns = cols
+        self._columns = _ensure_index(cols)
 
     def _set_index(self, index):
         if len(index) > 0:
@@ -420,13 +417,10 @@ class DataMatrix(DataFrame):
                 raise Exception('Index length %d did not match values %d!' %
                                 (len(index), self.values.shape[0]))
 
-        if not isinstance(index, Index):
-            index = Index(index)
-
-        self._index = index
+        self._index = _ensure_index(index)
 
         if self.objects is not None:
-            self.objects._index = index
+            self.objects._index = self._index
 
 #-------------------------------------------------------------------------------
 # "Magic methods"
@@ -811,9 +805,7 @@ class DataMatrix(DataFrame):
 
             columns = Index(self.cols())
         else:
-            if not isinstance(columns, Index):
-                columns = Index(columns)
-
+            columns = _ensure_index(columns)
             values = self.values
             order = self.columns
 

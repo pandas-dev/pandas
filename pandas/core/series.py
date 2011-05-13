@@ -198,10 +198,7 @@ class Series(np.ndarray, Picklable, Groupable):
         if len(self) != len(index):
             raise AssertionError('Lengths of index and values did not match!')
 
-        if not isinstance(index, Index):
-            index = Index(index)
-
-        self._index = index
+        self._index = _ensure_index(index)
 
     index = property(fget=_get_index, fset=_set_index)
 
@@ -871,9 +868,7 @@ class Series(np.ndarray, Picklable, Groupable):
         if self.index.equals(new_index):
             return self.copy()
 
-        if not isinstance(new_index, Index):
-            new_index = Index(new_index)
-
+        new_index = _ensure_index(new_index)
         if len(self.index) == 0:
             return Series(NaN, index=new_index)
 
@@ -1322,3 +1317,9 @@ def _seriesRepr(index, vals, nanRep='NaN'):
                            itertools.izip(string_index, vals))
 
     return '\n'.join(it)
+
+def _ensure_index(index_like):
+    if not isinstance(index_like, Index):
+        index_like = Index(index_like)
+
+    return index_like

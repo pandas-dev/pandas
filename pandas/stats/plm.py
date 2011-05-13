@@ -14,9 +14,9 @@ from pandas.core.panel import WidePanel, LongPanel
 from pandas.core.matrix import DataFrame, DataMatrix
 from pandas.core.series import Series
 from pandas.stats.ols import OLS, MovingOLS
-from pandas.util.decorators import cache_readonly
 import pandas.stats.common as common
 import pandas.stats.math as math
+from pandas.util.decorators import cache_readonly
 
 class PanelOLS(OLS):
     """Implements panel OLS.
