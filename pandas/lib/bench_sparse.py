@@ -28,7 +28,7 @@ is2 = SparseSeries(arr2, kind='integer', index=index)
 s1_dense = s1.to_dense()
 s2_dense = s2.to_dense()
 
-dm = DataMatrix.load('/home/wesm/code/pandas/example')
+dm = DataMatrix.load('/Users/wesm/code/pandas/example')
 
 data = {}
 for col, ser in dm.iteritems():

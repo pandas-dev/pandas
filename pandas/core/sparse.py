@@ -8,6 +8,7 @@ import numpy as np
 
 import operator
 
+from pandas.core.common import _pickle_array, _unpickle_array
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries, _ensure_index
 from pandas.core.frame import DataFrame, extract_index, try_sort
@@ -592,6 +593,31 @@ class SparseDataFrame(DataFrame):
 
         return sdict, columns, index
 
+    def __getstate__(self):
+        series = dict((k, (v.sp_index, v.sp_values))
+                      for k, v in self.iteritems())
+        columns = _pickle_array(self.columns)
+        index = _pickle_array(self.index)
+
+        return (series, columns, index, self.default_fill_value,
+                self.default_kind)
+
+    def __setstate__(self, state):
+        series, cols, idx, fv, kind = state
+        columns = _unpickle_array(cols)
+        index = _unpickle_array(idx)
+
+        series_dict = {}
+        for col, (sp_index, sp_values) in series.iteritems():
+            series_dict[col] = SparseSeries(sp_values, sparse_index=sp_index,
+                                            fill_value=fv)
+
+        self._series = series_dict
+        self.index = index
+        self.columns = columns
+        self.default_fill_value = fv
+        self.default_kind = kind
+
     def __repr__(self):
         """
         Return a string representation for a particular DataFrame
@@ -818,9 +844,19 @@ def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
 
 class SparseWidePanel(WidePanel):
     """
+    Sparse version of WidePanel
 
+    Parameters
+    ----------
+    frames : dict of DataFrame objects
+    items : array-like
+    major_axis : array-like
+    minor_axis : array-like
+    default_fill_value : float, default NaN
+    default_kind : {'block', 'integer'}
 
-
+    Notes
+    -----
     """
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=nan, default_kind='block'):
@@ -846,8 +882,19 @@ class SparseWidePanel(WidePanel):
         self.minor_axis = minor_axis
 
     @classmethod
-    def from_dict(cls):
-        pass
+    def from_dict(cls, data, intersect=False):
+        return SparseWidePanel(data)
+
+    def to_dense(self):
+        """
+        Convert SparseWidePanel to (dense) WidePanel
+
+        Returns
+        -------
+        dense : WidePanel
+        """
+        return WidePanel(self.values, self.items, self.major_axis,
+                         self.minor_axis)
 
     @property
     def values(self):
@@ -861,26 +908,40 @@ class SparseWidePanel(WidePanel):
         return self._frames[key]
 
     def __setitem__(self, key, value):
-        pass
+        if isinstance(value, DataFrame):
+            value = value.reindex(index=self.major_axis,
+                                  columns=self.minor_axis)
+            if not isinstance(value, SparseDataFrame):
+                value = value.to_sparse(fill_value=self.default_fill_value,
+                                        kind=self.default_kind)
+        else:
+            raise ValueError('only DataFrame objects can be set currently')
+
+        self._frames[key] = value
+
+        if key not in self.items:
+            self.items = Index(list(self.items) + [key])
 
     def __delitem__(self, key):
-        pass
-
-    def pop(self, key):
-        pass
+        loc = self.items.indexMap[key]
+        indices = range(loc) + range(loc + 1, len(self.items))
+        self.items = self.items[indices]
+        del self._frames[key]
 
     #----------------------------------------------------------------------
     # pickling
 
     def __getstate__(self):
-        pass
+        return (self._frames, _pickle_array(self.items),
+                _pickle_array(self.major_axis), _pickle_array(self.minor_axis))
 
     def __setstate__(self, state):
-        pass
+        frames, items, major, minor = state
 
-    @classmethod
-    def from_dict(cls, data, intersect=False):
-        pass
+        self.items = _unpickle_array(items)
+        self.major_axis = _unpickle_array(major)
+        self.minor_axis = _unpickle_array(minor)
+        self._frames = frames
 
     def copy(self):
         pass

@@ -173,14 +173,6 @@ class WidePanel(Panel, Groupable):
         self.factors = {}
         self.values = values
 
-    def _get_values(self):
-        return self._values
-
-    def _set_values(self, values):
-        self._values = values
-
-    values = property(fget=_get_values, fset=_set_values)
-
     @classmethod
     def _get_axis_number(cls, axis):
         if axis in (0, 1, 2):
@@ -286,11 +278,7 @@ class WidePanel(Panel, Groupable):
         return DataMatrix(mat, index=self.major_axis, columns=self.minor_axis)
 
     def __delitem__(self, key):
-        try:
-            loc = self.items.indexMap[key]
-        except KeyError:
-            raise KeyError('%s not contained in panel data items!' % key)
-
+        loc = self.items.indexMap[key]
         indices = range(loc) + range(loc + 1, len(self.items))
         self.items = self.items[indices]
         self.values = self.values.take(indices, axis=0)

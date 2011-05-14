@@ -162,8 +162,12 @@ class TestWidePanel(unittest.TestCase, PanelTests):
 
     def setUp(self):
         self.panel = common.makeWidePanel()
-
         common.add_nans(self.panel)
+
+    def test_values(self):
+        # nothing to test for the moment
+        values = self.panel.values
+        self.panel.values = values
 
     def test_get_axis(self):
         assert(self.panel._get_axis(0) is self.panel.items)

@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from unittest import TestCase
+import cPickle as pickle
 import operator
 
 import nose
@@ -10,7 +11,7 @@ import numpy as np
 dec = np.testing.dec
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal, assert_panel_equal)
 from numpy.testing import assert_equal
 
 from pandas import Series, DataFrame, DateRange, WidePanel
@@ -83,6 +84,15 @@ def assert_sp_frame_equal(left, right, exact_indices=True):
 
     for col in right:
         assert(col in left)
+
+def assert_sp_panel_equal(left, right, exact_indices=True):
+    for item, frame in left.iteritems():
+        assert(item in right)
+        # trade-off?
+        assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)
+
+    for item in right:
+        assert(item in left)
 
 class TestSparseSeries(TestCase):
 
@@ -221,18 +231,19 @@ class TestSparseSeries(TestCase):
         self.assertEquals(self.iseries.kind, 'integer')
 
     def test_pickle(self):
-        import pickle
-
         def _test_roundtrip(series):
             pickled = pickle.dumps(series)
             unpickled = pickle.loads(pickled)
             assert_sp_series_equal(series, unpickled)
             assert_series_equal(series.to_dense(), unpickled.to_dense())
 
-        _test_roundtrip(self.bseries)
-        _test_roundtrip(self.iseries)
-        _test_roundtrip(self.zbseries)
-        _test_roundtrip(self.ziseries)
+        self._check_all(_test_roundtrip)
+
+    def _check_all(self, check_func):
+        check_func(self.bseries)
+        check_func(self.iseries)
+        check_func(self.zbseries)
+        check_func(self.ziseries)
 
     def test_getitem(self):
         def _check_getitem(sp, dense):
@@ -581,6 +592,14 @@ class TestSparseDataFrame(TestCase):
         dres = np.sqrt(self.frame.to_dense())
         assert_frame_equal(res.to_dense(), dres)
 
+    def test_pickle(self):
+        def _test_roundtrip(frame):
+            pickled = pickle.dumps(frame)
+            unpickled = pickle.loads(pickled)
+            assert_sp_frame_equal(frame, unpickled)
+
+        self._check_all(_test_roundtrip)
+
     def test_dense_to_sparse(self):
         df = DataFrame({'A' : [nan, nan, nan, 1, 2],
                         'B' : [1, 2, nan, nan, nan]})
@@ -841,7 +860,13 @@ class TestSparseWidePanel(TestCase):
         self.panel = SparseWidePanel(self.data_dict)
 
     def test_from_dict(self):
-        pass
+        fd = SparseWidePanel.from_dict(self.data_dict)
+        assert_sp_panel_equal(fd, self.panel)
+
+    def test_to_dense(self):
+        dwp = self.panel.to_dense()
+        dwp2 = WidePanel.from_dict(self.data_dict)
+        assert_panel_equal(dwp, dwp2)
 
     def test_to_long(self):
         pass
@@ -855,11 +880,31 @@ class TestSparseWidePanel(TestCase):
     def test_getitem(self):
         pass
 
+    def test_setitem(self):
+        self.panel['item4'] = self.panel['item3']
+        self.panel['item5'] = self.panel['item3'].to_dense()
+
+        assert_sp_frame_equal(self.panel['item4'], self.panel['item3'])
+        assert_sp_frame_equal(self.panel['item5'], self.panel['item3'])
+        assert_almost_equal(self.panel.items, ['item1', 'item2', 'item3',
+                                               'item4', 'item5'])
+
+        self.assertRaises(Exception, self.panel.__setitem__, 'item6', 1)
+
     def test_delitem_pop(self):
-        pass
+        del self.panel['item2']
+        assert_almost_equal(self.panel.items, ['item1', 'item3'])
+        crackle = self.panel['item3']
+        pop = self.panel.pop('item3')
+        self.assert_(pop is crackle)
+        assert_almost_equal(self.panel.items, ['item1'])
+
+        self.assertRaises(KeyError, self.panel.__delitem__, 'item3')
 
     def test_pickle(self):
-        pass
+        pickled = pickle.dumps(self.panel)
+        unpickled = pickle.loads(pickled)
+        assert_sp_panel_equal(self.panel, unpickled)
 
     def test_copy(self):
         pass
@@ -880,16 +925,9 @@ class TestSparseWidePanel(TestCase):
         pass
 
 if __name__ == '__main__':
-    data_dict = {
-        'item1' : panel_data1(),
-        'item2' : panel_data2(),
-        'item3' : panel_data3()
-    }
-    panel = SparseWidePanel(data_dict)
-
-    # import nose
-    # nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
-    #                exit=False)
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
 
     # nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',
     #                      '--with-profile'],
