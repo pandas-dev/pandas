@@ -817,31 +817,6 @@ def homogenize(series_dict):
 
     return output
 
-def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
-    from pandas.core.panel import _get_combined_index, _get_combined_columns
-
-    output = {}
-    for item, df in frames.iteritems():
-        if not isinstance(df, SparseDataFrame):
-            df = SparseDataFrame(df, default_kind=kind,
-                                 default_fill_value=fill_value)
-
-        output[item] = df
-
-    if index is None:
-        index = _get_combined_index(output)
-    if columns is None:
-        columns = _get_combined_columns(output)
-
-    index = _ensure_index(index)
-    columns = _ensure_index(columns)
-
-    for item, df in output.iteritems():
-        if not (df.index.equals(index) and df.columns.equals(columns)):
-            output[item] = df.reindex(index=index, columns=columns)
-
-    return output, index, columns
-
 class SparseWidePanel(WidePanel):
     """
     Sparse version of WidePanel
@@ -877,6 +852,12 @@ class SparseWidePanel(WidePanel):
                                        fill_value=fill_value)
 
         self._frames = clean_frames
+
+        # TODO: !
+        for item in items:
+            if item not in clean_frames:
+                raise Exception('foo')
+
         self.items = items
         self.major_axis = major_axis
         self.minor_axis = minor_axis
@@ -928,43 +909,67 @@ class SparseWidePanel(WidePanel):
         self.items = self.items[indices]
         del self._frames[key]
 
-    #----------------------------------------------------------------------
-    # pickling
-
     def __getstate__(self):
+        # pickling
         return (self._frames, _pickle_array(self.items),
-                _pickle_array(self.major_axis), _pickle_array(self.minor_axis))
+                _pickle_array(self.major_axis), _pickle_array(self.minor_axis),
+                self.default_fill_value, self.default_kind)
 
     def __setstate__(self, state):
-        frames, items, major, minor = state
+        frames, items, major, minor, fv, kind = state
 
+        self.default_fill_value = fv
+        self.default_kind = kind
         self.items = _unpickle_array(items)
         self.major_axis = _unpickle_array(major)
         self.minor_axis = _unpickle_array(minor)
         self._frames = frames
 
     def copy(self):
-        pass
+        """
+
+        """
+        return SparseWidePanel(self._frames.copy(), items=self.items,
+                               major_axis=self.major_axis,
+                               minor_axis=self.minor_axis,
+                               default_fill_value=self.default_fill_value,
+                               default_kind=self.default_kind)
 
     def to_long(self):
         pass
 
-    def reindex(self, major=None, items=None, minor=None, method=None):
-        result = self
+    def reindex(self, major=None, items=None, minor=None):
+        """
 
-        if major is not None:
-            result = result._reindex_axis(major, method, 1)
+        Parameters
+        ----------
 
-        if minor is not None:
-            result = result._reindex_axis(minor, method, 2)
+        Returns
+        -------
+        reindexed : SparseWidePanel
+        """
 
-        if items is not None:
-            result = result._reindex_axis(items, method, 0)
-
-        if result is self:
+        if None == major == items == minor:
             raise ValueError('Must specify at least one axis')
 
-        return result
+        major = self.major_axis if major is None else major
+        minor = self.minor_axis if minor is None else minor
+
+        if items is not None:
+            new_frames = {}
+            for item in items:
+                if item in self._frames:
+                    new_frames[item] = self._frames[item]
+                else:
+                    raise Exception('need to implememt this')
+        else:
+            new_frames = self._frames
+
+        return SparseWidePanel(new_frames, items=items,
+                               major_axis=major,
+                               minor_axis=minor,
+                               default_fill_value=self.default_fill_value,
+                               default_kind=self.default_kind)
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
@@ -1048,3 +1053,28 @@ class SparseWidePanel(WidePanel):
         mat = np.array(self.values[:, :, loc].T)
         return DataMatrix(mat, index=self.major_axis, columns=self.items)
 
+
+def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
+    from pandas.core.panel import _get_combined_index, _get_combined_columns
+
+    output = {}
+    for item, df in frames.iteritems():
+        if not isinstance(df, SparseDataFrame):
+            df = SparseDataFrame(df, default_kind=kind,
+                                 default_fill_value=fill_value)
+
+        output[item] = df
+
+    if index is None:
+        index = _get_combined_index(output)
+    if columns is None:
+        columns = _get_combined_columns(output)
+
+    index = _ensure_index(index)
+    columns = _ensure_index(columns)
+
+    for item, df in output.iteritems():
+        if not (df.index.equals(index) and df.columns.equals(columns)):
+            output[item] = df.reindex(index=index, columns=columns)
+
+    return output, index, columns

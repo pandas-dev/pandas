@@ -82,6 +82,10 @@ def assert_sp_frame_equal(left, right, exact_indices=True):
         else:
             assert_series_equal(series.to_dense(), right[col].to_dense())
 
+    assert_almost_equal(left.default_fill_value,
+                        right.default_fill_value)
+    assert(left.default_kind == right.default_kind)
+
     for col in right:
         assert(col in left)
 
@@ -90,6 +94,10 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
         assert(item in right)
         # trade-off?
         assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)
+
+    assert_almost_equal(left.default_fill_value,
+                        right.default_fill_value)
+    assert(left.default_kind == right.default_kind)
 
     for item in right:
         assert(item in left)
@@ -863,6 +871,14 @@ class TestSparseWidePanel(TestCase):
         fd = SparseWidePanel.from_dict(self.data_dict)
         assert_sp_panel_equal(fd, self.panel)
 
+    def test_pickle(self):
+        def _test_roundtrip(panel):
+            pickled = pickle.dumps(panel)
+            unpickled = pickle.loads(pickled)
+            assert_sp_panel_equal(panel, unpickled)
+
+        _test_roundtrip(self.panel)
+
     def test_to_dense(self):
         dwp = self.panel.to_dense()
         dwp2 = WidePanel.from_dict(self.data_dict)
@@ -907,10 +923,12 @@ class TestSparseWidePanel(TestCase):
         assert_sp_panel_equal(self.panel, unpickled)
 
     def test_copy(self):
-        pass
+        cop = self.panel.copy()
+        assert_sp_panel_equal(cop, self.panel)
 
     def test_reindex(self):
-        pass
+        def _compare_with_dense(wp, items, major, minor):
+            pass
 
     def test_operators(self):
         pass
