@@ -927,8 +927,16 @@ class TestSparseWidePanel(TestCase):
         assert_sp_panel_equal(cop, self.panel)
 
     def test_reindex(self):
-        def _compare_with_dense(wp, items, major, minor):
-            pass
+        def _compare_with_dense(swp, items, major, minor):
+            swp_re = swp.reindex(items=items, major=major,
+                                 minor=minor)
+            dwp_re = swp.to_dense().reindex(items=items, major=major,
+                                            minor=minor)
+            assert_panel_equal(swp_re.to_dense(), dwp_re)
+
+        _compare_with_dense(self.panel, self.panel.items[:2],
+                            self.panel.major_axis[::2],
+                            self.panel.minor_axis[::2])
 
     def test_operators(self):
         pass

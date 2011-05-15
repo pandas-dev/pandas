@@ -751,10 +751,6 @@ def stack_sparse_frame(frame):
     # this is pretty fast
     minor_labels = np.repeat(np.arange(len(frame.columns)), lengths)
 
-    # need to create
-    major_labels = np.empty(nobs, dtype=int)
-    stacked_values = np.empty(nobs, dtype=np.float64)
-
     inds_to_concat = []
     vals_to_concat = []
     for _, series in frame.iteritems():
@@ -927,7 +923,11 @@ class SparseWidePanel(WidePanel):
 
     def copy(self):
         """
+        Make a (shallow) copy of the sparse panel
 
+        Returns
+        -------
+        copy : SparseWidePanel
         """
         return SparseWidePanel(self._frames.copy(), items=self.items,
                                major_axis=self.major_axis,
@@ -935,7 +935,14 @@ class SparseWidePanel(WidePanel):
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
 
-    def to_long(self):
+    def to_long(self, filter_observations=True):
+        """
+        Convert SparseWidePanel to (dense) LongPanel
+
+        Returns
+        -------
+        lp : LongPanel
+        """
         pass
 
     def reindex(self, major=None, items=None, minor=None):

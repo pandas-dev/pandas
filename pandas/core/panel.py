@@ -353,6 +353,7 @@ class WidePanel(Panel, Groupable):
         ----------
         frame : DataFrame
         axis : {'items', 'major', 'minor'}
+
             Axis the input corresponds to. E.g., if axis='major', then
             the frame's columns would be items, and the index would be
             values of the minor axis
