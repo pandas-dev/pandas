@@ -867,6 +867,10 @@ class TestSparseWidePanel(TestCase):
         }
         self.panel = SparseWidePanel(self.data_dict)
 
+    def test_constructor(self):
+        self.assertRaises(Exception, SparseWidePanel, self.data_dict,
+                          items=['item0', 'item1', 'item2'])
+
     def test_from_dict(self):
         fd = SparseWidePanel.from_dict(self.data_dict)
         assert_sp_panel_equal(fd, self.panel)

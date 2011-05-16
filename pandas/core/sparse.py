@@ -849,10 +849,10 @@ class SparseWidePanel(WidePanel):
 
         self._frames = clean_frames
 
-        # TODO: !
+        # do we want to fill missing ones?
         for item in items:
             if item not in clean_frames:
-                raise Exception('foo')
+                raise Exception('column %s not found in data' % item)
 
         self.items = items
         self.major_axis = major_axis
