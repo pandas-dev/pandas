@@ -13,6 +13,7 @@ import numpy as np
 from pandas.core.panel import WidePanel, LongPanel
 from pandas.core.matrix import DataFrame, DataMatrix
 from pandas.core.series import Series
+from pandas.core.sparse import SparseWidePanel
 from pandas.stats.ols import OLS, MovingOLS
 import pandas.stats.common as common
 import pandas.stats.math as math
@@ -147,16 +148,19 @@ class PanelOLS(OLS):
 
         """
         data = self._x_orig
+        cat_mapping = {}
 
         if isinstance(data, LongPanel):
-            cat_mapping = {}
-            data = data.toWide()
-
+            data = data.to_wide()
         else:
-            data, cat_mapping = self._convert_x(data)
+            if isinstance(data, WidePanel):
+                data = data.copy()
+
+            if not isinstance(data, SparseWidePanel):
+                data, cat_mapping = self._convert_x(data)
 
             if not isinstance(data, WidePanel):
-                data = WidePanel.fromDict(data, intersect=True)
+                data = WidePanel.from_dict(data, intersect=True)
 
         x_names = data.items
 
@@ -164,11 +168,11 @@ class PanelOLS(OLS):
             data['__weights__'] = self._weights
 
         # Filter x's without y (so we can make a prediction)
-        filtered = data.toLong()
+        filtered = data.to_long()
 
-        # Filter all data together using toLong
+        # Filter all data together using to_long
         data['__y__'] = self._y_orig
-        data_long = data.toLong()
+        data_long = data.to_long()
 
         x_filt = filtered.filter(x_names)
 
@@ -194,7 +198,7 @@ class PanelOLS(OLS):
         # provides the reverse mapping.  For example, if 'A' was converted to 0
         # for x named 'variety', then x_conversion['variety'][0] is 'A'.
         x_converted = {}
-        x_conversion = {}
+        cat_mapping = {}
         for key, df in x.iteritems():
             if not isinstance(df, DataFrame):
                 raise TypeError('Input X data set contained an object of '
@@ -205,14 +209,15 @@ class PanelOLS(OLS):
             else:
                 values = df.values
                 distinct_values = sorted(set(values.flat))
-                x_conversion[key] = dict(enumerate(distinct_values))
+                cat_mapping[key] = dict(enumerate(distinct_values))
                 new_values = np.searchsorted(distinct_values, values)
                 x_converted[key] = DataMatrix(new_values, index=df.index,
                                               columns=df.columns)
 
-        data = x_converted.copy()
+        if len(cat_mapping) == 0:
+            x_converted = x
 
-        return data, x_conversion
+        return x_converted, cat_mapping
 
     def _add_dummies(self, panel, mapping):
         """
@@ -488,7 +493,7 @@ class PanelOLS(OLS):
         panel = LongPanel(vec.reshape((len(vec), 1)), ['dummy'],
                           index=index)
 
-        return panel.toWide()['dummy']
+        return panel.to_wide()['dummy']
 
     def _unstack_y(self, vec):
         unstacked = self._unstack_vector(vec)

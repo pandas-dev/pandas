@@ -18,6 +18,8 @@ import pandas.core.common as common
 from pandas.lib.sparse import BlockIndex, IntIndex
 import pandas.lib.sparse as splib
 
+from pandas.util.testing import set_trace
+
 def make_sparse(arr, kind='block', fill_value=nan):
     """
     Convert ndarray to sparse format
@@ -221,7 +223,10 @@ class SparseSeries(Series):
         index = _ensure_index(index)
 
         # Create array, do *not* copy data by default
-        subarr = np.array(values, dtype=np.float64, copy=copy)
+        if copy:
+            subarr = np.array(values, dtype=np.float64, copy=True)
+        else:
+            subarr = np.asarray(values, dtype=np.float64)
 
         if index.is_all_dates():
             cls = SparseTimeSeries

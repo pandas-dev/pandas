@@ -36,18 +36,57 @@ else:
 
 dm = DataMatrix.load(pth)
 
-data = {}
-for col, ser in dm.iteritems():
-    data[col] = SparseSeries(ser)
+sdf = dm.to_sparse()
+
+def new_data_like(sdf):
+    new_data = {}
+    for col, series in sdf.iteritems():
+        new_data[col] = SparseSeries(np.random.randn(len(series.sp_values)),
+                                     index=sdf.index,
+                                     sparse_index=series.sp_index,
+                                     fill_value=series.fill_value)
+
+    return SparseDataFrame(new_data)
+
+# data = {}
+# for col, ser in dm.iteritems():
+#     data[col] = SparseSeries(ser)
 
 dwp = WidePanel.fromDict({'foo' : dm})
+# sdf = SparseDataFrame(data)
 
-sdf = SparseDataFrame(data)
 
 lp = stack_sparse_frame(sdf)
+
 
 swp = SparseWidePanel({'A' : sdf})
 swp = SparseWidePanel({'A' : sdf,
                        'B' : sdf,
                        'C' : sdf,
                        'D' : sdf})
+
+y = sdf
+x = SparseWidePanel({'x1' : sdf + new_data_like(sdf) / 10,
+                     'x2' : sdf + new_data_like(sdf) / 10})
+
+dense_y = sdf
+dense_x = x.to_dense()
+
+# import hotshot, hotshot.stats
+# prof = hotshot.Profile('test.prof')
+
+# benchtime, stones = prof.runcall(ols, y=y, x=x)
+
+# prof.close()
+
+# stats = hotshot.stats.load('test.prof')
+
+dense_model = ols(y=dense_y, x=dense_x)
+
+import pandas.stats.plm as plm
+import pandas.stats.interface as face
+reload(plm)
+reload(face)
+
+# model = face.ols(y=y, x=x)
+
