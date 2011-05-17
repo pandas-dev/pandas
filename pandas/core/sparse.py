@@ -955,7 +955,6 @@ class SparseWidePanel(WidePanel):
         -------
         reindexed : SparseWidePanel
         """
-
         if None == major == items == minor:
             raise ValueError('Must specify at least one axis')
 
@@ -968,7 +967,8 @@ class SparseWidePanel(WidePanel):
                 if item in self._frames:
                     new_frames[item] = self._frames[item]
                 else:
-                    raise Exception('need to implememt this')
+                    raise Exception('Reindexing with new items not yet '
+                                    'supported')
         else:
             new_frames = self._frames
 

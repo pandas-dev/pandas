@@ -941,6 +941,15 @@ class TestSparseWidePanel(TestCase):
         _compare_with_dense(self.panel, self.panel.items[:2],
                             self.panel.major_axis[::2],
                             self.panel.minor_axis[::2])
+        _compare_with_dense(self.panel, None,
+                            self.panel.major_axis[::2],
+                            self.panel.minor_axis[::2])
+
+        self.assertRaises(ValueError, self.panel.reindex)
+
+        # TODO: do something about this later...
+        self.assertRaises(Exception, self.panel.reindex,
+                          items=['item0', 'item1', 'item2'])
 
     def test_operators(self):
         pass

@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 
 from pandas import *
@@ -28,7 +29,12 @@ is2 = SparseSeries(arr2, kind='integer', index=index)
 s1_dense = s1.to_dense()
 s2_dense = s2.to_dense()
 
-dm = DataMatrix.load('/Users/wesm/code/pandas/example')
+if 'linux' in sys.platform:
+    pth = '/home/wesm/code/pandas/example'
+else:
+    pth = '/Users/wesm/code/pandas/example'
+
+dm = DataMatrix.load(pth)
 
 data = {}
 for col, ser in dm.iteritems():
