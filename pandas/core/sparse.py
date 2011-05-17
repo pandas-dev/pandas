@@ -769,6 +769,31 @@ def stack_sparse_frame(frame):
     lp = LongPanel(stacked_values.reshape((nobs, 1)), ['foo'], index)
     return lp.sort('major')
 
+def _stack_sparse_info(frame):
+    lengths = [s.sp_index.npoints for _, s in frame.iteritems()]
+    nobs = sum(lengths)
+
+    # this is pretty fast
+    minor_labels = np.repeat(np.arange(len(frame.columns)), lengths)
+
+    inds_to_concat = []
+    vals_to_concat = []
+    for col in frame.columns:
+        series = frame[col]
+
+        if not np.isnan(series.fill_value):
+            raise Exception('This routine assumes NaN fill value')
+
+        int_index = series.sp_index.to_int_index()
+        inds_to_concat.append(int_index.indices)
+        vals_to_concat.append(series.sp_values)
+
+    major_labels = np.concatenate(inds_to_concat)
+    sparse_values = np.concatenate(vals_to_concat)
+
+    return sparse_values, major_labels, minor_labels
+
+
 def homogenize(series_dict):
     """
     Conform a set of SparseSeries (with NaN fill_value) to a common SparseIndex
@@ -943,7 +968,44 @@ class SparseWidePanel(WidePanel):
         -------
         lp : LongPanel
         """
-        pass
+        from pandas.core.panel import LongPanelIndex, LongPanel
+
+        I, N, K = self.shape
+        counts = np.zeros(N * K, dtype=int)
+
+        d_values = {}
+        d_indexer = {}
+
+        for item in self.items:
+            frame = self[item]
+
+            values, major, minor = _stack_sparse_info(frame)
+
+            # values are stacked column-major
+            indexer = minor * N + major
+            counts.put(indexer, counts.take(indexer) + 1) # cuteness
+
+            d_values[item] = values
+            d_indexer[item] = indexer
+
+        mask = counts == I
+        values = np.column_stack([d_values[item][mask.take(d_indexer[item])]
+                                  for item in self.items])
+
+        if I == 1:
+            values = np.atleast_2d(values).T
+
+        inds, = mask.nonzero()
+
+        # still column major
+        major_labels = inds % N
+        minor_labels = inds // N
+
+        index = LongPanelIndex(self.major_axis, self.minor_axis,
+                               major_labels, minor_labels)
+
+        lp = LongPanel(values, self.items, index)
+        return lp.sort('major')
 
     def reindex(self, major=None, items=None, minor=None):
         """

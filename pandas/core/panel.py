@@ -141,8 +141,17 @@ class Panel(Picklable):
             yield item, self[item]
 
     @property
-    def dims(self):
+    def shape(self):
         return len(self.items), len(self.major_axis), len(self.minor_axis)
+
+    @property
+    def dims(self): # pragma: no cover
+        import warnings
+        warnings.warn("Please change panel.dims to panel.shape, will be removed"
+                      " in future release",
+                      FutureWarning)
+
+        return self.shape
 
 _WIDE_AXIS_NUMBERS = {
     'items' : 0,
@@ -259,9 +268,9 @@ class WidePanel(Panel, Groupable):
         if not values.flags.contiguous:
             values = values.copy()
 
-        if self.dims != values.shape:
+        if self.shape != values.shape:
             raise PanelError('Values shape %s did not match axes / items %s' %
-                             (values.shape, self.dims))
+                             (values.shape, self.shape))
 
         self._values = values
 
@@ -301,7 +310,7 @@ class WidePanel(Panel, Groupable):
         return result
 
     def __setitem__(self, key, value):
-        _, N, K = self.dims
+        _, N, K = self.shape
 
         # XXX
         if isinstance(value, LongPanel):
@@ -633,7 +642,7 @@ class WidePanel(Panel, Groupable):
         -------
         y : LongPanel
         """
-        I, N, K = self.dims
+        I, N, K = self.shape
 
         if filter_observations:
             mask = np.isfinite(self.values).all(axis=0)
@@ -1286,7 +1295,7 @@ class LongPanel(Panel):
             raise PanelError('Panel has duplicate (major, minor) pairs, '
                              'cannot be reliably converted to wide format.')
 
-        I, N, K = self.dims
+        I, N, K = self.shape
 
         values = np.empty((I, N, K), dtype=self.values.dtype)
 
@@ -1776,7 +1785,7 @@ class LongPanelIndex(object):
         Create observation selection vector using major and minor
         labels, for converting to wide format.
         """
-        N, K = self.dims
+        N, K = self.shape
         selector = self.minor_labels + K * self.major_labels
 
         mask = np.zeros(N * K, dtype=bool)
@@ -1785,7 +1794,7 @@ class LongPanelIndex(object):
         return mask
 
     @property
-    def dims(self):
+    def shape(self):
         return len(self.major_axis), len(self.minor_axis)
 
 

@@ -46,5 +46,8 @@ sdf = SparseDataFrame(data)
 
 lp = stack_sparse_frame(sdf)
 
+swp = SparseWidePanel({'A' : sdf})
 swp = SparseWidePanel({'A' : sdf,
-                       'B' : sdf})
+                       'B' : sdf,
+                       'C' : sdf,
+                       'D' : sdf})

@@ -199,7 +199,7 @@ def makeWidePanel():
     return WidePanel.fromDict(data)
 
 def add_nans(panel):
-    I, J, N = panel.dims
+    I, J, N = panel.shape
     for i, item in enumerate(panel.items):
         dm = panel[item]
         for j, col in enumerate(dm.columns):
