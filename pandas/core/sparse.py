@@ -1085,40 +1085,40 @@ class SparseWidePanel(WidePanel):
 
     def major_xs(self, key):
         """
+        Return slice of panel along major axis
+
         Parameters
         ----------
+        key : object
+            Major axis label
 
         Returns
         -------
         y : DataMatrix
             index -> minor axis, columns -> items
         """
-        try:
-            loc = self.major_axis.indexMap[key]
-        except KeyError:
-            raise KeyError('%s not contained in major axis!' % key)
-
-        mat = np.array(self.values[:, loc, :].T)
-        return DataMatrix(mat, index=self.minor_axis, columns=self.items)
+        slices = dict((k, v.xs(key)) for k, v in self.iteritems())
+        return DataMatrix(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
         """
+        Return slice of panel along minor axis
+
         Parameters
         ----------
+        key : object
+            Minor axis label
 
         Returns
         -------
-        y : DataMatrix
+        y : SparseDataFrame
             index -> major axis, columns -> items
         """
-        try:
-            loc = self.minor_axis.indexMap[key]
-        except KeyError:
-            raise KeyError('%s not contained in minor axis!' % key)
-
-        mat = np.array(self.values[:, :, loc].T)
-        return DataMatrix(mat, index=self.major_axis, columns=self.items)
-
+        slices = dict((k, v[key]) for k, v in self.iteritems())
+        return SparseDataFrame(slices, index=self.major_axis,
+                               columns=self.items,
+                               default_fill_value=self.default_fill_value,
+                               default_kind=self.default_kind)
 
 def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
     from pandas.core.panel import _get_combined_index, _get_combined_columns
@@ -1144,3 +1144,4 @@ def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
             output[item] = df.reindex(index=index, columns=columns)
 
     return output, index, columns
+

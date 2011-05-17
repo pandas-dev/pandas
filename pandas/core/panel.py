@@ -540,37 +540,37 @@ class WidePanel(Panel, Groupable):
 
     def major_xs(self, key):
         """
+        Return slice of panel along major axis
+
         Parameters
         ----------
+        key : object
+            Major axis label
 
         Returns
         -------
         y : DataMatrix
             index -> minor axis, columns -> items
         """
-        try:
-            loc = self.major_axis.indexMap[key]
-        except KeyError:
-            raise KeyError('%s not contained in major axis!' % key)
-
+        loc = self.major_axis.indexMap[key]
         mat = np.array(self.values[:, loc, :].T)
         return DataMatrix(mat, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
         """
+        Return slice of panel along minor axis
+
         Parameters
         ----------
+        key : object
+            Minor axis label
 
         Returns
         -------
         y : DataMatrix
             index -> major axis, columns -> items
         """
-        try:
-            loc = self.minor_axis.indexMap[key]
-        except KeyError:
-            raise KeyError('%s not contained in minor axis!' % key)
-
+        loc = self.minor_axis.indexMap[key]
         mat = np.array(self.values[:, :, loc].T)
         return DataMatrix(mat, index=self.major_axis, columns=self.items)
 

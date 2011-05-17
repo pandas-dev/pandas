@@ -972,10 +972,26 @@ class TestSparseWidePanel(TestCase):
         pass
 
     def test_major_xs(self):
-        pass
+        def _dense_comp(sparse):
+            dense = sparse.to_dense()
+
+            for idx in sparse.major_axis:
+                dslice = dense.major_xs(idx)
+                sslice = sparse.major_xs(idx)
+                assert_frame_equal(dslice, sslice)
+
+        _dense_comp(self.panel)
 
     def test_minor_xs(self):
-        pass
+        def _dense_comp(sparse):
+            dense = sparse.to_dense()
+
+            for idx in sparse.minor_axis:
+                dslice = dense.minor_xs(idx)
+                sslice = sparse.minor_xs(idx).to_dense()
+                assert_frame_equal(dslice, sslice)
+
+        _dense_comp(self.panel)
 
 if __name__ == '__main__':
     import nose
