@@ -24,4 +24,9 @@ def configuration(parent_package='', top_path=None):
                          sources=['src/tseries.c'],
                          include_dirs=[numpy.get_include()])
 
+
+    config.add_extension('sparse',
+                         sources=['src/sparse.c'],
+                         include_dirs=[numpy.get_include()])
+
     return config
