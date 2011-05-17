@@ -889,14 +889,21 @@ class TestSparseWidePanel(TestCase):
         assert_panel_equal(dwp, dwp2)
 
     def test_to_long(self):
-        slp = self.panel.to_long()
-        dlp = self.panel.to_dense().to_long()
+        def _compare_with_dense(panel):
+            slp = panel.to_long()
+            dlp = panel.to_dense().to_long()
 
-        self.assert_(np.array_equal(slp.values, dlp.values))
-        self.assert_(np.array_equal(slp.index.major_labels,
-                                    dlp.index.major_labels))
-        self.assert_(np.array_equal(slp.index.minor_labels,
-                                    dlp.index.minor_labels))
+            self.assert_(np.array_equal(slp.values, dlp.values))
+            self.assert_(np.array_equal(slp.index.major_labels,
+                                        dlp.index.major_labels))
+            self.assert_(np.array_equal(slp.index.minor_labels,
+                                        dlp.index.minor_labels))
+
+        _compare_with_dense(self.panel)
+        _compare_with_dense(self.panel.reindex(items=['item1']))
+
+        zero_panel = SparseWidePanel(self.data_dict, default_fill_value=0)
+        self.assertRaises(Exception, zero_panel.to_long)
 
     def test_long_to_wide_sparse(self):
         pass

@@ -992,9 +992,6 @@ class SparseWidePanel(WidePanel):
         values = np.column_stack([d_values[item][mask.take(d_indexer[item])]
                                   for item in self.items])
 
-        if I == 1:
-            values = np.atleast_2d(values).T
-
         inds, = mask.nonzero()
 
         # still column major
