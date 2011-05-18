@@ -136,21 +136,59 @@ def _try_parse_dates(values):
 #===============================================================================
 
 
+class ExcelFile(object):
+    """
+    Class for parsing tabular .xls sheets into DataFrame objects, uses xlrd
 
-def parseExcel(filepath, header = None, indexCol = 0, dateCol = 0,
-               sheetname = None):
-    from pandas.core.datetools import ole2datetime
-    try:
+    Parameters
+    ----------
+    path : string
+        Path to xls file
+    """
+
+    def __init__(self, path):
         import xlrd
-    except:
-        raise Exception('Sorry, you do not have xlrd.')
-    book = xlrd.open_workbook(filepath)
-    sheet = book.sheet_by_name(sheetname)
-    data = [sheet.row_values(i) for i in range(sheet.nrows)]
-    if dateCol is not None:
-        for row in data:
-            try:
-                row[dateCol] = ole2datetime(row[dateCol])
-            except Exception:
-                pass
-    return simpleParser(data, header = header, indexCol = indexCol)
+        self.path = path
+        self.book = xlrd.open_workbook(path)
+
+    def old_parse(self, sheetname, header=None, index_col=0, date_col=0):
+        from pandas.core.datetools import ole2datetime
+        sheet = self.book.sheet_by_name(sheetname)
+
+        data = [sheet.row_values(i) for i in range(sheet.nrows)]
+        if date_col is not None:
+            for row in data:
+                try:
+                    row[date_col] = ole2datetime(row[date_col])
+                except Exception:
+                    pass
+        return simpleParser(data, header=header, indexCol=index_col)
+
+    def parse(self, sheetname, header=None, index_col=0):
+        from datetime import MINYEAR, time, datetime
+        from xlrd import xldate_as_tuple, XL_CELL_DATE
+
+        datemode = self.book.datemode
+        sheet = self.book.sheet_by_name(sheetname)
+
+        data = []
+        for i in range(sheet.nrows):
+            row = []
+            for value, typ in zip(sheet.row_values(i), sheet.row_types(i)):
+                if typ == XL_CELL_DATE:
+                    dt = xldate_as_tuple(value, datemode)
+                    if dt[0] < MINYEAR:
+                        value = time(*dt[3:])
+                    else:
+                        value = datetime(*dt)
+                row.append(value)
+            data.append(row)
+        return simpleParser(data, header=header, indexCol=index_col)
+
+def parseExcel(filepath, header=None, indexCol=0, sheetname=None, **kwds):
+    """
+
+    """
+    excel_file = ExcelFile(filepath)
+    return excel_file.parse(sheetname, header=header, index_col=indexCol)
+
