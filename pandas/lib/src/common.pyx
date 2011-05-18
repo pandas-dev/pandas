@@ -13,12 +13,6 @@ cdef double NaN = <double> np.NaN
 
 from datetime import datetime as pydatetime
 
-cdef inline object trycall(object func, object arg):
-    try:
-        return func(arg)
-    except:
-        raise Exception('Error calling func on index %s' % arg)
-
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a >= b else b
 

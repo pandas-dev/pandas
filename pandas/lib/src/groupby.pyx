@@ -13,7 +13,7 @@ def arrmap(ndarray[object, ndim=1] index, object func):
     cdef ndarray[object, ndim=1] result = np.empty(length, dtype=np.object_)
 
     for i from 0 <= i < length:
-        result[i] = trycall(func, index[i])
+        result[i] = func(index[i])
 
     return result
 
