@@ -965,7 +965,7 @@ class DataFrame(Picklable, Groupable):
 
     def copy(self):
         """
-        Make a deep copy of this frame
+        Make a shallow copy of this frame
         """
         return DataFrame(self._series, index=self.index,
                          columns=self.columns)

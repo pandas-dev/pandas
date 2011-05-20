@@ -595,6 +595,15 @@ class TestSparseDataFrame(TestCase):
 
         # TODO: test data is copied from inputs
 
+        # init dict with different index
+        idx = self.frame.index[:5]
+        cons = SparseDataFrame(self.frame._series, index=idx,
+                               columns=self.frame.columns,
+                               default_fill_value=self.frame.default_fill_value,
+                               default_kind=self.frame.default_kind)
+        reindexed = self.frame.reindex(idx)
+        assert_sp_frame_equal(cons, reindexed)
+
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())
@@ -857,19 +866,22 @@ def panel_data3():
         'd' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
         }, index=index)
 
-class TestSparseWidePanel(TestCase):
+import test_panel
+
+class TestSparseWidePanel(TestCase, test_panel.SafeForSparseTests):
 
     def setUp(self):
         self.data_dict = {
-            'item1' : panel_data1(),
-            'item2' : panel_data2(),
-            'item3' : panel_data3()
+            'ItemA' : panel_data1(),
+            'ItemB' : panel_data2(),
+            'ItemC' : panel_data3(),
+            'ItemD' : panel_data1(),
         }
         self.panel = SparseWidePanel(self.data_dict)
 
     def test_constructor(self):
         self.assertRaises(Exception, SparseWidePanel, self.data_dict,
-                          items=['item0', 'item1', 'item2'])
+                          items=['Item0', 'ItemA', 'ItemB'])
 
     def test_from_dict(self):
         fd = SparseWidePanel.from_dict(self.data_dict)
@@ -900,10 +912,13 @@ class TestSparseWidePanel(TestCase):
                                         dlp.index.minor_labels))
 
         _compare_with_dense(self.panel)
-        _compare_with_dense(self.panel.reindex(items=['item1']))
+        _compare_with_dense(self.panel.reindex(items=['ItemA']))
 
         zero_panel = SparseWidePanel(self.data_dict, default_fill_value=0)
         self.assertRaises(Exception, zero_panel.to_long)
+
+        self.assertRaises(Exception, self.panel.to_long,
+                          filter_observations=False)
 
     def test_long_to_wide_sparse(self):
         pass
@@ -915,25 +930,25 @@ class TestSparseWidePanel(TestCase):
         pass
 
     def test_setitem(self):
-        self.panel['item4'] = self.panel['item3']
-        self.panel['item5'] = self.panel['item3'].to_dense()
+        self.panel['ItemE'] = self.panel['ItemC']
+        self.panel['ItemF'] = self.panel['ItemC'].to_dense()
 
-        assert_sp_frame_equal(self.panel['item4'], self.panel['item3'])
-        assert_sp_frame_equal(self.panel['item5'], self.panel['item3'])
-        assert_almost_equal(self.panel.items, ['item1', 'item2', 'item3',
-                                               'item4', 'item5'])
+        assert_sp_frame_equal(self.panel['ItemE'], self.panel['ItemC'])
+        assert_sp_frame_equal(self.panel['ItemF'], self.panel['ItemC'])
+        assert_almost_equal(self.panel.items, ['ItemA', 'ItemB', 'ItemC',
+                                               'ItemD', 'ItemE', 'ItemF'])
 
         self.assertRaises(Exception, self.panel.__setitem__, 'item6', 1)
 
     def test_delitem_pop(self):
-        del self.panel['item2']
-        assert_almost_equal(self.panel.items, ['item1', 'item3'])
-        crackle = self.panel['item3']
-        pop = self.panel.pop('item3')
+        del self.panel['ItemB']
+        assert_almost_equal(self.panel.items, ['ItemA', 'ItemC', 'ItemD'])
+        crackle = self.panel['ItemC']
+        pop = self.panel.pop('ItemC')
         self.assert_(pop is crackle)
-        assert_almost_equal(self.panel.items, ['item1'])
+        assert_almost_equal(self.panel.items, ['ItemA', 'ItemD'])
 
-        self.assertRaises(KeyError, self.panel.__delitem__, 'item3')
+        self.assertRaises(KeyError, self.panel.__delitem__, 'ItemC')
 
     def test_pickle(self):
         pickled = pickle.dumps(self.panel)
@@ -963,13 +978,33 @@ class TestSparseWidePanel(TestCase):
 
         # TODO: do something about this later...
         self.assertRaises(Exception, self.panel.reindex,
-                          items=['item0', 'item1', 'item2'])
+                          items=['item0', 'ItemA', 'ItemB'])
 
     def test_operators(self):
-        pass
+        def _check_ops(panel):
+            def _dense_comp(op):
+                dense = panel.to_dense()
+                sparse_result = op(panel)
+                dense_result = op(dense)
+                assert_panel_equal(sparse_result.to_dense(), dense_result)
 
-    def test_truncate(self):
-        pass
+            op1 = lambda x: x + 2
+
+            _dense_comp(op1)
+            op2 = lambda x: x.add(x.reindex(major=x.major_axis[::2]))
+            _dense_comp(op2)
+            op3 = lambda x: x.subtract(x.mean(0), axis=0)
+            _dense_comp(op3)
+            op4 = lambda x: x.subtract(x.mean(1), axis=1)
+            _dense_comp(op4)
+            op5 = lambda x: x.subtract(x.mean(2), axis=2)
+            _dense_comp(op5)
+
+            # TODO: this case not yet supported!
+            # op6 = lambda x: x.add(x.to_long())
+            # _dense_comp(op6)
+
+        _check_ops(self.panel)
 
     def test_major_xs(self):
         def _dense_comp(sparse):

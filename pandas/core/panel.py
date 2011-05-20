@@ -137,7 +137,7 @@ class Panel(Picklable):
         return iter(self.items)
 
     def iteritems(self):
-        for item in self:
+        for item in self.items:
             yield item, self[item]
 
     @property
@@ -959,7 +959,6 @@ class WidePanel(Panel, Groupable):
 
         return WidePanel(values=values, items=items, major_axis=major_axis,
                          minor_axis=minor_axis)
-
 
     def truncate(self, before=None, after=None, axis='major'):
         """Function truncates a sorted Panel before and/or after

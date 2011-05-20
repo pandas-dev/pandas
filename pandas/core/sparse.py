@@ -13,6 +13,7 @@ from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries, _ensure_index
 from pandas.core.frame import DataFrame, extract_index, try_sort
 from pandas.core.matrix import DataMatrix
+from pandas.core.panel import Panel, WidePanel, LongPanelIndex, LongPanel
 import pandas.core.common as common
 
 from pandas.lib.sparse import BlockIndex, IntIndex
@@ -65,6 +66,34 @@ _MIRROR_OPS = {
     'mul' : '__rmul__',
 }
 
+def _sparse_series_op(left, right, op, name):
+    if np.isnan(left.fill_value):
+        sparse_op = lambda a, b: _sparse_nanop(a, b, name)
+    else:
+        sparse_op = lambda a, b: _sparse_fillop(a, b, name)
+
+    new_index = left.index + right.index
+    if not left.index.equals(new_index):
+        left = left.reindex(new_index)
+
+    if not right.index.equals(new_index):
+        right = right.reindex(new_index)
+
+    if left.sp_index.equals(right.sp_index):
+        result = op(left.sp_values, right.sp_values)
+        result_index = left.sp_index
+    else:
+        result, result_index = sparse_op(left, right)
+
+    try:
+        fill_value = op(left.fill_value, right.fill_value)
+    except ZeroDivisionError:
+        fill_value = nan
+
+    return SparseSeries(result, index=new_index,
+                        sparse_index=result_index,
+                        fill_value=fill_value)
+
 def _sparse_op_wrap(op, name):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -72,35 +101,7 @@ def _sparse_op_wrap(op, name):
     """
     def wrapper(self, other):
         if isinstance(other, SparseSeries):
-            if np.isnan(self.fill_value):
-                sparse_op = lambda a, b: _sparse_nanop(a, b, name)
-            else:
-                sparse_op = lambda a, b: _sparse_fillop(a, b, name)
-
-            new_index = self.index + other.index
-            if self.index.equals(new_index):
-                this = self
-            else:
-                this = self.reindex(new_index)
-
-            if not other.index.equals(new_index):
-                other = other.reindex(new_index)
-
-            if self.sp_index.equals(other.sp_index):
-                result = op(this.sp_values, other.sp_values)
-                result_index = self.sp_index
-            else:
-                result, result_index = sparse_op(this, other)
-
-            try:
-                fill_value = op(this.fill_value, other.fill_value)
-            except ZeroDivisionError:
-                fill_value = nan
-
-            return SparseSeries(result, index=new_index,
-                                sparse_index=result_index,
-                                fill_value=fill_value)
-
+            return _sparse_series_op(self, other, op, name)
         elif isinstance(other, SparseDataFrame):
             reverse_op = _MIRROR_OPS.get(name)
             if reverse_op is None: # pragma: no cover
@@ -149,6 +150,9 @@ Notes.
 
 - Will need to "disable" a number of methods?
 """
+
+# from line_profiler import LineProfiler
+# prof = LineProfiler()
 
 class SparseSeries(Series):
     """
@@ -232,11 +236,12 @@ class SparseSeries(Series):
             cls = SparseTimeSeries
 
         # Change the class of the array to be the subclass type.
-        subarr = subarr.view(cls)
-        subarr.sp_index = sparse_index
-        subarr.fill_value = fill_value
-        subarr.index = index
-        return subarr
+        output = subarr.view(cls)
+        output._sp_values = subarr
+        output.sp_index = sparse_index
+        output.fill_value = fill_value
+        output.index = index
+        return output
 
     @property
     def _constructor(self):
@@ -323,7 +328,11 @@ class SparseSeries(Series):
 
     @property
     def sp_values(self):
-        return np.asarray(self)
+        try:
+            return self._sp_values
+        except AttributeError:
+            self._sp_values = ret = np.asarray(self)
+            return ret
 
     def __getitem__(self, key):
         """
@@ -576,8 +585,9 @@ class SparseDataFrame(DataFrame):
         sdict = {}
         for k, v in data.iteritems():
             if isinstance(v, Series):
-                # Forces alignment and copies data
-                v = v.reindex(index)
+                # Force alignment, no copy necessary
+                if not v.index.equals(index):
+                    v = v.reindex(index)
 
                 if not isinstance(v, SparseSeries):
                     v = sp_maker(v)
@@ -739,17 +749,10 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self.default_fill_value)
 
-from pandas.core.panel import WidePanel
-
-# from line_profiler import LineProfiler
-# prof = LineProfiler()
-
 def stack_sparse_frame(frame):
     """
     Only makes sense when fill_value is NaN
     """
-    from pandas.core.panel import LongPanelIndex, LongPanel
-
     lengths = [s.sp_index.npoints for _, s in frame.iteritems()]
     nobs = sum(lengths)
 
@@ -973,7 +976,9 @@ class SparseWidePanel(WidePanel):
         -------
         lp : LongPanel
         """
-        from pandas.core.panel import LongPanelIndex, LongPanel
+        if not filter_observations:
+            raise Exception('filter_observations=False not supported for '
+                            'SparseWidePanel.to_long')
 
         I, N, K = self.shape
         counts = np.zeros(N * K, dtype=int)
@@ -993,7 +998,11 @@ class SparseWidePanel(WidePanel):
             d_values[item] = values
             d_indexer[item] = indexer
 
+        # have full set of observations for each item
         mask = counts == I
+
+        # for each item, take mask values at index locations for those sparse
+        # values, and use that to select values
         values = np.column_stack([d_values[item][mask.take(d_indexer[item])]
                                   for item in self.items])
 
@@ -1042,16 +1051,38 @@ class SparseWidePanel(WidePanel):
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
 
+    def truncate(self, before=None, after=None, axis='major'):
+        """Function truncates a sorted Panel before and/or after
+        some particular dates
+
+        Parameters
+        ----------
+        before : date
+            Left boundary
+        after : date
+            Right boundary
+
+        Returns
+        -------
+        WidePanel
+        """
+        axis = self._get_axis_name(axis)
+        index = self._get_axis(axis)
+
+        beg_slice, end_slice = self._getIndices(before, after, axis=axis)
+        new_index = index[beg_slice:end_slice]
+
+        return self.reindex(**{axis : new_index})
+
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
             return self._combineFrame(other, func, axis=axis)
         elif isinstance(other, Panel):
             return self._combinePanel(other, func)
         elif np.isscalar(other):
-            newValues = func(self.values, other)
-
-            return WidePanel(newValues, self.items, self.major_axis,
-                             self.minor_axis)
+            new_frames = dict((k, func(v, other))
+                              for k, v in self.iteritems())
+            return self._new_like(new_frames)
 
     def _combineFrame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
@@ -1060,21 +1091,37 @@ class SparseWidePanel(WidePanel):
         other = other.reindex(index=index, columns=columns)
 
         if axis == 0:
-            newValues = func(self.values, other.values)
+            new_values = func(self.values, other.values)
         elif axis == 1:
-            newValues = func(self.values.swapaxes(0, 1), other.values.T)
-            newValues = newValues.swapaxes(0, 1)
+            new_values = func(self.values.swapaxes(0, 1), other.values.T)
+            new_values = new_values.swapaxes(0, 1)
         elif axis == 2:
-            newValues = func(self.values.swapaxes(0, 2), other.values)
-            newValues = newValues.swapaxes(0, 2)
+            new_values = func(self.values.swapaxes(0, 2), other.values)
+            new_values = new_values.swapaxes(0, 2)
 
-        return WidePanel(newValues, self.items, self.major_axis,
-                         self.minor_axis)
+        # TODO: make faster!
+        new_frames = {}
+        for item, item_slice in zip(self.items, new_values):
+            old_frame = self[item]
+            ofv = old_frame.default_fill_value
+            ok = old_frame.default_kind
+            new_frames[item] = SparseDataFrame(item_slice,
+                                               index=self.major_axis,
+                                               columns=self.minor_axis,
+                                               default_fill_value=ofv,
+                                               default_kind=ok)
+
+        return self._new_like(new_frames)
+
+    def _new_like(self, new_frames):
+        return SparseWidePanel(new_frames, self.items, self.major_axis,
+                               self.minor_axis,
+                               default_fill_value=self.default_fill_value,
+                               default_kind=self.default_kind)
 
     def _combinePanel(self, other, func):
-        if isinstance(other, LongPanel):
-            other = other.to_wide()
-
+        # if isinstance(other, LongPanel):
+        #     other = other.to_wide()
         items = self.items + other.items
         major = self.major_axis + other.major_axis
         minor = self.minor_axis + other.minor_axis
@@ -1084,9 +1131,17 @@ class SparseWidePanel(WidePanel):
         this = self.reindex(items=items, major=major, minor=minor)
         other = other.reindex(items=items, major=major, minor=minor)
 
-        result_values = func(this.values, other.values)
+        new_frames = {}
+        for item in items:
+            new_frames[item] = func(this[item], other[item])
 
-        return WidePanel(result_values, items, major, minor)
+        # maybe unnecessary
+        new_default_fill = func(self.default_fill_value,
+                                other.default_fill_value)
+
+        return SparseWidePanel(new_frames, items, major, minor,
+                               default_fill_value=new_default_fill,
+                               default_kind=self.default_kind)
 
     def major_xs(self, key):
         """
@@ -1127,7 +1182,6 @@ class SparseWidePanel(WidePanel):
 
 def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
     from pandas.core.panel import _get_combined_index, _get_combined_columns
-
     output = {}
     for item, df in frames.iteritems():
         if not isinstance(df, SparseDataFrame):

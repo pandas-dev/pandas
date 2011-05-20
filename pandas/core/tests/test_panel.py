@@ -158,7 +158,30 @@ class PanelTests(object):
 
         assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
 
-class TestWidePanel(unittest.TestCase, PanelTests):
+class SafeForSparseTests(object):
+
+    def test_truncate(self):
+        dates = self.panel.major_axis
+        start, end = dates[1], dates[5]
+
+        trunced = self.panel.truncate(start, end, axis='major')
+        expected = self.panel['ItemA'].truncate(start, end)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        trunced = self.panel.truncate(before=start, axis='major')
+        expected = self.panel['ItemA'].truncate(before=start)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        trunced = self.panel.truncate(after=end, axis='major')
+        expected = self.panel['ItemA'].truncate(after=end)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        # XXX test other axes
+
+class TestWidePanel(unittest.TestCase, PanelTests, SafeForSparseTests):
 
     def setUp(self):
         self.panel = common.makeWidePanel()
@@ -512,27 +535,6 @@ class TestWidePanel(unittest.TestCase, PanelTests):
                            shifted.minor_xs(idx_lag))
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
-
-    def test_truncate(self):
-        dates = self.panel.major_axis
-        start, end = dates[1], dates[5]
-
-        trunced = self.panel.truncate(start, end, axis='major')
-        expected = self.panel['ItemA'].truncate(start, end)
-
-        assert_frame_equal(trunced['ItemA'], expected)
-
-        trunced = self.panel.truncate(before=start, axis='major')
-        expected = self.panel['ItemA'].truncate(before=start)
-
-        assert_frame_equal(trunced['ItemA'], expected)
-
-        trunced = self.panel.truncate(after=end, axis='major')
-        expected = self.panel['ItemA'].truncate(after=end)
-
-        assert_frame_equal(trunced['ItemA'], expected)
-
-        # XXX test other axes
 
 class TestLongPanelIndex(unittest.TestCase):
 

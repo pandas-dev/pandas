@@ -826,7 +826,9 @@ class TestDataFrame(unittest.TestCase):
             self.assertNotEqual(self.frame['A'][idx], value)
 
     def test_copy(self):
-        pass
+        cop = self.frame.copy()
+        cop['E'] = cop['A']
+        self.assert_('E' not in self.frame)
 
     def test_corr(self):
         self.frame['A'][:5] = np.NaN
