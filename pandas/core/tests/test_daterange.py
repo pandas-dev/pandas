@@ -151,6 +151,18 @@ class TestDateRange(unittest.TestCase):
         the_union = self.rng.union(rng)
         self.assert_(not isinstance(the_union, DateRange))
 
+    def test_with_tzinfo(self):
+        try:
+            import pytz
+        except ImportError:
+            raise nose.SkipTest
+
+        # just want it to work
+        tz = pytz.timezone('US/Central')
+        start = datetime(2011, 3, 12, tzinfo=pytz.utc)
+        dr = DateRange(start, periods=50, offset=datetools.Hour())
+        dr2 = dr.tz_normalize(tz)
+
 # DateRange test
 
 def testDateRange1():

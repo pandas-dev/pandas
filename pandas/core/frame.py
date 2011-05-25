@@ -2384,6 +2384,28 @@ class DataFrame(Picklable, Groupable):
 
         return Series(theSkew, index=self._get_agg_axis(axis))
 
+    _ix = None
+    @property
+    def ix(self):
+        if self._ix is None:
+            self._ix = DataFrameIndexer(self)
+
+        return self._ix
+
+class DataFrameIndexer(object):
+    """
+    Class to support fancy indexing, potentially using labels of DataFrame
+    """
+
+    def __init__(self, frame):
+        self.frame = frame
+
+    def __getitem__(self, key):
+        pass
+
+    def __setitem__(self, key, value):
+        pass
+
 def try_sort(iterable):
     listed = list(iterable)
     try:

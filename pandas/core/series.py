@@ -997,6 +997,13 @@ class Series(np.ndarray, Picklable, Groupable):
             ax.set_xticks(xinds + 0.25)
             ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
 
+        # kludge
+        try:
+            fig = plt.gcf()
+            fig.autofmt_xdate()
+        except Exception:
+            pass
+
         plt.draw_if_interactive()
 
     def hist(self, ax=None): # pragma: no cover

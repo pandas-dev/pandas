@@ -43,11 +43,11 @@ class DateRange(Index):
     """
     _cache = {}
     def __new__(cls, start=None, end=None, periods=None,
-                offset=datetools.bday, timeRule=None, **kwds):
+                offset=datetools.bday, timeRule=None,
+                tzinfo=None, **kwds):
 
         # Allow us to circumvent hitting the cache
-        index = kwds.get('index')
-        if index is None:
+        if 'index' not in kwds:
             if timeRule is not None:
                 offset = datetools.getOffset(timeRule)
 
@@ -66,28 +66,27 @@ class DateRange(Index):
             start = datetools.to_datetime(start)
             end = datetools.to_datetime(end)
 
-            # inside cache range
-            fromInside = start is not None and start > _CACHE_START
-            toInside = end is not None and end < _CACHE_END
+            # inside cache range. Handle UTC case
 
-            useCache = fromInside and toInside
+            useCache = (offset.isAnchored() and
+                        isinstance(offset, datetools.CacheableOffset))
 
-            if (useCache and offset.isAnchored() and
-                isinstance(offset, datetools.CacheableOffset)):
+            if (_hastz(start) or _hastz(end)) and _have_pytz():
+                useCache = useCache and _utc_in_cache_range(start, end)
+            else:
+                useCache = useCache and _naive_in_cache_range(start, end)
 
+            if useCache:
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, timeRule=timeRule)
-
             else:
                 xdr = generate_range(start=start, end=end, periods=periods,
                                      offset=offset, timeRule=timeRule)
-
                 index = np.array(list(xdr), dtype=object, copy=False)
-
                 index = index.view(cls)
                 index.offset = offset
         else:
-            index = index.view(cls)
+            index = np.asarray(kwds['index']).view(cls)
 
         return index
 
@@ -270,6 +269,14 @@ class DateRange(Index):
         else:
             return Index.union(self, other)
 
+    def tz_normalize(self, tz):
+        """
+        Convert UTC DateRange
+        """
+        import pytz
+        new_dates = [tz.normalize(x) for x in self]
+        return self.fromIndex(Index(new_dates))
+
 def generate_range(start=None, end=None, periods=None,
                    offset=datetools.BDay(), timeRule=None):
     """
@@ -334,3 +341,52 @@ def generate_range(start=None, end=None, periods=None,
 
         # faster than cur + offset
         cur = offset.apply(cur)
+
+def _utc_in_cache_range(start, end):
+    import pytz
+
+    if start is None or end is None:
+        return False
+
+    _CACHE_START = datetime(1950, 1, 1, tzinfo=pytz.utc)
+    _CACHE_END   = datetime(2030, 1, 1, tzinfo=pytz.utc)
+
+    try:
+        assert(_isutc(start))
+        assert(_isutc(end))
+    except AssertionError:
+        raise Exception('To use localized time zone, create '
+                        'DateRange with pytz.UTC then call '
+                        'tz_normalize')
+    return _in_range(start, end, _CACHE_START, _CACHE_END)
+
+def _in_range(start, end, rng_start, rng_end):
+    return start > rng_start and end
+
+def _naive_in_cache_range(start, end):
+    if start is None or end is None:
+        return False
+    else:
+        return _in_range(start, end, _CACHE_START, _CACHE_END)
+
+def _isutc(dt):
+    import pytz
+    return dt.tzinfo is pytz.utc
+
+def _hastz(dt):
+    return dt is not None and dt.tzinfo is not None
+
+def _have_pytz():
+    try:
+        import pytz
+        return True
+    except ImportError:
+        return False
+
+if __name__ == '__main__':
+    import pytz
+    # just want it to work
+    tz = pytz.timezone('US/Eastern')
+    dr = DateRange(datetime(2011, 3, 12, tzinfo=pytz.utc),
+                   periods=50, offset=datetools.Hour())
+    dr2 = dr.tz_normalize(tz)

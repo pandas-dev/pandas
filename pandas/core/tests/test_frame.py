@@ -1697,6 +1697,10 @@ class TestDataFrame(unittest.TestCase):
         desc = self.mixed_frame.describe()
         desc = self.frame.describe()
 
+    def test_frame_indexer(self):
+
+        ix = self.frame.ix
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
