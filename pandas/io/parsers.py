@@ -39,7 +39,10 @@ def parseText(filepath, sep='\t', header=0, indexCol=0, colNames = None):
     return simpleParser(lines, header=header, indexCol=indexCol,
                         colNames = colNames)
 
-def simpleParser(lines, colNames=None, header=0, indexCol=0):
+
+
+def simpleParser(lines, colNames=None, header=0, indexCol=0,
+                 na_values=None):
     """
     Workhorse function for processing nested list into DataFrame
 
@@ -76,32 +79,37 @@ def simpleParser(lines, colNames=None, header=0, indexCol=0):
     else:
         index = np.arange(len(data.values()[0]))
 
-    data = _floatify(data)
+    data = _floatify(data, na_values=na_values)
     data = _convert_to_ndarrays(data)
     return DataFrame(data=data, index=Index(index))
 
-NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND',
-                 '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
-                 'NA', '#NA', 'NULL', 'NaN', 'nan', ''])
+def _floatify(data_dict, na_values=None):
+    # common NA values
+    NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND',
+                     '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
+                     'NA', '#NA', 'NULL', 'NaN', 'nan', ''])
+    if na_values is None:
+        na_values = NA_VALUES
+    else:
+        na_values = set(list(na_values))
 
-def _floatify(data_dict):
+    def _convert_float(val):
+        if val in na_values:
+            return np.nan
+        else:
+            try:
+                parsed = np.float64(val)
+                if np.isinf(parsed):
+                    return val
+                return parsed
+            except Exception:
+                return val
+
     result = {}
     for col, values in data_dict.iteritems():
         result[col] = [_convert_float(val) for val in values]
 
     return result
-
-def _convert_float(val):
-    if val in NA_VALUES:
-        return np.nan
-    else:
-        try:
-            parsed = np.float64(val)
-            if np.isinf(parsed):
-                return val
-            return parsed
-        except Exception:
-            return val
 
 def _convert_to_ndarrays(dct):
     result = {}
@@ -164,15 +172,24 @@ class ExcelFile(object):
                     pass
         return simpleParser(data, header=header, indexCol=index_col)
 
-    def parse(self, sheetname, header=None, index_col=0):
+    def parse(self, sheetname, header=None, skiprows=None, index_col=0,
+              na_values=None):
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE
 
         datemode = self.book.datemode
         sheet = self.book.sheet_by_name(sheetname)
 
+        if skiprows is None:
+            skiprows = set()
+        else:
+            skiprows = set(skiprows)
+
         data = []
         for i in range(sheet.nrows):
+            if i in skiprows:
+                continue
+
             row = []
             for value, typ in zip(sheet.row_values(i), sheet.row_types(i)):
                 if typ == XL_CELL_DATE:
@@ -183,7 +200,8 @@ class ExcelFile(object):
                         value = datetime(*dt)
                 row.append(value)
             data.append(row)
-        return simpleParser(data, header=header, indexCol=index_col)
+        return simpleParser(data, header=header, indexCol=index_col,
+                            na_values=na_values)
 
 def parseExcel(filepath, header=None, indexCol=0, sheetname=None, **kwds):
     """
