@@ -175,21 +175,16 @@ class Index(np.ndarray):
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
 
-        if self.equals(other):
+        if len(other) == 0 or self.equals(other):
             return self
 
-        f = self.indexMap.__contains__
-        newElts = [x for x in other if not f(x)]
-        if len(newElts) > 0:
-            newSeq = np.concatenate((self, newElts))
-            try:
-                newSeq = np.unique(newSeq)
-            except Exception:
-                # Not sortable / multiple types
-                pass
-            return Index(newSeq)
-        else:
-            return self
+        new_seq = np.concatenate((self, other))
+        try:
+            new_seq = np.unique(new_seq)
+        except Exception:
+            # Not sortable / multiple types
+            pass
+        return Index(new_seq)
 
     def intersection(self, other):
         """

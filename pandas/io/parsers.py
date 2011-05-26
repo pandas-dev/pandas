@@ -201,7 +201,7 @@ class ExcelFile(object):
                 row.append(value)
             data.append(row)
         return simpleParser(data, header=header, indexCol=index_col,
-                            na_values=na_values)
+                            na_values=na_values).toDataMatrix()
 
 def parseExcel(filepath, header=None, indexCol=0, sheetname=None, **kwds):
     """

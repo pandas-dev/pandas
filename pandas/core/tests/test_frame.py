@@ -572,7 +572,10 @@ class TestDataFrame(unittest.TestCase):
                                  self.frame['A'] * 2,
                                  compare_keys=False)
 
-        self.assert_(np.isnan(added['C'][:5]).all())
+        self.assert_(np.isnan(added['C'].reindex(frame_copy.index)[:5]).all())
+
+        # assert(False)
+
         self.assert_(np.isnan(added['D']).all())
 
         self_added = self.frame + self.frame
@@ -1697,9 +1700,18 @@ class TestDataFrame(unittest.TestCase):
         desc = self.mixed_frame.describe()
         desc = self.frame.describe()
 
-    def test_frame_indexer(self):
+    def test_frame_fancy_indexing(self):
+        f = self.frame
+        ix = f.ix
 
-        ix = self.frame.ix
+        assert_series_equal(ix[:, 'A'], f['A'])
+        assert_frame_equal(ix[:, ['B', 'A']], f.reindex(columns=['B', 'A']))
+
+        # slicing, ints
+        assert_frame_equal(ix[5:10], f[5:10])
+        assert_frame_equal(ix[5:10, :], f[5:10])
+
+
 
 if __name__ == '__main__':
     import nose

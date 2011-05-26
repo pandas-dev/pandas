@@ -113,6 +113,8 @@ def assert_frame_equal(left, right):
     for col in right:
         assert(col in left)
 
+    assert(left.columns.equals(right.columns))
+
 def assert_panel_equal(left, right):
     for col, series in left.iteritems():
         assert(col in right)

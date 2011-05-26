@@ -239,7 +239,7 @@ class SparseSeries(Series):
         output = subarr.view(cls)
         output._sp_values = subarr
         output.sp_index = sparse_index
-        output.fill_value = fill_value
+        output.fill_value = np.float64(fill_value)
         output.index = index
         return output
 
