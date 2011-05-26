@@ -1213,25 +1213,9 @@ class DataFrame(Picklable, Groupable):
         -------
         DataFrame
         """
-        beg_slice, end_slice = self._getIndices(before, after)
-
-        return self[beg_slice:end_slice]
-
-    def _getIndices(self, before, after):
         before = datetools.to_datetime(before)
         after = datetools.to_datetime(after)
-
-        if before is None:
-            beg_slice = 0
-        else:
-            beg_slice = self.index.searchsorted(before, side='left')
-
-        if after is None:
-            end_slice = len(self.index)
-        else:
-            end_slice = self.index.searchsorted(after, side='right')
-
-        return beg_slice, end_slice
+        return self.ix[before:after]
 
     def xs(self, key):
         """
@@ -1325,7 +1309,7 @@ class DataFrame(Picklable, Groupable):
         indexer, mask = self.index.get_indexer(index, method=method)
 
         # Maybe this is a bit much? Wish I had more unit tests...
-        typeHierarchy = [
+        type_hierarchy = [
             (float, float),
             (int, float),
             (bool, float),
@@ -1346,7 +1330,7 @@ class DataFrame(Picklable, Groupable):
         newSeries = {}
         for col, series in self.iteritems():
             series = series.view(np.ndarray)
-            for klass, dest in typeHierarchy:
+            for klass, dest in type_hierarchy:
                 if issubclass(series.dtype.type, klass):
                     new = series.take(indexer)
 
@@ -2388,13 +2372,23 @@ class DataFrame(Picklable, Groupable):
     @property
     def ix(self):
         if self._ix is None:
-            self._ix = DataFrameIndexer(self)
+            self._ix = _DataFrameIndexer(self)
 
         return self._ix
 
-class DataFrameIndexer(object):
+class _DataFrameIndexer(object):
     """
     Class to support fancy indexing, potentially using labels of DataFrame
+
+    Notes
+    -----
+    Indexing based on labels is INCLUSIVE
+    Slicing uses PYTHON SEMANTICS (endpoint is exluded)
+
+    Examples
+    --------
+    >>> frame.ix[5:10, ['A', 'B']]
+    >>> frame.ix[date1:date2, 'A']
     """
 
     def __init__(self, frame):
@@ -2402,15 +2396,75 @@ class DataFrameIndexer(object):
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            return self._get_index_slice(key)
+            return _index_axis(self.frame, key, axis=0)
         elif isinstance(key, tuple):
-            pass
-
-    def _get_index_slice(self, obj):
-        pass
+            if len(key) != 2:
+                raise Exception('only length 2 tuple supported')
+            return _index_tuple(self.frame, *key)
 
     def __setitem__(self, key, value):
-        pass
+        raise NotImplementedError
+
+
+def _index_tuple(frame, rowkey, colkey):
+    result = _index_axis(frame, colkey, axis=1)
+
+    if isinstance(result, Series):
+        result = result[rowkey]
+    else:
+        result = _index_axis(result, rowkey, axis=0)
+
+    return result
+
+def _index_axis(frame, key, axis=0):
+    axis_name = DataFrame._get_axis_name(axis)
+    if isinstance(key, slice):
+        return _slice_axis(frame, key, axis=axis)
+    elif _is_list_like(key):
+        return frame.reindex(**{axis_name : key})
+    elif axis == 0:
+        idx = key
+        if isinstance(key, int):
+            idx = frame.index[key]
+
+        return frame.xs(idx)
+    else:
+        col = key
+        if isinstance(key, int):
+            col = frame.columns[key]
+
+        return frame[col]
+
+def _slice_axis(frame, slice_obj, axis=0):
+    _check_step(slice_obj)
+
+    if not _need_slice(slice_obj):
+        return frame
+
+    axis_name = DataFrame._get_axis_name(axis)
+
+    labels = getattr(frame, axis_name)
+    if _is_label_slice(slice_obj):
+        i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
+        new_labels = labels[i:j]
+    else:
+        new_labels = labels[slice_obj]
+
+    return frame.reindex(**{axis_name : new_labels})
+
+def _is_list_like(obj):
+    return isinstance(obj, (list, np.ndarray))
+
+def _is_label_slice(obj):
+    crit = lambda x: isinstance(x, int) or x is None
+    return not crit(obj.start) or not crit(obj.stop)
+
+def _need_slice(obj):
+    return obj.start is not None or obj.stop is not None
+
+def _check_step(obj):
+    if obj.step is not None:
+        raise Exception('steps other than 1 are not supported')
 
 def try_sort(iterable):
     listed = list(iterable)

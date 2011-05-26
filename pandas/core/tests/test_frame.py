@@ -1707,11 +1707,44 @@ class TestDataFrame(unittest.TestCase):
         assert_series_equal(ix[:, 'A'], f['A'])
         assert_frame_equal(ix[:, ['B', 'A']], f.reindex(columns=['B', 'A']))
 
-        # slicing, ints
+        # slicing rows, etc.
         assert_frame_equal(ix[5:10], f[5:10])
         assert_frame_equal(ix[5:10, :], f[5:10])
+        assert_frame_equal(ix[:5, ['A', 'B']],
+                           f.reindex(index=f.index[:5], columns=['A', 'B']))
 
+        # slice rows with labels, inclusive!
+        expected = ix[5:11]
+        result = ix[f.index[5]:f.index[10]]
+        assert_frame_equal(expected, result)
 
+        # slice columns
+        assert_frame_equal(ix[:, :2], f.reindex(columns=['A', 'B']))
+
+        # return self if no slicing...for now
+        self.assert_(ix[:, :] is f)
+
+        # low dimensional slice
+        xs1 = ix[2, ['C', 'B', 'A']]
+        xs2 = f.xs(f.index[2]).reindex(['C', 'B', 'A'])
+        assert_series_equal(xs1, xs2)
+
+        ts1 = ix[5:10, 2]
+        ts2 = f[f.columns[2]][5:10]
+        assert_series_equal(ts1, ts2)
+
+        # individual value
+        for col in f.columns:
+            ts = f[col]
+            for idx in f.index[::5]:
+                assert_almost_equal(ix[idx, col], ts[idx])
+
+        self.assertRaises(Exception, ix.__getitem__,
+                          (slice(None, None, None),
+                           slice(None, None, None),
+                           slice(None, None, None)))
+
+        self.assertRaises(Exception, ix.__getitem__, slice(None, None, 2))
 
 if __name__ == '__main__':
     import nose

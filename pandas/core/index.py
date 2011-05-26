@@ -243,8 +243,34 @@ class Index(np.ndarray):
 
         indexer, mask = tseries.getFillVec(self, target, self.indexMap,
                                            target.indexMap, method)
-
         return indexer, mask
+
+    def slice_locs(self, start=None, end=None):
+        """
+
+
+        Returns
+        -------
+
+        Notes
+        -----
+        This function assumes that the data is sorted, so use at your own peril
+        """
+        if start is None:
+            beg_slice = 0
+        elif start in self:
+            beg_slice = self.indexMap[start]
+        else:
+            beg_slice = self.searchsorted(start, side='left')
+
+        if end is None:
+            end_slice = len(self)
+        elif end in self.indexMap:
+            end_slice = self.indexMap[end] + 1
+        else:
+            end_slice = self.searchsorted(end, side='right')
+
+        return beg_slice, end_slice
 
 # For utility purposes
 
