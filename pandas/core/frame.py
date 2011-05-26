@@ -2401,6 +2401,12 @@ class DataFrameIndexer(object):
         self.frame = frame
 
     def __getitem__(self, key):
+        if isinstance(key, slice):
+            return self._get_index_slice(key)
+        elif isinstance(key, tuple):
+            pass
+
+    def _get_index_slice(self, obj):
         pass
 
     def __setitem__(self, key, value):
