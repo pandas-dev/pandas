@@ -2383,7 +2383,7 @@ class _DataFrameIndexer(object):
     Notes
     -----
     Indexing based on labels is INCLUSIVE
-    Slicing uses PYTHON SEMANTICS (endpoint is exluded)
+    Slicing uses PYTHON SEMANTICS (endpoint is excluded)
 
     Examples
     --------
