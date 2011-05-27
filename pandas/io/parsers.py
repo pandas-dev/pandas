@@ -12,16 +12,23 @@ import numpy as np
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
-def parseCSV(filepath, header=0, indexCol=0):
+def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
+             na_values=None):
     """
     Parse CSV file into a DataFrame object. Try to parse dates if possible.
     """
     import csv
-    f = open(filepath,'rb')
+    f = open(filepath,'U')
     reader = csv.reader(f, dialect='excel')
-    lines = [l for l in reader]
+
+    if skiprows is not None:
+        skiprows = set(skiprows)
+        lines = [l for i, l in enumerate(reader) if i not in skiprows]
+    else:
+        lines = [l for l in reader]
     f.close()
-    return simpleParser(lines, header=header, indexCol=indexCol)
+    return simpleParser(lines, header=header, indexCol=indexCol,
+                        na_values=na_values)
 
 def read_table(path, header=0, index_col=0, delimiter=','):
     data = np.genfromtext(path, delimiter=delimiter,
@@ -30,7 +37,7 @@ def read_table(path, header=0, index_col=0, delimiter=','):
 
     columns = data.dtype.names
 
-def parseText(filepath, sep='\t', header=0, indexCol=0, colNames = None):
+def parseText(filepath, sep='\t', header=0, indexCol=0, colNames=None):
     """
     Parse whitespace separated file into a DataFrame object.
     Try to parse dates if possible.
@@ -53,7 +60,7 @@ def simpleParser(lines, colNames=None, header=0, indexCol=0,
         columns = []
         for i, c in enumerate(lines[header]):
             if c == '':
-                columns.append('Unnamed: ' + string.ascii_uppercase[i])
+                columns.append('Unnamed: %d' % i)
             else:
                 columns.append(c)
 
