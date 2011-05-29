@@ -280,9 +280,14 @@ class Series(np.ndarray, Picklable, Groupable):
 
         # is there a case where this would NOT be an ndarray?
         # need to find an example, I took out the case for now
-        dataSlice = values[key]
-        new_index = Index(self.index.view(ndarray)[key])
-        return Series(dataSlice, index=new_index)
+
+        # TODO: [slice(0, 5, None)] will break if you convert to ndarray,
+        # e.g. as requested by np.median
+        try:
+            return Series(values[key], index=self.index[key])
+        except Exception, e1:
+            key = np.asarray(key)
+            return Series(values[key], index=self.index[key])
 
     def get(self, key, default=None):
         """
@@ -1285,6 +1290,21 @@ class Series(np.ndarray, Picklable, Groupable):
         return Series([d.weekday() for d in self.index],
                       index=self.index)
 
+    def select(self, crit):
+        """
+        Return data corresponding to index values matching criteria
+
+        Parameters
+        ----------
+        crit : function
+            To be called on each index (label). Should return True or False
+
+        Returns
+        -------
+        selection : Series
+        """
+        mask = np.asarray([crit(idx) for idx in self.index])
+        return self[mask]
 
 class TimeSeries(Series):
     pass

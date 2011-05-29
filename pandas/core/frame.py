@@ -2376,6 +2376,25 @@ class DataFrame(Picklable, Groupable):
 
         return self._ix
 
+    def select(self, crit, axis=0):
+        """
+        Return data corresponding to axis labels matching criteria
+
+        Parameters
+        ----------
+        crit : function
+            To be called on each index (label). Should return True or False
+        axis : {0, 1}
+
+        Returns
+        -------
+        selection : DataFrame
+        """
+        axis_name = self._get_axis_name(axis)
+        axis = self._get_axis(axis)
+        new_axis = axis[np.asarray([crit(label) for label in axis])]
+        return self.reindex(**{axis_name : new_axis})
+
 class _DataFrameIndexer(object):
     """
     Class to support fancy indexing, potentially using labels of DataFrame

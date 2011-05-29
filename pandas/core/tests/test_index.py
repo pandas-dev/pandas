@@ -95,6 +95,10 @@ class TestIndex(unittest.TestCase):
         common.assert_dict_equal(tseries.map_indices(subIndex),
                                  subIndex.indexMap)
 
+        subIndex = self.strIndex[list(boolIdx)]
+        common.assert_dict_equal(tseries.map_indices(subIndex),
+                                 subIndex.indexMap)
+
     def test_fancy(self):
         sl = self.strIndex[[1,2,3]]
         for i in sl:
@@ -190,4 +194,9 @@ class TestIndex(unittest.TestCase):
 
         testit(self.strIndex)
         testit(self.dateIndex)
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
 

@@ -107,10 +107,18 @@ class Index(np.ndarray):
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
+        arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
-            return np.ndarray.__getitem__(self, key)
+            return arr_idx[key]
         else:
-            return Index(self.view(np.ndarray)[key])
+            # easier to ask forgiveness than permission
+            try:
+                return Index(arr_idx[key])
+            except Exception, e1:
+                try:
+                    return Index(arr_idx[np.asarray(key)])
+                except Exception, e2: # pragma: no cover
+                    raise e1
 
     def equals(self, other):
         """

@@ -88,7 +88,7 @@ def simpleParser(lines, colNames=None, header=0, indexCol=0,
 
     data = _floatify(data, na_values=na_values)
     data = _convert_to_ndarrays(data)
-    return DataFrame(data=data, index=Index(index))
+    return DataFrame(data=data, columns=columns, index=Index(index))
 
 def _floatify(data_dict, na_values=None):
     # common NA values
