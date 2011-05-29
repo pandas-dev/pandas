@@ -2463,7 +2463,7 @@ def _slice_axis(frame, slice_obj, axis=0):
     axis_name = DataFrame._get_axis_name(axis)
 
     labels = getattr(frame, axis_name)
-    if _is_label_slice(slice_obj):
+    if _is_label_slice(labels, slice_obj):
         i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
         new_labels = labels[i:j]
     else:
@@ -2474,8 +2474,12 @@ def _slice_axis(frame, slice_obj, axis=0):
 def _is_list_like(obj):
     return isinstance(obj, (list, np.ndarray))
 
-def _is_label_slice(obj):
-    crit = lambda x: isinstance(x, int) or x is None
+def _is_label_slice(labels, obj):
+    def crit(x):
+        if x in labels:
+            return False
+        else:
+            return isinstance(x, int) or x is None
     return not crit(obj.start) or not crit(obj.stop)
 
 def _need_slice(obj):

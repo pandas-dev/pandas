@@ -847,12 +847,12 @@ class Series(np.ndarray, Picklable, Groupable):
 
     applymap = apply
 
-    def reindex(self, new_index, method=None, fillMethod=None):
+    def reindex(self, index=None, method=None, fillMethod=None):
         """Conform Series to new Index
 
         Parameters
         ----------
-        new_index :   array-like
+        index : array-like
             Preferably an Index object (to avoid duplicating data)
         method : {'backfill', 'pad', None}
             Method to use for filling holes in reindexed Series
@@ -870,14 +870,14 @@ class Series(np.ndarray, Picklable, Groupable):
 
             method = fillMethod
 
-        if self.index.equals(new_index):
+        if self.index.equals(index):
             return self.copy()
 
-        new_index = _ensure_index(new_index)
+        index = _ensure_index(index)
         if len(self.index) == 0:
-            return Series(NaN, index=new_index)
+            return Series(NaN, index=index)
 
-        fill_vec, mask = self.index.get_indexer(new_index, method=method)
+        fill_vec, mask = self.index.get_indexer(index, method=method)
         new_values = self.values.take(fill_vec)
 
         notmask = -mask
@@ -889,7 +889,7 @@ class Series(np.ndarray, Picklable, Groupable):
 
             np.putmask(new_values, notmask, NaN)
 
-        return Series(new_values, index=new_index)
+        return Series(new_values, index=index)
 
     def reindex_like(self, other, method=None):
         """
