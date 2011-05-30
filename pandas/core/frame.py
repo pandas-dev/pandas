@@ -2368,14 +2368,6 @@ class DataFrame(Picklable, Groupable):
 
         return Series(theSkew, index=self._get_agg_axis(axis))
 
-    _ix = None
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _DataFrameIndexer(self)
-
-        return self._ix
-
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
@@ -2394,6 +2386,76 @@ class DataFrame(Picklable, Groupable):
         axis = self._get_axis(axis)
         new_axis = axis[np.asarray([crit(label) for label in axis])]
         return self.reindex(**{axis_name : new_axis})
+
+    _ix = None
+    @property
+    def ix(self):
+        if self._ix is None:
+            self._ix = _DataFrameIndexer(self)
+
+        return self._ix
+
+    def _fancy_index(self, key, axis=0):
+        labels = self._get_axis(axis)
+        axis_name = self._get_axis_name(axis)
+
+        # asarray can be unsafe, NumPy strings are weird
+        isbool = np.asarray(key).dtype == np.bool_
+        if isbool:
+            if isinstance(key, Series):
+                if not key.index.equals(labels):
+                    raise Exception('Cannot use boolean index with misaligned '
+                                    'or unequal labels')
+            return self.reindex(**{axis_name : labels[key]})
+        else:
+            return self.reindex(**{axis_name : key})
+
+    def _fancy_index_tuple(self, rowkey, colkey):
+        result = self._fancy_index_axis(colkey, axis=1)
+
+        if isinstance(result, Series):
+            result = result[rowkey]
+        else:
+            result = result._fancy_index_axis(rowkey, axis=0)
+
+        return result
+
+    def _fancy_index_axis(self, key, axis=0):
+        axis_name = self._get_axis_name(axis)
+        labels = self._get_axis(axis)
+        if isinstance(key, slice):
+            return self._slice_axis( key, axis=axis)
+        elif _is_list_like(key):
+            return self._fancy_index( key, axis=axis)
+        elif axis == 0:
+            idx = key
+            if isinstance(key, int):
+                idx = self.index[key]
+
+            return self.xs(idx)
+        else:
+            col = key
+            if isinstance(key, int):
+                col = self.columns[key]
+
+            return self[col]
+
+    def _slice_axis(self, slice_obj, axis=0):
+        _check_step(slice_obj)
+
+        if not _need_slice(slice_obj):
+            return self
+
+        axis_name = self._get_axis_name(axis)
+
+        labels = getattr(self, axis_name)
+        if _is_label_slice(labels, slice_obj):
+            i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
+            new_labels = labels[i:j]
+        else:
+            new_labels = labels[slice_obj]
+
+        return self.reindex(**{axis_name : new_labels})
 
 class _DataFrameIndexer(object):
     """
@@ -2419,80 +2481,18 @@ class _DataFrameIndexer(object):
     def __getitem__(self, key):
         frame = self.frame
         if isinstance(key, slice):
-            return _index_axis(frame, key, axis=0)
+            return frame._fancy_index_axis(key, axis=0)
         elif isinstance(key, tuple):
             if len(key) != 2:
                 raise Exception('only length 2 tuple supported')
-            return _index_tuple(frame, *key)
+            return frame._fancy_index_tuple(*key)
         elif _is_list_like(key):
-            return _fancy_index(frame, key, axis=0)
+            return frame._fancy_index(key, axis=0)
         else:
-            return _index_axis(frame, key, axis=0)
+            return frame._fancy_index_axis(key, axis=0)
 
     def __setitem__(self, key, value):
         raise NotImplementedError
-
-def _fancy_index(frame, key, axis=0):
-    labels = frame._get_axis(axis)
-    axis_name = frame._get_axis_name(axis)
-
-    # asarray can be unsafe, NumPy strings are weird
-    isbool = np.asarray(key).dtype == np.bool_
-    if isbool:
-        if isinstance(key, Series):
-            if not key.index.equals(labels):
-                raise Exception('Cannot use boolean index with misaligned '
-                                'or unequal labels')
-        return frame.reindex(**{axis_name : labels[key]})
-    else:
-        return frame.reindex(**{axis_name : key})
-
-def _index_tuple(frame, rowkey, colkey):
-    result = _index_axis(frame, colkey, axis=1)
-
-    if isinstance(result, Series):
-        result = result[rowkey]
-    else:
-        result = _index_axis(result, rowkey, axis=0)
-
-    return result
-
-def _index_axis(frame, key, axis=0):
-    axis_name = frame._get_axis_name(axis)
-    labels = frame._get_axis(axis)
-    if isinstance(key, slice):
-        return _slice_axis(frame, key, axis=axis)
-    elif _is_list_like(key):
-        return _fancy_index(frame, key, axis=axis)
-    elif axis == 0:
-        idx = key
-        if isinstance(key, int):
-            idx = frame.index[key]
-
-        return frame.xs(idx)
-    else:
-        col = key
-        if isinstance(key, int):
-            col = frame.columns[key]
-
-        return frame[col]
-
-def _slice_axis(frame, slice_obj, axis=0):
-    _check_step(slice_obj)
-
-    if not _need_slice(slice_obj):
-        return frame
-
-    axis_name = DataFrame._get_axis_name(axis)
-
-    labels = getattr(frame, axis_name)
-    if _is_label_slice(labels, slice_obj):
-        i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
-        new_labels = labels[i:j]
-    else:
-        new_labels = labels[slice_obj]
-
-    return frame.reindex(**{axis_name : new_labels})
 
 def _is_list_like(obj):
     return isinstance(obj, (list, np.ndarray))
