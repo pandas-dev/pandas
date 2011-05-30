@@ -946,7 +946,7 @@ class DataMatrix(DataFrame):
             return DataMatrix(vals, index=self.index, columns=self.columns,
                               objects=objects)
 
-    def xs(self, key):
+    def xs(self, key, copy=True):
         """
         Returns a row from the DataMatrix as a Series object.
 
@@ -962,12 +962,15 @@ class DataMatrix(DataFrame):
             raise Exception('No cross-section for %s' % key)
 
         loc = self.index.indexMap[key]
-        theSlice = self.values[loc, :].copy()
-        xsIndex = self.columns
+        xs = self.values[loc, :]
 
-        result = Series(theSlice, index=xsIndex)
+        if copy:
+            xs = xs.copy()
+        result = Series(xs, index=self.columns)
 
         if self.objects is not None and len(self.objects.columns) > 0:
+            if not copy:
+                raise Exception('cannot get view of mixed-type cross-section')
             result = result.append(self.objects.xs(key))
 
         return result

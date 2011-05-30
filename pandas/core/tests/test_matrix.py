@@ -275,5 +275,21 @@ class TestDataMatrix(test_frame.TestDataFrame):
                         index=range(4), columns=range(5))
         result = dm.cumsum()
 
+    def test_xs_view(self):
+        dm = DataMatrix(np.arange(20).reshape(4, 5),
+                        index=range(4), columns=range(5))
+
+        dm.xs(2, copy=False)[:] = 5
+        self.assert_((dm.xs(2) == 5).all())
+
+        dm.xs(2)[:] = 10
+        self.assert_((dm.xs(2) == 5).all())
+
+        # TODO: deal with mixed-type fiasco?
+        self.assertRaises(Exception, self.mixed_frame.xs,
+                          self.mixed_frame.index[2], copy=False)
+
 if __name__ == '__main__':
-    unittest.main()
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
