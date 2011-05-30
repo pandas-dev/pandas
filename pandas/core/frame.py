@@ -2404,6 +2404,9 @@ class _DataFrameIndexer(object):
     Indexing based on labels is INCLUSIVE
     Slicing uses PYTHON SEMANTICS (endpoint is excluded)
 
+    If Index contains int labels, these will be used rather than the locations,
+    so be very careful (ambiguous).
+
     Examples
     --------
     >>> frame.ix[5:10, ['A', 'B']]
@@ -2414,16 +2417,35 @@ class _DataFrameIndexer(object):
         self.frame = frame
 
     def __getitem__(self, key):
+        frame = self.frame
         if isinstance(key, slice):
-            return _index_axis(self.frame, key, axis=0)
+            return _index_axis(frame, key, axis=0)
         elif isinstance(key, tuple):
             if len(key) != 2:
                 raise Exception('only length 2 tuple supported')
-            return _index_tuple(self.frame, *key)
+            return _index_tuple(frame, *key)
+        elif _is_list_like(key):
+            return _fancy_index(frame, key, axis=0)
+        else:
+            return _index_axis(frame, key, axis=0)
 
     def __setitem__(self, key, value):
         raise NotImplementedError
 
+def _fancy_index(frame, key, axis=0):
+    labels = frame._get_axis(axis)
+    axis_name = frame._get_axis_name(axis)
+
+    # asarray can be unsafe, NumPy strings are weird
+    isbool = np.asarray(key).dtype == np.bool_
+    if isbool:
+        if isinstance(key, Series):
+            if not key.index.equals(labels):
+                raise Exception('Cannot use boolean index with misaligned '
+                                'or unequal labels')
+        return frame.reindex(**{axis_name : labels[key]})
+    else:
+        return frame.reindex(**{axis_name : key})
 
 def _index_tuple(frame, rowkey, colkey):
     result = _index_axis(frame, colkey, axis=1)
@@ -2436,11 +2458,12 @@ def _index_tuple(frame, rowkey, colkey):
     return result
 
 def _index_axis(frame, key, axis=0):
-    axis_name = DataFrame._get_axis_name(axis)
+    axis_name = frame._get_axis_name(axis)
+    labels = frame._get_axis(axis)
     if isinstance(key, slice):
         return _slice_axis(frame, key, axis=axis)
     elif _is_list_like(key):
-        return frame.reindex(**{axis_name : key})
+        return _fancy_index(frame, key, axis=axis)
     elif axis == 0:
         idx = key
         if isinstance(key, int):

@@ -1700,11 +1700,10 @@ class TestDataFrame(unittest.TestCase):
         desc = self.mixed_frame.describe()
         desc = self.frame.describe()
 
-    def test_frame_fancy_indexing(self):
+    def test_fancy_indexing_2d(self):
         f = self.frame
         ix = f.ix
 
-        assert_series_equal(ix[:, 'A'], f['A'])
         assert_frame_equal(ix[:, ['B', 'A']], f.reindex(columns=['B', 'A']))
 
         # slicing rows, etc.
@@ -1721,6 +1720,10 @@ class TestDataFrame(unittest.TestCase):
         # slice columns
         assert_frame_equal(ix[:, :2], f.reindex(columns=['A', 'B']))
 
+    def test_fancy_indexing_1d(self):
+        f = self.frame
+        ix = f.ix
+
         # return self if no slicing...for now
         self.assert_(ix[:, :] is f)
 
@@ -1733,12 +1736,53 @@ class TestDataFrame(unittest.TestCase):
         ts2 = f[f.columns[2]][5:10]
         assert_series_equal(ts1, ts2)
 
+        # positional xs
+        xs1 = ix[0]
+        xs2 = f.xs(f.index[0])
+        assert_series_equal(xs1, xs2)
+
+        xs1 = ix[f.index[5]]
+        xs2 = f.xs(f.index[5])
+        assert_series_equal(xs1, xs2)
+
+        # single column
+        assert_series_equal(ix[:, 'A'], f['A'])
+
+    def test_fancy_indexing_scalar(self):
+        f = self.frame
+        ix = f.ix
         # individual value
         for col in f.columns:
             ts = f[col]
             for idx in f.index[::5]:
                 assert_almost_equal(ix[idx, col], ts[idx])
 
+    def test_fancy_indexing_boolean(self):
+        f = self.frame
+        ix = f.ix
+
+        expected = f.reindex(columns=['B', 'D'])
+        result = ix[:, [False, True, False, True]]
+        assert_frame_equal(result, expected)
+
+        expected = f.reindex(index=f.index[5:10], columns=['B', 'D'])
+        result = ix[5:10, [False, True, False, True]]
+        assert_frame_equal(result, expected)
+
+        boolvec = f.index > f.index[7]
+        expected = f.reindex(index=f.index[boolvec])
+        result = ix[boolvec]
+        assert_frame_equal(result, expected)
+        result = ix[boolvec, :]
+        assert_frame_equal(result, expected)
+
+        result = ix[boolvec, 2:]
+        expected = f.reindex(index=f.index[boolvec],
+                             columns=['C', 'D'])
+        assert_frame_equal(result, expected)
+
+    def test_fancy_indexing_exceptions(self):
+        ix = self.frame.ix
         self.assertRaises(Exception, ix.__getitem__,
                           (slice(None, None, None),
                            slice(None, None, None),
@@ -1746,8 +1790,22 @@ class TestDataFrame(unittest.TestCase):
 
         self.assertRaises(Exception, ix.__getitem__, slice(None, None, 2))
 
+        # boolean index misaligned labels
+        mask = self.frame['A'][::-1] > 1
+        self.assertRaises(Exception, ix.__getitem__, mask)
+
+    def test_select(self):
+        f = lambda x: x.weekday() == 2
+        result = self.tsframe.select(f, axis=0)
+        expected = self.tsframe.reindex(
+            index=self.tsframe.index[[f(x) for x in self.tsframe.index]])
+        assert_frame_equal(result, expected)
+
+        result = self.frame.select(lambda x: x in ('B', 'D'), axis=1)
+        expected = self.frame.reindex(columns=['B', 'D'])
+        assert_frame_equal(result, expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
