@@ -86,3 +86,200 @@ def groupby_indices(object index, object mapper):
             result[key] = [i]
 
     return result
+
+def reduce_mean(ndarray[object, ndim=1] indices,
+                ndarray[object, ndim=1] buckets,
+                ndarray[double_t, ndim=1] values,
+                inclusive=False):
+    cdef:
+        Py_ssize_t i, j, nbuckets, nvalues
+        ndarray[double_t, ndim=1] output
+        double_t the_sum, val, nobs
+
+
+
+    nbuckets = len(buckets)
+    nvalues = len(indices)
+
+    assert(len(values) == len(indices))
+
+    output = np.empty(nbuckets, dtype=float)
+    output.fill(np.NaN)
+
+    j = 0
+    for i from 0 <= i < nbuckets:
+        next_bound = buckets[i]
+        the_sum = 0
+        nobs = 0
+        if inclusive:
+            while j < nvalues and indices[j] <= next_bound:
+                val = values[j]
+                # not NaN
+                if val == val:
+                    the_sum += val
+                    nobs += 1
+                j += 1
+        else:
+            while j < nvalues and indices[j] < next_bound:
+                val = values[j]
+                # not NaN
+                if val == val:
+                    the_sum += val
+                    nobs += 1
+                j += 1
+
+        if nobs > 0:
+            output[i] = the_sum / nobs
+
+        if j >= nvalues:
+            break
+
+    return output
+
+def _bucket_locs(index, buckets, inclusive=False):
+    if inclusive:
+        locs = index.searchsorted(buckets, side='left')
+    else:
+        locs = index.searchsorted(buckets, side='right')
+
+    return locs
+
+
+def ts_upsample_mean(ndarray[object, ndim=1] indices,
+                     ndarray[object, ndim=1] buckets,
+                     ndarray[double_t, ndim=1] values,
+                     inclusive=False):
+    '''
+    put something here
+    '''
+    cdef:
+        Py_ssize_t i, j, nbuckets, nvalues
+        ndarray[double_t, ndim=1] output
+        object next_bound
+        double_t the_sum, val, nobs
+
+    nbuckets = len(buckets)
+    nvalues = len(indices)
+
+    assert(len(values) == len(indices))
+
+    output = np.empty(nbuckets, dtype=float)
+    output.fill(np.NaN)
+
+    j = 0
+    for i from 0 <= i < nbuckets:
+        next_bound = buckets[i]
+        the_sum = 0
+        nobs = 0
+        if inclusive:
+            while j < nvalues and indices[j] <= next_bound:
+                val = values[j]
+                # not NaN
+                if val == val:
+                    the_sum += val
+                    nobs += 1
+                j += 1
+        else:
+            while j < nvalues and indices[j] < next_bound:
+    cdef:
+        Py_ssize_t i, j, nbuckets, nvalues
+        ndarray[double_t, ndim=1] output
+        object next_bound
+        double_t the_sum, val, nobs
+
+    nbuckets = len(buckets)
+    nvalues = len(indices)
+
+    assert(len(values) == len(indices))
+
+    output = np.empty(nbuckets, dtype=float)
+    output.fill(np.NaN)
+
+    j = 0
+    for i from 0 <= i < nbuckets:
+        next_bound = buckets[i]
+        the_sum = 0
+        nobs = 0
+        if inclusive:
+            while j < nvalues and indices[j] <= next_bound:
+                val = values[j]
+                # not NaN
+                if val == val:
+                    the_sum += val
+                    nobs += 1
+                j += 1
+        else:
+            while j < nvalues and indices[j] < next_bound:
+                val = values[j]
+                # not NaN
+                if val == val:
+                    the_sum += val
+                    nobs += 1
+                j += 1
+
+        if nobs > 0:
+            output[i] = the_sum / nobs
+
+        if j >= nvalues:
+            break
+
+    return output
+                val = values[j]
+                # not NaN
+                if val == val:
+                    the_sum += val
+                    nobs += 1
+                j += 1
+
+        if nobs > 0:
+            output[i] = the_sum / nobs
+
+        if j >= nvalues:
+            break
+
+    return output
+
+def ts_upsample_generic(ndarray[object, ndim=1] indices,
+                        ndarray[object, ndim=1] buckets,
+                        ndarray[double_t, ndim=1] values,
+                        object aggfunc,
+                        inclusive=False):
+    '''
+    put something here
+    '''
+    cdef:
+        Py_ssize_t i, j, jstart, nbuckets, nvalues
+        ndarray[double_t, ndim=1] output
+        object next_bound
+        double_t the_sum, val, nobs
+
+    nbuckets = len(buckets)
+    nvalues = len(indices)
+
+    assert(len(values) == len(indices))
+
+    output = np.empty(nbuckets, dtype=float)
+    output.fill(np.NaN)
+
+    j = 0
+    for i from 0 <= i < nbuckets:
+        next_bound = buckets[i]
+        the_sum = 0
+        nobs = 0
+
+        jstart = j
+        if inclusive:
+            while j < nvalues and indices[j] <= next_bound:
+                j += 1
+        else:
+            while j < nvalues and indices[j] < next_bound:
+                j += 1
+
+        if nobs > 0:
+            output[i] = aggfunc(values[jstart:j])
+
+        if j >= nvalues:
+            break
+
+    return output
+

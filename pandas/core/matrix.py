@@ -100,10 +100,21 @@ class DataMatrix(DataFrame):
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
-        self.values = values
+        self._values_dict = {}
+        self._columns_dict = {}
+
+        self._float_values = values
         self.index = index
         self.columns = columns
         self.objects = objects
+
+    def _get_values(self):
+        return self._float_values
+
+    def _set_values(self, values):
+        raise Exception('Values cannot be assigned to')
+
+    values = property(fget=_get_values)
 
     def _init_dict(self, data, index, columns, objects, dtype):
         """
@@ -220,9 +231,6 @@ class DataMatrix(DataFrame):
     @property
     def _constructor(self):
         return DataMatrix
-
-    # Because of DataFrame property
-    values = None
 
     def __array__(self):
         return self.values
@@ -510,8 +518,8 @@ class DataMatrix(DataFrame):
             if len(item) != len(self.index):
                 raise Exception('Item wrong length %d instead of %d!' %
                                 (len(item), len(self.index)))
-            newIndex = self.index[item]
-            return self.reindex(newIndex)
+            new_index = self.index[item]
+            return self.reindex(new_index)
         else:
             if self.objects is not None and item in self.objects:
                 return self.objects[item]
@@ -626,14 +634,17 @@ class DataMatrix(DataFrame):
         else:
             values = np.hstack((mat[:, :loc], column, mat[:, loc:]))
 
-        self.values = values
+        self._float_values = values
 
     def _delete_column(self, loc):
-        if loc == self.values.shape[1] - 1:
-            newValues = self.values[:, :loc]
+        values = self._float_values
+
+        if loc == values.shape[1] - 1:
+            new_values = values[:, :loc]
         else:
-            newValues = np.c_[self.values[:, :loc], self.values[:, loc+1:]]
-        self.values = newValues
+            new_values = np.c_[values[:, :loc], values[:, loc+1:]]
+
+        self._float_values = new_values
 
     def __iter__(self):
         """Iterate over columns of the frame."""
@@ -983,11 +994,11 @@ class DataMatrix(DataFrame):
         if self.objects is not None:
             objectsT = self.objects.values.T
             valuesT = self.values.T
-            newValues = np.concatenate((valuesT, objectsT), axis=0)
-            newIndex = Index(np.concatenate((self.columns,
-                                             self.objects.columns)))
+            new_values = np.concatenate((valuesT, objectsT), axis=0)
+            new_index = Index(np.concatenate((self.columns,
+                                              self.objects.columns)))
 
-            return DataMatrix(newValues, index=newIndex, columns=self.index)
+            return DataMatrix(new_values, index=new_index, columns=self.index)
         else:
             return DataMatrix(data=self.values.T, index=self.columns,
                               columns=self.index)
