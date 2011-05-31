@@ -34,6 +34,14 @@ def _get_window_type(window_type):
 
     raise Exception('Unrecognized window type: %s' % window_type)
 
+def _get_window_type_name(window_type):
+    names = {
+        0 : 'full sample',
+        1 : 'rolling',
+        2 : 'expanding'
+    }
+    return names[window_type]
+
 def banner(text, width=80):
     """
 

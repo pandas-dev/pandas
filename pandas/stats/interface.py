@@ -88,8 +88,12 @@ def ols(**kwargs):
     else:
         window_type = common._get_window_type(window_type)
 
+    if window_type != common.FULL_SAMPLE:
+        kwargs['window_type'] = common._get_window_type_name(window_type)
+
     y = kwargs.get('y')
     if window_type == common.FULL_SAMPLE:
+        # HACK (!)
         for rolling_field in ('window_type', 'window', 'min_periods'):
             if rolling_field in kwargs:
                 del kwargs[rolling_field]

@@ -14,7 +14,8 @@ from pandas.core.panel import LongPanel
 from pandas.core.api import DataMatrix, Index, Series
 from pandas.stats.api import ols
 from pandas.stats.plm import NonPooledPanelOLS
-from pandas.util.testing import assert_almost_equal
+from pandas.util.testing import (assert_almost_equal, assert_frame_equal)
+import pandas.util.testing as testing
 
 from common import BaseTest
 
@@ -460,6 +461,16 @@ class TestPanelOLS(BaseTest):
 
             assert_almost_equal(ref, res)
 
+    def test_auto_rolling_window_type(self):
+        data = testing.makeTimeDataFrame()
+        y = data.pop('A')
+
+        window_model = ols(y=y, x=data, window=20, min_periods=10)
+        rolling_model = ols(y=y, x=data, window=20, min_periods=10,
+                            window_type='rolling')
+
+        assert_frame_equal(window_model.beta, rolling_model.beta)
+
 def _check_non_raw_results(model):
     _check_repr(model)
     _check_repr(model.resid)
@@ -476,4 +487,6 @@ def _period_slice(panelModel, i):
     return slice(L, R)
 
 if __name__ == '__main__':
-    unittest.main()
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
