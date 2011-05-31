@@ -535,6 +535,18 @@ class TestSparseSeries(TestCase):
                                    fill_value=0)}
         nose.tools.assert_raises(Exception, spm.homogenize, data)
 
+    def test_fill_value_corner(self):
+        cop = self.zbseries.copy()
+        cop.fill_value = 0
+        result = self.bseries / cop
+
+        self.assert_(np.isnan(result.fill_value))
+
+        cop2 = self.zbseries.copy()
+        cop2.fill_value = 1
+        result = cop2 / cop
+        self.assert_(np.isnan(result.fill_value))
+
 class TestSparseTimeSeries(TestCase):
     pass
 

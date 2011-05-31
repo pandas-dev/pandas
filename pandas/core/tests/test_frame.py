@@ -356,15 +356,15 @@ class TestDataFrame(unittest.TestCase):
         # columns are not sortable
         foo = repr(self.unsortable)
 
-        # do not fail!
-        self.frame.head(buf=buf)
-        self.frame.tail(buf=buf)
+    def test_head_tail(self):
+        assert_frame_equal(self.frame.head(), self.frame[:5])
+        assert_frame_equal(self.frame.tail(), self.frame[-5:])
 
-        for i in range(5):
-            self.frame['foo%d' % i] = 1
+        # for i in range(5):
+        #     self.frame['foo%d' % i] = 1
 
-        self.frame.head(buf=buf)
-        self.frame.tail(buf=buf)
+        # self.frame.head(buf=buf)
+        # self.frame.tail(buf=buf)
 
     def test_repr_corner(self):
         # representing infs poses no problems

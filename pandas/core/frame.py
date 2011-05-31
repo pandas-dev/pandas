@@ -794,21 +794,11 @@ class DataFrame(PandasGeneric):
     def _output_columns(self):
         return list(self.columns)
 
-    def head(self, buf=sys.stdout):
-        chunk = self[:5]
-        if len(self.cols()) > 6:
-            print 'Probably too wide to display, transposing'
-            chunk = chunk.T
-
-        chunk.toString(buf=buf)
+    def head(self):
+        return self[:5]
 
     def tail(self, buf=sys.stdout):
-        chunk = self[-5:]
-        if len(self.cols()) > 6:
-            print 'Probably too wide to display, transposing'
-            chunk = chunk.T
-
-        chunk.toString(buf=buf)
+        return self[-5:]
 
     def info(self, verbose=True, buf=sys.stdout):
         """
