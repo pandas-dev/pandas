@@ -665,9 +665,9 @@ class TestSeries(unittest.TestCase):
 
         for idx, val in subTS.iteritems():
             self.assertEqual(val, self.ts[idx])
-        crapSeries = self.ts.reindex(subIndex)
+        stuffSeries = self.ts.reindex(subIndex)
 
-        self.assert_(np.isnan(crapSeries).all())
+        self.assert_(np.isnan(stuffSeries).all())
 
         # This is extremely important for the Cython code to not screw up
         nonContigIndex = self.ts.index[::2]
@@ -675,19 +675,35 @@ class TestSeries(unittest.TestCase):
         for idx, val in subNonContig.iteritems():
             self.assertEqual(val, self.ts[idx])
 
-        # bad fill method
-        ts = self.ts[::2]
-        self.assertRaises(Exception, ts.reindex, self.ts.index, method='foo')
+    def test_reindex_corner(self):
+        # (don't forget to fix this) I think it's fixed
+        reindexed_dep = self.empty.reindex(self.ts.index, method='pad')
 
         # corner case: pad empty series
         reindexed = self.empty.reindex(self.ts.index, method='pad')
 
-        # don't forget to fix this
-        reindexed_dep = self.empty.reindex(self.ts.index, method='pad')
-
         # pass non-Index
         reindexed = self.ts.reindex(list(self.ts.index))
         assert_series_equal(self.ts, reindexed)
+
+        # bad fill method
+        ts = self.ts[::2]
+        self.assertRaises(Exception, ts.reindex, self.ts.index, method='foo')
+
+    def test_reindex_pad(self):
+        s = Series(np.arange(10), np.arange(10))
+
+        s2 = s[::2]
+
+        reindexed = s2.reindex(s.index, method='pad')
+        reindexed2 = s2.reindex(s.index, method='ffill')
+        assert_series_equal(reindexed, reindexed2)
+
+        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
+        assert_series_equal(reindexed, expected)
+
+    def test_reindex_backfill(self):
+        pass
 
     def test_reindex_int(self):
         ts = self.ts[::2]

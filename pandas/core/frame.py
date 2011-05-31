@@ -898,8 +898,11 @@ class DataFrame(PandasGeneric):
         offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
             DateOffset object or subclass (e.g. monthEnd)
 
-        fillMethod : {'backfill', 'pad', None}
-                    Method to use for filling holes in new inde
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
+            Method to use for filling holes in reindexed Series
+
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill methdo
         """
         if len(self.index) == 0:
             return self.copy()
@@ -1143,8 +1146,11 @@ class DataFrame(PandasGeneric):
 
         Parameters
         ----------
-        method : {'backfill', 'pad', None}
-            Method to use for filling holes in new inde
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
+            Method to use for filling holes in reindexed Series
+
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
 
         value : any kind (should be same type as array)
             Value to use to fill holes (e.g. 0)
@@ -1239,9 +1245,11 @@ class DataFrame(PandasGeneric):
         index : array-like, optional
             preferably an Index object (to avoid duplicating data)
         columns : array-like, optional
-        method : {'backfill', 'pad', None}
-            Method to use for filling data holes using the index. See
-            Series.reindex for more information
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
 
         Returns
         -------

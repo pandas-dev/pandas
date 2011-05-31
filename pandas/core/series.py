@@ -877,11 +877,11 @@ class Series(np.ndarray, PandasGeneric):
         ----------
         index : array-like
             Preferably an Index object (to avoid duplicating data)
-        method : {'backfill', 'pad', None}
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
             Method to use for filling holes in reindexed Series
 
-            pad : propagate last valid observation forward to next valid
-            backfill : use NEXT valid observation to fill gap
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
 
         Returns
         -------
@@ -950,8 +950,11 @@ class Series(np.ndarray, PandasGeneric):
         value : any kind (should be same type as array)
             Value to use to fill holes (e.g. 0)
 
-        method : {'backfill', 'pad', None}
-            Method to use for filling holes in new inde
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
+            Method to use for filling holes in reindexed Series
+
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
 
         Returns
         -------
@@ -1330,6 +1333,33 @@ class Series(np.ndarray, PandasGeneric):
 
 class TimeSeries(Series):
     pass
+
+
+def ts_upsample(dates, buckets, values, aggfunc, inclusive=True):
+    '''
+    put something here
+    '''
+    nbuckets = len(buckets)
+    nvalues = len(dates)
+    output = np.empty(nbuckets, dtype=float)
+
+    if inclusive:
+        _check = lambda x, y: x < y
+    else:
+        _check = lambda x, y: x <= y
+
+    j = 0
+    for i, bound in enumerate(buckets):
+        next_bound = buckets[i + 1]
+        jstart = j
+
+        while _check(dates[j], next_bound) and j < nvalues:
+            j += 1
+
+        output[i] = aggfunc(values[jstart:j])
+
+    return Series(output, index=buckets)
+
 
 #-------------------------------------------------------------------------------
 # Supplementary functions

@@ -249,6 +249,12 @@ class Index(np.ndarray):
         if method:
             method = method.upper()
 
+        aliases = {
+            'FFILL' : 'PAD',
+            'BFILL' : 'BACKFILL'
+        }
+
+        method = aliases.get(method, method)
         indexer, mask = tseries.getFillVec(self, target, self.indexMap,
                                            target.indexMap, method)
         return indexer, mask
