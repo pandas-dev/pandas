@@ -280,14 +280,19 @@ class Series(np.ndarray, PandasGeneric):
             # Could not hash item
             pass
 
-        # is there a case where this would NOT be an ndarray?
-        # need to find an example, I took out the case for now
+        # boolean indexing, need to check that the data are aligned, otherwise
+        # disallowed
+        if isinstance(key, Series) and key.dtype == np.bool_:
+            if not key.index.equals(self.index):
+                raise Exception('can only boolean index with like-indexed '
+                                'Series or raw ndarrays')
 
         # TODO: [slice(0, 5, None)] will break if you convert to ndarray,
         # e.g. as requested by np.median
+
         try:
             return Series(values[key], index=self.index[key])
-        except Exception, e1:
+        except Exception:
             key = np.asarray(key)
             return Series(values[key], index=self.index[key])
 
@@ -329,12 +334,28 @@ class Series(np.ndarray, PandasGeneric):
         return Series(self.values[i:j].copy(), index=self.index[i:j])
 
     def __setitem__(self, key, value):
+        values = self.values
         try:
             loc = self.index.indexMap[key]
-            ndarray.__setitem__(self, loc, value)
-        except Exception:
-            values = self.values
-            values[key] = value
+            values[loc] = value
+            return
+        except KeyError:
+            if isinstance(key, (int, np.integer)):
+                values[key] = value
+                return
+            raise Exception('Requested index not in this series!')
+        except TypeError:
+            # Could not hash item
+            pass
+
+        # boolean indexing, need to check that the data are aligned, otherwise
+        # disallowed
+        if isinstance(key, Series) and key.dtype == np.bool_:
+            if not key.index.equals(self.index):
+                raise Exception('can only boolean index with like-indexed '
+                                'Series or raw ndarrays')
+
+        values[key] = value
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""

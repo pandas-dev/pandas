@@ -150,13 +150,21 @@ class TestSeries(unittest.TestCase):
         self.assertEqual(self.series[2], slice1[1])
         self.assertEqual(self.objSeries[2], slice2[1])
 
-    def test_getitem_boolean_list(self):
+    def test_getitem_boolean(self):
         s = self.series
         vec = s > s.median()
 
+        # passing list is OK
         result = s[list(vec)]
         expected = s[vec]
         assert_series_equal(result, expected)
+        self.assert_(np.array_equal(result.index, s.index[vec]))
+
+    def test_getitem_setitem_boolean_corner(self):
+        ts = self.ts
+        mask_shifted = ts.shift(1, offset=datetools.bday) > ts.median()
+        self.assertRaises(Exception, ts.__getitem__, mask_shifted)
+        self.assertRaises(Exception, ts.__setitem__, mask_shifted, 1)
 
     def test_slice(self):
         numSlice = self.series[10:20]
