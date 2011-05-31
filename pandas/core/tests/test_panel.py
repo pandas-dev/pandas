@@ -1,6 +1,7 @@
 # pylint: disable=W0612
 
 
+from datetime import datetime
 import os
 import operator
 import unittest
@@ -204,15 +205,15 @@ class TestWidePanel(unittest.TestCase, PanelTests, SafeForSparseTests):
 
     def test_get_axis_name(self):
         self.assertEqual(self.panel._get_axis_name(0), 'items')
-        self.assertEqual(self.panel._get_axis_name(1), 'major')
-        self.assertEqual(self.panel._get_axis_name(2), 'minor')
+        self.assertEqual(self.panel._get_axis_name(1), 'major_axis')
+        self.assertEqual(self.panel._get_axis_name(2), 'minor_axis')
 
     def test_get_plane_axes(self):
         # what to do here?
 
         index, columns = self.panel._get_plane_axes('items')
-        index, columns = self.panel._get_plane_axes('major')
-        index, columns = self.panel._get_plane_axes('minor')
+        index, columns = self.panel._get_plane_axes('major_axis')
+        index, columns = self.panel._get_plane_axes('minor_axis')
 
         index, columns = self.panel._get_plane_axes(0)
 
@@ -348,6 +349,10 @@ class TestWidePanel(unittest.TestCase, PanelTests, SafeForSparseTests):
         new_major = list(self.panel.major_axis[:10])
         result = self.panel.reindex(major=new_major)
         assert_frame_equal(result['ItemB'], ref.reindex(index=new_major))
+
+        # raise exception put both major and major_axis
+        self.assertRaises(Exception, self.panel.reindex,
+                          major_axis=new_major, major=new_major)
 
         # minor
         new_minor = list(self.panel.minor_axis[:2])
@@ -535,6 +540,29 @@ class TestWidePanel(unittest.TestCase, PanelTests, SafeForSparseTests):
                            shifted.minor_xs(idx_lag))
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
+
+    def test_select(self):
+        p = self.panel
+
+        # select items
+        result = p.select(lambda x: x in ('ItemA', 'ItemC'), axis='items')
+        expected = p.reindex(items=['ItemA', 'ItemC'])
+        assert_panel_equal(result, expected)
+
+        # select major_axis
+        result = p.select(lambda x: x >= datetime(2000, 1, 15), axis='major')
+        new_major = p.major_axis[p.major_axis >= datetime(2000, 1, 15)]
+        expected = p.reindex(major=new_major)
+        assert_panel_equal(result, expected)
+
+        # select minor_axis
+        result = p.select(lambda x: x in ('D', 'A'), axis=2)
+        expected = p.reindex(minor=['A', 'D'])
+        assert_panel_equal(result, expected)
+
+        # corner case, empty thing
+        result = p.select(lambda x: x in ('foo',), axis='items')
+        assert_panel_equal(result, p.reindex(items=[]))
 
 class TestLongPanelIndex(unittest.TestCase):
 
@@ -961,3 +989,8 @@ class TestFactor(unittest.TestCase):
         labels = self.factor.labels
         for i, idx in enumerate(self.factor.levels):
             self.assertEqual(f(arr[labels == i]), agged[i])
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)

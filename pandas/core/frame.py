@@ -12,8 +12,8 @@ import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array, isnull, notnull)
 from pandas.core.daterange import DateRange
+from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.mixins import Picklable, Groupable
 from pandas.core.series import Series, _ensure_index
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -74,17 +74,10 @@ def comp_method(func, name):
 
     return f
 
-_AXIS_NUMBERS = {
-    'index' : 0,
-    'columns' : 1
-}
-
-_AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
-
 #-------------------------------------------------------------------------------
 # DataFrame class
 
-class DataFrame(Picklable, Groupable):
+class DataFrame(PandasGeneric):
     """
     Homogenously indexed table with named columns, with intelligent arithmetic
     operations, slicing, reindexing, aggregation, etc. Can function
@@ -118,6 +111,13 @@ class DataFrame(Picklable, Groupable):
         >>> df = DataFrame(data=d, index=someIndex)
     """
     _columns = None
+
+    _AXIS_NUMBERS = {
+        'index' : 0,
+        'columns' : 1
+    }
+
+    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def __init__(self, data=None, index=None, columns=None, dtype=None):
         if isinstance(data, dict):
@@ -208,28 +208,6 @@ class DataFrame(Picklable, Groupable):
 
         data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
         return self._init_dict(data, index, columns, dtype)
-
-    @classmethod
-    def _get_axis_number(cls, axis):
-        if axis in (0, 1):
-            return axis
-        else:
-            return _AXIS_NUMBERS[axis]
-
-    @classmethod
-    def _get_axis_name(cls, axis):
-        if axis in _AXIS_NUMBERS:
-            return axis
-        else:
-            return _AXIS_NAMES[axis]
-
-    def _get_axis(self, axis):
-        results = {
-            0 : self.index,
-            1 : self.columns,
-        }
-
-        return results[self._get_axis_number(axis)]
 
     @property
     def _constructor(self):
@@ -844,8 +822,7 @@ class DataFrame(Picklable, Groupable):
         print >> buf, 'Index: %s entries%s' % (len(self.index), index_summary)
 
         if len(self.cols()) == 0:
-            name = type(self).__name__
-            print >> buf, 'Empty',
+            print >> buf, 'Empty %s' % type(self).__name__
             return
 
         cols = self.cols()
@@ -1657,16 +1634,14 @@ class DataFrame(Picklable, Groupable):
         """
         import re
         if items is not None:
-            columns = [r for r in items if r in self]
+            return self.reindex(columns=[r for r in items if r in self])
         elif like:
-            columns = [c for c in self.cols() if like in c]
+            return self.select(lambda x: like in x, axis=1)
         elif regex:
             matcher = re.compile(regex)
-            columns = [c for c in self.cols() if matcher.match(c)]
+            return self.select(lambda x: matcher.match(x) is not None, axis=1)
         else:
             raise Exception('items was None!')
-
-        return self.reindex(columns=columns)
 
     def sort(self, column=None, ascending=True):
         if column:
@@ -2382,10 +2357,7 @@ class DataFrame(Picklable, Groupable):
         -------
         selection : DataFrame
         """
-        axis_name = self._get_axis_name(axis)
-        axis = self._get_axis(axis)
-        new_axis = axis[np.asarray([crit(label) for label in axis])]
-        return self.reindex(**{axis_name : new_axis})
+        return self._select_generic(crit, axis=axis)
 
     _ix = None
     @property
@@ -2421,12 +2393,10 @@ class DataFrame(Picklable, Groupable):
         return result
 
     def _fancy_index_axis(self, key, axis=0):
-        axis_name = self._get_axis_name(axis)
-        labels = self._get_axis(axis)
         if isinstance(key, slice):
-            return self._slice_axis( key, axis=axis)
+            return self._slice_axis(key, axis=axis)
         elif _is_list_like(key):
-            return self._fancy_index( key, axis=axis)
+            return self._fancy_index(key, axis=axis)
         elif axis == 0:
             idx = key
             if isinstance(key, int):
@@ -2589,3 +2559,7 @@ def _pfixed(s, space, nanRep=None, float_format=None):
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
 
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)

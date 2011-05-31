@@ -1,7 +1,5 @@
-from collections import defaultdict
-from pandas.core.mixins import Picklable
-from pandas.core.index import Index
-from pandas.core.pytools import rands, adjoin, groupby
+from pandas.core.generic import Picklable
+from pandas.core.pytools import rands, adjoin
 import cPickle
 import os
 

@@ -8,8 +8,8 @@ import numpy as np
 
 import operator
 
-from pandas.core.common import _pickle_array, _unpickle_array
-from pandas.core.index import Index, NULL_INDEX
+from pandas.core.common import _pickle_array, _unpickle_array, _mut_exclusive
+from pandas.core.index import Index
 from pandas.core.series import Series, TimeSeries, _ensure_index
 from pandas.core.frame import DataFrame, extract_index, try_sort
 from pandas.core.matrix import DataMatrix
@@ -1018,7 +1018,8 @@ class SparseWidePanel(WidePanel):
         lp = LongPanel(values, self.items, index)
         return lp.sort('major')
 
-    def reindex(self, major=None, items=None, minor=None):
+    def reindex(self, major=None, items=None, minor=None, major_axis=None,
+                minor_axis=None):
         """
 
         Parameters
@@ -1028,6 +1029,9 @@ class SparseWidePanel(WidePanel):
         -------
         reindexed : SparseWidePanel
         """
+        major = _mut_exclusive(major, major_axis)
+        minor = _mut_exclusive(minor, minor_axis)
+
         if None == major == items == minor:
             raise ValueError('Must specify at least one axis')
 
@@ -1050,29 +1054,6 @@ class SparseWidePanel(WidePanel):
                                minor_axis=minor,
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
-
-    def truncate(self, before=None, after=None, axis='major'):
-        """Function truncates a sorted Panel before and/or after
-        some particular dates
-
-        Parameters
-        ----------
-        before : date
-            Left boundary
-        after : date
-            Right boundary
-
-        Returns
-        -------
-        WidePanel
-        """
-        axis = self._get_axis_name(axis)
-        index = self._get_axis(axis)
-
-        beg_slice, end_slice = self._getIndices(before, after, axis=axis)
-        new_index = index[beg_slice:end_slice]
-
-        return self.reindex(**{axis : new_index})
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):

@@ -71,15 +71,15 @@ class TestDataFrame(unittest.TestCase):
         self.assert_(self.klass._get_axis_name(1) == 'columns')
         self.assert_(self.klass._get_axis_name('index') == 'index')
         self.assert_(self.klass._get_axis_name('columns') == 'columns')
-        self.assertRaises(KeyError, self.klass._get_axis_name, 'foo')
-        self.assertRaises(KeyError, self.klass._get_axis_name, None)
+        self.assertRaises(Exception, self.klass._get_axis_name, 'foo')
+        self.assertRaises(Exception, self.klass._get_axis_name, None)
 
         self.assert_(self.klass._get_axis_number(0) == 0)
         self.assert_(self.klass._get_axis_number(1) == 1)
         self.assert_(self.klass._get_axis_number('index') == 0)
         self.assert_(self.klass._get_axis_number('columns') == 1)
-        self.assertRaises(KeyError, self.klass._get_axis_number, 2)
-        self.assertRaises(KeyError, self.klass._get_axis_number, None)
+        self.assertRaises(Exception, self.klass._get_axis_number, 2)
+        self.assertRaises(Exception, self.klass._get_axis_number, None)
 
         self.assert_(self.frame._get_axis(0) is self.frame.index)
         self.assert_(self.frame._get_axis(1) is self.frame.columns)
@@ -1804,6 +1804,19 @@ class TestDataFrame(unittest.TestCase):
         result = self.frame.select(lambda x: x in ('B', 'D'), axis=1)
         expected = self.frame.reindex(columns=['B', 'D'])
         assert_frame_equal(result, expected)
+
+    def test_get_axis_etc(self):
+        f = self.frame
+
+        self.assertEquals(f._get_axis_number(0), 0)
+        self.assertEquals(f._get_axis_number(1), 1)
+        self.assertEquals(f._get_axis_name(0), 'index')
+        self.assertEquals(f._get_axis_name(1), 'columns')
+
+        self.assert_(f._get_axis(0) is f.index)
+        self.assert_(f._get_axis(1) is f.columns)
+        self.assertRaises(Exception, f._get_axis_number, 2)
+
 
 if __name__ == '__main__':
     import nose

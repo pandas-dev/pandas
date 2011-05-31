@@ -15,8 +15,8 @@ import numpy as np
 
 from pandas.core.common import isnull, notnull
 from pandas.core.daterange import DateRange
+from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.mixins import Picklable, Groupable
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
@@ -82,7 +82,7 @@ def _arith_method(op, name):
 #-------------------------------------------------------------------------------
 # Series class
 
-class Series(np.ndarray, Picklable, Groupable):
+class Series(np.ndarray, PandasGeneric):
     """
     Generic indexed (labeled) vector (time series or cross-section)
 
@@ -118,6 +118,12 @@ class Series(np.ndarray, Picklable, Groupable):
 
     Data is *not* copied from input arrays by default
     """
+    _AXIS_NUMBERS = {
+        'index' : 0
+    }
+
+    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+
     def __new__(cls, data, index=None, dtype=None, copy=False):
         if isinstance(data, Series):
             if index is None:
@@ -177,10 +183,6 @@ class Series(np.ndarray, Picklable, Groupable):
             subarr = subarr.view(TimeSeries)
 
         return subarr
-
-    # @property
-    # def _constructor(self):
-    #     return Series
 
     def __hash__(self):
         raise TypeError('unhashable type')
@@ -1303,8 +1305,7 @@ class Series(np.ndarray, Picklable, Groupable):
         -------
         selection : Series
         """
-        mask = np.asarray([crit(idx) for idx in self.index])
-        return self[mask]
+        return self._select_generic(crit, axis=0)
 
 class TimeSeries(Series):
     pass

@@ -150,6 +150,14 @@ class TestSeries(unittest.TestCase):
         self.assertEqual(self.series[2], slice1[1])
         self.assertEqual(self.objSeries[2], slice2[1])
 
+    def test_getitem_boolean_list(self):
+        s = self.series
+        vec = s > s.median()
+
+        result = s[list(vec)]
+        expected = s[vec]
+        assert_series_equal(result, expected)
+
     def test_slice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]
@@ -884,7 +892,15 @@ class TestSeries(unittest.TestCase):
             for idx in group.index:
                 self.assertEqual(transformed[idx], mean)
 
+    def test_select(self):
+        n = len(self.ts)
+        result = self.ts.select(lambda x: x >= self.ts.index[n // 2])
+        expected = self.ts.reindex(self.ts.index[n//2:])
+        assert_series_equal(result, expected)
 
+        result = self.ts.select(lambda x: x.weekday() == 2)
+        expected = self.ts[self.ts.weekday == 2]
+        assert_series_equal(result, expected)
 
 if __name__ == '__main__':
     import nose

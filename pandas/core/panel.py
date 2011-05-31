@@ -9,10 +9,11 @@ import warnings
 
 import numpy as np
 
+from pandas.core.common import _mut_exclusive
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame, _pfixed, _ensure_index
 from pandas.core.matrix import DataMatrix
-from pandas.core.mixins import Picklable, Groupable
+from pandas.core.generic import PandasGeneric, Picklable
 import pandas.core.common as common
 import pandas.lib.tseries as tseries
 
@@ -85,7 +86,7 @@ class PanelAxis(object):
         value = _ensure_index(value)
         setattr(obj, self.cache_field, value)
 
-class Panel(Picklable):
+class Panel(object):
     """
     Abstract superclass for LongPanel and WidePanel data structures
     """
@@ -146,23 +147,12 @@ class Panel(Picklable):
 
     @property
     def dims(self): # pragma: no cover
-        import warnings
         warnings.warn("Please change panel.dims to panel.shape, will be removed"
                       " in future release",
                       FutureWarning)
-
         return self.shape
 
-_WIDE_AXIS_NUMBERS = {
-    'items' : 0,
-    'major' : 1,
-    'minor' : 2
-}
-
-_WIDE_AXIS_NAMES = dict((v, k) for k, v in _WIDE_AXIS_NUMBERS.iteritems())
-
-
-class WidePanel(Panel, Groupable):
+class WidePanel(Panel, PandasGeneric):
     """
     Represents wide format panel data, stored as 3-dimensional array
 
@@ -173,6 +163,22 @@ class WidePanel(Panel, Groupable):
     major_axis : sequence
     minor_axis : sequence
     """
+    _AXIS_NUMBERS = {
+        'items' : 0,
+        'major_axis' : 1,
+        'minor_axis' : 2
+    }
+
+    _AXIS_ALIASES = {
+        'major' : 'major_axis',
+        'minor' : 'minor_axis'
+    }
+
+    _AXIS_NAMES = {
+        0 : 'items',
+        1 : 'major_axis',
+        2 : 'minor_axis'
+    }
     def __init__(self, values, items, major_axis, minor_axis):
         self.items = items
         self.major_axis = major_axis
@@ -182,39 +188,16 @@ class WidePanel(Panel, Groupable):
         self.factors = {}
         self.values = values
 
-    @classmethod
-    def _get_axis_number(cls, axis):
-        if axis in (0, 1, 2):
-            return axis
-        else:
-            return _WIDE_AXIS_NUMBERS[axis]
-
-    @classmethod
-    def _get_axis_name(cls, axis):
-        if axis in _WIDE_AXIS_NUMBERS:
-            return axis
-        else:
-            return _WIDE_AXIS_NAMES[axis]
-
-    def _get_axis(self, axis):
-        results = {
-            0 : self.items,
-            1 : self.major_axis,
-            2 : self.minor_axis
-        }
-
-        return results[self._get_axis_number(axis)]
-
     def _get_plane_axes(self, axis):
         """
 
         """
         axis = self._get_axis_name(axis)
 
-        if axis == 'major':
+        if axis == 'major_axis':
             index = self.minor_axis
             columns = self.items
-        if axis == 'minor':
+        if axis == 'minor_axis':
             index = self.major_axis
             columns = self.items
         elif axis == 'items':
@@ -375,15 +358,18 @@ class WidePanel(Panel, Groupable):
 
         return frame.reindex(index=index, columns=columns)
 
-    def reindex(self, major=None, items=None, minor=None, method=None):
+    def reindex(self, major=None, items=None, minor=None, method=None,
+                major_axis=None, minor_axis=None):
         """
         Conform panel to new axis or axes
 
         Parameters
         ----------
         major : Index or sequence, default None
+            Can also use 'major_axis' keyword
         items : Index or sequence, default None
         minor : Index or sequence, default None
+            Can also use 'minor_axis' keyword
         method : {'backfill', 'pad', 'interpolate', None}
             Method to use for filling holes in reindexed panel
 
@@ -392,6 +378,9 @@ class WidePanel(Panel, Groupable):
         WidePanel (new object)
         """
         result = self
+
+        major = _mut_exclusive(major, major_axis)
+        minor = _mut_exclusive(minor, minor_axis)
 
         if major is not None:
             result = result._reindex_axis(major, method, 1)
@@ -434,7 +423,8 @@ class WidePanel(Panel, Groupable):
         indexer, mask = common.get_indexer(old_index, new_index, fill_method)
 
         new_values = self.values.take(indexer, axis=axis)
-        common.null_out_axis(new_values, -mask, axis)
+        if len(new_index) > 0:
+            common.null_out_axis(new_values, -mask, axis)
 
         new_axes = [self._get_axis(i) for i in range(3)]
         new_axes[axis] = new_index
@@ -978,31 +968,33 @@ class WidePanel(Panel, Groupable):
         axis = self._get_axis_name(axis)
         index = self._get_axis(axis)
 
-        beg_slice, end_slice = self._getIndices(before, after, axis=axis)
+        beg_slice, end_slice = index.slice_locs(before, after)
         new_index = index[beg_slice:end_slice]
 
         return self.reindex(**{axis : new_index})
 
-    def _getIndices(self, before, after, axis='major'):
-        index = self._get_axis(axis)
+    def select(self, crit, axis=0):
+        """
+        Return data corresponding to axis labels matching criteria
 
-        if before is None:
-            beg_slice = 0
-        else:
-            beg_slice = index.searchsorted(before, side='left')
+        Parameters
+        ----------
+        crit : function
+            To be called on each index (label). Should return True or False
+        axis : {0, 1, 2} or {'items', 'major', 'minor'}, default 'items'
+            Axis to select on
 
-        if after is None:
-            end_slice = len(index)
-        else:
-            end_slice = index.searchsorted(after, side='right')
-
-        return beg_slice, end_slice
+        Returns
+        -------
+        selection : DataFrame
+        """
+        return self._select_generic(crit, axis=axis)
 
 #-------------------------------------------------------------------------------
 # LongPanel and friends
 
 
-class LongPanel(Panel):
+class LongPanel(Panel, Picklable):
     """
     Represents long or "stacked" format panel data
 

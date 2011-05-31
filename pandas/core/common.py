@@ -94,3 +94,11 @@ def ensure_float(arr):
         arr = arr.astype(float)
 
     return arr
+
+def _mut_exclusive(arg1, arg2):
+    if arg1 is not None and arg2 is not None:
+        raise Exception('mutually exclusive arguments')
+    elif arg1 is not None:
+        return arg1
+    else:
+        return arg2
