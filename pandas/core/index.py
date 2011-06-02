@@ -62,6 +62,13 @@ class Index(np.ndarray):
 
         self._checkForDuplicates()
 
+    def summary(self):
+        if len(self) > 0:
+            index_summary = ', %s to %s' % (self[0], self[-1])
+        else:
+            index_summary = ''
+        return 'Index: %s entries%s' % (len(self), index_summary)
+
     @property
     def indexMap(self):
         if not hasattr(self, '_cache_indexMap'):

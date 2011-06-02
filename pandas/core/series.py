@@ -1402,3 +1402,4 @@ def _ensure_index(index_like):
         index_like = Index(index_like)
 
     return index_like
+

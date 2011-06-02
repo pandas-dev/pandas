@@ -805,11 +805,7 @@ class DataFrame(PandasGeneric):
         Concise summary of a DataFrame, used in __repr__ when very large.
         """
         print >> buf, str(type(self))
-        if len(self.index) > 0:
-            index_summary = ', %s to %s' % (self.index[0], self.index[-1])
-        else:
-            index_summary = ''
-        print >> buf, 'Index: %s entries%s' % (len(self.index), index_summary)
+        print >> buf, self.index.summary()
 
         if len(self.cols()) == 0:
             print >> buf, 'Empty %s' % type(self).__name__

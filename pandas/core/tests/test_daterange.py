@@ -158,10 +158,19 @@ class TestDateRange(unittest.TestCase):
             raise nose.SkipTest
 
         # just want it to work
-        tz = pytz.timezone('US/Central')
         start = datetime(2011, 3, 12, tzinfo=pytz.utc)
         dr = DateRange(start, periods=50, offset=datetools.Hour())
-        dr2 = dr.tz_normalize(tz)
+        self.assert_(dr.tzinfo is not None)
+        self.assert_(dr.tzinfo is start.tzinfo)
+
+        # normalized
+        tz = pytz.timezone('US/Central')
+        central = dr.tz_normalize(tz)
+        self.assert_(central.tzinfo is tz)
+        self.assert_(central[0].tzinfo is tz)
+
+    def test_with_tzinfo_ambiguous_times(self):
+        pass
 
 # DateRange test
 
@@ -173,4 +182,9 @@ def testDateRange1():
     assert len(dr) == 20
     assert dr[0] == firstDate
     assert dr[-1] == end
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
 
