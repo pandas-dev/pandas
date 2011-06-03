@@ -204,6 +204,29 @@ class TestSeries(unittest.TestCase):
         self.assertEqual(len(sl), len(sl.index))
         self.assertEqual(len(sl.index.indexMap), len(sl.index))
 
+    def test_getitem_fancy(self):
+        inds = self.series.index[[3,4,7]]
+        assert_series_equal(self.series.ix[inds], self.series.reindex(inds))
+        assert_series_equal(self.series.ix[5::2], self.series[5::2])
+
+        # boolean
+        mask = self.series > self.series.median()
+        assert_series_equal(self.series.ix[mask], self.series[mask])
+
+    def test_setitem_fancy(self):
+        inds = self.series.index[[3,4,7]]
+
+        result = self.series.copy()
+        result.ix[inds] = 5
+
+        expected = self.series.copy()
+        expected[[3,4,7]] = 5
+        assert_series_equal(result, expected)
+
+        result.ix[5:10] = 10
+        expected[5:10] = 10
+        assert_series_equal(result, expected)
+
     def test_repr(self):
         str(self.ts)
         str(self.series)

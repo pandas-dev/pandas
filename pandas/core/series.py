@@ -14,6 +14,9 @@ from numpy import NaN, ndarray
 import numpy as np
 
 from pandas.core.common import isnull, notnull
+from pandas.core.common import (_check_step, _is_list_like, _need_slice,
+                                _is_label_slice)
+
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
@@ -1331,40 +1334,81 @@ class Series(np.ndarray, PandasGeneric):
         """
         return self._select_generic(crit, axis=0)
 
+    _ix = None
+    @property
+    def ix(self):
+        if self._ix is None:
+            self._ix = _SeriesIndexer(self)
+
+        return self._ix
+
+    def _fancy_getitem(self, key):
+        # asarray can be unsafe, NumPy strings are weird
+        if _isboolarr(key):
+            if isinstance(key, Series):
+                if not key.index.equals(self.index):
+                    raise Exception('Cannot use boolean index with misaligned '
+                                    'or unequal labels')
+            return self.reindex(self.index[key])
+        elif isinstance(key, slice):
+            if _is_label_slice(self.index, key):
+                i, j = self.index.slice_locs(key.start, key.stop)
+                return self[i:j]
+            else:
+                return self[key]
+        else:
+            return self.reindex(key)
+
+    def _fancy_setitem(self, key, value):
+        if _isboolarr(key) or isinstance(key, slice):
+            if isinstance(key, Series):
+                if not key.index.equals(self.index):
+                    raise Exception('Cannot use boolean index with misaligned '
+                                    'or unequal labels')
+            self[key] = value
+        else:
+            inds, mask = self.index.get_indexer(key)
+            if not mask.all():
+                raise Exception('Indices %s not found' % key[-mask])
+            self.put(inds, value)
+
 class TimeSeries(Series):
     pass
 
 
-def ts_upsample(dates, buckets, values, aggfunc, inclusive=True):
-    '''
-    put something here
-    '''
-    nbuckets = len(buckets)
-    nvalues = len(dates)
-    output = np.empty(nbuckets, dtype=float)
+class _SeriesIndexer(object):
+    """
+    Class to support fancy indexing, potentially using labels
 
-    if inclusive:
-        _check = lambda x, y: x < y
-    else:
-        _check = lambda x, y: x <= y
+    Notes
+    -----
+    Indexing based on labels is INCLUSIVE
+    Slicing uses PYTHON SEMANTICS (endpoint is excluded)
 
-    j = 0
-    for i, bound in enumerate(buckets):
-        next_bound = buckets[i + 1]
-        jstart = j
+    If Index contains int labels, these will be used rather than the locations,
+    so be very careful (ambiguous).
 
-        while _check(dates[j], next_bound) and j < nvalues:
-            j += 1
+    Examples
+    --------
+    >>> ts.ix[5:10] # equivalent to ts[5:10]
+    >>> ts.ix[[date1, date2, date3]]
+    >>> ts.ix[date1:date2] = 0
+    """
+    def __init__(self, series):
+        self.series = series
 
-        output[i] = aggfunc(values[jstart:j])
+    def __getitem__(self, key):
+        return self.series._fancy_getitem(key)
 
-    return Series(output, index=buckets)
-
+    def __setitem__(self, key, value):
+        return self.series._fancy_setitem(key, value)
 
 #-------------------------------------------------------------------------------
 # Supplementary functions
 
 _ndgi = ndarray.__getitem__
+
+_isboolarr = lambda x: np.asarray(x).dtype == np.bool_
 
 def remove_na(arr):
     """

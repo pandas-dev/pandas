@@ -10,7 +10,9 @@ import warnings
 from numpy import NaN
 import numpy as np
 
-from pandas.core.common import (_pickle_array, _unpickle_array, isnull, notnull)
+from pandas.core.common import (_pickle_array, _unpickle_array, isnull, notnull,
+                                _check_step, _is_list_like, _need_slice,
+                                _is_label_slice)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
@@ -2361,7 +2363,7 @@ class DataFrame(PandasGeneric):
 
         return self._ix
 
-    def _fancy_index(self, key, axis=0):
+    def _fancy_getitem(self, key, axis=0):
         labels = self._get_axis(axis)
         axis_name = self._get_axis_name(axis)
 
@@ -2376,21 +2378,21 @@ class DataFrame(PandasGeneric):
         else:
             return self.reindex(**{axis_name : key})
 
-    def _fancy_index_tuple(self, rowkey, colkey):
-        result = self._fancy_index_axis(colkey, axis=1)
+    def _fancy_getitem_tuple(self, rowkey, colkey):
+        result = self._fancy_getitem_axis(colkey, axis=1)
 
         if isinstance(result, Series):
             result = result[rowkey]
         else:
-            result = result._fancy_index_axis(rowkey, axis=0)
+            result = result._fancy_getitem_axis(rowkey, axis=0)
 
         return result
 
-    def _fancy_index_axis(self, key, axis=0):
+    def _fancy_getitem_axis(self, key, axis=0):
         if isinstance(key, slice):
             return self._slice_axis(key, axis=axis)
         elif _is_list_like(key):
-            return self._fancy_index(key, axis=axis)
+            return self._fancy_getitem(key, axis=axis)
         elif axis == 0:
             idx = key
             if isinstance(key, int):
@@ -2445,36 +2447,18 @@ class _DataFrameIndexer(object):
     def __getitem__(self, key):
         frame = self.frame
         if isinstance(key, slice):
-            return frame._fancy_index_axis(key, axis=0)
+            return frame._fancy_getitem_axis(key, axis=0)
         elif isinstance(key, tuple):
             if len(key) != 2:
                 raise Exception('only length 2 tuple supported')
-            return frame._fancy_index_tuple(*key)
+            return frame._fancy_getitem_tuple(*key)
         elif _is_list_like(key):
-            return frame._fancy_index(key, axis=0)
+            return frame._fancy_getitem(key, axis=0)
         else:
-            return frame._fancy_index_axis(key, axis=0)
+            return frame._fancy_getitem_axis(key, axis=0)
 
     def __setitem__(self, key, value):
         raise NotImplementedError
-
-def _is_list_like(obj):
-    return isinstance(obj, (list, np.ndarray))
-
-def _is_label_slice(labels, obj):
-    def crit(x):
-        if x in labels:
-            return False
-        else:
-            return isinstance(x, int) or x is None
-    return not crit(obj.start) or not crit(obj.stop)
-
-def _need_slice(obj):
-    return obj.start is not None or obj.stop is not None
-
-def _check_step(obj):
-    if obj.step is not None:
-        raise Exception('steps other than 1 are not supported')
 
 def try_sort(iterable):
     listed = list(iterable)
