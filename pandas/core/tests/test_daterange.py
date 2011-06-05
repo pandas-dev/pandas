@@ -157,20 +157,42 @@ class TestDateRange(unittest.TestCase):
         except ImportError:
             raise nose.SkipTest
 
+        tz = pytz.timezone('US/Central')
+
         # just want it to work
         start = datetime(2011, 3, 12, tzinfo=pytz.utc)
         dr = DateRange(start, periods=50, offset=datetools.Hour())
         self.assert_(dr.tzinfo is not None)
         self.assert_(dr.tzinfo is start.tzinfo)
 
+        # DateRange with naive datetimes
+        dr = DateRange('1/1/2005', '1/1/2009', tzinfo=pytz.utc)
+        dr = DateRange('1/1/2005', '1/1/2009', tzinfo=tz)
+
         # normalized
-        tz = pytz.timezone('US/Central')
         central = dr.tz_normalize(tz)
         self.assert_(central.tzinfo is tz)
         self.assert_(central[0].tzinfo is tz)
 
+        # datetimes with tzinfo set
+        dr = DateRange(datetime(2005, 1, 1, tzinfo=pytz.utc),
+                       '1/1/2009', tzinfo=pytz.utc)
+
+        self.assertRaises(Exception, DateRange,
+                          datetime(2005, 1, 1, tzinfo=pytz.utc),
+                          '1/1/2009', tzinfo=tz)
+
     def test_with_tzinfo_ambiguous_times(self):
         pass
+
+    def test_summary(self):
+        self.rng.summary()
+        self.rng[2:2].summary()
+        try:
+            import pytz
+            DateRange('1/1/2005', '1/1/2009', tzinfo=pytz.utc).summary()
+        except ImportError:
+            pass
 
 # DateRange test
 

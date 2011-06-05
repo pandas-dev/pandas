@@ -68,23 +68,26 @@ class DateRange(Index):
         useCache = (offset.isAnchored() and
                     isinstance(offset, datetools.CacheableOffset))
 
-        start, end, tzinfo = _figure_out_tzinfo(start, end, tzinfo)
-        if tzinfo is not None and _have_pytz():
-            useCache = useCache and _utc_in_cache_range(start, end)
-        else:
-            useCache = useCache and _naive_in_cache_range(start, end)
+        start, end, tzinfo = _figure_out_timezone(start, end, tzinfo)
+        useCache = useCache and _naive_in_cache_range(start, end)
 
         if useCache:
             index = cls._cached_range(start, end, periods=periods,
                                       offset=offset, timeRule=timeRule)
+            if tzinfo is None:
+                return index
         else:
             xdr = generate_range(start=start, end=end, periods=periods,
                                  offset=offset, timeRule=timeRule)
-            index = np.array(list(xdr), dtype=object, copy=False)
-            index = index.view(cls)
-            index.offset = offset
-            index.tzinfo = tzinfo
+            index = list(xdr)
 
+        if tzinfo is not None:
+            index = [d.replace(tzinfo=tzinfo) for d in index]
+
+        index = np.array(index, dtype=object, copy=False)
+        index = index.view(cls)
+        index.offset = offset
+        index.tzinfo = tzinfo
         return index
 
     def __reduce__(self):
@@ -102,7 +105,7 @@ class DateRange(Index):
         # for backwards compatibility
         if len(aug_state) > 2:
             tzinfo = aug_state[2]
-        else:
+        else: # pragma: no cover
             tzinfo = None
 
         self.offset = offset
@@ -215,7 +218,8 @@ class DateRange(Index):
     def __repr__(self):
         output = str(self.__class__) + '\n'
         output += 'offset: %s, tzinfo: %s\n' % (self.offset, self.tzinfo)
-        output += '[%s, ..., %s]\n' % (self[0], self[-1])
+        if len(self) > 0:
+            output += '[%s, ..., %s]\n' % (self[0], self[-1])
         output += 'length: %d' % len(self)
         return output
 
@@ -362,21 +366,29 @@ def generate_range(start=None, end=None, periods=None,
         # faster than cur + offset
         cur = offset.apply(cur)
 
-def _utc_in_cache_range(start, end):
-    if start is None or end is None:
-        return False
+# def _utc_in_cache_range(start, end):
+#     import pytz
+#     if start is None or end is None:
+#         return False
 
-    _CACHE_START = datetime(1950, 1, 1, tzinfo=pytz.utc)
-    _CACHE_END   = datetime(2030, 1, 1, tzinfo=pytz.utc)
+#     _CACHE_START = datetime(1950, 1, 1, tzinfo=pytz.utc)
+#     _CACHE_END   = datetime(2030, 1, 1, tzinfo=pytz.utc)
 
-    try:
-        assert(_isutc(start))
-        assert(_isutc(end))
-    except AssertionError:
-        raise Exception('To use localized time zone, create '
-                        'DateRange with pytz.UTC then call '
-                        'tz_normalize')
-    return _in_range(start, end, _CACHE_START, _CACHE_END)
+#     try:
+#         assert(_isutc(start))
+#         assert(_isutc(end))
+#     except AssertionError:
+#         raise Exception('To use localized time zone, create '
+#                         'DateRange with pytz.UTC then call '
+#                         'tz_normalize')
+#     return _in_range(start, end, _CACHE_START, _CACHE_END)
+
+# def _isutc(dt):
+#     import pytz
+#     return dt.tzinfo is pytz.utc
+
+# def _hastz(dt):
+#     return dt is not None and dt.tzinfo is not None
 
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end
@@ -387,19 +399,19 @@ def _naive_in_cache_range(start, end):
     else:
         return _in_range(start, end, _CACHE_START, _CACHE_END)
 
-def _isutc(dt):
-    import pytz
-    return dt.tzinfo is pytz.utc
-
-def _hastz(dt):
-    return dt is not None and dt.tzinfo is not None
-
-def _figure_out_tzinfo(start, end, tzinfo):
+def _figure_out_timezone(start, end, tzinfo):
     inferred_tz = _infer_tzinfo(start, end)
-    if tzinfo is not None:
+    tz = inferred_tz
+    if inferred_tz is None and tzinfo is not None:
+        tz = tzinfo
+    elif tzinfo is not None:
         assert(inferred_tz == tzinfo)
+        # make tz naive for now
 
-    return start, end, inferred_tz
+    start = start if start is None else start.replace(tzinfo=None)
+    end = end if end is None else end.replace(tzinfo=None)
+
+    return start, end, tz
 
 def _infer_tzinfo(start, end):
     tz = None
@@ -418,6 +430,10 @@ def _any_none(*args):
         if arg is None:
             return True
     return False
+
+def test_any_none():
+    assert(_any_none(1, 2, 3, None))
+    assert(not _any_none(1, 2, 3, 4))
 
 def _all_not_none(*args):
     for arg in args:
