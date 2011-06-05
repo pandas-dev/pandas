@@ -124,3 +124,9 @@ def _check_step(obj):
     if obj.step is not None:
         raise Exception('steps other than 1 are not supported')
 
+def _ensure_index(index_like):
+    from pandas.core.index import Index
+    if not isinstance(index_like, Index):
+        index_like = Index(index_like)
+
+    return index_like

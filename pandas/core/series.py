@@ -14,8 +14,8 @@ from numpy import NaN, ndarray
 import numpy as np
 
 from pandas.core.common import isnull, notnull
-from pandas.core.common import (_check_step, _is_list_like, _need_slice,
-                                _is_label_slice)
+from pandas.core.common import (_check_step, _need_slice, _is_label_slice,
+                                _ensure_index)
 
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
@@ -1167,26 +1167,7 @@ class Series(np.ndarray, PandasGeneric):
         """
         before = datetools.to_datetime(before)
         after = datetools.to_datetime(after)
-
-        if before is None:
-            beg_slice = 0
-        elif before in self.index:
-            beg_slice = self.index.indexMap[before]
-        elif before < self.index[-1]:
-            beg_slice = self.index.searchsorted(before, side='left')
-        else:
-            return Series([], index=NULL_INDEX)
-
-        if after is None:
-            end_slice = len(self)
-        elif after in self.index:
-            end_slice = self.index.indexMap[after] + 1
-        elif after > self.index[0]:
-            end_slice = self.index.searchsorted(after, side='right')
-        else:
-            return Series([], index=NULL_INDEX)
-
-        return self[beg_slice:end_slice]
+        return self.ix[before:after]
 
     def asOf(self, date):
         """
@@ -1351,6 +1332,9 @@ class Series(np.ndarray, PandasGeneric):
                                     'or unequal labels')
             return self.reindex(self.index[key])
         elif isinstance(key, slice):
+            if not _need_slice(key):
+                return self
+
             if _is_label_slice(self.index, key):
                 i, j = self.index.slice_locs(key.start, key.stop)
                 return self[i:j]
@@ -1360,12 +1344,18 @@ class Series(np.ndarray, PandasGeneric):
             return self.reindex(key)
 
     def _fancy_setitem(self, key, value):
-        if _isboolarr(key) or isinstance(key, slice):
+        if _isboolarr(key):
             if isinstance(key, Series):
                 if not key.index.equals(self.index):
                     raise Exception('Cannot use boolean index with misaligned '
                                     'or unequal labels')
             self[key] = value
+        elif isinstance(key, slice):
+            if _is_label_slice(self.index, key):
+                i, j = self.index.slice_locs(key.start, key.stop)
+                self[i:j] = value
+            else:
+                self[key] = value
         else:
             inds, mask = self.index.get_indexer(key)
             if not mask.all():
@@ -1440,10 +1430,4 @@ def _seriesRepr(index, vals, nanRep='NaN'):
                            itertools.izip(string_index, vals))
 
     return '\n'.join(it)
-
-def _ensure_index(index_like):
-    if not isinstance(index_like, Index):
-        index_like = Index(index_like)
-
-    return index_like
 

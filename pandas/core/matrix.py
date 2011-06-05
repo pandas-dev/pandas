@@ -9,9 +9,9 @@ import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array)
 from pandas.core.frame import (DataFrame, try_sort, extract_index,
-                               _default_index)
+                               _default_index, _ensure_index)
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.series import Series, _ensure_index
+from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries

@@ -12,11 +12,11 @@ import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array, isnull, notnull,
                                 _check_step, _is_list_like, _need_slice,
-                                _is_label_slice)
+                                _is_label_slice, _ensure_index)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.series import Series, _ensure_index
+from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries

@@ -9,9 +9,9 @@ import warnings
 
 import numpy as np
 
-from pandas.core.common import _mut_exclusive
+from pandas.core.common import _mut_exclusive, _ensure_index
 from pandas.core.index import Index
-from pandas.core.frame import DataFrame, _pfixed, _ensure_index
+from pandas.core.frame import DataFrame, _pfixed
 from pandas.core.matrix import DataMatrix
 from pandas.core.generic import PandasGeneric, Picklable
 import pandas.core.common as common

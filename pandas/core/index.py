@@ -1,6 +1,8 @@
 # pylint: disable=E1101,E1103,W0232
 
 import numpy as np
+
+from pandas.core.common import _ensure_index
 import pandas.lib.tseries as _tseries
 
 __all__ = ['Index']
@@ -260,6 +262,8 @@ class Index(np.ndarray):
             'FFILL' : 'PAD',
             'BFILL' : 'BACKFILL'
         }
+
+        target = _ensure_index(target)
 
         method = aliases.get(method, method)
         indexer, mask = tseries.getFillVec(self, target, self.indexMap,
