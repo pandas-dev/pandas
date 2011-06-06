@@ -73,7 +73,8 @@ def simpleParser(lines, colNames=None, header=0, indexCol=0,
                 colCounts[col] += 1
     else:
         if not colNames:
-            columns = string.ascii_uppercase[:len(lines[0])]
+            columns = list(string.ascii_uppercase[:len(lines[0])])
+            # columns = ['X.%d' % (i + 1) for i in range(len(lines[0]))]
         else:
             columns = colNames
         content = lines

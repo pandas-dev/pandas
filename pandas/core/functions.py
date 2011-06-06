@@ -81,6 +81,31 @@ def dumb_way(series, buckets):
     sampled2 = sampled2.reindex(buckets)
     return sampled2
 
+def ts_upsample(dates, buckets, values, aggfunc, inclusive=True):
+    '''
+    put something here
+    '''
+    nbuckets = len(buckets)
+    nvalues = len(dates)
+    output = np.empty(nbuckets, dtype=float)
+
+    if inclusive:
+        _check = lambda x, y: x < y
+    else:
+        _check = lambda x, y: x <= y
+
+    j = 0
+    for i, bound in enumerate(buckets):
+        next_bound = buckets[i + 1]
+        jstart = j
+
+        while _check(dates[j], next_bound) and j < nvalues:
+            j += 1
+
+        output[i] = aggfunc(values[jstart:j])
+
+    return Series(output, index=buckets)
+
 if __name__ == '__main__':
     N = 1000000
     K = 1000

@@ -17,3 +17,17 @@ def test_isnull():
     assert isnull(np.inf)
     assert isnull(-np.inf)
 
+def test_any_none():
+    assert(common._any_none(1, 2, 3, None))
+    assert(not common._any_none(1, 2, 3, 4))
+
+def test_all_not_none():
+    assert(common._all_not_none(1, 2, 3, 4))
+    assert(not common._all_not_none(1, 2, 3, None))
+    assert(not common._all_not_none(None, None, None, None))
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
+

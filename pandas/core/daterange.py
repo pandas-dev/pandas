@@ -45,64 +45,70 @@ class DateRange(Index):
     def __new__(cls, start=None, end=None, periods=None,
                 offset=datetools.bday, timeRule=None,
                 tzinfo=None, **kwds):
+        if timeRule is not None:
+            offset = datetools.getOffset(timeRule)
 
-        # Allow us to circumvent hitting the cache
-        if 'index' not in kwds:
-            if timeRule is not None:
-                offset = datetools.getOffset(timeRule)
+        if timeRule is None:
+            if offset in datetools._offsetNames:
+                timeRule = datetools._offsetNames[offset]
 
-            if timeRule is None:
-                if offset in datetools._offsetNames:
-                    timeRule = datetools._offsetNames[offset]
+        # Cachable
+        if not start:
+            start = kwds.get('begin')
+        if not periods:
+            periods = kwds.get('nPeriods')
 
-            # Cachable
-            if not start:
-                start = kwds.get('begin')
-            if not end:
-                end = kwds.get('end')
-            if not periods:
-                periods = kwds.get('nPeriods')
+        start = datetools.to_datetime(start)
+        end = datetools.to_datetime(end)
 
-            start = datetools.to_datetime(start)
-            end = datetools.to_datetime(end)
+        # inside cache range. Handle UTC case
 
-            # inside cache range. Handle UTC case
+        useCache = (offset.isAnchored() and
+                    isinstance(offset, datetools.CacheableOffset))
 
-            useCache = (offset.isAnchored() and
-                        isinstance(offset, datetools.CacheableOffset))
+        start, end, tzinfo = _figure_out_timezone(start, end, tzinfo)
+        useCache = useCache and _naive_in_cache_range(start, end)
 
-            if (_hastz(start) or _hastz(end)) and _have_pytz():
-                useCache = useCache and _utc_in_cache_range(start, end)
-            else:
-                useCache = useCache and _naive_in_cache_range(start, end)
-
-            if useCache:
-                index = cls._cached_range(start, end, periods=periods,
-                                          offset=offset, timeRule=timeRule)
-            else:
-                xdr = generate_range(start=start, end=end, periods=periods,
-                                     offset=offset, timeRule=timeRule)
-                index = np.array(list(xdr), dtype=object, copy=False)
-                index = index.view(cls)
-                index.offset = offset
+        if useCache:
+            index = cls._cached_range(start, end, periods=periods,
+                                      offset=offset, timeRule=timeRule)
+            if tzinfo is None:
+                return index
         else:
-            index = np.asarray(kwds['index']).view(cls)
+            xdr = generate_range(start=start, end=end, periods=periods,
+                                 offset=offset, timeRule=timeRule)
+            index = list(xdr)
 
+        if tzinfo is not None:
+            index = [d.replace(tzinfo=tzinfo) for d in index]
+
+        index = np.array(index, dtype=object, copy=False)
+        index = index.view(cls)
+        index.offset = offset
+        index.tzinfo = tzinfo
         return index
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
         a, b, state = Index.__reduce__(self)
-        aug_state = state, self.offset
+        aug_state = state, self.offset, self.tzinfo
 
         return a, b, aug_state
 
     def __setstate__(self, aug_state):
         """Necessary for making this object picklable"""
-        state, offset = aug_state[:-1], aug_state[-1]
+        index_state = aug_state[:1]
+        offset = aug_state[1]
+
+        # for backwards compatibility
+        if len(aug_state) > 2:
+            tzinfo = aug_state[2]
+        else: # pragma: no cover
+            tzinfo = None
 
         self.offset = offset
-        Index.__setstate__(self, *state)
+        self.tzinfo = tzinfo
+        Index.__setstate__(self, *index_state)
 
     @property
     def _allDates(self):
@@ -110,7 +116,7 @@ class DateRange(Index):
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
-                       timeRule=None):
+                      timeRule=None):
 
         # HACK: fix this dependency later
         if timeRule is not None:
@@ -123,9 +129,9 @@ class DateRange(Index):
             xdr = generate_range(_CACHE_START, _CACHE_END, offset=offset)
             arr = np.array(list(xdr), dtype=object, copy=False)
 
-            cachedRange = DateRange.fromIndex(arr)
+            cachedRange = arr.view(DateRange)
             cachedRange.offset = offset
-
+            cachedRange.tzinfo = None
             cls._cache[offset] = cachedRange
         else:
             cachedRange = cls._cache[offset]
@@ -162,11 +168,6 @@ class DateRange(Index):
 
         return indexSlice
 
-    @classmethod
-    def fromIndex(cls, index):
-        index = cls(index=index)
-        return index
-
     def __array_finalize__(self, obj):
         if self.ndim == 0: # pragma: no cover
             return self.item()
@@ -189,21 +190,34 @@ class DateRange(Index):
         if isinstance(key, (int, np.integer)):
             return result
         elif isinstance(key, slice):
-            newIndex = result.view(DateRange)
-
+            new_index = result.view(DateRange)
             if key.step is not None:
-                newIndex.offset = key.step * self.offset
+                new_index.offset = key.step * self.offset
             else:
-                newIndex.offset = self.offset
+                new_index.offset = self.offset
 
-            return newIndex
+            new_index.tzinfo = self.tzinfo
+            return new_index
         else:
             return Index(result)
 
+    def summary(self):
+        if len(self) > 0:
+            index_summary = ', %s to %s' % (self[0], self[-1])
+        else:
+            index_summary = ''
+        sum_line = 'DateRange: %s entries%s' % (len(self), index_summary)
+        sum_line += '\noffset: %s' % self.offset
+        if self.tzinfo is not None:
+            sum_line += ', tzinfo: %s' % self.tzinfo
+
+        return sum_line
+
     def __repr__(self):
         output = str(self.__class__) + '\n'
-        output += 'offset: %s\n' % self.offset
-        output += '[%s, ..., %s]\n' % (self[0], self[-1])
+        output += 'offset: %s, tzinfo: %s\n' % (self.offset, self.tzinfo)
+        if len(self) > 0:
+            output += '[%s, ..., %s]\n' % (self[0], self[-1])
         output += 'length: %d' % len(self)
         return output
 
@@ -273,9 +287,35 @@ class DateRange(Index):
         """
         Convert UTC DateRange
         """
+        new_dates = np.array([tz.normalize(x) for x in self])
+        new_dates = new_dates.view(DateRange)
+        new_dates.offset = self.offset
+        new_dates.tzinfo = tz
+        return new_dates
+
+    def tz_validate(self):
+        """
+        For a localized time zone, verify that there are no DST ambiguities
+
+        Returns
+        -------
+        result : boolean
+            True if there are no DST ambiguities
+        """
         import pytz
-        new_dates = [tz.normalize(x) for x in self]
-        return self.fromIndex(Index(new_dates))
+
+        tz = self.tzinfo
+        if tz is None or tz is pytz.utc:
+            return True
+
+        # See if there are any DST resolution problems
+        for date in self:
+            try:
+                tz.utcoffset(date.replace(tzinfo=None))
+            except pytz.InvalidTimeError:
+                return False
+
+        return True
 
 def generate_range(start=None, end=None, periods=None,
                    offset=datetools.BDay(), timeRule=None):
@@ -342,23 +382,38 @@ def generate_range(start=None, end=None, periods=None,
         # faster than cur + offset
         cur = offset.apply(cur)
 
-def _utc_in_cache_range(start, end):
-    import pytz
+# Do I want to cache UTC dates? Can't decide...
 
-    if start is None or end is None:
-        return False
+# def _utc_in_cache_range(start, end):
+#     import pytz
+#     if start is None or end is None:
+#         return False
 
-    _CACHE_START = datetime(1950, 1, 1, tzinfo=pytz.utc)
-    _CACHE_END   = datetime(2030, 1, 1, tzinfo=pytz.utc)
+#     _CACHE_START = datetime(1950, 1, 1, tzinfo=pytz.utc)
+#     _CACHE_END   = datetime(2030, 1, 1, tzinfo=pytz.utc)
 
-    try:
-        assert(_isutc(start))
-        assert(_isutc(end))
-    except AssertionError:
-        raise Exception('To use localized time zone, create '
-                        'DateRange with pytz.UTC then call '
-                        'tz_normalize')
-    return _in_range(start, end, _CACHE_START, _CACHE_END)
+#     try:
+#         assert(_isutc(start))
+#         assert(_isutc(end))
+#     except AssertionError:
+#         raise Exception('To use localized time zone, create '
+#                         'DateRange with pytz.UTC then call '
+#                         'tz_normalize')
+#     return _in_range(start, end, _CACHE_START, _CACHE_END)
+
+# def _isutc(dt):
+#     import pytz
+#     return dt.tzinfo is pytz.utc
+
+# def _hastz(dt):
+#     return dt is not None and dt.tzinfo is not None
+
+# def _have_pytz():
+#     try:
+#         import pytz
+#         return True
+#     except ImportError:
+#         return False
 
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end
@@ -369,19 +424,32 @@ def _naive_in_cache_range(start, end):
     else:
         return _in_range(start, end, _CACHE_START, _CACHE_END)
 
-def _isutc(dt):
-    import pytz
-    return dt.tzinfo is pytz.utc
+def _figure_out_timezone(start, end, tzinfo):
+    inferred_tz = _infer_tzinfo(start, end)
+    tz = inferred_tz
+    if inferred_tz is None and tzinfo is not None:
+        tz = tzinfo
+    elif tzinfo is not None:
+        assert(inferred_tz == tzinfo)
+        # make tz naive for now
 
-def _hastz(dt):
-    return dt is not None and dt.tzinfo is not None
+    start = start if start is None else start.replace(tzinfo=None)
+    end = end if end is None else end.replace(tzinfo=None)
 
-def _have_pytz():
-    try:
-        import pytz
-        return True
-    except ImportError:
-        return False
+    return start, end, tz
+
+def _infer_tzinfo(start, end):
+    def _infer(a, b):
+        tz = a.tzinfo
+        if b and b.tzinfo:
+            assert(tz == b.tzinfo)
+        return tz
+    tz = None
+    if start is not None:
+        tz = _infer(start, end)
+    elif end is not None:
+        tz = _infer(end, start)
+    return tz
 
 if __name__ == '__main__':
     import pytz

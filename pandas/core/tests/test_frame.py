@@ -23,7 +23,200 @@ import pandas.util.testing as common
 #-------------------------------------------------------------------------------
 # DataFrame test cases
 
-class TestDataFrame(unittest.TestCase):
+class CheckIndexing(object):
+
+    def test_getitem(self):
+        # slicing
+
+        sl = self.frame[:20]
+        self.assertEqual(20, len(sl.index))
+
+        # column access
+
+        for _, series in sl.iteritems():
+            self.assertEqual(20, len(series.index))
+            self.assert_(common.equalContents(series.index, sl.index))
+
+        for key, _ in self.frame._series.iteritems():
+            self.assert_(self.frame[key] is not None)
+
+        self.assert_('random' not in self.frame)
+        self.assertRaises(Exception, self.frame.__getitem__, 'random')
+
+        # boolean indexing
+        d = self.tsframe.index[10]
+        indexer = self.tsframe.index > d
+
+        subindex = self.tsframe.index[indexer]
+        subframe = self.tsframe[indexer]
+
+        self.assert_(np.array_equal(subindex, subframe.index))
+        self.assertRaises(Exception, self.tsframe.__getitem__, indexer[:-1])
+
+    def test_setitem(self):
+        # not sure what else to do here
+        series = self.frame['A'][::2]
+        self.frame['col5'] = series
+        self.assert_('col5' in self.frame)
+        common.assert_dict_equal(series, self.frame['col5'],
+                                 compare_keys=False)
+
+        series = self.frame['A']
+        self.frame['col6'] = series
+        common.assert_dict_equal(series, self.frame['col6'],
+                                 compare_keys=False)
+
+        self.assertRaises(Exception, self.frame.__setitem__,
+                          randn(len(self.frame) + 1))
+
+        # set ndarray
+        arr = randn(len(self.frame))
+        self.frame['col9'] = arr
+        self.assert_((self.frame['col9'] == arr).all())
+
+        # set value, do out of order for DataMatrix
+        self.frame['col7'] = 5
+        assert((self.frame['col7'] == 5).all())
+
+        self.frame['col0'] = 3.14
+        assert((self.frame['col0'] == 3.14).all())
+
+        self.frame['col8'] = 'foo'
+        assert((self.frame['col8'] == 'foo').all())
+
+        smaller = self.frame[:2]
+        smaller['col10'] = ['1', '2']
+        self.assertEqual(smaller['col10'].dtype, np.object_)
+        self.assert_((smaller['col10'] == ['1', '2']).all())
+
+    def test_setitem_boolean(self):
+        df = self.frame.copy()
+        values = self.frame.values
+
+        df[df > 0] = 5
+        values[values > 0] = 5
+        assert_almost_equal(df.values, values)
+
+        df[df == 5] = 0
+        values[values == 5] = 0
+        assert_almost_equal(df.values, values)
+
+        self.assertRaises(Exception, df.__setitem__, df[:-1] > 0, 2)
+        self.assertRaises(Exception, df.__setitem__, df * 0, 2)
+
+    def test_getitem_fancy_2d(self):
+        f = self.frame
+        ix = f.ix
+
+        assert_frame_equal(ix[:, ['B', 'A']], f.reindex(columns=['B', 'A']))
+
+        # slicing rows, etc.
+        assert_frame_equal(ix[5:10], f[5:10])
+        assert_frame_equal(ix[5:10, :], f[5:10])
+        assert_frame_equal(ix[:5, ['A', 'B']],
+                           f.reindex(index=f.index[:5], columns=['A', 'B']))
+
+        # slice rows with labels, inclusive!
+        expected = ix[5:11]
+        result = ix[f.index[5]:f.index[10]]
+        assert_frame_equal(expected, result)
+
+        # slice columns
+        assert_frame_equal(ix[:, :2], f.reindex(columns=['A', 'B']))
+
+    def test_getitem_fancy_1d(self):
+        f = self.frame
+        ix = f.ix
+
+        # return self if no slicing...for now
+        self.assert_(ix[:, :] is f)
+
+        # low dimensional slice
+        xs1 = ix[2, ['C', 'B', 'A']]
+        xs2 = f.xs(f.index[2]).reindex(['C', 'B', 'A'])
+        assert_series_equal(xs1, xs2)
+
+        ts1 = ix[5:10, 2]
+        ts2 = f[f.columns[2]][5:10]
+        assert_series_equal(ts1, ts2)
+
+        # positional xs
+        xs1 = ix[0]
+        xs2 = f.xs(f.index[0])
+        assert_series_equal(xs1, xs2)
+
+        xs1 = ix[f.index[5]]
+        xs2 = f.xs(f.index[5])
+        assert_series_equal(xs1, xs2)
+
+        # single column
+        assert_series_equal(ix[:, 'A'], f['A'])
+
+    def test_getitem_fancy_scalar(self):
+        f = self.frame
+        ix = f.ix
+        # individual value
+        for col in f.columns:
+            ts = f[col]
+            for idx in f.index[::5]:
+                assert_almost_equal(ix[idx, col], ts[idx])
+
+    def test_getitem_fancy_boolean(self):
+        f = self.frame
+        ix = f.ix
+
+        expected = f.reindex(columns=['B', 'D'])
+        result = ix[:, [False, True, False, True]]
+        assert_frame_equal(result, expected)
+
+        expected = f.reindex(index=f.index[5:10], columns=['B', 'D'])
+        result = ix[5:10, [False, True, False, True]]
+        assert_frame_equal(result, expected)
+
+        boolvec = f.index > f.index[7]
+        expected = f.reindex(index=f.index[boolvec])
+        result = ix[boolvec]
+        assert_frame_equal(result, expected)
+        result = ix[boolvec, :]
+        assert_frame_equal(result, expected)
+
+        result = ix[boolvec, 2:]
+        expected = f.reindex(index=f.index[boolvec],
+                             columns=['C', 'D'])
+        assert_frame_equal(result, expected)
+
+    def test_getitem_fancy_exceptions(self):
+        ix = self.frame.ix
+        self.assertRaises(Exception, ix.__getitem__,
+                          (slice(None, None, None),
+                           slice(None, None, None),
+                           slice(None, None, None)))
+
+        self.assertRaises(Exception, ix.__getitem__, slice(None, None, 2))
+
+        # boolean index misaligned labels
+        mask = self.frame['A'][::-1] > 1
+        self.assertRaises(Exception, ix.__getitem__, mask)
+
+    def test_setitem_fancy_1d(self):
+        f = self.frame
+
+    def test_setitem_fancy_2d(self):
+        f = self.frame
+
+    def test_setitem_fancy_scalar(self):
+        f = self.frame
+        ix = f.ix
+        # individual value
+        for col in f.columns:
+            ts = f[col]
+            for idx in f.index[::5]:
+                assert_almost_equal(ix[idx, col], ts[idx])
+
+    def test_setitem_fancy_boolean(self):
+        f = self.frame
+
+class TestDataFrame(unittest.TestCase, CheckIndexing):
     klass = DataFrame
 
     def setUp(self):
@@ -391,85 +584,6 @@ class TestDataFrame(unittest.TestCase):
 
         frame = self.klass(index=np.arange(1000))
         frame.toString(buf=buf)
-
-    def test_getitem(self):
-        # slicing
-
-        sl = self.frame[:20]
-        self.assertEqual(20, len(sl.index))
-
-        # column access
-
-        for _, series in sl.iteritems():
-            self.assertEqual(20, len(series.index))
-            self.assert_(common.equalContents(series.index, sl.index))
-
-        for key, _ in self.frame._series.iteritems():
-            self.assert_(self.frame[key] is not None)
-
-        self.assert_('random' not in self.frame)
-        self.assertRaises(Exception, self.frame.__getitem__, 'random')
-
-        # boolean indexing
-        d = self.tsframe.index[10]
-        indexer = self.tsframe.index > d
-
-        subindex = self.tsframe.index[indexer]
-        subframe = self.tsframe[indexer]
-
-        self.assert_(np.array_equal(subindex, subframe.index))
-        self.assertRaises(Exception, self.tsframe.__getitem__, indexer[:-1])
-
-    def test_setitem(self):
-        # not sure what else to do here
-        series = self.frame['A'][::2]
-        self.frame['col5'] = series
-        self.assert_('col5' in self.frame)
-        common.assert_dict_equal(series, self.frame['col5'],
-                                 compare_keys=False)
-
-        series = self.frame['A']
-        self.frame['col6'] = series
-        common.assert_dict_equal(series, self.frame['col6'],
-                                 compare_keys=False)
-
-        self.assertRaises(Exception, self.frame.__setitem__,
-                          randn(len(self.frame) + 1))
-
-        # set ndarray
-        arr = randn(len(self.frame))
-        self.frame['col9'] = arr
-        self.assert_((self.frame['col9'] == arr).all())
-
-        # set value, do out of order for DataMatrix
-        self.frame['col7'] = 5
-        assert((self.frame['col7'] == 5).all())
-
-        self.frame['col0'] = 3.14
-        assert((self.frame['col0'] == 3.14).all())
-
-        self.frame['col8'] = 'foo'
-        assert((self.frame['col8'] == 'foo').all())
-
-        smaller = self.frame[:2]
-        smaller['col10'] = ['1', '2']
-        self.assertEqual(smaller['col10'].dtype, np.object_)
-        self.assert_((smaller['col10'] == ['1', '2']).all())
-
-    def test_setitem_boolean(self):
-        df = self.frame.copy()
-        values = self.frame.values
-
-        df[df > 0] = 5
-        values[values > 0] = 5
-        assert_almost_equal(df.values, values)
-
-        df[df == 5] = 0
-        values[values == 5] = 0
-        assert_almost_equal(df.values, values)
-
-        self.assertRaises(Exception, df.__setitem__, df[:-1] > 0, 2)
-        self.assertRaises(Exception, df.__setitem__, df * 0, 2)
 
     def test_delitem(self):
         del self.frame['A']
@@ -990,7 +1104,7 @@ class TestDataFrame(unittest.TestCase):
 
         assert_frame_equal(pivoted, expected)
 
-        # corner cases
+        # TODO: corner cases?
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
@@ -1024,7 +1138,8 @@ class TestDataFrame(unittest.TestCase):
                     self.assert_(np.isnan(val))
 
         for col, series in nonContigFrame.iteritems():
-            self.assert_(common.equalContents(series.index, nonContigFrame.index))
+            self.assert_(common.equalContents(series.index,
+                                              nonContigFrame.index))
 
         # corner cases
 
@@ -1699,100 +1814,6 @@ class TestDataFrame(unittest.TestCase):
         desc = self.tsframe.describe()
         desc = self.mixed_frame.describe()
         desc = self.frame.describe()
-
-    def test_fancy_indexing_2d(self):
-        f = self.frame
-        ix = f.ix
-
-        assert_frame_equal(ix[:, ['B', 'A']], f.reindex(columns=['B', 'A']))
-
-        # slicing rows, etc.
-        assert_frame_equal(ix[5:10], f[5:10])
-        assert_frame_equal(ix[5:10, :], f[5:10])
-        assert_frame_equal(ix[:5, ['A', 'B']],
-                           f.reindex(index=f.index[:5], columns=['A', 'B']))
-
-        # slice rows with labels, inclusive!
-        expected = ix[5:11]
-        result = ix[f.index[5]:f.index[10]]
-        assert_frame_equal(expected, result)
-
-        # slice columns
-        assert_frame_equal(ix[:, :2], f.reindex(columns=['A', 'B']))
-
-    def test_fancy_indexing_1d(self):
-        f = self.frame
-        ix = f.ix
-
-        # return self if no slicing...for now
-        self.assert_(ix[:, :] is f)
-
-        # low dimensional slice
-        xs1 = ix[2, ['C', 'B', 'A']]
-        xs2 = f.xs(f.index[2]).reindex(['C', 'B', 'A'])
-        assert_series_equal(xs1, xs2)
-
-        ts1 = ix[5:10, 2]
-        ts2 = f[f.columns[2]][5:10]
-        assert_series_equal(ts1, ts2)
-
-        # positional xs
-        xs1 = ix[0]
-        xs2 = f.xs(f.index[0])
-        assert_series_equal(xs1, xs2)
-
-        xs1 = ix[f.index[5]]
-        xs2 = f.xs(f.index[5])
-        assert_series_equal(xs1, xs2)
-
-        # single column
-        assert_series_equal(ix[:, 'A'], f['A'])
-
-    def test_fancy_indexing_scalar(self):
-        f = self.frame
-        ix = f.ix
-        # individual value
-        for col in f.columns:
-            ts = f[col]
-            for idx in f.index[::5]:
-                assert_almost_equal(ix[idx, col], ts[idx])
-
-    def test_fancy_indexing_boolean(self):
-        f = self.frame
-        ix = f.ix
-
-        expected = f.reindex(columns=['B', 'D'])
-        result = ix[:, [False, True, False, True]]
-        assert_frame_equal(result, expected)
-
-        expected = f.reindex(index=f.index[5:10], columns=['B', 'D'])
-        result = ix[5:10, [False, True, False, True]]
-        assert_frame_equal(result, expected)
-
-        boolvec = f.index > f.index[7]
-        expected = f.reindex(index=f.index[boolvec])
-        result = ix[boolvec]
-        assert_frame_equal(result, expected)
-        result = ix[boolvec, :]
-        assert_frame_equal(result, expected)
-
-        result = ix[boolvec, 2:]
-        expected = f.reindex(index=f.index[boolvec],
-                             columns=['C', 'D'])
-        assert_frame_equal(result, expected)
-
-    def test_fancy_indexing_exceptions(self):
-        ix = self.frame.ix
-        self.assertRaises(Exception, ix.__getitem__,
-                          (slice(None, None, None),
-                           slice(None, None, None),
-                           slice(None, None, None)))
-
-        self.assertRaises(Exception, ix.__getitem__, slice(None, None, 2))
-
-        # boolean index misaligned labels
-        mask = self.frame['A'][::-1] > 1
-        self.assertRaises(Exception, ix.__getitem__, mask)
 
     def test_select(self):
         f = lambda x: x.weekday() == 2

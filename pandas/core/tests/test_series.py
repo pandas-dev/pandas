@@ -142,7 +142,7 @@ class TestSeries(unittest.TestCase):
         idx = np.int64(5)
         self.assertEqual(self.ts[idx], self.ts[5])
 
-    def test_fancy(self):
+    def test_getitem_fancy(self):
         slice1 = self.series[[1,2,3]]
         slice2 = self.objSeries[[1,2,3]]
         self.assertEqual(self.series.index[2], slice1.index[1])
@@ -165,6 +165,9 @@ class TestSeries(unittest.TestCase):
         mask_shifted = ts.shift(1, offset=datetools.bday) > ts.median()
         self.assertRaises(Exception, ts.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.__setitem__, mask_shifted, 1)
+
+        self.assertRaises(Exception, ts.ix.__getitem__, mask_shifted)
+        self.assertRaises(Exception, ts.ix.__setitem__, mask_shifted, 1)
 
     def test_slice(self):
         numSlice = self.series[10:20]
@@ -199,10 +202,64 @@ class TestSeries(unittest.TestCase):
         series[::2] = 0
         self.assert_((series[::2] == 0).all())
 
+        # set item that's not contained
+        self.assertRaises(Exception, self.series.__setitem__,
+                          'foobar', 1)
+
     def test_setslice(self):
         sl = self.ts[5:20]
         self.assertEqual(len(sl), len(sl.index))
         self.assertEqual(len(sl.index.indexMap), len(sl.index))
+
+    def test_ix_getitem(self):
+        inds = self.series.index[[3,4,7]]
+        assert_series_equal(self.series.ix[inds], self.series.reindex(inds))
+        assert_series_equal(self.series.ix[5::2], self.series[5::2])
+
+        # slice with indices
+        d1, d2 = self.series.index[[5, 15]]
+        result = self.series.ix[d1:d2]
+        expected = self.series.truncate(d1, d2)
+        assert_series_equal(result, expected)
+
+        # boolean
+        mask = self.series > self.series.median()
+        assert_series_equal(self.series.ix[mask], self.series[mask])
+
+    def test_ix_setitem(self):
+        inds = self.series.index[[3,4,7]]
+
+        result = self.series.copy()
+        result.ix[inds] = 5
+
+        expected = self.series.copy()
+        expected[[3,4,7]] = 5
+        assert_series_equal(result, expected)
+
+        result.ix[5:10] = 10
+        expected[5:10] = 10
+        assert_series_equal(result, expected)
+
+        # set slice with indices
+        d1, d2 = self.series.index[[5, 15]]
+        result.ix[d1:d2] = 6
+        expected[5:16] = 6 # because it's inclusive
+        assert_series_equal(result, expected)
+
+    def test_ix_setitem_boolean(self):
+        mask = self.series > self.series.median()
+
+        result = self.series.copy()
+        result.ix[mask] = 0
+        expected = self.series
+        expected[mask] = 0
+        assert_series_equal(result, expected)
+
+    def test_ix_setitem_corner(self):
+        inds = list(self.series.index[[5, 8, 12]])
+        self.series.ix[inds] = 5
+        self.assertRaises(Exception, self.series.ix.__setitem__,
+                          inds + ['foo'], 5)
 
     def test_repr(self):
         str(self.ts)

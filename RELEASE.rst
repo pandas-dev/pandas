@@ -1,3 +1,52 @@
+
+************************
+pandas 0.4 Release Notes
+************************
+
+==========
+What is it
+==========
+
+**pandas** is a library of labeled data structures, statistical models, and
+general code for working with time series and cross-sectional data. It was
+designed with the practical needs of statistical modeling and large,
+inhomogeneous data sets in mind.
+
+===============
+Where to get it
+===============
+
+Source code: http://github.com/wesm/pandas
+Binary installers on PyPI: http://pypi.python.org/pypi/pandas
+Documentation: http://pandas.sourceforge.net
+
+=============
+Release notes
+=============
+
+**Release date:** NOT YET RELEASED
+
+**New features / modules**
+
+* `DataFrame.describe`
+* `DataFrame.quantile`, `Series.quantile`
+* `DataFrame.describe`
+* Fancy indexing
+
+**Improvements**
+
+
+**API Changes**
+
+* Backwards compatibility support for begin/end/nPeriods keyword arguments in
+  DateRange class has been removed
+
+**Bug fixes**
+
+************************
+pandas 0.3 Release Notes
+************************
+
 =============
 Release Notes
 =============
