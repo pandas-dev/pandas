@@ -130,3 +130,15 @@ def _ensure_index(index_like):
         index_like = Index(index_like)
 
     return index_like
+
+def _any_none(*args):
+    for arg in args:
+        if arg is None:
+            return True
+    return False
+
+def _all_not_none(*args):
+    for arg in args:
+        if arg is None:
+            return False
+    return True

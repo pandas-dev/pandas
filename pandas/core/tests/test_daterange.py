@@ -7,6 +7,12 @@ import numpy as np
 import pandas.core.datetools as datetools
 from pandas.core.index import Index
 from pandas.core.daterange import DateRange, generate_range
+import pandas.core.daterange as daterange
+
+try:
+    import pytz
+except ImportError:
+    pass
 
 def eqXDateRange(kwargs, expected):
     rng = generate_range(**kwargs)
@@ -14,7 +20,7 @@ def eqXDateRange(kwargs, expected):
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
-class TestGeneration(unittest.TestCase):
+class TestDateRangeGeneration(unittest.TestCase):
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=datetools.bday))
         rng2 = list(generate_range(START, END, timeRule='WEEKDAY'))
@@ -152,11 +158,7 @@ class TestDateRange(unittest.TestCase):
         self.assert_(not isinstance(the_union, DateRange))
 
     def test_with_tzinfo(self):
-        try:
-            import pytz
-        except ImportError:
-            raise nose.SkipTest
-
+        _skip_if_no_pytz()
         tz = pytz.timezone('US/Central')
 
         # just want it to work
@@ -183,27 +185,77 @@ class TestDateRange(unittest.TestCase):
                           '1/1/2009', tzinfo=tz)
 
     def test_with_tzinfo_ambiguous_times(self):
-        pass
+        _skip_if_no_pytz()
+        tz = pytz.timezone('US/Eastern')
+
+        # regular no problem
+        self.assert_(self.rng.tz_validate())
+
+        # March 13, 2011, spring forward, skip from 2 AM to 3 AM
+        dr = DateRange(datetime(2011, 3, 13, 1, 30), periods=3,
+                       offset=datetools.Hour(), tzinfo=tz)
+        self.assert_(not dr.tz_validate())
+
+        # after dst transition
+        dr = DateRange(datetime(2011, 3, 13, 3, 30), periods=3,
+                       offset=datetools.Hour(), tzinfo=tz)
+        self.assert_(dr.tz_validate())
+
+        # November 6, 2011, fall back, repeat 2 AM hour
+        dr = DateRange(datetime(2011, 11, 6, 1, 30), periods=3,
+                       offset=datetools.Hour(), tzinfo=tz)
+        self.assert_(not dr.tz_validate())
+
+        # UTC is OK
+        dr = DateRange(datetime(2011, 3, 13), periods=48,
+                       offset=datetools.Minute(30), tzinfo=pytz.utc)
+        self.assert_(dr.tz_validate())
 
     def test_summary(self):
         self.rng.summary()
         self.rng[2:2].summary()
         try:
-            import pytz
             DateRange('1/1/2005', '1/1/2009', tzinfo=pytz.utc).summary()
-        except ImportError:
+        except Exception:
             pass
 
-# DateRange test
+    def test_misc(self):
+        end = datetime(2009, 5, 13)
+        dr = DateRange(end=end, periods=20)
+        firstDate = end - 19 * datetools.bday
 
-def testDateRange1():
-    end = datetime(2009, 5, 13)
-    dr = DateRange(end=end, periods=20)
-    firstDate = end - 19 * datetools.bday
+        assert len(dr) == 20
+        assert dr[0] == firstDate
+        assert dr[-1] == end
 
-    assert len(dr) == 20
-    assert dr[0] == firstDate
-    assert dr[-1] == end
+    # test utility methods
+    def test_infer_tzinfo(self):
+        _skip_if_no_pytz()
+        eastern = pytz.timezone('US/Eastern')
+        utc = pytz.utc
+
+        _start = datetime(2001, 1, 1)
+        _end = datetime(2009, 1, 1)
+
+        start = eastern.localize(_start)
+        end = eastern.localize(_end)
+        assert(daterange._infer_tzinfo(start, end) is eastern)
+        assert(daterange._infer_tzinfo(start, None) is eastern)
+        assert(daterange._infer_tzinfo(None, end) is eastern)
+
+        start = utc.localize(_start)
+        end = utc.localize(_end)
+        assert(daterange._infer_tzinfo(start, end) is utc)
+
+        end = eastern.localize(_end)
+        self.assertRaises(Exception, daterange._infer_tzinfo, start, end)
+        self.assertRaises(Exception, daterange._infer_tzinfo, end, start)
+
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
 
 if __name__ == '__main__':
     import nose

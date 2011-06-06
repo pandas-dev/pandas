@@ -55,8 +55,6 @@ class DateRange(Index):
         # Cachable
         if not start:
             start = kwds.get('begin')
-        if not end:
-            end = kwds.get('end')
         if not periods:
             periods = kwds.get('nPeriods')
 
@@ -298,8 +296,26 @@ class DateRange(Index):
     def tz_validate(self):
         """
         For a localized time zone, verify that there are no DST ambiguities
+
+        Returns
+        -------
+        result : boolean
+            True if there are no DST ambiguities
         """
-        pass
+        import pytz
+
+        tz = self.tzinfo
+        if tz is None or tz is pytz.utc:
+            return True
+
+        # See if there are any DST resolution problems
+        for date in self:
+            try:
+                tz.utcoffset(date.replace(tzinfo=None))
+            except pytz.InvalidTimeError:
+                return False
+
+        return True
 
 def generate_range(start=None, end=None, periods=None,
                    offset=datetools.BDay(), timeRule=None):
@@ -366,6 +382,8 @@ def generate_range(start=None, end=None, periods=None,
         # faster than cur + offset
         cur = offset.apply(cur)
 
+# Do I want to cache UTC dates? Can't decide...
+
 # def _utc_in_cache_range(start, end):
 #     import pytz
 #     if start is None or end is None:
@@ -389,6 +407,13 @@ def generate_range(start=None, end=None, periods=None,
 
 # def _hastz(dt):
 #     return dt is not None and dt.tzinfo is not None
+
+# def _have_pytz():
+#     try:
+#         import pytz
+#         return True
+#     except ImportError:
+#         return False
 
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end
@@ -414,39 +439,17 @@ def _figure_out_timezone(start, end, tzinfo):
     return start, end, tz
 
 def _infer_tzinfo(start, end):
+    def _infer(a, b):
+        tz = a.tzinfo
+        if b and b.tzinfo:
+            assert(tz == b.tzinfo)
+        return tz
     tz = None
     if start is not None:
-        tz = start.tzinfo
-        if end and end.tzinfo:
-            assert(tz == end.tzinfo)
+        tz = _infer(start, end)
     elif end is not None:
-        tz = end.tzinfo
-        if start and start.tzinfo:
-            assert(tz == start.tzinfo)
+        tz = _infer(end, start)
     return tz
-
-def _any_none(*args):
-    for arg in args:
-        if arg is None:
-            return True
-    return False
-
-def test_any_none():
-    assert(_any_none(1, 2, 3, None))
-    assert(not _any_none(1, 2, 3, 4))
-
-def _all_not_none(*args):
-    for arg in args:
-        if arg is None:
-            return False
-    return True
-
-def _have_pytz():
-    try:
-        import pytz
-        return True
-    except ImportError:
-        return False
 
 if __name__ == '__main__':
     import pytz

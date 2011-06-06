@@ -38,6 +38,9 @@ Release notes
 
 **API Changes**
 
+* Backwards compatibility support for begin/end/nPeriods keyword arguments in
+  DateRange class has been removed
+
 **Bug fixes**
 
 ************************
