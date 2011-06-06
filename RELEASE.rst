@@ -32,9 +32,10 @@ Release notes
 * `DataFrame.quantile`, `Series.quantile`
 * `DataFrame.describe`
 * Fancy indexing
+* `pytz` / tzinfo support in `DateRange`
+  * `tz_localize`, `tz_normalize`, and `tz_validate` methods added
 
-**Improvements**
-
+**Improvements to existing features**
 
 **API Changes**
 

@@ -216,6 +216,9 @@ class CheckIndexing(object):
     def test_setitem_fancy_boolean(self):
         f = self.frame
 
+    def test_getitem_boolean_missing(self):
+        pass
+
 class TestDataFrame(unittest.TestCase, CheckIndexing):
     klass = DataFrame
 

@@ -293,11 +293,27 @@ class Series(np.ndarray, PandasGeneric):
         # TODO: [slice(0, 5, None)] will break if you convert to ndarray,
         # e.g. as requested by np.median
 
+        def _index_with(indexer):
+            return Series(values[indexer], index=self.index[indexer])
+
+        # special handling of boolean data with NAs stored in object
+        # arrays. Sort of an elaborate hack since we can't represent boolean
+        # NA. Hmm
+        if isinstance(key, np.ndarray) and key.dtype == np.object_:
+            mask = isnull(key)
+            if mask.any():
+                raise ValueError('cannot index with vector containing '
+                                 'NA / NaN values')
+
+            if set([True, False]).issubset(set(key)):
+                key = np.asarray(key, dtype=bool)
+                return _index_with(key)
+
         try:
-            return Series(values[key], index=self.index[key])
+            return _index_with(key)
         except Exception:
             key = np.asarray(key)
-            return Series(values[key], index=self.index[key])
+            return _index_with(key)
 
     def get(self, key, default=None):
         """
@@ -357,6 +373,20 @@ class Series(np.ndarray, PandasGeneric):
             if not key.index.equals(self.index):
                 raise Exception('can only boolean index with like-indexed '
                                 'Series or raw ndarrays')
+
+        # special handling of boolean data with NAs stored in object
+        # arrays. Sort of an elaborate hack since we can't represent boolean
+        # NA. Hmm
+        if isinstance(key, np.ndarray) and key.dtype == np.object_:
+            mask = isnull(key)
+            if mask.any():
+                raise ValueError('cannot index with vector containing '
+                                 'NA / NaN values')
+
+            if set([True, False]).issubset(set(key)):
+                key = np.asarray(key, dtype=bool)
+                values[key] = value
+                return
 
         values[key] = value
 

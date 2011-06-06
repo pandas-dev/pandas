@@ -7,7 +7,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import (Index, Series, TimeSeries, DataFrame, isnull)
+from pandas import Index, Series, TimeSeries, DataFrame, isnull
 import pandas.core.datetools as datetools
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as common
@@ -152,13 +152,35 @@ class TestSeries(unittest.TestCase):
 
     def test_getitem_boolean(self):
         s = self.series
-        vec = s > s.median()
+        mask = s > s.median()
 
         # passing list is OK
-        result = s[list(vec)]
-        expected = s[vec]
+        result = s[list(mask)]
+        expected = s[mask]
         assert_series_equal(result, expected)
-        self.assert_(np.array_equal(result.index, s.index[vec]))
+        self.assert_(np.array_equal(result.index, s.index[mask]))
+
+    def test_getitem_boolean_object(self):
+        # using column from DataMatrix
+        s = self.series
+        mask = s > s.median()
+        omask = mask.astype(object)
+
+        # getitem
+        result = s[omask]
+        expected = s[mask]
+        assert_series_equal(result, expected)
+
+        # setitem
+        cop = s.copy()
+        cop[omask] = 5
+        s[mask] = 5
+        assert_series_equal(cop, s)
+
+        # nans raise exception
+        omask[5:10] = np.nan
+        self.assertRaises(Exception, s.__getitem__, omask)
+        self.assertRaises(Exception, s.__setitem__, omask, 5)
 
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
