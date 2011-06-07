@@ -903,7 +903,7 @@ class Series(np.ndarray, PandasGeneric):
 
     applymap = apply
 
-    def reindex(self, index=None, method=None, fillMethod=None):
+    def reindex(self, index=None, method=None):
         """Conform Series to new Index
 
         Parameters
@@ -920,12 +920,6 @@ class Series(np.ndarray, PandasGeneric):
         -------
         reindexed : Series
         """
-        if fillMethod is not None: # pragma: no cover
-            warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
-                          FutureWarning)
-
-            method = fillMethod
-
         if self.index.equals(index):
             return self.copy()
 
@@ -966,13 +960,6 @@ class Series(np.ndarray, PandasGeneric):
         reindexed : Series
         """
         return self.reindex(other.index, method=method)
-
-    def fill(self, value=None, method='pad'): # pragma: no cover
-        warnings.warn("fill is being replaced by fillna, and the fill function "
-                      "behavior will disappear in the next release: please "
-                      "modify your code accordingly",
-                      FutureWarning)
-        return self.fillna(value=value, method=method)
 
     def fillna(self, value=None, method='pad'):
         """
@@ -1236,7 +1223,7 @@ class Series(np.ndarray, PandasGeneric):
         else:
             return v
 
-    def asfreq(self, freq, method=None, fillMethod=None):
+    def asfreq(self, freq, method=None):
         """
         Convert this TimeSeries to the provided frequency using DateOffset
         objects. Optionally provide fill method to pad/backfill/interpolate
@@ -1258,7 +1245,7 @@ class Series(np.ndarray, PandasGeneric):
         else:
             dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
 
-        return self.reindex(dateRange, method=method, fillMethod=fillMethod)
+        return self.reindex(dateRange, method=method)
 
     def interpolate(self, method='linear'):
         """

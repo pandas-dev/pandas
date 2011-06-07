@@ -44,9 +44,7 @@ class DataMatrix(DataFrame):
     underlying ndarray to have to be reallocated!).
     """
     objects = None
-    def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 objects=None):
-
+    def __init__(self, data=None, index=None, columns=None, dtype=None):
         if isinstance(data, dict) and len(data) > 0:
             (index, columns,
              values, objects) = self._init_dict(data, index, columns, objects,
@@ -83,22 +81,12 @@ class DataMatrix(DataFrame):
 
                 index = objects.index
 
-            if index is None:
-                N = 0
-                index = NULL_INDEX
-            else:
-                N = len(index)
-
-            if columns is None:
-                K = 0
-                columns = NULL_INDEX
-            else:
-                K = len(columns)
-
-            values = np.empty((N, K), dtype=dtype)
-            values[:] = NaN
+            values = _nan_array(index, columns)
         else:
             raise Exception('DataMatrix constructor not properly called!')
+
+        self._float_values = None
+        self._object_values = None
 
         self._values_dict = {}
         self._columns_dict = {}
@@ -1053,6 +1041,176 @@ class DataMatrix(DataFrame):
         return DataMatrix(data=new_values, index=new_index,
                           columns=self.columns, objects=shifted_objects)
 
+_data_types = [np.float_, np.int_]
+
+def _filter_out(data, columns):
+    if columns is not None:
+        colset = set(columns)
+        data = dict((k, v) for k, v in data.iteritems() if k in colset)
+
+    return data
+
+def _homogenize_series(data, index):
+    homogenized = {}
+
+    for k, v in data.iteritems():
+        if isinstance(v, Series):
+            if v.index is not index:
+                # Forces alignment. No need to copy data since we
+                # are putting it into an ndarray later
+                v = v.reindex(index)
+        else:
+            if isinstance(v, dict):
+                v = [v.get(i, NaN) for i in index]
+            else:
+                assert(len(v) == len(index))
+            v = Series(v, index=index)
+
+        if issubclass(v.dtype.type, (float, int)):
+            v = v.astype(np.float64)
+        else:
+            v = v.astype(object)
+
+        homogenized[k] = v
+
+    return homogenized
+
+def _group_dtypes(data, columns):
+    import itertools
+
+    chunk_cols = []
+    chunks = []
+    for dtype, gp_cols in itertools.groupby(columns, lambda x: data[x].dtype):
+        chunk = np.vstack([data[k] for k in gp_cols]).T
+
+        chunks.append(chunk)
+        chunk_cols.append(gp_cols)
+
+    return chunks, chunk_cols
+
+def _init_dict(self, data, index, columns, objects, dtype):
+    """
+    Segregate Series based on type and coerce into matrices.
+    Needs to handle a lot of exceptional cases.
+    Somehow this got outrageously complicated
+    """
+    # pre-filter out columns if we passed it
+    data = _filter_out(data, columns)
+    index = extract_index(data, index)
+
+    if columns is None:
+        columns = try_sort(data.keys())
+
+
+
+    objectDict = {}
+    if objects is not None and isinstance(objects, dict):
+        objectDict.update(objects)
+
+    valueDict = {}
+    for k, v in data.iteritems():
+        if isinstance(v, Series):
+            if v.index is not index:
+                # Forces alignment. No need to copy data since we
+                # are putting it into an ndarray later
+                v = v.reindex(index)
+        else:
+            if isinstance(v, dict):
+                v = [v.get(i, NaN) for i in index]
+            else:
+                assert(len(v) == len(index))
+
+            try:
+                v = Series(v, dtype=dtype, index=index)
+            except Exception:
+                v = Series(v, index=index)
+
+        if issubclass(v.dtype.type, (np.bool_, float, int)):
+            valueDict[k] = v
+        else:
+            objectDict[k] = v
+
+    if columns is None:
+        columns = Index(try_sort(valueDict))
+        objectColumns = Index(try_sort(objectDict))
+    else:
+        objectColumns = Index([c for c in columns if c in objectDict])
+        columns = Index([c for c in columns if c not in objectDict])
+
+    if len(valueDict) == 0:
+        dtype = np.object_
+        valueDict = objectDict
+        columns = objectColumns
+    else:
+        dtypes = set(v.dtype for v in valueDict.values())
+
+        if len(dtypes) > 1:
+            dtype = np.float_
+        else:
+            dtype = list(dtypes)[0]
+
+        if len(objectDict) > 0:
+            new_objects = DataMatrix(objectDict,
+                                     dtype=np.object_,
+                                     index=index,
+                                     columns=objectColumns)
+            if isinstance(objects, DataMatrix):
+                objects = objects.join(new_objects, how='left')
+            else:
+                objects = new_objects
+
+    values = np.empty((len(index), len(columns)), dtype=dtype)
+
+    for i, col in enumerate(columns):
+        if col in valueDict:
+            values[:, i] = valueDict[col].values
+        else:
+            values[:, i] = np.NaN
+
+    return index, columns, values, objects
+
+def _init_matrix(self, values, index, columns, dtype):
+    if not isinstance(values, np.ndarray):
+        arr = np.array(values)
+        if issubclass(arr.dtype.type, basestring):
+            arr = np.array(values, dtype=object, copy=True)
+
+        values = arr
+
+    if values.ndim == 1:
+        N = values.shape[0]
+        if N == 0:
+            values = values.reshape((values.shape[0], 0))
+        else:
+            values = values.reshape((values.shape[0], 1))
+
+    if dtype is not None:
+        try:
+            values = values.astype(dtype)
+        except Exception:
+            pass
+
+    N, K = values.shape
+
+    if index is None:
+        index = _default_index(N)
+
+    if columns is None:
+        columns = _default_index(K)
+
+    return index, columns, values
+
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
     return mat.take(indexer[mask], axis=1)
+
+
+def _nan_array(index, columns):
+    if index is None:
+        index = NULL_INDEX
+    if columns is None:
+        columns = NULL_INDEX
+
+    values = np.empty((len(index), len(columns)), dtype=dtype)
+    values.fill(NaN)
+    return values

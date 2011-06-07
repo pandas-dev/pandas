@@ -483,13 +483,6 @@ class WidePanel(Panel, PandasGeneric):
 
         return WidePanel(result_values, items, major, minor)
 
-    def fill(self, value=None, method='pad'): # pragma: no cover
-        warnings.warn("fill is being replaced by fillna, and the fill function "
-                      "behavior will disappear in the next release: please "
-                      "modify your code accordingly",
-                      FutureWarning)
-        return self.fillna(value=value, method=method)
-
     def fillna(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.

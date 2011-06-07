@@ -852,6 +852,8 @@ class DataFrame(PandasGeneric):
 
     def cols(self):
         """Return sorted list of frame's columns"""
+        warnings.warn("Replace usage of .cols() with .columns, will be removed "
+                      "in next release", FutureWarning)
         return list(self.columns)
 
     def iteritems(self):
@@ -885,7 +887,7 @@ class DataFrame(PandasGeneric):
         return DataFrame(data=new_data, index=new_index,
                          columns=new_columns)
 
-    def asfreq(self, freq, method=None, fillMethod=None):
+    def asfreq(self, freq, method=None):
         """
         Convert all TimeSeries inside to specified frequency using
         DateOffset objects. Optionally provide fill method to pad or
@@ -910,7 +912,7 @@ class DataFrame(PandasGeneric):
         else:
             dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
 
-        return self.reindex(dateRange, method=method, fillMethod=fillMethod)
+        return self.reindex(dateRange, method=method)
 
     def as_matrix(self, columns=None):
         """
@@ -1129,13 +1131,6 @@ class DataFrame(PandasGeneric):
 
         return self.reindex(self.index[theCount >= minObs])
 
-    def fill(self, value=None, method='pad'): # pragma: no cover
-        warnings.warn("fill is being replaced by fillna, and the fill function "
-                      "behavior will disappear in the next release: please "
-                      "modify your code accordingly",
-                      FutureWarning)
-        return self.fillna(value=value, method=method)
-
     def fillna(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.
@@ -1234,7 +1229,7 @@ class DataFrame(PandasGeneric):
         from pandas.core.panel import pivot
         return pivot(self[index], self[columns], self[values])
 
-    def reindex(self, index=None, columns=None, method=None, fillMethod=None):
+    def reindex(self, index=None, columns=None, method=None):
         """
         Reindex data inside, optionally filling according to some rule.
 
@@ -1253,13 +1248,6 @@ class DataFrame(PandasGeneric):
         -------
         y : same type as calling instance
         """
-        # TODO: remove this on next release
-        if fillMethod is not None: # pragma: no cover
-            warnings.warn("'fillMethod' is deprecated. Use 'method' instead",
-                          FutureWarning)
-
-            method = fillMethod
-
         frame = self
 
         if index is not None:
