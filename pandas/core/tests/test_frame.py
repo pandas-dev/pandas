@@ -1843,6 +1843,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
 
 if __name__ == '__main__':
+    # unittest.main()
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
                    exit=False)
+    # nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    #                exit=False)

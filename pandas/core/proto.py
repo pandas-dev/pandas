@@ -128,9 +128,11 @@ def make_block(values, columns):
 
 class BlockManager(object):
     """
-    Manage a bunch of labeled 2D mixed-type ndarrays
+    Manage a bunch of labeled 2D mixed-type ndarrays. Essentially it's a
+    lightweight blocked set of labeled data to be manipulated by the DataFrame
+    public API class
 
-    This is not a public API class
+    This is *not* a public API class
     """
     def __init__(self, blocks, index=None, columns=None):
         self.index = index
@@ -148,6 +150,11 @@ class BlockManager(object):
         length = self.block_length
         for block in self.blocks:
             assert(len(block) == length)
+
+    def get_slice(self, slice_obj):
+        new_blocks = _slice_blocks(self.blocks, slice_obj)
+        new_index = self.index[slice_obj]
+        return BlockManager(new_blocks, index=new_index, columns=self.columns)
 
     def get_series_dict(self, index):
         return _blocks_to_series_dict(self.blocks, index)
@@ -250,9 +257,30 @@ class BlockManager(object):
     def rename(self, mapper):
         pass
 
-    def reindex(self, indexer, mask):
+    def reindex_index(self, indexer, mask):
+        mat = self.values.take(indexer, axis=0)
+
+        notmask = -mask
+        if len(index) > 0:
+            if notmask.any():
+                if issubclass(mat.dtype.type, np.int_):
+                    mat = mat.astype(float)
+                elif issubclass(mat.dtype.type, np.bool_):
+                    mat = mat.astype(float)
+
+                common.null_out_axis(mat, notmask, 0)
+
+    def reindex_columns(self, new_columns):
         pass
 
+def _slice_blocks(blocks, slice_obj):
+    new_blocks = []
+    for block in blocks:
+        newb = Block(block.values[slice_obj], block.columns)
+        new_blocks.append(newb)
+    return new_blocks
+
+# TODO!
 def _needs_other_dtype(block, to_insert):
     if to_insert.dtype != block.dtype:
         pass

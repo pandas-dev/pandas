@@ -8,9 +8,10 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array, _try_sort)
-from pandas.core.frame import (DataFrame, extract_index,
+from pandas.core.frame import (DataFrame, extract_index, _homogenize_series,
                                _default_index, _ensure_index)
 from pandas.core.index import Index, NULL_INDEX
+from pandas.core.proto import BlockManager
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -45,16 +46,20 @@ class DataMatrix(DataFrame):
     """
     objects = None
     def __init__(self, data=None, index=None, columns=None):
+        if isinstance(data, BlockManager):
+            mgr = data
+            index = data.index
+            columns = data.columns
         if isinstance(data, dict) and len(data) > 0:
-            index, columns, block_manager = _init_dict(data, index, columns)
+            index, columns, mgr = _init_dict(data, index, columns)
         elif isinstance(data, (np.ndarray, list)):
-            index, columns, block_manager = _init_matrix(data, index, columns)
+            index, columns, mgr = _init_matrix(data, index, columns)
         elif data is None or len(data) == 0:
             raise Exception('TODO!')
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
-        self._data = block_manager
+        self._data = mgr
         self.index = index
         self.columns = columns
 
@@ -65,37 +70,6 @@ class DataMatrix(DataFrame):
         raise Exception('Values cannot be assigned to')
 
     values = property(fget=_get_values)
-
-    def _init_matrix(self, values, index, columns, dtype):
-        if not isinstance(values, np.ndarray):
-            arr = np.array(values)
-            if issubclass(arr.dtype.type, basestring):
-                arr = np.array(values, dtype=object, copy=True)
-
-            values = arr
-
-        if values.ndim == 1:
-            N = values.shape[0]
-            if N == 0:
-                values = values.reshape((values.shape[0], 0))
-            else:
-                values = values.reshape((values.shape[0], 1))
-
-        if dtype is not None:
-            try:
-                values = values.astype(dtype)
-            except Exception:
-                pass
-
-        N, K = values.shape
-
-        if index is None:
-            index = _default_index(N)
-
-        if columns is None:
-            columns = _default_index(K)
-
-        return index, columns, values
 
     @property
     def _constructor(self):
@@ -110,6 +84,7 @@ class DataMatrix(DataFrame):
 #-------------------------------------------------------------------------------
 # DataMatrix-specific implementation of private API
 
+    # TODO!
     def _join_on(self, other, on):
         if len(other.index) == 0:
             return self
@@ -141,33 +116,14 @@ class DataMatrix(DataFrame):
 
         return self.join(filledFrame, how='left')
 
-    def _reindex_index(self, index, method):
-        if index is self.index:
+    def _reindex_index(self, new_index, method):
+        if new_index is self.index:
             return self.copy()
-
         if len(self.index) == 0:
-            return DataMatrix(index=index, columns=self.columns)
-
-        indexer, mask = common.get_indexer(self.index, index, method)
-        mat = self.values.take(indexer, axis=0)
-
-        notmask = -mask
-        if len(index) > 0:
-            if notmask.any():
-                if issubclass(mat.dtype.type, np.int_):
-                    mat = mat.astype(float)
-                elif issubclass(mat.dtype.type, np.bool_):
-                    mat = mat.astype(float)
-
-                common.null_out_axis(mat, notmask, 0)
-
-        if self.objects is not None and len(self.objects.columns) > 0:
-            newObjects = self.objects.reindex(index)
-        else:
-            newObjects = None
-
-        return DataMatrix(mat, index=index, columns=self.columns,
-                          objects=newObjects)
+            return DataMatrix(index=new_index, columns=self.columns)
+        indexer, mask = self.index.get_indexer(new_index, method)
+        new_data = self._data.reindex(indexer, mask)
+        return DataMatrix(new_data, index=new_index, columns=self.columns)
 
     def _reindex_columns(self, columns):
         if len(columns) == 0:
@@ -337,16 +293,6 @@ class DataMatrix(DataFrame):
         else:
             self.objects = None
 
-    def __nonzero__(self):
-        N, K = self.values.shape
-        if N == 0 or K == 0:
-            if self.objects is None:
-                return False
-            else:
-                return self.objects.__nonzero__()
-        else:
-            return True
-
     def __getitem__(self, item):
         """
         Retrieve column, slice, or subset from DataMatrix.
@@ -371,18 +317,8 @@ class DataMatrix(DataFrame):
         This is a magic method. Do NOT call explicity.
         """
         if isinstance(item, slice):
-            new_index = self.index[item]
-            new_values = self.values[item].copy()
-
-            if self.objects is not None:
-                new_objects = self.objects.reindex(new_index)
-            else:
-                new_objects = None
-
-            return DataMatrix(new_values, index=new_index,
-                              columns=self.columns,
-                              objects=new_objects)
-
+            new_data = self._data.get_slice(item)
+            return DataMatrix(new_data)
         elif isinstance(item, np.ndarray):
             if len(item) != len(self.index):
                 raise Exception('Item wrong length %d instead of %d!' %
@@ -514,45 +450,17 @@ class DataMatrix(DataFrame):
         self._float_values = new_values
 
     def __iter__(self):
-        """Iterate over columns of the frame."""
+        """
+        Iterate over columns of the frame.
+        """
         return iter(self.columns)
-
-    def __contains__(self, key):
-        """True if DataMatrix has this column"""
-        hasCol = key in self.columns
-        if hasCol:
-            return True
-        else:
-            if self.objects is not None and key in self.objects:
-                return True
-            return False
 
     def iteritems(self):
         return self._series.iteritems()
 
-#-------------------------------------------------------------------------------
-# Helper methods
-
-    # For DataFrame compatibility
-    def _getSeries(self, item=None, loc=None):
-        if loc is None:
-            try:
-                loc = self.columns.indexMap[item]
-            except KeyError:
-                raise Exception('%s not here!' % item)
-        return Series(self.values[:, loc], index=self.index)
-
     # to support old APIs
     def _series(self):
         return self._data.get_series_dict(self.index)
-
-    def _output_columns(self):
-        # for toString
-        cols = list(self.columns)
-        if self.objects is None:
-            return cols
-        else:
-            return cols + list(self.objects.columns)
 
 #-------------------------------------------------------------------------------
 # Public methods
@@ -955,53 +863,18 @@ def _init_dict(data, index, columns):
     # figure out the index, if necessary
     if index is None:
         index = extract_index(data)
-    homogenized = _homogenize_series(data, index)
-    # segregates dtypes and forms blocks
-    blocks = _segregate_dtypes(data)
 
-    if columns is None:
-        columns = Index(_try_sort(valueDict))
-        objectColumns = Index(_try_sort(objectDict))
-    else:
-        objectColumns = Index([c for c in columns if c in objectDict])
-        columns = Index([c for c in columns if c not in objectDict])
+    # TODO: deal with emptiness!
+    # TODO: dtype casting?
 
-    values = np.empty((len(index), len(columns)), dtype=dtype)
-
-    for i, col in enumerate(columns):
-        if col in valueDict:
-            values[:, i] = valueDict[col].values
-        else:
-            values[:, i] = np.NaN
-
+    # don't force copy because getting jammed in an ndarray anyway
+    homogenized = _homogenize_series(data, index, force_copy=False)
+    # segregates dtypes and forms blocks matching to columns
+    blocks = _form_blocks(data, columns)
+    mgr = BlockManager(blocks, index, columns)
     return index, columns, values, objects
 
-def _homogenize_series(data, index):
-    homogenized = {}
-
-    for k, v in data.iteritems():
-        if isinstance(v, Series):
-            if v.index is not index:
-                # Forces alignment. No need to copy data since we
-                # are putting it into an ndarray later
-                v = v.reindex(index)
-        else:
-            if isinstance(v, dict):
-                v = [v.get(i, NaN) for i in index]
-            else:
-                assert(len(v) == len(index))
-            v = Series(v, index=index)
-
-        if issubclass(v.dtype.type, (float, int)):
-            v = v.astype(np.float64)
-        else:
-            v = v.astype(object)
-
-        homogenized[k] = v
-
-    return homogenized
-
-def _segregate_dtypes(data):
+def _form_blocks(data, columns):
     float_dict = {}
     object_dict = {}
     for k, v in data.iteritems():
@@ -1014,7 +887,7 @@ def _segregate_dtypes(data):
     object_block = _blockify(object_dict, np.object_)
     return [float_block, object_block]
 
-def _blockify(dct, dtype):
+def _blockify(dct, dtype, columns=None):
     pass
 
 def _init_matrix(self, values, index, columns, dtype):

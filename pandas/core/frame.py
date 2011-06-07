@@ -12,7 +12,8 @@ import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array, isnull, notnull,
                                 _check_step, _is_list_like, _need_slice,
-                                _is_label_slice, _ensure_index)
+                                _is_label_slice, _ensure_index, _try_sort,
+                                _pfixed)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
@@ -123,10 +124,9 @@ class DataFrame(PandasGeneric):
 
     def __init__(self, data=None, index=None, columns=None, dtype=None):
         if isinstance(data, dict):
-            sdict, columns, index = self._init_dict(data, index, columns, dtype)
+            sdict, columns, index = _init_dict(data, index, columns, dtype)
         elif isinstance(data, (np.ndarray, list)):
-            sdict, columns, index = self._init_matrix(data, index, columns,
-                                                      dtype)
+            sdict, columns, index = _init_matrix(data, index, columns, dtype)
         elif isinstance(data, DataFrame):
             sdict = data._series.copy()
 
@@ -149,67 +149,6 @@ class DataFrame(PandasGeneric):
         self._series = sdict
         self.columns = columns
         self.index = index
-
-    def _init_dict(self, data, index, columns, dtype):
-        # pre-filter out columns if we passed it
-        if columns is not None:
-            columns = _ensure_index(columns)
-            data = dict((k, v) for k, v in data.iteritems() if k in columns)
-        else:
-            columns = Index(_try_sort(data.keys()))
-
-        index = extract_index(data, index)
-
-        sdict = {}
-        for k, v in data.iteritems():
-            if isinstance(v, Series):
-                # Forces alignment and copies data
-                sdict[k] = v.reindex(index)
-            else:
-                if isinstance(v, dict):
-                    v = [v.get(i, NaN) for i in index]
-
-                try:
-                    v = Series(v, dtype=dtype, index=index)
-                except Exception:
-                    v = Series(v, index=index)
-
-                sdict[k] = v.copy()
-
-        # add in any other columns we want to have (completeness)
-        for c in columns:
-            if c not in sdict:
-                sdict[c] = Series(np.NaN, index=index)
-
-        return sdict, columns, index
-
-    def _init_matrix(self, data, index, columns, dtype):
-        if not isinstance(data, np.ndarray):
-            arr = np.array(data)
-            if issubclass(arr.dtype.type, basestring):
-                arr = np.array(data, dtype=object, copy=True)
-
-            data = arr
-
-        if data.ndim == 1:
-            data = data.reshape((len(data), 1))
-        elif data.ndim != 2:
-            raise Exception('Must pass 2-d input!')
-
-        N, K = data.shape
-
-        if index is None:
-            index = _default_index(N)
-
-        if columns is None:
-            columns = _default_index(K)
-
-        if len(columns) != K:
-            raise Exception('Column length mismatch: %d vs. %d' %
-                            (len(columns), K))
-
-        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
-        return self._init_dict(data, index, columns, dtype)
 
     @property
     def _constructor(self):
@@ -753,7 +692,7 @@ class DataFrame(PandasGeneric):
         """Output a tab-separated version of this DataFrame"""
         series = self._series
         if columns is None:
-            columns = self._output_columns()
+            columns = self.columns
         else:
             columns = [c for c in columns if c in self]
 
@@ -792,9 +731,6 @@ class DataFrame(PandasGeneric):
                                   colSpace[k], nanRep=nanRep,
                                   float_format=float_format)
                 print >> buf, ot
-
-    def _output_columns(self):
-        return list(self.columns)
 
     def head(self):
         return self[:5]
@@ -2489,33 +2425,93 @@ def _check_data_types(data):
         raise Exception('Cannot mix Series / dict objects'
                         ' with ndarray / sequence input')
 
+def _init_matrix(data, index, columns, dtype):
+    if not isinstance(data, np.ndarray):
+        arr = np.array(data)
+        if issubclass(arr.dtype.type, basestring):
+            arr = np.array(data, dtype=object, copy=True)
+
+        data = arr
+
+    if data.ndim == 1:
+        data = data.reshape((len(data), 1))
+    elif data.ndim != 2:
+        raise Exception('Must pass 2-d input!')
+
+    N, K = data.shape
+
+    if index is None:
+        index = _default_index(N)
+
+    if columns is None:
+        columns = _default_index(K)
+
+    if len(columns) != K:
+        raise Exception('Column length mismatch: %d vs. %d' %
+                        (len(columns), K))
+
+    data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
+    return _init_dict(data, index, columns, dtype)
+
+def _init_dict(data, index, columns, dtype):
+    # pre-filter out columns if we passed it
+    if columns is not None:
+        columns = _ensure_index(columns)
+        data = dict((k, v) for k, v in data.iteritems() if k in columns)
+    else:
+        columns = Index(_try_sort(data.keys()))
+
+    if index is None:
+        index = extract_index(data)
+
+    sdict = _homogenize_series(data, index, dtype, force_copy=True)
+    # add in any other columns we want to have (completeness)
+    for c in columns:
+        if c not in sdict:
+            sdict[c] = Series(np.NaN, index=index)
+
+    return sdict, columns, index
+
+def _homogenize_series(data, index, dtype=None, force_copy=True):
+    homogenized = {}
+
+    for k, v in data.iteritems():
+        if isinstance(v, Series):
+            if v.index is not index:
+                # Forces alignment. No need to copy data since we
+                # are putting it into an ndarray later
+                v = v.reindex(index)
+            elif force_copy:
+                # same index, but want to copy
+                v = v.copy()
+        else:
+            if isinstance(v, dict):
+                v = [v.get(i, NaN) for i in index]
+            else:
+                assert(len(v) == len(index))
+            try:
+                v = Series(v, dtype=dtype, index=index)
+            except Exception:
+                v = Series(v, index=index)
+
+            if force_copy:
+                v = v.copy()
+
+        # OK, I will relent for now.
+        if not issubclass(v.dtype.type, (float, int)):
+        #     v = v.astype(np.float64)
+        # else:
+            v = v.astype(object)
+
+        homogenized[k] = v
+
+    return homogenized
+
 def _default_index(n):
     if n == 0:
         return NULL_INDEX
     else:
         return np.arange(n)
-
-def _pfixed(s, space, nanRep=None, float_format=None):
-    if isinstance(s, float):
-        if nanRep is not None and isnull(s):
-            if np.isnan(s):
-                s = nanRep
-            return (' %s' % s).ljust(space)
-
-        if float_format:
-            formatted = float_format(s)
-        else:
-            is_neg = s < 0
-            formatted = '%.4g' % np.abs(s)
-
-            if is_neg:
-                formatted = '-' + formatted
-            else:
-                formatted = ' ' + formatted
-
-        return formatted.ljust(space)
-    else:
-        return (' %s' % s)[:space].ljust(space)
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
