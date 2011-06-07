@@ -9,10 +9,10 @@ import numpy as np
 import operator
 
 from pandas.core.common import (_pickle_array, _unpickle_array, _mut_exclusive,
-                                _ensure_index)
+                                _ensure_index, _try_sort)
 from pandas.core.index import Index
 from pandas.core.series import Series, TimeSeries
-from pandas.core.frame import DataFrame, extract_index, try_sort
+from pandas.core.frame import DataFrame, extract_index
 from pandas.core.matrix import DataMatrix
 from pandas.core.panel import Panel, WidePanel, LongPanelIndex, LongPanel
 import pandas.core.common as common

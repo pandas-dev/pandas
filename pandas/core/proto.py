@@ -7,7 +7,6 @@ from pandas.core.index import Index
 from pandas.core.common import _ensure_index
 from pandas.core.series import Series
 import pandas.core.common as common
-import pandas.lib.tseries as tseries
 
 class Block(object):
     """
@@ -19,11 +18,20 @@ class Block(object):
         self.values = values
         self.columns = _ensure_index(columns)
 
+    def __repr__(self):
+        x, y = self.shape
+        return 'Block: %s, %d x %d, dtype %s' % (self.columns, x, y,
+                                                 self.dtype)
+
     def __contains__(self, col):
         return col in self.columns
 
     def __len__(self):
         return len(self.values)
+
+    @property
+    def shape(self):
+        return self.values.shape
 
     @property
     def dtype(self):
@@ -57,11 +65,10 @@ class Block(object):
         """
         assert(col not in self.columns)
         if loc is None:
-            loc = len(columns)
+            loc = len(self.columns)
 
         new_columns = _insert_into_columns(self.columns, col, loc)
         new_values = _insert_into_values(self.values, value, loc)
-
         return Block(new_values, new_columns)
 
     def set(self, col, value):
@@ -72,18 +79,35 @@ class Block(object):
         -------
         None
         """
-        pass
+        loc = self.columns.get_loc(col)
+        self.values[:, loc] = value
 
-    def delete(self, loc):
+    def delete(self, col):
         """
         Returns
         -------
         y : Block (new object)
         """
-        pass
+        loc = self.columns.get_loc(col)
+        new_columns = _delete_from_columns(self.columns, loc)
+        new_values = _delete_from_values(self.values, loc)
+        return Block(new_values, new_columns)
 
 def _insert_into_columns(columns, col, loc):
-    pass
+    columns = np.asarray(columns)
+    new_columns = np.insert(columns, loc, col)
+    return Index(new_columns)
+
+def _insert_into_values(values, new_vec, loc):
+    return np.insert(values, loc, new_vec, 1)
+
+def _delete_from_columns(columns, loc):
+    columns = np.asarray(columns)
+    new_columns = np.delete(columns, loc)
+    return Index(new_columns)
+
+def _delete_from_values(values, loc):
+    return np.delete(values, loc, 1)
 
 def _convert_if_1d(values):
     if values.ndim == 1:
@@ -103,13 +127,21 @@ def make_block(values, columns):
 class BlockManager(object):
     """
     Manage a bunch of 2D mixed-type ndarrays
+
+    This is not a public API class
     """
-    def __init__(self, columns, blocks):
+    def __init__(self, blocks, columns):
         self.columns = columns
         self.blocks = blocks
 
+    def __repr__(self):
+        output = 'BlockManager'
+        for block in self.blocks:
+            output += '\n%s' % repr(block)
+        return output
+
     def _verify_integrity(self):
-        _ = _union_block_columns(self.columns)
+        _union_block_columns(self.columns)
         length = self.block_length
         for block in self.blocks:
             assert(len(block) == length)
@@ -126,6 +158,7 @@ class BlockManager(object):
     def from_blocks(cls, blocks):
         # also checks for overlap
         columns = _union_block_columns(blocks)
+        return BlockManager(blocks, columns)
 
     def __contains__(self, column):
         return column in self.columns
@@ -146,6 +179,13 @@ class BlockManager(object):
         return np.concatenate([b[i] for b in blocks])
 
     def consolidate(self):
+        """
+
+        Returns
+        -------
+
+        """
+
         new_blocks = _consolidate(self.blocks)
         return BlockManager(new_blocks, self.columns)
 
@@ -159,13 +199,29 @@ class BlockManager(object):
         self.blocks[i] = new_block
 
     def set(self, col, value):
+        """
+        Set new column in-place. Does not consolidate. Adds new Block if not
+        contained in the current set of columns
+        """
         assert(len(value) == self.block_length)
         if col in self.columns:
             i, block = self._find_block(col)
-            _needs_other_dtype
+            if _needs_other_dtype(block, value):
+                # delete from block, create and append new block
+                self.blocks[i] = block.delete(col)
+                self._add_new_block(col, value)
         else:
             # new block
-            pass
+            self._add_new_block(col, value)
+
+            # TODO: where to insert?
+            self.columns = _insert_into_columns(self.columns, col,
+                                                len(self.columns))
+
+    def _add_new_block(self, col, value):
+        # Do we care about dtype at the moment?
+        new_block = Block(value, [col])
+        self._push_new_block(new_block)
 
     def _find_block(self, col):
         self._check_have(col)
@@ -175,6 +231,9 @@ class BlockManager(object):
 
         raise Exception('technically unreachable code')
 
+    def _push_new_block(self, block):
+        self.blocks.append(block)
+
     def _check_have(self, col):
         if col not in self.columns:
             raise KeyError('no column named %s' % col)
@@ -182,8 +241,15 @@ class BlockManager(object):
     def _chunk_index(self, col):
         pass
 
+    def rename(self, mapper):
+        pass
+
+    def reindex(self, indexer, mask):
+        pass
+
 def _needs_other_dtype(block, to_insert):
-    pass
+    if to_insert.dtype != block.dtype:
+        pass
 
 def _blocks_to_series_dict(blocks, index=None):
     series_dict = {}

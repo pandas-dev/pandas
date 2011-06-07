@@ -241,6 +241,9 @@ class Index(np.ndarray):
         taken = self.view(np.ndarray).take(*args, **kwargs)
         return Index(taken)
 
+    def get_loc(self, key):
+        return self.indexMap[key]
+
     def get_indexer(self, target, method=None):
         """
 

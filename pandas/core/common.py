@@ -142,3 +142,10 @@ def _all_not_none(*args):
         if arg is None:
             return False
     return True
+
+def _try_sort(iterable):
+    listed = list(iterable)
+    try:
+        return sorted(listed)
+    except Exception:
+        return listed

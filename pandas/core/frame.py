@@ -156,7 +156,7 @@ class DataFrame(PandasGeneric):
             columns = _ensure_index(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in columns)
         else:
-            columns = Index(try_sort(data.keys()))
+            columns = Index(_try_sort(data.keys()))
 
         index = extract_index(data, index)
 
@@ -1669,7 +1669,7 @@ class DataFrame(PandasGeneric):
             this = self.reindex(new_index)
             other = other.reindex(new_index)
 
-        new_columns = try_sort(set(this.cols() + other.cols()))
+        new_columns = _try_sort(set(this.cols() + other.cols()))
         do_fill = fill_value is not None
 
         result = {}
@@ -1796,7 +1796,7 @@ class DataFrame(PandasGeneric):
         overlap = set(self.cols()) & set(other.cols())
 
         if overlap:
-            raise Exception('Columns overlap: %s' % try_sort(overlap))
+            raise Exception('Columns overlap: %s' % _try_sort(overlap))
 
         if len(other.index) == 0:
             result = self.copy()
@@ -1880,7 +1880,7 @@ class DataFrame(PandasGeneric):
         else:
             x = range(len(self))
 
-        for i, col in enumerate(try_sort(self.columns)):
+        for i, col in enumerate(_try_sort(self.columns)):
             if subplots:
                 ax = axes[i]
                 ax.plot(x, self[col].values, 'k', label=col, **kwds)
@@ -1905,7 +1905,7 @@ class DataFrame(PandasGeneric):
             k += 1
         _, axes = plt.subplots(nrows=k, ncols=k)
 
-        for i, col in enumerate(try_sort(self.columns)):
+        for i, col in enumerate(_try_sort(self.columns)):
             ax = axes[i / k][i % k]
             ax.hist(self[col].values)
             ax.set_title(col)
@@ -2448,51 +2448,46 @@ class _DataFrameIndexer(object):
     def __setitem__(self, key, value):
         raise NotImplementedError
 
-def try_sort(iterable):
-    listed = list(iterable)
-    try:
-        return sorted(listed)
-    except Exception:
-        return listed
-
-def extract_index(data, index):
-    if len(data) == 0:
+def extract_index(data):
+    def _union_if(index, new_index):
         if index is None:
-            index = NULL_INDEX
-    elif len(data) > 0 and index is None:
-        # aggregate union of indices
-        need_labels = False
+            index = new_index
+        else:
+            index = index.union(new_index)
+        return index
 
-        msg = ('Cannot mix Series / dict objects'
-               ' with ndarray / sequence input')
-        # this is pretty kludgy, better way?
+    index = None
+    if len(data) == 0:
+        index = NULL_INDEX
+    elif len(data) > 0 and index is None:
+        _check_data_types(data)
+
+        # this is still kludgier than I'd like
         for v in data.values():
             if isinstance(v, Series):
-                if index is None:
-                    index = v.index
-                elif need_labels:
-                    raise Exception(msg)
-                elif not index.equals(v.index):
-                    index = index + v.index
-
+                index = _union_if(index, v.index)
             elif isinstance(v, dict):
-                if index is None:
-                    index = Index(try_sort(v))
-                elif need_labels:
-                    raise Exception(msg)
-                else:
-                    index = index + Index(v.keys())
-
+                index = _union_if(index, Index(_try_sort(v)))
             else: # not dict-like, assign integer labels
-                if index is not None and not need_labels:
-                    raise Exception(msg)
-                need_labels = True
                 index = Index(np.arange(len(v)))
 
-    if len(index) == 0 or index is None:
+    if len(index) == 0:
         index = NULL_INDEX
 
     return _ensure_index(index)
+
+def _check_data_types(data):
+    have_series = False
+    have_raw_arrays = False
+    for v in data.values():
+        if isinstance(v, (dict, Series)):
+            have_series = True
+        else:
+            have_raw_arrays = True
+
+    if have_series and have_raw_arrays:
+        raise Exception('Cannot mix Series / dict objects'
+                        ' with ndarray / sequence input')
 
 def _default_index(n):
     if n == 0:

@@ -7,8 +7,8 @@ import sys
 from numpy import NaN
 import numpy as np
 
-from pandas.core.common import (_pickle_array, _unpickle_array)
-from pandas.core.frame import (DataFrame, try_sort, extract_index,
+from pandas.core.common import (_pickle_array, _unpickle_array, _try_sort)
+from pandas.core.frame import (DataFrame, extract_index,
                                _default_index, _ensure_index)
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series
@@ -97,93 +97,12 @@ class DataMatrix(DataFrame):
         self.objects = objects
 
     def _get_values(self):
-        return self._float_values
+        return self._data.as_matrix()
 
     def _set_values(self, values):
         raise Exception('Values cannot be assigned to')
 
     values = property(fget=_get_values)
-
-    def _init_dict(self, data, index, columns, objects, dtype):
-        """
-        Segregate Series based on type and coerce into matrices.
-
-        Needs to handle a lot of exceptional cases.
-
-        Somehow this got outrageously complicated
-        """
-        # pre-filter out columns if we passed it
-        if columns is not None:
-            colset = set(columns)
-            data = dict((k, v) for k, v in data.iteritems() if k in colset)
-
-        index = extract_index(data, index)
-
-        objectDict = {}
-        if objects is not None and isinstance(objects, dict):
-            objectDict.update(objects)
-
-        valueDict = {}
-        for k, v in data.iteritems():
-            if isinstance(v, Series):
-                if v.index is not index:
-                    # Forces alignment. No need to copy data since we
-                    # are putting it into an ndarray later
-                    v = v.reindex(index)
-            else:
-                if isinstance(v, dict):
-                    v = [v.get(i, NaN) for i in index]
-                else:
-                    assert(len(v) == len(index))
-
-                try:
-                    v = Series(v, dtype=dtype, index=index)
-                except Exception:
-                    v = Series(v, index=index)
-
-            if issubclass(v.dtype.type, (np.bool_, float, int)):
-                valueDict[k] = v
-            else:
-                objectDict[k] = v
-
-        if columns is None:
-            columns = Index(try_sort(valueDict))
-            objectColumns = Index(try_sort(objectDict))
-        else:
-            objectColumns = Index([c for c in columns if c in objectDict])
-            columns = Index([c for c in columns if c not in objectDict])
-
-        if len(valueDict) == 0:
-            dtype = np.object_
-            valueDict = objectDict
-            columns = objectColumns
-        else:
-            dtypes = set(v.dtype for v in valueDict.values())
-
-            if len(dtypes) > 1:
-                dtype = np.float_
-            else:
-                dtype = list(dtypes)[0]
-
-            if len(objectDict) > 0:
-                new_objects = DataMatrix(objectDict,
-                                         dtype=np.object_,
-                                         index=index,
-                                         columns=objectColumns)
-                if isinstance(objects, DataMatrix):
-                    objects = objects.join(new_objects, how='left')
-                else:
-                    objects = new_objects
-
-        values = np.empty((len(index), len(columns)), dtype=dtype)
-
-        for i, col in enumerate(columns):
-            if col in valueDict:
-                values[:, i] = valueDict[col].values
-            else:
-                values[:, i] = np.NaN
-
-        return index, columns, values, objects
 
     def _init_matrix(self, values, index, columns, dtype):
         if not isinstance(values, np.ndarray):
@@ -1050,6 +969,60 @@ def _filter_out(data, columns):
 
     return data
 
+
+def _group_dtypes(data, columns):
+    import itertools
+
+    chunk_cols = []
+    chunks = []
+    for dtype, gp_cols in itertools.groupby(columns, lambda x: data[x].dtype):
+        chunk = np.vstack([data[k] for k in gp_cols]).T
+
+        chunks.append(chunk)
+        chunk_cols.append(gp_cols)
+
+    return chunks, chunk_cols
+
+def _init_dict(data, index, columns):
+    """
+    Segregate Series based on type and coerce into matrices.
+
+    Needs to handle a lot of exceptional cases.
+
+    Somehow this got outrageously complicated
+    """
+    # pre-filter out columns if we passed it
+    if columns is None:
+        columns = _try_sort(data.keys())
+    columns = _ensure_index(columns)
+
+    # prefilter
+    data = dict((k, v) for k, v in data.iteritems() if k in columns)
+
+    # figure out the index, if necessary
+    if index is None:
+        index = extract_index(data)
+    homogenized = _homogenize_series(data, index)
+    # segregates dtypes and forms blocks
+    blocks = _segregate_dtypes(data)
+
+    if columns is None:
+        columns = Index(_try_sort(valueDict))
+        objectColumns = Index(_try_sort(objectDict))
+    else:
+        objectColumns = Index([c for c in columns if c in objectDict])
+        columns = Index([c for c in columns if c not in objectDict])
+
+    values = np.empty((len(index), len(columns)), dtype=dtype)
+
+    for i, col in enumerate(columns):
+        if col in valueDict:
+            values[:, i] = valueDict[col].values
+        else:
+            values[:, i] = np.NaN
+
+    return index, columns, values, objects
+
 def _homogenize_series(data, index):
     homogenized = {}
 
@@ -1075,99 +1048,21 @@ def _homogenize_series(data, index):
 
     return homogenized
 
-def _group_dtypes(data, columns):
-    import itertools
-
-    chunk_cols = []
-    chunks = []
-    for dtype, gp_cols in itertools.groupby(columns, lambda x: data[x].dtype):
-        chunk = np.vstack([data[k] for k in gp_cols]).T
-
-        chunks.append(chunk)
-        chunk_cols.append(gp_cols)
-
-    return chunks, chunk_cols
-
-def _init_dict(self, data, index, columns, objects, dtype):
-    """
-    Segregate Series based on type and coerce into matrices.
-    Needs to handle a lot of exceptional cases.
-    Somehow this got outrageously complicated
-    """
-    # pre-filter out columns if we passed it
-    data = _filter_out(data, columns)
-    index = extract_index(data, index)
-
-    if columns is None:
-        columns = try_sort(data.keys())
-
-
-
-    objectDict = {}
-    if objects is not None and isinstance(objects, dict):
-        objectDict.update(objects)
-
-    valueDict = {}
+def _segregate_dtypes(data):
+    float_dict = {}
+    object_dict = {}
     for k, v in data.iteritems():
-        if isinstance(v, Series):
-            if v.index is not index:
-                # Forces alignment. No need to copy data since we
-                # are putting it into an ndarray later
-                v = v.reindex(index)
+        if issubclass(v.dtype.type, (np.floating, np.integer)):
+            float_dict[k] = v
         else:
-            if isinstance(v, dict):
-                v = [v.get(i, NaN) for i in index]
-            else:
-                assert(len(v) == len(index))
+            object_dict[k] = v
 
-            try:
-                v = Series(v, dtype=dtype, index=index)
-            except Exception:
-                v = Series(v, index=index)
+    float_block = _blockify(float_dict, np.float64)
+    object_block = _blockify(object_dict, np.object_)
+    return [float_block, object_block]
 
-        if issubclass(v.dtype.type, (np.bool_, float, int)):
-            valueDict[k] = v
-        else:
-            objectDict[k] = v
-
-    if columns is None:
-        columns = Index(try_sort(valueDict))
-        objectColumns = Index(try_sort(objectDict))
-    else:
-        objectColumns = Index([c for c in columns if c in objectDict])
-        columns = Index([c for c in columns if c not in objectDict])
-
-    if len(valueDict) == 0:
-        dtype = np.object_
-        valueDict = objectDict
-        columns = objectColumns
-    else:
-        dtypes = set(v.dtype for v in valueDict.values())
-
-        if len(dtypes) > 1:
-            dtype = np.float_
-        else:
-            dtype = list(dtypes)[0]
-
-        if len(objectDict) > 0:
-            new_objects = DataMatrix(objectDict,
-                                     dtype=np.object_,
-                                     index=index,
-                                     columns=objectColumns)
-            if isinstance(objects, DataMatrix):
-                objects = objects.join(new_objects, how='left')
-            else:
-                objects = new_objects
-
-    values = np.empty((len(index), len(columns)), dtype=dtype)
-
-    for i, col in enumerate(columns):
-        if col in valueDict:
-            values[:, i] = valueDict[col].values
-        else:
-            values[:, i] = np.NaN
-
-    return index, columns, values, objects
+def _blockify(dct, dtype):
+    pass
 
 def _init_matrix(self, values, index, columns, dtype):
     if not isinstance(values, np.ndarray):
@@ -1204,7 +1099,6 @@ def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
     return mat.take(indexer[mask], axis=1)
 
-
 def _nan_array(index, columns):
     if index is None:
         index = NULL_INDEX
@@ -1214,3 +1108,6 @@ def _nan_array(index, columns):
     values = np.empty((len(index), len(columns)), dtype=dtype)
     values.fill(NaN)
     return values
+
+if __name__ == '__main__':
+    pass
