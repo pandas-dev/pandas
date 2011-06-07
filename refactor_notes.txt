@@ -4,6 +4,9 @@
   - Get C-contiguousness right this time!
 - Series homogenization
   - when does casting fail?
+- Deal with emptiness: empty index and / or columns
+
+- Need sparse internal data structure
 
 Insertion at location...ugh
 - Currently not supported?

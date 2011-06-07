@@ -2425,14 +2425,16 @@ def _check_data_types(data):
         raise Exception('Cannot mix Series / dict objects'
                         ' with ndarray / sequence input')
 
+def _prep_ndarray(values):
+    if not isinstance(values, np.ndarray):
+        values = np.asarray(values)
+        # NumPy strings are a pain, convert to object
+        if issubclass(values.dtype.type, basestring):
+            values = np.array(values, dtype=object, copy=True)
+    return values
+
 def _init_matrix(data, index, columns, dtype):
-    if not isinstance(data, np.ndarray):
-        arr = np.array(data)
-        if issubclass(arr.dtype.type, basestring):
-            arr = np.array(data, dtype=object, copy=True)
-
-        data = arr
-
+    data = _prep_ndarray(data)
     if data.ndim == 1:
         data = data.reshape((len(data), 1))
     elif data.ndim != 2:

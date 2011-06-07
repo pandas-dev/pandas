@@ -9,9 +9,9 @@ import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array, _try_sort)
 from pandas.core.frame import (DataFrame, extract_index, _homogenize_series,
-                               _default_index, _ensure_index)
+                               _default_index, _ensure_index, _prep_ndarray)
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.internals import BlockManager
+from pandas.core.internals import BlockManager, Block
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -46,22 +46,42 @@ class DataMatrix(DataFrame):
     """
     objects = None
     def __init__(self, data=None, index=None, columns=None):
+        if data is None:
+            data = {}
+
         if isinstance(data, BlockManager):
             mgr = data
             index = data.index
             columns = data.columns
-        if isinstance(data, dict) and len(data) > 0:
+        elif isinstance(data, dict):
             index, columns, mgr = _init_dict(data, index, columns)
         elif isinstance(data, (np.ndarray, list)):
             index, columns, mgr = _init_matrix(data, index, columns)
-        elif data is None or len(data) == 0:
-            raise Exception('TODO!')
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
         self._data = mgr
-        self.index = index
-        self.columns = columns
+
+    def _set_columns(self, cols):
+        if len(cols) != self.values.shape[1]:
+            raise Exception('Columns length %d did not match values %d!' %
+                            (len(cols), self.values.shape[1]))
+
+        self._data.columns = _ensure_index(cols)
+
+    def _set_index(self, index):
+        if len(index) > 0:
+            if len(index) != self.values.shape[0]:
+                raise Exception('Index length %d did not match values %d!' %
+                                (len(index), self.values.shape[0]))
+
+        self._data.index = _ensure_index(index)
+
+    def _get_index(self):
+        return self._data.index
+
+    def _get_columns(self):
+        return self._data.columns
 
     def _get_values(self):
         return self._data.as_matrix()
@@ -232,28 +252,6 @@ class DataMatrix(DataFrame):
         # TODO: deal with objects
         return DataMatrix(func(self.values, other), index=self.index,
                           columns=self.columns)
-
-
-#-------------------------------------------------------------------------------
-# Properties for index and columns
-
-    def _set_columns(self, cols):
-        if len(cols) != self.values.shape[1]:
-            raise Exception('Columns length %d did not match values %d!' %
-                            (len(cols), self.values.shape[1]))
-
-        self._columns = _ensure_index(cols)
-
-    def _set_index(self, index):
-        if len(index) > 0:
-            if len(index) != self.values.shape[0]:
-                raise Exception('Index length %d did not match values %d!' %
-                                (len(index), self.values.shape[0]))
-
-        self._index = _ensure_index(index)
-
-        if self.objects is not None:
-            self.objects._index = self._index
 
 #-------------------------------------------------------------------------------
 # "Magic methods"
@@ -612,13 +610,7 @@ class DataMatrix(DataFrame):
         """
         Make a copy of this DataMatrix
         """
-        if self.objects:
-            objects = self.objects.copy()
-        else:
-            objects = None
-
-        return DataMatrix(self.values.copy(), index=self.index,
-                          columns=self.columns, objects=objects)
+        return DataMatrix(self._data.copy())
 
     def cumsum(self, axis=0):
         """
@@ -852,14 +844,6 @@ def _init_dict(data, index, columns):
 
     Somehow this got outrageously complicated
     """
-    # pre-filter out columns if we passed it
-    if columns is None:
-        columns = _try_sort(data.keys())
-    columns = _ensure_index(columns)
-
-    # prefilter
-    data = dict((k, v) for k, v in data.iteritems() if k in columns)
-
     # figure out the index, if necessary
     if index is None:
         index = extract_index(data)
@@ -870,11 +854,24 @@ def _init_dict(data, index, columns):
     # don't force copy because getting jammed in an ndarray anyway
     homogenized = _homogenize_series(data, index, force_copy=False)
     # segregates dtypes and forms blocks matching to columns
-    blocks = _form_blocks(data, columns)
+    blocks, columns = _form_blocks(homogenized, columns)
     mgr = BlockManager(blocks, index, columns)
     return index, columns, mgr
 
 def _form_blocks(data, columns):
+    # pre-filter out columns if we passed it
+    if columns is None:
+        columns = _try_sort(data.keys())
+        extra_columns = NULL_INDEX
+    else:
+        columns = _ensure_index(columns)
+        extra_columns = columns - Index(data.keys())
+
+    # prefilter
+    data = dict((k, v) for k, v in data.iteritems() if k in columns)
+
+    # put "leftover" columns in float bucket, where else?
+    # generalize?
     float_dict = {}
     object_dict = {}
     for k, v in data.iteritems():
@@ -883,22 +880,45 @@ def _form_blocks(data, columns):
         else:
             object_dict[k] = v
 
-    float_block = _blockify(float_dict, np.float64)
-    object_block = _blockify(object_dict, np.object_)
-    return [float_block, object_block]
+    blocks = []
+
+    # oof
+    if len(float_dict) > 0 or len(extra_columns) > 0:
+        if len(extra_columns):
+            bcolumns = extra_columns.union(float_dict.keys())
+            float_block = _blockify(float_dict, np.float64,
+                                    columns=bcolumns)
+        else:
+            float_block = _blockify(float_dict, np.float64)
+        blocks.append(float_block)
+
+    if len(object_dict) > 0:
+        object_block = _blockify(object_dict, np.object_)
+        blocks.append(object_block)
+
+    return blocks, columns
 
 def _blockify(dct, dtype, columns=None):
     dict_columns = Index(_try_sort(dct))
+    stacked_series = np.vstack([dct[k] for k in dict_columns]).T
     if columns is None:
-        pass
+        columns = dict_columns
+        values = stacked_series
+        # CHECK DTYPE
+    else:
+        n = len(dct.values()[0])
+        k = len(columns)
+        values = np.empty((n, k), dtype=dtype)
 
-def _init_matrix(self, values, index, columns, dtype):
-    if not isinstance(values, np.ndarray):
-        arr = np.array(values)
-        if issubclass(arr.dtype.type, basestring):
-            arr = np.array(values, dtype=object, copy=True)
+        indexer, mask = columns.get_indexer(dict_columns)
+        assert(mask.all())
+        values[:, indexer] = stacked_series
 
-        values = arr
+    # do something with dtype?
+    return Block(values, columns)
+
+def _init_matrix(values, index, columns):
+    values = _prep_ndarray(values)
 
     if values.ndim == 1:
         N = values.shape[0]
@@ -907,11 +927,12 @@ def _init_matrix(self, values, index, columns, dtype):
         else:
             values = values.reshape((values.shape[0], 1))
 
-    if dtype is not None:
-        try:
-            values = values.astype(dtype)
-        except Exception:
-            pass
+    # address this can of worms later
+    # if dtype is not None:
+    #     try:
+    #         values = values.astype(dtype)
+    #     except Exception:
+    #         pass
 
     N, K = values.shape
 

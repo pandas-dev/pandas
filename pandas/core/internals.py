@@ -37,6 +37,9 @@ class Block(object):
     def dtype(self):
         return self.values.dtype
 
+    def copy(self):
+        return Block(self.values.copy(), self.columns)
+
     def merge(self, other):
         return _merge_blocks([self, other])
 
@@ -134,10 +137,14 @@ class BlockManager(object):
 
     This is *not* a public API class
     """
-    def __init__(self, blocks, index=None, columns=None):
+    def __init__(self, blocks, index=None, columns=None,
+                 skip_integrity_check=False):
         self.index = index
         self.columns = columns
         self.blocks = blocks
+
+        if not skip_integrity_check:
+            self._verify_integrity()
 
     def __repr__(self):
         output = 'BlockManager'
@@ -146,8 +153,8 @@ class BlockManager(object):
         return output
 
     def _verify_integrity(self):
-        _union_block_columns(self.columns)
-        length = self.block_length
+        _union_block_columns(self.blocks)
+        length = len(self)
         for block in self.blocks:
             assert(len(block) == length)
 
@@ -158,10 +165,6 @@ class BlockManager(object):
 
     def get_series_dict(self, index):
         return _blocks_to_series_dict(self.blocks, index)
-
-    @property
-    def block_length(self):
-        return len(self.blocks[0])
 
     def __len__(self):
         # number of blocks
@@ -180,10 +183,19 @@ class BlockManager(object):
     def nblocks(self):
         return len(self.blocks)
 
+    def copy(self):
+        copy_blocks = [block.copy() for block in self.blocks]
+        return BlockManager(copy_blocks, self.index, self.columns)
+
     def as_matrix(self, columns=None):
         if columns is None:
-            if self.nblocks == 0:
-                return self.blocks.values[0]
+            if len(self.blocks) == 0:
+                return np.empty((len(self.index), 0), dtype=float)
+            elif len(self.blocks) == 1:
+                blk = self.blocks[0]
+                if blk.columns.equals(self.columns):
+                    # if not, then just call interleave per below
+                    return blk.values
             return _interleave(self.blocks, self.columns)
         else:
             return _interleave(self.blocks, columns)
@@ -327,7 +339,7 @@ def _interleave(blocks, columns):
         if mask.all():
             result[:, indexer] = block.values
         else:
-            result[:, indexer[mask]] = block.values[mask]
+            result[:, indexer[mask]] = block.values[:, mask]
 
     return result
 
