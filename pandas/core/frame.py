@@ -433,16 +433,16 @@ class DataFrame(PandasGeneric):
             return self._series[item]
         except (TypeError, KeyError):
             if isinstance(item, slice):
-                dateRange = self.index[item]
-                return self.reindex(dateRange)
+                new_index = self.index[item]
+                return self.reindex(new_index)
 
             elif isinstance(item, np.ndarray):
 
                 if len(item) != len(self.index):
                     raise Exception('Item wrong length %d instead of %d!' %
                                     (len(item), len(self.index)))
-                newIndex = self.index[item]
-                return self.reindex(newIndex)
+                new_index = self.index[item]
+                return self.reindex(new_index)
             else:
                 raise
 

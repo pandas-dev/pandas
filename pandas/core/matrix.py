@@ -304,7 +304,7 @@ class DataMatrix(DataFrame):
             return DataMatrix(index=self.index, columns=columns,
                               objects=objects)
 
-        indexer, mask = common.get_indexer(self.columns, columns, None)
+        indexer, mask = self.columns.get_indexer(columns)
         mat = self.values.take(indexer, axis=1)
 
         notmask = -mask
