@@ -44,57 +44,19 @@ class DataMatrix(DataFrame):
     underlying ndarray to have to be reallocated!).
     """
     objects = None
-    def __init__(self, data=None, index=None, columns=None, dtype=None):
+    def __init__(self, data=None, index=None, columns=None):
         if isinstance(data, dict) and len(data) > 0:
-            (index, columns,
-             values, objects) = self._init_dict(data, index, columns, objects,
-                                                dtype)
+            index, columns, block_manager = _init_dict(data, index, columns)
         elif isinstance(data, (np.ndarray, list)):
-            (index, columns, values) = self._init_matrix(data, index,
-                                                         columns, dtype)
-
-            if objects is not None:
-                if isinstance(objects, DataMatrix):
-                    if not objects.index.equals(index):
-                        objects = objects.reindex(index)
-                else:
-                    objects = DataMatrix(objects, index=index)
-        elif isinstance(data, DataFrame):
-            if not isinstance(data, DataMatrix):
-                data = data.toDataMatrix()
-            values = data.values
-
-            if dtype is not None:
-                values = values.astype(dtype)
-
-            index = data.index
-            columns = data.columns
-            objects = data.objects
+            index, columns, block_manager = _init_matrix(data, index, columns)
         elif data is None or len(data) == 0:
-            # this is a touch convoluted...
-            if objects is not None:
-                if isinstance(objects, DataMatrix):
-                    if index is not None and objects.index is not index:
-                        objects = objects.reindex(index)
-                else:
-                    objects = DataMatrix(objects, index=index)
-
-                index = objects.index
-
-            values = _nan_array(index, columns)
+            raise Exception('TODO!')
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
-        self._float_values = None
-        self._object_values = None
-
-        self._values_dict = {}
-        self._columns_dict = {}
-
-        self._float_values = values
+        self._data = block_manager
         self.index = index
         self.columns = columns
-        self.objects = objects
 
     def _get_values(self):
         return self._data.as_matrix()
@@ -428,10 +390,8 @@ class DataMatrix(DataFrame):
             new_index = self.index[item]
             return self.reindex(new_index)
         else:
-            if self.objects is not None and item in self.objects:
-                return self.objects[item]
-            else:
-                return self._getSeries(item)
+            values = self._data.get(item)
+            return Series(values, index=self.index)
 
     # __setitem__ logic
 
@@ -582,16 +542,9 @@ class DataMatrix(DataFrame):
                 raise Exception('%s not here!' % item)
         return Series(self.values[:, loc], index=self.index)
 
-    def _getSeriesDict(self):
-        series = {}
-        for i, col in enumerate(self.columns):
-            series[col] = self._getSeries(loc=i)
-        if self.objects is not None:
-            for i, col in enumerate(self.objects.columns):
-                series[col] = self.objects._getSeries(loc=i)
-
-        return series
-    _series = property(_getSeriesDict)
+    # to support old APIs
+    def _series(self):
+        return self._data.get_series_dict(self.index)
 
     def _output_columns(self):
         # for toString
@@ -1098,16 +1051,6 @@ def _init_matrix(self, values, index, columns, dtype):
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
     return mat.take(indexer[mask], axis=1)
-
-def _nan_array(index, columns):
-    if index is None:
-        index = NULL_INDEX
-    if columns is None:
-        columns = NULL_INDEX
-
-    values = np.empty((len(index), len(columns)), dtype=dtype)
-    values.fill(NaN)
-    return values
 
 if __name__ == '__main__':
     pass

@@ -3,7 +3,7 @@ import itertools
 from numpy import nan
 import numpy as np
 
-from pandas.core.index import Index
+from pandas.core.index import Index, NULL_INDEX
 from pandas.core.common import _ensure_index
 from pandas.core.series import Series
 import pandas.core.common as common
@@ -124,13 +124,16 @@ class ObjectBlock(Block):
 def make_block(values, columns):
     pass
 
+# TODO: flexible with index=None and/or columns=None
+
 class BlockManager(object):
     """
-    Manage a bunch of 2D mixed-type ndarrays
+    Manage a bunch of labeled 2D mixed-type ndarrays
 
     This is not a public API class
     """
-    def __init__(self, blocks, columns):
+    def __init__(self, blocks, index=None, columns=None):
+        self.index = index
         self.columns = columns
         self.blocks = blocks
 
@@ -146,16 +149,19 @@ class BlockManager(object):
         for block in self.blocks:
             assert(len(block) == length)
 
+    def get_series_dict(self, index):
+        return _blocks_to_series_dict(self.blocks, index)
+
     @property
     def block_length(self):
         return len(self.blocks[0])
 
     def __len__(self):
         # number of blocks
-        return len(self.blocks)
+        return len(self.index)
 
     @classmethod
-    def from_blocks(cls, blocks):
+    def from_blocks(cls, blocks, index):
         # also checks for overlap
         columns = _union_block_columns(blocks)
         return BlockManager(blocks, columns)
@@ -345,6 +351,22 @@ def _union_block_columns(blocks):
             raise Exception('column names overlap')
 
     return seen
+
+def _nan_manager_matching(index, columns):
+    # what if one of these is empty?
+    values = _nan_array(index, columns)
+    block = Block(values, columns)
+    return BlockManager([block], columns)
+
+def _nan_array(index, columns):
+    if index is None:
+        index = NULL_INDEX
+    if columns is None:
+        columns = NULL_INDEX
+
+    values = np.empty((len(index), len(columns)), dtype=dtype)
+    values.fill(NaN)
+    return values
 
 import unittest
 class TestBlockOperations(unittest.TestCase):
