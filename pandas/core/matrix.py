@@ -11,7 +11,7 @@ from pandas.core.common import (_pickle_array, _unpickle_array, _try_sort)
 from pandas.core.frame import (DataFrame, extract_index, _homogenize_series,
                                _default_index, _ensure_index)
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.proto import BlockManager
+from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -872,7 +872,7 @@ def _init_dict(data, index, columns):
     # segregates dtypes and forms blocks matching to columns
     blocks = _form_blocks(data, columns)
     mgr = BlockManager(blocks, index, columns)
-    return index, columns, values, objects
+    return index, columns, mgr
 
 def _form_blocks(data, columns):
     float_dict = {}
@@ -888,7 +888,9 @@ def _form_blocks(data, columns):
     return [float_block, object_block]
 
 def _blockify(dct, dtype, columns=None):
-    pass
+    dict_columns = Index(_try_sort(dct))
+    if columns is None:
+        pass
 
 def _init_matrix(self, values, index, columns, dtype):
     if not isinstance(values, np.ndarray):
