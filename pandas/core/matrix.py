@@ -90,6 +90,13 @@ class DataMatrix(DataFrame):
 
     values = property(fget=_get_values)
 
+    def _consolidate_inplace(self):
+        self._data = self._data.consolidate()
+
+    def consolidate(self):
+        #TODO
+        raise NotImplementedError
+
     @property
     def _constructor(self):
         return DataMatrix
@@ -144,11 +151,11 @@ class DataMatrix(DataFrame):
         return DataMatrix(new_data)
 
     def _reindex_columns(self, new_columns):
-        if len(columns) == 0:
+        if len(new_columns) == 0:
             return DataMatrix(index=self.index)
 
         new_data = self._data.reindex_columns(new_columns)
-        return DataMatrix(new_data, index=new_index, columns=self.columns)
+        return DataMatrix(new_data)
 
         # indexer, mask = self.columns.get_indexer(columns)
         # mat = self.values.take(indexer, axis=1)
@@ -385,19 +392,18 @@ class DataMatrix(DataFrame):
 
         Examples
         --------
-
-            >>> df.apply(numpy.sqrt) --> DataMatrix
-            >>> df.apply(numpy.sum) --> Series
+        >>> df.apply(numpy.sqrt) --> DataMatrix
+        >>> df.apply(numpy.sum) --> Series
 
         N.B.: Do NOT use functions that might toy with the index.
         """
-        if not len(self.cols()):
+        if not len(self.columns):
             return self
 
         if isinstance(func, np.ufunc):
             results = func(self.values)
             return DataMatrix(data=results, index=self.index,
-                              columns=self.columns, objects=self.objects)
+                              columns=self.columns)
         else:
             return DataFrame.apply(self, func, axis=axis,
                                    broadcast=broadcast)
@@ -459,34 +465,7 @@ class DataMatrix(DataFrame):
         -------
         ndarray
         """
-        if columns is None:
-            values = self.values.copy()
-
-            if self.objects:
-                values = np.column_stack((values, self.objects.values))
-                order = Index(np.concatenate((self.columns,
-                                                self.objects.columns)))
-            else:
-                order = self.columns
-
-            columns = Index(self.cols())
-        else:
-            columns = _ensure_index(columns)
-            values = self.values
-            order = self.columns
-
-            if self.objects:
-                idxMap = self.objects.columns.indexMap
-                indexer = [idxMap[col] for col in columns if col in idxMap]
-
-                obj_values = self.objects.values.take(indexer, axis=1)
-
-                values = np.column_stack((values, obj_values))
-
-                order = Index(np.concatenate((order, self.objects.columns)))
-
-        # now put in the right order
-        return _reorder_columns(values, order, columns)
+        return self._data.as_matrix(columns=columns)
 
     def copy(self):
         """
@@ -614,19 +593,11 @@ class DataMatrix(DataFrame):
         if key not in self.index:
             raise Exception('No cross-section for %s' % key)
 
-        loc = self.index.indexMap[key]
-        xs = self.values[loc, :]
+        self._consolidate_inplace()
 
-        if copy:
-            xs = xs.copy()
-        result = Series(xs, index=self.columns)
-
-        if self.objects is not None and len(self.objects.columns) > 0:
-            if not copy:
-                raise Exception('cannot get view of mixed-type cross-section')
-            result = result.append(self.objects.xs(key))
-
-        return result
+        loc = self.index.get_loc(key)
+        xs = self._data.xs(loc, copy=copy)
+        return Series(xs, index=self.columns)
 
     @property
     def T(self):

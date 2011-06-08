@@ -6,7 +6,11 @@ import numpy as np
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.common import _ensure_index
 from pandas.core.series import Series
+from pandas.util.decorators import cache_readonly
 import pandas.core.common as common
+
+def make_block(values, columns):
+    pass
 
 class Block(object):
     """
@@ -53,25 +57,25 @@ class Block(object):
         if needs_masking:
             if issubclass(new_values.dtype.type, np.int_):
                 new_values = new_values.astype(float)
-            elif issubclass(new_values_.dtype.type, np.bool_):
+            elif issubclass(new_values.dtype.type, np.bool_):
                 new_values = new_values.astype(object)
             common.null_out_axis(new_values, notmask, 0)
         return Block(new_values, self.columns)
 
     def reindex_columns(self, new_columns):
-        indexer, mask = self.columns.get_indexer(columns)
+        indexer, mask = self.columns.get_indexer(new_columns)
         new_values = self.values.take(indexer, axis=1)
 
         notmask = -mask
         if len(mask) > 0 and notmask.any():
-            if issubclass(mat.dtype.type, np.int_):
-                mat = mat.astype(float)
-            elif issubclass(mat.dtype.type, np.bool_):
-                mat = mat.astype(object)
+            if issubclass(new_values.dtype.type, np.int_):
+                new_values = new_values.astype(float)
+            elif issubclass(new_values.dtype.type, np.bool_):
+                new_values = new_values.astype(object)
 
-            common.null_out_axis(mat, notmask, 1)
+            common.null_out_axis(new_values, notmask, 1)
 
-        return Block(new_values, columns)
+        return Block(new_values, new_columns)
 
     def insert(self, col, value, loc=None):
         """
@@ -150,9 +154,6 @@ class BoolBlock(Block):
     pass
 
 class ObjectBlock(Block):
-    pass
-
-def make_block(values, columns):
     pass
 
 # TODO: flexible with index=None and/or columns=None
@@ -236,7 +237,15 @@ class BlockManager(object):
             return _interleave(self.blocks, columns)
 
     def xs(self, i, copy=True):
-        return np.concatenate([b[i] for b in blocks])
+        if len(self.blocks) > 1:
+            if not copy:
+                raise Exception('cannot get view of mixed-type DataFrame')
+            xs = np.concatenate([b.values[i] for b in self.blocks])
+        else:
+            xs = self.blocks[0].values[i]
+            if copy:
+                xs = xs.copy()
+        return xs
 
     def consolidate(self):
         """
@@ -274,6 +283,8 @@ class BlockManager(object):
                 # delete from block, create and append new block
                 self._delete_from_block(i, col)
                 self._add_new_block(col, value)
+            else:
+                block.set(col, value)
         else:
             # new block
             self._add_new_block(col, value)
@@ -331,13 +342,14 @@ class BlockManager(object):
         new_blocks = []
         for block in self.blocks:
 
-            newb = block.reindex_index(indexer, mask, needs_masking)
+            newb = block.reindex_index(indexer, notmask, needs_masking)
             new_blocks.append(newb)
 
         return BlockManager(new_blocks, new_index, self.columns)
 
     def reindex_columns(self, new_columns):
-        assert(isinstance(new_columns, Index))
+        # assert(isinstance(new_columns, Index))
+        new_columns = _ensure_index(new_columns)
         data = self
         if not data.is_consolidated():
             data = data.consolidate()
@@ -345,6 +357,24 @@ class BlockManager(object):
 
         # will put these in the float bucket
         extra_columns = new_columns - self.columns
+
+        new_blocks = []
+        for block in self.blocks:
+            new_cols = block.columns.intersection(new_columns)
+            if len(extra_columns) > 0 and block.dtype == np.float64:
+                new_cols = new_cols.union(extra_columns)
+
+            if len(new_cols) == 0:
+                continue
+
+            newb = block.reindex_columns(new_cols)
+            new_blocks.append(newb)
+
+        dtypes = [x.dtype for x in self.blocks]
+        if len(extra_columns) > 0 and np.float64 not in dtypes:
+            raise Exception('deal with this later')
+
+        return BlockManager(new_blocks, self.index, new_columns)
 
 def _slice_blocks(blocks, slice_obj):
     new_blocks = []
@@ -356,9 +386,9 @@ def _slice_blocks(blocks, slice_obj):
 # TODO!
 def _needs_other_dtype(block, to_insert):
     if block.dtype == np.float64:
-        return not issubclass(mat.dtype.type, (np.integer, np.floating))
+        return not issubclass(to_insert.dtype.type, (np.integer, np.floating))
     elif block.dtype == np.object_:
-        return issubclass(mat.dtype.type, (np.integer, np.floating))
+        return issubclass(to_insert.dtype.type, (np.integer, np.floating))
     else:
         raise Exception('have not handled this case yet')
 
@@ -463,14 +493,14 @@ def _nan_manager_matching(index, columns):
     block = Block(values, columns)
     return BlockManager([block], columns)
 
-def _nan_array(index, columns):
+def _nan_array(index, columns, dtype=np.float64):
     if index is None:
         index = NULL_INDEX
     if columns is None:
         columns = NULL_INDEX
 
     values = np.empty((len(index), len(columns)), dtype=dtype)
-    values.fill(NaN)
+    values.fill(nan)
     return values
 
 import unittest
@@ -486,14 +516,16 @@ class TestBlockOperations(unittest.TestCase):
         pass
 
 if __name__ == '__main__':
-    floats = np.repeat(np.atleast_2d(np.arange(3.)), 10, axis=0)
-    objects = np.empty((10, 2), dtype=object)
+    n = 10
+    floats = np.repeat(np.atleast_2d(np.arange(3.)), n, axis=0)
+    objects = np.empty((n, 2), dtype=object)
     objects[:, 0] = 'foo'
     objects[:, 1] = 'bar'
 
     float_cols = Index(['a', 'c', 'e'])
     object_cols = Index(['b', 'd'])
     columns = Index(sorted(float_cols + object_cols))
+    index = np.arange(n)
     new_columns = Index(['a', 'c', 'e', 'b', 'd'])
 
     fblock = Block(floats, float_cols)
@@ -503,4 +535,4 @@ if __name__ == '__main__':
 
     interleaved = _interleave(blocks, columns)
 
-    manager = BlockManager(blocks, columns)
+    mgr = BlockManager(blocks, index, columns)
