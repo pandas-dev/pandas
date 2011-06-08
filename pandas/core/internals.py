@@ -18,6 +18,7 @@ class Block(object):
         values = _convert_if_1d(values)
         self.values = values
         self.columns = _ensure_index(columns)
+        assert(len(self.columns) == values.shape[1])
 
     def __repr__(self):
         x, y = self.shape
@@ -256,27 +257,22 @@ class BlockManager(object):
         return block.get(col)
 
     def delete(self, col):
+        i, block = self._find_block(col)
         loc = self.columns.get_loc(col)
         self.columns = Index(np.delete(np.asarray(self.columns), loc))
-
-        i, block = self._find_block(col)
-        if len(block.columns) == 1:
-            self.blocks.pop(i)
-        else:
-            new_block = block.delete(col)
-            self.blocks[i] = new_block
+        self._delete_from_block(i, col)
 
     def set(self, col, value):
         """
         Set new column in-place. Does not consolidate. Adds new Block if not
         contained in the current set of columns
         """
-        assert(len(value) == self.block_length)
+        assert(len(value) == len(self))
         if col in self.columns:
             i, block = self._find_block(col)
             if _needs_other_dtype(block, value):
                 # delete from block, create and append new block
-                self.blocks[i] = block.delete(col)
+                self._delete_from_block(i, col)
                 self._add_new_block(col, value)
         else:
             # new block
@@ -285,6 +281,18 @@ class BlockManager(object):
             # TODO: where to insert?
             self.columns = _insert_into_columns(self.columns, col,
                                                 len(self.columns))
+
+    def _delete_from_block(self, i, col):
+        """
+        Delete and maybe remove the whole block
+        """
+        block = self.blocks[i]
+        assert(col in block.columns)
+        if len(block.columns) == 1:
+            self.blocks.pop(i)
+        else:
+            new_block = block.delete(col)
+            self.blocks[i] = new_block
 
     def _add_new_block(self, col, value):
         # Do we care about dtype at the moment?
@@ -347,8 +355,12 @@ def _slice_blocks(blocks, slice_obj):
 
 # TODO!
 def _needs_other_dtype(block, to_insert):
-    if to_insert.dtype != block.dtype:
-        pass
+    if block.dtype == np.float64:
+        return not issubclass(mat.dtype.type, (np.integer, np.floating))
+    elif block.dtype == np.object_:
+        return issubclass(mat.dtype.type, (np.integer, np.floating))
+    else:
+        raise Exception('have not handled this case yet')
 
 def _blocks_to_series_dict(blocks, index=None):
     series_dict = {}

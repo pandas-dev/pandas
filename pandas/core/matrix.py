@@ -44,7 +44,6 @@ class DataMatrix(DataFrame):
     unless you are doing a lot of column insertion / deletion (which causes the
     underlying ndarray to have to be reallocated!).
     """
-    objects = None
     def __init__(self, data=None, index=None, columns=None):
         if data is None:
             data = {}
@@ -355,26 +354,6 @@ class DataMatrix(DataFrame):
 
         self._data.set(key, value)
 
-    _dataTypes = [np.float_, np.int_]
-    def _insert_float_dtype(self, key, value):
-        isObject = value.dtype not in self._dataTypes
-
-        # sanity check
-        if len(value) != len(self.index): # pragma: no cover
-            raise Exception('Column is wrong length')
-
-        self._data.set(key, value)
-
-        # if key in self.columns:
-        #     loc = self.columns.indexMap[key]
-        #     try:
-        #         # attempt coercion
-        #         self.values[:, loc] = value
-        #     except ValueError:
-        #         self._delete_column(loc)
-        #         self._delete_column_index(loc)
-        #         _put_object(value)
-
     def __delitem__(self, key):
         """
         Delete column from DataMatrix
@@ -508,13 +487,6 @@ class DataMatrix(DataFrame):
 
         # now put in the right order
         return _reorder_columns(values, order, columns)
-
-    def cols(self):
-        """Return sorted list of frame's columns"""
-        if self.objects is not None and len(self.objects.columns) > 0:
-            return list(self.columns.union(self.objects.columns))
-        else:
-            return list(self.columns)
 
     def copy(self):
         """
@@ -661,17 +633,8 @@ class DataMatrix(DataFrame):
         """
         Returns a DataMatrix with the rows/columns switched.
         """
-        if self.objects is not None:
-            objectsT = self.objects.values.T
-            valuesT = self.values.T
-            new_values = np.concatenate((valuesT, objectsT), axis=0)
-            new_index = Index(np.concatenate((self.columns,
-                                              self.objects.columns)))
-
-            return DataMatrix(new_values, index=new_index, columns=self.index)
-        else:
-            return DataMatrix(data=self.values.T, index=self.columns,
-                              columns=self.index)
+        return DataMatrix(data=self.values.T, index=self.columns,
+                          columns=self.index)
 
     def shift(self, periods, offset=None, timeRule=None):
         """
@@ -852,7 +815,11 @@ def _init_matrix(values, index, columns):
     if columns is None:
         columns = _default_index(K)
 
-    return index, columns, values
+    columns = _ensure_index(columns)
+    block = Block(values, columns)
+    mgr = BlockManager([block], index, columns)
+
+    return index, columns, mgr
 
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)

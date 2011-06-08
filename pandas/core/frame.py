@@ -2497,11 +2497,11 @@ def _homogenize_series(data, index, dtype=None, force_copy=True):
             if force_copy:
                 v = v.copy()
 
-        # OK, I will relent for now.
-        if not issubclass(v.dtype.type, (float, int)):
-        #     v = v.astype(np.float64)
-        # else:
-            v = v.astype(object)
+        # # OK, I will relent for now.
+        # if not issubclass(v.dtype.type, (float, int)):
+        # #     v = v.astype(np.float64)
+        # # else:
+        #     v = v.astype(object)
 
         homogenized[k] = v
 
