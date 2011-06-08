@@ -11,8 +11,9 @@ import pandas.core.common as common
 class Block(object):
     """
     Canonical unit of homogeneous dtype contained in DataMatrix
-    """
 
+    Index-ignorant; let the container take care of that
+    """
     def __init__(self, values, columns):
         values = _convert_if_1d(values)
         self.values = values
@@ -43,7 +44,10 @@ class Block(object):
     def merge(self, other):
         return _merge_blocks([self, other])
 
-    def reindex(self, new_columns):
+    def reindex_index(self, indexer, notmask, need_masking):
+        pass
+
+    def reindex_columns(self, new_columns):
         indexer, mask = self.columns.get_indexer(columns)
         new_values = self.values.take(indexer, axis=1)
 
@@ -118,7 +122,16 @@ def _convert_if_1d(values):
 
     return values
 
+#-------------------------------------------------------------------------------
+# Is this even possible?
+
 class FloatBlock(Block):
+    pass
+
+class IntBlock(Block):
+    pass
+
+class BoolBlock(Block):
     pass
 
 class ObjectBlock(Block):
@@ -157,6 +170,13 @@ class BlockManager(object):
         length = len(self)
         for block in self.blocks:
             assert(len(block) == length)
+
+    def is_consolidated(self):
+        """
+        Return True if more than one block with the same dtype
+        """
+        dtypes = [blk.dtype for blk in self.blocks]
+        return len(dtypes) == len(set(dtypes))
 
     def get_slice(self, slice_obj):
         new_blocks = _slice_blocks(self.blocks, slice_obj)
@@ -205,11 +225,14 @@ class BlockManager(object):
 
     def consolidate(self):
         """
+        Join together blocks having same dtype
 
         Returns
         -------
-
+        y : BlockManager
         """
+        if self.is_consolidated():
+            return self
 
         new_blocks = _consolidate(self.blocks)
         return BlockManager(new_blocks, self.columns)
@@ -269,10 +292,26 @@ class BlockManager(object):
     def rename(self, mapper):
         pass
 
-    def reindex_index(self, indexer, mask):
-        mat = self.values.take(indexer, axis=0)
+    def reindex_index(self, new_index, method):
+        indexer, mask = self.index.get_indexer(new_index, method)
 
+        # TODO: deal with length-0 case? or does it fall out?
         notmask = -mask
+        needs_masking = len(index) > 0 and notmask.any()
+
+        new_blocks = []
+        for block in self.blocks:
+            values = block.values.take(indexer, axis=0)
+            if needs_masking:
+                if issubclass(values.dtype.type, np.int_):
+                    values = values.astype(float)
+                elif issubclass(values_.dtype.type, np.bool_):
+                    values = values.astype(object)
+                common.null_out_axis(values, notmask, 0)
+
+            newb = Block(new_values, block.columns)
+            new_blocks.append(newb)
+
         if len(index) > 0:
             if notmask.any():
                 if issubclass(mat.dtype.type, np.int_):
@@ -283,7 +322,13 @@ class BlockManager(object):
                 common.null_out_axis(mat, notmask, 0)
 
     def reindex_columns(self, new_columns):
-        pass
+        data = self
+        if not data.is_consolidated():
+            data = data.consolidate()
+            return data.reindex_columns(new_columns)
+
+        # will put these in the float bucket
+        extra_columns = new_columns - self.columns
 
 def _slice_blocks(blocks, slice_obj):
     new_blocks = []

@@ -139,43 +139,33 @@ class DataMatrix(DataFrame):
     def _reindex_index(self, new_index, method):
         if new_index is self.index:
             return self.copy()
-        if len(self.index) == 0:
-            return DataMatrix(index=new_index, columns=self.columns)
-        indexer, mask = self.index.get_indexer(new_index, method)
-        new_data = self._data.reindex(indexer, mask)
-        return DataMatrix(new_data, index=new_index, columns=self.columns)
 
-    def _reindex_columns(self, columns):
+        # TODO: want to preserve dtypes though...
+        new_data = self._data.reindex_index(new_index, method)
+        return DataMatrix(new_data)
+
+    def _reindex_columns(self, new_columns):
         if len(columns) == 0:
             return DataMatrix(index=self.index)
 
-        if self.objects is not None:
-            object_columns = columns.intersection(self.objects.columns)
-            columns = columns - object_columns
+        new_data = self._data.reindex_columns(new_columns)
+        return DataMatrix(new_data, index=new_index, columns=self.columns)
 
-            objects = self.objects._reindex_columns(object_columns)
-        else:
-            objects = None
+        # indexer, mask = self.columns.get_indexer(columns)
+        # mat = self.values.take(indexer, axis=1)
 
-        if len(columns) > 0 and len(self.columns) == 0:
-            return DataMatrix(index=self.index, columns=columns,
-                              objects=objects)
+        # notmask = -mask
+        # if len(mask) > 0:
+        #     if notmask.any():
+        #         if issubclass(mat.dtype.type, np.int_):
+        #             mat = mat.astype(float)
+        #         elif issubclass(mat.dtype.type, np.bool_):
+        #             mat = mat.astype(float)
 
-        indexer, mask = self.columns.get_indexer(columns)
-        mat = self.values.take(indexer, axis=1)
+        #         common.null_out_axis(mat, notmask, 1)
 
-        notmask = -mask
-        if len(mask) > 0:
-            if notmask.any():
-                if issubclass(mat.dtype.type, np.int_):
-                    mat = mat.astype(float)
-                elif issubclass(mat.dtype.type, np.bool_):
-                    mat = mat.astype(float)
-
-                common.null_out_axis(mat, notmask, 1)
-
-        return DataMatrix(mat, index=self.index, columns=columns,
-                          objects=objects)
+        # return DataMatrix(mat, index=self.index, columns=columns,
+        #                   objects=objects)
 
     def _rename_columns_inplace(self, mapper):
         self.columns = [mapper(x) for x in self.columns]
