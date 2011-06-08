@@ -187,6 +187,15 @@ class BlockManager(object):
         for block in self.blocks:
             assert(len(block) == length)
 
+    def cast(self, dtype):
+        new_blocks = []
+        for block in self.blocks:
+            newb = Block(block.values.astype(dtype), block.columns)
+            new_blocks.append(newb)
+
+        new_mgr = BlockManager(new_blocks, self.index, self.columns)
+        return new_mgr.consolidate()
+
     def is_consolidated(self):
         """
         Return True if more than one block with the same dtype
@@ -225,16 +234,16 @@ class BlockManager(object):
 
     def as_matrix(self, columns=None):
         if columns is None:
-            if len(self.blocks) == 0:
-                return np.empty((len(self.index), 0), dtype=float)
-            elif len(self.blocks) == 1:
-                blk = self.blocks[0]
-                if blk.columns.equals(self.columns):
-                    # if not, then just call interleave per below
-                    return blk.values
-            return _interleave(self.blocks, self.columns)
-        else:
-            return _interleave(self.blocks, columns)
+            columns = self.columns
+
+        if len(self.blocks) == 0:
+            return np.empty((len(self.index), 0), dtype=float)
+        elif len(self.blocks) == 1:
+            blk = self.blocks[0]
+            if blk.columns.equals(columns):
+                # if not, then just call interleave per below
+                return blk.values
+        return _interleave(self.blocks, columns)
 
     def xs(self, i, copy=True):
         if len(self.blocks) > 1:

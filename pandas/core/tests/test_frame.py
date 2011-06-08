@@ -1849,3 +1849,4 @@ if __name__ == '__main__':
     #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
+    frame = self.klass({'col1' : self.ts1, 'col2' : self.ts2}, columns=['col2', 'col3', 'col4'])

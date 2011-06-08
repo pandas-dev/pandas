@@ -56,6 +56,8 @@ class TestDataMatrix(test_frame.TestDataFrame):
         self.assertEqual(len(dm.columns), 2)
         self.assert_(dm.values.dtype == np.float_)
 
+    # TODO: adapt ALL these unit tests
+    """
     def test_constructor_with_objects(self):
         index = self.mixed_frame.index[:5]
 
@@ -116,10 +118,26 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm = DataMatrix(index=[1, 2, 3], objects=obj_dm)
         dm = DataMatrix(index=[1, 2, 3], objects=obj)
 
+    """
+    # def test_constructor_objects_corner(self):
+    #     obj = {'A' : {1 : '1', 2 : '2'}}
+    #     obj_dm = DataMatrix(obj)
+    #     mat = np.zeros((3, 3), dtype=float)
+
+    #     dm = DataMatrix(mat, index=[1, 2, 3], columns=['B', 'C', 'D'],
+    #                     objects=obj_dm)
+    #     assert dm.index is not obj_dm.index
+
+    #     dm = DataMatrix(mat, index=[1, 2, 3], columns=['B', 'C', 'D'],
+    #                     objects=obj)
+
+    #     dm = DataMatrix(index=[1, 2, 3], objects=obj_dm)
+    #     dm = DataMatrix(index=[1, 2, 3], objects=obj)
+
     def test_copy(self):
         # copy objects
         copy = self.mixed_frame.copy()
-        self.assert_(copy.objects is not self.mixed_frame.objects)
+        self.assert_(copy._data is not self.mixed_frame._data)
 
     def test_combineFirst_mixed(self):
         a = Series(['a','b'], index=range(2))

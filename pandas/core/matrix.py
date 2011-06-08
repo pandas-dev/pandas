@@ -4,7 +4,7 @@
 from cStringIO import StringIO
 import sys
 
-from numpy import NaN
+from numpy import nan
 import numpy as np
 
 from pandas.core.common import (_pickle_array, _unpickle_array, _try_sort)
@@ -44,18 +44,22 @@ class DataMatrix(DataFrame):
     unless you are doing a lot of column insertion / deletion (which causes the
     underlying ndarray to have to be reallocated!).
     """
-    def __init__(self, data=None, index=None, columns=None):
+    def __init__(self, data=None, index=None, columns=None, dtype=None):
         if data is None:
             data = {}
 
         if isinstance(data, BlockManager):
             mgr = data
-            index = data.index
-            columns = data.columns
+        elif isinstance(data, DataMatrix):
+            mgr = data._data.copy()
+
+            if dtype is not None:
+                mgr = mgr.cast(dtype)
+
         elif isinstance(data, dict):
-            index, columns, mgr = _init_dict(data, index, columns)
+            mgr = _init_dict(data, index, columns, dtype)
         elif isinstance(data, (np.ndarray, list)):
-            index, columns, mgr = _init_matrix(data, index, columns)
+            mgr = _init_matrix(data, index, columns, dtype)
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
@@ -123,7 +127,7 @@ class DataMatrix(DataFrame):
         notmask = -mask
 
         tmpMatrix = other.values.take(fillVec, axis=0)
-        tmpMatrix[notmask] = NaN
+        tmpMatrix[notmask] = nan
 
         seriesDict = dict((col, tmpMatrix[:, j])
                            for j, col in enumerate(other.columns))
@@ -132,7 +136,7 @@ class DataMatrix(DataFrame):
             objects = other.objects
 
             tmpMat = objects.values.take(fillVec, axis=0)
-            tmpMat[notmask] = NaN
+            tmpMat[notmask] = nan
             objDict = dict((col, tmpMat[:, j])
                            for j, col in enumerate(objects.columns))
 
@@ -197,9 +201,9 @@ class DataMatrix(DataFrame):
         if not self and not other:
             return DataMatrix(index=new_index)
         elif not self:
-            return other * NaN
+            return other * nan
         elif not other:
-            return self * NaN
+            return self * nan
 
         need_reindex = False
         new_columns = self._union_columns(other)
@@ -286,6 +290,44 @@ class DataMatrix(DataFrame):
                                       columns=_unpickle_array(ocols))
         else:
             self.objects = None
+
+    """
+    def __getstate__(self):
+        if self.objects is not None:
+            objects = self.objects._matrix_state(pickle_index=False)
+        else:
+            objects = None
+
+        state = self._matrix_state()
+
+        return (state, objects)
+
+    def _matrix_state(self, pickle_index=True):
+        columns = _pickle_array(self.columns)
+
+        if pickle_index:
+            index = _pickle_array(self.index)
+        else:
+            index = None
+
+        return self.values, index, columns
+
+    def __setstate__(self, state):
+        (vals, idx, cols), object_state = state
+
+        self.values = vals
+        self.index = _unpickle_array(idx)
+        self.columns = _unpickle_array(cols)
+
+        if object_state:
+            ovals, _, ocols = object_state
+            self.objects = DataMatrix(ovals,
+                                      index=self.index,
+                                      columns=_unpickle_array(ocols))
+        else:
+            self.objects = None
+
+    """
 
     def __getitem__(self, item):
         """
@@ -492,12 +534,11 @@ class DataMatrix(DataFrame):
             y[mask] = 0
             result = y.cumsum(axis)
             has_obs = (-mask).astype(int).cumsum(axis) > 0
-            result[-has_obs] = np.NaN
+            result[-has_obs] = np.nan
         else:
             result = y.cumsum(axis)
-
         return DataMatrix(result, index=self.index,
-                          columns=self.columns, objects=self.objects)
+                          columns=self.columns)
 
     def min(self, axis=0):
         """
@@ -535,7 +576,7 @@ class DataMatrix(DataFrame):
 
     def fillna(self, value=None, method='pad'):
         """
-        Fill NaN values using the specified method.
+        Fill nan values using the specified method.
 
         Member Series / TimeSeries are filled separately.
 
@@ -639,9 +680,9 @@ class DataMatrix(DataFrame):
             new_values = common.ensure_float(new_values)
 
             if periods > 0:
-                new_values[:periods] = NaN
+                new_values[:periods] = nan
             else:
-                new_values[periods:] = NaN
+                new_values[periods:] = nan
         else:
             new_index = self.index.shift(periods, offset)
             new_values = self.values.copy()
@@ -680,7 +721,7 @@ def _group_dtypes(data, columns):
 
     return chunks, chunk_cols
 
-def _init_dict(data, index, columns):
+def _init_dict(data, index, columns, dtype):
     """
     Segregate Series based on type and coerce into matrices.
 
@@ -688,21 +729,25 @@ def _init_dict(data, index, columns):
 
     Somehow this got outrageously complicated
     """
+    # TODO: deal with emptiness!
+    # TODO: dtype casting?
+
+    # prefilter if columns passed
+    if columns is not None:
+        columns = _ensure_index(columns)
+        data = dict((k, v) for k, v in data.iteritems() if k in columns)
+
     # figure out the index, if necessary
     if index is None:
         index = extract_index(data)
 
-    # TODO: deal with emptiness!
-    # TODO: dtype casting?
-
     # don't force copy because getting jammed in an ndarray anyway
-    homogenized = _homogenize_series(data, index, force_copy=False)
+    homogenized = _homogenize_series(data, index, dtype, force_copy=False)
     # segregates dtypes and forms blocks matching to columns
-    blocks, columns = _form_blocks(homogenized, columns)
-    mgr = BlockManager(blocks, index, columns)
-    return index, columns, mgr
+    blocks, columns = _form_blocks(homogenized, index, columns)
+    return BlockManager(blocks, index, columns)
 
-def _form_blocks(data, columns):
+def _form_blocks(data, index, columns):
     # pre-filter out columns if we passed it
     if columns is None:
         columns = Index(_try_sort(data.keys()))
@@ -710,9 +755,6 @@ def _form_blocks(data, columns):
     else:
         columns = _ensure_index(columns)
         extra_columns = columns - Index(data.keys())
-
-    # prefilter
-    data = dict((k, v) for k, v in data.iteritems() if k in columns)
 
     # put "leftover" columns in float bucket, where else?
     # generalize?
@@ -726,42 +768,46 @@ def _form_blocks(data, columns):
 
     blocks = []
 
-    # oof
-    if len(float_dict) > 0 or len(extra_columns) > 0:
-        if len(extra_columns):
-            bcolumns = extra_columns.union(float_dict.keys())
-            float_block = _blockify(float_dict, np.float64,
-                                    columns=bcolumns)
-        else:
-            float_block = _blockify(float_dict, np.float64)
+    # oof, this sucks
+    fcolumns = extra_columns.union(float_dict.keys())
+    if len(fcolumns) > 0:
+        float_block = _float_blockify(float_dict, index, fcolumns)
         blocks.append(float_block)
 
     if len(object_dict) > 0:
-        object_block = _blockify(object_dict, np.object_)
+        object_block = _simple_blockify(object_dict, np.object_)
         blocks.append(object_block)
 
     return blocks, columns
 
-def _blockify(dct, dtype, columns=None):
-    dict_columns = Index(_try_sort(dct))
-    stacked_series = np.vstack([dct[k] for k in dict_columns]).T
-    if columns is None:
-        columns = dict_columns
-        values = stacked_series
-        # CHECK DTYPE
-    else:
-        n = len(dct.values()[0])
-        k = len(columns)
-        values = np.empty((n, k), dtype=dtype)
+def _simple_blockify(dct, dtype):
+    columns, values = _stack_dict(dct)
+    # CHECK DTYPE?
+    if values.dtype != dtype:
+        values = values.astype(dtype)
+    return Block(values, columns)
 
+def _stack_dict(dct):
+    columns = Index(_try_sort(dct))
+    stacked = np.vstack([dct[k] for k in columns]).T
+    return columns, stacked
+
+def _float_blockify(dct, index, columns):
+    n = len(index)
+    k = len(columns)
+    values = np.empty((n, k), dtype=np.float64)
+    values.fill(nan)
+
+    if len(dct) > 0:
+        dict_columns, stacked = _stack_dict(dct)
         indexer, mask = columns.get_indexer(dict_columns)
         assert(mask.all())
-        values[:, indexer] = stacked_series
+        values[:, indexer] = stacked
 
     # do something with dtype?
     return Block(values, columns)
 
-def _init_matrix(values, index, columns):
+def _init_matrix(values, index, columns, dtype):
     values = _prep_ndarray(values)
 
     if values.ndim == 1:
@@ -771,12 +817,11 @@ def _init_matrix(values, index, columns):
         else:
             values = values.reshape((values.shape[0], 1))
 
-    # address this can of worms later
-    # if dtype is not None:
-    #     try:
-    #         values = values.astype(dtype)
-    #     except Exception:
-    #         pass
+    if dtype is not None:
+        try:
+            values = values.astype(dtype)
+        except Exception:
+            pass
 
     N, K = values.shape
 
@@ -788,9 +833,7 @@ def _init_matrix(values, index, columns):
 
     columns = _ensure_index(columns)
     block = Block(values, columns)
-    mgr = BlockManager([block], index, columns)
-
-    return index, columns, mgr
+    return BlockManager([block], index, columns)
 
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)

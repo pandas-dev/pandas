@@ -5,6 +5,8 @@
 - Series homogenization
   - when does casting fail?
 - Deal with emptiness: empty index and / or columns
+- Transpose: float casted to string??
+- Casting, want to continue to support?
 
 - Need sparse internal data structure
 

@@ -1349,25 +1349,6 @@ class DataFrame(PandasGeneric):
         return self._constructor(data=self.values.T, index=self.columns,
                                  columns=self.index)
 
-    # @property
-    # def T(self):
-    #     """
-    #     Returns a DataFrame with the rows/columns switched.
-    #     """
-    #     # Need to do some 'type inference' to avoid casting
-    #     # float to string in weird cases
-    #     dtypes = list(set([x.dtype for x in self._series.values()]))
-    #     if len(dtypes) > 1:
-    #         theDtype = np.object_
-    #     else:
-    #         theDtype = dtypes[0]
-
-    #     valuesT = np.array([self[col] for col in self.columns],
-    #                        dtype=theDtype).T
-
-    #     return DataFrame(data=dict(zip(self.index, valuesT)),
-    #                      index=self.columns, columns=self.index)
-
     def diff(self, periods=1):
         return self - self.shift(periods)
 
