@@ -44,8 +44,18 @@ class Block(object):
     def merge(self, other):
         return _merge_blocks([self, other])
 
-    def reindex_index(self, indexer, notmask, need_masking):
-        pass
+    def reindex_index(self, indexer, notmask, needs_masking):
+        """
+        Reindex using pre-computed indexer information
+        """
+        new_values = self.values.take(indexer, axis=0)
+        if needs_masking:
+            if issubclass(new_values.dtype.type, np.int_):
+                new_values = new_values.astype(float)
+            elif issubclass(new_values_.dtype.type, np.bool_):
+                new_values = new_values.astype(object)
+            common.null_out_axis(new_values, notmask, 0)
+        return Block(new_values, self.columns)
 
     def reindex_columns(self, new_columns):
         indexer, mask = self.columns.get_indexer(columns)
@@ -77,6 +87,10 @@ class Block(object):
         new_columns = _insert_into_columns(self.columns, col, loc)
         new_values = _insert_into_values(self.values, value, loc)
         return Block(new_values, new_columns)
+
+    def get(self, col):
+        loc = self.columns.get_loc(col)
+        return self.values[:, loc]
 
     def set(self, col, value):
         """
@@ -152,8 +166,8 @@ class BlockManager(object):
     """
     def __init__(self, blocks, index=None, columns=None,
                  skip_integrity_check=False):
-        self.index = index
-        self.columns = columns
+        self.index = _ensure_index(index)
+        self.columns = _ensure_index(columns)
         self.blocks = blocks
 
         if not skip_integrity_check:
@@ -242,9 +256,15 @@ class BlockManager(object):
         return block.get(col)
 
     def delete(self, col):
+        loc = self.columns.get_loc(col)
+        self.columns = Index(np.delete(np.asarray(self.columns), loc))
+
         i, block = self._find_block(col)
-        new_block = block.delete(col)
-        self.blocks[i] = new_block
+        if len(block.columns) == 1:
+            self.blocks.pop(i)
+        else:
+            new_block = block.delete(col)
+            self.blocks[i] = new_block
 
     def set(self, col, value):
         """
@@ -293,35 +313,23 @@ class BlockManager(object):
         pass
 
     def reindex_index(self, new_index, method):
+        assert(isinstance(new_index, Index))
         indexer, mask = self.index.get_indexer(new_index, method)
 
         # TODO: deal with length-0 case? or does it fall out?
         notmask = -mask
-        needs_masking = len(index) > 0 and notmask.any()
+        needs_masking = len(new_index) > 0 and notmask.any()
 
         new_blocks = []
         for block in self.blocks:
-            values = block.values.take(indexer, axis=0)
-            if needs_masking:
-                if issubclass(values.dtype.type, np.int_):
-                    values = values.astype(float)
-                elif issubclass(values_.dtype.type, np.bool_):
-                    values = values.astype(object)
-                common.null_out_axis(values, notmask, 0)
 
-            newb = Block(new_values, block.columns)
+            newb = block.reindex_index(indexer, mask, needs_masking)
             new_blocks.append(newb)
 
-        if len(index) > 0:
-            if notmask.any():
-                if issubclass(mat.dtype.type, np.int_):
-                    mat = mat.astype(float)
-                elif issubclass(mat.dtype.type, np.bool_):
-                    mat = mat.astype(float)
-
-                common.null_out_axis(mat, notmask, 0)
+        return BlockManager(new_blocks, new_index, self.columns)
 
     def reindex_columns(self, new_columns):
+        assert(isinstance(new_columns, Index))
         data = self
         if not data.is_consolidated():
             data = data.consolidate()

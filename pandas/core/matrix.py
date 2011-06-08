@@ -353,12 +353,9 @@ class DataMatrix(DataFrame):
         else:
             value = np.repeat(value, len(self.index))
 
-        if self.values.dtype == np.object_:
-            self._insert_object_dtype(key, value)
-        else:
-            self._insert_float_dtype(key, value)
+        self._data.set(key, value)
 
-    _dataTypes = [np.float_, np.bool_, np.int_]
+    _dataTypes = [np.float_, np.int_]
     def _insert_float_dtype(self, key, value):
         isObject = value.dtype not in self._dataTypes
 
@@ -366,87 +363,26 @@ class DataMatrix(DataFrame):
         if len(value) != len(self.index): # pragma: no cover
             raise Exception('Column is wrong length')
 
-        def _put_object(value):
-            if self.objects is None:
-                self.objects = DataMatrix({key : value},
-                                          index=self.index)
-            else:
-                self.objects[key] = value
+        self._data.set(key, value)
 
-        if key in self.columns:
-            loc = self.columns.indexMap[key]
-            try:
-                # attempt coercion
-                self.values[:, loc] = value
-            except ValueError:
-                self._delete_column(loc)
-                self._delete_column_index(loc)
-                _put_object(value)
-        elif isObject:
-            _put_object(value)
-        else:
-            loc = self._get_insert_loc(key)
-            self._insert_column(value.astype(float), loc)
-            self._insert_column_index(key, loc)
-
-    def _insert_object_dtype(self, key, value):
-        if key in self.columns:
-            loc = self.columns.indexMap[key]
-            self.values[:, loc] = value
-        else:
-            loc = self._get_insert_loc(key)
-            self._insert_column(value, loc)
-            self._insert_column_index(key, loc)
+        # if key in self.columns:
+        #     loc = self.columns.indexMap[key]
+        #     try:
+        #         # attempt coercion
+        #         self.values[:, loc] = value
+        #     except ValueError:
+        #         self._delete_column(loc)
+        #         self._delete_column_index(loc)
+        #         _put_object(value)
 
     def __delitem__(self, key):
         """
         Delete column from DataMatrix
         """
-        if key in self.columns:
-            loc = self.columns.indexMap[key]
-            self._delete_column(loc)
-            self._delete_column_index(loc)
-        else:
-            if self.objects is not None and key in self.objects:
-                del self.objects[key]
-            else:
-                raise KeyError('%s' % key)
-
-    def _insert_column(self, column, loc):
-        mat = self.values
-
-        if column.ndim == 1:
-            column = column.reshape((len(column), 1))
-
-        if loc == mat.shape[1]:
-            values = np.hstack((mat, column))
-        elif loc == 0:
-            values = np.hstack((column, mat))
-        else:
-            values = np.hstack((mat[:, :loc], column, mat[:, loc:]))
-
-        self._float_values = values
-
-    def _delete_column(self, loc):
-        values = self._float_values
-
-        if loc == values.shape[1] - 1:
-            new_values = values[:, :loc]
-        else:
-            new_values = np.c_[values[:, :loc], values[:, loc+1:]]
-
-        self._float_values = new_values
-
-    def __iter__(self):
-        """
-        Iterate over columns of the frame.
-        """
-        return iter(self.columns)
-
-    def iteritems(self):
-        return self._series.iteritems()
+        self._data.delete(key)
 
     # to support old APIs
+    @property
     def _series(self):
         return self._data.get_series_dict(self.index)
 
@@ -523,26 +459,10 @@ class DataMatrix(DataFrame):
         if not self:
             return other.copy()
 
-        if (isinstance(other, DataMatrix) and
-            self.columns.equals(other.columns)):
-
-            idx = Index(np.concatenate([self.index, other.index]))
-            mat = np.vstack((self.values, other.values))
-
-            if other.objects is None:
-                objects = self.objects
-            elif self.objects is None:
-                objects = other.objects
-            else:
-                objects = self.objects.append(other.objects)
-
-            if objects:
-                objects = objects.reindex(idx)
-
-            dm = DataMatrix(mat, idx, self.columns, objects=objects)
-            return dm
-        else:
-            return super(DataMatrix, self).append(other)
+        # TODO: with blocks
+        # idx = Index(np.concatenate([self.index, other.index]))
+        # mat = np.vstack((self.values, other.values))
+        return DataFrame.append(self, other)
 
     def asMatrix(self, columns=None):
         """
@@ -851,7 +771,7 @@ def _init_dict(data, index, columns):
 def _form_blocks(data, columns):
     # pre-filter out columns if we passed it
     if columns is None:
-        columns = _try_sort(data.keys())
+        columns = Index(_try_sort(data.keys()))
         extra_columns = NULL_INDEX
     else:
         columns = _ensure_index(columns)

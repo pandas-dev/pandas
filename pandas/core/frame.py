@@ -315,11 +315,11 @@ class DataFrame(PandasGeneric):
         y : recarray
         """
         if index:
-            arrays = [self.index] + [self[c] for c in self.cols()]
-            names = ['index'] + list(self.cols())
+            arrays = [self.index] + [self[c] for c in self.columns]
+            names = ['index'] + list(self.columns)
         else:
-            arrays = [self[c] for c in self.cols()]
-            names = list(self.cols())
+            arrays = [self[c] for c in self.columns]
+            names = list(self.columns)
 
         return np.rec.fromarrays(arrays, names=names)
 
@@ -568,10 +568,7 @@ class DataFrame(PandasGeneric):
 
     def _indexed_same(self, other):
         same_index = self.index.equals(other.index)
-
-        # for DataMatrix compat
-        same_columns = Index(self.cols()).equals(Index(other.cols()))
-
+        same_columns = self.columns.equals(other.columns)
         return same_index and same_columns
 
     def _combine_series_infer(self, other, func):
@@ -652,7 +649,7 @@ class DataFrame(PandasGeneric):
         f = open(path, mode)
 
         if cols is None:
-            cols = self.cols()
+            cols = self.columns
 
         series = self._series
         if header:
@@ -745,15 +742,15 @@ class DataFrame(PandasGeneric):
         print >> buf, str(type(self))
         print >> buf, self.index.summary()
 
-        if len(self.cols()) == 0:
+        if len(self.columns) == 0:
             print >> buf, 'Empty %s' % type(self).__name__
             return
 
-        cols = self.cols()
+        cols = self.columns
 
         if verbose:
             print >> buf, 'Data columns:'
-            space = max([len(str(k)) for k in self.cols()]) + 4
+            space = max([len(str(k)) for k in self.columns]) + 4
             col_counts = []
             counts = self.count()
             assert(len(cols) == len(counts))
@@ -794,7 +791,8 @@ class DataFrame(PandasGeneric):
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
-        return ((k, self._series[k]) for k in self.columns)
+        series = self._series
+        return ((k, series[k]) for k in self.columns)
 
     def append(self, other):
         """
@@ -858,7 +856,7 @@ class DataFrame(PandasGeneric):
         of columns is provided.
         """
         if columns is None:
-            columns = self.cols()
+            columns = self.columns
 
         if len(columns) == 0:
             return np.zeros((0, 0))
@@ -1049,11 +1047,11 @@ class DataFrame(PandasGeneric):
         -------
         This DataFrame with rows containing any NaN values deleted
         """
-        N = len(self.cols())
+        N = len(self.columns)
 
         if specificColumns:
             colSet = set(specificColumns)
-            intersection = set(self.cols()) & colSet
+            intersection = set(self.columns) & colSet
 
             N = len(intersection)
 
@@ -1134,7 +1132,7 @@ class DataFrame(PandasGeneric):
         if key not in self.index:
             raise Exception('No cross-section for %s' % key)
 
-        subset = self.cols()
+        subset = self.columns
         rowValues = [self._series[k][key] for k in subset]
 
         if len(set((type(x) for x in rowValues))) > 1:
@@ -1442,7 +1440,7 @@ class DataFrame(PandasGeneric):
         -----
         Functions altering the index are not supported (yet)
         """
-        if not len(self.cols()):
+        if not len(self.columns):
             return self
 
         if not broadcast:
@@ -1453,13 +1451,13 @@ class DataFrame(PandasGeneric):
     def _apply_standard(self, func, axis):
         if axis == 0:
             target = self
-            agg_index = self.cols()
+            agg_index = self.columns
         elif axis == 1:
             target = self.T
             agg_index = self.index
 
         results = {}
-        for k in target.cols():
+        for k in target.columns:
             results[k] = func(target[k])
 
         if hasattr(results.values()[0], '__iter__'):
@@ -1476,13 +1474,13 @@ class DataFrame(PandasGeneric):
     def _apply_broadcast(self, func, axis):
         if axis == 0:
             target = self
-            agg_index = self.cols()
+            agg_index = self.columns
         elif axis == 1:
             target = self.T
             agg_index = self.index
 
         result_values = np.empty_like(target.values)
-        columns = target.cols()
+        columns = target.columns
         for i, col in enumerate(columns):
             result_values[:, i] = func(target[col])
 
@@ -1605,7 +1603,7 @@ class DataFrame(PandasGeneric):
             this = self.reindex(new_index)
             other = other.reindex(new_index)
 
-        new_columns = _try_sort(set(this.cols() + other.cols()))
+        new_columns = _try_sort(set(this.columns + other.columns))
         do_fill = fill_value is not None
 
         result = {}
@@ -1729,7 +1727,7 @@ class DataFrame(PandasGeneric):
 
     def _join_on(self, other, on):
         # Check for column overlap
-        overlap = set(self.cols()) & set(other.cols())
+        overlap = set(self.columns) & set(other.columns)
 
         if overlap:
             raise Exception('Columns overlap: %s' % _try_sort(overlap))
@@ -1908,7 +1906,7 @@ class DataFrame(PandasGeneric):
         Series or TimeSeries
         """
         try:
-            cols = self.cols()
+            cols = self.columns
             values = self.asMatrix(cols)
 
             if axis == 0:
@@ -1951,7 +1949,7 @@ class DataFrame(PandasGeneric):
         """
         num_cols = self._get_numeric_columns()
 
-        if len(num_cols) < len(self.cols()) and numeric_only:
+        if len(num_cols) < len(self.columns) and numeric_only:
             y = self.as_matrix(num_cols)
             axis_labels = num_cols
         else:
@@ -1974,11 +1972,11 @@ class DataFrame(PandasGeneric):
         return Series(the_sum, index=axis_labels)
 
     def _get_numeric_columns(self):
-        return [col for col in self.cols()
+        return [col for col in self.columns
                 if issubclass(self[col].dtype.type, np.number)]
 
     def _get_object_columns(self):
-        return [col for col in self.cols() if self[col].dtype == np.object_]
+        return [col for col in self.columns if self[col].dtype == np.object_]
 
     def cumsum(self, axis=0):
         """
@@ -2193,7 +2191,7 @@ class DataFrame(PandasGeneric):
         result = np.abs(y).mean(axis=axis)
 
         if axis == 0:
-            return Series(result, demeaned.cols())
+            return Series(result, demeaned.columns)
         else:
             return Series(result, demeaned.index)
 
