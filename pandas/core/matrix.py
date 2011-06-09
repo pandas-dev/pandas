@@ -141,11 +141,11 @@ class DataMatrix(DataFrame):
         new_data = self._data.reindex_columns(new_columns)
         return DataMatrix(new_data)
 
-    def _rename_columns_inplace(self, mapper):
-        self.columns = [mapper(x) for x in self.columns]
+    def _rename_index_inplace(self, mapper):
+        self._data = self._data.rename_index(mapper)
 
-        if self.objects is not None:
-            self.objects._rename_columns_inplace(mapper)
+    def _rename_columns_inplace(self, mapper):
+        self._data = self._data.rename_columns(mapper)
 
     def _combine_frame(self, other, func):
         """
@@ -595,13 +595,11 @@ class DataMatrix(DataFrame):
             indexer = self._shift_indexer(periods)
             new_blocks = [_shift_block(b, indexer) for b in self._data.blocks]
             new_data = BlockManager(new_blocks, self.index, self.columns)
-            new_index = self.index
         else:
-            new_index = self.index.shift(periods, offset)
             new_data = self._data.copy()
+            new_data.index = self.index.shift(periods, offset)
 
-        return DataMatrix(data=new_data, index=new_index,
-                          columns=self.columns)
+        return DataMatrix(new_data)
 
 _data_types = [np.float_, np.int_]
 
@@ -653,6 +651,9 @@ def _init_dict(data, index, columns, dtype):
     return BlockManager(blocks, index, columns)
 
 def _form_blocks(data, index, columns):
+    from pandas.core.internals import add_na_columns
+
+
     # pre-filter out columns if we passed it
     if columns is None:
         columns = Index(_try_sort(data.keys()))
@@ -663,26 +664,36 @@ def _form_blocks(data, index, columns):
 
     # put "leftover" columns in float bucket, where else?
     # generalize?
-    float_dict = {}
+    num_dict = {}
     object_dict = {}
     for k, v in data.iteritems():
         if issubclass(v.dtype.type, (np.floating, np.integer)):
-            float_dict[k] = v
+            num_dict[k] = v
         else:
             object_dict[k] = v
 
     blocks = []
 
-    # TODO: find corner cases
-    # oof, this sucks
-    fcolumns = extra_columns.union(float_dict.keys())
-    if len(fcolumns) > 0:
-        float_block = _float_blockify(float_dict, index, fcolumns)
-        blocks.append(float_block)
+
+    if len(num_dict) > 0:
+        num_dtypes = set(v.dtype for v in num_dict.values())
+        if len(num_dtypes) > 1:
+            num_dtype = np.float_
+        else:
+            num_dtype = list(num_dtypes)[0]
+
+        # TODO: find corner cases
+        # TODO: check type inference
+        num_block = _simple_blockify(num_dict, num_dtype)
+        blocks.append(num_block)
 
     if len(object_dict) > 0:
         object_block = _simple_blockify(object_dict, np.object_)
         blocks.append(object_block)
+
+    if len(extra_columns):
+        blocks = add_na_columns(blocks, extra_columns,
+                                index, columns)
 
     return blocks, columns
 

@@ -158,7 +158,7 @@ class TestDataMatrix(test_frame.TestDataFrame):
         del df['B']
         df['B'] = [1., 2., 3.]
         self.assert_('B' in df)
-        self.assertEqual(len(df.columns), 1)
+        self.assertEqual(len(df.columns), 2)
 
         df['A'] = 'beginning'
         df['E'] = 'foo'
@@ -170,10 +170,11 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm = DataMatrix(index=self.frame.index)
         dm['A'] = 'foo'
         dm['B'] = 'bar'
-        self.assertEqual(len(dm.objects.columns), 2)
+        self.assertEqual(len(dm.columns), 2)
+        self.assertEqual(dm.values.dtype, np.object_)
 
         dm['C'] = 1
-        self.assertEqual(len(dm.columns), 1)
+        self.assertEqual(dm['C'].dtype, np.int_)
 
         # set existing column
         dm['A'] = 'bar'
@@ -184,7 +185,10 @@ class TestDataMatrix(test_frame.TestDataFrame):
         dm['foo'] = 'bar'
         del dm['foo']
         dm['foo'] = 'bar'
-        self.assertEqual(len(dm.objects.columns), 1)
+        self.assertEqual(dm['foo'].dtype, np.object_)
+
+        dm['coercable'] = ['1', '2', '3']
+        self.assertEqual(dm['coercable'].dtype, np.object_)
 
     def test_setitem_ambig(self):
         # difficulties with mixed-type data
@@ -199,17 +203,16 @@ class TestDataMatrix(test_frame.TestDataFrame):
 
         dm[0] = np.ones(3)
         self.assertEqual(len(dm.cols()), 3)
-        self.assert_(dm.objects is None)
+        # self.assert_(dm.objects is None)
 
         dm[1] = coercable_series
         self.assertEqual(len(dm.cols()), 3)
-        self.assert_(dm.objects is None)
+        # self.assert_(dm.objects is None)
 
         dm[2] = uncoercable_series
         self.assertEqual(len(dm.cols()), 3)
-        self.assert_(dm.objects is not None)
-        self.assert_(2 in dm.objects)
-        self.assert_(2 not in dm.columns)
+        # self.assert_(dm.objects is not None)
+        self.assert_(dm[2].dtype == np.object_)
 
     def test_delitem_corner(self):
         f = self.frame.copy()
@@ -219,13 +222,13 @@ class TestDataMatrix(test_frame.TestDataFrame):
         del f['B']
         self.assertEqual(len(f.columns), 2)
 
-    def test_shift_objects(self):
-        tsf = self.tsframe.copy()
-        tsf['foo'] = 'bar'
+    # def test_shift_objects(self):
+    #     tsf = self.tsframe.copy()
+    #     tsf['foo'] = 'bar'
 
-        shifted = tsf.shift(1)
-        self.assert_(shifted.objects is not None)
-        self.assert_(shifted.objects.index is shifted.index)
+    #     shifted = tsf.shift(1)
+    #     self.assert_(shifted.objects is not None)
+    #     self.assert_(shifted.objects.index is shifted.index)
 
     def test_more_asMatrix(self):
         values = self.mixed_frame.asMatrix()

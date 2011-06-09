@@ -7,6 +7,8 @@
 - Deal with emptiness: empty index and / or columns
 - Transpose: float casted to string??
 - Casting, want to continue to support?
+- Column ordering during consolidation
+- Different index passed with BlockManager
 
 - Need sparse internal data structure
 

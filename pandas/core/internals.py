@@ -338,7 +338,7 @@ class BlockManager(object):
             return self
 
         new_blocks = _consolidate(self.blocks)
-        return BlockManager(new_blocks, self.columns)
+        return BlockManager(new_blocks, self.index, self.columns)
 
     def get(self, col):
         _, block = self._find_block(col)
@@ -407,9 +407,6 @@ class BlockManager(object):
     def _chunk_index(self, col):
         pass
 
-    def rename(self, mapper):
-        pass
-
     def reindex_index(self, new_index, method=None):
         new_index = _ensure_index(new_index)
         indexer, mask = self.index.get_indexer(new_index, method)
@@ -457,22 +454,40 @@ class BlockManager(object):
         # will put these in the float bucket
         extra_columns = new_columns - self.columns
         if len(extra_columns):
-            # create new block, then consolidate
-            indexer, mask = extra_columns.get_indexer(new_columns)
+            new_blocks = add_na_columns(new_blocks, extra_columns,
+                                        self.index, new_columns)
 
-            # reorder to match relative order of new columns
-            extra_columns = extra_columns.take(indexer[mask])
+        return BlockManager(new_blocks, self.index, new_columns)
 
-            values = _nan_array(self.index, extra_columns)
-            newb = make_block(values, extra_columns)
-            new_blocks.append(newb)
-            new_blocks = _consolidate(new_blocks)
+    def rename_index(self, mapper):
+        new_index = [mapper(x) for x in self.index]
+        return BlockManager(self.blocks, new_index, self.columns)
 
+    def rename_columns(self, mapper):
+        def _rename_block(blk):
+            new_cols = [mapper(x) for x in blk.columns]
+            return make_block(blk.values, new_cols)
+
+        new_blocks = [_rename_block(x) for x in self.blocks]
+        new_columns = [mapper(x) for x in self.columns]
         return BlockManager(new_blocks, self.index, new_columns)
 
     def fillna(self, value):
         new_blocks = [b.fillna(value) for b in self.blocks]
         return BlockManager(new_blocks, self.index, self.columns)
+
+
+def add_na_columns(blocks, new_columns, index, columns):
+    # create new block, then consolidate
+    indexer, mask = new_columns.get_indexer(columns)
+
+    # reorder to match relative order of new columns
+    new_columns = new_columns.take(indexer[mask])
+
+    values = _nan_array(index, new_columns)
+    newb = make_block(values, new_columns)
+    blocks.append(newb)
+    return _consolidate(blocks)
 
 def _slice_blocks(blocks, slice_obj):
     new_blocks = []
