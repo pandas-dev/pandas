@@ -271,12 +271,9 @@ class TestDataMatrix(test_frame.TestDataFrame):
         self.mixed_frame['foo'][5:20] = np.NaN
         self.mixed_frame['A'][-10:] = np.NaN
 
-        obj_result = self.mixed_frame.objects.fillna(value=0)
-
+        filled = self.mixed_frame.fillna(value=0)
+        self.assert_((filled['foo'][5:20] == 0).all())
         del self.mixed_frame['foo']
-
-        # XXX
-        obj_result = self.mixed_frame.objects.fillna(value=0)
 
 	empty_float = self.frame.reindex(columns=[])
         result = empty_float.fillna(value=0)

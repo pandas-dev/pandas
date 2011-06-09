@@ -6,11 +6,7 @@ import numpy as np
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.common import _ensure_index
 from pandas.core.series import Series
-from pandas.util.decorators import cache_readonly
 import pandas.core.common as common
-
-def make_block(values, columns):
-    pass
 
 class Block(object):
     """
@@ -20,20 +16,33 @@ class Block(object):
     """
     def __init__(self, values, columns):
         values = _convert_if_1d(values)
+        if issubclass(values.dtype.type, basestring):
+            values = np.array(values, dtype=object)
+
         self.values = values
         self.columns = _ensure_index(columns)
         assert(len(self.columns) == values.shape[1])
 
     def __repr__(self):
         x, y = self.shape
-        return 'Block: %s, %d x %d, dtype %s' % (self.columns, x, y,
-                                                 self.dtype)
+        name = type(self).__name__
+        return '%s: %s, %d x %d, dtype %s' % (name, self.columns,
+                                              x, y, self.dtype)
 
     def __contains__(self, col):
         return col in self.columns
 
     def __len__(self):
         return len(self.values)
+
+    def __getstate__(self):
+        return (np.asarray(self.columns),
+                self.values)
+
+    def __setstate__(self, state):
+        columns, values = state
+        self.columns = _ensure_index(columns)
+        self.values = values
 
     @property
     def shape(self):
@@ -44,7 +53,7 @@ class Block(object):
         return self.values.dtype
 
     def copy(self):
-        return Block(self.values.copy(), self.columns)
+        return make_block(self.values.copy(), self.columns)
 
     def merge(self, other):
         return _merge_blocks([self, other])
@@ -55,27 +64,40 @@ class Block(object):
         """
         new_values = self.values.take(indexer, axis=0)
         if needs_masking:
-            if issubclass(new_values.dtype.type, np.int_):
-                new_values = new_values.astype(float)
-            elif issubclass(new_values.dtype.type, np.bool_):
-                new_values = new_values.astype(object)
+            new_values = _cast_if_bool_int(new_values)
             common.null_out_axis(new_values, notmask, 0)
-        return Block(new_values, self.columns)
+        return make_block(new_values, self.columns)
 
     def reindex_columns(self, new_columns):
+        """
+
+        """
         indexer, mask = self.columns.get_indexer(new_columns)
         new_values = self.values.take(indexer, axis=1)
 
         notmask = -mask
         if len(mask) > 0 and notmask.any():
-            if issubclass(new_values.dtype.type, np.int_):
-                new_values = new_values.astype(float)
-            elif issubclass(new_values.dtype.type, np.bool_):
-                new_values = new_values.astype(object)
-
+            new_values = _cast_if_bool_int(new_values)
             common.null_out_axis(new_values, notmask, 1)
 
-        return Block(new_values, new_columns)
+        return make_block(new_values, new_columns)
+
+    def reindex_columns_from(self, columns):
+        """
+        Reindex to only those columns contained in the input set of columns
+
+        E.g. if you have ['a', 'b'], and the input columns is ['b', 'c', 'd'],
+        then the resulting columns will be ['b']
+
+        Returns
+        -------
+        reindexed : Block
+        """
+        indexer, mask = self.columns.get_indexer(columns)
+        masked_idx = indexer[mask]
+        new_values = self.values.take(masked_idx, axis=1)
+        new_columns = self.columns.take(masked_idx)
+        return make_block(new_values, new_columns)
 
     def insert(self, col, value, loc=None):
         """
@@ -91,7 +113,7 @@ class Block(object):
 
         new_columns = _insert_into_columns(self.columns, col, loc)
         new_values = _insert_into_values(self.values, value, loc)
-        return Block(new_values, new_columns)
+        return make_block(new_values, new_columns)
 
     def get(self, col):
         loc = self.columns.get_loc(col)
@@ -117,7 +139,20 @@ class Block(object):
         loc = self.columns.get_loc(col)
         new_columns = _delete_from_columns(self.columns, loc)
         new_values = _delete_from_values(self.values, loc)
-        return Block(new_values, new_columns)
+        return make_block(new_values, new_columns)
+
+    def fillna(self, value):
+        new_values = self.values.copy()
+        mask = common.isnull(new_values.ravel())
+        new_values.flat[mask] = value
+        return make_block(new_values, self.columns)
+
+def _cast_if_bool_int(values):
+    if issubclass(values.dtype.type, np.int_):
+        values = values.astype(float)
+    elif issubclass(values.dtype.type, np.bool_):
+        values = values.astype(object)
+    return values
 
 def _insert_into_columns(columns, col, loc):
     columns = np.asarray(columns)
@@ -156,6 +191,21 @@ class BoolBlock(Block):
 class ObjectBlock(Block):
     pass
 
+def make_block(values, columns):
+    dtype = values.dtype
+    vtype = dtype.type
+
+    if issubclass(vtype, np.floating):
+        klass = FloatBlock
+    elif issubclass(vtype, np.integer):
+        klass = IntBlock
+    elif dtype == np.bool_:
+        klass = BoolBlock
+    else:
+        klass = ObjectBlock
+
+    return klass(values, columns)
+
 # TODO: flexible with index=None and/or columns=None
 
 class BlockManager(object):
@@ -175,6 +225,17 @@ class BlockManager(object):
         if not skip_integrity_check:
             self._verify_integrity()
 
+    def __getstate__(self):
+        return (np.asarray(self.index),
+                np.asarray(self.columns),
+                self.blocks)
+
+    def __setstate__(self, state):
+        index, columns, blocks = state
+        self.index = _ensure_index(index)
+        self.columns = _ensure_index(columns)
+        self.blocks = blocks
+
     def __repr__(self):
         output = 'BlockManager'
         for block in self.blocks:
@@ -190,7 +251,7 @@ class BlockManager(object):
     def cast(self, dtype):
         new_blocks = []
         for block in self.blocks:
-            newb = Block(block.values.astype(dtype), block.columns)
+            newb = make_block(block.values.astype(dtype), block.columns)
             new_blocks.append(newb)
 
         new_mgr = BlockManager(new_blocks, self.index, self.columns)
@@ -246,12 +307,18 @@ class BlockManager(object):
         return _interleave(self.blocks, columns)
 
     def xs(self, i, copy=True):
+        # TODO: fix this awful mess
+
         if len(self.blocks) > 1:
             if not copy:
                 raise Exception('cannot get view of mixed-type DataFrame')
-            xs = np.concatenate([b.values[i] for b in self.blocks])
+            vals = np.concatenate([b.values[i] for b in self.blocks])
+            cols = np.concatenate([b.columns for b in self.blocks])
+            xs = Series(vals, index=cols).reindex(self.columns)
         else:
-            xs = self.blocks[0].values[i]
+            vals = self.blocks[0].values[i]
+            cols = self.blocks[0].columns
+            xs = Series(vals, cols)
             if copy:
                 xs = xs.copy()
         return xs
@@ -316,7 +383,7 @@ class BlockManager(object):
 
     def _add_new_block(self, col, value):
         # Do we care about dtype at the moment?
-        new_block = Block(value, [col])
+        new_block = make_block(value, [col])
         self._push_new_block(new_block)
 
     def _find_block(self, col):
@@ -356,39 +423,58 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_index, self.columns)
 
+    def merge(self, other):
+        # TODO
+        assert(self.index.equals(other.index))
+        consolidated = _consolidate(self.blocks + other.blocks)
+        cons_columns = _union_block_columns(self.blocks)
+        return BlockManager(consolidated, self.index, cons_columns)
+
+    def join_on(self, other, on):
+        reindexed = other.reindex(on)
+        reindexed.index = self.index
+        return self.merge(reindexed)
+
     def reindex_columns(self, new_columns):
-        # assert(isinstance(new_columns, Index))
+        """
+
+        """
         new_columns = _ensure_index(new_columns)
         data = self
         if not data.is_consolidated():
             data = data.consolidate()
             return data.reindex_columns(new_columns)
 
-        # will put these in the float bucket
-        extra_columns = new_columns - self.columns
-
         new_blocks = []
         for block in self.blocks:
-            new_cols = block.columns.intersection(new_columns)
-            if len(extra_columns) > 0 and block.dtype == np.float64:
-                new_cols = new_cols.union(extra_columns)
+            newb = block.reindex_columns_from(new_columns)
+            if len(newb.columns) > 0:
+                new_blocks.append(newb)
 
-            if len(new_cols) == 0:
-                continue
+        # will put these in the float bucket
+        extra_columns = new_columns - self.columns
+        if len(extra_columns):
+            # create new block, then consolidate
+            indexer, mask = extra_columns.get_indexer(new_columns)
 
-            newb = block.reindex_columns(new_cols)
+            # reorder to match relative order of new columns
+            extra_columns = extra_columns.take(indexer[mask])
+
+            values = _nan_array(self.index, extra_columns)
+            newb = make_block(values, extra_columns)
             new_blocks.append(newb)
-
-        dtypes = [x.dtype for x in self.blocks]
-        if len(extra_columns) > 0 and np.float64 not in dtypes:
-            raise Exception('deal with this later')
+            new_blocks = _consolidate(new_blocks)
 
         return BlockManager(new_blocks, self.index, new_columns)
+
+    def fillna(self, value):
+        new_blocks = [b.fillna(value) for b in self.blocks]
+        return BlockManager(new_blocks, self.index, self.columns)
 
 def _slice_blocks(blocks, slice_obj):
     new_blocks = []
     for block in blocks:
-        newb = Block(block.values[slice_obj], block.columns)
+        newb = make_block(block.values[slice_obj], block.columns)
         new_blocks.append(newb)
     return new_blocks
 
@@ -473,7 +559,7 @@ def _consolidate(blocks):
 def _merge_blocks(blocks):
     new_values = np.hstack([b.values for b in blocks])
     new_columns = np.concatenate([b.columns for b in blocks])
-    new_block = Block(new_values, new_columns)
+    new_block = make_block(new_values, new_columns)
     return new_block
 
 def _xs(blocks, i, copy=True):
@@ -499,7 +585,7 @@ def _union_block_columns(blocks):
 def _nan_manager_matching(index, columns):
     # what if one of these is empty?
     values = _nan_array(index, columns)
-    block = Block(values, columns)
+    block = make_block(values, columns)
     return BlockManager([block], columns)
 
 def _nan_array(index, columns, dtype=np.float64):
@@ -537,8 +623,8 @@ if __name__ == '__main__':
     index = np.arange(n)
     new_columns = Index(['a', 'c', 'e', 'b', 'd'])
 
-    fblock = Block(floats, float_cols)
-    oblock = Block(objects, object_cols)
+    fblock = make_block(floats, float_cols)
+    oblock = make_block(objects, object_cols)
 
     blocks = [fblock, oblock]
 

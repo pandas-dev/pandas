@@ -352,6 +352,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(frame.columns is idx)
         self.assertEqual(len(frame._series), 3)
 
+    def test_constructor_mixed(self):
+        self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
+
     def test_constructor_dict_cast(self):
         # cast float tests
         test_data = {
@@ -837,8 +840,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(isinstance(dm, DataMatrix))
 
     def test_info(self):
-        self.frame.info()
-        self.tsframe.info()
+        io = StringIO()
+        self.frame.info(buf=io)
+        self.tsframe.info(buf=io)
 
     def test_rows(self):
         self.assert_(self.tsframe.rows() is self.tsframe.index)
@@ -1601,7 +1605,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         source = self.klass({'MergedA' : data['A'], 'MergedD' : data['D']},
                             index=data['C'])
         merged = target.join(source, on='C')
-
         self.assert_(np.array_equal(merged['MergedA'], target['A']))
         self.assert_(np.array_equal(merged['MergedD'], target['D']))
 
@@ -1849,4 +1852,4 @@ if __name__ == '__main__':
     #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-    frame = self.klass({'col1' : self.ts1, 'col2' : self.ts2}, columns=['col2', 'col3', 'col4'])
+

@@ -122,29 +122,8 @@ class DataMatrix(DataFrame):
         if on not in self:
             raise Exception('%s column not contained in this frame!' % on)
 
-        fillVec, mask = tseries.getMergeVec(self[on],
-                                            other.index.indexMap)
-        notmask = -mask
-
-        tmpMatrix = other.values.take(fillVec, axis=0)
-        tmpMatrix[notmask] = nan
-
-        seriesDict = dict((col, tmpMatrix[:, j])
-                           for j, col in enumerate(other.columns))
-
-        if getattr(other, 'objects'):
-            objects = other.objects
-
-            tmpMat = objects.values.take(fillVec, axis=0)
-            tmpMat[notmask] = nan
-            objDict = dict((col, tmpMat[:, j])
-                           for j, col in enumerate(objects.columns))
-
-            seriesDict.update(objDict)
-
-        filledFrame = DataFrame(data=seriesDict, index=self.index)
-
-        return self.join(filledFrame, how='left')
+        new_data = self.data.join_on(other.data, self[on])
+        return DataMatrix(new_data)
 
     def _reindex_index(self, new_index, method):
         if new_index is self.index:
@@ -160,22 +139,6 @@ class DataMatrix(DataFrame):
 
         new_data = self._data.reindex_columns(new_columns)
         return DataMatrix(new_data)
-
-        # indexer, mask = self.columns.get_indexer(columns)
-        # mat = self.values.take(indexer, axis=1)
-
-        # notmask = -mask
-        # if len(mask) > 0:
-        #     if notmask.any():
-        #         if issubclass(mat.dtype.type, np.int_):
-        #             mat = mat.astype(float)
-        #         elif issubclass(mat.dtype.type, np.bool_):
-        #             mat = mat.astype(float)
-
-        #         common.null_out_axis(mat, notmask, 1)
-
-        # return DataMatrix(mat, index=self.index, columns=columns,
-        #                   objects=objects)
 
     def _rename_columns_inplace(self, mapper):
         self.columns = [mapper(x) for x in self.columns]
@@ -257,77 +220,32 @@ class DataMatrix(DataFrame):
 # "Magic methods"
 
     def __getstate__(self):
-        if self.objects is not None:
-            objects = self.objects._matrix_state(pickle_index=False)
-        else:
-            objects = None
-
-        state = self._matrix_state()
-
-        return (state, objects)
-
-    def _matrix_state(self, pickle_index=True):
-        columns = _pickle_array(self.columns)
-
-        if pickle_index:
-            index = _pickle_array(self.index)
-        else:
-            index = None
-
-        return self.values, index, columns
+        return self._data
 
     def __setstate__(self, state):
+        if len(state) == 2:
+            # old pickling format, for compatibility
+            self._unpickle_compat(state)
+            return
+
+        self._data = state
+
+    def _unpickle_compat(self, state): # pragma: no cover
+        # old unpickling
         (vals, idx, cols), object_state = state
 
-        self.values = vals
-        self.index = _unpickle_array(idx)
-        self.columns = _unpickle_array(cols)
+        index = _unpickle_array(idx)
+        dm = DataMatrix(vals, index=index,
+                        columns=_unpickle_array(cols))
 
-        if object_state:
+        if object_state is not None:
             ovals, _, ocols = object_state
-            self.objects = DataMatrix(ovals,
-                                      index=self.index,
-                                      columns=_unpickle_array(ocols))
-        else:
-            self.objects = None
+            objects = DataMatrix(ovals, index=index,
+                                 columns=_unpickle_array(ocols))
 
-    """
-    def __getstate__(self):
-        if self.objects is not None:
-            objects = self.objects._matrix_state(pickle_index=False)
-        else:
-            objects = None
+            dm = dm.join(objects)
 
-        state = self._matrix_state()
-
-        return (state, objects)
-
-    def _matrix_state(self, pickle_index=True):
-        columns = _pickle_array(self.columns)
-
-        if pickle_index:
-            index = _pickle_array(self.index)
-        else:
-            index = None
-
-        return self.values, index, columns
-
-    def __setstate__(self, state):
-        (vals, idx, cols), object_state = state
-
-        self.values = vals
-        self.index = _unpickle_array(idx)
-        self.columns = _unpickle_array(cols)
-
-        if object_state:
-            ovals, _, ocols = object_state
-            self.objects = DataMatrix(ovals,
-                                      index=self.index,
-                                      columns=_unpickle_array(ocols))
-        else:
-            self.objects = None
-
-    """
+        self._data = dm._data
 
     def __getitem__(self, item):
         """
@@ -601,23 +519,14 @@ class DataMatrix(DataFrame):
             series = self._series
             for col, s in series.iteritems():
                 result[col] = s.fillna(method=method, value=value)
-
-            return DataMatrix(result, index=self.index, objects=self.objects)
+            return DataMatrix(result, index=self.index)
         else:
             # Float type values
             if len(self.columns) == 0:
                 return self
 
-            vals = self.values.copy()
-            vals.flat[common.isnull(vals.ravel())] = value
-
-            objects = None
-
-            if self.objects is not None:
-                objects = self.objects.copy()
-
-            return DataMatrix(vals, index=self.index, columns=self.columns,
-                              objects=objects)
+            new_data = self._data.fillna(value)
+            return DataMatrix(new_data)
 
     def xs(self, key, copy=True):
         """
@@ -635,10 +544,8 @@ class DataMatrix(DataFrame):
             raise Exception('No cross-section for %s' % key)
 
         self._consolidate_inplace()
-
         loc = self.index.get_loc(key)
-        xs = self._data.xs(loc, copy=copy)
-        return Series(xs, index=self.columns)
+        return self._data.xs(loc, copy=copy)
 
     @property
     def T(self):
@@ -672,31 +579,28 @@ class DataMatrix(DataFrame):
         if timeRule is not None and offset is None:
             offset = datetools.getOffset(timeRule)
 
-        if offset is None:
-            indexer = self._shift_indexer(periods)
-            new_values = self.values.take(indexer, axis=0)
-            new_index = self.index
-
+        def _shift_block(blk, indexer):
+            new_values = blk.values.take(indexer, axis=0)
+            # convert integer to float if necessary. need to do a lot more than
+            # that, handle boolean etc also
             new_values = common.ensure_float(new_values)
-
             if periods > 0:
                 new_values[:periods] = nan
             else:
                 new_values[periods:] = nan
+            return Block(new_values, blk.columns)
+
+        if offset is None:
+            indexer = self._shift_indexer(periods)
+            new_blocks = [_shift_block(b, indexer) for b in self._data.blocks]
+            new_data = BlockManager(new_blocks, self.index, self.columns)
+            new_index = self.index
         else:
             new_index = self.index.shift(periods, offset)
-            new_values = self.values.copy()
+            new_data = self._data.copy()
 
-        if self.objects is not None:
-            shifted_objects = self.objects.shift(periods, offset=offset,
-                                                 timeRule=timeRule)
-
-            shifted_objects.index = new_index
-        else:
-            shifted_objects = None
-
-        return DataMatrix(data=new_values, index=new_index,
-                          columns=self.columns, objects=shifted_objects)
+        return DataMatrix(data=new_data, index=new_index,
+                          columns=self.columns)
 
 _data_types = [np.float_, np.int_]
 
@@ -768,6 +672,7 @@ def _form_blocks(data, index, columns):
 
     blocks = []
 
+    # TODO: find corner cases
     # oof, this sucks
     fcolumns = extra_columns.union(float_dict.keys())
     if len(fcolumns) > 0:

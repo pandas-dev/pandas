@@ -1729,7 +1729,7 @@ class DataFrame(PandasGeneric):
 
             return result
 
-        indexer, mask = tseries.getMergeVec(self[on], other.index.indexMap)
+        indexer, mask = other.index.get_indexer(self[on])
         notmask = -mask
         need_mask = notmask.any()
 
