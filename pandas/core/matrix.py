@@ -11,7 +11,7 @@ from pandas.core.common import (_pickle_array, _unpickle_array, _try_sort)
 from pandas.core.frame import (DataFrame, extract_index, _homogenize_series,
                                _default_index, _ensure_index, _prep_ndarray)
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.internals import BlockManager, Block
+from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -52,10 +52,11 @@ class DataMatrix(DataFrame):
             mgr = data
         elif isinstance(data, DataMatrix):
             mgr = data._data.copy()
-
             if dtype is not None:
                 mgr = mgr.cast(dtype)
-
+        # HACK
+        elif isinstance(data, DataFrame):
+            mgr = _init_dict(data._series, index, columns, dtype)
         elif isinstance(data, dict):
             mgr = _init_dict(data, index, columns, dtype)
         elif isinstance(data, (np.ndarray, list)):
@@ -122,7 +123,7 @@ class DataMatrix(DataFrame):
         if on not in self:
             raise Exception('%s column not contained in this frame!' % on)
 
-        new_data = self.data.join_on(other.data, self[on])
+        new_data = self._data.join_on(other._data, self[on])
         return DataMatrix(new_data)
 
     def _reindex_index(self, new_index, method):
@@ -588,7 +589,7 @@ class DataMatrix(DataFrame):
                 new_values[:periods] = nan
             else:
                 new_values[periods:] = nan
-            return Block(new_values, blk.columns)
+            return make_block(new_values, blk.columns)
 
         if offset is None:
             indexer = self._shift_indexer(periods)
@@ -690,7 +691,7 @@ def _simple_blockify(dct, dtype):
     # CHECK DTYPE?
     if values.dtype != dtype:
         values = values.astype(dtype)
-    return Block(values, columns)
+    return make_block(values, columns)
 
 def _stack_dict(dct):
     columns = Index(_try_sort(dct))
@@ -710,7 +711,7 @@ def _float_blockify(dct, index, columns):
         values[:, indexer] = stacked
 
     # do something with dtype?
-    return Block(values, columns)
+    return make_block(values, columns)
 
 def _init_matrix(values, index, columns, dtype):
     values = _prep_ndarray(values)
@@ -737,7 +738,7 @@ def _init_matrix(values, index, columns, dtype):
         columns = _default_index(K)
 
     columns = _ensure_index(columns)
-    block = Block(values, columns)
+    block = make_block(values, columns)
     return BlockManager([block], index, columns)
 
 def _reorder_columns(mat, current, desired):

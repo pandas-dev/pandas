@@ -248,6 +248,9 @@ class BlockManager(object):
         for block in self.blocks:
             assert(len(block) == length)
 
+        tot_cols = sum(len(x.columns) for x in self.blocks)
+        assert(len(self.columns) == tot_cols)
+
     def cast(self, dtype):
         new_blocks = []
         for block in self.blocks:
@@ -407,8 +410,8 @@ class BlockManager(object):
     def rename(self, mapper):
         pass
 
-    def reindex_index(self, new_index, method):
-        assert(isinstance(new_index, Index))
+    def reindex_index(self, new_index, method=None):
+        new_index = _ensure_index(new_index)
         indexer, mask = self.index.get_indexer(new_index, method)
 
         # TODO: deal with length-0 case? or does it fall out?
@@ -427,11 +430,11 @@ class BlockManager(object):
         # TODO
         assert(self.index.equals(other.index))
         consolidated = _consolidate(self.blocks + other.blocks)
-        cons_columns = _union_block_columns(self.blocks)
+        cons_columns = _union_block_columns(consolidated)
         return BlockManager(consolidated, self.index, cons_columns)
 
     def join_on(self, other, on):
-        reindexed = other.reindex(on)
+        reindexed = other.reindex_index(on)
         reindexed.index = self.index
         return self.merge(reindexed)
 

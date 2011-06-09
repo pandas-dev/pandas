@@ -1,4 +1,4 @@
-# pylint: disable-msg=W0612
+# pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
 from cStringIO import StringIO
@@ -304,6 +304,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         indexed_frame = self.klass(data, index=index)
         unindexed_frame = self.klass(data)
 
+        self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
+
     def test_constructor_dict(self):
         frame = self.klass({'col1' : self.ts1,
                             'col2' : self.ts2})
@@ -351,9 +353,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(frame.index is idx)
         self.assert_(frame.columns is idx)
         self.assertEqual(len(frame._series), 3)
-
-    def test_constructor_mixed(self):
-        self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
 
     def test_constructor_dict_cast(self):
         # cast float tests
