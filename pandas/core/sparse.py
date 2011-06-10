@@ -751,6 +751,16 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self.default_fill_value)
 
+    def transpose(self):
+        """
+        Returns a DataFrame with the rows/columns switched.
+        """
+        return SparseDataFrame(self.values.T, index=self.columns,
+                               columns=self.index,
+                               default_fill_value=self.default_fill_value,
+                               default_kind=self.default_kind)
+    T = property(transpose)
+
 def stack_sparse_frame(frame):
     """
     Only makes sense when fill_value is NaN

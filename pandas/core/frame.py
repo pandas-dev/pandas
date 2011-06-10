@@ -129,12 +129,8 @@ class DataFrame(PandasGeneric):
             sdict, columns, index = self._init_matrix(data, index, columns,
                                                       dtype)
         elif isinstance(data, DataFrame):
-            sdict = data._series.copy()
-
-            if dtype is not None:
-                sdict = dict((k, v.astype(dtype)) for k, v in data.iteritems())
-            index = data.index
-            columns = data.columns
+            sdict, columns, index = self._init_dict(data, data.index,
+                                                    data.columns, dtype)
         elif data is None:
             sdict = {}
 
@@ -2467,6 +2463,8 @@ def _homogenize_series(data, index, dtype=None, force_copy=True):
 
     for k, v in data.iteritems():
         if isinstance(v, Series):
+            if dtype is not None:
+                v = v.astype(dtype)
             if v.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later

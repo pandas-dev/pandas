@@ -25,6 +25,9 @@ from pandas.core.sparse import (IntIndex, BlockIndex,
                                 SparseSeries, SparseDataFrame,
                                 SparseWidePanel)
 
+import test_panel
+
+
 """
 Testing TODO
 
@@ -616,6 +619,11 @@ class TestSparseDataFrame(TestCase):
         reindexed = self.frame.reindex(idx)
         assert_sp_frame_equal(cons, reindexed)
 
+    def test_constructor_dataframe(self):
+        dense = self.frame.to_dense()
+        sp = SparseDataFrame(dense)
+        assert_sp_frame_equal(sp, self.frame)
+
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())
@@ -840,20 +848,28 @@ class TestSparseDataFrame(TestCase):
         self.assertRaises(Exception, _check, self.zframe)
         self.assertRaises(Exception, _check, self.fill_frame)
 
+    def test_transpose(self):
+        def _check(frame):
+            transposed = frame.T
+            untransposed = transposed.T
+            assert_sp_frame_equal(frame, untransposed)
+        self._check_all(_check)
+
     def _check_all(self, check_func):
         check_func(self.frame)
         check_func(self.iframe)
         check_func(self.zframe)
         check_func(self.fill_frame)
 
+
 def panel_data1():
     index = DateRange('1/1/2011', periods=8)
 
     return DataFrame({
-        'a' : [nan, nan, nan, 0, 1, 2, 3, 4],
-        'b' : [0, 1, 2, 3, 4, nan, nan, nan],
-        'c' : [0, 1, 2, nan, nan, nan, 3, 4],
-        'd' : [nan, 0, 1, nan, 2, 3, 4, nan]
+        'A' : [nan, nan, nan, 0, 1, 2, 3, 4],
+        'B' : [0, 1, 2, 3, 4, nan, nan, nan],
+        'C' : [0, 1, 2, nan, nan, nan, 3, 4],
+        'D' : [nan, 0, 1, nan, 2, 3, 4, nan]
         }, index=index)
 
 
@@ -861,10 +877,10 @@ def panel_data2():
     index = DateRange('1/1/2011', periods=9)
 
     return DataFrame({
-        'a' : [nan, nan, nan, 0, 1, 2, 3, 4, 5],
-        'b' : [0, 1, 2, 3, 4, 5, nan, nan, nan],
-        'c' : [0, 1, 2, nan, nan, nan, 3, 4, 5],
-        'd' : [nan, 0, 1, nan, 2, 3, 4, 5, nan]
+        'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5],
+        'B' : [0, 1, 2, 3, 4, 5, nan, nan, nan],
+        'C' : [0, 1, 2, nan, nan, nan, 3, 4, 5],
+        'D' : [nan, 0, 1, nan, 2, 3, 4, 5, nan]
         }, index=index)
 
 
@@ -872,15 +888,19 @@ def panel_data3():
     index = DateRange('1/1/2011', periods=10).shift(-2)
 
     return DataFrame({
-        'a' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
-        'b' : [0, 1, 2, 3, 4, 5, 6, nan, nan, nan],
-        'c' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-        'd' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
+        'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+        'B' : [0, 1, 2, 3, 4, 5, 6, nan, nan, nan],
+        'C' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+        'D' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
         }, index=index)
 
-import test_panel
+class TestSparseWidePanel(TestCase,
+                          test_panel.SafeForLongAndSparse,
+                          test_panel.SafeForSparse):
 
-class TestSparseWidePanel(TestCase, test_panel.SafeForSparseTests):
+    @staticmethod
+    def assert_panel_equal(x, y):
+        assert_sp_panel_equal(x, y)
 
     def setUp(self):
         self.data_dict = {
@@ -890,6 +910,12 @@ class TestSparseWidePanel(TestCase, test_panel.SafeForSparseTests):
             'ItemD' : panel_data1(),
         }
         self.panel = SparseWidePanel(self.data_dict)
+
+    @staticmethod
+    def _test_op(panel, op):
+        # arithmetic tests
+        result = op(panel, 1)
+        assert_sp_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_constructor(self):
         self.assertRaises(Exception, SparseWidePanel, self.data_dict,
@@ -906,6 +932,11 @@ class TestSparseWidePanel(TestCase, test_panel.SafeForSparseTests):
             assert_sp_panel_equal(panel, unpickled)
 
         _test_roundtrip(self.panel)
+
+    def test_dense_to_sparse(self):
+        wp = WidePanel.from_dict(self.data_dict)
+        dwp = wp.to_sparse()
+        self.assert_(isinstance(dwp['ItemA']['A'], SparseSeries))
 
     def test_to_dense(self):
         dwp = self.panel.to_dense()
