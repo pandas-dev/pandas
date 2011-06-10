@@ -616,6 +616,11 @@ class TestSparseDataFrame(TestCase):
         reindexed = self.frame.reindex(idx)
         assert_sp_frame_equal(cons, reindexed)
 
+    def test_constructor_dataframe(self):
+        dense = self.frame.to_dense()
+        sp = SparseDataFrame(dense)
+        assert_sp_frame_equal(sp, self.frame)
+
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())
@@ -840,11 +845,19 @@ class TestSparseDataFrame(TestCase):
         self.assertRaises(Exception, _check, self.zframe)
         self.assertRaises(Exception, _check, self.fill_frame)
 
+    def test_transpose(self):
+        def _check(frame):
+            transposed = frame.T
+            untransposed = transposed.T
+            assert_sp_frame_equal(frame, untransposed)
+        self._check_all(_check)
+
     def _check_all(self, check_func):
         check_func(self.frame)
         check_func(self.iframe)
         check_func(self.zframe)
         check_func(self.fill_frame)
+
 
 def panel_data1():
     index = DateRange('1/1/2011', periods=8)
@@ -906,6 +919,11 @@ class TestSparseWidePanel(TestCase, test_panel.SafeForSparseTests):
             assert_sp_panel_equal(panel, unpickled)
 
         _test_roundtrip(self.panel)
+
+    def test_dense_to_sparse(self):
+        wp = WidePanel.from_dict(self.data_dict)
+        dwp = wp.to_sparse()
+        self.assert_(isinstance(dwp['ItemA']['a'], SparseSeries))
 
     def test_to_dense(self):
         dwp = self.panel.to_dense()

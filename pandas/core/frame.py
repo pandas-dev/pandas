@@ -128,12 +128,8 @@ class DataFrame(PandasGeneric):
             sdict, columns, index = self._init_matrix(data, index, columns,
                                                       dtype)
         elif isinstance(data, DataFrame):
-            sdict = data._series.copy()
-
-            if dtype is not None:
-                sdict = dict((k, v.astype(dtype)) for k, v in data.iteritems())
-            index = data.index
-            columns = data.columns
+            sdict, columns, index = self._init_dict(data, data.index,
+                                                    data.columns, dtype)
         elif data is None:
             sdict = {}
 
@@ -164,6 +160,8 @@ class DataFrame(PandasGeneric):
         for k, v in data.iteritems():
             if isinstance(v, Series):
                 # Forces alignment and copies data
+                if dtype is not None:
+                    v = v.astype(dtype)
                 sdict[k] = v.reindex(index)
             else:
                 if isinstance(v, dict):

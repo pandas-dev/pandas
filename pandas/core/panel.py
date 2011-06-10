@@ -241,6 +241,28 @@ class WidePanel(Panel, PandasGeneric):
 
     fromDict = from_dict
 
+    def to_sparse(self, fill_value=None, kind='block'):
+        """
+        Convert to SparseWidePanel
+
+        Parameters
+        ----------
+        fill_value : float, default NaN
+        kind : {'block', 'integer'}
+
+        Returns
+        -------
+        y : SparseDataFrame
+        """
+        from pandas.core.sparse import SparseWidePanel
+        frames = dict(self.iteritems())
+        return SparseWidePanel(frames, items=self.items,
+                               major_axis=self.major_axis,
+                               minor_axis=self.minor_axis,
+                               default_kind=kind,
+                               default_fill_value=fill_value)
+
+
     def keys(self):
         return list(self.items)
 
