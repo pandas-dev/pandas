@@ -760,6 +760,25 @@ class SparseDataFrame(DataFrame):
                                default_kind=self.default_kind)
     T = property(transpose)
 
+    def count(self, axis=0):
+        """
+        Return array or Series of # observations over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Notes
+        -----
+        Also examines non-float data and checks for None and NaN in such data
+
+        Returns
+        -------
+        Series or TimeSeries
+        """
+        return self.apply(SparseSeries.count, axis=0)
+
 def stack_sparse_frame(frame):
     """
     Only makes sense when fill_value is NaN
