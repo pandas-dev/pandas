@@ -866,10 +866,10 @@ def panel_data1():
     index = DateRange('1/1/2011', periods=8)
 
     return DataFrame({
-        'a' : [nan, nan, nan, 0, 1, 2, 3, 4],
-        'b' : [0, 1, 2, 3, 4, nan, nan, nan],
-        'c' : [0, 1, 2, nan, nan, nan, 3, 4],
-        'd' : [nan, 0, 1, nan, 2, 3, 4, nan]
+        'A' : [nan, nan, nan, 0, 1, 2, 3, 4],
+        'B' : [0, 1, 2, 3, 4, nan, nan, nan],
+        'C' : [0, 1, 2, nan, nan, nan, 3, 4],
+        'D' : [nan, 0, 1, nan, 2, 3, 4, nan]
         }, index=index)
 
 
@@ -877,10 +877,10 @@ def panel_data2():
     index = DateRange('1/1/2011', periods=9)
 
     return DataFrame({
-        'a' : [nan, nan, nan, 0, 1, 2, 3, 4, 5],
-        'b' : [0, 1, 2, 3, 4, 5, nan, nan, nan],
-        'c' : [0, 1, 2, nan, nan, nan, 3, 4, 5],
-        'd' : [nan, 0, 1, nan, 2, 3, 4, 5, nan]
+        'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5],
+        'B' : [0, 1, 2, 3, 4, 5, nan, nan, nan],
+        'C' : [0, 1, 2, nan, nan, nan, 3, 4, 5],
+        'D' : [nan, 0, 1, nan, 2, 3, 4, 5, nan]
         }, index=index)
 
 
@@ -888,15 +888,19 @@ def panel_data3():
     index = DateRange('1/1/2011', periods=10).shift(-2)
 
     return DataFrame({
-        'a' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
-        'b' : [0, 1, 2, 3, 4, 5, 6, nan, nan, nan],
-        'c' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-        'd' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
+        'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+        'B' : [0, 1, 2, 3, 4, 5, 6, nan, nan, nan],
+        'C' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+        'D' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
         }, index=index)
 
 class TestSparseWidePanel(TestCase,
                           test_panel.SafeForLongAndSparse,
                           test_panel.SafeForSparse):
+
+    @staticmethod
+    def assert_panel_equal(x, y):
+        assert_sp_panel_equal(x, y)
 
     def setUp(self):
         self.data_dict = {
@@ -932,7 +936,7 @@ class TestSparseWidePanel(TestCase,
     def test_dense_to_sparse(self):
         wp = WidePanel.from_dict(self.data_dict)
         dwp = wp.to_sparse()
-        self.assert_(isinstance(dwp['ItemA']['a'], SparseSeries))
+        self.assert_(isinstance(dwp['ItemA']['A'], SparseSeries))
 
     def test_to_dense(self):
         dwp = self.panel.to_dense()
