@@ -82,7 +82,7 @@ class TestOLS(BaseTest):
         assert_almost_equal(reference.rsquared_adj, result._r2_adj_raw)
         assert_almost_equal(reference.resid, result._resid_raw)
         assert_almost_equal(reference.bse, result._std_err_raw)
-        assert_almost_equal(reference.t(), result._t_stat_raw)
+        assert_almost_equal(reference.tvalues, result._t_stat_raw)
         assert_almost_equal(reference.cov_params(), result._var_beta_raw)
         assert_almost_equal(reference.fittedvalues, result._y_fitted_raw)
 
