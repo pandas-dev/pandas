@@ -334,9 +334,12 @@ class TestPanelOLS(BaseTest):
                             nw_overlap=True)
 
     def testRollingWithWeights(self):
-        weights = self.panel_y.copy()
+        idx = self.panel_y.index
+        cols = self.panel_y.columns
 
-        weights.values = np.random.standard_normal(weights.values.shape)
+
+        weights = DataMatrix(np.random.standard_normal((len(idx), len(cols))),
+                             index=idx, columns=cols)
         self.checkMovingOLS(self.panel_x,
                             self.panel_y, weights=weights)
 

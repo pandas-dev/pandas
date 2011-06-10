@@ -574,9 +574,10 @@ class SparseDataFrame(DataFrame):
             columns = _ensure_index(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in columns)
         else:
-            columns = Index(try_sort(data.keys()))
+            columns = Index(_try_sort(data.keys()))
 
-        index = extract_index(data, index)
+        if index is None:
+            index = extract_index(data)
 
         sp_maker = lambda x: SparseSeries(x, index=index,
                                           kind=self.default_kind,

@@ -387,7 +387,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         frame = self.klass(mat, columns=['A', 'B', 'C'], index=[1, 2])
 
         self.assertEqual(len(frame.index), 2)
-        self.assertEqual(len(frame.cols()), 3)
+        self.assertEqual(len(frame.columns), 3)
 
         # cast type
         frame = self.klass(mat, columns=['A', 'B', 'C'],
@@ -397,7 +397,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # 1-D input
         frame = self.klass(np.zeros(3), columns=['A'], index=[1, 2, 3])
         self.assertEqual(len(frame.index), 3)
-        self.assertEqual(len(frame.cols()), 1)
+        self.assertEqual(len(frame.columns), 1)
 
         frame = self.klass(['foo', 'bar'], index=[0, 1], columns=['A'])
         self.assertEqual(len(frame), 2)
@@ -416,10 +416,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # automatic labeling
         frame = self.klass(mat)
         self.assert_(np.array_equal(frame.index, range(2)))
-        self.assert_(np.array_equal(frame.cols(), range(3)))
+        self.assert_(np.array_equal(frame.columns, range(3)))
 
         frame = self.klass(mat, index=[1, 2])
-        self.assert_(np.array_equal(frame.cols(), range(3)))
+        self.assert_(np.array_equal(frame.columns, range(3)))
 
         frame = self.klass(mat, columns=['A', 'B', 'C'])
         self.assert_(np.array_equal(frame.index, range(2)))
@@ -429,7 +429,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(frame.index is NULL_INDEX)
 
         frame = self.klass(np.empty((3, 0)))
-        self.assert_(len(frame.cols()) == 0)
+        self.assert_(len(frame.columns) == 0)
 
     def test_constructor_corner(self):
         df = self.klass(index=[])
@@ -603,14 +603,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_('foo' not in self.frame)
 
     def test_iter(self):
-        self.assert_(common.equalContents(list(self.frame), self.frame.cols()))
+        self.assert_(common.equalContents(list(self.frame), self.frame.columns))
 
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
 
     def test_operators(self):
         garbage = random.random(4)
-        colSeries = Series(garbage, index=np.array(self.frame.cols()))
+        colSeries = Series(garbage, index=np.array(self.frame.columns))
 
         idSum = self.frame + self.frame
         seriesSum = self.frame + colSeries
@@ -823,7 +823,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_frame_equal(self.tsframe, recons)
 
         recons = self.klass.fromcsv(path, index_col=None)
-        assert(len(recons.cols()) == len(self.tsframe.cols()) + 1)
+        assert(len(recons.columns) == len(self.tsframe.columns) + 1)
 
 
         # no index
@@ -845,19 +845,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
     def test_rows(self):
         self.assert_(self.tsframe.rows() is self.tsframe.index)
-
-    def test_cols(self):
-        cols = self.tsframe.cols()
-        self.assert_(isinstance(cols, list))
-        self.assert_(np.array_equal(self.tsframe.columns, cols))
-
-        mcols = self.mixed_frame.cols()
-
-        if hasattr(self.mixed_frame, 'objects'):
-            self.assert_(not np.array_equal(self.mixed_frame.columns,
-                                            mcols))
-        else:
-            self.assert_(np.array_equal(self.mixed_frame.columns, mcols))
 
     def test_columns(self):
         pass
@@ -925,7 +912,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         mat = frame.asMatrix()
         smallerCols = ['C', 'A']
 
-        frameCols = frame.cols()
+        frameCols = frame.columns
         for i, row in enumerate(mat):
             for j, value in enumerate(row):
                 col = frameCols[j]
@@ -1115,7 +1102,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 
-        for col in newFrame.cols():
+        for col in newFrame.columns:
             for idx, val in newFrame[col].iteritems():
                 if idx in self.frame.index:
                     if np.isnan(val):
@@ -1133,7 +1120,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # Cython code should be unit-tested directly
         nonContigFrame = self.frame.reindex(self.ts1.index[::2])
 
-        for col in nonContigFrame.cols():
+        for col in nonContigFrame.columns:
             for idx, val in nonContigFrame[col].iteritems():
                 if idx in self.frame.index:
                     if np.isnan(val):
@@ -1156,7 +1143,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # length zero
         newFrame = self.frame.reindex([])
         self.assert_(not newFrame)
-        self.assertEqual(len(newFrame.cols()), len(self.frame.cols()))
+        self.assertEqual(len(newFrame.columns), len(self.frame.columns))
 
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
@@ -1342,7 +1329,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # aggregate
         aggregated = grouped.aggregate(np.mean)
         self.assertEqual(len(aggregated), 5)
-        self.assertEqual(len(aggregated.cols()), 4)
+        self.assertEqual(len(aggregated.columns), 4)
 
         # by string
         tscopy = self.tsframe.copy()
@@ -1354,7 +1341,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # transform
         transformed = grouped.transform(lambda x: x - x.mean())
         self.assertEqual(len(transformed), 30)
-        self.assertEqual(len(transformed.cols()), 4)
+        self.assertEqual(len(transformed.columns), 4)
 
         # transform propagate
         transformed = grouped.transform(lambda x: x.mean())
@@ -1384,7 +1371,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # aggregate
         aggregated = grouped.aggregate(np.mean)
         self.assertEqual(len(aggregated), len(self.tsframe))
-        self.assertEqual(len(aggregated.cols()), 2)
+        self.assertEqual(len(aggregated.columns), 2)
 
         # transform
         tf = lambda x: x - x.mean()
@@ -1393,7 +1380,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # iterate
         for k, v in grouped:
-            self.assertEqual(len(v.cols()), 2)
+            self.assertEqual(len(v.columns), 2)
 
         # tgroupby
         grouping = {
@@ -1405,13 +1392,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         grouped = self.frame.tgroupby(grouping.get, np.mean)
         self.assertEqual(len(grouped), len(self.frame.index))
-        self.assertEqual(len(grouped.cols()), 2)
+        self.assertEqual(len(grouped.columns), 2)
 
     def test_filter(self):
         # items
 
         filtered = self.frame.filter(['A', 'B', 'E'])
-        self.assertEqual(len(filtered.cols()), 2)
+        self.assertEqual(len(filtered.columns), 2)
         self.assert_('E' not in filtered)
 
         # like
@@ -1419,12 +1406,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         fcopy['AA'] = 1
 
         filtered = fcopy.filter(like='A')
-        self.assertEqual(len(filtered.cols()), 2)
+        self.assertEqual(len(filtered.columns), 2)
         self.assert_('AA' in filtered)
 
         # regex
         filtered = fcopy.filter(regex='[A]+')
-        self.assertEqual(len(filtered.cols()), 2)
+        self.assertEqual(len(filtered.columns), 2)
         self.assert_('AA' in filtered)
 
         # pass in None
@@ -1445,7 +1432,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         combined = head.combineFirst(tail)
         reordered_frame = self.frame.reindex(combined.index)
         assert_frame_equal(combined, reordered_frame)
-        self.assert_(common.equalContents(combined.cols(), self.frame.cols()))
+        self.assert_(common.equalContents(combined.columns, self.frame.columns))
         assert_series_equal(combined['A'], reordered_frame['A'])
 
         # same index
@@ -1511,7 +1498,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
 
         combined = frame1.combineFirst(frame2)
-        self.assertEqual(len(combined.cols()), 5)
+        self.assertEqual(len(combined.columns), 5)
 
     def test_combineAdd(self):
         # trivial
@@ -1554,15 +1541,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         joined = f.join(f2)
         self.assert_(f.index.equals(joined.index))
-        self.assertEqual(len(joined.cols()), 4)
+        self.assertEqual(len(joined.columns), 4)
 
         joined = f.join(f2, how='left')
         self.assert_(joined.index.equals(f.index))
-        self.assertEqual(len(joined.cols()), 4)
+        self.assertEqual(len(joined.columns), 4)
 
         joined = f.join(f2, how='right')
         self.assert_(joined.index.equals(f2.index))
-        self.assertEqual(len(joined.cols()), 4)
+        self.assertEqual(len(joined.columns), 4)
 
         # corner case
         self.assertRaises(Exception, self.frame.join, self.frame,
@@ -1575,7 +1562,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         joined = f.join(f2, how='inner')
         self.assert_(joined.index.equals(f.index.intersection(f2.index)))
-        self.assertEqual(len(joined.cols()), 4)
+        self.assertEqual(len(joined.columns), 4)
 
         # corner case
         self.assertRaises(Exception, self.frame.join, self.frame,
@@ -1588,7 +1575,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         joined = f.join(f2, how='outer')
         self.assert_(common.equalContents(self.frame.index, joined.index))
-        self.assertEqual(len(joined.cols()), 4)
+        self.assertEqual(len(joined.columns), 4)
 
         # corner case
         self.assertRaises(Exception, self.frame.join, self.frame,
@@ -1704,7 +1691,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_sum_object(self):
         values = self.frame.values.astype(int)
         frame = self.klass(values, index=self.frame.index,
-                           columns=self.frame.cols())
+                           columns=self.frame.columns)
         deltas = frame * timedelta(1)
         deltas.sum()
 
@@ -1726,7 +1713,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         the_mean = self.mixed_frame.mean(axis=0)
         the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
         self.assert_(the_sum.index.equals(the_mean.index))
-        self.assert_(len(the_mean.index) < len(self.mixed_frame.cols()))
+        self.assert_(len(the_mean.index) < len(self.mixed_frame.columns))
 
     def test_median(self):
         def f(x):

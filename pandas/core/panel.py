@@ -1932,7 +1932,7 @@ def _get_combined_columns(frames, intersect=False):
         combine = set.union
 
     for _, frame in frames.iteritems():
-        this_cols = set(frame.cols())
+        this_cols = set(frame.columns)
 
         if columns is None:
             columns = this_cols

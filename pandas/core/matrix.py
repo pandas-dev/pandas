@@ -1,13 +1,10 @@
-# pylint: disable=E1101,E1103
+# pylint: disable=E1101,E1103,E0202
 # pylint: disable=W0212,W0703,W0231,W0622
-
-from cStringIO import StringIO
-import sys
 
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import (_pickle_array, _unpickle_array, _try_sort)
+from pandas.core.common import (_unpickle_array, _try_sort)
 from pandas.core.frame import (DataFrame, extract_index, _homogenize_series,
                                _default_index, _ensure_index, _prep_ndarray)
 from pandas.core.index import Index, NULL_INDEX
@@ -15,7 +12,6 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
-import pandas.lib.tseries as tseries
 
 #-------------------------------------------------------------------------------
 # DataMatrix class
@@ -56,15 +52,69 @@ class DataMatrix(DataFrame):
                 mgr = mgr.cast(dtype)
         # HACK
         elif isinstance(data, DataFrame):
-            mgr = _init_dict(data._series, index, columns, dtype)
+            mgr = self._init_dict(data._series, index, columns, dtype)
         elif isinstance(data, dict):
-            mgr = _init_dict(data, index, columns, dtype)
+            mgr = self._init_dict(data, index, columns, dtype)
         elif isinstance(data, (np.ndarray, list)):
-            mgr = _init_matrix(data, index, columns, dtype)
+            mgr = self._init_matrix(data, index, columns, dtype)
         else:
             raise Exception('DataMatrix constructor not properly called!')
 
         self._data = mgr
+
+    def _init_dict(self, data, index, columns, dtype):
+        """
+        Segregate Series based on type and coerce into matrices.
+
+        Needs to handle a lot of exceptional cases.
+
+        Somehow this got outrageously complicated
+        """
+        # TODO: deal with emptiness!
+        # TODO: dtype casting?
+
+        # prefilter if columns passed
+        if columns is not None:
+            columns = _ensure_index(columns)
+            data = dict((k, v) for k, v in data.iteritems() if k in columns)
+
+        # figure out the index, if necessary
+        if index is None:
+            index = extract_index(data)
+
+        # don't force copy because getting jammed in an ndarray anyway
+        homogenized = _homogenize_series(data, index, dtype, force_copy=False)
+        # segregates dtypes and forms blocks matching to columns
+        blocks, columns = _form_blocks(homogenized, index, columns)
+        return BlockManager(blocks, index, columns)
+
+    def _init_matrix(self, values, index, columns, dtype):
+        values = _prep_ndarray(values)
+
+        if values.ndim == 1:
+            N = values.shape[0]
+            if N == 0:
+                values = values.reshape((values.shape[0], 0))
+            else:
+                values = values.reshape((values.shape[0], 1))
+
+        if dtype is not None:
+            try:
+                values = values.astype(dtype)
+            except Exception:
+                pass
+
+        N, K = values.shape
+
+        if index is None:
+            index = _default_index(N)
+
+        if columns is None:
+            columns = _default_index(K)
+
+        columns = _ensure_index(columns)
+        block = make_block(values, columns)
+        return BlockManager([block], index, columns)
 
     def _set_columns(self, cols):
         if len(cols) != self.values.shape[1]:
@@ -616,39 +666,14 @@ def _group_dtypes(data, columns):
 
     chunk_cols = []
     chunks = []
-    for dtype, gp_cols in itertools.groupby(columns, lambda x: data[x].dtype):
+    grouper = lambda x: data[x].dtype
+    for _, gp_cols in itertools.groupby(columns, grouper):
         chunk = np.vstack([data[k] for k in gp_cols]).T
 
         chunks.append(chunk)
         chunk_cols.append(gp_cols)
 
     return chunks, chunk_cols
-
-def _init_dict(data, index, columns, dtype):
-    """
-    Segregate Series based on type and coerce into matrices.
-
-    Needs to handle a lot of exceptional cases.
-
-    Somehow this got outrageously complicated
-    """
-    # TODO: deal with emptiness!
-    # TODO: dtype casting?
-
-    # prefilter if columns passed
-    if columns is not None:
-        columns = _ensure_index(columns)
-        data = dict((k, v) for k, v in data.iteritems() if k in columns)
-
-    # figure out the index, if necessary
-    if index is None:
-        index = extract_index(data)
-
-    # don't force copy because getting jammed in an ndarray anyway
-    homogenized = _homogenize_series(data, index, dtype, force_copy=False)
-    # segregates dtypes and forms blocks matching to columns
-    blocks, columns = _form_blocks(homogenized, index, columns)
-    return BlockManager(blocks, index, columns)
 
 def _form_blocks(data, index, columns):
     from pandas.core.internals import add_na_columns
@@ -706,7 +731,7 @@ def _simple_blockify(dct, dtype):
 
 def _stack_dict(dct):
     columns = Index(_try_sort(dct))
-    stacked = np.vstack([dct[k] for k in columns]).T
+    stacked = np.vstack([dct[k].values for k in columns]).T
     return columns, stacked
 
 def _float_blockify(dct, index, columns):
@@ -723,34 +748,6 @@ def _float_blockify(dct, index, columns):
 
     # do something with dtype?
     return make_block(values, columns)
-
-def _init_matrix(values, index, columns, dtype):
-    values = _prep_ndarray(values)
-
-    if values.ndim == 1:
-        N = values.shape[0]
-        if N == 0:
-            values = values.reshape((values.shape[0], 0))
-        else:
-            values = values.reshape((values.shape[0], 1))
-
-    if dtype is not None:
-        try:
-            values = values.astype(dtype)
-        except Exception:
-            pass
-
-    N, K = values.shape
-
-    if index is None:
-        index = _default_index(N)
-
-    if columns is None:
-        columns = _default_index(K)
-
-    columns = _ensure_index(columns)
-    block = make_block(values, columns)
-    return BlockManager([block], index, columns)
 
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)

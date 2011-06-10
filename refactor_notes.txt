@@ -1,3 +1,4 @@
+
 - Do blocks care about dtype?
   - No, I guess
 - C-contiguousness
@@ -9,6 +10,7 @@
 - Casting, want to continue to support?
 - Column ordering during consolidation
 - Different index passed with BlockManager
+- Set values attribute? Way to hack it? Should I?
 
 - Need sparse internal data structure
 
@@ -27,6 +29,8 @@ TODO
 ----
 - transpose with blocks
 - pickling w/ backwards compat
+
+extract_index--pass index! sparse breaking
 
 Mixed type handling
 -------------------

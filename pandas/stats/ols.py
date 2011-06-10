@@ -101,7 +101,7 @@ class OLS(object):
     @cache_readonly
     def beta(self):
         """Returns the betas in Series form."""
-        return Series(self._beta_raw, index=self._x.cols())
+        return Series(self._beta_raw, index=self._x.columns)
 
     @cache_readonly
     def _df_raw(self):
@@ -547,7 +547,7 @@ class MovingOLS(OLS):
         """Returns the betas in Series/DataMatrix form."""
         return DataMatrix(self._beta_raw,
                           index=self._result_index,
-                          columns=self._x.cols())
+                          columns=self._x.columns)
 
     @cache_readonly
     def rank(self):
@@ -591,7 +591,7 @@ class MovingOLS(OLS):
     @cache_readonly
     def p_value(self):
         """Returns the p values."""
-        cols = self.beta.cols()
+        cols = self.beta.columns
         return DataMatrix(self._p_value_raw, columns=cols,
                           index=self._result_index)
 
@@ -621,13 +621,13 @@ class MovingOLS(OLS):
     @cache_readonly
     def std_err(self):
         """Returns the standard err values."""
-        return DataMatrix(self._std_err_raw, columns=self.beta.cols(),
+        return DataMatrix(self._std_err_raw, columns=self.beta.columns,
                           index=self._result_index)
 
     @cache_readonly
     def t_stat(self):
         """Returns the t-stat value."""
-        return DataMatrix(self._t_stat_raw, columns=self.beta.cols(),
+        return DataMatrix(self._t_stat_raw, columns=self.beta.columns,
                           index=self._result_index)
 
     @cache_readonly
@@ -636,8 +636,8 @@ class MovingOLS(OLS):
         result = {}
         result_index = self._result_index
         for i in xrange(len(self._var_beta_raw)):
-            dm = DataMatrix(self._var_beta_raw[i], columns=self.beta.cols(),
-                            index=self.beta.cols())
+            dm = DataMatrix(self._var_beta_raw[i], columns=self.beta.columns,
+                            index=self.beta.columns)
             result[result_index[i]] = dm
 
         return WidePanel.fromDict(result, intersect=False)
@@ -682,7 +682,7 @@ class MovingOLS(OLS):
 
     def _calc_betas(self, x, y):
         N = len(self._index)
-        K = len(self._x.cols())
+        K = len(self._x.columns)
 
         betas = np.empty((N, K), dtype=float)
         betas[:] = np.NaN
@@ -735,7 +735,7 @@ class MovingOLS(OLS):
 
     def _cum_xx(self, x):
         dates = self._index
-        K = len(x.cols())
+        K = len(x.columns)
         valid = self._time_has_obs
         cum_xx = []
 
@@ -782,7 +782,7 @@ class MovingOLS(OLS):
         else:
             y_slicer = lambda s, dt: _y_converter(s.truncate(dt, dt))
 
-        last = np.zeros(len(x.cols()))
+        last = np.zeros(len(x.columns))
         for i, date in enumerate(dates):
             if not valid[i]:
                 cum_xy.append(last)

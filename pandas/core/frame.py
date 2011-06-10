@@ -124,9 +124,10 @@ class DataFrame(PandasGeneric):
 
     def __init__(self, data=None, index=None, columns=None, dtype=None):
         if isinstance(data, dict):
-            sdict, columns, index = _init_dict(data, index, columns, dtype)
+            sdict, columns, index = self._init_dict(data, index, columns, dtype)
         elif isinstance(data, (np.ndarray, list)):
-            sdict, columns, index = _init_matrix(data, index, columns, dtype)
+            sdict, columns, index = self._init_matrix(data, index, columns,
+                                                      dtype)
         elif isinstance(data, DataFrame):
             sdict = data._series.copy()
 
@@ -149,6 +150,47 @@ class DataFrame(PandasGeneric):
         self._series = sdict
         self.columns = columns
         self.index = index
+
+    def _init_dict(self, data, index, columns, dtype):
+        # pre-filter out columns if we passed it
+        if columns is not None:
+            columns = _ensure_index(columns)
+            data = dict((k, v) for k, v in data.iteritems() if k in columns)
+        else:
+            columns = Index(_try_sort(data.keys()))
+
+        if index is None:
+            index = extract_index(data)
+
+        sdict = _homogenize_series(data, index, dtype, force_copy=True)
+        # add in any other columns we want to have (completeness)
+        for c in columns:
+            if c not in sdict:
+                sdict[c] = Series(np.NaN, index=index)
+
+        return sdict, columns, index
+
+    def _init_matrix(self, data, index, columns, dtype):
+        data = _prep_ndarray(data)
+        if data.ndim == 1:
+            data = data.reshape((len(data), 1))
+        elif data.ndim != 2:
+            raise Exception('Must pass 2-d input!')
+
+        N, K = data.shape
+
+        if index is None:
+            index = _default_index(N)
+
+        if columns is None:
+            columns = _default_index(K)
+
+        if len(columns) != K:
+            raise Exception('Column length mismatch: %d vs. %d' %
+                            (len(columns), K))
+
+        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
+        return self._init_dict(data, index, columns, dtype)
 
     @property
     def _constructor(self):
@@ -2419,47 +2461,6 @@ def _prep_ndarray(values):
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object, copy=True)
     return values
-
-def _init_matrix(data, index, columns, dtype):
-    data = _prep_ndarray(data)
-    if data.ndim == 1:
-        data = data.reshape((len(data), 1))
-    elif data.ndim != 2:
-        raise Exception('Must pass 2-d input!')
-
-    N, K = data.shape
-
-    if index is None:
-        index = _default_index(N)
-
-    if columns is None:
-        columns = _default_index(K)
-
-    if len(columns) != K:
-        raise Exception('Column length mismatch: %d vs. %d' %
-                        (len(columns), K))
-
-    data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
-    return _init_dict(data, index, columns, dtype)
-
-def _init_dict(data, index, columns, dtype):
-    # pre-filter out columns if we passed it
-    if columns is not None:
-        columns = _ensure_index(columns)
-        data = dict((k, v) for k, v in data.iteritems() if k in columns)
-    else:
-        columns = Index(_try_sort(data.keys()))
-
-    if index is None:
-        index = extract_index(data)
-
-    sdict = _homogenize_series(data, index, dtype, force_copy=True)
-    # add in any other columns we want to have (completeness)
-    for c in columns:
-        if c not in sdict:
-            sdict[c] = Series(np.NaN, index=index)
-
-    return sdict, columns, index
 
 def _homogenize_series(data, index, dtype=None, force_copy=True):
     homogenized = {}

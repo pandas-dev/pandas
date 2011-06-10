@@ -202,15 +202,15 @@ class TestDataMatrix(test_frame.TestDataFrame):
         uncoercable_series = Series(['foo', 'bzr', 'baz'], index=range(3))
 
         dm[0] = np.ones(3)
-        self.assertEqual(len(dm.cols()), 3)
+        self.assertEqual(len(dm.columns), 3)
         # self.assert_(dm.objects is None)
 
         dm[1] = coercable_series
-        self.assertEqual(len(dm.cols()), 3)
+        self.assertEqual(len(dm.columns), 3)
         # self.assert_(dm.objects is None)
 
         dm[2] = uncoercable_series
-        self.assertEqual(len(dm.cols()), 3)
+        self.assertEqual(len(dm.columns), 3)
         # self.assert_(dm.objects is not None)
         self.assert_(dm[2].dtype == np.object_)
 
@@ -232,7 +232,7 @@ class TestDataMatrix(test_frame.TestDataFrame):
 
     def test_more_asMatrix(self):
         values = self.mixed_frame.asMatrix()
-        self.assertEqual(values.shape[1], len(self.mixed_frame.cols()))
+        self.assertEqual(values.shape[1], len(self.mixed_frame.columns))
 
     def test_reindex_boolean(self):
         frame = DataMatrix(np.ones((10, 2), dtype=bool),

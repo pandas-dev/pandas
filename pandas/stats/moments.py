@@ -86,8 +86,7 @@ def _process_data_structure(arg, kill_inf=True):
     if isinstance(arg, DataFrame):
         if isinstance(arg, DataMatrix):
             return_hook = lambda v: DataMatrix(v, index=arg.index,
-                                               columns=arg.columns,
-                                               objects=arg.objects)
+                                               columns=arg.columns)
         else:
             return_hook = lambda v: DataFrame(v, index=arg.index,
                                               columns=arg.columns)
