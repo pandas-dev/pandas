@@ -14,13 +14,29 @@ from pandas.core.panel import LongPanel
 from pandas.core.api import DataMatrix, Index, Series
 from pandas.stats.api import ols
 from pandas.stats.plm import NonPooledPanelOLS
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal)
+from pandas.util.testing import (assert_almost_equal, assert_series_equal,
+                                 assert_frame_equal)
 import pandas.util.testing as testing
 
 from common import BaseTest
 
 def _check_repr(obj):
-    '%s' % obj
+    repr(obj)
+    str(obj)
+
+def _compare_ols_results(model1, model2):
+    assert(type(model1) == type(model2))
+
+    if hasattr(model1, '_window_type'):
+        _compare_moving_ols(model1, model2)
+    else:
+        _compare_fullsample_ols(model1, model2)
+
+def _compare_fullsample_ols(model1, model2):
+    assert_series_equal(model1.beta, model2.beta)
+
+def _compare_moving_ols(model1, model2):
+    assert_frame_equal(model1.beta, model2.beta)
 
 class TestOLS(BaseTest):
 
@@ -70,8 +86,11 @@ class TestOLS(BaseTest):
             import scikits.statsmodels as sm
 
         reference = sm.OLS(endog, sm.add_constant(exog)).fit()
-
         result = ols(y=y, x=x)
+
+        # check that sparse version is the same
+        sparse_result = ols(y=y.to_sparse(), x=x.to_sparse())
+        _compare_ols_results(result, sparse_result)
 
         assert_almost_equal(reference.params, result._beta_raw)
         assert_almost_equal(reference.df_model, result._df_model_raw)
@@ -98,6 +117,12 @@ class TestOLS(BaseTest):
 
         moving = ols(y=y, x=x, window_type=window_type,
                      window=window, **kwds)
+
+        # check that sparse version is the same
+        sparse_moving = ols(y=y.to_sparse(), x=x.to_sparse(),
+                            window_type=window_type,
+                            window=window, **kwds)
+        _compare_ols_results(moving, sparse_moving)
 
         if isinstance(moving.y, Series):
             index = moving.y.index
@@ -151,6 +176,23 @@ class TestOLS(BaseTest):
                 res = res[result_index]
 
             assert_almost_equal(ref, res)
+
+    def test_f_test(self):
+        x = testing.makeTimeDataFrame()
+        y = x.pop('A')
+
+        model = ols(y=y, x=x)
+
+        hyp = '1*B+1*C+1*D=0'
+        result = model.f_test(hyp)
+
+        hyp = ['1*B=0',
+               '1*C=0',
+               '1*D=0']
+        result = model.f_test(hyp)
+        assert_almost_equal(result['f-stat'], model.f_stat['f-stat'])
+
+        self.assertRaises(Exception, model.f_test, '1*A=0')
 
 class TestPanelOLS(BaseTest):
 

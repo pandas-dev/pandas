@@ -34,7 +34,7 @@ class OLS(object):
     def __init__(self, y, x, intercept=True, nw_lags=None, nw_overlap=False):
         try:
             import scikits.statsmodels.api as sm
-        except ImportError:
+        except ImportError: # pragma: no cover
             import scikits.statsmodels as sm
 
         self._x_orig = x
@@ -199,7 +199,7 @@ class OLS(object):
             eqs = hypothesis.split(',')
         elif isinstance(hypothesis, list):
             eqs = hypothesis
-        else:
+        else: # pragma: no cover
             raise Exception('hypothesis must be either string or list')
         for equation in eqs:
             row = np.zeros(len(x_names))
@@ -208,6 +208,9 @@ class OLS(object):
                 ss = s.split('*')
                 coeff = float(ss[0])
                 x_name = ss[1]
+
+                if x_name not in x_names:
+                    raise Exception('no coefficient named %s' % x_name)
                 idx = x_names.indexMap[x_name]
                 row[idx] = coeff
             rhs = float(rhs)
