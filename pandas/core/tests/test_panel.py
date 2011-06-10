@@ -1,4 +1,4 @@
-# pylint: disable=W0612
+# pylint: disable=W0612,E1101
 
 
 from datetime import datetime
@@ -24,24 +24,27 @@ import pandas.util.testing as common
 class PanelTests(object):
     panel = None
 
-    def test_iter(self):
-        common.equalContents(list(self.panel), self.panel.items)
-
     def test_pickle(self):
         import cPickle
-
         pickled = cPickle.dumps(self.panel)
         unpickled = cPickle.loads(pickled)
-
         assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
+
+    def test_set_values(self):
+        self.panel.values = np.array(self.panel.values, order='F')
+        assert(self.panel.values.flags.contiguous)
+
+    def test_cumsum(self):
+        cumsum = self.panel.cumsum()
+        assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
+
+class SafeForLongAndSparse(object):
 
     def test_repr(self):
         foo = repr(self.panel)
 
-    def test_set_values(self):
-        self.panel.values = np.array(self.panel.values, order='F')
-
-        assert(self.panel.values.flags.contiguous)
+    def test_iter(self):
+        common.equalContents(list(self.panel), self.panel.items)
 
     def _check_statistic(self, frame, name, alternative):
         f = getattr(frame, name)
@@ -154,44 +157,8 @@ class PanelTests(object):
 
         self._check_statistic(self.panel, 'skew', f)
 
-    def test_cumsum(self):
-        cumsum = self.panel.cumsum()
 
-        assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
-
-class SafeForSparseTests(object):
-
-    def test_truncate(self):
-        dates = self.panel.major_axis
-        start, end = dates[1], dates[5]
-
-        trunced = self.panel.truncate(start, end, axis='major')
-        expected = self.panel['ItemA'].truncate(start, end)
-
-        assert_frame_equal(trunced['ItemA'], expected)
-
-        trunced = self.panel.truncate(before=start, axis='major')
-        expected = self.panel['ItemA'].truncate(before=start)
-
-        assert_frame_equal(trunced['ItemA'], expected)
-
-        trunced = self.panel.truncate(after=end, axis='major')
-        expected = self.panel['ItemA'].truncate(after=end)
-
-        assert_frame_equal(trunced['ItemA'], expected)
-
-        # XXX test other axes
-
-class TestWidePanel(unittest.TestCase, PanelTests, SafeForSparseTests):
-
-    def setUp(self):
-        self.panel = common.makeWidePanel()
-        common.add_nans(self.panel)
-
-    def test_values(self):
-        # nothing to test for the moment
-        values = self.panel.values
-        self.panel.values = values
+class SafeForSparse(object):
 
     def test_get_axis(self):
         assert(self.panel._get_axis(0) is self.panel.items)
@@ -214,27 +181,72 @@ class TestWidePanel(unittest.TestCase, PanelTests, SafeForSparseTests):
         index, columns = self.panel._get_plane_axes('items')
         index, columns = self.panel._get_plane_axes('major_axis')
         index, columns = self.panel._get_plane_axes('minor_axis')
-
         index, columns = self.panel._get_plane_axes(0)
 
+    def test_truncate(self):
+        dates = self.panel.major_axis
+        start, end = dates[1], dates[5]
+
+        trunced = self.panel.truncate(start, end, axis='major')
+        expected = self.panel['ItemA'].truncate(start, end)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        trunced = self.panel.truncate(before=start, axis='major')
+        expected = self.panel['ItemA'].truncate(before=start)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        trunced = self.panel.truncate(after=end, axis='major')
+        expected = self.panel['ItemA'].truncate(after=end)
+
+        assert_frame_equal(trunced['ItemA'], expected)
+
+        # XXX test other axes
+
     def test_arith(self):
-        def test_op(panel, op):
-            result = op(panel, 1)
-            assert_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
+        self._test_op(self.panel, operator.add)
+        self._test_op(self.panel, operator.sub)
+        self._test_op(self.panel, operator.mul)
+        self._test_op(self.panel, operator.div)
+        self._test_op(self.panel, operator.pow)
 
-        test_op(self.panel, operator.add)
-        test_op(self.panel, operator.sub)
-        test_op(self.panel, operator.mul)
-        test_op(self.panel, operator.div)
-        test_op(self.panel, operator.pow)
-
-        test_op(self.panel, lambda x, y: y + x)
-        test_op(self.panel, lambda x, y: y - x)
-        test_op(self.panel, lambda x, y: y * x)
-        test_op(self.panel, lambda x, y: y / x)
-        test_op(self.panel, lambda x, y: y ** x)
+        self._test_op(self.panel, lambda x, y: y + x)
+        self._test_op(self.panel, lambda x, y: y - x)
+        self._test_op(self.panel, lambda x, y: y * x)
+        self._test_op(self.panel, lambda x, y: y / x)
+        self._test_op(self.panel, lambda x, y: y ** x)
 
         self.assertRaises(Exception, self.panel.__add__, self.panel['ItemA'])
+
+    @staticmethod
+    def _test_op(panel, op):
+        result = op(panel, 1)
+        assert_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
+
+    def test_keys(self):
+        common.equalContents(self.panel.keys(), self.panel.items)
+
+    def test_iteritems(self):
+        # just test that it works
+        for k, v in self.panel.iteritems():
+            pass
+
+        self.assertEqual(len(list(self.panel.iteritems())),
+                         len(self.panel.items))
+
+class TestWidePanel(unittest.TestCase, PanelTests,
+                    SafeForLongAndSparse,
+                    SafeForSparse):
+
+    def setUp(self):
+        self.panel = common.makeWidePanel()
+        common.add_nans(self.panel)
+
+    def test_values(self):
+        # nothing to test for the moment
+        values = self.panel.values
+        self.panel.values = values
 
     def test_fromDict(self):
         itema = self.panel['ItemA']
@@ -254,17 +266,6 @@ class TestWidePanel(unittest.TestCase, PanelTests, SafeForSparseTests):
         # intersect
         wp = WidePanel.fromDict(d, intersect=True)
         self.assert_(wp.major_axis.equals(itemb.index[5:]))
-
-    def test_keys(self):
-        common.equalContents(self.panel.keys(), self.panel.items)
-
-    def test_iteritems(self):
-        # just test that it works
-        for k, v in self.panel.iteritems():
-            pass
-
-        self.assertEqual(len(list(self.panel.iteritems())),
-                         len(self.panel.items))
 
     def test_values(self):
         self.assertRaises(Exception, WidePanel, np.random.randn(5, 5, 5),

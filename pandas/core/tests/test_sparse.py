@@ -25,6 +25,9 @@ from pandas.core.sparse import (IntIndex, BlockIndex,
                                 SparseSeries, SparseDataFrame,
                                 SparseWidePanel)
 
+import test_panel
+
+
 """
 Testing TODO
 
@@ -891,9 +894,9 @@ def panel_data3():
         'd' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
         }, index=index)
 
-import test_panel
-
-class TestSparseWidePanel(TestCase, test_panel.SafeForSparseTests):
+class TestSparseWidePanel(TestCase,
+                          test_panel.SafeForLongAndSparse,
+                          test_panel.SafeForSparse):
 
     def setUp(self):
         self.data_dict = {
@@ -903,6 +906,12 @@ class TestSparseWidePanel(TestCase, test_panel.SafeForSparseTests):
             'ItemD' : panel_data1(),
         }
         self.panel = SparseWidePanel(self.data_dict)
+
+    @staticmethod
+    def _test_op(panel, op):
+        # arithmetic tests
+        result = op(panel, 1)
+        assert_sp_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_constructor(self):
         self.assertRaises(Exception, SparseWidePanel, self.data_dict,
