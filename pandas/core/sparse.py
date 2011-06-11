@@ -11,7 +11,7 @@ import numpy as np
 import operator
 
 from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
-                                _mut_exclusive, _ensure_index)
+                                _mut_exclusive, _ensure_index, _try_sort)
 from pandas.core.index import Index
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame, extract_index
