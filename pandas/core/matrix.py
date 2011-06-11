@@ -749,6 +749,29 @@ def _float_blockify(dct, index, columns):
     # do something with dtype?
     return make_block(values, columns)
 
+    def select(self, crit, axis=0):
+        """
+        Return data corresponding to axis labels matching criteria
+
+        Parameters
+        ----------
+        crit : function
+            To be called on each index (label). Should return True or False
+        axis : {0, 1}
+
+        Returns
+        -------
+        selection : DataFrame
+        """
+        # HACK until refactor
+        axis_name = self._get_axis_name(axis)
+        if axis == 0:
+            axis = self.index
+        else:
+            axis = np.asarray(self.cols())
+        new_axis = axis[np.asarray([crit(label) for label in axis])]
+        return self.reindex(**{axis_name : new_axis})
+
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
     return mat.take(indexer[mask], axis=1)
