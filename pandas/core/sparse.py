@@ -3,6 +3,8 @@ Data structures for sparse float data. Life is made simpler by dealing only with
 float64 data
 """
 
+# pylint: disable=E1101,E1103
+
 from numpy import nan, ndarray
 import numpy as np
 
@@ -16,11 +18,10 @@ from pandas.core.frame import DataFrame, extract_index, try_sort
 from pandas.core.matrix import DataMatrix
 from pandas.core.panel import Panel, WidePanel, LongPanelIndex, LongPanel
 import pandas.core.common as common
+import pandas.core.datetools as datetools
 
 from pandas.lib.sparse import BlockIndex, IntIndex
 import pandas.lib.sparse as splib
-
-from pandas.util.testing import set_trace
 
 def make_sparse(arr, kind='block', fill_value=nan):
     """
@@ -538,6 +539,37 @@ class SparseSeries(Series):
         dense_valid = self.to_dense().valid()
         return dense_valid.to_sparse(fill_value=self.fill_value)
 
+    def shift(self, periods, offset=None, timeRule=None):
+        """
+        Analogous to Series.shift
+        """
+        if periods == 0:
+            return self.copy()
+
+        if timeRule is not None and offset is None:
+            offset = datetools.getOffset(timeRule)
+
+        if offset is not None:
+            return SparseSeries(self.sp_values,
+                                sparse_index=self.sp_index,
+                                index=self.index.shift(periods, offset),
+                                fill_value=self.fill_value)
+
+        int_index = self.sp_index.to_int_index()
+        new_indices = int_index.indices + periods
+        start, end = new_indices.searchsorted([0, int_index.length])
+
+        new_indices = new_indices[start:end]
+
+        new_sp_index = IntIndex(len(self), new_indices)
+        if isinstance(self.sp_index, BlockIndex):
+            new_sp_index = new_sp_index.to_block_index()
+
+        return SparseSeries(self.sp_values[start:end].copy(),
+                            index=self.index,
+                            sparse_index=new_sp_index,
+                            fill_value=self.fill_value)
+
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass
 
@@ -778,6 +810,30 @@ class SparseDataFrame(DataFrame):
         Series or TimeSeries
         """
         return self.apply(SparseSeries.count, axis=0)
+
+    def shift(self, periods, offset=None, timeRule=None):
+        """
+        Analogous to DataFrame.shift
+        """
+        if timeRule is not None and offset is None:
+            offset = datetools.getOffset(timeRule)
+
+        new_series = {}
+        if offset is None:
+            new_index = self.index
+            for col, s in self.iteritems():
+                new_series[col] = s.shift(periods)
+        else:
+            new_index = self.index.shift(periods, offset)
+            for col, s in self.iteritems():
+                new_series[col] = SparseSeries(s.sp_values, index=new_index,
+                                               sp_index=s.sp_index,
+                                               fill_value=s.fill_value)
+
+        return SparseDataFrame(new_series, index=new_index,
+                               columns=self.columns,
+                               default_fill_value=self.default_fill_value,
+                               default_kind=self.default_kind)
 
 def stack_sparse_frame(frame):
     """

@@ -17,6 +17,7 @@ from numpy.testing import assert_equal
 from pandas import Series, DataFrame, DateRange, WidePanel
 from pandas.core.datetools import BDay
 from pandas.core.series import remove_na
+import pandas.core.datetools as datetools
 import pandas.util.testing as testing
 
 import pandas.core.sparse as spm
@@ -549,6 +550,30 @@ class TestSparseSeries(TestCase):
         cop2.fill_value = 1
         result = cop2 / cop
         self.assert_(np.isnan(result.fill_value))
+
+    def test_shift(self):
+        def _dense_compare(s, f):
+            result = f(s)
+            self.assert_(isinstance(result, SparseSeries))
+            dense_result = f(s.to_dense())
+            assert_series_equal(result.to_dense(), dense_result)
+
+        series = SparseSeries([nan, 1., 2., 3., nan, nan],
+                              index=np.arange(6))
+
+        f = lambda s: s.shift(1)
+        _dense_compare(series, f)
+
+        f = lambda s: s.shift(-2)
+        _dense_compare(series, f)
+
+        series = SparseSeries([nan, 1., 2., 3., nan, nan],
+                              index=DateRange('1/1/2000', periods=6))
+        f = lambda s: s.shift(2, timeRule='WEEKDAY')
+        _dense_compare(series, f)
+
+        f = lambda s: s.shift(2, offset=datetools.bday)
+        _dense_compare(series, f)
 
 class TestSparseTimeSeries(TestCase):
     pass
