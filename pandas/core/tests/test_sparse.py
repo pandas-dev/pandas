@@ -552,28 +552,27 @@ class TestSparseSeries(TestCase):
         self.assert_(np.isnan(result.fill_value))
 
     def test_shift(self):
-        def _dense_compare(s, f):
-            result = f(s)
-            self.assert_(isinstance(result, SparseSeries))
-            dense_result = f(s.to_dense())
-            assert_series_equal(result.to_dense(), dense_result)
-
         series = SparseSeries([nan, 1., 2., 3., nan, nan],
                               index=np.arange(6))
 
+        shifted = series.shift(0)
+        self.assert_(shifted is not series)
+        assert_sp_series_equal(shifted, series)
+
         f = lambda s: s.shift(1)
-        _dense_compare(series, f)
+        _dense_series_compare(series, f)
 
         f = lambda s: s.shift(-2)
-        _dense_compare(series, f)
+        _dense_series_compare(series, f)
 
         series = SparseSeries([nan, 1., 2., 3., nan, nan],
                               index=DateRange('1/1/2000', periods=6))
         f = lambda s: s.shift(2, timeRule='WEEKDAY')
-        _dense_compare(series, f)
+        _dense_series_compare(series, f)
 
         f = lambda s: s.shift(2, offset=datetools.bday)
-        _dense_compare(series, f)
+        _dense_series_compare(series, f)
+
 
 class TestSparseTimeSeries(TestCase):
     pass
@@ -880,12 +879,48 @@ class TestSparseDataFrame(TestCase):
             assert_sp_frame_equal(frame, untransposed)
         self._check_all(_check)
 
+    def test_shift(self):
+        def _check(frame):
+            shifted = frame.shift(0)
+            self.assert_(shifted is not frame)
+            assert_sp_frame_equal(shifted, frame)
+
+            f = lambda s: s.shift(1)
+            _dense_frame_compare(frame, f)
+
+            f = lambda s: s.shift(-2)
+            _dense_frame_compare(frame, f)
+
+            f = lambda s: s.shift(2, timeRule='WEEKDAY')
+            _dense_frame_compare(frame, f)
+
+            f = lambda s: s.shift(2, offset=datetools.bday)
+            _dense_frame_compare(frame, f)
+
+        self._check_all(_check)
+
+    def test_count(self):
+        result = self.frame.count()
+        dense_result = self.frame.to_dense().count()
+        assert_series_equal(result, dense_result)
+
     def _check_all(self, check_func):
         check_func(self.frame)
         check_func(self.iframe)
         check_func(self.zframe)
         check_func(self.fill_frame)
 
+def _dense_series_compare(s, f):
+    result = f(s)
+    assert(isinstance(result, SparseSeries))
+    dense_result = f(s.to_dense())
+    assert_series_equal(result.to_dense(), dense_result)
+
+def _dense_frame_compare(frame, f):
+    result = f(frame)
+    assert(isinstance(frame, SparseDataFrame))
+    dense_result = f(frame.to_dense())
+    assert_frame_equal(result.to_dense(), dense_result)
 
 def panel_data1():
     index = DateRange('1/1/2011', periods=8)

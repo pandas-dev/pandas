@@ -10,8 +10,8 @@ import numpy as np
 
 import operator
 
-from pandas.core.common import (_pickle_array, _unpickle_array, _mut_exclusive,
-                                _ensure_index)
+from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
+                                _mut_exclusive, _ensure_index)
 from pandas.core.index import Index
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame, extract_index, try_sort
@@ -543,6 +543,13 @@ class SparseSeries(Series):
         """
         Analogous to Series.shift
         """
+        # no special handling of fill values yet
+        if not isnull(self.fill_value):
+            dense_shifted = self.to_dense().shift(periods, offset=offset,
+                                                  timeRule=timeRule)
+            return dense_shifted.to_sparse(fill_value=self.fill_value,
+                                           kind=self.kind)
+
         if periods == 0:
             return self.copy()
 
@@ -827,7 +834,7 @@ class SparseDataFrame(DataFrame):
             new_index = self.index.shift(periods, offset)
             for col, s in self.iteritems():
                 new_series[col] = SparseSeries(s.sp_values, index=new_index,
-                                               sp_index=s.sp_index,
+                                               sparse_index=s.sp_index,
                                                fill_value=s.fill_value)
 
         return SparseDataFrame(new_series, index=new_index,
