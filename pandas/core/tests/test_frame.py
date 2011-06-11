@@ -1424,6 +1424,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # pass in None
         self.assertRaises(Exception, self.frame.filter, items=None)
 
+        # objects
+        filtered = self.mixed_frame.filter(like='foo')
+        self.assert_('foo' in filtered)
+
+
     def test_sort(self):
         # what to test?
         sorted = self.frame.sort()
