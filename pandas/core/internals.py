@@ -310,7 +310,7 @@ class BlockManager(object):
         return _interleave(self.blocks, columns)
 
     def xs(self, i, copy=True):
-        # TODO: fix this awful mess
+        # TODO: fix this mess
 
         if len(self.blocks) > 1:
             if not copy:

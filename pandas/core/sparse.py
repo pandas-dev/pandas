@@ -3,7 +3,7 @@ Data structures for sparse float data. Life is made simpler by dealing only with
 float64 data
 """
 
-# pylint: disable=E1101,E1103
+# pylint: disable=E1101,E1103,W0231
 
 from numpy import nan, ndarray
 import numpy as np
@@ -12,10 +12,9 @@ import operator
 
 from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
                                 _mut_exclusive, _ensure_index, _try_sort)
-from pandas.core.index import Index
+from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame, extract_index
-from pandas.core.matrix import DataMatrix
 from pandas.core.panel import Panel, WidePanel, LongPanelIndex, LongPanel
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -586,6 +585,7 @@ class SparseDataFrame(DataFrame):
     objects
     """
     _columns = None
+    _series = None
 
     def __init__(self, data=None, index=None, columns=None,
                  default_kind='block', default_fill_value=None):
@@ -595,19 +595,34 @@ class SparseDataFrame(DataFrame):
         self.default_kind = default_kind
         self.default_fill_value = default_fill_value
 
-        DataFrame.__init__(self, data, index=index, columns=columns,
-                           dtype=None)
+        if isinstance(data, dict):
+            sdict, columns, index = self._init_dict(data, index, columns)
+        elif isinstance(data, (np.ndarray, list)):
+            sdict, columns, index = self._init_matrix(data, index, columns)
+        elif isinstance(data, DataFrame):
+            sdict, columns, index = self._init_dict(data, data.index,
+                                                    data.columns)
+        elif data is None:
+            sdict = {}
 
-    def __array_wrap__(self, result):
-        return SparseDataFrame(result, index=self.index, columns=self.columns,
-                               default_kind=self.default_kind,
-                               default_fill_value=self.default_fill_value)
+            if index is None:
+                index = NULL_INDEX
+
+            if columns is None:
+                columns = NULL_INDEX
+            else:
+                for c in columns:
+                    sdict[c] = Series(np.NaN, index=index)
+
+        self._series = sdict
+        self.columns = columns
+        self.index = index
 
     @property
     def _constructor(self):
         return SparseDataFrame
 
-    def _init_dict(self, data, index, columns, dtype):
+    def _init_dict(self, data, index, columns, dtype=None):
         # pre-filter out columns if we passed it
         if columns is not None:
             columns = _ensure_index(columns)
@@ -648,6 +663,39 @@ class SparseDataFrame(DataFrame):
                 sdict[c] = sp_maker(nan_vec)
 
         return sdict, columns, index
+
+    def _init_matrix(self, data, index, columns, dtype=None):
+        if not isinstance(data, np.ndarray):
+            arr = np.array(data)
+            if issubclass(arr.dtype.type, basestring):
+                arr = np.array(data, dtype=object, copy=True)
+
+            data = arr
+
+        if data.ndim == 1:
+            data = data.reshape((len(data), 1))
+        elif data.ndim != 2:
+            raise Exception('Must pass 2-d input!')
+
+        N, K = data.shape
+
+        if index is None:
+            index = _default_index(N)
+
+        if columns is None:
+            columns = _default_index(K)
+
+        if len(columns) != K:
+            raise Exception('Column length mismatch: %d vs. %d' %
+                            (len(columns), K))
+
+        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
+        return self._init_dict(data, index, columns, dtype)
+
+    def __array_wrap__(self, result):
+        return SparseDataFrame(result, index=self.index, columns=self.columns,
+                               default_kind=self.default_kind,
+                               default_fill_value=self.default_fill_value)
 
     def __getstate__(self):
         series = dict((k, (v.sp_index, v.sp_values))
@@ -719,6 +767,9 @@ class SparseDataFrame(DataFrame):
         tot = len(self.index) * len(self.columns)
         return tot_nonsparse / float(tot)
 
+    #----------------------------------------------------------------------
+    # Support different internal rep'n of SparseDataFrame
+
     def _insert_item(self, key, value):
         sp_maker = lambda x: SparseSeries(x, index=self.index,
                                           fill_value=self.default_fill_value,
@@ -739,6 +790,124 @@ class SparseDataFrame(DataFrame):
         if key not in self.columns:
             loc = self._get_insert_loc(key)
             self._insert_column_index(key, loc)
+
+    def _insert_column_index(self, key, loc):
+        if loc == len(self.columns):
+            columns = Index(np.concatenate((self.columns, [key])))
+        elif loc == 0:
+            columns = Index(np.concatenate(([key], self.columns)))
+        else:
+            columns = Index(np.concatenate((self.columns[:loc], [key],
+                                            self.columns[loc:])))
+
+        self.columns = columns
+
+    def _get_insert_loc(self, key):
+        try:
+            loc = self.columns.searchsorted(key)
+        except TypeError:
+            loc = len(self.columns)
+
+        return loc
+
+    def __delitem__(self, key):
+        """
+        Delete column from DataFrame
+        """
+        loc = self.columns.indexMap[key]
+        del self._series[key]
+        self._delete_column_index(loc)
+
+    def _delete_column_index(self, loc):
+        if loc == len(self.columns) - 1:
+            new_columns = self.columns[:loc]
+        else:
+            new_columns = Index(np.concatenate((self.columns[:loc],
+                                               self.columns[loc+1:])))
+        self.columns = new_columns
+
+    _index = None
+    def _set_index(self, index):
+        self._index = _ensure_index(index)
+        for v in self._series.values():
+            v.index = self._index
+
+    def _get_index(self):
+        return self._index
+
+    def _get_columns(self):
+        return self._columns
+
+    def _set_columns(self, cols):
+        if len(cols) != len(self._series):
+            raise Exception('Columns length %d did not match data %d!' %
+                            (len(cols), len(self._series)))
+        self._columns = _ensure_index(cols)
+
+    def __getitem__(self, item):
+        """
+        Retrieve column or slice from DataFrame
+        """
+        try:
+            return self._series[item]
+        except (TypeError, KeyError):
+            if isinstance(item, slice):
+                dateRange = self.index[item]
+                return self.reindex(dateRange)
+
+            elif isinstance(item, np.ndarray):
+
+                if len(item) != len(self.index):
+                    raise Exception('Item wrong length %d instead of %d!' %
+                                    (len(item), len(self.index)))
+                newIndex = self.index[item]
+                return self.reindex(newIndex)
+            else:
+                raise
+
+    def as_matrix(self, columns=None):
+        """
+        Convert the frame to its Numpy-array matrix representation
+
+        Columns are presented in sorted order unless a specific list
+        of columns is provided.
+        """
+        if columns is None:
+            columns = self.columns
+
+        if len(columns) == 0:
+            return np.zeros((0, 0))
+
+        return np.array([self[col].values for col in columns]).T
+
+    asMatrix = as_matrix
+    values = property(as_matrix)
+
+    def xs(self, key):
+        """
+        Returns a row from the DataFrame as a Series object.
+
+        Parameters
+        ----------
+        key : some index contained in the index
+
+        Returns
+        -------
+        Series
+        """
+        if key not in self.index:
+            raise Exception('No cross-section for %s' % key)
+
+        subset = self.columns
+        rowValues = [self._series[k][key] for k in subset]
+
+        if len(set((type(x) for x in rowValues))) > 1:
+            return Series(np.array(rowValues, dtype=np.object_), index=subset)
+        else:
+            return Series(np.array(rowValues), index=subset)
+
+    #----------------------------------------------------------------------
+    # Arithmetic-related methods
 
     def _combine_frame(self, other, func):
         new_index = self._union_index(other)
@@ -765,6 +934,23 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns)
+
+    def _combine_match_index(self, other, func):
+        new_data = {}
+
+        new_index = self._union_index(other)
+        this = self
+        if self.index is not new_index:
+            this = self.reindex(new_index)
+
+        if other.index is not new_index:
+            other = other.reindex(new_index)
+
+        for col, series in this.iteritems():
+            new_data[col] = func(series.values, other.values)
+
+        return self._constructor(new_data, index=new_index,
+                                 columns=self.columns)
 
     def _combine_match_columns(self, other, func):
         # patched version of DataFrame._combine_match_columns to account for
@@ -1263,11 +1449,11 @@ class SparseWidePanel(WidePanel):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
             index -> minor axis, columns -> items
         """
         slices = dict((k, v.xs(key)) for k, v in self.iteritems())
-        return DataMatrix(slices, index=self.minor_axis, columns=self.items)
+        return DataFrame(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
         """

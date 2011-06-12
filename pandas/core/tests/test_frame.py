@@ -833,24 +833,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         os.remove(path)
 
-    def test_toDataMatrix(self):
-        dm = self.frame.toDataMatrix()
-
-        self.assert_(isinstance(dm, DataMatrix))
-
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
         self.tsframe.info(buf=io)
-
-    def test_rows(self):
-        self.assert_(self.tsframe.rows() is self.tsframe.index)
-
-    def test_columns(self):
-        pass
-
-    def test_iteritems(self):
-        pass
 
     def test_append(self):
         begin_index = self.frame.index[:5]

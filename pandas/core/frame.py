@@ -137,7 +137,7 @@ class DataFrame(PandasGeneric):
 
         self._data = mgr
 
-    def _init_dict(self, data, index, columns, dtype):
+    def _init_dict(self, data, index, columns, dtype=None):
         """
         Segregate Series based on type and coerce into matrices.
 
@@ -163,7 +163,7 @@ class DataFrame(PandasGeneric):
         # TODO: need consolidate here?
         return BlockManager(blocks, index, columns).consolidate()
 
-    def _init_matrix(self, values, index, columns, dtype):
+    def _init_matrix(self, values, index, columns, dtype=None):
         values = _prep_ndarray(values)
 
         if values.ndim == 1:
@@ -1559,19 +1559,25 @@ class DataFrame(PandasGeneric):
 
     def applymap(self, func):
         """
-        Apply a function to a DataFrame that is intended to operate elementwise
-
-        Please try to use apply if possible
+        Apply a function to a DataFrame that is intended to operate
+        elementwise, i.e. like doing
+            map(func, series) for each series in the DataFrame
 
         Parameters
         ----------
         func : function
-            Python function to apply to each element
+            Python function, returns a single value from a single value
+
+        Note : try to avoid using this function if you can, very slow.
         """
-        results = {}
-        for col, series in self.iteritems():
-            results[col] = [func(v) for v in series]
-        return DataFrame(data=results, index=self.index, columns=self.columns)
+        npfunc = np.frompyfunc(func, 1, 1)
+        results = npfunc(self.values)
+        try:
+            results = results.astype(self.values.dtype)
+        except Exception:
+            pass
+
+        return DataFrame(results, index=self.index, columns=self.columns)
 
     #----------------------------------------------------------------------
     # Merging / joining methods
@@ -1582,6 +1588,14 @@ class DataFrame(PandasGeneric):
 
         Columns not in this frame are added as new columns.
         """
+        # TODO: with blocks
+
+        if not other:
+            return self.copy()
+
+        if not self:
+            return other.copy()
+
         new_index = np.concatenate((self.index, other.index))
         new_columns = self.columns
         new_data = {}
@@ -1637,38 +1651,48 @@ class DataFrame(PandasGeneric):
             return self._join_index(other, how)
 
     def _join_on(self, other, on):
-        # Check for column overlap
-        overlap = set(self.columns) & set(other.columns)
-
-        if overlap:
-            raise Exception('Columns overlap: %s' % _try_sort(overlap))
-
         if len(other.index) == 0:
-            result = self.copy()
+            return self
 
-            for col in other:
-                result[col] = nan
+        if on not in self:
+            raise Exception('%s column not contained in this frame!' % on)
 
-            return result
+        new_data = self._data.join_on(other._data, self[on])
+        return DataFrame(new_data)
 
-        indexer, mask = other.index.get_indexer(self[on])
-        notmask = -mask
-        need_mask = notmask.any()
+    # def _join_on(self, other, on):
+    #     # Check for column overlap
+    #     overlap = set(self.columns) & set(other.columns)
 
-        new_data = {}
+    #     if overlap:
+    #         raise Exception('Columns overlap: %s' % _try_sort(overlap))
 
-        for col, series in other.iteritems():
-            arr = series.view(np.ndarray).take(indexer)
+    #     if len(other.index) == 0:
+    #         result = self.copy()
 
-            if need_mask:
-                arr = common.ensure_float(arr)
-                arr[notmask] = nan
+    #         for col in other:
+    #             result[col] = nan
 
-            new_data[col] = arr
+    #         return result
 
-        new_data.update(self._series)
+    #     indexer, mask = other.index.get_indexer(self[on])
+    #     notmask = -mask
+    #     need_mask = notmask.any()
 
-        return self._constructor(new_data, index=self.index)
+    #     new_data = {}
+
+    #     for col, series in other.iteritems():
+    #         arr = series.view(np.ndarray).take(indexer)
+
+    #         if need_mask:
+    #             arr = common.ensure_float(arr)
+    #             arr[notmask] = nan
+
+    #         new_data[col] = arr
+
+    #     new_data.update(self._series)
+
+    #     return self._constructor(new_data, index=self.index)
 
     def _join_index(self, other, how):
         if how == 'left':
