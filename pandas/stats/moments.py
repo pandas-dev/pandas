@@ -84,12 +84,8 @@ def _rolling_moment(arg, window, func, minp, axis=0, time_rule=None):
 
 def _process_data_structure(arg, kill_inf=True):
     if isinstance(arg, DataFrame):
-        if isinstance(arg, DataMatrix):
-            return_hook = lambda v: DataMatrix(v, index=arg.index,
-                                               columns=arg.columns)
-        else:
-            return_hook = lambda v: DataFrame(v, index=arg.index,
-                                              columns=arg.columns)
+        return_hook = lambda v: type(arg)(v, index=arg.index,
+                                          columns=arg.columns)
         values = arg.values
     elif isinstance(arg, Series):
         values = arg.values
