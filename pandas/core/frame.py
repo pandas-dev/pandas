@@ -166,6 +166,8 @@ class DataFrame(PandasGeneric):
         return BlockManager(blocks, index, columns).consolidate()
 
     def _init_matrix(self, values, index, columns, dtype=None):
+        from pandas.core.internals import make_block
+
         values = _prep_ndarray(values)
 
         if values.ndim == 1:
@@ -567,6 +569,7 @@ class DataFrame(PandasGeneric):
         return self._data.columns
 
     def _get_values(self):
+        self._consolidate_inplace()
         return self._data.as_matrix()
 
     index = property(fget=lambda self: self._get_index(),
@@ -682,10 +685,18 @@ class DataFrame(PandasGeneric):
 
     def consolidate(self):
         """
+        Compute DataFrame with "consolidated" internals (data of each dtype
+        grouped together in a single ndarray). Mainly an internal API function,
+        but available here to the savvy user
 
+        Returns
+        -------
+        consolidated : DataFrame
         """
-        #TODO
-        raise NotImplementedError
+        cons_data = self._data.consolidate()
+        if cons_data is self._data:
+            cons_data = cons_data.copy()
+        return DataFrame(cons_data)
 
     #----------------------------------------------------------------------
     # Array interface
@@ -1412,6 +1423,8 @@ class DataFrame(PandasGeneric):
         -------
         DataFrame
         """
+        from pandas.core.internals import make_block
+
         if periods == 0:
             return self
 

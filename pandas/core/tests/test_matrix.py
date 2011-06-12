@@ -222,14 +222,6 @@ class TestDataMatrix(test_frame.TestDataFrame):
         del f['B']
         self.assertEqual(len(f.columns), 2)
 
-    # def test_shift_objects(self):
-    #     tsf = self.tsframe.copy()
-    #     tsf['foo'] = 'bar'
-
-    #     shifted = tsf.shift(1)
-    #     self.assert_(shifted.objects is not None)
-    #     self.assert_(shifted.objects.index is shifted.index)
-
     def test_more_asMatrix(self):
         values = self.mixed_frame.asMatrix()
         self.assertEqual(values.shape[1], len(self.mixed_frame.columns))

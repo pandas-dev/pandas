@@ -1407,6 +1407,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         filtered = self.mixed_frame.filter(like='foo')
         self.assert_('foo' in filtered)
 
+    def test_select(self):
+        f = lambda x: x.weekday() == 2
+        result = self.tsframe.select(f, axis=0)
+        expected = self.tsframe.reindex(
+            index=self.tsframe.index[[f(x) for x in self.tsframe.index]])
+        assert_frame_equal(result, expected)
+
+        result = self.frame.select(lambda x: x in ('B', 'D'), axis=1)
+        expected = self.frame.reindex(columns=['B', 'D'])
+        assert_frame_equal(result, expected)
 
     def test_sort(self):
         # what to test?
@@ -1798,17 +1808,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         desc = self.mixed_frame.describe()
         desc = self.frame.describe()
 
-    def test_select(self):
-        f = lambda x: x.weekday() == 2
-        result = self.tsframe.select(f, axis=0)
-        expected = self.tsframe.reindex(
-            index=self.tsframe.index[[f(x) for x in self.tsframe.index]])
-        assert_frame_equal(result, expected)
-
-        result = self.frame.select(lambda x: x in ('B', 'D'), axis=1)
-        expected = self.frame.reindex(columns=['B', 'D'])
-        assert_frame_equal(result, expected)
-
     def test_get_axis_etc(self):
         f = self.frame
 
@@ -1821,6 +1820,39 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(f._get_axis(1) is f.columns)
         self.assertRaises(Exception, f._get_axis_number, 2)
 
+    #----------------------------------------------------------------------
+    # Tests to cope with refactored internals
+
+    def test_assign_columns(self):
+        self.frame['hi'] = 'there'
+
+        frame = self.frame.copy()
+        frame.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
+        assert_series_equal(self.frame['C'], frame['baz'])
+        assert_series_equal(self.frame['hi'], frame['foo2'])
+
+    def test_consolidate(self):
+        self.frame['E'] = 7.
+        consolidated = self.frame.consolidate()
+        self.assert_(len(consolidated._data.blocks) == 1)
+
+    def test_modify_values(self):
+        self.frame.values[5] = 5
+        self.assert_((self.frame.values[5] == 5).all())
+
+        # unconsolidated
+        self.frame['E'] = 7.
+        self.frame.values[6] = 6
+        self.assert_((self.frame.values[6] == 6).all())
+
+    def test_boolean_set_uncons(self):
+        self.frame['E'] = 7.
+
+        expected = self.frame.values.copy()
+        expected[expected > 1] = 2
+
+        self.frame[self.frame > 1] = 2
+        assert_almost_equal(expected, self.frame.values)
 
 if __name__ == '__main__':
     # unittest.main()
