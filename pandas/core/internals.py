@@ -283,7 +283,7 @@ class BlockManager(object):
     def from_blocks(cls, blocks, index):
         # also checks for overlap
         columns = _union_block_columns(blocks)
-        return BlockManager(blocks, columns)
+        return BlockManager(blocks, index, columns)
 
     def __contains__(self, column):
         return column in self.columns

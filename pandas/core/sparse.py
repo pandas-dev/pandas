@@ -740,6 +740,32 @@ class SparseDataFrame(DataFrame):
             loc = self._get_insert_loc(key)
             self._insert_column_index(key, loc)
 
+    def _combine_frame(self, other, func):
+        new_index = self._union_index(other)
+        new_columns = self._union_columns(other)
+
+        this = self
+        if self.index is not new_index:
+            this = self.reindex(new_index)
+            other = other.reindex(new_index)
+
+        if not self and not other:
+            return DataFrame(index=new_index)
+
+        if not other:
+            return self * nan
+
+        if not self:
+            return other * nan
+
+        new_data = {}
+        for col in new_columns:
+            if col in this and col in other:
+                new_data[col] = func(this[col], other[col])
+
+        return self._constructor(data=new_data, index=new_index,
+                                 columns=new_columns)
+
     def _combine_match_columns(self, other, func):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
@@ -759,6 +785,14 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(new_data, index=self.index,
                                  columns=union)
+
+    def _combine_const(self, other, func):
+        new_data = {}
+        for col, series in self.iteritems():
+            new_data[col] = func(series, other)
+
+        return self._constructor(data=new_data, index=self.index,
+                                 columns=self.columns)
 
     def _reindex_index(self, index, method):
         if self.index.equals(index):

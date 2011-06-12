@@ -71,8 +71,6 @@ class DataMatrix(DataFrame):
         Somehow this got outrageously complicated
         """
         # TODO: deal with emptiness!
-        # TODO: dtype casting?
-
         # prefilter if columns passed
         if columns is not None:
             columns = _ensure_index(columns)
@@ -86,7 +84,9 @@ class DataMatrix(DataFrame):
         homogenized = _homogenize_series(data, index, dtype, force_copy=False)
         # segregates dtypes and forms blocks matching to columns
         blocks, columns = _form_blocks(homogenized, index, columns)
-        return BlockManager(blocks, index, columns)
+
+        # TODO: need consolidate here?
+        return BlockManager(blocks, index, columns).consolidate()
 
     def _init_matrix(self, values, index, columns, dtype):
         values = _prep_ndarray(values)
@@ -117,17 +117,17 @@ class DataMatrix(DataFrame):
         return BlockManager([block], index, columns)
 
     def _set_columns(self, cols):
-        if len(cols) != self.values.shape[1]:
-            raise Exception('Columns length %d did not match values %d!' %
-                            (len(cols), self.values.shape[1]))
+        if len(cols) != len(self.columns):
+            raise Exception('Length mismatch (%d vs %d)'
+                            % (len(cols), len(self.columns)))
 
         self._data.columns = _ensure_index(cols)
 
     def _set_index(self, index):
         if len(index) > 0:
-            if len(index) != self.values.shape[0]:
-                raise Exception('Index length %d did not match values %d!' %
-                                (len(index), self.values.shape[0]))
+            if len(index) != len(self.index):
+                raise Exception('Length mismatch (%d vs %d)'
+                                % (len(index), len(self.index)))
 
         self._data.index = _ensure_index(index)
 
@@ -274,7 +274,8 @@ class DataMatrix(DataFrame):
         return self._data
 
     def __setstate__(self, state):
-        if len(state) == 2:
+        # tested this on an ad hoc basis
+        if len(state) == 2: # pragma: no cover
             # old pickling format, for compatibility
             self._unpickle_compat(state)
             return
@@ -653,31 +654,8 @@ class DataMatrix(DataFrame):
 
 _data_types = [np.float_, np.int_]
 
-def _filter_out(data, columns):
-    if columns is not None:
-        colset = set(columns)
-        data = dict((k, v) for k, v in data.iteritems() if k in colset)
-
-    return data
-
-
-def _group_dtypes(data, columns):
-    import itertools
-
-    chunk_cols = []
-    chunks = []
-    grouper = lambda x: data[x].dtype
-    for _, gp_cols in itertools.groupby(columns, grouper):
-        chunk = np.vstack([data[k] for k in gp_cols]).T
-
-        chunks.append(chunk)
-        chunk_cols.append(gp_cols)
-
-    return chunks, chunk_cols
-
 def _form_blocks(data, index, columns):
     from pandas.core.internals import add_na_columns
-
 
     # pre-filter out columns if we passed it
     if columns is None:
@@ -698,7 +676,6 @@ def _form_blocks(data, index, columns):
             object_dict[k] = v
 
     blocks = []
-
 
     if len(num_dict) > 0:
         num_dtypes = set(v.dtype for v in num_dict.values())
@@ -734,47 +711,26 @@ def _stack_dict(dct):
     stacked = np.vstack([dct[k].values for k in columns]).T
     return columns, stacked
 
-def _float_blockify(dct, index, columns):
-    n = len(index)
-    k = len(columns)
-    values = np.empty((n, k), dtype=np.float64)
-    values.fill(nan)
+# def _float_blockify(dct, index, columns):
+#     n = len(index)
+#     k = len(columns)
+#     values = np.empty((n, k), dtype=np.float64)
+#     values.fill(nan)
 
-    if len(dct) > 0:
-        dict_columns, stacked = _stack_dict(dct)
-        indexer, mask = columns.get_indexer(dict_columns)
-        assert(mask.all())
-        values[:, indexer] = stacked
+#     if len(dct) > 0:
+#         dict_columns, stacked = _stack_dict(dct)
+#         indexer, mask = columns.get_indexer(dict_columns)
+#         assert(mask.all())
+#         values[:, indexer] = stacked
 
-    # do something with dtype?
-    return make_block(values, columns)
-
-    def select(self, crit, axis=0):
-        """
-        Return data corresponding to axis labels matching criteria
-
-        Parameters
-        ----------
-        crit : function
-            To be called on each index (label). Should return True or False
-        axis : {0, 1}
-
-        Returns
-        -------
-        selection : DataFrame
-        """
-        # HACK until refactor
-        axis_name = self._get_axis_name(axis)
-        if axis == 0:
-            axis = self.index
-        else:
-            axis = np.asarray(self.cols())
-        new_axis = axis[np.asarray([crit(label) for label in axis])]
-        return self.reindex(**{axis_name : new_axis})
+#     # do something with dtype?
+#     return make_block(values, columns)
 
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)
     return mat.take(indexer[mask], axis=1)
+
+DataMatrix = DataFrame
 
 if __name__ == '__main__':
     pass
