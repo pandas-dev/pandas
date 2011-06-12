@@ -22,13 +22,14 @@ class TestBlock(unittest.TestCase):
         pass
 
     def test_reindex_columns_from(self):
+        n = 10
         floats = np.repeat(np.atleast_2d(np.arange(3.)), n, axis=0)
         block = make_block(floats, [0, 2, 4],
                            ['a', 'b', 'c', 'd', 'e'])
 
         new_cols = Index(['e', 'b', 'c', 'f'])
 
-        reindexed = block.reindex_columns_from(new_cols)
+        reindexed = block.reindex_columns(new_cols)
         assert_almost_equal(reindexed.ref_locs, [0, 2])
         self.assertEquals(reindexed.values.shape[1], 2)
         self.assert_((reindexed.values[:, 0] == 2).all())

@@ -87,21 +87,31 @@ class Block(object):
             common.null_out_axis(new_values, notmask, 0)
         return make_block(new_values, self.ref_locs, self.ref_columns)
 
-    # def reindex_columns(self, new_columns):
-    #     """
+    def reindex_columns(self, new_columns):
+        """
 
-    #     """
-    #     indexer, mask = self.columns.get_indexer(new_columns)
-    #     new_values = self.values.take(indexer, axis=1)
+        """
+        indexer, mask = self.columns.get_indexer(columns)
+        masked_idx = indexer[mask]
+        new_values = self.values.take(masked_idx, axis=1)
+        new_columns = self.columns.take(masked_idx)
+        return make_block(new_values, new_locs, columns)
 
-    #     notmask = -mask
-    #     if len(mask) > 0 and notmask.any():
-    #         new_values = _cast_if_bool_int(new_values)
-    #         common.null_out_axis(new_values, notmask, 1)
+        indexer, mask = new_columns.get_indexer(self.ref_columns)
 
-    #     return make_block(new_values, new_columns)
+        loc_indexer = indexer.take(self.ref_locs)
+        loc_indexer = loc_indexer[mask.take(self.ref_locs)]
 
-    def reindex_columns_from(self, columns):
+        new_values = self.values.take(indexer, axis=1)
+
+        notmask = -mask
+        if len(mask) > 0 and notmask.any():
+            new_values = _cast_if_bool_int(new_values)
+            common.null_out_axis(new_values, notmask, 1)
+
+        return make_block(new_values, new_columns)
+
+    def reindex_columns_from(self, indexer, notmask):
         """
         Reindex to only those columns contained in the input set of columns
 
