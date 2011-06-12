@@ -844,11 +844,10 @@ class TestSparseDataFrame(TestCase):
 
         self.assertEquals(df.density, 0.75)
 
-    def test_toDataMatrix(self):
+    def test_to_dense(self):
         def _check(frame):
-            dm = frame.toDataMatrix()
-            dense_dm = frame.to_dense().toDataMatrix()
-            assert_frame_equal(dm, dense_dm)
+            dense_dm = frame.to_dense()
+            assert_frame_equal(frame, dense_dm)
 
         self._check_all(_check)
 

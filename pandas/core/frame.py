@@ -145,6 +145,8 @@ class DataFrame(PandasGeneric):
 
         Somehow this got outrageously complicated
         """
+        from pandas.core.internals import form_blocks
+
         # TODO: deal with emptiness!
         # prefilter if columns passed
         if columns is not None:
@@ -158,7 +160,7 @@ class DataFrame(PandasGeneric):
         # don't force copy because getting jammed in an ndarray anyway
         homogenized = _homogenize_series(data, index, dtype, force_copy=False)
         # segregates dtypes and forms blocks matching to columns
-        blocks, columns = _form_blocks(homogenized, index, columns)
+        blocks, columns = form_blocks(homogenized, index, columns)
 
         # TODO: need consolidate here?
         return BlockManager(blocks, index, columns).consolidate()
@@ -2590,80 +2592,6 @@ def _default_index(n):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
-
-_data_types = [np.float_, np.int_]
-
-def _form_blocks(data, index, columns):
-    from pandas.core.internals import add_na_columns
-
-    # pre-filter out columns if we passed it
-    if columns is None:
-        columns = Index(_try_sort(data.keys()))
-        extra_columns = NULL_INDEX
-    else:
-        columns = _ensure_index(columns)
-        extra_columns = columns - Index(data.keys())
-
-    # put "leftover" columns in float bucket, where else?
-    # generalize?
-    num_dict = {}
-    object_dict = {}
-    for k, v in data.iteritems():
-        if issubclass(v.dtype.type, (np.floating, np.integer)):
-            num_dict[k] = v
-        else:
-            object_dict[k] = v
-
-    blocks = []
-
-    if len(num_dict) > 0:
-        num_dtypes = set(v.dtype for v in num_dict.values())
-        if len(num_dtypes) > 1:
-            num_dtype = np.float_
-        else:
-            num_dtype = list(num_dtypes)[0]
-
-        # TODO: find corner cases
-        # TODO: check type inference
-        num_block = _simple_blockify(num_dict, num_dtype)
-        blocks.append(num_block)
-
-    if len(object_dict) > 0:
-        object_block = _simple_blockify(object_dict, np.object_)
-        blocks.append(object_block)
-
-    if len(extra_columns):
-        blocks = add_na_columns(blocks, extra_columns,
-                                index, columns)
-
-    return blocks, columns
-
-def _simple_blockify(dct, dtype):
-    columns, values = _stack_dict(dct)
-    # CHECK DTYPE?
-    if values.dtype != dtype:
-        values = values.astype(dtype)
-    return make_block(values, columns)
-
-def _stack_dict(dct):
-    columns = Index(_try_sort(dct))
-    stacked = np.vstack([dct[k].values for k in columns]).T
-    return columns, stacked
-
-# def _float_blockify(dct, index, columns):
-#     n = len(index)
-#     k = len(columns)
-#     values = np.empty((n, k), dtype=np.float64)
-#     values.fill(nan)
-
-#     if len(dct) > 0:
-#         dict_columns, stacked = _stack_dict(dct)
-#         indexer, mask = columns.get_indexer(dict_columns)
-#         assert(mask.all())
-#         values[:, indexer] = stacked
-
-#     # do something with dtype?
-#     return make_block(values, columns)
 
 def _reorder_columns(mat, current, desired):
     indexer, mask = common.get_indexer(current, desired, None)

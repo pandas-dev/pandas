@@ -4,7 +4,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.common import _ensure_index
+from pandas.core.common import _ensure_index, _try_sort
 from pandas.core.series import Series
 import pandas.core.common as common
 
@@ -345,7 +345,7 @@ class BlockManager(object):
         return block.get(col)
 
     def delete(self, col):
-        i, block = self._find_block(col)
+        i, _ = self._find_block(col)
         loc = self.columns.get_loc(col)
         self.columns = Index(np.delete(np.asarray(self.columns), loc))
         self._delete_from_block(i, col)
@@ -477,6 +477,79 @@ class BlockManager(object):
         return BlockManager(new_blocks, self.index, self.columns)
 
 
+_data_types = [np.float_, np.int_]
+def form_blocks(data, index, columns):
+    from pandas.core.internals import add_na_columns
+
+    # pre-filter out columns if we passed it
+    if columns is None:
+        columns = Index(_try_sort(data.keys()))
+        extra_columns = NULL_INDEX
+    else:
+        columns = _ensure_index(columns)
+        extra_columns = columns - Index(data.keys())
+
+    # put "leftover" columns in float bucket, where else?
+    # generalize?
+    num_dict = {}
+    object_dict = {}
+    for k, v in data.iteritems():
+        if issubclass(v.dtype.type, (np.floating, np.integer)):
+            num_dict[k] = v
+        else:
+            object_dict[k] = v
+
+    blocks = []
+
+    if len(num_dict) > 0:
+        num_dtypes = set(v.dtype for v in num_dict.values())
+        if len(num_dtypes) > 1:
+            num_dtype = np.float_
+        else:
+            num_dtype = list(num_dtypes)[0]
+
+        # TODO: find corner cases
+        # TODO: check type inference
+        num_block = _simple_blockify(num_dict, num_dtype)
+        blocks.append(num_block)
+
+    if len(object_dict) > 0:
+        object_block = _simple_blockify(object_dict, np.object_)
+        blocks.append(object_block)
+
+    if len(extra_columns):
+        blocks = add_na_columns(blocks, extra_columns,
+                                index, columns)
+
+    return blocks, columns
+
+def _simple_blockify(dct, dtype):
+    columns, values = _stack_dict(dct)
+    # CHECK DTYPE?
+    if values.dtype != dtype:
+        values = values.astype(dtype)
+    return make_block(values, columns)
+
+def _stack_dict(dct):
+    columns = Index(_try_sort(dct))
+    stacked = np.vstack([dct[k].values for k in columns]).T
+    return columns, stacked
+
+# def _float_blockify(dct, index, columns):
+#     n = len(index)
+#     k = len(columns)
+#     values = np.empty((n, k), dtype=np.float64)
+#     values.fill(nan)
+
+#     if len(dct) > 0:
+#         dict_columns, stacked = _stack_dict(dct)
+#         indexer, mask = columns.get_indexer(dict_columns)
+#         assert(mask.all())
+#         values[:, indexer] = stacked
+
+#     # do something with dtype?
+#     return make_block(values, columns)
+
 def add_na_columns(blocks, new_columns, index, columns):
     # create new block, then consolidate
     indexer, mask = new_columns.get_indexer(columns)
@@ -515,21 +588,6 @@ def _blocks_to_series_dict(blocks, index=None):
         for col, vec in zip(block.columns, block.values.T):
             series_dict[col] = Series(vec, index=index)
     return series_dict
-
-def _insert_column(blocks, column, value):
-    """
-    Default: new block
-    """
-    pass
-
-def _set_column(blocks, column, value):
-    pass
-
-def _delete_column(blocks, columns):
-    pass
-
-def _reindex_blocks(blocks, old_columns, new_columns):
-    pass
 
 def _interleave(blocks, columns):
     """

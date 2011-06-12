@@ -31,9 +31,9 @@ def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
                         na_values=na_values)
 
 def read_table(path, header=0, index_col=0, delimiter=','):
-    data = np.genfromtext(path, delimiter=delimiter,
-                          names=header is not None,
-                          dtype=object)
+    data = np.genfromtxt(path, delimiter=delimiter,
+                         names=header is not None,
+                         dtype=object)
 
     columns = data.dtype.names
 
@@ -209,7 +209,7 @@ class ExcelFile(object):
                 row.append(value)
             data.append(row)
         return simpleParser(data, header=header, indexCol=index_col,
-                            na_values=na_values).toDataMatrix()
+                            na_values=na_values)
 
 def parseExcel(filepath, header=None, indexCol=0, sheetname=None, **kwds):
     """

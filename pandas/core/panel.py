@@ -12,7 +12,6 @@ import numpy as np
 from pandas.core.common import _mut_exclusive, _ensure_index, _pfixed
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
-from pandas.core.matrix import DataMatrix
 from pandas.core.generic import PandasGeneric, Picklable
 import pandas.core.common as common
 import pandas.lib.tseries as tseries
@@ -289,7 +288,7 @@ class WidePanel(Panel, PandasGeneric):
 
         mat = self.values[loc]
 
-        return DataMatrix(mat, index=self.major_axis, columns=self.minor_axis)
+        return DataFrame(mat, index=self.major_axis, columns=self.minor_axis)
 
     def __delitem__(self, key):
         loc = self.items.indexMap[key]
@@ -308,7 +307,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         result = self[key]
         del self[key]
@@ -374,7 +373,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        DataFrame (or DataMatrix)
+        DataFrame
         """
         index, columns = self._get_plane_axes(axis)
 
@@ -524,11 +523,11 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
 
         See also
         --------
-        DataMatrix.reindex, DataMatrix.asfreq
+        DataFrame.reindex, DataFrame.asfreq
         """
         if value is None:
             result = {}
@@ -560,12 +559,12 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
             index -> minor axis, columns -> items
         """
         loc = self.major_axis.indexMap[key]
         mat = np.array(self.values[:, loc, :].T)
-        return DataMatrix(mat, index=self.minor_axis, columns=self.items)
+        return DataFrame(mat, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
         """
@@ -578,12 +577,12 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
             index -> major axis, columns -> items
         """
         loc = self.minor_axis.indexMap[key]
         mat = np.array(self.values[:, :, loc].T)
-        return DataMatrix(mat, index=self.major_axis, columns=self.items)
+        return DataFrame(mat, index=self.major_axis, columns=self.items)
 
     def getMinorXS(self, key): # pragma: no cover
         warnings.warn("getMinorXS has been replaced by the minor_xs function "
@@ -723,7 +722,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        result : DataMatrix or WidePanel
+        result : DataFrame or WidePanel
         """
         i = self._get_axis_number(axis)
 
@@ -777,7 +776,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         result = self._values_aggregate(func, axis, fill_value)
         return self._wrap_result(result, axis=axis)
@@ -791,18 +790,18 @@ class WidePanel(Panel, PandasGeneric):
             if axis != 'items':
                 result = result.T
 
-            return DataMatrix(result, index=index, columns=columns)
+            return DataFrame(result, index=index, columns=columns)
         else:
             return WidePanel(result, self.items, self.major_axis,
                              self.minor_axis)
 
     def count(self, axis='major'):
         """
-        Return DataMatrix of observation counts along desired axis
+        Return DataFrame of observation counts along desired axis
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         i = self._get_axis_number(axis)
 
@@ -817,7 +816,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         return self._array_method(np.sum, axis=axis, fill_value=0)
 
@@ -836,7 +835,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         return self.sum(axis=axis) / self.count(axis=axis)
 
@@ -845,7 +844,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         i = self._get_axis_number(axis)
         index, columns = self._get_plane_axes(axis)
@@ -868,7 +867,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         return self.var(axis=axis).apply(np.sqrt)
 
@@ -880,7 +879,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         return self._array_method(np.prod, axis=axis, fill_value=1)
 
@@ -889,7 +888,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         return (1 + self).prod(axis=axis) - 1
 
@@ -898,7 +897,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         def f(arr):
             return tseries.median(arr[common.notnull(arr)])
@@ -910,7 +909,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         i = self._get_axis_number(axis)
 
@@ -931,7 +930,7 @@ class WidePanel(Panel, PandasGeneric):
 
         Returns
         -------
-        y : DataMatrix
+        y : DataFrame
         """
         i = self._get_axis_number(axis)
 
@@ -1124,13 +1123,9 @@ class LongPanel(Panel, Picklable):
     @property
     def columns(self):
         """
-        So LongPanel can be DataMatrix-like at times
+        So LongPanel can be DataFrame-like at times
         """
         return self.items
-
-    def cols(self):
-        "DataMatrix compatibility"
-        return self.columns
 
     def copy(self):
         """
@@ -1532,7 +1527,7 @@ class LongPanel(Panel, Picklable):
         Returns
         -------
         broadcast=True  -> LongPanel
-        broadcast=False -> DataMatrix
+        broadcast=False -> DataFrame
         """
         try:
             return self._apply_axis(f, axis=axis, broadcast=broadcast)
@@ -1560,7 +1555,7 @@ class LongPanel(Panel, Picklable):
             panel = LongPanel(result.repeat(repeater, axis=0),
                               self.items, self.index)
         else:
-            panel = DataMatrix(result, index=self.major_axis,
+            panel = DataFrame(result, index=self.major_axis,
                                columns=self.items)
 
         return panel
@@ -1931,9 +1926,7 @@ def _homogenize(frames, intersect=True):
     adj_frames = {}
     for k, v in frames.iteritems():
         if isinstance(v, dict):
-            adj_frames[k] = DataMatrix(v)
-        elif not isinstance(v, DataMatrix):
-            adj_frames[k] = v.toDataMatrix()
+            adj_frames[k] = DataFrame(v)
         else:
             adj_frames[k] = v
 
@@ -1999,12 +1992,12 @@ def pivot(index, columns, values):
 
     Returns
     -------
-    DataMatrix
+    DataFrame
     """
     assert(len(index) == len(columns) == len(values))
 
     if len(index) == 0:
-        return DataMatrix(index=[])
+        return DataFrame(index=[])
 
     try:
         major_axis = Index(sorted(set(index)))
