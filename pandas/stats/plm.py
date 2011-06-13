@@ -194,7 +194,7 @@ class PanelOLS(OLS):
     def _convert_x(self, x):
 
         # Converts non-numeric data in x to floats. x_converted is the
-        # DataMatrix with converted values, and x_conversion is a dict that
+        # DataFrame with converted values, and x_conversion is a dict that
         # provides the reverse mapping.  For example, if 'A' was converted to 0
         # for x named 'variety', then x_conversion['variety'][0] is 'A'.
         x_converted = {}

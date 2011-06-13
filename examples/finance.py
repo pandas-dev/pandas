@@ -9,7 +9,7 @@ import numpy as np
 from pylab import show
 
 
-from pandas import Index, DataMatrix
+from pandas import Index, DataFrame
 from pandas.core.datetools import BMonthEnd
 from pandas import ols
 
@@ -29,17 +29,17 @@ def getQuotes(symbol, start, end):
     }
 
     dates = Index([datetime.fromordinal(int(d)) for d in dates])
-    return DataMatrix(data, index=dates)
+    return DataFrame(data, index=dates)
 
 msft = getQuotes('MSFT', startDate, endDate)
 aapl = getQuotes('AAPL', startDate, endDate)
 goog = getQuotes('GOOG', startDate, endDate)
 ibm = getQuotes('IBM', startDate, endDate)
 
-px = DataMatrix({'MSFT' : msft['close'],
-                 'IBM' : ibm['close'],
-                 'GOOG' : goog['close'],
-                 'AAPL' : aapl['close']})
+px = DataFrame({'MSFT' : msft['close'],
+                'IBM' : ibm['close'],
+                'GOOG' : goog['close'],
+                'AAPL' : aapl['close']})
 returns = px / px.shift(1) - 1
 
 # Select dates
@@ -64,7 +64,7 @@ ibmMonthly = toMonthly(ibm, np.mean)
 
 # Statistics
 
-stdev = DataMatrix({
+stdev = DataFrame({
     'MSFT' : msft.std(),
     'IBM'  : ibm.std()
 })

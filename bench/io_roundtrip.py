@@ -17,7 +17,7 @@ def rountrip_archive(N, iterations=10):
     # Create data
     arr = np.random.randn(N, N)
     lar = la.larry(arr)
-    dma = pandas.DataMatrix(arr, range(N), range(N))
+    dma = pandas.DataFrame(arr, range(N), range(N))
 
     # filenames
     filename_numpy = 'c:/temp/numpy.npz'
@@ -77,9 +77,9 @@ def pandas_roundtrip(filename, dma1, dma2):
 
 def pandas_roundtrip_pickle(filename, dma1, dma2):
     dma1.save(filename)
-    dma1 = pandas.DataMatrix.load(filename)
+    dma1 = pandas.DataFrame.load(filename)
     dma2.save(filename)
-    dma2 = pandas.DataMatrix.load(filename)
+    dma2 = pandas.DataFrame.load(filename)
 
 
     In [65]: df1

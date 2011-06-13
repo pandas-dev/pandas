@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 import numpy as np
 
-from pandas.core.api import DataFrame, DataMatrix, Series
+from pandas.core.api import DataFrame, Series
 from pandas.core.panel import WidePanel
 from pandas.util.decorators import cache_readonly
 import pandas.stats.common as common
@@ -330,8 +330,8 @@ class OLS(object):
     @cache_readonly
     def var_beta(self):
         """Returns the variance-covariance matrix of beta."""
-        return DataMatrix(self._var_beta_raw, index=self.beta.index,
-                          columns=self.beta.index)
+        return DataFrame(self._var_beta_raw, index=self.beta.index,
+                         columns=self.beta.index)
 
     @cache_readonly
     def _y_fitted_raw(self):
@@ -406,7 +406,7 @@ class OLS(object):
 
     @cache_readonly
     def summary_as_matrix(self):
-        """Returns the formatted results of the OLS as a DataMatrix."""
+        """Returns the formatted results of the OLS as a DataFrame."""
         results = self._results
         beta = results['beta']
         data = {'beta' : results['beta'],
@@ -547,10 +547,10 @@ class MovingOLS(OLS):
 
     @cache_readonly
     def beta(self):
-        """Returns the betas in Series/DataMatrix form."""
-        return DataMatrix(self._beta_raw,
-                          index=self._result_index,
-                          columns=self._x.columns)
+        """Returns the betas in Series/DataFrame form."""
+        return DataFrame(self._beta_raw,
+                         index=self._result_index,
+                         columns=self._x.columns)
 
     @cache_readonly
     def rank(self):
@@ -595,8 +595,8 @@ class MovingOLS(OLS):
     def p_value(self):
         """Returns the p values."""
         cols = self.beta.columns
-        return DataMatrix(self._p_value_raw, columns=cols,
-                          index=self._result_index)
+        return DataFrame(self._p_value_raw, columns=cols,
+                         index=self._result_index)
 
     @cache_readonly
     def r2(self):
@@ -624,14 +624,14 @@ class MovingOLS(OLS):
     @cache_readonly
     def std_err(self):
         """Returns the standard err values."""
-        return DataMatrix(self._std_err_raw, columns=self.beta.columns,
-                          index=self._result_index)
+        return DataFrame(self._std_err_raw, columns=self.beta.columns,
+                         index=self._result_index)
 
     @cache_readonly
     def t_stat(self):
         """Returns the t-stat value."""
-        return DataMatrix(self._t_stat_raw, columns=self.beta.columns,
-                          index=self._result_index)
+        return DataFrame(self._t_stat_raw, columns=self.beta.columns,
+                         index=self._result_index)
 
     @cache_readonly
     def var_beta(self):
@@ -639,8 +639,8 @@ class MovingOLS(OLS):
         result = {}
         result_index = self._result_index
         for i in xrange(len(self._var_beta_raw)):
-            dm = DataMatrix(self._var_beta_raw[i], columns=self.beta.columns,
-                            index=self.beta.columns)
+            dm = DataFrame(self._var_beta_raw[i], columns=self.beta.columns,
+                           index=self.beta.columns)
             result[result_index[i]] = dm
 
         return WidePanel.fromDict(result, intersect=False)
@@ -1005,7 +1005,7 @@ class MovingOLS(OLS):
         window = self._window
 
         # x should be ones
-        dummy = DataMatrix(index=self._y.index)
+        dummy = DataFrame(index=self._y.index)
         dummy['y'] = 1
 
         cum_xy = self._cum_xy(dummy, self._y)
@@ -1158,7 +1158,7 @@ def _combine_rhs(rhs):
         raise Exception('Invalid RHS type: %s' % type(rhs))
 
     if not isinstance(series, DataFrame):
-        series = DataMatrix(series)
+        series = DataFrame(series)
 
     return series
 

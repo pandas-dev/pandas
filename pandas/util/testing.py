@@ -185,14 +185,6 @@ def makeTimeDataFrame():
     data = getTimeSeriesData()
     return DataFrame(data)
 
-def makeDataMatrix():
-    data = getSeriesData()
-    return DataFrame(data)
-
-def makeTimeDataMatrix():
-    data = getTimeSeriesData()
-    return DataFrame(data)
-
 def makeWidePanel():
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
     data = dict((c, makeTimeDataFrame()) for c in cols)
