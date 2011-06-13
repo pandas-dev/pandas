@@ -16,7 +16,7 @@ from pandas.core.common import (isnull, notnull, _check_step, _is_list_like,
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -152,7 +152,6 @@ class DataFrame(PandasGeneric):
         Somehow this got outrageously complicated
         """
         from pandas.core.internals import form_blocks
-
         # TODO: deal with emptiness!
         # prefilter if columns passed
         if columns is not None:
@@ -175,15 +174,7 @@ class DataFrame(PandasGeneric):
     def _init_matrix(self, values, index, columns, dtype=None,
                      copy=True):
         from pandas.core.internals import make_block
-
         values = _prep_ndarray(values, copy=copy)
-
-        if values.ndim == 1:
-            N = values.shape[0]
-            if N == 0:
-                values = values.reshape((values.shape[0], 0))
-            else:
-                values = values.reshape((values.shape[0], 1))
 
         if dtype is not None:
             try:
@@ -890,6 +881,7 @@ class DataFrame(PandasGeneric):
         -------
         y : same type as calling instance
         """
+        self._consolidate_inplace()
         frame = self
 
         if index is not None:
@@ -903,8 +895,6 @@ class DataFrame(PandasGeneric):
         return frame
 
     def _reindex_index(self, new_index, method):
-        self._consolidate_inplace()
-
         if new_index is self.index:
             return self.copy()
 
@@ -913,8 +903,6 @@ class DataFrame(PandasGeneric):
         return DataFrame(new_data)
 
     def _reindex_columns(self, new_columns):
-        self._consolidate_inplace()
-
         new_data = self._data.reindex_columns(new_columns)
         return DataFrame(new_data)
 
@@ -2561,6 +2549,16 @@ def _prep_ndarray(values, copy=True):
     else:
         if copy:
             values = values.copy()
+
+    if values.ndim == 1:
+        N = values.shape[0]
+        if N == 0:
+            values = values.reshape((values.shape[0], 0))
+        else:
+            values = values.reshape((values.shape[0], 1))
+    elif values.ndim != 2:
+        raise Exception('Must pass 2-d input')
+
     return values
 
 def _homogenize_series(data, index, dtype=None):

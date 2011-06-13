@@ -643,6 +643,26 @@ class TestSparseDataFrame(TestCase):
         reindexed = self.frame.reindex(idx)
         assert_sp_frame_equal(cons, reindexed)
 
+    def test_constructor_ndarray(self):
+        # no index or columns
+        sp = SparseDataFrame(self.frame.values)
+
+        # 1d
+        sp = SparseDataFrame(self.data['A'], index=self.dates,
+                             columns=['A'])
+        assert_sp_frame_equal(sp, self.frame.reindex(columns=['A']))
+
+        # wrong length index / columns
+        self.assertRaises(Exception, SparseDataFrame, self.frame.values,
+                          index=self.frame.index[:-1])
+        self.assertRaises(Exception, SparseDataFrame, self.frame.values,
+                          columns=self.frame.columns[:-1])
+
+    def test_constructor_empty(self):
+        sp = SparseDataFrame()
+        self.assert_(len(sp.index) == 0)
+        self.assert_(len(sp.columns) == 0)
+
     def test_constructor_dataframe(self):
         dense = self.frame.to_dense()
         sp = SparseDataFrame(dense)
@@ -779,6 +799,35 @@ class TestSparseDataFrame(TestCase):
 
 
         self._check_all(_check_frame)
+
+    def test_insert_item_corner(self):
+        self.frame['a'] = self.frame['B']
+        assert_sp_series_equal(self.frame['a'], self.frame['B'])
+
+    def test_delitem(self):
+        A = self.frame['A']
+        C = self.frame['C']
+
+        del self.frame['B']
+        self.assert_('B' not in self.frame)
+        assert_sp_series_equal(self.frame['A'], A)
+        assert_sp_series_equal(self.frame['C'], C)
+
+        del self.frame['D']
+        self.assert_('D' not in self.frame)
+
+        del self.frame['A']
+        self.assert_('A' not in self.frame)
+
+    def test_set_columns(self):
+        self.frame.columns = self.frame.columns
+        self.assertRaises(Exception, setattr, self.frame, 'columns',
+                          self.frame.columns[:-1])
+
+    def test_set_index(self):
+        self.frame.index = self.frame.index
+        self.assertRaises(Exception, setattr, self.frame, 'index',
+                          self.frame.index[:-1])
 
     def test_corr(self):
         res = self.frame.corr()

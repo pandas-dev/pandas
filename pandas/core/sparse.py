@@ -14,7 +14,8 @@ from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
                                 _mut_exclusive, _ensure_index, _try_sort)
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
-from pandas.core.frame import DataFrame, extract_index
+from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
+                               _default_index)
 from pandas.core.panel import Panel, WidePanel, LongPanelIndex, LongPanel
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -619,6 +620,7 @@ class SparseDataFrame(DataFrame):
         self.index = index
 
     def _consolidate_inplace(self):
+        # do nothing when DataFrame calls this method
         pass
 
     @property
@@ -668,29 +670,19 @@ class SparseDataFrame(DataFrame):
         return sdict, columns, index
 
     def _init_matrix(self, data, index, columns, dtype=None):
-        if not isinstance(data, np.ndarray):
-            arr = np.array(data)
-            if issubclass(arr.dtype.type, basestring):
-                arr = np.array(data, dtype=object, copy=True)
-
-            data = arr
-
-        if data.ndim == 1:
-            data = data.reshape((len(data), 1))
-        elif data.ndim != 2:
-            raise Exception('Must pass 2-d input!')
-
+        data = _prep_ndarray(data, copy=False)
         N, K = data.shape
-
         if index is None:
             index = _default_index(N)
-
         if columns is None:
             columns = _default_index(K)
 
         if len(columns) != K:
             raise Exception('Column length mismatch: %d vs. %d' %
                             (len(columns), K))
+        if len(index) != N:
+            raise Exception('Index length mismatch: %d vs. %d' %
+                            (len(index), N))
 
         data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
         return self._init_dict(data, index, columns, dtype)
@@ -791,27 +783,10 @@ class SparseDataFrame(DataFrame):
             self._series[key] = sp_maker(value)
 
         if key not in self.columns:
-            loc = self._get_insert_loc(key)
-            self._insert_column_index(key, loc)
+            self._insert_column(key)
 
-    def _insert_column_index(self, key, loc):
-        if loc == len(self.columns):
-            columns = Index(np.concatenate((self.columns, [key])))
-        elif loc == 0:
-            columns = Index(np.concatenate(([key], self.columns)))
-        else:
-            columns = Index(np.concatenate((self.columns[:loc], [key],
-                                            self.columns[loc:])))
-
-        self.columns = columns
-
-    def _get_insert_loc(self, key):
-        try:
-            loc = self.columns.searchsorted(key)
-        except TypeError:
-            loc = len(self.columns)
-
-        return loc
+    def _insert_column(self, key):
+        self.columns = Index(np.concatenate((self.columns, [key])))
 
     def __delitem__(self, key):
         """
