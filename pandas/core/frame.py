@@ -859,7 +859,7 @@ class DataFrame(PandasGeneric):
 
         Returns
         -------
-        Series
+        xs : Series
         """
         if key not in self.index:
             raise Exception('No cross-section for %s' % key)
@@ -903,6 +903,8 @@ class DataFrame(PandasGeneric):
         return frame
 
     def _reindex_index(self, new_index, method):
+        self._consolidate_inplace()
+
         if new_index is self.index:
             return self.copy()
 
@@ -911,6 +913,8 @@ class DataFrame(PandasGeneric):
         return DataFrame(new_data)
 
     def _reindex_columns(self, new_columns):
+        self._consolidate_inplace()
+
         new_data = self._data.reindex_columns(new_columns)
         return DataFrame(new_data)
 
@@ -1700,6 +1704,16 @@ class DataFrame(PandasGeneric):
         return DataFrame(new_data)
 
     def _join_index(self, other, how):
+        join_index = self._get_join_index(other, how)
+        this_data = self.reindex(join_index)._data
+        other_data = other.reindex(join_index)._data
+
+        # merge blocks
+        merged_data = this_data.merge(other_data)
+        assert(merged_data.index is join_index) # maybe unnecessary
+        return DataFrame(merged_data)
+
+    def _get_join_index(self, other, how):
         if how == 'left':
             join_index = self.index
         elif how == 'right':
@@ -1711,16 +1725,7 @@ class DataFrame(PandasGeneric):
         else:
             raise Exception('do not recognize join method %s' % how)
 
-        result_series = self.reindex(join_index)._series
-        other_series = other.reindex(join_index)._series
-
-        for col in other_series:
-            if col in result_series:
-                raise Exception('Overlapping columns!')
-
-        result_series.update(other_series)
-
-        return self._constructor(result_series, index=join_index)
+        return join_index
 
     #----------------------------------------------------------------------
     # Data reshaping

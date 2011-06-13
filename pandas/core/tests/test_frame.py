@@ -2107,8 +2107,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_almost_equal(expected, self.frame.values)
 
     def test_xs_view(self):
-        dm = DataFrame(np.arange(20).reshape(4, 5),
-                        index=range(4), columns=range(5))
+        dm = DataFrame(np.arange(20.).reshape(4, 5),
+                       index=range(4), columns=range(5))
 
         dm.xs(2, copy=False)[:] = 5
         self.assert_((dm.xs(2) == 5).all())
@@ -2119,6 +2119,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # TODO: deal with mixed-type fiasco?
         self.assertRaises(Exception, self.mixed_frame.xs,
                           self.mixed_frame.index[2], copy=False)
+
+        # unconsolidated
+        dm['foo'] = 6.
+        dm.xs(3, copy=False)[:] = 10
+        self.assert_((dm.xs(3) == 10).all())
 
 if __name__ == '__main__':
     # unittest.main()

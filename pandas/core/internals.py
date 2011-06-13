@@ -481,9 +481,12 @@ class BlockManager(object):
             if len(newb.columns) > 0:
                 new_blocks.append(newb)
 
-        # will put these in the float bucket
-        extra_columns = new_columns - self.columns
-        if len(extra_columns):
+        # TODO: this part could be faster (!)
+        _, mask = self.columns.get_indexer(new_columns)
+        notmask = -mask
+
+        if notmask.any():
+            extra_columns = new_columns[notmask]
             na_block = add_na_columns(extra_columns, self.index, new_columns)
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_columns)

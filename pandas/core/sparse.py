@@ -618,6 +618,9 @@ class SparseDataFrame(DataFrame):
         self.columns = columns
         self.index = index
 
+    def _consolidate_inplace(self):
+        pass
+
     @property
     def _constructor(self):
         return SparseDataFrame
@@ -1009,6 +1012,24 @@ class SparseDataFrame(DataFrame):
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self.default_fill_value)
+
+    def _join_on(self, other, on):
+        # need to implement?
+        raise NotImplementedError
+
+    def _join_index(self, other, how):
+        join_index = self._get_join_index(other, how)
+
+        result_series = self.reindex(join_index)._series
+        other_series = other.reindex(join_index)._series
+
+        for col in other_series:
+            if col in result_series:
+                raise Exception('Overlapping columns!')
+
+        result_series.update(other_series)
+
+        return self._constructor(result_series, index=join_index)
 
     def transpose(self):
         """
