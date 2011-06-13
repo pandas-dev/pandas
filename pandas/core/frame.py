@@ -192,7 +192,7 @@ class DataFrame(PandasGeneric):
             columns = _default_index(K)
 
         columns = _ensure_index(columns)
-        block = make_block(values, np.arange(K), columns)
+        block = make_block(values, columns, columns)
         return BlockManager([block], index, columns)
 
     @property
@@ -1440,7 +1440,7 @@ class DataFrame(PandasGeneric):
                 new_values[:periods] = nan
             else:
                 new_values[periods:] = nan
-            return make_block(new_values, blk.columns)
+            return make_block(new_values, blk.columns, blk.ref_columns)
 
         if offset is None:
             indexer = self._shift_indexer(periods)

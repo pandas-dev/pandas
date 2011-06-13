@@ -12,8 +12,11 @@ class TestBlock(unittest.TestCase):
     def setUp(self):
         n = 10
         floats = np.repeat(np.atleast_2d(np.arange(3.)), n, axis=0)
-        self.fblock = make_block(floats, [0, 2, 4],
+        self.fblock = make_block(floats, ['a', 'c', 'e'],
                                  ['a', 'b', 'c', 'd', 'e'])
+
+    def test_ref_locs(self):
+        assert_almost_equal(self.fblock.ref_locs, [0, 2, 4])
 
     def test_merge(self):
         pass
@@ -29,7 +32,8 @@ class TestBlock(unittest.TestCase):
         self.assert_(cols is cols2)
 
     def test_assign_ref_columns(self):
-        self.fblock.ref_columns = ['foo', 'bar', 'baz', 'quux', 'hi']
+        new_cols = Index(['foo', 'bar', 'baz', 'quux', 'hi'])
+        self.fblock.set_ref_columns(new_cols)
         self.assert_(np.array_equal(self.fblock.columns,
                                     ['foo', 'baz', 'hi']))
 
