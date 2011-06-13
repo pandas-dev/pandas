@@ -192,7 +192,7 @@ class DataFrame(PandasGeneric):
             columns = _default_index(K)
 
         columns = _ensure_index(columns)
-        block = make_block(values, columns)
+        block = make_block(values, np.arange(K), columns)
         return BlockManager([block], index, columns)
 
     @property

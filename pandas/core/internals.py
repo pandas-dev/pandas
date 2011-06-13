@@ -1,5 +1,5 @@
 import itertools
-import operator
+from operator import attrgetter
 
 from numpy import nan
 import numpy as np
@@ -21,20 +21,24 @@ class Block(object):
             values = np.array(values, dtype=object)
 
         self.values = values
-        self.ref_locs = ref_locs
+        self.ref_locs = np.asarray(ref_locs, dtype=int)
         self._ref_columns = _ensure_index(ref_columns)
         assert(len(ref_locs) == values.shape[1])
 
+    _columns = None
     @property
     def columns(self):
-        return self.ref_columns.take(self.ref_locs)
+        if self._columns is None:
+            self._columns = self.ref_columns.take(self.ref_locs)
+        return self._columns
 
     _ref_columns = None
     def _set_ref_columns(self, value):
-        assert(len(value) == self.ref_columns)
+        assert(len(value) == len(self.ref_columns))
         self._ref_columns = _ensure_index(value)
+        self._columns = None # needs to be recomputed
 
-    ref_columns = property(fget=operator.attrgetter('_ref_columns'),
+    ref_columns = property(fget=attrgetter('_ref_columns'),
                            fset=_set_ref_columns)
 
     def __repr__(self):
@@ -72,7 +76,7 @@ class Block(object):
 
     def copy(self):
         return make_block(self.values.copy(), self.ref_locs,
-                          self.ref_columns)
+                          self.ref_columns, _columns=self._columns)
 
     def merge(self, other):
         return _merge_blocks([self, other])
@@ -85,33 +89,10 @@ class Block(object):
         if needs_masking:
             new_values = _cast_if_bool_int(new_values)
             common.null_out_axis(new_values, notmask, 0)
-        return make_block(new_values, self.ref_locs, self.ref_columns)
+        return make_block(new_values, self.ref_locs, self.ref_columns,
+                          _columns=self._columns)
 
-    def reindex_columns(self, new_columns):
-        """
-
-        """
-        indexer, mask = self.columns.get_indexer(columns)
-        masked_idx = indexer[mask]
-        new_values = self.values.take(masked_idx, axis=1)
-        new_columns = self.columns.take(masked_idx)
-        return make_block(new_values, new_locs, columns)
-
-        indexer, mask = new_columns.get_indexer(self.ref_columns)
-
-        loc_indexer = indexer.take(self.ref_locs)
-        loc_indexer = loc_indexer[mask.take(self.ref_locs)]
-
-        new_values = self.values.take(indexer, axis=1)
-
-        notmask = -mask
-        if len(mask) > 0 and notmask.any():
-            new_values = _cast_if_bool_int(new_values)
-            common.null_out_axis(new_values, notmask, 1)
-
-        return make_block(new_values, new_columns)
-
-    def reindex_columns_from(self, indexer, notmask):
+    def reindex_columns_from(self, new_columns):
         """
         Reindex to only those columns contained in the input set of columns
 
@@ -122,27 +103,25 @@ class Block(object):
         -------
         reindexed : Block
         """
-        indexer, mask = self.columns.get_indexer(columns)
+        indexer, mask = self.columns.get_indexer(new_columns)
         masked_idx = indexer[mask]
         new_values = self.values.take(masked_idx, axis=1)
-        new_columns = self.columns.take(masked_idx)
-        return make_block(new_values, new_locs, columns)
+        new_locs = np.arange(len(new_columns))[mask]
+        return make_block(new_values, new_locs, new_columns)
 
-    def insert(self, col, value, loc=None):
-        """
-        Insert new column into Block, return new Block
+        # indexer, mask = new_columns.get_indexer(self.ref_columns)
 
-        Returns
-        -------
-        y : Block (new object)
-        """
-        assert(col not in self.columns)
-        if loc is None:
-            loc = len(self.columns)
+        # loc_indexer = indexer.take(self.ref_locs)
+        # loc_indexer = loc_indexer[mask.take(self.ref_locs)]
 
-        new_columns = _insert_into_columns(self.columns, col, loc)
-        new_values = _insert_into_values(self.values, value, loc)
-        return make_block(new_values, new_columns)
+        # new_values = self.values.take(indexer, axis=1)
+
+        # notmask = -mask
+        # if len(mask) > 0 and notmask.any():
+        #     new_values = _cast_if_bool_int(new_values)
+        #     common.null_out_axis(new_values, notmask, 1)
+
+        # return make_block(new_values, new_columns)
 
     def get(self, col):
         loc = self.columns.get_loc(col)
@@ -166,22 +145,32 @@ class Block(object):
         y : Block (new object)
         """
         loc = self.columns.get_loc(col)
-        new_columns = _delete_from_columns(self.columns, loc)
-        new_values = _delete_from_values(self.values, loc)
-        return make_block(new_values, new_columns)
+        new_locs = np.delete(self.ref_locs, loc)
+        new_values = np.delete(self.values, loc, 1)
+        return make_block(new_values, new_locs, self.ref_columns)
 
     def fillna(self, value):
         new_values = self.values.copy()
         mask = common.isnull(new_values.ravel())
         new_values.flat[mask] = value
-        return make_block(new_values, self.columns)
+        return make_block(new_values, self.ref_locs, self.ref_columns,
+                          _columns=self._columns)
 
-def _cast_if_bool_int(values):
-    if issubclass(values.dtype.type, np.int_):
-        values = values.astype(float)
-    elif issubclass(values.dtype.type, np.bool_):
-        values = values.astype(object)
-    return values
+def _insert_into_block(block, ref_columns, col, value, loc=None):
+    """
+    Insert new column into Block, return new Block
+
+    Returns
+    -------
+    y : Block (new object)
+    """
+    assert(col in ref_columns)
+    if loc is None:
+        loc = len(columns)
+
+    new_columns = _insert_into_columns(self.columns, col, loc)
+    new_values = _insert_into_values(self.values, value, loc)
+    return make_block(new_values, new_columns)
 
 def _insert_into_columns(columns, col, loc):
     columns = np.asarray(columns)
@@ -190,6 +179,13 @@ def _insert_into_columns(columns, col, loc):
 
 def _insert_into_values(values, new_vec, loc):
     return np.insert(values, loc, new_vec, 1)
+
+def _cast_if_bool_int(values):
+    if issubclass(values.dtype.type, np.int_):
+        values = values.astype(float)
+    elif issubclass(values.dtype.type, np.bool_):
+        values = values.astype(object)
+    return values
 
 def _delete_from_columns(columns, loc):
     columns = np.asarray(columns)
@@ -220,7 +216,7 @@ class BoolBlock(Block):
 class ObjectBlock(Block):
     pass
 
-def make_block(values, ref_locs, ref_columns):
+def make_block(values, ref_locs, ref_columns, _columns=None):
     dtype = values.dtype
     vtype = dtype.type
 
@@ -233,26 +229,47 @@ def make_block(values, ref_locs, ref_columns):
     else:
         klass = ObjectBlock
 
-    return klass(values, ref_locs, ref_columns)
+    block = klass(values, ref_locs, ref_columns)
+    block._columns = _columns
+
+    return block
 
 # TODO: flexible with index=None and/or columns=None
 
 class BlockManager(object):
     """
+    Core internal data structure to implement DataFrame
+
     Manage a bunch of labeled 2D mixed-type ndarrays. Essentially it's a
     lightweight blocked set of labeled data to be manipulated by the DataFrame
     public API class
 
+    Parameters
+    ----------
+
+
+    Notes
+    -----
     This is *not* a public API class
     """
     def __init__(self, blocks, index=None, columns=None,
                  skip_integrity_check=False):
         self.index = _ensure_index(index)
-        self.columns = _ensure_index(columns)
+        self._columns = _ensure_index(columns)
         self.blocks = blocks
 
         if not skip_integrity_check:
             self._verify_integrity()
+
+    _columns = None
+    def _set_columns(self, value):
+        self._columns = _ensure_index(value)
+
+        for block in self.blocks:
+            block._ref_columns = self._columns
+
+    columns = property(fget=attrgetter('_columns'),
+                       fset=_set_columns)
 
     def __getstate__(self):
         return (np.asarray(self.index),
@@ -262,8 +279,8 @@ class BlockManager(object):
     def __setstate__(self, state):
         index, columns, blocks = state
         self.index = _ensure_index(index)
-        self.columns = _ensure_index(columns)
         self.blocks = blocks
+        self.columns = _ensure_index(columns)
 
     def __repr__(self):
         output = 'BlockManager'
@@ -283,7 +300,8 @@ class BlockManager(object):
     def cast(self, dtype):
         new_blocks = []
         for block in self.blocks:
-            newb = make_block(block.values.astype(dtype), block.columns)
+            newb = make_block(block.values.astype(dtype), block.ref_locs,
+                              block.ref_columns, _columns=block._columns)
             new_blocks.append(newb)
 
         new_mgr = BlockManager(new_blocks, self.index, self.columns)
@@ -394,29 +412,29 @@ class BlockManager(object):
             else:
                 block.set(col, value)
         else:
-            # new block
-            self._add_new_block(col, value)
-
             # TODO: where to insert?
             self.columns = _insert_into_columns(self.columns, col,
                                                 len(self.columns))
-
+            # new block
+            self._add_new_block(col, value)
     def _delete_from_block(self, i, col):
         """
         Delete and maybe remove the whole block
         """
         block = self.blocks[i]
-        assert(col in block.columns)
-        if len(block.columns) == 1:
+        newb = block.delete(col)
+
+        if len(newb.ref_locs) == 0:
             self.blocks.pop(i)
         else:
-            new_block = block.delete(col)
-            self.blocks[i] = new_block
+            self.blocks[i] = newb
 
     def _add_new_block(self, col, value):
+        loc = self.columns.get_loc(col)
+
         # Do we care about dtype at the moment?
-        new_block = make_block(value, [col])
-        self._push_new_block(new_block)
+        new_block = make_block(value, [loc], self.columns)
+        self.blocks.append(new_block)
 
     def _find_block(self, col):
         self._check_have(col)
@@ -426,15 +444,9 @@ class BlockManager(object):
 
         raise Exception('technically unreachable code')
 
-    def _push_new_block(self, block):
-        self.blocks.append(block)
-
     def _check_have(self, col):
         if col not in self.columns:
             raise KeyError('no column named %s' % col)
-
-    def _chunk_index(self, col):
-        pass
 
     def reindex_index(self, new_index, method=None):
         new_index = _ensure_index(new_index)
@@ -446,7 +458,6 @@ class BlockManager(object):
 
         new_blocks = []
         for block in self.blocks:
-
             newb = block.reindex_index(indexer, notmask, needs_masking)
             new_blocks.append(newb)
 
@@ -483,8 +494,9 @@ class BlockManager(object):
         # will put these in the float bucket
         extra_columns = new_columns - self.columns
         if len(extra_columns):
-            new_blocks = add_na_columns(new_blocks, extra_columns,
-                                        self.index, new_columns)
+            na_block = add_na_columns(extra_columns, self.index, new_columns)
+            new_blocks.append(na_block)
+            new_blocks = _consolidate(new_blocks)
 
         return BlockManager(new_blocks, self.index, new_columns)
 
@@ -493,18 +505,24 @@ class BlockManager(object):
         return BlockManager(self.blocks, new_index, self.columns)
 
     def rename_columns(self, mapper):
-        def _rename_block(blk):
-            new_cols = [mapper(x) for x in blk.columns]
-            return make_block(blk.values, new_cols)
-
-        new_blocks = [_rename_block(x) for x in self.blocks]
-        new_columns = [mapper(x) for x in self.columns]
+        new_columns = Index([mapper(x) for x in self.columns])
+        new_blocks = []
+        for block in self.blocks:
+            newb = block.copy()
+            newb.ref_columns = new_columns
+            new_blocks.append(newb)
         return BlockManager(new_blocks, self.index, new_columns)
 
     def fillna(self, value):
+        """
+
+        """
         new_blocks = [b.fillna(value) for b in self.blocks]
         return BlockManager(new_blocks, self.index, self.columns)
 
+def _make_block_id_vector(columns, blocks):
+    # TODO
+    pass
 
 _data_types = [np.float_, np.int_]
 def form_blocks(data, index, columns):
@@ -539,25 +557,29 @@ def form_blocks(data, index, columns):
 
         # TODO: find corner cases
         # TODO: check type inference
-        num_block = _simple_blockify(num_dict, num_dtype)
+        num_block = _simple_blockify(num_dict, columns, num_dtype)
         blocks.append(num_block)
 
     if len(object_dict) > 0:
-        object_block = _simple_blockify(object_dict, np.object_)
+        object_block = _simple_blockify(object_dict, columns, np.object_)
         blocks.append(object_block)
 
     if len(extra_columns):
-        blocks = add_na_columns(blocks, extra_columns,
-                                index, columns)
+        na_block = add_na_columns(extra_columns, index, new_columns)
+        blocks.append(na_block)
+        blocks = _consolidate(blocks)
 
     return blocks, columns
 
-def _simple_blockify(dct, dtype):
-    columns, values = _stack_dict(dct)
+def _simple_blockify(dct, ref_columns, dtype):
+    block_columns, values = _stack_dict(dct)
     # CHECK DTYPE?
     if values.dtype != dtype:
         values = values.astype(dtype)
-    return make_block(values, columns)
+
+    locs, mask = ref_columns.get_indexer(block_columns)
+    assert(mask.all())
+    return make_block(values, locs, ref_columns)
 
 def _stack_dict(dct):
     columns = Index(_try_sort(dct))
@@ -579,22 +601,18 @@ def _stack_dict(dct):
 #     # do something with dtype?
 #     return make_block(values, columns)
 
-def add_na_columns(blocks, new_columns, index, columns):
+def add_na_columns(new_columns, index, ref_columns):
     # create new block, then consolidate
-    indexer, mask = new_columns.get_indexer(columns)
-
-    # reorder to match relative order of new columns
-    new_columns = new_columns.take(indexer[mask])
-
+    locs, mask = columns.get_indexer(new_columns)
+    assert(mask.all())
     values = _nan_array(index, new_columns)
-    newb = make_block(values, new_columns)
-    blocks.append(newb)
-    return _consolidate(blocks)
+    return make_block(values, locs, ref_columns)
 
 def _slice_blocks(blocks, slice_obj):
     new_blocks = []
     for block in blocks:
-        newb = make_block(block.values[slice_obj], block.columns)
+        newb = make_block(block.values[slice_obj], block.ref_locs,
+                          block.ref_columns, _columns=block._columns)
         new_blocks.append(newb)
     return new_blocks
 
@@ -662,9 +680,15 @@ def _consolidate(blocks):
     return new_blocks
 
 def _merge_blocks(blocks):
+    ref_cols = blocks[0].ref_columns
+
     new_values = np.hstack([b.values for b in blocks])
-    new_columns = np.concatenate([b.columns for b in blocks])
-    new_block = make_block(new_values, new_columns)
+    new_locs = np.concatenate([b.ref_locs for b in blocks])
+    new_block = make_block(new_values, new_locs, ref_cols)
+
+    # HACK: check for duplicates
+    _ = new_block.columns
+
     return new_block
 
 def _xs(blocks, i, copy=True):
@@ -687,11 +711,11 @@ def _union_block_columns(blocks):
 
     return seen
 
-def _nan_manager_matching(index, columns):
-    # what if one of these is empty?
-    values = _nan_array(index, columns)
-    block = make_block(values, columns)
-    return BlockManager([block], columns)
+# def _nan_manager_matching(index, columns):
+#     # what if one of these is empty?
+#     values = _nan_array(index, columns)
+#     block = make_block(values, columns)
+#     return BlockManager([block], columns)
 
 def _nan_array(index, columns, dtype=np.float64):
     if index is None:
