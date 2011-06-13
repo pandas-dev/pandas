@@ -97,12 +97,8 @@ class DataFrame(PandasGeneric):
         Required if data is ndarray
     dtype : dtype, default None (infer)
         Data type to force
-
-    Notes
-    -----
-    Data contained within is COPIED from input arrays, this is to prevent silly
-    behavior like altering the original arrays and having those changes
-    reflected in the frame.
+    copy : boolean, default True
+        Copy data from input arrays
 
     Examples
     --------
@@ -118,26 +114,37 @@ class DataFrame(PandasGeneric):
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
-    def __init__(self, data=None, index=None, columns=None, dtype=None):
+    def __init__(self, data=None, index=None, columns=None, dtype=None,
+                 copy=True):
+
         if data is None:
             data = {}
 
         if isinstance(data, BlockManager):
             mgr = data
+            if copy and dtype is None:
+                mgr = mgr.copy()
+            elif dtype is not None:
+                # no choice but to copy
+                mgr = mgr.cast(dtype)
         elif isinstance(data, DataFrame):
-            mgr = data._data.copy()
-            if dtype is not None:
+            mgr = data._data
+            if copy and dtype is None:
+                mgr = mgr.copy()
+            elif dtype is not None:
+                # no choice but to copy
                 mgr = mgr.cast(dtype)
         elif isinstance(data, dict):
-            mgr = self._init_dict(data, index, columns, dtype)
+            mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, (np.ndarray, list)):
-            mgr = self._init_matrix(data, index, columns, dtype)
+            mgr = self._init_matrix(data, index, columns, dtype=dtype,
+                                    copy=copy)
         else:
             raise Exception('DataFrame constructor not properly called!')
 
         self._data = mgr
 
-    def _init_dict(self, data, index, columns, dtype=None):
+    def _init_dict(self, data, index, columns, dtype=None, copy=True):
         """
         Segregate Series based on type and coerce into matrices.
 
@@ -165,7 +172,8 @@ class DataFrame(PandasGeneric):
         # TODO: need consolidate here?
         return BlockManager(blocks, index, columns).consolidate()
 
-    def _init_matrix(self, values, index, columns, dtype=None):
+    def _init_matrix(self, values, index, columns, dtype=None,
+                     copy=True):
         from pandas.core.internals import make_block
 
         values = _prep_ndarray(values)

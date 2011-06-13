@@ -25,8 +25,6 @@ class Block(object):
         self.columns = _ensure_index(columns)
         self.ref_columns = _ensure_index(ref_columns)
 
-        # self.ref_locs = np.asarray(ref_locs, dtype=int)
-
     _ref_locs = None
     @property
     def ref_locs(self):
@@ -83,7 +81,10 @@ class Block(object):
                           self.ref_columns)
 
     def merge(self, other):
-        return _merge_blocks([self, other])
+        union_ref = self.ref_columns
+        if not union_ref.equals(other.ref_columns):
+            union_ref = self.ref_columns + other.ref_columns
+        return _merge_blocks([self, other], union_ref)
 
     def reindex_index(self, indexer, notmask, needs_masking):
         """
@@ -112,20 +113,6 @@ class Block(object):
         new_cols = self.columns.take(masked_idx)
         return make_block(new_values, new_cols, new_columns)
 
-        # indexer, mask = new_columns.get_indexer(self.ref_columns)
-
-        # loc_indexer = indexer.take(self.ref_locs)
-        # loc_indexer = loc_indexer[mask.take(self.ref_locs)]
-
-        # new_values = self.values.take(indexer, axis=1)
-
-        # notmask = -mask
-        # if len(mask) > 0 and notmask.any():
-        #     new_values = _cast_if_bool_int(new_values)
-        #     common.null_out_axis(new_values, notmask, 1)
-
-        # return make_block(new_values, new_columns)
-
     def get(self, col):
         loc = self.columns.get_loc(col)
         return self.values[:, loc]
@@ -148,7 +135,7 @@ class Block(object):
         y : Block (new object)
         """
         loc = self.columns.get_loc(col)
-        new_cols = np.delete(self.columns, loc)
+        new_cols = np.delete(np.asarray(self.columns), loc)
         new_values = np.delete(self.values, loc, 1)
         return make_block(new_values, new_cols, self.ref_columns)
 
@@ -158,29 +145,10 @@ class Block(object):
         new_values.flat[mask] = value
         return make_block(new_values, self.columns, self.ref_columns)
 
-def _insert_into_block(block, ref_columns, col, value, loc=None):
-    """
-    Insert new column into Block, return new Block
-
-    Returns
-    -------
-    y : Block (new object)
-    """
-    assert(col in ref_columns)
-    if loc is None:
-        loc = len(columns)
-
-    new_columns = _insert_into_columns(self.columns, col, loc)
-    new_values = _insert_into_values(self.values, value, loc)
-    return make_block(new_values, new_columns)
-
 def _insert_into_columns(columns, col, loc):
     columns = np.asarray(columns)
     new_columns = np.insert(columns, loc, col)
     return Index(new_columns)
-
-def _insert_into_values(values, new_vec, loc):
-    return np.insert(values, loc, new_vec, 1)
 
 def _cast_if_bool_int(values):
     if issubclass(values.dtype.type, np.int_):
@@ -188,14 +156,6 @@ def _cast_if_bool_int(values):
     elif issubclass(values.dtype.type, np.bool_):
         values = values.astype(object)
     return values
-
-def _delete_from_columns(columns, loc):
-    columns = np.asarray(columns)
-    new_columns = np.delete(columns, loc)
-    return Index(new_columns)
-
-def _delete_from_values(values, loc):
-    return np.delete(values, loc, 1)
 
 def _convert_if_1d(values):
     if values.ndim == 1:
@@ -207,16 +167,25 @@ def _convert_if_1d(values):
 # Is this even possible?
 
 class FloatBlock(Block):
-    pass
+
+    def can_store(self, value):
+        return issubclass(value.dtype.type, (np.integer, np.floating))
 
 class IntBlock(Block):
-    pass
+
+    def can_store(self, value):
+        return issubclass(value.dtype.type, np.integer)
 
 class BoolBlock(Block):
-    pass
+
+    def can_store(self, value):
+        return issubclass(value.dtype.type, np.bool_)
 
 class ObjectBlock(Block):
-    pass
+
+    def can_store(self, value):
+        return not issubclass(value.dtype.type,
+                              (np.integer, np.floating, np.bool_))
 
 def make_block(values, columns, ref_columns):
     dtype = values.dtype
@@ -390,7 +359,7 @@ class BlockManager(object):
         if self.is_consolidated():
             return self
 
-        new_blocks = _consolidate(self.blocks)
+        new_blocks = _consolidate(self.blocks, self.columns)
         return BlockManager(new_blocks, self.index, self.columns)
 
     def get(self, col):
@@ -413,7 +382,7 @@ class BlockManager(object):
         assert(len(value) == len(self))
         if col in self.columns:
             i, block = self._find_block(col)
-            if _needs_other_dtype(block, value):
+            if not block.can_store(value):
                 # delete from block, create and append new block
                 self._delete_from_block(i, col)
                 self._add_new_block(col, value)
@@ -450,8 +419,6 @@ class BlockManager(object):
             if col in block:
                 return i, block
 
-        raise Exception('technically unreachable code')
-
     def _check_have(self, col):
         if col not in self.columns:
             raise KeyError('no column named %s' % col)
@@ -474,9 +441,16 @@ class BlockManager(object):
     def merge(self, other):
         # TODO
         assert(self.index.equals(other.index))
-        consolidated = _consolidate(self.blocks + other.blocks)
-        cons_columns = _union_block_columns(consolidated)
-        return BlockManager(consolidated, self.index, cons_columns)
+
+        intersection = self.columns.intersection(other.columns)
+        try:
+            assert(len(intersection) == 0)
+        except AssertionError:
+            raise Exception('columns overlap: %s' % intersection)
+
+        cons_cols = self.columns + other.columns
+        consolidated = _consolidate(self.blocks + other.blocks, cons_cols)
+        return BlockManager(consolidated, self.index, cons_cols)
 
     def join_on(self, other, on):
         reindexed = other.reindex_index(on)
@@ -504,7 +478,7 @@ class BlockManager(object):
         if len(extra_columns):
             na_block = add_na_columns(extra_columns, self.index, new_columns)
             new_blocks.append(na_block)
-            new_blocks = _consolidate(new_blocks)
+            new_blocks = _consolidate(new_blocks, new_columns)
 
         return BlockManager(new_blocks, self.index, new_columns)
 
@@ -575,7 +549,7 @@ def form_blocks(data, index, columns):
     if len(extra_columns):
         na_block = add_na_columns(extra_columns, index, columns)
         blocks.append(na_block)
-        blocks = _consolidate(blocks)
+        blocks = _consolidate(blocks, columns)
 
     return blocks, columns
 
@@ -620,15 +594,6 @@ def _slice_blocks(blocks, slice_obj):
         new_blocks.append(newb)
     return new_blocks
 
-# TODO!
-def _needs_other_dtype(block, to_insert):
-    if block.dtype == np.float64:
-        return not issubclass(to_insert.dtype.type, (np.integer, np.floating))
-    elif block.dtype == np.object_:
-        return issubclass(to_insert.dtype.type, (np.integer, np.floating))
-    else:
-        raise Exception('have not handled this case yet')
-
 def _blocks_to_series_dict(blocks, index=None):
     series_dict = {}
 
@@ -666,7 +631,7 @@ def _interleaved_dtype(blocks):
             return object
     return np.float64
 
-def _consolidate(blocks):
+def _consolidate(blocks, columns):
     """
     Merge blocks having same dtype
     """
@@ -678,18 +643,16 @@ def _consolidate(blocks):
 
     new_blocks = []
     for dtype, group_blocks in grouper:
-        new_block = _merge_blocks(list(group_blocks))
+        new_block = _merge_blocks(list(group_blocks), columns)
         new_blocks.append(new_block)
 
     return new_blocks
 
-def _merge_blocks(blocks):
-    ref_cols = blocks[0].ref_columns
-
+def _merge_blocks(blocks, columns):
     new_values = np.hstack([b.values for b in blocks])
     new_cols = np.concatenate([b.columns for b in blocks])
-    new_block = make_block(new_values, new_cols, ref_cols)
-    return new_block
+    new_block = make_block(new_values, new_cols, columns)
+    return new_block.reindex_columns_from(columns)
 
 def _xs(blocks, i, copy=True):
     if copy:
