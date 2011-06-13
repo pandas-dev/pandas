@@ -3,7 +3,6 @@ import numpy as np
 from cStringIO import StringIO
 
 from pandas.core.frame import DataFrame
-from pandas.core.matrix import DataMatrix
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
 import pandas.core.common as common
@@ -34,7 +33,7 @@ def groupby(obj, grouper, **kwds):
     if isinstance(obj, Series):
         klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
-        klass = DataMatrixGroupBy
+        klass = DataFrameGroupBy
     else: # pragma: no cover
         raise TypeError('invalid type: %s' % type(obj))
 
@@ -44,7 +43,7 @@ class GroupBy(object):
     """
     Class for grouping and aggregating relational data.
 
-    Supported classes: Series, DataFrame, DataMatrix
+    Supported classes: Series, DataFrame
     """
     _groups = None
     _group_indices = None
@@ -246,7 +245,6 @@ class SeriesGroupBy(GroupBy):
         return result
 
 class DataFrameGroupBy(GroupBy):
-    _klass = DataFrame
 
     def __init__(self, obj, grouper, axis=0):
         if isinstance(grouper, basestring):
@@ -291,7 +289,7 @@ class DataFrameGroupBy(GroupBy):
         result_d = self._aggregate_generic(getter, applyfunc,
                                            axis=self.axis)
 
-        result = DataMatrix(result_d)
+        result = DataFrame(result_d)
 
         if self.axis == 0:
             result = result.T
@@ -333,7 +331,7 @@ class DataFrameGroupBy(GroupBy):
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
         """
-        # DataMatrix objects?
+        # DataFrame objects?
         result_values = np.empty_like(self.obj.values)
 
         if self.axis == 0:
@@ -368,9 +366,6 @@ class DataFrameGroupBy(GroupBy):
 
         return DataFrame(result_values, index=self.obj.index,
                          columns=self.obj.columns)
-
-class DataMatrixGroupBy(DataFrameGroupBy):
-    _klass = DataMatrix
 
 
 class WidePanelGroupBy(GroupBy):
