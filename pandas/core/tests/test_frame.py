@@ -442,6 +442,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df_casted = self.klass(self.frame, dtype=int)
         self.assert_(df_casted.values.dtype == np.int_)
 
+    def test_astype(self):
+        casted = self.frame.astype(int)
+        expected = DataFrame(self.frame.values.astype(int),
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        assert_frame_equal(casted, expected)
+
+        self.frame['foo'] = '5'
+        casted = self.frame.astype(int)
+        expected = DataFrame(self.frame.values.astype(int),
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        assert_frame_equal(casted, expected)
+
     def test_array_interface(self):
         result = np.sqrt(self.frame)
         self.assert_(type(result) is type(self.frame))
@@ -1823,6 +1837,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals
 
+    def test_constructor_frame_copy(self):
+        cop = DataFrame(self.frame, copy=True)
+        cop['A'] = 5
+        self.assert_((cop['A'] == 5).all())
+        self.assert_(not (self.frame['A'] == 5).all())
+
+    def test_constructor_ndarray_copy(self):
+        df = DataFrame(self.frame.values)
+
+        self.frame.values[5] = 5
+        self.assert_((df.values[5] == 5).all())
+
+        df = DataFrame(self.frame.values, copy=True)
+        self.frame.values[6] = 6
+        self.assert_(not (df.values[6] == 6).all())
+
+    def test_constructor_series_copy(self):
+        series = self.frame._series
+
+        df = DataFrame({'A' : series['A']})
+        df['A'][:] = 5
+
+        self.assert_(not (series['A'] == 5).all())
+
     def test_assign_columns(self):
         self.frame['hi'] = 'there'
 
@@ -1832,12 +1870,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_series_equal(self.frame['hi'], frame['foo2'])
 
     def test_cast_internals(self):
-        pass
+        casted = DataFrame(self.frame._data, dtype=int)
+        expected = DataFrame(self.frame._series, dtype=int)
+        assert_frame_equal(casted, expected)
 
     def test_consolidate(self):
         self.frame['E'] = 7.
         consolidated = self.frame.consolidate()
         self.assert_(len(consolidated._data.blocks) == 1)
+
+        # Ensure copy, do I want this?
+        recons = consolidated.consolidate()
+        self.assert_(recons is not consolidated)
+        assert_frame_equal(recons, consolidated)
 
     def test_modify_values(self):
         self.frame.values[5] = 5

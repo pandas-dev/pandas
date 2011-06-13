@@ -164,7 +164,8 @@ class DataFrame(PandasGeneric):
             index = extract_index(data)
 
         # don't force copy because getting jammed in an ndarray anyway
-        homogenized = _homogenize_series(data, index, dtype, force_copy=False)
+        homogenized = _homogenize_series(data, index, dtype)
+
         # segregates dtypes and forms blocks matching to columns
         blocks, columns = form_blocks(homogenized, index, columns)
 
@@ -203,6 +204,17 @@ class DataFrame(PandasGeneric):
         return BlockManager([block], index, columns)
 
     def astype(self, dtype):
+        """
+        Cast DataFrame to input numpy.dtype
+
+        Parameters
+        ----------
+        dtype : numpy.dtype or Python type
+
+        Returns
+        -------
+        casted : DataFrame
+        """
         return DataFrame(self._data, dtype=dtype)
 
     @property
@@ -614,7 +626,7 @@ class DataFrame(PandasGeneric):
 
     def __setstate__(self, state):
         # old DataFrame pickle
-        if len(state) == 3:
+        if len(state) == 3: # pragma: no cover
             self._unpickle_frame_compat(state)
         # old DataFrame pickle
         elif len(state) == 2: # pragma: no cover
@@ -2354,12 +2366,12 @@ class DataFrame(PandasGeneric):
     #----------------------------------------------------------------------
     # Deprecated stuff
 
-    def toDataMatrix(self):
+    def toDataMatrix(self): # pragma: no cover
         warnings.warn("toDataMatrix will disappear in next release "
                       "as there is no longer a DataMatrix class", FutureWarning)
         return self.copy()
 
-    def rows(self):
+    def rows(self): # pragma: no cover
         """Alias for the frame's index"""
         warnings.warn("Replace usage of .rows() with .index, will be removed "
                       "in next release", FutureWarning)
@@ -2376,12 +2388,12 @@ class DataFrame(PandasGeneric):
                       FutureWarning)
         return self.xs(key)
 
-    def merge(self, *args, **kwargs):
+    def merge(self, *args, **kwargs): # pragma: no cover
         warnings.warn("merge is deprecated. Use 'join' instead",
                       FutureWarning)
         return self.join(*args, **kwargs)
 
-    def asMatrix(self, *args, **kwargs):
+    def asMatrix(self, *args, **kwargs): # pragma: no cover
         warnings.warn("asMatrix is deprecated. Use 'as_matrix' or .values "
                       "instead", FutureWarning)
         return self.as_matrix(*args, **kwargs)
@@ -2546,7 +2558,7 @@ def _prep_ndarray(values, copy=True):
             values = values.copy()
     return values
 
-def _homogenize_series(data, index, dtype=None, force_copy=True):
+def _homogenize_series(data, index, dtype=None):
     homogenized = {}
 
     for k, v in data.iteritems():
@@ -2557,9 +2569,6 @@ def _homogenize_series(data, index, dtype=None, force_copy=True):
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 v = v.reindex(index)
-            elif force_copy:
-                # same index, but want to copy
-                v = v.copy()
         else:
             if isinstance(v, dict):
                 v = [v.get(i, nan) for i in index]
@@ -2569,9 +2578,6 @@ def _homogenize_series(data, index, dtype=None, force_copy=True):
                 v = Series(v, dtype=dtype, index=index)
             except Exception:
                 v = Series(v, index=index)
-
-            if force_copy:
-                v = v.copy()
 
         # # OK, I will relent for now.
         # if not issubclass(v.dtype.type, (float, int)):
@@ -2591,10 +2597,6 @@ def _default_index(n):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
-
-def _reorder_columns(mat, current, desired):
-    indexer, mask = common.get_indexer(current, desired, None)
-    return mat.take(indexer[mask], axis=1)
 
 if __name__ == '__main__':
     import nose
