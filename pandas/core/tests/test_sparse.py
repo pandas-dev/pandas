@@ -605,6 +605,20 @@ class TestSparseDataFrame(TestCase):
                                           default_fill_value=2,
                                           index=self.dates)
 
+        self.empty = SparseDataFrame()
+
+    def test_as_matrix(self):
+        empty = self.empty.as_matrix()
+        self.assert_(empty.shape == (0, 0))
+
+        no_cols = SparseDataFrame(index=np.arange(10))
+        mat = no_cols.as_matrix()
+        self.assert_(mat.shape == (10, 0))
+
+        no_index = SparseDataFrame(columns=np.arange(10))
+        mat = no_index.as_matrix()
+        self.assert_(mat.shape == (0, 10))
+
     def test_copy(self):
         cp = self.frame.copy()
         self.assert_(isinstance(cp, SparseDataFrame))
@@ -727,6 +741,9 @@ class TestSparseDataFrame(TestCase):
                   SparseSeries([], index=[])]
 
         for op in ops:
+            _compare_to_dense(frame, frame[::2],
+                              frame.to_dense(),
+                              frame[::2].to_dense(), op)
             for s in series:
                 _compare_to_dense(frame, s, frame.to_dense(),
                                   s.to_dense(), op)
@@ -747,10 +764,38 @@ class TestSparseDataFrame(TestCase):
                 _compare_to_dense(s, frame, s,
                                   frame.to_dense(), op)
 
+    def test_op_corners(self):
+        empty = self.empty + self.empty
+        self.assert_(not empty)
+
+        foo = self.frame + self.empty
+        assert_sp_frame_equal(foo, self.frame * np.nan)
+
+        foo = self.empty + self.frame
+        assert_sp_frame_equal(foo, self.frame * np.nan)
+
     def test_scalar_ops(self):
         pass
 
-    def test_insert_item(self):
+    def test_getitem(self):
+        pass
+
+    def test_getitem_overload(self):
+        # slicing
+        sl = self.frame[:20]
+        assert_sp_frame_equal(sl, self.frame.reindex(self.frame.index[:20]))
+
+        # boolean indexing
+        d = self.frame.index[5]
+        indexer = self.frame.index > d
+
+        subindex = self.frame.index[indexer]
+        subframe = self.frame[indexer]
+
+        self.assert_(np.array_equal(subindex, subframe.index))
+        self.assertRaises(Exception, self.frame.__getitem__, indexer[:-1])
+
+    def test_setitem(self):
         def _check_frame(frame):
             N = len(frame)
 
@@ -800,7 +845,7 @@ class TestSparseDataFrame(TestCase):
 
         self._check_all(_check_frame)
 
-    def test_insert_item_corner(self):
+    def test_setitem_corner(self):
         self.frame['a'] = self.frame['B']
         assert_sp_series_equal(self.frame['a'], self.frame['B'])
 
@@ -833,6 +878,15 @@ class TestSparseDataFrame(TestCase):
         res = self.frame.corr()
         self.assert_(isinstance(res, SparseDataFrame))
         assert_frame_equal(res.to_dense(), self.frame.to_dense().corr())
+
+    def test_join(self):
+        left = self.frame.ix[:, ['A', 'B']]
+        right = self.frame.ix[:, ['C', 'D']]
+        joined = left.join(right)
+        assert_sp_frame_equal(joined, self.frame)
+
+        right = self.frame.ix[:, ['B', 'D']]
+        self.assertRaises(Exception, left.join, right)
 
     def test_reindex(self):
 
@@ -1077,9 +1131,6 @@ class TestSparseWidePanel(TestCase,
     def test_values(self):
         pass
 
-    def test_getitem(self):
-        pass
-
     def test_setitem(self):
         self.panel['ItemE'] = self.panel['ItemC']
         self.panel['ItemF'] = self.panel['ItemC'].to_dense()
@@ -1100,11 +1151,6 @@ class TestSparseWidePanel(TestCase,
         assert_almost_equal(self.panel.items, ['ItemA', 'ItemD'])
 
         self.assertRaises(KeyError, self.panel.__delitem__, 'ItemC')
-
-    def test_pickle(self):
-        pickled = pickle.dumps(self.panel)
-        unpickled = pickle.loads(pickled)
-        assert_sp_panel_equal(self.panel, unpickled)
 
     def test_copy(self):
         cop = self.panel.copy()

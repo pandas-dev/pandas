@@ -184,6 +184,13 @@ class TestDateRange(unittest.TestCase):
                           datetime(2005, 1, 1, tzinfo=pytz.utc),
                           '1/1/2009', tzinfo=tz)
 
+    def test_tz_localize(self):
+        _skip_if_no_pytz()
+        dr = DateRange('1/1/2009', '1/1/2010')
+        dr_utc = DateRange('1/1/2009', '1/1/2010', tzinfo=pytz.utc)
+        localized = dr.tz_localize(pytz.utc)
+        self.assert_(np.array_equal(dr_utc, localized))
+
     def test_with_tzinfo_ambiguous_times(self):
         _skip_if_no_pytz()
         tz = pytz.timezone('US/Eastern')

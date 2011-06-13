@@ -834,13 +834,12 @@ class SparseDataFrame(DataFrame):
                 return self.reindex(dateRange)
 
             elif isinstance(item, np.ndarray):
-
                 if len(item) != len(self.index):
                     raise Exception('Item wrong length %d instead of %d!' %
                                     (len(item), len(self.index)))
                 newIndex = self.index[item]
                 return self.reindex(newIndex)
-            else:
+            else: # pragma: no cover
                 raise
 
     def as_matrix(self, columns=None):
@@ -854,11 +853,10 @@ class SparseDataFrame(DataFrame):
             columns = self.columns
 
         if len(columns) == 0:
-            return np.zeros((0, 0))
+            return np.zeros((len(self.index), 0), dtype=float)
 
         return np.array([self[col].values for col in columns]).T
 
-    asMatrix = as_matrix
     values = property(as_matrix)
 
     def xs(self, key):
@@ -873,16 +871,10 @@ class SparseDataFrame(DataFrame):
         -------
         Series
         """
-        if key not in self.index:
-            raise Exception('No cross-section for %s' % key)
-
-        subset = self.columns
-        rowValues = [self._series[k][key] for k in subset]
-
-        if len(set((type(x) for x in rowValues))) > 1:
-            return Series(np.array(rowValues, dtype=np.object_), index=subset)
-        else:
-            return Series(np.array(rowValues), index=subset)
+        i = self.index.indexMap[key]
+        series = self._series
+        values = [series[k][i] for k in self.columns]
+        return Series(values, index=self.columns)
 
     #----------------------------------------------------------------------
     # Arithmetic-related methods
@@ -897,7 +889,7 @@ class SparseDataFrame(DataFrame):
             other = other.reindex(new_index)
 
         if not self and not other:
-            return DataFrame(index=new_index)
+            return SparseDataFrame(index=new_index)
 
         if not other:
             return self * nan

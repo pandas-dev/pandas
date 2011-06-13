@@ -33,10 +33,8 @@ def groupby(obj, grouper, **kwds):
     """
     if isinstance(obj, Series):
         klass = SeriesGroupBy
-    elif isinstance(obj, DataMatrix):
-        klass = DataMatrixGroupBy
     elif isinstance(obj, DataFrame):
-        klass = DataFrameGroupBy
+        klass = DataMatrixGroupBy
     else: # pragma: no cover
         raise TypeError('invalid type: %s' % type(obj))
 
