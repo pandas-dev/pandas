@@ -245,17 +245,23 @@ class BlockManager(object):
         for block in self.blocks:
             block.set_ref_columns(self._columns, maybe_rename=False)
 
-    # TODO: FIX FIX FIX
     def __getstate__(self):
+        block_values = [b.values for b in self.blocks]
+        block_columns = [np.asarray(b.columns) for b in self.blocks]
         return (np.asarray(self.index),
                 np.asarray(self.columns),
-                self.blocks)
+                block_values, block_columns)
 
     def __setstate__(self, state):
-        index, columns, blocks = state
+        index, ref_columns, bvalues, bcolumns = state
         self.index = _ensure_index(index)
+        self._columns = _ensure_index(ref_columns)
+
+        blocks = []
+        for values, columns in zip(bvalues, bcolumns):
+            blk = make_block(values, columns, self.columns)
+            blocks.append(blk)
         self.blocks = blocks
-        self.columns = _ensure_index(columns)
 
     def __repr__(self):
         output = 'BlockManager'

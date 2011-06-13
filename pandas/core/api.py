@@ -10,6 +10,6 @@ from pandas.core.index import Index
 from pandas.core.daterange import DateRange
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame
-from pandas.core.matrix import DataMatrix
 from pandas.core.panel import WidePanel, LongPanel, pivot
 
+DataMatrix = DataFrame

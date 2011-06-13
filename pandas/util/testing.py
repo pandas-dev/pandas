@@ -13,7 +13,6 @@ import pandas.core.index as index
 import pandas.core.daterange as daterange
 import pandas.core.series as series
 import pandas.core.frame as frame
-import pandas.core.matrix as matrix
 import pandas.core.panel as panel
 
 # to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
@@ -24,7 +23,6 @@ DateRange = daterange.DateRange
 Index = index.Index
 Series = series.Series
 DataFrame = frame.DataFrame
-DataMatrix = matrix.DataMatrix
 WidePanel = panel.WidePanel
 
 N = 30
@@ -189,15 +187,15 @@ def makeTimeDataFrame():
 
 def makeDataMatrix():
     data = getSeriesData()
-    return DataMatrix(data)
+    return DataFrame(data)
 
 def makeTimeDataMatrix():
     data = getTimeSeriesData()
-    return DataMatrix(data)
+    return DataFrame(data)
 
 def makeWidePanel():
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-    data = dict((c, makeTimeDataMatrix()) for c in cols)
+    data = dict((c, makeTimeDataFrame()) for c in cols)
     return WidePanel.fromDict(data)
 
 def add_nans(panel):

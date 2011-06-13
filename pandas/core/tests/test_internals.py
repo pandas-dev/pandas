@@ -2,13 +2,14 @@ import unittest
 
 import numpy as np
 
-from pandas import Index
+from pandas import Index, DataFrame
 from pandas.core.internals import *
 
-from pandas.util.testing import (assert_almost_equal, randn)
+from pandas.util.testing import (assert_almost_equal, assert_frame_equal, randn)
 
 def assert_block_equal(left, right):
     assert_almost_equal(left.values, right.values)
+    assert(left.dtype == right.dtype)
     assert(left.columns.equals(right.columns))
     assert(left.ref_columns.equals(right.ref_columns))
 
@@ -41,6 +42,18 @@ class TestBlock(unittest.TestCase):
 
     def test_constructor(self):
         pass
+
+    def test_pickle(self):
+        import pickle
+
+        def _check(blk):
+            pickled = pickle.dumps(blk)
+            unpickled = pickle.loads(pickled)
+            assert_block_equal(blk, unpickled)
+
+        _check(self.fblock)
+        _check(self.oblock)
+        _check(self.bool_block)
 
     def test_ref_locs(self):
         assert_almost_equal(self.fblock.ref_locs, [0, 2, 4])
@@ -144,6 +157,18 @@ class TestBlockManager(unittest.TestCase):
     def test_contains(self):
         self.assert_('a' in self.mgr)
         self.assert_('g' not in self.mgr)
+
+    def test_pickle(self):
+        import pickle
+
+        pickled = pickle.dumps(self.mgr)
+        mgr2 = pickle.loads(pickled)
+
+        # same result
+        assert_frame_equal(DataFrame(self.mgr), DataFrame(mgr2))
+
+        # share ref_columns
+        self.assert_(mgr2.blocks[0].ref_columns is mgr2.blocks[1].ref_columns)
 
     def test_get(self):
         pass
