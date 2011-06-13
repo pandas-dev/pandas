@@ -893,9 +893,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         result = zero_length.asfreq('EOM')
         self.assert_(result is not zero_length)
 
-    def test_asMatrix(self):
+    def test_as_matrix(self):
         frame = self.frame
-        mat = frame.asMatrix()
+        mat = frame.as_matrix()
         smallerCols = ['C', 'A']
 
         frameCols = frame.columns
@@ -908,7 +908,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                     self.assertEqual(value, frame[col][i])
 
         # mixed type
-        mat = self.mixed_frame.asMatrix(['foo', 'A'])
+        mat = self.mixed_frame.as_matrix(['foo', 'A'])
         self.assertEqual(mat[0, 0], 'bar')
 
     def test_values(self):
@@ -1830,6 +1830,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         frame.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
         assert_series_equal(self.frame['C'], frame['baz'])
         assert_series_equal(self.frame['hi'], frame['foo2'])
+
+    def test_cast_internals(self):
+        pass
 
     def test_consolidate(self):
         self.frame['E'] = 7.

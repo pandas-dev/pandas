@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas import Index, DataFrame
 from pandas.core.internals import *
+import pandas.core.internals as internals
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal, randn)
 
@@ -147,6 +148,19 @@ class TestBlock(unittest.TestCase):
         pass
 
 
+def test_nan_array():
+    arr = internals._nan_array(None, None)
+    assert(arr.shape == (0, 0))
+
+    arr = internals._nan_array(np.arange(10), None)
+    assert(arr.shape == (10, 0))
+
+    arr = internals._nan_array(None, np.arange(10))
+    assert(arr.shape == (0, 10))
+
+    arr = internals._nan_array(np.arange(5), np.arange(10))
+    assert(arr.shape == (5, 10))
+
 class TestBlockManager(unittest.TestCase):
 
     def setUp(self):
@@ -159,6 +173,21 @@ class TestBlockManager(unittest.TestCase):
     def test_attrs(self):
         self.assertEquals(self.mgr.nblocks, len(self.mgr.blocks))
         self.assertEquals(len(self.mgr), len(self.mgr.index))
+
+    def test_block_id_vector(self):
+        expected = [0, 1, 0, 1, 0, 2, 3]
+        result = self.mgr.block_id_vector
+        assert_almost_equal(expected, result)
+
+    def test_union_block_columns(self):
+        blocks = [get_float_ex(['a', 'b', 'c']),
+                  get_float_ex(['c', 'd', 'e'])]
+        self.assertRaises(Exception, internals._union_block_columns, blocks)
+
+        blocks = [get_float_ex(['a', 'b', 'c']),
+                  get_float_ex(['f', 'e', 'd'])]
+        self.assert_(np.array_equal(internals._union_block_columns(blocks),
+                                    ['a', 'b', 'c', 'd', 'e', 'f']))
 
     def test_contains(self):
         self.assert_('a' in self.mgr)

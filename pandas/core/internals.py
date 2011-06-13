@@ -510,9 +510,19 @@ class BlockManager(object):
         new_blocks = [b.fillna(value) for b in self.blocks]
         return BlockManager(new_blocks, self.index, self.columns)
 
-def _make_block_id_vector(columns, blocks):
-    # TODO
-    pass
+    @property
+    def block_id_vector(self):
+        # TODO
+        result = np.empty(len(self.columns), dtype=int)
+        result.fill(-1)
+
+        for i, blk in enumerate(self.blocks):
+            indexer, mask = self.columns.get_indexer(blk.columns)
+            assert(mask.all())
+            result.put(indexer, i)
+
+        assert((result >= 0).all())
+        return result
 
 _data_types = [np.float_, np.int_]
 def form_blocks(data, index, columns):
@@ -693,21 +703,17 @@ def _merge_blocks(blocks, columns):
     return new_block.reindex_columns_from(columns)
 
 def _union_block_columns(blocks):
-    seen = Index([])
-
+    seen = None
     for block in blocks:
-        len_before = len(seen)
-        seen = seen.union(block.columns)
+        len_before = 0 if seen is None else len(seen)
+        if seen is None:
+            seen = block.columns
+        else:
+            seen = seen.union(block.columns)
         if len(seen) != len_before + len(block.columns):
             raise Exception('column names overlap')
 
     return seen
-
-# def _nan_manager_matching(index, columns):
-#     # what if one of these is empty?
-#     values = _nan_array(index, columns)
-#     block = make_block(values, columns)
-#     return BlockManager([block], columns)
 
 def _nan_array(index, columns, dtype=np.float64):
     if index is None:

@@ -97,8 +97,8 @@ class DataFrame(PandasGeneric):
         Required if data is ndarray
     dtype : dtype, default None (infer)
         Data type to force
-    copy : boolean, default True
-        Copy data from inputs
+    copy : boolean, default False
+        Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
     Examples
     --------
@@ -115,15 +115,14 @@ class DataFrame(PandasGeneric):
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 copy=True):
+                 copy=False):
 
         if data is None:
             data = {}
 
         if isinstance(data, BlockManager):
+            # do not copy BlockManager unless explicitly done
             mgr = data
-            if copy and dtype is None:
-                mgr = mgr.copy()
             if dtype is not None:
                 # no choice but to copy
                 mgr = mgr.cast(dtype)
@@ -144,7 +143,7 @@ class DataFrame(PandasGeneric):
 
         self._data = mgr
 
-    def _init_dict(self, data, index, columns, dtype=None, copy=True):
+    def _init_dict(self, data, index, columns, dtype=None):
         """
         Segregate Series based on type and coerce into matrices.
 
@@ -176,7 +175,7 @@ class DataFrame(PandasGeneric):
                      copy=True):
         from pandas.core.internals import make_block
 
-        values = _prep_ndarray(values)
+        values = _prep_ndarray(values, copy=copy)
 
         if values.ndim == 1:
             N = values.shape[0]
@@ -204,8 +203,7 @@ class DataFrame(PandasGeneric):
         return BlockManager([block], index, columns)
 
     def astype(self, dtype):
-        new_data = self._data.cast(dtype)
-        return DataFrame(new_data, copy=False)
+        return DataFrame(self._data, dtype=dtype)
 
     @property
     def _constructor(self):
@@ -257,7 +255,7 @@ class DataFrame(PandasGeneric):
         """
         Make a copy of this DataFrame
         """
-        return DataFrame(self._data.copy(), copy=False)
+        return DataFrame(self._data.copy())
 
     #----------------------------------------------------------------------
     # Arithmetic methods
@@ -599,15 +597,13 @@ class DataFrame(PandasGeneric):
         """
         return self._data.as_matrix(columns)
 
-    asMatrix = as_matrix
-    # For DataFrame compatibility
-
     def transpose(self):
         """
-        Returns a DataFrame with the rows/columns switched.
+        Returns a DataFrame with the rows/columns switched. Copy of data is not
+        made by default
         """
         return DataFrame(data=self.values.T, index=self.columns,
-                         columns=self.index)
+                         columns=self.index, copy=False)
     T = property(transpose)
 
     #----------------------------------------------------------------------
@@ -641,13 +637,14 @@ class DataFrame(PandasGeneric):
         (vals, idx, cols), object_state = state
 
         index = _unpickle_array(idx)
-        dm = DataFrame(vals, index=index,
-                        columns=_unpickle_array(cols))
+        dm = DataFrame(vals, index=index, columns=_unpickle_array(cols),
+                       copy=False)
 
         if object_state is not None:
             ovals, _, ocols = object_state
             objects = DataFrame(ovals, index=index,
-                                 columns=_unpickle_array(ocols))
+                                columns=_unpickle_array(ocols),
+                                copy=False)
 
             dm = dm.join(objects)
 
@@ -708,7 +705,7 @@ class DataFrame(PandasGeneric):
         cons_data = self._data.consolidate()
         if cons_data is self._data:
             cons_data = cons_data.copy()
-        return DataFrame(cons_data, copy=False)
+        return DataFrame(cons_data)
 
     #----------------------------------------------------------------------
     # Array interface
@@ -717,7 +714,8 @@ class DataFrame(PandasGeneric):
         return self.values
 
     def __array_wrap__(self, result):
-        return DataFrame(result, index=self.index, columns=self.columns)
+        return DataFrame(result, index=self.index, columns=self.columns,
+                         copy=False)
 
     #----------------------------------------------------------------------
     # getitem/setitem related
@@ -1184,7 +1182,8 @@ class DataFrame(PandasGeneric):
             other = other.reindex(index=new_index, columns=new_columns)
 
         return DataFrame(func(this.values, other.values),
-                          index=new_index, columns=new_columns)
+                         index=new_index, columns=new_columns,
+                         copy=False)
 
     def _indexed_same(self, other):
         same_index = self.index.equals(other.index)
@@ -1218,8 +1217,8 @@ class DataFrame(PandasGeneric):
         if not self.index.equals(new_index):
             values = self.reindex(new_index).values
 
-        return DataFrame(func(values.T, other_vals).T,
-                          index=new_index, columns=self.columns)
+        return DataFrame(func(values.T, other_vals).T, index=new_index,
+                         columns=self.columns, copy=False)
 
     def _combine_match_columns(self, other, func):
         newCols = self.columns.union(other.index)
@@ -1228,8 +1227,8 @@ class DataFrame(PandasGeneric):
         this = self.reindex(columns=newCols)
         other = other.reindex(newCols).values
 
-        return DataFrame(func(this.values, other),
-                          index=self.index, columns=newCols)
+        return DataFrame(func(this.values, other), index=self.index,
+                         columns=newCols, copy=False)
 
     def _combine_const(self, other, func):
         if not self:
@@ -1237,7 +1236,7 @@ class DataFrame(PandasGeneric):
 
         # TODO: deal with objects
         return DataFrame(func(self.values, other), index=self.index,
-                          columns=self.columns)
+                         columns=self.columns, copy=False)
 
     def _compare_frame(self, other, func):
         if not self._indexed_same(other):
@@ -1249,7 +1248,7 @@ class DataFrame(PandasGeneric):
             new_data[col] = func(self[col], other[col])
 
         return self._constructor(data=new_data, index=self.index,
-                                 columns=self.columns)
+                                 columns=self.columns, copy=False)
 
     def combine(self, other, func, fill_value=None):
         """
@@ -1529,7 +1528,7 @@ class DataFrame(PandasGeneric):
         if isinstance(func, np.ufunc):
             results = func(self.values)
             return DataFrame(data=results, index=self.index,
-                             columns=self.columns)
+                             columns=self.columns, copy=False)
         else:
             if not broadcast:
                 return self._apply_standard(func, axis)
@@ -1604,7 +1603,8 @@ class DataFrame(PandasGeneric):
         except Exception:
             pass
 
-        return DataFrame(results, index=self.index, columns=self.columns)
+        return DataFrame(results, index=self.index, columns=self.columns,
+                         copy=False)
 
     #----------------------------------------------------------------------
     # Merging / joining methods
@@ -1642,7 +1642,7 @@ class DataFrame(PandasGeneric):
 
         # TODO: column ordering issues?
         return DataFrame(data=new_data, index=new_index,
-                         columns=new_columns)
+                         columns=new_columns, copy=False)
 
     def join(self, other, on=None, how=None):
         """
@@ -1686,40 +1686,6 @@ class DataFrame(PandasGeneric):
 
         new_data = self._data.join_on(other._data, self[on])
         return DataFrame(new_data)
-
-    # def _join_on(self, other, on):
-    #     # Check for column overlap
-    #     overlap = set(self.columns) & set(other.columns)
-
-    #     if overlap:
-    #         raise Exception('Columns overlap: %s' % _try_sort(overlap))
-
-    #     if len(other.index) == 0:
-    #         result = self.copy()
-
-    #         for col in other:
-    #             result[col] = nan
-
-    #         return result
-
-    #     indexer, mask = other.index.get_indexer(self[on])
-    #     notmask = -mask
-    #     need_mask = notmask.any()
-
-    #     new_data = {}
-
-    #     for col, series in other.iteritems():
-    #         arr = series.view(np.ndarray).take(indexer)
-
-    #         if need_mask:
-    #             arr = common.ensure_float(arr)
-    #             arr[notmask] = nan
-
-    #         new_data[col] = arr
-
-    #     new_data.update(self._series)
-
-    #     return self._constructor(new_data, index=self.index)
 
     def _join_index(self, other, how):
         if how == 'left':
@@ -1813,7 +1779,7 @@ class DataFrame(PandasGeneric):
         y : DataFrame
         """
         cols = self.columns
-        mat = self.asMatrix(cols).T
+        mat = self.as_matrix(cols).T
         baseCov = np.cov(mat)
 
         sigma = np.sqrt(np.diag(baseCov))
@@ -1933,7 +1899,7 @@ class DataFrame(PandasGeneric):
         """
         try:
             cols = self.columns
-            values = self.asMatrix(cols)
+            values = self.as_matrix(cols)
 
             if axis == 0:
                 axis_labels = cols
@@ -2027,8 +1993,8 @@ class DataFrame(PandasGeneric):
             result[-has_obs] = np.nan
         else:
             result = y.cumsum(axis)
-        return DataFrame(result, index=self.index,
-                          columns=self.columns)
+        return DataFrame(result, index=self.index, columns=self.columns,
+                         copy=False)
 
     def min(self, axis=0):
         """
@@ -2415,6 +2381,11 @@ class DataFrame(PandasGeneric):
                       FutureWarning)
         return self.join(*args, **kwargs)
 
+    def asMatrix(self, *args, **kwargs):
+        warnings.warn("asMatrix is deprecated. Use 'as_matrix' or .values "
+                      "instead", FutureWarning)
+        return self.as_matrix(*args, **kwargs)
+
     #----------------------------------------------------------------------
     # Fancy indexing
 
@@ -2564,12 +2535,15 @@ def _check_data_types(data):
         raise Exception('Cannot mix Series / dict objects'
                         ' with ndarray / sequence input')
 
-def _prep_ndarray(values):
+def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
         values = np.asarray(values)
         # NumPy strings are a pain, convert to object
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object, copy=True)
+    else:
+        if copy:
+            values = values.copy()
     return values
 
 def _homogenize_series(data, index, dtype=None, force_copy=True):

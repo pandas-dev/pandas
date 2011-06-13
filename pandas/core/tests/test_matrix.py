@@ -223,7 +223,7 @@ class TestDataMatrix(test_frame.TestDataFrame):
         self.assertEqual(len(f.columns), 2)
 
     def test_more_asMatrix(self):
-        values = self.mixed_frame.asMatrix()
+        values = self.mixed_frame.as_matrix()
         self.assertEqual(values.shape[1], len(self.mixed_frame.columns))
 
     def test_reindex_boolean(self):
