@@ -81,10 +81,12 @@ class Block(object):
                           self.ref_columns)
 
     def merge(self, other):
-        union_ref = self.ref_columns
-        if not union_ref.equals(other.ref_columns):
-            union_ref = self.ref_columns + other.ref_columns
-        return _merge_blocks([self, other], union_ref)
+        assert(self.ref_columns.equals(other.ref_columns))
+
+        # Not sure whether to allow this or not
+        # if not union_ref.equals(other.ref_columns):
+        #     union_ref = self.ref_columns + other.ref_columns
+        return _merge_blocks([self, other], self.ref_columns)
 
     def reindex_index(self, indexer, notmask, needs_masking):
         """
@@ -603,8 +605,8 @@ def _slice_blocks(blocks, slice_obj):
 def _blocks_to_series_dict(blocks, index=None):
     series_dict = {}
 
-    if index is None:
-        index = Index(np.arange(len(blocks[0])))
+    # if index is None:
+    #     index = Index(np.arange(len(blocks[0])))
 
     for block in blocks:
         for col, vec in zip(block.columns, block.values.T):
@@ -619,7 +621,7 @@ def _interleave(blocks, columns):
     columns = _ensure_index(columns)
 
     result = np.empty((len(blocks[0]), len(columns)), dtype=dtype)
-    result.fill(nan)
+    colmask = np.zeros(len(columns), dtype=bool)
 
     for block in blocks:
         indexer, mask = columns.get_indexer(block.columns)
@@ -627,15 +629,45 @@ def _interleave(blocks, columns):
         if mask.all():
             result[:, indexer] = block.values
         else:
-            result[:, indexer[mask]] = block.values[:, mask]
+            indexer = indexer[mask]
+            result[:, indexer] = block.values[:, mask]
 
+        colmask[indexer] = 1
+
+    # By construction, all of the column should be covered by one of the blocks
+    assert(colmask.all())
     return result
 
 def _interleaved_dtype(blocks):
+    have_int = False
+    have_bool = False
+    have_object = False
+    have_float = False
+
     for block in blocks:
-        if not issubclass(block.dtype.type, np.floating):
-            return object
-    return np.float64
+        if isinstance(block, FloatBlock):
+            have_float = True
+        elif isinstance(block, IntBlock):
+            have_int = True
+        elif isinstance(block, BoolBlock):
+            have_bool = True
+        elif isinstance(block, ObjectBlock):
+            have_object = True
+        else: # pragma: no cover
+            raise Exception('Unrecognized block type')
+
+    have_numeric = have_float or have_int
+
+    if have_object:
+        return np.object_
+    elif have_bool and have_numeric:
+        return np.object_
+    elif have_bool:
+        return np.bool_
+    elif have_int and not have_float:
+        return np.int_
+    else:
+        return np.float64
 
 def _consolidate(blocks, columns):
     """
@@ -659,15 +691,6 @@ def _merge_blocks(blocks, columns):
     new_cols = np.concatenate([b.columns for b in blocks])
     new_block = make_block(new_values, new_cols, columns)
     return new_block.reindex_columns_from(columns)
-
-def _xs(blocks, i, copy=True):
-    if copy:
-        return np.concatenate([b[i] for b in blocks])
-    else:
-        if len(blocks) == 1:
-            return blocks[0].values[i]
-        else:
-            raise Exception('cannot get view with mixed-type data')
 
 def _union_block_columns(blocks):
     seen = Index([])

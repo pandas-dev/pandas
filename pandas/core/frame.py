@@ -98,7 +98,7 @@ class DataFrame(PandasGeneric):
     dtype : dtype, default None (infer)
         Data type to force
     copy : boolean, default True
-        Copy data from input arrays
+        Copy data from inputs
 
     Examples
     --------
@@ -124,7 +124,7 @@ class DataFrame(PandasGeneric):
             mgr = data
             if copy and dtype is None:
                 mgr = mgr.copy()
-            elif dtype is not None:
+            if dtype is not None:
                 # no choice but to copy
                 mgr = mgr.cast(dtype)
         elif isinstance(data, DataFrame):
@@ -203,6 +203,10 @@ class DataFrame(PandasGeneric):
         block = make_block(values, columns, columns)
         return BlockManager([block], index, columns)
 
+    def astype(self, dtype):
+        new_data = self._data.cast(dtype)
+        return DataFrame(new_data, copy=False)
+
     @property
     def _constructor(self):
         return DataFrame
@@ -253,7 +257,7 @@ class DataFrame(PandasGeneric):
         """
         Make a copy of this DataFrame
         """
-        return DataFrame(self._data.copy())
+        return DataFrame(self._data.copy(), copy=False)
 
     #----------------------------------------------------------------------
     # Arithmetic methods
@@ -704,7 +708,7 @@ class DataFrame(PandasGeneric):
         cons_data = self._data.consolidate()
         if cons_data is self._data:
             cons_data = cons_data.copy()
-        return DataFrame(cons_data)
+        return DataFrame(cons_data, copy=False)
 
     #----------------------------------------------------------------------
     # Array interface

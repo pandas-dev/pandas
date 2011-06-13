@@ -16,22 +16,26 @@ def assert_block_equal(left, right):
 def get_float_mat(n, k):
     return np.repeat(np.atleast_2d(np.arange(k, dtype=float)), n, axis=0)
 
-TEST_COLS = ['a', 'b', 'c', 'd', 'e', 'f']
+TEST_COLS = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
 N = 10
 
-def get_float_ex():
+def get_float_ex(cols=['a', 'c', 'e']):
     floats = get_float_mat(N, 3)
-    return make_block(floats, ['a', 'c', 'e'], TEST_COLS)
+    return make_block(floats, cols, TEST_COLS)
 
-def get_obj_ex():
+def get_obj_ex(cols=['b', 'd']):
     mat = np.empty((N, 2), dtype=object)
     mat[:, 0] = 'foo'
     mat[:, 1] = 'bar'
-    return make_block(mat, ['b', 'd'], TEST_COLS)
+    return make_block(mat, cols, TEST_COLS)
 
-def get_bool_ex():
+def get_bool_ex(cols=['f']):
     mat = np.ones((N, 1), dtype=bool)
-    return make_block(mat, ['f'], TEST_COLS)
+    return make_block(mat, cols, TEST_COLS)
+
+def get_int_ex(cols=['g']):
+    mat = randn(N, 1).astype(int)
+    return make_block(mat, cols, TEST_COLS)
 
 class TestBlock(unittest.TestCase):
 
@@ -39,6 +43,7 @@ class TestBlock(unittest.TestCase):
         self.fblock = get_float_ex()
         self.oblock = get_obj_ex()
         self.bool_block = get_bool_ex()
+        self.int_block = get_int_ex()
 
     def test_constructor(self):
         pass
@@ -147,7 +152,8 @@ class TestBlockManager(unittest.TestCase):
     def setUp(self):
         self.blocks = [get_float_ex(),
                        get_obj_ex(),
-                       get_bool_ex()]
+                       get_bool_ex(),
+                       get_int_ex()]
         self.mgr = BlockManager.from_blocks(self.blocks, np.arange(N))
 
     def test_attrs(self):
@@ -156,7 +162,7 @@ class TestBlockManager(unittest.TestCase):
 
     def test_contains(self):
         self.assert_('a' in self.mgr)
-        self.assert_('g' not in self.mgr)
+        self.assert_('baz' not in self.mgr)
 
     def test_pickle(self):
         import pickle
@@ -177,20 +183,35 @@ class TestBlockManager(unittest.TestCase):
         pass
 
     def test_set_change_dtype(self):
-        self.mgr.set('g', np.zeros(N, dtype=bool))
+        self.mgr.set('baz', np.zeros(N, dtype=bool))
 
-        self.mgr.set('g', np.repeat('foo', N))
-        self.assert_(self.mgr.get('g').dtype == np.object_)
+        self.mgr.set('baz', np.repeat('foo', N))
+        self.assert_(self.mgr.get('baz').dtype == np.object_)
 
         mgr2 = self.mgr.consolidate()
-        mgr2.set('g', np.repeat('foo', N))
-        self.assert_(mgr2.get('g').dtype == np.object_)
+        mgr2.set('baz', np.repeat('foo', N))
+        self.assert_(mgr2.get('baz').dtype == np.object_)
+
+        mgr2.set('quux', randn(N).astype(int))
+        self.assert_(mgr2.get('quux').dtype == np.int_)
+
+        mgr2.set('quux', randn(N))
+        self.assert_(mgr2.get('quux').dtype == np.float_)
 
     def test_copy(self):
         pass
 
     def test_as_matrix(self):
         pass
+
+    def test_as_matrix_int_bool(self):
+        blocks = [get_bool_ex(['a']), get_bool_ex(['b'])]
+        mgr = BlockManager.from_blocks(blocks, np.arange(len(blocks[0])))
+        self.assert_(mgr.as_matrix().dtype == np.bool_)
+
+        blocks = [get_int_ex(['a']), get_int_ex(['b'])]
+        mgr = BlockManager.from_blocks(blocks, np.arange(len(blocks[0])))
+        self.assert_(mgr.as_matrix().dtype == np.int_)
 
     def test_xs(self):
         pass
@@ -208,6 +229,7 @@ class TestBlockManager(unittest.TestCase):
         self.mgr.set('f', randn(N))
         self.mgr.set('d', randn(N))
         self.mgr.set('b', randn(N))
+        self.mgr.set('g', randn(N))
 
         cons = self.mgr.consolidate()
         self.assertEquals(cons.nblocks, 1)
