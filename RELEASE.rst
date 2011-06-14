@@ -31,7 +31,9 @@ Release notes
 * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
   statistics about each data column
 * `DataFrame.quantile`, `Series.quantile`
-* Fancy indexing
+* Fancy indexing operator on Series / DataFrame, e.g.:
+  * frame.ix[5:10, ['C', 'B', 'A']]
+  * frame.ix[date1:date2]
 * Boolean indexing with DataFrame objects: df[df > 1] = 1
 * `pytz` / tzinfo support in `DateRange`
   * `tz_localize`, `tz_normalize`, and `tz_validate` methods added
@@ -48,20 +50,28 @@ Release notes
 
 **API Changes**
 
+* The `DataMatrix` variable now refers to `DataFrame`, will be removed in next
+  release
 * Handling of boolean dtype in `DataFrame` has been improved to support storage
-  of boolean data with NA / NaN values. As a sacrifice, the boolean data needs
-  to be stored in an object array. Before it was being converted to float64 so
-  this should not (in theory) cause API breakage
+  of boolean data with NA / NaN values. Before it was being converted to float64
+  so this should not (in theory) cause API breakage
 * Backwards compatibility support for begin/end/nPeriods keyword arguments in
   DateRange class has been removed
+* `pandas.core.mixins` code moved to `pandas.core.generic`
+* `buffer` keyword arguments (e.g. `DataFrame.toString`) renamed to `buf` to
+  avoid using Python built-in name
 * `DataFrame.rows()` removed (use `DataFrame.index`)
 * Added deprecation warning to `DataFrame.cols()`, to be removed in next release
+* `DataFrame` deprecations: `merge`, `asMatrix`, `toDataMatrix`,
+  `_firstTimeWithValue`, `_lastTimeWithValue`
 * `fillMethod` arguments (deprecated in prior release) removed, should be
   replaced with `method`
 * `Series.fill`, `DataFrame.fill`, and `WidePanel.fill` removed, use `fillna`
   instead
 
 **Bug fixes**
+
+* Column ordering in pandas.io.parsers.
 
 ************************
 pandas 0.3 Release Notes

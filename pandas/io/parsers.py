@@ -12,13 +12,29 @@ import numpy as np
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
-def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
+def read_csv(filepath, header=0, skiprows=None, index_col=0,
              na_values=None):
     """
-    Parse CSV file into a DataFrame object. Try to parse dates if possible.
+    Read CSV file into DataFrame
+
+    Parameters
+    ----------
+    filepath : string
+
+    header : int, default 0
+        Row to use for the column labels of the parsed DataFrame
+    skiprows : list-like
+        Row numbers to skip (0-indexed)
+    index_col : int, default 0
+        Column to use as the row labels of the DataFrame. Pass None if there is
+        no such column
     """
     import csv
-    f = open(filepath,'U')
+    try:
+        f = open(filepath, 'U')
+    except Exception:
+        f = open(filepath, 'r')
+
     reader = csv.reader(f, dialect='excel')
 
     if skiprows is not None:
@@ -27,8 +43,16 @@ def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
     else:
         lines = [l for l in reader]
     f.close()
-    return simpleParser(lines, header=header, indexCol=indexCol,
+    return simpleParser(lines, header=header, indexCol=index_col,
                         na_values=na_values)
+
+def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
+             na_values=None):
+    """
+    Parse CSV file into a DataFrame object. Try to parse dates if possible.
+    """
+    return read_csv(filepath, header=header, skiprows=skiprows,
+                    index_col=indexCol, na_values=na_values)
 
 def read_table(path, header=0, index_col=0, delimiter=','):
     data = np.genfromtxt(path, delimiter=delimiter,
