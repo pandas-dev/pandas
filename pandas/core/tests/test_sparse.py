@@ -874,6 +874,13 @@ class TestSparseDataFrame(TestCase):
         self.assertRaises(Exception, setattr, self.frame, 'index',
                           self.frame.index[:-1])
 
+    def test_append(self):
+        a = self.frame[:5]
+        b = self.frame[5:]
+
+        appended = a.append(b)
+        assert_sp_frame_equal(appended, self.frame)
+
     def test_corr(self):
         res = self.frame.corr()
         self.assert_(isinstance(res, SparseDataFrame))

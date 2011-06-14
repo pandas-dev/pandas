@@ -1,3 +1,14 @@
+"""
+DataFrame
+---------
+An efficient 2D container for potentially mixed-type time series or other
+labeled data series.
+
+Similar to its R counterpart, data.frame, except providing automatic data
+alignment and a host of useful data manipulation methods having to do with the
+labeling information
+"""
+
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
@@ -1657,10 +1668,8 @@ class DataFrame(PandasGeneric):
         Columns not in this frame are added as new columns.
         """
         # TODO: with blocks
-
         if not other:
             return self.copy()
-
         if not self:
             return other.copy()
 
@@ -1672,8 +1681,10 @@ class DataFrame(PandasGeneric):
             new_columns = self.columns + other.columns
 
         for column, series in self.iteritems():
+            values = series.values
             if column in other:
-                new_data[column] = series.append(other[column])
+                other_values = other[column].values
+                new_data[column] = np.concatenate((values, other_values))
             else:
                 new_data[column] = series
 
@@ -1681,9 +1692,8 @@ class DataFrame(PandasGeneric):
             if column not in self:
                 new_data[column] = series
 
-        # TODO: column ordering issues?
-        return DataFrame(data=new_data, index=new_index,
-                         columns=new_columns, copy=False)
+        return self._constructor(data=new_data, index=new_index,
+                                 columns=new_columns)
 
     def join(self, other, on=None, how=None):
         """
