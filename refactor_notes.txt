@@ -1,29 +1,30 @@
-
-- Do blocks care about dtype?
-  - No, I guess
-- C-contiguousness
-  - Get C-contiguousness right this time!
-- Series homogenization
+- NOT DOING ANYTHING C-contiguousness
+  - Get C-contiguousness right this time?
+- OK Series homogenization
   - when does casting fail?
-- Deal with emptiness: empty index and / or columns
-- Transpose: float casted to string??
-- Casting, want to continue to support?
-- Column ordering during consolidation
-- Different index passed with BlockManager
-- Set values attribute? Way to hack it? Should I?
+- OK Deal with emptiness: empty index and / or columns
+- OK Transpose: float casted to string??
+- YES Casting, want to continue to support?
+- OK Column ordering during consolidation
+- OK Different index passed with BlockManager
+- NO Set values attribute? Way to hack it? Should I?
 
-- Need sparse internal data structure
+- TODO Need sparse internal data structure
 
-Insertion at location...ugh
+NO SUPPORT YET Insertion at location...ugh
 - Currently not supported?
 
-- Empty columns as result of reindex?
+- YES Empty columns as result of reindex?
   - Empty columns -> floats
 
 When do consolidations happen?
 ------------------------------
-- Before reindex
-- Before column deletion?
+- YES Before reindex
+- NO Before column deletion?
+- NO Before / after column insertion
+- YES Before joining
+- YES Before xs
+- YES Before as_matrix
 
 TODO
 ----

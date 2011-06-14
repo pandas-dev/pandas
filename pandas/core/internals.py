@@ -231,6 +231,14 @@ class BlockManager(object):
         if not skip_integrity_check:
             self._verify_integrity()
 
+    def is_mixed_dtype(self):
+        counts = set()
+        for block in self.blocks:
+            counts.add(block.dtype)
+            if len(counts) > 1:
+                return True
+        return False
+
     _columns = None
     def _set_columns(self, value):
         self._columns = _ensure_index(value)
@@ -344,7 +352,8 @@ class BlockManager(object):
 
         if len(self.blocks) > 1:
             if not copy:
-                raise Exception('cannot get view of mixed-type DataFrame')
+                raise Exception('cannot get view of mixed-type or '
+                                'non-consolidated DataFrame')
             vals = np.concatenate([b.values[i] for b in self.blocks])
             cols = np.concatenate([b.columns for b in self.blocks])
             xs = Series(vals, index=cols).reindex(self.columns)

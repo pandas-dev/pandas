@@ -559,9 +559,12 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.isnan(result[-5:]).all())
         self.assert_(np.array_equal(result[:-5], np.sort(vals[5:])))
 
-        result = ts.order(missingAtEnd=False)
+        result = ts.order(na_last=False)
         self.assert_(np.isnan(result[:5]).all())
         self.assert_(np.array_equal(result[5:], np.sort(vals[5:])))
+
+        # just want to make sure it works
+        result = ts.order(missingAtEnd=False)
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])
@@ -910,23 +913,24 @@ class TestSeries(unittest.TestCase):
         # Just run the function
         self.ts.autocorr()
 
-    def test_firstValid(self):
+    def test_first_last_valid(self):
         ts = self.ts.copy()
         ts[:5] = np.NaN
 
-        index = ts._firstTimeWithValue()
+        index = ts.first_valid_index()
         self.assertEqual(index, ts.index[5])
 
         ts[-5:] = np.NaN
-        index = ts._lastTimeWithValue()
+        index = ts.last_valid_index()
         self.assertEqual(index, ts.index[-6])
 
-        ser = Series([], index=[])
-        self.assert_(ser._lastTimeWithValue() is None)
-        self.assert_(ser._firstTimeWithValue() is None)
+        ts[:] = np.nan
+        self.assert_(ts.last_valid_index() is None)
+        self.assert_(ts.first_valid_index() is None)
 
-    def test_lastValid(self):
-        pass
+        ser = Series([], index=[])
+        self.assert_(ser.last_valid_index() is None)
+        self.assert_(ser.first_valid_index() is None)
 
 #-------------------------------------------------------------------------------
 # GroupBy

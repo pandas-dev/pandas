@@ -174,6 +174,13 @@ class TestBlockManager(unittest.TestCase):
         self.assertEquals(self.mgr.nblocks, len(self.mgr.blocks))
         self.assertEquals(len(self.mgr), len(self.mgr.index))
 
+    def test_is_mixed_dtype(self):
+        self.assert_(self.mgr.is_mixed_dtype())
+
+        blocks = [get_bool_ex(['a']), get_bool_ex(['b'])]
+        mgr = BlockManager.from_blocks(blocks, np.arange(N))
+        self.assert_(not mgr.is_mixed_dtype())
+
     def test_block_id_vector(self):
         expected = [0, 1, 0, 1, 0, 2, 3]
         result = self.mgr.block_id_vector

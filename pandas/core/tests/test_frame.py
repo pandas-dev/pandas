@@ -760,18 +760,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # what to do?
         assert_frame_equal(-self.frame, -1 * self.frame)
 
-    def test_firstLastValid(self):
+    def test_first_last_valid(self):
         N = len(self.frame.index)
         mat = randn(N)
         mat[:5] = np.NaN
         mat[-5:] = np.NaN
 
         frame = self.klass({'foo' : mat}, index=self.frame.index)
-        index = frame._firstTimeWithValue()
+        index = frame.first_valid_index()
 
         self.assert_(index == frame.index[5])
 
-        index = frame._lastTimeWithValue()
+        index = frame.last_valid_index()
         self.assert_(index == frame.index[-6])
 
     def test_arith_flex_frame(self):
@@ -2088,6 +2088,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(recons is not consolidated)
         assert_frame_equal(recons, consolidated)
 
+    def test_as_matrix_consolidate(self):
+        self.frame['E'] = 7.
+        self.assert_(not self.frame._data.is_consolidated())
+        _ = self.frame.as_matrix()
+        self.assert_(self.frame._data.is_consolidated())
+
     def test_modify_values(self):
         self.frame.values[5] = 5
         self.assert_((self.frame.values[5] == 5).all())
@@ -2105,6 +2111,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         self.frame[self.frame > 1] = 2
         assert_almost_equal(expected, self.frame.values)
+
+    def test_boolean_set_mixed_type(self):
+        bools = self.mixed_frame.applymap(lambda x: x != 2).astype(bool)
+        self.assertRaises(Exception, self.mixed_frame.__setitem__, bools, 2)
 
     def test_xs_view(self):
         dm = DataFrame(np.arange(20.).reshape(4, 5),

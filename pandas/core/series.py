@@ -233,13 +233,6 @@ class Series(np.ndarray, PandasGeneric):
         from pandas.core.sparse import SparseSeries
         return SparseSeries(self, kind=kind, fill_value=fill_value)
 
-    @classmethod
-    def fromValue(cls, value=np.NaN, index=None, dtype=None): # pragma: no cover
-        warnings.warn("'fromValue', can call Series(value, index=index) now",
-                      FutureWarning)
-
-        return Series(value, index=index, dtype=dtype)
-
     def __contains__(self, key):
         return key in self.index
 
@@ -786,7 +779,7 @@ class Series(np.ndarray, PandasGeneric):
         """
         Overridden NumPy sort, taking care with missing values
         """
-        sortedSeries = self.order(missingAtEnd=True)
+        sortedSeries = self.order(na_last=True)
         self[:] = sortedSeries
         self.index = sortedSeries.index
 
@@ -805,21 +798,18 @@ class Series(np.ndarray, PandasGeneric):
         else:
             return Series(np.argsort(values), index=self.index)
 
-    def order(self, missingAtEnd=True):
+    def order(self, na_last=True, **kwds):
         """
         Sorts Series object, by value, maintaining index-value object
 
         Parameters
         ----------
-        missingAtEnd : boolean (optional, default=True)
+        na_last : boolean (optional, default=True)
             Put NaN's at beginning or end
-
-        In general, AVOID sorting Series unless you absolutely need to.
 
         Returns
         -------
         y : Series
-            sorted by values
         """
         def _try_mergesort(arr):
             # easier to ask forgiveness than permission
@@ -829,6 +819,9 @@ class Series(np.ndarray, PandasGeneric):
                 # stable sort not available for object dtype
                 return arr.argsort()
 
+        if 'missingAtEnd' in kwds:
+            na_last = kwds['missingAtEnd']
+
         arr = self.values
         sortedIdx = np.empty(len(self), dtype=np.int32)
 
@@ -836,7 +829,7 @@ class Series(np.ndarray, PandasGeneric):
 
         good = -bad
         idx = np.arange(len(self))
-        if missingAtEnd:
+        if na_last:
             n = sum(good)
             sortedIdx[:n] = idx[good][_try_mergesort(arr[good])]
             sortedIdx[n:] = idx[bad]
@@ -940,6 +933,21 @@ class Series(np.ndarray, PandasGeneric):
             np.putmask(new_values, notmask, NaN)
 
         return Series(new_values, index=index)
+
+    def select(self, crit):
+        """
+        Return data corresponding to index values matching criteria
+
+        Parameters
+        ----------
+        crit : function
+            To be called on each index (label). Should return True or False
+
+        Returns
+        -------
+        selection : Series
+        """
+        return self._select_generic(crit, axis=0)
 
     def reindex_like(self, other, method=None):
         """
@@ -1105,21 +1113,27 @@ class Series(np.ndarray, PandasGeneric):
         """
         return remove_na(self)
 
-    def _firstTimeWithValue(self):
-        noNA = remove_na(self)
-
-        if len(noNA) > 0:
-            return noNA.index[0]
-        else:
+    def first_valid_index(self):
+        if len(self) == 0:
             return None
 
-    def _lastTimeWithValue(self):
-        noNA = remove_na(self)
-
-        if len(noNA) > 0:
-            return noNA.index[-1]
-        else:
+        mask = isnull(self.values)
+        i = mask.argmin()
+        if mask[i]:
             return None
+        else:
+            return self.index[i]
+
+    def last_valid_index(self):
+        if len(self) == 0:
+            return None
+
+        mask = isnull(self.values[::-1])
+        i = mask.argmin()
+        if mask[i]:
+            return None
+        else:
+            return self.index[len(self) - i - 1]
 
 #-------------------------------------------------------------------------------
 # Time series-oriented methods
@@ -1317,20 +1331,25 @@ class Series(np.ndarray, PandasGeneric):
         return Series([d.weekday() for d in self.index],
                       index=self.index)
 
-    def select(self, crit):
-        """
-        Return data corresponding to index values matching criteria
+    #----------------------------------------------------------------------
+    # Deprecated stuff
 
-        Parameters
-        ----------
-        crit : function
-            To be called on each index (label). Should return True or False
+    @classmethod
+    def fromValue(cls, value=np.NaN, index=None, dtype=None): # pragma: no cover
+        warnings.warn("'fromValue', can call Series(value, index=index) now",
+                      FutureWarning)
 
-        Returns
-        -------
-        selection : Series
-        """
-        return self._select_generic(crit, axis=0)
+        return Series(value, index=index, dtype=dtype)
+
+    def _firstTimeWithValue(self): # pragma: no cover
+        warnings.warn("_firstTimeWithValue is deprecated. Use "
+                      "first_valid_index instead", FutureWarning)
+        return self.first_valid_index()
+
+    def _lastTimeWithValue(self): # pragma: no cover
+        warnings.warn("_firstTimeWithValue is deprecated. Use "
+                      "last_valid_index instead", FutureWarning)
+        return self.last_valid_index()
 
     _ix = None
     @property

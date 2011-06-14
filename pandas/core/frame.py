@@ -168,8 +168,9 @@ class DataFrame(PandasGeneric):
         # segregates dtypes and forms blocks matching to columns
         blocks, columns = form_blocks(homogenized, index, columns)
 
-        # TODO: need consolidate here?
-        return BlockManager(blocks, index, columns).consolidate()
+        # consolidate for now
+        mgr = BlockManager(blocks, index, columns)
+        return mgr.consolidate()
 
     def _init_matrix(self, values, index, columns, dtype=None,
                      copy=True):
@@ -598,6 +599,7 @@ class DataFrame(PandasGeneric):
         Columns are presented in sorted order unless a specific list
         of columns is provided.
         """
+        self._consolidate_inplace()
         return self._data.as_matrix(columns)
 
     def transpose(self):
@@ -784,6 +786,9 @@ class DataFrame(PandasGeneric):
         mask = key.values
         if mask.dtype != np.bool_:
             raise Exception('Must pass DataFrame with boolean values only')
+
+        if self._data.is_mixed_dtype():
+            raise Exception('Boolean setting not possible on mixed-type frame')
 
         self.values[mask] = value
 
@@ -1042,8 +1047,22 @@ class DataFrame(PandasGeneric):
     # Sorting
 
     def sort(self, column=None, ascending=True):
+        """
+        Sort DataFrame either by index (default) by the values in a column
+
+        Parameters
+        ----------
+        columns : object
+            Column name in frame
+        ascending : boolean, default True
+            Sort ascending vs. descending
+
+        Returns
+        -------
+        sorted : DataFrame
+        """
         if column:
-            series = self[column].order(missingAtEnd=False)
+            series = self[column].order(na_last=False)
             sort_index = series.index
         else:
             index = np.asarray(self.index)
@@ -1131,6 +1150,8 @@ class DataFrame(PandasGeneric):
 
         if index is None and columns is None:
             raise Exception('must pass either index or columns')
+
+        self._consolidate_inplace()
 
         result = self.copy()
 
@@ -1376,10 +1397,6 @@ class DataFrame(PandasGeneric):
 
     def last_valid_index(self):
         return self.index[self.count(1) > 0][-1]
-
-    # to avoid API breakage
-    _firstTimeWithValue = first_valid_index
-    _lastTimeWithValue = last_valid_index
 
     def head(self):
         return self[:5]
@@ -2391,6 +2408,16 @@ class DataFrame(PandasGeneric):
                       "instead", FutureWarning)
         return self.as_matrix(*args, **kwargs)
 
+    def _firstTimeWithValue(self): # pragma: no cover
+        warnings.warn("_firstTimeWithValue is deprecated. Use "
+                      "first_valid_index instead", FutureWarning)
+        return self.first_valid_index()
+
+    def _lastTimeWithValue(self): # pragma: no cover
+        warnings.warn("_firstTimeWithValue is deprecated. Use "
+                      "last_valid_index instead", FutureWarning)
+        return self.last_valid_index()
+
     #----------------------------------------------------------------------
     # Fancy indexing
 
@@ -2577,16 +2604,12 @@ def _homogenize_series(data, index, dtype=None):
                 v = [v.get(i, nan) for i in index]
             else:
                 assert(len(v) == len(index))
+
+            # only *attempt* to cast to dtype
             try:
                 v = Series(v, dtype=dtype, index=index)
             except Exception:
                 v = Series(v, index=index)
-
-        # # OK, I will relent for now.
-        # if not issubclass(v.dtype.type, (float, int)):
-        # #     v = v.astype(np.float64)
-        # # else:
-        #     v = v.astype(object)
 
         homogenized[k] = v
 
