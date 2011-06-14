@@ -103,6 +103,7 @@ Thanks
 - Joon Ro
 - Michael Pennington
 - Chris Withers
+- Jeff Reback
 
 ************************
 pandas 0.3 Release Notes
