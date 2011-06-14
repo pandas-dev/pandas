@@ -625,7 +625,11 @@ class SparseDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        return SparseDataFrame
+        def wrapper(data, index=None, columns=None):
+            return SparseDataFrame(data, index=index, columns=columns,
+                                   default_fill_value=self.default_fill_value,
+                                   default_kind=self.default_kind)
+        return wrapper
 
     def _init_dict(self, data, index, columns, dtype=None):
         # pre-filter out columns if we passed it
@@ -980,6 +984,23 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self.default_fill_value)
 
+    def _rename_index_inplace(self, mapper):
+        self.index = [mapper(x) for x in self.index]
+
+    def _rename_columns_inplace(self, mapper):
+        new_series = {}
+        new_columns = []
+
+        for col in self.columns:
+            new_col = mapper(col)
+            if new_col in new_series: # pragma: no cover
+                raise Exception('Non-unique mapping!')
+            new_series[new_col] = self[col]
+            new_columns.append(new_col)
+
+        self.columns = new_columns
+        self._series = new_series
+
     def _join_on(self, other, on):
         # need to implement?
         raise NotImplementedError
@@ -1050,6 +1071,45 @@ class SparseDataFrame(DataFrame):
                                columns=self.columns,
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
+
+    def apply(self, func, axis=0, broadcast=False):
+        """
+        Analogous to DataFrame.apply, for SparseDataFrame
+
+        Parameters
+        ----------
+        func : function
+            Function to apply to each column
+        axis : {0, 1}
+        broadcast : bool, default False
+            For aggregation functions, return object of same size with values
+            propagated
+
+        Returns
+        -------
+        applied : Series or SparseDataFrame
+        """
+        if not len(self.columns):
+            return self
+
+        if isinstance(func, np.ufunc):
+            new_series = {}
+            for k, v in self.iteritems():
+                applied = func(v)
+                applied.fill_value = func(applied.fill_value)
+                new_series[k] = applied
+            return SparseDataFrame(new_series, index=self.index,
+                                   columns=self.columns,
+                                   default_fill_value=self.default_fill_value,
+                                   default_kind=self.default_kind)
+        else:
+            if not broadcast:
+                return self._apply_standard(func, axis)
+            else:
+                return self._apply_broadcast(func, axis)
+
+    def fillna(self, *args, **kwargs):
+        raise NotImplementedError
 
 def stack_sparse_frame(frame):
     """
