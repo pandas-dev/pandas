@@ -28,6 +28,11 @@ Release notes
 
 **New features / modules**
 
+* `pandas.core.sparse` module: "Sparse" (mostly-NA, or some other fill value)
+  versions of `Series`, `DataFrame`, and `WidePanel`. For low-density data, this
+  will result in significant performance boosts, and smaller memory
+  footprint. Added `to_sparse` methods to `Series`, `DataFrame`, and
+  `WidePanel`.
 * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
   statistics about each data column
 * `DataFrame.quantile`, `Series.quantile`
@@ -37,6 +42,13 @@ Release notes
 * Boolean indexing with DataFrame objects: df[df > 1] = 1
 * `pytz` / tzinfo support in `DateRange`
   * `tz_localize`, `tz_normalize`, and `tz_validate` methods added
+* Added `ExcelFile` class to `pandas.io.parsers` for parsing multiple sheets out
+  of a single Excel 2003 document
+* `GroupBy` aggregations can now optionally *broadcast*, e.g. produce an object
+  of the same size with the aggregated value propagated
+* Added `select` function in all data structures: reindex axis based on
+  arbitrary criterion (function returning boolean value),
+  e.g. frame.select(lambda x: 'foo' in x, axis=1)
 
 **Improvements to existing features**
 
@@ -47,6 +59,12 @@ Release notes
 * Column ordering for mixed type data is now completely consistent in
   `DataFrame`. In prior releases, there was inconsistent column ordering in
   `DataMatrix`
+* Improved console / string formatting of DataMatrix with negative numbers
+* Added `skiprows` and `na_values` arguments to `pandas.io.parsers` functions
+  for more flexible IO
+* Can slice `DataFrame` and get a view of the data (when homogeneously typed),
+  e.g. frame.xs(idx, copy=False) or frame.ix[idx]
+* Many speed optimizations throughout `Series` and `DataFrame`
 
 **API Changes**
 
@@ -71,7 +89,20 @@ Release notes
 
 **Bug fixes**
 
-* Column ordering in pandas.io.parsers.
+* Column ordering in `pandas.io.parsers.parseCSV` will match CSV in the presence
+  of mixed-type data
+* Fixed handling of Excel 2003 dates in `ExcelFile` / `parseExcel`
+* `DateRange` caching was happening with high resolution `DateOffset` objects,
+  e.g. `DateOffset(seconds=1)`. This has been fixed
+* Fixed __truediv__ issue in `DataFrame`
+* Fixed `DataFrame.toCSV` bug preventing IO round trips in some cases
+* Fixed bug in `Series.plot` causing matplotlib to barf in exceptional cases
+
+Thanks
+------
+- Joon Ro
+- Michael Pennington
+- Chris Withers
 
 ************************
 pandas 0.3 Release Notes

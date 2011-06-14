@@ -2,7 +2,7 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from itertools import izip
 import re
 import string
@@ -19,7 +19,7 @@ def read_csv(filepath, header=0, skiprows=None, index_col=0,
 
     Parameters
     ----------
-    filepath : string
+    filepath : string or file handle
 
     header : int, default 0
         Row to use for the column labels of the parsed DataFrame
@@ -46,31 +46,35 @@ def read_csv(filepath, header=0, skiprows=None, index_col=0,
     return simpleParser(lines, header=header, indexCol=index_col,
                         na_values=na_values)
 
-def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
-             na_values=None):
+def read_table(filepath, sep='\t', header=0, skiprows=None, index_col=0,
+               na_values=None, names=None):
     """
-    Parse CSV file into a DataFrame object. Try to parse dates if possible.
+    Read delimited file into DataFrame
+
+    Parameters
+    ----------
+    filepath : string or file handle
+    sep : string, default '\t'
+        Delimiter to use
+    header : int, default 0
+        Row to use for the column labels of the parsed DataFrame
+    skiprows : list-like
+        Row numbers to skip (0-indexed)
+    index_col : int, default 0
+        Column to use as the row labels of the DataFrame. Pass None if there is
+        no such column
     """
-    return read_csv(filepath, header=header, skiprows=skiprows,
-                    index_col=indexCol, na_values=na_values)
+    reader = open(filepath,'rb')
 
-def read_table(path, header=0, index_col=0, delimiter=','):
-    data = np.genfromtxt(path, delimiter=delimiter,
-                         names=header is not None,
-                         dtype=object)
+    if skiprows is not None:
+        skiprows = set(skiprows)
+        lines = [l for i, l in enumerate(reader) if i not in skiprows]
+    else:
+        lines = [l for l in reader]
 
-    columns = data.dtype.names
-
-def parseText(filepath, sep='\t', header=0, indexCol=0, colNames=None):
-    """
-    Parse whitespace separated file into a DataFrame object.
-    Try to parse dates if possible.
-    """
-    lines = [re.split(sep, l.rstrip()) for l in open(filepath,'rb').readlines()]
-    return simpleParser(lines, header=header, indexCol=indexCol,
-                        colNames = colNames)
-
-
+    lines = [re.split(sep, l.rstrip()) for l in lines]
+    return simpleParser(lines, header=header, indexCol=index_col,
+                        colNames=names, na_values=na_values)
 
 def simpleParser(lines, colNames=None, header=0, indexCol=0,
                  na_values=None):
@@ -171,9 +175,8 @@ def _try_parse_dates(values):
         # failed
         return values
 
-#===============================================================================
-# Excel tools
-#===============================================================================
+#-------------------------------------------------------------------------------
+# ExcelFile class
 
 
 class ExcelFile(object):
@@ -235,10 +238,31 @@ class ExcelFile(object):
         return simpleParser(data, header=header, indexCol=index_col,
                             na_values=na_values)
 
+#-------------------------------------------------------------------------------
+# Basically deprecated stuff
+
+def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
+             na_values=None):
+    """
+    Parse CSV file into a DataFrame object. Try to parse dates if possible.
+    """
+    return read_csv(filepath, header=header, skiprows=skiprows,
+                    index_col=indexCol, na_values=na_values)
+
+def parseText(filepath, sep='\t', header=0, indexCol=0, colNames=None):
+    """
+    Parse whitespace separated file into a DataFrame object.
+    Try to parse dates if possible.
+    """
+    return read_table(filepath, sep=sep, header=header, index_col=indexCol,
+                      names=colNames)
+
+
 def parseExcel(filepath, header=None, indexCol=0, sheetname=None, **kwds):
     """
 
     """
     excel_file = ExcelFile(filepath)
     return excel_file.parse(sheetname, header=header, index_col=indexCol)
+
 
