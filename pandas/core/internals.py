@@ -11,7 +11,7 @@ import pandas.core.common as common
 
 class Block(object):
     """
-    Canonical unit of homogeneous dtype contained in DataMatrix
+    Canonical unit of homogeneous dtype contained in DataFrame
 
     Index-ignorant; let the container take care of that
     """

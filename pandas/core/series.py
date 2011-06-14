@@ -1126,7 +1126,7 @@ class Series(np.ndarray, PandasGeneric):
 
     def shift(self, periods, offset=None, timeRule=None):
         """
-        Shift the underlying series of the DataMatrix and Series objects within
+        Shift the underlying series of the DataFrame and Series objects within
         by given number (positive or negative) of business/weekdays.
 
         Parameters

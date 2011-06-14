@@ -12,8 +12,8 @@ Series / TimeSeries
     As an numpy.ndarray subclass, compatible with ufuncs and other NumPy
     functions
 
-DataFrame / DataMatrix
-    Represent collections of Series objects, enable easy management
+DataFrame
+    Represents collections of Series objects, enable easy management
     of multiple time series / cross-sections
 
 DateRange
@@ -31,4 +31,3 @@ lib
 stats
     Statistical and econometric functions
 """
-

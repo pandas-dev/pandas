@@ -161,7 +161,7 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.array_equal(result.index, s.index[mask]))
 
     def test_getitem_boolean_object(self):
-        # using column from DataMatrix
+        # using column from DataFrame
         s = self.series
         mask = s > s.median()
         omask = mask.astype(object)

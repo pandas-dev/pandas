@@ -80,9 +80,8 @@ def _convert_Matrix(mat):
     columns = None if _is_null(columns) else list(columns)
     index = None if _is_null(rows) else list(rows)
 
-    return pandas.DataMatrix(np.array(mat),
-                             index=_check_int(index),
-                             columns=columns)
+    return pandas.DataFrame(np.array(mat), index=_check_int(index),
+                            columns=columns)
 
 def _check_int(vec):
     try:
