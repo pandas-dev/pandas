@@ -1405,6 +1405,26 @@ class DataFrame(PandasGeneric):
         return self[-5:]
 
     #----------------------------------------------------------------------
+    # Data reshaping
+
+    def pivot(self, index=None, columns=None, values=None):
+        """
+        Produce 'pivot' table based on 3 columns of this DataFrame.
+        Uses unique values from index / columns and fills with values.
+
+        Parameters
+        ----------
+        index : string or object
+            Column name to use to make new frame's index
+        columns : string or object
+            Column name to use to make new frame's columns
+        values : string or object
+            Column name to use for populating new frame's values
+        """
+        from pandas.core.panel import pivot
+        return pivot(self[index], self[columns], self[values])
+
+    #----------------------------------------------------------------------
     # Time series-related
 
     def asfreq(self, freq, method=None):
@@ -1733,26 +1753,6 @@ class DataFrame(PandasGeneric):
         return join_index
 
     #----------------------------------------------------------------------
-    # Data reshaping
-
-    def pivot(self, index=None, columns=None, values=None):
-        """
-        Produce 'pivot' table based on 3 columns of this DataFrame.
-        Uses unique values from index / columns and fills with values.
-
-        Parameters
-        ----------
-        index : string or object
-            Column name to use to make new frame's index
-        columns : string or object
-            Column name to use to make new frame's columns
-        values : string or object
-            Column name to use for populating new frame's values
-        """
-        from pandas.core.panel import pivot
-        return pivot(self[index], self[columns], self[values])
-
-    #----------------------------------------------------------------------
     # groupby
 
     def groupby(self, mapper, axis=0):
@@ -1854,8 +1854,8 @@ class DataFrame(PandasGeneric):
         right = other.reindex(index=com_index, columns=com_cols)
 
         # mask missing values
-        left += right * 0
-        right += left * 0
+        left = left + right * 0
+        right = right + left * 0
 
         # demeaned data
         ldem = left - left.mean(axis)
@@ -1893,14 +1893,6 @@ class DataFrame(PandasGeneric):
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods
-
-    def _get_agg_axis(self, axis_num):
-        if axis_num == 0:
-            return self.columns
-        elif axis_num == 1:
-            return self.index
-        else:
-            raise Exception('Must have 0<= axis <= 1')
 
     def count(self, axis=0):
         """
@@ -1985,13 +1977,20 @@ class DataFrame(PandasGeneric):
 
         return Series(the_sum, index=axis_labels)
 
+    def _get_agg_axis(self, axis_num):
+        if axis_num == 0:
+            return self.columns
+        elif axis_num == 1:
+            return self.index
+        else:
+            raise Exception('Must have 0<= axis <= 1')
+
     def _get_numeric_columns(self):
         return [col for col in self.columns
                 if issubclass(self[col].dtype.type, np.number)]
 
     def _get_object_columns(self):
         return [col for col in self.columns if self[col].dtype == np.object_]
-
 
     def cumsum(self, axis=0):
         """
@@ -2311,18 +2310,24 @@ class DataFrame(PandasGeneric):
     #----------------------------------------------------------------------
     # Plotting
 
-    def plot(self, kind='line', subplots=False, sharex=True,
+    def plot(self, subplots=False, sharex=True,
              sharey=False, use_index=True, **kwds): # pragma: no cover
         """
-        Plot the DataFrame's series with the index on the x-axis using
+        Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
 
         Parameters
         ----------
-        kind : {'line', 'bar', 'hist'}
-            Default: line for TimeSeries, hist for Series
-
-        kwds : other plotting keyword arguments
+        subplots : boolean, default False
+            Make separate subplots for each time series
+        sharex : boolean, default True
+            In case subplots=True, share x axis
+        sharey : boolean, default False
+            In case subplots=True, share y axis
+        use_index : boolean, default True
+            Use index as ticks for x axis
+        kwds : keywords
+            Options to pass to Axis.plot
 
         Notes
         -----
