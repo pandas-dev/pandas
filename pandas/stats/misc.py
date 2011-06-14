@@ -1,7 +1,8 @@
 from numpy import NaN
 import numpy as np
 
-from pandas.core.api import Series, DataMatrix, isnull, notnull
+from pandas.core.api import Series, DataFrame, isnull, notnull
+from pandas.core.series import remove_na
 
 __all__ = ['bucket', 'bucketpanel']
 
@@ -43,7 +44,7 @@ def correl_xs(frame1, frame2):
 
 def bucket(series, k, by=None):
     """
-    Produce DataMatrix representing quantiles of a Series
+    Produce DataFrame representing quantiles of a Series
 
     Parameters
     ----------
@@ -55,7 +56,7 @@ def bucket(series, k, by=None):
 
     Returns
     -------
-    DataMatrix
+    DataFrame
     """
     if by is None:
         by = series
@@ -68,7 +69,7 @@ def bucket(series, k, by=None):
     for i, v in enumerate(split):
         mat[:, i][v] = series.take(v)
 
-    return DataMatrix(mat, index=series.index, columns=np.arange(k) + 1)
+    return DataFrame(mat, index=series.index, columns=np.arange(k) + 1)
 
 def _split_quantile(arr, k):
     arr = np.asarray(arr)
@@ -80,7 +81,7 @@ def _split_quantile(arr, k):
 
 def bucketcat(series, cats):
     """
-    Produce DataMatrix representing quantiles of a Series
+    Produce DataFrame representing quantiles of a Series
 
     Parameters
     ----------
@@ -90,7 +91,7 @@ def bucketcat(series, cats):
 
     Returns
     -------
-    DataMatrix
+    DataFrame
     """
     if not isinstance(series, Series):
         series = Series(series, index=np.arange(len(series)))
@@ -106,7 +107,7 @@ def bucketcat(series, cats):
     for i, label in enumerate(unique_labels):
         data[label] = series[cats == label]
 
-    return DataMatrix(data, columns=unique_labels)
+    return DataFrame(data, columns=unique_labels)
 
 def bucketpanel(series, bins=None, by=None, cat=None):
     """
@@ -124,7 +125,7 @@ def bucketpanel(series, bins=None, by=None, cat=None):
 
     Returns
     -------
-    DataMatrix
+    DataFrame
     """
     use_by = by is not None
     use_cat = cat is not None
@@ -235,7 +236,7 @@ def _cat_labels(labels):
         mask = labels == label
         data[stringified] = series[mask]
 
-    return DataMatrix(data, index=series.index)
+    return DataFrame(data, index=series.index)
 
 def _bucket_labels(series, k):
     arr = np.asarray(series)
@@ -288,7 +289,7 @@ def quantileTS(frame, percentile):
 
     Parameters
     ----------
-    frame: DataFrame / DataMatrix
+    frame: DataFrame
     percentile: int
        nth percentile
 
@@ -316,7 +317,7 @@ def percentileRank(frame, column=None, kind='mean'):
 
     Parameters
     ----------
-    frame: DataFrame / DataMatrix
+    frame: DataFrame
     column: string or Series, optional
        Column name or specific Series to compute percentiles for.
        If not provided, percentiles are computed for all values at each
@@ -365,5 +366,5 @@ def percentileRank(frame, column=None, kind='mean'):
         for column in frame.columns:
             for date, xs in framet.iteritems():
                 results.setdefault(date, {})[column] = fun(xs, xs[column])
-        results = frame.__class__(results).T
+        results = DataFrame(results).T
     return results

@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 
 from pandas.core.panel import WidePanel, LongPanel
-from pandas.core.matrix import DataFrame, DataMatrix
+from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.sparse import SparseWidePanel
 from pandas.stats.ols import OLS, MovingOLS
@@ -194,7 +194,7 @@ class PanelOLS(OLS):
     def _convert_x(self, x):
 
         # Converts non-numeric data in x to floats. x_converted is the
-        # DataMatrix with converted values, and x_conversion is a dict that
+        # DataFrame with converted values, and x_conversion is a dict that
         # provides the reverse mapping.  For example, if 'A' was converted to 0
         # for x named 'variety', then x_conversion['variety'][0] is 'A'.
         x_converted = {}
@@ -211,7 +211,7 @@ class PanelOLS(OLS):
                 distinct_values = sorted(set(values.flat))
                 cat_mapping[key] = dict(enumerate(distinct_values))
                 new_values = np.searchsorted(distinct_values, values)
-                x_converted[key] = DataMatrix(new_values, index=df.index,
+                x_converted[key] = DataFrame(new_values, index=df.index,
                                               columns=df.columns)
 
         if len(cat_mapping) == 0:
@@ -660,7 +660,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
         Returns
         -------
-        DataMatrix
+        DataFrame
         """
         x = self._x.values
         betas = self._beta_matrix(lag=lag)

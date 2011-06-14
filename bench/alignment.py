@@ -10,8 +10,8 @@ idx1 = range(N)
 idx2 = range(K)
 
 # pandas
-dma1 = pandas.DataMatrix(arr1, idx1, idx2)
-dma2 = pandas.DataMatrix(arr2, idx1[::-1], idx2[::-1])
+dma1 = pandas.DataFrame(arr1, idx1, idx2)
+dma2 = pandas.DataFrame(arr2, idx1[::-1], idx2[::-1])
 
 # larry
 lar1 = la.larry(arr1, [idx1, idx2])

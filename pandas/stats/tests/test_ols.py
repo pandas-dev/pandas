@@ -11,7 +11,7 @@ import unittest
 import numpy as np
 
 from pandas.core.panel import LongPanel
-from pandas.core.api import DataMatrix, Index, Series
+from pandas.core.api import DataFrame, Index, Series
 from pandas.stats.api import ols
 from pandas.stats.plm import NonPooledPanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
@@ -64,8 +64,8 @@ class TestOLS(BaseTest):
     def checkDataSet(self, dataset, start=None, end=None, skip_moving=False):
         exog = dataset.exog[start : end]
         endog = dataset.endog[start : end]
-        x = DataMatrix(exog, index=np.arange(exog.shape[0]),
-                       columns=np.arange(exog.shape[1]))
+        x = DataFrame(exog, index=np.arange(exog.shape[0]),
+                      columns=np.arange(exog.shape[1]))
         y = Series(endog, index=np.arange(len(endog)))
 
         self.checkOLS(exog, endog, x, y)
@@ -250,7 +250,7 @@ class TestPanelOLS(BaseTest):
                  datetime(2000, 1, 4),
                  datetime(2000, 1, 5)]
         cols = ['A', 'B']
-        weights = DataMatrix(data, index=index, columns=cols)
+        weights = DataFrame(data, index=index, columns=cols)
 
         result = ols(y=self.panel_y2, x=self.panel_x2, weights=weights)
 
@@ -376,9 +376,12 @@ class TestPanelOLS(BaseTest):
                             nw_overlap=True)
 
     def testRollingWithWeights(self):
-        weights = self.panel_y.copy()
+        idx = self.panel_y.index
+        cols = self.panel_y.columns
 
-        weights.values = np.random.standard_normal(weights.values.shape)
+
+        weights = DataFrame(np.random.standard_normal((len(idx), len(cols))),
+                            index=idx, columns=cols)
         self.checkMovingOLS(self.panel_x,
                             self.panel_y, weights=weights)
 

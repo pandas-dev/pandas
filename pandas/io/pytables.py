@@ -1,8 +1,7 @@
 from datetime import datetime
 import numpy as np
 
-from pandas import (Series, TimeSeries, DataFrame, DataMatrix, WidePanel,
-                    LongPanel)
+from pandas import Series, TimeSeries, DataFrame, WidePanel, LongPanel
 from pandas.core.pytools import adjoin
 import pandas.lib.tseries as tseries
 

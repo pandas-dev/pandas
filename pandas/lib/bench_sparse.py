@@ -34,7 +34,7 @@ if 'linux' in sys.platform:
 else:
     pth = '/Users/wesm/code/pandas/example'
 
-dm = DataMatrix.load(pth)
+dm = DataFrame.load(pth)
 
 sdf = dm.to_sparse()
 

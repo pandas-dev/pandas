@@ -1,0 +1,74 @@
+- NOT DOING ANYTHING C-contiguousness
+  - Get C-contiguousness right this time?
+- OK Series homogenization
+  - when does casting fail?
+- OK Deal with emptiness: empty index and / or columns
+- OK Transpose: float casted to string??
+- YES Casting, want to continue to support?
+- OK Column ordering during consolidation
+- OK Different index passed with BlockManager
+- NO Set values attribute? Way to hack it? Should I?
+
+- TODO Need sparse internal data structure
+
+NO SUPPORT YET Insertion at location...ugh
+- Currently not supported?
+
+- YES Empty columns as result of reindex?
+  - Empty columns -> floats
+
+When do consolidations happen?
+------------------------------
+- YES Before reindex
+- NO Before column deletion?
+- NO Before / after column insertion
+- YES Before joining
+- YES Before xs
+- YES Before as_matrix
+
+TODO
+----
+- transpose with blocks
+- pickling w/ backwards compat
+
+extract_index--pass index! sparse breaking
+
+Mixed type handling
+-------------------
+
+Immutability
+------------
+- How much do I care?
+- Try to do it when possible...
+
+Transposing
+-----------
+- Currently getting casted to object...not much to do
+
+Maintain sortedness?
+- Current do where possible...maybe should preserve this?
+
+Combine / Arithmetic methods
+----------------------------
+- Consolidate, reindex, do it
+
+Rename / operations on index / columns
+--------------------------------------
+
+Pickling
+--------
+- backwards compat, possible?
+- need make pickles with master
+
+Ints
+----
+- Allow things to be int until introduce NaNs?
+
+Missing data in ints?
+---------------------
+need some concrete test cases
+
+Sparse data structures (!)
+--------------------------
+Surely going to break SparseDataFrame...will need to think of something
+

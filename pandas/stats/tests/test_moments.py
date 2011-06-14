@@ -5,7 +5,7 @@ from datetime import datetime
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import Series, DataFrame, DataMatrix, DateRange
+from pandas.core.api import Series, DataFrame, DateRange
 from pandas.util.testing import assert_almost_equal
 import pandas.core.datetools as datetools
 import pandas.stats.moments as moments
@@ -28,9 +28,6 @@ class TestMoments(unittest.TestCase):
 
         self.frame = DataFrame(randn(N, K), index=self.rng,
                                columns=np.arange(K))
-
-        self.matrix = DataMatrix(randn(N, K), index=self.rng,
-                                 columns=np.arange(K))
 
     def test_rolling_sum(self):
         self._check_moment_func(moments.rolling_sum, np.sum)
@@ -130,9 +127,6 @@ class TestMoments(unittest.TestCase):
         frame_result = func(self.frame, 50)
         self.assertEquals(type(frame_result), DataFrame)
 
-        matrix_result = func(self.matrix, 50)
-        self.assertEquals(type(matrix_result), DataMatrix)
-
         # check time_rule works
         if has_time_rule:
             win = 25
@@ -143,27 +137,20 @@ class TestMoments(unittest.TestCase):
                                      time_rule='WEEKDAY')
                 frame_result = func(self.frame[::2], win, min_periods=minp,
                                     time_rule='WEEKDAY')
-                matrix_result = func(self.matrix[::2], win, min_periods=minp,
-                                     time_rule='WEEKDAY')
             else:
                 series_result = func(self.series[::2], win, time_rule='WEEKDAY')
                 frame_result = func(self.frame[::2], win, time_rule='WEEKDAY')
-                matrix_result = func(self.matrix[::2], win, time_rule='WEEKDAY')
 
             last_date = series_result.index[-1]
             prev_date = last_date - 24 * datetools.bday
 
             trunc_series = self.series[::2].truncate(prev_date, last_date)
             trunc_frame = self.frame[::2].truncate(prev_date, last_date)
-            trunc_matrix = self.matrix[::2].truncate(prev_date, last_date)
 
             assert_almost_equal(series_result[-1], static_comp(trunc_series))
 
             assert_almost_equal(frame_result.xs(last_date),
                                 trunc_frame.apply(static_comp))
-
-            assert_almost_equal(matrix_result.xs(last_date),
-                                trunc_matrix.apply(static_comp))
 
     def test_ewma(self):
         self._check_ew(moments.ewma)
@@ -207,8 +194,6 @@ class TestMoments(unittest.TestCase):
         self.assert_(isinstance(series_result, Series))
         frame_result = func(self.frame, com=10)
         self.assertEquals(type(frame_result), DataFrame)
-        matrix_result = func(self.matrix, com=10)
-        self.assertEquals(type(matrix_result), DataMatrix)
 
     # binary moments
     def test_rolling_cov(self):

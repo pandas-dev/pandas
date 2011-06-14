@@ -3,7 +3,7 @@ import string
 
 import numpy as np
 
-from pandas.core.api import Series, DataMatrix, DateRange
+from pandas.core.api import Series, DataFrame, DateRange
 from pandas.stats.api import ols
 
 N = 100
@@ -11,8 +11,8 @@ N = 100
 start = datetime(2009, 9, 2)
 dateRange = DateRange(start, periods=N)
 
-def makeDataMatrix():
-    data = DataMatrix(np.random.randn(N, 7),
+def makeDataFrame():
+    data = DataFrame(np.random.randn(N, 7),
                       columns=list(string.ascii_uppercase[:7]),
                       index=dateRange)
 
@@ -24,7 +24,7 @@ def makeSeries():
 #-------------------------------------------------------------------------------
 # Standard rolling linear regression
 
-X = makeDataMatrix()
+X = makeDataFrame()
 Y =  makeSeries()
 
 model = ols(y=Y, x=X)
@@ -35,12 +35,12 @@ print model
 # Panel regression
 
 data = {
-    'A' : makeDataMatrix(),
-    'B' : makeDataMatrix(),
-    'C' : makeDataMatrix()
+    'A' : makeDataFrame(),
+    'B' : makeDataFrame(),
+    'C' : makeDataFrame()
 }
 
-Y = makeDataMatrix()
+Y = makeDataFrame()
 
 panelModel = ols(y=Y, x=data, window=50)
 

@@ -713,7 +713,6 @@ class TestLongPanel(unittest.TestCase):
 
     def test_columns(self):
         self.assert_(np.array_equal(self.panel.items, self.panel.columns))
-        self.assert_(np.array_equal(self.panel.items, self.panel.cols()))
 
     def test_copy(self):
         thecopy = self.panel.copy()

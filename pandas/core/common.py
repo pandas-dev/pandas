@@ -142,3 +142,34 @@ def _all_not_none(*args):
         if arg is None:
             return False
     return True
+
+def _try_sort(iterable):
+    listed = list(iterable)
+    try:
+        return sorted(listed)
+    except Exception:
+        return listed
+
+
+def _pfixed(s, space, nanRep=None, float_format=None):
+    if isinstance(s, float):
+        if nanRep is not None and isnull(s):
+            if np.isnan(s):
+                s = nanRep
+            return (' %s' % s).ljust(space)
+
+        if float_format:
+            formatted = float_format(s)
+        else:
+            is_neg = s < 0
+            formatted = '%.4g' % np.abs(s)
+
+            if is_neg:
+                formatted = '-' + formatted
+            else:
+                formatted = ' ' + formatted
+
+        return formatted.ljust(space)
+    else:
+        return (' %s' % s)[:space].ljust(space)
+

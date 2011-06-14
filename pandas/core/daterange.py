@@ -285,9 +285,27 @@ class DateRange(Index):
 
     def tz_normalize(self, tz):
         """
-        Convert UTC DateRange
+        Convert DateRange from one time zone to another (using pytz)
+
+        Returns
+        -------
+        normalized : DateRange
         """
         new_dates = np.array([tz.normalize(x) for x in self])
+        new_dates = new_dates.view(DateRange)
+        new_dates.offset = self.offset
+        new_dates.tzinfo = tz
+        return new_dates
+
+    def tz_localize(self, tz):
+        """
+        Localize tzinfo-naive DateRange to given time zone (using pytz)
+
+        Returns
+        -------
+        localized : DateRange
+        """
+        new_dates = np.array([tz.localize(x) for x in self])
         new_dates = new_dates.view(DateRange)
         new_dates.offset = self.offset
         new_dates.tzinfo = tz

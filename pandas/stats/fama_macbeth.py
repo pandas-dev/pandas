@@ -2,7 +2,7 @@ from cStringIO import StringIO
 
 import numpy as np
 
-from pandas.core.api import Series, DataMatrix
+from pandas.core.api import Series, DataFrame
 import pandas.stats.common as common
 from pandas.util.decorators import cache_readonly
 import pandas.lib.tseries as tseries
@@ -192,7 +192,7 @@ class MovingFamaMacBeth(FamaMacBeth):
     _stats = cache_readonly(_calc_stats)
 
     def _make_result(self, result):
-        return DataMatrix(result, index=self._result_index, columns=self._cols)
+        return DataFrame(result, index=self._result_index, columns=self._cols)
 
     @cache_readonly
     def _result_index(self):

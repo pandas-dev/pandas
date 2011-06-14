@@ -7,7 +7,7 @@ import nose
 
 import numpy as np
 
-from pandas.core.api import DataMatrix, DateRange
+from pandas.core.api import DataFrame, DateRange
 from pandas.util.testing import assert_almost_equal # imported in other tests
 N = 100
 K = 4
@@ -17,17 +17,17 @@ DATE_RANGE = DateRange(start, periods=N)
 
 COLS = ['Col' + c for c in string.ascii_uppercase[:K]]
 
-def makeDataMatrix():
-    data = DataMatrix(np.random.randn(N, K),
+def makeDataFrame():
+    data = DataFrame(np.random.randn(N, K),
                       columns=COLS,
                       index=DATE_RANGE)
 
     return data
 
 def getBasicDatasets():
-    A = makeDataMatrix()
-    B = makeDataMatrix()
-    C = makeDataMatrix()
+    A = makeDataFrame()
+    B = makeDataFrame()
+    C = makeDataFrame()
 
     return A, B, C
 
@@ -93,7 +93,7 @@ class BaseTest(unittest.TestCase):
                    datetime(2000, 1, 2),
                    datetime(2000, 1, 3)]
         y_cols = ['A', 'B']
-        self.panel_y2 = DataMatrix(np.array(y_data), index=y_index,
+        self.panel_y2 = DataFrame(np.array(y_data), index=y_index,
                                    columns=y_cols)
 
         x1_data = [[6, np.NaN],
@@ -105,7 +105,7 @@ class BaseTest(unittest.TestCase):
                     datetime(2000, 1, 3),
                     datetime(2000, 1, 4)]
         x1_cols = ['A', 'B']
-        x1 = DataMatrix(np.array(x1_data), index=x1_index,
+        x1 = DataFrame(np.array(x1_data), index=x1_index,
                         columns=x1_cols)
 
         x2_data = [[13, 14, np.NaN],
@@ -119,7 +119,7 @@ class BaseTest(unittest.TestCase):
                     datetime(2000, 1, 4),
                     datetime(2000, 1, 5)]
         x2_cols = ['C', 'A', 'B']
-        x2 = DataMatrix(np.array(x2_data), index=x2_index,
+        x2 = DataFrame(np.array(x2_data), index=x2_index,
                         columns=x2_cols)
 
         self.panel_x2 = {'x1' : x1, 'x2' : x2}
@@ -130,7 +130,7 @@ class BaseTest(unittest.TestCase):
         y_index = [datetime(2000, 1, 1),
                    datetime(2000, 1, 2)]
         y_cols = ['A', 'B']
-        self.panel_y3 = DataMatrix(np.array(y_data), index=y_index,
+        self.panel_y3 = DataFrame(np.array(y_data), index=y_index,
                                    columns=y_cols)
 
         x1_data = [['A', 'B'],
@@ -138,7 +138,7 @@ class BaseTest(unittest.TestCase):
         x1_index = [datetime(2000, 1, 1),
                     datetime(2000, 1, 2)]
         x1_cols = ['A', 'B']
-        x1 = DataMatrix(np.array(x1_data), index=x1_index,
+        x1 = DataFrame(np.array(x1_data), index=x1_index,
                         columns=x1_cols)
 
         x2_data = [['3.14', '1.59'],
@@ -146,7 +146,7 @@ class BaseTest(unittest.TestCase):
         x2_index = [datetime(2000, 1, 1),
                     datetime(2000, 1, 2)]
         x2_cols = ['A', 'B']
-        x2 = DataMatrix(np.array(x2_data), index=x2_index,
+        x2 = DataFrame(np.array(x2_data), index=x2_index,
                         columns=x2_cols)
 
         self.panel_x3 = {'x1' : x1, 'x2' : x2}

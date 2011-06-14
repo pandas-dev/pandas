@@ -10,8 +10,7 @@ from numpy import NaN
 
 from pandas.core.datetools import format, to_datetime
 from pandas.core.panel import pivot
-from pandas.core.api import (DataFrame, DataMatrix, Series, Index,
-                             isnull)
+from pandas.core.api import DataFrame, Series, Index, isnull
 
 #-------------------------------------------------------------------------------
 # Query formatting
@@ -400,7 +399,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=()):
             return uquery(sql, con, retry=False)
     return result
 
-def frame_query(sql, con, indexField='Time', asDataMatrix=False):
+def frame_query(sql, con, indexField='Time'):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
@@ -425,10 +424,7 @@ def frame_query(sql, con, indexField='Time', asDataMatrix=False):
     else:
         idx = Index(np.arange(len(data.values()[0])))
 
-    if asDataMatrix:
-        return DataMatrix(data, index=idx)
-    else:
-        return DataFrame(data=data, index=idx)
+    return DataFrame(data=data, index=idx)
 
 def pivot_query(sql, rows, columns, values, con):
     """

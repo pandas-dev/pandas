@@ -28,18 +28,38 @@ Release notes
 
 **New features / modules**
 
-* `DataFrame.describe`
+* `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
+  statistics about each data column
 * `DataFrame.quantile`, `Series.quantile`
-* `DataFrame.describe`
 * Fancy indexing
+* Boolean indexing with DataFrame objects: df[df > 1] = 1
+* `pytz` / tzinfo support in `DateRange`
+  * `tz_localize`, `tz_normalize`, and `tz_validate` methods added
 
-**Improvements**
+**Improvements to existing features**
 
+* The 2-dimensional `DataFrame` and `DataMatrix` classes have been extensively
+  refactored internally into a single class `DataFrame`, preserving where
+  possible their optimal performance characteristics. This should reduce
+  confusion from users about which class to use
+* Column ordering for mixed type data is now completely consistent in
+  `DataFrame`. In prior releases, there was inconsistent column ordering in
+  `DataMatrix`
 
 **API Changes**
 
+* Handling of boolean dtype in `DataFrame` has been improved to support storage
+  of boolean data with NA / NaN values. As a sacrifice, the boolean data needs
+  to be stored in an object array. Before it was being converted to float64 so
+  this should not (in theory) cause API breakage
 * Backwards compatibility support for begin/end/nPeriods keyword arguments in
   DateRange class has been removed
+* `DataFrame.rows()` removed (use `DataFrame.index`)
+* Added deprecation warning to `DataFrame.cols()`, to be removed in next release
+* `fillMethod` arguments (deprecated in prior release) removed, should be
+  replaced with `method`
+* `Series.fill`, `DataFrame.fill`, and `WidePanel.fill` removed, use `fillna`
+  instead
 
 **Bug fixes**
 

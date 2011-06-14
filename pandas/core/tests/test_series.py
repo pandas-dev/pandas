@@ -7,7 +7,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import (Index, Series, TimeSeries, DataFrame, isnull)
+from pandas import Index, Series, TimeSeries, DataFrame, isnull
 import pandas.core.datetools as datetools
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as common
@@ -152,13 +152,35 @@ class TestSeries(unittest.TestCase):
 
     def test_getitem_boolean(self):
         s = self.series
-        vec = s > s.median()
+        mask = s > s.median()
 
         # passing list is OK
-        result = s[list(vec)]
-        expected = s[vec]
+        result = s[list(mask)]
+        expected = s[mask]
         assert_series_equal(result, expected)
-        self.assert_(np.array_equal(result.index, s.index[vec]))
+        self.assert_(np.array_equal(result.index, s.index[mask]))
+
+    def test_getitem_boolean_object(self):
+        # using column from DataFrame
+        s = self.series
+        mask = s > s.median()
+        omask = mask.astype(object)
+
+        # getitem
+        result = s[omask]
+        expected = s[mask]
+        assert_series_equal(result, expected)
+
+        # setitem
+        cop = s.copy()
+        cop[omask] = 5
+        s[mask] = 5
+        assert_series_equal(cop, s)
+
+        # nans raise exception
+        omask[5:10] = np.nan
+        self.assertRaises(Exception, s.__getitem__, omask)
+        self.assertRaises(Exception, s.__setitem__, omask, 5)
 
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
@@ -537,9 +559,12 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.isnan(result[-5:]).all())
         self.assert_(np.array_equal(result[:-5], np.sort(vals[5:])))
 
-        result = ts.order(missingAtEnd=False)
+        result = ts.order(na_last=False)
         self.assert_(np.isnan(result[:5]).all())
         self.assert_(np.array_equal(result[5:], np.sort(vals[5:])))
+
+        # just want to make sure it works
+        result = ts.order(missingAtEnd=False)
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])
@@ -888,23 +913,24 @@ class TestSeries(unittest.TestCase):
         # Just run the function
         self.ts.autocorr()
 
-    def test_firstValid(self):
+    def test_first_last_valid(self):
         ts = self.ts.copy()
         ts[:5] = np.NaN
 
-        index = ts._firstTimeWithValue()
+        index = ts.first_valid_index()
         self.assertEqual(index, ts.index[5])
 
         ts[-5:] = np.NaN
-        index = ts._lastTimeWithValue()
+        index = ts.last_valid_index()
         self.assertEqual(index, ts.index[-6])
 
-        ser = Series([], index=[])
-        self.assert_(ser._lastTimeWithValue() is None)
-        self.assert_(ser._firstTimeWithValue() is None)
+        ts[:] = np.nan
+        self.assert_(ts.last_valid_index() is None)
+        self.assert_(ts.first_valid_index() is None)
 
-    def test_lastValid(self):
-        pass
+        ser = Series([], index=[])
+        self.assert_(ser.last_valid_index() is None)
+        self.assert_(ser.first_valid_index() is None)
 
 #-------------------------------------------------------------------------------
 # GroupBy

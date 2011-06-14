@@ -9,7 +9,7 @@ from functools import wraps
 from numpy import NaN
 import numpy as np
 
-from pandas.core.api import (DataFrame, DataMatrix, Series, notnull)
+from pandas.core.api import DataFrame, Series, notnull
 import pandas.lib.tseries as tseries
 
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
@@ -251,8 +251,8 @@ Returns
 y : type of input argument
 """
 
-_unary_arg = "arg : Series, DataFrame, or DataMatrix"
-_binary_arg = """arg1 : Series, DataFrame, or DataMatrix, or ndarray
+_unary_arg = "arg : Series, DataFrame"
+_binary_arg = """arg1 : Series, DataFrame, or ndarray
 arg2 : type of arg1"""
 
 _bias_doc = r"""bias : boolean, default False
