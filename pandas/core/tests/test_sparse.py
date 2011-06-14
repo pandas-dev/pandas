@@ -904,6 +904,11 @@ class TestSparseDataFrame(TestCase):
 
         self.assert_(self.empty.apply(np.sqrt) is self.empty)
 
+    def test_applymap(self):
+        # just test that it works
+        result = self.frame.applymap(lambda x: x * 2)
+        self.assert_(isinstance(result, SparseDataFrame))
+
     def test_astype(self):
         pass
 
@@ -917,8 +922,11 @@ class TestSparseDataFrame(TestCase):
 
     def test_corr(self):
         res = self.frame.corr()
-        self.assert_(isinstance(res, SparseDataFrame))
-        assert_frame_equal(res.to_dense(), self.frame.to_dense().corr())
+        assert_frame_equal(res, self.frame.to_dense().corr())
+
+    def test_describe(self):
+        self.frame['foo'] = np.nan
+        desc = self.frame.describe()
 
     def test_join(self):
         left = self.frame.ix[:, ['A', 'B']]
@@ -1045,6 +1053,10 @@ class TestSparseDataFrame(TestCase):
     def test_count(self):
         result = self.frame.count()
         dense_result = self.frame.to_dense().count()
+        assert_series_equal(result, dense_result)
+
+        result = self.frame.count(1)
+        dense_result = self.frame.to_dense().count(1)
         assert_series_equal(result, dense_result)
 
     def _check_all(self, check_func):

@@ -1655,8 +1655,8 @@ class DataFrame(PandasGeneric):
         except Exception:
             pass
 
-        return DataFrame(results, index=self.index, columns=self.columns,
-                         copy=False)
+        return self._constructor(results, index=self.index,
+                                 columns=self.columns)
 
     #----------------------------------------------------------------------
     # Merging / joining methods
@@ -1829,7 +1829,7 @@ class DataFrame(PandasGeneric):
                         correl[i, j] = c
                         correl[j, i] = c
 
-        return self._constructor(correl, index=cols, columns=cols)
+        return DataFrame(correl, index=cols, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False):
         """
@@ -1899,7 +1899,7 @@ class DataFrame(PandasGeneric):
                 tmp.quantile(.1), tmp.median(),
                 tmp.quantile(.9), tmp.max()]
 
-        return self._constructor(data, index=cols_destat, columns=cols)
+        return DataFrame(data, index=cols_destat, columns=cols)
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods
@@ -2152,9 +2152,14 @@ class DataFrame(PandasGeneric):
         from scipy.stats import scoreatpercentile
         per = q * 100
         def f(arr):
+            arr = arr.values
             if arr.dtype != np.float_:
                 arr = arr.astype(float)
-            return scoreatpercentile(arr[notnull(arr)], per)
+            arr = arr[notnull(arr)]
+            if len(arr) == 0:
+                return nan
+            else:
+                return scoreatpercentile(arr, per)
 
         return self.apply(f, axis=axis)
 

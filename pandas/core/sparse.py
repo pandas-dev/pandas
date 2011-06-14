@@ -1046,7 +1046,7 @@ class SparseDataFrame(DataFrame):
         -------
         Series or TimeSeries
         """
-        return self.apply(SparseSeries.count, axis=0)
+        return self.apply(SparseSeries.count, axis=axis)
 
     def shift(self, periods, offset=None, timeRule=None):
         """
