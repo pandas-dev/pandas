@@ -814,3 +814,9 @@ def test_getOffset():
     assert getOffset('W@THU') == Week(weekday=3)
     assert getOffset('W@FRI') == Week(weekday=4)
 
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
+

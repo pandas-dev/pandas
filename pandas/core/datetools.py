@@ -97,15 +97,19 @@ class DateOffset(object):
     def __init__(self, n=1, **kwds):
         self.n = int(n)
         self.kwds = kwds
+        if len(kwds) > 0:
+            self._offset = relativedelta(**kwds)
+        else:
+            self._offset = timedelta(1)
 
     def apply(self, other):
         if len(self.kwds) > 0:
             if self.n > 0:
                 for i in xrange(self.n):
-                    other = other + relativedelta(**self.kwds)
+                    other = other + self._offset
             else:
                 for i in xrange(-self.n):
-                    other = other - relativedelta(**self.kwds)
+                    other = other - self._offset
             return other
         else:
             return other + timedelta(self.n)
@@ -118,7 +122,7 @@ class DateOffset(object):
 
     def _params(self):
         attrs = sorted((item for item in self.__dict__.iteritems()
-                        if item[0] != 'kwds'))
+                        if item[0] not in ('kwds', '_offset')))
         params = tuple([str(self.__class__)] + attrs)
         return params
 
