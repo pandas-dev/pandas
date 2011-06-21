@@ -80,4 +80,4 @@ monthlyRatio = ratio.reindex(ibmMonthly.index)
 
 # Ratio relative to past month average
 
-filledRatio = ibm / ibmMonthly.reindex(ibm.index, fillMethod='pad')
+filledRatio = ibm / ibmMonthly.reindex(ibm.index, method='pad')
