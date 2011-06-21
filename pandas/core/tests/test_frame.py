@@ -1870,6 +1870,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         means = self.frame.mean(0)
         self.assertEqual(means['bool'], self.frame['bool'].values.mean())
 
+    def test_stats_mixed_type(self):
+        # don't blow up
+        self.mixed_frame.std(1)
+        self.mixed_frame.var(1)
+        self.mixed_frame.mean(1)
+        self.mixed_frame.skew(1)
+
     def test_median(self):
         def f(x):
             x = np.asarray(x)

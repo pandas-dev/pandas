@@ -640,6 +640,7 @@ def _blocks_to_series_dict(blocks, index=None):
 def _interleave(blocks, columns):
     """
     Return ndarray from blocks with specified column order
+    Columns must be contained in the blocks
     """
     dtype = _interleaved_dtype(blocks)
     columns = _ensure_index(columns)
@@ -649,12 +650,15 @@ def _interleave(blocks, columns):
 
     for block in blocks:
         indexer, mask = columns.get_indexer(block.columns)
+        assert(mask.all())
+        result[:, indexer] = block.values
 
-        if mask.all():
-            result[:, indexer] = block.values
-        else:
-            indexer = indexer[mask]
-            result[:, indexer] = block.values[:, mask]
+        # may not need this
+        # if mask.all():
+        #     result[:, indexer] = block.values
+        # else:
+        #     indexer = indexer[mask]
+        #     result[:, indexer] = block.values[:, mask]
 
         colmask[indexer] = 1
 

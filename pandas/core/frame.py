@@ -2103,10 +2103,6 @@ class DataFrame(PandasGeneric):
         """
         summed = self.sum(axis, numeric_only=True)
         count = self.count(axis, numeric_only=True).astype(float)
-
-        if not count.index.equals(summed.index):
-            count = count.reindex(summed.index)
-
         return summed / count
 
     def quantile(self, q=0.5, axis=0):
@@ -2252,7 +2248,8 @@ class DataFrame(PandasGeneric):
         -------
         Series or TimeSeries
         """
-        y = np.asarray(self.values)
+        y, axis_labels = self._get_agg_data(axis, numeric_only=True)
+
         mask = np.isnan(y)
         count = (y.shape[axis] - mask.sum(axis)).astype(float)
         y[mask] = 0
@@ -2263,7 +2260,7 @@ class DataFrame(PandasGeneric):
 
         theSkew = (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
-        return Series(theSkew, index=self._get_agg_axis(axis))
+        return Series(theSkew, index=axis_labels)
 
     def _get_agg_data(self, axis, numeric_only=True):
         num_cols = self._get_numeric_columns()
