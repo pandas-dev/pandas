@@ -1791,7 +1791,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                          'e' : [3.14, 0.577, 2.773]})
 
         self.assertEquals(df._get_numeric_columns(), ['a', 'e'])
-        self.assertEquals(df._get_object_columns(), ['c', 'd'])
+        # self.assertEquals(df._get_object_columns(), ['c', 'd'])
 
     def test_statistics(self):
         # unnecessary?
@@ -1859,6 +1859,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
         self.assert_(the_sum.index.equals(the_mean.index))
         self.assert_(len(the_mean.index) < len(self.mixed_frame.columns))
+
+        # xs sum mixed type, just want to know it works...
+        the_mean = self.mixed_frame.mean(axis=1)
+        the_sum = self.mixed_frame.sum(axis=1, numeric_only=True)
+        self.assert_(the_sum.index.equals(the_mean.index))
+
+        # take mean of boolean column
+        self.frame['bool'] = self.frame['A'] > 0
+        means = self.frame.mean(0)
+        self.assertEqual(means['bool'], self.frame['bool'].values.mean())
 
     def test_median(self):
         def f(x):
@@ -2040,6 +2050,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals
+
+    def test_as_matrix_numeric_cols(self):
+        self.frame['foo'] = 'bar'
+
+        values = self.frame.as_matrix(['A', 'B', 'C', 'D'])
+        self.assert_(values.dtype == np.float64)
 
     def test_constructor_frame_copy(self):
         cop = DataFrame(self.frame, copy=True)

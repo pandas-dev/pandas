@@ -1270,7 +1270,6 @@ class DataFrame(PandasGeneric):
         if not self:
             return self
 
-        # TODO: deal with objects
         return DataFrame(func(self.values, other), index=self.index,
                          columns=self.columns, copy=False)
 
@@ -1904,7 +1903,7 @@ class DataFrame(PandasGeneric):
     #----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(self, axis=0):
+    def count(self, axis=0, numeric_only=False):
         """
         Return array or Series of # observations over requested axis.
 
@@ -1912,6 +1911,8 @@ class DataFrame(PandasGeneric):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        numeric_only : boolean, default False
+            Include only float, int, boolean data
 
         Notes
         -----
@@ -1922,16 +1923,9 @@ class DataFrame(PandasGeneric):
         Series or TimeSeries
         """
         try:
-            cols = self.columns
-            values = self.as_matrix(cols)
-
-            if axis == 0:
-                axis_labels = cols
-            else:
-                axis_labels = self.index
-
-            mask = np.empty(values.shape, dtype=bool)
-            mask.flat = notnull(values.ravel())
+            y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
+            mask = np.empty(y.shape, dtype=bool)
+            mask.flat = notnull(y.ravel())
             return Series(mask.sum(axis), index=axis_labels)
         except Exception:
             f = lambda s: notnull(s).sum()
@@ -1945,6 +1939,8 @@ class DataFrame(PandasGeneric):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        numeric_only : boolean, default False
+            Include only float, int, boolean data
 
         Returns
         -------
@@ -1963,14 +1959,7 @@ class DataFrame(PandasGeneric):
         c1    4
         c2    6
         """
-        num_cols = self._get_numeric_columns()
-
-        if len(num_cols) < len(self.columns) and numeric_only:
-            y = self.as_matrix(num_cols)
-            axis_labels = num_cols
-        else:
-            y = self.values.copy()
-            axis_labels = self._get_agg_axis(axis)
+        y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
 
         if len(axis_labels) == 0:
             return Series([], index=[])
@@ -1986,21 +1975,6 @@ class DataFrame(PandasGeneric):
             the_sum[the_count == 0] = nan
 
         return Series(the_sum, index=axis_labels)
-
-    def _get_agg_axis(self, axis_num):
-        if axis_num == 0:
-            return self.columns
-        elif axis_num == 1:
-            return self.index
-        else:
-            raise Exception('Must have 0<= axis <= 1')
-
-    def _get_numeric_columns(self):
-        return [col for col in self.columns
-                if issubclass(self[col].dtype.type, np.number)]
-
-    def _get_object_columns(self):
-        return [col for col in self.columns if self[col].dtype == np.object_]
 
     def cumsum(self, axis=0):
         """
@@ -2120,12 +2094,15 @@ class DataFrame(PandasGeneric):
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
+        Notes
+        -----
+
         Returns
         -------
         Series or TimeSeries
         """
         summed = self.sum(axis, numeric_only=True)
-        count = self.count(axis).astype(float)
+        count = self.count(axis, numeric_only=True).astype(float)
 
         if not count.index.equals(summed.index):
             count = count.reindex(summed.index)
@@ -2234,7 +2211,8 @@ class DataFrame(PandasGeneric):
         -------
         Series or TimeSeries
         """
-        y = np.asarray(self.values)
+        y, axis_labels = self._get_agg_data(axis, numeric_only=True)
+
         mask = np.isnan(y)
         count = (y.shape[axis] - mask.sum(axis)).astype(float)
         y[mask] = 0
@@ -2244,7 +2222,7 @@ class DataFrame(PandasGeneric):
 
         theVar = (XX - X**2 / count) / (count - 1)
 
-        return Series(theVar, index=self._get_agg_axis(axis))
+        return Series(theVar, index=axis_labels)
 
     def std(self, axis=0):
         """
@@ -2286,6 +2264,39 @@ class DataFrame(PandasGeneric):
         theSkew = (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
         return Series(theSkew, index=self._get_agg_axis(axis))
+
+    def _get_agg_data(self, axis, numeric_only=True):
+        num_cols = self._get_numeric_columns()
+
+        if len(num_cols) < len(self.columns) and numeric_only:
+            y = self.as_matrix(num_cols)
+            if axis == 0:
+                axis_labels = num_cols
+            else:
+                axis_labels = self.index
+        else:
+            y = self.values.copy()
+            axis_labels = self._get_agg_axis(axis)
+
+        return y, axis_labels
+
+    def _get_agg_axis(self, axis_num):
+        if axis_num == 0:
+            return self.columns
+        elif axis_num == 1:
+            return self.index
+        else:
+            raise Exception('Must have 0<= axis <= 1')
+
+    def _get_numeric_columns(self):
+        from pandas.core.internals import ObjectBlock
+
+        cols = []
+        for col, blk in zip(self.columns, self._data.block_id_vector):
+            if not isinstance(self._data.blocks[blk], ObjectBlock):
+                cols.append(col)
+
+        return cols
 
     def clip(self, upper=None, lower=None):
         """

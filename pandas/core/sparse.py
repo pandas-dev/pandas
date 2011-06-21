@@ -619,6 +619,10 @@ class SparseDataFrame(DataFrame):
         self.columns = columns
         self.index = index
 
+    def _get_numeric_columns(self):
+        # everything is necessarily float64
+        return self.columns
+
     def _consolidate_inplace(self):
         # do nothing when DataFrame calls this method
         pass
@@ -1029,7 +1033,7 @@ class SparseDataFrame(DataFrame):
                                default_kind=self.default_kind)
     T = property(transpose)
 
-    def count(self, axis=0):
+    def count(self, axis=0, **kwds):
         """
         Return array or Series of # observations over requested axis.
 

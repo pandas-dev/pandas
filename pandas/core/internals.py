@@ -44,10 +44,10 @@ class Block(object):
         self.ref_columns = ref_columns
 
     def __repr__(self):
-        x, y = self.shape
+        shape = ' x '.join([str(s) for s in self.shape])
         name = type(self).__name__
-        return '%s: %s, %d x %d, dtype %s' % (name, self.columns,
-                                              x, y, self.dtype)
+        return '%s: %s, %s, dtype %s' % (name, self.columns,
+                                         shape, self.dtype)
 
     def __contains__(self, col):
         return col in self.columns
@@ -58,8 +58,7 @@ class Block(object):
     def __getstate__(self):
         # should not pickle generally (want to share ref_columns), but here for
         # completeness
-        return (np.asarray(self.columns),
-                np.asarray(self.ref_columns),
+        return (np.asarray(self.columns), np.asarray(self.ref_columns),
                 self.values)
 
     def __setstate__(self, state):
@@ -335,17 +334,20 @@ class BlockManager(object):
         return BlockManager(copy_blocks, self.index, self.columns)
 
     def as_matrix(self, columns=None):
-        if columns is None:
-            columns = self.columns
-
         if len(self.blocks) == 0:
-            return np.empty((len(self.index), 0), dtype=float)
+            mat = np.empty((len(self.index), 0), dtype=float)
         elif len(self.blocks) == 1:
             blk = self.blocks[0]
-            if blk.columns.equals(columns):
+            if columns is None or blk.columns.equals(columns):
                 # if not, then just call interleave per below
-                return blk.values
-        return _interleave(self.blocks, columns)
+                mat = blk.values
+        else:
+            if columns is None:
+                mat = _interleave(self.blocks, self.columns)
+            else:
+                mat = self.reindex_columns(columns).as_matrix()
+
+        return mat
 
     def xs(self, i, copy=True):
         # TODO: fix this mess
