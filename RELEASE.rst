@@ -49,13 +49,17 @@ Release notes
 * Added `select` function in all data structures: reindex axis based on
   arbitrary criterion (function returning boolean value),
   e.g. frame.select(lambda x: 'foo' in x, axis=1)
+* `DataFrame.consolidate` method, API function relating to redesigned internals
 
 **Improvements to existing features**
 
 * The 2-dimensional `DataFrame` and `DataMatrix` classes have been extensively
-  refactored internally into a single class `DataFrame`, preserving where
+  redesigned internally into a single class `DataFrame`, preserving where
   possible their optimal performance characteristics. This should reduce
-  confusion from users about which class to use
+  confusion from users about which class to use.
+  * Note that under ther hood there is a new essentially "lazy evaluation"
+    scheme within respect to adding columns to DataFrame. During some
+    operations, like-typed blocks will be "consolidated" but not before.
 * Column ordering for mixed type data is now completely consistent in
   `DataFrame`. In prior releases, there was inconsistent column ordering in
   `DataMatrix`

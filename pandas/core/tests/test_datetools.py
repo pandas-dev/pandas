@@ -253,44 +253,60 @@ class TestWeek(unittest.TestCase):
                     expected = False
             assertOnOffset(offset, date, expected)
 
+
 class TestWeekOfMonth(unittest.TestCase):
 
     def test_constructor(self):
-        self.assertRaises(Exception, WeekOfMonth, n=2, week=0, weekday=0)
+        self.assertRaises(Exception, WeekOfMonth, n=0, week=1, weekday=1)
         self.assertRaises(Exception, WeekOfMonth, n=1, week=4, weekday=0)
         self.assertRaises(Exception, WeekOfMonth, n=1, week=-1, weekday=0)
         self.assertRaises(Exception, WeekOfMonth, n=1, week=0, weekday=-1)
         self.assertRaises(Exception, WeekOfMonth, n=1, week=0, weekday=7)
 
     def test_offset(self):
-        date1 = datetime(2011, 1, 11) # 1st Tuesday of Month
+        date1 = datetime(2011, 1, 4) # 1st Tuesday of Month
         date2 = datetime(2011, 1, 11) # 2nd Tuesday of Month
         date3 = datetime(2011, 1, 18) # 3rd Tuesday of Month
-        date4 = datetime(2011, 1, 25) # 3rd Tuesday of Month
+        date4 = datetime(2011, 1, 25) # 4th Tuesday of Month
 
         # see for loop for structure
         test_cases = [
-            (0, 0, date1, datetime(2011, 2, 7)),
-            (0, 0, date2, datetime(2011, 2, 7)),
-            (0, 0, date3, datetime(2011, 2, 7)),
-            (0, 0, date4, datetime(2011, 2, 7)),
-            (0, 1, date1, datetime(2011, 2, 1)),
-            (0, 1, date2, datetime(2011, 2, 1)),
-            (0, 1, date3, datetime(2011, 2, 1)),
-            (0, 1, date4, datetime(2011, 2, 1)),
-            (0, 2, date1, datetime(2011, 2, 2)),
-            (0, 2, date2, datetime(2011, 2, 2)),
-            (0, 2, date3, datetime(2011, 2, 2)),
-            (0, 2, date4, datetime(2011, 2, 2)),
+            (-2, 2, 1, date1, datetime(2010, 11, 16)),
+            (-2, 2, 1, date2, datetime(2010, 11, 16)),
+            (-2, 2, 1, date3, datetime(2010, 11, 16)),
+            (-2, 2, 1, date4, datetime(2010, 12, 21)),
 
-            (2, 1, date1, datetime(2011, 1, 18)),
-            (2, 1, date2, datetime(2011, 1, 18)),
-            (2, 1, date3, datetime(2011, 2, 15)),
-            (2, 1, date4, datetime(2011, 2, 15)),
+            (-1, 2, 1, date1, datetime(2010, 12, 21)),
+            (-1, 2, 1, date2, datetime(2010, 12, 21)),
+            (-1, 2, 1, date3, datetime(2010, 12, 21)),
+            (-1, 2, 1, date4, datetime(2011, 1, 18)),
+
+            (1, 0, 0, date1, datetime(2011, 2, 7)),
+            (1, 0, 0, date2, datetime(2011, 2, 7)),
+            (1, 0, 0, date3, datetime(2011, 2, 7)),
+            (1, 0, 0, date4, datetime(2011, 2, 7)),
+            (1, 0, 1, date1, datetime(2011, 2, 1)),
+            (1, 0, 1, date2, datetime(2011, 2, 1)),
+            (1, 0, 1, date3, datetime(2011, 2, 1)),
+            (1, 0, 1, date4, datetime(2011, 2, 1)),
+            (1, 0, 2, date1, datetime(2011, 1, 5)),
+            (1, 0, 2, date2, datetime(2011, 2, 2)),
+            (1, 0, 2, date3, datetime(2011, 2, 2)),
+            (1, 0, 2, date4, datetime(2011, 2, 2)),
+
+            (1, 2, 1, date1, datetime(2011, 1, 18)),
+            (1, 2, 1, date2, datetime(2011, 1, 18)),
+            (1, 2, 1, date3, datetime(2011, 2, 15)),
+            (1, 2, 1, date4, datetime(2011, 2, 15)),
+
+            (2, 2, 1, date1, datetime(2011, 2, 15)),
+            (2, 2, 1, date2, datetime(2011, 2, 15)),
+            (2, 2, 1, date3, datetime(2011, 3, 15)),
+            (2, 2, 1, date4, datetime(2011, 3, 15)),
         ]
 
-        for week, weekday, date, expected in test_cases:
-            offset = WeekOfMonth(week=week, weekday=weekday)
+        for n, week, weekday, date, expected in test_cases:
+            offset = WeekOfMonth(n, week=week, weekday=weekday)
             assertEq(offset, date, expected)
 
         # try subtracting

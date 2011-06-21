@@ -373,7 +373,6 @@ class Week(DateOffset, CacheableOffset):
         return someDate.weekday() == self.weekday
 
 
-
 class WeekOfMonth(DateOffset, CacheableOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
@@ -398,8 +397,8 @@ class WeekOfMonth(DateOffset, CacheableOffset):
         self.weekday = kwds['weekday']
         self.week = kwds['week']
 
-        if self.n != 1 and self.n != -1:
-            raise Exception('N must be -1 or 1, got %d' % self.n)
+        if self.n == 0:
+            raise Exception('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
             raise Exception('Day must be 0<=day<=6, got %d' %
@@ -414,22 +413,21 @@ class WeekOfMonth(DateOffset, CacheableOffset):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
         one_month = relativedelta(months=1, day=1)
-        offsetOfPrevMonth = self.getOffsetOfMonth(other - one_month)
-        offsetOfNextMonth = self.getOffsetOfMonth(other + one_month)
 
         if other < offsetOfMonth:
-            if self.n == 1:
-                return offsetOfMonth
-            elif self.n == -1:
-                return offsetOfPrevMonth
-        elif other == offsetOfMonth:
-            delta = relativedelta(months=self.n, day=1)
-            return self.getOffsetOfMonth(other + delta)
-        else:
-            if self.n == 1:
-                return offsetOfNextMonth
+            if self.n > 0:
+                months = self.n - 1
             else:
-                return offsetOfMonth
+                months = self.n
+        elif other == offsetOfMonth:
+            months = self.n
+        else:
+            if self.n > 0:
+                months = self.n
+            else:
+                months = self.n + 1
+
+        return self.getOffsetOfMonth(other + relativedelta(months=months, day=1))
 
     def getOffsetOfMonth(self, someDate):
         w = Week(weekday=self.weekday)
