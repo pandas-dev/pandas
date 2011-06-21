@@ -76,8 +76,8 @@ methods accepting two Series arguments instead of one):
     2000-02-10 00:00:00    2.48549563273
     2000-02-11 00:00:00    1.81285272663
 
-If passed a DataFrame or DataMatrix argument, the statistics will be
-applied independently to the columns:
+If passing a DataFrame argument, the statistics will be applied independently to
+the columns:
 
 ::
 

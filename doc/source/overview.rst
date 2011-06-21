@@ -39,30 +39,27 @@ Data structures at a glance
     1, Series, "Most generic 1D structure"
     1, TimeSeries, "Series indexed by datetimes"
     2, DataFrame, "General 2D indexed tabular structure"
-    2, DataMatrix, "Same API as DataFrame but faster (for most operations)"
     3, WidePanel, "General 3D panel data"
     3, LongPanel, "Stacked (2D) format panel data"
 
 Why more than 1 data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The best way to think about the pandas data structures is as flexible
-containers for lower dimensional data. For example, DataFrame /
-DataMatrix are containers for Series, and WidePanel is a container for
-DataFrame / DataMatrix objects. We would like to be able to insert and
-remove objects from these containers in a dictionary-like fashion.
+The best way to think about the pandas data structures is as flexible containers
+for lower dimensional data. For example, DataFrame is a container for Series,
+and WidePanel is a container for DataFrame objects. We would like to be able to
+insert and remove objects from these containers in a dictionary-like fashion.
 
-Also, we would like sensible default behaviors for the common API
-functions which take into account the typical orientation of time
-series and cross-sectional data sets. When using ndarrays to store 2-
-and 3-dimensional data, a burden is placed on the user to consider the
-orientation of the data set when writing functions; axes are
-considered more or less equivalent (except when C- or
-Fortran-contiguousness matters for performance). In pandas, the axes
-are intended to lend more semantic meaning to the data; i.e., for a
-particular data set there is likely to be a "right" way to orient the
-data. The goal, then, is to reduce the amount of thought required to
-code up data transformations in downstream functions.
+Also, we would like sensible default behaviors for the common API functions
+which take into account the typical orientation of time series and
+cross-sectional data sets. When using ndarrays to store 2- and 3-dimensional
+data, a burden is placed on the user to consider the orientation of the data set
+when writing functions; axes are considered more or less equivalent (except when
+C- or Fortran-contiguousness matters for performance). In pandas, the axes are
+intended to lend more semantic meaning to the data; i.e., for a particular data
+set there is likely to be a "right" way to orient the data. The goal, then, is
+to reduce the amount of thought required to code up data transformations in
+downstream functions.
 
 Lest we be too hand-wavy, here are some common use cases to
 illustrate:

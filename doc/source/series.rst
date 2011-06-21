@@ -322,14 +322,14 @@ back-filling:
     2009-01-02 00:00:00    1.0
     2009-01-07 00:00:00    4.0
 
-    >>> ts.reindex(dates, fillMethod='pad')
+    >>> ts.reindex(dates, method='pad')
     2009-01-01 00:00:00    nan
     2009-01-02 00:00:00    1.0
     2009-01-05 00:00:00    1.0
     2009-01-06 00:00:00    1.0
     2009-01-07 00:00:00    4.0
 
-    >>> ts.reindex(dates, fillMethod='backfill')
+    >>> ts.reindex(dates, method='backfill')
     2009-01-01 00:00:00    1.0
     2009-01-02 00:00:00    1.0
     2009-01-05 00:00:00    4.0
@@ -702,7 +702,7 @@ conversion**, which has similar options to :func:`Series.reindex`:
     2010-09-30 00:00:00    8.0
     2010-10-29 00:00:00    9.0
 
-    >>> ts.asfreq('WEEKDAY', fillMethod='pad')
+    >>> ts.asfreq('WEEKDAY', method='pad')
     2010-01-29 00:00:00    0.0
     2010-02-01 00:00:00    0.0
     2010-02-02 00:00:00    0.0

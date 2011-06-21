@@ -132,9 +132,9 @@ understanding how to group the data, however, is.
 Higher dimensional data structures
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **groupby** methods for :class:`DataFrame`, :class:`DataMatrix`,
-:class:`WidePanel`, and :class:`LongPanel` additionally have an **axis**
-argument which allows you to select the axis to group on:
+The **groupby** methods for :class:`DataFrame`, :class:`WidePanel`, and
+:class:`LongPanel` additionally have an **axis** argument which allows you to
+select the axis to group on:
 
 ::
 
@@ -162,7 +162,7 @@ argument which allows you to select the axis to group on:
 The axis names and numbers for **groupby** are as with **reindex** and other related
 methods:
 
-* **DataFrame, DataMatrix**: *index* (0) and *columns* (1)
+* **DataFrame**: *index* (0) and *columns* (1)
 * **WidePanel**: *index* (0), *major* (1), and *minor* (2)
 * **LongPanel**: **Not yet implemented**
 

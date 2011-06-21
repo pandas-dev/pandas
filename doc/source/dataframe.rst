@@ -2,27 +2,24 @@
 
 .. currentmodule:: pandas
 
-************************
-DataFrame and DataMatrix
-************************
+*********
+DataFrame
+*********
 
-**DataFrame** is a both 2D-matrix- and dict-like object implementing a
-named collection of identically-indexed Series objects. There is
-another important class called **DataMatrix** which has almost
-identical behavior to DataFrame, differing only in the internal
-implementation. Rather than create confusion, we will focus on
-DataFrame for this guide and explain later why to use one over the
-other depending on your application.
+**DataFrame** is a both 2D-matrix- and dict-like object implementing a named
+collection of identically-indexed Series objects. It supports columns having
+different types, so you can use it to store and manipulate floating point,
+integer, boolean, and arbitrary Python object data.
 
-For many users, DataFrame will be the most commonly used object in
-pandas, as it can serve as the primary container for a full data set
-of interest. As we will see below, it enables operations involving
-multiple time series or cross sections with ease.
+For many users, DataFrame will be the most commonly used object in pandas, as it
+can serve as the primary container for a full data set of interest. As we will
+see below, it enables operations involving multiple time series or cross
+sections with ease.
 
 .. class:: DataFrame
 
    :Parameters:
-       **data** : dict or 2-D ndarray
+       **data** : dict, 2-D ndarray, or DataFrame
            * If the dict contains Series, an index need not be specified.
              The resulting frame will be the union of all the contained
              Series indices.
@@ -36,20 +33,12 @@ multiple time series or cross sections with ease.
        **dtype** : Python type alias or :class:`~numpy.dtype`
            Type to *attempt* to cast data to
 
-:class:`~pandas.DataMatrix` has an identical constructor (barring an
-extra keyword argument necessary for supporting mixed-type data, which
-you can safely ignore). :ref:`Elsewhere in the documentation
-<framevs>` we will explain the difference between the objects (which
-**only** matters in performance sensitive applications and can be
-ignored by most users).
-
 Basics
 ------
 
 .. note::
 
-    Unlike Series, neither DataFrame nor DataMatrix is a subclass of
-    numpy.ndarray.
+    Unlike Series, DataFrame is not a subclass of numpy.ndarray.
 
 The canonical DataFrame containing time series data takes this form,
 which will be used for many examples to follow:
@@ -344,8 +333,8 @@ as with Series objects. The addition is the matching of column names
 between DataFrame objects or Series. We will detail how the
 interactions work in each case.
 
-DataFrame and DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~
+DataFrame {+,-,*,/} DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When combining two DataFrames, both index and column values must match
 for two values to be combined. If there is no match for a particular
@@ -413,8 +402,8 @@ result but are all NaN. An argument could be made to exclude these
 columns, but it is very frequently meaningful to know that there was
 no overlap in a particular portion of the data set.
 
-DataFrame and Series
-~~~~~~~~~~~~~~~~~~~~
+DataFrame {+,-,*,/} Series
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The choice of behavior between DataFrame and Series was somewhat
 arbitrary. Since the **columns** of the DataFrame are viewed as its
@@ -469,7 +458,7 @@ Note that the same result could have been obtained by writing:
 but this is fairly awkward (and relatively high cost due to two
 transpose operations).
 
-DataFrame and scalar value
+DataFrame {+,-,*,/} scalar
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Scalar operations work just as expected:
@@ -659,9 +648,9 @@ the date where the maximum value for each column occurred:
     B    2009-02-27 00:00:00
     C    2009-06-30 00:00:00
 
-DataFrame and DataMatrix also implement the ndarray *array interface*
-which allows you to call ufuncs (like sqrt, exp, log, etc.) directly
-on the object. So the following two expressions would be equivalent:
+DataFrame also implements the ndarray *array interface* which allows you to call
+ufuncs (like sqrt, exp, log, etc.) directly on the object. So the following two
+expressions would be equivalent:
 
 ::
 
@@ -940,13 +929,4 @@ TODO
    DataFrame.combineAdd
    DataFrame.combineMult
    DataFrame.plot
-
-DataFrame vs. DataMatrix
-------------------------
-
-DataFrame and DataMatrix differ only in their internal
-implementation. In a nutshell:
-
-  * DataFrame: dict of Series
-  * DataMatrix: 2D homogeneous ndarray of values
 

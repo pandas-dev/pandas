@@ -77,7 +77,6 @@ Other topics of interest
     :maxdepth: 2
 
     examples
-    frame_vs_matrix
     r_guide
     missing_data
     related
