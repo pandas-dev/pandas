@@ -2000,22 +2000,24 @@ def pivot(index, columns, values):
         return DataFrame(index=[])
 
     try:
-        major_axis = Index(sorted(set(index)))
-        minor_axis = Index(sorted(set(columns)))
-
-        major_labels, _ = tseries.getMergeVec(index, major_axis.indexMap)
-        minor_labels, _ = tseries.getMergeVec(columns, minor_axis.indexMap)
-
+        longIndex = _make_long_index(index, columns)
         valueMat = values.view(np.ndarray).reshape(len(values), 1)
-
-        longIndex = LongPanelIndex(major_axis, minor_axis,
-                                   major_labels, minor_labels)
-
         longPanel = LongPanel(valueMat, ['foo'], longIndex)
         longPanel = longPanel.sort()
         return longPanel.to_wide()['foo']
     except PanelError:
         return _slow_pivot(index, columns, values)
+
+def _make_long_index(major_values, minor_values):
+    major_axis = Index(sorted(set(major_values)))
+    minor_axis = Index(sorted(set(minor_values)))
+
+    major_labels, _ = tseries.getMergeVec(major_values, major_axis.indexMap)
+    minor_labels, _ = tseries.getMergeVec(minor_values, minor_axis.indexMap)
+
+    long_index = LongPanelIndex(major_axis, minor_axis,
+                               major_labels, minor_labels)
+    return long_index
 
 def _slow_pivot(index, columns, values):
     """
