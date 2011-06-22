@@ -372,18 +372,10 @@ class HDFStore(object):
         return DataFrame(values, index=index, columns=columns)
 
     def _read_frame_table(self, group, where=None):
-        # items is a place holder since the data is stored panel-like
-        return self._read_table3(group, where)
-
-        # _, index, columns, values = self._read_table2(group, where)
-        # return DataFrame(values.squeeze(), index=index, columns=columns)
+        return self._read_panel_table(group, where)['value']
 
     def _read_wide_table(self, group, where=None):
-        return self._read_table3(group, where)
-
-        # items, index, columns, values = self._read_table2(group, where)
-        # if values is None: return None
-        # return WidePanel(values, items, index, columns)
+        return self._read_panel_table(group, where)
 
     def _read_long(self, group, where=None):
         index = self._read_index(group, 'index')
@@ -450,7 +442,7 @@ class HDFStore(object):
 
         return fields, indicies, columns, data
 
-    def _read_table3(self, group, where=None):
+    def _read_panel_table(self, group, where=None):
         from pandas.core.panel import _make_long_index
         table = getattr(group, 'table')
 
@@ -467,11 +459,12 @@ class HDFStore(object):
         long_index = _make_long_index(np.asarray(index),
                                       np.asarray(columns))
         lp = LongPanel(sel.values['values'], fields, long_index)
+        lp = lp.sort()
         wp = lp.to_wide()
 
-        # TODO
-        column_filter = sel.column_filter
-
+        if sel.column_filter:
+            new_minor = sorted(set(wp.minor_axis) & sel.column_filter)
+            wp = wp.reindex(minor=new_minor)
         return wp
 
     def _delete_from_table(self, group, where = None):
