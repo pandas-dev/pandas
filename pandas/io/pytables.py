@@ -43,7 +43,10 @@ prof = LineProfiler()
 class HDFStore(object):
     """
     dict-like IO interface for storing pandas objects in PyTables
-    format
+    format.
+
+    DataFrame and WidePanel can be stored in Table format, which is slower to
+    read and write but can be searched and manipulated more like an SQL table
 
     Parameters
     ----------
@@ -194,29 +197,38 @@ class HDFStore(object):
     def _get_handler(self, op, kind):
         return getattr(self,'_%s_%s' % (op, kind))
 
-    def remove(self, key, where):
+    def remove(self, key, where=None):
         """
         Remove pandas object partially by specifying the where condition
 
         Parameters
         ----------
-        key : object
-        """
-        group = getattr(self.handle.root, key, None)
-        if group is not None:
-            return self._delete_group(group, where)
-
-    def append(self, key, value):
-        """
-        Store object in file
+        key : string
+            Node to remove or delete rows from
+        where : list
+            For Table node, delete specified rows. See HDFStore.select for more
+            information
 
         Parameters
         ----------
         key : object
-        <value : {Series, DataFrame, WidePanel, LongPanel}
-        pandas data structure
         """
-        self._write_group(key, value, True)
+        if where is None:
+            self.handle.removeNode(self.handle.root, key, recursive=True)
+        else:
+            group = getattr(self.handle.root, key)
+            self._delete_from_table(group, where)
+
+    def append(self, key, value):
+        """
+        Append to Table in file. Node must already exist and be Table format
+
+        Parameters
+        ----------
+        key : object
+        value : {Series, DataFrame, WidePanel, LongPanel}
+        """
+        self._write_to_group(key, value, table=True, append=True)
 
     def _write_to_group(self, key, value, table=False, append=False,
                         comp=None):
@@ -353,7 +365,7 @@ class HDFStore(object):
             raise
 
     def _delete_group(self,group, where):
-        return self._delete_from_table(group, where)
+        return
 
     def _read_series(self, group, where=None):
         index = self._read_index(group, 'index')

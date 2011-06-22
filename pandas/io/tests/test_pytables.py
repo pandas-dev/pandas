@@ -50,6 +50,43 @@ class TesttHDFStore(unittest.TestCase):
         right = self.store['a']
         tm.assert_series_equal(left, right)
 
+        self.assertRaises(AttributeError, self.store.get, 'b')
+
+    def test_put_corner(self):
+        pass
+
+    def test_remove(self):
+        ts =tm.makeTimeSeries()
+        df = tm.makeDataFrame()
+        self.store['a'] = ts
+        self.store['b'] = df
+        self.store.remove('a')
+        self.assertEquals(len(self.store), 1)
+        tm.assert_frame_equal(df, self.store['b'])
+
+        self.store.remove('b')
+        self.assertEquals(len(self.store), 0)
+
+    def test_remove_crit(self):
+        wp = tm.makeWidePanel()
+        self.store.put('wp', wp, table=True)
+        date = wp.major_axis[len(wp.major_axis) // 2]
+
+        crit1 = {
+            'field' : 'index',
+            'op' : '>',
+            'value' : date
+        }
+        crit2 = {
+            'field' : 'column',
+            'value' : ['A', 'D']
+        }
+        self.store.remove('wp', where=[crit1])
+        self.store.remove('wp', where=[crit2])
+        result = self.store['wp']
+        expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
+        tm.assert_panel_equal(result, expected)
+
     def test_series(self):
         s = tm.makeStringSeries()
         self._check_roundtrip(s, tm.assert_series_equal)
@@ -134,6 +171,11 @@ class TesttHDFStore(unittest.TestCase):
         result = self.store.select('frame', [crit1, crit2])
         expected = df.ix[date:, ['A', 'D']]
         tm.assert_frame_equal(result, expected)
+
+        # can't select if not written as table
+        self.store['frame'] = df
+        self.assertRaises(Exception, self.store.select,
+                          'frame', [crit1, crit2])
 
     def _check_roundtrip(self, obj, comparator):
         store = HDFStore(self.scratchpath, 'w')
