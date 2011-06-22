@@ -258,6 +258,7 @@ class TesttHDFStore(unittest.TestCase):
         retrieved = store['obj']
         comparator(retrieved, obj)
         store.close()
+        os.remove(self.scratchpath)
 
     def _check_roundtrip_table(self, obj, comparator):
         store = HDFStore(self.scratchpath, 'w')
@@ -265,6 +266,17 @@ class TesttHDFStore(unittest.TestCase):
         retrieved = store['obj']
         sorted_obj = _test_sort(obj)
         comparator(retrieved, sorted_obj)
+        store.close()
+        os.remove(self.scratchpath)
+
+    def test_legacy_read(self):
+        pth, _ = os.path.split(os.path.abspath(__file__))
+
+        store = HDFStore(os.path.join(pth, 'legacy.h5'), 'r')
+        store['a']
+        store['b']
+        store['c']
+        store['d']
         store.close()
 
 def _test_sort(obj):

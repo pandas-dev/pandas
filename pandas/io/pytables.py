@@ -22,7 +22,7 @@ import pandas.lib.tseries as tseries
 # reading and writing the full object in one go
 _TYPE_MAP = {
     Series     : 'series',
-    TimeSeries : 'time_series',
+    TimeSeries : 'series',
     DataFrame  : 'frame',
     WidePanel  : 'wide',
     LongPanel  : 'long'
@@ -35,7 +35,21 @@ _NAME_MAP = {
     'frame_table' : 'DataFrame (Table)',
     'wide' : 'WidePanel',
     'wide_table' : 'WidePanel (Table)',
-    'long' : 'LongPanel'
+    'long' : 'LongPanel',
+
+    # legacy h5 files
+    'Series' : 'Series',
+    'TimeSeries' : 'TimeSeries',
+    'DataFrame' : 'DataFrame',
+    'DataMatrix' : 'DataMatrix'
+}
+
+# legacy handlers
+_LEGACY_MAP = {
+    'Series' : 'legacy_series',
+    'TimeSeries' : 'legacy_series',
+    'DataFrame' : 'legacy_frame',
+    'DataMatrix' : 'legacy_frame'
 }
 
 from line_profiler import LineProfiler
@@ -291,9 +305,9 @@ class HDFStore(object):
                           append=append, compression=comp)
 
     def _read_wide(self, group, where=None):
-        items = self._read_index(group, 'items')
-        major_axis = self._read_index(group, 'major_axis')
-        minor_axis = self._read_index(group, 'minor_axis')
+        items = _read_index(group, 'items')
+        major_axis = _read_index(group, 'major_axis')
+        minor_axis = _read_index(group, 'minor_axis')
         values = group.values[:]
         return WidePanel(values, items, major_axis, minor_axis)
 
@@ -311,9 +325,9 @@ class HDFStore(object):
     def _read_long(self, group, where=None):
         from pandas.core.panel import LongPanelIndex
 
-        items = self._read_index(group, 'items')
-        major_axis = self._read_index(group, 'major_axis')
-        minor_axis = self._read_index(group, 'minor_axis')
+        items = _read_index(group, 'items')
+        major_axis = _read_index(group, 'major_axis')
+        minor_axis = _read_index(group, 'minor_axis')
         major_labels = group.major_labels[:]
         minor_labels = group.minor_labels[:]
         values = group.values[:]
@@ -399,29 +413,34 @@ class HDFStore(object):
 
     def _read_group(self, group, where=None):
         kind = group._v_attrs.pandas_type
+        kind = _LEGACY_MAP.get(kind, kind)
         handler = self._get_handler(op='read', kind=kind)
         return handler(group, where)
 
     def _read_series(self, group, where=None):
-        index = self._read_index(group, 'index')
+        index = _read_index(group, 'index')
+        values = group.values[:]
+        return Series(values, index=index)
+
+    def _read_legacy_series(self, group, where=None):
+        index = _read_index_legacy(group, 'index')
         values = group.values[:]
         return Series(values, index=index)
 
     def _read_frame(self, group, where=None):
-        index = self._read_index(group, 'index')
-        columns = self._read_index(group, 'columns')
+        index = _read_index(group, 'index')
+        columns = _read_index(group, 'columns')
+        values = group.values[:]
+        return DataFrame(values, index=index, columns=columns)
+
+    def _read_legacy_frame(self, group, where=None):
+        index = _read_index_legacy(group, 'index')
+        columns = _read_index_legacy(group, 'columns')
         values = group.values[:]
         return DataFrame(values, index=index, columns=columns)
 
     def _read_frame_table(self, group, where=None):
         return self._read_panel_table(group, where)['value']
-
-    def _read_index(self, group, key):
-        node = getattr(group, key)
-        data = node[:]
-        kind = node._v_attrs.kind
-
-        return _unconvert_index(data, kind)
 
     def _read_panel_table(self, group, where=None):
         from pandas.core.panel import _make_long_index
@@ -463,9 +482,6 @@ class HDFStore(object):
             self.handle.flush()
         return len(s.values)
 
-    _write_time_series = _write_series
-    _read_time_series = _read_series
-
 def _convert_index(index):
     # Let's assume the index is homogeneous
     values = np.asarray(index)
@@ -485,10 +501,34 @@ def _convert_index(index):
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % type(values[0]))
 
+
+def _read_index(group, key):
+    node = getattr(group, key)
+    data = node[:]
+    kind = node._v_attrs.kind
+
+    return _unconvert_index(data, kind)
+
 def _unconvert_index(data, kind):
     if kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
+    elif kind in ('string', 'integer'):
+        index = np.array(data, dtype=object)
+    else: # pragma: no cover
+        raise ValueError('unrecognized index type %s' % kind)
+    return index
+
+def _read_index_legacy(group, key):
+    node = getattr(group, key)
+    data = node[:]
+    kind = node._v_attrs.kind
+
+    return _unconvert_index_legacy(data, kind)
+
+def _unconvert_index_legacy(data, kind, legacy=False):
+    if kind == 'datetime':
+        index = tseries.array_to_datetime(data)
     elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
     else: # pragma: no cover
