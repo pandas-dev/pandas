@@ -152,9 +152,11 @@ class HDFStore(object):
         -------
         obj : type of object stored in file
         """
-        group = getattr(self.handle.root, key, None)
-        if group is not None:
+        try:
+            group = getattr(self.handle.root, key)
             return self._read_group(group)
+        except AttributeError:
+            raise KeyError('no object stored named %s' % key)
 
     def select(self, key, where=None):
         """
@@ -166,6 +168,8 @@ class HDFStore(object):
         key : object
         """
         group = getattr(self.handle.root, key, None)
+        if 'table' not in group._v_attrs.pandas_type:
+            raise Exception('can only select on objects written as tables')
         if group is not None:
             return self._read_group(group, where)
 
@@ -255,20 +259,20 @@ class HDFStore(object):
         self._write_array(group, 'values', df.values)
 
     def _write_frame_table(self, group, df, append=False, comp=None):
-        self._write_table(group, index=df.index, columns=df.columns,
-                          values_dict=dict(value=df.values),
-                          append=append, compression=comp)
+        mat = df.values
+        values = mat.reshape((1,) + mat.shape)
+        self._write_table(group, items=['value'],
+                          index=df.index, columns=df.columns,
+                          values=values, append=append, compression=comp)
 
     def _write_wide(self, group, panel, append=False, comp=None):
-        value_d = dict((k, v.values) for k, v in panel.iteritems())
-        self._write_table(group, index=panel.major_axis,
-                          columns=panel.minor_axis, values_dict=value_d,
+        self._write_table(group, items=panel.items, index=panel.major_axis,
+                          columns=panel.minor_axis, values=panel.values,
                           append=append, compression=comp)
 
     def _write_wide_table(self, group, panel, append=False, comp=None):
-        value_d = dict((k, v.values) for k, v in panel.iteritems())
-        self._write_table(group, index=panel.major_axis,
-                          columns=panel.minor_axis, values_dict=value_d,
+        self._write_table(group, items=panel.items, index=panel.major_axis,
+                          columns=panel.minor_axis, values=panel.values,
                           append=append, compression=comp)
 
     def _write_long(self, group, value, append=False):
@@ -287,8 +291,8 @@ class HDFStore(object):
 
         self.handle.createArray(group, key, value)
 
-    def _write_table(self, group, index, columns=None, values_dict=None,
-                     append=False, compression=None):
+    def _write_table(self, group, items=None, index=None, columns=None,
+                     values=None, append=False, compression=None):
         """ need to check for conform to the existing table:
             e.g. columns should match """
         # create dict of types
@@ -296,7 +300,6 @@ class HDFStore(object):
         columns_converted, cols_kind, col_t = _convert_index(columns)
 
         # create the table if it doesn't exist (or get it if it does)
-        number_fields = len(values_dict)
         if not append:
             if 'table' in group:
                 self.handle.removeNode(group, 'table')
@@ -305,7 +308,7 @@ class HDFStore(object):
             # create the table
             desc = {'index'  : index_t,
                     'column' : col_t,
-                    'values' : tables.FloatCol(shape=(number_fields))}
+                    'values' : tables.FloatCol(shape=(len(values)))}
 
             options = {'name' : 'table',
                        'description' : desc}
@@ -320,19 +323,15 @@ class HDFStore(object):
             table = getattr(group, 'table', None)
 
         # add kinds
-        fields = values_dict.keys()
         table._v_attrs.index_kind = index_kind
         table._v_attrs.columns_kind = cols_kind
-        table._v_attrs.fields = fields
+        table._v_attrs.fields = list(items)
 
         # add the rows
-        values = values_dict.values()
-
         try:
             for i, index in enumerate(index_converted):
                 for c, col in enumerate(columns_converted):
-                    v = np.asarray([v[i, c] for v in values])
-
+                    v = values[:, i, c]
                     # don't store the row if all values are np.nan
                     if np.isnan(v).all():
                         continue
@@ -344,9 +343,13 @@ class HDFStore(object):
                     # create the values array
                     row['values'] = v
                     row.append()
-                    self.handle.flush()
+            self.handle.flush()
         except (ValueError), detail:
             print "value_error in _write_table -> %s" % str(detail)
+            try:
+                self.handle.flush()
+            except Exception:
+                pass
             raise
 
     def _read_group(self, group, where=None):

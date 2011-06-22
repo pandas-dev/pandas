@@ -114,6 +114,10 @@ def assert_frame_equal(left, right):
     assert(left.columns.equals(right.columns))
 
 def assert_panel_equal(left, right):
+    assert(left.items.equals(right.items))
+    assert(left.major_axis.equals(right.major_axis))
+    assert(left.minor_axis.equals(right.minor_axis))
+
     for col, series in left.iteritems():
         assert(col in right)
         assert_frame_equal(series, right[col])

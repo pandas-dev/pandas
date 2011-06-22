@@ -94,12 +94,42 @@ class TesttHDFStore(unittest.TestCase):
         tm.assert_series_equal(self.store['a'], ts)
 
     def test_panel_select(self):
-        pass
+        wp = tm.makeWidePanel()
+        self.store.put('wp', wp, table=True)
+        date = wp.major_axis[len(wp.major_axis) // 2]
+
+        crit1 = {
+            'field' : 'index',
+            'op' : '>=',
+            'value' : date
+        }
+        crit2 = {
+            'field' : 'column',
+            'value' : ['A', 'D']
+        }
+
+        result = self.store.select('wp', [crit1, crit2])
+        expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
+        tm.assert_panel_equal(result, expected)
 
     def test_frame_select(self):
         df = tm.makeTimeDataFrame()
-        self.store['frame'] = df
+        self.store.put('frame', df, table=True)
         date = df.index[len(df) // 2]
+
+        crit1 = {
+            'field' : 'index',
+            'op' : '>=',
+            'value' : date
+        }
+        crit2 = {
+            'field' : 'column',
+            'value' : ['A', 'D']
+        }
+
+        result = self.store.select('frame', [crit1, crit2])
+        expected = df.ix[date:, ['A', 'D']]
+        tm.assert_frame_equal(result, expected)
 
     def _check_roundtrip(self, obj, comparator):
         store = HDFStore(self.scratchpath, 'w')
