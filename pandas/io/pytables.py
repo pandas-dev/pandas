@@ -27,17 +27,13 @@ _TYPE_MAP = {
     LongPanel  : 'long'
 }
 
-_DEFAULT_TABLE = {
-    'wide' : True
-}
-
 _NAME_MAP = {
     'series' : 'Series',
     'time_series' : 'TimeSeries',
     'frame' : 'DataFrame',
-    'frame_table' : 'DataFrame',
+    'frame_table' : 'DataFrame (Table)',
     'wide' : 'WidePanel',
-    'wide_table' : 'WidePanel',
+    'wide_table' : 'WidePanel (Table)',
     'long' : 'LongPanel'
 }
 
@@ -156,7 +152,7 @@ class HDFStore(object):
             group = getattr(self.handle.root, key)
             return self._read_group(group)
         except AttributeError:
-            raise KeyError('no object stored named %s' % key)
+            raise
 
     def select(self, key, where=None):
         """
@@ -173,7 +169,7 @@ class HDFStore(object):
         if group is not None:
             return self._read_group(group, where)
 
-    def put(self, key, value, table=None, append=False,
+    def put(self, key, value, table=False, append=False,
             compression=None):
         """
         Store object in HDFStore
@@ -222,10 +218,8 @@ class HDFStore(object):
         """
         self._write_group(key, value, True)
 
-    def _write_to_group(self, key, value, table=None, append=False,
+    def _write_to_group(self, key, value, table=False, append=False,
                         comp=None):
-        # TODO WIDEPANEL DEFAULT TO TABLE
-
         root = self.handle.root
         if key not in root._v_children:
             group = self.handle.createGroup(root, key)
@@ -233,9 +227,6 @@ class HDFStore(object):
             group = getattr(root, key)
 
         kind = _TYPE_MAP[type(value)]
-        if table is None:
-            table = _DEFAULT_TABLE.get(kind, False)
-
         if table:
             kind = '%s_table' % kind
             handler = self._get_handler(op='write', kind=kind)
@@ -266,9 +257,10 @@ class HDFStore(object):
                           values=values, append=append, compression=comp)
 
     def _write_wide(self, group, panel, append=False, comp=None):
-        self._write_table(group, items=panel.items, index=panel.major_axis,
-                          columns=panel.minor_axis, values=panel.values,
-                          append=append, compression=comp)
+        self._write_index(group, 'major_axis', panel.major_axis)
+        self._write_index(group, 'minor_axis', panel.minor_axis)
+        self._write_index(group, 'items', panel.items)
+        self._write_array(group, 'values', panel.values)
 
     def _write_wide_table(self, group, panel, append=False, comp=None):
         self._write_table(group, items=panel.items, index=panel.major_axis,
@@ -376,6 +368,13 @@ class HDFStore(object):
 
     def _read_frame_table(self, group, where=None):
         return self._read_panel_table(group, where)['value']
+
+    def _read_wide(self, group, where=None):
+        items = self._read_index(group, 'items')
+        major_axis = self._read_index(group, 'major_axis')
+        minor_axis = self._read_index(group, 'minor_axis')
+        values = group.values[:]
+        return WidePanel(values, items, major_axis, minor_axis)
 
     def _read_wide_table(self, group, where=None):
         return self._read_panel_table(group, where)

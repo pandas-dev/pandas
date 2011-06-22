@@ -79,9 +79,13 @@ class TesttHDFStore(unittest.TestCase):
         df = tm.makeDataFrame()
         self._check_roundtrip_table(df, tm.assert_frame_equal)
 
-    def test_widepanel(self):
+    def test_wide(self):
         wp = tm.makeWidePanel()
         self._check_roundtrip(wp, tm.assert_panel_equal)
+
+    def test_wide_table(self):
+        wp = tm.makeWidePanel()
+        self._check_roundtrip_table(wp, tm.assert_panel_equal)
 
     def test_longpanel(self):
         pass
