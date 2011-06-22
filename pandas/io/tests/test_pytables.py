@@ -271,7 +271,6 @@ class TesttHDFStore(unittest.TestCase):
 
     def test_legacy_read(self):
         pth, _ = os.path.split(os.path.abspath(__file__))
-
         store = HDFStore(os.path.join(pth, 'legacy.h5'), 'r')
         store['a']
         store['b']
