@@ -17,6 +17,7 @@ from pandas import (Series, TimeSeries, DataFrame, DataMatrix, WidePanel,
                     LongPanel)
 from pandas.core.pytools import adjoin
 import pandas.core.internals as internals
+import pandas.lib.tseries as tseries
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -221,12 +222,18 @@ class HDFStore(object):
 
     def append(self, key, value):
         """
-        Append to Table in file. Node must already exist and be Table format
+        Append to Table in file. Node must already exist and be Table
+        format.
 
         Parameters
         ----------
         key : object
         value : {Series, DataFrame, WidePanel, LongPanel}
+
+        Notes
+        -----
+        Does *not* check if data being appended overlaps with existing
+        data in the table, so be careful
         """
         self._write_to_group(key, value, table=True, append=True)
 
@@ -239,13 +246,17 @@ class HDFStore(object):
             group = getattr(root, key)
 
         kind = _TYPE_MAP[type(value)]
-        if table:
+        if table or (append and _is_table_type(group)):
             kind = '%s_table' % kind
             handler = self._get_handler(op='write', kind=kind)
-            wrapper = lambda value: handler(group, value, append=append)
+            wrapper = lambda value: handler(group, value, append=append,
+                                            comp=comp)
         else:
             if append:
                 raise ValueError('Can only append to Tables')
+            if comp:
+                raise ValueError('Compression only supported on Tables')
+
             handler = self._get_handler(op='write', kind=kind)
             wrapper = lambda value: handler(group, value)
 
@@ -268,7 +279,7 @@ class HDFStore(object):
                           index=df.index, columns=df.columns,
                           values=values, append=append, compression=comp)
 
-    def _write_wide(self, group, panel, append=False, comp=None):
+    def _write_wide(self, group, panel):
         self._write_index(group, 'major_axis', panel.major_axis)
         self._write_index(group, 'minor_axis', panel.minor_axis)
         self._write_index(group, 'items', panel.items)
@@ -279,8 +290,37 @@ class HDFStore(object):
                           columns=panel.minor_axis, values=panel.values,
                           append=append, compression=comp)
 
-    def _write_long(self, group, value, append=False):
-        pass
+    def _read_wide(self, group, where=None):
+        items = self._read_index(group, 'items')
+        major_axis = self._read_index(group, 'major_axis')
+        minor_axis = self._read_index(group, 'minor_axis')
+        values = group.values[:]
+        return WidePanel(values, items, major_axis, minor_axis)
+
+    def _read_wide_table(self, group, where=None):
+        return self._read_panel_table(group, where)
+
+    def _write_long(self, group, panel, append=False):
+        self._write_index(group, 'major_axis', panel.index.major_axis)
+        self._write_index(group, 'minor_axis', panel.index.minor_axis)
+        self._write_index(group, 'items', panel.items)
+        self._write_array(group, 'major_labels', panel.index.major_labels)
+        self._write_array(group, 'minor_labels', panel.index.minor_labels)
+        self._write_array(group, 'values', panel.values)
+
+    def _read_long(self, group, where=None):
+        from pandas.core.panel import LongPanelIndex
+
+        items = self._read_index(group, 'items')
+        major_axis = self._read_index(group, 'major_axis')
+        minor_axis = self._read_index(group, 'minor_axis')
+        major_labels = group.major_labels[:]
+        minor_labels = group.minor_labels[:]
+        values = group.values[:]
+
+        index = LongPanelIndex(major_axis, minor_axis,
+                               major_labels, minor_labels)
+        return LongPanel(values, items, index)
 
     def _write_index(self, group, key, value):
         # don't care about type here
@@ -336,6 +376,7 @@ class HDFStore(object):
             for i, index in enumerate(index_converted):
                 for c, col in enumerate(columns_converted):
                     v = values[:, i, c]
+
                     # don't store the row if all values are np.nan
                     if np.isnan(v).all():
                         continue
@@ -348,7 +389,7 @@ class HDFStore(object):
                     row['values'] = v
                     row.append()
             self.handle.flush()
-        except (ValueError), detail:
+        except (ValueError), detail: # pragma: no cover
             print "value_error in _write_table -> %s" % str(detail)
             try:
                 self.handle.flush()
@@ -359,13 +400,7 @@ class HDFStore(object):
     def _read_group(self, group, where=None):
         kind = group._v_attrs.pandas_type
         handler = self._get_handler(op='read', kind=kind)
-        try:
-            return handler(group, where)
-        except Exception:
-            raise
-
-    def _delete_group(self,group, where):
-        return
+        return handler(group, where)
 
     def _read_series(self, group, where=None):
         index = self._read_index(group, 'index')
@@ -381,80 +416,12 @@ class HDFStore(object):
     def _read_frame_table(self, group, where=None):
         return self._read_panel_table(group, where)['value']
 
-    def _read_wide(self, group, where=None):
-        items = self._read_index(group, 'items')
-        major_axis = self._read_index(group, 'major_axis')
-        minor_axis = self._read_index(group, 'minor_axis')
-        values = group.values[:]
-        return WidePanel(values, items, major_axis, minor_axis)
-
-    def _read_wide_table(self, group, where=None):
-        return self._read_panel_table(group, where)
-
-    def _read_long(self, group, where=None):
-        index = self._read_index(group, 'index')
-        values = group.values[:]
-
-        return Series(values, index=index)
-
     def _read_index(self, group, key):
         node = getattr(group, key)
         data = node[:]
         kind = node._v_attrs.kind
 
         return _unconvert_index(data, kind)
-
-    def _read_table2(self, group, where=None):
-        table = getattr(group, 'table')
-
-        # create the selection
-        s = Selection(table, where)
-        s.select()
-
-        # reconstruct
-        column_filter = s.column_filter
-        col_cache = {}
-        index_cache = {}
-        fields = table._v_attrs.fields
-
-        # dict - indexed by column
-        d = {}
-
-        for r in s.values:
-            c, i, v = r
-
-            try:
-                c_converted = col_cache[c]
-            except (KeyError):
-                c_converted = col_cache[c] = _unconvert_value(c, table._v_attrs.columns_kind)
-
-            if column_filter and c_converted not in column_filter:
-                continue
-
-            try:
-                i_converted = index_cache[i]
-            except (KeyError):
-                i_converted = index_cache[i] = _unconvert_value(i, table._v_attrs.index_kind)
-
-            d.setdefault(c_converted, {})[i_converted] = v
-
-        # stack the values
-        nan = np.asarray([np.nan] * len(fields))
-
-        columns_set = set(col_cache.values())
-        columns = sorted(list(column_filter & columns_set
-                              if column_filter else columns_set))
-        indicies = sorted(index_cache.values())
-
-        # create the 3d stack (items x columns x indicies)
-        if len(columns) and len(indicies):
-            data = np.dstack([np.asarray([d[c].get(i,nan)
-                                          for i in indicies ]).transpose()
-                              for c in columns ])
-        else:
-            data = None
-
-        return fields, indicies, columns, data
 
     def _read_panel_table(self, group, where=None):
         from pandas.core.panel import _make_long_index
@@ -512,25 +479,21 @@ def _convert_index(index):
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
         return converted, 'string', tables.StringCol(itemsize)
-    else:
+    elif isinstance(values[0], (int, np.integer)):
         # take a guess for now, hope the values fit
-        return np.array(list(values)), 'other', tables.StringCol(20)
+        return np.asarray(values, dtype=int), 'integer', tables.Int64Col()
+    else: # pragma: no cover
+        raise ValueError('unrecognized index type %s' % type(values[0]))
 
 def _unconvert_index(data, kind):
     if kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
-    elif kind == 'string':
+    elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
-    else:
-        index = data
-
+    else: # pragma: no cover
+        raise ValueError('unrecognized index type %s' % kind)
     return index
-
-def _unconvert_value(item, kind):
-    if kind == 'datetime':
-        return datetime.fromtimestamp(item)
-    return item
 
 def _maybe_convert(values, val_kind):
     if _need_convert(val_kind):
@@ -549,6 +512,13 @@ def _need_convert(kind):
     if kind == 'datetime':
         return True
     return False
+
+def _is_table_type(group):
+    try:
+        return 'table' in group._v_attrs.pandas_type
+    except AttributeError:
+        # new node, e.g.
+        return False
 
 class Selection(object):
     """
@@ -585,9 +555,10 @@ class Selection(object):
 
     def generate_multiple_conditions(self, op, value, field):
 
-        if op and op == 'in' or isinstance(value,list):
+        if op and op == 'in' or isinstance(value, (list, np.ndarray)):
             if len(value) <= 61:
-                l = '(' + ' | '.join([ "(%s == '%s')" % (field,v) for v in value ]) + ')'
+                l = '(' + ' | '.join([ "(%s == '%s')" % (field,v)
+                                       for v in value ]) + ')'
                 self.conditions.append(l)
             else:
                 self.column_filter = set(value)

@@ -3,7 +3,7 @@ cdef int _EPOCH_ORD = 719163
 from datetime import date as pydate
 
 cdef inline int64_t gmtime(object date):
-    cdef int y, m, d, h, mn, s, ms, days
+    cdef int y, m, d, h, mn, s, days
 
     y = PyDateTime_GET_YEAR(date)
     m = PyDateTime_GET_MONTH(date)
@@ -11,7 +11,6 @@ cdef inline int64_t gmtime(object date):
     h = PyDateTime_DATE_GET_HOUR(date)
     mn = PyDateTime_DATE_GET_MINUTE(date)
     s = PyDateTime_DATE_GET_SECOND(date)
-    ms = PyDateTime_DATE_GET_MICROSECOND(date) / 1000
 
     days = pydate(y, m, 1).toordinal() - _EPOCH_ORD + d - 1
     return ((<int64_t> (((days * 24 + h) * 60 + mn))) * 60 + s) * 1000

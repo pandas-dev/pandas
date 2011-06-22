@@ -52,8 +52,49 @@ class TesttHDFStore(unittest.TestCase):
 
         self.assertRaises(AttributeError, self.store.get, 'b')
 
-    def test_put_corner(self):
-        pass
+    def test_put(self):
+        ts = tm.makeTimeSeries()
+        df = tm.makeTimeDataFrame()
+        self.store['a'] = ts
+        self.store['b'] = df[:10]
+        self.store.put('c', df[:10], table=True)
+
+        # not OK, not a table
+        self.assertRaises(ValueError, self.store.put, 'b', df[10:], append=True)
+
+        # node does not currently exist, test _is_table_type returns False in
+        # this case
+        self.assertRaises(ValueError, self.store.put, 'f', df[10:], append=True)
+
+        # OK
+        self.store.put('c', df[10:], append=True)
+
+        # overwrite table
+        self.store.put('c', df[:10], table=True, append=False)
+        tm.assert_frame_equal(df[:10], self.store['c'])
+
+    def test_put_compression(self):
+        df = tm.makeTimeDataFrame()
+        self.store.put('c', df, table=True, compression='blosc')
+        tm.assert_frame_equal(self.store['c'], df)
+
+        self.store.put('c', df, table=True, compression='zlib')
+        tm.assert_frame_equal(self.store['c'], df)
+
+        # can't compress if table=False
+        self.assertRaises(ValueError, self.store.put, 'b', df,
+                          table=False, compression='blosc')
+
+    def test_put_integer(self):
+        # non-date, non-string index
+        df = DataFrame(np.random.randn(50, 100))
+        self._check_roundtrip(df, tm.assert_frame_equal)
+
+    def test_append(self):
+        df = tm.makeTimeDataFrame()
+        self.store.put('c', df[:10], table=True)
+        self.store.append('c', df[10:])
+        tm.assert_frame_equal(self.store['c'], df)
 
     def test_remove(self):
         ts =tm.makeTimeSeries()
@@ -114,6 +155,11 @@ class TesttHDFStore(unittest.TestCase):
 
     def test_frame_table(self):
         df = tm.makeDataFrame()
+
+        # put in some random NAs
+        df.values[0, 0] = np.nan
+        df.values[5, 3] = np.nan
+
         self._check_roundtrip_table(df, tm.assert_frame_equal)
 
     def test_wide(self):
@@ -123,6 +169,14 @@ class TesttHDFStore(unittest.TestCase):
     def test_wide_table(self):
         wp = tm.makeWidePanel()
         self._check_roundtrip_table(wp, tm.assert_panel_equal)
+
+    def test_long(self):
+        def _check(left, right):
+            tm.assert_panel_equal(left.to_wide(),
+                                  right.to_wide())
+
+        wp = tm.makeWidePanel()
+        self._check_roundtrip(wp.to_long(), _check)
 
     def test_longpanel(self):
         pass
@@ -167,15 +221,36 @@ class TesttHDFStore(unittest.TestCase):
             'field' : 'column',
             'value' : ['A', 'D']
         }
+        crit3 = {
+            'field' : 'column',
+            'value' : 'A'
+        }
 
         result = self.store.select('frame', [crit1, crit2])
         expected = df.ix[date:, ['A', 'D']]
+        tm.assert_frame_equal(result, expected)
+
+        result = self.store.select('frame', [crit3])
+        expected = df.ix[:, ['A']]
         tm.assert_frame_equal(result, expected)
 
         # can't select if not written as table
         self.store['frame'] = df
         self.assertRaises(Exception, self.store.select,
                           'frame', [crit1, crit2])
+
+    def test_select_filter_corner(self):
+        df = DataFrame(np.random.randn(50, 100))
+        df.index = ['%.3d' % c for c in df.index]
+        df.columns = ['%.3d' % c for c in df.columns]
+        self.store.put('frame', df, table=True)
+
+        crit = {
+            'field' : 'column',
+            'value' : df.columns[:75]
+        }
+        result = self.store.select('frame', [crit])
+        tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
 
     def _check_roundtrip(self, obj, comparator):
         store = HDFStore(self.scratchpath, 'w')

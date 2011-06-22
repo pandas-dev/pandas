@@ -32,11 +32,7 @@ class OLS(object):
         Number of Newey-West lags.
     """
     def __init__(self, y, x, intercept=True, nw_lags=None, nw_overlap=False):
-        try:
-            import scikits.statsmodels.api as sm
-        except ImportError: # pragma: no cover
-            import scikits.statsmodels as sm
-
+        import scikits.statsmodels.api as sm
         self._x_orig = x
         self._y_orig = y
         self._intercept = intercept
