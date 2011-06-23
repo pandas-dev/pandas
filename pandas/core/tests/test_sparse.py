@@ -710,7 +710,7 @@ class TestSparseDataFrame(TestCase):
         self.assert_(isinstance(sdf['A'].sp_index, IntIndex))
 
         df = DataFrame({'A' : [0, 0, 0, 1, 2],
-                        'B' : [1, 2, 0, 0, 0]})
+                        'B' : [1, 2, 0, 0, 0]}, dtype=float)
         sdf = df.to_sparse(fill_value=0)
         self.assertEquals(sdf.default_fill_value, 0)
         testing.assert_frame_equal(sdf.to_dense(), df)

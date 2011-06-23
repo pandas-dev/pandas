@@ -377,6 +377,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
 
+    def test_is_mixed_type(self):
+        self.assert_(not self.frame._is_mixed_type)
+        self.assert_(self.mixed_frame._is_mixed_type)
+
     def test_constructor_dict(self):
         frame = self.klass({'col1' : self.ts1,
                             'col2' : self.ts2})
@@ -1831,7 +1835,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
             return x[notnull(x)].sum()
 
         self._check_statistic(self.frame, 'sum', f)
-        self._check_statistic(self.empty, 'sum', f)
+
+        axis0 = self.empty.sum(0)
+        axis1 = self.empty.sum(1)
+        self.assert_(isinstance(axis0, Series))
+        self.assert_(isinstance(axis1, Series))
+        self.assertEquals(len(axis0), 0)
+        self.assertEquals(len(axis1), 0)
 
     def test_sum_object(self):
         values = self.frame.values.astype(int)

@@ -318,15 +318,8 @@ class HDFStore(object):
         group._v_attrs.nblocks = nblocks
         for i in range(nblocks):
             blk = df._data.blocks[i]
-            typ = type(blk).__name__
-            setattr(group._v_attrs, 'block%d_dtype' % i, typ)
             self._write_index(group, 'block%d_columns' % i, blk.columns)
-
-            vkey = 'block%d_values' % i
-            if typ == 'ObjectBlock':
-                self._write_object_array(group, vkey, blk.values)
-            else:
-                self._write_array(group, vkey, blk.values)
+            self._write_array(group, 'block%d_values' % i, blk.values)
 
     def _read_frame(self, group, where=None):
         from pandas.core.internals import BlockManager, make_block
@@ -337,16 +330,7 @@ class HDFStore(object):
         blocks = []
         for i in range(group._v_attrs.nblocks):
             blk_columns = _read_index(group, 'block%d_columns' % i)
-
-            vkey = 'block%d_values' % i
-            values = getattr(group, vkey)[:]
-
-            # Objects stored in a VLArray...
-            typ = getattr(group._v_attrs, 'block%d_dtype' % i)
-            if typ == 'ObjectBlock':
-                # kludge
-                values = values[0]
-
+            values = _read_array(group, 'block%d_values' % i)
             blk = make_block(values, blk_columns, frame_columns)
             blocks.append(blk)
 
@@ -380,7 +364,7 @@ class HDFStore(object):
         items = _read_index(group, 'items')
         major_axis = _read_index(group, 'major_axis')
         minor_axis = _read_index(group, 'minor_axis')
-        values = group.values[:]
+        values = _read_array(group, 'values')
         return WidePanel(values, items, major_axis, minor_axis)
 
     def _read_wide_table(self, group, where=None):
@@ -400,9 +384,9 @@ class HDFStore(object):
         items = _read_index(group, 'items')
         major_axis = _read_index(group, 'major_axis')
         minor_axis = _read_index(group, 'minor_axis')
-        major_labels = group.major_labels[:]
-        minor_labels = group.minor_labels[:]
-        values = group.values[:]
+        major_labels = _read_array(group, 'major_labels')
+        minor_labels = _read_array(group, 'minor_labels')
+        values = _read_array(group, 'values')
 
         index = LongPanelIndex(major_axis, minor_axis,
                                major_labels, minor_labels)
@@ -419,14 +403,12 @@ class HDFStore(object):
         if key in group:
             self.handle.removeNode(group, key)
 
-        self.handle.createArray(group, key, value)
-
-    def _write_object_array(self, group, key, value):
-        if key in group:
-            self.handle.removeNode(group, key)
-
-        vlarr = self.handle.createVLArray(group, key, _tables().ObjectAtom())
-        vlarr.append(value)
+        if value.dtype == np.object_:
+            vlarr = self.handle.createVLArray(group, key,
+                                              _tables().ObjectAtom())
+            vlarr.append(value)
+        else:
+            self.handle.createArray(group, key, value)
 
     def _write_table(self, group, items=None, index=None, columns=None,
                      values=None, append=False, compression=None):
@@ -498,18 +480,18 @@ class HDFStore(object):
 
     def _read_series(self, group, where=None):
         index = _read_index(group, 'index')
-        values = group.values[:]
+        values = _read_array(group, 'values')
         return Series(values, index=index)
 
     def _read_legacy_series(self, group, where=None):
         index = _read_index_legacy(group, 'index')
-        values = group.values[:]
+        values = _read_array(group, 'values')
         return Series(values, index=index)
 
     def _read_legacy_frame(self, group, where=None):
         index = _read_index_legacy(group, 'index')
         columns = _read_index_legacy(group, 'columns')
-        values = group.values[:]
+        values = _read_array(group, 'values')
         return DataFrame(values, index=index, columns=columns)
 
     def _read_frame_table(self, group, where=None):
@@ -574,6 +556,16 @@ def _convert_index(index):
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % type(values[0]))
 
+
+def _read_array(group, key):
+    import tables
+    node = getattr(group, key)
+    data = node[:]
+
+    if isinstance(node, tables.VLArray):
+        return data[0]
+    else:
+        return data
 
 def _read_index(group, key):
     node = getattr(group, key)

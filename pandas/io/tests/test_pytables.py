@@ -102,7 +102,7 @@ class TesttHDFStore(unittest.TestCase):
         tm.assert_frame_equal(self.store['c'], df)
 
     def test_remove(self):
-        ts =tm.makeTimeSeries()
+        ts = tm.makeTimeSeries()
         df = tm.makeDataFrame()
         self.store['a'] = ts
         self.store['b'] = df
@@ -158,7 +158,7 @@ class TesttHDFStore(unittest.TestCase):
         tdf = tm.makeTimeDataFrame()
         self._check_roundtrip(tdf, tm.assert_frame_equal)
 
-    def test_frame_mixed(self):
+    def test_store_mixed(self):
         def _make_one():
             df = tm.makeDataFrame()
             df['obj1'] = 'foo'
@@ -183,6 +183,11 @@ class TesttHDFStore(unittest.TestCase):
         # storing in Table not yet supported
         self.assertRaises(Exception, self.store.put, 'foo',
                           df1, table=True)
+
+        # check that can store Series of all of these types
+        self._check_roundtrip(df1['obj1'], tm.assert_series_equal)
+        self._check_roundtrip(df1['bool1'], tm.assert_series_equal)
+        self._check_roundtrip(df1['int1'], tm.assert_series_equal)
 
     def test_wide(self):
         wp = tm.makeWidePanel()
