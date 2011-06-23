@@ -461,16 +461,45 @@ class TestSeries(unittest.TestCase):
         self.assertRaises(Exception, self.ts.__pow__, df)
 
     def test_operators_combine(self):
+        def _check_fill(meth, op, a, b, fill_value=0):
+            exp_index = a.index.union(b.index)
+            a = a.reindex(exp_index)
+            b = b.reindex(exp_index)
+
+            amask = isnull(a)
+            bmask = isnull(b)
+
+            exp_values = []
+            for i in range(len(exp_index)):
+                if amask[i]:
+                    if bmask[i]:
+                        exp_values.append(nan)
+                        continue
+                    exp_values.append(op(fill_value, b[i]))
+                elif bmask[i]:
+                    if amask[i]:
+                        exp_values.append(nan)
+                        continue
+                    exp_values.append(op(a[i], fill_value))
+                else:
+                    exp_values.append(op(a[i], b[i]))
+
+            result = meth(a, b, fill_value=fill_value)
+            expected = Series(exp_values, exp_index)
+            assert_series_equal(result, expected)
+
         a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
-        result = a.add(b)
-        expected = Series([nan, 2., nan, 6, nan, nan], index=np.arange(6))
-        assert_series_equal(result, expected)
+        ops = [Series.add, Series.sub, Series.mul, Series.div]
+        equivs = [operator.add, operator.sub, operator.mul, operator.div]
+        fillvals = [0, 0, 1, 1]
 
-        result = a.add(b, fill_value=0)
-        expected = Series([nan, 2., 2, 6, nan, 4], index=np.arange(6))
-        assert_series_equal(result, expected)
+        for op, equiv_op, fv in zip(ops, equivs, fillvals):
+            result = op(a, b)
+            exp = equiv_op(a, b)
+            assert_series_equal(result, exp)
+            _check_fill(op, equiv_op, a, b, fill_value=fv)
 
     def test_combineFirst(self):
         series = Series(common.makeIntIndex(20).astype(float),
