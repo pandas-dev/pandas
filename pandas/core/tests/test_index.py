@@ -17,6 +17,9 @@ class TestIndex(unittest.TestCase):
         self.dateIndex = common.makeDateIndex(100)
         self.intIndex = common.makeIntIndex(100)
 
+    def test_hash_error(self):
+        self.assertRaises(TypeError, hash, self.strIndex)
+
     def test_deepcopy(self):
         from copy import deepcopy
 

@@ -110,6 +110,9 @@ class Index(np.ndarray):
     def __contains__(self, date):
         return date in self.indexMap
 
+    def __hash__(self):
+        return hash(self.view(np.ndarray))
+
     def __setitem__(self, key, value):
         """Disable the setting of values."""
         raise Exception(str(self.__class__) + ' object is immutable' )
