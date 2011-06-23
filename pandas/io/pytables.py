@@ -3,16 +3,12 @@ High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
 
-# pylint: disable-msg=E1101,W0613
+# pylint: disable-msg=E1101,W0613,W0603
 
 from datetime import datetime
-import cPickle as pickle
-import os.path
 import time
 
 import numpy as np
-import tables
-
 from pandas import (Series, TimeSeries, DataFrame, DataMatrix, WidePanel,
                     LongPanel)
 from pandas.core.pytools import adjoin
@@ -52,8 +48,14 @@ _LEGACY_MAP = {
     'DataMatrix' : 'legacy_frame'
 }
 
-from line_profiler import LineProfiler
-prof = LineProfiler()
+# oh the troubles to reduce import time
+_table_mod = None
+def _tables():
+    global _table_mod
+    if _table_mod is None:
+        import tables
+        _table_mod = tables
+    return _table_mod
 
 class HDFStore(object):
     """
@@ -88,6 +90,11 @@ class HDFStore(object):
     >>> store.close()
     """
     def __init__(self, path, mode='a'):
+        try:
+            import tables as _
+        except ImportError: # pragma: no cover
+            raise Exception('HDFStore requires PyTables')
+
         self.path = path
         self.mode = mode
         self.handle = None
@@ -140,7 +147,7 @@ class HDFStore(object):
                     return
         if self.handle is not None and self.handle.isopen:
             self.handle.close()
-        self.handle = tables.openFile(self.path, self.mode)
+        self.handle = _tables().openFile(self.path, self.mode)
 
     def close(self):
         """
@@ -412,7 +419,7 @@ class HDFStore(object):
         if key in group:
             self.handle.removeNode(group, key)
 
-        vlarr = self.handle.createVLArray(group, key, tables.ObjectAtom())
+        vlarr = self.handle.createVLArray(group, key, _tables().ObjectAtom())
         vlarr.append(value)
 
     def _write_table(self, group, items=None, index=None, columns=None,
@@ -432,13 +439,13 @@ class HDFStore(object):
             # create the table
             desc = {'index'  : index_t,
                     'column' : col_t,
-                    'values' : tables.FloatCol(shape=(len(values)))}
+                    'values' : _tables().FloatCol(shape=(len(values)))}
 
             options = {'name' : 'table',
                        'description' : desc}
 
             if compression:
-                options['filters'] = tables.Filters(complevel=9,
+                options['filters'] = _tables().Filters(complevel=9,
                                                     complib=compression)
 
             table = self.handle.createTable(group, **options)
@@ -550,14 +557,14 @@ def _convert_index(index):
     if isinstance(values[0], datetime):
         converted = np.array([time.mktime(v.timetuple())
                               for v in values], dtype=np.int64)
-        return converted, 'datetime', tables.Time64Col()
+        return converted, 'datetime', _tables().Time64Col()
     elif isinstance(values[0], basestring):
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
-        return converted, 'string', tables.StringCol(itemsize)
+        return converted, 'string', _tables().StringCol(itemsize)
     elif isinstance(values[0], (int, np.integer)):
         # take a guess for now, hope the values fit
-        return np.asarray(values, dtype=int), 'integer', tables.Int64Col()
+        return np.asarray(values, dtype=int), 'integer', _tables().Int64Col()
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % type(values[0]))
 
