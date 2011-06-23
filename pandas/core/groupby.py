@@ -239,7 +239,7 @@ class SeriesGroupBy(GroupBy):
             group.groupName = name
             res = applyfunc(group)
 
-            indexer, _ = common.get_indexer(self.obj.index, group.index, None)
+            indexer, _ = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
 
         return result
@@ -347,12 +347,10 @@ class DataFrameGroupBy(GroupBy):
 
             if self.axis == 0:
                 subframe = self.obj.reindex(group)
-                indexer, _ = common.get_indexer(self.obj.index,
-                                                subframe.index, None)
+                indexer, _ = self.obj.index.get_indexer(subframe.index)
             else:
                 subframe = self.obj.reindex(columns=group)
-                indexer, _ = common.get_indexer(self.obj.columns,
-                                                subframe.columns, None)
+                indexer, _ = self.obj.columns.get_indexer(subframe.columns)
             subframe.groupName = val
 
             try:

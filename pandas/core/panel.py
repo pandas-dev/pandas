@@ -444,7 +444,7 @@ class WidePanel(Panel, PandasGeneric):
             return self.copy()
 
         new_index = _ensure_index(new_index)
-        indexer, mask = common.get_indexer(old_index, new_index, fill_method)
+        indexer, mask = old_index.get_indexer(new_index, fill_method)
 
         new_values = self.values.take(indexer, axis=axis)
         if len(new_index) > 0:

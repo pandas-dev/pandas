@@ -70,15 +70,6 @@ def _unpickle_array(bytes):
     arr = read_array(StringIO(bytes))
     return arr
 
-def get_indexer(source, target, fill_method):
-    if fill_method:
-        fill_method = fill_method.upper()
-
-    indexer, mask = tseries.getFillVec(source, target, source.indexMap,
-                                       target.indexMap, fill_method)
-
-    return indexer, mask
-
 def null_out_axis(arr, mask, axis):
     if axis == 0:
         arr[mask] = np.NaN

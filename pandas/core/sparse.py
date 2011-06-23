@@ -965,7 +965,7 @@ class SparseDataFrame(DataFrame):
         if len(self.index) == 0:
             return SparseDataFrame(index=index, columns=self.columns)
 
-        indexer, mask = common.get_indexer(self.index, index, method)
+        indexer, mask = self.index.get_indexer(index, method)
         notmask = -mask
         need_mask = notmask.any()
 
