@@ -180,6 +180,24 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
+        where : list, optional
+
+           Must be a list of dict objects of the following forms. Selection can
+           be performed on the 'index' or 'column' fields.
+
+           Comparison op
+               {'field' : 'index',
+                'op'    : '>=',
+                'value' : value}
+
+           Match single value
+               {'field' : 'index',
+                'value' : v1}
+
+           Match a set of values
+               {'field' : 'index',
+                'value' : [v1, v2, v3]}
+
         """
         group = getattr(self.handle.root, key, None)
         if 'table' not in group._v_attrs.pandas_type:
@@ -284,7 +302,48 @@ class HDFStore(object):
     def _write_frame(self, group, df):
         self._write_index(group, 'index', df.index)
         self._write_index(group, 'columns', df.columns)
-        self._write_array(group, 'values', df.values)
+
+        # Supporting mixed-type DataFrame objects...nontrivial
+
+        df._consolidate_inplace()
+        nblocks = len(df._data.blocks)
+        group._v_attrs.nblocks = nblocks
+        for i in range(nblocks):
+            blk = df._data.blocks[i]
+            typ = type(blk).__name__
+            setattr(group._v_attrs, 'block%d_dtype' % i, typ)
+            self._write_index(group, 'block%d_columns' % i, blk.columns)
+
+            vkey = 'block%d_values' % i
+            if typ == 'ObjectBlock':
+                self._write_object_array(group, vkey, blk.values)
+            else:
+                self._write_array(group, vkey, blk.values)
+
+    def _read_frame(self, group, where=None):
+        from pandas.core.internals import BlockManager, make_block
+
+        index = _read_index(group, 'index')
+        frame_columns = _read_index(group, 'columns')
+
+        blocks = []
+        for i in range(group._v_attrs.nblocks):
+            blk_columns = _read_index(group, 'block%d_columns' % i)
+
+            vkey = 'block%d_values' % i
+            values = getattr(group, vkey)[:]
+
+            # Objects stored in a VLArray...
+            typ = getattr(group._v_attrs, 'block%d_dtype' % i)
+            if typ == 'ObjectBlock':
+                # kludge
+                values = values[0]
+
+            blk = make_block(values, blk_columns, frame_columns)
+            blocks.append(blk)
+
+        mgr = BlockManager(blocks, index=index, columns=frame_columns)
+        return DataFrame(mgr)
 
     def _write_frame_table(self, group, df, append=False, comp=None):
         mat = df.values
@@ -348,6 +407,13 @@ class HDFStore(object):
             self.handle.removeNode(group, key)
 
         self.handle.createArray(group, key, value)
+
+    def _write_object_array(self, group, key, value):
+        if key in group:
+            self.handle.removeNode(group, key)
+
+        vlarr = self.handle.createVLArray(group, key, tables.ObjectAtom())
+        vlarr.append(value)
 
     def _write_table(self, group, items=None, index=None, columns=None,
                      values=None, append=False, compression=None):
@@ -427,12 +493,6 @@ class HDFStore(object):
         values = group.values[:]
         return Series(values, index=index)
 
-    def _read_frame(self, group, where=None):
-        index = _read_index(group, 'index')
-        columns = _read_index(group, 'columns')
-        values = group.values[:]
-        return DataFrame(values, index=index, columns=columns)
-
     def _read_legacy_frame(self, group, where=None):
         index = _read_index_legacy(group, 'index')
         columns = _read_index_legacy(group, 'columns')
@@ -479,7 +539,7 @@ class HDFStore(object):
         l.reverse()
         for c in l:
             table.removeRows(c)
-            self.handle.flush()
+        self.handle.flush()
         return len(s.values)
 
 def _convert_index(index):
@@ -562,10 +622,25 @@ def _is_table_type(group):
 
 class Selection(object):
     """
-    apply selection criteria
-    where of the form:  [ list of and_ conditions ]
-    condition of the form dict(field = 'index', 'op' = '<=',
-                               value=datetime(2010,6,14))
+    Carries out a selection operation on a tables.Table object.
+
+    Parameters
+    ----------
+    table : tables.Table
+    where : list of dicts of the following form
+
+        Comparison op
+           {'field' : 'index',
+            'op'    : '>=',
+            'value' : value}
+
+        Match single value
+           {'field' : 'index',
+            'value' : v1}
+
+        Match a set of values
+           {'field' : 'index',
+            'value' : [v1, v2, v3]}
     """
     def __init__(self, table, where=None):
         self.table = table
@@ -608,8 +683,9 @@ class Selection(object):
             self.conditions.append('(%s %s "%s")' % (field,op,value))
 
     def select(self):
-        """ generate the selection """
-
+        """
+        generate the selection
+        """
         if self.the_condition:
             self.values = self.table.readWhere(self.the_condition)
 
@@ -617,6 +693,8 @@ class Selection(object):
             self.values = self.table.read()
 
     def select_coords(self):
-        """ generate the selection """
+        """
+        generate the selection
+        """
         self.values = self.table.getWhereList(self.the_condition)
 

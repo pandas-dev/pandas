@@ -227,6 +227,11 @@ class DataFrame(PandasGeneric):
     #----------------------------------------------------------------------
     # Class behavior
 
+    @property
+    def _is_mixed_type(self):
+        self._consolidate_inplace()
+        return len(self._data.blocks) > 1
+
     def __nonzero__(self):
         # e.g. "if frame: ..."
         return len(self.columns) > 0 and len(self.index) > 0

@@ -8,6 +8,11 @@ from pandas import (Series, DataFrame, WidePanel, LongPanel, DateRange)
 from pandas.io.pytables import HDFStore
 import pandas.util.testing as tm
 
+try:
+    import tables
+except ImportError:
+    raise nose.SkipTest('no pytables')
+
 class TesttHDFStore(unittest.TestCase):
     path = '__test__.h5'
     scratchpath = '__scratch__.h5'
@@ -148,10 +153,26 @@ class TesttHDFStore(unittest.TestCase):
         self._check_roundtrip(tdf, tm.assert_frame_equal)
 
     def test_frame_mixed(self):
-        raise nose.SkipTest('cannot handle for now')
-        df = tm.makeDataFrame()
-        df['nonfloat'] = 'foo'
-        self._check_roundtrip(df, tm.assert_frame_equal)
+        def _make_one():
+            df = tm.makeDataFrame()
+            df['obj1'] = 'foo'
+            df['obj2'] = 'bar'
+            df['bool1'] = df['A'] > 0
+            df['bool2'] = df['B'] > 0
+            df['int1'] = 1
+            df['int2'] = 2
+            return df.consolidate()
+
+        df1 = _make_one()
+        df2 = _make_one()
+
+        self._check_roundtrip(df1, tm.assert_frame_equal)
+        self._check_roundtrip(df2, tm.assert_frame_equal)
+
+        self.store['obj'] = df1
+        tm.assert_frame_equal(self.store['obj'], df1)
+        self.store['obj'] = df2
+        tm.assert_frame_equal(self.store['obj'], df2)
 
     def test_frame_table(self):
         df = tm.makeDataFrame()
