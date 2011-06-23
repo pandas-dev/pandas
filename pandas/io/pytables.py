@@ -63,7 +63,8 @@ class HDFStore(object):
     format.
 
     DataFrame and WidePanel can be stored in Table format, which is slower to
-    read and write but can be searched and manipulated more like an SQL table
+    read and write but can be searched and manipulated more like an SQL
+    table. See HDFStore.put for more information
 
     Parameters
     ----------
