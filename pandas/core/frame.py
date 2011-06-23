@@ -2506,7 +2506,10 @@ class DataFrame(PandasGeneric):
             if isinstance(key, int):
                 idx = self.index[key]
 
-            return self.xs(idx)
+            if self._is_mixed_type:
+                return self.xs(idx)
+            else:
+                return self.xs(idx, copy=False)
         else:
             col = key
             if isinstance(key, int):

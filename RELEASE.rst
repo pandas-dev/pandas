@@ -126,6 +126,9 @@ Release notes
 * Fixed __truediv__ issue in `DataFrame`
 * Fixed `DataFrame.toCSV` bug preventing IO round trips in some cases
 * Fixed bug in `Series.plot` causing matplotlib to barf in exceptional cases
+* Disabled `Index` objects from being hashable, like ndarrays
+* Added `__ne__` implementation to `Index` so that operations like ts[ts != idx]
+  will work
 
 Thanks
 ------

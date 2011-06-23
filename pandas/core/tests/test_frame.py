@@ -233,6 +233,21 @@ class CheckIndexing(object):
         # single column
         assert_series_equal(ix[:, 'A'], f['A'])
 
+        # return view
+        exp = f.copy()
+        exp.values[5] = 4
+        ix[5][:] = 4
+        assert_frame_equal(exp, f)
+
+        exp.values[:, 1] = 6
+        ix[:, 1][:] = 6
+        assert_frame_equal(exp, f)
+
+        # slice of mixed-frame
+        xs = self.mixed_frame.ix[5]
+        exp = self.mixed_frame.xs(self.mixed_frame.index[5])
+        assert_series_equal(xs, exp)
+
     def test_getitem_fancy_scalar(self):
         f = self.frame
         ix = f.ix
