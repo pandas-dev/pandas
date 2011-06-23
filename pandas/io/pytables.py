@@ -656,7 +656,7 @@ class Selection(object):
         self.column_filter = None
         self.the_condition = None
         self.conditions = []
-
+        self.values = None
         if where:
             self.generate(where)
 
