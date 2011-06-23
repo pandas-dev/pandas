@@ -2478,12 +2478,20 @@ class DataFrame(PandasGeneric):
             return self.reindex(**{axis_name : key})
 
     def _fancy_getitem_tuple(self, rowkey, colkey):
-        result = self._fancy_getitem_axis(colkey, axis=1)
+        def _is_label_like(key):
+            # select a label or row
+            return not isinstance(key, slice) and not _is_list_like(key)
 
-        if isinstance(result, Series):
-            result = result[rowkey]
-        else:
-            result = result._fancy_getitem_axis(rowkey, axis=0)
+        # to avoid wasted computation
+        # df.ix[d1:d2, 0] -> columns first (True)
+        # df.ix[0, ['C', 'B', A']] -> rows first (False)
+        if _is_label_like(colkey):
+            return self._fancy_getitem_axis(colkey, axis=1).ix[rowkey]
+        elif _is_label_like(rowkey):
+            return self._fancy_getitem_axis(rowkey, axis=0).ix[colkey]
+
+        result = self._fancy_getitem_axis(colkey, axis=1)
+        result = result._fancy_getitem_axis(rowkey, axis=0)
 
         return result
 

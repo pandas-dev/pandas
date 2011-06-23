@@ -181,6 +181,10 @@ class CheckIndexing(object):
 
         assert_frame_equal(ix[:, ['B', 'A']], f.reindex(columns=['B', 'A']))
 
+        subidx = self.frame.index[[5, 4, 1]]
+        assert_frame_equal(ix[subidx, ['B', 'A']],
+                           f.reindex(index=subidx, columns=['B', 'A']))
+
         # slicing rows, etc.
         assert_frame_equal(ix[5:10], f[5:10])
         assert_frame_equal(ix[5:10, :], f[5:10])

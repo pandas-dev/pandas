@@ -3,7 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 
 # pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622
+# pylint: disable=W0703,W0622,W0613
 
 import itertools
 import operator
@@ -14,12 +14,12 @@ from numpy import NaN, ndarray
 import numpy as np
 
 from pandas.core.common import isnull, notnull
-from pandas.core.common import (_check_step, _need_slice, _is_label_slice,
-                                _ensure_index)
+from pandas.core.common import (_need_slice, _is_label_slice,
+                                _is_list_like, _ensure_index)
 
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
-from pandas.core.index import Index, NULL_INDEX
+from pandas.core.index import Index
 import pandas.core.datetools as datetools
 import pandas.lib.tseries as tseries
 
@@ -1376,8 +1376,10 @@ class Series(np.ndarray, PandasGeneric):
                 return self[i:j]
             else:
                 return self[key]
-        else:
+        elif _is_list_like(key):
             return self.reindex(key)
+        else:
+            return self[key]
 
     def _fancy_setitem(self, key, value):
         if _isboolarr(key):
@@ -1392,11 +1394,13 @@ class Series(np.ndarray, PandasGeneric):
                 self[i:j] = value
             else:
                 self[key] = value
-        else:
+        elif _is_list_like(key):
             inds, mask = self.index.get_indexer(key)
             if not mask.all():
                 raise Exception('Indices %s not found' % key[-mask])
             self.put(inds, value)
+        else:
+            self[key] = value
 
 class TimeSeries(Series):
     pass

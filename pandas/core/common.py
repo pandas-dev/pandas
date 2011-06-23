@@ -121,7 +121,7 @@ def _need_slice(obj):
     return obj.start is not None or obj.stop is not None
 
 def _check_step(obj):
-    if obj.step is not None:
+    if obj.step is not None and obj.step != 1:
         raise Exception('steps other than 1 are not supported')
 
 def _ensure_index(index_like):

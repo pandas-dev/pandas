@@ -248,6 +248,10 @@ class TestSeries(unittest.TestCase):
         mask = self.series > self.series.median()
         assert_series_equal(self.series.ix[mask], self.series[mask])
 
+        # ask for index value
+        self.assertEquals(self.series.ix[d1], self.series[d1])
+        self.assertEquals(self.series.ix[d2], self.series[d2])
+
     def test_ix_setitem(self):
         inds = self.series.index[[3,4,7]]
 
@@ -267,6 +271,12 @@ class TestSeries(unittest.TestCase):
         result.ix[d1:d2] = 6
         expected[5:16] = 6 # because it's inclusive
         assert_series_equal(result, expected)
+
+        # set index value
+        self.series.ix[d1] = 4
+        self.series.ix[d2] = 6
+        self.assertEquals(self.series[d1], 4)
+        self.assertEquals(self.series[d2], 6)
 
     def test_ix_setitem_boolean(self):
         mask = self.series > self.series.median()
