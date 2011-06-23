@@ -32,11 +32,12 @@ Release notes
   versions of `Series`, `DataFrame`, and `WidePanel`. For low-density data, this
   will result in significant performance boosts, and smaller memory
   footprint. Added `to_sparse` methods to `Series`, `DataFrame`, and
-  `WidePanel`.
+  `WidePanel`. See online documentation for more on these
 * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
   statistics about each data column
 * `DataFrame.quantile`, `Series.quantile`
 * Fancy indexing operator on Series / DataFrame, e.g.:
+  * series.ix[[d1, d2, d3]]
   * frame.ix[5:10, ['C', 'B', 'A']]
   * frame.ix[date1:date2]
 * Boolean indexing with DataFrame objects: df[df > 1] = 1
@@ -50,6 +51,11 @@ Release notes
   arbitrary criterion (function returning boolean value),
   e.g. frame.select(lambda x: 'foo' in x, axis=1)
 * `DataFrame.consolidate` method, API function relating to redesigned internals
+* `HDFStore` class in `pandas.io.pytables` has been largely rewritten using
+  patches from Jeff Reback from others. It now supports mixed-type `DataFrame`
+  and `Series` data and can store `WidePanel` objects. It also has the option to
+  query `DataFrame` and `WidePanel` data. Loading data from legacy `HDFStore`
+  files is supported explicitly in the code
 
 **Improvements to existing features**
 
@@ -69,16 +75,35 @@ Release notes
 * Can slice `DataFrame` and get a view of the data (when homogeneously typed),
   e.g. frame.xs(idx, copy=False) or frame.ix[idx]
 * Many speed optimizations throughout `Series` and `DataFrame`
+* Eager evaluation of groups when calling ``groupby`` functions, so if there is
+  an exception with the grouping function it will raised immediately versus
+  sometime later on when the groups are needed
+* `datetools.WeekOfMonth` offset can be parameterized with `n` different than 1
+  or -1.
+* `parseCSV` / `read_csv` functions and others in `pandas.io.parsers` now can
+  take a list of custom NA values, and also a list of rows to skip
+* Statistical methods on DataFrame like `mean`, `std`, `var`, `skew` will now
+  ignore non-numerical data. Before a not very useful error message was
+  generated. A flag `numeric_only` has been added to `DataFrame.sum` and
+  `DataFrame.count` to enable this behavior in those methods if so desired
+  (disabled by default)
 
 **API Changes**
 
-* The `DataMatrix` variable now refers to `DataFrame`, will be removed in next
-  release
+* The `DataMatrix` variable now refers to `DataFrame`, will be removed within
+  two releases
+* A `copy` argument has been added to the `DataFrame` constructor to avoid
+  unnecessary copying of data. Data is no longer copied by default when passed
+  into the constructor
 * Handling of boolean dtype in `DataFrame` has been improved to support storage
   of boolean data with NA / NaN values. Before it was being converted to float64
   so this should not (in theory) cause API breakage
+* Boolean indexing using Series must now have the same indices (labels)
 * Backwards compatibility support for begin/end/nPeriods keyword arguments in
   DateRange class has been removed
+* More intuitive / shorter filling aliases `ffill` (for `pad`) and `bfill` (for
+  `backfill`) have been added to the functions that use them: `reindex`,
+  `asfreq`, `fillna`.
 * `pandas.core.mixins` code moved to `pandas.core.generic`
 * `buffer` keyword arguments (e.g. `DataFrame.toString`) renamed to `buf` to
   avoid using Python built-in name
@@ -106,6 +131,7 @@ Thanks
 ------
 - Joon Ro
 - Michael Pennington
+- Chris Uga
 - Chris Withers
 - Jeff Reback
 
