@@ -2512,15 +2512,23 @@ class DataFrame(PandasGeneric):
             return self
 
         axis_name = self._get_axis_name(axis)
-
         labels = getattr(self, axis_name)
         if _is_label_slice(labels, slice_obj):
             i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
-            new_labels = labels[i:j]
+            slicer = slice(i, j)
         else:
-            new_labels = labels[slice_obj]
+            slicer = slice_obj
 
-        return self.reindex(**{axis_name : new_labels})
+        if axis == 0:
+            new_index = self.index[slicer]
+            new_columns = self.columns
+            new_values = self.values[slicer]
+        else:
+            new_index = self.index
+            new_columns = self.columns[slicer]
+            new_values = self.values[:, slicer]
+
+        return DataFrame(new_values, index=new_index, columns=new_columns)
 
 class _DataFrameIndexer(object):
     """

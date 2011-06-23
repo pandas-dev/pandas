@@ -195,6 +195,12 @@ class CheckIndexing(object):
         # slice columns
         assert_frame_equal(ix[:, :2], f.reindex(columns=['A', 'B']))
 
+        # get view
+        exp = f.copy()
+        ix[5:10].values[:] = 5
+        exp.values[5:10] = 5
+        assert_frame_equal(f, exp)
+
     def test_getitem_fancy_1d(self):
         f = self.frame
         ix = f.ix
