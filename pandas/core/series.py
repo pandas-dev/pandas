@@ -66,8 +66,8 @@ def _arith_method(op, name):
                                           self.index.indexMap,
                                           other.index.indexMap)
             except Exception:
-                arr = Series.combineFunc(self, other,
-                                         getattr(type(self[0]), name))
+                arr = Series._combineFunc(self, other,
+                                          getattr(type(self[0]), name))
             result = Series(arr, index=newIndex)
             return result
 
@@ -81,6 +81,23 @@ def _arith_method(op, name):
         else:
             return Series(op(values, other), index=self.index)
     return wrapper
+
+def _flex_method(op, name):
+    def f(self, other, fill_value=None):
+        return self._combine(other, op, fill_value=fill_value)
+
+    f.__doc__ = """
+    Binary operator %s
+
+    Parameters
+    ----------
+    other: Series or scalar value
+    fill_value : None or float value, default None
+        Fill missing (NaN) values with this value. If both Series are
+        missing, the result will be missing
+    """ % name
+    f.__name__ = name
+    return f
 
 #-------------------------------------------------------------------------------
 # Series class
@@ -717,7 +734,53 @@ class Series(np.ndarray, PandasGeneric):
         new_values = np.concatenate((self, other))
         return Series(new_values, index=newIndex)
 
-    def combineFunc(self, other, func):
+    def _combine(self, other, func, fill_value=None):
+        """
+        Parameters
+        ----------
+        other : Series
+
+        Returns
+        -------
+        combined : Series
+        """
+        # TODO: docstring
+
+        assert(isinstance(other, Series))
+
+        new_index = self.index
+        this = self
+
+        if not self.index.equals(other.index):
+            new_index = self.index + other.index
+            this = self.reindex(new_index)
+            other = other.reindex(new_index)
+
+        do_fill = fill_value is not None
+
+        this_vals = this.values
+        other_vals = other.values
+
+        if do_fill:
+            this_mask = isnull(this_vals)
+            other_mask = isnull(other_vals)
+            this_vals = this_vals.copy()
+            other_vals = other_vals.copy()
+
+            # one but not both
+            mask = this_mask ^ other_mask
+            this_vals[this_mask & mask] = fill_value
+            other_vals[other_mask & mask] = fill_value
+
+        result = func(this_vals, other_vals)
+        return Series(result, index=new_index)
+
+    add = _flex_method(operator.add, 'add')
+    sub = _flex_method(operator.sub, 'subtract')
+    mul = _flex_method(operator.mul, 'multiply')
+    div = _flex_method(operator.div, 'divide')
+
+    def _combineFunc(self, other, func):
         """
         Combines this Series using the given function with either
           * another Series index by index

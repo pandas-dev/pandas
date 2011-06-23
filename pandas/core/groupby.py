@@ -57,15 +57,6 @@ class GroupBy(object):
         self.groups = tseries.groupby(axis, self.grouper,
                                       output=GroupDict())
 
-    # @property
-    # def groups(self):
-    #     if self._groups is None:
-    #         axis = self._group_axis
-    #         self._groups = tseries.groupby(axis, self.grouper,
-    #                                        output=GroupDict())
-
-    #     return self._groups
-
     @property
     def group_indices(self):
         if self._group_indices is None:

@@ -1671,16 +1671,17 @@ class DataFrame(PandasGeneric):
 
         Columns not in this frame are added as new columns.
         """
-        # TODO: with blocks
         if not other:
             return self.copy()
         if not self:
             return other.copy()
 
         new_index = np.concatenate((self.index, other.index))
-        new_columns = self.columns
         new_data = {}
 
+        new_columns = self.columns
+
+        this = self
         if not new_columns.equals(other.columns):
             new_columns = self.columns + other.columns
 

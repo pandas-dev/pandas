@@ -5,6 +5,7 @@ import os
 import operator
 import unittest
 
+from numpy import nan
 import numpy as np
 
 from pandas import Index, Series, TimeSeries, DataFrame, isnull
@@ -394,7 +395,7 @@ class TestSeries(unittest.TestCase):
 
         def _check_op(other, op):
             cython_or_numpy = op(series, other)
-            python = series.combineFunc(other, op)
+            python = series._combineFunc(other, op)
 
             common.assert_almost_equal(cython_or_numpy, python)
 
@@ -458,6 +459,18 @@ class TestSeries(unittest.TestCase):
 
         common.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
         self.assertRaises(Exception, self.ts.__pow__, df)
+
+    def test_operators_combine(self):
+        a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
+        b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
+
+        result = a.add(b)
+        expected = Series([nan, 2., nan, 6, nan, nan], index=np.arange(6))
+        assert_series_equal(result, expected)
+
+        result = a.add(b, fill_value=0)
+        expected = Series([nan, 2., 2, 6, nan, 4], index=np.arange(6))
+        assert_series_equal(result, expected)
 
     def test_combineFirst(self):
         series = Series(common.makeIntIndex(20).astype(float),

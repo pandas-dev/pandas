@@ -16,11 +16,12 @@ from pandas.stats.api import *
 from pandas.util.testing import debug
 
 from numpy.testing import Tester
-class NoseWrapper(Tester):
+
+class NoseWrapper(Tester): # pragma: no cover
     '''
-    This is simply a monkey patch for numpy.testing.Tester, so that extra_argv can
-    be changed from its default None to ['--exe'] so that the tests can be run
-    the same across platforms.
+    This is simply a monkey patch for numpy.testing.Tester, so that extra_argv
+    can be changed from its default None to ['--exe'] so that the tests can be
+    run the same across platforms.
     '''
     def test(self, label='fast', verbose=1, extra_argv=['--exe'], doctests=False,
              coverage=False):
