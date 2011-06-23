@@ -147,6 +147,12 @@ class TesttHDFStore(unittest.TestCase):
 
     def test_frame(self):
         df = tm.makeDataFrame()
+
+        # put in some random NAs
+        df.values[0, 0] = np.nan
+        df.values[5, 3] = np.nan
+
+        self._check_roundtrip_table(df, tm.assert_frame_equal)
         self._check_roundtrip(df, tm.assert_frame_equal)
 
         tdf = tm.makeTimeDataFrame()
@@ -174,14 +180,9 @@ class TesttHDFStore(unittest.TestCase):
         self.store['obj'] = df2
         tm.assert_frame_equal(self.store['obj'], df2)
 
-    def test_frame_table(self):
-        df = tm.makeDataFrame()
-
-        # put in some random NAs
-        df.values[0, 0] = np.nan
-        df.values[5, 3] = np.nan
-
-        self._check_roundtrip_table(df, tm.assert_frame_equal)
+        # storing in Table not yet supported
+        self.assertRaises(Exception, self.store.put, 'foo',
+                          df1, table=True)
 
     def test_wide(self):
         wp = tm.makeWidePanel()

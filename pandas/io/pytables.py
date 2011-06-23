@@ -356,6 +356,11 @@ class HDFStore(object):
     def _write_frame_table(self, group, df, append=False, comp=None):
         mat = df.values
         values = mat.reshape((1,) + mat.shape)
+
+        if df._is_mixed_type:
+            raise Exception('Cannot currently store mixed-type DataFrame '
+                            'objects in Table format')
+
         self._write_table(group, items=['value'],
                           index=df.index, columns=df.columns,
                           values=values, append=append, compression=comp)
