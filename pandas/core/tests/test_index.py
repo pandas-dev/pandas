@@ -1,11 +1,14 @@
 from datetime import timedelta
-from pandas.core.index import Index
-import pandas.util.testing as common
-import pandas.lib.tseries as tseries
-import numpy as np
+import operator
 import os
 import pickle
 import unittest
+
+import numpy as np
+
+from pandas.core.index import Index
+import pandas.util.testing as common
+import pandas.lib.tseries as tseries
 
 class TestIndex(unittest.TestCase):
 
@@ -81,11 +84,20 @@ class TestIndex(unittest.TestCase):
         element = index[len(index) // 2]
         arr = np.array(index)
 
-        self.assert_(np.array_equal(arr == element, index == element))
-        self.assert_(np.array_equal(arr > element, index > element))
-        self.assert_(np.array_equal(arr < element, index < element))
-        self.assert_(np.array_equal(arr >= element, index >= element))
-        self.assert_(np.array_equal(arr <= element, index <= element))
+        def _check(op):
+            arr_result = op(arr, element)
+            index_result = op(index, element)
+
+            self.assert_(isinstance(index_result, np.ndarray))
+            self.assert_(not isinstance(index_result, Index))
+            self.assert_(np.array_equal(arr_result, index_result))
+
+        _check(operator.eq)
+        _check(operator.ne)
+        _check(operator.gt)
+        _check(operator.lt)
+        _check(operator.ge)
+        _check(operator.le)
 
     def test_booleanindex(self):
         boolIdx = np.repeat(True, len(self.strIndex)).astype(bool)

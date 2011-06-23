@@ -172,6 +172,7 @@ class Index(np.ndarray):
             return Index(self.view(np.ndarray) + other)
 
     __eq__ = _indexOp('__eq__')
+    __ne__ = _indexOp('__ne__')
     __lt__ = _indexOp('__lt__')
     __gt__ = _indexOp('__gt__')
     __le__ = _indexOp('__le__')

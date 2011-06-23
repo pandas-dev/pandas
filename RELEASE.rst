@@ -7,8 +7,8 @@ pandas 0.4 Release Notes
 What is it
 ==========
 
-**pandas** is a library of labeled data structures, statistical models, and
-general code for working with time series and cross-sectional data. It was
+**pandas** is a library of powerful labeled data structures, statistical tools,
+and general code for working with time series and cross-sectional data. It was
 designed with the practical needs of statistical modeling and large,
 inhomogeneous data sets in mind.
 
@@ -36,9 +36,9 @@ Release notes
 * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
   statistics about each data column
 * `DataFrame.quantile`, `Series.quantile`
-* Fancy indexing operator on Series / DataFrame, e.g.:
+* Fancy indexing operator on Series / DataFrame, e.g. via .ix operator:
   * series.ix[[d1, d2, d3]]
-  * frame.ix[5:10, ['C', 'B', 'A']]
+  * frame.ix[5:10, ['C', 'B', 'A']], frame.ix[5:10, 'A':'C']
   * frame.ix[date1:date2]
 * Boolean indexing with DataFrame objects: df[df > 1] = 1
 * `pytz` / tzinfo support in `DateRange`
