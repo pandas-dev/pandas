@@ -87,7 +87,8 @@ def _flex_method(op, name):
         return self._combine(other, op, fill_value=fill_value)
 
     f.__doc__ = """
-    Binary operator %s
+    Binary operator %s with support to substitute a fill_value for missing data
+    in one of the inputs
 
     Parameters
     ----------
@@ -95,6 +96,10 @@ def _flex_method(op, name):
     fill_value : None or float value, default None
         Fill missing (NaN) values with this value. If both Series are
         missing, the result will be missing
+
+    Returns
+    -------
+    result : Series
     """ % name
     f.__name__ = name
     return f
@@ -1422,48 +1427,36 @@ class Series(np.ndarray, PandasGeneric):
 
         return self._ix
 
-    def _fancy_getitem(self, key):
-        # asarray can be unsafe, NumPy strings are weird
-        if _isboolarr(key):
-            if isinstance(key, Series):
-                if not key.index.equals(self.index):
-                    raise Exception('Cannot use boolean index with misaligned '
-                                    'or unequal labels')
-            return self.reindex(self.index[key])
-        elif isinstance(key, slice):
-            if not _need_slice(key):
-                return self
-
-            if _is_label_slice(self.index, key):
-                i, j = self.index.slice_locs(key.start, key.stop)
-                return self[i:j]
-            else:
+    def _fancy_index(self, key, value=None, operation='get'):
+        # going to great lengths to avoid code dup
+        if operation == 'get':
+            def do_default():
                 return self[key]
-        elif _is_list_like(key):
-            return self.reindex(key)
-        else:
-            return self[key]
 
-    def _fancy_setitem(self, key, value):
+            def do_list_like():
+                return self.reindex(key)
+        else:
+            def do_default():
+                self[key] = value
+
+            def do_list_like():
+                inds, mask = self.index.get_indexer(key)
+                if not mask.all():
+                    raise Exception('Indices %s not found' % key[-mask])
+                self.put(inds, value)
+        op = do_default
         if _isboolarr(key):
             if isinstance(key, Series):
                 if not key.index.equals(self.index):
                     raise Exception('Cannot use boolean index with misaligned '
                                     'or unequal labels')
-            self[key] = value
         elif isinstance(key, slice):
             if _is_label_slice(self.index, key):
                 i, j = self.index.slice_locs(key.start, key.stop)
-                self[i:j] = value
-            else:
-                self[key] = value
+                key = slice(i, j)
         elif _is_list_like(key):
-            inds, mask = self.index.get_indexer(key)
-            if not mask.all():
-                raise Exception('Indices %s not found' % key[-mask])
-            self.put(inds, value)
-        else:
-            self[key] = value
+            op = do_list_like
+        return op
 
 class TimeSeries(Series):
     pass
@@ -1491,10 +1484,12 @@ class _SeriesIndexer(object):
         self.series = series
 
     def __getitem__(self, key):
-        return self.series._fancy_getitem(key)
+        op = self.series._fancy_index(key, operation='get')
+        return op()
 
     def __setitem__(self, key, value):
-        return self.series._fancy_setitem(key, value)
+        op = self.series._fancy_index(key, value, operation='set')
+        op()
 
 #-------------------------------------------------------------------------------
 # Supplementary functions
