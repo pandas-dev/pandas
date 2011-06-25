@@ -13,10 +13,7 @@ import warnings
 from numpy import NaN, ndarray
 import numpy as np
 
-from pandas.core.common import isnull, notnull
-from pandas.core.common import (_need_slice, _is_label_slice,
-                                _is_list_like, _ensure_index)
-
+from pandas.core.common import isnull, notnull, _ensure_index
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index
