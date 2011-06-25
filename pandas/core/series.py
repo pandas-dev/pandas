@@ -1422,6 +1422,8 @@ class Series(np.ndarray, PandasGeneric):
     _ix = None
     @property
     def ix(self):
+        from pandas.core.indexing import _SeriesIndexer
+
         if self._ix is None:
             self._ix = _SeriesIndexer(self)
 
@@ -1430,75 +1432,10 @@ class Series(np.ndarray, PandasGeneric):
 class TimeSeries(Series):
     pass
 
-
-class _SeriesIndexer(object):
-    """
-    Class to support fancy indexing, potentially using labels
-
-    Notes
-    -----
-    Indexing based on labels is INCLUSIVE
-    Slicing uses PYTHON SEMANTICS (endpoint is excluded)
-
-    If Index contains int labels, these will be used rather than the locations,
-    so be very careful (ambiguous).
-
-    Examples
-    --------
-    >>> ts.ix[5:10] # equivalent to ts[5:10]
-    >>> ts.ix[[date1, date2, date3]]
-    >>> ts.ix[date1:date2] = 0
-    """
-    def __init__(self, series):
-        self.series = series
-
-    def __getitem__(self, key):
-        op = self._fancy_index(key, operation='get')
-        return op()
-
-    def __setitem__(self, key, value):
-        op = self._fancy_index(key, value, operation='set')
-        op()
-
-    def _fancy_index(self, key, value=None, operation='get'):
-        # going to great lengths to avoid code dup
-        series = self.series
-
-        if operation == 'get':
-            def do_default():
-                return series[key]
-
-            def do_list_like():
-                return series.reindex(key)
-        else:
-            def do_default():
-                series[key] = value
-
-            def do_list_like():
-                inds, mask = series.index.get_indexer(key)
-                if not mask.all():
-                    raise Exception('Indices %s not found' % key[-mask])
-                series.put(inds, value)
-        op = do_default
-        if _isboolarr(key):
-            if isinstance(key, Series):
-                if not key.index.equals(series.index):
-                    raise Exception('Cannot use boolean index with misaligned '
-                                    'or unequal labels')
-        elif isinstance(key, slice):
-            if _is_label_slice(series.index, key):
-                i, j = series.index.slice_locs(key.start, key.stop)
-                key = slice(i, j)
-        elif _is_list_like(key):
-            op = do_list_like
-        return op
-
 #-------------------------------------------------------------------------------
 # Supplementary functions
 
 _ndgi = ndarray.__getitem__
-
-_isboolarr = lambda x: np.asarray(x).dtype == np.bool_
 
 def remove_na(arr):
     """

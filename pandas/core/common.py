@@ -96,25 +96,6 @@ def _mut_exclusive(arg1, arg2):
     else:
         return arg2
 
-
-def _is_list_like(obj):
-    return isinstance(obj, (list, np.ndarray))
-
-def _is_label_slice(labels, obj):
-    def crit(x):
-        if x in labels:
-            return False
-        else:
-            return isinstance(x, int) or x is None
-    return not crit(obj.start) or not crit(obj.stop)
-
-def _need_slice(obj):
-    return obj.start is not None or obj.stop is not None
-
-def _check_step(obj):
-    if obj.step is not None and obj.step != 1:
-        raise Exception('steps other than 1 are not supported')
-
 def _ensure_index(index_like):
     from pandas.core.index import Index
     if not isinstance(index_like, Index):
