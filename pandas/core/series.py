@@ -1427,37 +1427,6 @@ class Series(np.ndarray, PandasGeneric):
 
         return self._ix
 
-    def _fancy_index(self, key, value=None, operation='get'):
-        # going to great lengths to avoid code dup
-        if operation == 'get':
-            def do_default():
-                return self[key]
-
-            def do_list_like():
-                return self.reindex(key)
-        else:
-            def do_default():
-                self[key] = value
-
-            def do_list_like():
-                inds, mask = self.index.get_indexer(key)
-                if not mask.all():
-                    raise Exception('Indices %s not found' % key[-mask])
-                self.put(inds, value)
-        op = do_default
-        if _isboolarr(key):
-            if isinstance(key, Series):
-                if not key.index.equals(self.index):
-                    raise Exception('Cannot use boolean index with misaligned '
-                                    'or unequal labels')
-        elif isinstance(key, slice):
-            if _is_label_slice(self.index, key):
-                i, j = self.index.slice_locs(key.start, key.stop)
-                key = slice(i, j)
-        elif _is_list_like(key):
-            op = do_list_like
-        return op
-
 class TimeSeries(Series):
     pass
 
@@ -1484,12 +1453,45 @@ class _SeriesIndexer(object):
         self.series = series
 
     def __getitem__(self, key):
-        op = self.series._fancy_index(key, operation='get')
+        op = self._fancy_index(key, operation='get')
         return op()
 
     def __setitem__(self, key, value):
-        op = self.series._fancy_index(key, value, operation='set')
+        op = self._fancy_index(key, value, operation='set')
         op()
+
+    def _fancy_index(self, key, value=None, operation='get'):
+        # going to great lengths to avoid code dup
+        series = self.series
+
+        if operation == 'get':
+            def do_default():
+                return series[key]
+
+            def do_list_like():
+                return series.reindex(key)
+        else:
+            def do_default():
+                series[key] = value
+
+            def do_list_like():
+                inds, mask = series.index.get_indexer(key)
+                if not mask.all():
+                    raise Exception('Indices %s not found' % key[-mask])
+                series.put(inds, value)
+        op = do_default
+        if _isboolarr(key):
+            if isinstance(key, Series):
+                if not key.index.equals(series.index):
+                    raise Exception('Cannot use boolean index with misaligned '
+                                    'or unequal labels')
+        elif isinstance(key, slice):
+            if _is_label_slice(series.index, key):
+                i, j = series.index.slice_locs(key.start, key.stop)
+                key = slice(i, j)
+        elif _is_list_like(key):
+            op = do_list_like
+        return op
 
 #-------------------------------------------------------------------------------
 # Supplementary functions

@@ -2328,7 +2328,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         dm.xs(2)[:] = 10
         self.assert_((dm.xs(2) == 5).all())
 
-        # TODO: deal with mixed-type fiasco?
+        # TODO (?): deal with mixed-type fiasco?
         self.assertRaises(Exception, self.mixed_frame.xs,
                           self.mixed_frame.index[2], copy=False)
 
