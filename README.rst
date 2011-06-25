@@ -66,12 +66,12 @@ convenient interface. These will be highlighted in a future release.
 Where to get it
 ===============
 
-The source code is currently hosted on googlecode at:
+The source code is currently hosted on GitHub at:
 
-http://pandas.googlecode.com
+http://github.com/wesm/pandas
 
-Binary releases can be downloaded there, or alternately via the Python
-package index or easy_install
+Binary installers for the latest released version can be downloaded there, or
+alternately via the Python package index or easy_install
 
 PyPi: http://pypi.python.org/pypi/pandas/
 
