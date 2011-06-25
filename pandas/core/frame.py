@@ -54,6 +54,9 @@ Returns
 result : DataFrame
 """
 
+class PandasError(Exception):
+    pass
+
 def _arith_method(func, name, default_axis='columns'):
     def f(self, other, axis=default_axis):
         if isinstance(other, DataFrame):    # Another DataFrame
@@ -150,7 +153,7 @@ class DataFrame(PandasGeneric):
             mgr = self._init_matrix(data, index, columns, dtype=dtype,
                                     copy=copy)
         else:
-            raise Exception('DataFrame constructor not properly called!')
+            raise PandasError('DataFrame constructor not properly called!')
 
         self._data = mgr
 
@@ -769,8 +772,8 @@ class DataFrame(PandasGeneric):
             return DataFrame(new_data)
         elif isinstance(item, np.ndarray):
             if len(item) != len(self.index):
-                raise Exception('Item wrong length %d instead of %d!' %
-                                (len(item), len(self.index)))
+                raise ValueError('Item wrong length %d instead of %d!' %
+                                 (len(item), len(self.index)))
             new_index = self.index[item]
             return self.reindex(new_index)
         else:
@@ -791,8 +794,8 @@ class DataFrame(PandasGeneric):
         if isinstance(key, DataFrame):
             if not (key.index.equals(self.index) and
                     key.columns.equals(self.columns)):
-                raise Exception('Can only index with like-indexed '
-                                'DataFrame objects')
+                raise PandasError('Can only index with like-indexed '
+                                  'DataFrame objects')
 
             self._boolean_set(key, value)
         else:
@@ -801,10 +804,10 @@ class DataFrame(PandasGeneric):
     def _boolean_set(self, key, value):
         mask = key.values
         if mask.dtype != np.bool_:
-            raise Exception('Must pass DataFrame with boolean values only')
+            raise ValueError('Must pass DataFrame with boolean values only')
 
         if self._data.is_mixed_dtype():
-            raise Exception('Boolean setting not possible on mixed-type frame')
+            raise ValueError('Boolean setting not possible on mixed-type frame')
 
         self.values[mask] = value
 
@@ -981,7 +984,7 @@ class DataFrame(PandasGeneric):
             matcher = re.compile(regex)
             return self.select(lambda x: matcher.match(x) is not None, axis=1)
         else:
-            raise Exception('items was None!')
+            raise ValueError('items was None!')
 
     def select(self, crit, axis=0):
         """
@@ -2463,26 +2466,7 @@ class DataFrame(PandasGeneric):
 
         return self._ix
 
-    def _fancy_getitem(self, key, axis=0):
-        labels = self._get_axis(axis)
-        axis_name = self._get_axis_name(axis)
-
-        # asarray can be unsafe, NumPy strings are weird
-        isbool = np.asarray(key).dtype == np.bool_
-        if isbool:
-            if isinstance(key, Series):
-                if not key.index.equals(labels):
-                    raise Exception('Cannot use boolean index with misaligned '
-                                    'or unequal labels')
-            return self.reindex(**{axis_name : labels[key]})
-        else:
-            return self.reindex(**{axis_name : key})
-
     def _fancy_getitem_tuple(self, rowkey, colkey):
-        def _is_label_like(key):
-            # select a label or row
-            return not isinstance(key, slice) and not _is_list_like(key)
-
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
         # df.ix[0, ['C', 'B', A']] -> rows first (False)
@@ -2496,9 +2480,12 @@ class DataFrame(PandasGeneric):
 
         return result
 
+    def _fancy_setitem_tuple(self, rowkey, colkey, value):
+        pass
+
     def _fancy_getitem_axis(self, key, axis=0):
         if isinstance(key, slice):
-            return self._slice_axis(key, axis=axis)
+            return self._get_slice_axis(key, axis=axis)
         elif _is_list_like(key):
             return self._fancy_getitem(key, axis=axis)
         elif axis == 0:
@@ -2517,7 +2504,25 @@ class DataFrame(PandasGeneric):
 
             return self[col]
 
-    def _slice_axis(self, slice_obj, axis=0):
+    def _fancy_getitem(self, key, axis=0):
+        labels = self._get_axis(axis)
+        axis_name = self._get_axis_name(axis)
+
+        # asarray can be unsafe, NumPy strings are weird
+        isbool = np.asarray(key).dtype == np.bool_
+        if isbool:
+            if isinstance(key, Series):
+                if not key.index.equals(labels):
+                    raise Exception('Cannot use boolean index with misaligned '
+                                    'or unequal labels')
+            return self.reindex(**{axis_name : labels[key]})
+        else:
+            return self.reindex(**{axis_name : key})
+
+    def _fancy_setitem_axis(self, key, value, axis=0):
+        pass
+
+    def _get_slice_axis(self, slice_obj, axis=0):
         _check_step(slice_obj)
 
         if not _need_slice(slice_obj):
@@ -2541,6 +2546,12 @@ class DataFrame(PandasGeneric):
             new_values = self.values[:, slicer]
 
         return DataFrame(new_values, index=new_index, columns=new_columns)
+
+
+def _is_label_like(key):
+    # select a label or row
+    return not isinstance(key, slice) and not _is_list_like(key)
+
 
 class _DataFrameIndexer(object):
     """
@@ -2577,7 +2588,21 @@ class _DataFrameIndexer(object):
             return frame._fancy_getitem_axis(key, axis=0)
 
     def __setitem__(self, key, value):
-        raise NotImplementedError
+        if self.frame._is_mixed_type:
+            raise Exception('setting on mixed-type frames not yet supported')
+
+        frame = self.frame
+        if isinstance(key, slice):
+            return frame._fancy_setitem_axis(key, value, axis=0)
+        elif isinstance(key, tuple):
+            if len(key) != 2:
+                raise Exception('only length 2 tuple supported')
+            x, y = key
+            return frame._fancy_setitem_tuple(x, y, value)
+        elif _is_list_like(key):
+            return frame._fancy_setitem(key, value, axis=0)
+        else:
+            return frame._fancy_setitem_axis(key, value, axis=0)
 
 def extract_index(data):
     def _union_if(index, new_index):

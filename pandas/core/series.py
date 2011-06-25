@@ -1528,4 +1528,3 @@ def _seriesRepr(index, vals, nanRep='NaN'):
                            itertools.izip(string_index, vals))
 
     return '\n'.join(it)
-
