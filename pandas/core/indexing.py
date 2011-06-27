@@ -109,7 +109,7 @@ class _DataFrameIndexer(object):
             raise Exception('setting on mixed-type frames not yet supported')
 
         if isinstance(key, tuple):
-            if len(key) != 2:
+            if len(key) != 2: # pragma: no cover
                 raise Exception('only length 2 tuple supported')
 
             x, y = key
@@ -133,7 +133,7 @@ class _DataFrameIndexer(object):
 
         Going by Zen of Python?
         "In the face of ambiguity, refuse the temptation to guess."
-        Going to raise AmbiguousIndexError with integer labels?
+        raise AmbiguousIndexError with integer labels?
 
         """
         index = self.frame._get_axis(axis)
@@ -145,18 +145,23 @@ class _DataFrameIndexer(object):
             else:
                 return obj
         elif _is_list_like(obj):
-            obj = np.asarray(obj)
+            objarr = np.asarray(obj)
 
-            if _is_integer_dtype(obj):
+            if _is_integer_dtype(objarr):
                 if is_int_index:
                     raise AmbiguousIndexError('integer labels')
 
                 # retrieve the indices corresponding
-                return obj
+                return objarr
+            elif objarr.dtype == np.bool_:
+                if not obj.index.equals(index):
+                    raise Exception('Cannot use boolean index with misaligned '
+                                    'or unequal labels')
+                return objarr
             else:
-                indexer, mask = index.get_indexer(obj)
+                indexer, mask = index.get_indexer(objarr)
                 if not mask.all():
-                    raise Exception('%s not in index' % obj[-mask])
+                    raise KeyError('%s not in index' % objarr[-mask])
 
                 return indexer
         else:
@@ -178,9 +183,6 @@ class _DataFrameIndexer(object):
         result = self._fancy_getitem_axis(colkey, axis=1)
         return result.ix[rowkey]
 
-    def _fancy_setitem_tuple(self, rowkey, colkey, value):
-        pass
-
     def _fancy_getitem_axis(self, key, axis=0):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
@@ -189,6 +191,9 @@ class _DataFrameIndexer(object):
         elif axis == 0:
             idx = key
             if isinstance(key, int):
+                if _is_integer_index(self.frame.index):
+                    raise AmbiguousIndexError('integer labels')
+
                 idx = self.frame.index[key]
 
             if self.frame._is_mixed_type:
@@ -198,19 +203,20 @@ class _DataFrameIndexer(object):
         else:
             col = key
             if isinstance(key, int):
+                if _is_integer_index(self.frame.columns):
+                    raise AmbiguousIndexError('integer labels')
                 col = self.frame.columns[key]
 
             return self.frame[col]
-
-    def _fancy_setitem_axis(self, key, value, axis=0):
-        pass
 
     def _fancy_getitem(self, key, axis=0):
         labels = self.frame._get_axis(axis)
         axis_name = self.frame._get_axis_name(axis)
 
+        keyarr = np.asarray(key)
+
         # asarray can be unsafe, NumPy strings are weird
-        isbool = np.asarray(key).dtype == np.bool_
+        isbool = keyarr.dtype == np.bool_
         if isbool:
             if isinstance(key, Series):
                 if not key.index.equals(labels):
@@ -218,10 +224,10 @@ class _DataFrameIndexer(object):
                                     'or unequal labels')
             return self.frame.reindex(**{axis_name : labels[key]})
         else:
-            return self.frame.reindex(**{axis_name : key})
+            if _is_integer_dtype(keyarr) and _is_integer_index(labels):
+                raise AmbiguousIndexError('integer labels')
 
-    def _fancy_setitem(self, key, value, axis=0):
-        pass
+            return self.frame.reindex(**{axis_name : key})
 
     def _get_slice_axis(self, slice_obj, axis=0):
         _check_step(slice_obj)

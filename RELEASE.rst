@@ -10,7 +10,8 @@ What is it
 **pandas** is a library of powerful labeled data structures, statistical tools,
 and general code for working with time series and cross-sectional data. It was
 designed with the practical needs of statistical modeling and large,
-inhomogeneous data sets in mind.
+inhomogeneous data sets in mind. It is particularly well suited for, among other
+things, financial data analysis applications.
 
 ===============
 Where to get it
@@ -36,7 +37,9 @@ Release notes
 * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
   statistics about each data column
 * `DataFrame.quantile`, `Series.quantile`
-* Fancy indexing operator on Series / DataFrame, e.g. via .ix operator:
+* Fancy indexing operator on Series / DataFrame, e.g. via .ix operator. Both
+  getting and setting of values is supported; however, setting values will only
+  currently work on homogeneously-typed DataFrame objects
   * series.ix[[d1, d2, d3]]
   * frame.ix[5:10, ['C', 'B', 'A']], frame.ix[5:10, 'A':'C']
   * frame.ix[date1:date2]

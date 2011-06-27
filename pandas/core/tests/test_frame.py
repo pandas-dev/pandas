@@ -294,8 +294,56 @@ class CheckIndexing(object):
         frame.ix[:, 'B':'C'] = 4.
         assert_frame_equal(frame, expected)
 
+        # case 8: set with booleans
+        frame = self.frame.copy()
+        expected = self.frame.copy()
+
+        mask = frame['A'] > 0
+        frame.ix[mask] = 0.
+        expected.values[mask] = 0.
+        assert_frame_equal(frame, expected)
+
+        frame = self.frame.copy()
+        expected = self.frame.copy()
+        frame.ix[mask, ['A', 'B']] = 0.
+        expected.values[mask, :2] = 0.
+        assert_frame_equal(frame, expected)
+
+    def test_fancy_index_corner(self):
+        from pandas.core.indexing import AmbiguousIndexError
+
+        # ambiguous
+
+        df = DataFrame(np.random.randn(10, 5))
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__setitem__,
+                          ([0, 1, 2], [4, 5, 6]), 5)
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__setitem__, [0, 1, 2], 5)
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__setitem__, 0, 5)
+
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__getitem__, ([0, 1, 2], [4, 5, 6]))
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__getitem__, [0, 1, 2])
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__getitem__, 0)
+
+        # try to set indices not contained in frame
+        self.assertRaises(KeyError,
+                          self.frame.ix.__setitem__,
+                          ['foo', 'bar', 'baz'], 1)
+        self.assertRaises(KeyError,
+                          self.frame.ix.__setitem__,
+                          (slice(None, None), ['E']), 1)
+        self.assertRaises(KeyError,
+                          self.frame.ix.__setitem__,
+                          (slice(None, None), 'E'), 1)
+
     def test_setitem_fancy_mixed_2d(self):
-        pass
+        self.assertRaises(Exception, self.mixed_frame.ix.__setitem__,
+                          (slice(0, 5), ['C', 'B', 'A']), 5)
 
     def test_getitem_fancy_1d(self):
         f = self.frame
@@ -398,17 +446,18 @@ class CheckIndexing(object):
                 assert_almost_equal(ix[idx, col], ts[idx])
 
     def test_setitem_fancy_scalar(self):
-        # foo
-        """
         f = self.frame
+        expected = self.frame.copy()
         ix = f.ix
         # individual value
-        for col in f.columns:
+        for j, col in enumerate(f.columns):
             ts = f[col]
             for idx in f.index[::5]:
-                assert_almost_equal(ix[idx, col], ts[idx])
-        """
-        pass
+                i = f.index.get_loc(idx)
+                val = randn()
+                expected.values[i,j] = val
+                ix[idx, col] = val
+                assert_frame_equal(f, expected)
 
     def test_getitem_fancy_boolean(self):
         f = self.frame
