@@ -333,7 +333,7 @@ class DataFrame(PandasGeneric):
         return dict((k, v.toDict()) for k, v in self.iteritems())
 
     @classmethod
-    def fromRecords(cls, data, indexField=None):
+    def from_records(cls, data, indexField=None):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -360,7 +360,7 @@ class DataFrame(PandasGeneric):
 
         return cls(sdict, index=index, columns=columns)
 
-    def toRecords(self, index=True):
+    def to_records(self, index=True):
         """
         Convert DataFrame to record array. Index will be put in the
         'index' field of the record array.
@@ -2439,6 +2439,17 @@ class DataFrame(PandasGeneric):
         warnings.warn("asMatrix is deprecated. Use 'as_matrix' or .values "
                       "instead", FutureWarning)
         return self.as_matrix(*args, **kwargs)
+
+    def toRecords(self, *args, **kwargs): # pragma: no cover
+        warnings.warn("toRecords is deprecated. Use 'to_records' "
+                      "instead", FutureWarning)
+        return self.to_records(*args, **kwargs)
+
+    @classmethod
+    def fromRecords(cls, *args, **kwargs): # pragma: no cover
+        warnings.warn("fromRecords is deprecated. Use 'from_records' "
+                      "instead", FutureWarning)
+        return cls.from_records(*args, **kwargs)
 
     def _firstTimeWithValue(self): # pragma: no cover
         warnings.warn("_firstTimeWithValue is deprecated. Use "

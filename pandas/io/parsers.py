@@ -13,7 +13,7 @@ from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
 def read_csv(filepath, header=0, skiprows=None, index_col=0,
-             na_values=None):
+             na_values=None, date_parser=None):
     """
     Read CSV file into DataFrame
 
@@ -28,6 +28,8 @@ def read_csv(filepath, header=0, skiprows=None, index_col=0,
     index_col : int, default 0
         Column to use as the row labels of the DataFrame. Pass None if there is
         no such column
+    na_values : list-like, default None
+        List of strings to recognize as NA/NaN
     """
     import csv
     try:
@@ -43,11 +45,11 @@ def read_csv(filepath, header=0, skiprows=None, index_col=0,
     else:
         lines = [l for l in reader]
     f.close()
-    return simpleParser(lines, header=header, indexCol=index_col,
-                        na_values=na_values)
+    return _simple_parser(lines, header=header, indexCol=index_col,
+                          na_values=na_values, date_parser=date_parser)
 
 def read_table(filepath, sep='\t', header=0, skiprows=None, index_col=0,
-               na_values=None, names=None):
+               na_values=None, names=None, date_parser=None):
     """
     Read delimited file into DataFrame
 
@@ -63,6 +65,8 @@ def read_table(filepath, sep='\t', header=0, skiprows=None, index_col=0,
     index_col : int, default 0
         Column to use as the row labels of the DataFrame. Pass None if there is
         no such column
+    na_values : list-like, default None
+        List of strings to recognize as NA/NaN
     """
     reader = open(filepath,'rb')
 
@@ -73,11 +77,12 @@ def read_table(filepath, sep='\t', header=0, skiprows=None, index_col=0,
         lines = [l for l in reader]
 
     lines = [re.split(sep, l.rstrip()) for l in lines]
-    return simpleParser(lines, header=header, indexCol=index_col,
-                        colNames=names, na_values=na_values)
+    return _simple_parser(lines, header=header, indexCol=index_col,
+                          colNames=names, na_values=na_values,
+                          date_parser=date_parser)
 
-def simpleParser(lines, colNames=None, header=0, indexCol=0,
-                 na_values=None):
+def _simple_parser(lines, colNames=None, header=0, indexCol=0,
+                   na_values=None, date_parser=None, parse_dates=True):
     """
     Workhorse function for processing nested list into DataFrame
 
@@ -111,7 +116,9 @@ def simpleParser(lines, colNames=None, header=0, indexCol=0,
     if indexCol is not None:
         index_name = columns[indexCol]
         # try to parse dates
-        index = _try_parse_dates(data.pop(index_name))
+        index = data.pop(index_name)
+        if parse_dates:
+            index = _try_parse_dates(index, parser=date_parser)
     else:
         index = np.arange(len(data.values()[0]))
 
@@ -157,19 +164,19 @@ def _convert_to_ndarrays(dct):
 
     return result
 
-def _try_parse_dates(values):
+def _try_parse_dates(values, parser=None):
+    if parser is None:
+        try:
+            from dateutil import parser
+            parse_date = parser.parse
+        except ImportError:
+            def parse_date(s):
+                try:
+                    return datetime.strptime(s, '%m/%d/%Y')
+                except Exception:
+                    return s
+    # EAFP
     try:
-        from dateutil import parser
-        parse_date = parser.parse
-    except ImportError:
-        def parse_date(s):
-            try:
-                return datetime.strptime(s, '%m/%d/%Y')
-            except Exception:
-                return s
-
-    try:
-        # easier to ask forgiveness than permission
         return [parse_date(val) for val in values]
     except Exception:
         # failed
@@ -181,18 +188,21 @@ def _try_parse_dates(values):
 
 class ExcelFile(object):
     """
-    Class for parsing tabular .xls sheets into DataFrame objects, uses xlrd
+    Class for parsing tabular .xls sheets into DataFrame objects, uses xlrd. See
+    ExcelFile.parse for more documentation
 
     Parameters
     ----------
     path : string
         Path to xls file
     """
-
     def __init__(self, path):
         import xlrd
         self.path = path
         self.book = xlrd.open_workbook(path)
+
+    def __repr__(self):
+        return object.__repr__(self)
 
     def old_parse(self, sheetname, header=None, index_col=0, date_col=0):
         from pandas.core.datetools import ole2datetime
@@ -205,10 +215,27 @@ class ExcelFile(object):
                     row[date_col] = ole2datetime(row[date_col])
                 except Exception:
                     pass
-        return simpleParser(data, header=header, indexCol=index_col)
+        return _simple_parser(data, header=header, indexCol=index_col)
 
     def parse(self, sheetname, header=None, skiprows=None, index_col=0,
               na_values=None):
+        """
+        Read Excel table into DataFrame
+
+        Parameters
+        ----------
+        sheetname : string
+            Name of Excel sheet
+        header : int, default 0
+            Row to use for the column labels of the parsed DataFrame
+        skiprows : list-like
+            Row numbers to skip (0-indexed)
+        index_col : int, default 0
+            Column to use as the row labels of the DataFrame. Pass None if there
+            is no such column
+        na_values : list-like, default None
+            List of strings to recognize as NA/NaN
+        """
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE
 
@@ -235,17 +262,20 @@ class ExcelFile(object):
                         value = datetime(*dt)
                 row.append(value)
             data.append(row)
-        return simpleParser(data, header=header, indexCol=index_col,
-                            na_values=na_values)
+        return _simple_parser(data, header=header, indexCol=index_col,
+                              na_values=na_values)
 
 #-------------------------------------------------------------------------------
-# Basically deprecated stuff
+# Deprecated stuff
+
+import warnings
 
 def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
              na_values=None):
     """
     Parse CSV file into a DataFrame object. Try to parse dates if possible.
     """
+    warnings.warn("parseCSV is deprecated. Use read_csv instead", FutureWarning)
     return read_csv(filepath, header=header, skiprows=skiprows,
                     index_col=indexCol, na_values=na_values)
 
@@ -254,6 +284,8 @@ def parseText(filepath, sep='\t', header=0, indexCol=0, colNames=None):
     Parse whitespace separated file into a DataFrame object.
     Try to parse dates if possible.
     """
+    warnings.warn("parseText is deprecated. Use read_table instead",
+                  FutureWarning)
     return read_table(filepath, sep=sep, header=header, index_col=indexCol,
                       names=colNames)
 
@@ -262,6 +294,8 @@ def parseExcel(filepath, header=None, indexCol=0, sheetname=None, **kwds):
     """
 
     """
+    warnings.warn("parseExcel is deprecated. Use the ExcelFile class instead",
+                  FutureWarning)
     excel_file = ExcelFile(filepath)
     return excel_file.parse(sheetname, header=header, index_col=indexCol)
 

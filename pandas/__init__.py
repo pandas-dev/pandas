@@ -10,7 +10,8 @@ from pandas.version import version as __version__
 from pandas.info import __doc__
 
 from pandas.core.api import *
-from pandas.io.parsers import parseCSV, parseText, parseExcel
+from pandas.io.parsers import (parseCSV, parseText, parseExcel, read_csv,
+                               read_table, ExcelFile)
 from pandas.io.pytables import HDFStore
 from pandas.stats.api import *
 from pandas.util.testing import debug

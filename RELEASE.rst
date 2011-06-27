@@ -115,8 +115,13 @@ Release notes
   avoid using Python built-in name
 * `DataFrame.rows()` removed (use `DataFrame.index`)
 * Added deprecation warning to `DataFrame.cols()`, to be removed in next release
-* `DataFrame` deprecations: `merge`, `asMatrix`, `toDataMatrix`,
-  `_firstTimeWithValue`, `_lastTimeWithValue`
+* `DataFrame` deprecations and de-camelCasing: `merge`, `asMatrix`,
+  `toDataMatrix`, `_firstTimeWithValue`, `_lastTimeWithValue`, `toRecords`,
+  `fromRecords`
+* `pandas.io.parsers` method deprecations
+  * `parseCSV` is now `read_csv` and keyword arguments have been de-camelCased
+  * `parseText` is now `read_table`
+  * `parseExcel` is replaced by the `ExcelFile` class and its `parse` method
 * `fillMethod` arguments (deprecated in prior release) removed, should be
   replaced with `method`
 * `Series.fill`, `DataFrame.fill`, and `WidePanel.fill` removed, use `fillna`
@@ -126,7 +131,7 @@ Release notes
 
 * Column ordering in `pandas.io.parsers.parseCSV` will match CSV in the presence
   of mixed-type data
-* Fixed handling of Excel 2003 dates in `ExcelFile` / `parseExcel`
+* Fixed handling of Excel 2003 dates in `pandas.io.parsers`
 * `DateRange` caching was happening with high resolution `DateOffset` objects,
   e.g. `DateOffset(seconds=1)`. This has been fixed
 * Fixed __truediv__ issue in `DataFrame`
