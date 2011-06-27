@@ -1,12 +1,12 @@
 clean:
 	-rm -rf build dist
 
-tseries: pandas/lib/src/tseries.pyx
-	touch pandas/lib/src/tseries.pyx
-	python build_cython.py build_ext --inplace
+tseries: pandas/src/tseries.pyx
+	touch pandas/src/tseries.pyx
+	python setup.py build_ext --inplace
 
-sparse: pandas/lib/src/sparse.pyx
-	-python build_cython.py build_ext --inplace
+sparse: pandas/src/sparse.pyx
+	-python setup.py build_ext --inplace
 
 test: sparse
-	-python pandas/lib/tests/test_libsparse.py
+	-python pandas/tests/test_libsparse.py

@@ -5,7 +5,6 @@ from cStringIO import StringIO
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
-import pandas.core.common as common
 import pandas._tseries as _tseries
 
 class GroupDict(dict):
@@ -48,30 +47,30 @@ class GroupBy(object):
     _groups = None
     _group_indices = None
 
-    def __init__(self, obj, grouper):
+    def __init__(self, obj, grouper, axis=0):
         self.obj = obj
         if hasattr(grouper, 'get'):
             grouper = grouper.get
         self.grouper = grouper
-        axis = self._group_axis
-        self.groups = _tseries.groupby(axis, self.grouper,
-                                      output=GroupDict())
+
+        self.axis = axis
+        self._group_axis = obj._get_axis(axis)
+        self._group_axis_name = obj._get_axis_name(axis)
+        self.group_indices = _tseries.groupby_indices(self._group_axis,
+                                                      self.grouper)
 
     @property
-    def group_indices(self):
-        if self._group_indices is None:
+    def groups(self):
+        if self._groups is None:
             axis = self._group_axis
-            self._group_indices = _tseries.groupby_indices(axis, self.grouper)
+            self._groups = _tseries.groupby(axis, self.grouper,
+                                            output=GroupDict())
+        return self._groups
 
-        return self._group_indices
-
-    @property
-    def _group_axis(self):
-        # default
-        return self.obj.index
-
-    def getGroup(self, groupList):
-        return self.obj.reindex(groupList)
+    def getGroup(self, indices):
+        labels = np.asarray(self._group_axis)
+        group_labels = labels.take(indices)
+        return self.obj.reindex(**{self._group_axis_name : group_labels})
 
     def __iter__(self):
         """
@@ -82,13 +81,14 @@ class GroupBy(object):
         Generator yielding sequence of (groupName, subsetted object)
         for each group
         """
+        groups = self.group_indices.keys()
         try:
-            groupNames = sorted(self.groups)
+            groupNames = sorted(groups)
         except Exception: # pragma: no cover
-            groupNames = self.groups.keys()
+            pass
 
-        for groupName in groupNames:
-            yield groupName, self[groupName]
+        for name in groups:
+            yield name, self[name]
 
     def aggregate(self, func):
         raise NotImplementedError
@@ -96,11 +96,10 @@ class GroupBy(object):
     def agg(self, func):
         return self.aggregate(func)
 
-    def _aggregate_generic(self, getter, agger, axis=0):
+    def _aggregate_generic(self, agger, axis=0):
         result = {}
-        for name, group in self.groups.iteritems():
-            data = getter(self.obj, group)
-
+        for name, inds in self.group_indices.iteritems():
+            data = self.getGroup(inds)
             try:
                 result[name] = agger(data)
             except Exception:
@@ -125,7 +124,7 @@ class GroupBy(object):
         return self.aggregate(np.sum)
 
     def __getitem__(self, key):
-        return self.getGroup(self.groups[key])
+        return self.getGroup(self.group_indices[key])
 
 class SeriesGroupBy(GroupBy):
 
@@ -182,16 +181,16 @@ class SeriesGroupBy(GroupBy):
 
     def _aggregate_named(self, applyfunc):
         result = {}
-        for groupName in self.groups:
-            grp = self[groupName]
-            grp.groupName = groupName
+        for k, v in self.group_indices.iteritems():
+            grp = self[k]
+            grp.groupName = k
             output = applyfunc(grp)
 
             if isinstance(output, Series):
                 raise Exception('Given applyfunc did not return a '
                                 'value from the subseries as expected!')
 
-            result[groupName] = output
+            result[k] = output
 
         return result
 
@@ -242,20 +241,7 @@ class DataFrameGroupBy(GroupBy):
     def __init__(self, obj, grouper, axis=0):
         if isinstance(grouper, basestring):
             grouper = obj[grouper].get
-
-        self.axis = axis
-
-        if axis not in (0, 1): # pragma: no cover
-            raise Exception('invalid axis')
-
-        GroupBy.__init__(self, obj, grouper)
-
-    @property
-    def _group_axis(self):
-        if self.axis == 0:
-            return self.obj.index
-        else:
-            return self.obj.columns
+        GroupBy.__init__(self, obj, grouper, axis=axis)
 
     def aggregate(self, applyfunc):
         """
@@ -268,7 +254,7 @@ class DataFrameGroupBy(GroupBy):
         ----------
         mapper : function, dict-like, or string
             Mapping or mapping function. If string given, must be a column
-            name in the frame
+            name in the framep
         applyfunc : function
             Function to use for aggregating groups
 
@@ -277,23 +263,11 @@ class DataFrameGroupBy(GroupBy):
 
         Optional: provide set mapping as dictionary
         """
-        axis_name = 'columns' if self.axis else 'index'
-        getter = lambda df, group: df.reindex(**{axis_name : group})
-        result_d = self._aggregate_generic(getter, applyfunc,
-                                           axis=self.axis)
-
+        result_d = self._aggregate_generic(applyfunc, axis=self.axis)
         result = DataFrame(result_d)
-
         if self.axis == 0:
             result = result.T
-
         return result
-
-    def getGroup(self, groupList):
-        if self.axis == 0:
-            return self.obj.reindex(groupList)
-        else:
-            return self.obj.reindex(columns=groupList)
 
     def transform(self, func):
         """
@@ -362,16 +336,7 @@ class DataFrameGroupBy(GroupBy):
 class WidePanelGroupBy(GroupBy):
 
     def __init__(self, obj, grouper, axis=0):
-        self.axis = axis
-
-        if axis not in (0, 1, 2): # pragma: no cover
-            raise ValueError('invalid axis')
-
-        GroupBy.__init__(self, obj, grouper)
-
-    @property
-    def _group_axis(self):
-        return self.obj._get_axis(self.axis)
+        GroupBy.__init__(self, obj, grouper, axis=axis)
 
     def aggregate(self, func):
         """
@@ -394,10 +359,7 @@ class WidePanelGroupBy(GroupBy):
         Optional: provide set mapping as dictionary
         """
         axis_name = self.obj._get_axis_name(self.axis)
-        getter = lambda p, group: p.reindex(**{axis_name : group})
-        result_d = self._aggregate_generic(getter, func,
-                                           axis=self.axis)
-
+        result_d = self._aggregate_generic(func, axis=self.axis)
         result = WidePanel.fromDict(result_d, intersect=False)
 
         if self.axis > 0:

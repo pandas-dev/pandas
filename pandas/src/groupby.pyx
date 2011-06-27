@@ -37,9 +37,10 @@ def groupby(object index, object mapper, output=None):
     index_buf = np.asarray(index)
     mapped_index = arrmap(index_buf, mapper)
     mask = isnullobj(mapped_index)
-    nullkeys = index_buf[mask.astype(bool)]
-    if len(nullkeys) > 0:
-        result[np.NaN] = nullkeys
+
+    # nullkeys = index_buf[mask.astype(bool)]
+    # if len(nullkeys) > 0:
+    #     result[np.NaN] = nullkeys
 
     for i from 0 <= i < length:
         if mask[i]:
@@ -69,16 +70,11 @@ def groupby_indices(object index, object mapper):
     result = {}
     index = np.asarray(index)
     mapped_index = arrmap(index, mapper)
-
     mask = isnullobj(mapped_index)
-
-    if mask.astype(bool).any():
-        null_list = []
-        result[np.NaN] = null_list
-
     for i from 0 <= i < length:
         if mask[i]:
-            null_list.append(i)
+            continue
+
         key = mapped_index[i]
         if key in result:
             (<list> result[key]).append(i)

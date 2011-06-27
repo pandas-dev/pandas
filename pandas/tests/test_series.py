@@ -1061,6 +1061,17 @@ class TestSeries(unittest.TestCase):
             for idx in group.index:
                 self.assertEqual(transformed[idx], mean)
 
+    def test_groupby_with_na(self):
+        index = Index(np.arange(10))
+        values = Series(np.ones(10), index)
+        labels = Series([nan, 'foo', 'bar', 'bar', nan, nan, 'bar',
+                         'bar', nan, 'foo'], index=index)
+
+        grouped = values.groupby(labels)
+        agged = grouped.agg(len)
+        expected = Series([4, 2], index=['bar', 'foo'])
+        assert_series_equal(agged, expected)
+
     def test_select(self):
         n = len(self.ts)
         result = self.ts.select(lambda x: x >= self.ts.index[n // 2])

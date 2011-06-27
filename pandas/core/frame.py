@@ -407,14 +407,14 @@ class DataFrame(PandasGeneric):
 
         if index_col is not None:
             field = data.dtype.names[index_col]
-            df = cls.fromRecords(data, indexField=field)
+            df = cls.from_records(data, indexField=field)
 
             # have dates?
             test_val = datetools.to_datetime(df.index[0])
             if isinstance(test_val, datetime):
                 df = df.rename(index=datetools.to_datetime)
         else:
-            df = cls.fromRecords(data, indexField=None)
+            df = cls.from_records(data, indexField=None)
 
         return df
 
