@@ -93,6 +93,8 @@ Release notes
   generated. A flag `numeric_only` has been added to `DataFrame.sum` and
   `DataFrame.count` to enable this behavior in those methods if so desired
   (disabled by default)
+* `DataFrame.pivot` generalized to enable pivoting multiple columns into a
+  `WidePanel`
 
 **API Changes**
 

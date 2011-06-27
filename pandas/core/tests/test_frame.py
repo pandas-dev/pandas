@@ -19,7 +19,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal,
                                  randn)
 
-import pandas.util.testing as common
+import pandas.util.testing as tm
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases
@@ -36,7 +36,7 @@ class CheckIndexing(object):
 
         for _, series in sl.iteritems():
             self.assertEqual(20, len(series.index))
-            self.assert_(common.equalContents(series.index, sl.index))
+            self.assert_(tm.equalContents(series.index, sl.index))
 
         for key, _ in self.frame._series.iteritems():
             self.assert_(self.frame[key] is not None)
@@ -59,12 +59,12 @@ class CheckIndexing(object):
         series = self.frame['A'][::2]
         self.frame['col5'] = series
         self.assert_('col5' in self.frame)
-        common.assert_dict_equal(series, self.frame['col5'],
+        tm.assert_dict_equal(series, self.frame['col5'],
                                  compare_keys=False)
 
         series = self.frame['A']
         self.frame['col6'] = series
-        common.assert_dict_equal(series, self.frame['col6'],
+        tm.assert_dict_equal(series, self.frame['col6'],
                                  compare_keys=False)
 
         self.assertRaises(Exception, self.frame.__setitem__,
@@ -521,8 +521,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     klass = DataFrame
 
     def setUp(self):
-        self.seriesd = common.getSeriesData()
-        self.tsd = common.getTimeSeriesData()
+        self.seriesd = tm.getSeriesData()
+        self.tsd = tm.getTimeSeriesData()
 
         self.frame = self.klass(self.seriesd)
         self.intframe = self.klass(dict((k, v.astype(int))
@@ -533,10 +533,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.mixed_frame = self.frame.copy()
         self.mixed_frame['foo'] = 'bar'
 
-        self.ts1 = common.makeTimeSeries()
-        self.ts2 = common.makeTimeSeries()[5:]
-        self.ts3 = common.makeTimeSeries()[-5:]
-        self.ts4 = common.makeTimeSeries()[1:-1]
+        self.ts1 = tm.makeTimeSeries()
+        self.ts2 = tm.makeTimeSeries()[5:]
+        self.ts3 = tm.makeTimeSeries()[-5:]
+        self.ts4 = tm.makeTimeSeries()[1:-1]
 
         self.ts_dict = {
             'col1' : self.ts1,
@@ -597,7 +597,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(len(df.index) == 0)
 
     def test_constructor_mixed(self):
-        index, data = common.getMixedTypeDict()
+        index, data = tm.getMixedTypeDict()
 
         indexed_frame = self.klass(data, index=index)
         unindexed_frame = self.klass(data)
@@ -612,8 +612,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         frame = self.klass({'col1' : self.ts1,
                             'col2' : self.ts2})
 
-        common.assert_dict_equal(self.ts1, frame['col1'], compare_keys=False)
-        common.assert_dict_equal(self.ts2, frame['col2'], compare_keys=False)
+        tm.assert_dict_equal(self.ts1, frame['col1'], compare_keys=False)
+        tm.assert_dict_equal(self.ts2, frame['col2'], compare_keys=False)
 
         frame = self.klass({'col1' : self.ts1,
                             'col2' : self.ts2},
@@ -674,7 +674,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # can't cast to float
         test_data = {
-                'A' : dict(zip(range(20), common.makeDateIndex(20))),
+                'A' : dict(zip(range(20), tm.makeDateIndex(20))),
                 'B' : dict(zip(range(15), randn(15)))
         }
         frame = self.klass(test_data, dtype=float)
@@ -774,7 +774,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(df.values.dtype == np.object_)
 
         dm = self.klass(DataFrame(self.frame._series))
-        common.assert_frame_equal(dm, self.frame)
+        tm.assert_frame_equal(dm, self.frame)
 
         # int cast
         dm = DataFrame({'A' : np.ones(10, dtype=int),
@@ -891,7 +891,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # big mixed
         biggie = self.klass({'A' : randn(1000),
-                             'B' : common.makeStringIndex(1000)},
+                             'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
         biggie['A'][:20] = np.NaN
         biggie['B'][:20] = np.NaN
@@ -928,7 +928,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_toString(self):
         # big mixed
         biggie = self.klass({'A' : randn(1000),
-                             'B' : common.makeStringIndex(1000)},
+                             'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
 
         biggie['A'][:20] = np.NaN
@@ -959,7 +959,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_('foo' not in self.frame)
 
     def test_iter(self):
-        self.assert_(common.equalContents(list(self.frame), self.frame.columns))
+        self.assert_(tm.equalContents(list(self.frame), self.frame.columns))
 
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
@@ -1043,7 +1043,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         frame_copy['C'][:5] = np.NaN
 
         added = self.frame + frame_copy
-        common.assert_dict_equal(added['A'].valid(),
+        tm.assert_dict_equal(added['A'].valid(),
                                  self.frame['A'] * 2,
                                  compare_keys=False)
 
@@ -1135,8 +1135,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_comparisons(self):
         import operator
 
-        df1 = common.makeTimeDataFrame()
-        df2 = common.makeTimeDataFrame()
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame()
 
         row = self.simple.xs('a')
 
@@ -1443,7 +1443,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         assert_frame_equal(pivoted, expected)
 
-        # TODO: corner cases?
+        # pivot multiple columns
+        wp = tm.makeWidePanel()
+        lp = wp.to_long()
+        df = DataFrame.from_records(lp.toRecords())
+        tm.assert_panel_equal(df.pivot('major', 'minor'), wp)
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
@@ -1459,7 +1463,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                     self.assert_(np.isnan(val))
 
         for col, series in newFrame.iteritems():
-            self.assert_(common.equalContents(series.index, newFrame.index))
+            self.assert_(tm.equalContents(series.index, newFrame.index))
         emptyFrame = self.frame.reindex(Index([]))
         self.assert_(len(emptyFrame.index) == 0)
 
@@ -1477,7 +1481,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                     self.assert_(np.isnan(val))
 
         for col, series in nonContigFrame.iteritems():
-            self.assert_(common.equalContents(series.index,
+            self.assert_(tm.equalContents(series.index,
                                               nonContigFrame.index))
 
         # corner cases
@@ -1540,7 +1544,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                     self.assertEqual(value, frame[col][idx])
 
         # mixed type
-        index, data = common.getMixedTypeDict()
+        index, data = tm.getMixedTypeDict()
         mixed = self.klass(data, index=index)
 
         mixed_T = mixed.T
@@ -1808,7 +1812,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         combined = head.combineFirst(tail)
         reordered_frame = self.frame.reindex(combined.index)
         assert_frame_equal(combined, reordered_frame)
-        self.assert_(common.equalContents(combined.columns, self.frame.columns))
+        self.assert_(tm.equalContents(combined.columns, self.frame.columns))
         assert_series_equal(combined['A'], reordered_frame['A'])
 
         # same index
@@ -1950,7 +1954,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         f2 = self.frame.reindex(columns=['C', 'D'])
 
         joined = f.join(f2, how='outer')
-        self.assert_(common.equalContents(self.frame.index, joined.index))
+        self.assert_(tm.equalContents(self.frame.index, joined.index))
         self.assertEqual(len(joined.columns), 4)
 
         # corner case
@@ -1960,7 +1964,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertRaises(Exception, f.join, f2, how='foo')
 
     def test_join(self):
-        index, data = common.getMixedTypeDict()
+        index, data = tm.getMixedTypeDict()
         target = self.klass(data, index=index)
 
         # Join on string value
@@ -2284,8 +2288,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         dm = DataFrame(self.mixed_frame._series)
         df = DataFrame(self.mixed_frame._series)
 
-        common.assert_series_equal(dm.count(), df.count())
-        common.assert_series_equal(dm.count(1), df.count(1))
+        tm.assert_series_equal(dm.count(), df.count())
+        tm.assert_series_equal(dm.count(1), df.count(1))
 
     def test_cumsum_corner(self):
         dm = DataFrame(np.arange(20).reshape(4, 5),

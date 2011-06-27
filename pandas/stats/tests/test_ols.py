@@ -79,13 +79,8 @@ class TestOLS(BaseTest):
             self.checkMovingOLS('expanding', x, y, nw_lags=1, nw_overlap=True)
 
     def checkOLS(self, exog, endog, x, y):
-
-        try:
-            import scikits.statsmodels.api as sm
-        except ImportError:
-            import scikits.statsmodels as sm
-
-        reference = sm.OLS(endog, sm.add_constant(exog)).fit()
+        import scikits.statsmodels.api as sm
+        reference = sm.OLS(endog, sm.add_constant(exog, prepend=False)).fit()
         result = ols(y=y, x=x)
 
         # check that sparse version is the same
@@ -108,11 +103,7 @@ class TestOLS(BaseTest):
         _check_non_raw_results(result)
 
     def checkMovingOLS(self, window_type, x, y, **kwds):
-        try:
-            from scikits.statsmodels.tools.tools import rank
-        except ImportError:
-            from scikits.statsmodels.tools import rank
-
+        from scikits.statsmodels.tools.tools import rank
         window = rank(x.values) * 2
 
         moving = ols(y=y, x=x, window_type=window_type,
