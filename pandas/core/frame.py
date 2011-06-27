@@ -1438,6 +1438,43 @@ class DataFrame(PandasGeneric):
         from pandas.core.panel import pivot
         return pivot(self[index], self[columns], self[values])
 
+    def pivot2(self, index=None, columns=None, values=None):
+        """
+        Produce 'pivot' table based on 3 columns of this DataFrame.
+        Uses unique values from index / columns and fills with values.
+
+        Parameters
+        ----------
+        index : string or object
+            Column name to use to make new frame's index
+        columns : string or object
+            Column name to use to make new frame's columns
+        values : string or object
+            Column name to use for populating new frame's values
+        """
+        from pandas.core.panel import _make_long_index, LongPanel
+
+        frame = self.copy()
+        index = frame.pop(index)
+        columns = frame.pop(columns)
+        long_index = _make_long_index(index, columns)
+
+        if values is None:
+            items = frame.columns
+        else:
+            items = [values]
+            frame = frame.ix[:, items]
+
+        mat = frame.values
+        lp = LongPanel(mat, items, long_index)
+        lp = lp.sort()
+
+        wp = lp.to_wide()
+        if values is not None:
+            return wp[values]
+        else:
+            return wp
+
     #----------------------------------------------------------------------
     # Time series-related
 
