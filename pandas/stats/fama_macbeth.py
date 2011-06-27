@@ -5,7 +5,6 @@ import numpy as np
 from pandas.core.api import Series, DataFrame
 import pandas.stats.common as common
 from pandas.util.decorators import cache_readonly
-import pandas.lib.tseries as tseries
 
 def fama_macbeth(**kwargs):
     """Runs Fama-MacBeth regression.

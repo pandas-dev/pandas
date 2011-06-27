@@ -2,7 +2,7 @@
 Compute common portfolio statistics
 """
 
-import pandas.lib.tseries as _tseries
+import pandas._tseries as _tseries
 import pandas.stats.moments as moments
 
 def leverage(weights):

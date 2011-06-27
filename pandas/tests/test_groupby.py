@@ -2,12 +2,10 @@ import unittest
 
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index
-from pandas.core.groupby import GroupBy
 from pandas.core.pytools import rands, groupby
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 import pandas.core.datetools as dt
-import pandas.lib.tseries as tseries
 import numpy as np
 
 # unittest.TestCase

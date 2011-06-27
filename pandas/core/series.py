@@ -18,7 +18,7 @@ from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index
 import pandas.core.datetools as datetools
-import pandas.lib.tseries as tseries
+import pandas._tseries as _tseries
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -58,10 +58,10 @@ def _arith_method(op, name):
 
                 # buffered Cython function expects double type
 
-                arr = tseries.combineFunc(name, newIndex,
-                                          this, other,
-                                          self.index.indexMap,
-                                          other.index.indexMap)
+                arr = _tseries.combineFunc(name, newIndex,
+                                           this, other,
+                                           self.index.indexMap,
+                                           other.index.indexMap)
             except Exception:
                 arr = Series._combineFunc(self, other,
                                           getattr(type(self[0]), name))
@@ -613,7 +613,7 @@ class Series(np.ndarray, PandasGeneric):
             arr = arr.astype(float)
 
         arr = arr[notnull(arr)]
-        return tseries.median(arr)
+        return _tseries.median(arr)
 
     def corr(self, other):
         """
@@ -923,7 +923,7 @@ class Series(np.ndarray, PandasGeneric):
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer, mask = tseries.getMergeVec(self, arg.index.indexMap)
+            indexer, mask = _tseries.getMergeVec(self, arg.index.indexMap)
             notmask = -mask
 
             new_values = arg.view(np.ndarray).take(indexer)

@@ -144,14 +144,12 @@ def _bucket_locs(index, buckets, inclusive=False):
 
     return locs
 
+'''
 
 def ts_upsample_mean(ndarray[object, ndim=1] indices,
                      ndarray[object, ndim=1] buckets,
                      ndarray[double_t, ndim=1] values,
                      inclusive=False):
-    '''
-    put something here
-    '''
     cdef:
         Py_ssize_t i, j, nbuckets, nvalues
         ndarray[double_t, ndim=1] output
@@ -181,6 +179,7 @@ def ts_upsample_mean(ndarray[object, ndim=1] indices,
                 j += 1
         else:
             while j < nvalues and indices[j] < next_bound:
+
     cdef:
         Py_ssize_t i, j, nbuckets, nvalues
         ndarray[double_t, ndim=1] output
@@ -238,6 +237,7 @@ def ts_upsample_mean(ndarray[object, ndim=1] indices,
             break
 
     return output
+'''
 
 def ts_upsample_generic(ndarray[object, ndim=1] indices,
                         ndarray[object, ndim=1] buckets,

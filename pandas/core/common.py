@@ -7,7 +7,7 @@ from cStringIO import StringIO
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
-import pandas.lib.tseries as tseries
+import pandas._tseries as _tseries
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -32,11 +32,11 @@ def isnull(input):
         if input.dtype.kind in ('O', 'S'):
             # Working around NumPy ticket 1542
             result = input.copy().astype(bool)
-            result[:] = tseries.isnullobj(input)
+            result[:] = _tseries.isnullobj(input)
         else:
             result = -np.isfinite(input)
     else:
-        result = tseries.checknull(input)
+        result = _tseries.checknull(input)
 
     return result
 
@@ -56,7 +56,7 @@ def notnull(input):
     if isinstance(input, np.ndarray):
         return -isnull(input)
     else:
-        return not tseries.checknull(input)
+        return not _tseries.checknull(input)
 
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)

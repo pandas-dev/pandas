@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from pandas import Index
 import pandas.util.testing as common
-import pandas.lib.tseries as tseries
+import pandas._tseries as tseries
 
 class TestTseriesUtil(unittest.TestCase):
 

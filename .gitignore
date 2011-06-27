@@ -4,6 +4,9 @@ dist
 MANIFEST
 *.so
 *.pyd
+pandas/src/tseries.c
+pandas/src/sparse.c
 doc/source/generated
+*flymake*
 scikits
 .coverage

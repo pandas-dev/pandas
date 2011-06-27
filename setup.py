@@ -1,9 +1,29 @@
 #/usr/bin/env python
 
+"""
+Parts of this file were taken from the pyzmq project
+(https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
+Lesser GPU General Public License.
+"""
+
 from datetime import datetime
+from glob import glob
+import os
+import sys
+import shutil
+
+import numpy as np
 
 from numpy.distutils.misc_util import Configuration
 from numpy.distutils.core import setup
+
+from distutils.core import Command
+from distutils.extension import Extension
+from distutils.command.build import build
+from distutils.command.build_ext import build_ext
+from distutils.command.sdist import sdist
+
+from os.path import splitext, basename, join as pjoin
 
 DESCRIPTION = "Cross-section and time series data analysis toolkit"
 LONG_DESCRIPTION = """
@@ -34,7 +54,7 @@ LICENSE = 'BSD'
 AUTHOR = "AQR Capital Management, LLC"
 MAINTAINER = "Wes McKinney"
 MAINTAINER_EMAIL = "wesmckinn@gmail.com"
-URL = "http://pandas.sourceforge.net"
+URL = "http://github.com/wesm/pandas"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -54,8 +74,7 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 FULLVERSION = VERSION
 if not ISRELEASED:
-    # FULLVERSION += '.dev' + datetime.today().strftime('%Y%m%d')
-    FULLVERSION += '.beta'
+    FULLVERSION += '.dev' + datetime.today().strftime('%Y%m%d')
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
@@ -69,28 +88,149 @@ version = '%s'
     finally:
         a.close()
 
-def configuration(parent_package='', top_path=None):
-    # write_version_py()
 
-    config = Configuration(None, parent_package, top_path,
-                           version=FULLVERSION)
-    config.set_options(ignore_setup_xxx_py=True,
-                       assume_default_configuration=True,
-                       delegate_options_to_subpackages=True,
-                       quiet=True)
+class CleanCommand(Command):
+    """Custom distutils command to clean the .so and .pyc files."""
 
-    config.add_subpackage('pandas')
-    return config
+    user_options = [ ]
 
-if __name__ == '__main__':
-    setup(name=DISTNAME,
-          maintainer=MAINTAINER,
-          maintainer_email=MAINTAINER_EMAIL,
-          description=DESCRIPTION,
-          license=LICENSE,
-          url=URL,
-          download_url=DOWNLOAD_URL,
-          long_description=LONG_DESCRIPTION,
-          classifiers=CLASSIFIERS,
-          platforms='any',
-          configuration=configuration)
+    def initialize_options(self):
+        self._clean_me = []
+        self._clean_trees = []
+        for root, dirs, files in list(os.walk('pandas')):
+            for f in files:
+                if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o', '.pyd'):
+                    self._clean_me.append(pjoin(root, f))
+            for d in dirs:
+                if d == '__pycache__':
+                    self._clean_trees.append(pjoin(root, d))
+
+        for d in ('build',):
+            if os.path.exists(d):
+                self._clean_trees.append(d)
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        for clean_me in self._clean_me:
+            try:
+                os.unlink(clean_me)
+            except Exception:
+                pass
+        for clean_tree in self._clean_trees:
+            try:
+                shutil.rmtree(clean_tree)
+            except Exception:
+                pass
+
+class CheckSDist(sdist):
+    """Custom sdist that ensures Cython has compiled all pyx files to c."""
+
+    _pyxfiles = ['pandas/src/tseries.pyx'
+                 'pandas/src/sparse.pyx']
+
+    def initialize_options(self):
+        sdist.initialize_options(self)
+
+        '''
+        self._pyxfiles = []
+        for root, dirs, files in os.walk('pandas'):
+            for f in files:
+                if f.endswith('.pyx'):
+                    self._pyxfiles.append(pjoin(root, f))
+        '''
+
+    def run(self):
+        if 'cython' in cmdclass:
+            self.run_command('cython')
+        else:
+            for pyxfile in self._pyxfiles:
+                cfile = pyxfile[:-3]+'c'
+                msg = "C-source file '%s' not found."%(cfile)+\
+                " Run 'setup.py cython' before sdist."
+                assert os.path.isfile(cfile), msg
+        sdist.run(self)
+
+class CheckingBuildExt(build_ext):
+    """Subclass build_ext to get clearer report if Cython is neccessary."""
+
+    def check_cython_extensions(self, extensions):
+        for ext in extensions:
+          for src in ext.sources:
+            if not os.path.exists(src):
+                fatal("""Cython-generated file '%s' not found.
+                Cython is required to compile pandas from a development branch.
+                Please install Cython or download a release package of pandas.
+                """%src)
+
+    def build_extensions(self):
+        self.check_cython_extensions(self.extensions)
+        self.check_extensions_list(self.extensions)
+
+        for ext in self.extensions:
+            self.build_extension(ext)
+
+cmdclass = {'clean': CleanCommand,
+            'build': build}
+
+try:
+    from Cython.Distutils import build_ext
+    cython=True
+except ImportError:
+    cython=False
+    suffix = '.c'
+    cmdclass['build_ext'] = CheckingBuildExt
+else:
+    suffix = '.pyx'
+    class CythonCommand(build_ext):
+        """Custom distutils command subclassed from Cython.Distutils.build_ext
+        to compile pyx->c, and stop there. All this does is override the
+        C-compile method build_extension() with a no-op."""
+        def build_extension(self, ext):
+            pass
+
+    cmdclass['cython'] = CythonCommand
+    cmdclass['build_ext'] =  build_ext
+    cmdclass['sdist'] =  CheckSDist
+
+tseries_depends = ['reindex', 'io', 'common', 'groupby'
+                   'skiplist', 'isnull', 'moments', 'operators']
+
+def srcpath(name=None, suffix='.pyx', subdir='src'):
+    return pjoin('pandas', subdir, name+suffix)
+
+tseries_ext = Extension('pandas._tseries',
+                        sources=[srcpath('tseries', suffix=suffix)],
+                        # depends=[srcpath(f, suffix='.pyx')
+                        #          for f in tseries_depends],
+                        include_dirs=[np.get_include()])
+sparse_ext = Extension('pandas._sparse',
+                       sources=[srcpath('sparse', suffix=suffix)],
+                       include_dirs=[np.get_include()])
+extensions = [tseries_ext,
+              sparse_ext]
+
+setup(name=DISTNAME,
+      version=FULLVERSION,
+      maintainer=MAINTAINER,
+      packages=['pandas',
+                'pandas.core',
+                'pandas.io',
+                'pandas.stats',
+                'pandas.util'],
+      package_data={'pandas' : ['tests/*.py'],
+                    'pandas.io' : ['tests/*.py',
+                                   'tests/*.h5'],
+                    'pandas.stats' : ['tests/*.py']},
+      ext_modules=extensions,
+      maintainer_email=MAINTAINER_EMAIL,
+      description=DESCRIPTION,
+      license=LICENSE,
+      cmdclass = cmdclass,
+      url=URL,
+      download_url=DOWNLOAD_URL,
+      long_description=LONG_DESCRIPTION,
+      classifiers=CLASSIFIERS,
+      platforms='any',
+      )

@@ -1,6 +1,5 @@
 from datetime import timedelta
 import operator
-import os
 import pickle
 import unittest
 
@@ -8,7 +7,7 @@ import numpy as np
 
 from pandas.core.index import Index
 import pandas.util.testing as common
-import pandas.lib.tseries as tseries
+import pandas._tseries as tseries
 
 class TestIndex(unittest.TestCase):
 

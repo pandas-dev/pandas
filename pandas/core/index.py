@@ -3,7 +3,7 @@
 import numpy as np
 
 from pandas.core.common import _ensure_index
-import pandas.lib.tseries as _tseries
+import pandas._tseries as _tseries
 
 __all__ = ['Index']
 
@@ -260,8 +260,6 @@ class Index(np.ndarray):
         -------
         (indexer, mask)
         """
-        import pandas.lib.tseries as tseries
-
         if method:
             method = method.upper()
 
@@ -273,8 +271,8 @@ class Index(np.ndarray):
         target = _ensure_index(target)
 
         method = aliases.get(method, method)
-        indexer, mask = tseries.getFillVec(self, target, self.indexMap,
-                                           target.indexMap, method)
+        indexer, mask = _tseries.getFillVec(self, target, self.indexMap,
+                                            target.indexMap, method)
         return indexer, mask
 
     def slice_locs(self, start=None, end=None):

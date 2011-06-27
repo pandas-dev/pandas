@@ -116,5 +116,5 @@ if __name__ == '__main__':
 
     result = reduce_mean(values, index, buckets)
 
-    import pandas.lib.tseries as tseries
+    import pandas._tseries as tseries
     tseries.ts_upsample_mean(index, buckets, values)

@@ -13,7 +13,7 @@ from pandas import (Series, TimeSeries, DataFrame, DataMatrix, WidePanel,
                     LongPanel)
 from pandas.core.pytools import adjoin
 import pandas.core.internals as internals
-import pandas.lib.tseries as tseries
+import pandas._tseries as _tseries
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -593,7 +593,7 @@ def _read_index_legacy(group, key):
 
 def _unconvert_index_legacy(data, kind, legacy=False):
     if kind == 'datetime':
-        index = tseries.array_to_datetime(data)
+        index = _tseries.array_to_datetime(data)
     elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
     else: # pragma: no cover

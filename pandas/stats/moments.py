@@ -10,7 +10,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.api import DataFrame, Series, notnull
-import pandas.lib.tseries as tseries
+import pandas._tseries as _tseries
 
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
@@ -125,7 +125,7 @@ def ewma(arg, com=None, span=None, min_periods=0, time_rule=None):
     arg = _conv_timerule(arg, time_rule)
 
     def _ewma(v):
-        result = tseries.ewma(v, com)
+        result = _tseries.ewma(v, com)
         first_index = _first_valid_index(v)
         result[first_index : first_index + min_periods] = NaN
         return result
@@ -311,19 +311,19 @@ def _rolling_func(func, desc, check_minp=_use_window):
 
     return f
 
-rolling_max = _rolling_func(tseries.roll_max, 'Moving maximum')
-rolling_min = _rolling_func(tseries.roll_min, 'Moving minimum')
-rolling_sum = _rolling_func(tseries.roll_sum, 'Moving sum')
-rolling_mean = _rolling_func(tseries.roll_mean, 'Moving mean')
-rolling_median = _rolling_func(tseries.roll_median, 'Moving median')
+rolling_max = _rolling_func(_tseries.roll_max, 'Moving maximum')
+rolling_min = _rolling_func(_tseries.roll_min, 'Moving minimum')
+rolling_sum = _rolling_func(_tseries.roll_sum, 'Moving sum')
+rolling_mean = _rolling_func(_tseries.roll_mean, 'Moving mean')
+rolling_median = _rolling_func(_tseries.roll_median, 'Moving median')
 
-_ts_std = lambda *a, **kw: np.sqrt(tseries.roll_var(*a, **kw))
+_ts_std = lambda *a, **kw: np.sqrt(_tseries.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
                             check_minp=_two_periods)
-rolling_var = _rolling_func(tseries.roll_var, 'Unbiased moving variance',
+rolling_var = _rolling_func(_tseries.roll_var, 'Unbiased moving variance',
                             check_minp=_two_periods)
-rolling_skew = _rolling_func(tseries.roll_skew, 'Unbiased moving skewness',
+rolling_skew = _rolling_func(_tseries.roll_skew, 'Unbiased moving skewness',
                              check_minp=_two_periods)
-rolling_kurt = _rolling_func(tseries.roll_kurt, 'Unbiased moving kurtosis',
+rolling_kurt = _rolling_func(_tseries.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_two_periods)
 

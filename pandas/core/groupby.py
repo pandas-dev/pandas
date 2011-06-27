@@ -6,7 +6,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
 import pandas.core.common as common
-import pandas.lib.tseries as tseries
+import pandas._tseries as _tseries
 
 class GroupDict(dict):
     def __repr__(self):
@@ -54,15 +54,14 @@ class GroupBy(object):
             grouper = grouper.get
         self.grouper = grouper
         axis = self._group_axis
-        self.groups = tseries.groupby(axis, self.grouper,
+        self.groups = _tseries.groupby(axis, self.grouper,
                                       output=GroupDict())
 
     @property
     def group_indices(self):
         if self._group_indices is None:
             axis = self._group_axis
-            self._group_indices = tseries.groupby_indices(axis,
-                                                          self.grouper)
+            self._group_indices = _tseries.groupby_indices(axis, self.grouper)
 
         return self._group_indices
 

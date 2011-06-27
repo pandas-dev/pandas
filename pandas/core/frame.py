@@ -30,7 +30,7 @@ from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
-import pandas.lib.tseries as tseries
+import pandas._tseries as _tseries
 
 #-------------------------------------------------------------------------------
 # Factory helper methods
@@ -2182,7 +2182,7 @@ class DataFrame(PandasGeneric):
         def f(arr):
             if arr.dtype != np.float_:
                 arr = arr.astype(float)
-            return tseries.median(arr[notnull(arr)])
+            return _tseries.median(arr[notnull(arr)])
 
         if axis == 0:
             med = [f(self[col].values) for col in self.columns]

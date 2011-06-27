@@ -11,8 +11,8 @@ from numpy.testing import assert_almost_equal, assert_equal
 from pandas.core.sparse import SparseSeries
 from pandas import DataFrame
 
-from pandas.lib.sparse import IntIndex, BlockIndex
-import pandas.lib.sparse as splib
+from pandas._sparse import IntIndex, BlockIndex
+import pandas._sparse as splib
 
 TEST_LENGTH = 20
 

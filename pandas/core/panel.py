@@ -14,7 +14,7 @@ from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 from pandas.core.generic import PandasGeneric, Picklable
 import pandas.core.common as common
-import pandas.lib.tseries as tseries
+import pandas._tseries as _tseries
 
 class PanelError(Exception):
     pass
@@ -900,7 +900,7 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
         """
         def f(arr):
-            return tseries.median(arr[common.notnull(arr)])
+            return _tseries.median(arr[common.notnull(arr)])
 
         return self.apply(f, axis=axis)
 
@@ -1086,8 +1086,8 @@ class LongPanel(Panel, Picklable):
         major_axis = Index(sorted(set(major_vec)))
         minor_axis = Index(sorted(set(minor_vec)))
 
-        major_labels, _ = tseries.getMergeVec(major_vec, major_axis.indexMap)
-        minor_labels, _ = tseries.getMergeVec(minor_vec, minor_axis.indexMap)
+        major_labels, _ = _tseries.getMergeVec(major_vec, major_axis.indexMap)
+        minor_labels, _ = _tseries.getMergeVec(minor_vec, minor_axis.indexMap)
 
         for col in exclude:
             del data[col]
@@ -2012,8 +2012,8 @@ def _make_long_index(major_values, minor_values):
     major_axis = Index(sorted(set(major_values)))
     minor_axis = Index(sorted(set(minor_values)))
 
-    major_labels, _ = tseries.getMergeVec(major_values, major_axis.indexMap)
-    minor_labels, _ = tseries.getMergeVec(minor_values, minor_axis.indexMap)
+    major_labels, _ = _tseries.getMergeVec(major_values, major_axis.indexMap)
+    minor_labels, _ = _tseries.getMergeVec(minor_values, minor_axis.indexMap)
 
     long_index = LongPanelIndex(major_axis, minor_axis,
                                major_labels, minor_labels)

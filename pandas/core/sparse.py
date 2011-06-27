@@ -20,8 +20,8 @@ from pandas.core.panel import Panel, WidePanel, LongPanelIndex, LongPanel
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 
-from pandas.lib.sparse import BlockIndex, IntIndex
-import pandas.lib.sparse as splib
+from pandas._sparse import BlockIndex, IntIndex
+import pandas._sparse as splib
 
 def make_sparse(arr, kind='block', fill_value=nan):
     """

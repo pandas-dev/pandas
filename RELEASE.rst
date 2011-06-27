@@ -150,6 +150,9 @@ Thanks
 - Chris Uga
 - Chris Withers
 - Jeff Reback
+- William Ferreira
+- Daniel Fortunov
+- Martin Felder
 
 ************************
 pandas 0.3 Release Notes

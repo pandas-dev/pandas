@@ -13,8 +13,7 @@ def getFillVec(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap,
     return fillVec, maskVec.astype(np.bool)
 
 @cython.wraparound(False)
-def _backfill(ndarray[object, ndim=1] oldIndex,
-              ndarray[object, ndim=1] newIndex,
+def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
               dict oldMap, dict newMap):
     '''
     Backfilling logic for generating fill vector
@@ -104,8 +103,7 @@ def _backfill(ndarray[object, ndim=1] oldIndex,
     return (fillVec, mask)
 
 @cython.wraparound(False)
-def _pad(ndarray[object, ndim=1] oldIndex,
-         ndarray[object, ndim=1] newIndex,
+def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
          dict oldMap, dict newMap):
     '''
     Padding logic for generating fill vector
@@ -201,6 +199,93 @@ def _pad(ndarray[object, ndim=1] oldIndex,
         oldPos += 1
 
     return fillVec, mask
+
+def pad_inplace_float64(ndarray[float64_t] values,
+                        ndarray[np.uint8_t, cast=True] mask):
+    '''
+    mask: True if needs to be padded otherwise False
+
+    e.g.
+    pad_inplace_float64(values, isnull(values))
+    '''
+    cdef:
+        Py_ssize_t i, n
+        float64_t val
+
+    n = len(values)
+    val = NaN
+    for i from 0 <= i < n:
+        if mask[i]:
+            values[i] = val
+        else:
+            val = values[i]
+
+def get_pad_indexer(ndarray[np.uint8_t, cast=True] mask):
+    '''
+    mask: True if needs to be padded otherwise False
+
+    e.g.
+    pad_inplace_float64(values, isnull(values))
+    '''
+    cdef:
+        Py_ssize_t i, n
+        int32_t idx
+        ndarray[int32_t] indexer
+
+    n = len(mask)
+    indexer = np.empty(n, dtype=np.int32)
+
+    idx = 0
+    for i from 0 <= i < n:
+        if not mask[i]:
+            idx = i
+        indexer[i] = idx
+
+    return indexer
+
+def get_backfill_indexer(ndarray[np.uint8_t, cast=True] mask):
+    '''
+    mask: True if needs to be padded otherwise False
+
+    e.g.
+    pad_inplace_float64(values, isnull(values))
+    '''
+    cdef:
+        Py_ssize_t i, n
+        int32_t idx
+        ndarray[int32_t] indexer
+
+    n = len(mask)
+    indexer = np.empty(n, dtype=np.int32)
+
+    idx = n - 1
+    i = n - 1
+    while i >= 0:
+        if not mask[i]:
+            idx = i
+        indexer[i] = idx
+        i -= 1
+
+    return indexer
+
+def backfill_inplace_float64(ndarray[float64_t] values,
+                             ndarray[np.uint8_t, cast=True] mask):
+    '''
+    mask: True if needs to be backfilled otherwise False
+    '''
+    cdef:
+        Py_ssize_t i, n
+        float64_t val
+
+    n = len(values)
+    val = NaN
+    i = n - 1
+    while i >= 0:
+        if mask[i]:
+            values[i] = val
+        else:
+            val = values[i]
+        i -= 1
 
 @cython.boundscheck(False)
 def getMergeVec(ndarray values, dict oldMap):

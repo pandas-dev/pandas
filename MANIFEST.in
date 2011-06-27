@@ -5,7 +5,21 @@ include README.rst
 include TODO.rst
 include setup.py
 include setupegg.py
+
+graft docs
+prune docs/build
+prune docs/gh-pages
+
+graft examples
+graft pandas
+
+global-exclude *.so
+global-exclude *.pyd
+global-exclude *.pyc
+global-exclude .git*
+global-exclude .DS_Store
+
 # include examples/data/*
-recursive-include examples *.py
+# recursive-include examples *.py
 # recursive-include doc/source *
 # recursive-include doc/sphinxext *
