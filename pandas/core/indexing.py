@@ -109,7 +109,7 @@ class _DataFrameIndexer(object):
             raise Exception('setting on mixed-type frames not yet supported')
 
         if isinstance(key, tuple):
-            if len(key) != 2: # pragma: no cover
+            if len(key) != 2:
                 raise Exception('only length 2 tuple supported')
 
             x, y = key
@@ -230,8 +230,6 @@ class _DataFrameIndexer(object):
             return self.frame.reindex(**{axis_name : key})
 
     def _get_slice_axis(self, slice_obj, axis=0):
-        _check_step(slice_obj)
-
         frame = self.frame
 
         axis_name = frame._get_axis_name(axis)
@@ -274,7 +272,7 @@ def _is_integer_dtype(arr):
 
 def _is_integer_index(index):
     # make an educated and not too intelligent guess
-    if len(index) == 0:
+    if len(index) == 0: # pragma: no cover
         return False
     else:
         return _is_int_like(index[0])
@@ -300,8 +298,9 @@ def _is_label_slice(labels, obj):
 def _need_slice(obj):
     return obj.start is not None or obj.stop is not None
 
-def _check_step(obj):
-    if obj.step is not None and obj.step != 1:
-        raise Exception('steps other than 1 are not supported')
+# I don't think this is necessary
+# def _check_step(obj):
+#     if obj.step is not None and obj.step != 1:
+#         raise Exception('steps other than 1 are not supported')
 
 _isboolarr = lambda x: np.asarray(x).dtype == np.bool_

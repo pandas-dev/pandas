@@ -294,21 +294,6 @@ class CheckIndexing(object):
         frame.ix[:, 'B':'C'] = 4.
         assert_frame_equal(frame, expected)
 
-        # case 8: set with booleans
-        frame = self.frame.copy()
-        expected = self.frame.copy()
-
-        mask = frame['A'] > 0
-        frame.ix[mask] = 0.
-        expected.values[mask] = 0.
-        assert_frame_equal(frame, expected)
-
-        frame = self.frame.copy()
-        expected = self.frame.copy()
-        frame.ix[mask, ['A', 'B']] = 0.
-        expected.values[mask, :2] = 0.
-        assert_frame_equal(frame, expected)
-
     def test_fancy_index_corner(self):
         from pandas.core.indexing import AmbiguousIndexError
 
@@ -322,6 +307,8 @@ class CheckIndexing(object):
                           df.ix.__setitem__, [0, 1, 2], 5)
         self.assertRaises(AmbiguousIndexError,
                           df.ix.__setitem__, 0, 5)
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__setitem__, (slice(None, None), 0), 5)
 
         self.assertRaises(AmbiguousIndexError,
                           df.ix.__getitem__, ([0, 1, 2], [4, 5, 6]))
@@ -329,6 +316,8 @@ class CheckIndexing(object):
                           df.ix.__getitem__, [0, 1, 2])
         self.assertRaises(AmbiguousIndexError,
                           df.ix.__getitem__, 0)
+        self.assertRaises(AmbiguousIndexError,
+                          df.ix.__getitem__, (slice(None, None), 0))
 
         # try to set indices not contained in frame
         self.assertRaises(KeyError,
@@ -484,20 +473,40 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
 
     def test_setitem_fancy_boolean(self):
-        pass
+        # from 2d, set with booleans
+        frame = self.frame.copy()
+        expected = self.frame.copy()
 
-    def test_getitem_fancy_exceptions(self):
+        mask = frame['A'] > 0
+        frame.ix[mask] = 0.
+        expected.values[mask] = 0.
+        assert_frame_equal(frame, expected)
+
+        frame = self.frame.copy()
+        expected = self.frame.copy()
+        frame.ix[mask, ['A', 'B']] = 0.
+        expected.values[mask, :2] = 0.
+        assert_frame_equal(frame, expected)
+
+    def test_getitem_setitem_fancy_exceptions(self):
         ix = self.frame.ix
         self.assertRaises(Exception, ix.__getitem__,
                           (slice(None, None, None),
                            slice(None, None, None),
                            slice(None, None, None)))
+        self.assertRaises(Exception, ix.__setitem__,
+                          (slice(None, None, None),
+                           slice(None, None, None),
+                           slice(None, None, None)), 1)
 
-        self.assertRaises(Exception, ix.__getitem__, slice(None, None, 2))
+        # Anything wrong with this?
+        # self.assertRaises(Exception, ix.__getitem__, slice(None, None, 2))
+        # self.assertRaises(Exception, ix.__setitem__, slice(None, None, 2), 1.)
 
         # boolean index misaligned labels
         mask = self.frame['A'][::-1] > 1
         self.assertRaises(Exception, ix.__getitem__, mask)
+        self.assertRaises(Exception, ix.__setitem__, mask, 1.)
 
     def test_setitem_fancy_exceptions(self):
         pass
