@@ -136,6 +136,8 @@ Release notes
   replaced with `method`
 * `Series.fill`, `DataFrame.fill`, and `WidePanel.fill` removed, use `fillna`
   instead
+* `groupby` functions now exclude NA / NaN values from the list of groups. This
+  matches R behavior with NAs in factors e.g. with the `tapply` function
 
 **Bug fixes**
 
