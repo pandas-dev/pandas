@@ -103,8 +103,9 @@ Release notes
 * Cython is now required to build `pandas` from a development branch. This was
   done to avoid continuing to check in cythonized C files into source
   control. Builds from released source distributions will not require Cython
-* Cython extension modules have been renamed and promoted from the `lib`
-  subpackage to the top level, i.e.
+* Cython code has been moved up to a top level `pandas/src` directory. Cython
+  extension modules have been renamed and promoted from the `lib` subpackage to
+  the top level, i.e.
   * `pandas.lib.tseries` -> `pandas._tseries`
   * `pandas.lib.sparse` -> `pandas._sparse`
 * A `copy` argument has been added to the `DataFrame` constructor to avoid

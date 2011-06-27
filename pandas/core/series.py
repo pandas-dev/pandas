@@ -1062,8 +1062,25 @@ class Series(np.ndarray, PandasGeneric):
             newSeries[isnull(newSeries)] = value
             return newSeries
         else: # Using reindex to pad / backfill
-            withoutna = remove_na(self)
-            return withoutna.reindex(self.index, method=method)
+            if method is None: # pragma: no cover
+                raise ValueError('must specify a fill method')
+
+            method = method.lower()
+
+            if method == 'ffill':
+                method = 'pad'
+            if method == 'bfill':
+                method = 'backfill'
+
+            mask = isnull(self.values)
+
+            if method == 'pad':
+                indexer = _tseries.get_pad_indexer(mask)
+            elif method == 'backfill':
+                indexer = _tseries.get_backfill_indexer(mask)
+
+            new_values = self.values.take(indexer)
+            return Series(new_values, index=self.index)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous

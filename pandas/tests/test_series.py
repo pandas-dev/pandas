@@ -915,6 +915,16 @@ class TestSeries(unittest.TestCase):
 
         self.assert_(np.array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.]))
 
+    def test_fillna_bug(self):
+        x = Series([nan, 1., nan, 3., nan],['z','a','b','c','d'])
+        filled = x.fillna(method='ffill')
+        expected = Series([nan, 1., 1., 3., 3.], x.index)
+        assert_series_equal(filled, expected)
+
+        filled = x.fillna(method='bfill')
+        expected = Series([1., 1., 3., 3., nan], x.index)
+        assert_series_equal(filled, expected)
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),
