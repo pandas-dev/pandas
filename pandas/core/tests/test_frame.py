@@ -269,7 +269,7 @@ class CheckIndexing(object):
         expected['B'][:5] = values[:, 1]
         assert_frame_equal(frame, expected)
 
-        frame.ix[:5, [0, 1]] = values
+        frame2.ix[:5, [0, 1]] = values
         assert_frame_equal(frame2, expected)
 
         # case 6: slice rows with labels, inclusive!

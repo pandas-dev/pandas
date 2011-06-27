@@ -108,24 +108,63 @@ class _DataFrameIndexer(object):
         if self.frame._is_mixed_type:
             raise Exception('setting on mixed-type frames not yet supported')
 
-        frame = self.frame
-        if isinstance(key, slice):
-            return key
-        elif isinstance(key, tuple):
+        if isinstance(key, tuple):
             if len(key) != 2:
                 raise Exception('only length 2 tuple supported')
-            x, y = key
-            return frame._fancy_setitem_tuple(x, y, value)
-        elif _is_list_like(key):
-            return frame._fancy_setitem(key, value, axis=0)
-        else:
-            return frame._fancy_setitem_axis(key, value, axis=0)
 
-    def _convert_indexer(self, obj):
+            x, y = key
+            xidx = self._convert_to_indexer(x, axis=0)
+            yidx = self._convert_to_indexer(y, axis=1)
+            indexer = _maybe_convert_ix(xidx, yidx)
+        else:
+            indexer = self._convert_to_indexer(key)
+
+        self.frame.values[indexer] = value
+
+    def _convert_to_indexer(self, obj, axis=0):
+        """
+        Convert indexing key into something we can use to do actual fancy
+        indexing on an ndarray
+
+        Examples
+        ix[:5] -> slice(0, 5)
+        ix[[1,2,3]] -> [1,2,3]
+        ix[['foo', 'bar', 'baz']] -> [i, j, k] (indices of foo, bar, baz)
+
+        Going by Zen of Python?
+        "In the face of ambiguity, refuse the temptation to guess."
+        Going to raise AmbiguousIndexError with integer labels?
+
+        """
+        index = self.frame._get_axis(axis)
+        is_int_index = _is_integer_index(index)
         if isinstance(obj, slice):
-            return obj
-        elif _is_list_like(key):
-            pass
+            if _is_label_slice(index, obj):
+                i, j = index.slice_locs(obj.start, obj.stop)
+                return slice(i, j)
+            else:
+                return obj
+        elif _is_list_like(obj):
+            obj = np.asarray(obj)
+
+            if _is_integer_dtype(obj):
+                if is_int_index:
+                    raise AmbiguousIndexError('integer labels')
+
+                # retrieve the indices corresponding
+                return obj
+            else:
+                indexer, mask = index.get_indexer(obj)
+                if not mask.all():
+                    raise Exception('%s not in index' % obj[-mask])
+
+                return indexer
+        else:
+            if _is_int_like(obj):
+                if is_int_index:
+                    raise AmbiguousIndexError('integer labels')
+                return obj
+            return index.get_loc(obj)
 
     def _fancy_getitem_tuple(self, rowkey, colkey):
         # to avoid wasted computation
@@ -209,6 +248,33 @@ class _DataFrameIndexer(object):
             new_values = frame.values[:, slicer]
         return DataFrame(new_values, index=new_index,
                          columns=new_columns)
+
+def _maybe_convert_ix(*args):
+    """
+    We likely want to take the cross-product
+    """
+    ixify = True
+    for arg in args:
+        if not isinstance(arg, (np.ndarray, list)):
+            ixify = False
+
+    if ixify:
+        return np.ix_(*args)
+    else:
+        return args
+
+def _is_integer_dtype(arr):
+    return issubclass(arr.dtype.type, np.integer)
+
+def _is_integer_index(index):
+    # make an educated and not too intelligent guess
+    if len(index) == 0:
+        return False
+    else:
+        return _is_int_like(index[0])
+
+def _is_int_like(val):
+    return isinstance(val, (int, np.integer))
 
 def _is_label_like(key):
     # select a label or row
