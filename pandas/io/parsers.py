@@ -12,14 +12,14 @@ import numpy as np
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
-def read_csv(filepath, header=0, skiprows=None, index_col=0,
+def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
              na_values=None, date_parser=None):
     """
     Read CSV file into DataFrame
 
     Parameters
     ----------
-    filepath : string or file handle
+    filepath_or_buffer : string or file handle / StringIO
 
     header : int, default 0
         Row to use for the column labels of the parsed DataFrame
@@ -29,13 +29,21 @@ def read_csv(filepath, header=0, skiprows=None, index_col=0,
         Column to use as the row labels of the DataFrame. Pass None if there is
         no such column
     na_values : list-like, default None
-        List of strings to recognize as NA/NaN
+        List of additional strings to recognize as NA/NaN
+    date_parser : function
+        Function to use for converting dates to strings. Defaults to
+        dateutil.parser
     """
     import csv
-    try:
-        f = open(filepath, 'U')
-    except Exception:
-        f = open(filepath, 'r')
+
+    if hasattr(filepath_or_buffer, 'read'):
+        f = filepath_or_buffer
+    else:
+        try:
+            # universal newline mode
+            f = open(filepath_or_buffer, 'U')
+        except Exception:
+            f = open(filepath_or_buffer, 'r')
 
     reader = csv.reader(f, dialect='excel')
 
@@ -48,14 +56,14 @@ def read_csv(filepath, header=0, skiprows=None, index_col=0,
     return _simple_parser(lines, header=header, indexCol=index_col,
                           na_values=na_values, date_parser=date_parser)
 
-def read_table(filepath, sep='\t', header=0, skiprows=None, index_col=0,
+def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None, index_col=0,
                na_values=None, names=None, date_parser=None):
     """
     Read delimited file into DataFrame
 
     Parameters
     ----------
-    filepath : string or file handle
+    filepath_or_buffer : string or file handle
     sep : string, default '\t'
         Delimiter to use
     header : int, default 0
@@ -66,9 +74,12 @@ def read_table(filepath, sep='\t', header=0, skiprows=None, index_col=0,
         Column to use as the row labels of the DataFrame. Pass None if there is
         no such column
     na_values : list-like, default None
-        List of strings to recognize as NA/NaN
+        List of additional strings to recognize as NA/NaN
+    date_parser : function
+        Function to use for converting dates to strings. Defaults to
+        dateutil.parser
     """
-    reader = open(filepath,'rb')
+    reader = open(filepath_or_buffer,'rb')
 
     if skiprows is not None:
         skiprows = set(skiprows)
@@ -88,7 +99,6 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
 
     Should be replaced by np.genfromtxt eventually?
     """
-    data = {}
     if header is not None:
         columns = []
         for i, c in enumerate(lines[header]):
@@ -106,22 +116,33 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
                 colCounts[col] += 1
     else:
         if not colNames:
-            columns = list(string.ascii_uppercase[:len(lines[0])])
-            # columns = ['X.%d' % (i + 1) for i in range(len(lines[0]))]
+            # columns = list(string.ascii_uppercase[:len(lines[0])])
+            columns = ['X.%d' % (i + 1) for i in range(len(lines[0]))]
         else:
             columns = colNames
         content = lines
 
-    data = dict(izip(columns, izip(*content)))
+    zipped_content = zip(*content)
+
+    if len(content) == 0:
+        raise Exception('No content to parse')
+
+    # no index column specified, so infer that's what is wanted
     if indexCol is not None:
-        index_name = columns[indexCol]
-        # try to parse dates
-        index = data.pop(index_name)
+        if indexCol == 0 and len(content[0]) == len(columns) + 1:
+            index = zipped_content[0]
+            zipped_content = zipped_content[1:]
+        else:
+            index = zipped_content.pop(indexCol)
+            columns.pop(indexCol)
+
         if parse_dates:
             index = _try_parse_dates(index, parser=date_parser)
-    else:
-        index = np.arange(len(data.values()[0]))
 
+    else:
+        index = np.arange(len(content))
+
+    data = dict(izip(columns, zipped_content))
     data = _floatify(data, na_values=na_values)
     data = _convert_to_ndarrays(data)
     return DataFrame(data=data, columns=columns, index=Index(index))
@@ -134,7 +155,7 @@ def _floatify(data_dict, na_values=None):
     if na_values is None:
         na_values = NA_VALUES
     else:
-        na_values = set(list(na_values))
+        na_values = set(list(na_values)) | NA_VALUES
 
     def _convert_float(val):
         if val in na_values:
@@ -234,7 +255,7 @@ class ExcelFile(object):
             Column to use as the row labels of the DataFrame. Pass None if there
             is no such column
         na_values : list-like, default None
-            List of strings to recognize as NA/NaN
+            List of additional strings to recognize as NA/NaN
         """
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE

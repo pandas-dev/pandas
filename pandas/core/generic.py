@@ -24,6 +24,14 @@ class Picklable(object):
 class PandasError(Exception):
     pass
 
+class NDFrame(object):
+    """
+    N-dimensional labeled array data structure with potentially heterogenous
+    dtypes along one axis
+    """
+    def __init__(self, data):
+        pass
+
 class PandasGeneric(Picklable):
 
     _AXIS_NUMBERS = {
