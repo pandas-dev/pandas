@@ -2079,6 +2079,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         deltas = frame * timedelta(1)
         deltas.sum()
 
+    def test_sum_bool(self):
+        # ensure this works, bug report
+        bools = np.isnan(self.frame)
+        bools.sum(1)
+        bools.sum(0)
+
     def test_product(self):
         def f(x):
             x = np.asarray(x)

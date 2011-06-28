@@ -2002,7 +2002,10 @@ class DataFrame(PandasGeneric):
                 y[-mask] = 0
             the_sum = y.sum(axis)
             the_count = mask.sum(axis)
-            the_sum[the_count == 0] = nan
+
+            ct_mask = the_count == 0
+            if ct_mask.any():
+                the_sum[ct_mask] = nan
 
         return Series(the_sum, index=axis_labels)
 
