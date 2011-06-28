@@ -66,6 +66,7 @@ Release notes
   output
 * `rolling_quantile` functions; a moving version of `Series.quantile` /
   `DataFrame.quantile`
+* Generic `rolling_apply` moving window function
 
 **Improvements to existing features**
 
