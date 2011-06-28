@@ -64,6 +64,8 @@ Release notes
   files is supported explicitly in the code
 * Added `set_printoptions` method to modify appearance of DataFrame tabular
   output
+* `rolling_quantile` functions; a moving version of `Series.quantile` /
+  `DataFrame.quantile`
 
 **Improvements to existing features**
 
