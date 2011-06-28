@@ -42,7 +42,7 @@ def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
         try:
             # universal newline mode
             f = open(filepath_or_buffer, 'U')
-        except Exception:
+        except Exception: # pragma: no cover
             f = open(filepath_or_buffer, 'r')
 
     reader = csv.reader(f, dialect='excel')
