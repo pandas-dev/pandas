@@ -15,8 +15,8 @@ import pandas._tseries as _tseries
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
-           'rolling_median', 'ewma', 'ewmvar', 'ewmstd', 'ewmvol',
-           'ewmcorr', 'ewmcov']
+           'rolling_quantile', 'rolling_median', 'ewma', 'ewmvar', 'ewmstd',
+           'ewmvol', 'ewmcorr', 'ewmcov']
 
 def rolling_count(arg, window, time_rule=None):
     """
@@ -327,3 +327,26 @@ rolling_skew = _rolling_func(_tseries.roll_skew, 'Unbiased moving skewness',
 rolling_kurt = _rolling_func(_tseries.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_two_periods)
 
+def rolling_quantile(arg, window, quantile, min_periods=None, time_rule=None):
+    """Moving quantile
+
+    Parameters
+    ----------
+    arg : Series, DataFrame
+    window : Number of observations used for calculating statistic
+    quantile : 0 <= quantile <= 1
+    min_periods : int
+        Minimum number of observations in window required to have a value
+    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+        Name of time rule to conform to before computing statistic
+
+    Returns
+    -------
+    y : type of input argument
+    """
+
+    def call_cython(arg, window, minp):
+        minp = _use_window(minp, window)
+        return _tseries.roll_quantile(arg, window, minp, quantile)
+    return _rolling_moment(arg, window, call_cython, min_periods,
+                           time_rule=time_rule)

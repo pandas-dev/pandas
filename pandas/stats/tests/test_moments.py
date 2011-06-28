@@ -50,6 +50,25 @@ class TestMoments(unittest.TestCase):
     def test_rolling_max(self):
         self._check_moment_func(moments.rolling_max, np.max)
 
+    def test_rolling_quantile(self):
+        qs = [.1, .5, .9]
+
+        def scoreatpercentile(a, per):
+            values = np.sort(a,axis=0)
+
+            idx = per /1. * (values.shape[0] - 1)
+            return values[int(idx)]
+
+        for q in qs:
+            def f(x, window, min_periods=None, time_rule=None):
+                return moments.rolling_quantile(x, window, q,
+                                                min_periods=min_periods,
+                                                time_rule=time_rule)
+            def alt(x):
+                return scoreatpercentile(x, q)
+
+            self._check_moment_func(f, alt)
+
     def test_rolling_std(self):
         self._check_moment_func(moments.rolling_std,
                                 lambda x: np.std(x, ddof=1))
@@ -231,5 +250,6 @@ class TestMoments(unittest.TestCase):
         self.assertRaises(Exception, func, A, randn(50), 20, min_periods=5)
 
 if __name__ == '__main__':
-    unittest.main()
-
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
