@@ -632,10 +632,13 @@ def form_blocks(data, index, columns):
     # put "leftover" columns in float bucket, where else?
     # generalize?
     num_dict = {}
+    bool_dict = {}
     object_dict = {}
     for k, v in data.iteritems():
         if issubclass(v.dtype.type, (np.floating, np.integer)):
             num_dict[k] = v
+        elif v.dtype == np.bool_:
+            bool_dict[k] = v
         else:
             object_dict[k] = v
 
@@ -652,6 +655,10 @@ def form_blocks(data, index, columns):
         # TODO: check type inference
         num_block = _simple_blockify(num_dict, columns, num_dtype)
         blocks.append(num_block)
+
+    if len(bool_dict):
+        bool_block = _simple_blockify(bool_dict, columns, np.bool_)
+        blocks.append(bool_block)
 
     if len(object_dict) > 0:
         object_block = _simple_blockify(object_dict, columns, np.object_)

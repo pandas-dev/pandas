@@ -104,6 +104,13 @@ class CheckIndexing(object):
         self.assertRaises(Exception, df.__setitem__, df[:-1] > 0, 2)
         self.assertRaises(Exception, df.__setitem__, df * 0, 2)
 
+        # index with DataFrame
+        mask = df > np.abs(df)
+        expected = df.copy()
+        df[df > np.abs(df)] = np.nan
+        expected.values[mask.values] = np.nan
+        assert_frame_equal(df, expected)
+
     def test_setitem_corner(self):
         # corner case
         df = self.klass({'B' : [1., 2., 3.],
@@ -603,6 +610,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         unindexed_frame = self.klass(data)
 
         self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
+
+    def test_constructor_bool(self):
+        df = DataFrame({0 : np.ones(10, dtype=bool),
+                        1 : np.zeros(10, dtype=bool)})
+        self.assertEqual(df.values.dtype, np.bool_)
 
     def test_is_mixed_type(self):
         self.assert_(not self.frame._is_mixed_type)
