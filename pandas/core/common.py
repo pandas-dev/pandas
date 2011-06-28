@@ -125,19 +125,17 @@ def _try_sort(iterable):
 _float_format = lambda x: '%.4g' % x
 _column_space = 12
 
-def set_printoptions(float_format=None, column_space=None):
+def set_printoptions(precision=None, column_space=None):
     """
-    float_format : string or function
-        Strings must be of the form '%s', '%.4f', '%.4g', etc.
+    precision : int
+        Floating point output precision
     column_space : int
         Default space for DataFrame columns, defaults to 12
     """
     global _float_format, _column_space
-    if float_format is not None:
-        if isinstance(float_format, basestring):
-            _float_format = lambda x: float_format % x
-        else:
-            _float_format = float_format
+    if precision is not None:
+        float_format = '%.' + '%d' % precision + 'g'
+        _float_format = lambda x: float_format % x
     if column_space is not None:
         _column_space = column_space
 

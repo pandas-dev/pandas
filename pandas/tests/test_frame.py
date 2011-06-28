@@ -911,20 +911,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         foo = repr(self.unsortable)
 
         import pandas.core.common as common
-        common.set_printoptions(float_format='%.4f', column_space=10)
-        repr(self.frame)
-        common.set_printoptions(float_format=lambda x: '%.4f' % x)
+        common.set_printoptions(precision=3, column_space=10)
         repr(self.frame)
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
-
-        # for i in range(5):
-        #     self.frame['foo%d' % i] = 1
-
-        # self.frame.head(buf=buf)
-        # self.frame.tail(buf=buf)
 
     def test_repr_corner(self):
         # representing infs poses no problems
