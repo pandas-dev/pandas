@@ -79,7 +79,14 @@ def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None, index_col=
         Function to use for converting dates to strings. Defaults to
         dateutil.parser
     """
-    reader = open(filepath_or_buffer,'rb')
+    if hasattr(filepath_or_buffer, 'read'):
+        reader = filepath_or_buffer
+    else:
+        try:
+            # universal newline mode
+            reader = open(filepath_or_buffer, 'U')
+        except Exception: # pragma: no cover
+            reader = open(filepath_or_buffer, 'r')
 
     if skiprows is not None:
         skiprows = set(skiprows)

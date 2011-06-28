@@ -684,12 +684,12 @@ class TestLongPanel(unittest.TestCase):
         self.assertEqual(len(torecs.dtype.names), len(lp.items) + 2)
 
         # DataFrame
-        df = DataFrame.fromRecords(recs)
+        df = DataFrame.from_records(recs)
         lp = LongPanel.fromRecords(df, 'f0', 'f1', exclude=['f2'])
         self.assertEqual(len(lp.items), 1)
 
         # dict of arrays
-        series = DataFrame.fromRecords(recs)._series
+        series = DataFrame.from_records(recs)._series
         lp = LongPanel.fromRecords(series, 'f0', 'f1', exclude=['f2'])
         self.assertEqual(len(lp.items), 1)
         self.assert_('f2' in series)
