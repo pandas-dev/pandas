@@ -62,6 +62,8 @@ Release notes
   and `Series` data and can store `WidePanel` objects. It also has the option to
   query `DataFrame` and `WidePanel` data. Loading data from legacy `HDFStore`
   files is supported explicitly in the code
+* Added `set_printoptions` method to modify appearance of DataFrame tabular
+  output
 
 **Improvements to existing features**
 
