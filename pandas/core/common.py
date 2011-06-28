@@ -127,6 +127,8 @@ _column_space = 12
 
 def set_printoptions(precision=None, column_space=None):
     """
+    Alter default behavior of DataFrame.toString
+
     precision : int
         Floating point output precision
     column_space : int
