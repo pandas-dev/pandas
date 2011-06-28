@@ -69,6 +69,14 @@ class TestMoments(unittest.TestCase):
 
             self._check_moment_func(f, alt)
 
+    def test_rolling_apply(self):
+        def roll_mean(x, window, min_periods=None, time_rule=None):
+            return moments.rolling_apply(x, window,
+                                         lambda x: x[np.isfinite(x)].mean(),
+                                         min_periods=min_periods,
+                                         time_rule=time_rule)
+        self._check_moment_func(roll_mean, np.mean)
+
     def test_rolling_std(self):
         self._check_moment_func(moments.rolling_std,
                                 lambda x: np.std(x, ddof=1))

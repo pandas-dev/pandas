@@ -7,11 +7,11 @@ pandas 0.4 Release Notes
 What is it
 ==========
 
-**pandas** is a library of powerful labeled data structures, statistical tools,
-and general code for working with time series and cross-sectional data. It was
-designed with the practical needs of statistical modeling and large,
-inhomogeneous data sets in mind. It is particularly well suited for, among other
-things, financial data analysis applications.
+**pandas** is a library of powerful labeled-axis data structures, statistical
+tools, and general code for working with time series and cross-sectional
+data. It was designed with the practical needs of statistical modeling and
+large, inhomogeneous data sets in mind. It is particularly well suited for,
+among other things, financial data analysis applications.
 
 ===============
 Where to get it
