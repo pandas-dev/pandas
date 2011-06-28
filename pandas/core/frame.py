@@ -503,10 +503,10 @@ class DataFrame(PandasGeneric):
 
             for c in columns:
                 if np.issctype(series[c].dtype):
-                    colSpace[c] = max(len(str(c)) + 4, 12)
+                    colSpace[c] = max(len(str(c)) + 4, common._column_space)
                 else:
                     # HACK
-                    colSpace[c] = 15
+                    colSpace[c] = common._column_space
         else:
             colSpace = dict((k, colSpace) for k in columns)
 

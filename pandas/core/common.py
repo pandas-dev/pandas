@@ -122,6 +122,24 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
+_float_format = lambda x: '%.4g' % x
+_column_space = 12
+
+def set_printoptions(float_format=None, column_space=None):
+    """
+    float_format : string or function
+        Strings must be of the form '%s', '%.4f', '%.4g', etc.
+    column_space : int
+        Default space for DataFrame columns, defaults to 12
+    """
+    global _float_format, _column_space
+    if float_format is not None:
+        if isinstance(float_format, basestring):
+            _float_format = lambda x: float_format % x
+        else:
+            _float_format = float_format
+    if column_space is not None:
+        _column_space = column_space
 
 def _pfixed(s, space, nanRep=None, float_format=None):
     if isinstance(s, float):
@@ -134,7 +152,7 @@ def _pfixed(s, space, nanRep=None, float_format=None):
             formatted = float_format(s)
         else:
             is_neg = s < 0
-            formatted = '%.4g' % np.abs(s)
+            formatted = _float_format(np.abs(s))
 
             if is_neg:
                 formatted = '-' + formatted

@@ -910,6 +910,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # columns are not sortable
         foo = repr(self.unsortable)
 
+        import pandas.core.common as common
+        common.set_printoptions(float_format='%.4f', column_space=10)
+        repr(self.frame)
+        common.set_printoptions(float_format=lambda x: '%.4f' % x)
+        repr(self.frame)
+
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
