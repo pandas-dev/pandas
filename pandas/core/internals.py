@@ -146,6 +146,85 @@ class Block(object):
         new_values.flat[mask] = value
         return make_block(new_values, self.columns, self.ref_columns)
 
+class NDBlock(Block):
+
+    def __init__(self, values, columns, ref_columns):
+        values = _convert_if_1d(values)
+        if issubclass(values.dtype.type, basestring):
+            values = np.array(values, dtype=object)
+
+        self.values = values
+        assert(len(columns) == values.shape[1])
+        self.columns = _ensure_index(columns)
+        self.ref_columns = _ensure_index(ref_columns)
+
+    def merge(self, other):
+        assert(self.ref_columns.equals(other.ref_columns))
+
+        # Not sure whether to allow this or not
+        # if not union_ref.equals(other.ref_columns):
+        #     union_ref = self.ref_columns + other.ref_columns
+        return _merge_blocks([self, other], self.ref_columns)
+
+    def reindex_axis(self, indexer, notmask, needs_masking, axis=0):
+        """
+        Reindex using pre-computed indexer information
+        """
+        new_values = self.values.take(indexer, axis=axis)
+        if needs_masking:
+            new_values = _cast_if_bool_int(new_values)
+            common.null_out_axis(new_values, notmask, axis)
+        return make_block(new_values, self.columns, self.ref_columns)
+
+    def reindex_columns_from(self, new_columns):
+        """
+        Reindex to only those columns contained in the input set of columns
+
+        E.g. if you have ['a', 'b'], and the input columns is ['b', 'c', 'd'],
+        then the resulting columns will be ['b']
+
+        Returns
+        -------
+        reindexed : Block
+        """
+        indexer, mask = self.columns.get_indexer(new_columns)
+        masked_idx = indexer[mask]
+        new_values = self.values.take(masked_idx, axis=0)
+        new_cols = self.columns.take(masked_idx)
+        return make_block(new_values, new_cols, new_columns)
+
+    def get(self, col):
+        loc = self.columns.get_loc(col)
+        return self.values[loc]
+
+    def set(self, col, value):
+        """
+        Modify Block in-place with new column value
+
+        Returns
+        -------
+        None
+        """
+        loc = self.columns.get_loc(col)
+        self.values[loc] = value
+
+    def delete(self, col):
+        """
+        Returns
+        -------
+        y : Block (new object)
+        """
+        loc = self.columns.get_loc(col)
+        new_cols = np.delete(np.asarray(self.columns), loc)
+        new_values = np.delete(self.values, loc, 0)
+        return make_block(new_values, new_cols, self.ref_columns)
+
+    def fillna(self, value):
+        new_values = self.values.copy()
+        mask = common.isnull(new_values.ravel())
+        new_values.flat[mask] = value
+        return make_block(new_values, self.columns, self.ref_columns)
+
 def _insert_into_columns(columns, col, loc):
     columns = np.asarray(columns)
     new_columns = np.insert(columns, loc, col)
@@ -188,7 +267,7 @@ class ObjectBlock(Block):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
-def make_block(values, columns, ref_columns):
+def make_block(values, columns, ref_columns, ndim=2):
     dtype = values.dtype
     vtype = dtype.type
 
@@ -598,21 +677,6 @@ def _stack_dict(dct):
     stacked = np.vstack([dct[k].values for k in columns]).T
     return columns, stacked
 
-# def _float_blockify(dct, index, columns):
-#     n = len(index)
-#     k = len(columns)
-#     values = np.empty((n, k), dtype=np.float64)
-#     values.fill(nan)
-
-#     if len(dct) > 0:
-#         dict_columns, stacked = _stack_dict(dct)
-#         indexer, mask = columns.get_indexer(dict_columns)
-#         assert(mask.all())
-#         values[:, indexer] = stacked
-
-#     # do something with dtype?
-#     return make_block(values, columns)
-
 def add_na_columns(new_columns, index, ref_columns):
     # create new block, then consolidate
     values = _nan_array(index, new_columns)
@@ -628,9 +692,6 @@ def _slice_blocks(blocks, slice_obj):
 
 def _blocks_to_series_dict(blocks, index=None):
     series_dict = {}
-
-    # if index is None:
-    #     index = Index(np.arange(len(blocks[0])))
 
     for block in blocks:
         for col, vec in zip(block.columns, block.values.T):
@@ -648,21 +709,12 @@ def _interleave(blocks, columns):
     result = np.empty((len(blocks[0]), len(columns)), dtype=dtype)
     colmask = np.zeros(len(columns), dtype=bool)
 
+    # By construction, all of the column should be covered by one of the blocks
     for block in blocks:
         indexer, mask = columns.get_indexer(block.columns)
         assert(mask.all())
         result[:, indexer] = block.values
-
-        # may not need this
-        # if mask.all():
-        #     result[:, indexer] = block.values
-        # else:
-        #     indexer = indexer[mask]
-        #     result[:, indexer] = block.values[:, mask]
-
         colmask[indexer] = 1
-
-    # By construction, all of the column should be covered by one of the blocks
     assert(colmask.all())
     return result
 
@@ -716,6 +768,12 @@ def _consolidate(blocks, columns):
 
 def _merge_blocks(blocks, columns):
     new_values = np.hstack([b.values for b in blocks])
+    new_cols = np.concatenate([b.columns for b in blocks])
+    new_block = make_block(new_values, new_cols, columns)
+    return new_block.reindex_columns_from(columns)
+
+def _merge_blocks2(blocks, columns):
+    new_values = np.vstack([b.values for b in blocks])
     new_cols = np.concatenate([b.columns for b in blocks])
     new_block = make_block(new_values, new_cols, columns)
     return new_block.reindex_columns_from(columns)
