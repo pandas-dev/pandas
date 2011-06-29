@@ -202,7 +202,7 @@ def _try_parse_dates(values, parser=None):
         try:
             from dateutil import parser
             parse_date = parser.parse
-        except ImportError:
+        except ImportError: # pragma: no cover
             def parse_date(s):
                 try:
                     return datetime.strptime(s, '%m/%d/%Y')
@@ -237,20 +237,7 @@ class ExcelFile(object):
     def __repr__(self):
         return object.__repr__(self)
 
-    def old_parse(self, sheetname, header=None, index_col=0, date_col=0):
-        from pandas.core.datetools import ole2datetime
-        sheet = self.book.sheet_by_name(sheetname)
-
-        data = [sheet.row_values(i) for i in range(sheet.nrows)]
-        if date_col is not None:
-            for row in data:
-                try:
-                    row[date_col] = ole2datetime(row[date_col])
-                except Exception:
-                    pass
-        return _simple_parser(data, header=header, indexCol=index_col)
-
-    def parse(self, sheetname, header=None, skiprows=None, index_col=0,
+    def parse(self, sheetname, header=0, skiprows=None, index_col=0,
               na_values=None):
         """
         Read Excel table into DataFrame
@@ -289,7 +276,8 @@ class ExcelFile(object):
             for value, typ in zip(sheet.row_values(i), sheet.row_types(i)):
                 if typ == XL_CELL_DATE:
                     dt = xldate_as_tuple(value, datemode)
-                    if dt[0] < MINYEAR:
+                    # how to produce this first case?
+                    if dt[0] < MINYEAR: # pragma: no cover
                         value = time(*dt[3:])
                     else:
                         value = datetime(*dt)
@@ -304,7 +292,7 @@ class ExcelFile(object):
 import warnings
 
 def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
-             na_values=None):
+             na_values=None): # pragma: no cover
     """
     Parse CSV file into a DataFrame object. Try to parse dates if possible.
     """
@@ -312,7 +300,8 @@ def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
     return read_csv(filepath, header=header, skiprows=skiprows,
                     index_col=indexCol, na_values=na_values)
 
-def parseText(filepath, sep='\t', header=0, indexCol=0, colNames=None):
+def parseText(filepath, sep='\t', header=0,
+              indexCol=0, colNames=None): # pragma: no cover
     """
     Parse whitespace separated file into a DataFrame object.
     Try to parse dates if possible.
@@ -323,7 +312,8 @@ def parseText(filepath, sep='\t', header=0, indexCol=0, colNames=None):
                       names=colNames)
 
 
-def parseExcel(filepath, header=None, indexCol=0, sheetname=None, **kwds):
+def parseExcel(filepath, header=None, indexCol=0,
+               sheetname=None, **kwds): # pragma: no cover
     """
 
     """

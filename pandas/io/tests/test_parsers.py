@@ -10,10 +10,13 @@ from pandas import DataFrame
 from pandas.io.parsers import read_csv, read_table, ExcelFile
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
-class TestReadTable(unittest.TestCase):
+class TestParsers(unittest.TestCase):
 
     def setUp(self):
         self.dirpath = curpath()
+        self.csv1 = os.path.join(self.dirpath, 'test1.csv')
+        self.csv2 = os.path.join(self.dirpath, 'test2.csv')
+        self.xls1 = os.path.join(self.dirpath, 'test.xls')
 
     def test_read_csv(self):
         pass
@@ -62,6 +65,15 @@ ignore,this,row
         self.assert_(np.array_equal(df.columns,
                                     ['A', 'A.1', 'B', 'B.1', 'B.2']))
 
+    def test_csv_mixed_type(self):
+        data = """A,B,C
+a,1,2
+b,3,4
+c,4,5
+"""
+        df = read_csv(StringIO(data), index_col=None)
+        # TODO
+
     def test_no_header(self):
         data = """1,2,3,4,5
 6,7,8,9,10
@@ -81,22 +93,29 @@ ignore,this,row
         self.assert_(np.array_equal(df2.columns, names))
 
     def test_read_csv_dataframe(self):
-        pth = os.path.join(self.dirpath, 'test1.csv')
-        df = read_csv(pth)
-        df2 = read_table(pth, sep=',')
+        df = read_csv(self.csv1)
+        df2 = read_table(self.csv1, sep=',')
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
         self.assert_(isinstance(df.index[0], datetime))
         self.assert_(df.values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
     def test_read_csv_no_index_name(self):
-        pth = os.path.join(self.dirpath, 'test2.csv')
-        df = read_csv(pth)
-        df2 = read_table(pth, sep=',')
+        df = read_csv(self.csv2)
+        df2 = read_table(self.csv2, sep=',')
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
         self.assert_(isinstance(df.index[0], datetime))
         self.assert_(df.values.dtype == np.float64)
         assert_frame_equal(df, df2)
+
+    def test_excel_table(self):
+        pth = os.path.join(self.dirpath, 'test.xls')
+        xls = ExcelFile(pth)
+        df = xls.parse('Sheet1')
+        df2 = read_csv(self.csv1)
+        df3 = xls.parse('Sheet2', skiprows=[1])
+        assert_frame_equal(df, df2)
+        assert_frame_equal(df3, df2)
 
 class TestExcelFile(unittest.TestCase):
     pass
