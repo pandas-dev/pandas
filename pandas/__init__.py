@@ -11,8 +11,7 @@ from pandas.info import __doc__
 
 from pandas.core.api import *
 from pandas.core.common import set_printoptions
-from pandas.io.parsers import (parseCSV, parseText, parseExcel, read_csv,
-                               read_table, ExcelFile)
+from pandas.io.parsers import read_csv, read_table, ExcelFile
 from pandas.io.pytables import HDFStore
 from pandas.stats.api import *
 from pandas.util.testing import debug

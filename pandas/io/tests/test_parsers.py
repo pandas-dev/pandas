@@ -74,6 +74,17 @@ c,4,5
         df = read_csv(StringIO(data), index_col=None)
         # TODO
 
+    def test_csv_custom_parser(self):
+        data = """A,B,C
+20090101,a,1,2
+20090102,b,3,4
+20090103,c,4,5
+"""
+        df = read_csv(StringIO(data),
+                      date_parser=lambda x: datetime.strptime(x, '%Y%m%d'))
+        expected = read_csv(StringIO(data))
+        assert_frame_equal(df, expected)
+
     def test_no_header(self):
         data = """1,2,3,4,5
 6,7,8,9,10
@@ -116,9 +127,6 @@ c,4,5
         df3 = xls.parse('Sheet2', skiprows=[1])
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
-
-class TestExcelFile(unittest.TestCase):
-    pass
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

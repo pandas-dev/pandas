@@ -143,6 +143,7 @@ Release notes
   instead
 * `groupby` functions now exclude NA / NaN values from the list of groups. This
   matches R behavior with NAs in factors e.g. with the `tapply` function
+* Removed `parseText`, `parseCSV` and `parseExcel` from pandas namespace
 
 **Bug fixes**
 
@@ -254,6 +255,7 @@ pandas 0.3.0 release notes
 * Renamed **DataFrame.getXS** to **xs**, `FutureWarning` added
 * Removed **cap** and **floor** functions from DataFrame, renamed to
   **clip_upper** and **clip_lower** for consistency with NumPy
+*
 
 **Bug fixes**
 

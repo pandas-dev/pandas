@@ -208,6 +208,9 @@ def _try_parse_dates(values, parser=None):
                     return datetime.strptime(s, '%m/%d/%Y')
                 except Exception:
                     return s
+    else:
+        parse_date = parser
+
     # EAFP
     try:
         return [parse_date(val) for val in values]
