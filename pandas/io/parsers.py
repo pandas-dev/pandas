@@ -56,8 +56,9 @@ def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
     return _simple_parser(lines, header=header, indexCol=index_col,
                           na_values=na_values, date_parser=date_parser)
 
-def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None, index_col=0,
-               na_values=None, names=None, date_parser=None):
+def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
+               index_col=0, na_values=None, names=None,
+               date_parser=None):
     """
     Read delimited file into DataFrame
 
@@ -116,22 +117,24 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
 
         content = lines[header+1:]
 
-        colCounts = dict(((col, 0) for col in columns))
+        counts = {}
         for i, col in enumerate(columns):
-            if columns.count(col) > 1:
-                columns[i] = col + str(colCounts[col])
-                colCounts[col] += 1
+            cur_count = counts.get(col, 0)
+            if cur_count > 0:
+                columns[i] = '%s.%d' % (col, cur_count)
+            counts[col] = cur_count + 1
     else:
+        ncols = len(lines[0])
         if not colNames:
-            # columns = list(string.ascii_uppercase[:len(lines[0])])
-            columns = ['X.%d' % (i + 1) for i in range(len(lines[0]))]
+            columns = ['X.%d' % (i + 1) for i in range(ncols)]
         else:
+            assert(len(colNames) == ncols)
             columns = colNames
         content = lines
 
     zipped_content = zip(*content)
 
-    if len(content) == 0:
+    if len(content) == 0: # pragma: no cover
         raise Exception('No content to parse')
 
     # no index column specified, so infer that's what is wanted
@@ -155,10 +158,15 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
     return DataFrame(data=data, columns=columns, index=Index(index))
 
 def _floatify(data_dict, na_values=None):
+    """
+
+    """
     # common NA values
-    NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND',
-                     '-1.#QNAN','1.#INF','-1.#INF', '1.#INF000000',
-                     'NA', '#NA', 'NULL', 'NaN', 'nan', ''])
+    # no longer excluding inf representations
+    # '1.#INF','-1.#INF', '1.#INF000000',
+    NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                     '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
+                     'nan', ''])
     if na_values is None:
         na_values = NA_VALUES
     else:
@@ -169,10 +177,7 @@ def _floatify(data_dict, na_values=None):
             return np.nan
         else:
             try:
-                parsed = np.float64(val)
-                if np.isinf(parsed):
-                    return val
-                return parsed
+                return np.float64(val)
             except Exception:
                 return val
 

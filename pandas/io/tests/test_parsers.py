@@ -52,6 +52,34 @@ ignore,this,row
                                     ['A', 'B', 'C', 'Unnamed: 3',
                                      'Unnamed: 4']))
 
+    def test_duplicate_columns(self):
+        data = """A,A,B,B,B
+1,2,3,4,5
+6,7,8,9,10
+11,12,13,14,15
+"""
+        df = read_table(StringIO(data), sep=',', index_col=None)
+        self.assert_(np.array_equal(df.columns,
+                                    ['A', 'A.1', 'B', 'B.1', 'B.2']))
+
+    def test_no_header(self):
+        data = """1,2,3,4,5
+6,7,8,9,10
+11,12,13,14,15
+"""
+        df = read_table(StringIO(data), sep=',', index_col=None,
+                        header=None)
+        names = ['foo', 'bar', 'baz', 'quux', 'panda']
+        df2 = read_table(StringIO(data), sep=',', index_col=None,
+                        header=None, names=names)
+        expected = [[1,2,3,4,5.],
+                    [6,7,8,9,10],
+                    [11,12,13,14,15]]
+        assert_almost_equal(df.values, expected)
+        self.assert_(np.array_equal(df.columns,
+                                    ['X.1', 'X.2', 'X.3', 'X.4', 'X.5']))
+        self.assert_(np.array_equal(df2.columns, names))
+
     def test_read_csv_dataframe(self):
         pth = os.path.join(self.dirpath, 'test1.csv')
         df = read_csv(pth)
