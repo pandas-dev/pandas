@@ -92,9 +92,10 @@ version = '%s'
 class CleanCommand(Command):
     """Custom distutils command to clean the .so and .pyc files."""
 
-    user_options = [ ]
+    user_options = [("all", "a", "") ]
 
     def initialize_options(self):
+        self.all = True
         self._clean_me = []
         self._clean_trees = []
         for root, dirs, files in list(os.walk('pandas')):
