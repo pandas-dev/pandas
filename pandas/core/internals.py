@@ -302,7 +302,7 @@ class BlockManager(object):
     """
     def __init__(self, blocks, index=None, columns=None,
                  skip_integrity_check=False):
-        self.index = _ensure_index(index)
+        self._index = _ensure_index(index)
         self._columns = _ensure_index(columns)
         self.blocks = blocks
 
@@ -319,13 +319,25 @@ class BlockManager(object):
 
     _columns = None
     def _set_columns(self, value):
+        if len(value) != len(self._columns):
+            raise Exception('Length mismatch (%d vs %d)'
+                            % (len(cols), len(self._columns)))
+
         self._columns = _ensure_index(value)
 
         for block in self.blocks:
             block.set_ref_columns(self._columns, maybe_rename=True)
 
-    columns = property(fget=attrgetter('_columns'),
-                       fset=_set_columns)
+    columns = property(fget=attrgetter('_columns'), fset=_set_columns)
+
+    def _set_index(self, index):
+        if len(index) > 0:
+            if len(index) != len(self._index):
+                raise Exception('Length mismatch (%d vs %d)'
+                                % (len(index), len(self._index)))
+        self._index = _ensure_index(index)
+
+    index = property(fget=attrgetter('_index'), fset=_set_index)
 
     def set_columns_norename(self, value):
         self._columns = _ensure_index(value)
@@ -342,7 +354,7 @@ class BlockManager(object):
 
     def __setstate__(self, state):
         index, ref_columns, bvalues, bcolumns = state
-        self.index = _ensure_index(index)
+        self._index = _ensure_index(index)
         self._columns = _ensure_index(ref_columns)
 
         blocks = []

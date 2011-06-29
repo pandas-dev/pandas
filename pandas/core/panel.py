@@ -151,6 +151,19 @@ class Panel(object):
                       FutureWarning)
         return self.shape
 
+class AxisProperty(object):
+
+    def __init__(self, axis=0):
+        self.axis = axis
+
+    def __get__(self, obj, type=None):
+        data = getattr(self, obj, '_data')
+        return data.axes[self.axis]
+
+    def __set__(self, obj, value):
+        data = getattr(self, obj, '_data')
+        data.set_axis(self.axis, value)
+
 class WidePanel(Panel, PandasGeneric):
     """
     Represents wide format panel data, stored as 3-dimensional array
@@ -178,14 +191,46 @@ class WidePanel(Panel, PandasGeneric):
         1 : 'major_axis',
         2 : 'minor_axis'
     }
-    def __init__(self, values, items, major_axis, minor_axis):
+
+    items = AxisProperty(0)
+    major_axis = AxisProperty(1)
+    minor_axis = AxisProperty(2)
+
+    def __init__(self, data, items=None, major_axis=None, minor_axis=None,
+                 copy=False):
         self.items = items
         self.major_axis = major_axis
         self.minor_axis = minor_axis
 
-#        self.factors = factors or {}
+        if isinstance(data, np.ndarray):
+            mgr = self._init_matrix(data, [items, major_axis, minor_axis],
+                                    copy=copy)
+
         self.factors = {}
         self.values = values
+
+    def _init_matrix(self, data, axes, copy=False):
+        from pandas.core.internals import make_block
+        values = _prep_ndarray(values, copy=copy)
+
+        if dtype is not None:
+            try:
+                values = values.astype(dtype)
+            except Exception:
+                pass
+
+        shape = values.shape
+        fixed_axes = []
+        for i, ax in enumerate(axes):
+            if ax is None:
+                ax = _default_index(shape[i])
+            else:
+                ax = _ensure_index(ax)
+            fixed_axes.append(ax)
+
+        items = fixed_axes[0]
+        block = make_block(values, items, items)
+        return NDBlockManager([block], axes)
 
     def _get_plane_axes(self, axis):
         """
@@ -266,52 +311,24 @@ class WidePanel(Panel, PandasGeneric):
         return list(self.items)
 
     def _get_values(self):
-        return self._values
+        self._consolidate_inplace()
+        return self._data.as_matrix()
 
-    def _set_values(self, values):
-        if not values.flags.contiguous:
-            values = values.copy()
+    values = property(fget=_get_values)
 
-        if self.shape != values.shape:
-            raise PanelError('Values shape %s did not match axes / items %s' %
-                             (values.shape, self.shape))
+    # def _set_values(self, values):
+    #     if not values.flags.contiguous:
+    #         values = values.copy()
 
-        self._values = values
+    #     if self.shape != values.shape:
+    #         raise PanelError('Values shape %s did not match axes / items %s' %
+    #                          (values.shape, self.shape))
 
-    values = property(fget=_get_values, fset=_set_values)
+    #     self._values = values
 
     def __getitem__(self, key):
-        try:
-            loc = self.items.indexMap[key]
-        except KeyError:
-            raise KeyError('%s not contained in panel data items!' % key)
-
-        mat = self.values[loc]
-
+        mat = self._data.get(key)
         return DataFrame(mat, index=self.major_axis, columns=self.minor_axis)
-
-    def __delitem__(self, key):
-        loc = self.items.indexMap[key]
-        indices = range(loc) + range(loc + 1, len(self.items))
-        self.items = self.items[indices]
-        self.values = self.values.take(indices, axis=0)
-
-    def pop(self, key):
-        """
-        Return item slice from panel and delete from panel
-
-        Parameters
-        ----------
-        key : object
-            Must be contained in panel's items
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        result = self[key]
-        del self[key]
-        return result
 
     def __setitem__(self, key, value):
         _, N, K = self.shape
@@ -332,14 +349,28 @@ class WidePanel(Panel, PandasGeneric):
             mat = np.empty((N, K), dtype=float)
             mat.fill(value)
 
-        if key in self.items:
-            loc = self.items.indexMap[key]
-            self.values[loc] = mat
-        else:
-            self.items = Index(list(self.items) + [key])
-            mat = mat.reshape((1, N, K))
-            # Insert item at end of items for now
-            self.values = np.row_stack((self.values, mat))
+        mat = mat.reshape((1, N, K))
+        self._data.set(key, value)
+
+    def __delitem__(self, key):
+        self._data.delete(key)
+
+    def pop(self, key):
+        """
+        Return item slice from panel and delete from panel
+
+        Parameters
+        ----------
+        key : object
+            Must be contained in panel's items
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        result = self[key]
+        del self[key]
+        return result
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
@@ -562,7 +593,7 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        loc = self.major_axis.indexMap[key]
+        loc = self.major_axis.get_loc(key)
         mat = np.array(self.values[:, loc, :].T)
         return DataFrame(mat, index=self.minor_axis, columns=self.items)
 
@@ -580,7 +611,7 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
             index -> major axis, columns -> items
         """
-        loc = self.minor_axis.indexMap[key]
+        loc = self.minor_axis.get_loc(key)
         mat = np.array(self.values[:, :, loc].T)
         return DataFrame(mat, index=self.major_axis, columns=self.items)
 
@@ -702,7 +733,7 @@ class WidePanel(Panel, PandasGeneric):
         y : WidePanel
         """
         intersection = self.items.intersection(items)
-        indexer = [self.items.indexMap[col] for col in intersection]
+        indexer = [self.items.get_loc(col) for col in intersection]
 
         new_values = self.values.take(indexer, axis=0)
         return WidePanel(new_values, intersection, self.major_axis,
@@ -1086,8 +1117,8 @@ class LongPanel(Panel, Picklable):
         major_axis = Index(sorted(set(major_vec)))
         minor_axis = Index(sorted(set(minor_vec)))
 
-        major_labels, _ = _tseries.getMergeVec(major_vec, major_axis.indexMap)
-        minor_labels, _ = _tseries.getMergeVec(minor_vec, minor_axis.indexMap)
+        major_labels, _ = major_axis.get_indexer(major_vec)
+        minor_labels, _ = minor_axis.get_indexer(minor_vec)
 
         for col in exclude:
             del data[col]
@@ -1165,9 +1196,7 @@ class LongPanel(Panel, Picklable):
 
     def __getitem__(self, key):
         "Return column of panel as LongPanel"
-
-        loc = self.items.indexMap[key]
-
+        loc = self.items.get_loc(key)
         return LongPanel(self.values[:, loc : loc + 1].copy(),
                         [key], self.index, factors=self.factors)
 

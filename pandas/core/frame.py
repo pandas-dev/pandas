@@ -136,7 +136,9 @@ class DataFrame(PandasGeneric):
         if isinstance(data, BlockManager):
             # do not copy BlockManager unless explicitly done
             mgr = data
-            if dtype is not None:
+            if copy and dtype is None:
+                mgr = mgr.copy()
+            elif dtype is not None:
                 # no choice but to copy
                 mgr = mgr.cast(dtype)
         elif isinstance(data, DataFrame):
@@ -185,7 +187,7 @@ class DataFrame(PandasGeneric):
         return mgr.consolidate()
 
     def _init_matrix(self, values, index, columns, dtype=None,
-                     copy=True):
+                     copy=False):
         from pandas.core.internals import make_block
         values = _prep_ndarray(values, copy=copy)
 
@@ -579,18 +581,9 @@ class DataFrame(PandasGeneric):
     # properties for index and columns
 
     def _set_columns(self, cols):
-        if len(cols) != len(self.columns):
-            raise Exception('Length mismatch (%d vs %d)'
-                            % (len(cols), len(self.columns)))
-
         self._data.columns = _ensure_index(cols)
 
     def _set_index(self, index):
-        if len(index) > 0:
-            if len(index) != len(self.index):
-                raise Exception('Length mismatch (%d vs %d)'
-                                % (len(index), len(self.index)))
-
         self._data.index = _ensure_index(index)
 
     def _get_index(self):
