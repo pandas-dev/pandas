@@ -341,7 +341,7 @@ class SparseSeries(Series):
 
         """
         try:
-            return self._get_val_at(self.index.indexMap[key])
+            return self._get_val_at(self.index.get_loc(key))
 
         except KeyError:
             if isinstance(key, (int, np.integer)):
@@ -800,7 +800,7 @@ class SparseDataFrame(DataFrame):
         """
         Delete column from DataFrame
         """
-        loc = self.columns.indexMap[key]
+        loc = self.columns.get_loc(key)
         del self._series[key]
         self._delete_column_index(loc)
 
@@ -879,7 +879,7 @@ class SparseDataFrame(DataFrame):
         -------
         Series
         """
-        i = self.index.indexMap[key]
+        i = self.index.get_loc(key)
         series = self._series
         values = [series[k][i] for k in self.columns]
         return Series(values, index=self.columns)
@@ -1299,7 +1299,7 @@ class SparseWidePanel(WidePanel):
             self.items = Index(list(self.items) + [key])
 
     def __delitem__(self, key):
-        loc = self.items.indexMap[key]
+        loc = self.items.get_loc(key)
         indices = range(loc) + range(loc + 1, len(self.items))
         self.items = self.items[indices]
         del self._frames[key]

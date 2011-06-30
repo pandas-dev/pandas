@@ -197,19 +197,21 @@ class WidePanel(Panel, PandasGeneric):
     minor_axis = AxisProperty(2)
 
     def __init__(self, data, items=None, major_axis=None, minor_axis=None,
-                 copy=False):
-        self.items = items
-        self.major_axis = major_axis
-        self.minor_axis = minor_axis
-
-        if isinstance(data, np.ndarray):
+                 copy=False, dtype=None):
+        if isinstance(data, BlockManager):
+            if copy and dtype is None:
+                mgr = mgr.copy()
+            elif dtype is not None:
+                # no choice but to copy
+                mgr = mgr.cast(dtype)
+        elif isinstance(data, np.ndarray):
             mgr = self._init_matrix(data, [items, major_axis, minor_axis],
-                                    copy=copy)
+                                    dtype=dtype, copy=copy)
 
         self.factors = {}
         self.values = values
 
-    def _init_matrix(self, data, axes, copy=False):
+    def _init_matrix(self, data, axes, dtype=None, copy=False):
         from pandas.core.internals import make_block
         values = _prep_ndarray(values, copy=copy)
 
@@ -229,7 +231,7 @@ class WidePanel(Panel, PandasGeneric):
             fixed_axes.append(ax)
 
         items = fixed_axes[0]
-        block = make_block(values, items, items)
+        block = make_block(values, items, items, ndim=3)
         return NDBlockManager([block], axes)
 
     def _get_plane_axes(self, axis):
@@ -258,8 +260,7 @@ class WidePanel(Panel, PandasGeneric):
         -------
         y : WidePanel
         """
-        return WidePanel(self.values.copy(), self.items, self.major_axis,
-                         self.minor_axis)
+        return WidePanel(self._data.copy())
 
     @classmethod
     def from_dict(cls, data, intersect=False, dtype=float):
@@ -278,9 +279,7 @@ class WidePanel(Panel, PandasGeneric):
         """
         data, index, columns = _homogenize(data, intersect=intersect)
         items = Index(sorted(data.keys()))
-
         values = np.array([data[k].values for k in items], dtype=dtype)
-
         return cls(values, items, index, columns)
 
     fromDict = from_dict
@@ -306,7 +305,7 @@ class WidePanel(Panel, PandasGeneric):
                                default_kind=kind,
                                default_fill_value=fill_value)
 
-
+    # TODO: needed?
     def keys(self):
         return list(self.items)
 
@@ -315,16 +314,6 @@ class WidePanel(Panel, PandasGeneric):
         return self._data.as_matrix()
 
     values = property(fget=_get_values)
-
-    # def _set_values(self, values):
-    #     if not values.flags.contiguous:
-    #         values = values.copy()
-
-    #     if self.shape != values.shape:
-    #         raise PanelError('Values shape %s did not match axes / items %s' %
-    #                          (values.shape, self.shape))
-
-    #     self._values = values
 
     def __getitem__(self, key):
         mat = self._data.get(key)
@@ -374,12 +363,17 @@ class WidePanel(Panel, PandasGeneric):
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
-        _pickle = common._pickle_array
-
-        return (_pickle(self.values), _pickle(self.items),
-                _pickle(self.major_axis), _pickle(self.minor_axis))
+        return self._data
 
     def __setstate__(self, state):
+        # old WidePanel pickle
+        if len(state) == 4: # pragma: no cover
+            self._unpickle_panel_compat(state)
+        else:
+            assert(isinstance(state, BlockManager))
+            self._data = state
+
+    def _unpickle_panel_compat(self, state): # pragma: no cover
         "Unpickle the panel"
         _unpickle = common._unpickle_array
         vals, items, major, minor = state
@@ -407,7 +401,6 @@ class WidePanel(Panel, PandasGeneric):
         DataFrame
         """
         index, columns = self._get_plane_axes(axis)
-
         return frame.reindex(index=index, columns=columns)
 
     def reindex(self, major=None, items=None, minor=None, method=None,
@@ -469,6 +462,12 @@ class WidePanel(Panel, PandasGeneric):
                             minor=other.minor_axis, method=method)
 
     def _reindex_axis(self, new_index, fill_method, axis):
+        new_data = self._data.reindex_axis(new_index, axis=axis,
+                                           method=method)
+        return WidePanel(new_data)
+
+    '''
+    def _reindex_axis(self, new_index, fill_method, axis):
         old_index = self._get_axis(axis)
 
         if old_index.equals(new_index):
@@ -485,6 +484,7 @@ class WidePanel(Panel, PandasGeneric):
         new_axes[axis] = new_index
 
         return WidePanel(new_values, *new_axes)
+    '''
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
@@ -568,11 +568,11 @@ class WidePanel(Panel, PandasGeneric):
             return WidePanel.from_dict(result)
         else:
             # Float type values
-            vals = self.values.copy()
-            vals.flat[common.isnull(vals.ravel())] = value
+            if len(self.columns) == 0:
+                return self
 
-            return WidePanel(vals, self.items, self.major_axis,
-                             self.minor_axis)
+            new_data = self._data.fillna(value)
+            return WidePanel(new_data)
 
     add = _wide_arith_method(operator.add, 'add')
     subtract = _wide_arith_method(operator.sub, 'subtract')
@@ -733,11 +733,7 @@ class WidePanel(Panel, PandasGeneric):
         y : WidePanel
         """
         intersection = self.items.intersection(items)
-        indexer = [self.items.get_loc(col) for col in intersection]
-
-        new_values = self.values.take(indexer, axis=0)
-        return WidePanel(new_values, intersection, self.major_axis,
-                         self.minor_axis)
+        return self.reindex(items=intersection)
 
     def apply(self, func, axis='major'):
         """

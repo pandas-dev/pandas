@@ -471,7 +471,7 @@ class PanelOLS(OLS):
                 ss = s.split('*')
                 coeff = float(ss[0])
                 x_name = ss[1]
-                idx = x_names.indexMap[x_name]
+                idx = x_names.get_loc(x_name)
                 row[idx] = coeff
             rhs = float(rhs)
 

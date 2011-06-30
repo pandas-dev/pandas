@@ -154,11 +154,13 @@ class OLS(object):
         R = np.eye(k)
         r = np.zeros((k, 1))
 
-        intercept = cols.indexMap.get('intercept')
-
-        if intercept is not None:
+        try:
+            intercept = cols.get_loc('intercept')
             R = np.concatenate((R[0 : intercept], R[intercept + 1:]))
             r = np.concatenate((r[0 : intercept], r[intercept + 1:]))
+        except KeyError:
+            # no intercept
+            pass
 
         return math.calc_F(R, r, self._beta_raw, self._var_beta_raw,
                            self._nobs, self.df)
@@ -207,7 +209,7 @@ class OLS(object):
 
                 if x_name not in x_names:
                     raise Exception('no coefficient named %s' % x_name)
-                idx = x_names.indexMap[x_name]
+                idx = x_names.get_loc(x_name)
                 row[idx] = coeff
             rhs = float(rhs)
 
@@ -739,9 +741,9 @@ class MovingOLS(OLS):
         cum_xx = []
 
         if isinstance(x, DataFrame):
-            _indexMap = x.index.indexMap
+            _get_index = x.index.get_loc
             def slicer(df, dt):
-                i = _indexMap[dt]
+                i = _get_index(dt)
                 return df.values[i:i+1, :]
         else:
             slicer = lambda df, dt: df.truncate(dt, dt).values
@@ -764,7 +766,7 @@ class MovingOLS(OLS):
         cum_xy = []
 
         if isinstance(x, DataFrame):
-            _x_indexMap = x.index.indexMap
+            _x_indexMap = x.index.get_loc
             def x_slicer(df, dt):
                 i = _x_indexMap[dt]
                 return df.values[i:i+1, :]
@@ -773,10 +775,10 @@ class MovingOLS(OLS):
 
 
         if isinstance(y, Series):
-            _y_indexMap = y.index.indexMap
+            _y_get_index = y.index.get_loc
             _values = y.values
             def y_slicer(df, dt):
-                i = _y_indexMap[dt]
+                i = _y_get_index(dt)
                 return _values[i:i+1]
         else:
             y_slicer = lambda s, dt: _y_converter(s.truncate(dt, dt))
@@ -845,11 +847,13 @@ class MovingOLS(OLS):
         R = np.eye(K)
         r = np.zeros((K, 1))
 
-        intercept = items.indexMap.get('intercept')
-
-        if intercept is not None:
+        try:
+            intercept = items.get_loc('intercept')
             R = np.concatenate((R[0 : intercept], R[intercept + 1:]))
             r = np.concatenate((r[0 : intercept], r[intercept + 1:]))
+        except KeyError:
+            # no intercept
+            pass
 
         def get_result(beta, vcov, n, d):
             return math.calc_F(R, r, beta, vcov, n, d)
