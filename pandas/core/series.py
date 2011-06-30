@@ -863,7 +863,7 @@ class Series(np.ndarray, PandasGeneric):
         else:
             return Series(np.argsort(values), index=self.index)
 
-    def order(self, na_last=True, **kwds):
+    def order(self, na_last=True, ascending=True, **kwds):
         """
         Sorts Series object, by value, maintaining index-value object
 
@@ -894,13 +894,19 @@ class Series(np.ndarray, PandasGeneric):
 
         good = -bad
         idx = np.arange(len(self))
+
+        argsorted = _try_mergesort(arr[good])
+
+        if not ascending:
+            argsorted = argsorted[::-1]
+
         if na_last:
             n = sum(good)
-            sortedIdx[:n] = idx[good][_try_mergesort(arr[good])]
+            sortedIdx[:n] = idx[good][argsorted]
             sortedIdx[n:] = idx[bad]
         else:
             n = sum(bad)
-            sortedIdx[n:] = idx[good][_try_mergesort(arr[good])]
+            sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
 
         return Series(arr[sortedIdx], index=self.index[sortedIdx])

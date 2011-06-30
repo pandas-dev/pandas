@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas import Index, Series, TimeSeries, DataFrame, isnull
 import pandas.core.datetools as datetools
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as common
 
 #-------------------------------------------------------------------------------
@@ -622,6 +622,13 @@ class TestSeries(unittest.TestCase):
         ser = Series(['A', 'B'], [1, 2])
         # no failure
         ser.order()
+
+        # ascending=False
+        ordered = ts.order(ascending=False)
+        expected = np.sort(ts.valid().values)[::-1]
+        assert_almost_equal(expected, ordered.valid().values)
+        ordered = ts.order(ascending=False, na_last=False)
+        assert_almost_equal(expected, ordered.valid().values)
 
     def test_map(self):
         result = self.ts.map(lambda x: x * 2)
