@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.core.common import _mut_exclusive, _ensure_index, _pfixed
 from pandas.core.index import Index
+from pandas.core.internals import make_ndblock
 from pandas.core.frame import DataFrame
 from pandas.core.generic import PandasGeneric, Picklable
 import pandas.core.common as common
@@ -212,7 +213,6 @@ class WidePanel(Panel, PandasGeneric):
         self.values = values
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
-        from pandas.core.internals import make_block
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:

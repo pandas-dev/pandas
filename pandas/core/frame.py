@@ -206,7 +206,7 @@ class DataFrame(PandasGeneric):
             columns = _default_index(K)
 
         columns = _ensure_index(columns)
-        block = make_block(values, columns, columns)
+        block = make_block(values.T, columns, columns)
         return BlockManager([block], index, columns)
 
     def astype(self, dtype):
@@ -594,7 +594,9 @@ class DataFrame(PandasGeneric):
 
     def _get_values(self):
         self._consolidate_inplace()
-        return self._data.as_matrix()
+        # returns items x index
+        values = self._data.as_matrix()
+        return values.T
 
     index = property(fget=lambda self: self._get_index(),
                      fset=lambda self, x: self._set_index(x))
@@ -664,7 +666,6 @@ class DataFrame(PandasGeneric):
             dm = dm.join(objects)
 
         self._data = dm._data
-
 
     #----------------------------------------------------------------------
     # Private helper methods
