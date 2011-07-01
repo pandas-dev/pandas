@@ -8,6 +8,7 @@ from pandas.core.index import Index, NULL_INDEX
 from pandas.core.common import _ensure_index, _try_sort
 from pandas.core.series import Series
 import pandas.core.common as common
+import pandas._tseries as _tseries
 
 class Block(object):
     """
@@ -551,9 +552,19 @@ class BlockManager(object):
         return BlockManager(consolidated, self.index, cons_cols)
 
     def join_on(self, other, on):
-        reindexed = other.reindex_index(on)
-        reindexed.index = self.index
-        return self.merge(reindexed)
+        indexer, mask = _tseries.getMergeVec(on, other.index.indexMap)
+
+        # TODO: deal with length-0 case? or does it fall out?
+        notmask = -mask
+        needs_masking = len(on) > 0 and notmask.any()
+        other_blocks = []
+        for block in other.blocks:
+            newb = block.reindex_index(indexer, notmask, needs_masking)
+            other_blocks.append(newb)
+
+        cons_cols = self.columns + other.columns
+        consolidated = _consolidate(self.blocks + other_blocks, cons_cols)
+        return BlockManager(consolidated, self.index, cons_cols)
 
     def reindex_columns(self, new_columns):
         """

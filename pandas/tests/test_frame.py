@@ -1984,6 +1984,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(np.array_equal(merged['MergedA'], target['A']))
         self.assert_(np.array_equal(merged['MergedD'], target['D']))
 
+        # join with duplicates (fix regression from DataFrame/Matrix merge)
+        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
+        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
+        joined = df.join(df2, on='key')
+        expected = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c'],
+                              'value' : [0, 0, 1, 1, 2]})
+        assert_frame_equal(joined, expected)
+
         # Test when some are missing
         df_a = DataFrame([[1], [2], [3]], index=['a', 'b', 'c'],
                          columns=['one'])
