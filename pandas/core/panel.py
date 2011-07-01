@@ -232,7 +232,7 @@ class WidePanel(Panel, PandasGeneric):
 
         items = fixed_axes[0]
         block = make_block(values, items, items, ndim=3)
-        return NDBlockManager([block], axes)
+        return BlockManager([block], axes)
 
     def _get_plane_axes(self, axis):
         """

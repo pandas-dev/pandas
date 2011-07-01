@@ -17,10 +17,12 @@ class Block(object):
     Index-ignorant; let the container take care of that
     """
     def __init__(self, values, items, ref_items, ndim=2):
-        values = _convert_if_1d(values)
+        # values = _convert_if_1d(values)
+
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object)
 
+        assert(values.ndim == ndim)
         assert(len(items) == len(values))
 
         self.values = values
@@ -49,8 +51,7 @@ class Block(object):
     def __repr__(self):
         shape = ' x '.join([str(s) for s in self.shape])
         name = type(self).__name__
-        return '%s: %s, %s, dtype %s' % (name, self.items,
-                                         shape, self.dtype)
+        return '%s: %s, %s, dtype %s' % (name, self.items, shape, self.dtype)
 
     def __contains__(self, item):
         return item in self.items
@@ -80,7 +81,7 @@ class Block(object):
 
     def copy(self):
         return make_block(self.values.copy(), self.items,
-                          self.ref_items)
+                          self.ref_items, ndim=self.ndim)
 
     def merge(self, other):
         assert(self.ref_items.equals(other.ref_items))
@@ -98,7 +99,8 @@ class Block(object):
         if needs_masking:
             new_values = _cast_if_bool_int(new_values)
             common.null_out_axis(new_values, notmask, axis)
-        return make_ndblock(new_values, self.items, self.ref_items)
+        return make_block(new_values, self.items, self.ref_items,
+                          ndim=self.ndim)
 
     def reindex_items_from(self, new_ref_items):
         """
@@ -115,8 +117,7 @@ class Block(object):
         masked_idx = indexer[mask]
         new_values = self.values.take(masked_idx, axis=0)
         new_items = self.items.take(masked_idx)
-        return make_ndblock(new_values, new_items, new_ref_items)
-
+        return make_block(new_values, new_items, new_ref_items, ndim=self.ndim)
 
     def get(self, item):
         loc = self.items.get_loc(item)
@@ -142,13 +143,14 @@ class Block(object):
         loc = self.items.get_loc(item)
         new_items = np.delete(np.asarray(self.items), loc)
         new_values = np.delete(self.values, loc, 0)
-        return make_block(new_values, new_items, self.ref_items)
+        return make_block(new_values, new_items, self.ref_items, ndim=self.ndim)
 
     def fillna(self, value):
         new_values = self.values.copy()
         mask = common.isnull(new_values.ravel())
         new_values.flat[mask] = value
-        return make_block(new_values, self.items, self.ref_items)
+        return make_block(new_values, self.items, self.ref_items,
+                          ndim=self.ndim)
 
 def _insert_into_items(items, item, loc):
     items = np.asarray(items)
@@ -225,10 +227,8 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
-    def __init__(self, blocks, index=None, items=None,
-                 skip_integrity_check=False):
-        self._index = _ensure_index(index)
-        self._items = _ensure_index(items)
+    def __init__(self, blocks, axes, skip_integrity_check=False, ndim=2):
+        self.axes = [_ensure_index(ax) for ax in axes]
         self.blocks = blocks
 
         if not skip_integrity_check:
@@ -242,9 +242,15 @@ class BlockManager(object):
                 return True
         return False
 
+    def set_axis(self, axis, value):
+        cur_axis = self.axes[axis]
+        if len(value) != len(cur_axis):
+            raise Exception('Length mismatch (%d vs %d)'
+                            % (len(index), len(cur_axis)))
+        self.axes[axis] = _ensure_index(value)
+
     def _set_items(self, value):
         self.set_axis(0, value)
-
         for block in self.blocks:
             block.set_ref_items(self.items, maybe_rename=True)
 
@@ -252,13 +258,6 @@ class BlockManager(object):
         return self.axes[0]
 
     items = property(fget=_get_items, fset=_set_items)
-
-    def set_axis(self, axis, value):
-        cur_axis = self.axes[axis]
-        if len(value) != len(cur_axis):
-            raise Exception('Length mismatch (%d vs %d)'
-                            % (len(index), len(cur_axis)))
-        self.axes[axis] = _ensure_index(value)
 
     def set_items_norename(self, value):
         value = _ensure_index(value)
@@ -271,31 +270,41 @@ class BlockManager(object):
         block_values = [b.values for b in self.blocks]
         block_items = [np.asarray(b.items) for b in self.blocks]
         axes_array = [np.asarray(ax) for ax in self.axes]
-        return axes_array, block_values, block_items
+        return axes_array, block_values, block_items, self.ndim
 
     def __setstate__(self, state):
-        ax_arrays, bvalues, bitems = state
-        axes = [_ensure_index(ax) for ax in ax_arrays]
-        ref_items = axes[0]
+        ax_arrays, bvalues, bitems, ndim = state
+
+        self.axes = [_ensure_index(ax) for ax in ax_arrays]
 
         blocks = []
         for values, items in zip(bvalues, bitems):
-            blk = make_block(values, items, all_items)
+            blk = make_block(values, items, self.axes[0])
             blocks.append(blk)
         self.blocks = blocks
 
     def __repr__(self):
         output = 'BlockManager'
+        for i, ax in enumerate(self.axes):
+            if i == 0:
+                output += 'Items: \n%s' % ax
+            else:
+                output += 'Axis %d: \n%s' % (i, ax)
+
         for block in self.blocks:
             output += '\n%s' % repr(block)
         return output
 
+    @property
+    def shape(self):
+        return tuple(len(ax) for ax in self.axes)
+
     def _verify_integrity(self):
         _union_block_items(self.blocks)
-        length = len(self)
-        for block in self.blocks:
-            assert(len(block) == length)
 
+        mgr_shape = self.shape
+        for block in self.blocks:
+            assert(block.values.shape[1:] == mgr_shape[1:])
         tot_items = sum(len(x.items) for x in self.blocks)
         assert(len(self.items) == tot_items)
 
@@ -303,10 +312,11 @@ class BlockManager(object):
         new_blocks = []
         for block in self.blocks:
             newb = make_block(block.values.astype(dtype), block.items,
-                              block.ref_items)
+                              block.ref_items, ndim=self.ndim)
             new_blocks.append(newb)
 
-        new_mgr = BlockManager(new_blocks, self.index, self.items)
+        new_mgr = BlockManager(new_blocks, [self.index, self.items],
+                               ndim=self.ndim)
         return new_mgr.consolidate()
 
     def is_consolidated(self):
@@ -316,10 +326,12 @@ class BlockManager(object):
         dtypes = [blk.dtype for blk in self.blocks]
         return len(dtypes) == len(set(dtypes))
 
-    def get_slice(self, slice_obj):
-        new_blocks = _slice_blocks(self.blocks, slice_obj)
-        new_index = self.index[slice_obj]
-        return BlockManager(new_blocks, index=new_index, items=self.items)
+    def get_slice(self, slice_obj, axis=0):
+        new_blocks = _slice_blocks(self.blocks, slice_obj, axis)
+
+        new_axes = list(self.axes)
+        new_axes[axis] = new_axes[axis][slice_obj]
+        return BlockManager(new_blocks, new_axes, ndim=self.ndim)
 
     def get_series_dict(self, index):
         return _blocks_to_series_dict(self.blocks, index)
@@ -622,7 +634,7 @@ def add_na_items(new_items, index, ref_items):
     values = _nan_array(index, new_items)
     return make_block(values, new_items, ref_items)
 
-def _slice_blocks(blocks, slice_obj):
+def _slice_blocks(blocks, slice_obj, axis):
     new_blocks = []
     for block in blocks:
         newb = make_block(block.values[slice_obj], block.items,
