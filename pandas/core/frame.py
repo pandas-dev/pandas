@@ -636,20 +636,23 @@ class DataFrame(PandasGeneric):
 
     def __setstate__(self, state):
         # old DataFrame pickle
-        if len(state) == 3: # pragma: no cover
+        if isinstance(state, BlockManager):
+            self._data = state
+        elif isinstance(state[0], dict): # pragma: no cover
             self._unpickle_frame_compat(state)
-        # old DataFrame pickle
-        elif len(state) == 2: # pragma: no cover
+        else: # pragma: no cover
             # old pickling format, for compatibility
             self._unpickle_matrix_compat(state)
-        else:
-            assert(isinstance(state, BlockManager))
-            self._data = state
 
     def _unpickle_frame_compat(self, state): # pragma: no cover
         from pandas.core.common import _unpickle_array
-        series, cols, idx = state
-        columns = _unpickle_array(cols)
+        if len(state) == 2: # pragma: no cover
+            series, idx = state
+            columns = sorted(series)
+        else:
+            series, cols, idx = state
+            columns = _unpickle_array(cols)
+
         index = _unpickle_array(idx)
         self._data = self._init_dict(series, index, columns, None)
 
