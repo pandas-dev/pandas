@@ -10,7 +10,7 @@ import operator
 import sys
 import warnings
 
-from numpy import NaN, ndarray
+from numpy import nan, ndarray
 import numpy as np
 
 from pandas.core.common import isnull, notnull, _ensure_index
@@ -63,8 +63,7 @@ def _arith_method(op, name):
                                            self.index.indexMap,
                                            other.index.indexMap)
             except Exception:
-                arr = Series._combineFunc(self, other,
-                                          getattr(type(self[0]), name))
+                arr = Series.combine(self, other, getattr(type(self[0]), name))
             result = Series(arr, index=newIndex)
             return result
 
@@ -81,7 +80,7 @@ def _arith_method(op, name):
 
 def _flex_method(op, name):
     def f(self, other, fill_value=None):
-        return self._combine(other, op, fill_value=fill_value)
+        return self._binop(other, op, fill_value=fill_value)
 
     f.__doc__ = """
     Binary operator %s with support to substitute a fill_value for missing data
@@ -546,7 +545,7 @@ class Series(np.ndarray, PandasGeneric):
         """
         nona = remove_na(self.values)
         if len(nona) < 2:
-            return NaN
+            return nan
         return ndarray.std(nona, axis, dtype, out, ddof)
 
     def var(self, axis=None, dtype=None, out=None, ddof=1):
@@ -555,7 +554,7 @@ class Series(np.ndarray, PandasGeneric):
         """
         nona = remove_na(self.values)
         if len(nona) < 2:
-            return NaN
+            return nan
         return ndarray.var(nona, axis, dtype, out, ddof)
 
     def skew(self):
@@ -630,7 +629,7 @@ class Series(np.ndarray, PandasGeneric):
         commonIdx = self.valid().index.intersection(other.valid().index)
 
         if len(commonIdx) == 0:
-            return NaN
+            return nan
 
         this = self.reindex(commonIdx)
         that = other.reindex(commonIdx)
@@ -736,7 +735,7 @@ class Series(np.ndarray, PandasGeneric):
         new_values = np.concatenate((self, other))
         return Series(new_values, index=newIndex)
 
-    def _combine(self, other, func, fill_value=None):
+    def _binop(self, other, func, fill_value=None):
         """
         Parameters
         ----------
@@ -782,34 +781,34 @@ class Series(np.ndarray, PandasGeneric):
     mul = _flex_method(operator.mul, 'multiply')
     div = _flex_method(operator.div, 'divide')
 
-    def _combineFunc(self, other, func):
+    def combine(self, other, func, fill_value=nan):
         """
-        Combines this Series using the given function with either
-          * another Series index by index
-          * a scalar value
-          * DataFrame
+        Perform elementwise binary operation on two Series using given function
+        with optional fill value when an index is missing from one Series or the
+        other
 
         Parameters
         ----------
-        other : {Series, DataFrame, scalar value}
+        other : Series or scalar value
+        func : function
+        fill_value : scalar value
 
         Returns
         -------
-        y : {Series or DataFrame}
-            Output depends on input. If a DataFrame is inputted, that
-            will be the return type.
+        result : Series
         """
         if isinstance(other, Series):
             newIndex = self.index + other.index
 
-            newArr = np.empty(len(newIndex), dtype=self.dtype)
+            new_values = np.empty(len(newIndex), dtype=self.dtype)
             for i, idx in enumerate(newIndex):
-                newArr[i] = func(self.get(idx, NaN), other.get(idx, NaN))
+                new_values[i] = func(self.get(idx, fill_value),
+                                 other.get(idx, fill_value))
         else:
             newIndex = self.index
-            newArr = func(self.values, other)
+            new_values = func(self.values, other)
 
-        return Series(newArr, index=newIndex)
+        return Series(new_values, index=newIndex)
 
     def combineFirst(self, other):
         """
@@ -989,7 +988,7 @@ class Series(np.ndarray, PandasGeneric):
 
         index = _ensure_index(index)
         if len(self.index) == 0:
-            return Series(NaN, index=index)
+            return Series(nan, index=index)
 
         fill_vec, mask = self.index.get_indexer(index, method=method)
         new_values = self.values.take(fill_vec)
@@ -1001,7 +1000,7 @@ class Series(np.ndarray, PandasGeneric):
             elif issubclass(new_values.dtype.type, np.bool_):
                 new_values = new_values.astype(object)
 
-            np.putmask(new_values, notmask, NaN)
+            np.putmask(new_values, notmask, nan)
 
         return Series(new_values, index=index)
 
@@ -1255,10 +1254,10 @@ class Series(np.ndarray, PandasGeneric):
 
             if periods > 0:
                 new_values[periods:] = self.values[:-periods]
-                new_values[:periods] = np.NaN
+                new_values[:periods] = nan
             elif periods < 0:
                 new_values[:periods] = self.values[-periods:]
-                new_values[periods:] = np.NaN
+                new_values[periods:] = nan
 
             return Series(new_values, index=self.index)
         else:
@@ -1319,7 +1318,7 @@ class Series(np.ndarray, PandasGeneric):
             if index > 0:
                 asOfDate = candidates[index - 1]
             else:
-                return NaN
+                return nan
 
             return self.get(asOfDate)
         else:
@@ -1423,7 +1422,7 @@ class Series(np.ndarray, PandasGeneric):
     # Deprecated stuff
 
     @classmethod
-    def fromValue(cls, value=np.NaN, index=None, dtype=None): # pragma: no cover
+    def fromValue(cls, value=nan, index=None, dtype=None): # pragma: no cover
         warnings.warn("'fromValue', can call Series(value, index=index) now",
                       FutureWarning)
 

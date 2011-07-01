@@ -395,7 +395,7 @@ class TestSeries(unittest.TestCase):
 
         def _check_op(other, op):
             cython_or_numpy = op(series, other)
-            python = series._combineFunc(other, op)
+            python = series.combine(other, op)
 
             common.assert_almost_equal(cython_or_numpy, python)
 
