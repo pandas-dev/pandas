@@ -113,6 +113,9 @@ Release notes
   the top level, i.e.
   * `pandas.lib.tseries` -> `pandas._tseries`
   * `pandas.lib.sparse` -> `pandas._sparse`
+* `DataFrame` pickling format has changed. Backwards compatibility for legacy
+  pickles is provided, but it's recommended to consider PyTables-based
+  `HDFStore` for storing data with a longer expected shelf life
 * A `copy` argument has been added to the `DataFrame` constructor to avoid
   unnecessary copying of data. Data is no longer copied by default when passed
   into the constructor
