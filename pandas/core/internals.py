@@ -228,9 +228,17 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
-    def __init__(self, blocks, axes, skip_integrity_check=False, ndim=2):
+    def __init__(self, blocks, axes, skip_integrity_check=False, ndim=None):
         self.axes = [_ensure_index(ax) for ax in axes]
         self.blocks = blocks
+
+        if ndim is None and len(blocks) == 0:
+            raise ValueError('must specify dimension if no input blocks')
+        elif ndim is None:
+            ndim = blocks[0].ndim
+
+
+        self.ndim = ndim
 
         if not skip_integrity_check:
             self._verify_integrity()
@@ -288,9 +296,9 @@ class BlockManager(object):
         output = 'BlockManager'
         for i, ax in enumerate(self.axes):
             if i == 0:
-                output += 'Items: \n%s' % ax
+                output += '\nItems: %s' % ax
             else:
-                output += 'Axis %d: \n%s' % (i, ax)
+                output += '\nAxis %d: %s' % (i, ax)
 
         for block in self.blocks:
             output += '\n%s' % repr(block)
@@ -316,8 +324,7 @@ class BlockManager(object):
                               block.ref_items, ndim=self.ndim)
             new_blocks.append(newb)
 
-        new_mgr = BlockManager(new_blocks, [self.index, self.items],
-                               ndim=self.ndim)
+        new_mgr = BlockManager(new_blocks, self.axes, ndim=self.ndim)
         return new_mgr.consolidate()
 
     def is_consolidated(self):
@@ -328,24 +335,34 @@ class BlockManager(object):
         return len(dtypes) == len(set(dtypes))
 
     def get_slice(self, slice_obj, axis=0):
-        new_blocks = _slice_blocks(self.blocks, slice_obj, axis)
+        new_blocks = self._slice_blocks(slice_obj, axis)
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slice_obj]
         return BlockManager(new_blocks, new_axes, ndim=self.ndim)
 
+    def _slice_blocks(self, slice_obj, axis):
+        new_blocks = []
+
+        slicer = [slice(None, None) for _ in range(self.ndim)]
+        slicer[axis] = slice_obj
+        slicer = tuple(slicer)
+
+        for block in self.blocks:
+            newb = make_block(block.values[slicer], block.items,
+                              block.ref_items)
+            new_blocks.append(newb)
+        return new_blocks
+
     def get_series_dict(self, index):
         return _blocks_to_series_dict(self.blocks, index)
-
-    def __len__(self):
-        # number of blocks
-        return len(self.index)
 
     @classmethod
     def from_blocks(cls, blocks, index):
         # also checks for overlap
         items = _union_block_items(blocks)
-        return BlockManager(blocks, index, items)
+        ndim = blocks[0].ndim
+        return BlockManager(blocks, [items, index], ndim=ndim)
 
     def __contains__(self, item):
         return item in self.items
@@ -356,11 +373,11 @@ class BlockManager(object):
 
     def copy(self):
         copy_blocks = [block.copy() for block in self.blocks]
-        return BlockManager(copy_blocks, self.index, self.items)
+        return BlockManager(copy_blocks, self.axes, ndim=self.ndim)
 
     def as_matrix(self, items=None):
         if len(self.blocks) == 0:
-            mat = np.empty((len(self.index), 0), dtype=float)
+            mat = np.empty(self.shape, dtype=float)
         elif len(self.blocks) == 1:
             blk = self.blocks[0]
             if items is None or blk.items.equals(items):
@@ -368,24 +385,49 @@ class BlockManager(object):
                 mat = blk.values
         else:
             if items is None:
-                mat = _interleave(self.blocks, self.items)
+                mat = self._interleave(self.items)
             else:
                 mat = self.reindex_items(items).as_matrix()
 
         return mat
 
-    def xs(self, i, copy=True):
+    def _interleave(self, items):
+        """
+        Return ndarray from blocks with specified item order
+        Items must be contained in the blocks
+        """
+        dtype = _interleaved_dtype(self.blocks)
+        items = _ensure_index(items)
+
+        result = np.empty(self.shape, dtype=dtype)
+        itemmask = np.zeros(len(items), dtype=bool)
+
+        # By construction, all of the item should be covered by one of the
+        # blocks
+        for block in self.blocks:
+            indexer, mask = items.get_indexer(block.items)
+            assert(mask.all())
+            result[indexer] = block.values
+            itemmask[indexer] = 1
+        assert(itemmask.all())
+        return result
+
+    def xs(self, i, axis=1, copy=True):
         # TODO: fix this mess
+
+        slicer = [slice(None, None) for _ in range(self.ndim)]
+        slicer[axis] = i
+        slicer = tuple(slicer)
 
         if len(self.blocks) > 1:
             if not copy:
                 raise Exception('cannot get view of mixed-type or '
                                 'non-consolidated DataFrame')
-            vals = np.concatenate([b.values[i] for b in self.blocks])
+            vals = np.concatenate([b.values[slicer] for b in self.blocks])
             items = np.concatenate([b.items for b in self.blocks])
             xs = Series(vals, index=items).reindex(self.items)
         else:
-            vals = self.blocks[0].values[i]
+            vals = self.blocks[0].values[slicer]
             items = self.blocks[0].items
             xs = Series(vals, items)
             if copy:
@@ -404,7 +446,7 @@ class BlockManager(object):
             return self
 
         new_blocks = _consolidate(self.blocks, self.items)
-        return BlockManager(new_blocks, self.index, self.items)
+        return BlockManager(new_blocks, self.axes)
 
     def get(self, item):
         _, block = self._find_block(item)
@@ -423,7 +465,8 @@ class BlockManager(object):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-        assert(len(value) == len(self))
+        assert(value.ndim == self.ndim)
+        assert(value.shape[1:] == self.shape[1:])
         if item in self.items:
             i, block = self._find_block(item)
             if not block.can_store(value):
@@ -434,8 +477,7 @@ class BlockManager(object):
                 block.set(item, value)
         else:
             # TODO: where to insert?
-            new_items = _insert_into_items(self.items, item,
-                                            len(self.items))
+            new_items = _insert_into_items(self.items, item, len(self.items))
             self.set_items_norename(new_items)
             # new block
             self._add_new_block(item, value)
@@ -467,20 +509,63 @@ class BlockManager(object):
         if item not in self.items:
             raise KeyError('no item named %s' % item)
 
-    def reindex_index(self, new_index, method=None):
-        new_index = _ensure_index(new_index)
-        indexer, mask = self.index.get_indexer(new_index, method)
+    def reindex_axis(self, new_axis, method=None, axis=0):
+        new_axis = _ensure_index(new_axis)
+        cur_axis = self.axes[axis]
+
+        indexer, mask = cur_axis.get_indexer(new_axis, method)
 
         # TODO: deal with length-0 case? or does it fall out?
         notmask = -mask
-        needs_masking = len(new_index) > 0 and notmask.any()
+        needs_masking = len(new_axis) > 0 and notmask.any()
 
         new_blocks = []
         for block in self.blocks:
-            newb = block.reindex_index(indexer, notmask, needs_masking)
+            newb = block.reindex_axis(indexer, notmask, needs_masking,
+                                      axis=axis)
             new_blocks.append(newb)
 
-        return BlockManager(new_blocks, new_index, self.items)
+        new_axes = list(self.axes)
+        new_axes[axis] = new_axis
+        return BlockManager(new_blocks, new_axes, ndim=self.ndim)
+
+    def reindex_items(self, new_items):
+        """
+
+        """
+        new_items = _ensure_index(new_items)
+        data = self
+        if not data.is_consolidated():
+            data = data.consolidate()
+            return data.reindex_items(new_items)
+
+        new_blocks = []
+        for block in self.blocks:
+            newb = block.reindex_items_from(new_items)
+            if len(newb.items) > 0:
+                new_blocks.append(newb)
+
+        # TODO: this part could be faster (!)
+        _, mask = self.items.get_indexer(new_items)
+        notmask = -mask
+
+        if notmask.any():
+            extra_items = new_items[notmask]
+
+            block_shape = list(self.shape)
+            block_shape[0] = len(extra_items)
+            block_values = np.empty(block_shape, dtype=np.float64)
+            block_values.fill(nan)
+            na_block = make_block(block_values, extra_items, new_items,
+                                  ndim=self.ndim)
+            # na_block = add_na_items(extra_items, self.index, new_items)
+            new_blocks.append(na_block)
+            new_blocks = _consolidate(new_blocks, new_items)
+
+        new_axes = list(self.axes)
+        new_axes[0] = new_items
+
+        return BlockManager(new_blocks, new_axes, ndim=self.ndim)
 
     def merge(self, other):
         # TODO
@@ -510,34 +595,6 @@ class BlockManager(object):
         cons_cols = self.columns + other.columns
         consolidated = _consolidate(self.blocks + other_blocks, cons_cols)
         return BlockManager(consolidated, self.index, cons_cols)
-
-    def reindex_items(self, new_items):
-        """
-
-        """
-        new_items = _ensure_index(new_items)
-        data = self
-        if not data.is_consolidated():
-            data = data.consolidate()
-            return data.reindex_items(new_items)
-
-        new_blocks = []
-        for block in self.blocks:
-            newb = block.reindex_items_from(new_items)
-            if len(newb.items) > 0:
-                new_blocks.append(newb)
-
-        # TODO: this part could be faster (!)
-        _, mask = self.items.get_indexer(new_items)
-        notmask = -mask
-
-        if notmask.any():
-            extra_items = new_items[notmask]
-            na_block = add_na_items(extra_items, self.index, new_items)
-            new_blocks.append(na_block)
-            new_blocks = _consolidate(new_blocks, new_items)
-
-        return BlockManager(new_blocks, self.index, new_items)
 
     def rename_index(self, mapper):
         new_index = [mapper(x) for x in self.index]
@@ -575,8 +632,6 @@ class BlockManager(object):
 
 _data_types = [np.float_, np.int_]
 def form_blocks(data, index, items):
-    from pandas.core.internals import add_na_items
-
     # pre-filter out items if we passed it
     if items is None:
         items = Index(_try_sort(data.keys()))
@@ -621,7 +676,10 @@ def form_blocks(data, index, items):
         blocks.append(object_block)
 
     if len(extra_items):
-        na_block = add_na_items(extra_items, index, items)
+        block_values = np.empty((len(extra_items), len(index)), dtype=float)
+        block_values.fill(nan)
+
+        na_block = make_block(block_values, extra_items, items)
         blocks.append(na_block)
         blocks = _consolidate(blocks, items)
 
@@ -637,27 +695,14 @@ def _simple_blockify(dct, ref_items, dtype):
 
 def _stack_dict(dct):
     items = Index(_try_sort(dct))
-    stacked = np.vstack([dct[k].values for k in items]).T
+    stacked = np.vstack([dct[k].values for k in items])
     return items, stacked
-
-def add_na_items(new_items, index, ref_items):
-    # create new block, then consolidate
-    values = _nan_array(index, new_items)
-    return make_block(values, new_items, ref_items)
-
-def _slice_blocks(blocks, slice_obj, axis):
-    new_blocks = []
-    for block in blocks:
-        newb = make_block(block.values[slice_obj], block.items,
-                          block.ref_items)
-        new_blocks.append(newb)
-    return new_blocks
 
 def _blocks_to_series_dict(blocks, index=None):
     series_dict = {}
 
     for block in blocks:
-        for item, vec in zip(block.items, block.values.T):
+        for item, vec in zip(block.items, block.values):
             series_dict[item] = Series(vec, index=index)
     return series_dict
 
@@ -730,12 +775,6 @@ def _consolidate(blocks, items):
     return new_blocks
 
 def _merge_blocks(blocks, items):
-    new_values = np.hstack([b.values for b in blocks])
-    new_items = np.concatenate([b.items for b in blocks])
-    new_block = make_block(new_values, new_items, items)
-    return new_block.reindex_items_from(items)
-
-def _merge_blocks2(blocks, items):
     new_values = np.vstack([b.values for b in blocks])
     new_items = np.concatenate([b.items for b in blocks])
     new_block = make_block(new_values, new_items, items)

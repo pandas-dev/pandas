@@ -183,7 +183,7 @@ class DataFrame(PandasGeneric):
         blocks, columns = form_blocks(homogenized, index, columns)
 
         # consolidate for now
-        mgr = BlockManager(blocks, index, columns)
+        mgr = BlockManager(blocks, [columns, index], ndim=2)
         return mgr.consolidate()
 
     def _init_matrix(self, values, index, columns, dtype=None,
@@ -207,7 +207,7 @@ class DataFrame(PandasGeneric):
 
         columns = _ensure_index(columns)
         block = make_block(values.T, columns, columns)
-        return BlockManager([block], index, columns)
+        return BlockManager([block], [columns, index], ndim=2)
 
     def astype(self, dtype):
         """
@@ -581,16 +581,16 @@ class DataFrame(PandasGeneric):
     # properties for index and columns
 
     def _set_columns(self, cols):
-        self._data.columns = _ensure_index(cols)
+        self._data.items = cols
 
     def _set_index(self, index):
-        self._data.index = _ensure_index(index)
+        self._data.set_axis(1, index)
 
     def _get_index(self):
-        return self._data.index
+        return self._data.axes[1]
 
     def _get_columns(self):
-        return self._data.columns
+        return self._data.items
 
     def _get_values(self):
         self._consolidate_inplace()
@@ -601,7 +601,7 @@ class DataFrame(PandasGeneric):
     index = property(fget=lambda self: self._get_index(),
                      fset=lambda self, x: self._set_index(x))
     columns = property(fget=lambda self: self._get_columns(),
-                     fset=lambda self, x: self._set_columns(x))
+                       fset=lambda self, x: self._set_columns(x))
     values = property(fget=_get_values)
 
     def as_matrix(self, columns=None):
@@ -612,7 +612,7 @@ class DataFrame(PandasGeneric):
         of columns is provided.
         """
         self._consolidate_inplace()
-        return self._data.as_matrix(columns)
+        return self._data.as_matrix(columns).T
 
     def transpose(self):
         """
@@ -763,7 +763,7 @@ class DataFrame(PandasGeneric):
         This is a magic method. Do NOT call explicity.
         """
         if isinstance(item, slice):
-            new_data = self._data.get_slice(item)
+            new_data = self._data.get_slice(item, axis=1)
             return DataFrame(new_data)
         elif isinstance(item, np.ndarray):
             if len(item) != len(self.index):
@@ -833,6 +833,7 @@ class DataFrame(PandasGeneric):
         else:
             value = np.repeat(value, len(self.index))
 
+        value = np.atleast_2d(value)
         self._data.set(key, value)
 
     def __delitem__(self, key):
@@ -876,7 +877,7 @@ class DataFrame(PandasGeneric):
 
         self._consolidate_inplace()
         loc = self.index.get_loc(key)
-        return self._data.xs(loc, copy=copy)
+        return self._data.xs(loc, axis=1, copy=copy)
 
     #----------------------------------------------------------------------
     # Reindexing
@@ -916,11 +917,11 @@ class DataFrame(PandasGeneric):
     def _reindex_index(self, new_index, method):
         if new_index is self.index:
             return self.copy()
-        new_data = self._data.reindex_index(new_index, method)
+        new_data = self._data.reindex_axis(new_index, method, axis=1)
         return DataFrame(new_data)
 
     def _reindex_columns(self, new_columns):
-        new_data = self._data.reindex_columns(new_columns)
+        new_data = self._data.reindex_items(new_columns)
         return DataFrame(new_data)
 
     def reindex_like(self, other, method=None):
@@ -1534,7 +1535,7 @@ class DataFrame(PandasGeneric):
         if offset is None:
             indexer = self._shift_indexer(periods)
             new_blocks = [_shift_block(b, indexer) for b in self._data.blocks]
-            new_data = BlockManager(new_blocks, self.index, self.columns)
+            new_data = BlockManager(new_blocks, [self.columns, self.index])
         else:
             new_data = self._data.copy()
             new_data.index = self.index.shift(periods, offset)
