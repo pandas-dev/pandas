@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.common import _mut_exclusive, _ensure_index, _pfixed
 from pandas.core.index import Index
-from pandas.core.internals import make_block
+from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
 from pandas.core.generic import PandasGeneric, Picklable
 import pandas.core.common as common

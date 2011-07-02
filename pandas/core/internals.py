@@ -195,7 +195,7 @@ class ObjectBlock(Block):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
-def make_block(values, items, ref_items, ndim=2):
+def make_block(values, items, ref_items, ndim):
     dtype = values.dtype
     vtype = dtype.type
 
@@ -288,7 +288,7 @@ class BlockManager(object):
 
         blocks = []
         for values, items in zip(bvalues, bitems):
-            blk = make_block(values, items, self.axes[0])
+            blk = make_block(values, items, self.axes[0], ndim)
             blocks.append(blk)
         self.blocks = blocks
 
@@ -350,7 +350,7 @@ class BlockManager(object):
 
         for block in self.blocks:
             newb = make_block(block.values[slicer], block.items,
-                              block.ref_items)
+                              block.ref_items, self.ndim)
             new_blocks.append(newb)
         return new_blocks
 
@@ -496,7 +496,7 @@ class BlockManager(object):
 
     def _add_new_block(self, item, value):
         # Do we care about dtype at the moment?
-        new_block = make_block(value, [item], self.items)
+        new_block = make_block(value, [item], self.items, self.ndim)
         self.blocks.append(new_block)
 
     def _find_block(self, item):
@@ -558,7 +558,6 @@ class BlockManager(object):
             block_values.fill(nan)
             na_block = make_block(block_values, extra_items, new_items,
                                   ndim=self.ndim)
-            # na_block = add_na_items(extra_items, self.index, new_items)
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
@@ -568,8 +567,7 @@ class BlockManager(object):
         return BlockManager(new_blocks, new_axes, ndim=self.ndim)
 
     def merge(self, other):
-        # TODO
-        assert(self.index.equals(other.index))
+        assert(self._is_indexed_like(other))
 
         intersection = self.items.intersection(other.items)
         try:
@@ -579,26 +577,46 @@ class BlockManager(object):
 
         cons_items = self.items + other.items
         consolidated = _consolidate(self.blocks + other.blocks, cons_items)
-        return BlockManager(consolidated, self.index, cons_items)
 
-    def join_on(self, other, on):
-        indexer, mask = _tseries.getMergeVec(on, other.index.indexMap)
+        new_axes = list(self.axes)
+        new_axes[0] = cons_items
+
+        return BlockManager(consolidated, new_axes)
+
+    def _is_indexed_like(self, other):
+        """
+        Check all axes except items
+        """
+        assert(self.ndim == other.ndim)
+        for ax, oax in zip(self.axes[1:], other.axes[1:]):
+            if not ax.equals(oax):
+                return False
+        return True
+
+    def join_on(self, other, on, axis=1):
+        other_axis = other.axes[axis]
+        indexer, mask = _tseries.getMergeVec(on, other_axis.indexMap)
 
         # TODO: deal with length-0 case? or does it fall out?
         notmask = -mask
         needs_masking = len(on) > 0 and notmask.any()
         other_blocks = []
         for block in other.blocks:
-            newb = block.reindex_index(indexer, notmask, needs_masking)
+            newb = block.reindex_axis(indexer, notmask, needs_masking, axis=axis)
             other_blocks.append(newb)
 
-        cons_cols = self.columns + other.columns
-        consolidated = _consolidate(self.blocks + other_blocks, cons_cols)
-        return BlockManager(consolidated, self.index, cons_cols)
+        cons_items = self.items + other.items
+        consolidated = _consolidate(self.blocks + other_blocks, cons_items)
 
-    def rename_index(self, mapper):
-        new_index = [mapper(x) for x in self.index]
-        return BlockManager(self.blocks, new_index, self.items)
+        new_axes = list(self.axes)
+        new_axes[0] = cons_items
+        return BlockManager(consolidated, new_axes)
+
+    def rename_axis(self, mapper, axis=1):
+        new_axis = [mapper(x) for x in self.axes[axis]]
+        new_axes = list(self.axes)
+        new_axes[axis] = new_axis
+        return BlockManager(self.blocks, new_axes)
 
     def rename_items(self, mapper):
         new_items = Index([mapper(x) for x in self.items])
@@ -607,14 +625,16 @@ class BlockManager(object):
             newb = block.copy()
             newb.set_ref_items(new_items, maybe_rename=True)
             new_blocks.append(newb)
-        return BlockManager(new_blocks, self.index, new_items)
+        new_axes = list(self.axes)
+        new_axes[0] = new_items
+        return BlockManager(new_blocks, new_axes)
 
     def fillna(self, value):
         """
 
         """
         new_blocks = [b.fillna(value) for b in self.blocks]
-        return BlockManager(new_blocks, self.index, self.items)
+        return BlockManager(new_blocks, self.axes)
 
     @property
     def block_id_vector(self):
@@ -655,6 +675,8 @@ def form_blocks(data, index, items):
 
     blocks = []
 
+    ndim = 2
+
     if len(num_dict) > 0:
         num_dtypes = set(v.dtype for v in num_dict.values())
         if len(num_dtypes) > 1:
@@ -664,34 +686,34 @@ def form_blocks(data, index, items):
 
         # TODO: find corner cases
         # TODO: check type inference
-        num_block = _simple_blockify(num_dict, items, num_dtype)
+        num_block = _simple_blockify(num_dict, items, num_dtype, ndim)
         blocks.append(num_block)
 
     if len(bool_dict):
-        bool_block = _simple_blockify(bool_dict, items, np.bool_)
+        bool_block = _simple_blockify(bool_dict, items, np.bool_, ndim)
         blocks.append(bool_block)
 
     if len(object_dict) > 0:
-        object_block = _simple_blockify(object_dict, items, np.object_)
+        object_block = _simple_blockify(object_dict, items, np.object_, ndim)
         blocks.append(object_block)
 
     if len(extra_items):
         block_values = np.empty((len(extra_items), len(index)), dtype=float)
         block_values.fill(nan)
 
-        na_block = make_block(block_values, extra_items, items)
+        na_block = make_block(block_values, extra_items, items, ndim)
         blocks.append(na_block)
         blocks = _consolidate(blocks, items)
 
     return blocks, items
 
-def _simple_blockify(dct, ref_items, dtype):
+def _simple_blockify(dct, ref_items, dtype, ndim):
     block_items, values = _stack_dict(dct)
     # CHECK DTYPE?
     if values.dtype != dtype:
         values = values.astype(dtype)
 
-    return make_block(values, block_items, ref_items)
+    return make_block(values, block_items, ref_items, ndim)
 
 def _stack_dict(dct):
     items = Index(_try_sort(dct))
@@ -777,7 +799,7 @@ def _consolidate(blocks, items):
 def _merge_blocks(blocks, items):
     new_values = np.vstack([b.values for b in blocks])
     new_items = np.concatenate([b.items for b in blocks])
-    new_block = make_block(new_values, new_items, items)
+    new_block = make_block(new_values, new_items, items, new_values.ndim)
     return new_block.reindex_items_from(items)
 
 def _union_block_items(blocks):

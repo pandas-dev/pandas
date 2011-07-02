@@ -26,7 +26,7 @@ from pandas.core.common import (isnull, notnull, _ensure_index,
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
-from pandas.core.internals import BlockManager
+from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -188,7 +188,6 @@ class DataFrame(PandasGeneric):
 
     def _init_matrix(self, values, index, columns, dtype=None,
                      copy=False):
-        from pandas.core.internals import make_block
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
@@ -206,7 +205,7 @@ class DataFrame(PandasGeneric):
             columns = _default_index(K)
 
         columns = _ensure_index(columns)
-        block = make_block(values.T, columns, columns)
+        block = make_block(values.T, columns, columns, 2)
         return BlockManager([block], [columns, index], ndim=2)
 
     def astype(self, dtype):
@@ -1177,10 +1176,10 @@ class DataFrame(PandasGeneric):
         return result
 
     def _rename_index_inplace(self, mapper):
-        self._data = self._data.rename_index(mapper)
+        self._data = self._data.rename_axis(mapper, axis=1)
 
     def _rename_columns_inplace(self, mapper):
-        self._data = self._data.rename_columns(mapper)
+        self._data = self._data.rename_items(mapper)
 
     #----------------------------------------------------------------------
     # Arithmetic / combination related
@@ -1513,8 +1512,6 @@ class DataFrame(PandasGeneric):
         -------
         DataFrame
         """
-        from pandas.core.internals import make_block
-
         if periods == 0:
             return self
 
@@ -1522,15 +1519,15 @@ class DataFrame(PandasGeneric):
             offset = datetools.getOffset(timeRule)
 
         def _shift_block(blk, indexer):
-            new_values = blk.values.take(indexer, axis=0)
+            new_values = blk.values.take(indexer, axis=1)
             # convert integer to float if necessary. need to do a lot more than
             # that, handle boolean etc also
             new_values = common.ensure_float(new_values)
             if periods > 0:
-                new_values[:periods] = nan
+                new_values[:, :periods] = nan
             else:
-                new_values[periods:] = nan
-            return make_block(new_values, blk.columns, blk.ref_columns)
+                new_values[:, periods:] = nan
+            return make_block(new_values, blk.items, blk.ref_items, ndim=2)
 
         if offset is None:
             indexer = self._shift_indexer(periods)
@@ -1538,7 +1535,7 @@ class DataFrame(PandasGeneric):
             new_data = BlockManager(new_blocks, [self.columns, self.index])
         else:
             new_data = self._data.copy()
-            new_data.index = self.index.shift(periods, offset)
+            new_data.axes[1] = self.index.shift(periods, offset)
 
         return DataFrame(new_data)
 
@@ -1762,7 +1759,7 @@ class DataFrame(PandasGeneric):
         if on not in self:
             raise Exception('%s column not contained in this frame!' % on)
 
-        new_data = self._data.join_on(other._data, self[on])
+        new_data = self._data.join_on(other._data, self[on], axis=1)
         return DataFrame(new_data)
 
     def _join_index(self, other, how):
@@ -1772,7 +1769,7 @@ class DataFrame(PandasGeneric):
 
         # merge blocks
         merged_data = this_data.merge(other_data)
-        assert(merged_data.index is join_index) # maybe unnecessary
+        assert(merged_data.axes[1] is join_index) # maybe unnecessary
         return DataFrame(merged_data)
 
     def _get_join_index(self, other, how):
