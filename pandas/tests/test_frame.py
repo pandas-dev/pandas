@@ -782,8 +782,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
-        df = DataFrame(mat, index=[0, 1], columns=[0], dtype=float)
-        self.assert_(df.values.dtype == np.object_)
+        self.assertRaises(ValueError, DataFrame, mat, index=[0, 1],
+                          columns=[0], dtype=float)
 
         dm = self.klass(DataFrame(self.frame._series))
         tm.assert_frame_equal(dm, self.frame)

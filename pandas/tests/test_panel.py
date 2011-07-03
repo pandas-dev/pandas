@@ -165,6 +165,20 @@ class SafeForSparse(object):
         assert(self.panel._get_axis(1) is self.panel.major_axis)
         assert(self.panel._get_axis(2) is self.panel.minor_axis)
 
+    def test_set_axis(self):
+        new_items = Index(np.arange(len(self.panel.items)))
+        new_major = Index(np.arange(len(self.panel.major_axis)))
+        new_minor = Index(np.arange(len(self.panel.minor_axis)))
+
+        self.panel.items = new_items
+        self.assert_(self.panel.items is new_items)
+
+        self.panel.major_axis = new_major
+        self.assert_(self.panel.major_axis is new_major)
+
+        self.panel.minor_axis = new_minor
+        self.assert_(self.panel.minor_axis is new_minor)
+
     def test_get_axis_number(self):
         self.assertEqual(self.panel._get_axis_number('items'), 0)
         self.assertEqual(self.panel._get_axis_number('major'), 1)
@@ -310,6 +324,32 @@ class TestWidePanel(unittest.TestCase, PanelTests,
     def setUp(self):
         self.panel = common.makeWidePanel()
         common.add_nans(self.panel)
+
+    def test_constructor(self):
+        # with BlockManager
+        wp = WidePanel(self.panel._data)
+        self.assert_(wp._data is self.panel._data)
+
+        wp = WidePanel(self.panel._data, copy=True)
+        self.assert_(wp._data is not self.panel._data)
+        assert_panel_equal(wp, self.panel)
+
+    def test_constructor_cast(self):
+        casted = WidePanel(self.panel._data, dtype=int)
+        casted2 = WidePanel(self.panel.values, dtype=int)
+
+        exp_values = self.panel.values.astype(int)
+        assert_almost_equal(casted.values, exp_values)
+        assert_almost_equal(casted2.values, exp_values)
+
+    def test_consolidate(self):
+        self.assert_(self.panel._data.is_consolidated())
+
+        self.panel['foo'] = 1.
+        self.assert_(not self.panel._data.is_consolidated())
+
+        panel = self.panel.consolidate()
+        self.assert_(panel._data.is_consolidated())
 
     def test_values(self):
         # nothing to test for the moment

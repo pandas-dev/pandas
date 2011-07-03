@@ -29,8 +29,17 @@ class NDFrame(object):
     N-dimensional labeled array data structure with potentially heterogenous
     dtypes along one axis
     """
-    def __init__(self, data):
-        pass
+    def __init__(self, data, axes=None, copy=False):
+        self._data = data
+        self.axes = axes
+
+    def __repr__(self):
+        # TODO
+        return 'NDFrame'
+
+    @property
+    def ndim(self):
+        return self._data.ndim
 
 class PandasGeneric(Picklable):
 
@@ -42,6 +51,35 @@ class PandasGeneric(Picklable):
     _AXIS_ALIASES = {}
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+
+    #----------------------------------------------------------------------
+    # Consolidation of internals
+
+    def _consolidate_inplace(self):
+        self._data = self._data.consolidate()
+
+    def consolidate(self):
+        """
+        Compute DataFrame with "consolidated" internals (data of each dtype
+        grouped together in a single ndarray). Mainly an internal API function,
+        but available here to the savvy user
+
+        Returns
+        -------
+        consolidated : DataFrame
+        """
+        cons_data = self._data.consolidate()
+        if cons_data is self._data:
+            cons_data = cons_data.copy()
+        return type(self)(cons_data)
+
+    @property
+    def _is_mixed_type(self):
+        self._consolidate_inplace()
+        return len(self._data.blocks) > 1
+
+    #----------------------------------------------------------------------
+    # Axis name business
 
     @classmethod
     def _get_axis_number(cls, axis):
@@ -108,3 +146,10 @@ class PandasGeneric(Picklable):
         new_axis = axis[np.asarray([crit(label) for label in axis])]
         return self.reindex(**{axis_name : new_axis})
 
+    def _reindex_axis(self, new_index, fill_method, axis):
+        if axis == 0:
+            new_data = self._data.reindex_items(new_index)
+        else:
+            new_data = self._data.reindex_axis(new_index, axis=axis,
+                                               method=fill_method)
+        return type(self)(new_data)

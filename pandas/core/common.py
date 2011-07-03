@@ -85,6 +85,13 @@ def null_out_axis(arr, mask, axis):
 #-------------------------------------------------------------------------------
 # Lots of little utilities
 
+def _default_index(n):
+    from pandas.core.index import NULL_INDEX
+    if n == 0:
+        return NULL_INDEX
+    else:
+        return np.arange(n)
+
 def ensure_float(arr):
     if issubclass(arr.dtype.type, np.integer):
         arr = arr.astype(float)

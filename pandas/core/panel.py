@@ -9,8 +9,8 @@ import warnings
 
 import numpy as np
 
-from pandas.core.common import (PandasError, _mut_exclusive,
-                                _ensure_index, _pfixed)
+from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
+                                _pfixed, _default_index)
 from pandas.core.index import Index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
@@ -210,29 +210,11 @@ class WidePanel(Panel, PandasGeneric):
         elif isinstance(data, np.ndarray):
             mgr = self._init_matrix(data, [items, major_axis, minor_axis],
                                     dtype=dtype, copy=copy)
-        else:
+        else: # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
         self.factors = {}
         self._data = mgr
-
-    def _consolidate_inplace(self):
-        self._data = self._data.consolidate()
-
-    def consolidate(self):
-        """
-        Compute DataFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray). Mainly an internal API function,
-        but available here to the savvy user
-
-        Returns
-        -------
-        consolidated : DataFrame
-        """
-        cons_data = self._data.consolidate()
-        if cons_data is self._data:
-            cons_data = cons_data.copy()
-        return type(self)(cons_data)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
         values = _prep_ndarray(data, copy=copy)
@@ -241,7 +223,7 @@ class WidePanel(Panel, PandasGeneric):
             try:
                 values = values.astype(dtype)
             except Exception:
-                pass
+                raise ValueError('failed to cast to %s' % dtype)
 
         shape = values.shape
         fixed_axes = []
@@ -254,7 +236,7 @@ class WidePanel(Panel, PandasGeneric):
 
         items = fixed_axes[0]
         block = make_block(values, items, items)
-        return BlockManager([block], axes)
+        return BlockManager([block], fixed_axes)
 
     def _get_plane_axes(self, axis):
         """
@@ -487,47 +469,39 @@ class WidePanel(Panel, PandasGeneric):
         return self.reindex(major=other.major_axis, items=other.items,
                             minor=other.minor_axis, method=method)
 
-    def _reindex_axis(self, new_index, fill_method, axis):
-        if axis == 0:
-            new_data = self._data.reindex_items(new_index)
-        else:
-            new_data = self._data.reindex_axis(new_index, axis=axis,
-                                               method=fill_method)
-        return WidePanel(new_data)
-
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
-            return self._combineFrame(other, func, axis=axis)
+            return self._combine_frame(other, func, axis=axis)
         elif isinstance(other, Panel):
-            return self._combinePanel(other, func)
+            return self._combine_panel(other, func)
         elif np.isscalar(other):
-            newValues = func(self.values, other)
+            new_values = func(self.values, other)
 
-            return WidePanel(newValues, self.items, self.major_axis,
+            return WidePanel(new_values, self.items, self.major_axis,
                              self.minor_axis)
 
     def __neg__(self):
         return -1 * self
 
-    def _combineFrame(self, other, func, axis=0):
+    def _combine_frame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
         axis = self._get_axis_number(axis)
 
         other = other.reindex(index=index, columns=columns)
 
         if axis == 0:
-            newValues = func(self.values, other.values)
+            new_values = func(self.values, other.values)
         elif axis == 1:
-            newValues = func(self.values.swapaxes(0, 1), other.values.T)
-            newValues = newValues.swapaxes(0, 1)
+            new_values = func(self.values.swapaxes(0, 1), other.values.T)
+            new_values = new_values.swapaxes(0, 1)
         elif axis == 2:
-            newValues = func(self.values.swapaxes(0, 2), other.values)
-            newValues = newValues.swapaxes(0, 2)
+            new_values = func(self.values.swapaxes(0, 2), other.values)
+            new_values = new_values.swapaxes(0, 2)
 
-        return WidePanel(newValues, self.items, self.major_axis,
+        return WidePanel(new_values, self.items, self.major_axis,
                          self.minor_axis)
 
-    def _combinePanel(self, other, func):
+    def _combine_panel(self, other, func):
         if isinstance(other, LongPanel):
             other = other.to_wide()
 
@@ -1240,14 +1214,14 @@ class LongPanel(Panel, Picklable):
 
     def _combine(self, other, func, axis='items'):
         if isinstance(other, DataFrame):
-            return self._combineFrame(other, func, axis=axis)
+            return self._combine_frame(other, func, axis=axis)
         elif isinstance(other, Panel):
-            return self._combinePanel(other, func)
+            return self._combine_panel(other, func)
         elif np.isscalar(other):
             return LongPanel(func(self.values, other), self.items,
                              self.index, factors=self.factors)
 
-    def _combineFrame(self, other, func, axis='items'):
+    def _combine_frame(self, other, func, axis='items'):
         """
         Arithmetic op
 
@@ -1262,10 +1236,10 @@ class LongPanel(Panel, Picklable):
         y : LongPanel
         """
         wide = self.to_wide()
-        result = wide._combineFrame(other, func, axis=axis)
+        result = wide._combine_frame(other, func, axis=axis)
         return result.to_long()
 
-    def _combinePanel(self, other, func):
+    def _combine_panel(self, other, func):
         """
         Arithmetic operation between panels
         """

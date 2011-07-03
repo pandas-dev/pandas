@@ -22,7 +22,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
-                                _try_sort, _pfixed)
+                                _try_sort, _pfixed, _default_index)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
@@ -191,7 +191,7 @@ class DataFrame(PandasGeneric):
             try:
                 values = values.astype(dtype)
             except Exception:
-                pass
+                raise ValueError('failed to cast to %s' % dtype)
 
         N, K = values.shape
 
@@ -225,11 +225,6 @@ class DataFrame(PandasGeneric):
 
     #----------------------------------------------------------------------
     # Class behavior
-
-    @property
-    def _is_mixed_type(self):
-        self._consolidate_inplace()
-        return len(self._data.blocks) > 1
 
     def __nonzero__(self):
         # e.g. "if frame: ..."
@@ -700,27 +695,6 @@ class DataFrame(PandasGeneric):
             union_index = union_index.union(other.index)
 
         return union_index
-
-    #----------------------------------------------------------------------
-    # Consolidation of internals
-
-    def _consolidate_inplace(self):
-        self._data = self._data.consolidate()
-
-    def consolidate(self):
-        """
-        Compute DataFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray). Mainly an internal API function,
-        but available here to the savvy user
-
-        Returns
-        -------
-        consolidated : DataFrame
-        """
-        cons_data = self._data.consolidate()
-        if cons_data is self._data:
-            cons_data = cons_data.copy()
-        return type(self)(cons_data)
 
     #----------------------------------------------------------------------
     # Array interface
@@ -2582,12 +2556,6 @@ def _homogenize_series(data, index, dtype=None):
         homogenized[k] = v
 
     return homogenized
-
-def _default_index(n):
-    if n == 0:
-        return NULL_INDEX
-    else:
-        return np.arange(n)
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
