@@ -1437,7 +1437,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                           self.tsframe.index[0] - datetools.bday)
 
     def test_pivot(self):
-        raise nose.SkipTest
         data = {
             'index' : ['A', 'B', 'C', 'C', 'B', 'A'],
             'columns' : ['One', 'One', 'One', 'Two', 'Two', 'Two'],

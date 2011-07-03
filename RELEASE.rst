@@ -147,6 +147,8 @@ Release notes
 * `groupby` functions now exclude NA / NaN values from the list of groups. This
   matches R behavior with NAs in factors e.g. with the `tapply` function
 * Removed `parseText`, `parseCSV` and `parseExcel` from pandas namespace
+* `Series.combineFunc` renamed to `Series.combine` and made a bit more general
+  with a `fill_value` keyword argument defaulting to NaN
 
 **Bug fixes**
 

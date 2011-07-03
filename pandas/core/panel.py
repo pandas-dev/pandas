@@ -9,7 +9,8 @@ import warnings
 
 import numpy as np
 
-from pandas.core.common import _mut_exclusive, _ensure_index, _pfixed
+from pandas.core.common import (PandasError, _mut_exclusive,
+                                _ensure_index, _pfixed)
 from pandas.core.index import Index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
@@ -158,11 +159,11 @@ class AxisProperty(object):
         self.axis = axis
 
     def __get__(self, obj, type=None):
-        data = getattr(self, obj, '_data')
+        data = getattr(obj, '_data')
         return data.axes[self.axis]
 
     def __set__(self, obj, value):
-        data = getattr(self, obj, '_data')
+        data = getattr(obj, '_data')
         data.set_axis(self.axis, value)
 
 class WidePanel(Panel, PandasGeneric):
@@ -200,6 +201,7 @@ class WidePanel(Panel, PandasGeneric):
     def __init__(self, data, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
         if isinstance(data, BlockManager):
+            mgr = data
             if copy and dtype is None:
                 mgr = mgr.copy()
             elif dtype is not None:
@@ -208,12 +210,32 @@ class WidePanel(Panel, PandasGeneric):
         elif isinstance(data, np.ndarray):
             mgr = self._init_matrix(data, [items, major_axis, minor_axis],
                                     dtype=dtype, copy=copy)
+        else:
+            raise PandasError('Panel constructor not properly called!')
 
         self.factors = {}
-        self.values = values
+        self._data = mgr
+
+    def _consolidate_inplace(self):
+        self._data = self._data.consolidate()
+
+    def consolidate(self):
+        """
+        Compute DataFrame with "consolidated" internals (data of each dtype
+        grouped together in a single ndarray). Mainly an internal API function,
+        but available here to the savvy user
+
+        Returns
+        -------
+        consolidated : DataFrame
+        """
+        cons_data = self._data.consolidate()
+        if cons_data is self._data:
+            cons_data = cons_data.copy()
+        return type(self)(cons_data)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
-        values = _prep_ndarray(values, copy=copy)
+        values = _prep_ndarray(data, copy=copy)
 
         if dtype is not None:
             try:
@@ -231,7 +253,7 @@ class WidePanel(Panel, PandasGeneric):
             fixed_axes.append(ax)
 
         items = fixed_axes[0]
-        block = make_block(values, items, items, ndim=3)
+        block = make_block(values, items, items, 3)
         return BlockManager([block], axes)
 
     def _get_plane_axes(self, axis):
@@ -339,7 +361,7 @@ class WidePanel(Panel, PandasGeneric):
             mat.fill(value)
 
         mat = mat.reshape((1, N, K))
-        self._data.set(key, value)
+        self._data.set(key, mat)
 
     def __delitem__(self, key):
         self._data.delete(key)
@@ -367,11 +389,12 @@ class WidePanel(Panel, PandasGeneric):
 
     def __setstate__(self, state):
         # old WidePanel pickle
-        if len(state) == 4: # pragma: no cover
+        if isinstance(state, BlockManager):
+            self._data = state
+        elif len(state) == 4: # pragma: no cover
             self._unpickle_panel_compat(state)
         else:
-            assert(isinstance(state, BlockManager))
-            self._data = state
+            raise ValueError('unrecognized pickle')
 
     def _unpickle_panel_compat(self, state): # pragma: no cover
         "Unpickle the panel"
@@ -462,29 +485,12 @@ class WidePanel(Panel, PandasGeneric):
                             minor=other.minor_axis, method=method)
 
     def _reindex_axis(self, new_index, fill_method, axis):
-        new_data = self._data.reindex_axis(new_index, axis=axis,
-                                           method=method)
+        if axis == 0:
+            new_data = self._data.reindex_items(new_index)
+        else:
+            new_data = self._data.reindex_axis(new_index, axis=axis,
+                                               method=fill_method)
         return WidePanel(new_data)
-
-    '''
-    def _reindex_axis(self, new_index, fill_method, axis):
-        old_index = self._get_axis(axis)
-
-        if old_index.equals(new_index):
-            return self.copy()
-
-        new_index = _ensure_index(new_index)
-        indexer, mask = old_index.get_indexer(new_index, fill_method)
-
-        new_values = self.values.take(indexer, axis=axis)
-        if len(new_index) > 0:
-            common.null_out_axis(new_values, -mask, axis)
-
-        new_axes = [self._get_axis(i) for i in range(3)]
-        new_axes[axis] = new_index
-
-        return WidePanel(new_values, *new_axes)
-    '''
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
@@ -568,7 +574,7 @@ class WidePanel(Panel, PandasGeneric):
             return WidePanel.from_dict(result)
         else:
             # Float type values
-            if len(self.columns) == 0:
+            if len(self.items) == 0:
                 return self
 
             new_data = self._data.fillna(value)
@@ -994,7 +1000,7 @@ class WidePanel(Panel, PandasGeneric):
         else:
             raise ValueError('Invalid axis')
 
-        return WidePanel(values=values, items=items, major_axis=major_axis,
+        return WidePanel(values, items=items, major_axis=major_axis,
                          minor_axis=minor_axis)
 
     def truncate(self, before=None, after=None, axis='major'):
@@ -1113,8 +1119,8 @@ class LongPanel(Panel, Picklable):
         major_axis = Index(sorted(set(major_vec)))
         minor_axis = Index(sorted(set(minor_vec)))
 
-        major_labels, _ = major_axis.get_indexer(major_vec)
-        minor_labels, _ = minor_axis.get_indexer(minor_vec)
+        major_labels, _ = _tseries.getMergeVec(major_vec, major_axis.indexMap)
+        minor_labels, _ = _tseries.getMergeVec(minor_vec, minor_axis.indexMap)
 
         for col in exclude:
             del data[col]
@@ -1829,6 +1835,17 @@ class LongPanelIndex(object):
     def shape(self):
         return len(self.major_axis), len(self.minor_axis)
 
+def _prep_ndarray(values, copy=True):
+    if not isinstance(values, np.ndarray):
+        values = np.asarray(values)
+        # NumPy strings are a pain, convert to object
+        if issubclass(values.dtype.type, basestring):
+            values = np.array(values, dtype=object, copy=True)
+    else:
+        if copy:
+            values = values.copy()
+    assert(values.ndim == 3)
+    return values
 
 class Factor(object):
     """

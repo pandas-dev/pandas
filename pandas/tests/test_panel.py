@@ -30,9 +30,9 @@ class PanelTests(object):
         unpickled = cPickle.loads(pickled)
         assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
 
-    def test_set_values(self):
-        self.panel.values = np.array(self.panel.values, order='F')
-        assert(self.panel.values.flags.contiguous)
+    # def test_set_values(self):
+    #     self.panel.values = np.array(self.panel.values, order='F')
+    #     assert(self.panel.values.flags.contiguous)
 
     def test_cumsum(self):
         cumsum = self.panel.cumsum()

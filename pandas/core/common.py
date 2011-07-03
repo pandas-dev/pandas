@@ -15,6 +15,9 @@ try:
 except Exception: # pragma: no cover
     pass
 
+class PandasError(Exception):
+    pass
+
 def isnull(input):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable

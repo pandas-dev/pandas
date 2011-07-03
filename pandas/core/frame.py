@@ -21,7 +21,7 @@ import warnings
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import (isnull, notnull, _ensure_index,
+from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
                                 _try_sort, _pfixed)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
@@ -52,9 +52,6 @@ Returns
 -------
 result : DataFrame
 """
-
-class PandasError(Exception):
-    pass
 
 def _arith_method(func, name, default_axis='columns'):
     def f(self, other, axis=default_axis):

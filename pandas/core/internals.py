@@ -27,7 +27,7 @@ class Block(object):
         assert(len(items) == len(values))
 
         self.values = values
-        self.ndim = 2
+        self.ndim = ndim
         self.items = _ensure_index(items)
         self.ref_items = _ensure_index(ref_items)
 
@@ -236,7 +236,9 @@ class BlockManager(object):
             raise ValueError('must specify dimension if no input blocks')
         elif ndim is None:
             ndim = blocks[0].ndim
-
+        else:
+            for block in blocks:
+                assert(ndim == block.values.ndim)
 
         self.ndim = ndim
 
