@@ -308,34 +308,47 @@ class HDFStore(object):
         self._write_array(group, 'values', series.values)
 
     def _write_frame(self, group, df):
-        self._write_index(group, 'index', df.index)
-        self._write_index(group, 'columns', df.columns)
-
-        # Supporting mixed-type DataFrame objects...nontrivial
-
-        df._consolidate_inplace()
-        nblocks = len(df._data.blocks)
-        group._v_attrs.nblocks = nblocks
-        for i in range(nblocks):
-            blk = df._data.blocks[i]
-            self._write_index(group, 'block%d_columns' % i, blk.columns)
-            self._write_array(group, 'block%d_values' % i, blk.values)
+        self._write_block_manager(group, df._data)
 
     def _read_frame(self, group, where=None):
+        return DataFrame(self._read_block_manager(group))
+
+    def _write_block_manager(self, group, data):
+        if not data.is_consolidated():
+            data = data.consolidate()
+
+        group._v_attrs.ndim = data.ndim
+        for i, ax in enumerate(data.axes):
+            self._write_index(group, 'axis%d' % i, ax)
+
+        # Supporting mixed-type DataFrame objects...nontrivial
+        nblocks = len(data.blocks)
+        group._v_attrs.nblocks = nblocks
+        for i in range(nblocks):
+            blk = data.blocks[i]
+            self._write_index(group, 'block%d_items' % i, blk.items)
+            self._write_array(group, 'block%d_values' % i, blk.values)
+
+    def _read_block_manager(self, group):
         from pandas.core.internals import BlockManager, make_block
 
-        index = _read_index(group, 'index')
-        frame_columns = _read_index(group, 'columns')
+        ndim = group._v_attrs.ndim
+        nblocks = group._v_attrs.nblocks
 
+        axes = []
+        for i in xrange(ndim):
+            ax = _read_index(group, 'axis%d' % i)
+            axes.append(ax)
+
+        items = axes[0]
         blocks = []
         for i in range(group._v_attrs.nblocks):
-            blk_columns = _read_index(group, 'block%d_columns' % i)
+            blk_items = _read_index(group, 'block%d_items' % i)
             values = _read_array(group, 'block%d_values' % i)
-            blk = make_block(values, blk_columns, frame_columns)
+            blk = make_block(values, blk_items, items)
             blocks.append(blk)
 
-        mgr = BlockManager(blocks, index=index, columns=frame_columns)
-        return DataFrame(mgr)
+        return BlockManager(blocks, axes)
 
     def _write_frame_table(self, group, df, append=False, comp=None):
         mat = df.values
@@ -350,22 +363,16 @@ class HDFStore(object):
                           values=values, append=append, compression=comp)
 
     def _write_wide(self, group, panel):
-        self._write_index(group, 'major_axis', panel.major_axis)
-        self._write_index(group, 'minor_axis', panel.minor_axis)
-        self._write_index(group, 'items', panel.items)
-        self._write_array(group, 'values', panel.values)
+        panel._consolidate_inplace()
+        self._write_block_manager(group, panel._data)
+
+    def _read_wide(self, group, where=None):
+        return WidePanel(self._read_block_manager(group))
 
     def _write_wide_table(self, group, panel, append=False, comp=None):
         self._write_table(group, items=panel.items, index=panel.major_axis,
                           columns=panel.minor_axis, values=panel.values,
                           append=append, compression=comp)
-
-    def _read_wide(self, group, where=None):
-        items = _read_index(group, 'items')
-        major_axis = _read_index(group, 'major_axis')
-        minor_axis = _read_index(group, 'minor_axis')
-        values = _read_array(group, 'values')
-        return WidePanel(values, items, major_axis, minor_axis)
 
     def _read_wide_table(self, group, where=None):
         return self._read_panel_table(group, where)

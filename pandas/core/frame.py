@@ -202,7 +202,7 @@ class DataFrame(PandasGeneric):
             columns = _default_index(K)
 
         columns = _ensure_index(columns)
-        block = make_block(values.T, columns, columns, 2)
+        block = make_block(values.T, columns, columns)
         return BlockManager([block], [columns, index], ndim=2)
 
     def astype(self, dtype):
@@ -720,7 +720,7 @@ class DataFrame(PandasGeneric):
         cons_data = self._data.consolidate()
         if cons_data is self._data:
             cons_data = cons_data.copy()
-        return DataFrame(cons_data)
+        return type(self)(cons_data)
 
     #----------------------------------------------------------------------
     # Array interface
@@ -1524,7 +1524,7 @@ class DataFrame(PandasGeneric):
                 new_values[:, :periods] = nan
             else:
                 new_values[:, periods:] = nan
-            return make_block(new_values, blk.items, blk.ref_items, ndim=2)
+            return make_block(new_values, blk.items, blk.ref_items)
 
         if offset is None:
             indexer = self._shift_indexer(periods)

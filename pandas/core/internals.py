@@ -81,8 +81,7 @@ class Block(object):
         return self.values.dtype
 
     def copy(self):
-        return make_block(self.values.copy(), self.items,
-                          self.ref_items, ndim=self.ndim)
+        return make_block(self.values.copy(), self.items, self.ref_items)
 
     def merge(self, other):
         assert(self.ref_items.equals(other.ref_items))
@@ -100,8 +99,7 @@ class Block(object):
         if needs_masking:
             new_values = _cast_if_bool_int(new_values)
             common.null_out_axis(new_values, notmask, axis)
-        return make_block(new_values, self.items, self.ref_items,
-                          ndim=self.ndim)
+        return make_block(new_values, self.items, self.ref_items)
 
     def reindex_items_from(self, new_ref_items):
         """
@@ -118,7 +116,7 @@ class Block(object):
         masked_idx = indexer[mask]
         new_values = self.values.take(masked_idx, axis=0)
         new_items = self.items.take(masked_idx)
-        return make_block(new_values, new_items, new_ref_items, ndim=self.ndim)
+        return make_block(new_values, new_items, new_ref_items)
 
     def get(self, item):
         loc = self.items.get_loc(item)
@@ -144,14 +142,13 @@ class Block(object):
         loc = self.items.get_loc(item)
         new_items = np.delete(np.asarray(self.items), loc)
         new_values = np.delete(self.values, loc, 0)
-        return make_block(new_values, new_items, self.ref_items, ndim=self.ndim)
+        return make_block(new_values, new_items, self.ref_items)
 
     def fillna(self, value):
         new_values = self.values.copy()
         mask = common.isnull(new_values.ravel())
         new_values.flat[mask] = value
-        return make_block(new_values, self.items, self.ref_items,
-                          ndim=self.ndim)
+        return make_block(new_values, self.items, self.ref_items)
 
 def _insert_into_items(items, item, loc):
     items = np.asarray(items)
@@ -195,7 +192,7 @@ class ObjectBlock(Block):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
-def make_block(values, items, ref_items, ndim):
+def make_block(values, items, ref_items):
     dtype = values.dtype
     vtype = dtype.type
 
@@ -208,7 +205,7 @@ def make_block(values, items, ref_items, ndim):
     else:
         klass = ObjectBlock
 
-    return klass(values, items, ref_items, ndim=ndim)
+    return klass(values, items, ref_items, ndim=values.ndim)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -290,7 +287,7 @@ class BlockManager(object):
 
         blocks = []
         for values, items in zip(bvalues, bitems):
-            blk = make_block(values, items, self.axes[0], ndim)
+            blk = make_block(values, items, self.axes[0])
             blocks.append(blk)
         self.blocks = blocks
 
@@ -326,7 +323,7 @@ class BlockManager(object):
         new_blocks = []
         for block in self.blocks:
             newb = make_block(block.values.astype(dtype), block.items,
-                              block.ref_items, ndim=self.ndim)
+                              block.ref_items)
             new_blocks.append(newb)
 
         new_mgr = BlockManager(new_blocks, self.axes, ndim=self.ndim)
@@ -355,7 +352,7 @@ class BlockManager(object):
 
         for block in self.blocks:
             newb = make_block(block.values[slicer], block.items,
-                              block.ref_items, self.ndim)
+                              block.ref_items)
             new_blocks.append(newb)
         return new_blocks
 
@@ -502,7 +499,7 @@ class BlockManager(object):
 
     def _add_new_block(self, item, value):
         # Do we care about dtype at the moment?
-        new_block = make_block(value, [item], self.items, self.ndim)
+        new_block = make_block(value, [item], self.items)
         self.blocks.append(new_block)
 
     def _find_block(self, item):
@@ -562,8 +559,7 @@ class BlockManager(object):
             block_shape[0] = len(extra_items)
             block_values = np.empty(block_shape, dtype=np.float64)
             block_values.fill(nan)
-            na_block = make_block(block_values, extra_items, new_items,
-                                  ndim=self.ndim)
+            na_block = make_block(block_values, extra_items, new_items)
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
@@ -707,7 +703,7 @@ def form_blocks(data, index, items):
         block_values = np.empty((len(extra_items), len(index)), dtype=float)
         block_values.fill(nan)
 
-        na_block = make_block(block_values, extra_items, items, ndim)
+        na_block = make_block(block_values, extra_items, items)
         blocks.append(na_block)
         blocks = _consolidate(blocks, items)
 
@@ -719,7 +715,7 @@ def _simple_blockify(dct, ref_items, dtype, ndim):
     if values.dtype != dtype:
         values = values.astype(dtype)
 
-    return make_block(values, block_items, ref_items, ndim)
+    return make_block(values, block_items, ref_items)
 
 def _stack_dict(dct):
     items = Index(_try_sort(dct))
@@ -805,7 +801,7 @@ def _consolidate(blocks, items):
 def _merge_blocks(blocks, items):
     new_values = np.vstack([b.values for b in blocks])
     new_items = np.concatenate([b.items for b in blocks])
-    new_block = make_block(new_values, new_items, items, new_values.ndim)
+    new_block = make_block(new_values, new_items, items)
     return new_block.reindex_items_from(items)
 
 def _union_block_items(blocks):

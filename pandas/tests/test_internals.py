@@ -22,21 +22,21 @@ N = 10
 
 def get_float_ex(cols=['a', 'c', 'e']):
     floats = get_float_mat(N, 3).T
-    return make_block(floats, cols, TEST_COLS, 2)
+    return make_block(floats, cols, TEST_COLS)
 
 def get_obj_ex(cols=['b', 'd']):
     mat = np.empty((N, 2), dtype=object)
     mat[:, 0] = 'foo'
     mat[:, 1] = 'bar'
-    return make_block(mat.T, cols, TEST_COLS, 2)
+    return make_block(mat.T, cols, TEST_COLS)
 
 def get_bool_ex(cols=['f']):
     mat = np.ones((N, 1), dtype=bool)
-    return make_block(mat.T, cols, TEST_COLS, 2)
+    return make_block(mat.T, cols, TEST_COLS)
 
 def get_int_ex(cols=['g']):
     mat = randn(N, 1).astype(int)
-    return make_block(mat.T, cols, TEST_COLS, 2)
+    return make_block(mat.T, cols, TEST_COLS)
 
 class TestBlock(unittest.TestCase):
 
@@ -74,12 +74,12 @@ class TestBlock(unittest.TestCase):
 
         ref_cols = ['e', 'a', 'b', 'd', 'f']
 
-        ablock = make_block(avals, ['e', 'b'], ref_cols, 2)
-        bblock = make_block(bvals, ['a', 'd'], ref_cols, 2)
+        ablock = make_block(avals, ['e', 'b'], ref_cols)
+        bblock = make_block(bvals, ['a', 'd'], ref_cols)
         merged = ablock.merge(bblock)
         exvals = np.vstack((avals, bvals))
         excols = ['e', 'b', 'a', 'd']
-        eblock = make_block(exvals, excols, ref_cols, 2)
+        eblock = make_block(exvals, excols, ref_cols)
         eblock = eblock.reindex_items_from(ref_cols)
         assert_block_equal(merged, eblock)
 
