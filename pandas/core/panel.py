@@ -402,10 +402,12 @@ class WidePanel(Panel, PandasGeneric):
         _unpickle = common._unpickle_array
         vals, items, major, minor = state
 
-        self.items = _unpickle(items)
-        self.major_axis = _unpickle(major)
-        self.minor_axis = _unpickle(minor)
-        self.values = _unpickle(vals)
+        items = _unpickle(items)
+        major = _unpickle(major)
+        minor = _unpickle(minor)
+        values = _unpickle(vals)
+        wp = WidePanel(values, items, major, minor)
+        self._data = wp._data
 
     def conform(self, frame, axis='items'):
         """

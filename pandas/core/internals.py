@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.common import _ensure_index, _try_sort
-from pandas.core.series import Series
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -356,8 +355,9 @@ class BlockManager(object):
             new_blocks.append(newb)
         return new_blocks
 
-    def get_series_dict(self, index):
-        return _blocks_to_series_dict(self.blocks, index)
+    def get_series_dict(self):
+        # For DataFrame
+        return _blocks_to_series_dict(self.blocks, self.axes[1])
 
     @classmethod
     def from_blocks(cls, blocks, index):
@@ -415,7 +415,7 @@ class BlockManager(object):
         return result
 
     def xs(self, i, axis=1, copy=True):
-        # TODO: fix this mess
+        from pandas.core.series import Series
 
         slicer = [slice(None, None) for _ in range(self.ndim)]
         slicer[axis] = i
@@ -426,15 +426,14 @@ class BlockManager(object):
                 raise Exception('cannot get view of mixed-type or '
                                 'non-consolidated DataFrame')
             vals = np.concatenate([b.values[slicer] for b in self.blocks])
-            items = np.concatenate([b.items for b in self.blocks])
-            xs = Series(vals, index=items).reindex(self.items)
+            items = Index(np.concatenate([b.items for b in self.blocks]))
+            indexer, _ = items.get_indexer(self.items)
+            vals = vals.take(indexer, axis=0)
         else:
             vals = self.blocks[0].values[slicer]
-            items = self.blocks[0].items
-            xs = Series(vals, items)
             if copy:
-                xs = xs.copy()
-        return xs
+                vals = vals.copy()
+        return vals
 
     def consolidate(self):
         """
@@ -723,6 +722,8 @@ def _stack_dict(dct):
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):
+    from pandas.core.series import Series
+
     series_dict = {}
 
     for block in blocks:

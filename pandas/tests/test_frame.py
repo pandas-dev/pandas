@@ -1436,6 +1436,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertRaises(Exception, self.tsframe.xs,
                           self.tsframe.index[0] - datetools.bday)
 
+        # pathological mixed-type reordering case
+        df = DataFrame(index=[0])
+        df['A'] = 1.
+        df['B'] = 'foo'
+        df['C'] = 2.
+        df['D'] = 'bar'
+        df['E'] = 3.
+
+        xs = df.xs(0)
+        assert_almost_equal(xs, [1., 'foo', 2., 'bar', 3.])
+
     def test_pivot(self):
         data = {
             'index' : ['A', 'B', 'C', 'C', 'B', 'A'],

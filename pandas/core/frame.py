@@ -854,7 +854,7 @@ class DataFrame(PandasGeneric):
     # to support old APIs
     @property
     def _series(self):
-        return self._data.get_series_dict(self.index)
+        return self._data.get_series_dict()
 
     def xs(self, key, copy=True):
         """
@@ -873,7 +873,8 @@ class DataFrame(PandasGeneric):
 
         self._consolidate_inplace()
         loc = self.index.get_loc(key)
-        return self._data.xs(loc, axis=1, copy=copy)
+        values = self._data.xs(loc, axis=1, copy=copy)
+        return Series(values, index=self.columns)
 
     #----------------------------------------------------------------------
     # Reindexing

@@ -316,7 +316,7 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         values = self.panel.values
         self.panel.values = values
 
-    def test_fromDict(self):
+    def test_from_dict(self):
         itema = self.panel['ItemA']
         itemb = self.panel['ItemB']
 
@@ -325,15 +325,18 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         d3 = {'A' : DataFrame(itema._series),
               'B' : DataFrame(itemb[5:]._series)}
 
-        wp = WidePanel.fromDict(d)
-        wp2 = WidePanel.fromDict(d2) # nested Dict
-        wp3 = WidePanel.fromDict(d3)
+        wp = WidePanel.from_dict(d)
+        wp2 = WidePanel.from_dict(d2) # nested Dict
+        wp3 = WidePanel.from_dict(d3)
         self.assert_(wp.major_axis.equals(self.panel.major_axis))
         assert_panel_equal(wp, wp2)
 
         # intersect
-        wp = WidePanel.fromDict(d, intersect=True)
+        wp = WidePanel.from_dict(d, intersect=True)
         self.assert_(wp.major_axis.equals(itemb.index[5:]))
+
+    def test_from_dict_mixed(self):
+        pass
 
     def test_values(self):
         self.assertRaises(Exception, WidePanel, np.random.randn(5, 5, 5),
