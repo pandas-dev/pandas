@@ -180,7 +180,7 @@ class DataFrame(PandasGeneric):
         blocks, columns = form_blocks(homogenized, index, columns)
 
         # consolidate for now
-        mgr = BlockManager(blocks, [columns, index], ndim=2)
+        mgr = BlockManager(blocks, [columns, index])
         return mgr.consolidate()
 
     def _init_matrix(self, values, index, columns, dtype=None,
@@ -203,7 +203,7 @@ class DataFrame(PandasGeneric):
 
         columns = _ensure_index(columns)
         block = make_block(values.T, columns, columns)
-        return BlockManager([block], [columns, index], ndim=2)
+        return BlockManager([block], [columns, index])
 
     def astype(self, dtype):
         """

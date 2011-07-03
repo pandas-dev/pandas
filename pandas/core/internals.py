@@ -17,8 +17,6 @@ class Block(object):
     Index-ignorant; let the container take care of that
     """
     def __init__(self, values, items, ref_items, ndim=2):
-        # values = _convert_if_1d(values)
-
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object)
 
@@ -161,12 +159,6 @@ def _cast_if_bool_int(values):
         values = values.astype(object)
     return values
 
-def _convert_if_1d(values):
-    if values.ndim == 1:
-        values = np.atleast_2d(values)
-
-    return values
-
 #-------------------------------------------------------------------------------
 # Is this even possible?
 
@@ -224,17 +216,13 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
-    def __init__(self, blocks, axes, skip_integrity_check=False, ndim=None):
+    def __init__(self, blocks, axes, skip_integrity_check=False):
         self.axes = [_ensure_index(ax) for ax in axes]
         self.blocks = blocks
 
-        if ndim is None and len(blocks) == 0:
-            raise ValueError('must specify dimension if no input blocks')
-        elif ndim is None:
-            ndim = blocks[0].ndim
-        else:
-            for block in blocks:
-                assert(ndim == block.values.ndim)
+        ndim = len(axes)
+        for block in blocks:
+            assert(ndim == block.values.ndim)
 
         self.ndim = ndim
 
@@ -325,7 +313,7 @@ class BlockManager(object):
                               block.ref_items)
             new_blocks.append(newb)
 
-        new_mgr = BlockManager(new_blocks, self.axes, ndim=self.ndim)
+        new_mgr = BlockManager(new_blocks, self.axes)
         return new_mgr.consolidate()
 
     def is_consolidated(self):
@@ -340,7 +328,7 @@ class BlockManager(object):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slice_obj]
-        return BlockManager(new_blocks, new_axes, ndim=self.ndim)
+        return BlockManager(new_blocks, new_axes)
 
     def _slice_blocks(self, slice_obj, axis):
         new_blocks = []
@@ -364,7 +352,7 @@ class BlockManager(object):
         # also checks for overlap
         items = _union_block_items(blocks)
         ndim = blocks[0].ndim
-        return BlockManager(blocks, [items, index], ndim=ndim)
+        return BlockManager(blocks, [items, index])
 
     def __contains__(self, item):
         return item in self.items
@@ -375,7 +363,7 @@ class BlockManager(object):
 
     def copy(self):
         copy_blocks = [block.copy() for block in self.blocks]
-        return BlockManager(copy_blocks, self.axes, ndim=self.ndim)
+        return BlockManager(copy_blocks, self.axes)
 
     def as_matrix(self, items=None):
         if len(self.blocks) == 0:
@@ -530,7 +518,7 @@ class BlockManager(object):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
-        return BlockManager(new_blocks, new_axes, ndim=self.ndim)
+        return BlockManager(new_blocks, new_axes)
 
     def reindex_items(self, new_items):
         """
@@ -566,7 +554,7 @@ class BlockManager(object):
         new_axes = list(self.axes)
         new_axes[0] = new_items
 
-        return BlockManager(new_blocks, new_axes, ndim=self.ndim)
+        return BlockManager(new_blocks, new_axes)
 
     def merge(self, other):
         assert(self._is_indexed_like(other))
@@ -677,8 +665,6 @@ def form_blocks(data, index, items):
 
     blocks = []
 
-    ndim = 2
-
     if len(num_dict) > 0:
         num_dtypes = set(v.dtype for v in num_dict.values())
         if len(num_dtypes) > 1:
@@ -688,15 +674,15 @@ def form_blocks(data, index, items):
 
         # TODO: find corner cases
         # TODO: check type inference
-        num_block = _simple_blockify(num_dict, items, num_dtype, ndim)
+        num_block = _simple_blockify(num_dict, items, num_dtype)
         blocks.append(num_block)
 
     if len(bool_dict):
-        bool_block = _simple_blockify(bool_dict, items, np.bool_, ndim)
+        bool_block = _simple_blockify(bool_dict, items, np.bool_)
         blocks.append(bool_block)
 
     if len(object_dict) > 0:
-        object_block = _simple_blockify(object_dict, items, np.object_, ndim)
+        object_block = _simple_blockify(object_dict, items, np.object_)
         blocks.append(object_block)
 
     if len(extra_items):
@@ -709,10 +695,10 @@ def form_blocks(data, index, items):
 
     return blocks, items
 
-def _simple_blockify(dct, ref_items, dtype, ndim):
+def _simple_blockify(dct, ref_items, dtype):
     block_items, values = _stack_dict(dct)
     # CHECK DTYPE?
-    if values.dtype != dtype:
+    if values.dtype != dtype: # pragma: no cover
         values = values.astype(dtype)
 
     return make_block(values, block_items, ref_items)
@@ -731,26 +717,6 @@ def _blocks_to_series_dict(blocks, index=None):
         for item, vec in zip(block.items, block.values):
             series_dict[item] = Series(vec, index=index)
     return series_dict
-
-def _interleave(blocks, items):
-    """
-    Return ndarray from blocks with specified item order
-    Items must be contained in the blocks
-    """
-    dtype = _interleaved_dtype(blocks)
-    items = _ensure_index(items)
-
-    result = np.empty((len(blocks[0]), len(items)), dtype=dtype)
-    itemmask = np.zeros(len(items), dtype=bool)
-
-    # By construction, all of the item should be covered by one of the blocks
-    for block in blocks:
-        indexer, mask = items.get_indexer(block.items)
-        assert(mask.all())
-        result[:, indexer] = block.values
-        itemmask[indexer] = 1
-    assert(itemmask.all())
-    return result
 
 def _interleaved_dtype(blocks):
     have_int = False

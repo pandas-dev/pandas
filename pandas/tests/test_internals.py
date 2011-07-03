@@ -67,6 +67,7 @@ class TestBlock(unittest.TestCase):
     def test_attrs(self):
         self.assert_(self.fblock.shape == self.fblock.values.shape)
         self.assert_(self.fblock.dtype == self.fblock.values.dtype)
+        self.assert_(len(self.fblock) == len(self.fblock.values))
 
     def test_merge(self):
         avals = randn(2, 10)
@@ -170,6 +171,9 @@ class TestBlockManager(unittest.TestCase):
                        get_int_ex()]
         self.mgr = BlockManager.from_blocks(self.blocks, np.arange(N))
 
+    def test_constructor_corner(self):
+        pass
+
     def test_attrs(self):
         self.assertEquals(self.mgr.nblocks, len(self.mgr.blocks))
         self.assertEquals(len(self.mgr), len(self.mgr.items))
@@ -180,6 +184,11 @@ class TestBlockManager(unittest.TestCase):
         blocks = [get_bool_ex(['a']), get_bool_ex(['b'])]
         mgr = BlockManager.from_blocks(blocks, np.arange(N))
         self.assert_(not mgr.is_mixed_dtype())
+
+    def test_is_indexed_like(self):
+        self.assert_(self.mgr._is_indexed_like(self.mgr))
+        mgr2 = self.mgr.reindex_axis(np.arange(N - 1), axis=1)
+        self.assert_(not self.mgr._is_indexed_like(mgr2))
 
     def test_block_id_vector(self):
         expected = [0, 1, 0, 1, 0, 2, 3]
