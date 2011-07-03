@@ -588,7 +588,7 @@ class WidePanel(Panel, PandasGeneric):
     divide = _wide_arith_method(operator.div, 'divide')
     multiply = _wide_arith_method(operator.mul, 'multiply')
 
-    def major_xs(self, key):
+    def major_xs(self, key, copy=True):
         """
         Return slice of panel along major axis
 
@@ -602,11 +602,10 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        loc = self.major_axis.get_loc(key)
-        mat = np.array(self.values[:, loc, :].T)
-        return DataFrame(mat, index=self.minor_axis, columns=self.items)
+        values = self._data.xs(key, axis=1, copy=copy).T
+        return DataFrame(values, index=self.minor_axis, columns=self.items)
 
-    def minor_xs(self, key):
+    def minor_xs(self, key, copy=False):
         """
         Return slice of panel along minor axis
 
@@ -620,9 +619,8 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
             index -> major axis, columns -> items
         """
-        loc = self.minor_axis.get_loc(key)
-        mat = np.array(self.values[:, :, loc].T)
-        return DataFrame(mat, index=self.major_axis, columns=self.items)
+        values = self._data.xs(key, axis=2, copy=copy).T
+        return DataFrame(values, index=self.major_axis, columns=self.items)
 
     def getMinorXS(self, key): # pragma: no cover
         warnings.warn("getMinorXS has been replaced by the minor_xs function "

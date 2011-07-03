@@ -872,8 +872,7 @@ class DataFrame(PandasGeneric):
             raise Exception('No cross-section for %s' % key)
 
         self._consolidate_inplace()
-        loc = self.index.get_loc(key)
-        values = self._data.xs(loc, axis=1, copy=copy)
+        values = self._data.xs(key, axis=1, copy=copy)
         return Series(values, index=self.columns)
 
     #----------------------------------------------------------------------

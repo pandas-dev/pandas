@@ -414,9 +414,10 @@ class BlockManager(object):
         assert(itemmask.all())
         return result
 
-    def xs(self, i, axis=1, copy=True):
+    def xs(self, key, axis=1, copy=True):
         from pandas.core.series import Series
 
+        i = self.axes[axis].get_loc(key)
         slicer = [slice(None, None) for _ in range(self.ndim)]
         slicer[axis] = i
         slicer = tuple(slicer)
