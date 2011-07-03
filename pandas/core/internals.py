@@ -294,6 +294,9 @@ class BlockManager(object):
             blocks.append(blk)
         self.blocks = blocks
 
+    def __len__(self):
+        return len(self.items)
+
     def __repr__(self):
         output = 'BlockManager'
         for i, ax in enumerate(self.axes):
@@ -467,7 +470,8 @@ class BlockManager(object):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-        assert(value.ndim == self.ndim)
+        if value.ndim == self.ndim - 1:
+            value = value.reshape((1,) + value.shape)
         assert(value.shape[1:] == self.shape[1:])
         if item in self.items:
             i, block = self._find_block(item)
