@@ -16,7 +16,8 @@ from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
-from pandas.core.panel import Panel, WidePanel, LongPanelIndex, LongPanel
+from pandas.core.panel import (Panel, WidePanel, LongPanelIndex, LongPanel,
+                               PanelAxis)
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 
@@ -1228,6 +1229,10 @@ class SparseWidePanel(WidePanel):
     Notes
     -----
     """
+    items = PanelAxis('_items')
+    major_axis = PanelAxis('_major_axis')
+    minor_axis = PanelAxis('_minor_axis')
+
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=nan, default_kind='block'):
         assert(isinstance(frames, dict))
@@ -1256,6 +1261,10 @@ class SparseWidePanel(WidePanel):
         self.items = items
         self.major_axis = major_axis
         self.minor_axis = minor_axis
+
+    def _consolidate_inplace(self):
+        # do nothing when DataFrame calls this method
+        pass
 
     @classmethod
     def from_dict(cls, data, intersect=False):

@@ -357,7 +357,8 @@ class WidePanel(Panel, PandasGeneric):
             mat = value.values
 
         elif np.isscalar(value):
-            mat = np.empty((N, K), dtype=float)
+            dtype = _infer_dtype(value)
+            mat = np.empty((N, K), dtype=dtype)
             mat.fill(value)
 
         mat = mat.reshape((1, N, K))
@@ -1846,6 +1847,16 @@ def _prep_ndarray(values, copy=True):
             values = values.copy()
     assert(values.ndim == 3)
     return values
+
+def _infer_dtype(value):
+    if isinstance(value, (float, np.floating)):
+        return float
+    elif isinstance(value, (int, np.integer)):
+        return int
+    elif isinstance(value, (bool, np.bool_)):
+        return bool
+    else:
+        return object
 
 class Factor(object):
     """

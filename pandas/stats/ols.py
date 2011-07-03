@@ -766,10 +766,10 @@ class MovingOLS(OLS):
         cum_xy = []
 
         if isinstance(x, DataFrame):
-            _x_indexMap = x.index.get_loc
+            _get_index = x.index.get_loc
             def x_slicer(df, dt):
-                i = _x_indexMap[dt]
-                return df.values[i:i+1, :]
+                i = _get_index(dt)
+                return df.values[i:i+1]
         else:
             x_slicer = lambda df, dt: df.truncate(dt, dt).values
 
