@@ -207,7 +207,7 @@ class WidePanel(Panel, PandasGeneric):
             elif dtype is not None:
                 # no choice but to copy
                 mgr = mgr.cast(dtype)
-        elif isinstance(data, np.ndarray):
+        elif isinstance(data, (np.ndarray, list)):
             mgr = self._init_matrix(data, [items, major_axis, minor_axis],
                                     dtype=dtype, copy=copy)
         else: # pragma: no cover
@@ -376,7 +376,7 @@ class WidePanel(Panel, PandasGeneric):
             self._data = state
         elif len(state) == 4: # pragma: no cover
             self._unpickle_panel_compat(state)
-        else:
+        else: # pragma: no cover
             raise ValueError('unrecognized pickle')
 
     def _unpickle_panel_compat(self, state): # pragma: no cover
@@ -550,10 +550,6 @@ class WidePanel(Panel, PandasGeneric):
 
             return WidePanel.from_dict(result)
         else:
-            # Float type values
-            if len(self.items) == 0:
-                return self
-
             new_data = self._data.fillna(value)
             return WidePanel(new_data)
 

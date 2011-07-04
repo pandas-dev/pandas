@@ -334,6 +334,21 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         self.assert_(wp._data is not self.panel._data)
         assert_panel_equal(wp, self.panel)
 
+        # strings handled prop
+        wp = WidePanel([[['foo', 'foo', 'foo',],
+                         ['foo', 'foo', 'foo']]])
+        self.assert_(wp.values.dtype == np.object_)
+
+        vals = self.panel.values
+
+        # no copy
+        wp = WidePanel(vals)
+        self.assert_(wp.values is vals)
+
+        # copy
+        wp = WidePanel(vals, copy=True)
+        self.assert_(wp.values is not vals)
+
     def test_constructor_cast(self):
         casted = WidePanel(self.panel._data, dtype=int)
         casted2 = WidePanel(self.panel.values, dtype=int)
@@ -443,6 +458,15 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         self.panel['ItemG'] = 1
         self.panel['ItemE'] = 1
 
+        # object dtype
+        self.panel['ItemQ'] = 'foo'
+        self.assert_(self.panel['ItemQ'].values.dtype == np.object_)
+
+        # boolean dtype
+        self.panel['ItemP'] = self.panel['ItemA'] > 0
+        self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
+
+
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
         conformed = self.panel.conform(df)
@@ -506,6 +530,10 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         filled = self.panel.fillna(method='backfill')
         assert_frame_equal(filled['ItemA'],
                            self.panel['ItemA'].fillna(method='backfill'))
+
+        empty = self.panel.reindex(items=[])
+        filled = empty.fillna(0)
+        assert_panel_equal(filled, empty)
 
     def test_combinePanel_with_long(self):
         lng = self.panel.to_long(filter_observations=False)
