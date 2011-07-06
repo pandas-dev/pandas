@@ -822,6 +822,9 @@ class DataFrame(PandasGeneric):
         Series/TimeSeries will be conformed to the DataFrame's index to
         ensure homogeneity.
         """
+        # Need to make sure new columns (which go into the BlockManager as new
+        # blocks) are always copied
+
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
                 if value.index.equals(self.index):

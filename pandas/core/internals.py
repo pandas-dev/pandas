@@ -421,6 +421,8 @@ class BlockManager(object):
             if columns is None or blk.columns.equals(columns):
                 # if not, then just call interleave per below
                 mat = blk.values
+            else:
+                mat = self.reindex_columns(columns).as_matrix()
         else:
             if columns is None:
                 mat = _interleave(self.blocks, self.columns)

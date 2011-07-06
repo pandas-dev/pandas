@@ -1284,6 +1284,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         mat = self.mixed_frame.as_matrix(['foo', 'A'])
         self.assertEqual(mat[0, 0], 'bar')
 
+        # single block corner case
+        mat = self.frame.as_matrix(['A', 'B'])
+        expected = self.frame.reindex(columns=['A', 'B']).values
+        assert_almost_equal(mat, expected)
+
     def test_values(self):
         pass
 
