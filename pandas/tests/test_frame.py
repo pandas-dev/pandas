@@ -89,6 +89,13 @@ class CheckIndexing(object):
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assert_((smaller['col10'] == ['1', '2']).all())
 
+    def test_setitem_always_copy(self):
+        s = self.frame['A'].copy()
+        self.frame['E'] = s
+
+        self.frame['E'][5:10] = np.nan
+        self.assert_(notnull(s[5:10]).all())
+
     def test_setitem_boolean(self):
         df = self.frame.copy()
         values = self.frame.values
