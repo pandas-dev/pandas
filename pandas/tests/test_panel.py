@@ -466,7 +466,6 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         self.panel['ItemP'] = self.panel['ItemA'] > 0
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
-
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
         conformed = self.panel.conform(df)
@@ -552,6 +551,12 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         idx = self.panel.major_axis[0] - bday
         self.assertRaises(Exception, self.panel.major_xs, idx)
 
+    def test_major_xs_mixed(self):
+        self.panel['ItemD'] = 'foo'
+        xs = self.panel.major_xs(self.panel.major_axis[0])
+        self.assert_(xs['ItemA'].dtype == np.float64)
+        self.assert_(xs['ItemD'].dtype == np.object_)
+
     def test_minor_xs(self):
         ref = self.panel['ItemA']
 
@@ -562,6 +567,13 @@ class TestWidePanel(unittest.TestCase, PanelTests,
 
         # not contained
         self.assertRaises(Exception, self.panel.minor_xs, 'E')
+
+    def test_minor_xs_mixed(self):
+        self.panel['ItemD'] = 'foo'
+
+        xs = self.panel.minor_xs('D')
+        self.assert_(xs['ItemA'].dtype == np.float64)
+        self.assert_(xs['ItemD'].dtype == np.object_)
 
     def test_groupby(self):
         grouped = self.panel.groupby({'ItemA' : 0, 'ItemB' : 0, 'ItemC' : 1},

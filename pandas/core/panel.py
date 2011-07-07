@@ -572,10 +572,11 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        values = self._data.xs(key, axis=1, copy=copy).T
-        return DataFrame(values, index=self.minor_axis, columns=self.items)
+        self._consolidate_inplace()
+        new_data = self._data.xs(key, axis=1, copy=copy)
+        return DataFrame(new_data)
 
-    def minor_xs(self, key, copy=False):
+    def minor_xs(self, key, copy=True):
         """
         Return slice of panel along minor axis
 
@@ -589,8 +590,9 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
             index -> major axis, columns -> items
         """
-        values = self._data.xs(key, axis=2, copy=copy).T
-        return DataFrame(values, index=self.major_axis, columns=self.items)
+        self._consolidate_inplace()
+        new_data = self._data.xs(key, axis=2, copy=copy)
+        return DataFrame(new_data)
 
     def getMinorXS(self, key): # pragma: no cover
         warnings.warn("getMinorXS has been replaced by the minor_xs function "

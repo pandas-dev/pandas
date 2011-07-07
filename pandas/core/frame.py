@@ -852,7 +852,7 @@ class DataFrame(PandasGeneric):
 
         self._consolidate_inplace()
         values = self._data.xs(key, axis=1, copy=copy)
-        return Series(values, index=self.columns)
+        return Series(values.as_matrix(), index=self.columns)
 
     #----------------------------------------------------------------------
     # Reindexing
