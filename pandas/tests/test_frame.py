@@ -89,6 +89,13 @@ class CheckIndexing(object):
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assert_((smaller['col10'] == ['1', '2']).all())
 
+    def test_setitem_always_copy(self):
+        s = self.frame['A'].copy()
+        self.frame['E'] = s
+
+        self.frame['E'][5:10] = np.nan
+        self.assert_(notnull(s[5:10]).all())
+
     def test_setitem_boolean(self):
         df = self.frame.copy()
         values = self.frame.values
@@ -1276,6 +1283,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # mixed type
         mat = self.mixed_frame.as_matrix(['foo', 'A'])
         self.assertEqual(mat[0, 0], 'bar')
+
+        # single block corner case
+        mat = self.frame.as_matrix(['A', 'B'])
+        expected = self.frame.reindex(columns=['A', 'B']).values
+        assert_almost_equal(mat, expected)
 
     def test_values(self):
         pass

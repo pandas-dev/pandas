@@ -453,6 +453,21 @@ class TestSeries(unittest.TestCase):
         expected = self.ts.values[:-5] + int_ts.values
         self.assert_(np.array_equal(added[:-5], expected))
 
+    def test_operators_reverse_object(self):
+        # GH 56
+        arr = Series(np.random.randn(10), index=np.arange(10),
+                     dtype=object)
+
+        def _check_op(arr, op):
+            result = op(1., arr)
+            expected = op(1., arr.astype(float))
+            assert_series_equal(result.astype(float), expected)
+
+        _check_op(arr, operator.add)
+        _check_op(arr, operator.sub)
+        _check_op(arr, operator.mul)
+        _check_op(arr, operator.div)
+
     def test_operators_frame(self):
         # rpow does not work with DataFrame
         df = DataFrame({'A' : self.ts})

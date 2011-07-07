@@ -786,11 +786,14 @@ class DataFrame(PandasGeneric):
         Series/TimeSeries will be conformed to the DataFrame's index to
         ensure homogeneity.
         """
+        # Need to make sure new columns (which go into the BlockManager as new
+        # blocks) are always copied
+
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
                 if value.index.equals(self.index):
-                    # no need to copy
-                    value = value.values
+                    # copy the values
+                    value = value.values.copy()
                 else:
                     value = value.reindex(self.index).values
             else:
@@ -800,6 +803,8 @@ class DataFrame(PandasGeneric):
                     value = np.array(value)
                     if value.dtype.type == np.str_:
                         value = np.array(value, dtype=object)
+                else:
+                    value = value.copy()
         else:
             value = np.repeat(value, len(self.index))
 
