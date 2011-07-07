@@ -461,7 +461,7 @@ class TestSeries(unittest.TestCase):
         def _check_op(arr, op):
             result = op(1., arr)
             expected = op(1., arr.astype(float))
-            assert_series_equal(result, expected)
+            assert_series_equal(result.astype(float), expected)
 
         _check_op(arr, operator.add)
         _check_op(arr, operator.sub)

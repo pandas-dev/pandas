@@ -35,6 +35,10 @@ def _arith_method(op, name):
         '__sub__' : '__rsub__',
         '__div__' : '__rdiv__',
         '__mul__' : '__rmul__',
+        '__radd__' : '__add__',
+        '__rsub__' : '__sub__',
+        '__rdiv__' : '__div__',
+        '__rmul__' : '__mul__',
     }
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
@@ -445,6 +449,14 @@ class Series(np.ndarray, PandasGeneric):
     __div__ = _arith_method(operator.div, '__div__')
     __truediv__ = _arith_method(operator.truediv, '__truediv__')
     __pow__ = _arith_method(operator.pow, '__pow__')
+    __truediv__ = _arith_method(operator.truediv, '__truediv__')
+
+    __radd__ = _arith_method(operator.add, '__add__')
+    __rmul__ = _arith_method(operator.mul, '__mul__')
+    __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
+    __rdiv__ = _arith_method(lambda x, y: y / x, '__div__')
+    __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')
+    __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
 
     # Inplace operators
     __iadd__ = __add__
