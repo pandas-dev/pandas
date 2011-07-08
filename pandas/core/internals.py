@@ -16,6 +16,8 @@ class Block(object):
 
     Index-ignorant; let the container take care of that
     """
+    __slots__ = ['items', 'ref_items', '_ref_locs', 'values', 'ndim']
+
     def __init__(self, values, items, ref_items, ndim=2):
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object)
@@ -216,6 +218,8 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
+    __slots__ = ['axes', 'blocks', 'ndim']
+
     def __init__(self, blocks, axes, skip_integrity_check=False):
         self.axes = [_ensure_index(ax) for ax in axes]
         self.blocks = blocks

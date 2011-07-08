@@ -357,6 +357,10 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         assert_almost_equal(casted.values, exp_values)
         assert_almost_equal(casted2.values, exp_values)
 
+        # can't cast
+        data = [['foo', 'bar', 'baz']]
+        self.assertRaises(ValueError, DataFrame, data, dtype=float)
+
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
 

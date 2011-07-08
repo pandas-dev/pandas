@@ -731,9 +731,7 @@ class WidePanel(Panel, PandasGeneric):
         result : DataFrame or WidePanel
         """
         i = self._get_axis_number(axis)
-
         result = np.apply_along_axis(func, i, self.values)
-
         return self._wrap_result(result, axis=axis)
 
     def _values_aggregate(self, func, axis, fill_value):
@@ -1040,9 +1038,7 @@ class LongPanel(Panel, Picklable):
     def __init__(self, values, items, index, factors=None):
         self.items = items
         self.index = index
-
         self.values = values
-
         self.factors = factors or {}
 
     def __len__(self):
