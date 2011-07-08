@@ -61,13 +61,32 @@ def make_sparse(arr, kind='block', fill_value=nan):
 
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
-_MIRROR_OPS = {
-    'add' : '__radd__',
-    'sub' : '__rsub__',
-    'div' : '__rdiv__',
-    'truediv' : '__rdiv__',
-    'mul' : '__rmul__',
-}
+
+def _sparse_op_wrap(op, name):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+    def wrapper(self, other):
+        if isinstance(other, Series):
+            if not isinstance(other, SparseSeries):
+                other = other.to_sparse(fill_value=self.fill_value)
+            return _sparse_series_op(self, other, op, name)
+        elif isinstance(other, DataFrame):
+            return NotImplemented
+        elif np.isscalar(other):
+            new_fill_value = op(np.float64(self.fill_value),
+                                np.float64(other))
+
+            return SparseSeries(op(self.sp_values, other),
+                                index=self.index,
+                                sparse_index=self.sp_index,
+                                fill_value=new_fill_value)
+        else:
+            raise Exception('operation with %s not supported' % type(other))
+
+    wrapper.__name__ = name
+    return wrapper
 
 def _sparse_series_op(left, right, op, name):
     if np.isnan(left.fill_value):
@@ -96,33 +115,6 @@ def _sparse_series_op(left, right, op, name):
     return SparseSeries(result, index=new_index,
                         sparse_index=result_index,
                         fill_value=fill_value)
-
-def _sparse_op_wrap(op, name):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    def wrapper(self, other):
-        if isinstance(other, SparseSeries):
-            return _sparse_series_op(self, other, op, name)
-        elif isinstance(other, SparseDataFrame):
-            reverse_op = _MIRROR_OPS.get(name)
-            if reverse_op is None: # pragma: no cover
-                raise Exception('Cannot do %s op, sorry!' % name)
-            return getattr(other, reverse_op)(self)
-        elif np.isscalar(other):
-            new_fill_value = op(np.float64(self.fill_value),
-                                np.float64(other))
-
-            return SparseSeries(op(self.sp_values, other),
-                                index=self.index,
-                                sparse_index=self.sp_index,
-                                fill_value=new_fill_value)
-        else:
-            raise Exception('operation with %s not supported' % type(other))
-
-    wrapper.__name__ = name
-    return wrapper
 
 def _sparse_nanop(this, other, name):
     sparse_op = getattr(splib, 'sparse_nan%s' % name)

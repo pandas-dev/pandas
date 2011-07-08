@@ -473,7 +473,7 @@ class TestSeries(unittest.TestCase):
         df = DataFrame({'A' : self.ts})
 
         common.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
-        self.assertRaises(Exception, self.ts.__pow__, df)
+        common.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):

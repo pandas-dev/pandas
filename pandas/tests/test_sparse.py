@@ -377,9 +377,9 @@ class TestSparseSeries(TestCase):
         check(self.zbseries, self.zbseries2)
         check(self.ziseries, self.ziseries2)
 
-    def test_operators_corner(self):
-        self.assertRaises(Exception, self.bseries.__add__,
-                          self.bseries.to_dense())
+        # with dense
+        result = self.bseries + self.bseries.to_dense()
+        assert_sp_series_equal(result, self.bseries + self.bseries)
 
     # @dec.knownfailureif(True, 'Known NumPy failer as of 1.5.1')
     def test_operators_corner2(self):
@@ -727,9 +727,16 @@ class TestSparseDataFrame(TestCase):
         def _compare_to_dense(a, b, da, db, op):
             sparse_result = op(a, b)
             dense_result = op(da, db)
+
             dense_result = dense_result.to_sparse(fill_value=fill)
             assert_sp_frame_equal(sparse_result, dense_result,
                                   exact_indices=False)
+
+            if isinstance(a, DataFrame) and isinstance(db, DataFrame):
+                mixed_result = op(a, db)
+                self.assert_(isinstance(mixed_result, SparseDataFrame))
+                assert_sp_frame_equal(mixed_result, sparse_result,
+                                      exact_indices=False)
 
         opnames = ['add', 'sub', 'mul', 'div']
         ops = [getattr(operator, name) for name in opnames]

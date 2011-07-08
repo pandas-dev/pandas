@@ -30,24 +30,12 @@ def _arith_method(op, name):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    MIRROR_OPS = {
-        '__add__' : '__radd__',
-        '__sub__' : '__rsub__',
-        '__div__' : '__rdiv__',
-        '__mul__' : '__rmul__',
-        '__radd__' : '__add__',
-        '__rsub__' : '__sub__',
-        '__rdiv__' : '__div__',
-        '__rmul__' : '__mul__',
-    }
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
 
-        values = self.values
-
         if isinstance(other, Series):
             if self.index.equals(other.index):
-                return Series(op(values, other.values), index=self.index)
+                return Series(op(self.values, other.values), index=self.index)
 
             newIndex = self.index + other.index
 
@@ -70,16 +58,10 @@ def _arith_method(op, name):
                 arr = Series.combine(self, other, getattr(type(self[0]), name))
             result = Series(arr, index=newIndex)
             return result
-
         elif isinstance(other, DataFrame):
-            reverse_op = MIRROR_OPS.get(name)
-
-            if reverse_op is None:
-                raise Exception('Cannot do %s op, sorry!')
-
-            return getattr(other, reverse_op)(self)
+            return NotImplemented
         else:
-            return Series(op(values, other), index=self.index)
+            return Series(op(self.values, other), index=self.index)
     return wrapper
 
 def _flex_method(op, name):
