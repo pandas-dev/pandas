@@ -14,7 +14,7 @@ from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
 from pandas.core.index import Index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
-from pandas.core.generic import PandasGeneric, Picklable
+from pandas.core.generic import AxisProperty, PandasGeneric, Picklable
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -152,19 +152,6 @@ class Panel(object):
                       " in future release",
                       FutureWarning)
         return self.shape
-
-class AxisProperty(object):
-
-    def __init__(self, axis=0):
-        self.axis = axis
-
-    def __get__(self, obj, type=None):
-        data = getattr(obj, '_data')
-        return data.axes[self.axis]
-
-    def __set__(self, obj, value):
-        data = getattr(obj, '_data')
-        data.set_axis(self.axis, value)
 
 class WidePanel(Panel, PandasGeneric):
     """

@@ -24,7 +24,7 @@ import numpy as np
 from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
                                 _try_sort, _pfixed, _default_index)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import PandasGeneric
+from pandas.core.generic import AxisProperty, PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series, _is_bool_indexer
@@ -130,16 +130,12 @@ class DataFrame(PandasGeneric):
         if data is None:
             data = {}
 
+        if isinstance(data, DataFrame):
+            data = data._data
+
         if isinstance(data, BlockManager):
             # do not copy BlockManager unless explicitly done
             mgr = data
-            if copy and dtype is None:
-                mgr = mgr.copy()
-            elif dtype is not None:
-                # no choice but to copy
-                mgr = mgr.cast(dtype)
-        elif isinstance(data, DataFrame):
-            mgr = data._data
             if copy and dtype is None:
                 mgr = mgr.copy()
             elif dtype is not None:
@@ -571,29 +567,9 @@ class DataFrame(PandasGeneric):
     #----------------------------------------------------------------------
     # properties for index and columns
 
-    def _set_columns(self, cols):
-        self._data.items = cols
-
-    def _set_index(self, index):
-        self._data.set_axis(1, index)
-
-    def _get_index(self):
-        return self._data.axes[1]
-
-    def _get_columns(self):
-        return self._data.items
-
-    def _get_values(self):
-        self._consolidate_inplace()
-        # returns items x index
-        values = self._data.as_matrix()
-        return values.T
-
-    index = property(fget=lambda self: self._get_index(),
-                     fset=lambda self, x: self._set_index(x))
-    columns = property(fget=lambda self: self._get_columns(),
-                       fset=lambda self, x: self._set_columns(x))
-    values = property(fget=_get_values)
+    # reference underlying BlockManager
+    columns = AxisProperty(0)
+    index = AxisProperty(1)
 
     def as_matrix(self, columns=None):
         """
@@ -604,6 +580,8 @@ class DataFrame(PandasGeneric):
         """
         self._consolidate_inplace()
         return self._data.as_matrix(columns).T
+
+    values = property(fget=as_matrix)
 
     def transpose(self):
         """

@@ -601,12 +601,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         idx = Index(np.arange(len(self.mixed_frame)))
         self.mixed_frame.index = idx
         self.assert_(self.mixed_frame['foo'].index  is idx)
-        self.assertRaises(Exception, self.mixed_frame._set_index, idx[::2])
+        self.assertRaises(Exception, setattr, self.mixed_frame, 'index',
+                          idx[::2])
 
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
         self.mixed_frame.columns = cols
-        self.assertRaises(Exception, self.mixed_frame._set_columns, cols[::2])
+        self.assertRaises(Exception, setattr, self.mixed_frame, 'columns',
+                          cols[::2])
 
     def test_constructor(self):
         df = self.klass()

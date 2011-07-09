@@ -248,10 +248,12 @@ class BlockManager(object):
                             % (len(index), len(cur_axis)))
         self.axes[axis] = _ensure_index(value)
 
+        if axis == 0:
+            for block in self.blocks:
+                block.set_ref_items(self.items, maybe_rename=True)
+
     def _set_items(self, value):
         self.set_axis(0, value)
-        for block in self.blocks:
-            block.set_ref_items(self.items, maybe_rename=True)
 
     def _get_items(self):
         return self.axes[0]

@@ -24,6 +24,19 @@ class Picklable(object):
 class PandasError(Exception):
     pass
 
+class AxisProperty(object):
+
+    def __init__(self, axis=0):
+        self.axis = axis
+
+    def __get__(self, obj, type=None):
+        data = getattr(obj, '_data')
+        return data.axes[self.axis]
+
+    def __set__(self, obj, value):
+        data = getattr(obj, '_data')
+        data.set_axis(self.axis, value)
+
 class NDFrame(object):
     """
     N-dimensional labeled array data structure with potentially heterogenous
