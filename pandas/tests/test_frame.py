@@ -6,7 +6,7 @@ import cPickle as pickle
 import os
 import unittest
 
-from numpy import random
+from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 
@@ -98,7 +98,7 @@ class CheckIndexing(object):
         s = self.frame['A'].copy()
         self.frame['E'] = s
 
-        self.frame['E'][5:10] = np.nan
+        self.frame['E'][5:10] = nan
         self.assert_(notnull(s[5:10]).all())
 
     def test_setitem_boolean(self):
@@ -119,8 +119,8 @@ class CheckIndexing(object):
         # index with DataFrame
         mask = df > np.abs(df)
         expected = df.copy()
-        df[df > np.abs(df)] = np.nan
-        expected.values[mask.values] = np.nan
+        df[df > np.abs(df)] = nan
+        expected.values[mask.values] = nan
         assert_frame_equal(df, expected)
 
     def test_setitem_corner(self):
@@ -919,8 +919,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         biggie = self.klass({'A' : randn(1000),
                              'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
-        biggie['A'][:20] = np.NaN
-        biggie['B'][:20] = np.NaN
+        biggie['A'][:20] = nan
+        biggie['B'][:20] = nan
 
         foo = repr(biggie)
 
@@ -955,8 +955,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                              'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
 
-        biggie['A'][:20] = np.NaN
-        biggie['B'][:20] = np.NaN
+        biggie['A'][:20] = nan
+        biggie['B'][:20] = nan
         buf = StringIO()
         biggie.toString(buf=buf)
 
@@ -1018,8 +1018,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_first_last_valid(self):
         N = len(self.frame.index)
         mat = randn(N)
-        mat[:5] = np.NaN
-        mat[-5:] = np.NaN
+        mat[:5] = nan
+        mat[-5:] = nan
 
         frame = self.klass({'foo' : mat}, index=self.frame.index)
         index = frame.first_valid_index()
@@ -1064,7 +1064,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         frame_copy = self.frame.reindex(self.frame.index[::2])
 
         del frame_copy['D']
-        frame_copy['C'][:5] = np.NaN
+        frame_copy['C'][:5] = nan
 
         added = self.frame + frame_copy
         tm.assert_dict_equal(added['A'].valid(),
@@ -1188,7 +1188,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_toCSV_fromcsv(self):
         path = '__tmp__'
 
-        self.frame['A'][:5] = np.NaN
+        self.frame['A'][:5] = nan
 
         self.frame.toCSV(path)
         self.frame.toCSV(path, cols=['A', 'B'])
@@ -1316,8 +1316,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(copy._data is not self.mixed_frame._data)
 
     def test_corr(self):
-        self.frame['A'][:5] = np.NaN
-        self.frame['B'][:10] = np.NaN
+        self.frame['A'][:5] = nan
+        self.frame['B'][:10] = nan
 
         correls = self.frame.corr()
 
@@ -1350,7 +1350,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = randn(N)
-        mat[:5] = np.NaN
+        mat[:5] = nan
 
         frame = self.klass({'foo' : mat}, index=self.frame.index)
 
@@ -1363,7 +1363,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_dropIncompleteRows(self):
         N = len(self.frame.index)
         mat = randn(N)
-        mat[:5] = np.NaN
+        mat[:5] = nan
 
         frame = self.klass({'foo' : mat}, index=self.frame.index)
         frame['bar'] = 5
@@ -1375,8 +1375,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(samesize_frame.index.equals(self.frame.index))
 
     def test_fillna(self):
-        self.tsframe['A'][:5] = np.NaN
-        self.tsframe['A'][-5:] = np.NaN
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
 
         zero_filled = self.tsframe.fillna(0)
         self.assert_((zero_filled['A'][:5] == 0).all())
@@ -1386,8 +1386,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_((padded['A'][-5:] == padded['A'][-5]).all())
 
         # mixed type
-        self.mixed_frame['foo'][5:20] = np.NaN
-        self.mixed_frame['A'][-10:] = np.NaN
+        self.mixed_frame['foo'][5:20] = nan
+        self.mixed_frame['A'][-10:] = nan
 
         result = self.mixed_frame.fillna(value=0)
 
@@ -1923,8 +1923,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_combineAdd(self):
         # trivial
         comb = self.frame.combineAdd(self.frame)
-
         assert_frame_equal(comb, self.frame * 2)
+
+        # more rigorous
+        a = DataFrame([[1., nan, nan, 2., nan]],
+                      columns=np.arange(5))
+        b = DataFrame([[2., 3., nan, 2., 6., nan]],
+                      columns=np.arange(6))
+        expected = DataFrame([[3., 3., nan, 4., 6., nan]],
+                             columns=np.arange(6))
+        result = a.combineAdd(b)
+        assert_frame_equal(result, expected)
+        result2 = a.T.combineAdd(b.T)
+        assert_frame_equal(result2, expected.T)
 
         # corner cases
         comb = self.frame.combineAdd(self.empty)
@@ -1936,9 +1947,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # integer corner case
         df1 = DataFrame({'x':[5]})
         df2 = DataFrame({'x':[1]})
-        df3 = DataFrame({'x':[6.]})
+        df3 = DataFrame({'x':[6]})
         comb = df1.combineAdd(df2)
         assert_frame_equal(comb, df3)
+
+        # TODO: test integer fill corner?
 
     def test_combineMult(self):
         # trivial
@@ -2328,8 +2341,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_('foo' not in renamed)
 
     def test_fill_corner(self):
-        self.mixed_frame['foo'][5:20] = np.NaN
-        self.mixed_frame['A'][-10:] = np.NaN
+        self.mixed_frame['foo'][5:20] = nan
+        self.mixed_frame['A'][-10:] = nan
 
         filled = self.mixed_frame.fillna(value=0)
         self.assert_((filled['foo'][5:20] == 0).all())

@@ -43,6 +43,9 @@ Parameters
 other : Series, DataFrame, or constant
 axis : {0, 1, 'index', 'columns'}
     For Series input, axis to match Series index on
+fill_value : None or float value, default None
+    Fill missing (NaN) values with this value. If both DataFrame locations are
+    missing, the result will be missing
 
 Notes
 -----
@@ -54,17 +57,17 @@ result : DataFrame
 """
 
 def _arith_method(func, name, default_axis='columns'):
-    def f(self, other, axis=default_axis):
+    def f(self, other, axis=default_axis, fill_value=None):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, func)
+            return self._combine_frame(other, func, fill_value)
         elif isinstance(other, Series):
             if axis is not None:
                 axis = self._get_axis_name(axis)
                 if axis == 'index':
-                    return self._combine_match_index(other, func)
+                    return self._combine_match_index(other, func, fill_value)
                 else:
-                    return self._combine_match_columns(other, func)
-            return self._combine_series_infer(other, func)
+                    return self._combine_match_columns(other, func, fill_value)
+            return self._combine_series_infer(other, func, fill_value)
         else:
             return self._combine_const(other, func)
 
@@ -658,22 +661,6 @@ class DataFrame(PandasGeneric):
 
         return common_cols
 
-    def _union_columns(self, other):
-        union_cols = self.columns
-
-        if not union_cols.equals(other.columns):
-            union_cols = union_cols.union(other.columns)
-
-        return union_cols
-
-    def _union_index(self, other):
-        union_index = self.index
-
-        if not union_index.equals(other.index):
-            union_index = union_index.union(other.index)
-
-        return union_index
-
     #----------------------------------------------------------------------
     # Array interface
 
@@ -1143,7 +1130,7 @@ class DataFrame(PandasGeneric):
     #----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func):
+    def _combine_frame(self, other, func, fill_value=None):
         """
         Methodology, briefly
         - Really concerned here about speed, space
@@ -1156,17 +1143,19 @@ class DataFrame(PandasGeneric):
 
         Could probably deal with some Cython action in here at some point
         """
-        new_index = self._union_index(other)
+        new_index = _union_indices(self.index, other.index)
 
-        if not self and not other:
-            return DataFrame(index=new_index)
-        elif not self:
-            return other * nan
-        elif not other:
-            return self * nan
+        # some shortcuts
+        if fill_value is None:
+            if not self and not other:
+                return DataFrame(index=new_index)
+            elif not self:
+                return other * nan
+            elif not other:
+                return self * nan
 
         need_reindex = False
-        new_columns = self._union_columns(other)
+        new_columns = _union_indices(self.columns, other.columns)
         need_reindex = (need_reindex or new_index is not self.index
                         or new_index is not other.index)
         need_reindex = (need_reindex or new_columns is not self.columns
@@ -1177,8 +1166,22 @@ class DataFrame(PandasGeneric):
             this = self.reindex(index=new_index, columns=new_columns)
             other = other.reindex(index=new_index, columns=new_columns)
 
-        return DataFrame(func(this.values, other.values),
-                         index=new_index, columns=new_columns,
+        this_vals = this.values
+        other_vals = other.values
+
+        if fill_value is not None:
+            this_mask = isnull(this_vals)
+            other_mask = isnull(other_vals)
+            this_vals = this_vals.copy()
+            other_vals = other_vals.copy()
+
+            # one but not both
+            mask = this_mask ^ other_mask
+            this_vals[this_mask & mask] = fill_value
+            other_vals[other_mask & mask] = fill_value
+
+        result = func(this_vals, other_vals)
+        return DataFrame(result, index=new_index, columns=new_columns,
                          copy=False)
 
     def _indexed_same(self, other):
@@ -1186,7 +1189,7 @@ class DataFrame(PandasGeneric):
         same_columns = self.columns.equals(other.columns)
         return same_index and same_columns
 
-    def _combine_series_infer(self, other, func):
+    def _combine_series_infer(self, other, func, fill_value=None):
         if len(other) == 0:
             return self * nan
 
@@ -1197,12 +1200,12 @@ class DataFrame(PandasGeneric):
 
         # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index.is_all_dates() and other.index.is_all_dates():
-            return self._combine_match_index(other, func)
+            return self._combine_match_index(other, func, fill_value)
         else:
-            return self._combine_match_columns(other, func)
+            return self._combine_match_columns(other, func, fill_value)
 
-    def _combine_match_index(self, other, func):
-        new_index = self._union_index(other)
+    def _combine_match_index(self, other, func, fill_value=None):
+        new_index = _union_indices(self.index, other.index)
         values = self.values
         other_vals = other.values
 
@@ -1213,15 +1216,21 @@ class DataFrame(PandasGeneric):
         if not self.index.equals(new_index):
             values = self.reindex(new_index).values
 
+        if fill_value is not None:
+            raise NotImplementedError
+
         return DataFrame(func(values.T, other_vals).T, index=new_index,
                          columns=self.columns, copy=False)
 
-    def _combine_match_columns(self, other, func):
+    def _combine_match_columns(self, other, func, fill_value=None):
         newCols = self.columns.union(other.index)
 
         # Operate column-wise
         this = self.reindex(columns=newCols)
         other = other.reindex(newCols).values
+
+        if fill_value is not None:
+            raise NotImplementedError
 
         return DataFrame(func(this.values, other), index=self.index,
                          columns=newCols, copy=False)
@@ -1341,7 +1350,7 @@ class DataFrame(PandasGeneric):
         -------
         DataFrame
         """
-        return self.combine(other, np.add, fill_value=0.)
+        return self.add(other, fill_value=0.)
 
     def combineMult(self, other):
         """
@@ -1357,7 +1366,7 @@ class DataFrame(PandasGeneric):
         -------
         DataFrame
         """
-        return self.combine(other, np.multiply, fill_value=1.)
+        return self.mul(other, fill_value=1.)
 
     #----------------------------------------------------------------------
     # Misc methods
@@ -2455,6 +2464,15 @@ class DataFrame(PandasGeneric):
             self._ix = _DataFrameIndexer(self)
 
         return self._ix
+
+def _union_indices(a, b):
+    if len(a) == 0:
+        return b
+    elif len(b) == 0:
+        return a
+    if not a.equals(b):
+        return a.union(b)
+    return a
 
 def extract_index(data):
     def _union_if(index, new_index):

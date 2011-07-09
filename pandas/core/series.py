@@ -745,12 +745,10 @@ class Series(np.ndarray, PandasGeneric):
             this = self.reindex(new_index)
             other = other.reindex(new_index)
 
-        do_fill = fill_value is not None
-
         this_vals = this.values
         other_vals = other.values
 
-        if do_fill:
+        if fill_value is not None:
             this_mask = isnull(this_vals)
             other_mask = isnull(other_vals)
             this_vals = this_vals.copy()
