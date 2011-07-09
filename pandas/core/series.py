@@ -296,15 +296,9 @@ class Series(np.ndarray, PandasGeneric):
         # special handling of boolean data with NAs stored in object
         # arrays. Sort of an elaborate hack since we can't represent boolean
         # NA. Hmm
-        if isinstance(key, np.ndarray) and key.dtype == np.object_:
-            mask = isnull(key)
-            if mask.any():
-                raise ValueError('cannot index with vector containing '
-                                 'NA / NaN values')
-
-            if set([True, False]).issubset(set(key)):
-                key = np.asarray(key, dtype=bool)
-                return _index_with(key)
+        if _is_bool_indexer(key):
+            key = np.asarray(key, dtype=bool)
+            return _index_with(key)
 
         try:
             return _index_with(key)
@@ -1447,6 +1441,16 @@ class TimeSeries(Series):
 
 #-------------------------------------------------------------------------------
 # Supplementary functions
+
+def _is_bool_indexer(key):
+    if isinstance(key, np.ndarray) and key.dtype == np.object_:
+        mask = isnull(key)
+        if mask.any():
+            raise ValueError('cannot index with vector containing '
+                             'NA / NaN values')
+
+        return set([True, False]).issubset(set(key))
+    return False
 
 _ndgi = ndarray.__getitem__
 

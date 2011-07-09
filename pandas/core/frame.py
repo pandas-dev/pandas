@@ -27,7 +27,7 @@ from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.internals import BlockManager, make_block
-from pandas.core.series import Series
+from pandas.core.series import Series, _is_bool_indexer
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
@@ -739,6 +739,11 @@ class DataFrame(PandasGeneric):
             if len(item) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
                                  (len(item), len(self.index)))
+
+            # also raises Exception if object array with NA values
+            if _is_bool_indexer(item):
+                item = np.asarray(item, dtype=bool)
+
             new_index = self.index[item]
             return self.reindex(new_index)
         else:
