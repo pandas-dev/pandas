@@ -15,7 +15,7 @@ from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
-                               _default_index)
+                               _default_index, _union_indices)
 from pandas.core.panel import (Panel, WidePanel, LongPanelIndex, LongPanel,
                                PanelAxis)
 import pandas.core.common as common
@@ -823,6 +823,9 @@ class SparseDataFrame(DataFrame):
                             (len(cols), len(self._series)))
         self._columns = _ensure_index(cols)
 
+    index = property(fget=_get_index, fset=_set_index)
+    columns = property(fget=_get_columns, fset=_set_columns)
+
     def __getitem__(self, item):
         """
         Retrieve column or slice from DataFrame
@@ -880,9 +883,12 @@ class SparseDataFrame(DataFrame):
     #----------------------------------------------------------------------
     # Arithmetic-related methods
 
-    def _combine_frame(self, other, func):
-        new_index = self._union_index(other)
-        new_columns = self._union_columns(other)
+    def _combine_frame(self, other, func, fill_value=None):
+        new_index = _union_indices(self.index, other.index)
+        new_columns = _union_indices(self.columns, other.columns)
+
+        if fill_value is not None:
+            raise NotImplementedError
 
         this = self
         if self.index is not new_index:
@@ -906,10 +912,13 @@ class SparseDataFrame(DataFrame):
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns)
 
-    def _combine_match_index(self, other, func):
+    def _combine_match_index(self, other, func, fill_value=None):
         new_data = {}
 
-        new_index = self._union_index(other)
+        if fill_value is not None:
+            raise NotImplementedError
+
+        new_index = _union_indices(self.index, other.index)
         this = self
         if self.index is not new_index:
             this = self.reindex(new_index)
@@ -923,11 +932,14 @@ class SparseDataFrame(DataFrame):
         return self._constructor(new_data, index=new_index,
                                  columns=self.columns)
 
-    def _combine_match_columns(self, other, func):
+    def _combine_match_columns(self, other, func, fill_value):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
         # possible for this to happen, which is bothersome
+
+        if fill_value is not None:
+            raise NotImplementedError
 
         new_data = {}
 
