@@ -480,48 +480,33 @@ class DataFrame(PandasGeneric):
 
     def toString(self, buf=sys.stdout, columns=None, colSpace=None,
                  nanRep='NaN', formatters=None, float_format=None):
-        """Output a tab-separated version of this DataFrame"""
-        series = self._series
+        from pandas.core.pytools import adjoin
+        from pandas.core.common import _format
+
+        if colSpace is None:
+            def _myformat(v):
+                return _format(v, nanRep=nanRep,
+                               float_format=float_format)
+        else:
+            def _myformat(v):
+                return _pfixed(v, colSpace, nanRep=nanRep,
+                               float_format=float_format)
+
+        def _stringify(series):
+            return map(_myformat, series)
+
         if columns is None:
             columns = self.columns
         else:
             columns = [c for c in columns if c in self]
 
-        formatters = formatters or {}
-        ident = lambda x: x
-
-        if colSpace is None:
-            colSpace = {}
-
-            for c in columns:
-                if np.issctype(series[c].dtype):
-                    colSpace[c] = max(len(str(c)) + 4, common._column_space)
-                else:
-                    # HACK
-                    colSpace[c] = common._column_space
-        else:
-            colSpace = dict((k, colSpace) for k in columns)
-
         if len(columns) == 0 or len(self.index) == 0:
             print >> buf, 'Empty %s' % type(self).__name__
             print >> buf, repr(self.index)
         else:
-            idxSpace = max([len(str(idx)) for idx in self.index]) + 4
-            head = ' ' * idxSpace
-
-            for h in columns:
-                head += _put_str(h, colSpace[h])
-
-            print >> buf, head
-
-            for idx in self.index:
-                ot = _put_str(idx, idxSpace - 1)
-                for k in columns:
-                    formatter = formatters.get(k, ident)
-                    ot += _pfixed(formatter(series[k][idx]),
-                                  colSpace[k], nanRep=nanRep,
-                                  float_format=float_format)
-                print >> buf, ot
+            str_index = [''] + [str(x) for x in self.index]
+            stringified = [[' %s' % c] + _stringify(self[c]) for c in columns]
+            print >> buf, adjoin(2, str_index, *stringified)
 
     def info(self, verbose=True, buf=sys.stdout):
         """
@@ -1757,24 +1742,36 @@ class DataFrame(PandasGeneric):
     #----------------------------------------------------------------------
     # groupby
 
-    def groupby(self, mapper, axis=0):
+    def groupby(self, by, axis=0, column=None):
         """
-        Goup series using mapper (dict or key function, apply given
-        function to group, return result as series).
+        Goup series using mapper (dict or key function, apply given function to
+        group, return result as series) or by a series of columns
 
         Parameters
         ----------
-        mapper : function, dict or Series
+        by : mapping function, dict, Series, or tuple / list of column names
             Called on each element of the object index to determine
             the groups.  If a dict or Series is passed, the Series or
             dict VALUES will be used to determine the groups
+        axis : int, default 0
+
+        Examples
+        --------
+        # DataFrame result
+        >>> data.groupby(func, axis=0).mean()
+
+        # DataFrame result
+        >>> data.groupby(['col1', 'col2'])['col3'].mean()
+
+        # WidePanel result
+        >>> data.groupby(['col1', 'col2']).mean()
 
         Returns
         -------
         GroupBy object
         """
         from pandas.core.groupby import groupby
-        return groupby(self, mapper, axis=axis)
+        return groupby(self, by, axis=axis)
 
     def tgroupby(self, keyfunc, applyfunc):
         """

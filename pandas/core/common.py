@@ -173,3 +173,25 @@ def _pfixed(s, space, nanRep=None, float_format=None):
     else:
         return (' %s' % s)[:space].ljust(space)
 
+def _format(s, nanRep=None, float_format=None):
+    if isinstance(s, float):
+        if nanRep is not None and isnull(s):
+            if np.isnan(s):
+                s = nanRep
+            return (' %s' % s)
+
+        if float_format:
+            formatted = float_format(s)
+        else:
+            is_neg = s < 0
+            formatted = _float_format(np.abs(s))
+
+            if is_neg:
+                formatted = '-' + formatted
+            else:
+                formatted = ' ' + formatted
+
+        return formatted
+    else:
+        return ' %s' % s
+
