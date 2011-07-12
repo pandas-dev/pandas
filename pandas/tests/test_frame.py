@@ -1863,6 +1863,32 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertEqual(len(grouped), len(self.frame.index))
         self.assertEqual(len(grouped.columns), 2)
 
+    def test_groupby_multiple_columns(self):
+        from pandas.util.testing import assert_panel_equal
+        from pandas.core.panel import WidePanel
+        from collections import defaultdict
+
+        data = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                                 'foo', 'bar', 'foo', 'foo'],
+                          'B' : ['one', 'one', 'two', 'three',
+                                 'two', 'two', 'one', 'three'],
+                          'C' : np.random.randn(8),
+                          'D' : np.random.randn(8)})
+
+        result1 = data.groupby('A', 'B').sum()
+        result1_col = data.groupby('A', 'B')['C'].sum()
+        expected = defaultdict(dict)
+        for n1, gp1 in data.groupby('A'):
+            for n2, gp2 in gp1.groupby('B'):
+                expected[n1][n2] = gp2.sum()
+        expected = dict((k, DataFrame(v)) for k, v in expected.iteritems())
+        expected = WidePanel.fromDict(expected)
+        assert_panel_equal(result1, expected)
+        assert_panel_equal(result1['C'], expected['C'])
+
+        # result2 = data.groupby('B', 'A').sum()
+        # assert_panel_equal(result2, expected2)
+
     def test_filter(self):
         # items
 
