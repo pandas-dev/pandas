@@ -83,6 +83,17 @@ class HDFStore(object):
         ``'r+'``
             It is similar to ``'a'``, but the file must already exist.
 
+    complevel : int, 1-9, default 0
+            If a complib is specified compression will be applied
+            where possible
+
+    complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
+            If complevel is > 0 apply compression to objects written
+            in the store wherever possible
+
+    fletcher32 : bool, default False
+            If applying compression use the fletcher32 checksum
+
     Examples
     --------
     >>> store = HDFStore('test.h5')
@@ -90,7 +101,7 @@ class HDFStore(object):
     >>> bar = store['foo']   # retrieve
     >>> store.close()
     """
-    def __init__(self, path, mode='a'):
+    def __init__(self, path, mode='a', complevel=0, complib=None, fletcher32=False):
         try:
             import tables as _
         except ImportError: # pragma: no cover
@@ -99,6 +110,10 @@ class HDFStore(object):
         self.path = path
         self.mode = mode
         self.handle = None
+        self.complevel = complevel
+        self.complib = complib
+        self.fletcher32 = fletcher32
+        self.filters = None
         self.open(mode=mode, warn=False)
 
     def __getitem__(self, key):
@@ -148,6 +163,12 @@ class HDFStore(object):
                     return
         if self.handle is not None and self.handle.isopen:
             self.handle.close()
+
+        if self.complevel > 0 and self.complib is not None:
+            self.filters = _tables().Filters(self.complevel,
+                                             self.complib,
+                                             fletcher32=self.fletcher32)
+
         self.handle = _tables().openFile(self.path, self.mode)
 
     def close(self):
@@ -231,6 +252,8 @@ class HDFStore(object):
             table
         compression : {None, 'blosc', 'lzo', 'zlib'}, default None
             Use a compression algorithm to compress the data
+            If None, the compression settings specified in the ctor will
+            be used.
         """
         self._write_to_group(key, value, table=table, append=append,
                              comp=compression)
@@ -410,6 +433,22 @@ class HDFStore(object):
         if key in group:
             self.handle.removeNode(group, key)
 
+        if self.filters is not None:
+            atom = None
+            try:
+                # get the atom for this datatype
+                atom = _tables().Atom.from_dtype(value.dtype)
+            except ValueError:
+                pass
+
+            if atom is not None:
+                # create an empty chunked array and fill it from value
+                ca = self.handle.createCArray(group, key, atom,
+                                                value.shape,
+                                                filters=self.filters)
+                ca[:] = value
+                return
+
         if value.dtype == np.object_:
             vlarr = self.handle.createVLArray(group, key,
                                               _tables().ObjectAtom())
@@ -440,8 +479,14 @@ class HDFStore(object):
                        'description' : desc}
 
             if compression:
-                options['filters'] = _tables().Filters(complevel=9,
-                                                    complib=compression)
+                complevel = self.complevel
+                if complevel is None:
+                    complevel = 9
+                options['filters'] = _tables().Filters(complevel=complevel,
+                                                       complib=compression,
+                                                       fletcher32=self.fletcher32)
+            elif self.filters is not None:
+                options['filters'] = self.filters
 
             table = self.handle.createTable(group, **options)
         else:

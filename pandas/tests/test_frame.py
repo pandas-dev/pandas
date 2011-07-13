@@ -2348,7 +2348,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_((filled['foo'][5:20] == 0).all())
         del self.mixed_frame['foo']
 
-	empty_float = self.frame.reindex(columns=[])
+        empty_float = self.frame.reindex(columns=[])
         result = empty_float.fillna(value=0)
 
     def test_count_objects(self):
@@ -2465,6 +2465,45 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         dm['foo'] = 6.
         dm.xs(3, copy=False)[:] = 10
         self.assert_((dm.xs(3) == 10).all())
+
+    def test_boolean_indexing(self):
+        idx = range(3)
+        cols = range(3)
+        df1 = DataFrame(index=idx, columns=cols, \
+                           data=np.array([[0.0, 0.5, 1.0],
+                                          [1.5, 2.0, 2.5],
+                                          [3.0, 3.5, 4.0]], dtype=float))
+        df2 = DataFrame(index=idx, columns=cols, data=np.ones((len(idx), len(cols))))
+
+        expected = DataFrame(index=idx, columns=cols, \
+                           data=np.array([[0.0, 0.5, 1.0],
+                                          [1.5, 2.0, -1],
+                                          [-1,  -1,  -1]], dtype=float))
+
+        df1[df1 > 2.0 * df2] = -1
+        assert_frame_equal(df1, expected)
+
+    def test_groupby_nonsense_func(self):
+        df = DataFrame([0])
+        self.assertRaises(Exception, df.groupby, lambda x: donkey)
+
+    def test_sum_bools(self):
+        df = DataFrame(index=range(1), columns=range(10))
+        bools = np.isnan(df)
+        self.assert_(bools.sum(axis=1)[0] == 10)
+
+    def test_fillna_col_reordering(self):
+        idx = range(20)
+        cols = ["COL." + str(i) for i in range(5, 0, -1)]
+        data = np.random.rand(20, 5)
+        df = DataFrame(index=range(20), columns=cols, data=data)
+        self.assert_(df.columns.tolist() == df.fillna().columns.tolist())
+
+    def test_scalar_ctor(self):
+        idx = Index(range(3))
+        df = DataFrame({"a" : 0}, index=idx)
+        expected = DataFrame({"a" : [0, 0, 0]}, index=idx)
+        assert_frame_equal(df, expected)
 
 if __name__ == '__main__':
     # unittest.main()

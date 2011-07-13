@@ -85,6 +85,16 @@ def null_out_axis(arr, mask, axis):
 #-------------------------------------------------------------------------------
 # Lots of little utilities
 
+def _infer_dtype(value):
+    if isinstance(value, (float, np.floating)):
+        return float
+    elif isinstance(value, (int, np.integer)):
+        return int
+    elif isinstance(value, (bool, np.bool_)):
+        return bool
+    else:
+        return object
+
 def _default_index(n):
     from pandas.core.index import NULL_INDEX
     if n == 0:

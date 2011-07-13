@@ -921,6 +921,21 @@ class TestSeries(unittest.TestCase):
         self.assertFalse(np.isnan(self.ts[9]))
         self.assertFalse(np.isnan(self.ts[10]))
 
+    def test_ne(self):
+        ts = TimeSeries([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
+        expected = [True, True, False, True, True]
+        self.assert_(common.equalContents(ts.index != 5, expected))
+        self.assert_(common.equalContents(~(ts.index == 5), expected))
+
+    def test_pad_nan(self):
+        x = TimeSeries([np.nan, 1., np.nan, 3., np.nan],
+                       ['z', 'a', 'b', 'c', 'd'], dtype=float)
+        x = x.fillna(method='pad')
+        expected = TimeSeries([np.nan, 1.0, 1.0, 3.0, 3.0],
+                                ['z', 'a', 'b', 'c', 'd'], dtype=float)
+        assert_series_equal(x[1:], expected[1:])
+        self.assert_(np.isnan(x[0]), np.isnan(expected[0]))
+
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
 

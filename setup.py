@@ -5,6 +5,12 @@ Parts of this file were taken from the pyzmq project
 (https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
 Lesser GPU General Public License.
 """
+# use setuptools if available
+try:
+    from setuptools import setup
+    _have_setuptools = True
+except ImportError:
+    _have_setuptools = False
 
 from datetime import datetime
 from glob import glob
@@ -75,6 +81,14 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.dev' + datetime.today().strftime('%Y%m%d')
+    try:
+        import subprocess
+        pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
+                                stdout=subprocess.PIPE).stdout
+        rev = pipe.read().strip()
+        FULLVERSION += "_%s" % rev
+    except:
+        print "WARNING: Couldn't get git revision"
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
@@ -87,7 +101,6 @@ version = '%s'
         a.write(cnt % FULLVERSION)
     finally:
         a.close()
-
 
 class CleanCommand(Command):
     """Custom distutils command to clean the .so and .pyc files."""
@@ -212,6 +225,11 @@ sparse_ext = Extension('pandas._sparse',
 extensions = [tseries_ext,
               sparse_ext]
 
+setuptools_args = {}
+
+if _have_setuptools:
+    setuptools_args["test_suite"] = "nose.collector"
+
 setup(name=DISTNAME,
       version=FULLVERSION,
       maintainer=MAINTAINER,
@@ -234,4 +252,4 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
-      )
+      **setuptools_args)

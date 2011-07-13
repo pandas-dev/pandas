@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
-                                _pfixed, _default_index)
+                                _pfixed, _default_index, _infer_dtype)
 from pandas.core.index import Index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
@@ -1802,16 +1802,6 @@ def _prep_ndarray(values, copy=True):
             values = values.copy()
     assert(values.ndim == 3)
     return values
-
-def _infer_dtype(value):
-    if isinstance(value, (float, np.floating)):
-        return float
-    elif isinstance(value, (int, np.integer)):
-        return int
-    elif isinstance(value, (bool, np.bool_)):
-        return bool
-    else:
-        return object
 
 class Factor(object):
     """

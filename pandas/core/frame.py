@@ -22,7 +22,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
-                                _try_sort, _pfixed, _default_index)
+                                _try_sort, _pfixed, _default_index, _infer_dtype)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, PandasGeneric
 from pandas.core.index import Index, NULL_INDEX
@@ -1050,14 +1050,14 @@ class DataFrame(PandasGeneric):
             series = self._series
             for col, s in series.iteritems():
                 result[col] = s.fillna(method=method, value=value)
-            return DataFrame(result, index=self.index)
+            return DataFrame(result, index=self.index, columns=self.columns)
         else:
             # Float type values
             if len(self.columns) == 0:
                 return self
 
             new_data = self._data.fillna(value)
-            return DataFrame(new_data)
+            return DataFrame(new_data, index=self.index, columns=self.columns)
 
     #----------------------------------------------------------------------
     # Rename
@@ -2547,6 +2547,10 @@ def _homogenize_series(data, index, dtype=None):
         else:
             if isinstance(v, dict):
                 v = [v.get(i, nan) for i in index]
+            elif np.isscalar(v):
+                _v = np.empty(len(index), dtype=_infer_dtype(v))
+                _v.fill(v)
+                v = _v
             else:
                 assert(len(v) == len(index))
 
