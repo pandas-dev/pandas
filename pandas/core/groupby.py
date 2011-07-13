@@ -130,6 +130,17 @@ class GroupBy(object):
     def __getitem__(self, key):
         return self.getGroup(self.grouping.indices[key])
 
+def multi_groupby(obj, op, *columns):
+    cur = columns[0]
+    grouped = obj.groupby(cur)
+    if len(columns) == 1:
+        return grouped.aggregate(op)
+    else:
+        result = {}
+        for key, value in grouped:
+            result[key] = multi_groupby(value, op, columns[1:])
+    return result
+
 class SeriesGroupBy(GroupBy):
 
     def aggregate(self, applyfunc):
@@ -277,7 +288,8 @@ class DataFrameGroupBy(GroupBy):
     def __getitem__(self, key):
         if key not in self.obj:
             raise KeyError('column %s not found' % key)
-        return MetaGroupBy(self, key)
+        return DataFrameGroupBy(self.obj, groupings=self.groupings,
+                                column=key)
 
     def aggregate(self, applyfunc):
         """

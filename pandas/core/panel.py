@@ -1235,14 +1235,14 @@ class LongPanel(Panel, Picklable):
         # Lexsort starts from END
         indexer = np.lexsort((second, first))
 
-        new_major = self.index.major_labels[indexer]
-        new_minor = self.index.minor_labels[indexer]
-        new_values = self.values[indexer]
+        new_major = self.index.major_labels.take(indexer)
+        new_minor = self.index.minor_labels.take(indexer)
+        new_values = self.values.take(indexer)
 
         new_index = LongPanelIndex(self.major_axis, self.minor_axis,
                                    new_major, new_minor)
 
-        new_factors = dict((k, v[indexer])
+        new_factors = dict((k, v.take(indexer))
                            for k, v in self.factors.iteritems())
 
         return LongPanel(new_values, self.items, new_index,
