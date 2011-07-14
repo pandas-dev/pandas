@@ -246,7 +246,7 @@ class TestSparseSeries(TestCase):
 
     def test_pickle(self):
         def _test_roundtrip(series):
-            pickled = pickle.dumps(series)
+            pickled = pickle.dumps(series, protocol=pickle.HIGHEST_PROTOCOL)
             unpickled = pickle.loads(pickled)
             assert_sp_series_equal(series, unpickled)
             assert_series_equal(series.to_dense(), unpickled.to_dense())
