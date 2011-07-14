@@ -22,6 +22,9 @@ import pandas._tseries as _tseries
 
 __all__ = ['Series', 'TimeSeries']
 
+def _numpy_lt_151():
+    return np.__version__ < '1.5.1'
+
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
@@ -1063,7 +1066,10 @@ class Series(np.ndarray, PandasGeneric):
             if method == 'bfill':
                 method = 'backfill'
 
-            mask = isnull(self.values).astype(np.uint8)
+            mask = isnull(self.values)
+
+            if _numpy_lt_151(): # pragma: no cover
+                mask = mask.astype(np.uint8)
 
             if method == 'pad':
                 indexer = _tseries.get_pad_indexer(mask)
