@@ -1211,6 +1211,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         recons = self.klass.fromcsv(path, index_col=None)
         assert_almost_equal(self.tsframe.values, recons.values)
 
+        # corner case
+        dm = DataFrame({'s1' : Series(range(3),range(3)),
+                        's2' : Series(range(2),range(2))})
+        dm.toCSV(path)
+        recons = self.klass.fromcsv(path)
+        assert_frame_equal(dm, recons)
+
         os.remove(path)
 
     def test_info(self):

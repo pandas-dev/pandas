@@ -149,6 +149,7 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
         if parse_dates:
             index = _try_parse_dates(index, parser=date_parser)
 
+        index = _maybe_convert_int(np.array(index, dtype=object))
     else:
         index = np.arange(len(content))
 
@@ -187,13 +188,33 @@ def _floatify(data_dict, na_values=None):
 
     return result
 
+def _maybe_convert_int(arr):
+    if len(arr) == 0:
+        return arr
+
+    try:
+        if arr.dtype == np.object_:
+            return arr.astype(int)
+
+        if abs(arr[0] - int(arr[0])) < 1e-10:
+            casted = arr.astype(int)
+            if (np.abs(casted - arr) < 1e-10).all():
+                return casted
+    except TypeError, ValueError:
+        pass
+
+    return arr
+
 def _convert_to_ndarrays(dct):
     result = {}
     for c, values in dct.iteritems():
         try:
-            result[c] = np.array(values, dtype=float)
+            values = np.array(values, dtype=float)
+            values = _maybe_convert_int(values)
         except Exception:
-            result[c] = np.array(values, dtype=object)
+            values = np.array(values, dtype=object)
+
+        result[c] = values
 
     return result
 

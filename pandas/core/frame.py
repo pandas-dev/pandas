@@ -394,20 +394,9 @@ class DataFrame(PandasGeneric):
         -------
         y : DataFrame or DataFrame
         """
-        data = np.genfromtxt(path, delimiter=delimiter, dtype=None,
-                             skip_header=header, names=True)
-
-        if index_col is not None:
-            field = data.dtype.names[index_col]
-            df = cls.from_records(data, indexField=field)
-
-            # have dates?
-            test_val = datetools.to_datetime(df.index[0])
-            if isinstance(test_val, datetime):
-                df = df.rename(index=datetools.to_datetime)
-        else:
-            df = cls.from_records(data, indexField=None)
-
+        from pandas.io.parsers import read_table
+        df = read_table(path, header=header, sep=delimiter,
+                        index_col=index_col)
         return df
 
     def to_sparse(self, fill_value=None, kind='block'):

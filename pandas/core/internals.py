@@ -667,12 +667,15 @@ def form_blocks(data, index, items):
 
     # put "leftover" items in float bucket, where else?
     # generalize?
-    num_dict = {}
+    float_dict = {}
+    int_dict = {}
     bool_dict = {}
     object_dict = {}
     for k, v in data.iteritems():
-        if issubclass(v.dtype.type, (np.floating, np.integer)):
-            num_dict[k] = v
+        if issubclass(v.dtype.type, np.floating):
+            float_dict[k] = v
+        elif issubclass(v.dtype.type, np.integer):
+            int_dict[k] = v
         elif v.dtype == np.bool_:
             bool_dict[k] = v
         else:
@@ -680,17 +683,23 @@ def form_blocks(data, index, items):
 
     blocks = []
 
-    if len(num_dict) > 0:
-        num_dtypes = set(v.dtype for v in num_dict.values())
-        if len(num_dtypes) > 1:
-            num_dtype = np.float_
-        else:
-            num_dtype = list(num_dtypes)[0]
+    # if len(float_dict) > 0:
+    #     num_dtypes = set(v.dtype for v in num_dict.values())
+    #     if len(num_dtypes) > 1:
+    #         num_dtype = np.float_
+    #     else:
+    #         num_dtype = list(num_dtypes)[0]
 
-        # TODO: find corner cases
-        # TODO: check type inference
-        num_block = _simple_blockify(num_dict, items, num_dtype)
-        blocks.append(num_block)
+    #     # TODO: find corner cases
+    #     # TODO: check type inference
+
+    if len(float_dict):
+        float_block = _simple_blockify(float_dict, items, np.float64)
+        blocks.append(float_block)
+
+    if len(int_dict):
+        int_block = _simple_blockify(int_dict, items, np.int64)
+        blocks.append(int_block)
 
     if len(bool_dict):
         bool_block = _simple_blockify(bool_dict, items, np.bool_)
