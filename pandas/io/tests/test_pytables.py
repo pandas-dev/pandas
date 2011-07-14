@@ -1,6 +1,7 @@
 import nose
 import unittest
 import os
+import sys
 
 import numpy as np
 
@@ -141,6 +142,9 @@ class TesttHDFStore(unittest.TestCase):
         self._check_roundtrip(ts, tm.assert_series_equal)
 
     def test_timeseries_preepoch(self):
+        if sys.version_info.major == 2 and sys.version_info.minor < 7:
+            raise nose.SkipTest
+
         dr = DateRange('1/1/1940', '1/1/1960')
         ts = Series(np.random.randn(len(dr)), index=dr)
         self._check_roundtrip(ts, tm.assert_series_equal)
