@@ -1063,7 +1063,7 @@ class Series(np.ndarray, PandasGeneric):
             if method == 'bfill':
                 method = 'backfill'
 
-            mask = isnull(self.values)
+            mask = isnull(self.values).astype(np.uint8)
 
             if method == 'pad':
                 indexer = _tseries.get_pad_indexer(mask)
