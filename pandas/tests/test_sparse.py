@@ -691,7 +691,7 @@ class TestSparseDataFrame(TestCase):
 
     def test_pickle(self):
         def _test_roundtrip(frame):
-            pickled = pickle.dumps(frame)
+            pickled = pickle.dumps(frame, protocol=pickle.HIGHEST_PROTOCOL)
             unpickled = pickle.loads(pickled)
             assert_sp_frame_equal(frame, unpickled)
 
@@ -1149,7 +1149,7 @@ class TestSparseWidePanel(TestCase,
 
     def test_pickle(self):
         def _test_roundtrip(panel):
-            pickled = pickle.dumps(panel)
+            pickled = pickle.dumps(panel, protocol=pickle.HIGHEST_PROTOCOL)
             unpickled = pickle.loads(pickled)
             assert_sp_panel_equal(panel, unpickled)
 
