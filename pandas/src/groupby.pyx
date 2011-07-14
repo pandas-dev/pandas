@@ -100,63 +100,93 @@ def group_labels(ndarray[object] values):
             labels[i] = count
             count += 1
 
-    return labels
+    return count, labels
 
-ctypedef double_t (* agg_func)(double_t *out, double_t *values,
-                               int32_t *labels, int start, int end)
+def labelize(*key_arrays):
+    shape = []
+    labels = []
+    for key_arr in key_arrays:
+        ct, lab = group_labels(key_arrays)
+        shape.append(ct)
+        labels.append(lab)
+
+    return tuple(shape), labels
+
+ctypedef double_t (* agg_func)(double_t *out, int32_t *counts,
+                               double_t *values, int32_t *labels,
+                               int start, int end)
 
 cdef agg_func get_agg_func(object how):
-    pass
+    if how == 'add':
+        return _group_add
 
 def group_aggregate(ndarray[double_t] values, list label_list,
-                    how='add'):
+                    object shape, how='add'):
     cdef:
         list sorted_labels
-        ndarray[double_t] result
-        double_t *resbuf
-        double_t *valbuf
-        Py_ssize_t i
+        ndarray result, counts
         agg_func func
 
+    func = get_agg_func(how)
     values, sorted_labels = _group_reorder(values, label_list)
-    result = np.empty(_result_shape(sorted_labels), dtype=np.float64)
+    result = np.empty(shape, dtype=np.float64)
+    result.fill(nan)
+    counts = = np.zeros(shape, dtype=np.int32)
 
-    resbuf = <double_t*> result.data
-    valbuf = <double_t*> values.data
-
-    _aggregate_group(resbuf, valbuf, sorted_labels, 0, len(values),
-                     func)
+    _aggregate_group(<double_t*> result.data,
+                     <double_t*> values.data,
+                     <int32_t*> counts.data
+                      sorted_labels, 0, len(values),
+                     shape, 0, func)
 
     return result, sorted_labels
 
-cdef _aggregate_group(double_t *out, double_t *values, list labels,
-                      int start, int end, agg_func func):
+cdef _aggregate_group(double_t *out, int32_t *counts, double_t *values,
+                      list labels, int start, int end, tuple shape,
+                      Py_ssize_t which, agg_func func):
     cdef:
         ndarray[int32_t] axis0
         int32_t label_end
 
-    axis0 = sorted_labels[0]
-    label_end = axis0[0]
-    if len(labels) == 1:
+    axis0 = labels[which][start:end]
+    label_end = shape[which]
+
+    # time to actually aggregate
+    if which == len(labels) - 1:
         func(out, values, axis0, start, end)
     else:
         # get group counts on axis
         edges = axis0.searchsorted(np.arange(1, label_end + 1), side='left')
         start = 0
+        # aggregate each subgroup
         for end in edges:
-            _aggregate_group(resbuf, valbuf, sorted_labels[1:],
-                             start, end, func)
+            _aggregate_group(out, counts, values, sorted_labels[1:],
+                             start, end, shape, which + 1, func)
             start = end
 
-cdef _group_add(double_t *out, double_t *values, int32_t *labels,
-                int start, int end):
+cdef _group_add(double_t *out, int32_t *counts, double_t *values,
+                int32_t *labels, int start, int end, int rng):
     cdef:
-        int i
+        Py_ssize_t i, it = start
         int32_t lab
-        double_t val
+        int32_t count = 0
+        double_t val, cum = 0
 
-    for i from start <= i < end:
+    for i in range(rng):
+        while it < end:
+            if labels[it] > i:
+                counts[i] = count
+                out[i] = cum
+                break
 
+            val = values[it]
+            # not nan
+            if val == val:
+                count += 1
+                cum += val
+
+        count = 0
+        cum = 0
 
 def _group_reorder(values, label_list)
     indexer = np.lexsort(label_list[::-1])

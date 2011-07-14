@@ -45,9 +45,6 @@ class GroupByTestCase(unittest.TestCase):
     def testCythonGrouper(self):
         pass
 
-    def testNaNGrouping(self):
-        pass
-
     def testMembership(self):
         pass
 
@@ -59,3 +56,8 @@ class TestAggregate(unittest.TestCase):
 
 class TestTransform(unittest.TestCase):
     setUp = commonSetUp
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
