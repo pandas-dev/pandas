@@ -36,8 +36,15 @@ def rands(n):
 # Console debugging tools
 
 def debug(f, *args, **kwargs):
-    set_trace()
-    return f(*args, **kwargs)
+    from pdb import Pdb as OldPdb
+    try:
+        from IPython.core.debugger import Pdb
+        kw = dict(color_scheme='Linux')
+    except ImportError:
+        Pdb = OldPdb
+        kw = {}
+    pdb = Pdb(**kw)
+    return pdb.runcall(f, *args, **kwargs)
 
 def set_trace():
     from IPython.core.debugger import Pdb
