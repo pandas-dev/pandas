@@ -6,11 +6,11 @@ Parts of this file were taken from the pyzmq project
 Lesser GPU General Public License.
 """
 # use setuptools if available
-try:
-    from setuptools import setup
-    _have_setuptools = True
-except ImportError:
-    _have_setuptools = False
+# try:
+#     from setuptools import setup
+#     _have_setuptools = True
+# except ImportError:
+#     _have_setuptools = False
 
 from datetime import datetime
 from glob import glob
@@ -173,10 +173,10 @@ class CheckingBuildExt(build_ext):
         for ext in extensions:
           for src in ext.sources:
             if not os.path.exists(src):
-                fatal("""Cython-generated file '%s' not found.
+                print """Cython-generated file '%s' not found.
                 Cython is required to compile pandas from a development branch.
                 Please install Cython or download a release package of pandas.
-                """%src)
+                """ % src
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
@@ -227,8 +227,8 @@ extensions = [tseries_ext,
 
 setuptools_args = {}
 
-if _have_setuptools:
-    setuptools_args["test_suite"] = "nose.collector"
+# if _have_setuptools:
+#     setuptools_args["test_suite"] = "nose.collector"
 
 setup(name=DISTNAME,
       version=FULLVERSION,
