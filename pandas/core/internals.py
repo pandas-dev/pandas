@@ -698,7 +698,7 @@ def form_blocks(data, index, items):
         blocks.append(float_block)
 
     if len(int_dict):
-        int_block = _simple_blockify(int_dict, items, np.int64)
+        int_block = _simple_blockify(int_dict, items, np.int_)
         blocks.append(int_block)
 
     if len(bool_dict):

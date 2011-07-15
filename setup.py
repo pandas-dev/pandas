@@ -80,13 +80,13 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 FULLVERSION = VERSION
 if not ISRELEASED:
-    FULLVERSION += '.dev' + datetime.today().strftime('%Y%m%d')
+    FULLVERSION += '.dev'
     try:
         import subprocess
         pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
                                 stdout=subprocess.PIPE).stdout
         rev = pipe.read().strip()
-        FULLVERSION += "_%s" % rev
+        FULLVERSION += "-%s" % rev
     except:
         print "WARNING: Couldn't get git revision"
 
