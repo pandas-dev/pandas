@@ -204,6 +204,18 @@ else:
         def build_extension(self, ext):
             pass
 
+    class DummyBuildSrc(Command):
+        """ numpy's build_src command interferes with Cython's build_ext.
+        """
+        user_options = []
+        def initialize_options(self):
+            self.py_modules_dict = {}
+        def finalize_options(self):
+            pass
+        def run(self):
+            pass
+
+    cmdclass['build_src'] = DummyBuildSrc
     cmdclass['cython'] = CythonCommand
     cmdclass['build_ext'] =  build_ext
     cmdclass['sdist'] =  CheckSDist
