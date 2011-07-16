@@ -544,6 +544,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.tsd = tm.getTimeSeriesData()
 
         self.frame = self.klass(self.seriesd)
+        self.frame2 = self.klass(self.seriesd, columns=['D', 'C', 'B', 'A'])
         self.intframe = self.klass(dict((k, v.astype(int))
                                         for k, v in self.seriesd.iteritems()))
 
@@ -1016,6 +1017,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                     self.assertEqual(val, origVal)
                 else:
                     self.assert_(np.isnan(origVal))
+
+        added = self.frame2 + self.frame2
+        expected = self.frame2 * 2
+        assert_frame_equal(added, expected)
 
     def test_neg(self):
         # what to do?
