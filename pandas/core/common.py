@@ -161,6 +161,11 @@ def set_printoptions(precision=None, column_space=None):
     if column_space is not None:
         _column_space = column_space
 
+def _get_float_formatter():
+    options = np.get_printoptions()
+
+
+
 def _pfixed(s, space, nanRep=None, float_format=None):
     if isinstance(s, float):
         if nanRep is not None and isnull(s):

@@ -22,7 +22,8 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
-                                _try_sort, _pfixed, _default_index, _infer_dtype)
+                                _try_sort, _pfixed, _default_index,
+                                _infer_dtype)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, PandasGeneric
 from pandas.core.index import Index, NULL_INDEX

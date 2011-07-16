@@ -210,9 +210,13 @@ def _convert_to_ndarrays(dct):
     for c, values in dct.iteritems():
         try:
             values = np.array(values, dtype=float)
-            values = _maybe_convert_int(values)
         except Exception:
             values = np.array(values, dtype=object)
+
+        try:
+            values = _maybe_convert_int(values)
+        except ValueError:
+            pass
 
         result[c] = values
 

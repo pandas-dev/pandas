@@ -720,15 +720,15 @@ def form_blocks(data, index, items):
     return blocks, items
 
 def _simple_blockify(dct, ref_items, dtype):
-    block_items, values = _stack_dict(dct)
+    block_items, values = _stack_dict(dct, ref_items)
     # CHECK DTYPE?
     if values.dtype != dtype: # pragma: no cover
         values = values.astype(dtype)
 
     return make_block(values, block_items, ref_items)
 
-def _stack_dict(dct):
-    items = Index(_try_sort(dct))
+def _stack_dict(dct, ref_items):
+    items = [x for x in ref_items if x in dct]
     stacked = np.vstack([dct[k].values for k in items])
     return items, stacked
 
