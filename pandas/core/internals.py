@@ -29,6 +29,13 @@ class Block(object):
         self.ndim = ndim
         self.items = _ensure_index(items)
         self.ref_items = _ensure_index(ref_items)
+        self._check_integrity()
+
+    def _check_integrity(self):
+        if len(self.items) < 2:
+            return
+        # monotonicity
+        return (self.ref_locs[1:] > self.ref_locs[:-1]).all()
 
     _ref_locs = None
     @property
@@ -682,17 +689,6 @@ def form_blocks(data, index, items):
             object_dict[k] = v
 
     blocks = []
-
-    # if len(float_dict) > 0:
-    #     num_dtypes = set(v.dtype for v in num_dict.values())
-    #     if len(num_dtypes) > 1:
-    #         num_dtype = np.float_
-    #     else:
-    #         num_dtype = list(num_dtypes)[0]
-
-    #     # TODO: find corner cases
-    #     # TODO: check type inference
-
     if len(float_dict):
         float_block = _simple_blockify(float_dict, items, np.float64)
         blocks.append(float_block)
