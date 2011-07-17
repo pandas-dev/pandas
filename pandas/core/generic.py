@@ -1,6 +1,8 @@
 import numpy as np
 import cPickle
 
+import pandas.core.datetools as datetools
+
 #-------------------------------------------------------------------------------
 # Picklable mixin
 
@@ -166,3 +168,23 @@ class PandasGeneric(Picklable):
             new_data = self._data.reindex_axis(new_index, axis=axis,
                                                method=fill_method)
         return type(self)(new_data)
+
+    def truncate(self, before=None, after=None):
+        """Function truncate a sorted DataFrame / Series before and/or after
+        some particular dates.
+
+        Parameters
+        ----------
+        before : date
+            Truncate before date
+        after : date
+            Truncate after date
+
+        Returns
+        -------
+        truncated : type of caller
+        """
+        before = datetools.to_datetime(before)
+        after = datetools.to_datetime(after)
+        # returns view, want to copy
+        return self.ix[before:after].copy()

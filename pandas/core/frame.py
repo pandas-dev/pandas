@@ -470,8 +470,7 @@ class DataFrame(PandasGeneric):
 
     def toString(self, buf=sys.stdout, columns=None, colSpace=None,
                  nanRep='NaN', formatters=None, float_format=None):
-        from pandas.core.pytools import adjoin
-        from pandas.core.common import _format
+        from pandas.core.common import _format, adjoin
 
         if colSpace is None:
             def _myformat(v):
@@ -1493,25 +1492,6 @@ class DataFrame(PandasGeneric):
             indexer[:periods] = np.arange(-periods, N)
 
         return indexer
-
-    def truncate(self, before=None, after=None):
-        """Function truncate a sorted DataFrame before and/or after
-        some particular dates.
-
-        Parameters
-        ----------
-        before : date
-            Truncate before date
-        after : date
-            Truncate after date
-
-        Returns
-        -------
-        DataFrame
-        """
-        before = datetools.to_datetime(before)
-        after = datetools.to_datetime(after)
-        return self.ix[before:after]
 
     #----------------------------------------------------------------------
     # Function application

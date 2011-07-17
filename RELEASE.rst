@@ -149,6 +149,8 @@ Release notes
 * Removed `parseText`, `parseCSV` and `parseExcel` from pandas namespace
 * `Series.combineFunc` renamed to `Series.combine` and made a bit more general
   with a `fill_value` keyword argument defaulting to NaN
+* Removed `pandas.core.pytools` module. Code has been moved to
+  `pandas.core.common`
 
 **Bug fixes**
 

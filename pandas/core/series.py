@@ -1255,30 +1255,6 @@ class Series(np.ndarray, PandasGeneric):
         else:
             return Series(self, index=self.index.shift(periods, offset))
 
-    def truncate(self, before=None, after=None):
-        """Function truncate a sorted TimeSeries before and/or after
-        some particular dates.
-
-        Parameters
-        ----------
-        before : date
-            Truncate before date
-        after : date
-            Truncate after date
-
-        Notes
-        -----
-        If TimeSeries is contained in a DataFrame, consider using the version
-        of the function there.
-
-        Returns
-        -------
-        TimeSeries
-        """
-        before = datetools.to_datetime(before)
-        after = datetools.to_datetime(after)
-        return self.ix[before:after]
-
     def asOf(self, date):
         """
         Return last good (non-NaN) value in TimeSeries if value is NaN for

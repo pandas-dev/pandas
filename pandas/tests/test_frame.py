@@ -1450,6 +1450,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
+    def test_truncate_copy(self):
+        index = self.tsframe.index
+        truncated = self.tsframe.truncate(index[5], index[10])
+        truncated.values[:] = 5.
+        self.assert_(not (self.tsframe.values[5:11] == 5).any())
+
     def test_xs(self):
         idx = self.frame.index[5]
         xs = self.frame.xs(idx)

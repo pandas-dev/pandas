@@ -11,7 +11,7 @@ import time
 import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, DataMatrix, WidePanel,
                     LongPanel)
-from pandas.core.pytools import adjoin
+from pandas.core.common import adjoin
 import pandas.core.internals as internals
 import pandas._tseries as _tseries
 
