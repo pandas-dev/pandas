@@ -166,3 +166,52 @@ class PandasGeneric(Picklable):
             new_data = self._data.reindex_axis(new_index, axis=axis,
                                                method=fill_method)
         return type(self)(new_data)
+
+    def cumsum(self, axis=0):
+        """
+        Return DataFrame of cumulative sums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        y = self.values.copy()
+        if not issubclass(y.dtype.type, np.int_):
+            mask = np.isnan(self.values)
+            np.putmask(y, mask, 0.)
+            result = y.cumsum(axis)
+            np.putmask(result, mask, np.nan)
+        else:
+            result = y.cumsum(axis)
+        return type(self)(result, index=self.index, columns=self.columns,
+                          copy=False)
+
+    def cumprod(self, axis=0):
+        """
+        Return cumulative product over requested axis as DataFrame
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        y = self.values.copy()
+        if not issubclass(y.dtype.type, np.int_):
+            mask = np.isnan(self.values)
+            np.putmask(y, mask, 1.)
+            result = y.cumprod(axis)
+            np.putmask(result, mask, np.nan)
+        else:
+            result = y.cumprod(axis)
+        return type(self)(result, index=self.index, columns=self.columns,
+                          copy=False)
+

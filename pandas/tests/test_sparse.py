@@ -575,6 +575,11 @@ class TestSparseSeries(TestCase):
         f = lambda s: s.shift(2, offset=datetools.bday)
         _dense_series_compare(series, f)
 
+    def test_cumsum(self):
+        result = self.bseries.cumsum()
+        expected = self.bseries.to_dense().cumsum()
+        self.assert_(isinstance(result, SparseSeries))
+        assert_series_equal(result.to_dense(), expected)
 
 class TestSparseTimeSeries(TestCase):
     pass
@@ -1065,6 +1070,12 @@ class TestSparseDataFrame(TestCase):
         result = self.frame.count(1)
         dense_result = self.frame.to_dense().count(1)
         assert_series_equal(result, dense_result)
+
+    def test_cumsum(self):
+        result = self.frame.cumsum()
+        expected = self.frame.to_dense().cumsum()
+        self.assert_(isinstance(result, SparseDataFrame))
+        assert_frame_equal(result.to_dense(), expected)
 
     def _check_all(self, check_func):
         check_func(self.frame)

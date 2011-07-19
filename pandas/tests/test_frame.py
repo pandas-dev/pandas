@@ -2269,22 +2269,43 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertEqual(q['A'], scoreatpercentile(self.intframe['A'], 10))
 
     def test_cumsum(self):
+        self.tsframe.ix[5:10, 0] = nan
+        self.tsframe.ix[10:15, 1] = nan
+        self.tsframe.ix[15:, 2] = nan
+
+        # axis = 0
         cumsum = self.tsframe.cumsum()
-        assert_series_equal(cumsum['A'], np.cumsum(self.tsframe['A'].fillna(0)))
-        df = self.klass({'A' : np.arange(20)}, index=np.arange(20))
+        expected = self.tsframe.apply(Series.cumsum)
+        assert_frame_equal(cumsum, expected)
+
+        # axis = 1
+        cumsum = self.tsframe.cumsum(axis=1)
+        expected = self.tsframe.apply(Series.cumsum, axis=1)
+        assert_frame_equal(cumsum, expected)
 
         # works
+        df = self.klass({'A' : np.arange(20)}, index=np.arange(20))
         result = df.cumsum()
 
         # fix issue
         cumsum_xs = self.tsframe.cumsum(axis=1)
         self.assertEqual(np.shape(cumsum_xs), np.shape(self.tsframe))
 
-    def test_cumprod(self):
-        cumprod = self.tsframe.cumprod()
 
-        assert_series_equal(cumprod['A'],
-                            np.cumprod(self.tsframe['A'].fillna(1)))
+    def test_cumprod(self):
+        self.tsframe.ix[5:10, 0] = nan
+        self.tsframe.ix[10:15, 1] = nan
+        self.tsframe.ix[15:, 2] = nan
+
+        # axis = 0
+        cumprod = self.tsframe.cumprod()
+        expected = self.tsframe.apply(Series.cumprod)
+        assert_frame_equal(cumprod, expected)
+
+        # axis = 1
+        cumprod = self.tsframe.cumprod(axis=1)
+        expected = self.tsframe.apply(Series.cumprod, axis=1)
+        assert_frame_equal(cumprod, expected)
 
         # fix issue
         cumprod_xs = self.tsframe.cumprod(axis=1)

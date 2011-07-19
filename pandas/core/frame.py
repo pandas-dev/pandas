@@ -1959,31 +1959,6 @@ class DataFrame(PandasGeneric):
 
         return Series(the_sum, index=axis_labels)
 
-    def cumsum(self, axis=0):
-        """
-        Return DataFrame of cumulative sums over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        y = np.array(self.values, subok=True)
-        if not issubclass(y.dtype.type, np.int_):
-            mask = np.isnan(self.values)
-            y[mask] = 0
-            result = y.cumsum(axis)
-            has_obs = (-mask).astype(int).cumsum(axis) > 0
-            result[-has_obs] = np.nan
-        else:
-            result = y.cumsum(axis)
-        return type(self)(result, index=self.index, columns=self.columns,
-                          copy=False)
-
     def min(self, axis=0):
         """
         Return array or Series of minimums over requested axis.
@@ -2017,30 +1992,6 @@ class DataFrame(PandasGeneric):
         values = self.values.copy()
         np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
-
-    def cumprod(self, axis=0):
-        """
-        Return cumulative product over requested axis as DataFrame
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        def get_cumprod(y):
-            y = np.array(y)
-            mask = isnull(y)
-            if not issubclass(y.dtype.type, np.int_):
-                y[mask] = 1
-            result = y.cumprod()
-
-            return result
-
-        return self.apply(get_cumprod, axis=axis)
 
     def product(self, axis=0):
         """

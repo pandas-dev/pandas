@@ -577,21 +577,37 @@ class Series(np.ndarray, PandasGeneric):
         -------
 
         """
-        arr = self.copy()
-        okLocs = notnull(arr)
-        result = np.cumsum(arr.view(ndarray)[okLocs])
-        arr = arr.astype(result.dtype)
-        arr[okLocs] = result
-        return arr
+        arr = self.values.copy()
+
+        do_mask = not issubclass(self.dtype.type, np.int_)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, 0.)
+
+        result = arr.cumsum()
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
 
     def cumprod(self, axis=0, dtype=None, out=None):
         """
         Overriding numpy's built-in cumprod functionality
         """
-        arr = self.copy()
-        okLocs = notnull(arr)
-        arr[okLocs] = np.cumprod(arr.view(ndarray)[okLocs])
-        return arr
+        arr = self.values.copy()
+
+        do_mask = not issubclass(self.dtype.type, np.int_)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, 1.)
+
+        result = arr.cumprod()
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
 
     def median(self):
         """
