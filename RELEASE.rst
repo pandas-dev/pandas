@@ -59,6 +59,8 @@ Release notes
   arbitrary criterion (function returning boolean value),
   e.g. frame.select(lambda x: 'foo' in x, axis=1)
 * `DataFrame.consolidate` method, API function relating to redesigned internals
+* `DataFrame.insert` method for inserting column at a specified location rather
+  than the default __setitem__ behavior (which puts it at the end)
 * `HDFStore` class in `pandas.io.pytables` has been largely rewritten using
   patches from Jeff Reback from others. It now supports mixed-type `DataFrame`
   and `Series` data and can store `WidePanel` objects. It also has the option to
