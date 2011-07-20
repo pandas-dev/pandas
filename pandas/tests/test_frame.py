@@ -1316,7 +1316,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_almost_equal(mat, expected)
 
     def test_values(self):
-        pass
+        self.frame.values[:, 0] = 5.
+        self.assert_((self.frame.values[:, 0] == 5).all())
 
     def test_deepcopy(self):
         cp = deepcopy(self.frame)
