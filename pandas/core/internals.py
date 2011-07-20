@@ -731,7 +731,7 @@ def _simple_blockify(dct, ref_items, dtype):
 
 def _stack_dict(dct, ref_items):
     items = [x for x in ref_items if x in dct]
-    stacked = np.vstack([dct[k].values for k in items])
+    stacked = np.vstack([np.asarray(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):

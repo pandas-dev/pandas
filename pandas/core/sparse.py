@@ -783,7 +783,7 @@ class SparseDataFrame(DataFrame):
     #----------------------------------------------------------------------
     # Support different internal rep'n of SparseDataFrame
 
-    def _insert_item(self, key, value):
+    def _set_item(self, key, value):
         sp_maker = lambda x: SparseSeries(x, index=self.index,
                                           fill_value=self.default_fill_value,
                                           kind=self.default_kind)

@@ -147,9 +147,18 @@ class DataFrame(NDFrame):
                 mgr = mgr.cast(dtype)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
-        elif isinstance(data, (np.ndarray, list)):
-            mgr = self._init_matrix(data, index, columns, dtype=dtype,
-                                    copy=copy)
+        elif isinstance(data, np.ndarray):
+            if data.dtype.names:
+                data_columns, data = _rec_to_dict(data)
+                if columns is None:
+                    columns = data_columns
+                mgr = self._init_dict(data, index, columns, dtype=dtype)
+            else:
+                mgr = self._init_ndarray(data, index, columns, dtype=dtype,
+                                         copy=copy)
+        elif isinstance(data, list):
+            mgr = self._init_ndarray(data, index, columns, dtype=dtype,
+                                     copy=copy)
         else:
             raise PandasError('DataFrame constructor not properly called!')
 
@@ -183,8 +192,8 @@ class DataFrame(NDFrame):
         mgr = BlockManager(blocks, [columns, index])
         return mgr.consolidate()
 
-    def _init_matrix(self, values, index, columns, dtype=None,
-                     copy=False):
+    def _init_ndarray(self, values, index, columns, dtype=None,
+                      copy=False):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
@@ -347,16 +356,13 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        # Dtype when you have records
-        if not issubclass(data.dtype.type, np.void):
+        if not data.dtype.names:
             raise Exception('Input was not a structured array!')
 
-        columns = data.dtype.names
-        sdict = dict((k, data[k]) for k in columns)
-
+        columns, sdict = _rec_to_dict(data)
         if indexField is not None:
             index = sdict.pop(indexField)
-            columns = [c for c in columns if c != indexField]
+            columns.remove(indexField)
         else:
             index = np.arange(len(data))
 
@@ -2484,6 +2490,12 @@ def _prep_ndarray(values, copy=True):
 
     return values
 
+
+def _rec_to_dict(arr):
+    columns = list(arr.dtype.names)
+    sdict = dict((k, arr[k]) for k in columns)
+    return columns, sdict
+
 def _homogenize_series(data, index, dtype=None):
     homogenized = {}
 
@@ -2507,9 +2519,9 @@ def _homogenize_series(data, index, dtype=None):
 
             # only *attempt* to cast to dtype
             try:
-                v = Series(v, dtype=dtype, index=index)
+                v = np.asarray(v, dtype=dtype)
             except Exception:
-                v = Series(v, index=index)
+                v = np.asarray(v)
 
         homogenized[k] = v
 

@@ -626,6 +626,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
 
+    def test_constructor_rec(self):
+        rec = self.frame.to_records(index=False)
+
+        rec.dtype.names = list(rec.dtype.names)[::-1]
+
+        index = self.frame.index
+
+        df = DataFrame(rec)
+        self.assert_(np.array_equal(df.columns, rec.dtype.names))
+
+        df2 = DataFrame(rec, index=index)
+        self.assert_(np.array_equal(df2.columns, rec.dtype.names))
+        self.assert_(df2.index.equals(index))
+
     def test_constructor_bool(self):
         df = DataFrame({0 : np.ones(10, dtype=bool),
                         1 : np.zeros(10, dtype=bool)})
