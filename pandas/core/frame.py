@@ -717,7 +717,7 @@ class DataFrame(NDFrame):
 
             self._boolean_set(key, value)
         else:
-            self._insert_item(key, value)
+            self._set_item(key, value)
 
     def _boolean_set(self, key, value):
         mask = key.values
@@ -729,7 +729,23 @@ class DataFrame(NDFrame):
 
         self.values[mask] = value
 
-    def _insert_item(self, key, value):
+    def insert(self, loc, column, value):
+        """
+        Insert column into DataFrame at specified location. Raises Exception if
+        column is already contained in the DataFrame
+
+        Parameters
+        ----------
+        loc : int
+            Must have 0 <= loc <= len(columns)
+        column : object
+        value : int, Series, or array-like
+        """
+        value = self._sanitize_column(value)
+        value = np.atleast_2d(value) # is this a hack?
+        self._data.insert(loc, column, value)
+
+    def _set_item(self, key, value):
         """
         Add series to DataFrame in specified column.
 
@@ -739,9 +755,13 @@ class DataFrame(NDFrame):
         Series/TimeSeries will be conformed to the DataFrame's index to
         ensure homogeneity.
         """
+        value = self._sanitize_column(value)
+        value = np.atleast_2d(value) # is this a hack?
+        self._data.set(key, value)
+
+    def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
-
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
                 if value.index.equals(self.index):
@@ -761,8 +781,7 @@ class DataFrame(NDFrame):
         else:
             value = np.repeat(value, len(self.index))
 
-        value = np.atleast_2d(value)
-        self._data.set(key, value)
+        return value
 
     def __delitem__(self, key):
         """

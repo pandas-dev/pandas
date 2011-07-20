@@ -490,9 +490,9 @@ class BlockManager(object):
                 block.set(item, value)
         else:
             # insert at end
-            self.insert(item, len(self.items), value)
+            self.insert(len(self.items), item, value)
 
-    def insert(self, item, loc, value):
+    def insert(self, loc, item, value):
         if item in self.items:
             raise Exception('cannot insert %s, already exists' % item)
 

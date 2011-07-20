@@ -977,6 +977,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         frame = self.klass(index=np.arange(1000))
         frame.toString(buf=buf)
 
+    def test_insert(self):
+        df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
+                       columns=['c', 'b', 'a'])
+
+        df.insert(0, 'foo', df['a'])
+        self.assert_(np.array_equal(df.columns, ['foo', 'c', 'b', 'a']))
+        assert_almost_equal(df['a'], df['foo'])
+
+        df.insert(2, 'bar', df['c'])
+        self.assert_(np.array_equal(df.columns, ['foo', 'c', 'bar', 'b', 'a']))
+        assert_almost_equal(df['c'], df['bar'])
+
+        self.assertRaises(Exception, df.insert, 1, 'a')
+        self.assertRaises(Exception, df.insert, 1, 'c')
+
     def test_delitem(self):
         del self.frame['A']
         self.assert_('A' not in self.frame)
