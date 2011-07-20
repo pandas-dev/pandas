@@ -2436,20 +2436,27 @@ def extract_index(data):
             index = index.union(new_index)
         return index
 
+    def _get_index(obj):
+        if isinstance(v, Series):
+            return v.index
+        elif isinstance(v, dict):
+            return Index(_try_sort(v))
+
     index = None
     if len(data) == 0:
         index = NULL_INDEX
     elif len(data) > 0 and index is None:
-        _check_data_types(data)
+        have_raw_arrays = _check_data_types(data)
 
         # this is still kludgier than I'd like
-        for v in data.values():
-            if isinstance(v, Series):
-                index = _union_if(index, v.index)
-            elif isinstance(v, dict):
-                index = _union_if(index, Index(_try_sort(v)))
-            else: # not dict-like, assign integer labels
-                index = Index(np.arange(len(v)))
+        if have_raw_arrays:
+            lengths = list(set(len(x) for x in data.values()))
+            if len(lengths) > 1:
+                raise ValueError('arrays must all be same length')
+            index = Index(np.arange(lengths[0]))
+        else:
+            for v in data.values():
+                index = _union_if(index, _get_index(v))
 
     if len(index) == 0:
         index = NULL_INDEX
@@ -2457,17 +2464,19 @@ def extract_index(data):
     return _ensure_index(index)
 
 def _check_data_types(data):
-    have_series = False
     have_raw_arrays = False
+    have_series = False
     for v in data.values():
-        if isinstance(v, (dict, Series)):
-            have_series = True
-        else:
+        if not isinstance(v, (dict, Series)):
             have_raw_arrays = True
+        else:
+            have_series = True
 
     if have_series and have_raw_arrays:
         raise Exception('Cannot mix Series / dict objects'
                         ' with ndarray / sequence input')
+
+    return have_raw_arrays
 
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
