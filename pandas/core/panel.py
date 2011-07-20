@@ -1930,16 +1930,20 @@ def _get_combined_index(frames, intersect=False):
 
     if intersect:
         combine = Index.intersection
+        copy = Index
+        unique = lambda x: x
     else:
-        combine = Index.union
+        combine = lambda a, b: np.concatenate((a, b))
+        copy = np.array
+        unique = lambda x: Index(np.unique(x))
 
     for _, frame in frames.iteritems():
         if index is None:
-            index = frame.index
+            index = copy(frame.index)
         elif index is not frame.index:
             index = combine(index, frame.index)
 
-    return index
+    return unique(index)
 
 def pivot(index, columns, values):
     """
