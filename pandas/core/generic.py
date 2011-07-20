@@ -55,6 +55,10 @@ class NDFrame(Picklable):
         self._data = data
 
     @property
+    def _constructor(self):
+        return NDFrame
+
+    @property
     def axes(self):
         return self._data.axes
 
@@ -89,7 +93,7 @@ class NDFrame(Picklable):
         cons_data = self._data.consolidate()
         if cons_data is self._data:
             cons_data = cons_data.copy()
-        return type(self)(cons_data)
+        return self._constructor(cons_data)
 
     @property
     def _is_mixed_type(self):
@@ -174,7 +178,7 @@ class NDFrame(Picklable):
         else:
             new_data = self._data.reindex_axis(new_index, axis=axis,
                                                method=fill_method)
-        return type(self)(new_data)
+        return self._constructor(new_data)
 
     def truncate(self, before=None, after=None):
         """Function truncate a sorted DataFrame / Series before and/or after

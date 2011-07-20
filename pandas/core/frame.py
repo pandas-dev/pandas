@@ -217,11 +217,11 @@ class DataFrame(NDFrame):
         -------
         casted : DataFrame
         """
-        return type(self)(self._data, dtype=dtype)
+        return self._constructor(self._data, dtype=dtype)
 
     def _wrap_array(self, arr, axes, copy=False):
         index, columns = axes
-        return type(self)(arr, index=index, columns=columns, copy=copy)
+        return self._constructor(arr, index=index, columns=columns, copy=copy)
 
     @property
     def axes(self):
@@ -229,7 +229,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor(self):
-        return type(self)
+        return DataFrame
 
     #----------------------------------------------------------------------
     # Class behavior
@@ -277,7 +277,7 @@ class DataFrame(NDFrame):
         """
         Make a copy of this DataFrame
         """
-        return type(self)(self._data.copy())
+        return self._constructor(self._data.copy())
 
     #----------------------------------------------------------------------
     # Arithmetic methods
@@ -574,8 +574,8 @@ class DataFrame(NDFrame):
         Returns a DataFrame with the rows/columns switched. Copy of data is not
         made by default
         """
-        return type(self)(data=self.values.T, index=self.columns,
-                          columns=self.index, copy=False)
+        return self._constructor(data=self.values.T, index=self.columns,
+                                 columns=self.index, copy=False)
     T = property(transpose)
 
     #----------------------------------------------------------------------
@@ -651,8 +651,8 @@ class DataFrame(NDFrame):
         return self.values
 
     def __array_wrap__(self, result):
-        return type(self)(result, index=self.index, columns=self.columns,
-                          copy=False)
+        return self._constructor(result, index=self.index, columns=self.columns,
+                                 copy=False)
 
     #----------------------------------------------------------------------
     # getitem/setitem related
@@ -682,7 +682,7 @@ class DataFrame(NDFrame):
         """
         if isinstance(item, slice):
             new_data = self._data.get_slice(item, axis=1)
-            return type(self)(new_data)
+            return self._constructor(new_data)
         elif isinstance(item, np.ndarray):
             if len(item) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
@@ -846,11 +846,11 @@ class DataFrame(NDFrame):
         if new_index is self.index:
             return self.copy()
         new_data = self._data.reindex_axis(new_index, method, axis=1)
-        return type(self)(new_data)
+        return self._constructor(new_data)
 
     def _reindex_columns(self, new_columns):
         new_data = self._data.reindex_items(new_columns)
-        return type(self)(new_data)
+        return self._constructor(new_data)
 
     def reindex_like(self, other, method=None):
         """
@@ -1048,14 +1048,16 @@ class DataFrame(NDFrame):
             series = self._series
             for col, s in series.iteritems():
                 result[col] = s.fillna(method=method, value=value)
-            return type(self)(result, index=self.index, columns=self.columns)
+            return self._constructor(result, index=self.index,
+                                     columns=self.columns)
         else:
             # Float type values
             if len(self.columns) == 0:
                 return self
 
             new_data = self._data.fillna(value)
-            return type(self)(new_data, index=self.index, columns=self.columns)
+            return self._constructor(new_data, index=self.index,
+                                     columns=self.columns)
 
     #----------------------------------------------------------------------
     # Rename
@@ -1131,7 +1133,7 @@ class DataFrame(NDFrame):
         # some shortcuts
         if fill_value is None:
             if not self and not other:
-                return type(self)(index=new_index)
+                return self._constructor(index=new_index)
             elif not self:
                 return other * nan
             elif not other:
@@ -1164,8 +1166,8 @@ class DataFrame(NDFrame):
             other_vals[other_mask & mask] = fill_value
 
         result = func(this_vals, other_vals)
-        return type(self)(result, index=new_index, columns=new_columns,
-                          copy=False)
+        return self._constructor(result, index=new_index, columns=new_columns,
+                                 copy=False)
 
     def _indexed_same(self, other):
         same_index = self.index.equals(other.index)
@@ -1202,8 +1204,8 @@ class DataFrame(NDFrame):
         if fill_value is not None:
             raise NotImplementedError
 
-        return type(self)(func(values.T, other_vals).T, index=new_index,
-                          columns=self.columns, copy=False)
+        return self._constructor(func(values.T, other_vals).T, index=new_index,
+                                 columns=self.columns, copy=False)
 
     def _combine_match_columns(self, other, func, fill_value=None):
         newCols = self.columns.union(other.index)
@@ -1215,15 +1217,15 @@ class DataFrame(NDFrame):
         if fill_value is not None:
             raise NotImplementedError
 
-        return type(self)(func(this.values, other), index=self.index,
-                          columns=newCols, copy=False)
+        return self._constructor(func(this.values, other), index=self.index,
+                                 columns=newCols, copy=False)
 
     def _combine_const(self, other, func):
         if not self:
             return self
 
-        return type(self)(func(self.values, other), index=self.index,
-                          columns=self.columns, copy=False)
+        return self._constructor(func(self.values, other), index=self.index,
+                                 columns=self.columns, copy=False)
 
     def _compare_frame(self, other, func):
         if not self._indexed_same(other):
@@ -1488,7 +1490,7 @@ class DataFrame(NDFrame):
             new_data = self._data.copy()
             new_data.axes[1] = self.index.shift(periods, offset)
 
-        return type(self)(new_data)
+        return self._constructor(new_data)
 
     def _shift_indexer(self, periods):
         # small reusable utility
@@ -1535,8 +1537,8 @@ class DataFrame(NDFrame):
 
         if isinstance(func, np.ufunc):
             results = func(self.values)
-            return type(self)(data=results, index=self.index,
-                              columns=self.columns, copy=False)
+            return self._constructor(data=results, index=self.index,
+                                     columns=self.columns, copy=False)
         else:
             if not broadcast:
                 return self._apply_standard(func, axis)
@@ -1692,7 +1694,7 @@ class DataFrame(NDFrame):
             raise Exception('%s column not contained in this frame!' % on)
 
         new_data = self._data.join_on(other._data, self[on], axis=1)
-        return type(self)(new_data)
+        return self._constructor(new_data)
 
     def _join_index(self, other, how):
         join_index = self._get_join_index(other, how)
@@ -1702,7 +1704,7 @@ class DataFrame(NDFrame):
         # merge blocks
         merged_data = this_data.merge(other_data)
         assert(merged_data.axes[1] is join_index) # maybe unnecessary
-        return type(self)(merged_data)
+        return self._constructor(merged_data)
 
     def _get_join_index(self, other, how):
         if how == 'left':
@@ -1797,7 +1799,7 @@ class DataFrame(NDFrame):
                         correl[i, j] = c
                         correl[j, i] = c
 
-        return type(self)(correl, index=cols, columns=cols)
+        return self._constructor(correl, index=cols, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False):
         """
@@ -1867,7 +1869,7 @@ class DataFrame(NDFrame):
                 tmp.quantile(.1), tmp.median(),
                 tmp.quantile(.9), tmp.max()]
 
-        return type(self)(data, index=cols_destat, columns=cols)
+        return self._constructor(data, index=cols_destat, columns=cols)
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods

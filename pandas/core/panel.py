@@ -246,10 +246,14 @@ class WidePanel(Panel, NDFrame):
 
         return index, columns
 
+    @property
+    def _constructor(self):
+        return WidePanel
+
     def _wrap_array(self, arr, axes, copy=False):
         items, major, minor = axes
-        return type(self)(arr, items=items, major_axis=major,
-                          minor_axis=minor, copy=copy)
+        return self._constructor(arr, items=items, major_axis=major,
+                                 minor_axis=minor, copy=copy)
 
     def copy(self):
         """
