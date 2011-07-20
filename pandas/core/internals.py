@@ -489,11 +489,17 @@ class BlockManager(object):
             else:
                 block.set(item, value)
         else:
-            # TODO: where to insert?
-            new_items = _insert_into_items(self.items, item, len(self.items))
-            self.set_items_norename(new_items)
-            # new block
-            self._add_new_block(item, value)
+            # insert at end
+            self.insert(item, len(self.items), value)
+
+    def insert(self, item, loc, value):
+        if item in self.items:
+            raise Exception('cannot insert %s, already exists' % item)
+
+        new_items = _insert_into_items(self.items, item, loc)
+        self.set_items_norename(new_items)
+        # new block
+        self._add_new_block(item, value)
 
     def _delete_from_block(self, i, item):
         """
