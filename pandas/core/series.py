@@ -15,7 +15,7 @@ import numpy as np
 
 from pandas.core.common import isnull, notnull, _ensure_index
 from pandas.core.daterange import DateRange
-from pandas.core.generic import PandasGeneric
+from pandas.core.generic import NDFrame
 from pandas.core.index import Index
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
@@ -92,7 +92,7 @@ def _flex_method(op, name):
 #-------------------------------------------------------------------------------
 # Series class
 
-class Series(np.ndarray, PandasGeneric):
+class Series(np.ndarray, NDFrame):
     """
     Generic indexed (labeled) vector (time series or cross-section)
 
@@ -193,6 +193,9 @@ class Series(np.ndarray, PandasGeneric):
             subarr = subarr.view(TimeSeries)
 
         return subarr
+
+    def __init__(self, *args, **kwargs):
+        pass
 
     def __hash__(self):
         raise TypeError('unhashable type')
@@ -577,21 +580,37 @@ class Series(np.ndarray, PandasGeneric):
         -------
 
         """
-        arr = self.copy()
-        okLocs = notnull(arr)
-        result = np.cumsum(arr.view(ndarray)[okLocs])
-        arr = arr.astype(result.dtype)
-        arr[okLocs] = result
-        return arr
+        arr = self.values.copy()
+
+        do_mask = not issubclass(self.dtype.type, np.int_)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, 0.)
+
+        result = arr.cumsum()
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
 
     def cumprod(self, axis=0, dtype=None, out=None):
         """
         Overriding numpy's built-in cumprod functionality
         """
-        arr = self.copy()
-        okLocs = notnull(arr)
-        arr[okLocs] = np.cumprod(arr.view(ndarray)[okLocs])
-        return arr
+        arr = self.values.copy()
+
+        do_mask = not issubclass(self.dtype.type, np.int_)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, 1.)
+
+        result = arr.cumprod()
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
 
     def median(self):
         """

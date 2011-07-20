@@ -39,11 +39,18 @@ class AxisProperty(object):
         data = getattr(obj, '_data')
         data.set_axis(self.axis, value)
 
-class NDFrame(object):
-    """
-    N-dimensional labeled array data structure with potentially heterogenous
-    dtypes along one axis
-    """
+class NDFrame(Picklable):
+
+    _AXIS_NUMBERS = {
+        'index' : 0,
+        'columns' : 1
+    }
+
+    _AXIS_ALIASES = {}
+    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+
+    _default_stat_axis = 0
+
     def __init__(self, data, axes=None, copy=False):
         self._data = data
         self.axes = axes
@@ -53,19 +60,12 @@ class NDFrame(object):
         return 'NDFrame'
 
     @property
+    def values(self):
+        return self._data.as_matrix()
+
+    @property
     def ndim(self):
         return self._data.ndim
-
-class PandasGeneric(Picklable):
-
-    _AXIS_NUMBERS = {
-        'index' : 0,
-        'columns' : 1
-    }
-
-    _AXIS_ALIASES = {}
-
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     #----------------------------------------------------------------------
     # Consolidation of internals
@@ -122,6 +122,10 @@ class PandasGeneric(Picklable):
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
         return getattr(self, name)
+
+    @property
+    def axes(self):
+        return self._data.axes
 
     def groupby(self, mapper):
         """
@@ -188,3 +192,96 @@ class PandasGeneric(Picklable):
         after = datetools.to_datetime(after)
         # returns view, want to copy
         return self.ix[before:after].copy()
+
+    def cumsum(self, axis=None):
+        """
+        Return DataFrame of cumulative sums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._default_stat_axis
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = self.values.copy()
+        if not issubclass(y.dtype.type, np.int_):
+            mask = np.isnan(self.values)
+            np.putmask(y, mask, 0.)
+            result = y.cumsum(axis)
+            np.putmask(result, mask, np.nan)
+        else:
+            result = y.cumsum(axis)
+        return self._wrap_array(result, self.axes, copy=False)
+
+    def _wrap_array(self, array, axes, copy=False):
+        raise NotImplementedError
+
+    def cumprod(self, axis=None):
+        """
+        Return cumulative product over requested axis as DataFrame
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._default_stat_axis
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = self.values.copy()
+        if not issubclass(y.dtype.type, np.int_):
+            mask = np.isnan(self.values)
+            np.putmask(y, mask, 1.)
+            result = y.cumprod(axis)
+            np.putmask(result, mask, np.nan)
+        else:
+            result = y.cumprod(axis)
+        return self._wrap_array(result, self.axes, copy=False)
+
+    def _values_aggregate(self, func, axis, fill_value):
+        axis = self._get_axis_number(axis)
+
+        values = self.values
+        mask = np.isfinite(values)
+
+        if fill_value is not None:
+            values = values.copy()
+            values[-mask] = fill_value
+
+        result = func(values, axis=axis)
+        count = mask.sum(axis=axis)
+
+        result[count == 0] = np.NaN
+
+        return result
+
+    def _values_accum(self, func, axis, fill_value):
+        axis = self._get_axis_number(axis)
+
+        values = self.values
+        mask = np.isfinite(values)
+
+        if fill_value is not None:
+            values = values.copy()
+            values[-mask] = fill_value
+
+        result = func(values, axis=axis)
+
+        if fill_value is not None:
+            result[-mask] = np.NaN
+
+        return result

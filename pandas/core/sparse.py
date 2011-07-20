@@ -10,7 +10,7 @@ import numpy as np
 
 import operator
 
-from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
+from pandas.core.common import (isnull, notnull, _pickle_array, _unpickle_array,
                                 _mut_exclusive, _ensure_index, _try_sort)
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
@@ -509,6 +509,23 @@ class SparseSeries(Series):
         else:
             nsparse = self.sp_index.npoints
             return sp_sum + self.fill_value * nsparse
+
+    def cumsum(self, axis=0, dtype=None, out=None):
+        """
+        Cumulative sum of values. Preserves NaN values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Returns
+        -------
+
+        """
+        if not np.isnan(self.fill_value):
+            return self.to_dense().cumsum()
+        return SparseSeries(self.sp_values.cumsum(),
+                            index=self.index,
+                            sparse_index=self.sp_index,
+                            fill_value=self.fill_value)
 
     def mean(self, axis=None, dtype=None, out=None):
         """
@@ -1056,6 +1073,21 @@ class SparseDataFrame(DataFrame):
         Series or TimeSeries
         """
         return self.apply(SparseSeries.count, axis=axis)
+
+    def cumsum(self, axis=0):
+        """
+        Return SparseDataFrame of cumulative sums over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        y : SparseDataFrame
+        """
+        return self.apply(SparseSeries.cumsum, axis=axis)
 
     def shift(self, periods, offset=None, timeRule=None):
         """

@@ -46,6 +46,8 @@ Release notes
 * `Series` arithmetic methods with optional fill_value for missing data,
   e.g. a.add(b, fill_value=0). If a location is missing for both it will still
   be missing in the result though.
+* fill_value option has been added to `DataFrame`.{add, mul, sub, div} methods
+  similar to `Series`
 * Boolean indexing with `DataFrame` objects: data[data > 0.1] = 0.1
 * `pytz` / tzinfo support in `DateRange`
   * `tz_localize`, `tz_normalize`, and `tz_validate` methods added

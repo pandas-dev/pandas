@@ -14,7 +14,7 @@ from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
 from pandas.core.index import Index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
-from pandas.core.generic import AxisProperty, PandasGeneric, Picklable
+from pandas.core.generic import AxisProperty, NDFrame, Picklable
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -153,7 +153,7 @@ class Panel(object):
                       FutureWarning)
         return self.shape
 
-class WidePanel(Panel, PandasGeneric):
+class WidePanel(Panel, NDFrame):
     """
     Represents wide format panel data, stored as 3-dimensional array
 
@@ -180,6 +180,9 @@ class WidePanel(Panel, PandasGeneric):
         1 : 'major_axis',
         2 : 'minor_axis'
     }
+
+    # major
+    _default_stat_axis = 1
 
     items = AxisProperty(0)
     major_axis = AxisProperty(1)
@@ -242,6 +245,11 @@ class WidePanel(Panel, PandasGeneric):
             columns = self.minor_axis
 
         return index, columns
+
+    def _wrap_array(self, arr, axes, copy=False):
+        items, major, minor = axes
+        return type(self)(arr, items=items, major_axis=major,
+                          minor_axis=minor, copy=copy)
 
     def copy(self):
         """
@@ -581,20 +589,6 @@ class WidePanel(Panel, PandasGeneric):
         new_data = self._data.xs(key, axis=2, copy=copy)
         return DataFrame(new_data)
 
-    def getMinorXS(self, key): # pragma: no cover
-        warnings.warn("getMinorXS has been replaced by the minor_xs function "
-                      "please modify your code accordingly",
-                      FutureWarning)
-
-        return self.minor_xs(key)
-
-    def getMajorXS(self, key): # pragma: no cover
-        warnings.warn("getMajorXS has been replaced by the major_xs function "
-                      "please modify your code accordingly",
-                      FutureWarning)
-
-        return self.major_xs(key)
-
     def groupby(self, function, axis='major'):
         """
         Group data on given axis, returning GroupBy object
@@ -721,40 +715,6 @@ class WidePanel(Panel, PandasGeneric):
         result = np.apply_along_axis(func, i, self.values)
         return self._wrap_result(result, axis=axis)
 
-    def _values_aggregate(self, func, axis, fill_value):
-        axis = self._get_axis_number(axis)
-
-        values = self.values
-        mask = np.isfinite(values)
-
-        if fill_value is not None:
-            values = values.copy()
-            values[-mask] = fill_value
-
-        result = func(values, axis=axis)
-        count = mask.sum(axis=axis)
-
-        result[count == 0] = np.NaN
-
-        return result
-
-    def _values_accum(self, func, axis, fill_value):
-        axis = self._get_axis_number(axis)
-
-        values = self.values
-        mask = np.isfinite(values)
-
-        if fill_value is not None:
-            values = values.copy()
-            values[-mask] = fill_value
-
-        result = func(values, axis=axis)
-
-        if fill_value is not None:
-            result[-mask] = np.NaN
-
-        return result
-
     def _array_method(self, func, axis='major', fill_value=None):
         """
         Parameters
@@ -810,16 +770,6 @@ class WidePanel(Panel, PandasGeneric):
         y : DataFrame
         """
         return self._array_method(np.sum, axis=axis, fill_value=0)
-
-    def cumsum(self, axis='major'):
-        """
-
-        Returns
-        -------
-        y : WidePanel
-        """
-        result = self._values_accum(np.cumsum, axis=axis, fill_value=0)
-        return self._wrap_result(result, axis)
 
     def mean(self, axis='major'):
         """
@@ -1000,6 +950,23 @@ class WidePanel(Panel, PandasGeneric):
         selection : DataFrame
         """
         return self._select_generic(crit, axis=axis)
+
+    #----------------------------------------------------------------------
+    # Deprecated stuff
+
+    def getMinorXS(self, key): # pragma: no cover
+        warnings.warn("getMinorXS has been replaced by the minor_xs function "
+                      "please modify your code accordingly",
+                      FutureWarning)
+
+        return self.minor_xs(key)
+
+    def getMajorXS(self, key): # pragma: no cover
+        warnings.warn("getMajorXS has been replaced by the major_xs function "
+                      "please modify your code accordingly",
+                      FutureWarning)
+
+        return self.major_xs(key)
 
 #-------------------------------------------------------------------------------
 # LongPanel and friends

@@ -25,7 +25,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
                                 _try_sort, _pfixed, _default_index,
                                 _infer_dtype)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import AxisProperty, PandasGeneric
+from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series, _is_bool_indexer
@@ -94,7 +94,7 @@ def comp_method(func, name):
 #-------------------------------------------------------------------------------
 # DataFrame class
 
-class DataFrame(PandasGeneric):
+class DataFrame(NDFrame):
     """
     Homogenously indexed table with named columns, with intelligent arithmetic
     operations, slicing, reindexing, aggregation, etc. Can function
@@ -217,11 +217,19 @@ class DataFrame(PandasGeneric):
         -------
         casted : DataFrame
         """
-        return DataFrame(self._data, dtype=dtype)
+        return type(self)(self._data, dtype=dtype)
+
+    def _wrap_array(self, arr, axes, copy=False):
+        index, columns = axes
+        return type(self)(arr, index=index, columns=columns, copy=copy)
+
+    @property
+    def axes(self):
+        return [self.index, self.columns]
 
     @property
     def _constructor(self):
-        return DataFrame
+        return type(self)
 
     #----------------------------------------------------------------------
     # Class behavior
@@ -269,7 +277,7 @@ class DataFrame(PandasGeneric):
         """
         Make a copy of this DataFrame
         """
-        return DataFrame(self._data.copy())
+        return type(self)(self._data.copy())
 
     #----------------------------------------------------------------------
     # Arithmetic methods
@@ -565,8 +573,8 @@ class DataFrame(PandasGeneric):
         Returns a DataFrame with the rows/columns switched. Copy of data is not
         made by default
         """
-        return DataFrame(data=self.values.T, index=self.columns,
-                         columns=self.index, copy=False)
+        return type(self)(data=self.values.T, index=self.columns,
+                          columns=self.index, copy=False)
     T = property(transpose)
 
     #----------------------------------------------------------------------
@@ -642,8 +650,8 @@ class DataFrame(PandasGeneric):
         return self.values
 
     def __array_wrap__(self, result):
-        return DataFrame(result, index=self.index, columns=self.columns,
-                         copy=False)
+        return type(self)(result, index=self.index, columns=self.columns,
+                          copy=False)
 
     #----------------------------------------------------------------------
     # getitem/setitem related
@@ -673,7 +681,7 @@ class DataFrame(PandasGeneric):
         """
         if isinstance(item, slice):
             new_data = self._data.get_slice(item, axis=1)
-            return DataFrame(new_data)
+            return type(self)(new_data)
         elif isinstance(item, np.ndarray):
             if len(item) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
@@ -837,11 +845,11 @@ class DataFrame(PandasGeneric):
         if new_index is self.index:
             return self.copy()
         new_data = self._data.reindex_axis(new_index, method, axis=1)
-        return DataFrame(new_data)
+        return type(self)(new_data)
 
     def _reindex_columns(self, new_columns):
         new_data = self._data.reindex_items(new_columns)
-        return DataFrame(new_data)
+        return type(self)(new_data)
 
     def reindex_like(self, other, method=None):
         """
@@ -1039,14 +1047,14 @@ class DataFrame(PandasGeneric):
             series = self._series
             for col, s in series.iteritems():
                 result[col] = s.fillna(method=method, value=value)
-            return DataFrame(result, index=self.index, columns=self.columns)
+            return type(self)(result, index=self.index, columns=self.columns)
         else:
             # Float type values
             if len(self.columns) == 0:
                 return self
 
             new_data = self._data.fillna(value)
-            return DataFrame(new_data, index=self.index, columns=self.columns)
+            return type(self)(new_data, index=self.index, columns=self.columns)
 
     #----------------------------------------------------------------------
     # Rename
@@ -1122,7 +1130,7 @@ class DataFrame(PandasGeneric):
         # some shortcuts
         if fill_value is None:
             if not self and not other:
-                return DataFrame(index=new_index)
+                return type(self)(index=new_index)
             elif not self:
                 return other * nan
             elif not other:
@@ -1155,8 +1163,8 @@ class DataFrame(PandasGeneric):
             other_vals[other_mask & mask] = fill_value
 
         result = func(this_vals, other_vals)
-        return DataFrame(result, index=new_index, columns=new_columns,
-                         copy=False)
+        return type(self)(result, index=new_index, columns=new_columns,
+                          copy=False)
 
     def _indexed_same(self, other):
         same_index = self.index.equals(other.index)
@@ -1193,8 +1201,8 @@ class DataFrame(PandasGeneric):
         if fill_value is not None:
             raise NotImplementedError
 
-        return DataFrame(func(values.T, other_vals).T, index=new_index,
-                         columns=self.columns, copy=False)
+        return type(self)(func(values.T, other_vals).T, index=new_index,
+                          columns=self.columns, copy=False)
 
     def _combine_match_columns(self, other, func, fill_value=None):
         newCols = self.columns.union(other.index)
@@ -1206,15 +1214,15 @@ class DataFrame(PandasGeneric):
         if fill_value is not None:
             raise NotImplementedError
 
-        return DataFrame(func(this.values, other), index=self.index,
-                         columns=newCols, copy=False)
+        return type(self)(func(this.values, other), index=self.index,
+                          columns=newCols, copy=False)
 
     def _combine_const(self, other, func):
         if not self:
             return self
 
-        return DataFrame(func(self.values, other), index=self.index,
-                         columns=self.columns, copy=False)
+        return type(self)(func(self.values, other), index=self.index,
+                          columns=self.columns, copy=False)
 
     def _compare_frame(self, other, func):
         if not self._indexed_same(other):
@@ -1479,7 +1487,7 @@ class DataFrame(PandasGeneric):
             new_data = self._data.copy()
             new_data.axes[1] = self.index.shift(periods, offset)
 
-        return DataFrame(new_data)
+        return type(self)(new_data)
 
     def _shift_indexer(self, periods):
         # small reusable utility
@@ -1526,8 +1534,8 @@ class DataFrame(PandasGeneric):
 
         if isinstance(func, np.ufunc):
             results = func(self.values)
-            return DataFrame(data=results, index=self.index,
-                             columns=self.columns, copy=False)
+            return type(self)(data=results, index=self.index,
+                              columns=self.columns, copy=False)
         else:
             if not broadcast:
                 return self._apply_standard(func, axis)
@@ -1683,7 +1691,7 @@ class DataFrame(PandasGeneric):
             raise Exception('%s column not contained in this frame!' % on)
 
         new_data = self._data.join_on(other._data, self[on], axis=1)
-        return DataFrame(new_data)
+        return type(self)(new_data)
 
     def _join_index(self, other, how):
         join_index = self._get_join_index(other, how)
@@ -1693,7 +1701,7 @@ class DataFrame(PandasGeneric):
         # merge blocks
         merged_data = this_data.merge(other_data)
         assert(merged_data.axes[1] is join_index) # maybe unnecessary
-        return DataFrame(merged_data)
+        return type(self)(merged_data)
 
     def _get_join_index(self, other, how):
         if how == 'left':
@@ -1788,7 +1796,7 @@ class DataFrame(PandasGeneric):
                         correl[i, j] = c
                         correl[j, i] = c
 
-        return DataFrame(correl, index=cols, columns=cols)
+        return type(self)(correl, index=cols, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False):
         """
@@ -1858,7 +1866,7 @@ class DataFrame(PandasGeneric):
                 tmp.quantile(.1), tmp.median(),
                 tmp.quantile(.9), tmp.max()]
 
-        return DataFrame(data, index=cols_destat, columns=cols)
+        return type(self)(data, index=cols_destat, columns=cols)
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods
@@ -1939,31 +1947,6 @@ class DataFrame(PandasGeneric):
 
         return Series(the_sum, index=axis_labels)
 
-    def cumsum(self, axis=0):
-        """
-        Return DataFrame of cumulative sums over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        y = np.array(self.values, subok=True)
-        if not issubclass(y.dtype.type, np.int_):
-            mask = np.isnan(self.values)
-            y[mask] = 0
-            result = y.cumsum(axis)
-            has_obs = (-mask).astype(int).cumsum(axis) > 0
-            result[-has_obs] = np.nan
-        else:
-            result = y.cumsum(axis)
-        return DataFrame(result, index=self.index, columns=self.columns,
-                         copy=False)
-
     def min(self, axis=0):
         """
         Return array or Series of minimums over requested axis.
@@ -1997,30 +1980,6 @@ class DataFrame(PandasGeneric):
         values = self.values.copy()
         np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
-
-    def cumprod(self, axis=0):
-        """
-        Return cumulative product over requested axis as DataFrame
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        def get_cumprod(y):
-            y = np.array(y)
-            mask = isnull(y)
-            if not issubclass(y.dtype.type, np.int_):
-                y[mask] = 1
-            result = y.cumprod()
-
-            return result
-
-        return self.apply(get_cumprod, axis=axis)
 
     def product(self, axis=0):
         """
