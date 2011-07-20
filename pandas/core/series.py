@@ -15,7 +15,7 @@ import numpy as np
 
 from pandas.core.common import isnull, notnull, _ensure_index
 from pandas.core.daterange import DateRange
-from pandas.core.generic import PandasGeneric
+from pandas.core.generic import NDFrame
 from pandas.core.index import Index
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
@@ -92,7 +92,7 @@ def _flex_method(op, name):
 #-------------------------------------------------------------------------------
 # Series class
 
-class Series(np.ndarray, PandasGeneric):
+class Series(np.ndarray, NDFrame):
     """
     Generic indexed (labeled) vector (time series or cross-section)
 
@@ -193,6 +193,9 @@ class Series(np.ndarray, PandasGeneric):
             subarr = subarr.view(TimeSeries)
 
         return subarr
+
+    def __init__(self, *args, **kwargs):
+        pass
 
     def __hash__(self):
         raise TypeError('unhashable type')

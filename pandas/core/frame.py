@@ -25,7 +25,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
                                 _try_sort, _pfixed, _default_index,
                                 _infer_dtype)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import AxisProperty, PandasGeneric
+from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.index import Index, NULL_INDEX
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series, _is_bool_indexer
@@ -94,7 +94,7 @@ def comp_method(func, name):
 #-------------------------------------------------------------------------------
 # DataFrame class
 
-class DataFrame(PandasGeneric):
+class DataFrame(NDFrame):
     """
     Homogenously indexed table with named columns, with intelligent arithmetic
     operations, slicing, reindexing, aggregation, etc. Can function
@@ -218,6 +218,14 @@ class DataFrame(PandasGeneric):
         casted : DataFrame
         """
         return type(self)(self._data, dtype=dtype)
+
+    def _wrap_array(self, arr, axes, copy=False):
+        index, columns = axes
+        return type(self)(arr, index=index, columns=columns, copy=copy)
+
+    @property
+    def axes(self):
+        return [self.index, self.columns]
 
     @property
     def _constructor(self):
