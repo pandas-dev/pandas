@@ -101,7 +101,14 @@ class Block(object):
         """
         Reindex using pre-computed indexer information
         """
-        new_values = self.values.take(indexer, axis=axis)
+        if self.values.size > 0:
+            new_values = self.values.take(indexer, axis=axis)
+        else:
+            shape = list(self.shape)
+            shape[axis] = len(indexer)
+            new_values = np.empty(shape)
+            new_values.fill(np.nan)
+
         if needs_masking:
             new_values = _cast_if_bool_int(new_values)
             common.null_out_axis(new_values, notmask, axis)

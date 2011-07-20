@@ -1590,6 +1590,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(not newFrame)
         self.assertEqual(len(newFrame.columns), len(self.frame.columns))
 
+        # length zero with columns reindexed with non-empty index
+        newFrame = self.frame.reindex([])
+        newFrame = newFrame.reindex(self.frame.index)
+        self.assertEqual(len(newFrame.index), len(self.frame.index))
+        self.assertEqual(len(newFrame.columns), len(self.frame.columns))
+
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
