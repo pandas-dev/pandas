@@ -315,6 +315,7 @@ class DataFrame(NDFrame):
     # Comparison methods
 
     __eq__ = comp_method(operator.eq, '__eq__')
+    __ne__ = comp_method(operator.ne, '__ne__')
     __lt__ = comp_method(operator.lt, '__lt__')
     __gt__ = comp_method(operator.gt, '__gt__')
     __le__ = comp_method(operator.le, '__le__')

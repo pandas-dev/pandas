@@ -1191,6 +1191,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
             self.assertRaises(Exception, func, self.simple, self.simple[:2])
 
         test_comp(operator.eq)
+        test_comp(operator.ne)
         test_comp(operator.lt)
         test_comp(operator.gt)
         test_comp(operator.ge)

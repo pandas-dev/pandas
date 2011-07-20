@@ -53,7 +53,10 @@ class NDFrame(Picklable):
 
     def __init__(self, data, axes=None, copy=False):
         self._data = data
-        self.axes = axes
+
+    @property
+    def axes(self):
+        return self._data.axes
 
     def __repr__(self):
         # TODO
