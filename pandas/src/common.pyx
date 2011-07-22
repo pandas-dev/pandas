@@ -10,6 +10,7 @@ from cpython cimport PyFloat_Check
 import numpy as np
 isnan = np.isnan
 cdef double NaN = <double> np.NaN
+cdef double nan = NaN
 
 from datetime import datetime as pydatetime
 

@@ -7,23 +7,6 @@ from pandas.core.series import Series
 from pandas.core.panel import WidePanel
 import pandas._tseries as _tseries
 
-class GroupDict(dict):
-    def __repr__(self):
-        stringDict = dict([(str(x), x) for x in self])
-        sortedKeys = sorted(stringDict)
-
-        maxLen = max([len(x) for x in stringDict])
-
-        output = StringIO()
-        output.write(str(self.__class__))
-
-        for k in sortedKeys:
-            key = stringDict[k]
-            size = len(self[key])
-            output.write('\n %s -> %d values' % (str(k).ljust(maxLen), size))
-
-        return output.getvalue()
-
 def groupby(obj, grouper, **kwds):
     """
     Intercepts creation and dispatches to the appropriate class based
@@ -51,8 +34,7 @@ class Grouping(object):
     @property
     def groups(self):
         if self._groups is None:
-            self._groups = _tseries.groupby(self.labels, self.grouper,
-                                            output=GroupDict())
+            self._groups = _tseries.groupby(self.labels, self.grouper)
         return self._groups
 
 class GroupBy(object):
@@ -71,9 +53,11 @@ class GroupBy(object):
         self._group_axis = np.asarray(obj._get_axis(axis))
         self._group_axis_name = obj._get_axis_name(axis)
         self.groupings = [Grouping(self._group_axis, grouper)]
+        self.primary = self.groupings[0]
 
-    def getGroup(self, indices):
-        group_labels = self._group_axis.take(indices)
+    def getGroup(self, name):
+        inds = self.primary.indices[name]
+        group_labels = self._group_axis.take(inds)
         return self.obj.reindex(**{self._group_axis_name : group_labels})
 
     def __iter__(self):
@@ -85,7 +69,7 @@ class GroupBy(object):
         Generator yielding sequence of (groupName, subsetted object)
         for each group
         """
-        groups = self.grouping.indices.keys()
+        groups = self.primary.indices.keys()
         try:
             groupNames = sorted(groups)
         except Exception: # pragma: no cover
@@ -93,6 +77,9 @@ class GroupBy(object):
 
         for name in groups:
             yield name, self[name]
+
+    def __getitem__(self, key):
+        return self.getGroup(self.primary.indices[key])
 
     def aggregate(self, func):
         raise NotImplementedError
@@ -102,8 +89,8 @@ class GroupBy(object):
 
     def _aggregate_generic(self, agger, axis=0):
         result = {}
-        for name, inds in self.grouping.indices.iteritems():
-            data = self.getGroup(inds)
+        for name  in self.primary.indices.iteritems():
+            data = self.getGroup(name)
             try:
                 result[name] = agger(data)
             except Exception:
@@ -126,9 +113,6 @@ class GroupBy(object):
         """
         # TODO: make NaN-friendly
         return self.aggregate(np.sum)
-
-    def __getitem__(self, key):
-        return self.getGroup(self.grouping.indices[key])
 
 def multi_groupby(obj, op, *columns):
     cur = columns[0]
@@ -189,14 +173,14 @@ class SeriesGroupBy(GroupBy):
     def _aggregate_simple(self, applyfunc):
         values = self.obj.values
         result = {}
-        for k, v in self.grouping.indices.iteritems():
+        for k, v in self.primary.indices.iteritems():
             result[k] = applyfunc(values.take(v))
 
         return result
 
     def _aggregate_named(self, applyfunc):
         result = {}
-        for k, v in self.grouping.indices.iteritems():
+        for k, v in self.primary.indices.iteritems():
             grp = self[k]
             grp.groupName = k
             output = applyfunc(grp)
@@ -283,7 +267,9 @@ class DataFrameGroupBy(GroupBy):
             mappers = [obj[s] for s in grouper]
             self.groupings = [Grouping(obj.index, mapper) for mapper in mappers]
         else:
-            self.groupings = [Grouping(self._group_axis, mapper)]
+            self.groupings = [Grouping(self._group_axis, grouper)]
+
+        self.primary = self.groupings[0]
 
     def __getitem__(self, key):
         if key not in self.obj:
@@ -356,7 +342,7 @@ class DataFrameGroupBy(GroupBy):
 
         result_values = trans(result_values)
 
-        for val, group in self.groups.iteritems():
+        for val, group in self.primary.groups.iteritems():
             if not isinstance(group, list): # pragma: no cover
                 group = list(group)
 

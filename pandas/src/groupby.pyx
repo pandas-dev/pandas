@@ -18,8 +18,8 @@ def arrmap(ndarray[object, ndim=1] index, object func):
     return result
 
 @cython.boundscheck(False)
-def groupby(object index, object mapper, output=None):
-    cdef dict result
+def groupby(object index, object mapper):
+    cdef dict result = {}
     cdef ndarray[object, ndim=1] mapped_index
     cdef ndarray[object, ndim=1] index_buf
     cdef ndarray[int8_t, ndim=1] mask
@@ -29,18 +29,9 @@ def groupby(object index, object mapper, output=None):
 
     length = len(index)
 
-    if output is None:
-        result = {}
-    else:
-        result = <dict> output
-
     index_buf = np.asarray(index)
     mapped_index = arrmap(index_buf, mapper)
     mask = isnullobj(mapped_index)
-
-    # nullkeys = index_buf[mask.astype(bool)]
-    # if len(nullkeys) > 0:
-    #     result[np.NaN] = nullkeys
 
     for i from 0 <= i < length:
         if mask[i]:
@@ -100,95 +91,129 @@ def group_labels(ndarray[object] values):
             labels[i] = count
             count += 1
 
-    return count, labels
+    return ids, count, labels
 
 def labelize(*key_arrays):
+    idicts = []
     shape = []
     labels = []
-    for key_arr in key_arrays:
-        ct, lab = group_labels(key_arrays)
+    for arr in key_arrays:
+        ids, ct, lab = group_labels(arr)
         shape.append(ct)
         labels.append(lab)
+        idicts.append(ids)
 
-    return tuple(shape), labels
+    return tuple(shape), labels, idicts
 
-ctypedef double_t (* agg_func)(double_t *out, int32_t *counts,
-                               double_t *values, int32_t *labels,
-                               int start, int end)
+ctypedef double_t (* agg_func)(double_t *out, double_t *values, int32_t *labels,
+                               int start, int end, Py_ssize_t offset)
 
 cdef agg_func get_agg_func(object how):
     if how == 'add':
         return _group_add
+    elif how == 'mean':
+        return _group_mean
 
 def group_aggregate(ndarray[double_t] values, list label_list,
                     object shape, how='add'):
     cdef:
         list sorted_labels
-        ndarray result, counts
+        ndarray result
         agg_func func
 
     func = get_agg_func(how)
+
     values, sorted_labels = _group_reorder(values, label_list)
     result = np.empty(shape, dtype=np.float64)
     result.fill(nan)
-    counts = = np.zeros(shape, dtype=np.int32)
 
-    _aggregate_group(<double_t*> result.data,
-                     <double_t*> values.data,
-                     <int32_t*> counts.data
-                      sorted_labels, 0, len(values),
-                     shape, 0, func)
+    _aggregate_group(<double_t*> result.data, <double_t*> values.data,
+                     sorted_labels, 0, len(values), shape, 0, 0, func)
 
     return result, sorted_labels
 
-cdef _aggregate_group(double_t *out, int32_t *counts, double_t *values,
-                      list labels, int start, int end, tuple shape,
-                      Py_ssize_t which, agg_func func):
+cdef void _aggregate_group(double_t *out, double_t *values,
+                           list labels, int start, int end, tuple shape,
+                           Py_ssize_t which, Py_ssize_t offset,
+                           agg_func func):
     cdef:
-        ndarray[int32_t] axis0
-        int32_t label_end
+        ndarray[int32_t] axis
+        cdef Py_ssize_t stride
 
-    axis0 = labels[which][start:end]
-    label_end = shape[which]
+    axis = labels[which]
 
     # time to actually aggregate
     if which == len(labels) - 1:
-        func(out, values, axis0, start, end)
+        # print axis, start, end
+        func(out, values, <int32_t*> axis.data, start, end, offset)
     else:
-        # get group counts on axis
-        edges = axis0.searchsorted(np.arange(1, label_end + 1), side='left')
+        stride = np.prod(shape[which+1:])
+        # get group counts on axisp
+        edges = axis.searchsorted(np.arange(1, shape[which] + 1), side='left')
+        # print edges, axis
         start = 0
         # aggregate each subgroup
         for end in edges:
-            _aggregate_group(out, counts, values, sorted_labels[1:],
-                             start, end, shape, which + 1, func)
+            _aggregate_group(out, values, labels, start, end,
+                             shape, which + 1, offset, func)
+            offset += stride
             start = end
 
-cdef _group_add(double_t *out, int32_t *counts, double_t *values,
-                int32_t *labels, int start, int end, int rng):
+cdef double_t _group_add(double_t *out, double_t *values, int32_t *labels,
+                         int start, int end, Py_ssize_t offset):
     cdef:
-        Py_ssize_t i, it = start
+        Py_ssize_t i = 0, it = start
         int32_t lab
         int32_t count = 0
         double_t val, cum = 0
 
-    for i in range(rng):
-        while it < end:
-            if labels[it] > i:
-                counts[i] = count
-                out[i] = cum
-                break
+    while it < end:
+        val = values[it]
+        # not nan
+        if val == val:
+            count += 1
+            cum += val
 
-            val = values[it]
-            # not nan
-            if val == val:
-                count += 1
-                cum += val
+        if it == end - 1 or labels[it + 1] > i:
+            if count == 0:
+                out[offset + i] = nan
+            else:
+                out[offset + i] = cum
+            count = 0
+            cum = 0
 
-        count = 0
-        cum = 0
+            i += 1
 
-def _group_reorder(values, label_list)
+        it += 1
+
+cdef double_t _group_mean(double_t *out, double_t *values, int32_t *labels,
+                          int start, int end, Py_ssize_t offset):
+    cdef:
+        Py_ssize_t i = 0, it = start
+        int32_t lab
+        int32_t count = 0
+        double_t val, cum = 0
+
+    while it < end:
+        val = values[it]
+        # not nan
+        if val == val:
+            count += 1
+            cum += val
+
+        if it == end - 1 or labels[it + 1] > i:
+            if count == 0:
+                out[offset + i] = nan
+            else:
+                out[offset + i] = cum / count
+            count = 0
+            cum = 0
+
+            i += 1
+
+        it += 1
+
+def _group_reorder(values, label_list):
     indexer = np.lexsort(label_list[::-1])
     sorted_labels = [labels.take(indexer) for labels in label_list]
     sorted_values = values.take(indexer)
@@ -198,7 +223,7 @@ def _result_shape(label_list):
     # assumed sorted
     shape = []
     for labels in label_list:
-        size.append(1 + labels[-1])
+        shape.append(1 + labels[-1])
     return tuple(shape)
 
 def reduce_mean(ndarray[object, ndim=1] indices,
