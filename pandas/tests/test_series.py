@@ -17,6 +17,7 @@ import pandas.util.testing as common
 # Series test cases
 
 class TestSeries(unittest.TestCase):
+
     def setUp(self):
         self.ts = common.makeTimeSeries()
         self.series = common.makeStringSeries()

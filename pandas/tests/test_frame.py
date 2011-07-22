@@ -125,7 +125,7 @@ class CheckIndexing(object):
 
     def test_setitem_corner(self):
         # corner case
-        df = self.klass({'B' : [1., 2., 3.],
+        df = DataFrame({'B' : [1., 2., 3.],
                          'C' : ['a', 'b', 'c']},
                         index=np.arange(3))
         del df['B']
@@ -543,12 +543,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.seriesd = tm.getSeriesData()
         self.tsd = tm.getTimeSeriesData()
 
-        self.frame = self.klass(self.seriesd)
-        self.frame2 = self.klass(self.seriesd, columns=['D', 'C', 'B', 'A'])
-        self.intframe = self.klass(dict((k, v.astype(int))
+        self.frame = DataFrame(self.seriesd)
+        self.frame2 = DataFrame(self.seriesd, columns=['D', 'C', 'B', 'A'])
+        self.intframe = DataFrame(dict((k, v.astype(int))
                                         for k, v in self.seriesd.iteritems()))
 
-        self.tsframe = self.klass(self.tsd)
+        self.tsframe = DataFrame(self.tsd)
 
         self.mixed_frame = self.frame.copy()
         self.mixed_frame['foo'] = 'bar'
@@ -564,9 +564,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
             'col3' : self.ts3,
             'col4' : self.ts4,
         }
-        self.empty = self.klass({})
+        self.empty = DataFrame({})
 
-        self.unsortable = self.klass(
+        self.unsortable = DataFrame(
             {'foo' : [1] * 1000,
              datetime.today() : [1] * 1000,
              'bar' : ['bar'] * 1000,
@@ -577,23 +577,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                         [4., 5., 6.],
                         [7., 8., 9.]])
 
-        self.simple = self.klass(arr, columns=['one', 'two', 'three'],
+        self.simple = DataFrame(arr, columns=['one', 'two', 'three'],
                                  index=['a', 'b', 'c'])
 
     def test_get_axis(self):
-        self.assert_(self.klass._get_axis_name(0) == 'index')
-        self.assert_(self.klass._get_axis_name(1) == 'columns')
-        self.assert_(self.klass._get_axis_name('index') == 'index')
-        self.assert_(self.klass._get_axis_name('columns') == 'columns')
-        self.assertRaises(Exception, self.klass._get_axis_name, 'foo')
-        self.assertRaises(Exception, self.klass._get_axis_name, None)
+        self.assert_(DataFrame._get_axis_name(0) == 'index')
+        self.assert_(DataFrame._get_axis_name(1) == 'columns')
+        self.assert_(DataFrame._get_axis_name('index') == 'index')
+        self.assert_(DataFrame._get_axis_name('columns') == 'columns')
+        self.assertRaises(Exception, DataFrame._get_axis_name, 'foo')
+        self.assertRaises(Exception, DataFrame._get_axis_name, None)
 
-        self.assert_(self.klass._get_axis_number(0) == 0)
-        self.assert_(self.klass._get_axis_number(1) == 1)
-        self.assert_(self.klass._get_axis_number('index') == 0)
-        self.assert_(self.klass._get_axis_number('columns') == 1)
-        self.assertRaises(Exception, self.klass._get_axis_number, 2)
-        self.assertRaises(Exception, self.klass._get_axis_number, None)
+        self.assert_(DataFrame._get_axis_number(0) == 0)
+        self.assert_(DataFrame._get_axis_number(1) == 1)
+        self.assert_(DataFrame._get_axis_number('index') == 0)
+        self.assert_(DataFrame._get_axis_number('columns') == 1)
+        self.assertRaises(Exception, DataFrame._get_axis_number, 2)
+        self.assertRaises(Exception, DataFrame._get_axis_number, None)
 
         self.assert_(self.frame._get_axis(0) is self.frame.index)
         self.assert_(self.frame._get_axis(1) is self.frame.columns)
@@ -612,17 +612,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                           cols[::2])
 
     def test_constructor(self):
-        df = self.klass()
+        df = DataFrame()
         self.assert_(len(df.index) == 0)
 
-        df = self.klass(data={})
+        df = DataFrame(data={})
         self.assert_(len(df.index) == 0)
 
     def test_constructor_mixed(self):
         index, data = tm.getMixedTypeDict()
 
-        indexed_frame = self.klass(data, index=index)
-        unindexed_frame = self.klass(data)
+        indexed_frame = DataFrame(data, index=index)
+        unindexed_frame = DataFrame(data)
 
         self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
 
@@ -650,13 +650,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(self.mixed_frame._is_mixed_type)
 
     def test_constructor_dict(self):
-        frame = self.klass({'col1' : self.ts1,
+        frame = DataFrame({'col1' : self.ts1,
                             'col2' : self.ts2})
 
         tm.assert_dict_equal(self.ts1, frame['col1'], compare_keys=False)
         tm.assert_dict_equal(self.ts2, frame['col2'], compare_keys=False)
 
-        frame = self.klass({'col1' : self.ts1,
+        frame = DataFrame({'col1' : self.ts1,
                             'col2' : self.ts2},
                            columns=['col2', 'col3', 'col4'])
 
@@ -665,34 +665,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(np.isnan(frame['col3']).all())
 
         # Corner cases
-        self.assertEqual(len(self.klass({})), 0)
-        self.assertRaises(Exception, lambda x: self.klass([self.ts1, self.ts2]))
+        self.assertEqual(len(DataFrame({})), 0)
+        self.assertRaises(Exception, lambda x: DataFrame([self.ts1, self.ts2]))
 
         # pass dict and array, nicht nicht
-        self.assertRaises(Exception, self.klass,
+        self.assertRaises(Exception, DataFrame,
                           {'A' : {'a' : 'a', 'b' : 'b'},
                            'B' : ['a', 'b']})
 
         # can I rely on the order?
-        self.assertRaises(Exception, self.klass,
+        self.assertRaises(Exception, DataFrame,
                           {'A' : ['a', 'b'],
                            'B' : {'a' : 'a', 'b' : 'b'}})
-        self.assertRaises(Exception, self.klass,
+        self.assertRaises(Exception, DataFrame,
                           {'A' : ['a', 'b'],
                            'B' : Series(['a', 'b'], index=['a', 'b'])})
 
         # Length-one dict micro-optimization
-        frame = self.klass({'A' : {'1' : 1, '2' : 2}})
+        frame = DataFrame({'A' : {'1' : 1, '2' : 2}})
         self.assert_(np.array_equal(frame.index, ['1', '2']))
 
         # empty dict plus index
         idx = Index([0, 1, 2])
-        frame = self.klass({}, index=idx)
+        frame = DataFrame({}, index=idx)
         self.assert_(frame.index is idx)
 
         # empty with index and columns
         idx = Index([0, 1, 2])
-        frame = self.klass({}, index=idx, columns=idx)
+        frame = DataFrame({}, index=idx, columns=idx)
         self.assert_(frame.index is idx)
         self.assert_(frame.columns is idx)
         self.assertEqual(len(frame._series), 3)
@@ -709,12 +709,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                 'A' : {'1' : 1, '2' : 2},
                 'B' : {'1' : '1', '2' : '2', '3' : '3'},
         }
-        frame = self.klass(test_data, dtype=float)
+        frame = DataFrame(test_data, dtype=float)
         self.assertEqual(len(frame), 3)
         self.assert_(frame['B'].dtype == np.float_)
         self.assert_(frame['A'].dtype == np.float_)
 
-        frame = self.klass(test_data)
+        frame = DataFrame(test_data)
         self.assertEqual(len(frame), 3)
         self.assert_(frame['B'].dtype == np.object_)
         self.assert_(frame['A'].dtype == np.float_)
@@ -724,7 +724,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                 'A' : dict(zip(range(20), tm.makeDateIndex(20))),
                 'B' : dict(zip(range(15), randn(15)))
         }
-        frame = self.klass(test_data, dtype=float)
+        frame = DataFrame(test_data, dtype=float)
         self.assertEqual(len(frame), 20)
         self.assert_(frame['A'].dtype == np.object_)
         self.assert_(frame['B'].dtype == np.float_)
@@ -733,94 +733,94 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         mat = np.zeros((2, 3), dtype=float)
 
         # 2-D input
-        frame = self.klass(mat, columns=['A', 'B', 'C'], index=[1, 2])
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
 
         self.assertEqual(len(frame.index), 2)
         self.assertEqual(len(frame.columns), 3)
 
         # cast type
-        frame = self.klass(mat, columns=['A', 'B', 'C'],
+        frame = DataFrame(mat, columns=['A', 'B', 'C'],
                            index=[1, 2], dtype=int)
         self.assert_(frame.values.dtype == np.int_)
 
         # 1-D input
-        frame = self.klass(np.zeros(3), columns=['A'], index=[1, 2, 3])
+        frame = DataFrame(np.zeros(3), columns=['A'], index=[1, 2, 3])
         self.assertEqual(len(frame.index), 3)
         self.assertEqual(len(frame.columns), 1)
 
-        frame = self.klass(['foo', 'bar'], index=[0, 1], columns=['A'])
+        frame = DataFrame(['foo', 'bar'], index=[0, 1], columns=['A'])
         self.assertEqual(len(frame), 2)
 
         # higher dim raise exception
-        self.assertRaises(Exception, self.klass, np.zeros((3, 3, 3)),
+        self.assertRaises(Exception, DataFrame, np.zeros((3, 3, 3)),
                           columns=['A', 'B', 'C'], index=[1])
 
         # wrong size axis labels
-        self.assertRaises(Exception, self.klass, mat,
+        self.assertRaises(Exception, DataFrame, mat,
                           columns=['A', 'B', 'C'], index=[1])
 
-        self.assertRaises(Exception, self.klass, mat,
+        self.assertRaises(Exception, DataFrame, mat,
                           columns=['A', 'B'], index=[1, 2])
 
         # automatic labeling
-        frame = self.klass(mat)
+        frame = DataFrame(mat)
         self.assert_(np.array_equal(frame.index, range(2)))
         self.assert_(np.array_equal(frame.columns, range(3)))
 
-        frame = self.klass(mat, index=[1, 2])
+        frame = DataFrame(mat, index=[1, 2])
         self.assert_(np.array_equal(frame.columns, range(3)))
 
-        frame = self.klass(mat, columns=['A', 'B', 'C'])
+        frame = DataFrame(mat, columns=['A', 'B', 'C'])
         self.assert_(np.array_equal(frame.index, range(2)))
 
         # 0-length axis
-        frame = self.klass(np.empty((0, 3)))
+        frame = DataFrame(np.empty((0, 3)))
         self.assert_(frame.index is NULL_INDEX)
 
-        frame = self.klass(np.empty((3, 0)))
+        frame = DataFrame(np.empty((3, 0)))
         self.assert_(len(frame.columns) == 0)
 
     def test_constructor_corner(self):
-        df = self.klass(index=[])
+        df = DataFrame(index=[])
         self.assertEqual(df.values.shape, (0, 0))
 
     def test_constructor_DataFrame(self):
-        df = self.klass(self.frame)
+        df = DataFrame(self.frame)
         assert_frame_equal(df, self.frame)
 
-        df_casted = self.klass(self.frame, dtype=int)
+        df_casted = DataFrame(self.frame, dtype=int)
         self.assert_(df_casted.values.dtype == np.int_)
 
     def test_constructor_more(self):
         # used to be in test_matrix.py
         arr = randn(10)
-        dm = self.klass(arr, columns=['A'], index=np.arange(10))
+        dm = DataFrame(arr, columns=['A'], index=np.arange(10))
         self.assertEqual(dm.values.ndim, 2)
 
         arr = randn(0)
-        dm = self.klass(arr)
+        dm = DataFrame(arr)
         self.assertEqual(dm.values.ndim, 2)
         self.assertEqual(dm.values.ndim, 2)
 
         # no data specified
-        dm = self.klass(columns=['A', 'B'], index=np.arange(10))
+        dm = DataFrame(columns=['A', 'B'], index=np.arange(10))
         self.assertEqual(dm.values.shape, (10, 2))
 
-        dm = self.klass(columns=['A', 'B'])
+        dm = DataFrame(columns=['A', 'B'])
         self.assertEqual(dm.values.shape, (0, 2))
 
-        dm = self.klass(index=np.arange(10))
+        dm = DataFrame(index=np.arange(10))
         self.assertEqual(dm.values.shape, (10, 0))
 
         # corner, silly
-        self.assertRaises(Exception, self.klass, (1, 2, 3))
+        self.assertRaises(Exception, DataFrame, (1, 2, 3))
 
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
         self.assertRaises(ValueError, DataFrame, mat, index=[0, 1],
                           columns=[0], dtype=float)
 
-        dm = self.klass(DataFrame(self.frame._series))
+        dm = DataFrame(DataFrame(self.frame._series))
         tm.assert_frame_equal(dm, self.frame)
 
         # int cast
@@ -865,7 +865,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                 'A' : {'1' : 1, '2' : 2},
                 'B' : {'1' : '1', '2' : '2', '3' : '3'},
         }
-        recons_data = self.klass(test_data).toDict()
+        recons_data = DataFrame(test_data).toDict()
 
         for k, v in test_data.iteritems():
             for k2, v2 in v.iteritems():
@@ -876,10 +876,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         arr = np.zeros((2,),dtype=('i4,f4,a10'))
         arr[:] = [(1,2.,'Hello'),(2,3.,"World")]
 
-        frame = self.klass.from_records(arr)
-        indexed_frame = self.klass.from_records(arr, indexField='f1')
+        frame = DataFrame.from_records(arr)
+        indexed_frame = DataFrame.from_records(arr, indexField='f1')
 
-        self.assertRaises(Exception, self.klass.from_records, np.zeros((2, 3)))
+        self.assertRaises(Exception, DataFrame.from_records, np.zeros((2, 3)))
 
         # what to do?
         records = indexed_frame.to_records()
@@ -906,7 +906,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(self.mixed_frame)
 
         # corner case
-        df = self.klass({'A' : [1., 2., 3.],
+        df = DataFrame({'A' : [1., 2., 3.],
                          'B' : ['a', 'b', 'c']},
                         index=np.arange(3))
         del df['A']
@@ -919,7 +919,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         foo = repr(self.empty)
 
         # empty with index
-        frame = self.klass(index=np.arange(1000))
+        frame = DataFrame(index=np.arange(1000))
         foo = repr(frame)
 
         # small one
@@ -931,7 +931,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.frame.reindex(columns=['A', 'B']).info(verbose=False, buf=buf)
 
         # big one
-        biggie = self.klass(np.zeros((1000, 4)), columns=range(4),
+        biggie = DataFrame(np.zeros((1000, 4)), columns=range(4),
                             index=range(1000))
         foo = repr(biggie)
 
@@ -940,7 +940,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.mixed_frame.info(verbose=False, buf=buf)
 
         # big mixed
-        biggie = self.klass({'A' : randn(1000),
+        biggie = DataFrame({'A' : randn(1000),
                              'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
         biggie['A'][:20] = nan
@@ -951,7 +951,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # exhausting cases in DataFrame.info
 
         # columns but no index
-        no_index = self.klass(columns=[0, 1, 3])
+        no_index = DataFrame(columns=[0, 1, 3])
         foo = repr(no_index)
 
         # no columns or index
@@ -975,7 +975,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
     def test_toString(self):
         # big mixed
-        biggie = self.klass({'A' : randn(1000),
+        biggie = DataFrame({'A' : randn(1000),
                              'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
 
@@ -991,7 +991,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         biggie.toString(buf=buf, columns=['B', 'A'],
                         float_format=str)
 
-        frame = self.klass(index=np.arange(1000))
+        frame = DataFrame(index=np.arange(1000))
         frame.toString(buf=buf)
 
     def test_insert(self):
@@ -1064,7 +1064,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         mat[:5] = nan
         mat[-5:] = nan
 
-        frame = self.klass({'foo' : mat}, index=self.frame.index)
+        frame = DataFrame({'foo' : mat}, index=self.frame.index)
         index = frame.first_valid_index()
 
         self.assert_(index == frame.index[5])
@@ -1242,24 +1242,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # test roundtrip
 
         self.tsframe.toCSV(path)
-        recons = self.klass.fromcsv(path)
+        recons = DataFrame.fromcsv(path)
 
         assert_frame_equal(self.tsframe, recons)
 
-        recons = self.klass.fromcsv(path, index_col=None)
+        recons = DataFrame.fromcsv(path, index_col=None)
         assert(len(recons.columns) == len(self.tsframe.columns) + 1)
 
 
         # no index
         self.tsframe.toCSV(path, index=False)
-        recons = self.klass.fromcsv(path, index_col=None)
+        recons = DataFrame.fromcsv(path, index_col=None)
         assert_almost_equal(self.tsframe.values, recons.values)
 
         # corner case
         dm = DataFrame({'s1' : Series(range(3),range(3)),
                         's2' : Series(range(2),range(2))})
         dm.toCSV(path)
-        recons = self.klass.fromcsv(path)
+        recons = DataFrame.fromcsv(path)
         assert_frame_equal(dm, recons)
 
         os.remove(path)
@@ -1404,7 +1404,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         mat = randn(N)
         mat[:5] = nan
 
-        frame = self.klass({'foo' : mat}, index=self.frame.index)
+        frame = DataFrame({'foo' : mat}, index=self.frame.index)
 
         smaller_frame = frame.dropEmptyRows()
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
@@ -1417,7 +1417,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         mat = randn(N)
         mat[:5] = nan
 
-        frame = self.klass({'foo' : mat}, index=self.frame.index)
+        frame = DataFrame({'foo' : mat}, index=self.frame.index)
         frame['bar'] = 5
 
         smaller_frame = frame.dropIncompleteRows()
@@ -1504,7 +1504,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                 'A' : {'1' : 1, '2' : 2},
                 'B' : {'1' : '1', '2' : '2', '3' : '3'},
         }
-        frame = self.klass(test_data)
+        frame = DataFrame(test_data)
         xs = frame.xs('1')
         self.assert_(xs.dtype == np.object_)
         self.assertEqual(xs['A'], 1)
@@ -1649,7 +1649,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # mixed type
         index, data = tm.getMixedTypeDict()
-        mixed = self.klass(data, index=index)
+        mixed = DataFrame(data, index=index)
 
         mixed_T = mixed.T
         for col, s in mixed_T.iteritems():
@@ -1695,7 +1695,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         }
 
         # gets sorted alphabetical
-        df = self.klass(data)
+        df = DataFrame(data)
         renamed = df.rename(index={'foo' : 'bar', 'bar' : 'foo'})
         self.assert_(np.array_equal(renamed.index, ['foo', 'bar']))
 
@@ -1896,16 +1896,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 	ser2 = Series(['a', 'b', 'c', 'e'], index=idx)
 	ser3 = Series([12,4,5,97], index=idx)
 
-	frame1 = self.klass({"col0" : ser1,
-                             "col2" : ser2,
-                             "col3" : ser3})
+	frame1 = DataFrame({"col0" : ser1,
+                            "col2" : ser2,
+                            "col3" : ser3})
 
 	idx = Index(['a','b','c','f'])
 	ser1 = Series([5.0,-9.0,4.0,100.], index=idx)
 	ser2 = Series(['a','b','c','f'], index=idx)
 	ser3 = Series([12,4,5,97],index=idx)
 
-	frame2 = self.klass({"col1" : ser1,
+	frame2 = DataFrame({"col1" : ser1,
                              "col2" : ser2,
                              "col5" : ser3})
 
@@ -2011,10 +2011,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
     def test_join(self):
         index, data = tm.getMixedTypeDict()
-        target = self.klass(data, index=index)
+        target = DataFrame(data, index=index)
 
         # Join on string value
-        source = self.klass({'MergedA' : data['A'], 'MergedD' : data['D']},
+        source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
                             index=data['C'])
         merged = target.join(source, on='C')
         self.assert_(np.array_equal(merged['MergedA'], target['A']))
@@ -2073,7 +2073,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # numeric and object columns
 
         # Booleans get casted to float in DataFrame, so skip for now
-        df = self.klass({'a' : [1, 2, 3],
+        df = DataFrame({'a' : [1, 2, 3],
                          # 'b' : [True, False, True],
                          'c' : ['foo', 'bar', 'baz'],
                          'd' : [None, None, None],
@@ -2107,7 +2107,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # corner case
 
-        frame = self.klass()
+        frame = DataFrame()
         ct1 = frame.count(1)
         self.assert_(isinstance(ct1, Series))
 
@@ -2130,7 +2130,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
     def test_sum_object(self):
         values = self.frame.values.astype(int)
-        frame = self.klass(values, index=self.frame.index,
+        frame = DataFrame(values, index=self.frame.index,
                            columns=self.frame.columns)
         deltas = frame * timedelta(1)
         deltas.sum()
@@ -2259,7 +2259,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_frame_equal(cumsum, expected)
 
         # works
-        df = self.klass({'A' : np.arange(20)}, index=np.arange(20))
+        df = DataFrame({'A' : np.arange(20)}, index=np.arange(20))
         result = df.cumsum()
 
         # fix issue

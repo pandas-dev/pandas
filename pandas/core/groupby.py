@@ -30,6 +30,9 @@ class Grouping(object):
         # eager beaver
         self.indices = _tseries.groupby_indices(labels, grouper)
 
+    def __iter__(self):
+        return iter(self.indices)
+
     _groups = None
     @property
     def groups(self):
@@ -55,7 +58,7 @@ class GroupBy(object):
         self.groupings = [Grouping(self._group_axis, grouper)]
         self.primary = self.groupings[0]
 
-    def getGroup(self, name):
+    def get_group(self, name):
         inds = self.primary.indices[name]
         group_labels = self._group_axis.take(inds)
         return self.obj.reindex(**{self._group_axis_name : group_labels})
@@ -76,10 +79,7 @@ class GroupBy(object):
             pass
 
         for name in groups:
-            yield name, self[name]
-
-    def __getitem__(self, key):
-        return self.getGroup(self.primary.indices[key])
+            yield name, self.get_group(name)
 
     def aggregate(self, func):
         raise NotImplementedError
@@ -89,8 +89,8 @@ class GroupBy(object):
 
     def _aggregate_generic(self, agger, axis=0):
         result = {}
-        for name  in self.primary.indices.iteritems():
-            data = self.getGroup(name)
+        for name in self.primary:
+            data = self.get_group(name)
             try:
                 result[name] = agger(data)
             except Exception:
@@ -180,16 +180,16 @@ class SeriesGroupBy(GroupBy):
 
     def _aggregate_named(self, applyfunc):
         result = {}
-        for k, v in self.primary.indices.iteritems():
-            grp = self[k]
-            grp.groupName = k
+        for name in self.primary:
+            grp = self.get_group(name)
+            grp.groupName = name
             output = applyfunc(grp)
 
             if isinstance(output, Series):
                 raise Exception('Given applyfunc did not return a '
                                 'value from the subseries as expected!')
 
-            result[k] = output
+            result[name] = output
 
         return result
 

@@ -1,15 +1,20 @@
 import unittest
 
+from numpy import nan
+
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index
 from pandas.core.common import rands, groupby
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
-from pandas.util.testing import assert_panel_equal
+from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
+                                 assert_series_equal, assert_almost_equal)
 from pandas.core.panel import WidePanel
 from collections import defaultdict
 import pandas.core.datetools as dt
 import numpy as np
+
+import pandas.util.testing as tm
 
 # unittest.TestCase
 
@@ -34,25 +39,14 @@ def commonSetUp(self):
 class GroupByTestCase(unittest.TestCase):
     setUp = commonSetUp
 
-    def testPythonGrouper(self):
+    def test_python_grouper(self):
         groupFunc = self.groupDict.get
-
         groups = groupby(self.stringIndex, groupFunc)
-
         setDict = dict((k, set(v)) for k, v in groups.iteritems())
         for idx in self.stringIndex:
             key = groupFunc(idx)
             groupSet = setDict[key]
-            self.assert_(idx in groupSet)
-
-    def testCythonGrouper(self):
-        pass
-
-    def testMembership(self):
-        pass
-
-    def testByColumnName(self):
-        pass
+            assert(idx in groupSet)
 
 class TestSeriesGroupBy(unittest.TestCase):
 
@@ -132,8 +126,8 @@ class TestDataFrameGroupBy(unittest.TestCase):
     def setUp(self):
         self.seriesd = tm.getSeriesData()
         self.tsd = tm.getTimeSeriesData()
-        self.frame = self.klass(self.seriesd)
-        self.tsframe = self.klass(self.tsd)
+        self.frame = DataFrame(self.seriesd)
+        self.tsframe = DataFrame(self.tsd)
 
     def test_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
@@ -167,8 +161,8 @@ class TestDataFrameGroupBy(unittest.TestCase):
             self.assert_(group.index[0].weekday() == weekday)
 
         # groups / group_indices
-        groups = grouped.groups
-        indices = grouped.group_indices
+        groups = grouped.primary.groups
+        indices = grouped.primary.indices
 
         for k, v in groups.iteritems():
             samething = self.tsframe.index.take(indices[k])
@@ -227,6 +221,29 @@ class TestDataFrameGroupBy(unittest.TestCase):
 
         # result2 = data.groupby('B', 'A').sum()
         # assert_panel_equal(result2, expected2)
+
+class TestPanelGroupBy(unittest.TestCase):
+
+    def setUp(self):
+        self.panel = tm.makeWidePanel()
+        tm.add_nans(self.panel)
+
+    def test_groupby(self):
+        grouped = self.panel.groupby({'ItemA' : 0, 'ItemB' : 0, 'ItemC' : 1},
+                                     axis='items')
+        agged = grouped.agg(np.mean)
+        self.assert_(np.array_equal(agged.items, [0, 1]))
+
+        grouped = self.panel.groupby(lambda x: x.month, axis='major')
+        agged = grouped.agg(np.mean)
+
+        self.assert_(np.array_equal(agged.major_axis, [1, 2]))
+
+        grouped = self.panel.groupby({'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1},
+                                     axis='minor')
+        agged = grouped.agg(np.mean)
+        self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
+
 
 class TestAggregate(unittest.TestCase):
     setUp = commonSetUp
