@@ -291,10 +291,9 @@ class BlockManager(object):
         return axes_array, block_values, block_items
 
     def __setstate__(self, state):
-        if len(state) == 4: # pragma: no cover
-            ax_arrays, bvalues, bitems, _ = state
-        else:
-            ax_arrays, bvalues, bitems = state
+        # discard anything after 3rd, support beta pickling format for a little
+        # while longer
+        ax_arrays, bvalues, bitems = state[:3]
 
         self.axes = [_ensure_index(ax) for ax in ax_arrays]
         blocks = []
