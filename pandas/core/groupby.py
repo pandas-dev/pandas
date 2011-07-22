@@ -24,11 +24,11 @@ def groupby(obj, grouper, **kwds):
 class Grouping(object):
 
     def __init__(self, labels, grouper):
-        self.labels = labels
+        self.labels = np.asarray(labels)
         self.grouper = grouper
 
         # eager beaver
-        self.indices = _tseries.groupby_indices(labels, grouper)
+        self.indices = _get_group_indices(self.labels, self.grouper)
 
     def __iter__(self):
         return iter(self.indices)
@@ -40,6 +40,27 @@ class Grouping(object):
             self._groups = _tseries.groupby(self.labels, self.grouper)
         return self._groups
 
+def _get_group_indices(labels, grouper):
+    if isinstance(grouper, np.ndarray):
+        return _tseries.groupby_indices(grouper)
+    else:
+        # some kind of callable
+        return _tseries.func_groupby_indices(labels, grouper)
+
+def _convert_grouper(axis, grouper):
+    if isinstance(grouper, dict):
+        return grouper.get
+    elif isinstance(grouper, Series):
+        if grouper.index.equals(axis):
+            return np.asarray(grouper, dtype=object)
+        else:
+            return grouper.__getitem__
+    elif isinstance(grouper, np.ndarray):
+        assert(len(grouper) == len(axis))
+        return grouper
+    else:
+        return grouper
+
 class GroupBy(object):
     """
     Class for grouping and aggregating relational data.
@@ -48,14 +69,14 @@ class GroupBy(object):
     """
     def __init__(self, obj, grouper, axis=0):
         self.obj = obj
-        if hasattr(grouper, 'get'):
-            grouper = grouper.get
-        self.grouper = grouper
-
         self.axis = axis
-        self._group_axis = np.asarray(obj._get_axis(axis))
+
+        group_axis = obj._get_axis(axis)
+        self.grouper = _convert_grouper(group_axis, grouper)
+        self._group_axis = np.asarray(group_axis)
+
         self._group_axis_name = obj._get_axis_name(axis)
-        self.groupings = [Grouping(self._group_axis, grouper)]
+        self.groupings = [Grouping(self._group_axis, self.grouper)]
         self.primary = self.groupings[0]
 
     def get_group(self, name):
@@ -244,15 +265,14 @@ class DataFrameGroupBy(GroupBy):
 
     def __init__(self, obj, grouper=None, column=None, groupings=None, axis=0):
         self.obj = obj
+        self.axis = axis
 
         if isinstance(grouper, basestring):
-            grouper = obj[grouper].get
-        if hasattr(grouper, 'get'):
-            grouper = grouper.get
+            grouper = obj[grouper]
 
-        self.grouper = grouper
-        self.axis = axis
-        self._group_axis = np.asarray(obj._get_axis(axis))
+        group_axis = obj._get_axis(axis)
+        self.grouper = grouper = _convert_grouper(group_axis, grouper)
+        self._group_axis = np.asarray(group_axis)
         self._group_axis_name = obj._get_axis_name(axis)
 
         if groupings is not None:

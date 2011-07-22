@@ -1,3 +1,4 @@
+from libc.stdlib cimport malloc, free
 
 #-------------------------------------------------------------------------------
 # Groupby-related functions
@@ -47,26 +48,24 @@ def groupby(object index, object mapper):
 
     return result
 
-@cython.boundscheck(False)
-def groupby_indices(object index, object mapper):
-    cdef dict result
-    cdef ndarray[object, ndim=1] mapped_index
-    cdef ndarray[int8_t, ndim=1] mask
-    cdef int i, length
-    cdef list members, null_list
-    cdef object key
+def func_groupby_indices(object index, object mapper):
+    return groupby_indices_naive(arrmap(index, mapper))
 
-    length = len(index)
+@cython.boundscheck(False)
+cpdef groupby_indices_naive(ndarray[object] values):
+    cdef dict result
+    cdef ndarray[int8_t] mask
+    cdef Py_ssize_t i, length = len(values)
+    cdef object key
 
     result = {}
     index = np.asarray(index)
-    mapped_index = arrmap(index, mapper)
-    mask = isnullobj(mapped_index)
+    mask = isnullobj(values)
     for i from 0 <= i < length:
         if mask[i]:
             continue
 
-        key = mapped_index[i]
+        key = values[i]
         if key in result:
             (<list> result[key]).append(i)
         else:
@@ -74,32 +73,82 @@ def groupby_indices(object index, object mapper):
 
     return result
 
+@cython.boundscheck(False)
+def groupby_indices(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int32_t] labels, counts, arr, seen
+        int32_t loc
+        dict ids = {}
+        object val
+        int32_t k
+
+    ids, labels, counts = group_labels(values)
+    seen = np.zeros_like(counts)
+
+    # try not to get in trouble here...
+    cdef int32_t **vecs = <int32_t **> malloc(len(ids) * sizeof(int32_t*))
+    result = {}
+    for i from 0 <= i < len(counts):
+        arr = np.empty(counts[i], dtype=np.int32)
+        result[ids[i]] = arr
+        vecs[i] = <int32_t *> arr.data
+
+    for i from 0 <= i < n:
+        k = labels[i]
+
+        # was NaN
+        if k == -1:
+            continue
+
+        loc = seen[k]
+        vecs[k][loc] = i
+        seen[k] = loc + 1
+
+    free(vecs)
+
+    return result
+
+
+@cython.boundscheck(False)
 def group_labels(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
-        dict ids = {}
+        ndarray[int32_t] counts = np.empty(n, dtype=np.int32)
+        dict ids = {}, reverse = {}
+        int32_t idx
         object val
         int32_t count = 0
 
     for i from 0 <= i < n:
         val = values[i]
+
+        # is NaN
+        if val != val:
+            labels[i] = -1
+            continue
+
         try:
-            labels[i] = ids[val]
+            idx = ids[val]
+            labels[i] = idx
+            counts[idx] = counts[idx] + 1
         except KeyError:
             ids[val] = count
+            reverse[count] = val
             labels[i] = count
+            counts[count] = 1
             count += 1
 
-    return ids, count, labels
+    return reverse, labels, counts[:count].copy()
 
 def labelize(*key_arrays):
     idicts = []
     shape = []
     labels = []
     for arr in key_arrays:
-        ids, ct, lab = group_labels(arr)
-        shape.append(ct)
+        ids, lab, counts  = group_labels(arr)
+        shape.append(len(ids))
         labels.append(lab)
         idicts.append(ids)
 
@@ -114,6 +163,7 @@ cdef agg_func get_agg_func(object how):
     elif how == 'mean':
         return _group_mean
 
+@cython.boundscheck(False)
 def group_aggregate(ndarray[double_t] values, list label_list,
                     object shape, how='add'):
     cdef:
