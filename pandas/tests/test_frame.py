@@ -857,6 +857,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         unpickled = pickle.loads(pickle.dumps(self.mixed_frame))
         assert_frame_equal(self.mixed_frame, unpickled)
 
+        # buglet
+        self.mixed_frame._data.ndim
+
     def test_toDict(self):
         test_data = {
                 'A' : {'1' : 1, '2' : 2},

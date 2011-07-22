@@ -77,6 +77,7 @@ class Block(object):
         self.items = Index(items)
         self.ref_items = Index(ref_items)
         self.values = values
+        self.ndim = values.ndim
 
     @property
     def shape(self):
@@ -242,10 +243,12 @@ class BlockManager(object):
         for block in blocks:
             assert(ndim == block.values.ndim)
 
-        self.ndim = ndim
-
         if not skip_integrity_check:
             self._verify_integrity()
+
+    @property
+    def ndim(self):
+        return len(self.axes)
 
     def is_mixed_dtype(self):
         counts = set()
@@ -285,13 +288,15 @@ class BlockManager(object):
         block_values = [b.values for b in self.blocks]
         block_items = [np.asarray(b.items) for b in self.blocks]
         axes_array = [np.asarray(ax) for ax in self.axes]
-        return axes_array, block_values, block_items, self.ndim
+        return axes_array, block_values, block_items
 
     def __setstate__(self, state):
-        ax_arrays, bvalues, bitems, ndim = state
+        if len(state) == 4: # pragma: no cover
+            ax_arrays, bvalues, bitems, _ = state
+        else:
+            ax_arrays, bvalues, bitems = state
 
         self.axes = [_ensure_index(ax) for ax in ax_arrays]
-
         blocks = []
         for values, items in zip(bvalues, bitems):
             blk = make_block(values, items, self.axes[0])
