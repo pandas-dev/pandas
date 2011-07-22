@@ -25,13 +25,17 @@ class Grouping(object):
 
     def __init__(self, labels, grouper):
         self.labels = np.asarray(labels)
-        self.grouper = grouper
+        self.grouper = _convert_grouper(labels, grouper)
 
         # eager beaver
         self.indices = _get_group_indices(self.labels, self.grouper)
 
     def __iter__(self):
         return iter(self.indices)
+
+    def get_group_labels(self, group):
+        inds = self.indices[group]
+        return self.labels.take(inds)
 
     _groups = None
     @property
@@ -47,19 +51,6 @@ def _get_group_indices(labels, grouper):
         # some kind of callable
         return _tseries.func_groupby_indices(labels, grouper)
 
-def _convert_grouper(axis, grouper):
-    if isinstance(grouper, dict):
-        return grouper.get
-    elif isinstance(grouper, Series):
-        if grouper.index.equals(axis):
-            return np.asarray(grouper, dtype=object)
-        else:
-            return grouper.__getitem__
-    elif isinstance(grouper, np.ndarray):
-        assert(len(grouper) == len(axis))
-        return grouper
-    else:
-        return grouper
 
 class GroupBy(object):
     """
@@ -67,22 +58,33 @@ class GroupBy(object):
 
     Supported classes: Series, DataFrame
     """
-    def __init__(self, obj, grouper, axis=0):
+    def __init__(self, obj, grouper=None, axis=0, groupings=None):
         self.obj = obj
         self.axis = axis
 
         group_axis = obj._get_axis(axis)
-        self.grouper = _convert_grouper(group_axis, grouper)
-        self._group_axis = np.asarray(group_axis)
+        if isinstance(grouper, basestring):
+            grouper = obj[grouper]
 
-        self._group_axis_name = obj._get_axis_name(axis)
-        self.groupings = [Grouping(self._group_axis, self.grouper)]
-        self.primary = self.groupings[0]
+        if groupings is not None:
+            self.groupings = groupings
+        elif isinstance(grouper, (tuple, list)):
+            if axis != 0:
+                raise NotImplementedError('multi-grouping only done valid for '
+                                          'axis=0')
+            self.groupings = [Grouping(group_axis, obj[col_name])
+                              for col_name in grouper]
+        else:
+            self.groupings = [Grouping(group_axis, grouper)]
+
+    @property
+    def primary(self):
+        return self.groupings[0]
 
     def get_group(self, name):
-        inds = self.primary.indices[name]
-        group_labels = self._group_axis.take(inds)
-        return self.obj.reindex(**{self._group_axis_name : group_labels})
+        labels = self.primary.get_group_labels(name)
+        axis_name = self.obj._get_axis_name(self.axis)
+        return self.obj.reindex(**{axis_name : labels})
 
     def __iter__(self):
         """
@@ -134,6 +136,24 @@ class GroupBy(object):
         """
         # TODO: make NaN-friendly
         return self.aggregate(np.sum)
+
+def _get_groupings(obj, grouper, axis=0):
+    pass
+
+
+def _convert_grouper(axis, grouper):
+    if isinstance(grouper, dict):
+        return grouper.get
+    elif isinstance(grouper, Series):
+        if grouper.index.equals(axis):
+            return np.asarray(grouper, dtype=object)
+        else:
+            return grouper.__getitem__
+    elif isinstance(grouper, np.ndarray):
+        assert(len(grouper) == len(axis))
+        return grouper
+    else:
+        return grouper
 
 def multi_groupby(obj, op, *columns):
     cur = columns[0]
@@ -263,39 +283,14 @@ class FrameMetaGroupBy(object):
 
 class DataFrameGroupBy(GroupBy):
 
-    def __init__(self, obj, grouper=None, column=None, groupings=None, axis=0):
-        self.obj = obj
-        self.axis = axis
-
-        if isinstance(grouper, basestring):
-            grouper = obj[grouper]
-
-        group_axis = obj._get_axis(axis)
-        self.grouper = grouper = _convert_grouper(group_axis, grouper)
-        self._group_axis = np.asarray(group_axis)
-        self._group_axis_name = obj._get_axis_name(axis)
-
-        if groupings is not None:
-            self.groupings = groupings
-        elif isinstance(grouper, (tuple, list)):
-            if axis != 0:
-                raise NotImplementedError('multi-grouping only done for '
-                                          'valid with axis=0')
-            if len(grouper) > 2:
-                raise NotImplementedError('Only group with <= 2 columns '
-                                          'for now...')
-            mappers = [obj[s] for s in grouper]
-            self.groupings = [Grouping(obj.index, mapper) for mapper in mappers]
-        else:
-            self.groupings = [Grouping(self._group_axis, grouper)]
-
-        self.primary = self.groupings[0]
+    # def __init__(self, obj, grouper=None, axis=0, groupings=None):
+    #     GroupBy.__init__(self, obj, grouper=grouper, axis=axis,
+    #                      groupings=groupings)
 
     def __getitem__(self, key):
         if key not in self.obj:
             raise KeyError('column %s not found' % key)
-        return DataFrameGroupBy(self.obj, groupings=self.groupings,
-                                column=key)
+        return SeriesGroupBy(self.obj[key], groupings=self.groupings)
 
     def aggregate(self, applyfunc):
         """
