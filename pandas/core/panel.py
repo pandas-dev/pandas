@@ -1237,7 +1237,7 @@ class LongPanel(Panel, Picklable):
 
         new_major = self.index.major_labels.take(indexer)
         new_minor = self.index.minor_labels.take(indexer)
-        new_values = self.values.take(indexer)
+        new_values = self.values.take(indexer, axis=0)
 
         new_index = LongPanelIndex(self.major_axis, self.minor_axis,
                                    new_major, new_minor)

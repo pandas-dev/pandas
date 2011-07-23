@@ -15,7 +15,7 @@ import numpy as np
 
 from pandas.core.common import isnull, notnull, _ensure_index
 from pandas.core.daterange import DateRange
-from pandas.core.generic import NDFrame
+from pandas.core.generic import PandasObject
 from pandas.core.index import Index
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
@@ -92,7 +92,7 @@ def _flex_method(op, name):
 #-------------------------------------------------------------------------------
 # Series class
 
-class Series(np.ndarray, NDFrame):
+class Series(np.ndarray, PandasObject):
     """
     Generic indexed (labeled) vector (time series or cross-section)
 

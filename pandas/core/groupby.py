@@ -51,7 +51,6 @@ def _get_group_indices(labels, grouper):
         # some kind of callable
         return _tseries.func_groupby_indices(labels, grouper)
 
-
 class GroupBy(object):
     """
     Class for grouping and aggregating relational data.
@@ -62,20 +61,12 @@ class GroupBy(object):
         self.obj = obj
         self.axis = axis
 
-        group_axis = obj._get_axis(axis)
-        if isinstance(grouper, basestring):
-            grouper = obj[grouper]
-
         if groupings is not None:
             self.groupings = groupings
-        elif isinstance(grouper, (tuple, list)):
-            if axis != 0:
-                raise NotImplementedError('multi-grouping only done valid for '
-                                          'axis=0')
-            self.groupings = [Grouping(group_axis, obj[col_name])
-                              for col_name in grouper]
         else:
-            self.groupings = [Grouping(group_axis, grouper)]
+            groupers = _convert_strings(obj, grouper)
+            group_axis = obj._get_axis(axis)
+            self.groupings = [Grouping(group_axis, arg) for arg in groupers]
 
     @property
     def primary(self):
@@ -140,6 +131,23 @@ class GroupBy(object):
 def _get_groupings(obj, grouper, axis=0):
     pass
 
+def _group_reorder(values, label_list):
+    indexer = np.lexsort(label_list[::-1])
+
+    sorted_labels = [labels.take(indexer) for labels in label_list]
+    sorted_values = values.take(indexer)
+    return sorted_values, sorted_labels
+
+def _convert_strings(obj, groupers):
+    def _convert(arg):
+        if isinstance(arg, basestring):
+            return obj[arg]
+        return arg
+
+    if isinstance(groupers, (tuple, list)):
+        return [_convert(arg) for arg in groupers]
+    else:
+        return [_convert(groupers)]
 
 def _convert_grouper(axis, grouper):
     if isinstance(grouper, dict):
