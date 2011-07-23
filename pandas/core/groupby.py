@@ -128,15 +128,21 @@ class GroupBy(object):
         # TODO: make NaN-friendly
         return self.aggregate(np.sum)
 
+
+def labelize(*key_arrays):
+    idicts = []
+    shape = []
+    labels = []
+    for arr in key_arrays:
+        ids, lab, counts  = _tseries.group_labels(arr)
+        shape.append(len(ids))
+        labels.append(lab)
+        idicts.append(ids)
+
+    return tuple(shape), labels, idicts
+
 def _get_groupings(obj, grouper, axis=0):
     pass
-
-def _group_reorder(values, label_list):
-    indexer = np.lexsort(label_list[::-1])
-
-    sorted_labels = [labels.take(indexer) for labels in label_list]
-    sorted_values = values.take(indexer)
-    return sorted_values, sorted_labels
 
 def _convert_strings(obj, groupers):
     def _convert(arg):
@@ -427,3 +433,51 @@ class WidePanelGroupBy(GroupBy):
 class LongPanelGroupBy(GroupBy):
     pass
 
+#-------------------------------------------------------------------------------
+# Grouping generator for BlockManager
+
+def generate_groups(data, label_list, shape, axis=0):
+    """
+    Parameters
+    ----------
+    data : BlockManager
+
+    Returns
+    -------
+    generator
+    """
+    sorted_data, sorted_labels = _group_reorder(data, label_list, axis=axis)
+    return _generate_groups(sorted_data, sorted_labels, shape,
+                            0, len(label_list[0]), axis=axis, which=0)
+
+def _group_reorder(data, label_list, axis=0):
+    indexer = np.lexsort(label_list[::-1])
+    sorted_labels = [labels.take(indexer) for labels in label_list]
+
+    # this is sort of wasteful but...
+    sorted_axis = data.axes[axis].take(indexer)
+    sorted_data = data.reindex_axis(sorted_axis, axis=axis)
+
+    return sorted_data, sorted_labels
+
+def _generate_groups(data, labels, shape, start, end, axis=0, which=0):
+    axis_labels = labels[which][start:end]
+    edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
+                                     side='left')
+
+    # time to actually aggregate
+    if which == len(labels) - 1:
+        pass
+    else:
+        stride = np.prod(shape[which+1:])
+        # get group counts on axisp
+        edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
+                                         side='left')
+        # print edges, axis
+        start = 0
+
+        # yield subgenerators, yikes
+        for i, end in enumerate(edges):
+            yield i, _generate_groups(sorted_data, sorted_labels, shape,
+                                      start, end, axis=axis, which=which + 1)
+            start = end

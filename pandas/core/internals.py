@@ -540,6 +540,10 @@ class BlockManager(object):
             raise KeyError('no item named %s' % item)
 
     def reindex_axis(self, new_axis, method=None, axis=0):
+        if axis == 0:
+            assert(method is None)
+            return self.reindex_items(new_axis)
+
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 

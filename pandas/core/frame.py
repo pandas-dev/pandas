@@ -874,7 +874,7 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _reindex_columns(self, new_columns):
-        new_data = self._data.reindex_items(new_columns)
+        new_data = self._data.reindex_axis(new_columns, axis=0)
         return self._constructor(new_data)
 
     def reindex_like(self, other, method=None):

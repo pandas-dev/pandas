@@ -112,6 +112,12 @@ def groupby_indices(ndarray values):
 
 @cython.boundscheck(False)
 def group_labels(ndarray[object] values):
+    '''
+    Compute label vector from input values and associated useful data
+
+    Returns
+    -------
+    '''
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
@@ -141,18 +147,6 @@ def group_labels(ndarray[object] values):
             count += 1
 
     return reverse, labels, counts[:count].copy()
-
-def labelize(*key_arrays):
-    idicts = []
-    shape = []
-    labels = []
-    for arr in key_arrays:
-        ids, lab, counts  = group_labels(arr)
-        shape.append(len(ids))
-        labels.append(lab)
-        idicts.append(ids)
-
-    return tuple(shape), labels, idicts
 
 ctypedef double_t (* agg_func)(double_t *out, double_t *values, int32_t *labels,
                                int start, int end, Py_ssize_t offset)
@@ -190,54 +184,10 @@ cdef void _aggregate_group(double_t *out, double_t *values,
         ndarray[int32_t] axis
         cdef Py_ssize_t stride
 
-    axis = labels[which]
-
     # time to actually aggregate
     if which == len(labels) - 1:
         # print axis, start, end
-        func(out, values, <int32_t*> axis.data, start, end, offset)
-    else:
-        stride = np.prod(shape[which+1:])
-        # get group counts on axisp
-        edges = axis.searchsorted(np.arange(1, shape[which] + 1), side='left')
-        # print edges, axis
-        start = 0
-        # aggregate each subgroup
-        for end in edges:
-            _aggregate_group(out, values, labels, start, end,
-                             shape, which + 1, offset, func)
-            offset += stride
-            start = end
-
-def group_aggregate_generic(ndarray[double_t] values, list label_list,
-                            object shape, object func):
-    cdef:
-        list sorted_labels
-        ndarray result
-        agg_func func
-
-    values, sorted_labels = _group_reorder(values, label_list)
-    result = np.empty(shape, dtype=np.float64)
-    result.fill(nan)
-
-    _aggregate_group_generic(<double_t*> result.data, <double_t*> values.data,
-                             sorted_labels, 0, len(values), shape, 0, 0, func)
-
-    return result, sorted_labels
-
-cpdef _aggregate_group_generic(double_t *out, double_t *values,
-                               list labels, int start, int end, tuple shape,
-                               Py_ssize_t which, Py_ssize_t offset,
-                               object func):
-    cdef:
-        ndarray[int32_t] axis
-        cdef Py_ssize_t stride
-
-    axis = labels[which]
-
-    # time to actually aggregate
-    if which == len(labels) - 1:
-        # print axis, start, end
+        axis = labels[which]
         func(out, values, <int32_t*> axis.data, start, end, offset)
     else:
         stride = np.prod(shape[which+1:])
