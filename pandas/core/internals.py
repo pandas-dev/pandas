@@ -829,38 +829,3 @@ def _union_block_items(blocks):
             raise Exception('item names overlap')
 
     return seen
-
-def _nan_array(index, items, dtype=np.float64):
-    if index is None:
-        index = NULL_INDEX
-    if items is None:
-        items = NULL_INDEX
-
-    values = np.empty((len(index), len(items)), dtype=dtype)
-    values.fill(nan)
-    return values
-
-if __name__ == '__main__':
-    n = 10
-    floats = np.repeat(np.atleast_2d(np.arange(3.)), n, axis=0)
-    objects = np.empty((n, 2), dtype=object)
-    objects[:, 0] = 'foo'
-    objects[:, 1] = 'bar'
-
-    float_items = Index(['a', 'c', 'e'])
-    object_items = Index(['b', 'd'])
-    items = Index(sorted(float_items + object_items))
-    index = np.arange(n)
-    new_items = Index(['a', 'c', 'e', 'b', 'd'])
-
-    float_locs = new_items.get_indexer(float_items)[0]
-    obj_locs = new_items.get_indexer(object_items)[0]
-
-    fblock = make_block(floats, float_items, float_items)
-    oblock = make_block(objects, object_items, object_items)
-
-    # blocks = [fblock, oblock]
-
-    # interleaved = _interleave(blocks, items)
-
-    # mgr = BlockManager(blocks, index, items)

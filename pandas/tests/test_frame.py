@@ -784,6 +784,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df = DataFrame(index=[])
         self.assertEqual(df.values.shape, (0, 0))
 
+    def test_constructor_scalar_inference(self):
+        data = {'int' : 1, 'bool' : True,
+                'float' : 3., 'object' : 'foo'}
+        df = DataFrame(data, index=np.arange(10))
+
+        self.assert_(df['int'].dtype == np.int_)
+        self.assert_(df['bool'].dtype == np.bool_)
+        self.assert_(df['float'].dtype == np.float_)
+        self.assert_(df['object'].dtype == np.object_)
+
     def test_constructor_DataFrame(self):
         df = DataFrame(self.frame)
         assert_frame_equal(df, self.frame)

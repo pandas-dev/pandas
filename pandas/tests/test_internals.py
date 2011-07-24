@@ -149,19 +149,6 @@ class TestBlock(unittest.TestCase):
         pass
 
 
-def test_nan_array():
-    arr = internals._nan_array(None, None)
-    assert(arr.shape == (0, 0))
-
-    arr = internals._nan_array(np.arange(10), None)
-    assert(arr.shape == (10, 0))
-
-    arr = internals._nan_array(None, np.arange(10))
-    assert(arr.shape == (0, 10))
-
-    arr = internals._nan_array(np.arange(5), np.arange(10))
-    assert(arr.shape == (5, 10))
-
 class TestBlockManager(unittest.TestCase):
 
     def setUp(self):

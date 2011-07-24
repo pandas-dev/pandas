@@ -75,13 +75,10 @@ def _unpickle_array(bytes):
     return arr
 
 def null_out_axis(arr, mask, axis):
-    if axis == 0:
-        arr[mask] = np.NaN
-    else:
-        indexer = [slice(None)] * arr.ndim
-        indexer[axis] = mask
+    indexer = [slice(None)] * arr.ndim
+    indexer[axis] = mask
 
-        arr[tuple(indexer)] = np.NaN
+    arr[tuple(indexer)] = np.NaN
 
 #-------------------------------------------------------------------------------
 # Lots of little utilities
@@ -89,10 +86,10 @@ def null_out_axis(arr, mask, axis):
 def _infer_dtype(value):
     if isinstance(value, (float, np.floating)):
         return float
-    elif isinstance(value, (int, np.integer)):
-        return int
     elif isinstance(value, (bool, np.bool_)):
         return bool
+    elif isinstance(value, (int, np.integer)):
+        return int
     else:
         return object
 
