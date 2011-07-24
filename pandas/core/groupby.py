@@ -29,15 +29,19 @@ class GroupBy(object):
     Supported classes: Series, DataFrame
     """
     def __init__(self, obj, grouper=None, axis=0, groupings=None,
-                 name=None):
+                 exclusions=None, name=None):
         self.name = name
         self.obj = obj
         self.axis = axis
 
         if groupings is None:
-            groupings = _get_groupings(obj, grouper, axis=axis)
+            groupings, exclusions = _get_groupings(obj, grouper, axis=axis)
 
         self.groupings = groupings
+        self.exclusions = set(exclusions)
+
+    def _get_obj_with_exclusions(self):
+        return self.obj
 
     @property
     def _result_shape(self):
@@ -71,10 +75,13 @@ class GroupBy(object):
     def primary(self):
         return self.groupings[0]
 
-    def get_group(self, name):
+    def get_group(self, name, obj=None):
+        if obj is None:
+            obj = self.obj
+
         labels = self.primary.get_group_labels(name)
-        axis_name = self.obj._get_axis_name(self.axis)
-        return self.obj.reindex(**{axis_name : labels})
+        axis_name = obj._get_axis_name(self.axis)
+        return obj.reindex(**{axis_name : labels})
 
     def __iter__(self):
         """
@@ -102,14 +109,66 @@ class GroupBy(object):
 
     def _aggregate_generic(self, agger, axis=0):
         result = {}
+
+        obj = self._get_obj_with_exclusions()
+
         for name in self.primary:
-            data = self.get_group(name)
+            data = self.get_group(name, obj=obj)
             try:
                 result[name] = agger(data)
             except Exception:
                 result[name] = data.apply(agger, axis=axis)
 
         return result
+
+    def _aggregate_multi_group(self, arg):
+        # TODO: cythonize
+
+        if len(self.groupings) > 3:
+            raise Exception('can only handle 3 or fewer groupings for now')
+
+        labels = [ping.labels for ping in self.groupings]
+        shape = self._result_shape
+
+        result = np.empty(shape, dtype=float)
+        result.fill(np.nan)
+        counts = np.zeros(shape, dtype=int)
+
+        def _doit(reschunk, ctchunk, gen):
+            for i, (_, subgen) in enumerate(gen):
+                if isinstance(subgen, Series):
+                    ctchunk[i] = len(subgen)
+                    if len(subgen) == 0:
+                        continue
+                    reschunk[i] = arg(subgen)
+                else:
+                    _doit(reschunk[i], ctchunk[i], subgen)
+
+        output = {}
+
+        # iterate through "columns" ex exclusions to populate output dict
+        for name, obj in self._iterate_columns():
+            gen = generate_groups(obj, labels, shape, axis=self.axis)
+            _doit(result, counts, gen)
+            # TODO: same mask for every column...
+            mask = counts.ravel() > 0
+            output[name] = result.ravel()[mask]
+
+        axes = [ping.names for ping in self.groupings]
+        grouping_names = [ping.name for ping in self.groupings]
+
+        for name, raveled in zip(grouping_names,
+                                 _ravel_names(axes, shape)):
+            output[name] = raveled[mask]
+
+        return DataFrame(output)
+
+    def _iterate_columns(self):
+        name = self.name
+        if name is None:
+            name = 'result'
+
+        yield name, self.obj
 
     def transform(self, func):
         raise NotImplementedError
@@ -143,6 +202,9 @@ class Grouping(object):
         else:
             # some kind of callable
             self.indices = _tseries.func_groupby_indices(index, self.grouper)
+
+    def __repr__(self):
+        return 'Grouping(%s)' % self.name
 
     def __iter__(self):
         return iter(self.indices)
@@ -203,18 +265,18 @@ def labelize(*key_arrays):
     return tuple(shape), labels, idicts
 
 def _get_groupings(obj, grouper, axis=0):
-    def _convert(arg):
-        if isinstance(arg, basestring):
-            return obj[arg]
-        return arg
-
     group_axis = obj._get_axis(axis)
 
     groupings = []
+    exclusions = []
     if isinstance(grouper, (tuple, list)):
+        if axis != 0:
+            raise ValueError('multi-grouping only valid with axis=0 for now')
+
         for i, arg in enumerate(grouper):
             name = 'key_%d' % i
             if isinstance(arg, basestring):
+                exclusions.append(arg)
                 name = arg
                 arg = obj[arg]
 
@@ -223,12 +285,13 @@ def _get_groupings(obj, grouper, axis=0):
     else:
         name = 'key'
         if isinstance(grouper, basestring):
+            exclusions.append(grouper)
             name = grouper
             grouper = obj[grouper]
         ping = Grouping(group_axis, grouper, name=name)
         groupings.append(ping)
 
-    return groupings
+    return groupings, exclusions
 
 def _convert_grouper(axis, grouper):
     if isinstance(grouper, dict):
@@ -299,50 +362,6 @@ class SeriesGroupBy(GroupBy):
                 ret = Series({})
 
         return ret
-
-    def _aggregate_multi_group(self, arg):
-        # TODO: cythonize
-
-        if len(self.groupings) > 3:
-            raise Exception('can only handle 3 or fewer groupings for now')
-
-        labels = [ping.labels for ping in self.groupings]
-        shape = self._result_shape
-
-        result = np.empty(shape, dtype=float)
-        result.fill(np.nan)
-        counts = np.zeros(shape, dtype=int)
-
-        def _doit(reschunk, ctchunk, gen):
-            for i, (_, subgen) in enumerate(gen):
-                if isinstance(subgen, Series):
-                    ctchunk[i] = len(subgen)
-                    if len(subgen) == 0:
-                        continue
-                    reschunk[i] = arg(subgen)
-                else:
-                    _doit(reschunk[i], ctchunk[i], subgen)
-
-        gen = generate_groups(self.obj, labels, shape, axis=0)
-        _doit(result, counts, gen)
-
-        mask = counts.ravel() > 0
-        result = result.ravel()[mask]
-
-        axes = [ping.names for ping in self.groupings]
-        grouping_names = [ping.name for ping in self.groupings]
-
-        data = {}
-        for name, raveled in zip(grouping_names,
-                                 _ravel_names(axes, shape)):
-            data[name] = raveled[mask]
-
-        name = self.name
-        if name is None:
-            name = 'result'
-
-        data[name] = result
-        return DataFrame(data)
 
     def _aggregate_multiple_funcs(self, arg):
         if not isinstance(arg, dict):
@@ -436,32 +455,50 @@ class DataFrameGroupBy(GroupBy):
         if key not in self.obj:
             raise KeyError('column %s not found' % key)
         return SeriesGroupBy(self.obj[key], groupings=self.groupings,
-                             name=key)
+                             exclusions=self.exclusions, name=key)
 
-    def aggregate(self, applyfunc):
+
+    def _iterate_columns(self):
+        for col in self.obj:
+            if col in self.exclusions:
+                continue
+            yield col, self.obj[col]
+
+    def _get_obj_with_exclusions(self):
+        return self.obj.drop(self.exclusions, axis=1)
+
+    def aggregate(self, arg):
         """
-        For given DataFrame, group index by given mapper function or dict, take
-        the sub-DataFrame (reindex) for this group and call apply(applyfunc)
-        on this sub-DataFrame. Return a DataFrame of the results for each
-        key.
+        Aggregate using input function or dict of {column -> function}
 
         Parameters
         ----------
-        mapper : function, dict-like, or string
-            Mapping or mapping function. If string given, must be a column
-            name in the framep
-        applyfunc : function
-            Function to use for aggregating groups
+        arg : function or dict
 
-        N.B.: applyfunc must produce one value from a Series, otherwise
-        an error will occur.
+            Function to use for aggregating groups. If a function, must either
+            work when passed a DataFrame or when passed to DataFrame.apply. If
+            pass a dict, the keys must be DataFrame column names
 
-        Optional: provide set mapping as dictionary
+        Returns
+        -------
+        aggregated : DataFrame
         """
-        result_d = self._aggregate_generic(applyfunc, axis=self.axis)
-        result = DataFrame(result_d)
-        if self.axis == 0:
-            result = result.T
+        if len(self.groupings) > 1:
+            # HACK for now
+            return self._aggregate_multi_group(arg)
+
+        result = {}
+        if isinstance(arg, dict):
+            for col, func in arg.iteritems():
+                result[col] = self[col].agg(func)
+
+            result = DataFrame(result)
+        else:
+            result = self._aggregate_generic(arg, axis=self.axis)
+            result = DataFrame(result)
+            if self.axis == 0:
+                result = result.T
+
         return result
 
     def transform(self, func):

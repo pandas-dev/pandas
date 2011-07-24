@@ -141,7 +141,6 @@ class TestDataFrameGroupBy(unittest.TestCase):
         tscopy = self.tsframe.copy()
         tscopy['weekday'] = [x.weekday() for x in tscopy.index]
         stragged = tscopy.groupby('weekday').aggregate(np.mean)
-        del stragged['weekday']
         assert_frame_equal(stragged, aggregated)
 
         # transform

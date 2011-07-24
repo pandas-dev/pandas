@@ -28,7 +28,8 @@ print tseries.groupby_indices(key2)
 
 df = DataFrame({'key1' : key1,
                 'key2' : key2,
-                'values' : values})
+                'v1' : values,
+                'v2' : values})
 k1 = df['key1']
 k2 = df['key2']
 
@@ -39,7 +40,7 @@ k2 = df['key2']
 
 # print result
 
-gen = gp.generate_groups(df['values'], labels, shape, axis=1,
+gen = gp.generate_groups(df['v1'], labels, shape, axis=1,
                          factory=DataFrame)
 
 res = defaultdict(dict)
@@ -52,3 +53,4 @@ for a, gen1 in gen:
 
 res = DataFrame(res)
 
+grouped = df.groupby(['key1', 'key2'])
