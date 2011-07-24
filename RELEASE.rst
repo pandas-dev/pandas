@@ -175,6 +175,7 @@ Release notes
 * Disabled `Index` objects from being hashable, like ndarrays
 * Added `__ne__` implementation to `Index` so that operations like ts[ts != idx]
   will work
+* Added `__ne__` implementation to `DataFrame`
 * Bug / unintuitive result when calling `fillna` on unordered labels
 * Bug calling `sum` on boolean DataFrame
 * Bug fix when creating a DataFrame from a dict with scalar values

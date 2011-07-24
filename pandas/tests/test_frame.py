@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from cStringIO import StringIO
 import cPickle as pickle
+import operator
 import os
 import unittest
 
@@ -784,6 +785,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df = DataFrame(index=[])
         self.assertEqual(df.values.shape, (0, 0))
 
+        # empty but with specified dtype
+        df = DataFrame(index=range(10), columns=['a','b'], dtype=object)
+        self.assert_(df.values.dtype == np.object_)
+
     def test_constructor_scalar_inference(self):
         data = {'int' : 1, 'bool' : True,
                 'float' : 3., 'object' : 'foo'}
@@ -1210,8 +1215,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertEqual(len(result.columns), 0)
 
     def test_comparisons(self):
-        import operator
-
         df1 = tm.makeTimeDataFrame()
         df2 = tm.makeTimeDataFrame()
 
@@ -1935,10 +1938,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                       columns=np.arange(6))
         expected = DataFrame([[3., 3., nan, 4., 6., nan]],
                              columns=np.arange(6))
+
         result = a.combineAdd(b)
         assert_frame_equal(result, expected)
         result2 = a.T.combineAdd(b.T)
         assert_frame_equal(result2, expected.T)
+
+        expected2 = a.combine(b, operator.add, fill_value=0.)
+        assert_frame_equal(expected, expected2)
 
         # corner cases
         comb = self.frame.combineAdd(self.empty)

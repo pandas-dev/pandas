@@ -177,13 +177,15 @@ class DataFrame(NDFrame):
         if columns is not None:
             columns = _ensure_index(columns)
             data = dict((k, v) for k, v in data.iteritems() if k in columns)
+        else:
+            columns = Index(_try_sort(data.keys()))
 
         # figure out the index, if necessary
         if index is None:
             index = extract_index(data)
 
         # don't force copy because getting jammed in an ndarray anyway
-        homogenized = _homogenize_series(data, index, dtype)
+        homogenized = _homogenize(data, index, columns, dtype)
 
         # segregates dtypes and forms blocks matching to columns
         blocks, columns = form_blocks(homogenized, index, columns)
@@ -2505,10 +2507,16 @@ def _rec_to_dict(arr):
     sdict = dict((k, arr[k]) for k in columns)
     return columns, sdict
 
-def _homogenize_series(data, index, dtype=None):
+def _homogenize(data, index, columns, dtype=None):
     homogenized = {}
 
-    for k, v in data.iteritems():
+    for k in columns:
+        if k not in data:
+            v = np.empty(len(index), dtype=dtype)
+            v.fill(nan)
+        else:
+            v = data[k]
+
         if isinstance(v, Series):
             if dtype is not None:
                 v = v.astype(dtype)
