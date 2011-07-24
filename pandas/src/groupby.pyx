@@ -171,6 +171,9 @@ def group_aggregate(ndarray[double_t] values, list label_list,
     result = np.empty(shape, dtype=np.float64)
     result.fill(nan)
 
+    if not values.flags.c_contiguous:
+        values = values.copy()
+
     _aggregate_group(<double_t*> result.data, <double_t*> values.data,
                      sorted_labels, 0, len(values), shape, 0, 0, func)
 
@@ -190,17 +193,18 @@ cdef void _aggregate_group(double_t *out, double_t *values,
         axis = labels[which]
         func(out, values, <int32_t*> axis.data, start, end, offset)
     else:
+        axis = labels[which][start:end]
         stride = np.prod(shape[which+1:])
         # get group counts on axisp
         edges = axis.searchsorted(np.arange(1, shape[which] + 1), side='left')
         # print edges, axis
-        start = 0
+        left = 0
         # aggregate each subgroup
-        for end in edges:
-            _aggregate_group(out, values, labels, start, end,
+        for right in edges:
+            _aggregate_group(out, values, labels, start + left, start + right,
                              shape, which + 1, offset, func)
             offset += stride
-            start = end
+            left = right
 
 cdef double_t _group_add(double_t *out, double_t *values, int32_t *labels,
                          int start, int end, Py_ssize_t offset):

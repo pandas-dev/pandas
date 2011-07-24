@@ -1,3 +1,5 @@
+import types
+
 import numpy as np
 
 from cStringIO import StringIO
@@ -67,6 +69,30 @@ class GroupBy(object):
             groupers = _convert_strings(obj, grouper)
             group_axis = obj._get_axis(axis)
             self.groupings = [Grouping(group_axis, arg) for arg in groupers]
+
+    def __getattribute__(self, attr):
+        get = lambda name: object.__getattribute__(self, name)
+
+        try:
+            return get(attr)
+        except AttributeError:
+            if hasattr(type(self.obj), attr):
+                return self._make_wrapper(attr)
+            raise
+
+    def _make_wrapper(self, name):
+        f = getattr(self.obj, name)
+        if not isinstance(f, types.MethodType):
+            return self.aggregate(lambda self: getattr(self, name))
+
+        # return the class reference
+        f = getattr(type(self.obj), name)
+
+        def wrapper(*args, **kwargs):
+            curried = lambda self: f(self, *args, **kwargs)
+            return self.aggregate(curried)
+
+        return wrapper
 
     @property
     def primary(self):
@@ -182,7 +208,7 @@ def multi_groupby(obj, op, *columns):
 
 class SeriesGroupBy(GroupBy):
 
-    def aggregate(self, applyfunc):
+    def aggregate(self, arg):
         """
         See doc for DataFrame.groupby, group series using mapper (dict or key
         function, apply given function to group, return result as series).
@@ -194,55 +220,65 @@ class SeriesGroupBy(GroupBy):
         ----------
         mapper : function
             Called on each element of the Series index to determine the groups
-        applyfunc : function
+        arg : function
             Function to use to aggregate each group
 
         Returns
         -------
         Series or DataFrame
         """
-        if hasattr(applyfunc,'__iter__'):
-            retVal = self._aggregate_multiple(applyfunc)
+        if hasattr(arg,'__iter__'):
+            ret = self._aggregate_multiple(arg)
         else:
             try:
-                result = self._aggregate_simple(applyfunc)
+                result = self._aggregate_simple(arg)
             except Exception:
-                result = self._aggregate_named(applyfunc)
+                result = self._aggregate_named(arg)
 
-            retVal = Series(result)
+            if len(result) > 0:
+                if isinstance(result.values()[0], Series):
+                    ret = DataFrame(result).T
+                else:
+                    ret = Series(result)
+            else:
+                ret = Series({})
 
-        return retVal
+        return ret
 
-    def _aggregate_multiple(self, applyfunc):
-        if not isinstance(applyfunc, dict):
-            applyfunc = dict((func.__name__, func) for func in applyfunc)
+    def _aggregate_multiple(self, arg):
+        if not isinstance(arg, dict):
+            arg = dict((func.__name__, func) for func in arg)
 
         results = {}
 
-        for name, func in applyfunc.iteritems():
+        for name, func in arg.iteritems():
             result = self.aggregate(func)
             results[name] = result
 
         return DataFrame(results)
 
-    def _aggregate_simple(self, applyfunc):
+    def _aggregate_simple(self, arg):
         values = self.obj.values
         result = {}
         for k, v in self.primary.indices.iteritems():
-            result[k] = applyfunc(values.take(v))
+            result[k] = arg(values.take(v))
 
         return result
 
-    def _aggregate_named(self, applyfunc):
+    def _aggregate_named(self, arg):
         result = {}
+
+        as_frame = False
+
         for name in self.primary:
             grp = self.get_group(name)
             grp.groupName = name
-            output = applyfunc(grp)
+            output = arg(grp)
 
             if isinstance(output, Series):
-                raise Exception('Given applyfunc did not return a '
-                                'value from the subseries as expected!')
+                as_frame = True
+                # raise Exception('Given applyfunc did not return a '
+                #                 'value from the subseries as expected!')
 
             result[name] = output
 
@@ -290,16 +326,8 @@ class SeriesGroupBy(GroupBy):
 
         return result
 
-class FrameMetaGroupBy(object):
-
-    def __init__(self, grouped, context):
-        pass
 
 class DataFrameGroupBy(GroupBy):
-
-    # def __init__(self, obj, grouper=None, axis=0, groupings=None):
-    #     GroupBy.__init__(self, obj, grouper=grouper, axis=axis,
-    #                      groupings=groupings)
 
     def __getitem__(self, key):
         if key not in self.obj:
@@ -398,9 +426,6 @@ class DataFrameGroupBy(GroupBy):
 
 class WidePanelGroupBy(GroupBy):
 
-    def __init__(self, obj, grouper, axis=0):
-        GroupBy.__init__(self, obj, grouper, axis=axis)
-
     def aggregate(self, func):
         """
         For given DataFrame, group index by given mapper function or dict, take
@@ -421,7 +446,6 @@ class WidePanelGroupBy(GroupBy):
 
         Optional: provide set mapping as dictionary
         """
-        axis_name = self.obj._get_axis_name(self.axis)
         result_d = self._aggregate_generic(func, axis=self.axis)
         result = WidePanel.fromDict(result_d, intersect=False)
 
@@ -447,8 +471,11 @@ def generate_groups(data, label_list, shape, axis=0):
     generator
     """
     sorted_data, sorted_labels = _group_reorder(data, label_list, axis=axis)
-    return _generate_groups(sorted_data, sorted_labels, shape,
-                            0, len(label_list[0]), axis=axis, which=0)
+
+    gen = _generate_groups(sorted_data, sorted_labels, shape,
+                           0, len(label_list[0]), axis=axis, which=0)
+    for key, group in gen:
+        yield key, group
 
 def _group_reorder(data, label_list, axis=0):
     indexer = np.lexsort(label_list[::-1])
@@ -464,20 +491,22 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0):
     axis_labels = labels[which][start:end]
     edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
                                      side='left')
+    print edges
+
+
+    do_slice = which == len(labels) - 1
 
     # time to actually aggregate
-    if which == len(labels) - 1:
-        pass
-    else:
-        stride = np.prod(shape[which+1:])
-        # get group counts on axisp
-        edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
-                                         side='left')
-        # print edges, axis
-        start = 0
+    left = 0
 
-        # yield subgenerators, yikes
-        for i, end in enumerate(edges):
-            yield i, _generate_groups(sorted_data, sorted_labels, shape,
-                                      start, end, axis=axis, which=which + 1)
-            start = end
+    for i, right in enumerate(edges):
+        if do_slice:
+            slicer = slice(start + left, start + right)
+            yield i, data.get_slice(slicer, axis=axis)
+        else:
+            # yield subgenerators, yikes
+            yield i, _generate_groups(data, labels, shape, start + left,
+                                      start + right, axis=axis,
+                                      which=which + 1)
+
+        left = right

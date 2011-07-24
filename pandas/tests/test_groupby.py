@@ -90,8 +90,7 @@ class TestSeriesGroupBy(unittest.TestCase):
         self.assertEqual(agged[1], 21)
 
         # corner cases
-        self.assertRaises(Exception, grouped._aggregate_named,
-                          lambda x: x * 2)
+        self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
     def test_groupby_transform(self):
         data = Series(np.arange(9) / 3, index=np.arange(9))
