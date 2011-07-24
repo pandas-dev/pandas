@@ -177,6 +177,7 @@ Release notes
   will work
 * Bug / unintuitive result when calling `fillna` on unordered labels
 * Bug calling `sum` on boolean DataFrame
+* Bug fix when creating a DataFrame from a dict with scalar values
 
 Thanks
 ------
@@ -185,8 +186,11 @@ Thanks
 - Chris Uga
 - Chris Withers
 - Jeff Reback
+- Ted Square
+- Craig Austin
 - William Ferreira
 - Daniel Fortunov
+- Tony Roberts
 - Martin Felder
 
 ************************
