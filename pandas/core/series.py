@@ -13,7 +13,7 @@ import warnings
 from numpy import nan, ndarray
 import numpy as np
 
-from pandas.core.common import isnull, notnull, _ensure_index
+from pandas.core.common import isnull, notnull, _ensure_index, _is_bool_indexer
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
 from pandas.core.index import Index
@@ -293,9 +293,6 @@ class Series(np.ndarray, PandasObject):
                 raise Exception('can only boolean index with like-indexed '
                                 'Series or raw ndarrays')
 
-        # TODO: [slice(0, 5, None)] will break if you convert to ndarray,
-        # e.g. as requested by np.median
-
         def _index_with(indexer):
             return Series(values[indexer], index=self.index[indexer])
 
@@ -305,6 +302,10 @@ class Series(np.ndarray, PandasObject):
         if _is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
             return _index_with(key)
+
+
+        # TODO: [slice(0, 5, None)] will break if you convert to ndarray,
+        # e.g. as requested by np.median
 
         try:
             return _index_with(key)
@@ -735,12 +736,8 @@ class Series(np.ndarray, PandasObject):
         y : Series
         """
         newIndex = np.concatenate((self.index, other.index))
-
-        # Force overlap check
-        try:
-            newIndex = Index(newIndex)
-        except Exception:
-            raise
+        newIndex = Index(newIndex)
+        newIndex._verify_integrity()
 
         new_values = np.concatenate((self, other))
         return Series(new_values, index=newIndex)
@@ -1441,15 +1438,6 @@ class TimeSeries(Series):
 #-------------------------------------------------------------------------------
 # Supplementary functions
 
-def _is_bool_indexer(key):
-    if isinstance(key, np.ndarray) and key.dtype == np.object_:
-        mask = isnull(key)
-        if mask.any():
-            raise ValueError('cannot index with vector containing '
-                             'NA / NaN values')
-
-        return set([True, False]).issubset(set(key))
-    return False
 
 _ndgi = ndarray.__getitem__
 

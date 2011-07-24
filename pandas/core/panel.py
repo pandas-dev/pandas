@@ -1555,7 +1555,8 @@ class LongPanel(Panel, Picklable):
         assert(self.index is other.index)
 
         values = np.concatenate((self.values, other.values), axis=1).copy()
-        items = self.items.tolist() + other.items.tolist()
+        items = Index(np.concatenate((self.items, other.items)))
+        items._verify_integrity()
 
         return LongPanel(values, items, self.index)
 

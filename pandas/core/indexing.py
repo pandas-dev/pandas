@@ -222,7 +222,7 @@ class _DataFrameIndexer(object):
                 if not key.index.equals(labels):
                     raise Exception('Cannot use boolean index with misaligned '
                                     'or unequal labels')
-            return self.frame.reindex(**{axis_name : labels[key]})
+            return self.frame.reindex(**{axis_name : labels[np.asarray(key)]})
         else:
             if _is_integer_dtype(keyarr) and _is_integer_index(labels):
                 raise AmbiguousIndexError('integer labels')

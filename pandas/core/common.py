@@ -96,6 +96,23 @@ def _infer_dtype(value):
     else:
         return object
 
+def _is_bool_indexer(key):
+    if isinstance(key, np.ndarray) and key.dtype == np.object_:
+        mask = isnull(key)
+        if mask.any():
+            raise ValueError('cannot index with vector containing '
+                             'NA / NaN values')
+        return set([True, False]).issubset(set(key))
+    elif isinstance(key, np.ndarray) and key.dtype == np.bool_:
+        return True
+    elif isinstance(key, list):
+        try:
+            return set([True, False]).issubset(set(key))
+        except TypeError:
+            return False
+
+    return False
+
 def _default_index(n):
     from pandas.core.index import NULL_INDEX
     if n == 0:

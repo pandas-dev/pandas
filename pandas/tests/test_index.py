@@ -26,7 +26,8 @@ class TestIndex(unittest.TestCase):
         self.assert_(copy is self.strIndex)
 
     def test_duplicates(self):
-        self.assertRaises(Exception, Index, [0, 0, 0])
+        idx = Index([0, 0, 0])
+        self.assertRaises(Exception, idx._verify_integrity)
 
     def test_sort(self):
         self.assertRaises(Exception, self.strIndex.sort)

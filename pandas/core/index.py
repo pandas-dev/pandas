@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pandas.core.common import _ensure_index
+from pandas.core.common import _ensure_index, _is_bool_indexer
 import pandas._tseries as _tseries
 
 __all__ = ['Index']
@@ -52,6 +52,8 @@ class Index(np.ndarray):
             return self.item()
             # raise Exception('Cannot create 0-dimensional Index!')
 
+        return
+
         # New instance creation
         if obj is None:
             pass
@@ -62,11 +64,10 @@ class Index(np.ndarray):
 
         # View casting
         else:
-            if hasattr(obj, '_cache_indexMap'):
-                self._cache_indexMap = obj._cache_indexMap
-                self._cache_allDates = getattr(obj, '_cache_allDates', None)
-
-        self._checkForDuplicates()
+            pass
+            # if hasattr(obj, '_cache_indexMap'):
+            #     self._cache_indexMap = obj._cache_indexMap
+            #     self._cache_allDates = getattr(obj, '_cache_allDates', None)
 
     def summary(self):
         if len(self) > 0:
@@ -79,6 +80,7 @@ class Index(np.ndarray):
     def indexMap(self):
         if not hasattr(self, '_cache_indexMap'):
             self._cache_indexMap = _tseries.map_indices(self)
+            self._verify_integrity()
 
         return self._cache_indexMap
 
@@ -92,7 +94,7 @@ class Index(np.ndarray):
     def is_all_dates(self):
         return self._allDates
 
-    def _checkForDuplicates(self):
+    def _verify_integrity(self):
         if len(self.indexMap) < len(self):
             raise Exception('Index cannot contain duplicate values!')
 
@@ -127,6 +129,9 @@ class Index(np.ndarray):
         if np.isscalar(key):
             return arr_idx[key]
         else:
+            if _is_bool_indexer(key):
+                key = np.asarray(key)
+
             # easier to ask forgiveness than permission
             try:
                 return Index(arr_idx[key])
