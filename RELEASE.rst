@@ -71,6 +71,8 @@ Release notes
 * `rolling_quantile` functions; a moving version of `Series.quantile` /
   `DataFrame.quantile`
 * Generic `rolling_apply` moving window function
+* New `drop` method added to `Series`, `DataFrame`, etc. which can drop a set of
+  labels from an axis, producing a new object
 
 **Improvements to existing features**
 
@@ -126,6 +128,10 @@ Release notes
 * Handling of boolean dtype in `DataFrame` has been improved to support storage
   of boolean data with NA / NaN values. Before it was being converted to float64
   so this should not (in theory) cause API breakage
+* To optimize performance, Index objects now only check that their labels are
+  unique when uniqueness matters (i.e. when someone goes to perform a
+  lookup). This is a potentially dangerous tradeoff, but will lead to much
+  better performance in many places (like groupby).
 * Boolean indexing using Series must now have the same indices (labels)
 * Backwards compatibility support for begin/end/nPeriods keyword arguments in
   DateRange class has been removed
