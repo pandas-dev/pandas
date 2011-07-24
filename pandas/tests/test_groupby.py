@@ -202,6 +202,7 @@ class TestDataFrameGroupBy(unittest.TestCase):
 
     def test_groupby_multiple_columns(self):
         raise nose.SkipTest
+
         data = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
                                  'foo', 'bar', 'foo', 'foo'],
                           'B' : ['one', 'one', 'two', 'three',
@@ -209,8 +210,8 @@ class TestDataFrameGroupBy(unittest.TestCase):
                           'C' : np.random.randn(8),
                           'D' : np.random.randn(8)})
 
-        result1 = data.groupby('A', 'B').sum()
-        result1_col = data.groupby('A', 'B')['C'].sum()
+        result1 = data.groupby(['A', 'B']).sum()
+        result1_col = data.groupby(['A', 'B'])['C'].sum()
         expected = defaultdict(dict)
         for n1, gp1 in data.groupby('A'):
             for n2, gp2 in gp1.groupby('B'):

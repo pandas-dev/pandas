@@ -2,9 +2,8 @@ import types
 
 import numpy as np
 
-from cStringIO import StringIO
-
 from pandas.core.frame import DataFrame
+from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
 import pandas._tseries as _tseries
@@ -23,52 +22,26 @@ def groupby(obj, grouper, **kwds):
 
     return klass(obj, grouper, **kwds)
 
-class Grouping(object):
-
-    def __init__(self, labels, grouper):
-        self.labels = np.asarray(labels)
-        self.grouper = _convert_grouper(labels, grouper)
-
-        # eager beaver
-        self.indices = _get_group_indices(self.labels, self.grouper)
-
-    def __iter__(self):
-        return iter(self.indices)
-
-    def get_group_labels(self, group):
-        inds = self.indices[group]
-        return self.labels.take(inds)
-
-    _groups = None
-    @property
-    def groups(self):
-        if self._groups is None:
-            self._groups = _tseries.groupby(self.labels, self.grouper)
-        return self._groups
-
-def _get_group_indices(labels, grouper):
-    if isinstance(grouper, np.ndarray):
-        return _tseries.groupby_indices(grouper)
-    else:
-        # some kind of callable
-        return _tseries.func_groupby_indices(labels, grouper)
-
 class GroupBy(object):
     """
     Class for grouping and aggregating relational data.
 
     Supported classes: Series, DataFrame
     """
-    def __init__(self, obj, grouper=None, axis=0, groupings=None):
+    def __init__(self, obj, grouper=None, axis=0, groupings=None,
+                 name=None):
+        self.name = name
         self.obj = obj
         self.axis = axis
 
-        if groupings is not None:
-            self.groupings = groupings
-        else:
-            groupers = _convert_strings(obj, grouper)
-            group_axis = obj._get_axis(axis)
-            self.groupings = [Grouping(group_axis, arg) for arg in groupers]
+        if groupings is None:
+            groupings = _get_groupings(obj, grouper, axis=axis)
+
+        self.groupings = groupings
+
+    @property
+    def _result_shape(self):
+        return tuple(len(ping.ids) for ping in self.groupings)
 
     def __getattribute__(self, attr):
         get = lambda name: object.__getattribute__(self, name)
@@ -114,7 +87,7 @@ class GroupBy(object):
         """
         groups = self.primary.indices.keys()
         try:
-            groupNames = sorted(groups)
+            groups = sorted(groups)
         except Exception: # pragma: no cover
             pass
 
@@ -141,6 +114,8 @@ class GroupBy(object):
     def transform(self, func):
         raise NotImplementedError
 
+    # TODO: cythonize
+
     def mean(self):
         """
         Compute mean of groups, excluding missing values
@@ -155,6 +130,66 @@ class GroupBy(object):
         return self.aggregate(np.sum)
 
 
+class Grouping(object):
+
+    def __init__(self, index, grouper, name=None):
+        self.name = name
+        self.index = np.asarray(index)
+        self.grouper = _convert_grouper(index, grouper)
+
+        # eager beaver
+        if isinstance(grouper, np.ndarray):
+            self.indices = _tseries.groupby_indices(self.grouper)
+        else:
+            # some kind of callable
+            self.indices = _tseries.func_groupby_indices(index, self.grouper)
+
+    def __iter__(self):
+        return iter(self.indices)
+
+    def get_group_labels(self, group):
+        inds = self.indices[group]
+        return self.index.take(inds)
+
+    _labels = None
+    _ids = None
+    _counts = None
+
+    @property
+    def labels(self):
+        if self._labels is None:
+            self._make_labels()
+        return self._labels
+
+    @property
+    def ids(self):
+        if self._ids is None:
+            self._make_labels()
+        return self._ids
+
+    @property
+    def names(self):
+        return [self.ids[k] for k in sorted(self.ids)]
+
+    @property
+    def counts(self):
+        if self._counts is None:
+            self._make_labels()
+        return self._counts
+
+    def _make_labels(self):
+        ids, labels, counts  = _tseries.group_labels(self.grouper)
+        self._labels = labels
+        self._ids = ids
+        self._counts = counts
+
+    _groups = None
+    @property
+    def groups(self):
+        if self._groups is None:
+            self._groups = _tseries.groupby(self.index, self.grouper)
+        return self._groups
+
 def labelize(*key_arrays):
     idicts = []
     shape = []
@@ -168,18 +203,32 @@ def labelize(*key_arrays):
     return tuple(shape), labels, idicts
 
 def _get_groupings(obj, grouper, axis=0):
-    pass
-
-def _convert_strings(obj, groupers):
     def _convert(arg):
         if isinstance(arg, basestring):
             return obj[arg]
         return arg
 
-    if isinstance(groupers, (tuple, list)):
-        return [_convert(arg) for arg in groupers]
+    group_axis = obj._get_axis(axis)
+
+    groupings = []
+    if isinstance(grouper, (tuple, list)):
+        for i, arg in enumerate(grouper):
+            name = 'key_%d' % i
+            if isinstance(arg, basestring):
+                name = arg
+                arg = obj[arg]
+
+            ping = Grouping(group_axis, arg, name=name)
+            groupings.append(ping)
     else:
-        return [_convert(groupers)]
+        name = 'key'
+        if isinstance(grouper, basestring):
+            name = grouper
+            grouper = obj[grouper]
+        ping = Grouping(group_axis, grouper, name=name)
+        groupings.append(ping)
+
+    return groupings
 
 def _convert_grouper(axis, grouper):
     if isinstance(grouper, dict):
@@ -208,6 +257,8 @@ def multi_groupby(obj, op, *columns):
 
 class SeriesGroupBy(GroupBy):
 
+    _cythonized_methods = set(['add', 'mean'])
+
     def aggregate(self, arg):
         """
         See doc for DataFrame.groupby, group series using mapper (dict or key
@@ -227,8 +278,12 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
+        if len(self.groupings) > 1:
+            # HACK for now
+            return self._aggregate_multi_group(arg)
+
         if hasattr(arg,'__iter__'):
-            ret = self._aggregate_multiple(arg)
+            ret = self._aggregate_multiple_funcs(arg)
         else:
             try:
                 result = self._aggregate_simple(arg)
@@ -245,7 +300,51 @@ class SeriesGroupBy(GroupBy):
 
         return ret
 
-    def _aggregate_multiple(self, arg):
+    def _aggregate_multi_group(self, arg):
+        # TODO: cythonize
+
+        if len(self.groupings) > 3:
+            raise Exception('can only handle 3 or fewer groupings for now')
+
+        labels = [ping.labels for ping in self.groupings]
+        shape = self._result_shape
+
+        result = np.empty(shape, dtype=float)
+        result.fill(np.nan)
+        counts = np.zeros(shape, dtype=int)
+
+        def _doit(reschunk, ctchunk, gen):
+            for i, (_, subgen) in enumerate(gen):
+                if isinstance(subgen, Series):
+                    ctchunk[i] = len(subgen)
+                    if len(subgen) == 0:
+                        continue
+                    reschunk[i] = arg(subgen)
+                else:
+                    _doit(reschunk[i], ctchunk[i], subgen)
+
+        gen = generate_groups(self.obj, labels, shape, axis=0)
+        _doit(result, counts, gen)
+
+        mask = counts.ravel() > 0
+        result = result.ravel()[mask]
+
+        axes = [ping.names for ping in self.groupings]
+        grouping_names = [ping.name for ping in self.groupings]
+
+        data = {}
+        for name, raveled in zip(grouping_names,
+                                 _ravel_names(axes, shape)):
+            data[name] = raveled[mask]
+
+        name = self.name
+        if name is None:
+            name = 'result'
+
+        data[name] = result
+        return DataFrame(data)
+
+    def _aggregate_multiple_funcs(self, arg):
         if not isinstance(arg, dict):
             arg = dict((func.__name__, func) for func in arg)
 
@@ -268,18 +367,10 @@ class SeriesGroupBy(GroupBy):
     def _aggregate_named(self, arg):
         result = {}
 
-        as_frame = False
-
         for name in self.primary:
             grp = self.get_group(name)
             grp.groupName = name
             output = arg(grp)
-
-            if isinstance(output, Series):
-                as_frame = True
-                # raise Exception('Given applyfunc did not return a '
-                #                 'value from the subseries as expected!')
-
             result[name] = output
 
         return result
@@ -326,13 +417,26 @@ class SeriesGroupBy(GroupBy):
 
         return result
 
+def _ravel_names(axes, shape):
+    """
+    Compute labeling vector for raveled values vector
+    """
+    unrolled = []
+    for i, ax in enumerate(axes):
+        tile_shape = shape[:i] + shape[i+1:] + (1,)
+        tiled = np.tile(ax, tile_shape)
+        tiled = tiled.swapaxes(i, -1)
+        unrolled.append(tiled.ravel())
+
+    return unrolled
 
 class DataFrameGroupBy(GroupBy):
 
     def __getitem__(self, key):
         if key not in self.obj:
             raise KeyError('column %s not found' % key)
-        return SeriesGroupBy(self.obj[key], groupings=self.groupings)
+        return SeriesGroupBy(self.obj[key], groupings=self.groupings,
+                             name=key)
 
     def aggregate(self, applyfunc):
         """
@@ -460,7 +564,7 @@ class LongPanelGroupBy(GroupBy):
 #-------------------------------------------------------------------------------
 # Grouping generator for BlockManager
 
-def generate_groups(data, label_list, shape, axis=0):
+def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
     """
     Parameters
     ----------
@@ -473,7 +577,8 @@ def generate_groups(data, label_list, shape, axis=0):
     sorted_data, sorted_labels = _group_reorder(data, label_list, axis=axis)
 
     gen = _generate_groups(sorted_data, sorted_labels, shape,
-                           0, len(label_list[0]), axis=axis, which=0)
+                           0, len(label_list[0]), axis=axis, which=0,
+                           factory=factory)
     for key, group in gen:
         yield key, group
 
@@ -481,18 +586,29 @@ def _group_reorder(data, label_list, axis=0):
     indexer = np.lexsort(label_list[::-1])
     sorted_labels = [labels.take(indexer) for labels in label_list]
 
-    # this is sort of wasteful but...
-    sorted_axis = data.axes[axis].take(indexer)
-    sorted_data = data.reindex_axis(sorted_axis, axis=axis)
+    if isinstance(data, BlockManager):
+        # this is sort of wasteful but...
+        sorted_axis = data.axes[axis].take(indexer)
+        sorted_data = data.reindex_axis(sorted_axis, axis=axis)
+    elif isinstance(data, Series):
+        sorted_axis = data.index.take(indexer)
+        sorted_data = data.reindex(sorted_axis)
+    else:
+        sorted_data = data.take(indexer)
 
     return sorted_data, sorted_labels
 
-def _generate_groups(data, labels, shape, start, end, axis=0, which=0):
+def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
+                     factory=lambda x: x):
     axis_labels = labels[which][start:end]
     edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
                                      side='left')
-    print edges
-
+    if isinstance(data, BlockManager):
+        def slicer(data, slob):
+            return factory(data.get_slice(slob, axis=axis))
+    else:
+        def slicer(data, slob):
+            return data[slob]
 
     do_slice = which == len(labels) - 1
 
@@ -501,12 +617,12 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0):
 
     for i, right in enumerate(edges):
         if do_slice:
-            slicer = slice(start + left, start + right)
-            yield i, data.get_slice(slicer, axis=axis)
+            slob = slice(start + left, start + right)
+            yield i, slicer(data, slob)
         else:
             # yield subgenerators, yikes
             yield i, _generate_groups(data, labels, shape, start + left,
                                       start + right, axis=axis,
-                                      which=which + 1)
+                                      which=which + 1, factory=factory)
 
         left = right

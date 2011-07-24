@@ -8,7 +8,7 @@ import pandas._tseries as tseries
 import pandas.core.groupby as gp
 reload(gp)
 
-k = 4
+k = 1000
 values = np.random.randn(8 * k)
 key1 = np.array(['foo', 'bar', 'baz', 'bar', 'foo', 'baz', 'bar', 'baz'] * k,
                 dtype=object)
@@ -35,19 +35,20 @@ k2 = df['key2']
 # del df['key1']
 # del df['key2']
 
-r2 = gp.multi_groupby(df, np.sum, k1, k2)
+# r2 = gp.multi_groupby(df, np.sum, k1, k2)
 
 # print result
 
-gen = gp.generate_groups(df._data, labels, shape, axis=1)
+gen = gp.generate_groups(df['values'], labels, shape, axis=1,
+                         factory=DataFrame)
 
 res = defaultdict(dict)
 for a, gen1 in gen:
     for b, group in gen1:
         print a, b
-        group = DataFrame(group)
         print group
-        res[b][a] = group['values'].sum()
+        # res[b][a] = group['values'].sum()
+        res[b][a] = group.sum()
 
 res = DataFrame(res)
 
