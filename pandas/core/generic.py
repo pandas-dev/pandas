@@ -137,6 +137,32 @@ class PandasObject(Picklable):
         new_axis = axis[np.asarray([crit(label) for label in axis])]
         return self.reindex(**{axis_name : new_axis})
 
+    def drop(self, labels, axis=0):
+        """
+        Return new object with labels in requested axis removed
+
+        Parameters
+        ----------
+        labels : array-like
+        axis : int
+
+        Returns
+        -------
+        dropped : type of caller
+        """
+        axis_name = self._get_axis_name(axis)
+        axis = self._get_axis(axis)
+
+        labels = np.asarray(list(labels), dtype=object)
+
+        indexer, mask = axis.get_indexer(labels)
+        if not mask.all():
+            raise ValueError('labels %s not contained in axis' % labels[-mask])
+
+        new_axis = np.delete(np.asarray(axis), indexer)
+        return self.reindex(**{axis_name : new_axis})
+
+
 class NDFrame(PandasObject):
 
     # kludge
