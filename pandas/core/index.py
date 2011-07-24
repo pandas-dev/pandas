@@ -34,7 +34,11 @@ class Index(np.ndarray):
     reasons of hashability.
     """
     def __new__(cls, data, dtype=object, copy=False):
-        subarr = np.array(data, dtype=dtype, copy=copy)
+        if isinstance(data, np.ndarray):
+            subarr = np.array(data, dtype=dtype, copy=copy)
+        else:
+            subarr = np.empty(len(data), dtype=dtype)
+            subarr[:] = data
 
         if subarr.ndim == 0:
             raise Exception('Index(...) must be called with a collection '
