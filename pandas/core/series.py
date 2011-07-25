@@ -13,7 +13,8 @@ import warnings
 from numpy import nan, ndarray
 import numpy as np
 
-from pandas.core.common import isnull, notnull, _ensure_index, _is_bool_indexer
+from pandas.core.common import (isnull, notnull, _ensure_index,
+                                _is_bool_indexer, _default_index)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
 from pandas.core.index import Index
@@ -178,7 +179,7 @@ class Series(np.ndarray, PandasObject):
             raise Exception('Data must be 1-dimensional')
 
         if index is None:
-            raise Exception('Index cannot be None!')
+            index = _default_index(len(subarr))
 
         # This is to prevent mixed-type Series getting all casted to
         # NumPy string type, e.g. NaN --> '-1#IND'.

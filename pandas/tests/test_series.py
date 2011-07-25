@@ -46,13 +46,15 @@ class TestSeries(unittest.TestCase):
         self.assert_(mixed.dtype == np.object_)
         self.assert_(mixed[1] is np.NaN)
 
-        self.assertRaises(Exception, Series, [0, 1, 2], index=None)
-
         self.assert_(not isinstance(self.empty, TimeSeries))
         self.assert_(not isinstance(Series({}), TimeSeries))
 
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
+
+    def test_constructor_default_index(self):
+        s = Series([0, 1, 2])
+        assert_almost_equal(s.index, np.arange(3))
 
     def test_constructor_corner(self):
         df = common.makeTimeDataFrame()
