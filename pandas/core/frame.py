@@ -2510,8 +2510,15 @@ def _rec_to_dict(arr):
 def _homogenize(data, index, columns, dtype=None):
     homogenized = {}
 
+    if dtype is not None:
+        dtype = np.dtype(dtype)
+
     for k in columns:
         if k not in data:
+            # no obvious "empty" int column
+            if dtype is not None and issubclass(dtype.type, np.integer):
+                continue
+
             v = np.empty(len(index), dtype=dtype)
             v.fill(nan)
         else:

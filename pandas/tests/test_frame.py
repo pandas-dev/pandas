@@ -789,6 +789,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df = DataFrame(index=range(10), columns=['a','b'], dtype=object)
         self.assert_(df.values.dtype == np.object_)
 
+        # does not error but ends up float
+        df = DataFrame(index=range(10), columns=['a','b'], dtype=int)
+        self.assert_(df.values.dtype == np.float_)
+
     def test_constructor_scalar_inference(self):
         data = {'int' : 1, 'bool' : True,
                 'float' : 3., 'object' : 'foo'}
