@@ -285,20 +285,24 @@ class TesttHDFStore(unittest.TestCase):
 
     def _check_roundtrip(self, obj, comparator):
         store = HDFStore(self.scratchpath, 'w')
-        store['obj'] = obj
-        retrieved = store['obj']
-        comparator(retrieved, obj)
-        store.close()
-        os.remove(self.scratchpath)
+        try:
+            store['obj'] = obj
+            retrieved = store['obj']
+            comparator(retrieved, obj)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
 
     def _check_roundtrip_table(self, obj, comparator):
         store = HDFStore(self.scratchpath, 'w')
-        store.put('obj', obj, table=True)
-        retrieved = store['obj']
-        sorted_obj = _test_sort(obj)
-        comparator(retrieved, sorted_obj)
-        store.close()
-        os.remove(self.scratchpath)
+        try:
+            store.put('obj', obj, table=True)
+            retrieved = store['obj']
+            sorted_obj = _test_sort(obj)
+            comparator(retrieved, sorted_obj)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
 
     def test_legacy_read(self):
         pth = curpath()
