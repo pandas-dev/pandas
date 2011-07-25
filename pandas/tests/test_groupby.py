@@ -225,9 +225,17 @@ class TestDataFrameGroupBy(unittest.TestCase):
             for n2, gp2 in gp1.groupby('B'):
                 expected[n1][n2] = gp2.ix[:, ['C', 'D']].sum()
         expected = dict((k, DataFrame(v)) for k, v in expected.iteritems())
-        expected = WidePanel.fromDict(expected)
-        assert_panel_equal(result1, expected)
-        assert_panel_equal(result1['C'], expected['C'])
+        expected = WidePanel.fromDict(expected).swapaxes(0, 1)
+
+        # a little bit crude
+        # TODO: fix when have hierarchical Index
+        for col in ['C', 'D']:
+            exp = expected[col]
+            pivoted = result1.pivot('A', 'B', col)
+            assert_frame_equal(pivoted.reindex_like(exp), exp)
+
+        # assert_panel_equal(result1, expected)
+        # assert_panel_equal(result1['C'], expected['C'])
 
         # result2 = data.groupby('B', 'A').sum()
         # assert_panel_equal(result2, expected2)

@@ -35,6 +35,7 @@ Release notes
   will result in significant performance boosts, and smaller memory
   footprint. Added `to_sparse` methods to `Series`, `DataFrame`, and
   `WidePanel`. See online documentation for more on these
+* `Index` objects (labels for axes) are now capable of holding tuples
 * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
   statistics about each data column
 * `DataFrame.quantile`, `Series.quantile`

@@ -3,6 +3,7 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
+from cStringIO import StringIO
 import operator
 import sys
 import warnings
@@ -1001,6 +1002,14 @@ class LongPanel(Panel, Picklable):
 
     def __len__(self):
         return len(self.index)
+
+    def __repr__(self):
+        if len(self.items) < 7 and len(self.index) < 500:
+            buf = StringIO()
+            self.toString(buf=buf)
+            return buf.getvalue()
+        else:
+            return Panel.__repr__(self)
 
     @classmethod
     def fromRecords(cls, data, major_field, minor_field,
