@@ -177,7 +177,7 @@ def group_aggregate(ndarray[double_t] values, list label_list,
     _aggregate_group(<double_t*> result.data, <double_t*> values.data,
                      sorted_labels, 0, len(values), shape, 0, 0, func)
 
-    return result, sorted_labels
+    return result
 
 cdef void _aggregate_group(double_t *out, double_t *values,
                            list labels, int start, int end, tuple shape,

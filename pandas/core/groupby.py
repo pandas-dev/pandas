@@ -121,6 +121,84 @@ class GroupBy(object):
 
         return result
 
+    def _get_name_dict(self):
+        axes = [ping.names for ping in self.groupings]
+        grouping_names = [ping.name for ping in self.groupings]
+        shape = self._result_shape
+        return dict(zip(grouping_names, _ravel_names(axes, shape)))
+
+    def _iterate_columns(self):
+        name = self.name
+        if name is None:
+            name = 'result'
+
+        yield name, self.obj
+
+    def transform(self, func):
+        raise NotImplementedError
+
+    def mean(self):
+        """
+        Compute mean of groups, excluding missing values
+        """
+        if len(self.groupings) > 1:
+            return self._cython_aggregate('mean')
+        else:
+            return self.aggregate(np.mean)
+
+    def sum(self):
+        """
+        Compute sum of values, excluding missing values
+        """
+        if len(self.groupings) > 1:
+            return self._cython_aggregate('add')
+        else:
+            return self.aggregate(np.sum)
+
+    def _cython_aggregate(self, how):
+        label_list = [ping.labels for ping in self.groupings]
+        shape = self._result_shape
+
+        # TODO: address inefficiency
+        # TODO: get counts in cython
+
+        output = {}
+
+        cannot_agg = []
+
+        for name, obj in self._iterate_columns():
+            try:
+                obj = np.asarray(obj, dtype=float)
+            except ValueError:
+                cannot_agg.append(name)
+                continue
+
+            result =  _tseries.group_aggregate(obj, label_list,
+                                               shape, how=how)
+            result = result.ravel()
+
+            # better to get the counts!
+            mask = -np.isnan(result)
+
+            output[name] = result[mask]
+
+        if cannot_agg:
+            print ('Note: excluded %s which could not '
+                   'be aggregated' % cannot_agg)
+
+        name_dict = self._get_name_dict()
+
+        if len(self.groupings) > 1:
+            for name, raveled in name_dict.iteritems():
+                output[name] = raveled[mask]
+
+            return DataFrame(output)
+        else:
+            return DataFrame(output, index=name_dict.values()[0])
+
+    def _python_aggregate(self, func):
+        pass
+
     def _aggregate_multi_group(self, arg):
         # TODO: cythonize
 
@@ -129,11 +207,9 @@ class GroupBy(object):
 
         labels = [ping.labels for ping in self.groupings]
         shape = self._result_shape
-
         result = np.empty(shape, dtype=float)
         result.fill(np.nan)
         counts = np.zeros(shape, dtype=int)
-
         def _doit(reschunk, ctchunk, gen):
             for i, (_, subgen) in enumerate(gen):
                 if isinstance(subgen, Series):
@@ -154,40 +230,13 @@ class GroupBy(object):
             mask = counts.ravel() > 0
             output[name] = result.ravel()[mask]
 
-        axes = [ping.names for ping in self.groupings]
-        grouping_names = [ping.name for ping in self.groupings]
+            result.fill(np.nan)
 
-        for name, raveled in zip(grouping_names,
-                                 _ravel_names(axes, shape)):
+        name_dict = self._get_name_dict()
+        for name, raveled in name_dict.iteritems():
             output[name] = raveled[mask]
 
         return DataFrame(output)
-
-    def _iterate_columns(self):
-        name = self.name
-        if name is None:
-            name = 'result'
-
-        yield name, self.obj
-
-    def transform(self, func):
-        raise NotImplementedError
-
-    # TODO: cythonize
-
-    def mean(self):
-        """
-        Compute mean of groups, excluding missing values
-        """
-        return self.aggregate(np.mean)
-
-    def sum(self):
-        """
-        Compute sum of values, excluding missing values
-        """
-        # TODO: make NaN-friendly
-        return self.aggregate(np.sum)
-
 
 class Grouping(object):
 
