@@ -132,6 +132,10 @@ class TestSeriesGroupBy(unittest.TestCase):
         expected = Series([4, 2], index=['bar', 'foo'])
         assert_series_equal(agged, expected)
 
+    def test_groupby_multi_iter(self):
+        s = Series(np.arange(10))
+        pass
+
 class TestDataFrameGroupBy(unittest.TestCase):
 
     def setUp(self):
@@ -237,7 +241,6 @@ class TestDataFrameGroupBy(unittest.TestCase):
             pivoted2 = result_col.pivot('A', 'B', col)
             assert_frame_equal(pivoted.reindex_like(exp), exp)
             assert_frame_equal(pivoted2.reindex_like(exp), exp)
-
 
         # assert_panel_equal(result1, expected)
         # assert_panel_equal(result1['C'], expected['C'])

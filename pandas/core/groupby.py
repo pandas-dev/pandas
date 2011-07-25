@@ -3,6 +3,7 @@ import types
 import numpy as np
 
 from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
@@ -92,14 +93,41 @@ class GroupBy(object):
         Generator yielding sequence of (groupName, subsetted object)
         for each group
         """
-        groups = self.primary.indices.keys()
-        try:
-            groups = sorted(groups)
-        except Exception: # pragma: no cover
-            pass
+        if len(self.groupings) == 1:
+            groups = self.primary.indices.keys()
+            try:
+                groups = sorted(groups)
+            except Exception: # pragma: no cover
+                pass
 
-        for name in groups:
-            yield name, self.get_group(name)
+            for name in groups:
+                yield name, self.get_group(name)
+        else:
+            # provide "flattened" iterator for multi-group setting
+            for it in self._multi_iter():
+                yield it
+
+    def _multi_iter(self):
+        if isinstance(self.obj, NDFrame):
+            data = self.obj._data
+            tipo = type(self.obj)
+        else:
+            data = self.obj
+            tipo = type(self.obj)
+
+        def flatten(gen, level=0):
+            ids = self.groupings[level].ids
+            for cat, subgen in gen:
+                if isinstance(subgen, tipo):
+                    yield (ids[cat],), subgen
+                else:
+                    for subcat, data in flatten(subgen, level=level+1):
+                        yield (ids[cat],) + subcat, data
+
+        gen = self._generator_factory(data)
+
+        for cats, data in flatten(gen):
+            yield cats + (data,)
 
     def aggregate(self, func):
         raise NotImplementedError
@@ -205,7 +233,6 @@ class GroupBy(object):
         if len(self.groupings) > 3:
             raise Exception('can only handle 3 or fewer groupings for now')
 
-        labels = [ping.labels for ping in self.groupings]
         shape = self._result_shape
         result = np.empty(shape, dtype=float)
         result.fill(np.nan)
@@ -220,12 +247,13 @@ class GroupBy(object):
                 else:
                     _doit(reschunk[i], ctchunk[i], subgen)
 
+        gen_factory = self._generator_factory
+
         output = {}
 
         # iterate through "columns" ex exclusions to populate output dict
         for name, obj in self._iterate_columns():
-            gen = generate_groups(obj, labels, shape, axis=self.axis)
-            _doit(result, counts, gen)
+            _doit(result, counts, gen_factory(obj))
             # TODO: same mask for every column...
             mask = counts.ravel() > 0
             output[name] = result.ravel()[mask]
@@ -237,6 +265,27 @@ class GroupBy(object):
             output[name] = raveled[mask]
 
         return DataFrame(output)
+
+    @property
+    def _generator_factory(self):
+        labels = [ping.labels for ping in self.groupings]
+        shape = self._result_shape
+
+        if isinstance(self.obj, NDFrame):
+            factory = self.obj._constructor
+        else:
+            factory = None
+
+        axis = self.axis
+        # XXX: HACK! need to do something about this...
+        if isinstance(self.obj, DataFrame):
+            if axis == 0:
+                axis = 1
+            elif axis == 1:
+                axis = 0
+
+        return lambda obj: generate_groups(obj, labels, shape, axis=axis,
+                                           factory=factory)
 
 class Grouping(object):
 
