@@ -92,6 +92,17 @@ class TestSeriesGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+    def test_groupby_series(self):
+        # regression
+        T = [1.0*x for x in range(1,10) *10][:1095]
+        result = Series(T, range(0, len(T)))
+
+        groupings = np.random.random((1100,))
+        groupings = Series(groupings, range(0, len(groupings))) * 10.
+
+        grouped = result.groupby(groupings)
+        grouped.mean()
+
     def test_groupby_transform(self):
         data = Series(np.arange(9) / 3, index=np.arange(9))
 
