@@ -218,8 +218,9 @@ class TestDataFrameGroupBy(unittest.TestCase):
                           'C' : np.random.randn(8),
                           'D' : np.random.randn(8)})
 
-        result1 = data.groupby(['A', 'B']).sum()
-        result1_col = data.groupby(['A', 'B'])['C'].sum()
+        grouped = data.groupby(['A', 'B'])
+        result1 = grouped.sum()
+
         expected = defaultdict(dict)
         for n1, gp1 in data.groupby('A'):
             for n2, gp2 in gp1.groupby('B'):
@@ -230,9 +231,13 @@ class TestDataFrameGroupBy(unittest.TestCase):
         # a little bit crude
         # TODO: fix when have hierarchical Index
         for col in ['C', 'D']:
+            result_col = grouped[col].sum()
             exp = expected[col]
             pivoted = result1.pivot('A', 'B', col)
+            pivoted2 = result_col.pivot('A', 'B', col)
             assert_frame_equal(pivoted.reindex_like(exp), exp)
+            assert_frame_equal(pivoted2.reindex_like(exp), exp)
+
 
         # assert_panel_equal(result1, expected)
         # assert_panel_equal(result1['C'], expected['C'])
