@@ -197,7 +197,7 @@ class Grouping(object):
         self.grouper = _convert_grouper(index, grouper)
 
         # eager beaver
-        if isinstance(grouper, np.ndarray):
+        if isinstance(self.grouper, np.ndarray):
             self.indices = _tseries.groupby_indices(self.grouper)
         else:
             # some kind of callable
