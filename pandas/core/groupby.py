@@ -271,12 +271,14 @@ class GroupBy(object):
         labels = [ping.labels for ping in self.groupings]
         shape = self._result_shape
 
+        # XXX: hack?
         if isinstance(self.obj, NDFrame):
             factory = self.obj._constructor
         else:
             factory = None
 
         axis = self.axis
+
         # XXX: HACK! need to do something about this...
         if isinstance(self.obj, DataFrame):
             if axis == 0:
@@ -401,7 +403,7 @@ def _convert_grouper(axis, grouper):
             return grouper.__getitem__
     elif isinstance(grouper, np.ndarray):
         assert(len(grouper) == len(axis))
-        return grouper
+        return np.asarray(grouper, dtype=object)
     else:
         return grouper
 

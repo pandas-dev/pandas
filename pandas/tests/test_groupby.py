@@ -51,7 +51,10 @@ class GroupByTestCase(unittest.TestCase):
 
 class TestSeriesGroupBy(unittest.TestCase):
 
-    def test_groupby(self):
+    def setUp(self):
+        self.ts = tm.makeTimeSeries()
+
+    def test_basic(self):
         data = Series(np.arange(9) / 3, index=np.arange(9))
 
         index = np.arange(9)
@@ -92,7 +95,7 @@ class TestSeriesGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
-    def test_groupby_series(self):
+    def test_basic_regression(self):
         # regression
         T = [1.0*x for x in range(1,10) *10][:1095]
         result = Series(T, range(0, len(T)))
@@ -103,7 +106,7 @@ class TestSeriesGroupBy(unittest.TestCase):
         grouped = result.groupby(groupings)
         grouped.mean()
 
-    def test_groupby_transform(self):
+    def test_transform(self):
         data = Series(np.arange(9) / 3, index=np.arange(9))
 
         index = np.arange(9)
@@ -121,7 +124,7 @@ class TestSeriesGroupBy(unittest.TestCase):
             for idx in group.index:
                 self.assertEqual(transformed[idx], mean)
 
-    def test_groupby_with_na(self):
+    def test_with_na(self):
         index = Index(np.arange(10))
         values = Series(np.ones(10), index)
         labels = Series([nan, 'foo', 'bar', 'bar', nan, nan, 'bar',
@@ -132,9 +135,67 @@ class TestSeriesGroupBy(unittest.TestCase):
         expected = Series([4, 2], index=['bar', 'foo'])
         assert_series_equal(agged, expected)
 
-    def test_groupby_multi_iter(self):
-        s = Series(np.arange(10))
-        pass
+    def test_multi_iter(self):
+        s = Series(np.arange(6))
+        k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])
+        k2 = np.array(['1', '2', '1', '2', '1', '2'])
+
+        grouped = s.groupby([k1, k2])
+
+        iterated = list(grouped)
+        expected = [('a', '1', s[[0, 2]]),
+                    ('a', '2', s[[1]]),
+                    ('b', '1', s[[4]]),
+                    ('b', '2', s[[3, 5]])]
+        for i, (one, two, three) in enumerate(iterated):
+            e1, e2, e3 = expected[i]
+            self.assert_(e1 == one)
+            self.assert_(e2 == two)
+            assert_series_equal(three, e3)
+
+    def test_multi_iter_frame(self):
+        k1 = np.array(['b', 'b', 'b', 'a', 'a', 'a'])
+        k2 = np.array(['1', '2', '1', '2', '1', '2'])
+        df = DataFrame({'v1' : np.random.randn(6),
+                        'v2' : np.random.randn(6),
+                        'k1' : k1, 'k2' : k2},
+                       index=['one', 'two', 'three', 'four', 'five', 'six'])
+
+        grouped = df.groupby(['k1', 'k2'])
+
+        iterated = list(grouped)
+        idx = df.index
+        expected = [('b', '1', df.ix[idx[[0, 2]]]),
+                    ('b', '2', df.ix[idx[[1]]]),
+                    ('a', '1', df.ix[idx[[4]]]),
+                    ('a', '2', df.ix[idx[[3, 5]]])]
+        for i, (one, two, three) in enumerate(iterated):
+            e1, e2, e3 = expected[i]
+            self.assert_(e1 == one)
+            self.assert_(e2 == two)
+            assert_frame_equal(three, e3)
+
+    def test_attr_wrapper(self):
+        grouped = self.ts.groupby(lambda x: x.weekday())
+
+        result = grouped.std()
+        expected = grouped.agg(lambda x: np.std(x, ddof=1))
+        assert_series_equal(result, expected)
+
+        # this is pretty cool
+        result = grouped.describe()
+        expected = {}
+        for name, gp in grouped:
+            expected[name] = gp.describe()
+        expected = DataFrame(expected).T
+        assert_frame_equal(result, expected)
+
+        # get attribute
+        result = grouped.dtype
+        expected = grouped.agg(lambda x: x.dtype)
+
+        # make sure raises error
+        self.assertRaises(AttributeError, getattr, grouped, 'foo')
 
 class TestDataFrameGroupBy(unittest.TestCase):
 
