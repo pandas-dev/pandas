@@ -59,7 +59,6 @@ cpdef groupby_indices_naive(ndarray[object] values):
     cdef object key
 
     result = {}
-    index = np.asarray(index)
     mask = isnullobj(values)
     for i from 0 <= i < length:
         if mask[i]:
