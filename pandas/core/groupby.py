@@ -135,20 +135,6 @@ class GroupBy(object):
     def agg(self, func):
         return self.aggregate(func)
 
-    def _aggregate_generic(self, agger, axis=0):
-        result = {}
-
-        obj = self._get_obj_with_exclusions()
-
-        for name in self.primary:
-            data = self.get_group(name, obj=obj)
-            try:
-                result[name] = agger(data)
-            except Exception:
-                result[name] = data.apply(agger, axis=axis)
-
-        return result
-
     def _get_name_dict(self):
         axes = [ping.names for ping in self.groupings]
         grouping_names = [ping.name for ping in self.groupings]
@@ -191,9 +177,7 @@ class GroupBy(object):
         # TODO: get counts in cython
 
         output = {}
-
         cannot_agg = []
-
         for name, obj in self._iterate_columns():
             try:
                 obj = np.asarray(obj, dtype=float)
@@ -210,9 +194,10 @@ class GroupBy(object):
 
             output[name] = result[mask]
 
-        if cannot_agg:
-            print ('Note: excluded %s which could not '
-                   'be aggregated' % cannot_agg)
+        # do I want a warning message or silently exclude?
+        # if cannot_agg:
+        #     print ('Note: excluded %s which could not '
+        #            'be aggregated' % cannot_agg)
 
         name_dict = self._get_name_dict()
 
@@ -595,11 +580,51 @@ class DataFrameGroupBy(GroupBy):
             result = DataFrame(result)
         else:
             result = self._aggregate_generic(arg, axis=self.axis)
-            result = DataFrame(result)
-            if self.axis == 0:
-                result = result.T
 
         return result
+
+    def _aggregate_generic(self, agger, axis=0):
+        result = {}
+
+        obj = self._get_obj_with_exclusions()
+
+        try:
+            for name in self.primary:
+                data = self.get_group(name, obj=obj)
+                try:
+                    result[name] = agger(data)
+                except Exception:
+                    result[name] = data.apply(agger, axis=axis)
+        except Exception, e1:
+            if axis == 0:
+                try:
+                    return self._aggregate_item_by_item(agger)
+                except Exception:
+                    raise e1
+            else:
+                raise e1
+
+        result = DataFrame(result)
+        if axis == 0:
+            result = result.T
+
+        return result
+
+    def _aggregate_item_by_item(self, agger):
+        # only for axis==0
+
+        obj = self._get_obj_with_exclusions()
+
+        result = {}
+        cannot_agg = []
+        for item in obj:
+            try:
+                result[item] = self[item].agg(agger)
+            except (ValueError, TypeError):
+                cannot_agg.append(item)
+                continue
+
+        return DataFrame(result)
 
     def transform(self, func):
         """
@@ -687,11 +712,24 @@ class WidePanelGroupBy(GroupBy):
 
         Optional: provide set mapping as dictionary
         """
-        result_d = self._aggregate_generic(func, axis=self.axis)
-        result = WidePanel.fromDict(result_d, intersect=False)
+        return self._aggregate_generic(func, axis=self.axis)
 
-        if self.axis > 0:
-            result = result.swapaxes(0, self.axis)
+    def _aggregate_generic(self, agger, axis=0):
+        result = {}
+
+        obj = self._get_obj_with_exclusions()
+
+        for name in self.primary:
+            data = self.get_group(name, obj=obj)
+            try:
+                result[name] = agger(data)
+            except Exception:
+                result[name] = data.apply(agger, axis=axis)
+
+        result = WidePanel.fromDict(result, intersect=False)
+
+        if axis > 0:
+            result = result.swapaxes(0, axis)
 
         return result
 

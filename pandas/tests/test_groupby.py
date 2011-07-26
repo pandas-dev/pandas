@@ -49,10 +49,22 @@ class GroupByTestCase(unittest.TestCase):
             groupSet = setDict[key]
             assert(idx in groupSet)
 
-class TestSeriesGroupBy(unittest.TestCase):
+class TestGroupBy(unittest.TestCase):
 
     def setUp(self):
         self.ts = tm.makeTimeSeries()
+
+        self.seriesd = tm.getSeriesData()
+        self.tsd = tm.getTimeSeriesData()
+        self.frame = DataFrame(self.seriesd)
+        self.tsframe = DataFrame(self.tsd)
+
+        self.df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                                    'foo', 'bar', 'foo', 'foo'],
+                             'B' : ['one', 'one', 'two', 'three',
+                                    'two', 'two', 'one', 'three'],
+                             'C' : np.random.randn(8),
+                             'D' : np.random.randn(8)})
 
     def test_basic(self):
         data = Series(np.arange(9) / 3, index=np.arange(9))
@@ -197,15 +209,7 @@ class TestSeriesGroupBy(unittest.TestCase):
         # make sure raises error
         self.assertRaises(AttributeError, getattr, grouped, 'foo')
 
-class TestDataFrameGroupBy(unittest.TestCase):
-
-    def setUp(self):
-        self.seriesd = tm.getSeriesData()
-        self.tsd = tm.getTimeSeriesData()
-        self.frame = DataFrame(self.seriesd)
-        self.tsframe = DataFrame(self.tsd)
-
-    def test_groupby(self):
+    def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
 
         # aggregate
@@ -243,7 +247,7 @@ class TestDataFrameGroupBy(unittest.TestCase):
             samething = self.tsframe.index.take(indices[k])
             self.assert_(np.array_equal(v, samething))
 
-    def test_groupby_columns(self):
+    def test_frame_groupby_columns(self):
         mapping = {
             'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1
         }
@@ -276,38 +280,46 @@ class TestDataFrameGroupBy(unittest.TestCase):
         self.assertEqual(len(grouped.columns), 2)
 
     def test_groupby_multiple_columns(self):
-        data = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                                 'foo', 'bar', 'foo', 'foo'],
-                          'B' : ['one', 'one', 'two', 'three',
-                                 'two', 'two', 'one', 'three'],
-                          'C' : np.random.randn(8),
-                          'D' : np.random.randn(8)})
-
+        data = self.df
         grouped = data.groupby(['A', 'B'])
-        result1 = grouped.sum()
 
-        expected = defaultdict(dict)
-        for n1, gp1 in data.groupby('A'):
-            for n2, gp2 in gp1.groupby('B'):
-                expected[n1][n2] = gp2.ix[:, ['C', 'D']].sum()
-        expected = dict((k, DataFrame(v)) for k, v in expected.iteritems())
-        expected = WidePanel.fromDict(expected).swapaxes(0, 1)
+        def _check_op(op):
 
-        # a little bit crude
-        # TODO: fix when have hierarchical Index
-        for col in ['C', 'D']:
-            result_col = grouped[col].sum()
-            exp = expected[col]
-            pivoted = result1.pivot('A', 'B', col)
-            pivoted2 = result_col.pivot('A', 'B', col)
-            assert_frame_equal(pivoted.reindex_like(exp), exp)
-            assert_frame_equal(pivoted2.reindex_like(exp), exp)
+            result1 = op(grouped)
 
-        # assert_panel_equal(result1, expected)
-        # assert_panel_equal(result1['C'], expected['C'])
+            expected = defaultdict(dict)
+            for n1, gp1 in data.groupby('A'):
+                for n2, gp2 in gp1.groupby('B'):
+                    expected[n1][n2] = op(gp2.ix[:, ['C', 'D']])
+            expected = dict((k, DataFrame(v)) for k, v in expected.iteritems())
+            expected = WidePanel.fromDict(expected).swapaxes(0, 1)
 
-        # result2 = data.groupby('B', 'A').sum()
-        # assert_panel_equal(result2, expected2)
+            # a little bit crude
+            # TODO: fix when have hierarchical Index
+            for col in ['C', 'D']:
+                result_col = op(grouped[col])
+                exp = expected[col]
+                pivoted = result1.pivot('A', 'B', col)
+                pivoted2 = result_col.pivot('A', 'B', col)
+                assert_frame_equal(pivoted.reindex_like(exp), exp)
+                assert_frame_equal(pivoted2.reindex_like(exp), exp)
+
+        _check_op(lambda x: x.sum())
+        _check_op(lambda x: x.mean())
+
+        # test single series works the same
+        result = data['C'].groupby([data['A'], data['B']]).mean()
+        expected = data.groupby(['A', 'B']).mean()['C']
+
+        # choice of "result" is pretty arbitrary, should eventually return a
+        # hierarchical index
+        assert_series_equal(result['result'], expected)
+
+    def test_omit_nuisance(self):
+        grouped = self.df.groupby('A')
+        result = grouped.mean()
+        expected = self.df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
+        assert_frame_equal(result, expected)
 
 class TestPanelGroupBy(unittest.TestCase):
 
