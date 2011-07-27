@@ -49,10 +49,8 @@ class GroupBy(object):
         return tuple(len(ping.ids) for ping in self.groupings)
 
     def __getattribute__(self, attr):
-        get = lambda name: object.__getattribute__(self, name)
-
         try:
-            return get(attr)
+            return object.__getattribute__(self, attr)
         except AttributeError:
             if hasattr(self.obj, attr):
                 return self._make_wrapper(attr)
