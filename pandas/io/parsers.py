@@ -200,7 +200,7 @@ def _maybe_convert_int(arr):
             casted = arr.astype(int)
             if (np.abs(casted - arr) < 1e-10).all():
                 return casted
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         pass
 
     return arr
