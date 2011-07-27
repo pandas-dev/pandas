@@ -35,10 +35,6 @@ Release notes
   will result in significant performance boosts, and smaller memory
   footprint. Added `to_sparse` methods to `Series`, `DataFrame`, and
   `WidePanel`. See online documentation for more on these
-* `Index` objects (labels for axes) are now capable of holding tuples
-* `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
-  statistics about each data column
-* `DataFrame.quantile`, `Series.quantile`
 * Fancy indexing operator on Series / DataFrame, e.g. via .ix operator. Both
   getting and setting of values is supported; however, setting values will only
   currently work on homogeneously-typed DataFrame objects
@@ -53,6 +49,11 @@ Release notes
   * Added automatic "dispatching to Series / DataFrame methods to more easily
     invoke methods on groups. e.g. s.groupby(crit).std() will work even though
     `std` is not implemented on the `GroupBy` class
+* `Index` objects (labels for axes) are now capable of holding tuples
+* `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
+  statistics about each data column
+* `DataFrame.quantile`, `Series.quantile` for computing sample quantiles of data
+  across requested axis
 * `Series` arithmetic methods with optional fill_value for missing data,
   e.g. a.add(b, fill_value=0). If a location is missing for both it will still
   be missing in the result though.
@@ -98,8 +99,11 @@ Release notes
   `DataFrame`. In prior releases, there was inconsistent column ordering in
   `DataMatrix`
 * Improved console / string formatting of DataMatrix with negative numbers
-* Added `skiprows` and `na_values` arguments to `pandas.io.parsers` functions
-  for more flexible IO
+* Improved tabular data parsing functions, `read_table` and `read_csv`:
+  * Added `skiprows` and `na_values` arguments to `pandas.io.parsers` functions
+    for more flexible IO
+  * `parseCSV` / `read_csv` functions and others in `pandas.io.parsers` now can
+    take a list of custom NA values, and also a list of rows to skip
 * Can slice `DataFrame` and get a view of the data (when homogeneously typed),
   e.g. frame.xs(idx, copy=False) or frame.ix[idx]
 * Many speed optimizations throughout `Series` and `DataFrame`
@@ -108,8 +112,6 @@ Release notes
   sometime later on when the groups are needed
 * `datetools.WeekOfMonth` offset can be parameterized with `n` different than 1
   or -1.
-* `parseCSV` / `read_csv` functions and others in `pandas.io.parsers` now can
-  take a list of custom NA values, and also a list of rows to skip
 * Statistical methods on DataFrame like `mean`, `std`, `var`, `skew` will now
   ignore non-numerical data. Before a not very useful error message was
   generated. A flag `numeric_only` has been added to `DataFrame.sum` and

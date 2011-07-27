@@ -147,8 +147,9 @@ def group_labels(ndarray[object] values):
 
     return reverse, labels, counts[:count].copy()
 
-ctypedef double_t (* agg_func)(double_t *out, double_t *values, int32_t *labels,
-                               int start, int end, Py_ssize_t offset)
+ctypedef double_t (* agg_func)(double_t *out, int32_t *counts, double_t *values,
+                               int32_t *labels, int start, int end,
+                               Py_ssize_t offset)
 
 cdef agg_func get_agg_func(object how):
     if how == 'add':
@@ -161,7 +162,7 @@ def group_aggregate(ndarray[double_t] values, list label_list,
                     object shape, how='add'):
     cdef:
         list sorted_labels
-        ndarray result
+        ndarray result, counts
         agg_func func
 
     func = get_agg_func(how)
@@ -170,15 +171,20 @@ def group_aggregate(ndarray[double_t] values, list label_list,
     result = np.empty(shape, dtype=np.float64)
     result.fill(nan)
 
+    counts = np.zeros(shape, dtype=np.int32)
+
     if not values.flags.c_contiguous:
         values = values.copy()
 
-    _aggregate_group(<double_t*> result.data, <double_t*> values.data,
-                     sorted_labels, 0, len(values), shape, 0, 0, func)
+    _aggregate_group(<double_t*> result.data,
+                     <int32_t*> counts.data,
+                     <double_t*> values.data,
+                     sorted_labels, 0, len(values),
+                     shape, 0, 0, func)
 
-    return result
+    return result, counts
 
-cdef void _aggregate_group(double_t *out, double_t *values,
+cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
                            list labels, int start, int end, tuple shape,
                            Py_ssize_t which, Py_ssize_t offset,
                            agg_func func):
@@ -190,7 +196,7 @@ cdef void _aggregate_group(double_t *out, double_t *values,
     if which == len(labels) - 1:
         # print axis, start, end
         axis = labels[which]
-        func(out, values, <int32_t*> axis.data, start, end, offset)
+        func(out, counts, values, <int32_t*> axis.data, start, end, offset)
     else:
         axis = labels[which][start:end]
         stride = np.prod(shape[which+1:])
@@ -200,21 +206,26 @@ cdef void _aggregate_group(double_t *out, double_t *values,
         left = 0
         # aggregate each subgroup
         for right in edges:
-            _aggregate_group(out, values, labels, start + left, start + right,
-                             shape, which + 1, offset, func)
+            _aggregate_group(out, counts, values, labels, start + left,
+                             start + right, shape, which + 1, offset, func)
             offset += stride
             left = right
 
-cdef double_t _group_add(double_t *out, double_t *values, int32_t *labels,
-                         int start, int end, Py_ssize_t offset):
+# TODO: aggregate multiple columns in single pass
+
+cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
+                         int32_t *labels, int start, int end,
+                         Py_ssize_t offset):
     cdef:
         Py_ssize_t i = 0, it = start
         int32_t lab
-        int32_t count = 0
+        int32_t count = 0, tot = 0
         double_t val, cum = 0
 
     while it < end:
         val = values[it]
+        tot += 1
+
         # not nan
         if val == val:
             count += 1
@@ -225,23 +236,30 @@ cdef double_t _group_add(double_t *out, double_t *values, int32_t *labels,
                 out[offset + i] = nan
             else:
                 out[offset + i] = cum
+
+            counts[offset + i] = tot
+
             count = 0
             cum = 0
+            tot = 0
 
             i += 1
 
         it += 1
 
-cdef double_t _group_mean(double_t *out, double_t *values, int32_t *labels,
-                          int start, int end, Py_ssize_t offset):
+cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
+                          int32_t *labels, int start, int end,
+                          Py_ssize_t offset):
     cdef:
         Py_ssize_t i = 0, it = start
         int32_t lab
-        int32_t count = 0
+        int32_t count = 0, tot = 0
         double_t val, cum = 0
 
     while it < end:
         val = values[it]
+        tot += 1
+
         # not nan
         if val == val:
             count += 1
@@ -252,8 +270,12 @@ cdef double_t _group_mean(double_t *out, double_t *values, int32_t *labels,
                 out[offset + i] = nan
             else:
                 out[offset + i] = cum / count
+
+            counts[offset + i] = tot
+
             count = 0
             cum = 0
+            tot = 0
 
             i += 1
 

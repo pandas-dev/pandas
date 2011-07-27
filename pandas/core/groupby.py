@@ -185,13 +185,10 @@ class GroupBy(object):
                 cannot_agg.append(name)
                 continue
 
-            result =  _tseries.group_aggregate(obj, label_list,
-                                               shape, how=how)
+            result, counts =  _tseries.group_aggregate(obj, label_list,
+                                                       shape, how=how)
             result = result.ravel()
-
-            # better to get the counts!
-            mask = -np.isnan(result)
-
+            mask = counts.ravel() > 0
             output[name] = result[mask]
 
         # do I want a warning message or silently exclude?

@@ -315,6 +315,17 @@ class TestGroupBy(unittest.TestCase):
         # hierarchical index
         assert_series_equal(result['result'], expected)
 
+    def test_groupby_multi_corner(self):
+        # test that having an all-NA column doesn't mess you up
+        df = self.df.copy()
+        df['bad'] = np.nan
+        agged = df.groupby(['A', 'B']).mean()
+
+        expected = self.df.groupby(['A', 'B']).mean()
+        expected['bad'] = np.nan
+
+        assert_frame_equal(agged, expected)
+
     def test_omit_nuisance(self):
         grouped = self.df.groupby('A')
         result = grouped.mean()
