@@ -147,46 +147,6 @@ class TestGroupBy(unittest.TestCase):
         expected = Series([4, 2], index=['bar', 'foo'])
         assert_series_equal(agged, expected)
 
-    def test_multi_iter(self):
-        s = Series(np.arange(6))
-        k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])
-        k2 = np.array(['1', '2', '1', '2', '1', '2'])
-
-        grouped = s.groupby([k1, k2])
-
-        iterated = list(grouped)
-        expected = [('a', '1', s[[0, 2]]),
-                    ('a', '2', s[[1]]),
-                    ('b', '1', s[[4]]),
-                    ('b', '2', s[[3, 5]])]
-        for i, (one, two, three) in enumerate(iterated):
-            e1, e2, e3 = expected[i]
-            self.assert_(e1 == one)
-            self.assert_(e2 == two)
-            assert_series_equal(three, e3)
-
-    def test_multi_iter_frame(self):
-        k1 = np.array(['b', 'b', 'b', 'a', 'a', 'a'])
-        k2 = np.array(['1', '2', '1', '2', '1', '2'])
-        df = DataFrame({'v1' : np.random.randn(6),
-                        'v2' : np.random.randn(6),
-                        'k1' : k1, 'k2' : k2},
-                       index=['one', 'two', 'three', 'four', 'five', 'six'])
-
-        grouped = df.groupby(['k1', 'k2'])
-
-        iterated = list(grouped)
-        idx = df.index
-        expected = [('b', '1', df.ix[idx[[0, 2]]]),
-                    ('b', '2', df.ix[idx[[1]]]),
-                    ('a', '1', df.ix[idx[[4]]]),
-                    ('a', '2', df.ix[idx[[3, 5]]])]
-        for i, (one, two, three) in enumerate(iterated):
-            e1, e2, e3 = expected[i]
-            self.assert_(e1 == one)
-            self.assert_(e2 == two)
-            assert_frame_equal(three, e3)
-
     def test_attr_wrapper(self):
         grouped = self.ts.groupby(lambda x: x.weekday())
 
@@ -278,6 +238,56 @@ class TestGroupBy(unittest.TestCase):
         grouped = self.frame.tgroupby(grouping.get, np.mean)
         self.assertEqual(len(grouped), len(self.frame.index))
         self.assertEqual(len(grouped.columns), 2)
+
+    def test_multi_iter(self):
+        s = Series(np.arange(6))
+        k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])
+        k2 = np.array(['1', '2', '1', '2', '1', '2'])
+
+        grouped = s.groupby([k1, k2])
+
+        iterated = list(grouped)
+        expected = [('a', '1', s[[0, 2]]),
+                    ('a', '2', s[[1]]),
+                    ('b', '1', s[[4]]),
+                    ('b', '2', s[[3, 5]])]
+        for i, (one, two, three) in enumerate(iterated):
+            e1, e2, e3 = expected[i]
+            self.assert_(e1 == one)
+            self.assert_(e2 == two)
+            assert_series_equal(three, e3)
+
+    def test_multi_iter_frame(self):
+        k1 = np.array(['b', 'b', 'b', 'a', 'a', 'a'])
+        k2 = np.array(['1', '2', '1', '2', '1', '2'])
+        df = DataFrame({'v1' : np.random.randn(6),
+                        'v2' : np.random.randn(6),
+                        'k1' : k1, 'k2' : k2},
+                       index=['one', 'two', 'three', 'four', 'five', 'six'])
+
+        grouped = df.groupby(['k1', 'k2'])
+
+        iterated = list(grouped)
+        idx = df.index
+        expected = [('b', '1', df.ix[idx[[0, 2]]]),
+                    ('b', '2', df.ix[idx[[1]]]),
+                    ('a', '1', df.ix[idx[[4]]]),
+                    ('a', '2', df.ix[idx[[3, 5]]])]
+        for i, (one, two, three) in enumerate(iterated):
+            e1, e2, e3 = expected[i]
+            self.assert_(e1 == one)
+            self.assert_(e2 == two)
+            assert_frame_equal(three, e3)
+
+    def test_multi_func(self):
+        col1 = self.df['A']
+        col2 = self.df['B']
+
+        grouped = self.df.groupby([col1.get, col2.get])
+        agged = grouped.mean()
+        expected = self.df.groupby(['A', 'B']).mean()
+        assert_frame_equal(agged.ix[:, ['C', 'D']],
+                           expected.ix[:, ['C', 'D']])
 
     def test_groupby_multiple_columns(self):
         data = self.df

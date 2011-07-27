@@ -7,11 +7,11 @@ cdef inline _isnan(object o):
     return o != o
 
 @cython.boundscheck(False)
-def arrmap(ndarray[object, ndim=1] index, object func):
+def arrmap(ndarray[object] index, object func):
     cdef int length = index.shape[0]
     cdef int i = 0
 
-    cdef ndarray[object, ndim=1] result = np.empty(length, dtype=np.object_)
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
     for i from 0 <= i < length:
         result[i] = func(index[i])
@@ -19,11 +19,11 @@ def arrmap(ndarray[object, ndim=1] index, object func):
     return result
 
 @cython.boundscheck(False)
-def groupby(object index, object mapper):
+def groupby_func(object index, object mapper):
     cdef dict result = {}
-    cdef ndarray[object, ndim=1] mapped_index
-    cdef ndarray[object, ndim=1] index_buf
-    cdef ndarray[int8_t, ndim=1] mask
+    cdef ndarray[object] mapped_index
+    cdef ndarray[object] index_buf
+    cdef ndarray[int8_t] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
@@ -47,6 +47,32 @@ def groupby(object index, object mapper):
             result[key] = [idx]
 
     return result
+
+@cython.boundscheck(False)
+def groupby(ndarray[object] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[int8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
 
 def func_groupby_indices(object index, object mapper):
     return groupby_indices_naive(arrmap(index, mapper))
@@ -294,13 +320,13 @@ def _result_shape(label_list):
         shape.append(1 + labels[-1])
     return tuple(shape)
 
-def reduce_mean(ndarray[object, ndim=1] indices,
-                ndarray[object, ndim=1] buckets,
-                ndarray[double_t, ndim=1] values,
+def reduce_mean(ndarray[object] indices,
+                ndarray[object] buckets,
+                ndarray[double_t] values,
                 inclusive=False):
     cdef:
         Py_ssize_t i, j, nbuckets, nvalues
-        ndarray[double_t, ndim=1] output
+        ndarray[double_t] output
         double_t the_sum, val, nobs
 
 
@@ -353,13 +379,13 @@ def _bucket_locs(index, buckets, inclusive=False):
 
 '''
 
-def ts_upsample_mean(ndarray[object, ndim=1] indices,
-                     ndarray[object, ndim=1] buckets,
-                     ndarray[double_t, ndim=1] values,
+def ts_upsample_mean(ndarray[object] indices,
+                     ndarray[object] buckets,
+                     ndarray[double_t] values,
                      inclusive=False):
     cdef:
         Py_ssize_t i, j, nbuckets, nvalues
-        ndarray[double_t, ndim=1] output
+        ndarray[double_t] output
         object next_bound
         double_t the_sum, val, nobs
 
@@ -389,7 +415,7 @@ def ts_upsample_mean(ndarray[object, ndim=1] indices,
 
     cdef:
         Py_ssize_t i, j, nbuckets, nvalues
-        ndarray[double_t, ndim=1] output
+        ndarray[double_t] output
         object next_bound
         double_t the_sum, val, nobs
 
@@ -446,9 +472,9 @@ def ts_upsample_mean(ndarray[object, ndim=1] indices,
     return output
 '''
 
-def ts_upsample_generic(ndarray[object, ndim=1] indices,
-                        ndarray[object, ndim=1] buckets,
-                        ndarray[double_t, ndim=1] values,
+def ts_upsample_generic(ndarray[object] indices,
+                        ndarray[object] buckets,
+                        ndarray[double_t] values,
                         object aggfunc,
                         inclusive=False):
     '''
@@ -456,7 +482,7 @@ def ts_upsample_generic(ndarray[object, ndim=1] indices,
     '''
     cdef:
         Py_ssize_t i, j, jstart, nbuckets, nvalues
-        ndarray[double_t, ndim=1] output
+        ndarray[double_t] output
         object next_bound
         double_t the_sum, val, nobs
 

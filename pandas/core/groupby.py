@@ -54,7 +54,7 @@ class GroupBy(object):
         try:
             return get(attr)
         except AttributeError:
-            if hasattr(type(self.obj), attr):
+            if hasattr(self.obj, attr):
                 return self._make_wrapper(attr)
             raise
 
@@ -278,12 +278,17 @@ class Grouping(object):
         self.index = np.asarray(index)
         self.grouper = _convert_grouper(index, grouper)
 
-        # eager beaver
-        if isinstance(self.grouper, np.ndarray):
-            self.indices = _tseries.groupby_indices(self.grouper)
-        else:
-            # some kind of callable
-            self.indices = _tseries.func_groupby_indices(index, self.grouper)
+        if not isinstance(self.grouper, np.ndarray):
+            self.grouper = _tseries.arrmap(self.index, self.grouper)
+
+        self.indices = _tseries.groupby_indices(self.grouper)
+
+        # # eager beaver
+        # if isinstance(self.grouper, np.ndarray):
+        #     self.indices = _tseries.groupby_indices(self.grouper)
+        # else:
+        #     # some kind of callable
+        #     self.indices = _tseries.func_groupby_indices(index, self.grouper)
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name
