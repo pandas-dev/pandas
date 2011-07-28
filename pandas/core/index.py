@@ -3,6 +3,7 @@
 import numpy as np
 
 from pandas.core.common import _ensure_index, _is_bool_indexer
+import pandas.core.common as common
 import pandas._tseries as _tseries
 
 __all__ = ['Index']
@@ -310,6 +311,349 @@ class Index(np.ndarray):
             end_slice = self.searchsorted(end, side='right')
 
         return beg_slice, end_slice
+
+
+
+class Factor(object):
+    """
+    Represents a categorical variable in classic R / S-plus fashion
+    """
+    def __init__(self, labels, levels):
+        self.labels = labels
+        self.levels = levels
+
+    @classmethod
+    def fromarray(cls, values):
+        levels = np.array(sorted(set(values)), dtype=object)
+        labels = levels.searchsorted(values)
+
+        return Factor(labels, levels=levels)
+
+    def asarray(self):
+        return self.levels[self.labels]
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __repr__(self):
+        temp = 'Factor:\n%s\nLevels (%d): %s'
+        values = self.asarray()
+        return temp % (repr(values), len(self.levels), self.levels)
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, np.integer)):
+            i = self.labels[key]
+            return self.levels[i]
+        else:
+            new_labels = self.labels[key]
+            return Factor(new_labels, self.levels)
+
+
+"""
+something like this?
+
+            ----------------------------------------------------
+            | common                     | uncommon            |
+            ----------------------------------------------------
+            | foo     | bar     | baz    | qux     | wibble    |
+            ----------------------------------------------------
+A       1     ...       ...       ...      ...       ...
+        2
+        3
+B       1
+        2
+C       1
+        2
+        3     ...       ...       ...      ...       ...
+
+
+ common                uncommon
+ ------                --------
+|foo    bar    baz    |qux    wibble
+
+"""
+
+class MultiLevelIndex(Index):
+    """
+    Implements multi-level, a.k.a. hierarchical, index object for pandas objects
+
+
+    Parameters
+    ----------
+    levels : list or tuple of arrays
+    labels :
+
+    """
+
+    def __new__(cls, levels=None, labels=None):
+        arr = np.empty(len(labels[0]), dtype=object)
+        arr[:] = zip(*labels)
+        arr = arr.view(cls)
+
+        arr.levels = [_ensure_index(lev) for lev in levels]
+        arr.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+
+        return arr
+
+    # def __init__(self, levels=None, labels=None):
+    #     self.levels = [_ensure_index(lev) for lev in levels]
+    #     self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+    #     self._verify_integrity()
+
+    def __array_finalize__(self, obj):
+        self.labels = getattr(obj, 'labels', None)
+        self.levels = getattr(obj, 'levels', None)
+
+    @property
+    def nlevels(self):
+        return len(levels)
+
+    @property
+    def levshape(self):
+        return tuple(len(x) for x in self.levels)
+
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = (self.levels, self.labels)
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+        nd_state, own_state = state
+        np.ndarray.__setstate__(self, nd_state)
+        levels, labels, = own_state
+
+        self.levels = [Index(x) for x in levels]
+        self.labels = labels
+
+    def sort(self, bylevel=0):
+        pass
+
+    @classmethod
+    def from_arrays(cls, *arrays):
+        levels = []
+        labels = []
+        return cls(levels, labels)
+
+    def get_loc(self, key):
+        return self.indexMap[key]
+
+    def get_indexer(self, target, method=None):
+        """
+
+        Parameters
+        ----------
+        target : Index
+        method :
+
+        Returns
+        -------
+        (indexer, mask)
+        """
+        if method:
+            method = method.upper()
+
+        aliases = {
+            'FFILL' : 'PAD',
+            'BFILL' : 'BACKFILL'
+        }
+
+        target = _ensure_index(target)
+
+        method = aliases.get(method, method)
+        indexer, mask = _tseries.getFillVec(self, target, self.indexMap,
+                                            target.indexMap, method)
+        return indexer, mask
+
+    def slice_locs(self, start=None, end=None):
+        """
+
+
+        Returns
+        -------
+
+        Notes
+        -----
+        This function assumes that the data is sorted, so use at your own peril
+        """
+        if start is None:
+            beg_slice = 0
+        elif start in self:
+            beg_slice = self.indexMap[start]
+        else:
+            beg_slice = self.searchsorted(start, side='left')
+
+        if end is None:
+            end_slice = len(self)
+        elif end in self.indexMap:
+            end_slice = self.indexMap[end] + 1
+        else:
+            end_slice = self.searchsorted(end, side='right')
+
+        return beg_slice, end_slice
+
+class LongPanelIndex(MultiLevelIndex):
+    """
+    Holds axis indexing information for a LongPanel instance
+
+    Parameters
+    ----------
+    major_axis : Index-like
+    minor_axis : Index-like
+    major_labels : ndarray
+    minor_labels : ndarray
+    mask : ndarray (bool), optional
+        observation selection vector using major and minor labels, for
+        converting to wide format.
+    """
+    # def __new__(cls, major_axis, minor_axis, major_labels, minor_labels):
+    #     return MultiLevelIndex.__new__(cls, levels=[major_axis, minor_axis],
+    #                                    labels=[major_labels, minor_labels])
+
+    # def __init__(self, major_axis, minor_axis, major_labels,
+    #              minor_labels, mask=None):
+
+    #     assert(len(minor_labels) == len(major_labels))
+    #     MultiLevelIndex.__init__(self, levels=[major_axis, minor_axis],
+    #                              labels=[major_labels, minor_labels])
+    #     self._mask = mask
+
+    @property
+    def major_axis(self):
+        return self.levels[0]
+
+    @property
+    def minor_axis(self):
+        return self.levels[1]
+
+
+    @property
+    def major_labels(self):
+        return self.labels[0]
+
+    @property
+    def minor_labels(self):
+        return self.labels[1]
+
+    def truncate(self, before=None, after=None):
+        """
+        Slice index between two major axis values, return new
+        LongPanelIndex
+
+        Parameters
+        ----------
+        before : type of major_axis values or None, default None
+            None defaults to start of panel
+
+        after : type of major_axis values or None, default None
+            None defaults to after of panel
+
+        Returns
+        -------
+        LongPanelIndex
+        """
+        i, j = self._get_axis_bounds(before, after)
+        left, right = self._get_label_bounds(i, j)
+
+        return LongPanelIndex([self.major_axis[i : j],
+                               self.minor_axis],
+                              [self.major_labels[left : right] - i,
+                               self.minor_labels[left : right]])
+
+    def get_major_bounds(self, begin=None, end=None):
+        """
+        Return index bounds for slicing LongPanel labels and / or
+        values
+
+        Parameters
+        ----------
+        begin : axis value or None
+        end : axis value or None
+
+        Returns
+        -------
+        y : tuple
+            (left, right) absolute bounds on LongPanel values
+        """
+        i, j = self._get_axis_bounds(begin, end)
+        left, right = self._get_label_bounds(i, j)
+
+        return left, right
+
+    def _get_axis_bounds(self, begin, end):
+        """
+        Return major axis locations corresponding to interval values
+        """
+        if begin is not None:
+            i = self.major_axis.indexMap.get(begin)
+            if i is None:
+                i = self.major_axis.searchsorted(begin, side='right')
+        else:
+            i = 0
+
+        if end is not None:
+            j = self.major_axis.indexMap.get(end)
+            if j is None:
+                j = self.major_axis.searchsorted(end)
+            else:
+                j = j + 1
+        else:
+            j = len(self.major_axis)
+
+        if i > j:
+            raise ValueError('Must have begin <= end!')
+
+        return i, j
+
+    def _get_label_bounds(self, i, j):
+        "Return slice points between two major axis locations"
+
+        left = self._bounds[i]
+
+        if j >= len(self.major_axis):
+            right = len(self.major_labels)
+        else:
+            right = self._bounds[j]
+
+        return left, right
+
+    __bounds = None
+    @property
+    def _bounds(self):
+        "Return or compute and return slice points for major axis"
+        if self.__bounds is None:
+            inds = np.arange(len(self.major_axis))
+            self.__bounds = self.major_labels.searchsorted(inds)
+
+        return self.__bounds
+
+    @property
+    def mask(self):
+        return self._make_mask()
+        # if self._mask is None:
+        #     self._mask = self._make_mask()
+
+        # return self._mask
+
+    def _make_mask(self):
+        """
+        Create observation selection vector using major and minor
+        labels, for converting to wide format.
+        """
+        N, K = self.levshape
+        selector = self.minor_labels + K * self.major_labels
+
+        mask = np.zeros(N * K, dtype=bool)
+        mask[selector] = True
+
+        return mask
+
+    # @property
+    # def shape(self):
+    #     return len(self.major_axis), len(self.minor_axis)
+
 
 # For utility purposes
 

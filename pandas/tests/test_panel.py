@@ -1045,31 +1045,6 @@ def test_monotonic():
 
     assert not panelm._monotonic(neg2)
 
-class TestFactor(unittest.TestCase):
-
-    def setUp(self):
-        self.factor = panelmod.Factor.fromarray(['a', 'b', 'b', 'a',
-                                                 'a', 'c', 'c', 'c'])
-
-    def test_getitem(self):
-        self.assertEqual(self.factor[0], 'a')
-        self.assertEqual(self.factor[-1], 'c')
-
-        subf = self.factor[[0, 1, 2]]
-        common.assert_almost_equal(subf.labels, [0, 1, 1])
-
-        subf = self.factor[self.factor.asarray() == 'c']
-        common.assert_almost_equal(subf.labels, [2, 2, 2])
-
-    def test_factor_agg(self):
-        arr = np.arange(len(self.factor))
-
-        f = np.sum
-        agged = panelmod.factor_agg(self.factor, arr, f)
-        labels = self.factor.labels
-        for i, idx in enumerate(self.factor.levels):
-            self.assertEqual(f(arr[labels == i]), agged[i])
-
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

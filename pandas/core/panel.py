@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
                                 _pfixed, _default_index, _infer_dtype)
-from pandas.core.index import Index
+from pandas.core.index import Index, Factor, LongPanelIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
 from pandas.core.generic import AxisProperty, NDFrame, Picklable
@@ -675,11 +675,11 @@ class WidePanel(Panel, NDFrame):
         else:
             mask = None
 
-        index = LongPanelIndex(self.major_axis,
-                               self.minor_axis,
-                               major_labels,
-                               minor_labels,
-                               mask=mask)
+        index = LongPanelIndex(levels=[self.major_axis,
+                                       self.minor_axis],
+                               labels=[major_labels,
+                                       minor_labels])
+                               # mask=mask)
 
         return LongPanel(values, self.items, index)
 
@@ -1056,8 +1056,8 @@ class LongPanel(Panel, Picklable):
         items = sorted(data)
         values = np.array([data[k] for k in items]).T
 
-        index = LongPanelIndex(major_axis, minor_axis,
-                               major_labels, minor_labels)
+        index = LongPanelIndex([major_axis, minor_axis],
+                               [major_labels, minor_labels])
 
         return LongPanel(values, items, index, factors=factor_dict)
 
@@ -1231,8 +1231,8 @@ class LongPanel(Panel, Picklable):
         new_minor = self.index.minor_labels.take(indexer)
         new_values = self.values.take(indexer, axis=0)
 
-        new_index = LongPanelIndex(self.major_axis, self.minor_axis,
-                                   new_major, new_minor)
+        new_index = LongPanelIndex([self.major_axis, self.minor_axis],
+                                    [new_major, new_minor])
 
         new_factors = dict((k, v.take(indexer))
                            for k, v in self.factors.iteritems())
@@ -1248,10 +1248,6 @@ class LongPanel(Panel, Picklable):
         -------
         WidePanel
         """
-        if not self.index.consistent:
-            raise PanelError('Panel has duplicate (major, minor) pairs, '
-                             'cannot be reliably converted to wide format.')
-
         I, N, K = self.shape
 
         values = np.empty((I, N, K), dtype=self.values.dtype)
@@ -1331,11 +1327,11 @@ class LongPanel(Panel, Picklable):
 
         new_values = self.values.take(indexer, axis=0)
 
-        new_index = LongPanelIndex(self.minor_axis,
-                                   self.major_axis,
-                                   new_major,
-                                   new_minor,
-                                   mask=self.index.mask)
+        new_index = LongPanelIndex([self.minor_axis,
+                                    self.major_axis],
+                                   [new_major,
+                                    new_minor])
+                                   # mask=self.index.mask)
 
         return LongPanel(new_values, self.items, new_index)
 
@@ -1573,188 +1569,6 @@ class LongPanel(Panel, Picklable):
         return LongPanel(self.values, new_items, self.index)
 
 
-class LongPanelIndex(object):
-    """
-    Holds axis indexing information for a LongPanel instance
-
-    Parameters
-    ----------
-    major_axis : Index-like
-    minor_axis : Index-like
-    major_labels : ndarray
-    minor_labels : ndarray
-    mask : ndarray (bool), optional
-        observation selection vector using major and minor labels, for
-        converting to wide format.
-    """
-    def __init__(self, major_axis, minor_axis, major_labels,
-                 minor_labels, mask=None):
-
-        self.major_axis = major_axis
-        self.minor_axis = minor_axis
-
-        assert(len(minor_labels) == len(major_labels))
-
-        self.major_labels = major_labels
-        self.minor_labels = minor_labels
-
-        self._mask = mask
-
-    def __len__(self):
-        return len(self.major_labels)
-
-    def __getstate__(self):
-        _pickle = common._pickle_array
-        return (_pickle(self.major_axis),
-                _pickle(self.minor_axis),
-                _pickle(self.major_labels),
-                _pickle(self.minor_labels))
-
-    def __setstate__(self, state):
-        _unpickle = common._unpickle_array
-
-        major, minor, major_labels, minor_labels = state
-
-        self.major_axis = _unpickle(major)
-        self.minor_axis = _unpickle(minor)
-
-        self.major_labels = _unpickle(major_labels)
-        self.minor_labels = _unpickle(minor_labels)
-
-    @property
-    def consistent(self):
-        offset = max(len(self.major_axis), len(self.minor_axis))
-
-        # overflow risk
-        if (offset + 1) ** 2 > 2**32:
-            keys = (self.major_labels.astype(np.int64) * offset +
-                    self.minor_labels.astype(np.int64))
-        else:
-            keys = self.major_labels * offset + self.minor_labels
-
-        unique_keys = np.unique(keys)
-
-        if len(unique_keys) < len(keys):
-            return False
-
-        return True
-
-    def truncate(self, before=None, after=None):
-        """
-        Slice index between two major axis values, return new
-        LongPanelIndex
-
-        Parameters
-        ----------
-        before : type of major_axis values or None, default None
-            None defaults to start of panel
-
-        after : type of major_axis values or None, default None
-            None defaults to after of panel
-
-        Returns
-        -------
-        LongPanelIndex
-        """
-        i, j = self._get_axis_bounds(before, after)
-        left, right = self._get_label_bounds(i, j)
-
-        return LongPanelIndex(self.major_axis[i : j],
-                              self.minor_axis,
-                              self.major_labels[left : right] - i,
-                              self.minor_labels[left : right])
-
-    def get_major_bounds(self, begin=None, end=None):
-        """
-        Return index bounds for slicing LongPanel labels and / or
-        values
-
-        Parameters
-        ----------
-        begin : axis value or None
-        end : axis value or None
-
-        Returns
-        -------
-        y : tuple
-            (left, right) absolute bounds on LongPanel values
-        """
-        i, j = self._get_axis_bounds(begin, end)
-        left, right = self._get_label_bounds(i, j)
-
-        return left, right
-
-    def _get_axis_bounds(self, begin, end):
-        """
-        Return major axis locations corresponding to interval values
-        """
-        if begin is not None:
-            i = self.major_axis.indexMap.get(begin)
-            if i is None:
-                i = self.major_axis.searchsorted(begin, side='right')
-        else:
-            i = 0
-
-        if end is not None:
-            j = self.major_axis.indexMap.get(end)
-            if j is None:
-                j = self.major_axis.searchsorted(end)
-            else:
-                j = j + 1
-        else:
-            j = len(self.major_axis)
-
-        if i > j:
-            raise ValueError('Must have begin <= end!')
-
-        return i, j
-
-    def _get_label_bounds(self, i, j):
-        "Return slice points between two major axis locations"
-
-        left = self._bounds[i]
-
-        if j >= len(self.major_axis):
-            right = len(self.major_labels)
-        else:
-            right = self._bounds[j]
-
-        return left, right
-
-    __bounds = None
-    @property
-    def _bounds(self):
-        "Return or compute and return slice points for major axis"
-        if self.__bounds is None:
-            inds = np.arange(len(self.major_axis))
-            self.__bounds = self.major_labels.searchsorted(inds)
-
-        return self.__bounds
-
-    @property
-    def mask(self):
-        if self._mask is None:
-            self._mask = self._make_mask()
-
-        return self._mask
-
-    def _make_mask(self):
-        """
-        Create observation selection vector using major and minor
-        labels, for converting to wide format.
-        """
-        N, K = self.shape
-        selector = self.minor_labels + K * self.major_labels
-
-        mask = np.zeros(N * K, dtype=bool)
-        mask[selector] = True
-
-        return mask
-
-    @property
-    def shape(self):
-        return len(self.major_axis), len(self.minor_axis)
-
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
         values = np.asarray(values)
@@ -1767,39 +1581,6 @@ def _prep_ndarray(values, copy=True):
     assert(values.ndim == 3)
     return values
 
-class Factor(object):
-    """
-    Represents a categorical variable in classic R / S-plus fashion
-    """
-    def __init__(self, labels, levels):
-        self.labels = labels
-        self.levels = levels
-
-    @classmethod
-    def fromarray(cls, values):
-        levels = np.array(sorted(set(values)), dtype=object)
-        labels = levels.searchsorted(values)
-
-        return Factor(labels, levels=levels)
-
-    def asarray(self):
-        return self.levels[self.labels]
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __repr__(self):
-        temp = 'Factor:\n%s\nLevels (%d): %s'
-        values = self.asarray()
-        return temp % (repr(values), len(self.levels), self.levels)
-
-    def __getitem__(self, key):
-        if isinstance(key, (int, np.integer)):
-            i = self.labels[key]
-            return self.levels[i]
-        else:
-            new_labels = self.labels[key]
-            return Factor(new_labels, self.levels)
 
 def factor_agg(factor, vec, func):
     """
@@ -1981,8 +1762,8 @@ def _make_long_index(major_values, minor_values):
     major_labels, _ = _tseries.getMergeVec(major_values, major_axis.indexMap)
     minor_labels, _ = _tseries.getMergeVec(minor_values, minor_axis.indexMap)
 
-    long_index = LongPanelIndex(major_axis, minor_axis,
-                               major_labels, minor_labels)
+    long_index = LongPanelIndex([major_axis, minor_axis],
+                                [major_labels, minor_labels])
     return long_index
 
 def _slow_pivot(index, columns, values):

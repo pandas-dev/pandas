@@ -498,8 +498,12 @@ class DataFrame(NDFrame):
                 return _pfixed(v, colSpace, nanRep=nanRep,
                                float_format=float_format)
 
-        def _stringify(series):
-            return map(_myformat, series)
+        if formatters is None:
+            formatters = {}
+
+        def _stringify(col):
+            formatter = formatters.get(col, _myformat)
+            return [formatter(x) for x in self[col]]
 
         if columns is None:
             columns = self.columns
@@ -511,7 +515,7 @@ class DataFrame(NDFrame):
             print >> buf, repr(self.index)
         else:
             str_index = [''] + [str(x) for x in self.index]
-            stringified = [[' %s' % c] + _stringify(self[c]) for c in columns]
+            stringified = [[' %s' % c] + _stringify(c) for c in columns]
             print >> buf, adjoin(2, str_index, *stringified)
 
     def info(self, verbose=True, buf=sys.stdout):
