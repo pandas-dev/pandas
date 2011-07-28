@@ -142,6 +142,12 @@ class TestSeries(unittest.TestCase):
         d = self.ts.index[0] - datetools.bday
         self.assertRaises(Exception, self.ts.__getitem__, d),
 
+    def test_getitem_regression(self):
+        from pandas import Series
+        s = Series(range(5), index=range(5))
+        result = s[range(5)]
+        assert_series_equal(result, s)
+
     def test_getitem_int64(self):
         idx = np.int64(5)
         self.assertEqual(self.ts[idx], self.ts[5])

@@ -104,7 +104,7 @@ def _is_bool_indexer(key):
         return True
     elif isinstance(key, list):
         try:
-            return set([True, False]).issubset(set(key))
+            return np.asarray(key).dtype == np.bool_
         except TypeError:
             return False
 
