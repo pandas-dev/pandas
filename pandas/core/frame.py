@@ -514,7 +514,7 @@ class DataFrame(NDFrame):
             print >> buf, 'Empty %s' % type(self).__name__
             print >> buf, repr(self.index)
         else:
-            str_index = [''] + [str(x) for x in self.index]
+            str_index = [''] + self.index.format().split('\n')
             stringified = [[' %s' % c] + _stringify(c) for c in columns]
             print >> buf, adjoin(2, str_index, *stringified)
 

@@ -1434,7 +1434,7 @@ def remove_na(arr):
     return arr[notnull(arr)]
 
 def _seriesRepr(index, vals, nanRep='NaN'):
-    string_index = [str(x) for x in index]
+    string_index = index.format().split('\n')
     maxlen = max(len(x) for x in string_index)
     padSpace = min(maxlen, 60)
 

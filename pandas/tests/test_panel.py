@@ -787,10 +787,6 @@ class TestLongPanel(unittest.TestCase):
         self.assert_(np.array_equal(thecopy.values, self.panel.values))
         self.assert_(thecopy.values is not self.panel.values)
 
-    # def test_values(self):
-    #     valslice = self.panel.values[:-1]
-    #     self.assertRaises(Exception, self.panel._set_values, valslice)
-
     def test_getitem(self):
         col = self.panel['ItemA']
 

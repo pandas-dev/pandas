@@ -135,6 +135,20 @@ class Index(np.ndarray):
                 except Exception, e2: # pragma: no cover
                     raise e1
 
+    def format(self):
+        from datetime import time
+
+        if self.is_all_dates():
+            to_join = []
+            zero_time = time(0, 0)
+            for dt in self:
+                if dt.time() != zero_time or dt.tzinfo is not None:
+                    return '\n'.join(str(x) for x in self)
+                to_join.append(dt.strftime("%Y-%m-%d"))
+            return '\n'.join(to_join)
+
+        return '\n'.join(str(x) for x in self)
+
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
@@ -416,6 +430,20 @@ class MultiLevelIndex(Index):
 
         self.levels = [Index(x) for x in levels]
         self.labels = labels
+
+    def format(self, space=2):
+        from pandas.core.common import _format, adjoin
+
+        stringified_levels = [lev.format().split('\n') for lev in self.levels]
+
+        padded_levels = []
+        for lab, lev in zip(self.labels, stringified_levels):
+            maxlen = max(len(x) for x in lev)
+            padded = [x.ljust(maxlen) for x in lev]
+            padded = np.array(padded, dtype=object).take(lab)
+            padded_levels.append(padded)
+
+        return adjoin(2, *padded_levels)
 
     def sort(self, bylevel=0):
         pass

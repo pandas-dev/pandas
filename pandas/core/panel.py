@@ -93,7 +93,6 @@ class Panel(object):
     Abstract superclass for LongPanel and WidePanel data structures
     """
     _values = None
-    factors = None
 
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
@@ -130,9 +129,6 @@ class Panel(object):
             items = 'Items: None'
 
         output = '%s\n%s\n%s\n%s\n%s' % (class_name, dims, items, major, minor)
-
-        if self.factors:
-            output += '\nFactors: %s' % ', '.join(self.factors)
 
         return output
 
@@ -204,7 +200,6 @@ class WidePanel(Panel, NDFrame):
         else: # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
-        self.factors = {}
         self._data = mgr
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
@@ -989,16 +984,18 @@ class LongPanel(Panel, DataFrame):
         return len(self.index)
 
     def __repr__(self):
-        if len(self.items) < 7 and len(self.index) < 500:
-            buf = StringIO()
-            self.toString(buf=buf)
-            return buf.getvalue()
-        else:
-            return Panel.__repr__(self)
+        return DataFrame.__repr__(self)
+
+        # if len(self.items) < 7 and len(self.index) < 500:
+        #     buf = StringIO()
+        #     self.toString(buf=buf)
+        #     return buf.getvalue()
+        # else:
+        #     return Panel.__repr__(self)
 
     @classmethod
     def fromRecords(cls, data, major_field, minor_field,
-                    factors=None, exclude=None):
+                    exclude=None):
         """
         Create LongPanel from DataFrame or record / structured ndarray
         object
@@ -1009,7 +1006,6 @@ class LongPanel(Panel, DataFrame):
         major_field : string
         minor_field : string
             Name of field
-        factors : list-like, default None
         exclude : list-like, default None
 
         Returns
@@ -1062,7 +1058,6 @@ class LongPanel(Panel, DataFrame):
                                [major_labels, minor_labels])
 
         return LongPanel(values, index=index, columns=items)
-        # , factors=factor_dict)
 
     def toRecords(self):
         major = np.asarray(self.major_axis).take(self.index.major_labels)
@@ -1230,9 +1225,6 @@ class LongPanel(Panel, DataFrame):
         new_index = LongPanelIndex([self.major_axis, self.minor_axis],
                                     [new_major, new_minor])
 
-        # new_factors = dict((k, v.take(indexer))
-        #                    for k, v in self.factors.iteritems())
-
         return LongPanel(new_values, columns=self.items,
                          index=new_index)
 
@@ -1272,37 +1264,37 @@ class LongPanel(Panel, DataFrame):
         self._textConvert(f, format_cols, format_row)
         f.close()
 
-    def toString(self, buf=sys.stdout, col_space=15):
-        """
-        Output a screen-friendly version of this Panel
-        """
-        _pf = _pfixed
-        major_space = max(max([len(str(idx))
-                               for idx in self.major_axis]) + 4, 9)
-        minor_space = max(max([len(str(idx))
-                               for idx in self.minor_axis]) + 4, 9)
+    # def toString(self, buf=sys.stdout, col_space=15):
+    #     """
+    #     Output a screen-friendly version of this Panel
+    #     """
+    #     _pf = _pfixed
+    #     major_space = max(max([len(str(idx))
+    #                            for idx in self.major_axis]) + 4, 9)
+    #     minor_space = max(max([len(str(idx))
+    #                            for idx in self.minor_axis]) + 4, 9)
 
-        def format_cols(items):
-            return '%s%s%s' % (_pf('Major', major_space),
-                               _pf('Minor', minor_space),
-                               ''.join(_pf(h, col_space) for h in items))
+    #     def format_cols(items):
+    #         return '%s%s%s' % (_pf('Major', major_space),
+    #                            _pf('Minor', minor_space),
+    #                            ''.join(_pf(h, col_space) for h in items))
 
-        def format_row(major, minor, values):
-            return '%s%s%s' % (_pf(major, major_space),
-                               _pf(minor, minor_space),
-                               ''.join(_pf(v, col_space) for v in values))
+    #     def format_row(major, minor, values):
+    #         return '%s%s%s' % (_pf(major, major_space),
+    #                            _pf(minor, minor_space),
+    #                            ''.join(_pf(v, col_space) for v in values))
 
-        self._textConvert(buf, format_cols, format_row)
+    #     self._textConvert(buf, format_cols, format_row)
 
-    def _textConvert(self, buf, format_cols, format_row):
-        print >> buf, format_cols(self.items)
+    # def _textConvert(self, buf, format_cols, format_row):
+    #     print >> buf, format_cols(self.items)
 
-        label_pairs = zip(self.index.major_labels,
-                          self.index.minor_labels)
-        major, minor = self.major_axis, self.minor_axis
-        for i, (major_i, minor_i) in enumerate(label_pairs):
-            row = format_row(major[major_i], minor[minor_i], self.values[i])
-            print >> buf, row
+    #     label_pairs = zip(self.index.major_labels,
+    #                       self.index.minor_labels)
+    #     major, minor = self.major_axis, self.minor_axis
+    #     for i, (major_i, minor_i) in enumerate(label_pairs):
+    #         row = format_row(major[major_i], minor[minor_i], self.values[i])
+    #         print >> buf, row
 
     def swapaxes(self):
         """
