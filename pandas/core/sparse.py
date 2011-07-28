@@ -1174,10 +1174,11 @@ def stack_sparse_frame(frame):
 
     major_labels = np.concatenate(inds_to_concat)
     stacked_values = np.concatenate(vals_to_concat)
-    index = LongPanelIndex(frame.index, frame.columns,
-                           major_labels, minor_labels)
+    index = LongPanelIndex(levels=[frame.index, frame.columns],
+                           labels=[major_labels, minor_labels])
 
-    lp = LongPanel(stacked_values.reshape((nobs, 1)), ['foo'], index)
+    lp = LongPanel(stacked_values.reshape((nobs, 1)), index=index,
+                   columns=['foo'])
     return lp.sort('major')
 
 def _stack_sparse_info(frame):
@@ -1423,10 +1424,10 @@ class SparseWidePanel(WidePanel):
         major_labels = inds % N
         minor_labels = inds // N
 
-        index = LongPanelIndex(self.major_axis, self.minor_axis,
-                               major_labels, minor_labels)
+        index = LongPanelIndex(levels=[self.major_axis, self.minor_axis],
+                               labels=[major_labels, minor_labels])
 
-        lp = LongPanel(values, self.items, index)
+        lp = LongPanel(values, index=index, columns=self.items)
         return lp.sort('major')
 
     def reindex(self, major=None, items=None, minor=None, major_axis=None,

@@ -177,15 +177,15 @@ class PanelOLS(OLS):
         x_filt = filtered.filter(x_names)
 
         if self._weights:
-            weights_filt = filtered['__weights__']
+            weights_filt = filtered.ix[:, ['__weights__']]
         else:
             weights_filt = None
 
         x = data_long.filter(x_names)
-        y = data_long['__y__']
+        y = data_long.ix[:, ['__y__']]
 
         if self._weights:
-            weights = data_long['__weights__']
+            weights = data_long.ix[:, ['__weights__']]
         else:
             weights = None
 
@@ -490,8 +490,8 @@ class PanelOLS(OLS):
     def _unstack_vector(self, vec, index=None):
         if index is None:
             index = self._y_trans.index
-        panel = LongPanel(vec.reshape((len(vec), 1)), ['dummy'],
-                          index=index)
+        panel = LongPanel(vec.reshape((len(vec), 1)), index=index,
+                          columns=['dummy'])
 
         return panel.to_wide()['dummy']
 
@@ -526,7 +526,8 @@ def _convertDummies(dummies, mapping):
             # renames the dummies if a conversion dict is provided
             new_items.append(mapping[int(item)])
 
-    dummies = LongPanel(dummies.values, new_items, dummies.index)
+    dummies = LongPanel(dummies.values, index=dummies.index,
+                        columns=new_items)
 
     return dummies
 
@@ -878,7 +879,8 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
             return np.dot(xx_inv, np.dot(xeps, xx_inv))
     else:
         Xb = np.dot(x.values, beta).reshape((len(x.values), 1))
-        resid = LongPanel(y.values - Xb, ['resid'], y.index)
+        resid = LongPanel(y.values - Xb, index=y.index,
+                          columns=['resid'])
 
         if cluster_axis == 1:
             x = x.swapaxes()

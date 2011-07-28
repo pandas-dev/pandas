@@ -981,6 +981,10 @@ class LongPanel(Panel, DataFrame):
     def items(self):
         return self.columns
 
+    @property
+    def _constructor(self):
+        return LongPanel
+
     def __len__(self):
         return len(self.index)
 
@@ -1759,8 +1763,8 @@ def _make_long_index(major_values, minor_values):
     major_labels, _ = _tseries.getMergeVec(major_values, major_axis.indexMap)
     minor_labels, _ = _tseries.getMergeVec(minor_values, minor_axis.indexMap)
 
-    long_index = LongPanelIndex([major_axis, minor_axis],
-                                [major_labels, minor_labels])
+    long_index = LongPanelIndex(levels=[major_axis, minor_axis],
+                                labels=[major_labels, minor_labels])
     return long_index
 
 def _slow_pivot(index, columns, values):

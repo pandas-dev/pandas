@@ -1399,7 +1399,7 @@ class DataFrame(NDFrame):
             items = [values]
             mat = np.atleast_2d(self[values].values).T
 
-        lp = LongPanel(mat, items, long_index)
+        lp = LongPanel(mat, index=long_index, columns=items)
         lp = lp.sort()
 
         wp = lp.to_wide()

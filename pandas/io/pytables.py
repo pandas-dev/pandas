@@ -418,9 +418,9 @@ class HDFStore(object):
         minor_labels = _read_array(group, 'minor_labels')
         values = _read_array(group, 'values')
 
-        index = LongPanelIndex(major_axis, minor_axis,
-                               major_labels, minor_labels)
-        return LongPanel(values, items, index)
+        index = LongPanelIndex(levels=[major_axis, minor_axis],
+                               labels=[major_labels, minor_labels])
+        return LongPanel(values, index=index, columns=items)
 
     def _write_index(self, group, key, value):
         # don't care about type here
@@ -565,7 +565,8 @@ class HDFStore(object):
         # reconstruct
         long_index = _make_long_index(np.asarray(index),
                                       np.asarray(columns))
-        lp = LongPanel(sel.values['values'], fields, long_index)
+        lp = LongPanel(sel.values['values'], index=long_index,
+                       columns=fields)
         lp = lp.sort()
         wp = lp.to_wide()
 

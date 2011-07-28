@@ -10,7 +10,7 @@ from StringIO import StringIO
 import numpy as np
 
 from pandas.core.api import DataFrame, Series
-from pandas.core.panel import WidePanel
+from pandas.core.panel import WidePanel, LongPanel
 from pandas.util.decorators import cache_readonly
 import pandas.stats.common as common
 import pandas.stats.math as math
@@ -740,13 +740,12 @@ class MovingOLS(OLS):
         valid = self._time_has_obs
         cum_xx = []
 
-        if isinstance(x, DataFrame):
+        slicer = lambda df, dt: df.truncate(dt, dt).values
+        if isinstance(x, DataFrame) and not isinstance(x, LongPanel):
             _get_index = x.index.get_loc
             def slicer(df, dt):
                 i = _get_index(dt)
                 return df.values[i:i+1, :]
-        else:
-            slicer = lambda df, dt: df.truncate(dt, dt).values
 
         last = np.zeros((K, K))
         for i, date in enumerate(dates):
@@ -765,14 +764,12 @@ class MovingOLS(OLS):
         valid = self._time_has_obs
         cum_xy = []
 
-        if isinstance(x, DataFrame):
+        x_slicer = lambda df, dt: df.truncate(dt, dt).values
+        if isinstance(x, DataFrame) and not isinstance(x, LongPanel):
             _get_index = x.index.get_loc
             def x_slicer(df, dt):
                 i = _get_index(dt)
                 return df.values[i:i+1]
-        else:
-            x_slicer = lambda df, dt: df.truncate(dt, dt).values
-
 
         if isinstance(y, Series):
             _y_get_index = y.index.get_loc
