@@ -262,7 +262,7 @@ class BlockManager(object):
         cur_axis = self.axes[axis]
         if len(value) != len(cur_axis):
             raise Exception('Length mismatch (%d vs %d)'
-                            % (len(index), len(cur_axis)))
+                            % (len(value), len(cur_axis)))
         self.axes[axis] = _ensure_index(value)
 
         if axis == 0:

@@ -470,10 +470,10 @@ class WidePanel(Panel, NDFrame):
                             minor=other.minor_axis, method=method)
 
     def _combine(self, other, func, axis=0):
-        if isinstance(other, DataFrame):
-            return self._combine_frame(other, func, axis=axis)
-        elif isinstance(other, Panel):
+        if isinstance(other, Panel):
             return self._combine_panel(other, func)
+        elif isinstance(other, DataFrame):
+            return self._combine_frame(other, func, axis=axis)
         elif np.isscalar(other):
             new_values = func(self.values, other)
 
@@ -681,7 +681,7 @@ class WidePanel(Panel, NDFrame):
                                        minor_labels])
                                # mask=mask)
 
-        return LongPanel(values, self.items, index)
+        return LongPanel(values, index=index, columns=self.items)
 
     toLong = to_long
 
@@ -960,7 +960,7 @@ class WidePanel(Panel, NDFrame):
 # LongPanel and friends
 
 
-class LongPanel(Panel, Picklable):
+class LongPanel(Panel, DataFrame):
     """
     Represents long or "stacked" format panel data
 
@@ -977,11 +977,9 @@ class LongPanel(Panel, Picklable):
     the LongPanelIndex
     """
 
-    def __init__(self, values, items, index, factors=None):
-        self.items = items
-        self.index = index
-        self.values = values
-        self.factors = factors or {}
+    @property
+    def items(self):
+        return self.columns
 
     def __len__(self):
         return len(self.index)
@@ -1044,14 +1042,14 @@ class LongPanel(Panel, Picklable):
         for col in exclude:
             del data[col]
 
-        factor_dict = {}
-        for col in data.keys():
-            series = data[col]
+        # factor_dict = {}
+        # for col in data.keys():
+        #     series = data[col]
 
-            # Is it a factor?
-            if not np.issctype(series.dtype):
-                factor_dict[col] = factor = Factor.fromarray(series)
-                data[col] = factor.labels
+        #     # Is it a factor?
+        #     if not np.issctype(series.dtype):
+        #         factor_dict[col] = factor = Factor.fromarray(series)
+        #         data[col] = factor.labels
 
         items = sorted(data)
         values = np.array([data[k] for k in items]).T
@@ -1059,7 +1057,8 @@ class LongPanel(Panel, Picklable):
         index = LongPanelIndex([major_axis, minor_axis],
                                [major_labels, minor_labels])
 
-        return LongPanel(values, items, index, factors=factor_dict)
+        return LongPanel(values, index=index, columns=items)
+        # , factors=factor_dict)
 
     def toRecords(self):
         major = np.asarray(self.major_axis).take(self.index.major_labels)
@@ -1072,13 +1071,6 @@ class LongPanel(Panel, Picklable):
 
         return np.rec.fromarrays(arrays, names=names)
 
-    @property
-    def columns(self):
-        """
-        So LongPanel can be DataFrame-like at times
-        """
-        return self.items
-
     def copy(self):
         """
         Return copy of LongPanel (copies ndarray)
@@ -1087,8 +1079,8 @@ class LongPanel(Panel, Picklable):
         -------
         y : LongPanel
         """
-        return LongPanel(self.values.copy(), self.items, self.index,
-                         factors=self.factors)
+        return LongPanel(self.values.copy(), columns=self.items,
+                         index=self.index)
 
     @property
     def major_axis(self):
@@ -1098,72 +1090,72 @@ class LongPanel(Panel, Picklable):
     def minor_axis(self):
         return self.index.minor_axis
 
-    def _get_values(self):
-        return self._values
+    # def _get_values(self):
+    #     return self._values
 
-    def _set_values(self, values):
-        if not values.flags.contiguous:
-            values = values.copy()
+    # def _set_values(self, values):
+    #     if not values.flags.contiguous:
+    #         values = values.copy()
 
-        shape = len(self.index.major_labels), len(self.items)
+    #     shape = len(self.index.major_labels), len(self.items)
 
-        if values.shape != shape:
-            raise ValueError('Values shape %s mismatch to %s' % (values.shape,
-                                                                shape))
+    #     if values.shape != shape:
+    #         raise ValueError('Values shape %s mismatch to %s' % (values.shape,
+    #                                                             shape))
 
-        self._values = values
+    #     self._values = values
 
-    values = property(fget=_get_values, fset=_set_values)
+    # values = property(fget=_get_values, fset=_set_values)
 
-    def __getitem__(self, key):
-        "Return column of panel as LongPanel"
-        loc = self.items.get_loc(key)
-        return LongPanel(self.values[:, loc : loc + 1].copy(),
-                        [key], self.index, factors=self.factors)
+    # def __getitem__(self, key):
+    #     "Return column of panel as LongPanel"
+    #     loc = self.items.get_loc(key)
+    #     return LongPanel(self.values[:, loc : loc + 1].copy(),
+    #                      [key], self.index, factors=self.factors)
 
-    def __setitem__(self, key, value):
-        if np.isscalar(value):
-            mat = np.empty((len(self.values), 1), dtype=float)
-            mat.fill(value)
-        elif isinstance(value, np.ndarray):
-            mat = value
-        elif isinstance(value, LongPanel):
-            if len(value.items) > 1:
-                raise ValueError('input LongPanel must only have one column')
+    # def __setitem__(self, key, value):
+    #     if np.isscalar(value):
+    #         mat = np.empty((len(self.values), 1), dtype=float)
+    #         mat.fill(value)
+    #     elif isinstance(value, np.ndarray):
+    #         mat = value
+    #     elif isinstance(value, LongPanel):
+    #         if len(value.items) > 1:
+    #             raise ValueError('input LongPanel must only have one column')
 
-            if value.index is not self.index:
-                raise ValueError('Only can set identically-indexed LongPanel '
-                                'items for now')
+    #         if value.index is not self.index:
+    #             raise ValueError('Only can set identically-indexed LongPanel '
+    #                             'items for now')
 
-            mat = value.values
+    #         mat = value.values
 
-        # Insert item at end of items for now
-        self.items = Index(list(self.items) + [key])
-        self.values = np.column_stack((self.values, mat))
+    #     # Insert item at end of items for now
+    #     self.columns = Index(list(self.columns) + [key])
+    #     self.values = np.column_stack((self.values, mat))
 
-    def __getstate__(self):
-        "Returned pickled representation of the panel"
+    # def __getstate__(self):
+    #     "Returned pickled representation of the panel"
 
-        return (common._pickle_array(self.values),
-                common._pickle_array(self.items),
-                self.index)
+    #     return (common._pickle_array(self.values),
+    #             common._pickle_array(self.items),
+    #             self.index)
 
-    def __setstate__(self, state):
-        "Unpickle the panel"
-        (vals, items, index) = state
+    # def __setstate__(self, state):
+    #     "Unpickle the panel"
+    #     (vals, items, index) = state
 
-        self.items = common._unpickle_array(items)
-        self.index = index
-        self.values = common._unpickle_array(vals)
+    #     self.items = common._unpickle_array(items)
+    #     self.index = index
+    #     self.values = common._unpickle_array(vals)
 
     def _combine(self, other, func, axis='items'):
-        if isinstance(other, DataFrame):
-            return self._combine_frame(other, func, axis=axis)
-        elif isinstance(other, Panel):
+        if isinstance(other, Panel):
             return self._combine_panel(other, func)
+        elif isinstance(other, DataFrame):
+            return self._combine_frame(other, func, axis=axis)
         elif np.isscalar(other):
-            return LongPanel(func(self.values, other), self.items,
-                             self.index, factors=self.factors)
+            return LongPanel(func(self.values, other), columns=self.items,
+                             index=self.index)
 
     def _combine_frame(self, other, func, axis='items'):
         """
@@ -1196,8 +1188,8 @@ class LongPanel(Panel, Picklable):
         else:
             new_values = func(self.values, other.values)
 
-        return LongPanel(new_values, self.items, self.index,
-                         factors=self.factors)
+        return LongPanel(new_values, columns=self.items,
+                         index=self.index)
 
     add = _long_arith_method(operator.add, 'add')
     subtract = _long_arith_method(operator.sub, 'subtract')
@@ -1234,11 +1226,11 @@ class LongPanel(Panel, Picklable):
         new_index = LongPanelIndex([self.major_axis, self.minor_axis],
                                     [new_major, new_minor])
 
-        new_factors = dict((k, v.take(indexer))
-                           for k, v in self.factors.iteritems())
+        # new_factors = dict((k, v.take(indexer))
+        #                    for k, v in self.factors.iteritems())
 
-        return LongPanel(new_values, self.items, new_index,
-                         factors=new_factors)
+        return LongPanel(new_values, columns=self.items,
+                         index=new_index)
 
     def to_wide(self):
         """
@@ -1333,7 +1325,8 @@ class LongPanel(Panel, Picklable):
                                     new_minor])
                                    # mask=self.index.mask)
 
-        return LongPanel(new_values, self.items, new_index)
+        return LongPanel(new_values, columns=self.items,
+                         index=new_index)
 
     def truncate(self, before=None, after=None):
         """
@@ -1355,7 +1348,7 @@ class LongPanel(Panel, Picklable):
         new_index = self.index.truncate(before, after)
 
         return LongPanel(self.values[left : right],
-                         self.items, new_index)
+                         columns=self.items, index=new_index)
 
     def filter(self, items):
         """
@@ -1373,7 +1366,8 @@ class LongPanel(Panel, Picklable):
         indexer = [self.items.indexMap[col] for col in intersection]
 
         new_values = self.values.take(indexer, axis=1)
-        return LongPanel(new_values, intersection, self.index)
+        return LongPanel(new_values, columns=intersection,
+                         index=self.index)
 
     def get_axis_dummies(self, axis='minor', transform=None,
                          prefix=None):
@@ -1417,7 +1411,7 @@ class LongPanel(Panel, Picklable):
         values = np.eye(dim, dtype=float)
         values = values.take(labels, axis=0)
 
-        result = LongPanel(values, items, self.index)
+        result = LongPanel(values, columns=items, index=self.index)
 
         if prefix is None:
             prefix = ''
@@ -1450,7 +1444,8 @@ class LongPanel(Panel, Picklable):
 
         dummy_mat = values.take(mapping, axis=0)
 
-        return LongPanel(dummy_mat, distinct_values, self.index)
+        return LongPanel(dummy_mat, columns=distinct_values,
+                         index=self.index)
 
     def mean(self, axis='major', broadcast=False):
         return self.apply(lambda x: np.mean(x, axis=0), axis, broadcast)
@@ -1480,7 +1475,8 @@ class LongPanel(Panel, Picklable):
         except Exception:
             # ufunc
             new_values = f(self.values)
-            return LongPanel(new_values, self.items, self.index)
+            return LongPanel(new_values, columns=self.items,
+                             index=self.index)
 
     def _apply_axis(self, f, axis='major', broadcast=False):
         if axis == 'major':
@@ -1499,7 +1495,7 @@ class LongPanel(Panel, Picklable):
         if broadcast:
             repeater = np.concatenate((np.diff(bounds), [N - bounds[-1]]))
             panel = LongPanel(result.repeat(repeater, axis=0),
-                              self.items, self.index)
+                              columns=self.items, index=self.index)
         else:
             panel = DataFrame(result, index=self.major_axis,
                                columns=self.items)
@@ -1546,7 +1542,7 @@ class LongPanel(Panel, Picklable):
         items = Index(np.concatenate((self.items, other.items)))
         items._verify_integrity()
 
-        return LongPanel(values, items, self.index)
+        return LongPanel(values, columns=items, index=self.index)
 
     def addPrefix(self, prefix=None):
         """
@@ -1566,7 +1562,8 @@ class LongPanel(Panel, Picklable):
         """
         new_items = [_prefix_item(item, prefix) for item in self.items]
 
-        return LongPanel(self.values, new_items, self.index)
+        return LongPanel(self.values, columns=new_items,
+                         index=self.index)
 
 
 def _prep_ndarray(values, copy=True):
@@ -1752,7 +1749,7 @@ def pivot(index, columns, values):
         longPanel = LongPanel(valueMat, ['foo'], longIndex)
         longPanel = longPanel.sort()
         return longPanel.to_wide()['foo']
-    except PanelError:
+    except Exception:
         return _slow_pivot(index, columns, values)
 
 def _make_long_index(major_values, minor_values):

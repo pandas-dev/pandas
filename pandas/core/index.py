@@ -58,17 +58,12 @@ class Index(np.ndarray):
         # New instance creation
         if obj is None:
             pass
-
         # New from template / slicing
         elif isinstance(obj, type(self)) and len(self) != len(obj.indexMap):
             pass
-
         # View casting
         else:
             pass
-            # if hasattr(obj, '_cache_indexMap'):
-            #     self._cache_indexMap = obj._cache_indexMap
-            #     self._cache_allDates = getattr(obj, '_cache_allDates', None)
 
     def summary(self):
         if len(self) > 0:
@@ -105,8 +100,6 @@ class Index(np.ndarray):
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         np.ndarray.__setstate__(self, state)
-        self._cache_indexMap = _tseries.map_indices(self)
-        self._cache_allDates = _tseries.isAllDates(self)
 
     def __deepcopy__(self, memo={}):
         """
@@ -389,16 +382,12 @@ class MultiLevelIndex(Index):
         arr = np.empty(len(labels[0]), dtype=object)
         arr[:] = zip(*labels)
         arr = arr.view(cls)
-
-        arr.levels = [_ensure_index(lev) for lev in levels]
-        arr.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
-
         return arr
 
-    # def __init__(self, levels=None, labels=None):
-    #     self.levels = [_ensure_index(lev) for lev in levels]
-    #     self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
-    #     self._verify_integrity()
+    def __init__(self, levels=None, labels=None):
+        self.levels = [_ensure_index(lev) for lev in levels]
+        self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+        self._verify_integrity()
 
     def __array_finalize__(self, obj):
         self.labels = getattr(obj, 'labels', None)
@@ -508,17 +497,6 @@ class LongPanelIndex(MultiLevelIndex):
         observation selection vector using major and minor labels, for
         converting to wide format.
     """
-    # def __new__(cls, major_axis, minor_axis, major_labels, minor_labels):
-    #     return MultiLevelIndex.__new__(cls, levels=[major_axis, minor_axis],
-    #                                    labels=[major_labels, minor_labels])
-
-    # def __init__(self, major_axis, minor_axis, major_labels,
-    #              minor_labels, mask=None):
-
-    #     assert(len(minor_labels) == len(major_labels))
-    #     MultiLevelIndex.__init__(self, levels=[major_axis, minor_axis],
-    #                              labels=[major_labels, minor_labels])
-    #     self._mask = mask
 
     @property
     def major_axis(self):

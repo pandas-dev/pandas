@@ -10,8 +10,8 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Index, notnull
 from pandas.core.datetools import bday
-from pandas.core.panel import (WidePanel, LongPanelIndex, LongPanel,
-                               group_agg, pivot)
+from pandas.core.index import LongPanelIndex
+from pandas.core.panel import (WidePanel, LongPanel, group_agg, pivot)
 import pandas.core.panel as panelmod
 
 from pandas.util.testing import (assert_panel_equal,
@@ -370,11 +370,6 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         panel = self.panel.consolidate()
         self.assert_(panel._data.is_consolidated())
 
-    def test_values(self):
-        # nothing to test for the moment
-        values = self.panel.values
-        self.panel.values = values
-
     def test_from_dict(self):
         itema = self.panel['ItemA']
         itemb = self.panel['ItemB']
@@ -654,19 +649,10 @@ class TestLongPanelIndex(unittest.TestCase):
         major_labels = np.array([0, 0, 1, 2, 3, 3])
         minor_labels = np.array([0, 1, 0, 1, 0, 1])
 
-        self.index = LongPanelIndex(major_axis, minor_axis,
-                                    major_labels, minor_labels)
-
-        major_labels = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
-        minor_labels = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
-
-        self.incon = LongPanelIndex(major_axis, minor_axis,
-                                    major_labels, minor_labels)
+        self.index = LongPanelIndex(levels=[major_axis, minor_axis],
+                                    labels=[major_labels, minor_labels])
 
     def test_consistency(self):
-        self.assert_(self.index.consistent)
-        self.assert_(not self.incon.consistent)
-
         # need to construct an overflow
         major_axis = range(70000)
         minor_axis = range(10)
@@ -674,10 +660,18 @@ class TestLongPanelIndex(unittest.TestCase):
         major_labels = np.arange(70000)
         minor_labels = np.repeat(range(10), 7000)
 
-        index = LongPanelIndex(major_axis, minor_axis,
-                               major_labels, minor_labels)
+        # the fact that is works means it's consistent
+        index = LongPanelIndex(levels=[major_axis, minor_axis],
+                               labels=[major_labels, minor_labels])
 
-        self.assert_(index.consistent)
+        # inconsistent
+        major_labels = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
+
+        self.assertRaises(Exception, LongPanelIndex,
+                          levels=[major_axis, minor_axis],
+                          labels=[major_labels, minor_labels])
+
 
     def test_truncate(self):
         result = self.index.truncate(before=1)
@@ -793,9 +787,9 @@ class TestLongPanel(unittest.TestCase):
         self.assert_(np.array_equal(thecopy.values, self.panel.values))
         self.assert_(thecopy.values is not self.panel.values)
 
-    def test_values(self):
-        valslice = self.panel.values[:-1]
-        self.assertRaises(Exception, self.panel._set_values, valslice)
+    # def test_values(self):
+    #     valslice = self.panel.values[:-1]
+    #     self.assertRaises(Exception, self.panel._set_values, valslice)
 
     def test_getitem(self):
         col = self.panel['ItemA']
@@ -1015,9 +1009,7 @@ class TestLongPanel(unittest.TestCase):
         self.assertEqual(df['e'][5], 4)
 
         # weird overlap, TODO: test?
-        df = pivot(np.array([1, 2, 3, 4, 4]),
-                   np.array(['a', 'a', 'a', 'a', 'a']),
-                   np.array([1, 2, 3, 5, 4]))
+        df = pivot(np.array([1, 2, 3, 4, 4]), np.array(['a', 'a', 'a', 'a', 'a']), np.array([1, 2, 3, 5, 4]))
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
