@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Index, notnull
 from pandas.core.datetools import bday
-from pandas.core.index import LongPanelIndex
+from pandas.core.index import MultiLevelIndex
 from pandas.core.panel import (WidePanel, LongPanel, group_agg, pivot)
 import pandas.core.panel as panelmod
 
@@ -640,74 +640,6 @@ class TestWidePanel(unittest.TestCase, PanelTests,
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 
-class TestLongPanelIndex(unittest.TestCase):
-
-    def setUp(self):
-        major_axis = Index([1, 2, 3, 4])
-        minor_axis = Index([1, 2])
-
-        major_labels = np.array([0, 0, 1, 2, 3, 3])
-        minor_labels = np.array([0, 1, 0, 1, 0, 1])
-
-        self.index = LongPanelIndex(levels=[major_axis, minor_axis],
-                                    labels=[major_labels, minor_labels])
-
-    def test_consistency(self):
-        # need to construct an overflow
-        major_axis = range(70000)
-        minor_axis = range(10)
-
-        major_labels = np.arange(70000)
-        minor_labels = np.repeat(range(10), 7000)
-
-        # the fact that is works means it's consistent
-        index = LongPanelIndex(levels=[major_axis, minor_axis],
-                               labels=[major_labels, minor_labels])
-
-        # inconsistent
-        major_labels = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
-        minor_labels = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
-
-        self.assertRaises(Exception, LongPanelIndex,
-                          levels=[major_axis, minor_axis],
-                          labels=[major_labels, minor_labels])
-
-
-    def test_truncate(self):
-        result = self.index.truncate(before=1)
-        self.assert_(0 not in result.major_axis)
-        self.assert_(1 in result.major_axis)
-
-        result = self.index.truncate(after=1)
-        self.assert_(2 not in result.major_axis)
-        self.assert_(1 in result.major_axis)
-
-        result = self.index.truncate(before=1, after=2)
-        self.assertEqual(len(result.major_axis), 2)
-
-    def test_getMajorBounds(self):
-        pass
-
-    def test_getAxisBounds(self):
-        pass
-
-    def test_getLabelBounds(self):
-        pass
-
-    def test_bounds(self):
-        pass
-
-    def test_makeMask(self):
-        mask =  self.index.mask
-        expected = np.array([True, True,
-                             True, False,
-                             False, True,
-                             True, True], dtype=bool)
-        self.assert_(np.array_equal(mask, expected))
-
-    def test_dims(self):
-        pass
-
 class TestLongPanel(unittest.TestCase):
 
     def setUp(self):
@@ -840,10 +772,10 @@ class TestLongPanel(unittest.TestCase):
             return (arr[1:] > arr[:-1]).any()
 
         sorted_minor = self.panel.sort(axis='minor')
-        self.assert_(is_sorted(sorted_minor.index.minor_labels))
+        self.assert_(is_sorted(sorted_minor.minor_labels))
 
         sorted_major = sorted_minor.sort(axis='major')
-        self.assert_(is_sorted(sorted_major.index.major_labels))
+        self.assert_(is_sorted(sorted_major.major_labels))
 
     def test_to_wide(self):
         pass
@@ -857,7 +789,6 @@ class TestLongPanel(unittest.TestCase):
 
         buf = StringIO()
         self.panel.toString(buf)
-        self.panel.toString(buf, col_space=12)
 
     def test_swapaxes(self):
         swapped = self.panel.swapaxes()
@@ -928,7 +859,7 @@ class TestLongPanel(unittest.TestCase):
         # TODO: test correctness
 
     def test_get_dummies(self):
-        self.panel['Label'] = self.panel.index.minor_labels
+        self.panel['Label'] = self.panel.minor_labels
 
         minor_dummies = self.panel.get_axis_dummies('minor')
         dummies = self.panel.get_dummies('Label')
@@ -964,13 +895,13 @@ class TestLongPanel(unittest.TestCase):
         index = self.panel.index
 
         major_count = self.panel.count('major')
-        labels = index.major_labels
-        for i, idx in enumerate(index.major_axis):
+        labels = index.labels[0]
+        for i, idx in enumerate(index.levels[0]):
             self.assertEqual(major_count[i], (labels == i).sum())
 
         minor_count = self.panel.count('minor')
-        labels = index.minor_labels
-        for i, idx in enumerate(index.minor_axis):
+        labels = index.labels[1]
+        for i, idx in enumerate(index.levels[1]):
             self.assertEqual(minor_count[i], (labels == i).sum())
 
     def test_leftJoin(self):

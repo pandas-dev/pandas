@@ -687,7 +687,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         x = self._x
         y = self._y
 
-        dates = x.index.major_axis
+        dates = x.major_axis
 
         cluster_axis = None
         if self._cluster == common.TIME:
@@ -758,7 +758,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
     def _beta_matrix(self, lag=0):
         assert(lag >= 0)
 
-        labels = self._y_trans.index.major_labels - lag
+        labels = self._y_trans.major_labels - lag
         indexer = self._valid_indices.searchsorted(labels, side='left')
 
         beta_matrix = self._beta_raw[indexer]

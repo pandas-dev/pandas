@@ -136,6 +136,9 @@ class Index(np.ndarray):
                     raise e1
 
     def format(self):
+        """
+        Render a string representation of the Index
+        """
         from datetime import time
 
         if self.is_all_dates():
@@ -438,9 +441,10 @@ class MultiLevelIndex(Index):
 
         padded_levels = []
         for lab, lev in zip(self.labels, stringified_levels):
-            maxlen = max(len(x) for x in lev)
-            padded = [x.ljust(maxlen) for x in lev]
-            padded = np.array(padded, dtype=object).take(lab)
+            # maxlen = max(len(x) for x in lev)
+            # adjoin does this automatically
+            # padded = [x.ljust(maxlen) for x in lev]
+            padded = np.array(lev, dtype=object).take(lab)
             padded_levels.append(padded)
 
         return adjoin(2, *padded_levels)
@@ -511,42 +515,10 @@ class MultiLevelIndex(Index):
 
         return beg_slice, end_slice
 
-class LongPanelIndex(MultiLevelIndex):
-    """
-    Holds axis indexing information for a LongPanel instance
-
-    Parameters
-    ----------
-    major_axis : Index-like
-    minor_axis : Index-like
-    major_labels : ndarray
-    minor_labels : ndarray
-    mask : ndarray (bool), optional
-        observation selection vector using major and minor labels, for
-        converting to wide format.
-    """
-
-    @property
-    def major_axis(self):
-        return self.levels[0]
-
-    @property
-    def minor_axis(self):
-        return self.levels[1]
-
-
-    @property
-    def major_labels(self):
-        return self.labels[0]
-
-    @property
-    def minor_labels(self):
-        return self.labels[1]
-
     def truncate(self, before=None, after=None):
         """
         Slice index between two major axis values, return new
-        LongPanelIndex
+        MultiLevelIndex
 
         Parameters
         ----------
@@ -558,15 +530,18 @@ class LongPanelIndex(MultiLevelIndex):
 
         Returns
         -------
-        LongPanelIndex
+        MultiLevelIndex
         """
         i, j = self._get_axis_bounds(before, after)
         left, right = self._get_label_bounds(i, j)
 
-        return LongPanelIndex([self.major_axis[i : j],
-                               self.minor_axis],
-                              [self.major_labels[left : right] - i,
-                               self.minor_labels[left : right]])
+        new_levels = list(self.levels)
+        new_levels[0] = new_levels[0][i:j]
+
+        new_labels = [lab[left:right] for lab in self.labels]
+        new_labels[0] = new_labels[0] - i
+
+        return MultiLevelIndex(levels=new_levels, labels=new_labels)
 
     def get_major_bounds(self, begin=None, end=None):
         """
@@ -593,20 +568,20 @@ class LongPanelIndex(MultiLevelIndex):
         Return major axis locations corresponding to interval values
         """
         if begin is not None:
-            i = self.major_axis.indexMap.get(begin)
+            i = self.levels[0].indexMap.get(begin)
             if i is None:
-                i = self.major_axis.searchsorted(begin, side='right')
+                i = self.levels[0].searchsorted(begin, side='right')
         else:
             i = 0
 
         if end is not None:
-            j = self.major_axis.indexMap.get(end)
+            j = self.levels[0].indexMap.get(end)
             if j is None:
-                j = self.major_axis.searchsorted(end)
+                j = self.levels[0].searchsorted(end)
             else:
                 j = j + 1
         else:
-            j = len(self.major_axis)
+            j = len(self.levels[0])
 
         if i > j:
             raise ValueError('Must have begin <= end!')
@@ -618,8 +593,8 @@ class LongPanelIndex(MultiLevelIndex):
 
         left = self._bounds[i]
 
-        if j >= len(self.major_axis):
-            right = len(self.major_labels)
+        if j >= len(self.levels[0]):
+            right = len(self.labels[0])
         else:
             right = self._bounds[j]
 
@@ -630,36 +605,10 @@ class LongPanelIndex(MultiLevelIndex):
     def _bounds(self):
         "Return or compute and return slice points for major axis"
         if self.__bounds is None:
-            inds = np.arange(len(self.major_axis))
-            self.__bounds = self.major_labels.searchsorted(inds)
+            inds = np.arange(len(self.levels[0]))
+            self.__bounds = self.labels[0].searchsorted(inds)
 
         return self.__bounds
-
-    @property
-    def mask(self):
-        return self._make_mask()
-        # if self._mask is None:
-        #     self._mask = self._make_mask()
-
-        # return self._mask
-
-    def _make_mask(self):
-        """
-        Create observation selection vector using major and minor
-        labels, for converting to wide format.
-        """
-        N, K = self.levshape
-        selector = self.minor_labels + K * self.major_labels
-
-        mask = np.zeros(N * K, dtype=bool)
-        mask[selector] = True
-
-        return mask
-
-    # @property
-    # def shape(self):
-    #     return len(self.major_axis), len(self.minor_axis)
-
 
 # For utility purposes
 

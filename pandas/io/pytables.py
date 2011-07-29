@@ -401,15 +401,15 @@ class HDFStore(object):
         return self._read_panel_table(group, where)
 
     def _write_long(self, group, panel, append=False):
-        self._write_index(group, 'major_axis', panel.index.major_axis)
-        self._write_index(group, 'minor_axis', panel.index.minor_axis)
+        self._write_index(group, 'major_axis', panel.major_axis)
+        self._write_index(group, 'minor_axis', panel.minor_axis)
         self._write_index(group, 'items', panel.items)
-        self._write_array(group, 'major_labels', panel.index.major_labels)
-        self._write_array(group, 'minor_labels', panel.index.minor_labels)
+        self._write_array(group, 'major_labels', panel.major_labels)
+        self._write_array(group, 'minor_labels', panel.minor_labels)
         self._write_array(group, 'values', panel.values)
 
     def _read_long(self, group, where=None):
-        from pandas.core.panel import LongPanelIndex
+        from pandas.core.index import MultiLevelIndex
 
         items = _read_index(group, 'items')
         major_axis = _read_index(group, 'major_axis')
@@ -418,8 +418,8 @@ class HDFStore(object):
         minor_labels = _read_array(group, 'minor_labels')
         values = _read_array(group, 'values')
 
-        index = LongPanelIndex(levels=[major_axis, minor_axis],
-                               labels=[major_labels, minor_labels])
+        index = MultiLevelIndex(levels=[major_axis, minor_axis],
+                                labels=[major_labels, minor_labels])
         return LongPanel(values, index=index, columns=items)
 
     def _write_index(self, group, key, value):

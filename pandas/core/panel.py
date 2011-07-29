@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
                                 _pfixed, _default_index, _infer_dtype)
-from pandas.core.index import Index, Factor, LongPanelIndex
+from pandas.core.index import Index, Factor, MultiLevelIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
 from pandas.core.generic import AxisProperty, NDFrame, Picklable
@@ -670,11 +670,10 @@ class WidePanel(Panel, NDFrame):
         else:
             mask = None
 
-        index = LongPanelIndex(levels=[self.major_axis,
-                                       self.minor_axis],
-                               labels=[major_labels,
-                                       minor_labels])
-                               # mask=mask)
+        index = MultiLevelIndex(levels=[self.major_axis,
+                                        self.minor_axis],
+                                labels=[major_labels,
+                                        minor_labels])
 
         return LongPanel(values, index=index, columns=self.items)
 
@@ -963,13 +962,13 @@ class LongPanel(Panel, DataFrame):
     ----------
     values : ndarray (N x K)
     items : sequence
-    index : LongPanelIndex
+    index : MultiLevelIndex
 
     Note
     ----
     Constructor should probably not be called directly since it
     requires creating the major and minor axis label vectors for for
-    the LongPanelIndex
+    the MultiLevelIndex
     """
 
     @property
@@ -1054,14 +1053,14 @@ class LongPanel(Panel, DataFrame):
         items = sorted(data)
         values = np.array([data[k] for k in items]).T
 
-        index = LongPanelIndex([major_axis, minor_axis],
-                               [major_labels, minor_labels])
+        index = MultiLevelIndex(levels=[major_axis, minor_axis],
+                                labels=[major_labels, minor_labels])
 
         return LongPanel(values, index=index, columns=items)
 
     def toRecords(self):
-        major = np.asarray(self.major_axis).take(self.index.major_labels)
-        minor = np.asarray(self.minor_axis).take(self.index.minor_labels)
+        major = np.asarray(self.major_axis).take(self.major_labels)
+        minor = np.asarray(self.minor_axis).take(self.minor_labels)
 
         arrays = [major, minor] + list(self.values[:, i]
                                        for i in range(len(self.items)))
@@ -1083,11 +1082,19 @@ class LongPanel(Panel, DataFrame):
 
     @property
     def major_axis(self):
-        return self.index.major_axis
+        return self.index.levels[0]
 
     @property
     def minor_axis(self):
-        return self.index.minor_axis
+        return self.index.levels[1]
+
+    @property
+    def major_labels(self):
+        return self.index.labels[0]
+
+    @property
+    def minor_labels(self):
+        return self.index.labels[1]
 
     # def _get_values(self):
     #     return self._values
@@ -1208,21 +1215,21 @@ class LongPanel(Panel, DataFrame):
         LongPanel (in sorted order)
         """
         if axis == 'major':
-            first = self.index.major_labels
-            second = self.index.minor_labels
+            first = self.major_labels
+            second = self.minor_labels
 
         elif axis == 'minor':
-            first = self.index.minor_labels
-            second = self.index.major_labels
+            first = self.minor_labels
+            second = self.major_labels
 
         # Lexsort starts from END
         indexer = np.lexsort((second, first))
 
-        new_major = self.index.major_labels.take(indexer)
-        new_minor = self.index.minor_labels.take(indexer)
+        new_major = self.major_labels.take(indexer)
+        new_minor = self.minor_labels.take(indexer)
         new_values = self.values.take(indexer, axis=0)
 
-        new_index = LongPanelIndex([self.major_axis, self.minor_axis],
+        new_index = MultiLevelIndex([self.major_axis, self.minor_axis],
                                     [new_major, new_minor])
 
         return LongPanel(new_values, columns=self.items,
@@ -1240,7 +1247,7 @@ class LongPanel(Panel, DataFrame):
 
         values = np.empty((I, N, K), dtype=self.values.dtype)
 
-        mask = self.index.mask
+        mask = make_mask(self.index)
         notmask = -mask
 
         for i in xrange(len(self.items)):
@@ -1286,15 +1293,14 @@ class LongPanel(Panel, DataFrame):
 
     #     self._textConvert(buf, format_cols, format_row)
 
-    # def _textConvert(self, buf, format_cols, format_row):
-    #     print >> buf, format_cols(self.items)
+    def _textConvert(self, buf, format_cols, format_row):
+        print >> buf, format_cols(self.items)
 
-    #     label_pairs = zip(self.index.major_labels,
-    #                       self.index.minor_labels)
-    #     major, minor = self.major_axis, self.minor_axis
-    #     for i, (major_i, minor_i) in enumerate(label_pairs):
-    #         row = format_row(major[major_i], minor[minor_i], self.values[i])
-    #         print >> buf, row
+        label_pairs = zip(self.major_axis.take(self.major_labels),
+                          self.minor_axis.take(self.minor_labels))
+        for i, (major, minor) in enumerate(label_pairs):
+            row = format_row(major, minor, self.values[i])
+            print >> buf, row
 
     def swapaxes(self):
         """
@@ -1308,18 +1314,17 @@ class LongPanel(Panel, DataFrame):
         # Order everything by minor labels. Have to use mergesort
         # because NumPy quicksort is not stable. Here of course I'm
         # using the property that the major labels are ordered.
-        indexer = self.index.minor_labels.argsort(kind='mergesort')
+        indexer = self.minor_labels.argsort(kind='mergesort')
 
-        new_major = self.index.minor_labels.take(indexer)
-        new_minor = self.index.major_labels.take(indexer)
+        new_major = self.minor_labels.take(indexer)
+        new_minor = self.major_labels.take(indexer)
 
         new_values = self.values.take(indexer, axis=0)
 
-        new_index = LongPanelIndex([self.minor_axis,
-                                    self.major_axis],
-                                   [new_major,
-                                    new_minor])
-                                   # mask=self.index.mask)
+        new_index = MultiLevelIndex([self.minor_axis,
+                                     self.major_axis],
+                                    [new_major,
+                                     new_minor])
 
         return LongPanel(new_values, columns=self.items,
                          index=new_index)
@@ -1389,11 +1394,11 @@ class LongPanel(Panel, DataFrame):
         if axis == 'minor':
             dim = len(self.minor_axis)
             items = self.minor_axis
-            labels = self.index.minor_labels
+            labels = self.minor_labels
         elif axis == 'major':
             dim = len(self.major_axis)
             items = self.major_axis
-            labels = self.index.major_labels
+            labels = self.major_labels
         else: # pragma: no cover
             raise ValueError('Do not recognize axis %s' % axis)
 
@@ -1748,6 +1753,18 @@ def pivot(index, columns, values):
     except Exception:
         return _slow_pivot(index, columns, values)
 
+
+def make_mask(index):
+    """
+    Create observation selection vector using major and minor
+    labels, for converting to wide format.
+    """
+    N, K = index.levshape
+    selector = index.labels[1] + K * index.labels[0]
+    mask = np.zeros(N * K, dtype=bool)
+    mask.put(selector, True)
+    return mask
+
 def _make_long_index(major_values, minor_values):
     major_axis = Index(sorted(set(major_values)))
     minor_axis = Index(sorted(set(minor_values)))
@@ -1755,8 +1772,8 @@ def _make_long_index(major_values, minor_values):
     major_labels, _ = _tseries.getMergeVec(major_values, major_axis.indexMap)
     minor_labels, _ = _tseries.getMergeVec(minor_values, minor_axis.indexMap)
 
-    long_index = LongPanelIndex(levels=[major_axis, minor_axis],
-                                labels=[major_labels, minor_labels])
+    long_index = MultiLevelIndex(levels=[major_axis, minor_axis],
+                                 labels=[major_labels, minor_labels])
     return long_index
 
 def _slow_pivot(index, columns, values):

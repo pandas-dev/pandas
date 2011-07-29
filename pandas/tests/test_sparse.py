@@ -1182,10 +1182,10 @@ class TestSparseWidePanel(TestCase,
             dlp = panel.to_dense().to_long()
 
             self.assert_(np.array_equal(slp.values, dlp.values))
-            self.assert_(np.array_equal(slp.index.major_labels,
-                                        dlp.index.major_labels))
-            self.assert_(np.array_equal(slp.index.minor_labels,
-                                        dlp.index.minor_labels))
+            self.assert_(np.array_equal(slp.major_labels,
+                                        dlp.major_labels))
+            self.assert_(np.array_equal(slp.minor_labels,
+                                        dlp.minor_labels))
 
         _compare_with_dense(self.panel)
         _compare_with_dense(self.panel.reindex(items=['ItemA']))

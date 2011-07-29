@@ -5,7 +5,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.index import Index, Factor, MultiLevelIndex, LongPanelIndex
+from pandas.core.index import Index, Factor, MultiLevelIndex
 import pandas.util.testing as common
 import pandas._tseries as tseries
 
@@ -209,6 +209,77 @@ class TestIndex(unittest.TestCase):
 
         testit(self.strIndex)
         testit(self.dateIndex)
+
+
+class TestMultiLevelIndex(unittest.TestCase):
+
+    def setUp(self):
+        major_axis = Index([1, 2, 3, 4])
+        minor_axis = Index([1, 2])
+
+        major_labels = np.array([0, 0, 1, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 0, 1])
+
+        self.index = MultiLevelIndex(levels=[major_axis, minor_axis],
+                                     labels=[major_labels, minor_labels])
+
+    def test_consistency(self):
+        # need to construct an overflow
+        major_axis = range(70000)
+        minor_axis = range(10)
+
+        major_labels = np.arange(70000)
+        minor_labels = np.repeat(range(10), 7000)
+
+        # the fact that is works means it's consistent
+        index = MultiLevelIndex(levels=[major_axis, minor_axis],
+                                labels=[major_labels, minor_labels])
+
+        # inconsistent
+        major_labels = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
+
+        self.assertRaises(Exception, MultiLevelIndex,
+                          levels=[major_axis, minor_axis],
+                          labels=[major_labels, minor_labels])
+
+
+    def test_truncate(self):
+        result = self.index.truncate(before=1)
+        self.assert_(0 not in result.levels[0])
+        self.assert_(1 in result.levels[0])
+
+        result = self.index.truncate(after=1)
+        self.assert_(2 not in result.levels[0])
+        self.assert_(1 in result.levels[0])
+
+        result = self.index.truncate(before=1, after=2)
+        self.assertEqual(len(result.levels[0]), 2)
+
+    def test_getMajorBounds(self):
+        pass
+
+    def test_getAxisBounds(self):
+        pass
+
+    def test_getLabelBounds(self):
+        pass
+
+    def test_bounds(self):
+        pass
+
+    def test_makeMask(self):
+        from pandas.core.panel import make_mask
+
+        mask =  make_mask(self.index)
+        expected = np.array([True, True,
+                             True, False,
+                             False, True,
+                             True, True], dtype=bool)
+        self.assert_(np.array_equal(mask, expected))
+
+    def test_dims(self):
+        pass
 
 
 class TestFactor(unittest.TestCase):

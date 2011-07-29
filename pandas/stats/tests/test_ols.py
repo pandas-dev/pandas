@@ -198,18 +198,18 @@ class TestPanelOLS(BaseTest):
         result = ols(y=self.panel_y2, x=self.panel_x2)
 
         x = result._x
-        index = [x.major_axis[i] for i in x.index.major_labels]
+        index = [x.major_axis[i] for i in x.major_labels]
         index = Index(sorted(set(index)))
         exp_index = Index([datetime(2000, 1, 1), datetime(2000, 1, 3)])
         self.assertTrue(exp_index.equals(index))
 
-        index = [x.minor_axis[i] for i in x.index.minor_labels]
+        index = [x.minor_axis[i] for i in x.minor_labels]
         index = Index(sorted(set(index)))
         exp_index = Index(['A', 'B'])
         self.assertTrue(exp_index.equals(index))
 
         x = result._x_filtered
-        index = [x.major_axis[i] for i in x.index.major_labels]
+        index = [x.major_axis[i] for i in x.major_labels]
         index = Index(sorted(set(index)))
         exp_index = Index([datetime(2000, 1, 1),
                            datetime(2000, 1, 3),
@@ -516,7 +516,7 @@ def _check_non_raw_results(model):
 
 def _period_slice(panelModel, i):
     index = panelModel._x_trans.index
-    period = index.major_axis[i]
+    period = index.levels[0][i]
 
     L, R = index.get_major_bounds(period, period)
 
