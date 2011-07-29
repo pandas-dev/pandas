@@ -262,7 +262,7 @@ class PanelOLS(OLS):
             dummies = dummies.filter(dummies.items - [to_exclude])
 
         dummies = dummies.addPrefix('FE_')
-        panel = panel.leftJoin(dummies)
+        panel = panel.join(dummies)
 
         return panel
 

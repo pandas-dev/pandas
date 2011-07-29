@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
+from pandas.core.index import Factor, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
@@ -133,11 +134,11 @@ class GroupBy(object):
     def agg(self, func):
         return self.aggregate(func)
 
-    def _get_name_dict(self):
-        axes = [ping.names for ping in self.groupings]
+    def _get_names(self):
+        axes = [ping.levels for ping in self.groupings]
         grouping_names = [ping.name for ping in self.groupings]
         shape = self._result_shape
-        return dict(zip(grouping_names, _ravel_names(axes, shape)))
+        return zip(grouping_names, _ravel_names(axes, shape))
 
     def _iterate_columns(self):
         name = self.name
@@ -189,20 +190,20 @@ class GroupBy(object):
             mask = counts.ravel() > 0
             output[name] = result[mask]
 
-        # do I want a warning message or silently exclude?
-        # if cannot_agg:
-        #     print ('Note: excluded %s which could not '
-        #            'be aggregated' % cannot_agg)
-
-        name_dict = self._get_name_dict()
+        name_list = self._get_names()
 
         if len(self.groupings) > 1:
-            for name, raveled in name_dict.iteritems():
-                output[name] = raveled[mask]
+            levels = []
+            labels = []
+            for name, raveled in name_list:
+                factor = Factor.fromarray(raveled)
+                levels.append(factor.levels)
+                labels.append(factor.labels)
 
-            return DataFrame(output)
+            index = MultiIndex(levels=levels, labels=labels)
+            return DataFrame(output, index=index)
         else:
-            return DataFrame(output, index=name_dict.values()[0])
+            return DataFrame(output, index=name_list[0][1])
 
     def _python_aggregate(self, func):
         pass
@@ -240,11 +241,20 @@ class GroupBy(object):
 
             result.fill(np.nan)
 
-        name_dict = self._get_name_dict()
-        for name, raveled in name_dict.iteritems():
-            output[name] = raveled[mask]
+        name_list = self._get_names()
 
-        return DataFrame(output)
+        if len(self.groupings) > 1:
+            levels = []
+            labels = []
+            for name, raveled in name_list:
+                factor = Factor.fromarray(raveled)
+                levels.append(factor.levels)
+                labels.append(factor.labels)
+
+            index = MultiIndex(levels=levels, labels=labels)
+            return DataFrame(output, index=index)
+        else:
+            return DataFrame(output, index=name_list[0][1])
 
     @property
     def _generator_factory(self):
@@ -315,7 +325,7 @@ class Grouping(object):
         return self._ids
 
     @property
-    def names(self):
+    def levels(self):
         return [self.ids[k] for k in sorted(self.ids)]
 
     @property

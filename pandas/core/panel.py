@@ -1325,8 +1325,6 @@ class LongPanel(Panel, DataFrame):
 
         return np.concatenate((np.diff(bounds), [N - bounds[-1]]))
 
-    leftJoin = DataFrame.join
-
     def addPrefix(self, prefix=None):
         """
         Concatenate prefix string with panel items names.

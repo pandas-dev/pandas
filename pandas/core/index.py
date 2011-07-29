@@ -259,7 +259,7 @@ class Index(np.ndarray):
         theDiff = sorted(set(self) - set(otherArr))
         return Index(theDiff)
 
-    __sub__ = diff
+    __sub__ = lambda self, other: self.diff(other)
 
     def take(self, *args, **kwargs):
         taken = self.view(np.ndarray).take(*args, **kwargs)
@@ -399,10 +399,12 @@ class MultiIndex(Index):
         arr = np.empty(len(labels[0]), dtype=object)
         arr[:] = zip(*labels)
         arr = arr.view(cls)
-        arr.levels = [_ensure_index(lev) for lev in levels]
-        arr.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
-        arr._verify_integrity()
         return arr
+
+    def __init__(self, levels, labels):
+        self.levels = [_ensure_index(lev) for lev in levels]
+        self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+        self._verify_integrity()
 
     def __array_finalize__(self, obj):
         pass
@@ -411,7 +413,7 @@ class MultiIndex(Index):
 
     @property
     def nlevels(self):
-        return len(levels)
+        return len(self.levels)
 
     @property
     def levshape(self):
@@ -486,18 +488,6 @@ class MultiIndex(Index):
         levels = []
         labels = []
         return cls(levels, labels)
-
-    def equals(self, other):
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self is other:
-            return True
-
-        if not isinstance(other, Index):
-            return False
-
-        return np.array_equal(self, other)
 
     def get_loc(self, key):
         if isinstance(key, tuple):
@@ -602,6 +592,72 @@ class MultiIndex(Index):
         new_labels[0] = new_labels[0] - i
 
         return MultiIndex(levels=new_levels, labels=new_labels)
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        if not isinstance(other, MultiIndex):
+            return False
+
+        return np.array_equal(self, other)
+
+    def union(self, other):
+        """
+        Form the union of two Index objects and sorts if possible
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        Index
+        """
+        self._assert_can_do_setop(other)
+
+        if len(other) == 0 or self.equals(other):
+            return self
+
+        new_seq = np.concatenate((self, other))
+        try:
+            new_seq = np.unique(new_seq)
+        except Exception:
+            # Not sortable / multiple types
+            pass
+
+        return MultiIndex(new_seq)
+
+    def intersection(self, other):
+        """
+        Form the intersection of two Index objects and sorts if possible
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        Index
+        """
+        self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self
+
+        theIntersection = sorted(set(self) & set(other))
+        return Index(theIntersection)
+
+    def _assert_can_do_setop(self, other):
+        if not hasattr(other, '__iter__'):
+            raise Exception('Input must be iterable!')
+
+        if not isinstance(other, MultiIndex):
+            raise TypeError('can only call with other hierarchical '
+                            'index objects')
 
     def get_major_bounds(self, begin=None, end=None):
         """

@@ -904,15 +904,15 @@ class TestLongPanel(unittest.TestCase):
         for i, idx in enumerate(index.levels[1]):
             self.assertEqual(minor_count[i], (labels == i).sum())
 
-    def test_leftJoin(self):
+    def test_join(self):
         lp1 = self.panel.filter(['ItemA', 'ItemB'])
         lp2 = self.panel.filter(['ItemC'])
 
-        joined = lp1.leftJoin(lp2)
+        joined = lp1.join(lp2)
 
         self.assertEqual(len(joined.items), 3)
 
-        self.assertRaises(Exception, lp1.leftJoin,
+        self.assertRaises(Exception, lp1.join,
                           self.panel.filter(['ItemB', 'ItemC']))
 
     def test_merge(self):
