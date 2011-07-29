@@ -1178,7 +1178,7 @@ def stack_sparse_frame(frame):
 
     lp = LongPanel(stacked_values.reshape((nobs, 1)), index=index,
                    columns=['foo'])
-    return lp.sort('major')
+    return lp.sortlevel(level=0)
 
 def _stack_sparse_info(frame):
     lengths = [s.sp_index.npoints for _, s in frame.iteritems()]
@@ -1427,7 +1427,7 @@ class SparseWidePanel(WidePanel):
                            labels=[major_labels, minor_labels])
 
         lp = LongPanel(values, index=index, columns=self.items)
-        return lp.sort('major')
+        return lp.sortlevel(level=0)
 
     def reindex(self, major=None, items=None, minor=None, major_axis=None,
                 minor_axis=None):

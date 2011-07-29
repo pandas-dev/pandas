@@ -771,10 +771,10 @@ class TestLongPanel(unittest.TestCase):
         def is_sorted(arr):
             return (arr[1:] > arr[:-1]).any()
 
-        sorted_minor = self.panel.sort(axis='minor')
+        sorted_minor = self.panel.sortlevel(level=1)
         self.assert_(is_sorted(sorted_minor.minor_labels))
 
-        sorted_major = sorted_minor.sort(axis='major')
+        sorted_major = sorted_minor.sortlevel(level=0)
         self.assert_(is_sorted(sorted_major.major_labels))
 
     def test_to_wide(self):

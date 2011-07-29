@@ -1098,39 +1098,6 @@ class LongPanel(Panel, DataFrame):
     divide = _long_arith_method(operator.div, 'divide')
     multiply = _long_arith_method(operator.mul, 'multiply')
 
-    def sort(self, axis='major'):
-        """
-        Sort value by chosen axis (break ties using other axis)
-
-        Note
-        ----
-        A LongPanel must be sorted to convert to a WidePanel
-
-        Returns
-        -------
-        LongPanel (in sorted order)
-        """
-        if axis == 'major':
-            first = self.major_labels
-            second = self.minor_labels
-
-        elif axis == 'minor':
-            first = self.minor_labels
-            second = self.major_labels
-
-        # Lexsort starts from END
-        indexer = np.lexsort((second, first))
-
-        new_major = self.major_labels.take(indexer)
-        new_minor = self.minor_labels.take(indexer)
-        new_values = self.values.take(indexer, axis=0)
-
-        new_index = MultiIndex([self.major_axis, self.minor_axis],
-                                    [new_major, new_minor])
-
-        return LongPanel(new_values, columns=self.items,
-                         index=new_index)
-
     def to_wide(self):
         """
         Transform long (stacked) format into wide format

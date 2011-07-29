@@ -567,7 +567,7 @@ class HDFStore(object):
                                       np.asarray(columns))
         lp = LongPanel(sel.values['values'], index=long_index,
                        columns=fields)
-        lp = lp.sort()
+        lp = lp.sortlevel(level=0)
         wp = lp.to_wide()
 
         if sel.column_filter:

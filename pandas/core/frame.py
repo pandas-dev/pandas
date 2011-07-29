@@ -1440,7 +1440,7 @@ class DataFrame(NDFrame):
             mat = np.atleast_2d(self[values].values).T
 
         lp = LongPanel(mat, index=long_index, columns=items)
-        lp = lp.sort()
+        lp = lp.sortlevel(level=0)
 
         wp = lp.to_wide()
         if values is not None:
