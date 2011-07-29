@@ -26,7 +26,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
                                 _infer_dtype)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
-from pandas.core.index import Index, NULL_INDEX
+from pandas.core.index import Index, MultiIndex, NULL_INDEX
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series, _is_bool_indexer
 import pandas.core.common as common
@@ -993,7 +993,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, column=None, ascending=True):
+    def sort(self, column=None, axis=0, ascending=True):
         """
         Sort DataFrame either by index (default) by the values in a column
 
@@ -1020,6 +1020,46 @@ class DataFrame(NDFrame):
             sort_index = sort_index[::-1]
 
         return self.reindex(sort_index)
+
+    def sortlevel(self, level=0, axis=0, ascending=True):
+        """
+        Sort value by chosen axis (break ties using other axis)
+
+        Note
+        ----
+        A LongPanel must be sorted to convert to a WidePanel
+
+        Returns
+        -------
+        LongPanel (in sorted order)
+        """
+        the_axis = self._get_axis(axis)
+
+        if not isinstance(the_axis, MultiIndex):
+            raise Exception('can only sort by level with a hierarchical index')
+
+        labels = list(the_axis.labels)
+        primary = labels.pop(level)
+
+        # Lexsort starts from END
+        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
+
+        if not ascending:
+            indexer = indexer[::-1]
+
+        new_labels = [lab.take(indexer) for lab in the_axis.labels]
+        new_values = self.values.take(indexer, axis=0)
+
+        new_axis = MultiIndex(levels=self.index.levels, labels=new_labels)
+
+        if axis == 0:
+            index = new_axis
+            columns = self.columns
+        else:
+            index = self.index
+            columns = new_axis
+
+        return self._constructor(new_values, index=index, columns=columns)
 
     #----------------------------------------------------------------------
     # Filling NA's
@@ -1580,6 +1620,32 @@ class DataFrame(NDFrame):
             result = result.T
 
         return result
+
+    def _apply_level(self, f, axis='major', broadcast=False):
+        from pandas.core.panel import LongPanel
+
+        if axis == 'major':
+            panel = self.swapaxes()
+            result = panel._apply_level(f, axis='minor', broadcast=broadcast)
+            if broadcast:
+                result = result.swapaxes()
+
+            return result
+
+        bounds = self.index._bounds
+        values = self.values
+        N, _ = values.shape
+        result = group_agg(values, bounds, f)
+
+        if broadcast:
+            repeater = np.concatenate((np.diff(bounds), [N - bounds[-1]]))
+            panel = LongPanel(result.repeat(repeater, axis=0),
+                              columns=self.items, index=self.index)
+        else:
+            panel = DataFrame(result, index=self.major_axis,
+                              columns=self.items)
+
+        return panel
 
     def tapply(self, func):
         """
@@ -2468,6 +2534,70 @@ class DataFrame(NDFrame):
             self._ix = _DataFrameIndexer(self)
 
         return self._ix
+
+
+def group_agg(values, bounds, f):
+    """
+    R-style aggregator
+
+    Parameters
+    ----------
+    values : N-length or N x K ndarray
+    bounds : B-length ndarray
+    f : ndarray aggregation function
+
+    Returns
+    -------
+    ndarray with same length as bounds array
+    """
+    if values.ndim == 1:
+        N = len(values)
+        result = np.empty(len(bounds), dtype=float)
+    elif values.ndim == 2:
+        N, K = values.shape
+        result = np.empty((len(bounds), K), dtype=float)
+
+    testagg = f(values[:min(1, len(values))])
+    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
+        raise Exception('Passed function does not aggregate!')
+
+    for i, left_bound in enumerate(bounds):
+        if i == len(bounds) - 1:
+            right_bound = N
+        else:
+            right_bound = bounds[i + 1]
+
+        result[i] = f(values[left_bound : right_bound])
+
+    return result
+
+
+def factor_agg(factor, vec, func):
+    """
+    Aggregate array based on Factor
+
+    Parameters
+    ----------
+    factor : Factor
+        length n
+    vec : sequence
+        length n
+    func : function
+        1D array aggregation function
+
+    Returns
+    -------
+    ndarray corresponding to Factor levels
+    """
+    indexer = np.argsort(factor.labels)
+    unique_labels = np.arange(len(factor.levels))
+
+    ordered_labels = factor.labels.take(indexer)
+    ordered_vec = np.asarray(vec).take(indexer)
+    bounds = ordered_labels.searchsorted(unique_labels)
+
+    return group_agg(ordered_vec, bounds, func)
+
 
 def _union_indices(a, b):
     if len(a) == 0:

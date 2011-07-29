@@ -862,8 +862,8 @@ class NonPooledPanelOLS(object):
 
 def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
                    nw_lags, nobs, df, nw_overlap):
-
-    from pandas.core.panel import LongPanel, group_agg
+    from pandas.core.frame import group_agg
+    from pandas.core.panel import LongPanel
 
     xx_inv = math.inv(xx)
 

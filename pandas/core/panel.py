@@ -11,11 +11,11 @@ import warnings
 import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
-                                _pfixed, _default_index, _infer_dtype)
-from pandas.core.index import Index, Factor, MultiIndex
+                                _default_index, _infer_dtype)
+from pandas.core.index import Factor, Index, MultiIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
-from pandas.core.generic import AxisProperty, NDFrame, Picklable
+from pandas.core.generic import AxisProperty, NDFrame
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -647,16 +647,15 @@ class WidePanel(Panel, NDFrame):
 
         if filter_observations:
             mask = np.isfinite(self.values).all(axis=0)
-            size = mask.sum()
+            # size = mask.sum()
             selector = mask.ravel()
         else:
-            size = N * K
+            # size = N * K
             selector = slice(None, None)
 
-        values = np.empty((size, I), dtype=float)
-
-        for i in xrange(len(self.items)):
-            values[:, i] = self.values[i].ravel()[selector]
+        data = {}
+        for item in self.items:
+            data[item] = self[item].values.ravel()[selector]
 
         major_labels = np.arange(N).repeat(K)[selector]
 
@@ -665,17 +664,10 @@ class WidePanel(Panel, NDFrame):
         minor_labels = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
         minor_labels = minor_labels.ravel()[selector]
 
-        if filter_observations:
-            mask = selector
-        else:
-            mask = None
+        index = MultiIndex(levels=[self.major_axis, self.minor_axis],
+                           labels=[major_labels, minor_labels])
 
-        index = MultiIndex(levels=[self.major_axis,
-                                        self.minor_axis],
-                                labels=[major_labels,
-                                        minor_labels])
-
-        return LongPanel(values, index=index, columns=self.items)
+        return LongPanel(data, index=index, columns=self.items)
 
     toLong = to_long
 
@@ -985,13 +977,6 @@ class LongPanel(Panel, DataFrame):
     def __repr__(self):
         return DataFrame.__repr__(self)
 
-        # if len(self.items) < 7 and len(self.index) < 500:
-        #     buf = StringIO()
-        #     self.toString(buf=buf)
-        #     return buf.getvalue()
-        # else:
-        #     return Panel.__repr__(self)
-
     @classmethod
     def fromRecords(cls, data, major_field, minor_field,
                     exclude=None):
@@ -1029,34 +1014,14 @@ class LongPanel(Panel, DataFrame):
         else:
             exclude = set(exclude)
 
-        major_vec = data.pop(major_field)
-        minor_vec = data.pop(minor_field)
-
-        major_axis = Index(sorted(set(major_vec)))
-        minor_axis = Index(sorted(set(minor_vec)))
-
-        major_labels, _ = _tseries.getMergeVec(major_vec, major_axis.indexMap)
-        minor_labels, _ = _tseries.getMergeVec(minor_vec, minor_axis.indexMap)
-
         for col in exclude:
             del data[col]
 
-        # factor_dict = {}
-        # for col in data.keys():
-        #     series = data[col]
-
-        #     # Is it a factor?
-        #     if not np.issctype(series.dtype):
-        #         factor_dict[col] = factor = Factor.fromarray(series)
-        #         data[col] = factor.labels
-
-        items = sorted(data)
-        values = np.array([data[k] for k in items]).T
-
-        index = MultiIndex(levels=[major_axis, minor_axis],
-                                labels=[major_labels, minor_labels])
-
-        return LongPanel(values, index=index, columns=items)
+        major = Factor.fromarray(data.pop(major_field))
+        minor = Factor.fromarray(data.pop(minor_field))
+        index = MultiIndex(levels=[major.levels, minor.levels],
+                           labels=[major.labels, minor.labels])
+        return LongPanel(data, index=index)
 
     def toRecords(self):
         major = np.asarray(self.major_axis).take(self.major_labels)
@@ -1068,17 +1033,6 @@ class LongPanel(Panel, DataFrame):
         names = ['major', 'minor'] + list(self.items)
 
         return np.rec.fromarrays(arrays, names=names)
-
-    def copy(self):
-        """
-        Return copy of LongPanel (copies ndarray)
-
-        Returns
-        -------
-        y : LongPanel
-        """
-        return LongPanel(self.values.copy(), columns=self.items,
-                         index=self.index)
 
     @property
     def major_axis(self):
@@ -1095,64 +1049,6 @@ class LongPanel(Panel, DataFrame):
     @property
     def minor_labels(self):
         return self.index.labels[1]
-
-    # def _get_values(self):
-    #     return self._values
-
-    # def _set_values(self, values):
-    #     if not values.flags.contiguous:
-    #         values = values.copy()
-
-    #     shape = len(self.index.major_labels), len(self.items)
-
-    #     if values.shape != shape:
-    #         raise ValueError('Values shape %s mismatch to %s' % (values.shape,
-    #                                                             shape))
-
-    #     self._values = values
-
-    # values = property(fget=_get_values, fset=_set_values)
-
-    # def __getitem__(self, key):
-    #     "Return column of panel as LongPanel"
-    #     loc = self.items.get_loc(key)
-    #     return LongPanel(self.values[:, loc : loc + 1].copy(),
-    #                      [key], self.index, factors=self.factors)
-
-    # def __setitem__(self, key, value):
-    #     if np.isscalar(value):
-    #         mat = np.empty((len(self.values), 1), dtype=float)
-    #         mat.fill(value)
-    #     elif isinstance(value, np.ndarray):
-    #         mat = value
-    #     elif isinstance(value, LongPanel):
-    #         if len(value.items) > 1:
-    #             raise ValueError('input LongPanel must only have one column')
-
-    #         if value.index is not self.index:
-    #             raise ValueError('Only can set identically-indexed LongPanel '
-    #                             'items for now')
-
-    #         mat = value.values
-
-    #     # Insert item at end of items for now
-    #     self.columns = Index(list(self.columns) + [key])
-    #     self.values = np.column_stack((self.values, mat))
-
-    # def __getstate__(self):
-    #     "Returned pickled representation of the panel"
-
-    #     return (common._pickle_array(self.values),
-    #             common._pickle_array(self.items),
-    #             self.index)
-
-    # def __setstate__(self, state):
-    #     "Unpickle the panel"
-    #     (vals, items, index) = state
-
-    #     self.items = common._unpickle_array(items)
-    #     self.index = index
-    #     self.values = common._unpickle_array(vals)
 
     def _combine(self, other, func, axis='items'):
         if isinstance(other, Panel):
@@ -1271,28 +1167,6 @@ class LongPanel(Panel, DataFrame):
         self._textConvert(f, format_cols, format_row)
         f.close()
 
-    # def toString(self, buf=sys.stdout, col_space=15):
-    #     """
-    #     Output a screen-friendly version of this Panel
-    #     """
-    #     _pf = _pfixed
-    #     major_space = max(max([len(str(idx))
-    #                            for idx in self.major_axis]) + 4, 9)
-    #     minor_space = max(max([len(str(idx))
-    #                            for idx in self.minor_axis]) + 4, 9)
-
-    #     def format_cols(items):
-    #         return '%s%s%s' % (_pf('Major', major_space),
-    #                            _pf('Minor', minor_space),
-    #                            ''.join(_pf(h, col_space) for h in items))
-
-    #     def format_row(major, minor, values):
-    #         return '%s%s%s' % (_pf(major, major_space),
-    #                            _pf(minor, minor_space),
-    #                            ''.join(_pf(v, col_space) for v in values))
-
-    #     self._textConvert(buf, format_cols, format_row)
-
     def _textConvert(self, buf, format_cols, format_row):
         print >> buf, format_cols(self.items)
 
@@ -1318,13 +1192,10 @@ class LongPanel(Panel, DataFrame):
 
         new_major = self.minor_labels.take(indexer)
         new_minor = self.major_labels.take(indexer)
-
         new_values = self.values.take(indexer, axis=0)
 
-        new_index = MultiIndex([self.minor_axis,
-                                     self.major_axis],
-                                    [new_major,
-                                     new_minor])
+        new_index = MultiIndex(levels=[self.minor_axis, self.major_axis],
+                               labels=[new_major, new_minor])
 
         return LongPanel(new_values, columns=self.items,
                          index=new_index)
@@ -1350,25 +1221,6 @@ class LongPanel(Panel, DataFrame):
 
         return LongPanel(self.values[left : right],
                          columns=self.items, index=new_index)
-
-    def filter(self, items):
-        """
-        Restrict items in panel to input list
-
-        Parameters
-        ----------
-        items : sequence
-
-        Returns
-        -------
-        WidePanel
-        """
-        intersection = self.items.intersection(items)
-        indexer = [self.items.indexMap[col] for col in intersection]
-
-        new_values = self.values.take(indexer, axis=1)
-        return LongPanel(new_values, columns=intersection,
-                         index=self.index)
 
     def get_axis_dummies(self, axis='minor', transform=None,
                          prefix=None):
@@ -1472,36 +1324,12 @@ class LongPanel(Panel, DataFrame):
         broadcast=False -> DataFrame
         """
         try:
-            return self._apply_axis(f, axis=axis, broadcast=broadcast)
+            return self._apply_level(f, axis=axis, broadcast=broadcast)
         except Exception:
             # ufunc
             new_values = f(self.values)
             return LongPanel(new_values, columns=self.items,
                              index=self.index)
-
-    def _apply_axis(self, f, axis='major', broadcast=False):
-        if axis == 'major':
-            panel = self.swapaxes()
-            result = panel._apply_axis(f, axis='minor', broadcast=broadcast)
-            if broadcast:
-                result = result.swapaxes()
-
-            return result
-
-        bounds = self.index._bounds
-        values = self.values
-        N, _ = values.shape
-        result = group_agg(values, bounds, f)
-
-        if broadcast:
-            repeater = np.concatenate((np.diff(bounds), [N - bounds[-1]]))
-            panel = LongPanel(result.repeat(repeater, axis=0),
-                              columns=self.items, index=self.index)
-        else:
-            panel = DataFrame(result, index=self.major_axis,
-                               columns=self.items)
-
-        return panel
 
     def count(self, axis='major'):
         """
@@ -1530,20 +1358,7 @@ class LongPanel(Panel, DataFrame):
 
         return np.concatenate((np.diff(bounds), [N - bounds[-1]]))
 
-    def leftJoin(self, other):
-        """
-
-        Parameters
-        ----------
-        other : LongPanel
-        """
-        assert(self.index is other.index)
-
-        values = np.concatenate((self.values, other.values), axis=1).copy()
-        items = Index(np.concatenate((self.items, other.items)))
-        items._verify_integrity()
-
-        return LongPanel(values, columns=items, index=self.index)
+    leftJoin = DataFrame.join
 
     def addPrefix(self, prefix=None):
         """
@@ -1579,67 +1394,6 @@ def _prep_ndarray(values, copy=True):
     assert(values.ndim == 3)
     return values
 
-
-def factor_agg(factor, vec, func):
-    """
-    Aggregate array based on Factor
-
-    Parameters
-    ----------
-    factor : Factor
-        length n
-    vec : sequence
-        length n
-    func : function
-        1D array aggregation function
-
-    Returns
-    -------
-    ndarray corresponding to Factor levels
-    """
-    indexer = np.argsort(factor.labels)
-    unique_labels = np.arange(len(factor.levels))
-
-    ordered_labels = factor.labels.take(indexer)
-    ordered_vec = np.asarray(vec).take(indexer)
-    bounds = ordered_labels.searchsorted(unique_labels)
-
-    return group_agg(ordered_vec, bounds, func)
-
-def group_agg(values, bounds, f):
-    """
-    R-style aggregator
-
-    Parameters
-    ----------
-    values : N-length or N x K ndarray
-    bounds : B-length ndarray
-    f : ndarray aggregation function
-
-    Returns
-    -------
-    ndarray with same length as bounds array
-    """
-    if values.ndim == 1:
-        N = len(values)
-        result = np.empty(len(bounds), dtype=float)
-    elif values.ndim == 2:
-        N, K = values.shape
-        result = np.empty((len(bounds), K), dtype=float)
-
-    testagg = f(values[:min(1, len(values))])
-    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
-        raise Exception('Passed function does not aggregate!')
-
-    for i, left_bound in enumerate(bounds):
-        if i == len(bounds) - 1:
-            right_bound = N
-        else:
-            right_bound = bounds[i + 1]
-
-        result[i] = f(values[left_bound : right_bound])
-
-    return result
 
 def _prefix_item(item, prefix=None):
     if prefix is None:

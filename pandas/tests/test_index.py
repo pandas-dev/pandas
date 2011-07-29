@@ -299,12 +299,12 @@ class TestFactor(unittest.TestCase):
         common.assert_almost_equal(subf.labels, [2, 2, 2])
 
     def test_factor_agg(self):
-        import pandas.core.panel as panelmod
+        import pandas.core.frame as frame
 
         arr = np.arange(len(self.factor))
 
         f = np.sum
-        agged = panelmod.factor_agg(self.factor, arr, f)
+        agged = frame.factor_agg(self.factor, arr, f)
         labels = self.factor.labels
         for i, idx in enumerate(self.factor.levels):
             self.assertEqual(f(arr[labels == i]), agged[i])

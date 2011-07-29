@@ -334,9 +334,9 @@ class Factor(object):
 
     @classmethod
     def fromarray(cls, values):
-        levels = np.array(sorted(set(values)), dtype=object)
-        labels = levels.searchsorted(values)
-
+        values = np.asarray(values, dtype=object)
+        levels = Index(sorted(set(values)))
+        labels, _ = _tseries.getMergeVec(values, levels.indexMap)
         return Factor(labels, levels=levels)
 
     def asarray(self):

@@ -10,7 +10,8 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Index, notnull
 from pandas.core.datetools import bday
-from pandas.core.panel import (WidePanel, LongPanel, group_agg, pivot)
+from pandas.core.frame import group_agg
+from pandas.core.panel import WidePanel, LongPanel, pivot
 import pandas.core.panel as panelmod
 
 from pandas.util.testing import (assert_panel_equal,
