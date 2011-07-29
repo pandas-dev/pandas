@@ -10,7 +10,6 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Index, notnull
 from pandas.core.datetools import bday
-from pandas.core.index import MultiLevelIndex
 from pandas.core.panel import (WidePanel, LongPanel, group_agg, pivot)
 import pandas.core.panel as panelmod
 

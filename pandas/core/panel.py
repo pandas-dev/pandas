@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
                                 _pfixed, _default_index, _infer_dtype)
-from pandas.core.index import Index, Factor, MultiLevelIndex
+from pandas.core.index import Index, Factor, MultiIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.frame import DataFrame
 from pandas.core.generic import AxisProperty, NDFrame, Picklable
@@ -670,7 +670,7 @@ class WidePanel(Panel, NDFrame):
         else:
             mask = None
 
-        index = MultiLevelIndex(levels=[self.major_axis,
+        index = MultiIndex(levels=[self.major_axis,
                                         self.minor_axis],
                                 labels=[major_labels,
                                         minor_labels])
@@ -962,13 +962,13 @@ class LongPanel(Panel, DataFrame):
     ----------
     values : ndarray (N x K)
     items : sequence
-    index : MultiLevelIndex
+    index : MultiIndex
 
     Note
     ----
     Constructor should probably not be called directly since it
     requires creating the major and minor axis label vectors for for
-    the MultiLevelIndex
+    the MultiIndex
     """
 
     @property
@@ -1053,7 +1053,7 @@ class LongPanel(Panel, DataFrame):
         items = sorted(data)
         values = np.array([data[k] for k in items]).T
 
-        index = MultiLevelIndex(levels=[major_axis, minor_axis],
+        index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels])
 
         return LongPanel(values, index=index, columns=items)
@@ -1229,7 +1229,7 @@ class LongPanel(Panel, DataFrame):
         new_minor = self.minor_labels.take(indexer)
         new_values = self.values.take(indexer, axis=0)
 
-        new_index = MultiLevelIndex([self.major_axis, self.minor_axis],
+        new_index = MultiIndex([self.major_axis, self.minor_axis],
                                     [new_major, new_minor])
 
         return LongPanel(new_values, columns=self.items,
@@ -1321,7 +1321,7 @@ class LongPanel(Panel, DataFrame):
 
         new_values = self.values.take(indexer, axis=0)
 
-        new_index = MultiLevelIndex([self.minor_axis,
+        new_index = MultiIndex([self.minor_axis,
                                      self.major_axis],
                                     [new_major,
                                      new_minor])
@@ -1772,7 +1772,7 @@ def _make_long_index(major_values, minor_values):
     major_labels, _ = _tseries.getMergeVec(major_values, major_axis.indexMap)
     minor_labels, _ = _tseries.getMergeVec(minor_values, minor_axis.indexMap)
 
-    long_index = MultiLevelIndex(levels=[major_axis, minor_axis],
+    long_index = MultiIndex(levels=[major_axis, minor_axis],
                                  labels=[major_labels, minor_labels])
     return long_index
 

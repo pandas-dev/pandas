@@ -5,7 +5,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.index import Index, Factor, MultiLevelIndex
+from pandas.core.index import Index, Factor, MultiIndex
 import pandas.util.testing as common
 import pandas._tseries as tseries
 
@@ -211,7 +211,7 @@ class TestIndex(unittest.TestCase):
         testit(self.dateIndex)
 
 
-class TestMultiLevelIndex(unittest.TestCase):
+class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):
         major_axis = Index([1, 2, 3, 4])
@@ -220,8 +220,8 @@ class TestMultiLevelIndex(unittest.TestCase):
         major_labels = np.array([0, 0, 1, 2, 3, 3])
         minor_labels = np.array([0, 1, 0, 1, 0, 1])
 
-        self.index = MultiLevelIndex(levels=[major_axis, minor_axis],
-                                     labels=[major_labels, minor_labels])
+        self.index = MultiIndex(levels=[major_axis, minor_axis],
+                                labels=[major_labels, minor_labels])
 
     def test_consistency(self):
         # need to construct an overflow
@@ -232,14 +232,14 @@ class TestMultiLevelIndex(unittest.TestCase):
         minor_labels = np.repeat(range(10), 7000)
 
         # the fact that is works means it's consistent
-        index = MultiLevelIndex(levels=[major_axis, minor_axis],
-                                labels=[major_labels, minor_labels])
+        index = MultiIndex(levels=[major_axis, minor_axis],
+                           labels=[major_labels, minor_labels])
 
         # inconsistent
         major_labels = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
         minor_labels = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
 
-        self.assertRaises(Exception, MultiLevelIndex,
+        self.assertRaises(Exception, MultiIndex,
                           levels=[major_axis, minor_axis],
                           labels=[major_labels, minor_labels])
 

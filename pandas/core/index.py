@@ -132,7 +132,7 @@ class Index(np.ndarray):
             except Exception, e1:
                 try:
                     return Index(arr_idx[np.asarray(key)])
-                except Exception, e2: # pragma: no cover
+                except Exception: # pragma: no cover
                     raise e1
 
     def format(self):
@@ -383,7 +383,7 @@ C       1
 
 """
 
-class MultiLevelIndex(Index):
+class MultiIndex(Index):
     """
     Implements multi-level, a.k.a. hierarchical, index object for pandas objects
 
@@ -399,16 +399,15 @@ class MultiLevelIndex(Index):
         arr = np.empty(len(labels[0]), dtype=object)
         arr[:] = zip(*labels)
         arr = arr.view(cls)
+        arr.levels = [_ensure_index(lev) for lev in levels]
+        arr.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+        arr._verify_integrity()
         return arr
 
-    def __init__(self, levels=None, labels=None):
-        self.levels = [_ensure_index(lev) for lev in levels]
-        self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
-        self._verify_integrity()
-
     def __array_finalize__(self, obj):
-        self.labels = getattr(obj, 'labels', None)
-        self.levels = getattr(obj, 'levels', None)
+        pass
+        # self.labels = getattr(obj, 'labels', None)
+        # self.levels = getattr(obj, 'levels', None)
 
     @property
     def nlevels(self):
@@ -434,6 +433,36 @@ class MultiLevelIndex(Index):
         self.levels = [Index(x) for x in levels]
         self.labels = labels
 
+    def __getitem__(self, key):
+        arr_idx = self.view(np.ndarray)
+        if np.isscalar(key):
+            return tuple(self.levels[i][k]
+                         for i, k in enumerate(arr_idx[key]))
+        else:
+            if _is_bool_indexer(key):
+                key = np.asarray(key)
+
+            # easier to ask forgiveness than permission
+            try:
+                new_tuples = arr_idx[key]
+                new_labels = [lab[key] for lab in self.labels]
+            except Exception, e1:
+                try:
+                    key = np.asarray(key)
+                    new_tuples = arr_idx[key]
+                    new_labels = [lab[key] for lab in self.labels]
+                except Exception: # pragma: no cover
+                    raise e1
+
+            # an optimization
+            result = new_tuples.view(MultiIndex)
+            result.levels = self.levels
+            result.labels = new_labels
+            return result
+
+    def __getslice__(self, i, j):
+        return self.__getitem__(slice(i, j))
+
     def format(self, space=2):
         from pandas.core.common import _format, adjoin
 
@@ -449,7 +478,7 @@ class MultiLevelIndex(Index):
 
         return adjoin(2, *padded_levels)
 
-    def sort(self, bylevel=0):
+    def sort(self, level=0):
         pass
 
     @classmethod
@@ -458,8 +487,40 @@ class MultiLevelIndex(Index):
         labels = []
         return cls(levels, labels)
 
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        if not isinstance(other, Index):
+            return False
+
+        return np.array_equal(self, other)
+
     def get_loc(self, key):
+        if isinstance(key, tuple):
+            return self._get_tuple_loc(key)
+        else:
+            # slice level 0
+            level = self.levels[0]
+            labels = self.labels[0]
+
+            loc = level.get_loc(key)
+            i = labels.searchsorted(loc, side='left')
+            j = labels.searchsorted(loc, side='right')
+            return slice(i, j)
+
         return self.indexMap[key]
+
+    def _get_tuple_loc(self, tup):
+        zipped = zip(self.levels, tup)
+        indexer = tuple(lev.get_loc(v) for lev, v in zipped)
+        try:
+            return self.indexMap[indexer]
+        except KeyError:
+            raise KeyError(str(tup))
 
     def get_indexer(self, target, method=None):
         """
@@ -517,8 +578,7 @@ class MultiLevelIndex(Index):
 
     def truncate(self, before=None, after=None):
         """
-        Slice index between two major axis values, return new
-        MultiLevelIndex
+        Slice index between two major axis values, return new MultiIndex
 
         Parameters
         ----------
@@ -530,7 +590,7 @@ class MultiLevelIndex(Index):
 
         Returns
         -------
-        MultiLevelIndex
+        MultiIndex
         """
         i, j = self._get_axis_bounds(before, after)
         left, right = self._get_label_bounds(i, j)
@@ -541,7 +601,7 @@ class MultiLevelIndex(Index):
         new_labels = [lab[left:right] for lab in self.labels]
         new_labels[0] = new_labels[0] - i
 
-        return MultiLevelIndex(levels=new_levels, labels=new_labels)
+        return MultiIndex(levels=new_levels, labels=new_labels)
 
     def get_major_bounds(self, begin=None, end=None):
         """

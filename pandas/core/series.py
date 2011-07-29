@@ -17,7 +17,7 @@ from pandas.core.common import (isnull, notnull, _ensure_index,
                                 _is_bool_indexer, _default_index)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
-from pandas.core.index import Index
+from pandas.core.index import Index, MultiIndex
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
 
@@ -274,17 +274,12 @@ class Series(np.ndarray, PandasObject):
               of a sequence, a 'slice' of the series (with corresponding dates)
               will be returned, otherwise a single value.
         """
-        values = self.values
-
         try:
-            # Check that we can even look for this in the index
-            return values[self.index.indexMap[key]]
-        except KeyError:
-            if isinstance(key, (int, np.integer)):
-                return values[key]
-            raise Exception('Requested index not in this series!')
+            if isinstance(self.index, MultiIndex):
+                return self._multilevel_index(key)
+            else:
+                return self._regular_index(key)
         except TypeError:
-            # Could not hash item
             pass
 
         # boolean indexing, need to check that the data are aligned, otherwise
@@ -295,7 +290,8 @@ class Series(np.ndarray, PandasObject):
                                 'Series or raw ndarrays')
 
         def _index_with(indexer):
-            return Series(values[indexer], index=self.index[indexer])
+            return Series(self.values[indexer],
+                          index=self.index[indexer])
 
         # special handling of boolean data with NAs stored in object
         # arrays. Sort of an elaborate hack since we can't represent boolean
@@ -303,7 +299,6 @@ class Series(np.ndarray, PandasObject):
         if _is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
             return _index_with(key)
-
 
         # TODO: [slice(0, 5, None)] will break if you convert to ndarray,
         # e.g. as requested by np.median
@@ -313,6 +308,29 @@ class Series(np.ndarray, PandasObject):
         except Exception:
             key = np.asarray(key)
             return _index_with(key)
+
+    def _regular_index(self, key):
+        values = self.values
+
+        try:
+            return values[self.index.get_loc(key)]
+        except KeyError:
+            if isinstance(key, (int, np.integer)):
+                return values[key]
+            raise Exception('Requested index not in this series!')
+
+    def _multilevel_index(self, key):
+        values = self.values
+        try:
+            loc = self.index.get_loc(key)
+            if isinstance(loc, slice):
+                return Series(values[loc], index=self.index[loc])
+            else:
+                return values[loc]
+        except KeyError:
+            if isinstance(key, (int, np.integer)):
+                return values[key]
+            raise Exception('Requested index not in this series!')
 
     def get(self, key, default=None):
         """

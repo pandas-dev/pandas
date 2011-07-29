@@ -12,7 +12,7 @@ import operator
 
 from pandas.core.common import (isnull, notnull, _pickle_array, _unpickle_array,
                                 _mut_exclusive, _ensure_index, _try_sort)
-from pandas.core.index import Index, MultiLevelIndex, NULL_INDEX
+from pandas.core.index import Index, MultiIndex, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index, _union_indices)
@@ -1173,8 +1173,8 @@ def stack_sparse_frame(frame):
 
     major_labels = np.concatenate(inds_to_concat)
     stacked_values = np.concatenate(vals_to_concat)
-    index = MultiLevelIndex(levels=[frame.index, frame.columns],
-                            labels=[major_labels, minor_labels])
+    index = MultiIndex(levels=[frame.index, frame.columns],
+                       labels=[major_labels, minor_labels])
 
     lp = LongPanel(stacked_values.reshape((nobs, 1)), index=index,
                    columns=['foo'])
@@ -1423,8 +1423,8 @@ class SparseWidePanel(WidePanel):
         major_labels = inds % N
         minor_labels = inds // N
 
-        index = MultiLevelIndex(levels=[self.major_axis, self.minor_axis],
-                                labels=[major_labels, minor_labels])
+        index = MultiIndex(levels=[self.major_axis, self.minor_axis],
+                           labels=[major_labels, minor_labels])
 
         lp = LongPanel(values, index=index, columns=self.items)
         return lp.sort('major')
