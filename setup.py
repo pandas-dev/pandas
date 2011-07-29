@@ -20,10 +20,9 @@ import shutil
 
 import numpy as np
 
-from numpy.distutils.misc_util import Configuration
-from numpy.distutils.core import setup
+# from numpy.distutils.core import setup
 
-from distutils.core import Command
+from distutils.core import setup, Command
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext
