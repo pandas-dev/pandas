@@ -134,7 +134,12 @@ class PandasObject(Picklable):
         """
         axis_name = self._get_axis_name(axis)
         axis = self._get_axis(axis)
-        new_axis = axis[np.asarray([crit(label) for label in axis])]
+
+        if len(axis) > 0:
+            new_axis = axis[np.asarray([crit(label) for label in axis])]
+        else:
+            new_axis = axis
+
         return self.reindex(**{axis_name : new_axis})
 
     def drop(self, labels, axis=0):

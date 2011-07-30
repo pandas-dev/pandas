@@ -1837,6 +1837,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         filtered = self.mixed_frame.filter(like='foo')
         self.assert_('foo' in filtered)
 
+    def test_filter_corner(self):
+        empty = DataFrame()
+
+        result = empty.filter([])
+        assert_frame_equal(result, empty)
+
+        result = empty.filter(like='foo')
+        assert_frame_equal(result, empty)
+
     def test_select(self):
         f = lambda x: x.weekday() == 2
         result = self.tsframe.select(f, axis=0)
