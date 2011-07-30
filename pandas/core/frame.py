@@ -1372,6 +1372,27 @@ class DataFrame(NDFrame):
         values : string or object, optional
             Column name to use for populating new frame's values
 
+        Examples
+        --------
+        >>> df
+            foo   bar  baz
+        0   one   A    1.
+        1   one   B    2.
+        2   one   C    3.
+        3   two   A    4.
+        4   two   B    5.
+        5   two   C    6.
+
+        >>> df.pivot('foo', 'bar', 'baz')
+             A   B   C
+        one  1   2   3
+        two  4   5   6
+
+        >>> df.pivot('foo', 'bar')['baz']
+             A   B   C
+        one  1   2   3
+        two  4   5   6
+
         Returns
         -------
         pivoted : DataFrame (value column specified) or WidePanel (no value
