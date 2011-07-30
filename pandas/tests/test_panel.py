@@ -605,6 +605,13 @@ class TestWidePanel(unittest.TestCase, PanelTests,
 
         assert_panel_equal(unfiltered.to_wide(), self.panel)
 
+    def test_to_long_mixed(self):
+        self.panel['str'] = 'foo'
+        self.panel['bool'] = self.panel['ItemA'] > 0
+
+        lp = self.panel.to_long()
+        self.assert_(np.array_equal(lp['bool'], self.panel['bool']))
+
     def test_filter(self):
         pass
 
