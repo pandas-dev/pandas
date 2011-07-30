@@ -935,22 +935,6 @@ class DataFrame(NDFrame):
         else:
             raise ValueError('items was None!')
 
-    def select(self, crit, axis=0):
-        """
-        Return data corresponding to axis labels matching criteria
-
-        Parameters
-        ----------
-        crit : function
-            To be called on each index (label). Should return True or False
-        axis : {0, 1}
-
-        Returns
-        -------
-        selection : DataFrame
-        """
-        return self._select_generic(crit, axis=axis)
-
     def dropna(self, axis=0, how='any', thresh=None, subset=None):
         """
         Return object with labels on given axis omitted where alternately any or
@@ -968,7 +952,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        dropped : type of caller
+        dropped : DataFrame
         """
         axis_name = self._get_axis_name(axis)
 

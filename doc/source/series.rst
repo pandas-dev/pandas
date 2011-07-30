@@ -792,7 +792,7 @@ TODO
    :toctree: generated/
 
    Series.append
-   Series.combineFunc
+   Series.combine
    Series.combineFirst
    Series.map
    Series.copy

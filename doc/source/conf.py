@@ -59,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pandas'
-copyright = u'2008-2010, AQR Capital Management, LLC'
+copyright = u'2008-2011, AQR Capital Management, LLC, pandas developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

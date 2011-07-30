@@ -743,7 +743,7 @@ old one, you may wish to "fill" holes with the values as of each date:
    :toctree: generated/
 
    DataFrame.reindex
-   DataFrame.fill
+   DataFrame.fillna
 
 Filtering / selecting columns or indices
 ----------------------------------------

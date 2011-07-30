@@ -939,23 +939,6 @@ class WidePanel(Panel, NDFrame):
 
         return self.reindex(**{axis : new_index})
 
-    def select(self, crit, axis=0):
-        """
-        Return data corresponding to axis labels matching criteria
-
-        Parameters
-        ----------
-        crit : function
-            To be called on each index (label). Should return True or False
-        axis : {0, 1, 2} or {'items', 'major', 'minor'}, default 'items'
-            Axis to select on
-
-        Returns
-        -------
-        selection : DataFrame
-        """
-        return self._select_generic(crit, axis=axis)
-
     #----------------------------------------------------------------------
     # Deprecated stuff
 

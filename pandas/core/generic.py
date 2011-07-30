@@ -118,7 +118,7 @@ class PandasObject(Picklable):
         # returns view, want to copy
         return self.ix[before:after].copy()
 
-    def _select_generic(self, crit, axis=0):
+    def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
 
@@ -126,7 +126,7 @@ class PandasObject(Picklable):
         ----------
         crit : function
             To be called on each index (label). Should return True or False
-        axis : {0, 1}
+        axis : int
 
         Returns
         -------

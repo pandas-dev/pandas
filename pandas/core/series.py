@@ -1010,21 +1010,6 @@ class Series(np.ndarray, PandasObject):
 
         return Series(new_values, index=index)
 
-    def select(self, crit):
-        """
-        Return data corresponding to index values matching criteria
-
-        Parameters
-        ----------
-        crit : function
-            To be called on each index (label). Should return True or False
-
-        Returns
-        -------
-        selection : Series
-        """
-        return self._select_generic(crit, axis=0)
-
     def reindex_like(self, other, method=None):
         """
         Reindex Series to match index of another Series
