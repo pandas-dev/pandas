@@ -124,6 +124,15 @@ class CheckIndexing(object):
         expected.values[mask.values] = nan
         assert_frame_equal(df, expected)
 
+    def test_setitem_boolean_column(self):
+        expected = self.frame.copy()
+        mask = self.frame['A'] > 0
+
+        self.frame.ix[mask, 'B'] = 0
+        expected.values[mask, 1] = 0
+
+        assert_frame_equal(self.frame, expected)
+
     def test_setitem_corner(self):
         # corner case
         df = DataFrame({'B' : [1., 2., 3.],

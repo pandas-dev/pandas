@@ -169,7 +169,14 @@ class PandasObject(Picklable):
 
 
 class NDFrame(PandasObject):
+    """
 
+    Parameters
+    ----------
+    data : BlockManager
+    axes : list
+    copy : boolean, default False
+    """
     # kludge
     _default_stat_axis = 0
 
