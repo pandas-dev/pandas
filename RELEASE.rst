@@ -54,6 +54,8 @@ Release notes
   statistics about each data column
 * `DataFrame.quantile`, `Series.quantile` for computing sample quantiles of data
   across requested axis
+* Added general `DataFrame.dropna` method to replace `dropIncompleteRows` and
+  `dropEmptyRows`, deprecated those.
 * `Series` arithmetic methods with optional fill_value for missing data,
   e.g. a.add(b, fill_value=0). If a location is missing for both it will still
   be missing in the result though.
