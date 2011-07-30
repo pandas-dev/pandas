@@ -655,7 +655,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Array interface
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         return self.values
 
     def __array_wrap__(self, result):
@@ -951,65 +951,56 @@ class DataFrame(NDFrame):
         """
         return self._select_generic(crit, axis=axis)
 
-    def dropEmptyRows(self, specificColumns=None):
+    def dropna(self, axis=0, how='any', thresh=None, subset=None):
         """
-        Return DataFrame with rows omitted containing ALL NaN values
-        for optionally specified set of columns.
+        Return object with labels on given axis omitted where alternately any or
+        all of the data are missing
 
         Parameters
         ----------
-        specificColumns : list-like, optional keyword
-            Columns to consider in removing NaN values. As a typical
-            application, you might provide the list of the columns involved in
-            a regression to exlude all the missing data in one shot.
+        axis : int
+        how : {'any', 'all'}
+            any : if any NA values are present, drop that label
+            all : if all values are NA, drop that label
+        thresh : {'any', 'all', int}
+            int value : require that many non-NA values
+        subset : array-like
 
         Returns
         -------
-        This DataFrame with rows containing any NaN values deleted
+        dropped : type of caller
         """
-        if specificColumns:
-            theCount = self.filter(items=specificColumns).count(axis=1)
+        axis_name = self._get_axis_name(axis)
+
+        if axis == 0:
+            agg_axis = 1
+        elif axis == 1:
+            agg_axis = 0
+        else: # pragma: no cover
+            raise ValueError('axis must be 0 or 1')
+
+        agg_obj = self
+        if subset is not None:
+            agg_axis_name = self._get_axis_name(agg_axis)
+            agg_obj = self.reindex(**{agg_axis_name : subset})
+
+        count = agg_obj.count(axis=agg_axis)
+
+        if thresh is not None:
+            mask = count >= thresh
+        elif how == 'any':
+            mask = count == len(agg_obj._get_axis(agg_axis))
+        elif how == 'all':
+            mask = count > 0
         else:
-            theCount = self.count(axis=1)
+            if how is not None:
+                raise ValueError('do not recognize %s' % how)
+            else:
+                raise ValueError('must specify how or thresh')
 
-        return self.reindex(self.index[theCount != 0])
-
-    def dropIncompleteRows(self, specificColumns=None, minObs=None):
-        """
-        Return DataFrame with rows omitted containing ANY NaN values for
-        optionally specified set of columns.
-
-        Parameters
-        ----------
-        minObs : int or None (default)
-           Instead of requiring all the columns to have observations, require
-           only minObs observations
-        specificColumns : list-like, optional keyword
-            Columns to consider in removing NaN values. As a typical
-            application, you might provide the list of the columns involved in
-            a regression to exlude all the missing data in one shot.
-
-        Returns
-        -------
-        This DataFrame with rows containing any NaN values deleted
-        """
-        N = len(self.columns)
-
-        if specificColumns:
-            colSet = set(specificColumns)
-            intersection = set(self.columns) & colSet
-
-            N = len(intersection)
-
-            filtered = self.filter(items=intersection)
-            theCount = filtered.count(axis=1)
-        else:
-            theCount = self.count(axis=1)
-
-        if minObs is None:
-            minObs = N
-
-        return self.reindex(self.index[theCount >= minObs])
+        labels = self._get_axis(axis)
+        new_labels = labels[mask]
+        return self.reindex(**{axis_name : new_labels})
 
     #----------------------------------------------------------------------
     # Sorting
@@ -2408,6 +2399,54 @@ class DataFrame(NDFrame):
         warnings.warn("_firstTimeWithValue is deprecated. Use "
                       "last_valid_index instead", FutureWarning)
         return self.last_valid_index()
+
+    def dropEmptyRows(self, specificColumns=None): # pragma: no cover
+        """
+        Return DataFrame with rows omitted containing ALL NaN values
+        for optionally specified set of columns.
+
+        Parameters
+        ----------
+        specificColumns : list-like, optional keyword
+            Columns to consider in removing NaN values. As a typical
+            application, you might provide the list of the columns involved in
+            a regression to exlude all the missing data in one shot.
+
+        Returns
+        -------
+        This DataFrame with rows containing any NaN values deleted
+        """
+        warnings.warn("dropEmptyRows is deprecated. Use dropna with how='all'",
+                      FutureWarning)
+        return self.dropna(axis=0, subset=specificColumns, how='all')
+
+    def dropIncompleteRows(self, specificColumns=None,
+                           minObs=None): # pragma: no cover
+        """
+        Return DataFrame with rows omitted containing ANY NaN values for
+        optionally specified set of columns.
+
+        Parameters
+        ----------
+        minObs : int or None (default)
+           Instead of requiring all the columns to have observations, require
+           only minObs observations
+        specificColumns : list-like, optional keyword
+            Columns to consider in removing NaN values. As a typical
+            application, you might provide the list of the columns involved in
+            a regression to exlude all the missing data in one shot.
+
+        Returns
+        -------
+        This DataFrame with rows containing any NaN values deleted
+
+        """
+        warnings.warn("dropEmptyRows is deprecated. Use dropna",
+                      FutureWarning)
+        if minObs is None:
+            return self.dropna(axis=0, subset=specificColumns, how='any')
+        else:
+            return self.dropna(axis=0, subset=specificColumns, thresh=minObs)
 
     #----------------------------------------------------------------------
     # Fancy indexing

@@ -1424,10 +1424,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         frame = DataFrame({'foo' : mat}, index=self.frame.index)
 
-        smaller_frame = frame.dropEmptyRows()
+        smaller_frame = frame.dropna(how='all')
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
 
-        smaller_frame = frame.dropEmptyRows(['foo'])
+        smaller_frame = frame.dropna(how='all', subset=['foo'])
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
 
     def test_dropIncompleteRows(self):
@@ -1438,10 +1438,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         frame = DataFrame({'foo' : mat}, index=self.frame.index)
         frame['bar'] = 5
 
-        smaller_frame = frame.dropIncompleteRows()
+        smaller_frame = frame.dropna()
         self.assert_(np.array_equal(smaller_frame['foo'], mat[5:]))
 
-        samesize_frame = frame.dropIncompleteRows(specificColumns=['bar'])
+        samesize_frame = frame.dropna(subset=['bar'])
         self.assert_(samesize_frame.index.equals(self.frame.index))
 
     def test_fillna(self):
