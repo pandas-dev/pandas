@@ -324,6 +324,14 @@ class TestGroupBy(unittest.TestCase):
         # hierarchical index
         assert_series_equal(result['result'], expected)
 
+    def test_groupby_multiple_key(self):
+        df = tm.makeTimeDataFrame()
+        grouped = df.groupby([lambda x: x.year,
+                              lambda x: x.month,
+                              lambda x: x.day])
+        agged = grouped.sum()
+        assert_almost_equal(df.values, agged.values)
+
     def test_groupby_multi_corner(self):
         # test that having an all-NA column doesn't mess you up
         df = self.df.copy()

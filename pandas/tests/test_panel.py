@@ -872,8 +872,8 @@ class TestLongPanel(unittest.TestCase):
     def test_apply(self):
         # ufunc
         applied = self.panel.apply(np.sqrt)
-        self.assert_(assert_almost_equal(
-                applied.values, np.sqrt(self.panel.values)))
+        self.assert_(assert_almost_equal(applied.values,
+                                         np.sqrt(self.panel.values)))
 
     def test_mean(self):
         means = self.panel.mean('major')
