@@ -1456,6 +1456,30 @@ class DataFrame(NDFrame):
                            labels=[ilabels, clabels])
         return Series(self.values.ravel(), index=index)
 
+    def delevel(self):
+        """
+        For DataFrame with multi-level index, return new DataFrame with labeling
+        information in the columns under names 'level_0', 'level_1', etc.
+
+        Note: experimental, subject ot API change
+
+        Returns
+        -------
+        deleveled : DataFrame
+        """
+        if not isinstance(self.index, MultiIndex):
+            raise Exception('this DataFrame does not have a multi-level index')
+
+        new_obj = self.copy()
+
+        zipped = zip(self.index.levels, self.index.labels)
+        for i, (lev, lab) in reversed(list(enumerate(zipped))):
+            new_obj.insert(0, 'label_%d' % i, np.asarray(lev).take(lab))
+
+        new_obj.index = np.arange(len(new_obj))
+
+        return new_obj
+
     #----------------------------------------------------------------------
     # Time series-related
 
