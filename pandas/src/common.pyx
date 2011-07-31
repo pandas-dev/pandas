@@ -107,6 +107,96 @@ cpdef map_indices(ndarray index):
 
     return result
 
+cpdef map_indices_buf(ndarray[object] index):
+    '''
+    Produce a dict mapping the values of the input array to their respective
+    locations.
+
+    Example:
+        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
+
+    Better to do this with Cython because of the enormous speed boost.
+    '''
+    cdef Py_ssize_t i, length
+    cdef dict result = {}
+
+    length = len(index)
+
+    for i from 0 <= i < length:
+        result[index[i]] = i
+
+    return result
+
+cpdef map_indices_list(list index):
+    '''
+    Produce a dict mapping the values of the input array to their respective
+    locations.
+
+    Example:
+        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
+
+    Better to do this with Cython because of the enormous speed boost.
+    '''
+    cdef Py_ssize_t i, length
+    cdef dict result = {}
+
+    length = len(index)
+
+    for i from 0 <= i < length:
+        result[index[i]] = i
+
+    return result
+
+from libc.stdlib cimport malloc, free
+
+cdef class MultiMap:
+    '''
+    Need to come up with a better data structure for multi-level indexing
+    '''
+
+    cdef:
+        dict store
+        Py_ssize_t depth, length
+
+    def __init__(self, list label_arrays):
+        cdef:
+            int32_t **ptr
+            Py_ssize_t i
+
+        self.depth = len(label_arrays)
+        self.length = len(label_arrays[0])
+        self.store = {}
+
+        ptr = <int32_t**> malloc(self.depth * sizeof(int32_t*))
+
+        for i in range(self.depth):
+            ptr[i] = <int32_t*> (<ndarray> label_arrays[i]).data
+
+        free(ptr)
+
+    cdef populate(self, int32_t **ptr):
+        cdef Py_ssize_t i, j
+        cdef int32_t* buf
+        cdef dict level
+
+        for i from 0 <= i < self.length:
+
+            for j from 0 <= j < self.depth - 1:
+                pass
+
+    cpdef get(self, tuple key):
+        cdef Py_ssize_t i
+        cdef dict level = self.store
+
+        for i from 0 <= i < self.depth:
+            if i == self.depth - 1:
+                return level[i]
+            else:
+                level = level[i]
+
+        raise KeyError(key)
+
+
 def isAllDates(ndarray index):
     cdef int i, length
     cdef flatiter iter

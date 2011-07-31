@@ -53,18 +53,6 @@ class Index(np.ndarray):
             return self.item()
             # raise Exception('Cannot create 0-dimensional Index!')
 
-        return
-
-        # New instance creation
-        if obj is None:
-            pass
-        # New from template / slicing
-        elif isinstance(obj, type(self)) and len(self) != len(obj.indexMap):
-            pass
-        # View casting
-        else:
-            pass
-
     def summary(self):
         if len(self) > 0:
             index_summary = ', %s to %s' % (self[0], self[-1])
@@ -75,7 +63,7 @@ class Index(np.ndarray):
     @property
     def indexMap(self):
         if not hasattr(self, '_cache_indexMap'):
-            self._cache_indexMap = _tseries.map_indices(self)
+            self._cache_indexMap = _tseries.map_indices_buf(self)
             self._verify_integrity()
 
         return self._cache_indexMap
@@ -396,20 +384,25 @@ class MultiIndex(Index):
     """
 
     def __new__(cls, levels=None, labels=None):
-        arr = np.empty(len(labels[0]), dtype=object)
-        arr[:] = zip(*labels)
-        arr = arr.view(cls)
-        return arr
+        return np.arange(len(labels[0]), dtype=object).view(cls)
 
     def __init__(self, levels, labels):
         self.levels = [_ensure_index(lev) for lev in levels]
         self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
-        self._verify_integrity()
 
     def __array_finalize__(self, obj):
         pass
         # self.labels = getattr(obj, 'labels', None)
         # self.levels = getattr(obj, 'levels', None)
+
+    @property
+    def indexMap(self):
+        if not hasattr(self, '_cache_indexMap'):
+            zipped = zip(*self.labels)
+            self._cache_indexMap = _tseries.map_indices_list(zipped)
+            self._verify_integrity()
+
+        return self._cache_indexMap
 
     @property
     def nlevels(self):
@@ -438,8 +431,8 @@ class MultiIndex(Index):
     def __getitem__(self, key):
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
-            return tuple(self.levels[i][k]
-                         for i, k in enumerate(arr_idx[key]))
+            return tuple(lev[lab[key]]
+                         for lev, lab in zip(self.levels, self.labels))
         else:
             if _is_bool_indexer(key):
                 key = np.asarray(key)
@@ -725,6 +718,24 @@ class MultiIndex(Index):
             self.__bounds = self.labels[0].searchsorted(inds)
 
         return self.__bounds
+
+    def sortlevel(self, level=0, ascending=True):
+        """
+
+        """
+        labels = list(self.labels)
+        primary = labels.pop(level)
+
+        # Lexsort starts from END
+        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
+
+        if not ascending:
+            indexer = indexer[::-1]
+
+        new_labels = [lab.take(indexer) for lab in self.labels]
+        new_index = MultiIndex(levels=self.levels, labels=new_labels)
+
+        return new_index, indexer
 
 # For utility purposes
 

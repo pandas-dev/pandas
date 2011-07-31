@@ -35,8 +35,10 @@ def isnull(input):
     if isinstance(input, np.ndarray):
         if input.dtype.kind in ('O', 'S'):
             # Working around NumPy ticket 1542
-            result = input.copy().astype(bool)
-            result[:] = _tseries.isnullobj(input)
+            shape = input.shape
+            result = np.empty(shape, dtype=bool)
+            vec = _tseries.isnullobj(input.ravel())
+            result[:] = vec.reshape(shape)
         else:
             result = -np.isfinite(input)
     else:

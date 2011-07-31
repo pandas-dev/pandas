@@ -308,7 +308,7 @@ class PanelOLS(OLS):
 
             dummies = _convertDummies(dummies, cat_mappings.get(effect))
             dummies = dummies.addPrefix('%s_' % effect)
-            panel = panel.leftJoin(dummies)
+            panel = panel.join(dummies)
 
         return panel
 

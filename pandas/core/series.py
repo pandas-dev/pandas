@@ -860,8 +860,8 @@ class Series(np.ndarray, PandasObject):
         result = Series(np.where(isnull(this), other, this), index=newIndex)
         return result
 
-#-------------------------------------------------------------------------------
-# Reindexing, sorting
+    #----------------------------------------------------------------------
+    # Reindexing, sorting
 
     def sort(self, axis=0, kind='quicksort', order=None):
         """
@@ -933,6 +933,63 @@ class Series(np.ndarray, PandasObject):
             sortedIdx[:n] = idx[bad]
 
         return Series(arr[sortedIdx], index=self.index[sortedIdx])
+
+    def sortlevel(self, level=0, ascending=True):
+        """
+        Sort multilevel index by chosen level. Data will be lexicographically
+        sorted by the chosen level followed by the other levels (in order)
+
+        Parameters
+        ----------
+        level : int
+        ascending : bool, default True
+
+        Returns
+        -------
+        sorted : Series
+        """
+        if not isinstance(self.index, MultiIndex):
+            raise Exception('can only sort by level with a hierarchical index')
+
+        new_index, indexer = self.index.sortlevel(level, ascending=ascending)
+        new_values = self.values.take(indexer)
+        return Series(new_values, index=new_index)
+
+    def unstack(self, level=-1):
+        """
+        "Unstack" Series with multi-level index to produce DataFrame
+
+        Parameters
+        ----------
+        level : int, default last level
+            Level to "unstack"
+
+        Examples
+        --------
+        >>> s
+        one  a   1.
+        one  b   2.
+        two  a   3.
+        two  b   4.
+
+        >>> s.unstack(level=-1)
+             a   b
+        one  1.  2.
+        two  3.  4.
+
+        >>> s.unstack(level=0)
+           one  two
+        a  1.   2.
+        b  3.   4.
+
+        Returns
+        -------
+        unstacked : DataFrame
+        """
+        return unstack(self.values, self.index, level=level)
+
+    #----------------------------------------------------------------------
+    # function application
 
     def map(self, arg):
         """
@@ -1442,6 +1499,95 @@ class TimeSeries(Series):
 #-------------------------------------------------------------------------------
 # Supplementary functions
 
+def unstack(values, index, level=-1):
+    """
+    "Unstack" Series with multi-level index to produce DataFrame
+
+    Parameters
+    ----------
+    level : int, default last level
+        Level to "unstack"
+
+    Examples
+    --------
+    >>> s
+    one  a   1.
+    one  b   2.
+    two  a   3.
+    two  b   4.
+
+    >>> s.unstack(level=-1)
+         a   b
+    one  1.  2.
+    two  3.  4.
+
+    >>> s.unstack(level=0)
+       one  two
+    a  1.   2.
+    b  3.   4.
+
+    Returns
+    -------
+    unstacked : DataFrame
+    """
+    from pandas.core.frame import DataFrame
+
+    v = level
+    if v < 0:
+        v = index.nlevels + v
+
+    labs = index.labels
+    to_sort = labs[:v] + labs[v+1:] + [labs[v]]
+    indexer = np.lexsort(to_sort[::-1])
+
+    sorted_labels = [l.take(indexer) for l in to_sort[:-1]]
+    new_levels = list(index.levels)
+    columns = new_levels.pop(v)
+
+    lshape = index.levshape
+    full_shape = np.prod(lshape[:v] + lshape[v+1:]), lshape[v]
+
+    # make the mask
+    group_index = sorted_labels[0]
+    prev_levsize = len(new_levels[0])
+    for ilev, ilab in zip(new_levels[1:], sorted_labels[1:]):
+        group_index = prev_levsize * ilab
+        prev_levsize = len(ilev)
+
+    group_mask = np.zeros(full_shape[0], dtype=bool)
+    group_mask.put(group_index, True)
+
+    selector = labs[v] + lshape[v] * group_index
+    mask = np.zeros(np.prod(full_shape), dtype=bool)
+    mask.put(selector, True)
+
+    # compress labels
+    unique_groups = np.arange(full_shape[0])[group_mask]
+    compressor = group_index.searchsorted(unique_groups)
+
+    result_labels = []
+    for cur in sorted_labels:
+        # bit of a kludgy way to get at the label
+        # labels = np.empty(full_shape, dtype=np.int32)
+        # labels.fill(-1)
+        # np.putmask(labels.ravel(), mask, cur)
+        # result_labels.append(labels.max(1).take(compressor))
+
+        result_labels.append(cur.take(compressor))
+
+    # place the values
+    new_values = np.empty(full_shape, dtype=values.dtype)
+    new_values.fill(np.nan)
+    new_values.ravel()[mask] = values
+    new_values = new_values.take(unique_groups, axis=0)
+
+    # construct the new index
+    if len(new_levels) == 1:
+        new_index = Index(new_levels[0])
+    else:
+        new_index = MultiIndex(levels=new_levels, labels=result_labels)
+
+    return DataFrame(new_values, index=new_index, columns=columns)
 
 _ndgi = ndarray.__getitem__
 

@@ -1023,34 +1023,26 @@ class DataFrame(NDFrame):
 
     def sortlevel(self, level=0, axis=0, ascending=True):
         """
-        Sort value by chosen axis (break ties using other axis)
+        Sort value by chosen axis and primary level. Data will be
+        lexicographically sorted by the chosen level followed by the other
+        levels (in order)
 
-        Note
-        ----
-        A LongPanel must be sorted to convert to a WidePanel
+        Parameters
+        ----------
+        level : int
+        axis : int
+        ascending : bool, default True
 
         Returns
         -------
-        LongPanel (in sorted order)
+        sorted : DataFrame
         """
         the_axis = self._get_axis(axis)
-
         if not isinstance(the_axis, MultiIndex):
             raise Exception('can only sort by level with a hierarchical index')
 
-        labels = list(the_axis.labels)
-        primary = labels.pop(level)
-
-        # Lexsort starts from END
-        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
-
-        if not ascending:
-            indexer = indexer[::-1]
-
-        new_labels = [lab.take(indexer) for lab in the_axis.labels]
+        new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
         new_values = self.values.take(indexer, axis=0)
-
-        new_axis = MultiIndex(levels=self.index.levels, labels=new_labels)
 
         if axis == 0:
             index = new_axis
@@ -1447,6 +1439,21 @@ class DataFrame(NDFrame):
             return wp[values]
         else:
             return wp
+
+    def stack(self):
+        """
+        Convert DataFrame to Series with multi-level Index
+
+        Returns
+        -------
+        stacked : Series
+        """
+        N, K = len(self.index), len(self.columns)
+        ilabels = np.arange(N).repeat(K)
+        clabels = np.tile(np.arange(K), N).ravel()
+        index = MultiIndex(levels=[self.index, self.columns],
+                           labels=[ilabels, clabels])
+        return Series(self.values.ravel(), index=index)
 
     #----------------------------------------------------------------------
     # Time series-related

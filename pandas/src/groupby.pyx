@@ -1,5 +1,3 @@
-from libc.stdlib cimport malloc, free
-
 #-------------------------------------------------------------------------------
 # Groupby-related functions
 
