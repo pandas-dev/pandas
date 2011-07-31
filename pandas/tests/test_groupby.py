@@ -305,12 +305,11 @@ class TestGroupBy(unittest.TestCase):
             expected = WidePanel.fromDict(expected).swapaxes(0, 1)
 
             # a little bit crude
-            # TODO: fix when have hierarchical Index
             for col in ['C', 'D']:
                 result_col = op(grouped[col])
                 exp = expected[col]
-                pivoted = result1.pivot('A', 'B', col)
-                pivoted2 = result_col.pivot('A', 'B', col)
+                pivoted = result1[col].unstack()
+                pivoted2 = result_col[col].unstack()
                 assert_frame_equal(pivoted.reindex_like(exp), exp)
                 assert_frame_equal(pivoted2.reindex_like(exp), exp)
 

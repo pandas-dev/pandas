@@ -601,11 +601,14 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         assert_panel_equal(unfiltered.to_wide(), self.panel)
 
     def test_to_long_mixed(self):
-        self.panel['str'] = 'foo'
-        self.panel['bool'] = self.panel['ItemA'] > 0
+        panel = self.panel.fillna(0)
+        panel['str'] = 'foo'
+        panel['bool'] = panel['ItemA'] > 0
 
-        lp = self.panel.to_long()
-        self.assert_(np.array_equal(lp['bool'], self.panel['bool']))
+        lp = panel.to_long()
+        wp = lp.to_wide()
+        self.assertEqual(wp['bool'].values.dtype, np.bool_)
+        assert_frame_equal(wp['bool'], panel['bool'])
 
     def test_filter(self):
         pass
@@ -724,7 +727,7 @@ class TestLongPanel(unittest.TestCase):
 
     def test_setitem(self):
         self.panel['ItemE'] = self.panel['ItemA']
-        self.panel['ItemF'] = 1
+        self.panel['ItemF'] = 1.
 
         wp = self.panel.to_wide()
         assert_frame_equal(wp['ItemA'], wp['ItemE'])

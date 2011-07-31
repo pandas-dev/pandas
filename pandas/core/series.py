@@ -1540,9 +1540,11 @@ def unstack(values, index, level=-1):
     to_sort = labs[:v] + labs[v+1:] + [labs[v]]
     indexer = np.lexsort(to_sort[::-1])
 
-    sorted_labels = [l.take(indexer) for l in to_sort[:-1]]
+    sorted_labels = [l.take(indexer) for l in to_sort]
     new_levels = list(index.levels)
     columns = new_levels.pop(v)
+
+    sorted_values = values.take(indexer)
 
     lshape = index.levshape
     full_shape = np.prod(lshape[:v] + lshape[v+1:]), lshape[v]
@@ -1550,14 +1552,14 @@ def unstack(values, index, level=-1):
     # make the mask
     group_index = sorted_labels[0]
     prev_levsize = len(new_levels[0])
-    for ilev, ilab in zip(new_levels[1:], sorted_labels[1:]):
+    for ilev, ilab in zip(new_levels[1:], sorted_labels[1:-1]):
         group_index = prev_levsize * ilab
         prev_levsize = len(ilev)
 
     group_mask = np.zeros(full_shape[0], dtype=bool)
     group_mask.put(group_index, True)
 
-    selector = labs[v] + lshape[v] * group_index
+    selector = sorted_labels[-1] + lshape[v] * group_index
     mask = np.zeros(np.prod(full_shape), dtype=bool)
     mask.put(selector, True)
 
@@ -1566,7 +1568,7 @@ def unstack(values, index, level=-1):
     compressor = group_index.searchsorted(unique_groups)
 
     result_labels = []
-    for cur in sorted_labels:
+    for cur in sorted_labels[:-1]:
         # bit of a kludgy way to get at the label
         # labels = np.empty(full_shape, dtype=np.int32)
         # labels.fill(-1)
@@ -1578,7 +1580,7 @@ def unstack(values, index, level=-1):
     # place the values
     new_values = np.empty(full_shape, dtype=values.dtype)
     new_values.fill(np.nan)
-    new_values.ravel()[mask] = values
+    new_values.ravel()[mask] = sorted_values
     new_values = new_values.take(unique_groups, axis=0)
 
     # construct the new index

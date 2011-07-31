@@ -1,4 +1,4 @@
-"""
+sfromDict"""
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
@@ -646,7 +646,7 @@ class WidePanel(Panel, NDFrame):
         I, N, K = self.shape
 
         if filter_observations:
-            mask = np.isfinite(self.values).all(axis=0)
+            mask = common.notnull(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
         else:
@@ -1106,18 +1106,32 @@ class LongPanel(Panel, DataFrame):
         -------
         WidePanel
         """
-        I, N, K = self.shape
-
-        values = np.empty((I, N, K), dtype=self.values.dtype)
-
         mask = make_mask(self.index)
-        notmask = -mask
+        if self._data.is_mixed_dtype():
+            return self._to_wide_mixed(mask)
+        else:
+            return self._to_wide_homogeneous(mask)
 
+    def _to_wide_homogeneous(self, mask):
+        values = np.empty(self.shape, dtype=self.values.dtype)
+        values.fill(np.nan)
         for i in xrange(len(self.items)):
             values[i].flat[mask] = self.values[:, i]
-            values[i].flat[notmask] = np.NaN
 
         return WidePanel(values, self.items, self.major_axis, self.minor_axis)
+
+    def _to_wide_mixed(self, mask):
+        _, N, K = self.shape
+
+        # TODO: make much more efficient
+
+        data = {}
+        for i, item in enumerate(self.items):
+            values = np.empty((N, K), dtype=self.values.dtype)
+            values.ravel()[mask] = self.values[:, i]
+            data[item] = DataFrame(values, index=self.major_axis,
+                                   columns=self.minor_axis)
+        return WidePanel.from_dict(data)
 
     toWide = to_wide
 

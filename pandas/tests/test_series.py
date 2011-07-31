@@ -9,6 +9,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import Index, Series, TimeSeries, DataFrame, isnull
+from pandas.core.index import MultiIndex
 import pandas.core.datetools as datetools
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as common
@@ -944,6 +945,25 @@ class TestSeries(unittest.TestCase):
                                 ['z', 'a', 'b', 'c', 'd'], dtype=float)
         assert_series_equal(x[1:], expected[1:])
         self.assert_(np.isnan(x[0]), np.isnan(expected[0]))
+
+    def test_unstack(self):
+        from numpy import nan
+        from pandas.util.testing import assert_frame_equal
+
+        index = MultiIndex(levels=[['bar', 'foo'], ['one', 'three', 'two']],
+                           labels=[[1, 1, 0, 0], [0, 1, 0, 2]])
+
+        s = Series(np.arange(4.), index=index)
+        unstacked = s.unstack()
+
+        expected = DataFrame([[2., nan, 3.], [0., 1., nan]],
+                             index=['bar', 'foo'],
+                             columns=['one', 'three', 'two'])
+
+        assert_frame_equal(unstacked, expected)
+
+        unstacked = s.unstack(level=0)
+        assert_frame_equal(unstacked, expected.T)
 
 #-------------------------------------------------------------------------------
 # TimeSeries-specific

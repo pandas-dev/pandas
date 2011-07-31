@@ -238,11 +238,10 @@ class TestMultiIndex(unittest.TestCase):
         # inconsistent
         major_labels = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
         minor_labels = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
+        index = MultiIndex(levels=[major_axis, minor_axis],
+                           labels=[major_labels, minor_labels])
 
-        self.assertRaises(Exception, MultiIndex,
-                          levels=[major_axis, minor_axis],
-                          labels=[major_labels, minor_labels])
-
+        self.assertRaises(Exception, getattr, index, 'indexMap')
 
     def test_truncate(self):
         result = self.index.truncate(before=1)
