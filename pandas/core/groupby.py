@@ -121,6 +121,8 @@ class GroupBy(object):
                     yield (ids[cat],), subgen
                 else:
                     for subcat, data in flatten(subgen, level=level+1):
+                        if len(data) == 0:
+                            continue
                         yield (ids[cat],) + subcat, data
 
         gen = self._generator_factory(data)
@@ -209,7 +211,7 @@ class GroupBy(object):
         pass
 
     def _aggregate_multi_group(self, arg):
-        # TODO: cythonize
+        # want to cythonize?
 
         if len(self.groupings) > 3:
             raise Exception('can only handle 3 or fewer groupings for now')
@@ -249,7 +251,7 @@ class GroupBy(object):
             for name, raveled in name_list:
                 factor = Factor.fromarray(raveled)
                 levels.append(factor.levels)
-                labels.append(factor.labels)
+                labels.append(factor.labels[mask])
 
             index = MultiIndex(levels=levels, labels=labels)
             return DataFrame(output, index=index)

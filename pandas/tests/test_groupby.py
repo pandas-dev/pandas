@@ -329,7 +329,7 @@ class TestGroupBy(unittest.TestCase):
         grouped = df.groupby([lambda x: x.year,
                               lambda x: x.month,
                               lambda x: x.day])
-        agged = grouped.sum()
+        agged = grouped.sum().sortlevel(0)
         assert_almost_equal(df.values, agged.values)
 
     def test_groupby_multi_corner(self):

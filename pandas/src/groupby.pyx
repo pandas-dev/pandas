@@ -208,6 +208,12 @@ def group_aggregate(ndarray[double_t] values, list label_list,
 
     return result, counts
 
+def _group_reorder(values, label_list):
+    indexer = np.lexsort(label_list[::-1])
+    sorted_labels = [labels.take(indexer) for labels in label_list]
+    sorted_values = values.take(indexer)
+    return sorted_values, sorted_labels
+
 cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
                            list labels, int start, int end, tuple shape,
                            Py_ssize_t which, Py_ssize_t offset,
@@ -218,7 +224,6 @@ cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
 
     # time to actually aggregate
     if which == len(labels) - 1:
-        # print axis, start, end
         axis = labels[which]
         func(out, counts, values, <int32_t*> axis.data, start, end, offset)
     else:
@@ -241,7 +246,7 @@ cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
                          int32_t *labels, int start, int end,
                          Py_ssize_t offset):
     cdef:
-        Py_ssize_t i = 0, it = start
+        Py_ssize_t i, it = start
         int32_t lab
         int32_t count = 0, tot = 0
         double_t val, cum = 0
@@ -255,6 +260,7 @@ cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
             count += 1
             cum += val
 
+        i = labels[it]
         if it == end - 1 or labels[it + 1] > i:
             if count == 0:
                 out[offset + i] = nan
@@ -267,15 +273,13 @@ cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
             cum = 0
             tot = 0
 
-            i += 1
-
         it += 1
 
 cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
                           int32_t *labels, int start, int end,
                           Py_ssize_t offset):
     cdef:
-        Py_ssize_t i = 0, it = start
+        Py_ssize_t i, it = start
         int32_t lab
         int32_t count = 0, tot = 0
         double_t val, cum = 0
@@ -289,6 +293,7 @@ cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
             count += 1
             cum += val
 
+        i = labels[it]
         if it == end - 1 or labels[it + 1] > i:
             if count == 0:
                 out[offset + i] = nan
@@ -301,15 +306,7 @@ cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
             cum = 0
             tot = 0
 
-            i += 1
-
         it += 1
-
-def _group_reorder(values, label_list):
-    indexer = np.lexsort(label_list[::-1])
-    sorted_labels = [labels.take(indexer) for labels in label_list]
-    sorted_values = values.take(indexer)
-    return sorted_values, sorted_labels
 
 def _result_shape(label_list):
     # assumed sorted
