@@ -198,7 +198,7 @@ class GroupBy(object):
             for name, raveled in name_list:
                 factor = Factor.fromarray(raveled)
                 levels.append(factor.levels)
-                labels.append(factor.labels)
+                labels.append(factor.labels[mask])
 
             index = MultiIndex(levels=levels, labels=labels)
             return DataFrame(output, index=index)
