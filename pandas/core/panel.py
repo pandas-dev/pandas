@@ -1,4 +1,4 @@
-sfromDict"""
+"""
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
@@ -11,9 +11,9 @@ import warnings
 import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
-                                _default_index, _infer_dtype)
+                                _try_sort, _default_index, _infer_dtype)
 from pandas.core.index import Factor, Index, MultiIndex
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame
 from pandas.core.generic import AxisProperty, NDFrame
 import pandas.core.common as common
@@ -187,6 +187,7 @@ class WidePanel(Panel, NDFrame):
 
     def __init__(self, data, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
+        passed_axes = [items, major_axis, minor_axis]
         if isinstance(data, BlockManager):
             mgr = data
             if copy and dtype is None:
@@ -194,13 +195,72 @@ class WidePanel(Panel, NDFrame):
             elif dtype is not None:
                 # no choice but to copy
                 mgr = mgr.cast(dtype)
+        elif isinstance(data, dict):
+            mgr = self._init_dict(data, passed_axes, dtype=dtype)
         elif isinstance(data, (np.ndarray, list)):
-            mgr = self._init_matrix(data, [items, major_axis, minor_axis],
-                                    dtype=dtype, copy=copy)
+            mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
         else: # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
         self._data = mgr
+
+    def _init_dict(self, data, axes, dtype=None):
+        items = axes[0]
+
+        # prefilter if items passed
+        if items is not None:
+            items = _ensure_index(items)
+            data = dict((k, v) for k, v in data.iteritems() if k in items)
+        else:
+            items = Index(_try_sort(data.keys()))
+
+        # figure out the index, if necessary
+        if index is None:
+            index = extract_index(data)
+
+        # don't force copy because getting jammed in an ndarray anyway
+        # homogenized = _homogenize(data, index, columns, dtype)
+
+        data, index, columns = _homogenize(data, intersect=intersect)
+
+        # segregates dtypes and forms blocks matching to columns
+        blocks = form_blocks(homogenized, index, columns)
+
+        # consolidate for now
+        mgr = BlockManager(blocks, [columns, index])
+        return mgr.consolidate()
+
+    @classmethod
+    def from_dict(cls, data, intersect=False, dtype=float):
+        """
+        Construct WidePanel from dict of DataFrame objects
+
+        Parameters
+        ----------
+        data : dict
+            {field : DataFrame}
+        intersect : boolean
+
+        Returns
+        -------
+        WidePanel
+        """
+        data, index, columns = _homogenize(data, intersect=intersect,
+                                           dtype=dtype)
+        items = Index(sorted(data.keys()))
+
+        axes = [items, index, columns]
+
+        reshaped_data = {}
+        for k, v in data.iteritems():
+            values = v.values
+            shape = values.shape
+            reshaped_data[k] = values.reshape((1,) + shape)
+
+        blocks = form_blocks(reshaped_data, axes)
+
+        mgr = BlockManager(blocks, axes).consolidate()
+        return WidePanel(mgr, items, index, columns)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
         values = _prep_ndarray(data, copy=copy)
@@ -260,26 +320,6 @@ class WidePanel(Panel, NDFrame):
         y : WidePanel
         """
         return WidePanel(self._data.copy())
-
-    @classmethod
-    def from_dict(cls, data, intersect=False, dtype=float):
-        """
-        Construct WidePanel from dict of DataFrame objects
-
-        Parameters
-        ----------
-        data : dict
-            {field : DataFrame}
-        intersect : boolean
-
-        Returns
-        -------
-        WidePanel
-        """
-        data, index, columns = _homogenize(data, intersect=intersect)
-        items = Index(sorted(data.keys()))
-        values = np.array([data[k].values for k in items], dtype=dtype)
-        return cls(values, items, index, columns)
 
     fromDict = from_dict
 
@@ -1127,8 +1167,10 @@ class LongPanel(Panel, DataFrame):
 
         data = {}
         for i, item in enumerate(self.items):
-            values = np.empty((N, K), dtype=self.values.dtype)
-            values.ravel()[mask] = self.values[:, i]
+            item_vals = self[item].values
+
+            values = np.empty((N, K), dtype=item_vals.dtype)
+            values.ravel()[mask] = item_vals
             data[item] = DataFrame(values, index=self.major_axis,
                                    columns=self.minor_axis)
         return WidePanel.from_dict(data)
@@ -1381,7 +1423,7 @@ def _prefix_item(item, prefix=None):
     template = '%s%s'
     return template % (prefix, item)
 
-def _homogenize(frames, intersect=True):
+def _homogenize(frames, intersect=True, dtype=None):
     """
     Conform set of DataFrame-like objects to either an intersection
     of indices / columns or a union.
@@ -1431,24 +1473,34 @@ def _get_combined_columns(frames, intersect=False):
     return Index(sorted(columns))
 
 def _get_combined_index(frames, intersect=False):
-    index = None
+
+    # get the set of unique indexes (np.ndarray is unhashable so use the id)
+    indexes = dict(((id(frame.index), frame.index)
+                    for frame in frames.itervalues()))
+    indexes = indexes.values()
+
+    # if there's only one return it
+    if len(indexes) == 1:
+        return indexes[0]
+
+    # filter indexes so any equivalent indexes only appear once
+    for index in list(indexes):
+        if id(index) in set(id(x) for x in indexes):
+            indexes = [x for x in indexes
+                       if x is index or not x.equals(index)]
+
+    # if there's only one return it
+    if len(indexes) == 1:
+        return indexes[0]
 
     if intersect:
-        combine = Index.intersection
-        copy = Index
-        unique = lambda x: x
-    else:
-        combine = lambda a, b: np.concatenate((a, b))
-        copy = np.array
-        unique = lambda x: Index(np.unique(x))
+        index = indexes[0]
+        for other in indexes[1:]:
+            index = index.intersection(other)
+        return index
 
-    for _, frame in frames.iteritems():
-        if index is None:
-            index = copy(frame.index)
-        elif index is not frame.index:
-            index = combine(index, frame.index)
-
-    return unique(index)
+    union =  np.unique(np.concatenate(tuple(indexes)))
+    return Index(union)
 
 def pivot(index, columns, values):
     """

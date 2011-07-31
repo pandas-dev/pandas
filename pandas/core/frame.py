@@ -27,7 +27,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -167,12 +167,8 @@ class DataFrame(NDFrame):
     def _init_dict(self, data, index, columns, dtype=None):
         """
         Segregate Series based on type and coerce into matrices.
-
         Needs to handle a lot of exceptional cases.
-
-        Somehow this got outrageously complicated
         """
-        from pandas.core.internals import form_blocks
         # prefilter if columns passed
         if columns is not None:
             columns = _ensure_index(columns)
@@ -183,15 +179,20 @@ class DataFrame(NDFrame):
         # figure out the index, if necessary
         if index is None:
             index = extract_index(data)
+        else:
+            index = _ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
         homogenized = _homogenize(data, index, columns, dtype)
 
+        # from BlockManager perspective
+        axes = [columns, index]
+
         # segregates dtypes and forms blocks matching to columns
-        blocks, columns = form_blocks(homogenized, index, columns)
+        blocks = form_blocks(homogenized, axes)
 
         # consolidate for now
-        mgr = BlockManager(blocks, [columns, index])
+        mgr = BlockManager(blocks, axes)
         return mgr.consolidate()
 
     def _init_ndarray(self, values, index, columns, dtype=None,
@@ -1023,7 +1024,7 @@ class DataFrame(NDFrame):
 
     def sortlevel(self, level=0, axis=0, ascending=True):
         """
-        Sort value by chosen axis and primary level. Data will be
+        Sort multilevel index by chosen axis and primary level. Data will be
         lexicographically sorted by the chosen level followed by the other
         levels (in order)
 

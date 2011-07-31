@@ -688,14 +688,10 @@ class BlockManager(object):
         return result
 
 _data_types = [np.float_, np.int_]
-def form_blocks(data, index, items):
+def form_blocks(data, axes):
     # pre-filter out items if we passed it
-    if items is None:
-        items = Index(_try_sort(data.keys()))
-        extra_items = NULL_INDEX
-    else:
-        items = _ensure_index(items)
-        extra_items = items - Index(data.keys())
+    items = axes[0]
+    extra_items = items - Index(data.keys())
 
     # put "leftover" items in float bucket, where else?
     # generalize?
@@ -731,14 +727,15 @@ def form_blocks(data, index, items):
         blocks.append(object_block)
 
     if len(extra_items):
-        block_values = np.empty((len(extra_items), len(index)), dtype=float)
+        shape = (len(extra_items),) + tuple(len(x) for x in axes[1:])
+        block_values = np.empty(shape, dtype=float)
         block_values.fill(nan)
 
         na_block = make_block(block_values, extra_items, items)
         blocks.append(na_block)
         blocks = _consolidate(blocks, items)
 
-    return blocks, items
+    return blocks
 
 def _simple_blockify(dct, ref_items, dtype):
     block_items, values = _stack_dict(dct, ref_items)
