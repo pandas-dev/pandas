@@ -250,8 +250,8 @@ class _DataFrameIndexer(object):
             new_index = frame.index
             new_columns = frame.columns[slicer]
             new_values = frame.values[:, slicer]
-        return DataFrame(new_values, index=new_index,
-                         columns=new_columns)
+        return frame._constructor(new_values, index=new_index,
+                                  columns=new_columns)
 
 def _maybe_convert_ix(*args):
     """
