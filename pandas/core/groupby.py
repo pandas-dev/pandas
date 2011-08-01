@@ -195,20 +195,11 @@ class GroupBy(object):
         name_list = self._get_names()
 
         if len(self.groupings) > 1:
-            levels = []
-            labels = []
-            for name, raveled in name_list:
-                factor = Factor.fromarray(raveled)
-                levels.append(factor.levels)
-                labels.append(factor.labels[mask])
-
-            index = MultiIndex(levels=levels, labels=labels)
+            masked = [raveled[mask] for _, raveled in name_list]
+            index = MultiIndex.from_arrays(*masked)
             return DataFrame(output, index=index)
         else:
             return DataFrame(output, index=name_list[0][1])
-
-    def _python_aggregate(self, func):
-        pass
 
     def _aggregate_multi_group(self, arg):
         # want to cythonize?
@@ -246,14 +237,8 @@ class GroupBy(object):
         name_list = self._get_names()
 
         if len(self.groupings) > 1:
-            levels = []
-            labels = []
-            for name, raveled in name_list:
-                factor = Factor.fromarray(raveled)
-                levels.append(factor.levels)
-                labels.append(factor.labels[mask])
-
-            index = MultiIndex(levels=levels, labels=labels)
+            masked = [raveled[mask] for _, raveled in name_list]
+            index = MultiIndex.from_arrays(*masked)
             return DataFrame(output, index=index)
         else:
             return DataFrame(output, index=name_list[0][1])

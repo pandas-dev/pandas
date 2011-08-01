@@ -395,6 +395,24 @@ class MultiIndex(Index):
         # self.labels = getattr(obj, 'labels', None)
         # self.levels = getattr(obj, 'levels', None)
 
+    @classmethod
+    def from_arrays(cls, *arrays):
+        """
+        Convert arrays to MultiIndex
+
+        Returns
+        -------
+        index : MultiIndex
+        """
+        levels = []
+        labels = []
+        for arr in arrays:
+            factor = Factor.fromarray(arr)
+            levels.append(factor.levels)
+            labels.append(factor.labels)
+
+        return MultiIndex(levels=levels, labels=labels)
+
     @property
     def indexMap(self):
         if not hasattr(self, '_cache_indexMap'):
@@ -476,12 +494,6 @@ class MultiIndex(Index):
     def sort(self, level=0):
         pass
 
-    @classmethod
-    def from_arrays(cls, *arrays):
-        levels = []
-        labels = []
-        return cls(levels, labels)
-
     def get_loc(self, key):
         if isinstance(key, tuple):
             return self._get_tuple_loc(key)
@@ -524,13 +536,25 @@ class MultiIndex(Index):
             'FFILL' : 'PAD',
             'BFILL' : 'BACKFILL'
         }
-
-        target = _ensure_index(target)
-
         method = aliases.get(method, method)
-        indexer, mask = _tseries.getFillVec(self, target, self.indexMap,
-                                            target.indexMap, method)
+
+        if not isinstance(target, MultiIndex):
+            raise TypeError('Can only align with other MultiIndex objects')
+
+        self_index = self.get_tuple_index()
+        target_index = target.get_tuple_index()
+
+        indexer, mask = _tseries.getFillVec(self_index, target_index,
+                                            self_index.indexMap,
+                                            target_index.indexMap, method)
         return indexer, mask
+
+    def get_tuple_index(self):
+        to_join = []
+        for lev, lab in zip(self.levels, self.labels):
+            to_join.append(np.asarray(lev).take(lab))
+
+        return Index(zip(*to_join))
 
     def slice_locs(self, start=None, end=None):
         """
@@ -588,7 +612,7 @@ class MultiIndex(Index):
 
     def equals(self, other):
         """
-        Determines if two Index objects contain the same elements.
+        Determines if two MultiIndex objects are the same
         """
         if self is other:
             return True
@@ -596,11 +620,31 @@ class MultiIndex(Index):
         if not isinstance(other, MultiIndex):
             return False
 
-        return np.array_equal(self, other)
+        if self.nlevels != other.nlevels:
+            return False
+
+        # if not self.equal_levels(other):
+        #     return False
+
+        for i in xrange(self.nlevels):
+            if not self.levels[i].equals(other.levels[i]):
+                return False
+            if not np.array_equal(self.labels[i], other.labels[i]):
+                return False
+        return True
+
+    def equal_levels(self, other):
+        if self.nlevels != other.nlevels:
+            return False
+
+        for i in xrange(self.nlevels):
+            if not self.levels[i].equals(other.levels[i]):
+                return False
+        return True
 
     def union(self, other):
         """
-        Form the union of two Index objects and sorts if possible
+        Form the union of two MultiIndex objects
 
         Parameters
         ----------
@@ -615,14 +659,11 @@ class MultiIndex(Index):
         if len(other) == 0 or self.equals(other):
             return self
 
-        new_seq = np.concatenate((self, other))
-        try:
-            new_seq = np.unique(new_seq)
-        except Exception:
-            # Not sortable / multiple types
-            pass
-
-        return MultiIndex(new_seq)
+        # TODO: optimize / make less wasteful
+        self_tuples = self.get_tuple_index()
+        other_tuples = other.get_tuple_index()
+        uniq_tuples = np.unique(np.concatenate((self_tuples, other_tuples)))
+        return MultiIndex.from_arrays(*zip(*uniq_tuples))
 
     def intersection(self, other):
         """
@@ -641,8 +682,11 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        theIntersection = sorted(set(self) & set(other))
-        return Index(theIntersection)
+        # TODO: optimize / make less wasteful
+        self_tuples = self.get_tuple_index()
+        other_tuples = other.get_tuple_index()
+        uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
+        return MultiIndex.from_arrays(*zip(*uniq_tuples))
 
     def _assert_can_do_setop(self, other):
         if not hasattr(other, '__iter__'):

@@ -44,20 +44,9 @@ def _arith_method(op, name):
             newIndex = self.index + other.index
 
             try:
-                if self.dtype != np.float_:
-                    this = self.astype(float)
-                else:
-                    this = self
-
-                if other.dtype != np.float_:
-                    other = other.astype(float)
-
-                # buffered Cython function expects double type
-
-                arr = _tseries.combineFunc(name, newIndex,
-                                           this, other,
-                                           self.index.indexMap,
-                                           other.index.indexMap)
+                this_reindexed = self.reindex(newIndex)
+                other_reindexed = other.reindex(newIndex)
+                arr = op(this_reindexed.values, other_reindexed.values)
             except Exception:
                 arr = Series.combine(self, other, getattr(type(self[0]), name))
             result = Series(arr, index=newIndex)

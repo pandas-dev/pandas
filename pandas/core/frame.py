@@ -1180,10 +1180,10 @@ class DataFrame(NDFrame):
 
         need_reindex = False
         new_columns = _union_indices(self.columns, other.columns)
-        need_reindex = (need_reindex or new_index is not self.index
-                        or new_index is not other.index)
-        need_reindex = (need_reindex or new_columns is not self.columns
-                        or new_columns is not other.columns)
+        need_reindex = (need_reindex or not new_index.equals(self.index)
+                        or not new_index.equals(other.index))
+        need_reindex = (need_reindex or not new_columns.equals(self.columns)
+                        or not new_columns.equals(other.columns))
 
         this = self
         if need_reindex:
