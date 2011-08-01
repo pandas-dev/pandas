@@ -951,7 +951,7 @@ class DataFrame(NDFrame):
         how : {'any', 'all'}
             any : if any NA values are present, drop that label
             all : if all values are NA, drop that label
-        thresh : {'any', 'all', int}
+        thresh : int, default None
             int value : require that many non-NA values
         subset : array-like
 

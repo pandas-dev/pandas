@@ -375,7 +375,6 @@ class MultiIndex(Index):
     """
     Implements multi-level, a.k.a. hierarchical, index object for pandas objects
 
-
     Parameters
     ----------
     levels : list or tuple of arrays
@@ -559,29 +558,42 @@ class MultiIndex(Index):
     def slice_locs(self, start=None, end=None):
         """
 
-
         Returns
         -------
 
         Notes
         -----
-        This function assumes that the data is sorted, so use at your own peril
+        This function assumes that the data is sorted by the first level
         """
+        level0 = self.levels[0]
+
         if start is None:
-            beg_slice = 0
-        elif start in self:
-            beg_slice = self.indexMap[start]
+            start_slice = 0
+        elif isinstance(start, tuple):
+            pass
         else:
-            beg_slice = self.searchsorted(start, side='left')
+            try:
+                start_label = level0.indexMap[start]
+            except KeyError:
+                start_label = level0.searchsorted(start)
+
+            start_slice = self.labels[0].searchsorted(start_label)
 
         if end is None:
             end_slice = len(self)
-        elif end in self.indexMap:
-            end_slice = self.indexMap[end] + 1
+        elif isinstance(end, tuple):
+            pass
         else:
-            end_slice = self.searchsorted(end, side='right')
+            try:
+                end_label = level0.indexMap[end]
+            except KeyError:
+                end_label = level0.searchsorted(end, side='right')
+                if end_label > 0:
+                    end_label -= 1
 
-        return beg_slice, end_slice
+            end_slice = self.labels[0].searchsorted(end_label, side='right')
+
+        return start_slice, end_slice
 
     def truncate(self, before=None, after=None):
         """

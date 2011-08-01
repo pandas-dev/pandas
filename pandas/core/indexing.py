@@ -298,9 +298,4 @@ def _is_label_slice(labels, obj):
 def _need_slice(obj):
     return obj.start is not None or obj.stop is not None
 
-# I don't think this is necessary
-# def _check_step(obj):
-#     if obj.step is not None and obj.step != 1:
-#         raise Exception('steps other than 1 are not supported')
-
 _isboolarr = lambda x: np.asarray(x).dtype == np.bool_

@@ -41,19 +41,15 @@ def _arith_method(op, name):
             if self.index.equals(other.index):
                 return Series(op(self.values, other.values), index=self.index)
 
-            newIndex = self.index + other.index
-
-            try:
-                this_reindexed = self.reindex(newIndex)
-                other_reindexed = other.reindex(newIndex)
-                arr = op(this_reindexed.values, other_reindexed.values)
-            except Exception:
-                arr = Series.combine(self, other, getattr(type(self[0]), name))
-            result = Series(arr, index=newIndex)
-            return result
+            new_index = self.index + other.index
+            this_reindexed = self.reindex(new_index)
+            other_reindexed = other.reindex(new_index)
+            arr = op(this_reindexed.values, other_reindexed.values)
+            return Series(arr, index=new_index)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
+            # scalars
             return Series(op(self.values, other), index=self.index)
     return wrapper
 
@@ -84,7 +80,7 @@ def _flex_method(op, name):
 
 class Series(np.ndarray, PandasObject):
     """
-    Generic indexed (labeled) vector (time series or cross-section)
+    Generic indexed (labeled) vector, including time series
 
     Contains values in a numpy-ndarray with an optional bound index
     (also an array of dates, strings, or whatever you want the 'row
@@ -124,7 +120,7 @@ class Series(np.ndarray, PandasObject):
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
-    def __new__(cls, data, index=None, dtype=None, copy=False):
+    def __new__(cls, data, index=None, dtype=None, name=None, copy=False):
         if isinstance(data, Series):
             if index is None:
                 index = data.index
@@ -178,6 +174,7 @@ class Series(np.ndarray, PandasObject):
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)
         subarr.index = index
+        subarr.name = name
 
         if subarr.index.is_all_dates():
             subarr = subarr.view(TimeSeries)
@@ -271,12 +268,7 @@ class Series(np.ndarray, PandasObject):
         except TypeError:
             pass
 
-        # boolean indexing, need to check that the data are aligned, otherwise
-        # disallowed
-        if isinstance(key, Series) and key.dtype == np.bool_:
-            if not key.index.equals(self.index):
-                raise Exception('can only boolean index with like-indexed '
-                                'Series or raw ndarrays')
+        self._check_bool_indexer(key)
 
         def _index_with(indexer):
             return Series(self.values[indexer],
@@ -338,7 +330,7 @@ class Series(np.ndarray, PandasObject):
         y : scalar
         """
         if key in self.index:
-            return self._get_val_at(self.index.indexMap[key])
+            return self._get_val_at(self.index.get_loc(key))
         else:
             return default
 
@@ -361,7 +353,7 @@ class Series(np.ndarray, PandasObject):
     def __setitem__(self, key, value):
         values = self.values
         try:
-            loc = self.index.indexMap[key]
+            loc = self.index.get_loc(key)
             values[loc] = value
             return
         except KeyError:
@@ -373,12 +365,7 @@ class Series(np.ndarray, PandasObject):
             # Could not hash item
             pass
 
-        # boolean indexing, need to check that the data are aligned, otherwise
-        # disallowed
-        if isinstance(key, Series) and key.dtype == np.bool_:
-            if not key.index.equals(self.index):
-                raise Exception('can only boolean index with like-indexed '
-                                'Series or raw ndarrays')
+        self._check_bool_indexer(key)
 
         # special handling of boolean data with NAs stored in object
         # arrays. Sort of an elaborate hack since we can't represent boolean
@@ -395,6 +382,14 @@ class Series(np.ndarray, PandasObject):
                 return
 
         values[key] = value
+
+    def _check_bool_indexer(self, key):
+        # boolean indexing, need to check that the data are aligned, otherwise
+        # disallowed
+        if isinstance(key, Series) and key.dtype == np.bool_:
+            if not key.index.equals(self.index):
+                raise Exception('can only boolean index with like-indexed '
+                                'Series or raw ndarrays')
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
@@ -743,12 +738,12 @@ class Series(np.ndarray, PandasObject):
         -------
         y : Series
         """
-        newIndex = np.concatenate((self.index, other.index))
-        newIndex = Index(newIndex)
-        newIndex._verify_integrity()
+        new_index = np.concatenate((self.index, other.index))
+        new_index = Index(new_index)
+        new_index._verify_integrity()
 
         new_values = np.concatenate((self, other))
-        return Series(new_values, index=newIndex)
+        return Series(new_values, index=new_index)
 
     def _binop(self, other, func, fill_value=None):
         """
@@ -811,17 +806,17 @@ class Series(np.ndarray, PandasObject):
         result : Series
         """
         if isinstance(other, Series):
-            newIndex = self.index + other.index
+            new_index = self.index + other.index
 
-            new_values = np.empty(len(newIndex), dtype=self.dtype)
-            for i, idx in enumerate(newIndex):
+            new_values = np.empty(len(new_index), dtype=self.dtype)
+            for i, idx in enumerate(new_index):
                 new_values[i] = func(self.get(idx, fill_value),
                                  other.get(idx, fill_value))
         else:
-            newIndex = self.index
+            new_index = self.index
             new_values = func(self.values, other)
 
-        return Series(new_values, index=newIndex)
+        return Series(new_values, index=new_index)
 
     def combineFirst(self, other):
         """
@@ -837,16 +832,16 @@ class Series(np.ndarray, PandasObject):
             formed as union of two Series
         """
         if self.index.equals(other.index):
-            newIndex = self.index
+            new_index = self.index
             # save ourselves the copying in this case
             this = self
         else:
-            newIndex = self.index + other.index
+            new_index = self.index + other.index
 
-            this = self.reindex(newIndex)
-            other = other.reindex(newIndex)
+            this = self.reindex(new_index)
+            other = other.reindex(new_index)
 
-        result = Series(np.where(isnull(this), other, this), index=newIndex)
+        result = Series(np.where(isnull(this), other, this), index=new_index)
         return result
 
     #----------------------------------------------------------------------
@@ -896,7 +891,9 @@ class Series(np.ndarray, PandasObject):
                 # stable sort not available for object dtype
                 return arr.argsort()
 
-        if 'missingAtEnd' in kwds:
+        if 'missingAtEnd' in kwds: # pragma: no cover
+            warnings.warn("missingAtEnd is deprecated, use na_last",
+                          FutureWarning)
             na_last = kwds['missingAtEnd']
 
         arr = self.values
