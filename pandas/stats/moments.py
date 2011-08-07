@@ -374,3 +374,13 @@ def rolling_apply(arg, window, func, min_periods=None, time_rule=None):
         return _tseries.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            time_rule=time_rule)
+
+# def rolling_apply_frame(frame, window, func):
+#     """
+
+#     """
+#     n = len(frame)
+#     output = np.empty(n, dtype=float)
+#     for i in (n):
+#         output[i] = func(frame[max(i - window + 1, 0) : i + 1])
+#     return output
