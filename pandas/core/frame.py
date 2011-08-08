@@ -515,8 +515,10 @@ class DataFrame(NDFrame):
             print >> buf, 'Empty %s' % type(self).__name__
             print >> buf, repr(self.index)
         else:
-            str_index = [''] + self.index.format().split('\n')
-            stringified = [[' %s' % c] + _stringify(c) for c in columns]
+            fmt_index = self.index.format().split('\n')
+            fmt_columns = self.columns
+            str_index = [''] + fmt_index
+            stringified = [[' %s' % str(c)] + _stringify(c) for c in columns]
             print >> buf, adjoin(2, str_index, *stringified)
 
     def info(self, verbose=True, buf=sys.stdout):
@@ -540,7 +542,7 @@ class DataFrame(NDFrame):
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
                 col_counts.append('%s%d  non-null values' %
-                                  (_put_str(col, space), count))
+                                  (_put_str(str(col), space), count))
 
             print >> buf, '\n'.join(col_counts)
         else:
@@ -2753,7 +2755,10 @@ def _homogenize(data, index, columns, dtype=None):
 
             # only *attempt* to cast to dtype
             try:
-                v = np.asarray(v, dtype=dtype)
+                arr = np.asarray(v, dtype=dtype)
+                if issubclass(arr.dtype.type, basestring):
+                    arr = np.array(v, dtype=object, copy=False)
+                v = arr
             except Exception:
                 v = np.asarray(v)
 
