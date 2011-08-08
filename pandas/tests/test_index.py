@@ -1,11 +1,12 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 import operator
 import pickle
 import unittest
 
 import numpy as np
 
-from pandas.core.index import Index, Factor, MultiIndex
+from pandas.core.index import Index, Factor, MultiIndex, NULL_INDEX
+from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas._tseries as tseries
 
@@ -15,6 +16,8 @@ class TestIndex(unittest.TestCase):
         self.strIndex = common.makeStringIndex(100)
         self.dateIndex = common.makeDateIndex(100)
         self.intIndex = common.makeIntIndex(100)
+        self.empty = Index([])
+        self.tuples = Index(zip(['foo', 'bar', 'baz'], [1, 2, 3]))
 
     def test_hash_error(self):
         self.assertRaises(TypeError, hash, self.strIndex)
@@ -47,11 +50,13 @@ class TestIndex(unittest.TestCase):
         common.assert_contains_all(arr, index)
         self.assert_(np.array_equal(self.strIndex, index))
 
-        # corner case
-        self.assertRaises(Exception, Index, 0)
-
+        # what to do here?
         # arr = np.array(5.)
         # self.assertRaises(Exception, arr.view, Index)
+
+    def test_constructor_corner(self):
+        # corner case
+        self.assertRaises(Exception, Index, 0)
 
     def test_compat(self):
         self.strIndex.tolist()
@@ -123,28 +128,6 @@ class TestIndex(unittest.TestCase):
         arr = np.array(self.dateIndex)
         self.assertEquals(self.dateIndex[5], arr[5])
 
-    def test_add(self):
-        firstCat = self.strIndex + self.dateIndex
-        secondCat = self.strIndex + self.strIndex
-
-        self.assert_(common.equalContents(np.append(self.strIndex,
-                                                    self.dateIndex), firstCat))
-        self.assert_(common.equalContents(secondCat, self.strIndex))
-        common.assert_contains_all(self.strIndex, firstCat.indexMap)
-        common.assert_contains_all(self.strIndex, secondCat.indexMap)
-        common.assert_contains_all(self.dateIndex, firstCat.indexMap)
-
-        # this is valid too
-        shifted = self.dateIndex + timedelta(1)
-
-    def test_add_string(self):
-        # from bug report
-        index = Index(['a', 'b', 'c'])
-        index2 = index + 'foo'
-
-        self.assert_('a' not in index2.indexMap)
-        self.assert_('afoo' in index2.indexMap)
-
     def test_shift(self):
         shifted = self.dateIndex.shift(0, timedelta(1))
         self.assert_(shifted is self.dateIndex)
@@ -183,6 +166,28 @@ class TestIndex(unittest.TestCase):
         # non-iterable input
         self.assertRaises(Exception, first.union, 0.5)
 
+    def test_add(self):
+        firstCat = self.strIndex + self.dateIndex
+        secondCat = self.strIndex + self.strIndex
+
+        self.assert_(common.equalContents(np.append(self.strIndex,
+                                                    self.dateIndex), firstCat))
+        self.assert_(common.equalContents(secondCat, self.strIndex))
+        common.assert_contains_all(self.strIndex, firstCat.indexMap)
+        common.assert_contains_all(self.strIndex, secondCat.indexMap)
+        common.assert_contains_all(self.dateIndex, firstCat.indexMap)
+
+        # this is valid too
+        shifted = self.dateIndex + timedelta(1)
+
+    def test_add_string(self):
+        # from bug report
+        index = Index(['a', 'b', 'c'])
+        index2 = index + 'foo'
+
+        self.assert_('a' not in index2.indexMap)
+        self.assert_('afoo' in index2.indexMap)
+
     def test_diff(self):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -210,18 +215,133 @@ class TestIndex(unittest.TestCase):
         testit(self.strIndex)
         testit(self.dateIndex)
 
+    # def test_always_get_null_index(self):
+    #     empty = Index([])
+    #     self.assert_(empty is NULL_INDEX)
+    #     self.assert_(self.dateIndex[15:15] is NULL_INDEX)
+
+    def test_is_all_dates(self):
+        self.assert_(self.dateIndex.is_all_dates())
+        self.assert_(not self.strIndex.is_all_dates())
+        self.assert_(not self.intIndex.is_all_dates())
+
+    def test_summary(self):
+        self._check_method_works(Index.summary)
+
+    def test_format(self):
+        self._check_method_works(Index.format)
+
+        index = Index([datetime.now()])
+        formatted = index.format()
+        expected = str(index[0])
+        self.assertEquals(formatted, expected)
+
+    def test_take(self):
+        indexer = [4, 3, 0, 2]
+        result = self.dateIndex.take(indexer)
+        expected = self.dateIndex[indexer]
+        self.assert_(result.equals(expected))
+
+    def _check_method_works(self, method):
+        method(self.empty)
+        method(self.dateIndex)
+        method(self.strIndex)
+        method(self.intIndex)
+        method(self.tuples)
+
+    def test_get_indexer(self):
+        idx1 = Index([1, 2, 3, 4, 5])
+        idx2 = Index([2, 4, 6])
+
+        r1, r2 = idx1.get_indexer(idx2)
+        assert_almost_equal(r1, [1, 3, -1])
+        assert_almost_equal(r2, [True, True, False])
+
+        r1, r2 = idx2.get_indexer(idx1, method='pad')
+        assert_almost_equal(r1, [-1, 0, 0, 1, 1])
+        assert_almost_equal(r2, [False, True, True, True, True])
+
+        rffill1, rffill2 = idx2.get_indexer(idx1, method='ffill')
+        assert_almost_equal(r1, rffill1)
+        assert_almost_equal(r2, rffill2)
+
+        r1, r2 = idx2.get_indexer(idx1, method='backfill')
+        assert_almost_equal(r1, [0, 0, 1, 1, 2])
+        assert_almost_equal(r2, [True, True, True, True, True])
+
+        rbfill1, rbfill2 = idx2.get_indexer(idx1, method='bfill')
+        assert_almost_equal(r1, rbfill1)
+        assert_almost_equal(r2, rbfill2)
+
+    def test_slice_locs(self):
+        idx = Index([0, 1, 2, 5, 6, 7, 9, 10])
+        n = len(idx)
+
+        self.assertEquals(idx.slice_locs(start=2), (2, n))
+        self.assertEquals(idx.slice_locs(start=3), (3, n))
+        self.assertEquals(idx.slice_locs(3, 8), (3, 6))
+        self.assertEquals(idx.slice_locs(5, 10), (3, n))
+        self.assertEquals(idx.slice_locs(end=8), (0, 6))
+        self.assertEquals(idx.slice_locs(end=9), (0, 7))
 
 class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):
-        major_axis = Index([1, 2, 3, 4])
-        minor_axis = Index([1, 2])
+        major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+        minor_axis = Index(['one', 'two'])
 
         major_labels = np.array([0, 0, 1, 2, 3, 3])
         minor_labels = np.array([0, 1, 0, 1, 0, 1])
 
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels])
+
+    def test_from_arrays(self):
+        arrays = []
+        for lev, lab in zip(self.index.levels, self.index.labels):
+            arrays.append(np.asarray(lev).take(lab))
+
+        result = MultiIndex.from_arrays(*arrays)
+        self.assertEquals(list(result), list(self.index))
+
+    def test_nlevels(self):
+        self.assertEquals(self.index.nlevels, 2)
+
+    def test_iter(self):
+        result = list(self.index)
+        expected = [('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
+                    ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
+        self.assert_(result == expected)
+
+    def test_pickle(self):
+        import pickle
+        pickled = pickle.dumps(self.index)
+        unpickled = pickle.loads(pickled)
+        self.assert_(self.index.equals(unpickled))
+
+    def test_contains(self):
+        self.assert_(('foo', 'two') in self.index)
+        self.assert_(('bar', 'two') not in self.index)
+        self.assert_(None not in self.index)
+
+    def test_is_all_dates(self):
+        self.assert_(not self.index.is_all_dates())
+
+    def test_getitem(self):
+        # scalar
+        self.assertEquals(self.index[2], ('bar', 'one'))
+
+        # slice
+        result = self.index[2:5]
+        expected = self.index[[2,3,4]]
+        self.assert_(result.equals(expected))
+
+        # boolean
+        result = self.index[[True, False, True, False, True, True]]
+        result2 = self.index[np.array([True, False, True, False, True, True])]
+        expected = self.index[[0, 2, 4, 5]]
+        self.assert_(result.equals(expected))
+        self.assert_(result2.equals(expected))
 
     def test_consistency(self):
         # need to construct an overflow
@@ -244,15 +364,24 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(Exception, getattr, index, 'indexMap')
 
     def test_truncate(self):
-        result = self.index.truncate(before=1)
-        self.assert_(0 not in result.levels[0])
+        major_axis = Index(range(4))
+        minor_axis = Index(range(2))
+
+        major_labels = np.array([0, 0, 1, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 0, 1])
+
+        index = MultiIndex(levels=[major_axis, minor_axis],
+                           labels=[major_labels, minor_labels])
+
+        result = index.truncate(before=1)
+        self.assert_('foo' not in result.levels[0])
         self.assert_(1 in result.levels[0])
 
-        result = self.index.truncate(after=1)
+        result = index.truncate(after=1)
         self.assert_(2 not in result.levels[0])
         self.assert_(1 in result.levels[0])
 
-        result = self.index.truncate(before=1, after=2)
+        result = index.truncate(before=1, after=2)
         self.assertEqual(len(result.levels[0]), 2)
 
     def test_getMajorBounds(self):
@@ -311,6 +440,7 @@ class TestFactor(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',#]
+                         '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
 

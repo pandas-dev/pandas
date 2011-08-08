@@ -1,8 +1,11 @@
 # pylint: disable=E1101,E1103,W0232
 
+from datetime import time
+from itertools import izip
+
 import numpy as np
 
-from pandas.core.common import _ensure_index, _is_bool_indexer
+from pandas.core.common import _format, adjoin, _ensure_index, _is_bool_indexer
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -37,25 +40,19 @@ class Index(np.ndarray):
     def __new__(cls, data, dtype=object, copy=False):
         if isinstance(data, np.ndarray):
             subarr = np.array(data, dtype=dtype, copy=copy)
+        elif np.isscalar(data):
+            raise ValueError('Index(...) must be called with a collection '
+                             'of some kind, %s was passed' % repr(data))
         else:
             subarr = np.empty(len(data), dtype=dtype)
             subarr[:] = data
 
-        if subarr.ndim == 0:
-            raise Exception('Index(...) must be called with a collection '
-                            'of some kind, %s was passed' % repr(data))
-
+        assert(subarr.ndim == 1)
         return subarr.view(cls)
-
-    def __array_finalize__(self, obj):
-        if self.ndim == 0:
-            # tolist will cause a bus error if this is not here, hmm
-            return self.item()
-            # raise Exception('Cannot create 0-dimensional Index!')
 
     def summary(self):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (self[0], self[-1])
+            index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
         else:
             index_summary = ''
         return 'Index: %s entries%s' % (len(self), index_summary)
@@ -68,15 +65,11 @@ class Index(np.ndarray):
 
         return self._cache_indexMap
 
-    @property
-    def _allDates(self):
+    def is_all_dates(self):
         if not hasattr(self, '_cache_allDates'):
             self._cache_allDates = _tseries.isAllDates(self)
 
         return self._cache_allDates
-
-    def is_all_dates(self):
-        return self._allDates
 
     def _verify_integrity(self):
         if len(self.indexMap) < len(self):
@@ -95,8 +88,8 @@ class Index(np.ndarray):
         """
         return self
 
-    def __contains__(self, date):
-        return date in self.indexMap
+    def __contains__(self, key):
+        return key in self.indexMap
 
     def __hash__(self):
         return hash(self.view(np.ndarray))
@@ -114,21 +107,12 @@ class Index(np.ndarray):
             if _is_bool_indexer(key):
                 key = np.asarray(key)
 
-            # easier to ask forgiveness than permission
-            try:
-                return Index(arr_idx[key])
-            except Exception, e1:
-                try:
-                    return Index(arr_idx[np.asarray(key)])
-                except Exception: # pragma: no cover
-                    raise e1
+            return Index(arr_idx[key])
 
     def format(self):
         """
         Render a string representation of the Index
         """
-        from datetime import time
-
         if self.is_all_dates():
             to_join = []
             zero_time = time(0, 0)
@@ -289,6 +273,7 @@ class Index(np.ndarray):
 
         Returns
         -------
+        (begin, end) : tuple
 
         Notes
         -----
@@ -310,6 +295,9 @@ class Index(np.ndarray):
 
         return beg_slice, end_slice
 
+
+class DateIndex(Index):
+    pass
 
 
 class Factor(object):
@@ -389,10 +377,20 @@ class MultiIndex(Index):
         self.levels = [_ensure_index(lev) for lev in levels]
         self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
 
-    def __array_finalize__(self, obj):
-        pass
-        # self.labels = getattr(obj, 'labels', None)
-        # self.levels = getattr(obj, 'levels', None)
+    def __iter__(self):
+        values = [np.asarray(lev).take(lab)
+                  for lev, lab in zip(self.levels, self.labels)]
+        return izip(*values)
+
+    def __contains__(self, key):
+        try:
+            label_key = self._get_label_key(key)
+            return label_key in self.indexMap
+        except Exception:
+            return False
+
+    def is_all_dates(self):
+        return False
 
     @classmethod
     def from_arrays(cls, *arrays):
@@ -454,17 +452,8 @@ class MultiIndex(Index):
             if _is_bool_indexer(key):
                 key = np.asarray(key)
 
-            # easier to ask forgiveness than permission
-            try:
-                new_tuples = arr_idx[key]
-                new_labels = [lab[key] for lab in self.labels]
-            except Exception, e1:
-                try:
-                    key = np.asarray(key)
-                    new_tuples = arr_idx[key]
-                    new_labels = [lab[key] for lab in self.labels]
-                except Exception: # pragma: no cover
-                    raise e1
+            new_tuples = arr_idx[key]
+            new_labels = [lab[key] for lab in self.labels]
 
             # an optimization
             result = new_tuples.view(MultiIndex)
@@ -476,8 +465,6 @@ class MultiIndex(Index):
         return self.__getitem__(slice(i, j))
 
     def format(self, space=2):
-        from pandas.core.common import _format, adjoin
-
         stringified_levels = [lev.format().split('\n') for lev in self.levels]
 
         padded_levels = []
@@ -509,12 +496,14 @@ class MultiIndex(Index):
         return self.indexMap[key]
 
     def _get_tuple_loc(self, tup):
-        zipped = zip(self.levels, tup)
-        indexer = tuple(lev.get_loc(v) for lev, v in zipped)
+        indexer = self._get_label_key(tup)
         try:
             return self.indexMap[indexer]
         except KeyError:
             raise KeyError(str(tup))
+
+    def _get_label_key(self, tup):
+        return tuple(lev.get_loc(v) for lev, v in zip(self.levels, tup))
 
     def get_indexer(self, target, method=None):
         """

@@ -740,6 +740,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(frame['A'].dtype == np.object_)
         self.assert_(frame['B'].dtype == np.float_)
 
+    def test_constructor_dict_dont_upcast(self):
+        d = {'Col1': {'Row1': 'A String', 'Row2': np.nan}}
+        df = DataFrame(d)
+        self.assert_(isinstance(df['Col1']['Row2'], float))
+
     def test_constructor_ndarray(self):
         mat = np.zeros((2, 3), dtype=float)
 

@@ -2756,6 +2756,8 @@ def _homogenize(data, index, columns, dtype=None):
             # only *attempt* to cast to dtype
             try:
                 arr = np.asarray(v, dtype=dtype)
+
+                # prevent NumPy from casting things to string when it shouldn't
                 if issubclass(arr.dtype.type, basestring):
                     arr = np.array(v, dtype=object, copy=False)
                 v = arr

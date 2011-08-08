@@ -110,8 +110,7 @@ class DateRange(Index):
         self.tzinfo = tzinfo
         Index.__setstate__(self, *index_state)
 
-    @property
-    def _allDates(self):
+    def is_all_dates(self):
         return True
 
     @classmethod
