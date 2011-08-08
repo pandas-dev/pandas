@@ -301,7 +301,7 @@ class TestMultiIndex(unittest.TestCase):
         for lev, lab in zip(self.index.levels, self.index.labels):
             arrays.append(np.asarray(lev).take(lab))
 
-        result = MultiIndex.from_arrays(*arrays)
+        result = MultiIndex.from_arrays(arrays)
         self.assertEquals(list(result), list(self.index))
 
     def test_nlevels(self):
@@ -343,6 +343,16 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(result.equals(expected))
         self.assert_(result2.equals(expected))
 
+    def test_getitem_group_select(self):
+        sorted_idx, _ = self.index.sortlevel(0)
+        self.assertEquals(sorted_idx.get_loc('baz'), slice(3, 4))
+        self.assertEquals(sorted_idx.get_loc('foo'), slice(0, 2))
+
+    def test_slice_locs_partial(self):
+        sorted_idx, _ = self.index.sortlevel(0)
+        result = sorted_idx.slice_locs(('foo', 'two'), ('qux', 'one'))
+        self.assertEquals(result, (1, 5))
+
     def test_consistency(self):
         # need to construct an overflow
         major_axis = range(70000)
@@ -383,6 +393,9 @@ class TestMultiIndex(unittest.TestCase):
 
         result = index.truncate(before=1, after=2)
         self.assertEqual(len(result.levels[0]), 2)
+
+    def test_format(self):
+        self.index.format()
 
     def test_getMajorBounds(self):
         pass

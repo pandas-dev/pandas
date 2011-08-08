@@ -196,7 +196,7 @@ class GroupBy(object):
 
         if len(self.groupings) > 1:
             masked = [raveled[mask] for _, raveled in name_list]
-            index = MultiIndex.from_arrays(*masked)
+            index = MultiIndex.from_arrays(masked)
             return DataFrame(output, index=index)
         else:
             return DataFrame(output, index=name_list[0][1])
@@ -238,7 +238,7 @@ class GroupBy(object):
 
         if len(self.groupings) > 1:
             masked = [raveled[mask] for _, raveled in name_list]
-            index = MultiIndex.from_arrays(*masked)
+            index = MultiIndex.from_arrays(masked)
             return DataFrame(output, index=index)
         else:
             return DataFrame(output, index=name_list[0][1])
@@ -277,13 +277,6 @@ class Grouping(object):
             self.grouper = _tseries.arrmap(self.index, self.grouper)
 
         self.indices = _tseries.groupby_indices(self.grouper)
-
-        # # eager beaver
-        # if isinstance(self.grouper, np.ndarray):
-        #     self.indices = _tseries.groupby_indices(self.grouper)
-        # else:
-        #     # some kind of callable
-        #     self.indices = _tseries.func_groupby_indices(index, self.grouper)
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name

@@ -261,11 +261,13 @@ class Series(np.ndarray, PandasObject):
               will be returned, otherwise a single value.
         """
         try:
-            if isinstance(self.index, MultiIndex):
+            if isinstance(key, int):
+                return self._regular_index(key)
+            elif isinstance(self.index, MultiIndex):
                 return self._multilevel_index(key)
             else:
                 return self._regular_index(key)
-        except TypeError:
+        except Exception:
             pass
 
         self._check_bool_indexer(key)

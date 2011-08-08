@@ -370,12 +370,17 @@ class MultiIndex(Index):
 
     """
 
-    def __new__(cls, levels=None, labels=None):
+    def __new__(cls, levels=None, labels=None, sortorder=None):
         return np.arange(len(labels[0]), dtype=object).view(cls)
 
-    def __init__(self, levels, labels):
+    def __init__(self, levels, labels, sortorder=None):
         self.levels = [_ensure_index(lev) for lev in levels]
         self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+
+        if sortorder is not None:
+            self.sortorder = int(sortorder)
+        else:
+            self.sortorder = sortorder
 
     def __iter__(self):
         values = [np.asarray(lev).take(lab)
@@ -393,9 +398,15 @@ class MultiIndex(Index):
         return False
 
     @classmethod
-    def from_arrays(cls, *arrays):
+    def from_arrays(cls, arrays, sortorder=None):
         """
         Convert arrays to MultiIndex
+
+        Parameters
+        ----------
+        arrays : list / sequence
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that level)
 
         Returns
         -------
@@ -408,7 +419,7 @@ class MultiIndex(Index):
             levels.append(factor.levels)
             labels.append(factor.labels)
 
-        return MultiIndex(levels=levels, labels=labels)
+        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder)
 
     @property
     def indexMap(self):
@@ -467,23 +478,18 @@ class MultiIndex(Index):
     def format(self, space=2):
         stringified_levels = [lev.format().split('\n') for lev in self.levels]
 
-        padded_levels = []
+        result_levels = []
         for lab, lev in zip(self.labels, stringified_levels):
-            # maxlen = max(len(x) for x in lev)
-            # adjoin does this automatically
-            # padded = [x.ljust(maxlen) for x in lev]
-            padded = np.array(lev, dtype=object).take(lab)
-            padded_levels.append(padded)
+            taken = np.array(lev, dtype=object).take(lab)
+            result_levels.append(taken)
 
-        return adjoin(2, *padded_levels)
-
-    def sort(self, level=0):
-        pass
+        return adjoin(space, *result_levels)
 
     def get_loc(self, key):
         if isinstance(key, tuple):
             return self._get_tuple_loc(key)
         else:
+            assert(self.sortorder == 0)
             # slice level 0
             level = self.levels[0]
             labels = self.labels[0]
@@ -554,35 +560,55 @@ class MultiIndex(Index):
         -----
         This function assumes that the data is sorted by the first level
         """
+        assert(self.sortorder == 0)
+
         level0 = self.levels[0]
 
         if start is None:
             start_slice = 0
         elif isinstance(start, tuple):
-            pass
+            start_slice = self._partial_tup_index(start, side='left')
         else:
-            try:
-                start_label = level0.indexMap[start]
-            except KeyError:
-                start_label = level0.searchsorted(start)
-
+            start_label = self._get_label_key_approx(start, side='right')
             start_slice = self.labels[0].searchsorted(start_label)
 
         if end is None:
             end_slice = len(self)
         elif isinstance(end, tuple):
-            pass
+            end_slice = self._partial_tup_index(end, side='right')
         else:
-            try:
-                end_label = level0.indexMap[end]
-            except KeyError:
-                end_label = level0.searchsorted(end, side='right')
-                if end_label > 0:
-                    end_label -= 1
-
+            end_label = self._get_label_key_approx(end, side='right')
             end_slice = self.labels[0].searchsorted(end_label, side='right')
 
         return start_slice, end_slice
+
+    def _partial_tup_index(self, tup, side='left'):
+        assert(self.sortorder == 0)
+        tup_labels = self._get_label_key_approx(tup, side=side)
+
+        n = len(tup_labels)
+        start, end = 0, len(self)
+        for k, (idx, labs) in enumerate(zip(tup_labels, self.labels)):
+            section = labs[start:end]
+            if k < n - 1:
+                start = start + section.searchsorted(idx, side='left')
+                end = start + section.searchsorted(idx, side='right')
+            else:
+                return start + labs.searchsorted(idx, side=side)
+
+    def _get_label_key_approx(self, tup, side='left'):
+        result = []
+        for lev, v in zip(self.levels, tup):
+            try:
+                label = lev.get_loc(v)
+            except KeyError:
+                label = lev.searchsorted(v, side=side)
+
+                if side == 'right' and label > 0:
+                    label -= 1
+
+            result.append(label)
+        return tuple(result)
 
     def truncate(self, before=None, after=None):
         """
@@ -778,7 +804,8 @@ class MultiIndex(Index):
             indexer = indexer[::-1]
 
         new_labels = [lab.take(indexer) for lab in self.labels]
-        new_index = MultiIndex(levels=self.levels, labels=new_labels)
+        new_index = MultiIndex(levels=self.levels, labels=new_labels,
+                               sortorder=level)
 
         return new_index, indexer
 
