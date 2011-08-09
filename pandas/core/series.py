@@ -1182,7 +1182,7 @@ class Series(np.ndarray, PandasObject):
 
         if kind == 'line':
             if use_index:
-                x = self.index
+                x = np.asarray(self.index)
             else:
                 x = range(len(self))
 
