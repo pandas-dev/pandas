@@ -394,6 +394,16 @@ class MultiIndex(Index):
         except Exception:
             return False
 
+    def format(self, space=2):
+        stringified_levels = [lev.format().split('\n') for lev in self.levels]
+
+        result_levels = []
+        for lab, lev in zip(self.labels, stringified_levels):
+            taken = np.array(lev, dtype=object).take(lab)
+            result_levels.append(taken)
+
+        return adjoin(space, *result_levels)
+
     def is_all_dates(self):
         return False
 
@@ -420,6 +430,11 @@ class MultiIndex(Index):
             labels.append(factor.labels)
 
         return MultiIndex(levels=levels, labels=labels, sortorder=sortorder)
+
+    @classmethod
+    def from_tuples(cls, tuples, sortorder=None):
+        arrays = zip(*tuples)
+        return MultiIndex.from_arrays(arrays, sortorder=sortorder)
 
     @property
     def indexMap(self):
@@ -462,6 +477,10 @@ class MultiIndex(Index):
         else:
             if _is_bool_indexer(key):
                 key = np.asarray(key)
+                sortorder = self.sortorder
+            else:
+                # cannot be sure whether the result will be sorted
+                sortorder = None
 
             new_tuples = arr_idx[key]
             new_labels = [lab[key] for lab in self.labels]
@@ -470,44 +489,31 @@ class MultiIndex(Index):
             result = new_tuples.view(MultiIndex)
             result.levels = self.levels
             result.labels = new_labels
+            result.sortorder = sortorder
+
             return result
 
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
 
-    def format(self, space=2):
-        stringified_levels = [lev.format().split('\n') for lev in self.levels]
+    def sortlevel(self, level=0, ascending=True):
+        """
 
-        result_levels = []
-        for lab, lev in zip(self.labels, stringified_levels):
-            taken = np.array(lev, dtype=object).take(lab)
-            result_levels.append(taken)
+        """
+        labels = list(self.labels)
+        primary = labels.pop(level)
 
-        return adjoin(space, *result_levels)
+        # Lexsort starts from END
+        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
 
-    def get_loc(self, key):
-        if isinstance(key, tuple):
-            return self._get_tuple_loc(key)
-        else:
-            assert(self.sortorder == 0)
-            # slice level 0
-            level = self.levels[0]
-            labels = self.labels[0]
+        if not ascending:
+            indexer = indexer[::-1]
 
-            loc = level.get_loc(key)
-            i = labels.searchsorted(loc, side='left')
-            j = labels.searchsorted(loc, side='right')
-            return slice(i, j)
+        new_labels = [lab.take(indexer) for lab in self.labels]
+        new_index = MultiIndex(levels=self.levels, labels=new_labels,
+                               sortorder=level)
 
-    def _get_tuple_loc(self, tup):
-        indexer = self._get_label_key(tup)
-        try:
-            return self.indexMap[indexer]
-        except KeyError:
-            raise KeyError(str(tup))
-
-    def _get_label_key(self, tup):
-        return tuple(lev.get_loc(v) for lev, v in zip(self.levels, tup))
+        return new_index, indexer
 
     def get_indexer(self, target, method=None):
         """
@@ -606,6 +612,30 @@ class MultiIndex(Index):
             result.append(label)
         return tuple(result)
 
+    def get_loc(self, key):
+        if isinstance(key, tuple):
+            return self._get_tuple_loc(key)
+        else:
+            assert(self.sortorder == 0)
+            # slice level 0
+            level = self.levels[0]
+            labels = self.labels[0]
+
+            loc = level.get_loc(key)
+            i = labels.searchsorted(loc, side='left')
+            j = labels.searchsorted(loc, side='right')
+            return slice(i, j)
+
+    def _get_tuple_loc(self, tup):
+        indexer = self._get_label_key(tup)
+        try:
+            return self.indexMap[indexer]
+        except KeyError:
+            raise KeyError(str(tup))
+
+    def _get_label_key(self, tup):
+        return tuple(lev.get_loc(v) for lev, v in zip(self.levels, tup))
+
     def truncate(self, before=None, after=None):
         """
         Slice index between two major axis values, return new MultiIndex
@@ -644,6 +674,9 @@ class MultiIndex(Index):
             return False
 
         if self.nlevels != other.nlevels:
+            return False
+
+        if len(self) != len(other):
             return False
 
         # if not self.equal_levels(other):
@@ -686,7 +719,7 @@ class MultiIndex(Index):
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
         uniq_tuples = np.unique(np.concatenate((self_tuples, other_tuples)))
-        return MultiIndex.from_arrays(*zip(*uniq_tuples))
+        return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
 
     def intersection(self, other):
         """
@@ -709,15 +742,14 @@ class MultiIndex(Index):
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
-        return MultiIndex.from_arrays(*zip(*uniq_tuples))
+        return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
 
     def _assert_can_do_setop(self, other):
-        if not hasattr(other, '__iter__'):
-            raise Exception('Input must be iterable!')
-
         if not isinstance(other, MultiIndex):
             raise TypeError('can only call with other hierarchical '
                             'index objects')
+
+        assert(self.nlevels == other.nlevels)
 
     def get_major_bounds(self, begin=None, end=None):
         """
@@ -785,25 +817,6 @@ class MultiIndex(Index):
             self.__bounds = self.labels[0].searchsorted(inds)
 
         return self.__bounds
-
-    def sortlevel(self, level=0, ascending=True):
-        """
-
-        """
-        labels = list(self.labels)
-        primary = labels.pop(level)
-
-        # Lexsort starts from END
-        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
-
-        if not ascending:
-            indexer = indexer[::-1]
-
-        new_labels = [lab.take(indexer) for lab in self.labels]
-        new_index = MultiIndex(levels=self.levels, labels=new_labels,
-                               sortorder=level)
-
-        return new_index, indexer
 
 # For utility purposes
 

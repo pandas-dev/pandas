@@ -745,8 +745,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df = DataFrame(d)
         self.assert_(isinstance(df['Col1']['Row2'], float))
 
-        dm = DataFrame([[1,2],['a','b']],
-                       index=[1,2], columns=[1,2])
+        dm = DataFrame([[1,2],['a','b']], index=[1,2], columns=[1,2])
         self.assert_(isinstance(dm[1][1], int))
 
     def test_constructor_ndarray(self):

@@ -368,7 +368,21 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEquals(result, (2, 4))
 
     def test_slice_locs_not_contained(self):
-        pass
+        # some searchsorted action
+
+        index = MultiIndex(levels=[[0, 2, 4, 6], [0, 2, 4]],
+                           labels=[[0, 0, 0, 1, 1, 2, 3, 3, 3],
+                                   [0, 1, 2, 1, 2, 2, 0, 1, 2]],
+                           sortorder=0)
+
+        result = index.slice_locs((1, 0), (5, 2))
+        self.assertEquals(result, (3, 7))
+
+        result = index.slice_locs((2, 2), (5, 2))
+        self.assertEquals(result, (4, 7))
+
+        result = index.slice_locs((1, 0), (6, 3))
+        self.assertEquals(result, (3, 8))
 
     def test_consistency(self):
         # need to construct an overflow
@@ -471,6 +485,79 @@ class TestMultiIndex(unittest.TestCase):
                              False, True,
                              True, True], dtype=bool)
         self.assert_(np.array_equal(mask, expected))
+
+    def test_equals(self):
+        self.assert_(self.index.equals(self.index))
+        self.assert_(self.index.equal_levels(self.index))
+
+        self.assert_(not self.index.equals(self.index[:-1]))
+        self.assert_(not self.index.equals(self.index.get_tuple_index()))
+
+        # different number of levels
+        index = MultiIndex(levels=self.index.levels[:-1],
+                           labels=self.index.labels[:-1])
+        self.assert_(not self.index.equals(index))
+        self.assert_(not self.index.equal_levels(index))
+
+        # levels are different
+        major_axis = Index(range(4))
+        minor_axis = Index(range(2))
+
+        major_labels = np.array([0, 0, 1, 2, 2, 3])
+        minor_labels = np.array([0, 1, 0, 0, 1, 0])
+
+        index = MultiIndex(levels=[major_axis, minor_axis],
+                           labels=[major_labels, minor_labels])
+        self.assert_(not self.index.equals(index))
+        self.assert_(not self.index.equal_levels(index))
+
+        # some of the labels are different
+        major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+        minor_axis = Index(['one', 'two'])
+
+        major_labels = np.array([0, 0, 2, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 0, 1])
+
+        index = MultiIndex(levels=[major_axis, minor_axis],
+                           labels=[major_labels, minor_labels])
+        self.assert_(not self.index.equals(index))
+
+    def test_union(self):
+        piece1 = self.index[:5][::-1]
+        piece2 = self.index[3:]
+
+        the_union = piece1.union(piece2)
+
+        tups = sorted(self.index.get_tuple_index())
+        expected = MultiIndex.from_tuples(tups)
+
+        self.assert_(the_union.equals(expected))
+
+        # corner case, pass self or empty thing:
+        the_union = self.index.union(self.index)
+        self.assert_(the_union is self.index)
+
+        the_union = self.index.union(self.index[:0])
+        self.assert_(the_union is self.index)
+
+        self.assertRaises(TypeError, self.index.union,
+                          self.index.get_tuple_index())
+
+    def test_intersection(self):
+        piece1 = self.index[:5][::-1]
+        piece2 = self.index[3:]
+
+        the_int = piece1.intersection(piece2)
+        tups = sorted(self.index[3:5].get_tuple_index())
+        expected = MultiIndex.from_tuples(tups)
+        self.assert_(the_int.equals(expected))
+
+        # corner case, pass self
+        the_int = self.index.intersection(self.index)
+        self.assert_(the_int is self.index)
+
+        self.assertRaises(TypeError, self.index.intersection,
+                          self.index.get_tuple_index())
 
     def test_dims(self):
         pass
