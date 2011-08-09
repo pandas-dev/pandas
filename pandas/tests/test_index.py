@@ -348,10 +348,27 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEquals(sorted_idx.get_loc('baz'), slice(3, 4))
         self.assertEquals(sorted_idx.get_loc('foo'), slice(0, 2))
 
+    def test_get_loc(self):
+        self.assert_(self.index.get_loc(('foo', 'two')) == 1)
+        self.assert_(self.index.get_loc(('baz', 'two')) == 3)
+        self.assertRaises(KeyError, self.index.get_loc, ('bar', 'two'))
+
     def test_slice_locs_partial(self):
         sorted_idx, _ = self.index.sortlevel(0)
         result = sorted_idx.slice_locs(('foo', 'two'), ('qux', 'one'))
         self.assertEquals(result, (1, 5))
+
+        result = sorted_idx.slice_locs(None, ('qux', 'one'))
+        self.assertEquals(result, (0, 5))
+
+        result = sorted_idx.slice_locs(('foo', 'two'), None)
+        self.assertEquals(result, (1, len(sorted_idx)))
+
+        result = sorted_idx.slice_locs('bar', 'baz')
+        self.assertEquals(result, (2, 4))
+
+    def test_slice_locs_not_contained(self):
+        pass
 
     def test_consistency(self):
         # need to construct an overflow
@@ -393,6 +410,42 @@ class TestMultiIndex(unittest.TestCase):
 
         result = index.truncate(before=1, after=2)
         self.assertEqual(len(result.levels[0]), 2)
+
+    def test_get_indexer(self):
+        major_axis = Index(range(4))
+        minor_axis = Index(range(2))
+
+        major_labels = np.array([0, 0, 1, 2, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 0, 1, 0, 1])
+
+        index = MultiIndex(levels=[major_axis, minor_axis],
+                           labels=[major_labels, minor_labels])
+        idx1 = index[:5]
+        idx2 = index[[1,3,5]]
+
+        r1, r2 = idx1.get_indexer(idx2)
+        assert_almost_equal(r1, [1, 3, -1])
+        assert_almost_equal(r2, [True, True, False])
+
+        r1, r2 = idx2.get_indexer(idx1, method='pad')
+        assert_almost_equal(r1, [-1, 0, 0, 1, 1])
+        assert_almost_equal(r2, [False, True, True, True, True])
+
+        rffill1, rffill2 = idx2.get_indexer(idx1, method='ffill')
+        assert_almost_equal(r1, rffill1)
+        assert_almost_equal(r2, rffill2)
+
+        r1, r2 = idx2.get_indexer(idx1, method='backfill')
+        assert_almost_equal(r1, [0, 0, 1, 1, 2])
+        assert_almost_equal(r2, [True, True, True, True, True])
+
+        rbfill1, rbfill2 = idx2.get_indexer(idx1, method='bfill')
+        assert_almost_equal(r1, rbfill1)
+        assert_almost_equal(r2, rbfill2)
+
+        # pass non-MultiIndex
+        self.assertRaises(Exception, idx1.get_indexer,
+                          idx2.get_tuple_index())
 
     def test_format(self):
         self.index.format()

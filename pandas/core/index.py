@@ -499,8 +499,6 @@ class MultiIndex(Index):
             j = labels.searchsorted(loc, side='right')
             return slice(i, j)
 
-        return self.indexMap[key]
-
     def _get_tuple_loc(self, tup):
         indexer = self._get_label_key(tup)
         try:
@@ -566,19 +564,17 @@ class MultiIndex(Index):
 
         if start is None:
             start_slice = 0
-        elif isinstance(start, tuple):
-            start_slice = self._partial_tup_index(start, side='left')
         else:
-            start_label = self._get_label_key_approx(start, side='right')
-            start_slice = self.labels[0].searchsorted(start_label)
+            if not isinstance(start, tuple):
+                start = start,
+            start_slice = self._partial_tup_index(start, side='left')
 
         if end is None:
             end_slice = len(self)
-        elif isinstance(end, tuple):
-            end_slice = self._partial_tup_index(end, side='right')
         else:
-            end_label = self._get_label_key_approx(end, side='right')
-            end_slice = self.labels[0].searchsorted(end_label, side='right')
+            if not isinstance(end, tuple):
+                end = end,
+            end_slice = self._partial_tup_index(end, side='right')
 
         return start_slice, end_slice
 
