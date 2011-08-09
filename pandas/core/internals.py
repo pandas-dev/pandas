@@ -1,11 +1,10 @@
-from operator import attrgetter
 import itertools
 
 from numpy import nan
 import numpy as np
 
-from pandas.core.index import Index, NULL_INDEX
-from pandas.core.common import _ensure_index, _try_sort
+from pandas.core.index import Index
+from pandas.core.common import _ensure_index
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -375,7 +374,6 @@ class BlockManager(object):
     def from_blocks(cls, blocks, index):
         # also checks for overlap
         items = _union_block_items(blocks)
-        ndim = blocks[0].ndim
         return BlockManager(blocks, [items, index])
 
     def __contains__(self, item):
@@ -429,8 +427,6 @@ class BlockManager(object):
         return result
 
     def xs(self, key, axis=1, copy=True):
-        from pandas.core.series import Series
-
         assert(axis >= 1)
 
         i = self.axes[axis].get_loc(key)
@@ -441,15 +437,15 @@ class BlockManager(object):
         new_axes = list(self.axes)
         new_axes.pop(axis)
 
+        new_blocks = []
         if len(self.blocks) > 1:
             if not copy:
                 raise Exception('cannot get view of mixed-type or '
                                 'non-consolidated DataFrame')
-            new_blocks = []
             for blk in self.blocks:
                 newb = make_block(blk.values[slicer], blk.items, blk.ref_items)
                 new_blocks.append(newb)
-        else:
+        elif len(self.blocks) == 1:
             vals = self.blocks[0].values[slicer]
             if copy:
                 vals = vals.copy()
