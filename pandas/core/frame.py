@@ -2694,10 +2694,11 @@ def _check_data_types(data):
 
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
-        values = np.asarray(values)
+        arr = np.asarray(values)
         # NumPy strings are a pain, convert to object
-        if issubclass(values.dtype.type, basestring):
-            values = np.array(values, dtype=object, copy=True)
+        if issubclass(arr.dtype.type, basestring):
+            arr = np.array(values, dtype=object, copy=True)
+        values = arr
     else:
         if copy:
             values = values.copy()
