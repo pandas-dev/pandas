@@ -7,15 +7,15 @@ import numpy as np
 
 from pandas.core.index import Index, Factor, MultiIndex, NULL_INDEX
 from pandas.util.testing import assert_almost_equal
-import pandas.util.testing as common
+import pandas.util.testing as tm
 import pandas._tseries as tseries
 
 class TestIndex(unittest.TestCase):
 
     def setUp(self):
-        self.strIndex = common.makeStringIndex(100)
-        self.dateIndex = common.makeDateIndex(100)
-        self.intIndex = common.makeIntIndex(100)
+        self.strIndex = tm.makeStringIndex(100)
+        self.dateIndex = tm.makeDateIndex(100)
+        self.intIndex = tm.makeIntIndex(100)
         self.empty = Index([])
         self.tuples = Index(zip(['foo', 'bar', 'baz'], [1, 2, 3]))
 
@@ -41,13 +41,13 @@ class TestIndex(unittest.TestCase):
 
     def test_constructor(self):
         # regular instance creation
-        common.assert_contains_all(self.strIndex, self.strIndex)
-        common.assert_contains_all(self.dateIndex, self.dateIndex)
+        tm.assert_contains_all(self.strIndex, self.strIndex)
+        tm.assert_contains_all(self.dateIndex, self.dateIndex)
 
         # casting
         arr = np.array(self.strIndex)
         index = arr.view(Index)
-        common.assert_contains_all(arr, index)
+        tm.assert_contains_all(arr, index)
         self.assert_(np.array_equal(self.strIndex, index))
 
         # what to do here?
@@ -112,11 +112,11 @@ class TestIndex(unittest.TestCase):
         boolIdx[5:30:2] = False
 
         subIndex = self.strIndex[boolIdx]
-        common.assert_dict_equal(tseries.map_indices(subIndex),
+        tm.assert_dict_equal(tseries.map_indices(subIndex),
                                  subIndex.indexMap)
 
         subIndex = self.strIndex[list(boolIdx)]
-        common.assert_dict_equal(tseries.map_indices(subIndex),
+        tm.assert_dict_equal(tseries.map_indices(subIndex),
                                  subIndex.indexMap)
 
     def test_fancy(self):
@@ -140,7 +140,7 @@ class TestIndex(unittest.TestCase):
         second = self.strIndex[:10]
         intersect = first.intersection(second)
 
-        self.assert_(common.equalContents(intersect, second))
+        self.assert_(tm.equalContents(intersect, second))
 
         # Corner cases
         inter = first.intersection(first)
@@ -154,7 +154,7 @@ class TestIndex(unittest.TestCase):
         second = self.strIndex[:10]
         everything = self.strIndex[:20]
         union = first.union(second)
-        self.assert_(common.equalContents(union, everything))
+        self.assert_(tm.equalContents(union, everything))
 
         # Corner cases
         union = first.union(first)
@@ -170,12 +170,12 @@ class TestIndex(unittest.TestCase):
         firstCat = self.strIndex + self.dateIndex
         secondCat = self.strIndex + self.strIndex
 
-        self.assert_(common.equalContents(np.append(self.strIndex,
+        self.assert_(tm.equalContents(np.append(self.strIndex,
                                                     self.dateIndex), firstCat))
-        self.assert_(common.equalContents(secondCat, self.strIndex))
-        common.assert_contains_all(self.strIndex, firstCat.indexMap)
-        common.assert_contains_all(self.strIndex, secondCat.indexMap)
-        common.assert_contains_all(self.dateIndex, firstCat.indexMap)
+        self.assert_(tm.equalContents(secondCat, self.strIndex))
+        tm.assert_contains_all(self.strIndex, firstCat.indexMap)
+        tm.assert_contains_all(self.strIndex, secondCat.indexMap)
+        tm.assert_contains_all(self.dateIndex, firstCat.indexMap)
 
         # this is valid too
         shifted = self.dateIndex + timedelta(1)
@@ -194,7 +194,7 @@ class TestIndex(unittest.TestCase):
         answer = self.strIndex[10:20]
         result = first - second
 
-        self.assert_(common.equalContents(result, answer))
+        self.assert_(tm.equalContents(result, answer))
 
         diff = first.diff(first)
         self.assert_(len(diff) == 0)
@@ -210,7 +210,7 @@ class TestIndex(unittest.TestCase):
             self.assert_(isinstance(unpickled, Index))
             self.assert_(np.array_equal(unpickled, index))
 
-            common.assert_dict_equal(unpickled.indexMap, index.indexMap)
+            tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
         testit(self.strIndex)
         testit(self.dateIndex)
@@ -353,8 +353,26 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(self.index.get_loc(('baz', 'two')) == 3)
         self.assertRaises(KeyError, self.index.get_loc, ('bar', 'two'))
 
+    def test_slice_locs(self):
+        df = tm.makeTimeDataFrame()
+        stacked = df.stack()
+
+        idx = stacked.index
+
+        slob = slice(*idx.slice_locs(df.index[5], df.index[15]))
+        sliced = stacked[slob]
+        expected = df[5:16].stack()
+        tm.assert_almost_equal(sliced.values, expected.values)
+
+        slob = slice(*idx.slice_locs(df.index[5] + timedelta(seconds=30),
+                                     df.index[15] - timedelta(seconds=30)))
+        sliced = stacked[slob]
+        expected = df[6:15].stack()
+        tm.assert_almost_equal(sliced.values, expected.values)
+
     def test_slice_locs_partial(self):
         sorted_idx, _ = self.index.sortlevel(0)
+
         result = sorted_idx.slice_locs(('foo', 'two'), ('qux', 'one'))
         self.assertEquals(result, (1, 5))
 
@@ -376,13 +394,22 @@ class TestMultiIndex(unittest.TestCase):
                            sortorder=0)
 
         result = index.slice_locs((1, 0), (5, 2))
-        self.assertEquals(result, (3, 7))
+        self.assertEquals(result, (3, 6))
+
+        result = index.slice_locs(1, 5)
+        self.assertEquals(result, (3, 6))
 
         result = index.slice_locs((2, 2), (5, 2))
-        self.assertEquals(result, (4, 7))
+        self.assertEquals(result, (3, 6))
+
+        result = index.slice_locs(2, 5)
+        self.assertEquals(result, (3, 6))
 
         result = index.slice_locs((1, 0), (6, 3))
         self.assertEquals(result, (3, 8))
+
+        result = index.slice_locs(-1, 10)
+        self.assertEquals(result, (0, len(index)))
 
     def test_consistency(self):
         # need to construct an overflow
@@ -464,17 +491,8 @@ class TestMultiIndex(unittest.TestCase):
     def test_format(self):
         self.index.format()
 
-    def test_getMajorBounds(self):
-        pass
-
-    def test_getAxisBounds(self):
-        pass
-
-    def test_getLabelBounds(self):
-        pass
-
     def test_bounds(self):
-        pass
+        self.index._bounds
 
     def test_makeMask(self):
         from pandas.core.panel import make_mask
@@ -559,6 +577,29 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(TypeError, self.index.intersection,
                           self.index.get_tuple_index())
 
+    def test_sortlevel(self):
+        import random
+
+        tuples = list(self.index)
+        random.shuffle(tuples)
+
+        index = MultiIndex.from_tuples(tuples)
+
+        sorted_idx, _ = index.sortlevel(0)
+        expected = MultiIndex.from_tuples(sorted(tuples))
+        self.assert_(sorted_idx.equals(expected))
+
+        sorted_idx, _ = index.sortlevel(0, ascending=False)
+        self.assert_(sorted_idx.equals(expected[::-1]))
+
+        sorted_idx, _ = index.sortlevel(1)
+        by1 = sorted(tuples, key=lambda x: (x[1], x[0]))
+        expected = MultiIndex.from_tuples(by1)
+        self.assert_(sorted_idx.equals(expected))
+
+        sorted_idx, _ = index.sortlevel(1, ascending=False)
+        self.assert_(sorted_idx.equals(expected[::-1]))
+
     def test_dims(self):
         pass
 
@@ -574,10 +615,10 @@ class TestFactor(unittest.TestCase):
         self.assertEqual(self.factor[-1], 'c')
 
         subf = self.factor[[0, 1, 2]]
-        common.assert_almost_equal(subf.labels, [0, 1, 1])
+        tm.assert_almost_equal(subf.labels, [0, 1, 1])
 
         subf = self.factor[self.factor.asarray() == 'c']
-        common.assert_almost_equal(subf.labels, [2, 2, 2])
+        tm.assert_almost_equal(subf.labels, [2, 2, 2])
 
     def test_factor_agg(self):
         import pandas.core.frame as frame
@@ -596,4 +637,3 @@ if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',#]
                          '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
-

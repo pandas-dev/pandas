@@ -1239,7 +1239,7 @@ class LongPanel(Panel, DataFrame):
         -------
         LongPanel
         """
-        left, right = self.index.get_major_bounds(before, after)
+        left, right = self.index.slice_locs(before, after)
         new_index = self.index.truncate(before, after)
 
         return LongPanel(self.values[left : right],

@@ -407,6 +407,9 @@ class MultiIndex(Index):
     def is_all_dates(self):
         return False
 
+    def is_sorted(self):
+        raise NotImplementedError
+
     @classmethod
     def from_arrays(cls, arrays, sortorder=None):
         """
@@ -548,11 +551,7 @@ class MultiIndex(Index):
         return indexer, mask
 
     def get_tuple_index(self):
-        to_join = []
-        for lev, lab in zip(self.levels, self.labels):
-            to_join.append(np.asarray(lev).take(lab))
-
-        return Index(zip(*to_join))
+        return Index(list(self))
 
     def slice_locs(self, start=None, end=None):
         """
@@ -564,9 +563,8 @@ class MultiIndex(Index):
         -----
         This function assumes that the data is sorted by the first level
         """
-        assert(self.sortorder == 0)
-
-        level0 = self.levels[0]
+        # relax for now
+        # assert(self.sortorder == 0)
 
         if start is None:
             start_slice = 0
@@ -585,32 +583,28 @@ class MultiIndex(Index):
         return start_slice, end_slice
 
     def _partial_tup_index(self, tup, side='left'):
-        assert(self.sortorder == 0)
-        tup_labels = self._get_label_key_approx(tup, side=side)
+        # relax for now
+        # assert(self.sortorder == 0)
 
-        n = len(tup_labels)
+        n = len(tup)
         start, end = 0, len(self)
-        for k, (idx, labs) in enumerate(zip(tup_labels, self.labels)):
+        zipped = izip(tup, self.levels, self.labels)
+        for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
+
+            if lab not in lev:
+                # short circuit
+                loc = lev.searchsorted(lab, side=side)
+                if side == 'right' and loc > 0:
+                    loc -= 1
+                return start + section.searchsorted(loc, side=side)
+
+            idx = lev.get_loc(lab)
             if k < n - 1:
-                start = start + section.searchsorted(idx, side='left')
                 end = start + section.searchsorted(idx, side='right')
+                start = start + section.searchsorted(idx, side='left')
             else:
-                return start + labs.searchsorted(idx, side=side)
-
-    def _get_label_key_approx(self, tup, side='left'):
-        result = []
-        for lev, v in zip(self.levels, tup):
-            try:
-                label = lev.get_loc(v)
-            except KeyError:
-                label = lev.searchsorted(v, side=side)
-
-                if side == 'right' and label > 0:
-                    label -= 1
-
-            result.append(label)
-        return tuple(result)
+                return start + section.searchsorted(idx, side=side)
 
     def get_loc(self, key):
         if isinstance(key, tuple):
@@ -652,8 +646,8 @@ class MultiIndex(Index):
         -------
         MultiIndex
         """
-        i, j = self._get_axis_bounds(before, after)
-        left, right = self._get_label_bounds(i, j)
+        i, j = self.levels[0].slice_locs(before, after)
+        left, right = self.slice_locs(before, after)
 
         new_levels = list(self.levels)
         new_levels[0] = new_levels[0][i:j]
@@ -751,67 +745,15 @@ class MultiIndex(Index):
 
         assert(self.nlevels == other.nlevels)
 
-    def get_major_bounds(self, begin=None, end=None):
-        """
-        Return index bounds for slicing LongPanel labels and / or
-        values
-
-        Parameters
-        ----------
-        begin : axis value or None
-        end : axis value or None
-
-        Returns
-        -------
-        y : tuple
-            (left, right) absolute bounds on LongPanel values
-        """
-        i, j = self._get_axis_bounds(begin, end)
-        left, right = self._get_label_bounds(i, j)
-
-        return left, right
-
-    def _get_axis_bounds(self, begin, end):
-        """
-        Return major axis locations corresponding to interval values
-        """
-        if begin is not None:
-            i = self.levels[0].indexMap.get(begin)
-            if i is None:
-                i = self.levels[0].searchsorted(begin, side='right')
-        else:
-            i = 0
-
-        if end is not None:
-            j = self.levels[0].indexMap.get(end)
-            if j is None:
-                j = self.levels[0].searchsorted(end)
-            else:
-                j = j + 1
-        else:
-            j = len(self.levels[0])
-
-        if i > j:
-            raise ValueError('Must have begin <= end!')
-
-        return i, j
-
-    def _get_label_bounds(self, i, j):
-        "Return slice points between two major axis locations"
-
-        left = self._bounds[i]
-
-        if j >= len(self.levels[0]):
-            right = len(self.labels[0])
-        else:
-            right = self._bounds[j]
-
-        return left, right
+    get_major_bounds = slice_locs
 
     __bounds = None
     @property
     def _bounds(self):
-        "Return or compute and return slice points for major axis"
+        """
+        Return or compute and return slice points for level 0, assuming
+        sortedness
+        """
         if self.__bounds is None:
             inds = np.arange(len(self.levels[0]))
             self.__bounds = self.labels[0].searchsorted(inds)
