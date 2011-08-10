@@ -1494,12 +1494,49 @@ class DataFrame(NDFrame):
         -------
         stacked : Series
         """
+        # TODO: what if already have MultiIndex?
         N, K = len(self.index), len(self.columns)
         ilabels = np.arange(N).repeat(K)
         clabels = np.tile(np.arange(K), N).ravel()
         index = MultiIndex(levels=[self.index, self.columns],
                            labels=[ilabels, clabels])
         return Series(self.values.ravel(), index=index)
+
+    def unstack(self, level=-1):
+        """
+        "Unstack" level from MultiLevel index to produce reshaped DataFrame
+
+        Parameters
+        ----------
+        level : int, default last level
+            Level to "unstack"
+
+        Examples
+        --------
+        >>> s
+        one  a   1.
+        one  b   2.
+        two  a   3.
+        two  b   4.
+
+        >>> s.unstack(level=-1)
+             a   b
+        one  1.  2.
+        two  3.  4.
+
+        >>> s.unstack(level=0)
+           one  two
+        a  1.   2.
+        b  3.   4.
+
+        Returns
+        -------
+        unstacked : DataFrame
+        """
+        from pandas.core.series import _Unstacker
+        unstacker = _Unstacker(self.values, self.index, level=level,
+                               value_columns=self.columns)
+        return unstacker.get_result()
 
     def delevel(self):
         """

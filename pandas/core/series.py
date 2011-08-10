@@ -3,7 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 
 # pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613
+# pylint: disable=W0703,W0622,W0613,W0201
 
 import itertools
 import operator
@@ -337,8 +337,7 @@ class Series(np.ndarray, PandasObject):
             return default
 
     # help out SparseSeries
-    def _get_val_at(self, i):
-        return _ndgi(self, i)
+    _get_val_at = ndarray.__getitem__
 
     def __getslice__(self, i, j):
         """
@@ -974,7 +973,8 @@ class Series(np.ndarray, PandasObject):
         -------
         unstacked : DataFrame
         """
-        return unstack(self.values, self.index, level=level)
+        unstacker = _Unstacker(self.values, self.index, level=level)
+        return unstacker.get_result()
 
     #----------------------------------------------------------------------
     # function application
@@ -1487,9 +1487,9 @@ class TimeSeries(Series):
 #-------------------------------------------------------------------------------
 # Supplementary functions
 
-def unstack(values, index, level=-1):
+class _Unstacker(object):
     """
-    "Unstack" Series with multi-level index to produce DataFrame
+    Helper class to unstack data / pivot with multi-level index
 
     Parameters
     ----------
@@ -1518,63 +1518,128 @@ def unstack(values, index, level=-1):
     -------
     unstacked : DataFrame
     """
-    from pandas.core.frame import DataFrame
+    def __init__(self, values, index, level=-1, value_columns=None):
+        if values.ndim == 1:
+            values = values[:, np.newaxis]
+        self.values = values
+        self.value_columns = value_columns
 
-    v = level
-    if v < 0:
-        v = index.nlevels + v
+        if value_columns is None and values.shape[1] != 1:
+            raise ValueError('must pass column labels for multi-column data')
 
-    labs = index.labels
-    to_sort = labs[:v] + labs[v+1:] + [labs[v]]
-    indexer = np.lexsort(to_sort[::-1])
+        self.index = index
 
-    sorted_labels = [l.take(indexer) for l in to_sort]
-    new_levels = list(index.levels)
-    columns = new_levels.pop(v)
+        if level < 0:
+            level += index.nlevels
+        self.level = level
 
-    sorted_values = values.take(indexer)
+        self.new_index_levels = list(index.levels)
+        self.removed_level = self.new_index_levels.pop(level)
 
-    lshape = index.levshape
-    full_shape = np.prod(lshape[:v] + lshape[v+1:]), lshape[v]
+        v = self.level
+        lshape = self.index.levshape
+        self.full_shape = np.prod(lshape[:v] + lshape[v+1:]), lshape[v]
 
-    # make the mask
-    group_index = sorted_labels[0]
-    prev_stride = np.prod(map(len, new_levels[1:]))
+        self._make_sorted_values_labels()
+        self._make_selectors()
 
-    for lev, lab in zip(new_levels[1:], sorted_labels[1:-1]):
-        group_index = group_index * prev_stride + lab
-        prev_stride /= len(lev)
+    def _make_sorted_values_labels(self):
+        v = self.level
 
-    group_mask = np.zeros(full_shape[0], dtype=bool)
-    group_mask.put(group_index, True)
+        labs = self.index.labels
+        to_sort = labs[:v] + labs[v+1:] + [labs[v]]
+        indexer = np.lexsort(to_sort[::-1])
 
-    selector = sorted_labels[-1] + lshape[v] * group_index
-    mask = np.zeros(np.prod(full_shape), dtype=bool)
-    mask.put(selector, True)
+        self.sorted_values = self.values.take(indexer, axis=0)
+        self.sorted_labels = [l.take(indexer) for l in to_sort]
 
-    # compress labels
-    unique_groups = np.arange(full_shape[0])[group_mask]
-    compressor = group_index.searchsorted(unique_groups)
+    def _make_selectors(self):
+        new_levels = self.new_index_levels
 
-    result_labels = []
-    for cur in sorted_labels[:-1]:
-        result_labels.append(cur.take(compressor))
+        # make the mask
+        group_index = self.sorted_labels[0]
+        prev_stride = np.prod([len(x) for x in new_levels[1:]])
 
-    # place the values
-    new_values = np.empty(full_shape, dtype=values.dtype)
-    new_values.fill(np.nan)
-    new_values.ravel()[mask] = sorted_values
-    new_values = new_values.take(unique_groups, axis=0)
+        for lev, lab in zip(new_levels[1:], self.sorted_labels[1:-1]):
+            group_index = group_index * prev_stride + lab
+            prev_stride /= len(lev)
 
-    # construct the new index
-    if len(new_levels) == 1:
-        new_index = Index(new_levels[0])
-    else:
-        new_index = MultiIndex(levels=new_levels, labels=result_labels)
+        group_mask = np.zeros(self.full_shape[0], dtype=bool)
+        group_mask.put(group_index, True)
 
-    return DataFrame(new_values, index=new_index, columns=columns)
+        stride = self.index.levshape[self.level]
+        selector = self.sorted_labels[-1] + stride * group_index
+        mask = np.zeros(np.prod(self.full_shape), dtype=bool)
+        mask.put(selector, True)
 
-_ndgi = ndarray.__getitem__
+        # compress labels
+        unique_groups = np.arange(self.full_shape[0])[group_mask]
+        compressor = group_index.searchsorted(unique_groups)
+
+        self.group_mask = group_mask
+        self.group_index = group_index
+        self.mask = mask
+        self.unique_groups = unique_groups
+        self.compressor = compressor
+
+    def get_result(self):
+        from pandas.core.frame import DataFrame
+        return DataFrame(self.get_new_values(),
+                         index=self.get_new_index(),
+                         columns=self.get_new_columns())
+
+    def get_new_values(self):
+        # place the values
+        length, width = self.full_shape
+        stride = self.values.shape[1]
+        result_width = width * stride
+
+        new_values = np.empty((length, result_width), dtype=self.values.dtype)
+        new_values.fill(np.nan)
+
+        # is there a simpler / faster way of doing this?
+        for i in xrange(self.values.shape[1]):
+            chunk = new_values[:, i * width : (i + 1) * width]
+            chunk.flat[self.mask] = self.sorted_values[:, i]
+
+        new_values = new_values.take(self.unique_groups, axis=0)
+        return new_values
+
+    def get_new_columns(self):
+        if self.value_columns is None:
+            return self.removed_level
+
+        stride = len(self.removed_level)
+        width = len(self.value_columns)
+        propagator = np.repeat(np.arange(width), stride)
+        if isinstance(self.value_columns, MultiIndex):
+            new_levels = self.value_columns.levels + [self.removed_level]
+            new_labels = [lab.take(propagator)
+                          for lab in self.value_columns.labels]
+            new_labels.append(np.tile(np.arange(stride), width))
+        else:
+            new_levels = [self.value_columns, self.removed_level]
+            new_labels = []
+
+            new_labels.append(propagator)
+            new_labels.append(np.tile(np.arange(stride), width))
+
+        return MultiIndex(levels=new_levels, labels=new_labels)
+
+    def get_new_index(self):
+        result_labels = []
+        for cur in self.sorted_labels[:-1]:
+            result_labels.append(cur.take(self.compressor))
+
+        # construct the new index
+        if len(self.new_index_levels) == 1:
+            new_index = Index(self.new_index_levels[0])
+        else:
+            new_index = MultiIndex(levels=self.new_index_levels,
+                                   labels=result_labels)
+
+        return new_index
+
 
 def remove_na(arr):
     """
