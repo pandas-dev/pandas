@@ -1539,10 +1539,11 @@ def unstack(values, index, level=-1):
 
     # make the mask
     group_index = sorted_labels[0]
-    prev_levsize = len(new_levels[0])
-    for ilev, ilab in zip(new_levels[1:], sorted_labels[1:-1]):
-        group_index = prev_levsize * ilab
-        prev_levsize = len(ilev)
+    prev_stride = np.prod(map(len, new_levels[1:]))
+
+    for lev, lab in zip(new_levels[1:], sorted_labels[1:-1]):
+        group_index = group_index * prev_stride + lab
+        prev_stride /= len(lev)
 
     group_mask = np.zeros(full_shape[0], dtype=bool)
     group_mask.put(group_index, True)
@@ -1557,12 +1558,6 @@ def unstack(values, index, level=-1):
 
     result_labels = []
     for cur in sorted_labels[:-1]:
-        # bit of a kludgy way to get at the label
-        # labels = np.empty(full_shape, dtype=np.int32)
-        # labels.fill(-1)
-        # np.putmask(labels.ravel(), mask, cur)
-        # result_labels.append(labels.max(1).take(compressor))
-
         result_labels.append(cur.take(compressor))
 
     # place the values

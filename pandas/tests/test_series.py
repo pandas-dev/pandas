@@ -961,6 +961,18 @@ class TestSeries(unittest.TestCase):
         unstacked = s.unstack(level=0)
         assert_frame_equal(unstacked, expected.T)
 
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        s = Series(np.random.randn(6), index=index)
+        exp_index = MultiIndex(levels=[['one', 'two', 'three'], [0, 1]],
+                               labels=[[0, 1, 2, 0, 1, 2],
+                                       [0, 1, 0, 1, 0, 1]])
+        expected = DataFrame({'bar' : s.values}, index=exp_index).sortlevel(0)
+        unstacked = s.unstack(0)
+        assert_frame_equal(unstacked, expected)
+
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
 
