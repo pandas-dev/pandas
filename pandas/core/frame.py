@@ -871,12 +871,15 @@ class DataFrame(NDFrame):
         -------
         xs : Series
         """
-        if key not in self.index:
-            raise Exception('No cross-section for %s' % key)
+        # if key not in self.index:
+        #     raise Exception('No cross-section for %s' % key)
 
         self._consolidate_inplace()
-        values = self._data.xs(key, axis=1, copy=copy)
-        return Series(values.as_matrix(), index=self.columns)
+        new_data = self._data.xs(key, axis=1, copy=copy)
+        if new_data.ndim == 1:
+            return Series(new_data.as_matrix(), index=self.columns)
+        else:
+            return DataFrame(new_data)
 
     #----------------------------------------------------------------------
     # Reindexing
