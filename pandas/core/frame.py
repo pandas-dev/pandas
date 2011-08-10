@@ -487,7 +487,8 @@ class DataFrame(NDFrame):
         f.close()
 
     def toString(self, buf=sys.stdout, columns=None, colSpace=None,
-                 nanRep='NaN', formatters=None, float_format=None):
+                 nanRep='NaN', formatters=None, float_format=None,
+                 sparsify=True):
         from pandas.core.common import _format, adjoin
 
         if colSpace is None:
@@ -515,11 +516,35 @@ class DataFrame(NDFrame):
             print >> buf, 'Empty %s' % type(self).__name__
             print >> buf, repr(self.index)
         else:
-            fmt_index = self.index.format().split('\n')
-            fmt_columns = self.columns
-            str_index = [''] + fmt_index
-            stringified = [[' %s' % str(c)] + _stringify(c) for c in columns]
+            (str_index,
+             str_columns) = self._get_formatted_labels(sparsify=sparsify)
+            stringified = [str_columns[i] + _stringify(c)
+                           for i, c in enumerate(columns)]
             print >> buf, adjoin(2, str_index, *stringified)
+
+    def _get_formatted_labels(self, sparsify=True):
+        from pandas.core.index import _sparsify
+
+        if isinstance(self.index, MultiIndex):
+            fmt_index = self.index.format(sparsify=sparsify)
+        else:
+            fmt_index = self.index.format()
+
+        if isinstance(self.columns, MultiIndex):
+            fmt_columns = self.columns.format(sparsify=False)
+            str_columns = zip(*[[' %s' % y for y in x.split()]
+                                for x in fmt_columns])
+
+            if sparsify:
+                str_columns = [_sparsify(lev) for lev in str_columns]
+            str_columns = [list(x) for x in zip(*str_columns)]
+            str_index = [''] * self.columns.nlevels + fmt_index
+        else:
+            col_nlevels = 1
+            str_columns = [[' %s' % x] for x in self.columns.format()]
+            str_index = [''] + fmt_index
+
+        return str_index, str_columns
 
     def info(self, verbose=True, buf=sys.stdout):
         """
@@ -1045,16 +1070,19 @@ class DataFrame(NDFrame):
             raise Exception('can only sort by level with a hierarchical index')
 
         new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
-        new_values = self.values.take(indexer, axis=0)
+
+        # new_values = self.values.take(indexer, axis=axis)
 
         if axis == 0:
-            index = new_axis
-            columns = self.columns
+            return self.reindex(index=new_axis)
+            # index = new_axis
+            # columns = self.columns
         else:
-            index = self.index
-            columns = new_axis
+            return self.reindex(columns=new_axis)
+            # index = self.index
+            # columns = new_axis
 
-        return self._constructor(new_values, index=index, columns=columns)
+        # return self._constructor(new_values, index=index, columns=columns)
 
     #----------------------------------------------------------------------
     # Filling NA's

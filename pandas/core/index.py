@@ -109,7 +109,11 @@ class Index(np.ndarray):
 
             return Index(arr_idx[key])
 
-    def format(self):
+    def take(self, *args, **kwargs):
+        taken = self.view(np.ndarray).take(*args, **kwargs)
+        return Index(taken)
+
+    def format(self, vertical=False):
         """
         Render a string representation of the Index
         """
@@ -120,9 +124,9 @@ class Index(np.ndarray):
                 if dt.time() != zero_time or dt.tzinfo is not None:
                     return '\n'.join(str(x) for x in self)
                 to_join.append(dt.strftime("%Y-%m-%d"))
-            return '\n'.join(to_join)
+            return to_join
 
-        return '\n'.join(str(x) for x in self)
+        return [str(x) for x in self]
 
     def equals(self, other):
         """
@@ -232,10 +236,6 @@ class Index(np.ndarray):
         return Index(theDiff)
 
     __sub__ = lambda self, other: self.diff(other)
-
-    def take(self, *args, **kwargs):
-        taken = self.view(np.ndarray).take(*args, **kwargs)
-        return Index(taken)
 
     def get_loc(self, key):
         return self.indexMap[key]
@@ -394,15 +394,17 @@ class MultiIndex(Index):
         except Exception:
             return False
 
-    def format(self, space=2):
-        stringified_levels = [lev.format().split('\n') for lev in self.levels]
+    def format(self, space=2, sparsify=True, vertical=False):
+        stringified_levels = [lev.format() for lev in self.levels]
 
         result_levels = []
         for lab, lev in zip(self.labels, stringified_levels):
             taken = np.array(lev, dtype=object).take(lab)
+            if sparsify:
+                taken = _sparsify(taken)
             result_levels.append(taken)
 
-        return adjoin(space, *result_levels)
+        return adjoin(space, *result_levels).split('\n')
 
     def is_all_dates(self):
         return False
@@ -495,6 +497,10 @@ class MultiIndex(Index):
             result.sortorder = sortorder
 
             return result
+
+    def take(self, *args, **kwargs):
+        new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
+        return MultiIndex(levels=self.levels, labels=new_labels)
 
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
@@ -610,7 +616,7 @@ class MultiIndex(Index):
         if isinstance(key, tuple):
             return self._get_tuple_loc(key)
         else:
-            assert(self.sortorder == 0)
+            # assert(self.sortorder == 0)
             # slice level 0
             level = self.levels[0]
             labels = self.labels[0]
@@ -646,6 +652,9 @@ class MultiIndex(Index):
         -------
         MultiIndex
         """
+        if after and before and after < before:
+            raise ValueError('after < before')
+
         i, j = self.levels[0].slice_locs(before, after)
         left, right = self.slice_locs(before, after)
 
@@ -763,4 +772,18 @@ class MultiIndex(Index):
 # For utility purposes
 
 NULL_INDEX = Index([])
+
+def _sparsify(labels):
+    if len(labels) == 0:
+        return []
+    result = [labels[0]]
+    prev = labels[0]
+    for label in labels[1:]:
+        if label == prev:
+            result.append('')
+        else:
+            result.append(label)
+            prev = label
+
+    return result
 

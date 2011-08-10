@@ -203,14 +203,11 @@ class GroupBy(object):
 
     def _aggregate_multi_group(self, arg):
         # want to cythonize?
-
-        if len(self.groupings) > 3:
-            raise Exception('can only handle 3 or fewer groupings for now')
-
         shape = self._result_shape
         result = np.empty(shape, dtype=float)
         result.fill(np.nan)
         counts = np.zeros(shape, dtype=int)
+
         def _doit(reschunk, ctchunk, gen):
             for i, (_, subgen) in enumerate(gen):
                 if isinstance(subgen, Series):

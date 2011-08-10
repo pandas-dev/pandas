@@ -169,6 +169,11 @@ class TestGroupBy(unittest.TestCase):
         # make sure raises error
         self.assertRaises(AttributeError, getattr, grouped, 'foo')
 
+    def test_series_describe_multikey(self):
+        ts = tm.makeTimeSeries()
+        grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
+        grouped.describe()
+
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
 
