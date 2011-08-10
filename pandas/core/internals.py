@@ -348,7 +348,7 @@ class BlockManager(object):
 
     def get_slice(self, slice_obj, axis=0):
         new_blocks = self._slice_blocks(slice_obj, axis)
-
+        assert(axis > 0)
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slice_obj]
         return BlockManager(new_blocks, new_axes)

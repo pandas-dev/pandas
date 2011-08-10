@@ -35,14 +35,41 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
                                columns=['A', 'B', 'C'])
 
+        self.tdf = tm.makeTimeDataFrame()
+        self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
+                                     lambda x: x.day]).sum()
+
     def test_getitem_simple(self):
         df = self.frame.T
         self.assertRaises(KeyError, df.__getitem__, ('foo', 'four'))
 
-    def test_alignment(self):
+    def test_getitem_toplevel(self):
+        df = self.frame.T
+
+        result = df['foo']
+        expected = df.reindex(columns=df.columns[:3])
+        assert_frame_equal(result, expected)
+
+        result = df['bar']
+        expected = df.reindex(columns=df.columns[3:5])
+        assert_frame_equal(result, expected)
+
+        ymd = self.ymd.T
+        result = ymd[2000, 2]
+        expected = ymd.reindex(columns=ymd.columns[ymd.columns.labels[1] == 1])
+        assert_frame_equal(result, expected)
+
+    def test_getitem_partial(self):
         pass
 
+    def test_fancy_slice_partial(self):
+        pass
 
+    def test_fancy_select_toplevel(self):
+        pass
+
+    def test_alignment(self):
+        pass
 
 
 if __name__ == '__main__':

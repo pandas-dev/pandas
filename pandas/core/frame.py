@@ -540,7 +540,6 @@ class DataFrame(NDFrame):
             str_columns = [list(x) for x in zip(*str_columns)]
             str_index = [''] * self.columns.nlevels + fmt_index
         else:
-            col_nlevels = 1
             str_columns = [[' %s' % x] for x in self.columns.format()]
             str_index = [''] + fmt_index
 
@@ -734,9 +733,22 @@ class DataFrame(NDFrame):
 
             new_index = self.index[item]
             return self.reindex(new_index)
+        elif isinstance(self.columns, MultiIndex):
+            loc = self.columns.get_loc(item)
+            if isinstance(loc, slice):
+                new_columns = self.columns[loc]
+                return self.reindex(columns=new_columns)
+            else:
+                return self._getitem_single(item)
         else:
-            values = self._data.get(item)
-            return Series(values, index=self.index)
+            return self._getitem_single(item)
+
+    def _getitem_multilevel(self, item):
+        pass
+
+    def _getitem_single(self, item):
+        values = self._data.get(item)
+        return Series(values, index=self.index)
 
     def __setitem__(self, key, value):
         """
