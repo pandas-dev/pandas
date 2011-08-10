@@ -400,9 +400,10 @@ class MultiIndex(Index):
         result_levels = []
         for lab, lev in zip(self.labels, stringified_levels):
             taken = np.array(lev, dtype=object).take(lab)
-            if sparsify:
-                taken = _sparsify(taken)
             result_levels.append(taken)
+
+        if sparsify:
+            result_levels = _sparsify(result_levels)
 
         return adjoin(space, *result_levels).split('\n')
 
@@ -773,17 +774,33 @@ class MultiIndex(Index):
 
 NULL_INDEX = Index([])
 
-def _sparsify(labels):
-    if len(labels) == 0:
-        return []
-    result = [labels[0]]
-    prev = labels[0]
-    for label in labels[1:]:
-        if label == prev:
-            result.append('')
-        else:
-            result.append(label)
-            prev = label
+def _sparsify(label_list):
+    pivoted = zip(*label_list)
 
-    return result
+    if len(pivoted) == 0:
+        return label_list
+
+    k = len(label_list)
+
+    result = [pivoted[0]]
+    prev = pivoted[0]
+
+    for cur in pivoted[1:]:
+        sparse_cur = []
+
+        for i, (p, t) in enumerate(zip(prev, cur)):
+            if i == k - 1:
+                sparse_cur.append(t)
+                result.append(sparse_cur)
+                break
+
+            if p == t:
+                sparse_cur.append('')
+            else:
+                result.append(cur)
+                break
+
+        prev = cur
+
+    return zip(*result)
 

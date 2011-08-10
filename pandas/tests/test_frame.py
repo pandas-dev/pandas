@@ -2574,6 +2574,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         expected = DataFrame({"a" : [0, 0, 0]}, index=idx)
         assert_frame_equal(df, expected)
 
+
 if __name__ == '__main__':
     # unittest.main()
     import nose

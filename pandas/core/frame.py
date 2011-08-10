@@ -534,9 +534,9 @@ class DataFrame(NDFrame):
             fmt_columns = self.columns.format(sparsify=False)
             str_columns = zip(*[[' %s' % y for y in x.split()]
                                 for x in fmt_columns])
-
             if sparsify:
-                str_columns = [_sparsify(lev) for lev in str_columns]
+                str_columns = _sparsify(str_columns)
+
             str_columns = [list(x) for x in zip(*str_columns)]
             str_index = [''] * self.columns.nlevels + fmt_index
         else:
