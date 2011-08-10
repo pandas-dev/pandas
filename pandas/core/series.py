@@ -1584,9 +1584,18 @@ class _Unstacker(object):
 
     def get_result(self):
         from pandas.core.frame import DataFrame
-        return DataFrame(self.get_new_values(),
-                         index=self.get_new_index(),
-                         columns=self.get_new_columns())
+
+        # TODO: find a better way than this masking business
+
+        values, mask = self.get_new_values()
+        columns = self.get_new_columns()
+        index = self.get_new_index()
+
+        # filter out missing levels
+        values = values[:, mask]
+        columns = columns[mask]
+
+        return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
         # place the values
@@ -1595,15 +1604,20 @@ class _Unstacker(object):
         result_width = width * stride
 
         new_values = np.empty((length, result_width), dtype=self.values.dtype)
+        new_mask = np.zeros((length, result_width), dtype=bool)
+
         new_values.fill(np.nan)
 
         # is there a simpler / faster way of doing this?
         for i in xrange(self.values.shape[1]):
             chunk = new_values[:, i * width : (i + 1) * width]
+            mask_chunk = new_mask[:, i * width : (i + 1) * width]
+
             chunk.flat[self.mask] = self.sorted_values[:, i]
+            mask_chunk.flat[self.mask] = True
 
         new_values = new_values.take(self.unique_groups, axis=0)
-        return new_values
+        return new_values, new_mask.sum(0) > 0
 
     def get_new_columns(self):
         if self.value_columns is None:

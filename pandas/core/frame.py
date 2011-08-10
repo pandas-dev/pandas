@@ -13,7 +13,6 @@ labeling information
 # pylint: disable=W0212,W0231,W0703,W0622
 
 from cStringIO import StringIO
-from datetime import datetime
 import operator
 import sys
 import warnings
