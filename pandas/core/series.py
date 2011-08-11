@@ -1647,7 +1647,7 @@ class _Unstacker(object):
 
         # construct the new index
         if len(self.new_index_levels) == 1:
-            new_index = Index(self.new_index_levels[0])
+            new_index = self.new_index_levels[0].take(self.unique_groups)
         else:
             new_index = MultiIndex(levels=self.new_index_levels,
                                    labels=result_labels)
