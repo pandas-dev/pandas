@@ -519,7 +519,7 @@ class DataFrame(NDFrame):
              str_columns) = self._get_formatted_labels(sparsify=sparsify)
             stringified = [str_columns[i] + _stringify(c)
                            for i, c in enumerate(columns)]
-            print >> buf, adjoin(2, str_index, *stringified)
+            print >> buf, adjoin(1, str_index, *stringified)
 
     def _get_formatted_labels(self, sparsify=True):
         from pandas.core.index import _sparsify

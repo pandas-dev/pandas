@@ -69,9 +69,15 @@ def _convert_DataFrame(rdf):
     data = {}
     for i, col in enumerate(columns):
         vec = rdf.rx2(i + 1)
-        data[col] = list(vec)
+        values = np.asarray(vec)
 
-    return pandas.DataFrame(data, index=_check_int(rows))
+        if isinstance(vec, robj.FactorVector):
+            values = np.asarray(vec.levels).take(values - 1)
+
+        data[col] = values
+
+    return pandas.DataFrame(data, index=_check_int(rows),
+                            columns=columns)
 
 def _convert_Matrix(mat):
     columns = mat.colnames
@@ -110,7 +116,7 @@ _converters = [
     (robj.Vector, _convert_list),
 ]
 
-def convert_robj(obj, use_pandas=False):
+def convert_robj(obj, use_pandas=True):
     """
     Convert rpy2 object to a pandas-friendly form
 
