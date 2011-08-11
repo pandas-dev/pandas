@@ -5,7 +5,7 @@ developer-friendly.
 
 import numpy as np
 
-import pandas as pandas
+import pandas as pn
 import pandas.util.testing as _test
 
 from rpy2.robjects.packages import importr
@@ -57,10 +57,34 @@ def _convert_array(obj):
     if len(dim) == 3:
         arr = values.reshape(dim[-1:] + dim[:-1]).swapaxes(1, 2)
 
-    return arr
+
+    if obj.names is not None:
+        name_list = [list(x) for x in obj.names]
+        if len(dim) == 2:
+            return pn.DataFrame(arr, index=name_list[0], columns=name_list[1])
+        elif len(dim) == 3:
+            return pn.WidePanel(arr, items=name_list[2],
+                                major_axis=name_list[0],
+                                minor_axis=name_list[1])
+        else:
+            print 'Cannot handle dim=%d' % len(dim)
+    else:
+        return arr
 
 def _convert_vector(obj):
+    if isinstance(obj, robj.IntVector):
+        return _convert_int_vector(obj)
     return list(obj)
+
+NA_INTEGER = -2147483648
+
+def _convert_int_vector(obj):
+    arr = np.asarray(obj)
+    mask = arr == NA_INTEGER
+    if mask.any():
+        arr = arr.astype(float)
+        arr[mask] = np.nan
+    return arr
 
 def _convert_DataFrame(rdf):
     columns = list(rdf.colnames)
@@ -69,15 +93,14 @@ def _convert_DataFrame(rdf):
     data = {}
     for i, col in enumerate(columns):
         vec = rdf.rx2(i + 1)
-        values = np.asarray(vec)
+        values = _convert_vector(vec)
 
         if isinstance(vec, robj.FactorVector):
             values = np.asarray(vec.levels).take(values - 1)
 
         data[col] = values
 
-    return pandas.DataFrame(data, index=_check_int(rows),
-                            columns=columns)
+    return pn.DataFrame(data, index=_check_int(rows), columns=columns)
 
 def _convert_Matrix(mat):
     columns = mat.colnames
@@ -86,8 +109,8 @@ def _convert_Matrix(mat):
     columns = None if _is_null(columns) else list(columns)
     index = None if _is_null(rows) else list(rows)
 
-    return pandas.DataFrame(np.array(mat), index=_check_int(index),
-                            columns=columns)
+    return pn.DataFrame(np.array(mat), index=_check_int(index),
+                        columns=columns)
 
 def _check_int(vec):
     try:
@@ -110,6 +133,7 @@ _pandas_converters = [
 _converters = [
     (robj.DataFrame , lambda x: _convert_DataFrame(x).toRecords(index=False)),
     (robj.Matrix , lambda x: _convert_Matrix(x).toRecords(index=False)),
+    (robj.IntVector, _convert_vector),
     (robj.StrVector, _convert_vector),
     (robj.FloatVector, _convert_vector),
     (robj.Array, _convert_array),
