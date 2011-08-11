@@ -501,7 +501,7 @@ class PanelOLS(OLS):
 
     @cache_readonly
     def _time_obs_count(self):
-        return self._y_trans.count()
+        return self._y_trans.count(level=0)['__y__'].values
 
     @cache_readonly
     def _time_has_obs(self):
@@ -907,7 +907,7 @@ def _xx_time_effects(x, y):
     xx = np.dot(x.values.T, x.values)
     xt = x.sum('minor').values
 
-    count = y.count()
+    count = y.count(level=0)['__y__'].values
     selector = count > 0
 
     # X'X - (T'T)^-1 (T'X)

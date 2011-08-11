@@ -897,12 +897,12 @@ class TestLongPanel(unittest.TestCase):
     def test_count(self):
         index = self.panel.index
 
-        major_count = self.panel.count('major')
+        major_count = self.panel.count(level=0)['ItemA']
         labels = index.labels[0]
         for i, idx in enumerate(index.levels[0]):
             self.assertEqual(major_count[i], (labels == i).sum())
 
-        minor_count = self.panel.count('minor')
+        minor_count = self.panel.count(level=1)['ItemA']
         labels = index.labels[1]
         for i, idx in enumerate(index.levels[1]):
             self.assertEqual(minor_count[i], (labels == i).sum())
@@ -939,7 +939,9 @@ class TestLongPanel(unittest.TestCase):
         self.assertEqual(df['e'][5], 4)
 
         # weird overlap, TODO: test?
-        df = pivot(np.array([1, 2, 3, 4, 4]), np.array(['a', 'a', 'a', 'a', 'a']), np.array([1, 2, 3, 5, 4]))
+        df = pivot(np.array([1, 2, 3, 4, 4]),
+                   np.array(['a', 'a', 'a', 'a', 'a']),
+                   np.array([1, 2, 3, 5, 4]))
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))

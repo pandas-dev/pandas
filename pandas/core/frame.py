@@ -1085,18 +1085,20 @@ class DataFrame(NDFrame):
 
         new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
 
-        # new_values = self.values.take(indexer, axis=axis)
+        if self._data.is_mixed_dtype():
+            if axis == 0:
+                return self.reindex(index=new_axis)
+            else:
+                return self.reindex(columns=new_axis)
 
         if axis == 0:
-            return self.reindex(index=new_axis)
-            # index = new_axis
-            # columns = self.columns
+            index = new_axis
+            columns = self.columns
         else:
-            return self.reindex(columns=new_axis)
-            # index = self.index
-            # columns = new_axis
-
-        # return self._constructor(new_values, index=index, columns=columns)
+            index = self.index
+            columns = new_axis
+        new_values = self.values.take(indexer, axis=axis)
+        return self._constructor(new_values, index=index, columns=columns)
 
     #----------------------------------------------------------------------
     # Filling NA's
@@ -2047,7 +2049,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(self, axis=0, numeric_only=False):
+    def count(self, axis=0, level=None, numeric_only=False):
         """
         Return array or Series of # observations over requested axis.
 
@@ -2066,14 +2068,61 @@ class DataFrame(NDFrame):
         -------
         Series or TimeSeries
         """
+        if level is not None:
+            return self._count_level(level, axis=axis,
+                                     numeric_only=numeric_only)
+
         try:
             y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
-            mask = np.empty(y.shape, dtype=bool)
-            mask.flat = notnull(y.ravel())
+            mask = notnull(y)
             return Series(mask.sum(axis), index=axis_labels)
         except Exception:
             f = lambda s: notnull(s).sum()
             return self.apply(f, axis=axis)
+
+    def _count_level(self, level, axis=0, numeric_only=False):
+        # TODO: deal with sortedness??
+        obj = self.sortlevel(level, axis=axis)
+
+        axis_index = obj._get_axis(axis)
+        if not isinstance(axis_index, MultiIndex):
+            raise TypeError('can only pass level with multi-level index')
+
+        y, _ = self._get_agg_data(axis, numeric_only=numeric_only)
+        mask = notnull(y)
+
+        level_index = axis_index.levels[level]
+
+        n = len(level_index)
+        locs = axis_index.labels[level].searchsorted(np.arange(n))
+
+        start = locs.searchsorted(0, side='right') - 1
+        end = locs.searchsorted(len(mask), side='left')
+
+        # WORKAROUND: reduceat fusses about the endpoints. should file ticket?
+        # WORKAROUND: to see why, try this
+        # arr = np.ones((10, 4), dtype=bool)
+        # np.add.reduceat(arr, [0, 3, 3, 7, 9], axis=0)
+
+        # this stinks
+        workaround_mask = locs[:-1] == locs[1:]
+
+        if axis == 0:
+            index = level_index
+            columns = self.columns
+            result = np.zeros((n, len(self.columns)), dtype=int)
+            out = result[start:end]
+            np.add.reduceat(mask, locs[start:end], axis=axis, out=out)
+            result[:-1][workaround_mask] = 0
+        else:
+            index = self.index
+            columns = level_index
+            result = np.zeros((len(self.index), n), dtype=int)
+            out = result[:, start:end]
+            np.add.reduceat(mask, locs[start:end], axis=axis, out=out)
+            result[:, :-1][:, workaround_mask] = 0
+
+        return DataFrame(result, index=index, columns=columns)
 
     def sum(self, axis=0, numeric_only=False):
         """

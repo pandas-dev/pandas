@@ -1354,33 +1354,6 @@ class LongPanel(Panel, DataFrame):
             return LongPanel(new_values, columns=self.items,
                              index=self.index)
 
-    def count(self, axis='major'):
-        """
-        Compute observation counts within each group
-
-        Parameters
-        ----------
-        axis : {'major', 'minor'}
-            major: compute minor_axis obs for each major axis value
-            minor: same but for each minor axis value
-
-        Returns
-        -------
-        counts : ndarray (1d)
-            Length will be length of input axis
-        """
-        if axis == 'major':
-            lp = self
-        elif axis == 'minor':
-            lp = self.swapaxes()
-        else: # pragma: no cover
-            raise ValueError('invalid axis')
-
-        N = len(lp.values)
-        bounds = lp.index._bounds
-
-        return np.concatenate((np.diff(bounds), [N - bounds[-1]]))
-
     def addPrefix(self, prefix=None):
         """
         Concatenate prefix string with panel items names.
