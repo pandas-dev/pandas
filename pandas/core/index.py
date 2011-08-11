@@ -47,7 +47,8 @@ class Index(np.ndarray):
             subarr = np.empty(len(data), dtype=dtype)
             subarr[:] = data
 
-        assert(subarr.ndim == 1)
+        # assert(subarr.ndim == 1)
+
         return subarr.view(cls)
 
     def summary(self):

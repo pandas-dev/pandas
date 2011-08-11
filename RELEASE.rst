@@ -121,6 +121,7 @@ Release notes
   (disabled by default)
 * `DataFrame.pivot` generalized to enable pivoting multiple columns into a
   `WidePanel`
+* `DataFrame` constructor can accept structured / record arrays
 
 **API Changes**
 
