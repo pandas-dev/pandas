@@ -552,9 +552,9 @@ def add_intercept(panel, name='intercept'):
     New object (same type as input)
     """
     panel = panel.copy()
-    panel[name] = 1
+    panel[name] = 1.
 
-    return panel
+    return panel.consolidate()
 
 class MovingPanelOLS(MovingOLS, PanelOLS):
     """Implements rolling/expanding panel OLS.
