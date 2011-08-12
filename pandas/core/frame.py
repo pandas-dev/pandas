@@ -530,9 +530,9 @@ class DataFrame(NDFrame):
             fmt_index = self.index.format()
 
         if isinstance(self.columns, MultiIndex):
-            fmt_columns = self.columns.format(sparsify=False)
-            str_columns = zip(*[[' %s' % y for y in x.split()]
-                                for x in fmt_columns])
+            fmt_columns = self.columns.format(sparsify=False, adjoin=False)
+            str_columns = zip(*[[' %s' % y for y in x]
+                                for x in zip(*fmt_columns)])
             if sparsify:
                 str_columns = _sparsify(str_columns)
 

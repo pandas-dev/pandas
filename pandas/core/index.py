@@ -5,7 +5,8 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import _format, adjoin, _ensure_index, _is_bool_indexer
+from pandas.core.common import (_format, adjoin as _adjoin,
+                                _ensure_index, _is_bool_indexer)
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -395,7 +396,7 @@ class MultiIndex(Index):
         except Exception:
             return False
 
-    def format(self, space=2, sparsify=True, vertical=False):
+    def format(self, space=2, sparsify=True, vertical=False, adjoin=True):
         stringified_levels = [lev.format() for lev in self.levels]
 
         result_levels = []
@@ -406,7 +407,10 @@ class MultiIndex(Index):
         if sparsify:
             result_levels = _sparsify(result_levels)
 
-        return adjoin(space, *result_levels).split('\n')
+        if adjoin:
+            return _adjoin(space, *result_levels).split('\n')
+        else:
+            return result_levels
 
     def is_all_dates(self):
         return False
