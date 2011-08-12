@@ -261,10 +261,10 @@ class Series(np.ndarray, PandasObject):
               will be returned, otherwise a single value.
         """
         try:
-            if isinstance(key, int):
-                return self._regular_index(key)
-            elif isinstance(self.index, MultiIndex):
+            if isinstance(self.index, MultiIndex):
                 return self._multilevel_index(key)
+            elif isinstance(key, int):
+                return self._regular_index(key)
             else:
                 return self._regular_index(key)
         except Exception:
@@ -307,7 +307,15 @@ class Series(np.ndarray, PandasObject):
         try:
             loc = self.index.get_loc(key)
             if isinstance(loc, slice):
-                return Series(values[loc], index=self.index[loc])
+                # TODO: what if a level contains tuples??
+                new_index = self.index[loc]
+                if isinstance(key, tuple):
+                    for _ in key:
+                        new_index = new_index.droplevel(0)
+                else:
+                    new_index = new_index.droplevel(0)
+
+                return Series(values[loc], index=new_index)
             else:
                 return values[loc]
         except KeyError:

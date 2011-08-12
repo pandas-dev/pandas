@@ -504,6 +504,33 @@ class MultiIndex(Index):
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
 
+    def droplevel(self, level=0):
+        """
+        Return Index with requested level removed. If MultiIndex has only 2
+        levels, the result will be of Index type not MultiIndex.
+
+        Parameters
+        ----------
+        level : int
+
+        Notes
+        -----
+        Does not check if result index is unique or not
+
+        Returns
+        -------
+        index : Index or MultiIndex
+        """
+        new_levels = list(self.levels)
+        new_levels.pop(level)
+        new_labels = list(self.labels)
+        new_labels.pop(level)
+
+        if len(new_levels) == 1:
+            return new_levels[0].take(new_labels[0])
+        else:
+            return MultiIndex(levels=new_levels, labels=new_labels)
+
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
 

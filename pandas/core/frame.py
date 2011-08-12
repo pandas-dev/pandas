@@ -695,7 +695,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # getitem/setitem related
 
-    def __getitem__(self, item):
+    def __getitem__(self, key):
         """
         Retrieve column, slice, or subset from DataFrame.
 
@@ -718,35 +718,45 @@ class DataFrame(NDFrame):
         -----
         This is a magic method. Do NOT call explicity.
         """
-        if isinstance(item, slice):
-            new_data = self._data.get_slice(item, axis=1)
+        if isinstance(key, slice):
+            new_data = self._data.get_slice(key, axis=1)
             return self._constructor(new_data)
-        elif isinstance(item, np.ndarray):
-            if len(item) != len(self.index):
+        elif isinstance(key, np.ndarray):
+            if len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
-                                 (len(item), len(self.index)))
+                                 (len(key), len(self.index)))
 
             # also raises Exception if object array with NA values
-            if _is_bool_indexer(item):
-                item = np.asarray(item, dtype=bool)
+            if _is_bool_indexer(key):
+                key = np.asarray(key, dtype=bool)
 
-            new_index = self.index[item]
+            new_index = self.index[key]
             return self.reindex(new_index)
         elif isinstance(self.columns, MultiIndex):
-            loc = self.columns.get_loc(item)
+            loc = self.columns.get_loc(key)
             if isinstance(loc, slice):
                 new_columns = self.columns[loc]
-                return self.reindex(columns=new_columns)
-            else:
-                return self._getitem_single(item)
-        else:
-            return self._getitem_single(item)
+                result = self.reindex(columns=new_columns)
 
-    def _getitem_multilevel(self, item):
+                # drop levels
+                if isinstance(key, tuple):
+                    for _ in key:
+                        new_columns = new_columns.droplevel(0)
+                else:
+                    new_columns = new_columns.droplevel(0)
+
+                result.columns = new_columns
+                return result
+            else:
+                return self._getitem_single(key)
+        else:
+            return self._getitem_single(key)
+
+    def _getitem_multilevel(self, key):
         pass
 
-    def _getitem_single(self, item):
-        values = self._data.get(item)
+    def _getitem_single(self, key):
+        values = self._data.get(key)
         return Series(values, index=self.index)
 
     def __setitem__(self, key, value):
