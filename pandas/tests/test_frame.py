@@ -1,7 +1,7 @@
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
-from cStringIO import StringIO
+from StringIO import StringIO
 import cPickle as pickle
 import operator
 import os
@@ -1030,6 +1030,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         frame = DataFrame(index=np.arange(1000))
         frame.toString(buf=buf)
+
+    def test_toString_unicode_columns(self):
+        df = DataFrame({u'\u03c3' : np.arange(10.)})
+
+        buf = StringIO()
+        df.toString(buf=buf)
+        buf.getvalue()
+
+        buf = StringIO()
+        df.info(buf=buf)
+        buf.getvalue()
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),

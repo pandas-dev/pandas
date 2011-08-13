@@ -124,11 +124,11 @@ class Index(np.ndarray):
             zero_time = time(0, 0)
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
-                    return '\n'.join(str(x) for x in self)
+                    return '\n'.join('%s' % x for x in self)
                 to_join.append(dt.strftime("%Y-%m-%d"))
             return to_join
 
-        return [str(x) for x in self]
+        return ['%s' % x for x in self]
 
     def equals(self, other):
         """
@@ -336,30 +336,6 @@ class Factor(object):
             new_labels = self.labels[key]
             return Factor(new_labels, self.levels)
 
-
-"""
-something like this?
-
-            ----------------------------------------------------
-            | common                     | uncommon            |
-            ----------------------------------------------------
-            | foo     | bar     | baz    | qux     | wibble    |
-            ----------------------------------------------------
-A       1     ...       ...       ...      ...       ...
-        2
-        3
-B       1
-        2
-C       1
-        2
-        3     ...       ...       ...      ...       ...
-
-
- common                uncommon
- ------                --------
-|foo    bar    baz    |qux    wibble
-
-"""
 
 class MultiIndex(Index):
     """

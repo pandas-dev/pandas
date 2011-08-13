@@ -12,7 +12,7 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-from cStringIO import StringIO
+from StringIO import StringIO
 import operator
 import sys
 import warnings
@@ -89,6 +89,11 @@ def comp_method(func, name):
     f.__doc__ = 'Wrapper for comparison method %s' % name
 
     return f
+
+class Foo(object):
+
+    def __repr__(self):
+        return u'\u03c3'
 
 #-------------------------------------------------------------------------------
 # DataFrame class
@@ -511,15 +516,25 @@ class DataFrame(NDFrame):
         else:
             columns = [c for c in columns if c in self]
 
+        to_write = []
+
         if len(columns) == 0 or len(self.index) == 0:
-            print >> buf, 'Empty %s' % type(self).__name__
-            print >> buf, repr(self.index)
+            to_write.append('Empty %s' % type(self).__name__)
+            to_write.append(repr(self.index))
         else:
             (str_index,
              str_columns) = self._get_formatted_labels(sparsify=sparsify)
             stringified = [str_columns[i] + _stringify(c)
                            for i, c in enumerate(columns)]
-            print >> buf, adjoin(1, str_index, *stringified)
+            to_write.append(adjoin(1, str_index, *stringified))
+
+        for s in to_write:
+            if isinstance(s, unicode):
+                to_write = [unicode(s) for s in to_write]
+                break
+
+        for s in to_write:
+            print >> buf, s
 
     def _get_formatted_labels(self, sparsify=True):
         from pandas.core.index import _sparsify
@@ -557,26 +572,35 @@ class DataFrame(NDFrame):
 
         cols = self.columns
 
+        def _stringify(col):
+            # unicode workaround
+            if isinstance(col, tuple):
+                return str(col)
+            else:
+                return '%s' % col
+
         if verbose:
-            print >> buf, 'Data columns:'
-            space = max([len(str(k)) for k in self.columns]) + 4
+            print >> buf, unicode('Data columns:')
+            space = max([len(_stringify(k)) for k in self.columns]) + 4
             col_counts = []
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
+                colstr = _stringify(col)
                 col_counts.append('%s%d  non-null values' %
-                                  (_put_str(str(col), space), count))
-
-            print >> buf, '\n'.join(col_counts)
+                                  (_put_str(colstr, space), count))
+            print >> buf, unicode('\n'.join(col_counts))
         else:
             if len(cols) <= 2:
-                print >> buf, 'Columns: %s' % repr(cols)
+                print >> buf, unicode('Columns: %s' % repr(cols))
             else:
-                print >> buf, 'Columns: %s to %s' % (cols[0], cols[-1])
+                print >> buf, unicode('Columns: %s to %s'
+                                      % (_stringify(cols[0]),
+                                         _stringify(cols[-1])))
 
         counts = self._get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
-        buf.write('dtypes: %s' % ', '.join(dtypes))
+        buf.write(u'dtypes: %s' % ', '.join(dtypes))
 
     def _get_dtype_counts(self):
         counts = {}
