@@ -90,11 +90,6 @@ def comp_method(func, name):
 
     return f
 
-class Foo(object):
-
-    def __repr__(self):
-        return u'\u03c3'
-
 #-------------------------------------------------------------------------------
 # DataFrame class
 
