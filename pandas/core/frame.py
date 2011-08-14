@@ -22,10 +22,11 @@ import numpy as np
 
 from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
                                 _try_sort, _pfixed, _default_index,
-                                _infer_dtype)
+                                _infer_dtype, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX
+from pandas.core.indexing import _DataFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 import pandas.core.common as common
@@ -241,6 +242,15 @@ class DataFrame(NDFrame):
     @property
     def _constructor(self):
         return DataFrame
+
+    # Fancy indexing
+    _ix = None
+    @property
+    def ix(self):
+        if self._ix is None:
+            self._ix = _DataFrameIndexer(self)
+
+        return self._ix
 
     #----------------------------------------------------------------------
     # Class behavior
@@ -502,7 +512,7 @@ class DataFrame(NDFrame):
         if formatters is None:
             formatters = {}
 
-        def _stringify(col):
+        def _format_col(col):
             formatter = formatters.get(col, _myformat)
             return [formatter(x) for x in self[col]]
 
@@ -519,7 +529,7 @@ class DataFrame(NDFrame):
         else:
             (str_index,
              str_columns) = self._get_formatted_labels(sparsify=sparsify)
-            stringified = [str_columns[i] + _stringify(c)
+            stringified = [str_columns[i] + _format_col(c)
                            for i, c in enumerate(columns)]
             to_write.append(adjoin(1, str_index, *stringified))
 
@@ -566,13 +576,6 @@ class DataFrame(NDFrame):
             return
 
         cols = self.columns
-
-        def _stringify(col):
-            # unicode workaround
-            if isinstance(col, tuple):
-                return str(col)
-            else:
-                return '%s' % col
 
         if verbose:
             print >> buf, unicode('Data columns:')
@@ -728,9 +731,7 @@ class DataFrame(NDFrame):
         Examples
         --------
         column = dm['A']
-
         dmSlice = dm[:20] # First 20 rows
-
         dmSelect = dm[dm.count(axis=1) > 10]
 
         Notes
@@ -752,27 +753,21 @@ class DataFrame(NDFrame):
             new_index = self.index[key]
             return self.reindex(new_index)
         elif isinstance(self.columns, MultiIndex):
-            loc = self.columns.get_loc(key)
-            if isinstance(loc, slice):
-                new_columns = self.columns[loc]
-                result = self.reindex(columns=new_columns)
-
-                # drop levels
-                if isinstance(key, tuple):
-                    for _ in key:
-                        new_columns = new_columns.droplevel(0)
-                else:
-                    new_columns = new_columns.droplevel(0)
-
-                result.columns = new_columns
-                return result
-            else:
-                return self._getitem_single(key)
+            return self._getitem_multilevel(key)
         else:
             return self._getitem_single(key)
 
     def _getitem_multilevel(self, key):
-        pass
+        loc = self.columns.get_loc(key)
+        if isinstance(loc, slice):
+            new_columns = self.columns[loc]
+            result = self.reindex(columns=new_columns)
+
+            # HACK: need a more general way of addressing this problem
+            result.columns = _maybe_droplevels(new_columns, key)
+            return result
+        else:
+            return self._getitem_single(key)
 
     def _getitem_single(self, key):
         values = self._data.get(key)
@@ -907,7 +902,9 @@ class DataFrame(NDFrame):
         if new_data.ndim == 1:
             return Series(new_data.as_matrix(), index=self.columns)
         else:
-            return DataFrame(new_data)
+            result = DataFrame(new_data)
+            result.index = _maybe_droplevels(result.index, key)
+            return result
 
     #----------------------------------------------------------------------
     # Reindexing
@@ -2714,18 +2711,6 @@ class DataFrame(NDFrame):
         else:
             return self.dropna(axis=0, subset=specificColumns, thresh=minObs)
 
-    #----------------------------------------------------------------------
-    # Fancy indexing
-
-    _ix = None
-    @property
-    def ix(self):
-        from pandas.core.indexing import _DataFrameIndexer
-        if self._ix is None:
-            self._ix = _DataFrameIndexer(self)
-
-        return self._ix
-
 
 def group_agg(values, bounds, f):
     """
@@ -2807,7 +2792,7 @@ def extract_index(data):
             index = index.union(new_index)
         return index
 
-    def _get_index(obj):
+    def _get_index(v):
         if isinstance(v, Series):
             return v.index
         elif isinstance(v, dict):
@@ -2870,7 +2855,6 @@ def _prep_ndarray(values, copy=True):
         raise Exception('Must pass 2-d input')
 
     return values
-
 
 def _rec_to_dict(arr):
     columns = list(arr.dtype.names)

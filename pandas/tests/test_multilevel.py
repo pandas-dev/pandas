@@ -48,28 +48,37 @@ class TestDataFrameMultiLevel(unittest.TestCase):
 
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
+        xs2 = self.frame.ix[('bar', 'two')]
+
+        assert_series_equal(xs, xs2)
         assert_almost_equal(xs.values, self.frame.values[4])
 
     def test_xs_partial(self):
         result = self.frame.xs('foo')
+        result2 = self.frame.ix['foo']
         expected = self.frame.T['foo'].T
         assert_frame_equal(result, expected)
+        assert_frame_equal(result, result2)
 
     def test_getitem_toplevel(self):
         df = self.frame.T
 
         result = df['foo']
         expected = df.reindex(columns=df.columns[:3])
+        expected.columns = expected.columns.droplevel(0)
         assert_frame_equal(result, expected)
 
         result = df['bar']
         expected = df.reindex(columns=df.columns[3:5])
+        expected.columns = expected.columns.droplevel(0)
         assert_frame_equal(result, expected)
 
     def test_getitem_partial(self):
         ymd = self.ymd.T
         result = ymd[2000, 2]
+
         expected = ymd.reindex(columns=ymd.columns[ymd.columns.labels[1] == 1])
+        expected.columns = expected.columns.droplevel(0).droplevel(0)
         assert_frame_equal(result, expected)
 
     def test_fancy_slice_partial(self):

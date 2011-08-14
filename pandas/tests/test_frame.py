@@ -323,30 +323,54 @@ class CheckIndexing(object):
         frame.ix[:, 'B':'C'] = 4.
         assert_frame_equal(frame, expected)
 
-    def test_fancy_index_corner(self):
-        from pandas.core.indexing import AmbiguousIndexError
+    def test_fancy_setitem_int_labels(self):
+        # integer index defers to label-based indexing
 
-        # ambiguous
+        df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
 
-        df = DataFrame(np.random.randn(10, 5))
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__setitem__,
-                          ([0, 1, 2], [4, 5, 6]), 5)
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__setitem__, [0, 1, 2], 5)
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__setitem__, 0, 5)
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__setitem__, (slice(None, None), 0), 5)
+        tmp = df.copy()
+        exp = df.copy()
+        tmp.ix[[0, 2, 4]] = 5
+        exp.values[:3] = 5
+        assert_frame_equal(tmp, exp)
 
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__getitem__, ([0, 1, 2], [4, 5, 6]))
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__getitem__, [0, 1, 2])
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__getitem__, 0)
-        self.assertRaises(AmbiguousIndexError,
-                          df.ix.__getitem__, (slice(None, None), 0))
+        tmp = df.copy()
+        exp = df.copy()
+        tmp.ix[6] = 5
+        exp.values[3] = 5
+        assert_frame_equal(tmp, exp)
+
+        tmp = df.copy()
+        exp = df.copy()
+        tmp.ix[:, 2] = 5
+        exp.values[:, 2] = 5
+        assert_frame_equal(tmp, exp)
+
+    def test_fancy_getitem_int_labels(self):
+        df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
+
+        result = df.ix[[4, 2, 0], [2, 0]]
+        expected = df.reindex(index=[4, 2, 0], columns=[2, 0])
+        assert_frame_equal(result, expected)
+
+        result = df.ix[[4, 2, 0]]
+        expected = df.reindex(index=[4, 2, 0])
+        assert_frame_equal(result, expected)
+
+        result = df.ix[4]
+        expected = df.xs(4)
+        assert_series_equal(result, expected)
+
+        result = df.ix[:, 3]
+        expected = df[3]
+        assert_series_equal(result, expected)
+
+    def test_fancy_index_int_labels_exceptions(self):
+        df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
+
+        # labels that aren't contained
+        self.assertRaises(KeyError, df.ix.__setitem__,
+                          ([0, 1, 2], [2, 3, 4]), 5)
 
         # try to set indices not contained in frame
         self.assertRaises(KeyError,
@@ -517,6 +541,15 @@ class CheckIndexing(object):
         expected.values[mask, :2] = 0.
         assert_frame_equal(frame, expected)
 
+    def test_getitem_fancy_ints(self):
+        result = self.frame.ix[[1,4,7]]
+        expected = self.frame.ix[self.frame.index[[1,4,7]]]
+        assert_frame_equal(result, expected)
+
+        result = self.frame.ix[:, [2, 0, 1]]
+        expected = self.frame.ix[:, self.frame.columns[[2, 0, 1]]]
+        assert_frame_equal(result, expected)
+
     def test_getitem_setitem_fancy_exceptions(self):
         ix = self.frame.ix
         self.assertRaises(Exception, ix.__getitem__,
@@ -527,10 +560,6 @@ class CheckIndexing(object):
                           (slice(None, None, None),
                            slice(None, None, None),
                            slice(None, None, None)), 1)
-
-        # Anything wrong with this?
-        # self.assertRaises(Exception, ix.__getitem__, slice(None, None, 2))
-        # self.assertRaises(Exception, ix.__setitem__, slice(None, None, 2), 1.)
 
         # boolean index misaligned labels
         mask = self.frame['A'][::-1] > 1

@@ -5,7 +5,7 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import (_format, adjoin as _adjoin,
+from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
                                 _ensure_index, _is_bool_indexer)
 import pandas.core.common as common
 import pandas._tseries as _tseries
@@ -47,9 +47,6 @@ class Index(np.ndarray):
         else:
             subarr = np.empty(len(data), dtype=dtype)
             subarr[:] = data
-
-        # assert(subarr.ndim == 1)
-
         return subarr.view(cls)
 
     def summary(self):
@@ -59,19 +56,21 @@ class Index(np.ndarray):
             index_summary = ''
         return 'Index: %s entries%s' % (len(self), index_summary)
 
+    _indexMap = None
     @property
     def indexMap(self):
-        if not hasattr(self, '_cache_indexMap'):
-            self._cache_indexMap = _tseries.map_indices_buf(self)
+        if self._indexMap is None:
+            self._indexMap = _tseries.map_indices_buf(self)
             self._verify_integrity()
 
-        return self._cache_indexMap
+        return self._indexMap
 
+    _allDates = None
     def is_all_dates(self):
-        if not hasattr(self, '_cache_allDates'):
-            self._cache_allDates = _tseries.isAllDates(self)
+        if self._allDates is None:
+            self._allDates = _tseries.isAllDates(self)
 
-        return self._cache_allDates
+        return self._allDates
 
     def _verify_integrity(self):
         if len(self.indexMap) < len(self):
@@ -128,7 +127,7 @@ class Index(np.ndarray):
                 to_join.append(dt.strftime("%Y-%m-%d"))
             return to_join
 
-        return ['%s' % x for x in self]
+        return [_stringify(x) for x in self]
 
     def equals(self, other):
         """
@@ -425,12 +424,12 @@ class MultiIndex(Index):
 
     @property
     def indexMap(self):
-        if not hasattr(self, '_cache_indexMap'):
+        if self._indexMap is None:
             zipped = zip(*self.labels)
-            self._cache_indexMap = _tseries.map_indices_list(zipped)
+            self._indexMap = _tseries.map_indices_list(zipped)
             self._verify_integrity()
 
-        return self._cache_indexMap
+        return self._indexMap
 
     @property
     def nlevels(self):

@@ -1,8 +1,5 @@
 import numpy as np
 
-from pandas.core.frame import DataFrame
-from pandas.core.series import Series
-
 class _SeriesIndexer(object):
     """
     Class to support fancy indexing, potentially using labels
@@ -33,6 +30,8 @@ class _SeriesIndexer(object):
         op()
 
     def _fancy_index(self, key, value=None, operation='get'):
+        from pandas.core.series import Series
+
         # going to great lengths to avoid code dup
         series = self.series
 
@@ -134,7 +133,7 @@ class _DataFrameIndexer(object):
         Going by Zen of Python?
         "In the face of ambiguity, refuse the temptation to guess."
         raise AmbiguousIndexError with integer labels?
-
+        - No, prefer label-based indexing
         """
         index = self.frame._get_axis(axis)
         is_int_index = _is_integer_index(index)
@@ -145,29 +144,25 @@ class _DataFrameIndexer(object):
             else:
                 return obj
         elif _is_list_like(obj):
-            objarr = np.asarray(obj)
+            objarr = _asarray_tuplesafe(obj)
 
-            if _is_integer_dtype(objarr):
-                if is_int_index:
-                    raise AmbiguousIndexError('integer labels')
-
-                # retrieve the indices corresponding
-                return objarr
-            elif objarr.dtype == np.bool_:
+            if objarr.dtype == np.bool_:
                 if not obj.index.equals(index):
                     raise Exception('Cannot use boolean index with misaligned '
                                     'or unequal labels')
                 return objarr
             else:
+                # If have integer labels, defer to label-based indexing
+                if _is_integer_dtype(objarr) and not is_int_index:
+                    return objarr
+
                 indexer, mask = index.get_indexer(objarr)
                 if not mask.all():
                     raise KeyError('%s not in index' % objarr[-mask])
 
                 return indexer
         else:
-            if _is_int_like(obj):
-                if is_int_index:
-                    raise AmbiguousIndexError('integer labels')
+            if _is_int_like(obj) and not is_int_index:
                 return obj
             return index.get_loc(obj)
 
@@ -189,43 +184,41 @@ class _DataFrameIndexer(object):
         elif _is_list_like(key):
             return self._fancy_getitem(key, axis=axis)
         elif axis == 0:
-            idx = key
-            if isinstance(key, int):
-                if _is_integer_index(self.frame.index):
-                    raise AmbiguousIndexError('integer labels')
+            is_int_index = _is_integer_index(self.frame.index)
 
+            idx = key
+            if _is_int_like(key) and not is_int_index:
                 idx = self.frame.index[key]
 
             if self.frame._is_mixed_type:
                 return self.frame.xs(idx)
             else:
+                # get a view if possible
                 return self.frame.xs(idx, copy=False)
         else:
             col = key
-            if isinstance(key, int):
-                if _is_integer_index(self.frame.columns):
-                    raise AmbiguousIndexError('integer labels')
+            if _is_int_like(key) and not _is_integer_index(self.frame.columns):
                 col = self.frame.columns[key]
-
             return self.frame[col]
 
     def _fancy_getitem(self, key, axis=0):
+        from pandas.core.series import Series
+
         labels = self.frame._get_axis(axis)
         axis_name = self.frame._get_axis_name(axis)
 
-        keyarr = np.asarray(key)
-
         # asarray can be unsafe, NumPy strings are weird
-        isbool = keyarr.dtype == np.bool_
-        if isbool:
+        keyarr = _asarray_tuplesafe(key)
+
+        if keyarr.dtype == np.bool_:
             if isinstance(key, Series):
                 if not key.index.equals(labels):
                     raise Exception('Cannot use boolean index with misaligned '
                                     'or unequal labels')
             return self.frame.reindex(**{axis_name : labels[np.asarray(key)]})
         else:
-            if _is_integer_dtype(keyarr) and _is_integer_index(labels):
-                raise AmbiguousIndexError('integer labels')
+            if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
+                key = labels.take(keyarr)
 
             return self.frame.reindex(**{axis_name : key})
 
@@ -298,4 +291,24 @@ def _is_label_slice(labels, obj):
 def _need_slice(obj):
     return obj.start is not None or obj.stop is not None
 
+def _maybe_droplevels(index, key):
+    # drop levels
+    if isinstance(key, tuple):
+        for _ in key:
+            index = index.droplevel(0)
+    else:
+        index = index.droplevel(0)
+
+    return index
+
+def _asarray_tuplesafe(values):
+    result = np.asarray(values)
+
+    if result.ndim == 2:
+        result = np.empty(len(values), dtype=object)
+        result[:] = values
+
+    return result
+
 _isboolarr = lambda x: np.asarray(x).dtype == np.bool_
+

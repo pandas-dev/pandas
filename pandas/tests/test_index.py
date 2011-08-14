@@ -634,6 +634,6 @@ class TestFactor(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',#]
-                         '--with-coverage', '--cover-package=pandas.core'],
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                         # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)

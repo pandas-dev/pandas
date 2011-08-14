@@ -309,12 +309,7 @@ class Series(np.ndarray, PandasObject):
             if isinstance(loc, slice):
                 # TODO: what if a level contains tuples??
                 new_index = self.index[loc]
-                if isinstance(key, tuple):
-                    for _ in key:
-                        new_index = new_index.droplevel(0)
-                else:
-                    new_index = new_index.droplevel(0)
-
+                new_index = _maybe_droplevels(new_index, key)
                 return Series(values[loc], index=new_index)
             else:
                 return values[loc]

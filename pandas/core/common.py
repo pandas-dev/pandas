@@ -200,6 +200,13 @@ def _pfixed(s, space, nanRep=None, float_format=None):
     else:
         return (' %s' % s)[:space].ljust(space)
 
+def _stringify(col):
+    # unicode workaround
+    if isinstance(col, tuple):
+        return str(col)
+    else:
+        return '%s' % col
+
 def _format(s, nanRep=None, float_format=None):
     if isinstance(s, float):
         if nanRep is not None and isnull(s):
