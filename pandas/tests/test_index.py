@@ -352,6 +352,17 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(self.index.get_loc(('foo', 'two')) == 1)
         self.assert_(self.index.get_loc(('baz', 'two')) == 3)
         self.assertRaises(KeyError, self.index.get_loc, ('bar', 'two'))
+        self.assertRaises(KeyError, self.index.get_loc, 'quux')
+
+        # 3 levels
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+        self.assertRaises(KeyError, index.get_loc, (1, 1))
+        self.assert_(index.get_loc((2, 0)) == slice(3, 5))
 
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()

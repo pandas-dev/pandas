@@ -45,6 +45,7 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         col = df['foo', 'one']
         assert_almost_equal(col.values, df.values[:, 0])
         self.assertRaises(KeyError, df.__getitem__, ('foo', 'four'))
+        self.assertRaises(KeyError, df.__getitem__, 'foobar')
 
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
@@ -59,6 +60,16 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         expected = self.frame.T['foo'].T
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
+
+    def test_fancy_2d(self):
+        result = self.frame.ix['foo', 'B']
+        expected = self.frame.xs('foo')['B']
+        assert_series_equal(result, expected)
+
+        ft = self.frame.T
+        result = ft.ix['B', 'foo']
+        expected = ft.xs('B')['foo']
+        assert_series_equal(result, expected)
 
     def test_getitem_toplevel(self):
         df = self.frame.T

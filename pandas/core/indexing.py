@@ -1,3 +1,5 @@
+from pandas.core.index import MultiIndex
+
 import numpy as np
 
 class _SeriesIndexer(object):
@@ -100,6 +102,14 @@ class _DataFrameIndexer(object):
             return self._fancy_getitem_axis(key, axis=0)
 
     def _getitem_tuple(self, key):
+        if isinstance(self.frame.index, MultiIndex):
+            try:
+                return self.frame.xs(key)
+            except KeyError:
+                # could do something more intelligent here? like raising the
+                # exception if each tuple value are in the levels?
+                pass
+
         if len(key) != 2:
             raise Exception('only length 2 tuple supported')
         return self._fancy_getitem_tuple(*key)

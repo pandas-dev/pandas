@@ -625,7 +625,10 @@ class MultiIndex(Index):
             if len(key) == self.nlevels:
                 return self._get_tuple_loc(key)
             else:
-                return slice(*self.slice_locs(key, key))
+                result = slice(*self.slice_locs(key, key))
+                if result.start == result.stop:
+                    raise KeyError(key)
+                return result
         else:
             # assert(self.sortorder == 0)
             # slice level 0
