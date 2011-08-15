@@ -1,3 +1,5 @@
+# pylint: disable=W0102
+
 import unittest
 
 import numpy as np

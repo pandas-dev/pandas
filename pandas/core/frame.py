@@ -163,6 +163,7 @@ class DataFrame(NDFrame):
             raise PandasError('DataFrame constructor not properly called!')
 
         self._data = mgr
+        self._series_cache = {}
 
     def _init_dict(self, data, index, columns, dtype=None):
         """
@@ -613,8 +614,15 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # properties for index and columns
 
+    def _get_columns(self):
+        return self._data.axes[0]
+
+    def _set_columns(self, value):
+        self._data.set_axis(0, value)
+        self._series_cache.clear()
+    columns = property(fset=_set_columns, fget=_get_columns)
+
     # reference underlying BlockManager
-    columns = AxisProperty(0)
     index = AxisProperty(1)
 
     def as_matrix(self, columns=None):
@@ -653,6 +661,7 @@ class DataFrame(NDFrame):
         else: # pragma: no cover
             # old pickling format, for compatibility
             self._unpickle_matrix_compat(state)
+        self._series_cache = {}
 
     def _unpickle_frame_compat(self, state): # pragma: no cover
         from pandas.core.common import _unpickle_array
@@ -770,8 +779,14 @@ class DataFrame(NDFrame):
             return self._getitem_single(key)
 
     def _getitem_single(self, key):
+        res = self._series_cache.get(key)
+        if res is not None:
+            return res
+
         values = self._data.get(key)
-        return Series(values, index=self.index)
+        res = Series(values, index=self.index)
+        self._series_cache[key] = res
+        return res
 
     def __setitem__(self, key, value):
         """
@@ -834,6 +849,11 @@ class DataFrame(NDFrame):
         value = np.atleast_2d(value) # is this a hack?
         self._data.set(key, value)
 
+        try:
+            del self._series_cache[key]
+        except KeyError:
+            pass
+
     def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
@@ -863,6 +883,11 @@ class DataFrame(NDFrame):
         Delete column from DataFrame
         """
         self._data.delete(key)
+
+        try:
+            del self._series_cache[key]
+        except KeyError:
+            pass
 
     def pop(self, item):
         """
@@ -1219,9 +1244,11 @@ class DataFrame(NDFrame):
 
     def _rename_index_inplace(self, mapper):
         self._data = self._data.rename_axis(mapper, axis=1)
+        self._series_cache.clear()
 
     def _rename_columns_inplace(self, mapper):
         self._data = self._data.rename_items(mapper)
+        self._series_cache.clear()
 
     #----------------------------------------------------------------------
     # Arithmetic / combination related

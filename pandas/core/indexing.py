@@ -90,17 +90,19 @@ class _DataFrameIndexer(object):
         self.frame = frame
 
     def __getitem__(self, key):
-        frame = self.frame
         if isinstance(key, slice):
             return self._fancy_getitem_axis(key, axis=0)
         elif isinstance(key, tuple):
-            if len(key) != 2:
-                raise Exception('only length 2 tuple supported')
-            return self._fancy_getitem_tuple(*key)
+            return self._getitem_tuple(key)
         elif _is_list_like(key):
             return self._fancy_getitem(key, axis=0)
         else:
             return self._fancy_getitem_axis(key, axis=0)
+
+    def _getitem_tuple(self, key):
+        if len(key) != 2:
+            raise Exception('only length 2 tuple supported')
+        return self._fancy_getitem_tuple(*key)
 
     def __setitem__(self, key, value):
         # also has the side effect of consolidating in-place

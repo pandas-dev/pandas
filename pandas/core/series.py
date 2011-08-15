@@ -18,6 +18,7 @@ from pandas.core.common import (isnull, notnull, _ensure_index,
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex
+from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
 
@@ -1477,8 +1478,6 @@ class Series(np.ndarray, PandasObject):
     _ix = None
     @property
     def ix(self):
-        from pandas.core.indexing import _SeriesIndexer
-
         if self._ix is None:
             self._ix = _SeriesIndexer(self)
 
