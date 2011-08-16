@@ -173,6 +173,12 @@ class TestDataFrameMultiLevel(unittest.TestCase):
 
         _check_counts(self.frame)
         _check_counts(self.ymd)
+        _check_counts(self.frame.T, axis=1)
+        _check_counts(self.ymd.T, axis=1)
+
+        # can't call with level on regular DataFrame
+        df = tm.makeTimeDataFrame()
+        self.assertRaises(Exception, df.count, level=0)
 
     def test_alignment(self):
         pass

@@ -265,7 +265,7 @@ class DataFrame(NDFrame):
         Return a string representation for a particular DataFrame
         """
         buf = StringIO()
-        if len(self.index) < 500 and len(self.columns) < 10:
+        if len(self.index) < 500 and len(self.columns) <= 10:
             self.toString(buf=buf)
         else:
             self.info(buf=buf)
@@ -2136,11 +2136,7 @@ class DataFrame(NDFrame):
     def _count_level(self, level, axis=0, numeric_only=False):
         # TODO: deal with sortedness??
         obj = self.sortlevel(level, axis=axis)
-
         axis_index = obj._get_axis(axis)
-        if not isinstance(axis_index, MultiIndex):
-            raise TypeError('can only pass level with multi-level index')
-
         y, _ = self._get_agg_data(axis, numeric_only=numeric_only)
         mask = notnull(y)
 

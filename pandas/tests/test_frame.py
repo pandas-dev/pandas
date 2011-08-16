@@ -903,6 +903,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertEqual(len(dm.columns), 2)
         self.assert_(dm.values.dtype == np.float_)
 
+    def test_constructor_ragged(self):
+        data = {'A' : randn(10),
+                'B' : randn(8)}
+        self.assertRaises(Exception, DataFrame, data)
+
+    def test_constructor_scalar(self):
+        idx = Index(range(3))
+        df = DataFrame({"a" : 0}, index=idx)
+        expected = DataFrame({"a" : [0, 0, 0]}, index=idx)
+        assert_frame_equal(df, expected)
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),
@@ -2673,10 +2684,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df1[df1 > 2.0 * df2] = -1
         assert_frame_equal(df1, expected)
 
-    def test_groupby_nonsense_func(self):
-        df = DataFrame([0])
-        self.assertRaises(Exception, df.groupby, lambda x: donkey)
-
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
         bools = np.isnan(df)
@@ -2688,12 +2695,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         data = np.random.rand(20, 5)
         df = DataFrame(index=range(20), columns=cols, data=data)
         self.assert_(df.columns.tolist() == df.fillna().columns.tolist())
-
-    def test_scalar_ctor(self):
-        idx = Index(range(3))
-        df = DataFrame({"a" : 0}, index=idx)
-        expected = DataFrame({"a" : [0, 0, 0]}, index=idx)
-        assert_frame_equal(df, expected)
 
 
 if __name__ == '__main__':

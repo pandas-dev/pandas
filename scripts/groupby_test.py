@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from numpy import nan
 import numpy as np
 
 from pandas import *
@@ -7,6 +8,8 @@ from pandas import *
 import pandas._tseries as tseries
 import pandas.core.groupby as gp
 reload(gp)
+
+"""
 
 k = 1000
 values = np.random.randn(8 * k)
@@ -54,3 +57,19 @@ for a, gen1 in gen:
 res = DataFrame(res)
 
 grouped = df.groupby(['key1', 'key2'])
+"""
+
+data = {'A' : [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
+        'B' : ['A', 'B'] * 6,
+        'C' : np.random.randn(12)}
+df = DataFrame(data)
+df['C'][2:10:2] = nan
+
+# single column
+grouped = df.drop(['B'], axis=1).groupby('A')
+exp = {}
+for cat, group in grouped:
+    exp[cat] = group['C'].sum()
+exp = DataFrame({'C' : exp})
+result = grouped.sum()
+

@@ -133,6 +133,7 @@ def groupby_indices(ndarray values):
     return result
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_labels(ndarray[object] values):
     '''
@@ -158,11 +159,13 @@ def group_labels(ndarray[object] values):
             labels[i] = -1
             continue
 
-        try:
+        # for large number of groups, not doing try: except: makes a big
+        # difference
+        if val in ids:
             idx = ids[val]
             labels[i] = idx
             counts[idx] = counts[idx] + 1
-        except KeyError:
+        else:
             ids[val] = count
             reverse[count] = val
             labels[i] = count
@@ -170,6 +173,43 @@ def group_labels(ndarray[object] values):
             count += 1
 
     return reverse, labels, counts[:count].copy()
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def group_labels2(ndarray[object] values):
+    '''
+    Compute label vector from input values and associated useful data
+
+    Returns
+    -------
+    '''
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
+        dict ids = {}
+        dict reverse = {}
+        int32_t idx
+        object val
+        int32_t count = 0
+
+    for i from 0 <= i < n:
+        val = values[i]
+
+        # is NaN
+        if val != val:
+            labels[i] = -1
+            continue
+
+        if val in ids:
+            idx = ids[val]
+            labels[i] = idx
+        else:
+            ids[val] = count
+            reverse[count] = val
+            labels[i] = count
+            count += 1
+
+    return reverse, labels
 
 ctypedef double_t (* agg_func)(double_t *out, int32_t *counts, double_t *values,
                                int32_t *labels, int start, int end,
@@ -252,6 +292,13 @@ cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
         double_t val, cum = 0
 
     while it < end:
+        i = labels[it]
+
+        # mapping was NaN
+        if i == -1:
+            it += 1
+            continue
+
         val = values[it]
         tot += 1
 
@@ -260,7 +307,6 @@ cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
             count += 1
             cum += val
 
-        i = labels[it]
         if it == end - 1 or labels[it + 1] > i:
             if count == 0:
                 out[offset + i] = nan

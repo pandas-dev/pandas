@@ -83,7 +83,10 @@ class TestGroupBy(unittest.TestCase):
 
         assert_series_equal(agged, grouped.agg(np.mean)) # shorthand
         assert_series_equal(agged, grouped.mean())
-        assert_series_equal(grouped.agg(np.sum), grouped.sum())
+
+        # Cython only returning floating point for now...
+        assert_series_equal(grouped.agg(np.sum).astype(float),
+                            grouped.sum())
 
         transformed = grouped.transform(lambda x: x * x.sum())
         self.assertEqual(transformed[7], 12)
@@ -273,17 +276,27 @@ class TestGroupBy(unittest.TestCase):
 
         grouped = df.groupby(['k1', 'k2'])
 
+        # things get sorted!
         iterated = list(grouped)
         idx = df.index
-        expected = [('b', '1', df.ix[idx[[0, 2]]]),
-                    ('b', '2', df.ix[idx[[1]]]),
-                    ('a', '1', df.ix[idx[[4]]]),
-                    ('a', '2', df.ix[idx[[3, 5]]])]
+        expected = [('a', '1', df.ix[idx[[4]]]),
+                    ('a', '2', df.ix[idx[[3, 5]]]),
+                    ('b', '1', df.ix[idx[[0, 2]]]),
+                    ('b', '2', df.ix[idx[[1]]])]
         for i, (one, two, three) in enumerate(iterated):
             e1, e2, e3 = expected[i]
             self.assert_(e1 == one)
             self.assert_(e2 == two)
             assert_frame_equal(three, e3)
+
+        # don't iterate through groups with no data
+        df['k1'] = np.array(['b', 'b', 'b', 'a', 'a', 'a'])
+        df['k2'] = np.array(['1', '1', '1', '2', '2', '2'])
+        grouped = df.groupby(['k1', 'k2'])
+        groups = {}
+        for a, b, gp in grouped:
+            groups[a, b] = gp
+        self.assertEquals(len(groups), 2)
 
     def test_multi_func(self):
         col1 = self.df['A']
@@ -326,9 +339,7 @@ class TestGroupBy(unittest.TestCase):
         result = data['C'].groupby([data['A'], data['B']]).mean()
         expected = data.groupby(['A', 'B']).mean()['C']
 
-        # choice of "result" is pretty arbitrary, should eventually return a
-        # hierarchical index
-        assert_series_equal(result['result'], expected)
+        assert_series_equal(result, expected)
 
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()
@@ -354,6 +365,28 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.mean()
         expected = self.df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
         assert_frame_equal(result, expected)
+
+    def test_nonsense_func(self):
+        df = DataFrame([0])
+        self.assertRaises(Exception, df.groupby, lambda x: x + 'foo')
+
+    def test_sum(self):
+        data = {'A' : [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
+                'B' : ['A', 'B'] * 6,
+                'C' : np.random.randn(12)}
+        df = DataFrame(data)
+        df['C'][2:10:2] = nan
+
+        # single column
+        grouped = df.drop(['B'], axis=1).groupby('A')
+        exp = {}
+        for cat, group in grouped:
+            exp[cat] = group['C'].sum()
+        exp = DataFrame({'C' : exp})
+        result = grouped.sum()
+        assert_frame_equal(result, exp)
+
+        # multiple columns
 
 class TestPanelGroupBy(unittest.TestCase):
 

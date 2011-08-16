@@ -1,3 +1,4 @@
+from itertools import izip
 import types
 
 import numpy as np
@@ -158,26 +159,26 @@ class GroupBy(object):
         """
         Compute mean of groups, excluding missing values
         """
-        if len(self.groupings) > 1:
+        try:
             return self._cython_aggregate('mean')
-        else:
+        except Exception:
             return self.aggregate(np.mean)
 
     def sum(self):
         """
         Compute sum of values, excluding missing values
         """
-        if len(self.groupings) > 1:
+        try:
             return self._cython_aggregate('add')
-        else:
+        except Exception:
             return self.aggregate(np.sum)
 
-    def _cython_aggregate(self, how):
+    def _cython_aggregate_dict(self, how):
         label_list = [ping.labels for ping in self.groupings]
         shape = self._result_shape
 
-        # TODO: address inefficiency
-        # TODO: get counts in cython
+        # TODO: address inefficiencies, like duplicating effort (should
+        # aggregate all the columns at once)
 
         output = {}
         cannot_agg = []
@@ -194,14 +195,12 @@ class GroupBy(object):
             mask = counts.ravel() > 0
             output[name] = result[mask]
 
-        name_list = self._get_names()
+        return output, mask
 
-        if len(self.groupings) > 1:
-            masked = [raveled[mask] for _, raveled in name_list]
-            index = MultiIndex.from_arrays(masked)
-            return DataFrame(output, index=index)
-        else:
-            return DataFrame(output, index=name_list[0][1])
+    def _get_multi_index(self, mask):
+        name_list = self._get_names()
+        masked = [raveled[mask] for _, raveled in name_list]
+        return MultiIndex.from_arrays(masked)
 
     def _aggregate_multi_group(self, arg):
         # want to cythonize?
@@ -327,9 +326,10 @@ class Grouping(object):
 
     def _make_labels(self):
         ids, labels, counts  = _tseries.group_labels(self.grouper)
-        self._labels = labels
-        self._ids = ids
-        self._counts = counts
+        sids, slabels, scounts = sort_group_labels(ids, labels, counts)
+        self._labels = slabels
+        self._ids = sids
+        self._counts = scounts
 
     _groups = None
     @property
@@ -337,18 +337,6 @@ class Grouping(object):
         if self._groups is None:
             self._groups = _tseries.groupby(self.index, self.grouper)
         return self._groups
-
-def labelize(*key_arrays):
-    idicts = []
-    shape = []
-    labels = []
-    for arr in key_arrays:
-        ids, lab, counts  = _tseries.group_labels(arr)
-        shape.append(len(ids))
-        labels.append(lab)
-        idicts.append(ids)
-
-    return tuple(shape), labels, idicts
 
 def _get_groupings(obj, grouper=None, axis=0, level=None):
     group_axis = obj._get_axis(axis)
@@ -379,11 +367,6 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
             grouper = obj[grouper]
         ping = Grouping(group_axis, grouper, name=name, level=level)
         groupings.append(ping)
-    # else:
-    #     labels = group_axis.labels[level]
-    #     grouper = np.asarray(group_axis.levels[level]).take(labels)
-    #     ping = Grouping(group_axis, grouper, name=name)
-    #     groupings.append(ping)
 
     return groupings, exclusions
 
@@ -456,6 +439,19 @@ class SeriesGroupBy(GroupBy):
                 ret = Series({})
 
         return ret
+
+    def _cython_aggregate(self, how):
+        output, mask = self._cython_aggregate_dict(how)
+
+        # sort of a kludge
+        output = output['result']
+
+        if len(self.groupings) > 1:
+            index = self._get_multi_index(mask)
+            return Series(output, index=index)
+        else:
+            name_list = self._get_names()
+            return Series(output, index=name_list[0][1])
 
     def _aggregate_multiple_funcs(self, arg):
         if not isinstance(arg, dict):
@@ -591,6 +587,16 @@ class DataFrameGroupBy(GroupBy):
             result = self._aggregate_generic(arg, axis=self.axis)
 
         return result
+
+    def _cython_aggregate(self, how):
+        output, mask = self._cython_aggregate_dict(how)
+
+        if len(self.groupings) > 1:
+            index = self._get_multi_index(mask)
+            return DataFrame(output, index=index)
+        else:
+            name_list = self._get_names()
+            return DataFrame(output, index=name_list[0][1])
 
     def _aggregate_generic(self, agger, axis=0):
         result = {}
@@ -810,3 +816,23 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
                                       which=which + 1, factory=factory)
 
         left = right
+
+#----------------------------------------------------------------------
+# sorting levels...cleverly?
+
+def sort_group_labels(ids, labels, counts):
+    n = len(ids)
+    rng = np.arange(n)
+    values = Series(ids, index=rng, dtype=object).values
+    indexer = values.argsort()
+
+    reverse_indexer = np.empty(n, dtype=np.int32)
+    reverse_indexer.put(indexer, np.arange(n))
+
+    new_labels = reverse_indexer.take(labels)
+    np.putmask(new_labels, labels == -1, -1)
+
+    new_ids = dict(izip(rng, values.take(indexer)))
+    new_counts = counts.take(indexer)
+
+    return new_ids, new_labels, new_counts
