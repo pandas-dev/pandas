@@ -271,11 +271,9 @@ class Series(np.ndarray, PandasObject):
                 except KeyError:
                     if isinstance(key, (int, np.integer)):
                         return values[key]
-                    raise Exception('Requested index not in this series!')
-        except Exception:
+                    raise
+        except TypeError:
             pass
-
-        self._check_bool_indexer(key)
 
         def _index_with(indexer):
             return Series(self.values[indexer],
@@ -285,6 +283,7 @@ class Series(np.ndarray, PandasObject):
         # arrays. Sort of an elaborate hack since we can't represent boolean
         # NA. Hmm
         if _is_bool_indexer(key):
+            self._check_bool_indexer(key)
             key = np.asarray(key, dtype=bool)
             return _index_with(key)
 
