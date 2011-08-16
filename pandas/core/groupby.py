@@ -30,14 +30,16 @@ class GroupBy(object):
 
     Supported classes: Series, DataFrame
     """
-    def __init__(self, obj, grouper=None, axis=0, groupings=None,
-                 exclusions=None, name=None):
+    def __init__(self, obj, grouper=None, axis=0, level=None,
+                 groupings=None, exclusions=None, name=None):
         self.name = name
         self.obj = obj
         self.axis = axis
+        self.level = level
 
         if groupings is None:
-            groupings, exclusions = _get_groupings(obj, grouper, axis=axis)
+            groupings, exclusions = _get_groupings(obj, grouper, axis=axis,
+                                                   level=level)
 
         self.groupings = groupings
         self.exclusions = set(exclusions)
@@ -265,11 +267,23 @@ class GroupBy(object):
 
 class Grouping(object):
 
-    def __init__(self, index, grouper, name=None):
+    def __init__(self, index, grouper=None, name=None, level=None):
         self.name = name
-        self.index = np.asarray(index)
+        self.level = level
         self.grouper = _convert_grouper(index, grouper)
 
+        if level is not None:
+            inds = index.labels[level]
+            labels = index.levels[level].values.take(inds)
+
+            if grouper is not None:
+                self.grouper = _tseries.arrmap(labels, self.grouper)
+            else:
+                self.grouper = labels
+
+        self.index = index.values
+
+        # no level passed
         if not isinstance(self.grouper, np.ndarray):
             self.grouper = _tseries.arrmap(self.index, self.grouper)
 
@@ -336,8 +350,11 @@ def labelize(*key_arrays):
 
     return tuple(shape), labels, idicts
 
-def _get_groupings(obj, grouper, axis=0):
+def _get_groupings(obj, grouper=None, axis=0, level=None):
     group_axis = obj._get_axis(axis)
+
+    if level is not None and not isinstance(group_axis, MultiIndex):
+        raise ValueError('can only specify level with multi-level index')
 
     groupings = []
     exclusions = []
@@ -352,7 +369,7 @@ def _get_groupings(obj, grouper, axis=0):
                 name = arg
                 arg = obj[arg]
 
-            ping = Grouping(group_axis, arg, name=name)
+            ping = Grouping(group_axis, arg, name=name, level=level)
             groupings.append(ping)
     else:
         name = 'key'
@@ -360,8 +377,13 @@ def _get_groupings(obj, grouper, axis=0):
             exclusions.append(grouper)
             name = grouper
             grouper = obj[grouper]
-        ping = Grouping(group_axis, grouper, name=name)
+        ping = Grouping(group_axis, grouper, name=name, level=level)
         groupings.append(ping)
+    # else:
+    #     labels = group_axis.labels[level]
+    #     grouper = np.asarray(group_axis.levels[level]).take(labels)
+    #     ping = Grouping(group_axis, grouper, name=name)
+    #     groupings.append(ping)
 
     return groupings, exclusions
 

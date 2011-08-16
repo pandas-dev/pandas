@@ -1951,7 +1951,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # groupby
 
-    def groupby(self, by, axis=0, column=None):
+    def groupby(self, by=None, axis=0, level=None):
         """
         Goup series using mapper (dict or key function, apply given function to
         group, return result as series) or by a series of columns
@@ -1980,7 +1980,7 @@ class DataFrame(NDFrame):
         GroupBy object
         """
         from pandas.core.groupby import groupby
-        return groupby(self, by, axis=axis)
+        return groupby(self, by, axis=axis, level=level)
 
     def tgroupby(self, keyfunc, applyfunc):
         """
@@ -2149,16 +2149,9 @@ class DataFrame(NDFrame):
         n = len(level_index)
         locs = axis_index.labels[level].searchsorted(np.arange(n))
 
+        # WORKAROUND: reduceat fusses about the endpoints. should file ticket?
         start = locs.searchsorted(0, side='right') - 1
         end = locs.searchsorted(len(mask), side='left')
-
-        # WORKAROUND: reduceat fusses about the endpoints. should file ticket?
-        # WORKAROUND: to see why, try this
-        # arr = np.ones((10, 4), dtype=bool)
-        # np.add.reduceat(arr, [0, 3, 3, 7, 9], axis=0)
-
-        # this stinks
-        workaround_mask = locs[:-1] == locs[1:]
 
         if axis == 0:
             index = level_index
@@ -2166,14 +2159,24 @@ class DataFrame(NDFrame):
             result = np.zeros((n, len(self.columns)), dtype=int)
             out = result[start:end]
             np.add.reduceat(mask, locs[start:end], axis=axis, out=out)
-            result[:-1][workaround_mask] = 0
         else:
             index = self.index
             columns = level_index
             result = np.zeros((len(self.index), n), dtype=int)
             out = result[:, start:end]
             np.add.reduceat(mask, locs[start:end], axis=axis, out=out)
-            result[:, :-1][:, workaround_mask] = 0
+
+        # WORKAROUND: to see why, try this
+        # arr = np.ones((10, 4), dtype=bool)
+        # np.add.reduceat(arr, [0, 3, 3, 7, 9], axis=0)
+
+        # this stinks
+        if len(locs) > 1:
+            workaround_mask = locs[:-1] == locs[1:]
+            if axis == 0:
+                result[:-1][workaround_mask] = 0
+            else:
+                result[:, :-1][:, workaround_mask] = 0
 
         return DataFrame(result, index=index, columns=columns)
 

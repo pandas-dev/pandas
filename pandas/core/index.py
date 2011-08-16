@@ -56,6 +56,10 @@ class Index(np.ndarray):
             index_summary = ''
         return 'Index: %s entries%s' % (len(self), index_summary)
 
+    @property
+    def values(self):
+        return np.asarray(self)
+
     _indexMap = None
     @property
     def indexMap(self):
@@ -377,6 +381,12 @@ class MultiIndex(Index):
         values = [np.asarray(lev).take(lab)
                   for lev, lab in zip(self.levels, self.labels)]
         return izip(*values)
+
+    @property
+    def values(self):
+        result = np.empty(len(self), dtype=object)
+        result[:] = list(self)
+        return result
 
     def __contains__(self, key):
         try:

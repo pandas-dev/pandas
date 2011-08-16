@@ -79,7 +79,7 @@ class PandasObject(Picklable):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def groupby(self, mapper, axis=0):
+    def groupby(self, mapper=None, axis=0, level=None):
         """
         Goup series using mapper (dict or key function, apply given
         function to group, return result as series).
@@ -96,7 +96,7 @@ class PandasObject(Picklable):
         GroupBy object
         """
         from pandas.core.groupby import groupby
-        return groupby(self, mapper, axis=axis)
+        return groupby(self, mapper, axis=axis, level=level)
 
     def truncate(self, before=None, after=None):
         """Function truncate a sorted DataFrame / Series before and/or after
