@@ -331,6 +331,13 @@ cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
         double_t val, cum = 0
 
     while it < end:
+        i = labels[it]
+
+        # mapping was NaN
+        if i == -1:
+            it += 1
+            continue
+
         val = values[it]
         tot += 1
 
@@ -339,7 +346,6 @@ cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
             count += 1
             cum += val
 
-        i = labels[it]
         if it == end - 1 or labels[it + 1] > i:
             if count == 0:
                 out[offset + i] = nan

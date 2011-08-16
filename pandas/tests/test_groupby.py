@@ -370,23 +370,27 @@ class TestGroupBy(unittest.TestCase):
         df = DataFrame([0])
         self.assertRaises(Exception, df.groupby, lambda x: x + 'foo')
 
-    def test_sum(self):
+    def test_cythonized_aggers(self):
         data = {'A' : [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
                 'B' : ['A', 'B'] * 6,
                 'C' : np.random.randn(12)}
         df = DataFrame(data)
         df['C'][2:10:2] = nan
 
-        # single column
-        grouped = df.drop(['B'], axis=1).groupby('A')
-        exp = {}
-        for cat, group in grouped:
-            exp[cat] = group['C'].sum()
-        exp = DataFrame({'C' : exp})
-        result = grouped.sum()
-        assert_frame_equal(result, exp)
+        def _testit(op):
+            # single column
+            grouped = df.drop(['B'], axis=1).groupby('A')
+            exp = {}
+            for cat, group in grouped:
+                exp[cat] = op(group['C'])
+            exp = DataFrame({'C' : exp})
+            result = op(grouped)
+            assert_frame_equal(result, exp)
 
-        # multiple columns
+            # multiple columns
+
+        _testit(lambda x: x.sum())
+        _testit(lambda x: x.mean())
 
 class TestPanelGroupBy(unittest.TestCase):
 
