@@ -97,7 +97,7 @@ class _DataFrameIndexer(object):
         elif isinstance(key, tuple):
             return self._getitem_tuple(key)
         elif _is_list_like(key):
-            return self._fancy_getitem(key, axis=0)
+            return self._fancy_getitem_iterable(key, axis=0)
         else:
             return self._fancy_getitem_axis(key, axis=0)
 
@@ -194,7 +194,7 @@ class _DataFrameIndexer(object):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
         elif _is_list_like(key):
-            return self._fancy_getitem(key, axis=axis)
+            return self._fancy_getitem_iterable(key, axis=axis)
         elif axis == 0:
             is_int_index = _is_integer_index(self.frame.index)
 
@@ -213,7 +213,7 @@ class _DataFrameIndexer(object):
                 col = self.frame.columns[key]
             return self.frame[col]
 
-    def _fancy_getitem(self, key, axis=0):
+    def _fancy_getitem_iterable(self, key, axis=0):
         from pandas.core.series import Series
 
         labels = self.frame._get_axis(axis)
@@ -230,9 +230,9 @@ class _DataFrameIndexer(object):
             return self.frame.reindex(**{axis_name : labels[np.asarray(key)]})
         else:
             if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
-                key = labels.take(keyarr)
+                keyarr = labels.take(keyarr)
 
-            return self.frame.reindex(**{axis_name : key})
+            return self.frame.reindex(**{axis_name : keyarr})
 
     def _get_slice_axis(self, slice_obj, axis=0):
         frame = self.frame
@@ -290,7 +290,7 @@ def _is_label_like(key):
     return not isinstance(key, slice) and not _is_list_like(key)
 
 def _is_list_like(obj):
-    return isinstance(obj, (list, np.ndarray))
+    return np.iterable(obj) and not isinstance(obj, basestring)
 
 def _is_label_slice(labels, obj):
     def crit(x):
@@ -314,7 +314,13 @@ def _maybe_droplevels(index, key):
     return index
 
 def _asarray_tuplesafe(values):
+    if not isinstance(values, (list, np.ndarray)):
+        values = list(values)
+
     result = np.asarray(values)
+
+    if issubclass(result.dtype.type, basestring):
+        result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
         result = np.empty(len(values), dtype=object)

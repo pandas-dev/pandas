@@ -45,6 +45,12 @@ class CheckIndexing(object):
         self.assert_('random' not in self.frame)
         self.assertRaises(Exception, self.frame.__getitem__, 'random')
 
+    def test_getitem_iterator(self):
+        idx = iter(['A', 'B', 'C'])
+        result = self.frame.ix[:, idx]
+        expected = self.frame.ix[:, ['A', 'B', 'C']]
+        assert_frame_equal(result, expected)
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]

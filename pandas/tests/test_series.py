@@ -141,10 +141,9 @@ class TestSeries(unittest.TestCase):
 
         # missing
         d = self.ts.index[0] - datetools.bday
-        self.assertRaises(Exception, self.ts.__getitem__, d),
+        self.assertRaises(KeyError, self.ts.__getitem__, d)
 
     def test_getitem_regression(self):
-        from pandas import Series
         s = Series(range(5), index=range(5))
         result = s[range(5)]
         assert_series_equal(result, s)
@@ -262,6 +261,11 @@ class TestSeries(unittest.TestCase):
         # ask for index value
         self.assertEquals(self.series.ix[d1], self.series[d1])
         self.assertEquals(self.series.ix[d2], self.series[d2])
+
+    def test_ix_getitem_iterator(self):
+        idx = iter(self.series.index[:10])
+        result = self.series.ix[idx]
+        assert_series_equal(result, self.series[:10])
 
     def test_ix_setitem(self):
         inds = self.series.index[[3,4,7]]

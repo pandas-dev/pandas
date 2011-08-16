@@ -45,6 +45,9 @@ class Index(np.ndarray):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
         else:
+            # other iterable of some kind
+            if not isinstance(data, (list, tuple)):
+                data = list(data)
             subarr = np.empty(len(data), dtype=dtype)
             subarr[:] = data
         return subarr.view(cls)
