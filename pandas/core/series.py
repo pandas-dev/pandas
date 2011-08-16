@@ -264,10 +264,14 @@ class Series(np.ndarray, PandasObject):
         try:
             if isinstance(self.index, MultiIndex):
                 return self._multilevel_index(key)
-            elif isinstance(key, int):
-                return self._regular_index(key)
             else:
-                return self._regular_index(key)
+                values = self.values
+                try:
+                    return values[self.index.get_loc(key)]
+                except KeyError:
+                    if isinstance(key, (int, np.integer)):
+                        return values[key]
+                    raise Exception('Requested index not in this series!')
         except Exception:
             pass
 
@@ -292,16 +296,6 @@ class Series(np.ndarray, PandasObject):
         except Exception:
             key = np.asarray(key)
             return _index_with(key)
-
-    def _regular_index(self, key):
-        values = self.values
-
-        try:
-            return values[self.index.get_loc(key)]
-        except KeyError:
-            if isinstance(key, (int, np.integer)):
-                return values[key]
-            raise Exception('Requested index not in this series!')
 
     def _multilevel_index(self, key):
         values = self.values
@@ -720,7 +714,11 @@ class Series(np.ndarray, PandasObject):
         -------
         arr : numpy.ndarray
         """
-        return self.view(ndarray)
+        try:
+            return self._values
+        except AttributeError:
+            self._values = self.view(ndarray)
+            return self._values
 
     def iteritems(self):
         """

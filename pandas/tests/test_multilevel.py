@@ -35,9 +35,34 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
                                columns=['A', 'B', 'C'])
 
+        tm.N = 100
         self.tdf = tm.makeTimeDataFrame()
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
+
+    def test_pickle(self):
+        import cPickle
+        def _test_roundtrip(frame):
+            pickled = cPickle.dumps(frame)
+            unpickled = cPickle.loads(pickled)
+            assert_frame_equal(frame, unpickled)
+
+        _test_roundtrip(self.frame)
+        _test_roundtrip(self.frame.T)
+        _test_roundtrip(self.ymd)
+        _test_roundtrip(self.ymd.T)
+
+    def test_repr_to_string(self):
+        repr(self.frame)
+        repr(self.ymd)
+        repr(self.frame.T)
+        repr(self.ymd.T)
+
+        buf = StringIO()
+        self.frame.toString(buf=buf)
+        self.ymd.toString(buf=buf)
+        self.frame.T.toString(buf=buf)
+        self.ymd.T.toString(buf=buf)
 
     def test_getitem_simple(self):
         df = self.frame.T
@@ -80,9 +105,12 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
 
         result = df['bar']
+        result2 = df.ix[:, 'bar']
+
         expected = df.reindex(columns=df.columns[3:5])
         expected.columns = expected.columns.droplevel(0)
         assert_frame_equal(result, expected)
+        assert_frame_equal(result, result2)
 
     def test_getitem_partial(self):
         ymd = self.ymd.T
@@ -92,11 +120,47 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         assert_frame_equal(result, expected)
 
-    def test_fancy_slice_partial(self):
-        pass
+    def test_setitem_change_dtype(self):
+        dft = self.frame.T
+        s = dft['foo', 'two']
+        dft['foo', 'two'] = s > s.median()
+        assert_series_equal(dft['foo', 'two'], s > s.median())
+        self.assert_(isinstance(dft._data.blocks[1].items, MultiIndex))
 
-    def test_fancy_select_toplevel(self):
-        pass
+        reindexed = dft.reindex(columns=[('foo', 'two')])
+        assert_series_equal(reindexed['foo', 'two'], s > s.median())
+
+    def test_fancy_slice_partial(self):
+        result = self.frame.ix['bar':'baz']
+        expected = self.frame[3:7]
+        assert_frame_equal(result, expected)
+
+        result = self.ymd.ix[(2000,2):(2000,4)]
+        lev = self.ymd.index.labels[1]
+        expected = self.ymd[(lev >= 1) & (lev <= 3)]
+        assert_frame_equal(result, expected)
+
+    def test_sortlevel(self):
+        df = self.frame.copy()
+        df.index = np.arange(len(df))
+        self.assertRaises(Exception, df.sortlevel, 0)
+
+        # axis=1
+
+    def test_sortlevel_mixed(self):
+        sorted_before = self.frame.sortlevel(1)
+
+        df = self.frame.copy()
+        df['foo'] = 'bar'
+        sorted_after = df.sortlevel(1)
+        assert_frame_equal(sorted_before, sorted_after.drop(['foo'], axis=1))
+
+        dft = self.frame.T
+        sorted_before = dft.sortlevel(1, axis=1)
+        dft['foo', 'three'] = 'bar'
+
+        sorted_after = dft.sortlevel(1, axis=1)
+        assert_frame_equal(sorted_before, sorted_after.drop(['foo'], axis=1))
 
     def test_alignment(self):
         pass

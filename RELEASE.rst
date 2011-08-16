@@ -97,6 +97,9 @@ Release notes
   * Note that under ther hood there is a new essentially "lazy evaluation"
     scheme within respect to adding columns to DataFrame. During some
     operations, like-typed blocks will be "consolidated" but not before.
+* `DataFrame` accessing columns repeatedly is now significantly faster than
+  `DataMatrix` used to be in 0.3.0 due to an internal Series caching mechanism
+  (which are all views on the underlying data)
 * Column ordering for mixed type data is now completely consistent in
   `DataFrame`. In prior releases, there was inconsistent column ordering in
   `DataMatrix`

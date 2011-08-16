@@ -105,7 +105,7 @@ class _DataFrameIndexer(object):
         if isinstance(self.frame.index, MultiIndex):
             try:
                 return self.frame.xs(key)
-            except KeyError:
+            except (KeyError, TypeError):
                 # could do something more intelligent here? like raising the
                 # exception if each tuple value are in the levels?
                 pass

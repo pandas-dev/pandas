@@ -296,6 +296,9 @@ class Index(np.ndarray):
 
         return beg_slice, end_slice
 
+    def delete(self, loc):
+        arr = np.delete(np.asarray(self), loc)
+        return Index(arr)
 
 class DateIndex(Index):
     pass
@@ -767,6 +770,10 @@ class MultiIndex(Index):
                             'index objects')
 
         assert(self.nlevels == other.nlevels)
+
+    def delete(self, loc):
+        new_labels = [np.delete(lab, loc) for lab in self.labels]
+        return MultiIndex(levels=self.levels, labels=new_labels)
 
     get_major_bounds = slice_locs
 

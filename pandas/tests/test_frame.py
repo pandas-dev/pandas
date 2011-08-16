@@ -1501,6 +1501,51 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         samesize_frame = frame.dropna(subset=['bar'])
         self.assert_(samesize_frame.index.equals(self.frame.index))
 
+    def test_dropna(self):
+        df = DataFrame(np.random.randn(6, 4))
+        df[2][:2] = nan
+
+        dropped = df.dropna(axis=1)
+        expected = df.ix[:, [0, 1, 3]]
+        assert_frame_equal(dropped, expected)
+
+        dropped = df.dropna(axis=0)
+        expected = df.ix[range(2, 6)]
+        assert_frame_equal(dropped, expected)
+
+        # threshold
+        dropped = df.dropna(axis=1, thresh=5)
+        expected = df.ix[:, [0, 1, 3]]
+        assert_frame_equal(dropped, expected)
+
+        dropped = df.dropna(axis=0, thresh=4)
+        expected = df.ix[range(2, 6)]
+        assert_frame_equal(dropped, expected)
+
+        dropped = df.dropna(axis=1, thresh=4)
+        assert_frame_equal(dropped, df)
+
+        dropped = df.dropna(axis=1, thresh=3)
+        assert_frame_equal(dropped, df)
+
+        # subset
+        dropped = df.dropna(axis=0, subset=[0, 1, 3])
+        assert_frame_equal(dropped, df)
+
+        # all
+        dropped = df.dropna(axis=1, how='all')
+        assert_frame_equal(dropped, df)
+
+        df[2] = nan
+        dropped = df.dropna(axis=1, how='all')
+        expected = df.ix[:, [0, 1, 3]]
+        assert_frame_equal(dropped, expected)
+
+    def test_dropna_corner(self):
+        # bad input
+        self.assertRaises(ValueError, self.frame.dropna, how='foo')
+        self.assertRaises(ValueError, self.frame.dropna, how=None)
+
     def test_fillna(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
