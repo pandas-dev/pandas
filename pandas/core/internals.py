@@ -68,13 +68,12 @@ class Block(object):
     def __getstate__(self):
         # should not pickle generally (want to share ref_items), but here for
         # completeness
-        return (np.asarray(self.items), np.asarray(self.ref_items),
-                self.values)
+        return (self.items, self.ref_items, self.values)
 
     def __setstate__(self, state):
         items, ref_items, values = state
-        self.items = Index(items)
-        self.ref_items = Index(ref_items)
+        self.items = _ensure_index(items)
+        self.ref_items = _ensure_index(ref_items)
         self.values = values
         self.ndim = values.ndim
 
@@ -153,7 +152,7 @@ class Block(object):
         y : Block (new object)
         """
         loc = self.items.get_loc(item)
-        new_items = np.delete(np.asarray(self.items), loc)
+        new_items = self.items.delete(loc)
         new_values = np.delete(self.values, loc, 0)
         return make_block(new_values, new_items, self.ref_items)
 
@@ -285,8 +284,8 @@ class BlockManager(object):
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
-        block_items = [np.asarray(b.items) for b in self.blocks]
-        axes_array = [np.asarray(ax) for ax in self.axes]
+        block_items = [b.items for b in self.blocks]
+        axes_array = [ax for ax in self.axes]
         return axes_array, block_values, block_items
 
     def __setstate__(self, state):
