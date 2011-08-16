@@ -164,6 +164,16 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         assert_frame_equal(sorted_before.drop([('foo', 'three')], axis=1),
                            sorted_after.drop([('foo', 'three')], axis=1))
 
+    def test_count_level(self):
+        def _check_counts(frame, axis=0):
+            index = frame._get_axis(axis)
+            for i in range(index.nlevels):
+                result = frame.count(axis=axis, level=i)
+                expected = frame.groupby(axis=axis, level=i).count(axis=axis)
+
+        _check_counts(self.frame)
+        _check_counts(self.ymd)
+
     def test_alignment(self):
         pass
 

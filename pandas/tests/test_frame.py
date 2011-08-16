@@ -2518,6 +2518,36 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         result = dm.cumsum()
 
     #----------------------------------------------------------------------
+    # Stacking / unstacking
+
+    def test_stack_unstack(self):
+        stacked = self.frame.stack()
+        stacked_df = DataFrame({'foo' : stacked, 'bar' : stacked})
+
+        unstacked = stacked.unstack()
+        unstacked_df = stacked_df.unstack()
+
+        assert_frame_equal(unstacked, self.frame)
+        assert_frame_equal(unstacked_df['bar'], self.frame)
+
+        unstacked_cols = stacked.unstack(0)
+        unstacked_cols_df = stacked_df.unstack(0)
+        assert_frame_equal(unstacked_cols.T, self.frame)
+        assert_frame_equal(unstacked_cols_df['bar'].T, self.frame)
+
+    def test_delevel(self):
+        stacked = self.frame.stack()[::2]
+        stacked = DataFrame({'foo' : stacked, 'bar' : stacked})
+        deleveled = stacked.delevel()
+
+        for i, (lev, lab) in enumerate(zip(stacked.index.levels,
+                                           stacked.index.labels)):
+            values = lev.take(lab)
+            assert_almost_equal(values, deleveled['label_%d' % i])
+
+        self.assertRaises(Exception, self.frame.delevel)
+
+    #----------------------------------------------------------------------
     # Tests to cope with refactored internals
 
     def test_as_matrix_numeric_cols(self):
