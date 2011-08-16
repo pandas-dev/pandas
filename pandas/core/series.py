@@ -1061,7 +1061,7 @@ class Series(np.ndarray, PandasObject):
         if len(self.index) == 0:
             return Series(nan, index=index)
 
-        fill_vec, mask = self.index.get_indexer(index, method=method)
+        new_index, fill_vec, mask = self.index.reindex(index, method=method)
         new_values = self.values.take(fill_vec)
 
         notmask = -mask
@@ -1073,7 +1073,7 @@ class Series(np.ndarray, PandasObject):
 
             np.putmask(new_values, notmask, nan)
 
-        return Series(new_values, index=index)
+        return Series(new_values, index=new_index)
 
     def reindex_like(self, other, method=None):
         """

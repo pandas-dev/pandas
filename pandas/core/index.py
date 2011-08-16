@@ -268,6 +268,10 @@ class Index(np.ndarray):
                                             target.indexMap, method)
         return indexer, mask
 
+    def reindex(self, target, method=None):
+        indexer, mask = self.get_indexer(target, method=method)
+        return target, indexer, mask
+
     def slice_locs(self, start=None, end=None):
         """
 
@@ -299,6 +303,13 @@ class Index(np.ndarray):
     def delete(self, loc):
         arr = np.delete(np.asarray(self), loc)
         return Index(arr)
+
+    def drop(self, labels):
+        labels = np.asarray(list(labels), dtype=object)
+        indexer, mask = self.get_indexer(labels)
+        if not mask.all():
+            raise ValueError('labels %s not contained in axis' % labels[-mask])
+        return self.delete(indexer)
 
 class DateIndex(Index):
     pass
@@ -486,6 +497,25 @@ class MultiIndex(Index):
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
 
+    def drop(self, labels):
+        try:
+            arr = np.asarray(list(labels), dtype=object)
+            indexer, mask = self.get_indexer(arr)
+            if not mask.all():
+                raise ValueError('labels %s not contained in axis' % arr[-mask])
+        except Exception:
+            pass
+
+        inds = []
+        for label in labels:
+            loc = self.get_loc(label)
+            if isinstance(loc, int):
+                inds.append(loc)
+            else:
+                inds.extend(range(loc.start, loc.stop))
+
+        return self.delete(inds)
+
     def droplevel(self, level=0):
         """
         Return Index with requested level removed. If MultiIndex has only 2
@@ -556,16 +586,31 @@ class MultiIndex(Index):
         }
         method = aliases.get(method, method)
 
-        if not isinstance(target, MultiIndex):
-            raise TypeError('Can only align with other MultiIndex objects')
+        if isinstance(target, MultiIndex):
+            target_index = target.get_tuple_index()
+        else:
+            if len(target) > 0:
+                val = target[0]
+                if not isinstance(val, tuple) or len(val) != self.nlevels:
+                    raise ValueError('can only pass MultiIndex or '
+                                     'array of tuples')
+
+            target_index = target
 
         self_index = self.get_tuple_index()
-        target_index = target.get_tuple_index()
-
         indexer, mask = _tseries.getFillVec(self_index, target_index,
                                             self_index.indexMap,
-                                            target_index.indexMap, method)
+                                            target.indexMap, method)
         return indexer, mask
+
+    def reindex(self, target, method=None):
+        indexer, mask = self.get_indexer(target, method=method)
+
+        # hopefully?
+        if not isinstance(target, MultiIndex):
+            target = MultiIndex.from_tuples(target)
+
+        return target, indexer, mask
 
     def get_tuple_index(self):
         return Index(list(self))
@@ -699,14 +744,18 @@ class MultiIndex(Index):
         if len(self) != len(other):
             return False
 
-        # if not self.equal_levels(other):
-        #     return False
-
         for i in xrange(self.nlevels):
-            if not self.levels[i].equals(other.levels[i]):
+            svalues = np.asarray(self.levels[i]).take(self.labels[i])
+            ovalues = np.asarray(other.levels[i]).take(other.labels[i])
+
+            if not np.array_equal(svalues, ovalues):
                 return False
-            if not np.array_equal(self.labels[i], other.labels[i]):
-                return False
+
+            # if not self.levels[i].equals(other.levels[i]):
+            #     return False
+            # if not np.array_equal(self.labels[i], other.labels[i]):
+            #     return False
+
         return True
 
     def equal_levels(self, other):

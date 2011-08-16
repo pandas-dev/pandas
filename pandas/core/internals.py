@@ -124,7 +124,7 @@ class Block(object):
         -------
         reindexed : Block
         """
-        indexer, mask = self.items.get_indexer(new_ref_items)
+        new_ref_items, indexer, mask = self.items.reindex(new_ref_items)
         masked_idx = indexer[mask]
         new_values = self.values.take(masked_idx, axis=0)
         new_items = self.items.take(masked_idx)
@@ -525,7 +525,10 @@ class BlockManager(object):
 
     def _add_new_block(self, item, value):
         # Do we care about dtype at the moment?
-        new_block = make_block(value, [item], self.items)
+
+        # hm, elaborate hack?
+        loc = self.items.get_loc(item)
+        new_block = make_block(value, self.items[loc:loc+1], self.items)
         self.blocks.append(new_block)
 
     def _find_block(self, item):
@@ -546,7 +549,7 @@ class BlockManager(object):
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 
-        indexer, mask = cur_axis.get_indexer(new_axis, method)
+        new_axis, indexer, mask = cur_axis.reindex(new_axis, method)
 
         # TODO: deal with length-0 case? or does it fall out?
         notmask = -mask
@@ -572,15 +575,15 @@ class BlockManager(object):
             data = data.consolidate()
             return data.reindex_items(new_items)
 
+        # TODO: this part could be faster (!)
+        new_items, _, mask = self.items.reindex(new_items)
+        notmask = -mask
+
         new_blocks = []
         for block in self.blocks:
             newb = block.reindex_items_from(new_items)
             if len(newb.items) > 0:
                 new_blocks.append(newb)
-
-        # TODO: this part could be faster (!)
-        _, mask = self.items.get_indexer(new_items)
-        notmask = -mask
 
         if notmask.any():
             extra_items = new_items[notmask]

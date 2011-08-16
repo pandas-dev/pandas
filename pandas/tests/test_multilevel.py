@@ -1,10 +1,6 @@
 # pylint: disable-msg=W0612,E1101
-from copy import deepcopy
-from datetime import datetime, timedelta
 from cStringIO import StringIO
-import cPickle as pickle
 import operator
-import os
 import unittest
 
 from numpy import random, nan
@@ -51,6 +47,11 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         _test_roundtrip(self.frame.T)
         _test_roundtrip(self.ymd)
         _test_roundtrip(self.ymd.T)
+
+    def test_reindex(self):
+        reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
+        expected = self.frame.ix[[0, 3]]
+        assert_frame_equal(reindexed, expected)
 
     def test_repr_to_string(self):
         repr(self.frame)
@@ -160,7 +161,8 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         dft['foo', 'three'] = 'bar'
 
         sorted_after = dft.sortlevel(1, axis=1)
-        assert_frame_equal(sorted_before, sorted_after.drop(['foo'], axis=1))
+        assert_frame_equal(sorted_before.drop([('foo', 'three')], axis=1),
+                           sorted_after.drop([('foo', 'three')], axis=1))
 
     def test_alignment(self):
         pass

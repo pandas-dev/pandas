@@ -496,8 +496,13 @@ class TestMultiIndex(unittest.TestCase):
         assert_almost_equal(r2, rbfill2)
 
         # pass non-MultiIndex
+        r1, r2 = idx1.get_indexer(idx2.get_tuple_index())
+        rexp1, rexp2 = idx1.get_indexer(idx2)
+        assert_almost_equal(r1, rexp1)
+        assert_almost_equal(r2, rexp2)
+
         self.assertRaises(Exception, idx1.get_indexer,
-                          idx2.get_tuple_index())
+                          list(zip(*idx2.get_tuple_index())[0]))
 
     def test_format(self):
         self.index.format()

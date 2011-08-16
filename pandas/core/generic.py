@@ -157,16 +157,8 @@ class PandasObject(Picklable):
         """
         axis_name = self._get_axis_name(axis)
         axis = self._get_axis(axis)
-
-        labels = np.asarray(list(labels), dtype=object)
-
-        indexer, mask = axis.get_indexer(labels)
-        if not mask.all():
-            raise ValueError('labels %s not contained in axis' % labels[-mask])
-
-        new_axis = np.delete(np.asarray(axis), indexer)
+        new_axis = axis.drop(labels)
         return self.reindex(**{axis_name : new_axis})
-
 
 class NDFrame(PandasObject):
     """
