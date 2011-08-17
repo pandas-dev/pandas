@@ -452,6 +452,8 @@ class Series(np.ndarray, PandasObject):
 #-------------------------------------------------------------------------------
 # Statistics, overridden ndarray methods
 
+    # TODO: integrate bottleneck
+
     def count(self):
         """
         Return number of observations of Series.
@@ -480,6 +482,8 @@ class Series(np.ndarray, PandasObject):
 
         if isnull(retVal):
             arr = remove_na(arr)
+            if len(arr) == 0:
+                return np.nan
             retVal = getattr(arr, funcname)()
 
         return retVal
