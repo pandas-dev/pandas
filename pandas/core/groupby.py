@@ -401,6 +401,15 @@ class SeriesGroupBy(GroupBy):
 
     _cythonized_methods = set(['add', 'mean'])
 
+    def get_group(self, name, obj=None):
+        if obj is None:
+            obj = self.obj
+
+        inds = self.primary.indices[name]
+        new_values = obj.values.take(inds)
+        new_index = obj.index.take(inds)
+        return Series(new_values, index=new_index)
+
     def aggregate(self, arg):
         """
         See doc for DataFrame.groupby, group series using mapper (dict or key
