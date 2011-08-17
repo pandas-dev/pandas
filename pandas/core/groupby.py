@@ -145,7 +145,7 @@ class GroupBy(object):
         shape = self._result_shape
         return zip(grouping_names, _ravel_names(axes, shape))
 
-    def _iterate_columns(self):
+    def _iterate_slices(self):
         name = self.name
         if name is None:
             name = 'result'
@@ -182,7 +182,7 @@ class GroupBy(object):
 
         output = {}
         cannot_agg = []
-        for name, obj in self._iterate_columns():
+        for name, obj in self._iterate_slices():
             try:
                 obj = np.asarray(obj, dtype=float)
             except ValueError:
@@ -224,7 +224,7 @@ class GroupBy(object):
         output = {}
 
         # iterate through "columns" ex exclusions to populate output dict
-        for name, obj in self._iterate_columns():
+        for name, obj in self._iterate_slices():
             _doit(result, counts, gen_factory(obj))
             # TODO: same mask for every column...
             mask = counts.ravel() > 0
@@ -237,16 +237,21 @@ class GroupBy(object):
         if len(self.groupings) > 1:
             masked = [raveled[mask] for _, raveled in name_list]
             index = MultiIndex.from_arrays(masked)
-            return DataFrame(output, index=index)
+            result = DataFrame(output, index=index)
         else:
-            return DataFrame(output, index=name_list[0][1])
+            result = DataFrame(output, index=name_list[0][1])
+
+        if self.axis == 1:
+            result = result.T
+
+        return result
 
     @property
     def _generator_factory(self):
         labels = [ping.labels for ping in self.groupings]
         shape = self._result_shape
 
-        # XXX: hack?
+        # XXX: HACK! need to do something about all this...
         if isinstance(self.obj, NDFrame):
             factory = self.obj._constructor
         else:
@@ -254,7 +259,6 @@ class GroupBy(object):
 
         axis = self.axis
 
-        # XXX: HACK! need to do something about this...
         if isinstance(self.obj, DataFrame):
             if axis == 0:
                 axis = 1
@@ -347,9 +351,6 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
     groupings = []
     exclusions = []
     if isinstance(grouper, (tuple, list)):
-        if axis != 0:
-            raise ValueError('multi-grouping only valid with axis=0 for now')
-
         for i, arg in enumerate(grouper):
             name = 'key_%d' % i
             if isinstance(arg, basestring):
@@ -547,12 +548,19 @@ class DataFrameGroupBy(GroupBy):
         return SeriesGroupBy(self.obj[key], groupings=self.groupings,
                              exclusions=self.exclusions, name=key)
 
+    def _iterate_slices(self):
+        if self.axis == 0:
+            slice_axis = self.obj.columns
+            slicer = lambda x: self.obj[x]
+        else:
+            slice_axis = self.obj.index
+            slicer = self.obj.xs
 
-    def _iterate_columns(self):
-        for col in self.obj:
-            if col in self.exclusions:
+        for val in slice_axis:
+            if val in self.exclusions:
                 continue
-            yield col, self.obj[col]
+
+            yield val, slicer(val)
 
     def _get_obj_with_exclusions(self):
         return self.obj.drop(self.exclusions, axis=1)
@@ -593,10 +601,15 @@ class DataFrameGroupBy(GroupBy):
 
         if len(self.groupings) > 1:
             index = self._get_multi_index(mask)
-            return DataFrame(output, index=index)
+            result = DataFrame(output, index=index)
         else:
             name_list = self._get_names()
-            return DataFrame(output, index=name_list[0][1])
+            result = DataFrame(output, index=name_list[0][1])
+
+        if self.axis == 1:
+            result = result.T
+
+        return result
 
     def _aggregate_generic(self, agger, axis=0):
         result = {}

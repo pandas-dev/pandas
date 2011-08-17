@@ -341,8 +341,11 @@ class BlockManager(object):
         return len(dtypes) == len(set(dtypes))
 
     def get_slice(self, slice_obj, axis=0):
+        if axis == 0:
+            new_items = self.items[slice_obj]
+            return self.reindex_items(new_items)
+
         new_blocks = self._slice_blocks(slice_obj, axis)
-        assert(axis > 0)
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slice_obj]
         return BlockManager(new_blocks, new_axes)

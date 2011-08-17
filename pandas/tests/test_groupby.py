@@ -356,8 +356,15 @@ class TestGroupBy(unittest.TestCase):
         grouped = df.groupby([lambda x: x.year,
                               lambda x: x.month,
                               lambda x: x.day])
-        agged = grouped.sum().sortlevel(0)
+        agged = grouped.sum()
         assert_almost_equal(df.values, agged.values)
+
+        grouped = df.T.groupby([lambda x: x.year,
+                                lambda x: x.month,
+                                lambda x: x.day], axis=1)
+
+        agged = grouped.agg(np.sum)
+        assert_almost_equal(df.T.values, agged.values)
 
     def test_groupby_multi_corner(self):
         # test that having an all-NA column doesn't mess you up
