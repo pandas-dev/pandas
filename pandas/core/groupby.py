@@ -1,4 +1,5 @@
 from itertools import izip
+import sys
 import types
 
 import numpy as np
@@ -24,6 +25,18 @@ def groupby(obj, grouper, **kwds):
         raise TypeError('invalid type: %s' % type(obj))
 
     return klass(obj, grouper, **kwds)
+
+class MethodWrapper(object):
+
+    def __init__(self, caller, name):
+        self.caller = caller
+        self.name = name
+
+    def __call__(self, *args, **kwargs):
+        def curried(x):
+            f = getattr(x, self.name)
+            return f(*args, **kwargs)
+        return self.caller(curried)
 
 class GroupBy(object):
     """
@@ -65,14 +78,7 @@ class GroupBy(object):
         if not isinstance(f, types.MethodType):
             return self.aggregate(lambda self: getattr(self, name))
 
-        # return the class reference
-        f = getattr(type(self.obj), name)
-
-        def wrapper(*args, **kwargs):
-            curried = lambda self: f(self, *args, **kwargs)
-            return self.aggregate(curried)
-
-        return wrapper
+        return MethodWrapper(self.aggregate, name)
 
     @property
     def primary(self):
