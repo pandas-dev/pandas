@@ -426,6 +426,9 @@ class SeriesGroupBy(GroupBy):
         if hasattr(arg,'__iter__'):
             ret = self._aggregate_multiple_funcs(arg)
         else:
+            if isinstance(arg, basestring):
+                return getattr(self, arg)()
+
             try:
                 result = self._aggregate_simple(arg)
             except Exception:
@@ -461,7 +464,10 @@ class SeriesGroupBy(GroupBy):
         results = {}
 
         for name, func in arg.iteritems():
-            result = self.aggregate(func)
+            try:
+                result = func(self)
+            except Exception:
+                result = self.aggregate(func)
             results[name] = result
 
         return DataFrame(results)

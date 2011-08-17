@@ -4,7 +4,7 @@ import unittest
 from numpy import nan
 
 from pandas.core.daterange import DateRange
-from pandas.core.index import Index
+from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands, groupby
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
@@ -415,6 +415,52 @@ class TestGroupBy(unittest.TestCase):
 
         _testit(lambda x: x.sum())
         _testit(lambda x: x.mean())
+
+    def test_groupby_level(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+        frame = DataFrame(np.random.randn(10, 3), index=index,
+                          columns=['A', 'B', 'C'])
+        deleveled = frame.delevel()
+
+        result0 = frame.groupby(level=0).sum()
+        result1 = frame.groupby(level=1).sum()
+
+        expected0 = frame.groupby(deleveled['label_0']).sum()
+        expected1 = frame.groupby(deleveled['label_1']).sum()
+
+        assert_frame_equal(result0, expected0)
+        assert_frame_equal(result1, expected1)
+
+        result0 = frame.T.groupby(level=0, axis=1).sum()
+        result1 = frame.T.groupby(level=1, axis=1).sum()
+        assert_frame_equal(result0, expected0.T)
+        assert_frame_equal(result1, expected1.T)
+
+    def test_groupby_level_mapper(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+        frame = DataFrame(np.random.randn(10, 3), index=index,
+                          columns=['A', 'B', 'C'])
+        deleveled = frame.delevel()
+
+        result0 = frame.groupby(level=0).sum()
+        result1 = frame.groupby(level=1).sum()
+
+        expected0 = frame.groupby(deleveled['label_0']).sum()
+        expected1 = frame.groupby(deleveled['label_1']).sum()
+
+        assert_frame_equal(result0, expected0)
+        assert_frame_equal(result1, expected1)
+
+        result0 = frame.T.groupby(level=0, axis=1).sum()
+        result1 = frame.T.groupby(level=1, axis=1).sum()
+        assert_frame_equal(result0, expected0.T)
+        assert_frame_equal(result1, expected1.T)
 
 class TestPanelGroupBy(unittest.TestCase):
 
