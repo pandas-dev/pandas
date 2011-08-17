@@ -28,12 +28,14 @@ def groupby(obj, grouper, **kwds):
 
 class MethodWrapper(object):
 
-    def __init__(self, caller, name):
+    def __init__(self, caller, name, klass):
         self.caller = caller
         self.name = name
+        self.klass = klass
 
     def __call__(self, *args, **kwargs):
         def curried(x):
+            # f = getattr(self.klass, self.name)
             f = getattr(x, self.name)
             return f(*args, **kwargs)
         return self.caller(curried)
@@ -78,7 +80,7 @@ class GroupBy(object):
         if not isinstance(f, types.MethodType):
             return self.aggregate(lambda self: getattr(self, name))
 
-        return MethodWrapper(self.aggregate, name)
+        return MethodWrapper(self.aggregate, name, type(self.obj))
 
     @property
     def primary(self):

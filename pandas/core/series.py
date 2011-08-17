@@ -717,11 +717,7 @@ class Series(np.ndarray, PandasObject):
         -------
         arr : numpy.ndarray
         """
-        try:
-            return self._values
-        except AttributeError:
-            self._values = self.view(ndarray)
-            return self._values
+        return self.view(ndarray)
 
     def iteritems(self):
         """
