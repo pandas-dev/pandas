@@ -832,7 +832,7 @@ class DataFrame(NDFrame):
         value : int, Series, or array-like
         """
         value = self._sanitize_column(value)
-        value = np.atleast_2d(value) # is this a hack?
+        value = np.atleast_2d(value)
         self._data.insert(loc, column, value)
 
     def _set_item(self, key, value):
@@ -846,7 +846,7 @@ class DataFrame(NDFrame):
         ensure homogeneity.
         """
         value = self._sanitize_column(value)
-        value = np.atleast_2d(value) # is this a hack?
+        value = np.atleast_2d(value)
         self._data.set(key, value)
 
         try:

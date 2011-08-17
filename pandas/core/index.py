@@ -311,6 +311,11 @@ class Index(np.ndarray):
         arr = np.delete(np.asarray(self), loc)
         return Index(arr)
 
+    def insert(self, loc, item):
+        new_index = list(self)
+        new_index.insert(loc, item)
+        return Index(new_index)
+
     def drop(self, labels):
         labels = np.asarray(list(labels), dtype=object)
         indexer, mask = self.get_indexer(labels)

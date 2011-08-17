@@ -101,6 +101,10 @@ class CheckIndexing(object):
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assert_((smaller['col10'] == ['1', '2']).all())
 
+    def test_setitem_tuple(self):
+        self.frame['A', 'B'] = self.frame['A']
+        assert_series_equal(self.frame['A', 'B'], self.frame['A'])
+
     def test_setitem_always_copy(self):
         s = self.frame['A'].copy()
         self.frame['E'] = s

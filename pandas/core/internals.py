@@ -162,11 +162,6 @@ class Block(object):
         new_values.flat[mask] = value
         return make_block(new_values, self.items, self.ref_items)
 
-def _insert_into_items(items, item, loc):
-    items = np.asarray(items)
-    new_items = np.insert(items, loc, item)
-    return Index(new_items)
-
 def _cast_if_bool_int(values):
     if issubclass(values.dtype.type, np.int_):
         values = values.astype(float)
@@ -506,7 +501,7 @@ class BlockManager(object):
         if item in self.items:
             raise Exception('cannot insert %s, already exists' % item)
 
-        new_items = _insert_into_items(self.items, item, loc)
+        new_items = self.items.insert(loc, item)
         self.set_items_norename(new_items)
         # new block
         self._add_new_block(item, value)

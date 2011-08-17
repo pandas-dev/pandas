@@ -308,6 +308,16 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(agged.ix[:, ['C', 'D']],
                            expected.ix[:, ['C', 'D']])
 
+        # some "groups" with no data
+        df = DataFrame({'v1' : np.random.randn(6),
+                        'v2' : np.random.randn(6),
+                        'k1' : np.array(['b', 'b', 'b', 'a', 'a', 'a']),
+                        'k2' : np.array(['1', '1', '1', '2', '2', '2'])},
+                       index=['one', 'two', 'three', 'four', 'five', 'six'])
+        # only verify that it works for now
+        grouped = df.groupby(['k1', 'k2'])
+        grouped.agg(np.sum)
+
     def test_groupby_multiple_columns(self):
         data = self.df
         grouped = data.groupby(['A', 'B'])
