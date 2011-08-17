@@ -1073,6 +1073,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         biggie.toString(buf=buf, columns=['B', 'A'],
                         float_format=str)
+        biggie.toString(buf=buf, columns=['B', 'A'], colSpace=12,
+                        float_format=str)
 
         frame = DataFrame(index=np.arange(1000))
         frame.toString(buf=buf)

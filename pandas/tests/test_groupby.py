@@ -388,6 +388,13 @@ class TestGroupBy(unittest.TestCase):
             assert_frame_equal(result, exp)
 
             # multiple columns
+            grouped = df.groupby(['A', 'B'])
+            expd = {}
+            for cat1, cat2, group in grouped:
+                expd.setdefault(cat1, {})[cat2] = op(group['C'])
+            exp = DataFrame(expd).T.stack()
+            result = op(grouped)['C']
+            assert_series_equal(result, exp)
 
         _testit(lambda x: x.sum())
         _testit(lambda x: x.mean())

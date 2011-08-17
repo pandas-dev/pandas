@@ -198,6 +198,7 @@ Release notes
 * Bug / unintuitive result when calling `fillna` on unordered labels
 * Bug calling `sum` on boolean DataFrame
 * Bug fix when creating a DataFrame from a dict with scalar values
+* Series.{sum, mean, std, ...} now return NA/NaN when the whole Series is NA
 
 Thanks
 ------
@@ -212,6 +213,7 @@ Thanks
 - Daniel Fortunov
 - Tony Roberts
 - Martin Felder
+- John Marino
 
 ************************
 pandas 0.3 Release Notes

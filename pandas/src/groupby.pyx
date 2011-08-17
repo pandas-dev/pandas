@@ -265,6 +265,9 @@ cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
     # time to actually aggregate
     if which == len(labels) - 1:
         axis = labels[which]
+
+        while axis[start] == -1 and start < end:
+            start += 1
         func(out, counts, values, <int32_t*> axis.data, start, end, offset)
     else:
         axis = labels[which][start:end]
@@ -272,7 +275,9 @@ cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
         # get group counts on axisp
         edges = axis.searchsorted(np.arange(1, shape[which] + 1), side='left')
         # print edges, axis
-        left = 0
+
+        left = axis.searchsorted(0) # ignore NA values coded as -1
+
         # aggregate each subgroup
         for right in edges:
             _aggregate_group(out, counts, values, labels, start + left,
@@ -293,12 +298,6 @@ cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
 
     while it < end:
         i = labels[it]
-
-        # mapping was NaN
-        if i == -1:
-            it += 1
-            continue
-
         val = values[it]
         tot += 1
 
@@ -332,12 +331,6 @@ cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
 
     while it < end:
         i = labels[it]
-
-        # mapping was NaN
-        if i == -1:
-            it += 1
-            continue
-
         val = values[it]
         tot += 1
 

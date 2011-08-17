@@ -378,6 +378,13 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.isnan(Series([1.], index=[1]).var()))
         self.assert_(np.isnan(Series([1.], index=[1]).skew()))
 
+        # all NA
+        allna = self.series * nan
+        self.assert_(np.isnan(allna.sum()))
+        self.assert_(np.isnan(allna.mean()))
+        self.assert_(np.isnan(allna.std()))
+        self.assert_(np.isnan(allna.skew()))
+
     def test_quantile(self):
         from scipy.stats import scoreatpercentile
 

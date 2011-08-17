@@ -66,10 +66,21 @@ df = DataFrame(data)
 df['C'][2:10:2] = nan
 
 # single column
-grouped = df.drop(['B'], axis=1).groupby('A')
-exp = {}
-for cat, group in grouped:
-    exp[cat] = group['C'].sum()
-exp = DataFrame({'C' : exp})
-result = grouped.sum()
+# grouped = df.drop(['B'], axis=1).groupby('A')
+# exp = {}
+# for cat, group in grouped:
+#     exp[cat] = group['C'].sum()
+# exp = DataFrame({'C' : exp})
+# result = grouped.sum()
 
+grouped = df.groupby(['A', 'B'])
+expd = {}
+for cat1, cat2, group in grouped:
+    expd.setdefault(cat1, {})[cat2] = group['C'].sum()
+exp = DataFrame(expd).T.stack()
+result = grouped.sum()['C']
+
+print 'wanted'
+print exp
+print 'got'
+print result

@@ -793,6 +793,7 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
     axis_labels = labels[which][start:end]
     edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
                                      side='left')
+
     if isinstance(data, BlockManager):
         def slicer(data, slob):
             return factory(data.get_slice(slob, axis=axis))
@@ -802,9 +803,10 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
 
     do_slice = which == len(labels) - 1
 
-    # time to actually aggregate
-    left = 0
+    # omit -1 values at beginning-- NA values
+    left = axis_labels.searchsorted(0)
 
+    # time to actually aggregate
     for i, right in enumerate(edges):
         if do_slice:
             slob = slice(start + left, start + right)
