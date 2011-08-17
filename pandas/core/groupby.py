@@ -26,20 +26,6 @@ def groupby(obj, grouper, **kwds):
 
     return klass(obj, grouper, **kwds)
 
-class MethodWrapper(object):
-
-    def __init__(self, caller, name, klass):
-        self.caller = caller
-        self.name = name
-        self.klass = klass
-
-    def __call__(self, *args, **kwargs):
-        def curried(x):
-            # f = getattr(self.klass, self.name)
-            f = getattr(x, self.name)
-            return f(*args, **kwargs)
-        return self.caller(curried)
-
 class GroupBy(object):
     """
     Class for grouping and aggregating relational data.
@@ -80,7 +66,14 @@ class GroupBy(object):
         if not isinstance(f, types.MethodType):
             return self.aggregate(lambda self: getattr(self, name))
 
-        return MethodWrapper(self.aggregate, name, type(self.obj))
+        f = getattr(type(self.obj), name)
+
+        def wrapper(*args, **kwargs):
+            def curried(x):
+                return f(x, *args, **kwargs)
+            return self.aggregate(curried)
+
+        return wrapper
 
     @property
     def primary(self):
