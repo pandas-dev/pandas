@@ -312,8 +312,16 @@ class Index(np.ndarray):
         return Index(arr)
 
     def insert(self, loc, item):
-        new_index = list(self)
-        new_index.insert(loc, item)
+        """
+
+        Returns
+        -------
+        new_index : Index
+        """
+        index = np.asarray(self)
+        # because numpy is fussy with tuples
+        item_idx = Index([item])
+        new_index = np.concatenate((index[:loc], item_idx, index[loc:]))
         return Index(new_index)
 
     def drop(self, labels):
