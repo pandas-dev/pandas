@@ -5,12 +5,13 @@ import types
 import numpy as np
 
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
-from pandas.core.index import Factor, MultiIndex
+from pandas.core.generic import NDFrame, PandasObject
+from pandas.core.index import Factor, Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
 import pandas._tseries as _tseries
+
 
 def groupby(obj, grouper, **kwds):
     """
@@ -34,7 +35,7 @@ class GroupBy(object):
     """
     def __init__(self, obj, grouper=None, axis=0, level=None,
                  groupings=None, exclusions=None, name=None):
-        self.name = name
+        self._name = name
         self.obj = obj
         self.axis = axis
         self.level = level
@@ -46,12 +47,30 @@ class GroupBy(object):
         self.groupings = groupings
         self.exclusions = set(exclusions)
 
+    @property
+    def groups(self):
+        if len(self.groupings) == 1:
+            return self.primary.groups
+        else:
+            raise NotImplementedError
+
+    @property
+    def name(self):
+        if self._name is None:
+            return 'result'
+        else:
+            return self._name
+
     def _get_obj_with_exclusions(self):
         return self.obj
 
     @property
-    def _result_shape(self):
+    def _group_shape(self):
         return tuple(len(ping.ids) for ping in self.groupings)
+
+    @property
+    def _agg_stride_shape(self):
+        raise NotImplementedError
 
     def __getattribute__(self, attr):
         try:
@@ -111,12 +130,13 @@ class GroupBy(object):
                 yield it
 
     def _multi_iter(self):
-        if isinstance(self.obj, NDFrame):
+        tipo = type(self.obj)
+        if isinstance(self.obj, DataFrame):
+            data = self.obj
+        elif isinstance(self.obj, NDFrame):
             data = self.obj._data
-            tipo = type(self.obj)
         else:
             data = self.obj
-            tipo = type(self.obj)
 
         def flatten(gen, level=0):
             ids = self.groupings[level].ids
@@ -143,15 +163,11 @@ class GroupBy(object):
     def _get_names(self):
         axes = [ping.levels for ping in self.groupings]
         grouping_names = [ping.name for ping in self.groupings]
-        shape = self._result_shape
+        shape = self._group_shape
         return zip(grouping_names, _ravel_names(axes, shape))
 
     def _iterate_slices(self):
-        name = self.name
-        if name is None:
-            name = 'result'
-
-        yield name, self.obj
+        yield self.name, self.obj
 
     def transform(self, func):
         raise NotImplementedError
@@ -161,7 +177,7 @@ class GroupBy(object):
         Compute mean of groups, excluding missing values
         """
         try:
-            return self._cython_aggregate('mean')
+            return self._cython_agg_general('mean')
         except Exception:
             return self.aggregate(np.mean)
 
@@ -170,16 +186,16 @@ class GroupBy(object):
         Compute sum of values, excluding missing values
         """
         try:
-            return self._cython_aggregate('add')
+            return self._cython_agg_general('add')
         except Exception:
             return self.aggregate(np.sum)
 
-    def _cython_aggregate_dict(self, how):
+    def _cython_agg_general(self, how):
         label_list = [ping.labels for ping in self.groupings]
-        shape = self._result_shape
+        shape = self._group_shape
 
         # TODO: address inefficiencies, like duplicating effort (should
-        # aggregate all the columns at once)
+        # aggregate all the columns at once?)
 
         output = {}
         cannot_agg = []
@@ -196,76 +212,73 @@ class GroupBy(object):
             mask = counts.ravel() > 0
             output[name] = result[mask]
 
-        return output, mask
+        return self._wrap_aggregated_output(output, mask)
 
     def _get_multi_index(self, mask):
         name_list = self._get_names()
         masked = [raveled[mask] for _, raveled in name_list]
         return MultiIndex.from_arrays(masked)
 
-    def _aggregate_multi_group(self, arg):
-        # want to cythonize?
-        shape = self._result_shape
-        result = np.empty(shape, dtype=float)
-        result.fill(np.nan)
-        counts = np.zeros(shape, dtype=int)
+    def _python_agg_general(self, arg):
+        group_shape = self._group_shape
+        counts = np.zeros(group_shape, dtype=int)
 
-        def _doit(reschunk, ctchunk, gen):
+        # want to cythonize?
+        def _doit(reschunk, ctchunk, gen, shape_axis=0):
             for i, (_, subgen) in enumerate(gen):
-                if isinstance(subgen, Series):
-                    ctchunk[i] = len(subgen)
-                    if len(subgen) == 0:
+                if isinstance(subgen, PandasObject):
+                    size = subgen.shape[shape_axis]
+                    ctchunk[i] = size
+                    if size == 0:
                         continue
                     reschunk[i] = arg(subgen)
                 else:
-                    _doit(reschunk[i], ctchunk[i], subgen)
+                    _doit(reschunk[i], ctchunk[i], subgen,
+                          shape_axis=shape_axis)
 
         gen_factory = self._generator_factory
 
-        output = {}
+        try:
+            stride_shape = self._agg_stride_shape
+            output = np.empty(group_shape + stride_shape,
+                              dtype=float)
+            output.fill(np.nan)
+            obj = self._get_obj_with_exclusions()
+            _doit(output, counts, gen_factory(obj),
+                  shape_axis=self.axis)
 
-        # iterate through "columns" ex exclusions to populate output dict
-        for name, obj in self._iterate_slices():
-            _doit(result, counts, gen_factory(obj))
-            # TODO: same mask for every column...
             mask = counts.ravel() > 0
-            output[name] = result.ravel()[mask]
-
+            output = output.reshape((np.prod(group_shape),) + stride_shape)
+            output = output[mask]
+        except TypeError:
+            result = np.empty(group_shape, dtype=float)
             result.fill(np.nan)
+            # iterate through "columns" ex exclusions to populate output dict
+            output = {}
+            for name, obj in self._iterate_slices():
+                _doit(result, counts, gen_factory(obj))
+                # TODO: same mask for every column...
+                result.fill(np.nan)
+                output[name] = result.ravel()
 
-        name_list = self._get_names()
+            mask = counts.ravel() > 0
+            for name, result in output.iteritems():
+                output[name] = result[mask]
 
-        if len(self.groupings) > 1:
-            masked = [raveled[mask] for _, raveled in name_list]
-            index = MultiIndex.from_arrays(masked)
-            result = DataFrame(output, index=index)
-        else:
-            result = DataFrame(output, index=name_list[0][1])
-
-        if self.axis == 1:
-            result = result.T
-
-        return result
+        return self._wrap_aggregated_output(output, mask)
 
     @property
     def _generator_factory(self):
         labels = [ping.labels for ping in self.groupings]
-        shape = self._result_shape
+        shape = self._group_shape
 
-        # XXX: HACK! need to do something about all this...
         if isinstance(self.obj, NDFrame):
             factory = self.obj._constructor
         else:
             factory = None
 
+        factory = None
         axis = self.axis
-
-        if isinstance(self.obj, DataFrame):
-            if axis == 0:
-                axis = 1
-            elif axis == 1:
-                axis = 0
-
         return lambda obj: generate_groups(obj, labels, shape, axis=axis,
                                            factory=factory)
 
@@ -386,29 +399,21 @@ def _convert_grouper(axis, grouper):
     else:
         return grouper
 
-def multi_groupby(obj, op, *columns):
-    cur = columns[0]
-    grouped = obj.groupby(cur)
-    if len(columns) == 1:
-        return grouped.aggregate(op)
-    else:
-        result = {}
-        for key, value in grouped:
-            result[key] = multi_groupby(value, op, columns[1:])
-    return result
-
 class SeriesGroupBy(GroupBy):
 
     _cythonized_methods = set(['add', 'mean'])
 
+    @property
+    def _agg_stride_shape(self):
+        return ()
+
     def get_group(self, name, obj=None):
+        # faster get_group for Series
         if obj is None:
             obj = self.obj
 
         inds = self.primary.indices[name]
-        new_values = obj.values.take(inds)
-        new_index = obj.index.take(inds)
-        return Series(new_values, index=new_index)
+        return obj.take(inds)
 
     def aggregate(self, arg):
         """
@@ -429,16 +434,15 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
+        if isinstance(arg, basestring):
+            return getattr(self, arg)()
+
         if len(self.groupings) > 1:
-            # HACK for now
-            return self._aggregate_multi_group(arg)
+            return self._python_agg_general(arg)
 
         if hasattr(arg,'__iter__'):
             ret = self._aggregate_multiple_funcs(arg)
         else:
-            if isinstance(arg, basestring):
-                return getattr(self, arg)()
-
             try:
                 result = self._aggregate_simple(arg)
             except Exception:
@@ -454,11 +458,10 @@ class SeriesGroupBy(GroupBy):
 
         return ret
 
-    def _cython_aggregate(self, how):
-        output, mask = self._cython_aggregate_dict(how)
-
-        # sort of a kludge
-        output = output['result']
+    def _wrap_aggregated_output(self, output, mask):
+        if isinstance(output, dict):
+            # sort of a kludge
+            output = output[self.name]
 
         if len(self.groupings) > 1:
             index = self._get_multi_index(mask)
@@ -558,6 +561,25 @@ def _ravel_names(axes, shape):
 
 class DataFrameGroupBy(GroupBy):
 
+    def get_group(self, name, obj=None):
+        # faster get_group for Series
+        if obj is None:
+            obj = self.obj
+
+        inds = self.primary.indices[name]
+        return obj.take(inds, axis=self.axis)
+
+    @property
+    def _agg_stride_shape(self):
+        if self.axis == 0:
+            n = len(self.obj.columns)
+        else:
+            n = len(self.obj.index)
+
+        n -= len(self.exclusions)
+
+        return n,
+
     def __getitem__(self, key):
         if key not in self.obj:
             raise KeyError('column %s not found' % key)
@@ -579,7 +601,10 @@ class DataFrameGroupBy(GroupBy):
             yield val, slicer(val)
 
     def _get_obj_with_exclusions(self):
-        return self.obj.drop(self.exclusions, axis=1)
+        if len(self.exclusions) > 0:
+            return self.obj.drop(self.exclusions, axis=1)
+        else:
+            return self.obj
 
     def aggregate(self, arg):
         """
@@ -597,9 +622,8 @@ class DataFrameGroupBy(GroupBy):
         -------
         aggregated : DataFrame
         """
-        if len(self.groupings) > 1:
-            # HACK for now
-            return self._aggregate_multi_group(arg)
+        if isinstance(arg, basestring):
+            return getattr(self, arg)()
 
         result = {}
         if isinstance(arg, dict):
@@ -608,22 +632,9 @@ class DataFrameGroupBy(GroupBy):
 
             result = DataFrame(result)
         else:
+            if len(self.groupings) > 1:
+                return self._python_agg_general(arg)
             result = self._aggregate_generic(arg, axis=self.axis)
-
-        return result
-
-    def _cython_aggregate(self, how):
-        output, mask = self._cython_aggregate_dict(how)
-
-        if len(self.groupings) > 1:
-            index = self._get_multi_index(mask)
-            result = DataFrame(output, index=index)
-        else:
-            name_list = self._get_names()
-            result = DataFrame(output, index=name_list[0][1])
-
-        if self.axis == 1:
-            result = result.T
 
         return result
 
@@ -670,6 +681,19 @@ class DataFrameGroupBy(GroupBy):
 
         return DataFrame(result)
 
+    def _wrap_aggregated_output(self, output, mask):
+        if len(self.groupings) > 1:
+            index = self._get_multi_index(mask)
+            result = DataFrame(output, index=index)
+        else:
+            name_list = self._get_names()
+            result = DataFrame(output, index=name_list[0][1])
+
+        if self.axis == 1:
+            result = result.T
+
+        return result
+
     def transform(self, func):
         """
         For given DataFrame, group index by given mapper function or dict, take
@@ -699,26 +723,11 @@ class DataFrameGroupBy(GroupBy):
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
         """
-        # DataFrame objects?
-        result_values = np.empty_like(self.obj.values)
+        applied = []
 
-        if self.axis == 0:
-            trans = lambda x: x
-        elif self.axis == 1:
-            trans = lambda x: x.T
-
-        result_values = trans(result_values)
-
-        for val, group in self.primary.groups.iteritems():
-            if not isinstance(group, list): # pragma: no cover
-                group = list(group)
-
-            if self.axis == 0:
-                subframe = self.obj.reindex(group)
-                indexer, _ = self.obj.index.get_indexer(subframe.index)
-            else:
-                subframe = self.obj.reindex(columns=group)
-                indexer, _ = self.obj.columns.get_indexer(subframe.columns)
+        obj = self._get_obj_with_exclusions()
+        for val, inds in self.primary.indices.iteritems():
+            subframe = obj.take(inds, axis=self.axis)
             subframe.groupName = val
 
             try:
@@ -726,12 +735,30 @@ class DataFrameGroupBy(GroupBy):
             except Exception: # pragma: no cover
                 res = func(subframe)
 
-            result_values[indexer] = trans(res.values)
+            # broadcasting
+            if isinstance(res, Series):
+                if res.index is obj.index:
+                    subframe.T.values[:] = res
+                else:
+                    subframe.values[:] = res
 
-        result_values = trans(result_values)
+                applied.append(subframe)
+            else:
+                applied.append(res)
 
-        return DataFrame(result_values, index=self.obj.index,
-                         columns=self.obj.columns)
+        if self.axis == 0:
+            all_index = [np.asarray(x.index) for x in applied]
+            new_index = Index(np.concatenate(all_index))
+            new_columns = obj.columns
+        else:
+            all_columns = [np.asarray(x.columns) for x in applied]
+            new_columns = Index(np.concatenate(all_columns))
+            new_index = obj.index
+
+        new_values = np.concatenate([x.values for x in applied],
+                                    axis=self.axis)
+        result = DataFrame(new_values, index=new_index, columns=new_columns)
+        return result.reindex(index=obj.index, columns=obj.columns)
 
 
 class WidePanelGroupBy(GroupBy):
@@ -809,11 +836,11 @@ def _group_reorder(data, label_list, axis=0):
         # this is sort of wasteful but...
         sorted_axis = data.axes[axis].take(indexer)
         sorted_data = data.reindex_axis(sorted_axis, axis=axis)
-    elif isinstance(data, Series):
+    if isinstance(data, Series):
         sorted_axis = data.index.take(indexer)
         sorted_data = data.reindex(sorted_axis)
-    else:
-        sorted_data = data.take(indexer)
+    elif isinstance(data, DataFrame):
+        sorted_data = data.take(indexer, axis=axis)
 
     return sorted_data, sorted_labels
 
@@ -823,7 +850,13 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
     edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
                                      side='left')
 
-    if isinstance(data, BlockManager):
+    if isinstance(data, DataFrame):
+        def slicer(data, slob):
+            if axis == 0:
+                return data[slob]
+            else:
+                return data.ix[:, slob]
+    elif isinstance(data, BlockManager):
         def slicer(data, slob):
             return factory(data.get_slice(slob, axis=axis))
     else:

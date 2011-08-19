@@ -7,6 +7,7 @@ from pandas import *
 
 import pandas._tseries as tseries
 import pandas.core.groupby as gp
+import pandas.util.testing as tm
 reload(gp)
 
 """
@@ -59,11 +60,11 @@ res = DataFrame(res)
 grouped = df.groupby(['key1', 'key2'])
 """
 
-data = {'A' : [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
-        'B' : ['A', 'B'] * 6,
-        'C' : np.random.randn(12)}
-df = DataFrame(data)
-df['C'][2:10:2] = nan
+# data = {'A' : [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
+#         'B' : ['A', 'B'] * 6,
+#         'C' : np.random.randn(12)}
+# df = DataFrame(data)
+# df['C'][2:10:2] = nan
 
 # single column
 # grouped = df.drop(['B'], axis=1).groupby('A')
@@ -73,14 +74,34 @@ df['C'][2:10:2] = nan
 # exp = DataFrame({'C' : exp})
 # result = grouped.sum()
 
-grouped = df.groupby(['A', 'B'])
-expd = {}
-for cat1, cat2, group in grouped:
-    expd.setdefault(cat1, {})[cat2] = group['C'].sum()
-exp = DataFrame(expd).T.stack()
-result = grouped.sum()['C']
+# grouped = df.groupby(['A', 'B'])
+# expd = {}
+# for cat1, cat2, group in grouped:
+#     expd.setdefault(cat1, {})[cat2] = group['C'].sum()
+# exp = DataFrame(expd).T.stack()
+# result = grouped.sum()['C']
 
-print 'wanted'
-print exp
-print 'got'
-print result
+# print 'wanted'
+# print exp
+# print 'got'
+# print result
+
+# tm.N = 10000
+
+mapping = {'A': 0, 'C': 1, 'B': 0, 'D': 1}
+tf = lambda x: x - x.mean()
+
+df = tm.makeTimeDataFrame()
+
+# grouped = df.groupby(lambda x: x.strftime('%m/%y'))
+grouped = df.groupby(mapping, axis=1)
+groupedT = df.T.groupby(mapping, axis=0)
+
+r1 = groupedT.transform(tf).T
+r2 = grouped.transform(tf)
+
+fillit = lambda x: x.fillna(method='pad')
+
+f = lambda x: x
+
+transformed = df.groupby(lambda x: x.strftime('%m/%y')).transform(lambda x: x)

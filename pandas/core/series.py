@@ -1094,6 +1094,23 @@ class Series(np.ndarray, PandasObject):
         """
         return self.reindex(other.index, method=method)
 
+    def take(self, indices):
+        """
+        Analogous to ndarray.take, return Series corresponding to requested
+        indices
+
+        Parameters
+        ----------
+        indices : list / array of ints
+
+        Returns
+        -------
+        taken : Series
+        """
+        new_index = self.index.take(indices)
+        new_values = self.values.take(indices)
+        return Series(new_values, index=new_index)
+
     def fillna(self, value=None, method='pad'):
         """
         Fill NaN values using the specified method.

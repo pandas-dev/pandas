@@ -66,6 +66,13 @@ class TestGroupBy(unittest.TestCase):
                              'C' : np.random.randn(8),
                              'D' : np.random.randn(8)})
 
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+        self.mframe = DataFrame(np.random.randn(10, 3), index=index,
+                                columns=['A', 'B', 'C'])
+
     def test_basic(self):
         data = Series(np.arange(9) / 3, index=np.arange(9))
 
@@ -110,6 +117,37 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+    def test_series_agg_corner(self):
+        # nothing to group, all NA
+        result = self.ts.groupby(self.ts * np.nan).sum()
+        assert_series_equal(result, Series([]))
+
+    def test_aggregate_str_func(self):
+        def _check_results(grouped):
+            # single series
+            result = grouped['A'].agg('std')
+            expected = grouped['A'].std()
+            assert_series_equal(result, expected)
+
+            # group frame by function name
+            result = grouped.aggregate('var')
+            expected = grouped.var()
+            assert_frame_equal(result, expected)
+
+            # group frame by function dict
+            result = grouped.agg({'A' : 'var', 'B' : 'std', 'C' : 'mean'})
+            expected = DataFrame({'A' : grouped['A'].var(),
+                                  'B' : grouped['B'].std(),
+                                  'C' : grouped['C'].mean()})
+            assert_frame_equal(result, expected)
+
+        by_weekday = self.tsframe.groupby(lambda x: x.weekday())
+        _check_results(by_weekday)
+
+        by_mwkday = self.tsframe.groupby([lambda x: x.month,
+                                          lambda x: x.weekday()])
+        _check_results(by_mwkday)
+
     def test_basic_regression(self):
         # regression
         T = [1.0*x for x in range(1,10) *10][:1095]
@@ -138,6 +176,15 @@ class TestGroupBy(unittest.TestCase):
             mean = group.mean()
             for idx in group.index:
                 self.assertEqual(transformed[idx], mean)
+
+    def test_dispatch_transform(self):
+        df = self.tsframe[::5].reindex(self.tsframe.index)
+
+        filled = df.groupby(lambda x: x.month).fillna(method='pad')
+
+        fillit = lambda x: x.fillna(method='pad')
+        expected = df.groupby(lambda x: x.month).transform(fillit)
+        assert_frame_equal(filled, expected)
 
     def test_with_na(self):
         index = Index(np.arange(10))
@@ -338,7 +385,7 @@ class TestGroupBy(unittest.TestCase):
                 result_col = op(grouped[col])
                 exp = expected[col]
                 pivoted = result1[col].unstack()
-                pivoted2 = result_col[col].unstack()
+                pivoted2 = result_col.unstack()
                 assert_frame_equal(pivoted.reindex_like(exp), exp)
                 assert_frame_equal(pivoted2.reindex_like(exp), exp)
 
@@ -362,8 +409,10 @@ class TestGroupBy(unittest.TestCase):
         grouped = df.T.groupby([lambda x: x.year,
                                 lambda x: x.month,
                                 lambda x: x.day], axis=1)
+        agged = grouped.agg(lambda x: x.sum(1))
+        assert_almost_equal(df.T.values, agged.values)
 
-        agged = grouped.agg(np.sum)
+        agged = grouped.agg(lambda x: x.sum(1))
         assert_almost_equal(df.T.values, agged.values)
 
     def test_groupby_multi_corner(self):
@@ -416,13 +465,16 @@ class TestGroupBy(unittest.TestCase):
         _testit(lambda x: x.sum())
         _testit(lambda x: x.mean())
 
+    def test_grouping_attrs(self):
+        deleveled = self.mframe.delevel()
+        grouped = deleveled.groupby(['label_0', 'label_1'])
+
+        for i, ping in enumerate(grouped.groupings):
+            the_counts = self.mframe.groupby(level=i).count()['A']
+            assert_almost_equal(ping.counts, the_counts)
+
     def test_groupby_level(self):
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
-        frame = DataFrame(np.random.randn(10, 3), index=index,
-                          columns=['A', 'B', 'C'])
+        frame = self.mframe
         deleveled = frame.delevel()
 
         result0 = frame.groupby(level=0).sum()
@@ -438,29 +490,28 @@ class TestGroupBy(unittest.TestCase):
         result1 = frame.T.groupby(level=1, axis=1).sum()
         assert_frame_equal(result0, expected0.T)
         assert_frame_equal(result1, expected1.T)
+
+        # raise exception for non-MultiIndex
+        self.assertRaises(ValueError, self.df.groupby, level=0)
 
     def test_groupby_level_mapper(self):
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
-        frame = DataFrame(np.random.randn(10, 3), index=index,
-                          columns=['A', 'B', 'C'])
+        frame = self.mframe
         deleveled = frame.delevel()
 
-        result0 = frame.groupby(level=0).sum()
-        result1 = frame.groupby(level=1).sum()
+        mapper0 = {'foo' : 0, 'bar' : 0,
+                   'baz' : 1, 'qux' : 1}
+        mapper1 = {'one' : 0, 'two' : 0, 'three' : 1}
 
-        expected0 = frame.groupby(deleveled['label_0']).sum()
-        expected1 = frame.groupby(deleveled['label_1']).sum()
+        result0 = frame.groupby(mapper0, level=0).sum()
+        result1 = frame.groupby(mapper1, level=1).sum()
+
+        mapped_label0 = np.array([mapper0.get(x) for x in deleveled['label_0']])
+        mapped_label1 = np.array([mapper1.get(x) for x in deleveled['label_1']])
+        expected0 = frame.groupby(mapped_label0).sum()
+        expected1 = frame.groupby(mapped_label1).sum()
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
-
-        result0 = frame.T.groupby(level=0, axis=1).sum()
-        result1 = frame.T.groupby(level=1, axis=1).sum()
-        assert_frame_equal(result0, expected0.T)
-        assert_frame_equal(result1, expected1.T)
 
 class TestPanelGroupBy(unittest.TestCase):
 

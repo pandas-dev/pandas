@@ -253,6 +253,10 @@ class DataFrame(NDFrame):
 
         return self._ix
 
+    @property
+    def shape(self):
+        return (len(self.index), len(self.columns))
+
     #----------------------------------------------------------------------
     # Class behavior
 
@@ -996,6 +1000,34 @@ class DataFrame(NDFrame):
         # todo: object columns
         return self.reindex(index=other.index, columns=other.columns,
                             method=method)
+
+    def take(self, indices, axis=0):
+        """
+        Analogous to ndarray.take, return DataFrame corresponding to requested
+        indices along an axis
+
+        Parameters
+        ----------
+        indices : list / array of ints
+        axis : {0, 1}
+
+        Returns
+        -------
+        taken : DataFrame
+        """
+        if axis == 0:
+            new_index = self.index.take(indices)
+            new_columns = self.columns
+        else:
+            new_index = self.index
+            new_columns = self.columns.take(indices)
+
+        # TODO: implement take on BlockManager
+        if self._data.is_mixed_dtype():
+            return self.reindex(index=new_index, columns=new_columns)
+
+        new_values = self.values.take(indices, axis=axis)
+        return DataFrame(new_values, index=new_index, columns=new_columns)
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods
