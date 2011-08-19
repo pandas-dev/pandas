@@ -48,12 +48,25 @@ class GroupBy(object):
         self.groupings = groupings
         self.exclusions = set(exclusions)
 
+    def __len__(self):
+        return len(self.groups)
+
+    _groups = None
     @property
     def groups(self):
+        if self._groups is not None:
+            return self._groups
+
         if len(self.groupings) == 1:
-            return self.primary.groups
+            self._groups = self.primary.groups
         else:
-            raise NotImplementedError
+            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = Index(to_groupby)
+
+            axis = self.obj._get_axis(self.axis)
+            self._groups = _tseries.groupby(axis, to_groupby)
+
+        return self._groups
 
     @property
     def name(self):

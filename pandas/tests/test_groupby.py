@@ -17,8 +17,6 @@ import numpy as np
 
 import pandas.util.testing as tm
 
-# unittest.TestCase
-
 def commonSetUp(self):
     self.dateRange = DateRange('1/1/2005', periods=250, offset=dt.bday)
     self.stringIndex = Index([rands(8).upper() for x in xrange(250)])
@@ -35,19 +33,6 @@ def commonSetUp(self):
 
     self.timeMatrix = DataFrame(randMat, columns=self.columnIndex,
                                 index=self.dateRange)
-
-
-class GroupByTestCase(unittest.TestCase):
-    setUp = commonSetUp
-
-    def test_python_grouper(self):
-        groupFunc = self.groupDict.get
-        groups = groupby(self.stringIndex, groupFunc)
-        setDict = dict((k, set(v)) for k, v in groups.iteritems())
-        for idx in self.stringIndex:
-            key = groupFunc(idx)
-            groupSet = setDict[key]
-            assert(idx in groupSet)
 
 class TestGroupBy(unittest.TestCase):
 
@@ -121,6 +106,33 @@ class TestGroupBy(unittest.TestCase):
         # nothing to group, all NA
         result = self.ts.groupby(self.ts * np.nan).sum()
         assert_series_equal(result, Series([]))
+
+    def test_len(self):
+        df = tm.makeTimeDataFrame()
+        grouped = df.groupby([lambda x: x.year,
+                              lambda x: x.month,
+                              lambda x: x.day])
+        self.assertEquals(len(grouped), len(df))
+
+        grouped = df.groupby([lambda x: x.year,
+                              lambda x: x.month])
+        expected = len(set([(x.year, x.month) for x in df.index]))
+        self.assertEquals(len(grouped), expected)
+
+    def test_groups(self):
+        grouped = self.df.groupby(['A'])
+        groups = grouped.groups
+        self.assert_(groups is grouped.groups) # caching works
+
+        for k, v in grouped.groups.iteritems():
+            self.assert_((self.df.ix[v]['A'] == k).all())
+
+        grouped = self.df.groupby(['A', 'B'])
+        groups = grouped.groups
+        self.assert_(groups is grouped.groups) # caching works
+        for k, v in grouped.groups.iteritems():
+            self.assert_((self.df.ix[v]['A'] == k[0]).all())
+            self.assert_((self.df.ix[v]['B'] == k[1]).all())
 
     def test_aggregate_str_func(self):
         def _check_results(grouped):
@@ -221,10 +233,21 @@ class TestGroupBy(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, grouped, 'foo')
 
     def test_series_describe_multikey(self):
-        raise nose.SkipTest
         ts = tm.makeTimeSeries()
         grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
-        grouped.describe()
+        result = grouped.describe()
+        assert_series_equal(result['mean'], grouped.mean())
+        assert_series_equal(result['std'], grouped.std())
+        assert_series_equal(result['min'], grouped.min())
+
+    def test_frame_describe_multikey(self):
+        grouped = self.tsframe.groupby([lambda x: x.year,
+                                        lambda x: x.month])
+        result = grouped.describe()
+
+        for col, ts in self.tsframe.iteritems():
+            expected = grouped[col].describe()
+            assert_series_equal(result['A'].unstack(), expected)
 
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
