@@ -86,12 +86,13 @@ grouped = df.groupby(['key1', 'key2'])
 # print 'got'
 # print result
 
-# tm.N = 10000
+tm.N = 10000
 
 mapping = {'A': 0, 'C': 1, 'B': 0, 'D': 1}
 tf = lambda x: x - x.mean()
 
 df = tm.makeTimeDataFrame()
+ts = df['A']
 
 # grouped = df.groupby(lambda x: x.strftime('%m/%y'))
 grouped = df.groupby(mapping, axis=1)

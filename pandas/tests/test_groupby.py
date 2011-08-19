@@ -111,7 +111,7 @@ class TestGroupBy(unittest.TestCase):
             1 : 20,
             2 : 30
         }
-        agged = grouped.agg(lambda x: group_constants[x.groupName] + x.mean())
+        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
         self.assertEqual(agged[1], 21)
 
         # corner cases
@@ -180,8 +180,9 @@ class TestGroupBy(unittest.TestCase):
     def test_dispatch_transform(self):
         df = self.tsframe[::5].reindex(self.tsframe.index)
 
-        filled = df.groupby(lambda x: x.month).fillna(method='pad')
+        grouped = df.groupby(lambda x: x.month)
 
+        filled = grouped.fillna(method='pad')
         fillit = lambda x: x.fillna(method='pad')
         expected = df.groupby(lambda x: x.month).transform(fillit)
         assert_frame_equal(filled, expected)
