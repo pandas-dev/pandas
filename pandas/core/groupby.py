@@ -916,7 +916,12 @@ def _make_concat_multiindex(indexes, keys, groupings):
 
         # things are potentially different sizes, so compute the exact labels
         # for each level and pass those to MultiIndex.from_arrays
-        for hlevel in zip(*keys):
+        if len(groupings) == 1:
+            zipped = [keys]
+        else:
+            zipped = zip(*keys)
+
+        for hlevel in zipped:
             to_concat = []
             for k, index in zip(hlevel, indexes):
                 to_concat.append(np.repeat(k, len(index)))

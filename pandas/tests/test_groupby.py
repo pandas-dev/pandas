@@ -245,9 +245,16 @@ class TestGroupBy(unittest.TestCase):
                                         lambda x: x.month])
         result = grouped.describe()
 
-        for col, ts in self.tsframe.iteritems():
+        for col in self.tsframe:
             expected = grouped[col].describe()
             assert_frame_equal(result[col].unstack(), expected)
+
+        groupedT = self.tsframe.groupby({'A' : 0, 'B' : 0,
+                                         'C' : 1, 'D' : 1}, axis=1)
+        result = groupedT.describe()
+
+        for name, group in groupedT:
+            assert_frame_equal(result[name], group.describe())
 
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
