@@ -310,7 +310,7 @@ class TestSparseSeries(TestCase):
             dense = sp.to_dense()
 
             def _compare(idx):
-                dense_result = dense.take(idx)
+                dense_result = dense.take(idx).values
                 sparse_result = sp.take(idx)
                 assert_almost_equal(dense_result, sparse_result)
 

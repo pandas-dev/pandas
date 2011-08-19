@@ -323,9 +323,16 @@ class GroupBy(object):
 
 def _is_indexed_like(obj, other):
     if isinstance(obj, Series):
+        if not isinstance(other, Series):
+            return False
         return obj.index.equals(other.index)
     elif isinstance(obj, DataFrame):
+        if not isinstance(other, DataFrame):
+            return False
+
         return obj._indexed_same(other)
+
+    return False
 
 class Grouping(object):
 
@@ -780,7 +787,7 @@ class DataFrameGroupBy(GroupBy):
                 columns = values[0].index
                 index = keys
             else:
-                stacked_values = np.vstack(values)
+                stacked_values = np.vstack(values).T
                 index = values[0].index
                 columns = keys
 
