@@ -397,6 +397,10 @@ class Grouping(object):
             self._make_labels()
         return self._ids
 
+    @cache_readonly
+    def reverse_ids(self):
+        return dict((v, k) for k, v in self.ids.iteritems())
+
     @property
     def levels(self):
         return [self.ids[k] for k in sorted(self.ids)]
@@ -406,6 +410,11 @@ class Grouping(object):
         if self._counts is None:
             self._make_labels()
         return self._counts
+
+    @cache_readonly
+    def group_index(self):
+        # XXX
+        return Index(Series(self.ids, index=np.arange(len(self.ids))).values)
 
     def _make_labels(self):
         ids, labels, counts  = _tseries.group_labels(self.grouper)
@@ -788,7 +797,14 @@ class DataFrameGroupBy(GroupBy):
             return DataFrame({})
 
         if isinstance(values[0], DataFrame):
-            return _concat_frames(values)
+            if not_indexed_same:
+                result = _concat_frames_hierarchical(values, keys,
+                                                     self.groupings,
+                                                     axis=self.axis)
+            else:
+                result = _concat_frames(values)
+
+            return result
         else:
             if len(self.groupings) > 1:
                 keys = MultiIndex.from_tuples(keys)
@@ -880,6 +896,64 @@ def _concat_frames(frames, index=None, columns=None, axis=0):
     new_values = np.concatenate([x.values for x in frames], axis=axis)
     result = DataFrame(new_values, index=new_index, columns=new_columns)
     return result.reindex(index=index, columns=columns)
+
+def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
+    if axis == 0:
+        indexes = [x.index for x in frames]
+        new_index = _make_concat_multiindex(indexes, keys, groupings)
+        new_columns = frames[0].columns
+    else:
+        all_columns = [x.columns for x in frames]
+        new_columns = _make_concat_multiindex(all_columns, keys, groupings)
+        new_index = frames[0].index
+
+    new_values = np.concatenate([x.values for x in frames], axis=axis)
+    return DataFrame(new_values, index=new_index, columns=new_columns)
+
+def _make_concat_multiindex(indexes, keys, groupings):
+    if not _all_indexes_same(indexes):
+        label_list = []
+
+        # things are potentially different sizes, so compute the exact labels
+        # for each level and pass those to MultiIndex.from_arrays
+        for hlevel in zip(*keys):
+            to_concat = []
+            for k, index in zip(hlevel, indexes):
+                to_concat.append(np.repeat(k, len(index)))
+            label_list.append(np.concatenate(to_concat))
+
+        # these go in the last level
+        label_list.append(np.concatenate(indexes))
+
+        return MultiIndex.from_arrays(label_list)
+
+    new_index = indexes[0]
+    n = len(new_index)
+
+    # do something a bit more speedy
+    levels = [ping.group_index for ping in  groupings]
+    levels.append(new_index)
+
+    # construct labels
+    labels = []
+
+    for hlevel, ping in zip(zip(*keys), groupings):
+        get_id = ping.reverse_ids.__getitem__
+        mapped = [get_id(x) for x in hlevel]
+        labels.append(np.repeat(mapped, n))
+
+    # last labels for the new level
+    labels.append(np.tile(np.arange(n), len(indexes)))
+    return MultiIndex(levels=levels, labels=labels)
+
+def _all_indexes_same(indexes):
+    if len(indexes) == 1:
+        return True
+    first = indexes[0]
+    for index in indexes[1:]:
+        if not first.equals(index):
+            return False
+    return True
 
 class WidePanelGroupBy(GroupBy):
 

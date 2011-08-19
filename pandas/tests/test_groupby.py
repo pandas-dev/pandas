@@ -247,7 +247,7 @@ class TestGroupBy(unittest.TestCase):
 
         for col, ts in self.tsframe.iteritems():
             expected = grouped[col].describe()
-            assert_series_equal(result['A'].unstack(), expected)
+            assert_frame_equal(result[col].unstack(), expected)
 
     def test_frame_groupby(self):
         grouped = self.tsframe.groupby(lambda x: x.weekday())
