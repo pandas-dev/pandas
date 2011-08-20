@@ -384,6 +384,17 @@ class TestGroupBy(unittest.TestCase):
             groups[a, b] = gp
         self.assertEquals(len(groups), 2)
 
+    def test_multi_iter_panel(self):
+        wp = tm.makeWidePanel()
+        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
+                             axis=1)
+
+        for month, wd, group in grouped:
+            exp_axis = [x for x in wp.major_axis
+                        if x.month == month and x.weekday() == wd]
+            expected = wp.reindex(major=exp_axis)
+            assert_panel_equal(group, expected)
+
     def test_multi_func(self):
         col1 = self.df['A']
         col2 = self.df['B']
@@ -551,6 +562,30 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
+
+    def test_cython_fail_agg(self):
+        dr = DateRange('1/1/2000', periods=50)
+        ts = Series(['A', 'B', 'C', 'D', 'E'] * 10, index=dr)
+
+        grouped = ts.groupby(lambda x: x.month)
+        summed = grouped.sum()
+        expected = grouped.agg(np.sum)
+        assert_series_equal(summed, expected)
+
+    def test_apply_series_to_frame(self):
+        def f(piece):
+            return DataFrame({'value' : piece,
+                              'demeaned' : piece - piece.mean(),
+                              'logged' : np.log(piece)})
+
+        dr = DateRange('1/1/2000', periods=100)
+        ts = Series(np.random.randn(100), index=dr)
+
+        grouped = ts.groupby(lambda x: x.month)
+        result = grouped.apply(f)
+
+        self.assert_(isinstance(result, DataFrame))
+        self.assert_(result.index.equals(ts.index))
 
 class TestPanelGroupBy(unittest.TestCase):
 

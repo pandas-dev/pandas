@@ -351,7 +351,7 @@ class Factor(object):
         return Factor(labels, levels=levels)
 
     def asarray(self):
-        return self.levels[self.labels]
+        return np.asarray(self.levels).take(self.labels)
 
     def __len__(self):
         return len(self.labels)

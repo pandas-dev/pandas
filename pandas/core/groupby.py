@@ -153,20 +153,21 @@ class GroupBy(object):
         elif isinstance(self.obj, Series):
             tipo = Series
 
-        def flatten(gen, level=0):
+        def flatten(gen, level=0, shape_axis=0):
             ids = self.groupings[level].ids
             for cat, subgen in gen:
                 if isinstance(subgen, tipo):
                     yield (ids[cat],), subgen
                 else:
-                    for subcat, data in flatten(subgen, level=level+1):
-                        if len(data) == 0:
+                    for subcat, data in flatten(subgen, level=level+1,
+                                                shape_axis=shape_axis):
+                        if data.shape[shape_axis] == 0:
                             continue
                         yield (ids[cat],) + subcat, data
 
         gen = self._generator_factory(data)
 
-        for cats, data in flatten(gen):
+        for cats, data in flatten(gen, shape_axis=self.axis):
             yield cats + (data,)
 
     def apply(self, func):
@@ -197,10 +198,7 @@ class GroupBy(object):
         """
         Compute mean of groups, excluding missing values
         """
-        try:
-            return self._cython_agg_general('mean')
-        except Exception:
-            return self.aggregate(np.mean)
+        return self._cython_agg_general('mean')
 
     def sum(self):
         """
@@ -308,7 +306,7 @@ class GroupBy(object):
             res = arg(group)
 
             if not _is_indexed_like(res, group):
-               not_indexed_same = True
+                not_indexed_same = True
 
             result_keys.append(key)
             result_values.append(res)
@@ -318,6 +316,16 @@ class GroupBy(object):
 
     def _wrap_applied_output(self, *args, **kwargs):
         raise NotImplementedError
+
+    def _wrap_frames(self, keys, values, not_indexed_same=False):
+        if not_indexed_same:
+            result = _concat_frames_hierarchical(values, keys,
+                                                 self.groupings,
+                                                 axis=self.axis)
+        else:
+            result = _concat_frames(values)
+
+        return result
 
     @property
     def _generator_factory(self):
@@ -329,9 +337,8 @@ class GroupBy(object):
         else:
             factory = None
 
-        factory = None
-        axis = self.axis
-        return lambda obj: generate_groups(obj, labels, shape, axis=axis,
+        return lambda obj: generate_groups(obj, labels, shape,
+                                           axis=self.axis,
                                            factory=factory)
 
 def _is_indexed_like(obj, other):
@@ -340,7 +347,9 @@ def _is_indexed_like(obj, other):
             return False
         return obj.index.equals(other.index)
     elif isinstance(obj, DataFrame):
-        if not isinstance(other, DataFrame):
+        if isinstance(other, Series):
+            return obj.index.equals(other.index)
+        elif not isinstance(other, DataFrame):
             return False
 
         return obj._indexed_same(other)
@@ -560,6 +569,10 @@ class SeriesGroupBy(GroupBy):
                 cat_index = np.concatenate([np.asarray(x.index)
                                             for x in values])
                 return Series(cat_values, index=cat_index)
+        elif isinstance(values[0], DataFrame):
+            # possible that Series -> DataFrame by applied function
+            return self._wrap_frames(keys, values,
+                                     not_indexed_same=not_indexed_same)
         else:
             if len(self.groupings) > 1:
                 index = MultiIndex.from_tuples(keys)
@@ -789,14 +802,8 @@ class DataFrameGroupBy(GroupBy):
             return DataFrame({})
 
         if isinstance(values[0], DataFrame):
-            if not_indexed_same:
-                result = _concat_frames_hierarchical(values, keys,
-                                                     self.groupings,
-                                                     axis=self.axis)
-            else:
-                result = _concat_frames(values)
-
-            return result
+            return self._wrap_frames(keys, values,
+                                     not_indexed_same=not_indexed_same)
         else:
             if len(self.groupings) > 1:
                 keys = MultiIndex.from_tuples(keys)
