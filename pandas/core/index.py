@@ -130,7 +130,7 @@ class Index(np.ndarray):
             zero_time = time(0, 0)
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
-                    return '\n'.join('%s' % x for x in self)
+                    return ['%s' % x for x in self]
                 to_join.append(dt.strftime("%Y-%m-%d"))
             return to_join
 

@@ -812,11 +812,11 @@ class DataFrameGroupBy(GroupBy):
             # obj = self._obj_with_exclusions
 
             if self.axis == 0:
-                stacked_values = np.vstack(values)
+                stacked_values = np.vstack([np.asarray(x) for x in values])
                 columns = values[0].index
                 index = keys
             else:
-                stacked_values = np.vstack(values).T
+                stacked_values = np.vstack([np.asarray(x) for x in values]).T
                 index = values[0].index
                 columns = keys
 

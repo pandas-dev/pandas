@@ -102,6 +102,14 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+    def test_get_group(self):
+        wp = tm.makeWidePanel()
+        grouped = wp.groupby(lambda x: x.month, axis='major')
+
+        gp = grouped.get_group(1)
+        expected = wp.reindex(major=[x for x in wp.major_axis if x.month == 1])
+        assert_panel_equal(gp, expected)
+
     def test_series_agg_corner(self):
         # nothing to group, all NA
         result = self.ts.groupby(self.ts * np.nan).sum()
