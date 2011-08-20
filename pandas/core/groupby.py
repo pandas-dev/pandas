@@ -117,7 +117,7 @@ class GroupBy(object):
         if obj is None:
             obj = self.obj
 
-        labels = self.primary.get_group_labels(name)
+        labels = self.groups[name]
         axis_name = obj._get_axis_name(self.axis)
         return obj.reindex(**{axis_name : labels})
 
@@ -481,13 +481,13 @@ class SeriesGroupBy(GroupBy):
     def _agg_stride_shape(self):
         return ()
 
-    def get_group(self, name, obj=None):
-        # faster get_group for Series
-        if obj is None:
-            obj = self.obj
+    # def get_group(self, name, obj=None):
+    #     # faster get_group for Series
+    #     if obj is None:
+    #         obj = self.obj
 
-        inds = self.primary.indices[name]
-        return obj.take(inds)
+    #     inds = self.primary.indices[name]
+    #     return obj.take(inds)
 
     def aggregate(self, arg):
         """
@@ -656,14 +656,6 @@ def _ravel_names(axes, shape):
     return unrolled
 
 class DataFrameGroupBy(GroupBy):
-
-    def get_group(self, name, obj=None):
-        # faster get_group for Series
-        if obj is None:
-            obj = self.obj
-
-        inds = self.primary.indices[name]
-        return obj.take(inds, axis=self.axis)
 
     @property
     def _agg_stride_shape(self):

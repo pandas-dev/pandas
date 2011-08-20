@@ -233,7 +233,7 @@ class TestIndex(unittest.TestCase):
 
         index = Index([datetime.now()])
         formatted = index.format()
-        expected = str(index[0])
+        expected = [str(index[0])]
         self.assertEquals(formatted, expected)
 
     def test_take(self):
