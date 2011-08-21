@@ -1,6 +1,7 @@
 import nose
 import unittest
 
+from datetime import datetime
 from numpy import nan
 
 from pandas.core.daterange import DateRange
@@ -110,10 +111,19 @@ class TestGroupBy(unittest.TestCase):
         expected = wp.reindex(major=[x for x in wp.major_axis if x.month == 1])
         assert_panel_equal(gp, expected)
 
-    def test_series_agg_corner(self):
+    def test_agg_apply_corner(self):
         # nothing to group, all NA
-        result = self.ts.groupby(self.ts * np.nan).sum()
-        assert_series_equal(result, Series([]))
+        grouped = self.ts.groupby(self.ts * np.nan)
+
+        assert_series_equal(grouped.sum(), Series([]))
+        assert_series_equal(grouped.agg(np.sum), Series([]))
+        assert_series_equal(grouped.apply(np.sum), Series([]))
+
+        # DataFrame
+        grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
+        assert_frame_equal(grouped.sum(), DataFrame({}))
+        assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
+        assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
     def test_len(self):
         df = tm.makeTimeDataFrame()
@@ -191,11 +201,34 @@ class TestGroupBy(unittest.TestCase):
         transformed = grouped.transform(lambda x: x * x.sum())
         self.assertEqual(transformed[7], 12)
 
-        transformed = grouped.transform(np.mean)
-        for name, group in grouped:
-            mean = group.mean()
-            for idx in group.index:
-                self.assertEqual(transformed[idx], mean)
+    def test_transform_broadcast(self):
+        grouped = self.ts.groupby(lambda x: x.month)
+        result = grouped.transform(np.mean)
+
+        self.assert_(result.index.equals(self.ts.index))
+        for _, gp in grouped:
+            self.assert_((result.reindex(gp.index) == gp.mean()).all())
+
+        grouped = self.tsframe.groupby(lambda x: x.month)
+        result = grouped.transform(np.mean)
+        self.assert_(result.index.equals(self.tsframe.index))
+        for _, gp in grouped:
+            agged = gp.mean()
+            res = result.reindex(gp.index)
+            for col in self.tsframe:
+                self.assert_((res[col] == agged[col]).all())
+
+        # group columns
+        grouped = self.tsframe.groupby({'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1},
+                                       axis=1)
+        result = grouped.transform(np.mean)
+        self.assert_(result.index.equals(self.tsframe.index))
+        self.assert_(result.columns.equals(self.tsframe.columns))
+        for _, gp in grouped:
+            agged = gp.mean(1)
+            res = result.reindex(columns=gp.columns)
+            for idx in gp.index:
+                self.assert_((res.xs(idx) == agged[idx]).all())
 
     def test_dispatch_transform(self):
         df = self.tsframe[::5].reindex(self.tsframe.index)
@@ -247,6 +280,21 @@ class TestGroupBy(unittest.TestCase):
         assert_series_equal(result['mean'], grouped.mean())
         assert_series_equal(result['std'], grouped.std())
         assert_series_equal(result['min'], grouped.min())
+
+    def test_series_describe_single(self):
+        ts = tm.makeTimeSeries()
+        grouped = ts.groupby(lambda x: x.month)
+        result = grouped.agg(lambda x: x.describe())
+        expected = grouped.describe()
+        assert_frame_equal(result, expected)
+
+    def test_series_agg_multikey(self):
+        ts = tm.makeTimeSeries()
+        grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
+
+        result = grouped.agg(np.sum)
+        expected = grouped.sum()
+        assert_series_equal(result, expected)
 
     def test_frame_describe_multikey(self):
         grouped = self.tsframe.groupby([lambda x: x.year,
@@ -482,6 +530,17 @@ class TestGroupBy(unittest.TestCase):
         expected = self.df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
         assert_frame_equal(result, expected)
 
+        df = self.df.ix[:, ['A', 'C', 'D']]
+        df['E'] = datetime.now()
+        grouped = df.groupby('A')
+        result = grouped.agg(np.sum)
+        expected = grouped.sum()
+        assert_frame_equal(result, expected)
+
+        # won't work with axis = 1
+        grouped = df.groupby({'A' : 0, 'C' : 0, 'D' : 1, 'E' : 1}, axis=1)
+        result = self.assertRaises(TypeError, grouped.agg, np.sum)
+
     def test_nonsense_func(self):
         df = DataFrame([0])
         self.assertRaises(Exception, df.groupby, lambda x: x + 'foo')
@@ -586,6 +645,25 @@ class TestGroupBy(unittest.TestCase):
 
         self.assert_(isinstance(result, DataFrame))
         self.assert_(result.index.equals(ts.index))
+
+    def test_apply_transform(self):
+        grouped = self.ts.groupby(lambda x: x.month)
+        result = grouped.apply(lambda x: x * 2)
+        expected = grouped.transform(lambda x: x * 2)
+        assert_series_equal(result, expected)
+
+    def test_apply_multikey_corner(self):
+        grouped = self.tsframe.groupby([lambda x: x.year,
+                                        lambda x: x.month])
+
+        def f(group):
+            return group.sort('A')[-5:]
+
+        result = grouped.apply(f)
+        for x in grouped:
+            key = x[:-1]
+            group = x[-1]
+            assert_frame_equal(result.ix[key], f(group))
 
 class TestPanelGroupBy(unittest.TestCase):
 

@@ -1,12 +1,11 @@
 from itertools import izip
-import sys
 import types
 
 import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, PandasObject
-from pandas.core.index import Factor, Index, MultiIndex
+from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import WidePanel
@@ -295,10 +294,9 @@ class GroupBy(object):
         not_indexed_same = False
 
         for data in self:
-            if key_as_tuple:
-                key = data[:-1]
-            else:
-                key = data[0]
+            key = data[:-1]
+            if not key_as_tuple:
+                key = key[0]
 
             group = data[-1]
             group.name = key
@@ -323,7 +321,7 @@ class GroupBy(object):
                                                  self.groupings,
                                                  axis=self.axis)
         else:
-            result = _concat_frames(values)
+            result = _concat_frames(values, self.obj.index)
 
         return result
 
@@ -349,9 +347,9 @@ def _is_indexed_like(obj, other):
     elif isinstance(obj, DataFrame):
         if isinstance(other, Series):
             return obj.index.equals(other.index)
-        elif not isinstance(other, DataFrame):
-            return False
 
+        # deal with this when a case arises
+        assert(isinstance(other, DataFrame))
         return obj._indexed_same(other)
 
     return False
@@ -385,10 +383,6 @@ class Grouping(object):
 
     def __iter__(self):
         return iter(self.indices)
-
-    def get_group_labels(self, group):
-        inds = self.indices[group]
-        return self.index.take(inds)
 
     _labels = None
     _ids = None
@@ -647,7 +641,6 @@ class SeriesGroupBy(GroupBy):
         result = self.obj.copy()
 
         for name, group in self:
-            # XXX
             group.name = name
             res = func(group)
             indexer, _ = self.obj.index.get_indexer(group.index)
@@ -682,8 +675,6 @@ class DataFrameGroupBy(GroupBy):
         return n,
 
     def __getitem__(self, key):
-        if key not in self.obj:
-            raise KeyError('column %s not found' % key)
         return SeriesGroupBy(self.obj[key], groupings=self.groupings,
                              exclusions=self.exclusions, name=key)
 
@@ -754,10 +745,7 @@ class DataFrameGroupBy(GroupBy):
                     result[name] = data.apply(agger, axis=axis)
         except Exception, e1:
             if axis == 0:
-                try:
-                    return self._aggregate_item_by_item(agger)
-                except Exception:
-                    raise e1
+                return self._aggregate_item_by_item(agger)
             else:
                 raise e1
 
@@ -875,7 +863,7 @@ class DataFrameGroupBy(GroupBy):
         return _concat_frames(applied, obj.index, obj.columns,
                               axis=self.axis)
 
-def _concat_frames(frames, index=None, columns=None, axis=0):
+def _concat_frames(frames, index, columns=None, axis=0):
     if axis == 0:
         all_index = [np.asarray(x.index) for x in frames]
         new_index = Index(np.concatenate(all_index))
@@ -887,10 +875,7 @@ def _concat_frames(frames, index=None, columns=None, axis=0):
     else:
         all_columns = [np.asarray(x.columns) for x in frames]
         new_columns = Index(np.concatenate(all_columns))
-        if index is None:
-            new_index = frames[0].index
-        else:
-            new_index = index
+        new_index = index
 
     new_values = np.concatenate([x.values for x in frames], axis=axis)
     result = DataFrame(new_values, index=new_index, columns=new_columns)
@@ -951,8 +936,6 @@ def _make_concat_multiindex(indexes, keys, groupings):
     return MultiIndex(levels=levels, labels=labels)
 
 def _all_indexes_same(indexes):
-    if len(indexes) == 1:
-        return True
     first = indexes[0]
     for index in indexes[1:]:
         if not first.equals(index):

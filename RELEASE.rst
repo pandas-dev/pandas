@@ -180,6 +180,7 @@ Release notes
   with a `fill_value` keyword argument defaulting to NaN
 * Removed `pandas.core.pytools` module. Code has been moved to
   `pandas.core.common`
+* Tacked on `groupName` attribute for groups in GroupBy renamed to `name`
 
 **Bug fixes**
 
