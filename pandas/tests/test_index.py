@@ -236,6 +236,8 @@ class TestIndex(unittest.TestCase):
         expected = [str(index[0])]
         self.assertEquals(formatted, expected)
 
+        self.strIndex[:0].format()
+
     def test_take(self):
         indexer = [4, 3, 0, 2]
         result = self.dateIndex.take(indexer)
@@ -283,6 +285,15 @@ class TestIndex(unittest.TestCase):
         self.assertEquals(idx.slice_locs(5, 10), (3, n))
         self.assertEquals(idx.slice_locs(end=8), (0, 6))
         self.assertEquals(idx.slice_locs(end=9), (0, 7))
+
+    def test_drop(self):
+        n = len(self.strIndex)
+
+        dropped = self.strIndex.drop(self.strIndex[range(5, 10)])
+        expected = self.strIndex[range(5) + range(10, n)]
+        self.assert_(dropped.equals(expected))
+
+        self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
 
 class TestMultiIndex(unittest.TestCase):
 
@@ -506,6 +517,7 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_format(self):
         self.index.format()
+        self.index[:0].format()
 
     def test_bounds(self):
         self.index._bounds
@@ -619,6 +631,23 @@ class TestMultiIndex(unittest.TestCase):
     def test_dims(self):
         pass
 
+    def test_drop(self):
+        dropped = self.index.drop([('foo', 'two'), ('qux', 'one')])
+
+        index = MultiIndex.from_tuples([('foo', 'two'), ('qux', 'one')])
+        dropped2 = self.index.drop(index)
+
+        expected = self.index[[0, 2, 3, 5]]
+        self.assert_(dropped.equals(expected))
+        self.assert_(dropped2.equals(expected))
+
+        dropped = self.index.drop(['bar'])
+        expected = self.index[[0, 1, 3, 4, 5]]
+        self.assert_(dropped.equals(expected))
+
+        index = MultiIndex.from_tuples([('bar', 'two')])
+        self.assertRaises(Exception, self.index.drop, [('bar', 'two')])
+        self.assertRaises(Exception, self.index.drop, index)
 
 class TestFactor(unittest.TestCase):
 

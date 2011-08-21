@@ -2449,6 +2449,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         cumprod_xs = self.tsframe.cumprod(axis=1)
         self.assertEqual(np.shape(cumprod_xs), np.shape(self.tsframe))
 
+        # ints
+        df = self.tsframe.astype(int)
+        df.cumprod(0)
+        df.cumprod(1)
+
     def test_describe(self):
         desc = self.tsframe.describe()
         desc = self.mixed_frame.describe()

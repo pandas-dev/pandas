@@ -308,20 +308,3 @@ class NDFrame(PandasObject):
         result[count == 0] = np.NaN
 
         return result
-
-    def _values_accum(self, func, axis, fill_value):
-        axis = self._get_axis_number(axis)
-
-        values = self.values
-        mask = np.isfinite(values)
-
-        if fill_value is not None:
-            values = values.copy()
-            values[-mask] = fill_value
-
-        result = func(values, axis=axis)
-
-        if fill_value is not None:
-            result[-mask] = np.NaN
-
-        return result

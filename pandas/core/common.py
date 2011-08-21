@@ -331,3 +331,18 @@ def intersection(*seqs):
             seq = set(seq)
         result &= seq
     return type(seqs[0])(list(result))
+
+def _asarray_tuplesafe(values):
+    if not isinstance(values, (list, np.ndarray)):
+        values = list(values)
+
+    result = np.asarray(values)
+
+    if issubclass(result.dtype.type, basestring):
+        result = np.asarray(values, dtype=object)
+
+    if result.ndim == 2:
+        result = np.empty(len(values), dtype=object)
+        result[:] = values
+
+    return result

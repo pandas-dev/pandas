@@ -1,3 +1,4 @@
+from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import MultiIndex
 
 import numpy as np
@@ -312,21 +313,6 @@ def _maybe_droplevels(index, key):
         index = index.droplevel(0)
 
     return index
-
-def _asarray_tuplesafe(values):
-    if not isinstance(values, (list, np.ndarray)):
-        values = list(values)
-
-    result = np.asarray(values)
-
-    if issubclass(result.dtype.type, basestring):
-        result = np.asarray(values, dtype=object)
-
-    if result.ndim == 2:
-        result = np.empty(len(values), dtype=object)
-        result[:] = values
-
-    return result
 
 _isboolarr = lambda x: np.asarray(x).dtype == np.bool_
 

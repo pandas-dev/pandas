@@ -6,7 +6,8 @@ from itertools import izip
 import numpy as np
 
 from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
-                                _ensure_index, _is_bool_indexer)
+                                _ensure_index, _is_bool_indexer,
+                                _asarray_tuplesafe)
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -412,6 +413,9 @@ class MultiIndex(Index):
             return False
 
     def format(self, space=2, sparsify=True, vertical=False, adjoin=True):
+        if len(self) == 0:
+            return []
+
         stringified_levels = [lev.format() for lev in self.levels]
 
         result_levels = []
@@ -525,10 +529,12 @@ class MultiIndex(Index):
 
     def drop(self, labels):
         try:
-            arr = np.asarray(list(labels), dtype=object)
-            indexer, mask = self.get_indexer(arr)
+            if not isinstance(labels, np.ndarray):
+                labels = _asarray_tuplesafe(labels)
+            indexer, mask = self.get_indexer(labels)
             if not mask.all():
-                raise ValueError('labels %s not contained in axis' % arr[-mask])
+                raise ValueError('labels %s not contained in axis' % labels[-mask])
+            return self.delete(indexer)
         except Exception:
             pass
 
@@ -871,10 +877,6 @@ NULL_INDEX = Index([])
 
 def _sparsify(label_list):
     pivoted = zip(*label_list)
-
-    if len(pivoted) == 0:
-        return label_list
-
     k = len(label_list)
 
     result = [pivoted[0]]
