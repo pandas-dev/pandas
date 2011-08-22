@@ -333,6 +333,15 @@ class CheckIndexing(object):
         frame.ix[:, 'B':'C'] = 4.
         assert_frame_equal(frame, expected)
 
+    def test_fancy_getitem_slice_mixed(self):
+        sliced = self.mixed_frame.ix[:, -3:]
+        self.assert_(sliced['D'].dtype == np.float_)
+
+        # get view with single block
+        sliced = self.frame.ix[:, -3:]
+        sliced['C'] = 4
+        self.assert_((self.frame['C'] == 4).all())
+
     def test_fancy_setitem_int_labels(self):
         # integer index defers to label-based indexing
 
@@ -1106,8 +1115,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(np.array_equal(df.columns, ['foo', 'c', 'bar', 'b', 'a']))
         assert_almost_equal(df['c'], df['bar'])
 
-        self.assertRaises(Exception, df.insert, 1, 'a')
-        self.assertRaises(Exception, df.insert, 1, 'c')
+        self.assertRaises(Exception, df.insert, 1, 'a', df['b'])
+        self.assertRaises(Exception, df.insert, 1, 'c', df['b'])
 
     def test_delitem(self):
         del self.frame['A']
@@ -2428,7 +2437,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # fix issue
         cumsum_xs = self.tsframe.cumsum(axis=1)
         self.assertEqual(np.shape(cumsum_xs), np.shape(self.tsframe))
-
 
     def test_cumprod(self):
         self.tsframe.ix[5:10, 0] = nan

@@ -248,16 +248,8 @@ class _DataFrameIndexer(object):
 
         if not _need_slice(slice_obj):
             return frame
-        if axis == 0:
-            new_index = frame.index[slicer]
-            new_columns = frame.columns
-            new_values = frame.values[slicer]
-        else:
-            new_index = frame.index
-            new_columns = frame.columns[slicer]
-            new_values = frame.values[:, slicer]
-        return frame._constructor(new_values, index=new_index,
-                                  columns=new_columns)
+
+        return frame._slice(slicer, axis=axis)
 
 def _maybe_convert_ix(*args):
     """

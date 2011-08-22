@@ -337,21 +337,29 @@ class BlockManager(object):
         dtypes = [blk.dtype for blk in self.blocks]
         return len(dtypes) == len(set(dtypes))
 
-    def get_slice(self, slice_obj, axis=0):
-        if axis == 0:
-            new_items = self.items[slice_obj]
-            return self.reindex_items(new_items)
-
-        new_blocks = self._slice_blocks(slice_obj, axis)
+    def get_slice(self, slobj, axis=0):
         new_axes = list(self.axes)
-        new_axes[axis] = new_axes[axis][slice_obj]
+        new_axes[axis] = new_axes[axis][slobj]
+
+        if axis == 0:
+            new_items = new_axes[0]
+            if len(self.blocks) == 1:
+                blk = self.blocks[0]
+                newb = make_block(blk.values[slobj], new_items,
+                                  new_items)
+                new_blocks = [newb]
+            else:
+                return self.reindex_items(new_items)
+        else:
+            new_blocks = self._slice_blocks(slobj, axis)
+
         return BlockManager(new_blocks, new_axes)
 
-    def _slice_blocks(self, slice_obj, axis):
+    def _slice_blocks(self, slobj, axis):
         new_blocks = []
 
         slicer = [slice(None, None) for _ in range(self.ndim)]
-        slicer[axis] = slice_obj
+        slicer[axis] = slobj
         slicer = tuple(slicer)
 
         for block in self.blocks:

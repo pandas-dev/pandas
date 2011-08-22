@@ -770,6 +770,15 @@ class DataFrame(NDFrame):
         else:
             return self._getitem_single(key)
 
+    def _slice(self, slobj, axis=0):
+        if axis == 0:
+            mgr_axis = 1
+        else:
+            mgr_axis = 0
+
+        new_data = self._data.get_slice(slobj, axis=mgr_axis)
+        return self._constructor(new_data)
+
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
         if isinstance(loc, slice):
