@@ -143,7 +143,7 @@ class WidePanel(Panel, NDFrame):
                 mgr = mgr.copy()
             elif dtype is not None:
                 # no choice but to copy
-                mgr = mgr.cast(dtype)
+                mgr = mgr.astype(dtype)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, passed_axes, dtype=dtype)
         elif isinstance(data, (np.ndarray, list)):
@@ -464,7 +464,7 @@ class WidePanel(Panel, NDFrame):
         if items is not None:
             result = result._reindex_axis(items, method, 0, copy)
 
-        if result is self:
+        if result is self and copy:
             raise ValueError('Must specify at least one axis')
 
         return result

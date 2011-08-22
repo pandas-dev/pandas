@@ -522,8 +522,12 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         assert_frame_equal(larger.major_xs(self.panel.major_axis[1]),
                            smaller.major_xs(smaller_major[0]))
 
-        # reindex_like
+        # don't necessarily copy
+        result = self.panel.reindex(major=self.panel.major_axis, copy=False)
+        self.assert_(result is self.panel)
 
+    def test_reindex_like(self):
+        # reindex_like
         smaller = self.panel.reindex(items=self.panel.items[:-1],
                                      major=self.panel.major_axis[:-1],
                                      minor=self.panel.minor_axis[:-1])

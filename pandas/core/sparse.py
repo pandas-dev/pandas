@@ -1463,9 +1463,15 @@ class SparseWidePanel(WidePanel):
     def reindex(self, major=None, items=None, minor=None, major_axis=None,
                 minor_axis=None, copy=False):
         """
+        Conform / reshape panel axis labels to new input labels
 
         Parameters
         ----------
+        major : array-like, default None
+        items : array-like, default None
+        minor : array-like, default None
+        copy : boolean, default False
+            Copy underlying SparseDataFrame objects
 
         Returns
         -------

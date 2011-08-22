@@ -159,8 +159,15 @@ class TesttHDFStore(unittest.TestCase):
         self._check_roundtrip_table(df, tm.assert_frame_equal)
         self._check_roundtrip(df, tm.assert_frame_equal)
 
+        self._check_roundtrip_table(df, tm.assert_frame_equal,
+                                    compression=True)
+        self._check_roundtrip(df, tm.assert_frame_equal,
+                                    compression=True)
+
         tdf = tm.makeTimeDataFrame()
         self._check_roundtrip(tdf, tm.assert_frame_equal)
+        self._check_roundtrip(tdf, tm.assert_frame_equal,
+                              compression=True)
 
     def test_store_mixed(self):
         def _make_one():
@@ -283,8 +290,13 @@ class TesttHDFStore(unittest.TestCase):
         result = self.store.select('frame', [crit])
         tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
 
-    def _check_roundtrip(self, obj, comparator):
-        store = HDFStore(self.scratchpath, 'w')
+    def _check_roundtrip(self, obj, comparator, compression=False):
+        options = {}
+        if compression:
+            options['complevel'] = 9
+            options['complib'] = 'blosc'
+
+        store = HDFStore(self.scratchpath, 'w', **options)
         try:
             store['obj'] = obj
             retrieved = store['obj']
@@ -293,8 +305,13 @@ class TesttHDFStore(unittest.TestCase):
             store.close()
             os.remove(self.scratchpath)
 
-    def _check_roundtrip_table(self, obj, comparator):
-        store = HDFStore(self.scratchpath, 'w')
+    def _check_roundtrip_table(self, obj, comparator, compression=False):
+        options = {}
+        if compression:
+            options['complevel'] = 9
+            options['complib'] = 'blosc'
+
+        store = HDFStore(self.scratchpath, 'w', **options)
         try:
             store.put('obj', obj, table=True)
             retrieved = store['obj']

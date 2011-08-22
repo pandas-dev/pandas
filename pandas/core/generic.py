@@ -163,6 +163,8 @@ class PandasObject(Picklable):
 
 class NDFrame(PandasObject):
     """
+    N-dimensional analogue of DataFrame. Store multi-dimensional in a
+    size-mutable, labeled data structure
 
     Parameters
     ----------
@@ -174,6 +176,9 @@ class NDFrame(PandasObject):
     _default_stat_axis = 0
 
     def __init__(self, data, axes=None, copy=False, dtype=None):
+        if dtype is not None:
+            data = data.astype(dtype)
+
         self._data = data
 
     def astype(self, dtype):

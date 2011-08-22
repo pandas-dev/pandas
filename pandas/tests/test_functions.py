@@ -1,5 +1,5 @@
 from pandas import Index, isnull
-import pandas.core.functions as fns
+import pandas.sandbox.functions as fns
 import numpy as np
 import unittest
 import numpy as np

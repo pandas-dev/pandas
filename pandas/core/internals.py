@@ -320,7 +320,7 @@ class BlockManager(object):
         tot_items = sum(len(x.items) for x in self.blocks)
         assert(len(self.items) == tot_items)
 
-    def cast(self, dtype):
+    def astype(self, dtype):
         new_blocks = []
         for block in self.blocks:
             newb = make_block(block.values.astype(dtype), block.items,

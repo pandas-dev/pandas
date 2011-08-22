@@ -144,7 +144,7 @@ class DataFrame(NDFrame):
                 mgr = mgr.copy()
             elif dtype is not None:
                 # no choice but to copy
-                mgr = mgr.cast(dtype)
+                mgr = mgr.astype(dtype)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, np.ndarray):
