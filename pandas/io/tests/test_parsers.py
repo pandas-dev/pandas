@@ -114,9 +114,9 @@ c,4,5
     def test_read_csv_no_index_name(self):
         df = read_csv(self.csv2)
         df2 = read_table(self.csv2, sep=',')
-        self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
+        self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
         self.assert_(isinstance(df.index[0], datetime))
-        self.assert_(df.values.dtype == np.float64)
+        self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
     def test_excel_table(self):

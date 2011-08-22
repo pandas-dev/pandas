@@ -189,7 +189,7 @@ def _floatify(data_dict, na_values=None):
     return result
 
 def _maybe_convert_int(arr):
-    if len(arr) == 0:
+    if len(arr) == 0: # pragma: no cover
         return arr
 
     try:
