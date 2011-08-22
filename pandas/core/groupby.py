@@ -276,8 +276,8 @@ class GroupBy(object):
             for name, obj in self._iterate_slices():
                 _doit(result, counts, gen_factory(obj))
                 # TODO: same mask for every column...
+                output[name] = result.ravel().copy()
                 result.fill(np.nan)
-                output[name] = result.ravel()
 
             mask = counts.ravel() > 0
             for name, result in output.iteritems():
