@@ -203,6 +203,8 @@ class Index(np.ndarray):
 
         if len(other) == 0 or self.equals(other):
             return self
+        if len(self) == 0:
+            return _ensure_index(other)
 
         new_seq = np.concatenate((self, other))
         try:

@@ -228,6 +228,27 @@ def fast_unique(ndarray[object] values):
 
     return np.asarray(sorted(uniques), dtype=object)
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_unique_multiple(list arrays):
+    cdef:
+        ndarray[object] buf
+        Py_ssize_t k = len(arrays)
+        Py_ssize_t i, j, n
+        list uniques = []
+        dict table = {}
+        object val, stub = 0
+
+    for i from 0 <= i < k:
+        buf = arrays[i]
+        n = len(buf)
+        for j from 0 <= j < n:
+            val = buf[j]
+            if val not in table:
+                table[val] = stub
+                uniques.append(val)
+    return np.asarray(sorted(uniques), dtype=object)
+
 ctypedef double_t (* agg_func)(double_t *out, int32_t *counts, double_t *values,
                                int32_t *labels, int start, int end,
                                Py_ssize_t offset)

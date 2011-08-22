@@ -999,7 +999,7 @@ class DataFrame(NDFrame):
         new_data = self._data.reindex_axis(new_columns, axis=0)
         return self._constructor(new_data)
 
-    def reindex_like(self, other, method=None):
+    def reindex_like(self, other, method=None, copy=True):
         """
         Reindex DataFrame to match indices of another DataFrame
 
@@ -1007,6 +1007,7 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
         method : string or None
+        copy : boolean, default True
 
         Notes
         -----
@@ -1018,7 +1019,7 @@ class DataFrame(NDFrame):
         """
         # todo: object columns
         return self.reindex(index=other.index, columns=other.columns,
-                            method=method)
+                            method=method, copy=copy)
 
     def take(self, indices, axis=0):
         """
@@ -1317,7 +1318,7 @@ class DataFrame(NDFrame):
 
         Could probably deal with some Cython action in here at some point
         """
-        new_index = _union_indices(self.index, other.index)
+        new_index = self.index.union(other.index)
 
         # some shortcuts
         if fill_value is None:
@@ -1329,7 +1330,7 @@ class DataFrame(NDFrame):
                 return self * nan
 
         need_reindex = False
-        new_columns = _union_indices(self.columns, other.columns)
+        new_columns = self.columns.union(other.columns)
         need_reindex = (need_reindex or not new_index.equals(self.index)
                         or not new_index.equals(other.index))
         need_reindex = (need_reindex or not new_columns.equals(self.columns)
@@ -1379,7 +1380,7 @@ class DataFrame(NDFrame):
             return self._combine_match_columns(other, func, fill_value)
 
     def _combine_match_index(self, other, func, fill_value=None):
-        new_index = _union_indices(self.index, other.index)
+        new_index = self.index.union(other.index)
         values = self.values
         other_vals = other.values
 
@@ -1982,7 +1983,6 @@ class DataFrame(NDFrame):
 
         # merge blocks
         merged_data = this_data.merge(other_data)
-        assert(merged_data.axes[1] is join_index) # maybe unnecessary
         return self._constructor(merged_data)
 
     def _get_join_index(self, other, how):
@@ -2852,23 +2852,7 @@ def factor_agg(factor, vec, func):
     return group_agg(ordered_vec, bounds, func)
 
 
-def _union_indices(a, b):
-    if len(a) == 0:
-        return b
-    elif len(b) == 0:
-        return a
-    if not a.equals(b):
-        return a.union(b)
-    return a
-
 def extract_index(data):
-    def _union_if(index, new_index):
-        if index is None:
-            index = new_index
-        else:
-            index = index.union(new_index)
-        return index
-
     def _get_index(v):
         if isinstance(v, Series):
             return v.index
@@ -2881,20 +2865,46 @@ def extract_index(data):
     elif len(data) > 0 and index is None:
         have_raw_arrays = _check_data_types(data)
 
+        indexes = []
+
         # this is still kludgier than I'd like
         if have_raw_arrays:
             lengths = list(set(len(x) for x in data.values()))
             if len(lengths) > 1:
                 raise ValueError('arrays must all be same length')
-            index = Index(np.arange(lengths[0]))
+            indexes.append(Index(np.arange(lengths[0])))
         else:
             for v in data.values():
-                index = _union_if(index, _get_index(v))
+                indexes.append(_get_index(v))
+
+        index = _union_indexes(indexes)
 
     if len(index) == 0:
         index = NULL_INDEX
 
     return _ensure_index(index)
+
+def _union_indexes(indexes):
+    if len(indexes) == 1:
+        index = indexes[0]
+    if _any_special_indexes(indexes):
+        result = indexes[0]
+        for other in indexes[1:]:
+            result = result.union(other)
+        return result
+    else:
+        index = indexes[0]
+        for other in indexes[1:]:
+            if not index.equals(other):
+                return Index(_tseries.fast_unique_multiple(indexes))
+
+        return index
+
+def _any_special_indexes(indexes):
+    for index in indexes:
+        if type(index) != Index:
+            return True
+    return False
 
 def _check_data_types(data):
     have_raw_arrays = False
@@ -2961,7 +2971,7 @@ def _homogenize(data, index, columns, dtype=None):
             if v.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
-                v = v.reindex(index)
+                v = v.reindex(index, copy=False)
         else:
             if isinstance(v, dict):
                 v = [v.get(i, nan) for i in index]

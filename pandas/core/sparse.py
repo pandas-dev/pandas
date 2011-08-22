@@ -15,7 +15,7 @@ from pandas.core.common import (isnull, notnull, _pickle_array, _unpickle_array,
 from pandas.core.index import Index, MultiIndex, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
-                               _default_index, _union_indices)
+                               _default_index)
 from pandas.core.panel import Panel, WidePanel, LongPanel, PanelAxis
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -913,8 +913,8 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def _combine_frame(self, other, func, fill_value=None):
-        new_index = _union_indices(self.index, other.index)
-        new_columns = _union_indices(self.columns, other.columns)
+        new_index = self.index.union(other.index)
+        new_columns = self.columns.union(other.columns)
 
         if fill_value is not None:
             raise NotImplementedError
@@ -947,7 +947,7 @@ class SparseDataFrame(DataFrame):
         if fill_value is not None:
             raise NotImplementedError
 
-        new_index = _union_indices(self.index, other.index)
+        new_index = self.index.union(other.index)
         this = self
         if self.index is not new_index:
             this = self.reindex(new_index)

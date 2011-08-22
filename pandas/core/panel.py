@@ -1447,13 +1447,17 @@ def _get_combined_columns(frames, intersect=False):
     return Index(sorted(columns))
 
 def _get_combined_index(frames, intersect=False):
+    from pandas.core.frame import _union_indexes
+
     indexes = _get_distinct_indexes([df.index for df in frames.values()])
+    if len(indexes) == 1:
+        return indexes[0]
     if intersect:
         index = indexes[0]
         for other in indexes[1:]:
             index = index.intersection(other)
         return index
-    union =  _tseries.fast_unique(np.concatenate(tuple(indexes)))
+    union =  _union_indexes(indexes)
     return Index(union)
 
 def _get_distinct_indexes(indexes):
