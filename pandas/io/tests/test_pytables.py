@@ -169,6 +169,12 @@ class TesttHDFStore(unittest.TestCase):
         self._check_roundtrip(tdf, tm.assert_frame_equal,
                               compression=True)
 
+        # not consolidated
+        df['foo'] = np.random.randn(len(df))
+        self.store['df'] = df
+        recons = self.store['df']
+        self.assert_(recons._data.is_consolidated())
+
     def test_store_mixed(self):
         def _make_one():
             df = tm.makeDataFrame()
@@ -199,6 +205,16 @@ class TesttHDFStore(unittest.TestCase):
         self._check_roundtrip(df1['obj1'], tm.assert_series_equal)
         self._check_roundtrip(df1['bool1'], tm.assert_series_equal)
         self._check_roundtrip(df1['int1'], tm.assert_series_equal)
+
+        # try with compression
+        self._check_roundtrip(df1['obj1'], tm.assert_series_equal,
+                              compression=True)
+        self._check_roundtrip(df1['bool1'], tm.assert_series_equal,
+                              compression=True)
+        self._check_roundtrip(df1['int1'], tm.assert_series_equal,
+                              compression=True)
+        self._check_roundtrip(df1, tm.assert_frame_equal,
+                              compression=True)
 
     def test_wide(self):
         wp = tm.makeWidePanel()
@@ -293,7 +309,6 @@ class TesttHDFStore(unittest.TestCase):
     def _check_roundtrip(self, obj, comparator, compression=False):
         options = {}
         if compression:
-            options['complevel'] = 9
             options['complib'] = 'blosc'
 
         store = HDFStore(self.scratchpath, 'w', **options)
@@ -308,7 +323,6 @@ class TesttHDFStore(unittest.TestCase):
     def _check_roundtrip_table(self, obj, comparator, compression=False):
         options = {}
         if compression:
-            options['complevel'] = 9
             options['complib'] = 'blosc'
 
         store = HDFStore(self.scratchpath, 'w', **options)

@@ -98,7 +98,7 @@ class HDFStore(object):
     >>> bar = store['foo']   # retrieve
     >>> store.close()
     """
-    def __init__(self, path, mode='a', complevel=0, complib=None,
+    def __init__(self, path, mode='a', complevel=None, complib=None,
                  fletcher32=False):
         try:
             import tables as _
@@ -162,7 +162,9 @@ class HDFStore(object):
         if self.handle is not None and self.handle.isopen:
             self.handle.close()
 
-        if self.complevel > 0 and self.complib is not None:
+        if self.complib is not None:
+            if self.complevel is None:
+                self.complevel = 9
             self.filters = _tables().Filters(self.complevel,
                                              self.complib,
                                              fletcher32=self.fletcher32)
@@ -442,8 +444,8 @@ class HDFStore(object):
             if atom is not None:
                 # create an empty chunked array and fill it from value
                 ca = self.handle.createCArray(group, key, atom,
-                                                value.shape,
-                                                filters=self.filters)
+                                              value.shape,
+                                              filters=self.filters)
                 ca[:] = value
                 return
 
@@ -480,9 +482,10 @@ class HDFStore(object):
                 complevel = self.complevel
                 if complevel is None:
                     complevel = 9
-                options['filters'] = _tables().Filters(complevel=complevel,
-                                                       complib=compression,
-                                                       fletcher32=self.fletcher32)
+                filters = _tables().Filters(complevel=complevel,
+                                            complib=compression,
+                                            fletcher32=self.fletcher32)
+                options['filters'] = filters
             elif self.filters is not None:
                 options['filters'] = self.filters
 

@@ -212,14 +212,7 @@ def _convert_to_ndarrays(dct):
             values = np.array(values, dtype=float)
         except Exception:
             values = np.array(values, dtype=object)
-
-        try:
-            values = _maybe_convert_int(values)
-        except ValueError:
-            pass
-
-        result[c] = values
-
+        result[c] = _maybe_convert_int(values)
     return result
 
 def _try_parse_dates(values, parser=None):
