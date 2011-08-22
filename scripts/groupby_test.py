@@ -106,3 +106,10 @@ fillit = lambda x: x.fillna(method='pad')
 f = lambda x: x
 
 transformed = df.groupby(lambda x: x.strftime('%m/%y')).transform(lambda x: x)
+
+def ohlc(group):
+    return Series([group[0], group.max(), group.min(), group[-1]],
+                  index=['open', 'high', 'low', 'close'])
+grouper = [lambda x: x.year, lambda x: x.month]
+dr = DateRange('1/1/2000', '1/1/2002')
+ts = Series(np.random.randn(len(dr)), index=dr)

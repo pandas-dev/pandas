@@ -262,13 +262,10 @@ class BlockManager(object):
             for block in self.blocks:
                 block.set_ref_items(self.items, maybe_rename=True)
 
-    def _set_items(self, value):
-        self.set_axis(0, value)
-
+    # make items read only for now
     def _get_items(self):
         return self.axes[0]
-
-    items = property(fget=_get_items, fset=_set_items)
+    items = property(fget=_get_items)
 
     def set_items_norename(self, value):
         value = _ensure_index(value)

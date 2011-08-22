@@ -665,6 +665,17 @@ class TestGroupBy(unittest.TestCase):
             group = x[-1]
             assert_frame_equal(result.ix[key], f(group))
 
+    def test_groupby_series_indexed_differently(self):
+        s1 = Series([5.0,-9.0,4.0,100.,-5.,55.,6.7],
+                    index=Index(['a','b','c','d','e','f','g']))
+        s2 = Series([1.0,1.0,4.0,5.0,5.0,7.0],
+                    index=Index(['a','b','d','f','g','h']))
+
+        grouped = s1.groupby(s2)
+        agged = grouped.mean()
+        exp = s1.groupby(s2.reindex(s1.index).get).mean()
+        assert_series_equal(agged, exp)
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):

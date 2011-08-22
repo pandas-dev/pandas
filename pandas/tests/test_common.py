@@ -92,6 +92,17 @@ def test_intersection():
 
     assert(a == inter)
 
+def test_groupby():
+    values = ['foo', 'bar', 'baz', 'baz2', 'qux', 'foo3']
+    expected = {'f' : ['foo', 'foo3'],
+                'b' : ['bar', 'baz', 'baz2'],
+                'q' : ['qux']}
+
+    grouped = common.groupby(values, lambda x: x[0])
+
+    for k, v in grouped:
+        assert v == expected[k]
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
