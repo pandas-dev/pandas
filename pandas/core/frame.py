@@ -947,7 +947,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing
 
-    def reindex(self, index=None, columns=None, method=None):
+    def reindex(self, index=None, columns=None, method=None, copy=True):
         """
         Reindex data inside, optionally filling according to some rule.
 
@@ -961,6 +961,8 @@ class DataFrame(NDFrame):
 
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
 
         Returns
         -------
@@ -971,21 +973,29 @@ class DataFrame(NDFrame):
 
         if index is not None:
             index = _ensure_index(index)
-            frame = frame._reindex_index(index, method)
+            frame = frame._reindex_index(index, method, copy)
 
         if columns is not None:
             columns = _ensure_index(columns)
-            frame = frame._reindex_columns(columns)
+            frame = frame._reindex_columns(columns, copy)
 
         return frame
 
-    def _reindex_index(self, new_index, method):
-        if new_index is self.index:
-            return self.copy()
+    def _reindex_index(self, new_index, method, copy):
+        if new_index.equals(self.index):
+            if copy:
+                return self.copy()
+            else:
+                return self
         new_data = self._data.reindex_axis(new_index, method, axis=1)
         return self._constructor(new_data)
 
-    def _reindex_columns(self, new_columns):
+    def _reindex_columns(self, new_columns, copy):
+        if new_columns.equals(self.columns):
+            if copy:
+                return self.copy()
+            else:
+                return self
         new_data = self._data.reindex_axis(new_columns, axis=0)
         return self._constructor(new_data)
 

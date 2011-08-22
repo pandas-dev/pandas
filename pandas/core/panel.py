@@ -205,7 +205,7 @@ class WidePanel(Panel, NDFrame):
         self._data = mgr
 
     def _init_dict(self, data, axes, dtype=None):
-        items = axes[0]
+        items, major, minor = axes
 
         # prefilter if items passed
         if items is not None:
@@ -245,10 +245,9 @@ class WidePanel(Panel, NDFrame):
         -------
         WidePanel
         """
-        data, index, columns = _homogenize(data, intersect=intersect,
-                                           dtype=dtype)
+        data, index, columns = _homogenize_dict(data, intersect=intersect,
+                                                dtype=dtype)
         items = Index(sorted(data.keys()))
-
         axes = [items, index, columns]
 
         reshaped_data = {}
@@ -447,7 +446,7 @@ class WidePanel(Panel, NDFrame):
         return frame.reindex(index=index, columns=columns)
 
     def reindex(self, major=None, items=None, minor=None, method=None,
-                major_axis=None, minor_axis=None):
+                major_axis=None, minor_axis=None, copy=True):
         """
         Conform panel to new axis or axes
 
@@ -463,6 +462,8 @@ class WidePanel(Panel, NDFrame):
 
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
 
         Returns
         -------
@@ -474,13 +475,13 @@ class WidePanel(Panel, NDFrame):
         minor = _mut_exclusive(minor, minor_axis)
 
         if major is not None:
-            result = result._reindex_axis(major, method, 1)
+            result = result._reindex_axis(major, method, 1, copy)
 
         if minor is not None:
-            result = result._reindex_axis(minor, method, 2)
+            result = result._reindex_axis(minor, method, 2, copy)
 
         if items is not None:
-            result = result._reindex_axis(items, method, 0)
+            result = result._reindex_axis(items, method, 0, copy)
 
         if result is self:
             raise ValueError('Must specify at least one axis')
@@ -1396,7 +1397,7 @@ def _prefix_item(item, prefix=None):
     template = '%s%s'
     return template % (prefix, item)
 
-def _homogenize(frames, intersect=True, dtype=None):
+def _homogenize_dict(frames, intersect=True, dtype=None):
     """
     Conform set of DataFrame-like objects to either an intersection
     of indices / columns or a union.
@@ -1446,7 +1447,6 @@ def _get_combined_columns(frames, intersect=False):
     return Index(sorted(columns))
 
 def _get_combined_index(frames, intersect=False):
-
     # get the set of unique indexes (np.ndarray is unhashable so use the id)
     indexes = dict(((id(frame.index), frame.index)
                     for frame in frames.itervalues()))
@@ -1472,8 +1472,13 @@ def _get_combined_index(frames, intersect=False):
             index = index.intersection(other)
         return index
 
-    union =  np.unique(np.concatenate(tuple(indexes)))
+    union =  _tseries.fast_unique(np.concatenate(tuple(indexes)))
     return Index(union)
+
+def _get_distinct_indexes(indexes):
+    from itertools import groupby
+    indexes = sorted(indexes, key=id)
+    return [gp[0] for _, gp in groupby(indexes, id)]
 
 def pivot(index, columns, values):
     """

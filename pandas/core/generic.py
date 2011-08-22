@@ -1,6 +1,7 @@
 import numpy as np
 import cPickle
 
+from pandas.core.common import _ensure_index
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------
@@ -221,11 +222,12 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
         return len(self._data.blocks) > 1
 
-    @property
-    def axes(self):
-        return self._data.axes
+    def _reindex_axis(self, new_index, fill_method, axis, copy):
+        new_index = _ensure_index(new_index)
+        cur_axis = self._data.axes[axis]
+        if cur_axis.equals(new_index) and not copy:
+            return self
 
-    def _reindex_axis(self, new_index, fill_method, axis):
         if axis == 0:
             new_data = self._data.reindex_items(new_index)
         else:

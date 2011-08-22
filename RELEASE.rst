@@ -37,7 +37,7 @@ Release notes
   `WidePanel`. See online documentation for more on these
 * Fancy indexing operator on Series / DataFrame, e.g. via .ix operator. Both
   getting and setting of values is supported; however, setting values will only
-  currently work on homogeneously-typed DataFrame objects
+  currently work on homogeneously-typed DataFrame objects. Things like:
   * series.ix[[d1, d2, d3]]
   * frame.ix[5:10, ['C', 'B', 'A']], frame.ix[5:10, 'A':'C']
   * frame.ix[date1:date2]
@@ -87,6 +87,8 @@ Release notes
 * Generic `rolling_apply` moving window function
 * New `drop` method added to `Series`, `DataFrame`, etc. which can drop a set of
   labels from an axis, producing a new object
+* `reindex` methods now sport a `copy` option so that data is not forced to be
+  copied then the resulting object is indexed the same
 
 **Improvements to existing features**
 
@@ -215,6 +217,10 @@ Thanks
 - Tony Roberts
 - Martin Felder
 - John Marino
+- Tim McNamara
+- Justin Berka
+- Dieter Vandenbussche
+
 
 ************************
 pandas 0.3 Release Notes

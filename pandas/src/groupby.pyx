@@ -211,6 +211,23 @@ def group_labels2(ndarray[object] values):
 
     return reverse, labels
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_unique(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        list uniques = []
+        dict table = {}
+        object val, stub = 0
+
+    for i from 0 <= i < n:
+        val = values[i]
+        if val not in table:
+            table[val] = stub
+            uniques.append(val)
+
+    return np.asarray(sorted(uniques), dtype=object)
+
 ctypedef double_t (* agg_func)(double_t *out, int32_t *counts, double_t *values,
                                int32_t *labels, int start, int end,
                                Py_ssize_t offset)

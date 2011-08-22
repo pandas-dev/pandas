@@ -419,7 +419,7 @@ class SparseSeries(Series):
                             sparse_index=self.sp_index,
                             fill_value=self.fill_value)
 
-    def reindex(self, new_index, method=None):
+    def reindex(self, index=None, method=None, copy=True):
         """
         Conform SparseSeries to new Index
 
@@ -429,10 +429,13 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
-        new_index = _ensure_index(new_index)
+        new_index = _ensure_index(index)
 
         if self.index.equals(new_index):
-            return self.copy()
+            if copy:
+                return self.copy()
+            else:
+                return self
 
         if len(self.index) == 0:
             # FIXME: inelegant / slow
@@ -989,9 +992,12 @@ class SparseDataFrame(DataFrame):
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns)
 
-    def _reindex_index(self, index, method):
+    def _reindex_index(self, index, method, copy):
         if self.index.equals(index):
-            return self.copy()
+            if copy:
+                return self.copy()
+            else:
+                return self
 
         if len(self.index) == 0:
             return SparseDataFrame(index=index, columns=self.columns)
@@ -1013,7 +1019,7 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(new_series, index=index, columns=self.columns,
                                default_fill_value=self.default_fill_value)
 
-    def _reindex_columns(self, columns):
+    def _reindex_columns(self, columns, copy):
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
         return SparseDataFrame(sdict, index=self.index, columns=columns,
@@ -1440,7 +1446,7 @@ class SparseWidePanel(WidePanel):
         return lp.sortlevel(level=0)
 
     def reindex(self, major=None, items=None, minor=None, major_axis=None,
-                minor_axis=None):
+                minor_axis=None, copy=False):
         """
 
         Parameters
@@ -1469,6 +1475,9 @@ class SparseWidePanel(WidePanel):
                                     'supported')
         else:
             new_frames = self._frames
+
+        if copy:
+            new_frames = dict((k, v.copy()) for k, v in new_frames.iteritems())
 
         return SparseWidePanel(new_frames, items=items,
                                major_axis=major,

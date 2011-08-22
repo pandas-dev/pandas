@@ -1036,7 +1036,7 @@ class Series(np.ndarray, PandasObject):
 
     applymap = apply
 
-    def reindex(self, index=None, method=None):
+    def reindex(self, index=None, method=None, copy=True):
         """Conform Series to new Index
 
         Parameters
@@ -1045,16 +1045,20 @@ class Series(np.ndarray, PandasObject):
             Preferably an Index object (to avoid duplicating data)
         method : {'backfill', 'bfill', 'pad', 'ffill', None}
             Method to use for filling holes in reindexed Series
-
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
 
         Returns
         -------
         reindexed : Series
         """
         if self.index.equals(index):
-            return self.copy()
+            if copy:
+                return self.copy()
+            else:
+                return self
 
         index = _ensure_index(index)
         if len(self.index) == 0:
