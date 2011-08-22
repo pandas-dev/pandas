@@ -1447,38 +1447,19 @@ def _get_combined_columns(frames, intersect=False):
     return Index(sorted(columns))
 
 def _get_combined_index(frames, intersect=False):
-    # get the set of unique indexes (np.ndarray is unhashable so use the id)
-    indexes = dict(((id(frame.index), frame.index)
-                    for frame in frames.itervalues()))
-    indexes = indexes.values()
-
-    # if there's only one return it
-    if len(indexes) == 1:
-        return indexes[0]
-
-    # filter indexes so any equivalent indexes only appear once
-    for index in list(indexes):
-        if id(index) in set(id(x) for x in indexes):
-            indexes = [x for x in indexes
-                       if x is index or not x.equals(index)]
-
-    # if there's only one return it
-    if len(indexes) == 1:
-        return indexes[0]
-
+    indexes = _get_distinct_indexes([df.index for df in frames.values()])
     if intersect:
         index = indexes[0]
         for other in indexes[1:]:
             index = index.intersection(other)
         return index
-
     union =  _tseries.fast_unique(np.concatenate(tuple(indexes)))
     return Index(union)
 
 def _get_distinct_indexes(indexes):
     from itertools import groupby
     indexes = sorted(indexes, key=id)
-    return [gp[0] for _, gp in groupby(indexes, id)]
+    return [gp.next() for _, gp in groupby(indexes, id)]
 
 def pivot(index, columns, values):
     """
