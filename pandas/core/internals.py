@@ -633,7 +633,8 @@ class BlockManager(object):
 
     def join_on(self, other, on, axis=1):
         other_axis = other.axes[axis]
-        indexer, mask = _tseries.getMergeVec(on, other_axis.indexMap)
+        indexer, mask = _tseries.getMergeVec(on.astype(object),
+                                             other_axis.indexMap)
 
         # TODO: deal with length-0 case? or does it fall out?
         notmask = -mask

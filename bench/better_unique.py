@@ -8,19 +8,10 @@ import random
 import numpy as np
 
 def better_unique(values):
-    ids, labels = _tseries.group_labels2(values)
-
-    n = len(ids)
-    values = Series(ids, index=np.arange(n)).values
-    indexer = values.argsort()
-
-    reverse_indexer = np.empty(n, dtype=np.int32)
-    reverse_indexer.put(indexer, np.arange(n))
-
-    new_labels = reverse_indexer.take(labels)
-    new_values = values.take(indexer)
-
-    return new_values, new_labels
+    uniques = _tseries.fast_unique(values)
+    id_map = _tseries.map_indices_buf(uniques)
+    labels = _tseries.get_unique_labels(values, id_map)
+    return uniques, labels
 
 tot = 100000
 
@@ -71,15 +62,15 @@ result = DataFrame({'wes' : wes, 'numpy' : numpy}, index=group_sizes)
 def make_plot(numpy, wes):
     pass
 
-def get_test_data(ngroups=100, n=100000):
-    unique_groups = range(ngroups)
-    random.shuffle(unique_groups)
-    arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
+# def get_test_data(ngroups=100, n=100000):
+#     unique_groups = range(ngroups)
+#     random.shuffle(unique_groups)
+#     arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
 
-    if len(arr) < n:
-        arr = np.asarray(list(arr) + unique_groups[:n - len(arr)],
-                         dtype=object)
+#     if len(arr) < n:
+#         arr = np.asarray(list(arr) + unique_groups[:n - len(arr)],
+#                          dtype=object)
 
-    return arr
+#     return arr
 
-arr = get_test_data(ngroups=1000)
+# arr = get_test_data(ngroups=1000)

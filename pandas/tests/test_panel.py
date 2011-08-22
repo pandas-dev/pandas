@@ -358,8 +358,8 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         assert_almost_equal(casted2.values, exp_values)
 
         # can't cast
-        data = [['foo', 'bar', 'baz']]
-        self.assertRaises(ValueError, DataFrame, data, dtype=float)
+        data = [[['foo', 'bar', 'baz']]]
+        self.assertRaises(ValueError, WidePanel, data, dtype=float)
 
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
@@ -948,9 +948,12 @@ class TestLongPanel(unittest.TestCase):
         self.assertEqual(df['e'][5], 4)
 
         # weird overlap, TODO: test?
-        df = pivot(np.array([1, 2, 3, 4, 4]),
+        a, b, c = (np.array([1, 2, 3, 4, 4]),
                    np.array(['a', 'a', 'a', 'a', 'a']),
                    np.array([1, 2, 3, 5, 4]))
+        df = pivot(a, b, c)
+        expected = panelmod._slow_pivot(a, b, c)
+        assert_frame_equal(df, expected)
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))

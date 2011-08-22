@@ -16,6 +16,7 @@ from pandas.core.index import Factor, Index, MultiIndex
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
+from pandas.core.series import Series
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -746,17 +747,12 @@ class WidePanel(Panel, NDFrame):
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
+        index, columns = self._get_plane_axes(axis)
 
-        if result.ndim == 2:
-            index, columns = self._get_plane_axes(axis)
+        if axis != 'items':
+            result = result.T
 
-            if axis != 'items':
-                result = result.T
-
-            return DataFrame(result, index=index, columns=columns)
-        else:
-            return WidePanel(result, self.items, self.major_axis,
-                             self.minor_axis)
+        return DataFrame(result, index=index, columns=columns)
 
     def count(self, axis='major'):
         """
@@ -1135,7 +1131,10 @@ class LongPanel(Panel, DataFrame):
 
     def _to_wide_homogeneous(self, mask):
         values = np.empty(self.shape, dtype=self.values.dtype)
-        values.fill(np.nan)
+
+        if not issubclass(self.values.dtype.type, np.integer):
+            values.fill(np.nan)
+
         for i in xrange(len(self.items)):
             values[i].flat[mask] = self.values[:, i]
 
@@ -1473,15 +1472,11 @@ def pivot(index, columns, values):
     if len(index) == 0:
         return DataFrame(index=[])
 
-    try:
-        longIndex = _make_long_index(index, columns)
-        valueMat = values.view(np.ndarray).reshape(len(values), 1)
-        longPanel = LongPanel(valueMat, ['foo'], longIndex)
-        longPanel = longPanel.sort()
-        return longPanel.to_wide()['foo']
-    except Exception:
-        return _slow_pivot(index, columns, values)
+    hindex = _make_long_index(index, columns)
 
+    series = Series(values.ravel(), index=hindex)
+    series = series.sortlevel(0)
+    return series.unstack()
 
 def make_mask(index):
     """
@@ -1495,15 +1490,19 @@ def make_mask(index):
     return mask
 
 def _make_long_index(major_values, minor_values):
-    major_axis = Index(sorted(set(major_values)))
-    minor_axis = Index(sorted(set(minor_values)))
-
-    major_labels, _ = _tseries.getMergeVec(major_values, major_axis.indexMap)
-    minor_labels, _ = _tseries.getMergeVec(minor_values, minor_axis.indexMap)
+    major_values = np.asarray(major_values, dtype=object)
+    minor_values = np.asarray(minor_values, dtype=object)
+    major_axis, major_labels = _better_unique(major_values)
+    minor_axis, minor_labels = _better_unique(minor_values)
 
     long_index = MultiIndex(levels=[major_axis, minor_axis],
                                  labels=[major_labels, minor_labels])
     return long_index
+
+def _better_unique(values):
+    uniques = Index(_tseries.fast_unique(values))
+    labels = _tseries.get_unique_labels(values, uniques.indexMap)
+    return uniques, labels
 
 def _slow_pivot(index, columns, values):
     """

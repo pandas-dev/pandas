@@ -1004,7 +1004,8 @@ class Series(np.ndarray, PandasObject):
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer, mask = _tseries.getMergeVec(self, arg.index.indexMap)
+            indexer, mask = _tseries.getMergeVec(self.values.astype(object),
+                                                 arg.index.indexMap)
             notmask = -mask
 
             new_values = arg.view(np.ndarray).take(indexer)
@@ -1632,7 +1633,8 @@ class _Unstacker(object):
         new_values = np.empty((length, result_width), dtype=self.values.dtype)
         new_mask = np.zeros((length, result_width), dtype=bool)
 
-        new_values.fill(np.nan)
+        if not issubclass(self.values.dtype.type, np.integer):
+            new_values.fill(np.nan)
 
         # is there a simpler / faster way of doing this?
         for i in xrange(self.values.shape[1]):

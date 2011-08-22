@@ -287,33 +287,25 @@ def backfill_inplace_float64(ndarray[float64_t] values,
             val = values[i]
         i -= 1
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
-def getMergeVec(ndarray values, dict oldMap):
+def getMergeVec(ndarray[object] values, dict oldMap):
     cdef int i, j, length, newLength
-
-    cdef flatiter iternew
     cdef object idx
-    cdef ndarray[int32_t, ndim=1] fillVec
-    cdef ndarray[int8_t, ndim=1] mask
+    cdef ndarray[int32_t] fillVec
+    cdef ndarray[int8_t] mask
 
     newLength = len(values)
     fillVec = np.empty(newLength, dtype=np.int32)
     mask = np.zeros(newLength, dtype=np.int8)
-
-    iternew = <flatiter> PyArray_IterNew(values)
-
     for i from 0 <= i < newLength:
-        idx = PyArray_GETITEM(values, PyArray_ITER_DATA(iternew))
-
+        idx = values[i]
         if idx in oldMap:
             fillVec[i] = oldMap[idx]
             mask[i] = 1
-
-        PyArray_ITER_NEXT(iternew)
 
     for i from 0 <= i < newLength:
         if mask[i] == 0:
             fillVec[i] = -1
 
     return fillVec, mask.astype(bool)
-

@@ -226,11 +226,25 @@ def fast_unique(ndarray[object] values):
             table[val] = stub
             uniques.append(val)
     try:
-        uniques = sorted(uniques)
+        uniques.sort()
     except Exception:
         pass
 
     return np.asarray(uniques, dtype=object)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_unique_labels(ndarray[object] values, dict idMap):
+    cdef int i, length
+    cdef object idx
+    cdef ndarray[int32_t] fillVec
+    length = len(values)
+    fillVec = np.empty(length, dtype=np.int32)
+    for i from 0 <= i < length:
+        idx = values[i]
+        fillVec[i] = idMap[idx]
+
+    return fillVec
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -252,7 +266,7 @@ def fast_unique_multiple(list arrays):
                 table[val] = stub
                 uniques.append(val)
     try:
-        uniques = sorted(uniques)
+        uniques.sort()
     except Exception:
         pass
 
