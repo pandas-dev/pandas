@@ -18,10 +18,7 @@ from pandas.util.testing import (assert_almost_equal,
 
 import pandas.util.testing as tm
 
-class TestSeriesMultiLevel(unittest.TestCase):
-    pass
-
-class TestDataFrameMultiLevel(unittest.TestCase):
+class TestMultiLevel(unittest.TestCase):
 
     def setUp(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -72,6 +69,41 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         assert_almost_equal(col.values, df.values[:, 0])
         self.assertRaises(KeyError, df.__getitem__, ('foo', 'four'))
         self.assertRaises(KeyError, df.__getitem__, 'foobar')
+
+    def test_series_getitem(self):
+        s = self.ymd['A']
+
+        result = s[2000, 3]
+        result2 = s.ix[2000, 3]
+        expected = s[42:65]
+        expected.index = expected.index.droplevel(0).droplevel(0)
+        assert_series_equal(result, expected)
+
+        result = s[2000, 3, 10]
+        expected = s[49]
+        self.assertEquals(result, expected)
+
+        # fancy
+        result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
+        expected = s[49:51]
+        assert_series_equal(result, expected)
+
+        # key error
+        self.assertRaises(KeyError, s.__getitem__, (2000, 3, 4))
+
+    def test_series_setitem(self):
+        s = self.ymd['A']
+
+        s[2000, 3] = np.nan
+        self.assert_(isnull(s[42:65]).all())
+        self.assert_(notnull(s[:42]).all())
+        self.assert_(notnull(s[65:]).all())
+
+        s[2000, 3, 10] = np.nan
+        self.assert_(isnull(s[49]))
+
+    def test_series_slice_partial(self):
+        pass
 
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
@@ -148,6 +180,11 @@ class TestDataFrameMultiLevel(unittest.TestCase):
 
         # axis=1
 
+        # series
+        a_sorted = self.frame['A'].sortlevel(0)
+        self.assertRaises(Exception,
+                          self.frame.delevel()['A'].sortlevel)
+
     def test_sortlevel_mixed(self):
         sorted_before = self.frame.sortlevel(1)
 
@@ -179,6 +216,11 @@ class TestDataFrameMultiLevel(unittest.TestCase):
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
         self.assertRaises(Exception, df.count, level=0)
+
+    def test_unstack(self):
+        # just check that it works for now
+        unstacked = self.ymd.unstack()
+        unstacked2 = unstacked.unstack()
 
     def test_alignment(self):
         pass

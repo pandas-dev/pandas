@@ -63,6 +63,9 @@ class TestSeries(unittest.TestCase):
         s = Series(objs, index=[0, 1])
         self.assert_(isinstance(s, Series))
 
+    def test_constructor_cast(self):
+        self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 
@@ -384,6 +387,11 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.isnan(allna.mean()))
         self.assert_(np.isnan(allna.std()))
         self.assert_(np.isnan(allna.skew()))
+
+    def test_prod_numpy16_bug(self):
+        s = Series([1., 1., 1.] , index=range(3))
+        result = s.prod()
+        self.assert_(not isinstance(result, Series))
 
     def test_quantile(self):
         from scipy.stats import scoreatpercentile

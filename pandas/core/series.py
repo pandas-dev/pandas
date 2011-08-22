@@ -287,14 +287,10 @@ class Series(np.ndarray, PandasObject):
             key = np.asarray(key, dtype=bool)
             return _index_with(key)
 
-        # TODO: [slice(0, 5, None)] will break if you convert to ndarray,
+        # [slice(0, 5, None)] will break if you convert to ndarray,
         # e.g. as requested by np.median
 
-        try:
-            return _index_with(key)
-        except Exception:
-            key = np.asarray(key)
-            return _index_with(key)
+        return _index_with(key)
 
     def _multilevel_index(self, key):
         values = self.values
@@ -310,7 +306,7 @@ class Series(np.ndarray, PandasObject):
         except KeyError:
             if isinstance(key, (int, np.integer)):
                 return values[key]
-            raise Exception('Requested index not in this series!')
+            raise KeyError('%s not in this series!' % str(key))
 
     def get(self, key, default=None):
         """
@@ -358,7 +354,7 @@ class Series(np.ndarray, PandasObject):
             if isinstance(key, (int, np.integer)):
                 values[key] = value
                 return
-            raise Exception('Requested index not in this series!')
+            raise KeyError('%s not in this series!' % str(key))
         except TypeError:
             # Could not hash item
             pass
@@ -1551,7 +1547,7 @@ class _Unstacker(object):
         self.values = values
         self.value_columns = value_columns
 
-        if value_columns is None and values.shape[1] != 1:
+        if value_columns is None and values.shape[1] != 1: # pragma: no cover
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index

@@ -43,6 +43,11 @@ class _SeriesIndexer(object):
                 return series[key]
 
             def do_list_like():
+                if isinstance(series.index, MultiIndex):
+                    try:
+                        return series[key]
+                    except (KeyError, TypeError, IndexError):
+                        pass
                 return series.reindex(key)
         else:
             def do_default():
