@@ -127,6 +127,8 @@ Release notes
 * `DataFrame.pivot` generalized to enable pivoting multiple columns into a
   `WidePanel`
 * `DataFrame` constructor can accept structured / record arrays
+* `WidePanel` constructor can accept a dict of DataFrame-like objects. Do not
+  need to use `from_dict` anymore (`from_dict` is there to stay, though).
 
 **API Changes**
 
@@ -183,6 +185,7 @@ Release notes
 * Removed `pandas.core.pytools` module. Code has been moved to
   `pandas.core.common`
 * Tacked on `groupName` attribute for groups in GroupBy renamed to `name`
+* WidePanel/LongPanel `dims` attribute renamed to `shape` to be more conformant
 
 **Bug fixes**
 

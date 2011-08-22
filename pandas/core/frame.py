@@ -218,20 +218,6 @@ class DataFrame(NDFrame):
         block = make_block(values.T, columns, columns)
         return BlockManager([block], [columns, index])
 
-    def astype(self, dtype):
-        """
-        Cast DataFrame to input numpy.dtype
-
-        Parameters
-        ----------
-        dtype : numpy.dtype or Python type
-
-        Returns
-        -------
-        casted : DataFrame
-        """
-        return self._constructor(self._data, dtype=dtype)
-
     def _wrap_array(self, arr, axes, copy=False):
         index, columns = axes
         return self._constructor(arr, index=index, columns=columns, copy=copy)

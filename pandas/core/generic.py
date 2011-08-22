@@ -173,8 +173,22 @@ class NDFrame(PandasObject):
     # kludge
     _default_stat_axis = 0
 
-    def __init__(self, data, axes=None, copy=False):
+    def __init__(self, data, axes=None, copy=False, dtype=None):
         self._data = data
+
+    def astype(self, dtype):
+        """
+        Cast object to input numpy.dtype
+
+        Parameters
+        ----------
+        dtype : numpy.dtype or Python type
+
+        Returns
+        -------
+        casted : type of caller
+        """
+        return self._constructor(self._data, dtype=dtype)
 
     @property
     def _constructor(self):

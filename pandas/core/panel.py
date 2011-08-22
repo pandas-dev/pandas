@@ -14,7 +14,7 @@ from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
                                 _try_sort, _default_index, _infer_dtype)
 from pandas.core.index import Factor, Index, MultiIndex
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
 import pandas.core.common as common
 import pandas._tseries as _tseries
@@ -76,18 +76,6 @@ def _wide_arith_method(op, name):
 
     return f
 
-class PanelAxis(object):
-
-    def __init__(self, cache_field):
-        self.cache_field = cache_field
-
-    def __get__(self, obj, type=None):
-        return getattr(obj, self.cache_field, None)
-
-    def __set__(self, obj, value):
-        value = _ensure_index(value)
-        setattr(obj, self.cache_field, value)
-
 class Panel(object):
     """
     Abstract superclass for LongPanel and WidePanel data structures
@@ -106,49 +94,9 @@ class Panel(object):
     __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
-    items = PanelAxis('_items')
-    major_axis = PanelAxis('_major_axis')
-    minor_axis = PanelAxis('_minor_axis')
-
-    def __repr__(self):
-        class_name = str(self.__class__)
-
-        I, N, K = len(self.items), len(self.major_axis), len(self.minor_axis)
-
-        dims = 'Dimensions: %d (items) x %d (major) x %d (minor)' % (I, N, K)
-
-        major = 'Major axis: %s to %s' % (self.major_axis[0],
-                                          self.major_axis[-1])
-
-        minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
-                                          self.minor_axis[-1])
-
-        if len(self.items) > 0:
-            items = 'Items: %s to %s' % (self.items[0], self.items[-1])
-        else:
-            items = 'Items: None'
-
-        output = '%s\n%s\n%s\n%s\n%s' % (class_name, dims, items, major, minor)
-
-        return output
-
-    def __iter__(self):
-        return iter(self.items)
-
-    def iteritems(self):
-        for item in self.items:
-            yield item, self[item]
-
     @property
     def shape(self):
         return len(self.items), len(self.major_axis), len(self.minor_axis)
-
-    @property
-    def dims(self): # pragma: no cover
-        warnings.warn("Please change panel.dims to panel.shape, will be removed"
-                      " in future release",
-                      FutureWarning)
-        return self.shape
 
 class WidePanel(Panel, NDFrame):
     """
@@ -214,21 +162,34 @@ class WidePanel(Panel, NDFrame):
         else:
             items = Index(_try_sort(data.keys()))
 
-        # figure out the index, if necessary
-        if index is None:
-            index = extract_index(data)
+        for k, v in data.iteritems():
+            if not isinstance(v, DataFrame):
+                data[k] = DataFrame(v)
 
-        # don't force copy because getting jammed in an ndarray anyway
-        # homogenized = _homogenize(data, index, columns, dtype)
+        if major is None:
+            indexes = [v.index for v in data.values()]
+            major = _union_indexes(indexes)
 
-        data, index, columns = _homogenize(data, intersect=intersect)
+        if minor is None:
+            indexes = [v.columns for v in data.values()]
+            minor = _union_indexes(indexes)
+
+        axes = [items, major, minor]
+
+        reshaped_data = data.copy() # shallow
+        # homogenize
+        for k, v in data.iteritems():
+            v = v.reindex(index=major, columns=minor, copy=False)
+            if dtype is not None:
+                v = v.astype(dtype)
+            values = v.values
+            shape = values.shape
+            reshaped_data[k] = values.reshape((1,) + shape)
 
         # segregates dtypes and forms blocks matching to columns
-        blocks = form_blocks(homogenized, index, columns)
-
-        # consolidate for now
-        mgr = BlockManager(blocks, [columns, index])
-        return mgr.consolidate()
+        blocks = form_blocks(reshaped_data, axes)
+        mgr = BlockManager(blocks, axes).consolidate()
+        return mgr
 
     @classmethod
     def from_dict(cls, data, intersect=False, dtype=float):
@@ -249,17 +210,7 @@ class WidePanel(Panel, NDFrame):
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
         axes = [items, index, columns]
-
-        reshaped_data = {}
-        for k, v in data.iteritems():
-            values = v.values
-            shape = values.shape
-            reshaped_data[k] = values.reshape((1,) + shape)
-
-        blocks = form_blocks(reshaped_data, axes)
-
-        mgr = BlockManager(blocks, axes).consolidate()
-        return WidePanel(mgr, items, index, columns)
+        return WidePanel(data, items, index, columns)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
         values = _prep_ndarray(data, copy=copy)
@@ -282,6 +233,35 @@ class WidePanel(Panel, NDFrame):
         items = fixed_axes[0]
         block = make_block(values, items, items)
         return BlockManager([block], fixed_axes)
+
+    def __repr__(self):
+        class_name = str(self.__class__)
+
+        I, N, K = len(self.items), len(self.major_axis), len(self.minor_axis)
+
+        dims = 'Dimensions: %d (items) x %d (major) x %d (minor)' % (I, N, K)
+
+        major = 'Major axis: %s to %s' % (self.major_axis[0],
+                                          self.major_axis[-1])
+
+        minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
+                                          self.minor_axis[-1])
+
+        if len(self.items) > 0:
+            items = 'Items: %s to %s' % (self.items[0], self.items[-1])
+        else:
+            items = 'Items: None'
+
+        output = '%s\n%s\n%s\n%s\n%s' % (class_name, dims, items, major, minor)
+
+        return output
+
+    def __iter__(self):
+        return iter(self.items)
+
+    def iteritems(self):
+        for item in self.items:
+            yield item, self[item]
 
     def _get_plane_axes(self, axis):
         """

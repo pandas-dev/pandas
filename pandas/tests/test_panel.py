@@ -370,7 +370,7 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         panel = self.panel.consolidate()
         self.assert_(panel._data.is_consolidated())
 
-    def test_from_dict(self):
+    def test_ctor_dict(self):
         itema = self.panel['ItemA']
         itemb = self.panel['ItemB']
 
@@ -388,6 +388,15 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         # intersect
         wp = WidePanel.from_dict(d, intersect=True)
         self.assert_(wp.major_axis.equals(itemb.index[5:]))
+
+        # use constructor
+        assert_panel_equal(WidePanel(d), WidePanel.from_dict(d))
+        assert_panel_equal(WidePanel(d2), WidePanel.from_dict(d2))
+        assert_panel_equal(WidePanel(d3), WidePanel.from_dict(d3))
+
+        # cast
+        result = WidePanel(d, dtype=int)
+        expected = WidePanel(dict((k, v.astype(int)) for k, v in d.iteritems()))
 
     def test_from_dict_mixed(self):
         pass

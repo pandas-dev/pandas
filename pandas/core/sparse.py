@@ -10,14 +10,13 @@ import numpy as np
 
 import operator
 
-from pandas.core.common import (isnull, notnull, _pickle_array, _unpickle_array,
+from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
                                 _mut_exclusive, _ensure_index, _try_sort)
 from pandas.core.index import Index, MultiIndex, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
-from pandas.core.panel import Panel, WidePanel, LongPanel, PanelAxis
-import pandas.core.common as common
+from pandas.core.panel import Panel, WidePanel, LongPanel
 import pandas.core.datetools as datetools
 
 from pandas._sparse import BlockIndex, IntIndex
@@ -1264,6 +1263,22 @@ def homogenize(series_dict):
         output = series_dict
 
     return output
+
+class PanelAxis(object):
+
+    def __init__(self, cache_field):
+        self.cache_field = cache_field
+
+    def __get__(self, obj, type=None):
+        return getattr(obj, self.cache_field, None)
+
+    def __set__(self, obj, value):
+        value = _ensure_index(value)
+
+        if isinstance(value, MultiIndex):
+            raise NotImplementedError
+
+        setattr(obj, self.cache_field, value)
 
 class SparseWidePanel(WidePanel):
     """

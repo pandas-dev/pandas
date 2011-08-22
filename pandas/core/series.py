@@ -476,6 +476,12 @@ class Series(np.ndarray, PandasObject):
         """
         return self._ndarray_statistic('mean')
 
+    def prod(self, axis=None, dtype=None, out=None):
+        """
+        Mean of non-null values
+        """
+        return self._ndarray_statistic('prod')
+
     def _ndarray_statistic(self, funcname):
         arr = self.values
         retVal = getattr(arr, funcname)()
