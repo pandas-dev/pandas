@@ -1424,7 +1424,8 @@ def _homogenize_dict(frames, intersect=True, dtype=None):
     columns = _get_combined_columns(adj_frames, intersect=intersect)
 
     for key, frame in adj_frames.iteritems():
-        result[key] = frame.reindex(index=index, columns=columns)
+        result[key] = frame.reindex(index=index, columns=columns,
+                                    copy=False)
 
     return result, index, columns
 
