@@ -107,6 +107,8 @@ cpdef map_indices(ndarray index):
 
     return result
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef map_indices_buf(ndarray[object] index):
     '''
     Produce a dict mapping the values of the input array to their respective
@@ -235,34 +237,3 @@ def isAllDates2(ndarray[object, ndim=1] arr):
             return False
 
     return True
-
-cdef double __add(double a, double b):
-    return a + b
-cdef double __sub(double a, double b):
-    return a - b
-
-cdef double __div(double a, double b):
-    if b == 0:
-        return NaN
-    else:
-        return a / b
-
-cdef double __mul(double a, double b):
-    return a * b
-cdef double __eq(double a, double b):
-    return a == b
-cdef double __ne(double a, double b):
-    return a != b
-cdef double __lt(double a, double b):
-    return a < b
-cdef double __gt(double a, double b):
-    return a > b
-
-cdef double __pow(double a, double b):
-    # NaN
-    if a != a or b != b:
-        return NaN
-    return a ** b
-
-ctypedef double (* double_func)(double a, double b)
-
