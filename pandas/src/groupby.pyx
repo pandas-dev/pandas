@@ -225,8 +225,12 @@ def fast_unique(ndarray[object] values):
         if val not in table:
             table[val] = stub
             uniques.append(val)
+    try:
+        uniques = sorted(uniques)
+    except Exception:
+        pass
 
-    return np.asarray(sorted(uniques), dtype=object)
+    return np.asarray(uniques, dtype=object)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -247,7 +251,32 @@ def fast_unique_multiple(list arrays):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    return np.asarray(sorted(uniques), dtype=object)
+    try:
+        uniques = sorted(uniques)
+    except Exception:
+        pass
+
+    return np.asarray(uniques, dtype=object)
+
+# from libcpp.set cimport set as stlset
+
+# cdef fast_unique_int32(ndarray arr):
+#     cdef:
+#         cdef stlset[int] table
+
+#         Py_ssize_t i, n = len(arr)
+#         int32_t* values
+#         list uniques = []
+#         int32_t val
+
+#     values = <int32_t*> arr.data
+
+#     for i from 0 <= i < n:
+#         val = values[i]
+#         if table.count(val) == 0:
+#             table.insert(val)
+#             uniques.append(val)
+#     return np.asarray(sorted(uniques), dtype=object)
 
 ctypedef double_t (* agg_func)(double_t *out, int32_t *counts, double_t *values,
                                int32_t *labels, int start, int end,

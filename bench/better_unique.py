@@ -49,9 +49,12 @@ numpy = []
 wes = []
 
 for sz, n in zip(group_sizes, numbers):
-    wes_timer =  timeit.Timer(stmt='better_unique(arr)',
+    # wes_timer =  timeit.Timer(stmt='better_unique(arr)',
+    #                           setup=setup % sz)
+    wes_timer =  timeit.Timer(stmt='_tseries.fast_unique(arr)',
                               setup=setup % sz)
-    numpy_timer =  timeit.Timer(stmt='np.unique(arr, return_inverse=True)',
+
+    numpy_timer =  timeit.Timer(stmt='np.unique(arr)',
                                 setup=setup % sz)
 
     print n
@@ -67,3 +70,16 @@ result = DataFrame({'wes' : wes, 'numpy' : numpy}, index=group_sizes)
 
 def make_plot(numpy, wes):
     pass
+
+def get_test_data(ngroups=100, n=100000):
+    unique_groups = range(ngroups)
+    random.shuffle(unique_groups)
+    arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
+
+    if len(arr) < n:
+        arr = np.asarray(list(arr) + unique_groups[:n - len(arr)],
+                         dtype=object)
+
+    return arr
+
+arr = get_test_data(ngroups=1000)

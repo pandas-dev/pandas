@@ -206,13 +206,7 @@ class Index(np.ndarray):
         if len(self) == 0:
             return _ensure_index(other)
 
-        new_seq = np.concatenate((self, other))
-        try:
-            new_seq = np.unique(new_seq)
-        except Exception:
-            # Not sortable / multiple types
-            pass
-        return Index(new_seq)
+        return Index(_tseries.fast_unique_multiple([self, other]))
 
     def intersection(self, other):
         """
@@ -821,7 +815,9 @@ class MultiIndex(Index):
         # TODO: optimize / make less wasteful
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
-        uniq_tuples = np.unique(np.concatenate((self_tuples, other_tuples)))
+
+        uniq_tuples = _tseries.fast_unique_multiple([self_tuples,
+                                                     other_tuples])
         return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
 
     def intersection(self, other):
