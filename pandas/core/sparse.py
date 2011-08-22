@@ -80,8 +80,8 @@ def _sparse_op_wrap(op, name):
                                 index=self.index,
                                 sparse_index=self.sp_index,
                                 fill_value=new_fill_value)
-        else:
-            raise Exception('operation with %s not supported' % type(other))
+        else: # pragma: no cover
+            raise TypeError('operation with %s not supported' % type(other))
 
     wrapper.__name__ = name
     return wrapper
@@ -1329,7 +1329,7 @@ class SparseWidePanel(WidePanel):
         self.major_axis = major_axis
         self.minor_axis = minor_axis
 
-    def _consolidate_inplace(self):
+    def _consolidate_inplace(self): # pragma: no cover
         # do nothing when DataFrame calls this method
         pass
 

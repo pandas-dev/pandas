@@ -420,6 +420,15 @@ class TestSparseSeries(TestCase):
         sp_zero = SparseSeries([], index=[], fill_value=0)
         _compare_with_series(sp, np.arange(10))
 
+        # with copy=False
+        reindexed = self.bseries.reindex(self.bseries.index, copy=True)
+        reindexed.sp_values[:] = 1.
+        self.assert_((self.bseries.sp_values != 1.).all())
+
+        reindexed = self.bseries.reindex(self.bseries.index, copy=False)
+        reindexed.sp_values[:] = 1.
+        self.assert_((self.bseries.sp_values == 1.).all())
+
     def test_sparse_reindex(self):
         length = 10
 
@@ -581,6 +590,11 @@ class TestSparseSeries(TestCase):
         self.assert_(isinstance(result, SparseSeries))
         assert_series_equal(result.to_dense(), expected)
 
+        result = self.zbseries.cumsum()
+        expected = self.zbseries.to_dense().cumsum()
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, expected)
+
 class TestSparseTimeSeries(TestCase):
     pass
 
@@ -631,8 +645,6 @@ class TestSparseDataFrame(TestCase):
         self.assert_(isinstance(cp, SparseDataFrame))
         assert_sp_frame_equal(cp, self.frame)
         self.assert_(cp.index is self.frame.index)
-
-        # TODO: Test that DATA is copied!
 
     def test_constructor(self):
         for col, series in self.frame.iteritems():
@@ -794,6 +806,17 @@ class TestSparseDataFrame(TestCase):
 
     def test_getitem(self):
         pass
+
+    def test_fancy_index_misc(self):
+        # axis = 0
+        sliced = self.frame.ix[-2:, :]
+        expected = self.frame.reindex(index=self.frame.index[-2:])
+        assert_sp_frame_equal(sliced, expected)
+
+        # axis = 1
+        sliced = self.frame.ix[:, -2:]
+        expected = self.frame.reindex(columns=self.frame.columns[-2:])
+        assert_sp_frame_equal(sliced, expected)
 
     def test_getitem_overload(self):
         # slicing
@@ -996,6 +1019,15 @@ class TestSparseDataFrame(TestCase):
         _check_frame(self.iframe)
         _check_frame(self.zframe)
         _check_frame(self.fill_frame)
+
+        # with copy=False
+        reindexed = self.frame.reindex(self.frame.index, copy=False)
+        reindexed['F'] = reindexed['A']
+        self.assert_('F' in self.frame)
+
+        reindexed = self.frame.reindex(self.frame.index)
+        reindexed['G'] = reindexed['A']
+        self.assert_('G' not in self.frame)
 
     def test_fillna(self):
         pass
@@ -1247,6 +1279,11 @@ class TestSparseWidePanel(TestCase,
         # TODO: do something about this later...
         self.assertRaises(Exception, self.panel.reindex,
                           items=['item0', 'ItemA', 'ItemB'])
+
+        # test copying
+        cp = self.panel.reindex(self.panel.major_axis, copy=True)
+        cp['ItemA']['E'] = cp['ItemA']['A']
+        self.assert_('E' not in self.panel['ItemA'])
 
     def test_operators(self):
         def _check_ops(panel):
