@@ -92,19 +92,22 @@ def ols(**kwargs):
     if window_type != common.FULL_SAMPLE:
         kwargs['window_type'] = common._get_window_type_name(window_type)
 
+    y = kwargs.get('y')
     x = kwargs.get('x')
-    if isinstance(x, dict):
-        if isinstance(x.values()[0], DataFrame):
-            x = WidePanel(x)
-        else:
-            x = DataFrame(x)
+
+    panel = False
+    if isinstance(y, DataFrame) or (isinstance(y, Series) and
+                                    isinstance(y.index, MultiIndex)):
+        panel = True
+    if isinstance(x, (WidePanel, LongPanel)):
+        panel = True
 
     if window_type == common.FULL_SAMPLE:
         for rolling_field in ('window_type', 'window', 'min_periods'):
             if rolling_field in kwargs:
                 del kwargs[rolling_field]
 
-        if isinstance(x, (WidePanel, LongPanel)):
+        if panel:
             if pool == False:
                 klass = NonPooledPanelOLS
             else:
@@ -112,7 +115,7 @@ def ols(**kwargs):
         else:
             klass = OLS
     else:
-        if isinstance(x, (WidePanel, LongPanel)):
+        if panel:
             if pool == False:
                 klass = NonPooledPanelOLS
             else:

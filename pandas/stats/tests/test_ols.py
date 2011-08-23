@@ -234,6 +234,13 @@ class TestOLSMisc(unittest.TestCase):
         self.assert_(isinstance(model, PanelOLS))
         model.summary
 
+    def test_series_rhs(self):
+        y = tm.makeTimeSeries()
+        x = tm.makeTimeSeries()
+        model = ols(y=y, x=x)
+        expected = ols(y=y, x={'x' : x})
+        assert_series_equal(model.beta, expected.beta)
+
     def test_various_attributes(self):
         # just make sure everything "works". test correctness elsewhere
 
@@ -246,6 +253,17 @@ class TestOLSMisc(unittest.TestCase):
         for attr in series_attrs:
             value = getattr(model, attr)
             self.assert_(isinstance(value, Series))
+
+        # works
+        model._results
+
+    def test_catch_regressor_overlap(self):
+        df1 = tm.makeTimeDataFrame().ix[:, ['A', 'B']]
+        df2 = tm.makeTimeDataFrame().ix[:, ['B', 'C', 'D']]
+        y = tm.makeTimeSeries()
+
+        data = {'foo' : df1, 'bar' : df2}
+        self.assertRaises(Exception, ols, y=y, x=data)
 
 class TestPanelOLS(BaseTest):
 

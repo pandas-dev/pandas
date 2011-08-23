@@ -1055,13 +1055,11 @@ class MovingOLS(OLS):
         results = {}
         for result in self.RESULT_FIELDS:
             value = getattr(self, result)
-            if isinstance(value, np.ndarray):
-                value = value[-1]
-            elif isinstance(value, Series):
+            if isinstance(value, Series):
                 value = value[self.beta.index[-1]]
             elif isinstance(value, DataFrame):
                 value = value.xs(self.beta.index[-1])
-            else:
+            else: # pragma: no cover
                 raise Exception('Problem retrieving %s' % result)
             results[result] = value
 
@@ -1145,9 +1143,9 @@ def _combine_rhs(rhs):
                 _safe_update(series, {name : value})
             elif isinstance(value, (dict, DataFrame)):
                 _safe_update(series, value)
-            else:
+            else: # pragma: no cover
                 raise Exception('Invalid RHS data type: %s' % type(value))
-    else:
+    else: # pragma: no cover
         raise Exception('Invalid RHS type: %s' % type(rhs))
 
     if not isinstance(series, DataFrame):
@@ -1206,11 +1204,8 @@ def _filter_data(lhs, rhs):
 # A little kludge so we can use this method for both
 # MovingOLS and MovingPanelOLS
 def _y_converter(y):
-    if isinstance(y, Series):
-        return np.asarray(y)
+    y = y.values.squeeze()
+    if y.ndim == 0: # pragma: no cover
+        return np.array([y])
     else:
-        y = y.values.squeeze()
-        if y.ndim == 0:
-            return np.array([y])
-        else:
-            return y
+        return y
