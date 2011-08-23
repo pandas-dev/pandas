@@ -164,10 +164,7 @@ class GroupBy(object):
                             continue
                         yield (ids[cat],) + subcat, data
 
-        gen = self._generator_factory(data)
-
-        for cats, data in flatten(gen, shape_axis=self.axis):
-            yield cats + (data,)
+        return flatten(self._generator_factory(data), shape_axis=self.axis)
 
     def apply(self, func):
         """
@@ -289,20 +286,10 @@ class GroupBy(object):
         result_keys = []
         result_values = []
 
-        key_as_tuple = len(self.groupings) > 1
-
         not_indexed_same = False
-
-        for data in self:
-            key = data[:-1]
-            if not key_as_tuple:
-                key = key[0]
-
-            group = data[-1]
+        for key, group in self:
             group.name = key
-
             res = arg(group)
-
             if not _is_indexed_like(res, group):
                 not_indexed_same = True
 

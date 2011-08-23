@@ -236,6 +236,12 @@ class TestGroupBy(unittest.TestCase):
             for idx in gp.index:
                 self.assert_((res.xs(idx) == agged[idx]).all())
 
+    def test_transform_multiple(self):
+        grouped = self.ts.groupby([lambda x: x.year, lambda x: x.month])
+
+        transformed = grouped.transform(lambda x: x * 2)
+        broadcasted = grouped.transform(np.mean)
+
     def test_dispatch_transform(self):
         df = self.tsframe[::5].reindex(self.tsframe.index)
 
@@ -400,7 +406,7 @@ class TestGroupBy(unittest.TestCase):
                     ('a', '2', s[[1]]),
                     ('b', '1', s[[4]]),
                     ('b', '2', s[[3, 5]])]
-        for i, (one, two, three) in enumerate(iterated):
+        for i, ((one, two), three) in enumerate(iterated):
             e1, e2, e3 = expected[i]
             self.assert_(e1 == one)
             self.assert_(e2 == two)
@@ -423,7 +429,7 @@ class TestGroupBy(unittest.TestCase):
                     ('a', '2', df.ix[idx[[3, 5]]]),
                     ('b', '1', df.ix[idx[[0, 2]]]),
                     ('b', '2', df.ix[idx[[1]]])]
-        for i, (one, two, three) in enumerate(iterated):
+        for i, ((one, two), three) in enumerate(iterated):
             e1, e2, e3 = expected[i]
             self.assert_(e1 == one)
             self.assert_(e2 == two)
@@ -434,8 +440,8 @@ class TestGroupBy(unittest.TestCase):
         df['k2'] = np.array(['1', '1', '1', '2', '2', '2'])
         grouped = df.groupby(['k1', 'k2'])
         groups = {}
-        for a, b, gp in grouped:
-            groups[a, b] = gp
+        for key, gp in grouped:
+            groups[key] = gp
         self.assertEquals(len(groups), 2)
 
     def test_multi_iter_panel(self):
@@ -443,7 +449,7 @@ class TestGroupBy(unittest.TestCase):
         grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
                              axis=1)
 
-        for month, wd, group in grouped:
+        for (month, wd), group in grouped:
             exp_axis = [x for x in wp.major_axis
                         if x.month == month and x.weekday() == wd]
             expected = wp.reindex(major=exp_axis)
@@ -571,7 +577,7 @@ class TestGroupBy(unittest.TestCase):
             # multiple columns
             grouped = df.groupby(['A', 'B'])
             expd = {}
-            for cat1, cat2, group in grouped:
+            for (cat1, cat2), group in grouped:
                 expd.setdefault(cat1, {})[cat2] = op(group['C'])
             exp = DataFrame(expd).T.stack()
             result = op(grouped)['C']
@@ -666,9 +672,7 @@ class TestGroupBy(unittest.TestCase):
             return group.sort('A')[-5:]
 
         result = grouped.apply(f)
-        for x in grouped:
-            key = x[:-1]
-            group = x[-1]
+        for key, group in grouped:
             assert_frame_equal(result.ix[key], f(group))
 
     def test_groupby_series_indexed_differently(self):
