@@ -221,6 +221,11 @@ class TestSeries(unittest.TestCase):
         self.assert_(common.equalContents(numSliceEnd,
                                           np.array(self.series)[-10:]))
 
+        # test return view
+        sl = self.series[10:20]
+        sl[:] = 0
+        self.assert_((self.series[10:20] == 0).all())
+
     def test_setitem(self):
         self.ts[self.ts.index[5]] = np.NaN
         self.ts[[1,2,17]] = np.NaN
@@ -545,7 +550,7 @@ class TestSeries(unittest.TestCase):
             assert_series_equal(result, exp)
             _check_fill(op, equiv_op, a, b, fill_value=fv)
 
-    def test_combineFirst(self):
+    def test_combine_first(self):
         series = Series(common.makeIntIndex(20).astype(float),
                         index=common.makeIntIndex(20))
 
@@ -553,12 +558,12 @@ class TestSeries(unittest.TestCase):
         series_copy[::2] = np.NaN
 
         # nothing used from the input
-        combined = series.combineFirst(series_copy)
+        combined = series.combine_first(series_copy)
 
         self.assert_(np.array_equal(combined, series))
 
         # Holes filled from input
-        combined = series_copy.combineFirst(series)
+        combined = series_copy.combine_first(series)
         self.assert_(np.isfinite(combined).all())
 
         self.assert_(np.array_equal(combined[::2], series[::2]))
@@ -569,14 +574,14 @@ class TestSeries(unittest.TestCase):
         floats = Series(common.randn(20), index=index)
         strings = Series(common.makeStringIndex(10), index=index[::2])
 
-        combined = strings.combineFirst(floats)
+        combined = strings.combine_first(floats)
 
         common.assert_dict_equal(strings, combined, compare_keys=False)
         common.assert_dict_equal(floats[1::2], combined, compare_keys=False)
 
         # corner case
         s = Series([1., 2, 3], index=[0, 1, 2])
-        result = s.combineFirst(Series([], index=[]))
+        result = s.combine_first(Series([], index=[]))
         assert_series_equal(s, result)
 
     def test_overloads(self):
@@ -675,12 +680,12 @@ class TestSeries(unittest.TestCase):
 
         self.assert_(np.array_equal(result, self.ts * 2))
 
-    def test_toCSV(self):
-        self.ts.toCSV('_foo')
+    def test_to_csv(self):
+        self.ts.to_csv('_foo')
         os.remove('_foo')
 
-    def test_toDict(self):
-        self.assert_(np.array_equal(Series(self.ts.toDict()), self.ts))
+    def test_to_dict(self):
+        self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
 
     def test_clip(self):
         val = self.ts.median()
@@ -774,52 +779,52 @@ class TestSeries(unittest.TestCase):
                                 after=self.ts.index[0] - offset)
         assert(len(truncated) == 0)
 
-    def test_asOf(self):
+    def test_asof(self):
         self.ts[5:10] = np.NaN
         self.ts[15:20] = np.NaN
 
-        val1 = self.ts.asOf(self.ts.index[7])
-        val2 = self.ts.asOf(self.ts.index[19])
+        val1 = self.ts.asof(self.ts.index[7])
+        val2 = self.ts.asof(self.ts.index[19])
 
         self.assertEqual(val1, self.ts[4])
         self.assertEqual(val2, self.ts[14])
 
         # accepts strings
-        val1 = self.ts.asOf(str(self.ts.index[7]))
+        val1 = self.ts.asof(str(self.ts.index[7]))
         self.assertEqual(val1, self.ts[4])
 
         # in there
-        self.assertEqual(self.ts.asOf(self.ts.index[3]), self.ts[3])
+        self.assertEqual(self.ts.asof(self.ts.index[3]), self.ts[3])
 
         # no as of value
         d = self.ts.index[0] - datetools.bday
-        self.assert_(np.isnan(self.ts.asOf(d)))
+        self.assert_(np.isnan(self.ts.asof(d)))
 
-    def test_merge(self):
+    def test_map(self):
         index, data = common.getMixedTypeDict()
 
         source = Series(data['B'], index=data['C'])
         target = Series(data['C'][:4], index=data['D'][:4])
 
-        merged = target.merge(source)
+        merged = target.map(source)
 
         for k, v in merged.iteritems():
             self.assertEqual(v, source[target[k]])
 
         # input could be a dict
-        merged = target.merge(source.toDict())
+        merged = target.map(source.to_dict())
 
         for k, v in merged.iteritems():
             self.assertEqual(v, source[target[k]])
 
-    def test_merge_int(self):
+    def test_map_int(self):
         left = Series({'a' : 1., 'b' : 2., 'c' : 3., 'd' : 4})
         right = Series({1 : 11, 2 : 22, 3 : 33})
 
         self.assert_(left.dtype == np.float_)
         self.assert_(issubclass(right.dtype.type, np.integer))
 
-        merged = left.merge(right)
+        merged = left.map(right)
         self.assert_(merged.dtype == np.float_)
         self.assert_(isnull(merged['d']))
         self.assert_(not isnull(merged['c']))
@@ -939,11 +944,8 @@ class TestSeries(unittest.TestCase):
         assert_series_equal(renamed, renamed2)
 
     def test_preserveRefs(self):
-        sl = self.ts[5:10]
         seq = self.ts[[5,10,15]]
-        sl[4] = np.NaN
         seq[1] = np.NaN
-        self.assertFalse(np.isnan(self.ts[9]))
         self.assertFalse(np.isnan(self.ts[10]))
 
     def test_ne(self):

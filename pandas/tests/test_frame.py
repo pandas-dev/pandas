@@ -956,12 +956,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # buglet
         self.mixed_frame._data.ndim
 
-    def test_toDict(self):
+    def test_to_dict(self):
         test_data = {
                 'A' : {'1' : 1, '2' : 2},
                 'B' : {'1' : '1', '2' : '2', '3' : '3'},
         }
-        recons_data = DataFrame(test_data).toDict()
+        recons_data = DataFrame(test_data).to_dict()
 
         for k, v in test_data.iteritems():
             for k2, v2 in v.iteritems():
@@ -1262,7 +1262,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         for key, s in added.iteritems():
             assert_series_equal(s, self.frame[key] + series[key])
 
-        larger_series = series.toDict()
+        larger_series = series.to_dict()
         larger_series['E'] = 1
         larger_series = Series(larger_series)
         larger_added = self.frame + larger_series
@@ -2006,11 +2006,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         sorted = self.frame.sort(ascending=False)
         sorted_A = self.frame.sort(column='A', ascending=False)
 
-    def test_combineFirst(self):
+    def test_combine_first(self):
         # disjoint
         head, tail = self.frame[:5], self.frame[5:]
 
-        combined = head.combineFirst(tail)
+        combined = head.combine_first(tail)
         reordered_frame = self.frame.reindex(combined.index)
         assert_frame_equal(combined, reordered_frame)
         self.assert_(tm.equalContents(combined.columns, self.frame.columns))
@@ -2025,7 +2025,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         fcopy2['B'] = 0
         del fcopy2['D']
 
-        combined = fcopy.combineFirst(fcopy2)
+        combined = fcopy.combine_first(fcopy2)
 
         self.assert_((combined['A'] == 1).all())
         assert_series_equal(combined['B'], fcopy['B'])
@@ -2036,29 +2036,29 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         head, tail = reordered_frame[:10].copy(), reordered_frame
         head['A'] = 1
 
-        combined = head.combineFirst(tail)
+        combined = head.combine_first(tail)
         self.assert_((combined['A'][:10] == 1).all())
 
         # reverse overlap
         tail['A'][:10] = 0
-        combined = tail.combineFirst(head)
+        combined = tail.combine_first(head)
         self.assert_((combined['A'][:10] == 0).all())
 
         # no overlap
         f = self.frame[:10]
         g = self.frame[10:]
-        combined = f.combineFirst(g)
+        combined = f.combine_first(g)
         assert_series_equal(combined['A'].reindex(f.index), f['A'])
         assert_series_equal(combined['A'].reindex(g.index), g['A'])
 
         # corner cases
-        comb = self.frame.combineFirst(self.empty)
+        comb = self.frame.combine_first(self.empty)
         assert_frame_equal(comb, self.frame)
 
-        comb = self.empty.combineFirst(self.frame)
+        comb = self.empty.combine_first(self.frame)
         assert_frame_equal(comb, self.frame)
 
-    def test_combineFirst_mixed_bug(self):
+    def test_combine_first_mixed_bug(self):
 	idx = Index(['a','b','c','e'])
 	ser1 = Series([5.0,-9.0,4.0,100.],index=idx)
 	ser2 = Series(['a', 'b', 'c', 'e'], index=idx)
@@ -2078,7 +2078,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                              "col5" : ser3})
 
 
-        combined = frame1.combineFirst(frame2)
+        combined = frame1.combine_first(frame2)
         self.assertEqual(len(combined.columns), 5)
 
     def test_combineAdd(self):
@@ -2479,7 +2479,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(f._get_axis(1) is f.columns)
         self.assertRaises(Exception, f._get_axis_number, 2)
 
-    def test_combineFirst_mixed(self):
+    def test_combine_first_mixed(self):
         a = Series(['a','b'], index=range(2))
         b = Series(range(2), index=range(2))
         f = DataFrame({'A' : a, 'B' : b})
@@ -2488,7 +2488,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         b = Series(range(2), index=range(5, 7))
         g = DataFrame({'A' : a, 'B' : b})
 
-        combined = f.combineFirst(g)
+        combined = f.combine_first(g)
 
     def test_more_asMatrix(self):
         values = self.mixed_frame.as_matrix()

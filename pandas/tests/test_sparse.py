@@ -660,7 +660,7 @@ class TestSparseDataFrame(TestCase):
         # construct from nested dict
         data = {}
         for c, s in self.frame.iteritems():
-            data[c] = s.toDict()
+            data[c] = s.to_dict()
 
         sdf = SparseDataFrame(data)
         assert_sp_frame_equal(sdf, self.frame)

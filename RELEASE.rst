@@ -186,6 +186,10 @@ Release notes
   `pandas.core.common`
 * Tacked on `groupName` attribute for groups in GroupBy renamed to `name`
 * WidePanel/LongPanel `dims` attribute renamed to `shape` to be more conformant
+* Slicing a `Series` returns a view now
+* More Series deprecations / renaming: `toCSV` to `to_csv`, `asOf` to `asof`,
+  `merge` to `map`, `applymap` to `apply`, `toDict` to `to_dict`,
+  `combineFirst` to `combine_first`. Will print `FutureWarning`.
 
 **Bug fixes**
 

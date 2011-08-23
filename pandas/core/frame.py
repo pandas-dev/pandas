@@ -341,7 +341,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # IO methods (to / from other formats)
 
-    def toDict(self):
+    def to_dict(self):
         """
         Convert DataFrame to nested dictionary (non-pandas)
 
@@ -349,7 +349,7 @@ class DataFrame(NDFrame):
         ------
         nested dict mapping: {column -> index -> value}
         """
-        return dict((k, v.toDict()) for k, v in self.iteritems())
+        return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
     def from_records(cls, data, indexField=None):
@@ -1481,7 +1481,7 @@ class DataFrame(NDFrame):
 
         return self._constructor(result, index=new_index, columns=new_columns)
 
-    def combineFirst(self, other):
+    def combine_first(self, other):
         """
         Combine two DataFrame objects and default to value
         in frame calling the method.
@@ -1492,7 +1492,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        a.combineFirst(b)
+        a.combine_first(b)
             a's values prioritized, use values from b to fill holes
 
         Returns
@@ -2683,6 +2683,11 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
+    def combineFirst(self, other):  # pragma: no cover
+        warnings.warn("combineFirst is deprecated. Use combine_first",
+                      FutureWarning)
+        return self.combine_first(other)
+
     def toDataMatrix(self):  # pragma: no cover
         warnings.warn("toDataMatrix will disappear in next release "
                       "as there is no longer a DataMatrix class",
@@ -2720,6 +2725,11 @@ class DataFrame(NDFrame):
         warnings.warn("toRecords is deprecated. Use 'to_records' "
                       "instead", FutureWarning)
         return self.to_records(*args, **kwargs)
+
+    def toDict(self):  # pragma: no cover
+        warnings.warn("toDict is deprecated. Use 'to_dic' instead",
+                      FutureWarning)
+        return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
     def fromRecords(cls, *args, **kwargs):  # pragma: no cover

@@ -145,6 +145,13 @@ class cache_writable(_cache_readonly):
                                        cachename=self.cachename,
                                        resetlist=self.resetlist)
 
+def deprecate(name, alternative):
+    alt_name = alternative.func_name
+    def wrapper(*args, **kwargs):
+        warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
+                      FutureWarning)
+        return alternative(*args, **kwargs)
+    return wrapper
 
 if __name__ == "__main__":
 ### Tests resettable_cache ----------------------------------------------------

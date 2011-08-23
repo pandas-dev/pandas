@@ -19,6 +19,7 @@ from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
+from pandas.util.decorators import deprecate
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
 
@@ -65,7 +66,7 @@ def _flex_method(op, name):
     Parameters
     ----------
     other: Series or scalar value
-    fill_value : None or float value, default None
+    fill_value : None or float value, default None (NaN)
         Fill missing (NaN) values with this value. If both Series are
         missing, the result will be missing
 
@@ -81,39 +82,29 @@ def _flex_method(op, name):
 
 class Series(np.ndarray, PandasObject):
     """
-    Generic indexed (labeled) vector, including time series
+    One-dimensional ndarray with axis labels (including time series). Labels
+    must be unique and can any hashable type. The object supports both integer-
+    and label-based indexing and provides a host of methods for performing
+    operations involving the index. Statistical methods from ndarray have been
+    overridden to automatically exclude missing data (currently represented as
+    NaN)
 
-    Contains values in a numpy-ndarray with an optional bound index
-    (also an array of dates, strings, or whatever you want the 'row
-    names' of your series to be)
-
-    Rows can be retrieved by index value (date, string, etc.) or
-    relative position in the underlying array.
-
-    Operations between Series (+, -, /, *, **) align values based on
-    their associated index values-- they need not be the same length.
+    Operations between Series (+, -, /, *, **) align values based on their
+    associated index values-- they need not be the same length. The result
+    index will be the sorted union of the two indexes.
 
     Parameters
     ----------
     data : array-like, dict, or scalar value
         Contains data stored in Series
-    index : array-like
-        Index object (or other iterable of same length as data)
-        Must be input if first argument is not a dict. If both a dict
-        and index sequence are used, the index will override the keys
-        found in the dict.
+    index : array-like or Index (1d)
+        Values must be unique and hashable, same length as data. Index object
+        (or other iterable of same length as data) Will default to
+        np.arange(len(data)) if not provided. If both a dict and index sequence
+        are used, the index will override the keys found in the dict.
     dtype : numpy.dtype or None
-        If None, dtype will be inferred
-    copy : boolean, default False
-        Copy input data
-
-    Notes
-    -----
-    If you combine two series, all values for an index position must
-    be present or the value for that index position will be nan. The
-    new index is the sorted union of the two Series indices.
-
-    Data is *not* copied from input arrays by default
+        If None, dtype will be inferred copy : boolean, default False Copy
+        input data
     """
     _AXIS_NUMBERS = {
         'index' : 0
@@ -140,7 +131,7 @@ class Series(np.ndarray, PandasObject):
             subarr = np.array(data, dtype=object)
 
         if subarr.ndim == 0:
-            if isinstance(data, list): # pragma: no cover
+            if isinstance(data, list):  # pragma: no cover
                 subarr = np.array(data, dtype=object)
             elif index is not None:
                 value = data
@@ -212,25 +203,6 @@ class Series(np.ndarray, PandasObject):
         """
         self._index = getattr(obj, '_index', None)
 
-    def toDict(self):
-        return dict(self.iteritems())
-
-    def to_sparse(self, kind='block', fill_value=None):
-        """
-        Convert Series to SparseSeries
-
-        Parameters
-        ----------
-        kind : {'block', 'integer'}
-        fill_value : float, defaults to NaN (missing)
-
-        Returns
-        -------
-        sp : SparseSeries
-        """
-        from pandas.core.sparse import SparseSeries
-        return SparseSeries(self, kind=kind, fill_value=fill_value)
-
     def __contains__(self, key):
         return key in self.index
 
@@ -248,19 +220,17 @@ class Series(np.ndarray, PandasObject):
         index, = own_state
         self.index = index
 
-    def __getitem__(self, key):
-        """
-        Returns item(s) for requested index/sequence, overrides default behavior
-        for series[key].
+    _ix = None
 
-        Logic is as follows:
-            - If key is in the index, return the value corresponding
-              to that index
-            - Otherwise, use key (presumably one integer or a sequence
-              of integers) to obtain values from the series. In the case
-              of a sequence, a 'slice' of the series (with corresponding dates)
-              will be returned, otherwise a single value.
-        """
+    @property
+    def ix(self):
+        if self._ix is None:
+            self._ix = _SeriesIndexer(self)
+
+        return self._ix
+
+    def __getitem__(self, key):
+        # Label-based
         try:
             if isinstance(self.index, MultiIndex):
                 return self._multilevel_index(key)
@@ -279,6 +249,8 @@ class Series(np.ndarray, PandasObject):
             return Series(self.values[indexer],
                           index=self.index[indexer])
 
+        # boolean
+
         # special handling of boolean data with NAs stored in object
         # arrays. Sort of an elaborate hack since we can't represent boolean
         # NA. Hmm
@@ -286,6 +258,8 @@ class Series(np.ndarray, PandasObject):
             self._check_bool_indexer(key)
             key = np.asarray(key, dtype=bool)
             return _index_with(key)
+
+        # other: fancy integer or otherwise
 
         # [slice(0, 5, None)] will break if you convert to ndarray,
         # e.g. as requested by np.median
@@ -308,41 +282,11 @@ class Series(np.ndarray, PandasObject):
                 return values[key]
             raise KeyError('%s not in this series!' % str(key))
 
-    def get(self, key, default=None):
-        """
-        Returns value occupying requested index, default to specified
-        missing value if not present
-
-        Parameters
-        ----------
-        key : object
-            Index value looking for
-        default : object, optional
-            Value to return if key not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        if key in self.index:
-            return self._get_val_at(self.index.get_loc(key))
-        else:
-            return default
-
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
 
     def __getslice__(self, i, j):
-        """
-        Returns a slice of the Series.
-
-        Note that the underlying values are COPIES.
-
-        The reason that the getslice returns copies is that otherwise you
-        will have a reference to the original series which could be
-        inadvertently changed
-        """
-        return Series(self.values[i:j].copy(), index=self.index[i:j])
+        return Series(self.values[i:j], index=self.index[i:j])
 
     def __setitem__(self, key, value):
         values = self.values
@@ -417,11 +361,14 @@ class Series(np.ndarray, PandasObject):
     def __iter__(self):
         return iter(self.values)
 
-    def copy(self):
-        return Series(self.values.copy(), index=self.index)
+    def iteritems(self):
+        """
+        Lazily iterate over (index, value) tuples
+        """
+        return itertools.izip(iter(self.index), iter(self))
 
-#-------------------------------------------------------------------------------
-#   Arithmetic operators
+    #----------------------------------------------------------------------
+    #   Arithmetic operators
 
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
@@ -445,14 +392,89 @@ class Series(np.ndarray, PandasObject):
     __idiv__ = __div__
     __ipow__ = __pow__
 
-#-------------------------------------------------------------------------------
-# Statistics, overridden ndarray methods
+    #----------------------------------------------------------------------
+    # Misc public methods
+
+    def keys(self):
+        "Alias for index"
+        return self.index
+
+    @property
+    def values(self):
+        """
+        Return Series as ndarray
+
+        Returns
+        -------
+        arr : numpy.ndarray
+        """
+        return self.view(ndarray)
+
+    def copy(self):
+        """
+        Return new Series with copy of underlying values
+
+        Returns
+        -------
+        cp : Series
+        """
+        return Series(self.values.copy(), index=self.index)
+
+    def to_dict(self):
+        """
+        Convert Series to {label -> value} dict
+
+        Returns
+        -------
+        value_dict : dict
+        """
+        return dict(self.iteritems())
+
+    def to_sparse(self, kind='block', fill_value=None):
+        """
+        Convert Series to SparseSeries
+
+        Parameters
+        ----------
+        kind : {'block', 'integer'}
+        fill_value : float, defaults to NaN (missing)
+
+        Returns
+        -------
+        sp : SparseSeries
+        """
+        from pandas.core.sparse import SparseSeries
+        return SparseSeries(self, kind=kind, fill_value=fill_value)
+
+    def get(self, key, default=None):
+        """
+        Returns value occupying requested index, default to specified
+        missing value if not present. Analogous to dict.get
+
+        Parameters
+        ----------
+        key : object
+            Index value looking for
+        default : object, optional
+            Value to return if key not in index
+
+        Returns
+        -------
+        y : scalar
+        """
+        if key in self.index:
+            return self._get_val_at(self.index.get_loc(key))
+        else:
+            return default
+
+    #----------------------------------------------------------------------
+    # Statistics, overridden ndarray methods
 
     # TODO: integrate bottleneck
 
     def count(self):
         """
-        Return number of observations of Series.
+        Return number of non-NA/null observations in the Series
 
         Returns
         -------
@@ -460,90 +482,71 @@ class Series(np.ndarray, PandasObject):
         """
         return notnull(self.values).sum()
 
-    def sum(self, axis=None, dtype=None, out=None):
+    def sum(self, axis=0, dtype=None, out=None):
         """
-        Sum of non-null values
-        """
-        return self._ndarray_statistic('sum')
-
-    def mean(self, axis=None, dtype=None, out=None):
-        """
-        Mean of non-null values
-        """
-        return self._ndarray_statistic('mean')
-
-    def prod(self, axis=None, dtype=None, out=None):
-        """
-        Mean of non-null values
-        """
-        return self._ndarray_statistic('prod')
-
-    def _ndarray_statistic(self, funcname):
-        arr = self.values
-        retVal = getattr(arr, funcname)()
-
-        if isnull(retVal):
-            arr = remove_na(arr)
-            if len(arr) == 0:
-                return np.nan
-            retVal = getattr(arr, funcname)()
-
-        return retVal
-
-    def quantile(self, q=0.5):
-        """
-        Return value at the given quantile
-
-        Parameters
-        ----------
-        q : quantile
-            0 <= q <= 1
+        Sum of non-NA/null values
 
         Returns
         -------
-        q : float
+        sum : float
         """
-        from scipy.stats import scoreatpercentile
-        return scoreatpercentile(self.valid().values, q * 100)
+        return self._ndarray_statistic('sum', dtype=dtype)
 
-    def describe(self):
+    def mean(self, axis=0, dtype=None, out=None):
         """
-        Generate various summary statistics of columns, excluding NaN values
+        Mean of non-NA/null values
 
         Returns
         -------
-        DataFrame
+        mean : float
         """
-        names = ['count', 'mean', 'std', 'min',
-                 '10%', '50%', '90%', 'max']
+        return self._ndarray_statistic('mean', dtype=dtype)
 
-        data = [self.count(), self.mean(), self.std(), self.min(),
-                self.quantile(.1), self.median(), self.quantile(.9),
-                self.max()]
+    def prod(self, axis=0, dtype=None, out=None):
+        """
+        Product of non-NA/null values
 
-        return Series(data, index=names)
+        Returns
+        -------
+        product : float
+        """
+        return self._ndarray_statistic('prod', dtype=dtype)
 
     def min(self, axis=None, out=None):
         """
-        Minimum of non-null values
+        Minimum of non-NA/null values
+
+        Returns
+        -------
+        min : float
         """
         arr = self.values.copy()
         if not issubclass(arr.dtype.type, np.int_):
-            arr[isnull(arr)] = np.inf
+            np.putmask(arr, isnull(arr), np.inf)
         return arr.min()
 
     def max(self, axis=None, out=None):
         """
-        Maximum of non-null values
+        Maximum of non-NA/null values
+
+        Returns
+        -------
+        max : float
         """
         arr = self.values.copy()
         if not issubclass(arr.dtype.type, np.int_):
-            arr[isnull(arr)] = -np.inf
+            np.putmask(arr, isnull(arr), -np.inf)
         return arr.max()
 
     def std(self, axis=None, dtype=None, out=None, ddof=1):
         """
-        Unbiased standard deviation of non-null values
+        Unbiased standard deviation of non-NA/null values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Returns
+        -------
+        stdev : float
         """
         nona = remove_na(self.values)
         if len(nona) < 2:
@@ -552,41 +555,28 @@ class Series(np.ndarray, PandasObject):
 
     def var(self, axis=None, dtype=None, out=None, ddof=1):
         """
-        Unbiased variance of non-null values
+        Unbiased variance of non-NA/null values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Returns
+        -------
+        var : float
         """
         nona = remove_na(self.values)
         if len(nona) < 2:
             return nan
         return ndarray.var(nona, axis, dtype, out, ddof)
 
-    def skew(self):
-        """
-        Unbiased skewness of the non-null values
-
-        Returns
-        -------
-        skew : float
-        """
-        y = np.array(self.values)
-        mask = notnull(y)
-        count = mask.sum()
-        np.putmask(y, -mask, 0)
-
-        A = y.sum() / count
-        B = (y**2).sum() / count  - A**2
-        C = (y**3).sum() / count - A**3 - 3*A*B
-
-        return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
-
     def cumsum(self, axis=0, dtype=None, out=None):
         """
-        Cumulative sum of values. Preserves NaN values
+        Cumulative sum of values. Preserves locations of NaN values
 
         Extra parameters are to preserve ndarray interface.
 
         Returns
         -------
-
+        cumsum : Series
         """
         arr = self.values.copy()
 
@@ -604,7 +594,13 @@ class Series(np.ndarray, PandasObject):
 
     def cumprod(self, axis=0, dtype=None, out=None):
         """
-        Overriding numpy's built-in cumprod functionality
+        Cumulative product of values. Preserves locations of NaN values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Returns
+        -------
+        cumprod : Series
         """
         arr = self.values.copy()
 
@@ -622,7 +618,11 @@ class Series(np.ndarray, PandasObject):
 
     def median(self):
         """
-        Compute median value of non-null values
+        Compute median value of non-NA/null values
+
+        Returns
+        -------
+        median : float
         """
         arr = self.values
 
@@ -632,13 +632,80 @@ class Series(np.ndarray, PandasObject):
         arr = arr[notnull(arr)]
         return _tseries.median(arr)
 
+    def _ndarray_statistic(self, funcname, dtype=None):
+        arr = self.values
+        retVal = getattr(arr, funcname)(dtype=dtype)
+
+        if isnull(retVal):
+            arr = remove_na(arr)
+            if len(arr) == 0:
+                return np.nan
+            retVal = getattr(arr, funcname)(dtype=dtype)
+
+        return retVal
+
+    def quantile(self, q=0.5):
+        """
+        Return value at the given quantile, a la scoreatpercentile in
+        scipy.stats
+
+        Parameters
+        ----------
+        q : quantile
+            0 <= q <= 1
+
+        Returns
+        -------
+        quantile : float
+        """
+        from scipy.stats import scoreatpercentile
+        return scoreatpercentile(self.valid().values, q * 100)
+
+    def describe(self):
+        """
+        Generate various summary statistics of columns, excluding NaN
+        values. These include: count, mean, std, min, max, and 10%/50%/90%
+        quantiles
+
+        Returns
+        -------
+        desc : Series
+        """
+        names = ['count', 'mean', 'std', 'min',
+                 '10%', '50%', '90%', 'max']
+
+        data = [self.count(), self.mean(), self.std(), self.min(),
+                self.quantile(.1), self.median(), self.quantile(.9),
+                self.max()]
+
+        return Series(data, index=names)
+
+    def skew(self):
+        """
+        Unbiased skewness of the non-NA/null values
+
+        Returns
+        -------
+        skew : float
+        """
+        y = np.array(self.values)
+        mask = notnull(y)
+        count = mask.sum()
+        np.putmask(y, -mask, 0)
+
+        A = y.sum() / count
+        B = (y**2).sum() / count  - A**2
+        C = (y**3).sum() / count - A**3 - 3*A*B
+
+        return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
+
     def corr(self, other):
         """
         Compute correlation two Series, excluding missing values
 
         Parameters
         ----------
-        other : Series object
+        other : Series
 
         Returns
         -------
@@ -660,7 +727,7 @@ class Series(np.ndarray, PandasObject):
 
         Returns
         -------
-        TimeSeries
+        diffed : Series
         """
         return (self - self.shift(1))
 
@@ -670,7 +737,7 @@ class Series(np.ndarray, PandasObject):
 
         Returns
         -------
-        TimeSeries
+        autocorr : float
         """
         return self.corr(self.shift(1))
 
@@ -685,7 +752,7 @@ class Series(np.ndarray, PandasObject):
 
         Returns
         -------
-        y : Series
+        clipped : Series
         """
         result = self
         if lower is not None:
@@ -696,43 +763,39 @@ class Series(np.ndarray, PandasObject):
         return result
 
     def clip_upper(self, threshold):
-        """Return copy of series with values above given value truncated"""
-        return np.where(self > threshold, threshold, self)
-
-    def clip_lower(self, threshold):
-        """Return copy of series with values below given value truncated"""
-        return np.where(self < threshold, threshold, self)
-
-#-------------------------------------------------------------------------------
-# Iteration
-
-    def keys(self):
-        "Alias for Series index"
-        return self.index
-
-    @property
-    def values(self):
         """
-        Return Series as ndarray
+        Return copy of series with values above given value truncated
+
+        See also
+        --------
+        clip
 
         Returns
         -------
-        arr : numpy.ndarray
+        clipped : Series
         """
-        return self.view(ndarray)
+        return np.where(self > threshold, threshold, self)
 
-    def iteritems(self):
+    def clip_lower(self, threshold):
         """
-        Lazily iterate over (index, value) tuples
+        Return copy of series with values below given value truncated
+
+        See also
+        --------
+        clip
+
+        Returns
+        -------
+        clipped : Series
         """
-        return itertools.izip(iter(self.index), iter(self))
+        return np.where(self < threshold, threshold, self)
 
 #-------------------------------------------------------------------------------
 # Combination
 
     def append(self, other):
         """
-        Concatenate two Series. The indices should not overlap
+        Concatenate two Series. The indexes must not overlap
 
         Parameters
         ----------
@@ -751,16 +814,20 @@ class Series(np.ndarray, PandasObject):
 
     def _binop(self, other, func, fill_value=None):
         """
+        Perform generic binary operation with optional fill value
+
         Parameters
         ----------
         other : Series
+        func : binary operator
+        fill_value : float or object
+            Value to substitute for NA/null values. If both Series are NA in a
+            location, the result will be NA regardless of the passed fill value
 
         Returns
         -------
         combined : Series
         """
-        # TODO: docstring
-
         assert(isinstance(other, Series))
 
         new_index = self.index
@@ -796,8 +863,8 @@ class Series(np.ndarray, PandasObject):
     def combine(self, other, func, fill_value=nan):
         """
         Perform elementwise binary operation on two Series using given function
-        with optional fill value when an index is missing from one Series or the
-        other
+        with optional fill value when an index is missing from one Series or
+        the other
 
         Parameters
         ----------
@@ -815,16 +882,17 @@ class Series(np.ndarray, PandasObject):
             new_values = np.empty(len(new_index), dtype=self.dtype)
             for i, idx in enumerate(new_index):
                 new_values[i] = func(self.get(idx, fill_value),
-                                 other.get(idx, fill_value))
+                                     other.get(idx, fill_value))
         else:
             new_index = self.index
             new_values = func(self.values, other)
 
         return Series(new_values, index=new_index)
 
-    def combineFirst(self, other):
+    def combine_first(self, other):
         """
-        Combine Series values, choosing calling Series's values first.
+        Combine Series values, choosing the calling Series's values
+        first. Result index will be the union of the two indexes
 
         Parameters
         ----------
@@ -833,18 +901,10 @@ class Series(np.ndarray, PandasObject):
         Returns
         -------
         y : Series
-            formed as union of two Series
         """
-        if self.index.equals(other.index):
-            new_index = self.index
-            # save ourselves the copying in this case
-            this = self
-        else:
-            new_index = self.index + other.index
-
-            this = self.reindex(new_index)
-            other = other.reindex(new_index)
-
+        new_index = self.index + other.index
+        this = self.reindex(new_index, copy=False)
+        other = other.reindex(new_index, copy=False)
         result = Series(np.where(isnull(this), other, this), index=new_index)
         return result
 
@@ -853,7 +913,8 @@ class Series(np.ndarray, PandasObject):
 
     def sort(self, axis=0, kind='quicksort', order=None):
         """
-        Overridden NumPy sort, taking care with missing values
+        Sort values and index labels in place, for compatibility with
+        ndarray. No return value
         """
         sortedSeries = self.order(na_last=True)
         self[:] = sortedSeries
@@ -861,7 +922,12 @@ class Series(np.ndarray, PandasObject):
 
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
-        Overriding numpy's built-in cumsum functionality
+        Overrides ndarray.argsort. Argsorts the value, omitting NA/null values,
+        and places the result in the same locations as the non-NA values
+
+        Returns
+        -------
+        argsorted : Series
         """
         values = self.values
         mask = isnull(values)
@@ -876,12 +942,14 @@ class Series(np.ndarray, PandasObject):
 
     def order(self, na_last=True, ascending=True, **kwds):
         """
-        Sorts Series object, by value, maintaining index-value object
+        Sorts Series object, by value, maintaining index-value link
 
         Parameters
         ----------
         na_last : boolean (optional, default=True)
             Put NaN's at beginning or end
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
 
         Returns
         -------
@@ -895,7 +963,7 @@ class Series(np.ndarray, PandasObject):
                 # stable sort not available for object dtype
                 return arr.argsort()
 
-        if 'missingAtEnd' in kwds: # pragma: no cover
+        if 'missingAtEnd' in kwds:  # pragma: no cover
             warnings.warn("missingAtEnd is deprecated, use na_last",
                           FutureWarning)
             na_last = kwds['missingAtEnd']
@@ -926,8 +994,9 @@ class Series(np.ndarray, PandasObject):
 
     def sortlevel(self, level=0, ascending=True):
         """
-        Sort multilevel index by chosen level. Data will be lexicographically
-        sorted by the chosen level followed by the other levels (in order)
+        Sort Series with MultiIndex by chosen level. Data will be
+        lexicographically sorted by the chosen level followed by the other
+        levels (in order)
 
         Parameters
         ----------
@@ -947,12 +1016,12 @@ class Series(np.ndarray, PandasObject):
 
     def unstack(self, level=-1):
         """
-        "Unstack" Series with multi-level index to produce DataFrame
+        Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame
 
         Parameters
         ----------
         level : int, default last level
-            Level to "unstack"
+            Level to unstack
 
         Examples
         --------
@@ -985,11 +1054,28 @@ class Series(np.ndarray, PandasObject):
     def map(self, arg):
         """
         Map values of Series using input correspondence (which can be
-        a dict, Series, or function).
+        a dict, Series, or function)
 
         Parameters
         ----------
         arg : function, dict, or Series
+
+        Examples
+        --------
+        >>> x
+        one   1
+        two   2
+        three 3
+
+        >>> y
+        1  foo
+        2  bar
+        3  baz
+
+        >>> x.map(y)
+        one   foo
+        two   bar
+        three baz
 
         Returns
         -------
@@ -1017,11 +1103,9 @@ class Series(np.ndarray, PandasObject):
         else:
             return Series([arg(x) for x in self], index=self.index)
 
-    merge = map
-
     def apply(self, func):
         """
-        Call function on elements on array. Can be ufunc or Python function
+        Invoke function on values of Series. Can be ufunc or Python function
         expecting only single values
 
         Parameters
@@ -1037,18 +1121,20 @@ class Series(np.ndarray, PandasObject):
         except Exception:
             return Series([func(x) for x in self], index=self.index)
 
-    applymap = apply
-
     def reindex(self, index=None, method=None, copy=True):
-        """Conform Series to new Index
+        """Conform Series to new index with optional filling logic, placing
+        NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        copy=False
 
         Parameters
         ----------
-        index : array-like
-            Preferably an Index object (to avoid duplicating data)
+        index : array-like or Index
+            New labels / index to conform to. Preferably an Index object to
+            avoid duplicating data
         method : {'backfill', 'bfill', 'pad', 'ffill', None}
             Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
+            pad / ffill: propagate LAST valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
@@ -1083,7 +1169,8 @@ class Series(np.ndarray, PandasObject):
 
     def reindex_like(self, other, method=None):
         """
-        Reindex Series to match index of another Series
+        Reindex Series to match index of another Series, optionally with
+        filling logic
 
         Parameters
         ----------
@@ -1093,7 +1180,7 @@ class Series(np.ndarray, PandasObject):
 
         Notes
         -----
-        Like calling s.reindex(other.index)
+        Like calling s.reindex(other.index, method=...)
 
         Returns
         -------
@@ -1120,33 +1207,31 @@ class Series(np.ndarray, PandasObject):
 
     def fillna(self, value=None, method='pad'):
         """
-        Fill NaN values using the specified method.
+        Fill NA/NaN values using the specified method
 
         Parameters
         ----------
         value : any kind (should be same type as array)
             Value to use to fill holes (e.g. 0)
-
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
             Method to use for filling holes in reindexed Series
-
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-
-        Returns
-        -------
-        TimeSeries with NaN's filled
 
         See also
         --------
         reindex, asfreq
+
+        Returns
+        -------
+        filled : Series
         """
         if value is not None:
             newSeries = self.copy()
             newSeries[isnull(newSeries)] = value
             return newSeries
-        else: # Using reindex to pad / backfill
-            if method is None: # pragma: no cover
+        else:
+            if method is None:  # pragma: no cover
                 raise ValueError('must specify a fill method')
 
             method = method.lower()
@@ -1158,7 +1243,7 @@ class Series(np.ndarray, PandasObject):
 
             mask = isnull(self.values)
 
-            if _numpy_lt_151(): # pragma: no cover
+            if _numpy_lt_151():  # pragma: no cover
                 mask = mask.astype(np.uint8)
 
             if method == 'pad':
@@ -1173,26 +1258,29 @@ class Series(np.ndarray, PandasObject):
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', **kwds): # pragma: no cover
+             style='-', **kwds):  # pragma: no cover
         """
-        Plot the input series with the index on the x-axis using
-        matplotlib / pylab.
+        Plot the input series with the index on the x-axis using matplotlib
 
         Parameters
         ----------
         label : label argument to provide to plot
-        kind : {'line', 'bar', 'hist'}
-            Default: line for TimeSeries, hist for Series
-        auto_x : if True, it will use range(len(self)) as x-axis
-        kwds : other plotting keyword arguments
+        kind : {'line', 'bar'}
+        rot : int, default 30
+            Rotation for tick labels
+        use_index : boolean, default True
+            Plot index as axis tick labels
+        ax : matplotlib axis object
+            If not passed, uses gca()
+        style : string, default '-'
+            matplotlib line style to use
+        kwds : keywords
+            To be passed to the actual plotting function
 
         Notes
         -----
         See matplotlib documentation online for more on this subject
-
-        Default plot-types: TimeSeries (line), Series (bar)
-
-        Intended to be used in ipython -pylab mode
+        Intended to be used in ipython --pylab mode
         """
         import matplotlib.pyplot as plt
 
@@ -1215,7 +1303,7 @@ class Series(np.ndarray, PandasObject):
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             ax.bar(xinds, self.values.astype(float), 0.5,
-                   bottom=np.zeros(N), linewidth=1)
+                   bottom=np.zeros(N), linewidth=1, **kwds)
 
             if N < 10:
                 fontsize = 12
@@ -1225,7 +1313,7 @@ class Series(np.ndarray, PandasObject):
             ax.set_xticks(xinds + 0.25)
             ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
 
-        # kludge
+        # try to make things prettier
         try:
             fig = plt.gcf()
             fig.autofmt_xdate()
@@ -1234,20 +1322,21 @@ class Series(np.ndarray, PandasObject):
 
         plt.draw_if_interactive()
 
-    def hist(self, ax=None): # pragma: no cover
+    def hist(self, ax=None, **kwds):  # pragma: no cover
         """
-        Draw histogram of the input series using matplotlib / pylab.
+        Draw histogram of the input series using matplotlib
 
         Parameters
         ----------
+        ax : matplotlib axis object
+            If not passed, uses gca()
+        kwds : keywords
+            To be passed to the actual plotting function
 
         Notes
         -----
-        See matplotlib documentation online for more on this subject
+        See matplotlib documentation online for more on this
 
-        Default plot-types: TimeSeries (line), Series (bar)
-
-        Intended to be used in ipython -pylab mode
         """
         import matplotlib.pyplot as plt
 
@@ -1256,7 +1345,7 @@ class Series(np.ndarray, PandasObject):
 
         ax.hist(self.values)
 
-    def toCSV(self, path):
+    def to_csv(self, path):
         """
         Write the Series to a CSV file
 
@@ -1266,23 +1355,24 @@ class Series(np.ndarray, PandasObject):
             Output filepath. If None, write to stdout
         """
         f = open(path, 'wb')
-
         for idx, value in self.iteritems():
             f.write(str(idx) + ',' + str(value) + '\n')
-
         f.close()
 
     def valid(self):
         """
-        Return Series without NaN values
+        Return Series without null values
 
         Returns
         -------
-        Series
+        valid : Series
         """
         return remove_na(self)
 
     def first_valid_index(self):
+        """
+        Return label for first non-NA/null value
+        """
         if len(self) == 0:
             return None
 
@@ -1294,6 +1384,9 @@ class Series(np.ndarray, PandasObject):
             return self.index[i]
 
     def last_valid_index(self):
+        """
+        Return label for last non-NA/null value
+        """
         if len(self) == 0:
             return None
 
@@ -1304,26 +1397,26 @@ class Series(np.ndarray, PandasObject):
         else:
             return self.index[len(self) - i - 1]
 
-#-------------------------------------------------------------------------------
-# Time series-oriented methods
+    #----------------------------------------------------------------------
+    # Time series-oriented methods
 
     def shift(self, periods, offset=None, timeRule=None):
         """
-        Shift the underlying series of the DataFrame and Series objects within
-        by given number (positive or negative) of business/weekdays.
+        Shift the index of the Series by desired number of periods with an
+        optional time offset
 
         Parameters
         ----------
-        periods : int (+ or -)
-            Number of periods to move
-        offset : DateOffset, optional
+        periods : int
+            Number of periods to move, can be positive or negative
+        offset : DateOffset or timedelta, optional
             Increment to use from datetools module
-        timeRule : string
+        timeRule : string, optional
             time rule name to use by name (e.g. 'WEEKDAY')
 
         Returns
         -------
-        TimeSeries
+        shifted : Series
         """
         if periods == 0:
             return self.copy()
@@ -1345,7 +1438,7 @@ class Series(np.ndarray, PandasObject):
         else:
             return Series(self, index=self.index.shift(periods, offset))
 
-    def asOf(self, date):
+    def asof(self, date):
         """
         Return last good (non-NaN) value in TimeSeries if value is NaN for
         requested date.
@@ -1385,8 +1478,8 @@ class Series(np.ndarray, PandasObject):
     def asfreq(self, freq, method=None):
         """
         Convert this TimeSeries to the provided frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill/interpolate
-        missing values.
+        object or time rule. Optionally provide fill method to
+        pad/backfill/interpolate missing values.
 
         Parameters
         ----------
@@ -1397,7 +1490,7 @@ class Series(np.ndarray, PandasObject):
 
         Returns
         -------
-        TimeSeries
+        converted : TimeSeries
         """
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
@@ -1414,13 +1507,12 @@ class Series(np.ndarray, PandasObject):
         ----------
         method : {'linear', 'time'}
             Interpolation method.
-
             Time interpolation works on daily and higher resolution
             data to interpolate given length of interval
 
         Returns
         -------
-        Series with values interpolated
+        interpolated : Series
         """
         if method == 'time':
             if not isinstance(self, TimeSeries):
@@ -1459,6 +1551,23 @@ class Series(np.ndarray, PandasObject):
         -----
         Function / dict values must be unique (1-to-1)
 
+        Examples
+        --------
+        >>> x
+        foo 1
+        bar 2
+        baz 3
+
+        >>> x.rename(str.upper)
+        FOO 1
+        BAR 2
+        BAZ 3
+
+        >>> x.rename({'foo' : 'a', 'bar' : 'b', 'baz' : 'c'})
+        a 1
+        b 2
+        c 3
+
         Returns
         -------
         y : Series (new object)
@@ -1480,29 +1589,19 @@ class Series(np.ndarray, PandasObject):
     # Deprecated stuff
 
     @classmethod
-    def fromValue(cls, value=nan, index=None, dtype=None): # pragma: no cover
+    def fromValue(cls, value=nan, index=None, dtype=None):  # pragma: no cover
         warnings.warn("'fromValue', can call Series(value, index=index) now",
                       FutureWarning)
-
         return Series(value, index=index, dtype=dtype)
 
-    def _firstTimeWithValue(self): # pragma: no cover
-        warnings.warn("_firstTimeWithValue is deprecated. Use "
-                      "first_valid_index instead", FutureWarning)
-        return self.first_valid_index()
-
-    def _lastTimeWithValue(self): # pragma: no cover
-        warnings.warn("_firstTimeWithValue is deprecated. Use "
-                      "last_valid_index instead", FutureWarning)
-        return self.last_valid_index()
-
-    _ix = None
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _SeriesIndexer(self)
-
-        return self._ix
+    asOf = deprecate('asOf', asof)
+    toDict = deprecate('toDict', to_dict)
+    merge = deprecate('merge', map)
+    applymap = deprecate('applymap', apply)
+    combineFirst = deprecate('combineFirst', combine_first)
+    _firstTimeWithValue = deprecate('_firstTimeWithValue', first_valid_index)
+    _lastTimeWithValue = deprecate('_lastTimeWithValue', last_valid_index)
+    toCSV = deprecate('toCSV', to_csv)
 
 class TimeSeries(Series):
     pass
@@ -1547,7 +1646,7 @@ class _Unstacker(object):
         self.values = values
         self.value_columns = value_columns
 
-        if value_columns is None and values.shape[1] != 1: # pragma: no cover
+        if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index
