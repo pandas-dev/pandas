@@ -95,7 +95,7 @@ class PanelOLS(OLS):
         self._T = len(self._index)
 
     def log(self, msg):
-        if self._verbose:
+        if self._verbose: # pragma: no cover
             print msg
 
     def _prepare_data(self):
@@ -207,9 +207,7 @@ class PanelOLS(OLS):
         x_converted = {}
         cat_mapping = {}
         for key, df in x.iteritems():
-            if not isinstance(df, DataFrame):
-                raise TypeError('Input X data set contained an object of '
-                                'type %s' % type(df))
+            assert(isinstance(df, DataFrame))
 
             if _is_numeric(df):
                 x_converted[key] = df
@@ -304,7 +302,7 @@ class PanelOLS(OLS):
                 else:
                     to_exclude = mapped_name = dummies.items[0]
 
-                if mapped_name not in dummies.items:
+                if mapped_name not in dummies.items: # pragma: no cover
                     raise Exception('%s not in %s' % (to_exclude,
                                                       dummies.items))
 
@@ -341,19 +339,6 @@ class PanelOLS(OLS):
     @cache_readonly
     def beta(self):
         return Series(self._beta_raw, index=self._x.items)
-
-    @cache_readonly
-    def _weighted_x(self):
-        if self._weights:
-            return self._x.multiply(self._weights)
-        return self._x
-
-    @cache_readonly
-    def _weighted_y(self):
-        if self._weights:
-            return self._y.multiply(self._weights)
-
-        return self._y
 
     @cache_readonly
     def _df_model_raw(self):
@@ -443,57 +428,6 @@ class PanelOLS(OLS):
         return self._unstack_vector(self._y_fitted_raw,
                                     index=self._x_filtered.index)
 
-    def f_test(self, hypothesis):
-        """Runs the F test, given a joint hypothesis.  The hypothesis is
-        represented by a collection of equations, in the form
-
-        A*x_1+B*x_2=C
-
-        You must provide the coefficients even if they're 1.  No spaces.
-
-        The equations can be passed as either a single string or a
-        list of strings.
-
-        Examples:
-        o = ols(...)
-        o.f_test('1*x1+2*x2=0,1*x3=0')
-        o.f_test(['1*x1+2*x2=0','1*x3=0'])
-        """
-
-        x_names = self._x.items
-
-        R = []
-        r = []
-
-        if isinstance(hypothesis, str):
-            eqs = hypothesis.split(',')
-        elif isinstance(hypothesis, list):
-            eqs = hypothesis
-        else:
-            raise Exception('hypothesis must be either string or list')
-        for equation in eqs:
-            row = np.zeros(len(x_names))
-            lhs, rhs = equation.split('=')
-            for s in lhs.split('+'):
-                ss = s.split('*')
-                coeff = float(ss[0])
-                x_name = ss[1]
-                idx = x_names.get_loc(x_name)
-                row[idx] = coeff
-            rhs = float(rhs)
-
-            R.append(row)
-            r.append(rhs)
-
-        R = np.array(R)
-        q = len(r)
-        r = np.array(r).reshape(q, 1)
-
-        result = math.calc_F(R, r, self._beta_raw, self._var_beta_raw,
-                             self._nobs, self.df)
-
-        return common.f_stat_to_dict(result)
-
     def _unstack_vector(self, vec, index=None):
         if index is None:
             index = self._y_trans.index
@@ -523,10 +457,9 @@ def _convertDummies(dummies, mapping):
     new_items = []
     for item in dummies.items:
         if not mapping:
+            var = str(item)
             if isinstance(item, float):
                 var = '%g' % item
-            else:
-                var = '%s' % item
 
             new_items.append(var)
         else:
@@ -779,7 +712,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         # TODO: write unit tests for this
 
         rank_threshold = len(self._x.items) + 1
-        if self._min_obs < rank_threshold:
+        if self._min_obs < rank_threshold: # pragma: no cover
             warnings.warn('min_obs is smaller than rank of X matrix')
 
         enough_observations = self._nobs_raw >= self._min_obs

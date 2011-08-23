@@ -10,7 +10,7 @@ from datetime import datetime
 import unittest
 import numpy as np
 
-from pandas.core.panel import LongPanel
+from pandas.core.panel import LongPanel, WidePanel
 from pandas.core.api import DataFrame, Index, Series, notnull
 from pandas.stats.api import ols
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
@@ -168,6 +168,11 @@ class TestOLS(BaseTest):
 
             assert_almost_equal(ref, res)
 
+class TestOLSMisc(unittest.TestCase):
+    '''
+    For test coverage with faux data
+    '''
+
     def test_f_test(self):
         x = tm.makeTimeDataFrame()
         y = x.pop('A')
@@ -184,11 +189,6 @@ class TestOLS(BaseTest):
         assert_almost_equal(result['f-stat'], model.f_stat['f-stat'])
 
         self.assertRaises(Exception, model.f_test, '1*A=0')
-
-class TestOLSMisc(unittest.TestCase):
-    '''
-    For test coverage with faux data
-    '''
 
     def test_r2_no_intercept(self):
         y = tm.makeTimeSeries()
@@ -264,6 +264,61 @@ class TestOLSMisc(unittest.TestCase):
 
         data = {'foo' : df1, 'bar' : df2}
         self.assertRaises(Exception, ols, y=y, x=data)
+
+    def test_plm_ctor(self):
+        y = tm.makeTimeDataFrame()
+        x = {'a' : tm.makeTimeDataFrame(),
+             'b' : tm.makeTimeDataFrame()}
+
+        model = ols(y=y, x=x, intercept=False)
+        model.summary
+
+        model = ols(y=y, x=WidePanel(x))
+        model.summary
+
+    def test_plm_attrs(self):
+        y = tm.makeTimeDataFrame()
+        x = {'a' : tm.makeTimeDataFrame(),
+             'b' : tm.makeTimeDataFrame()}
+
+        rmodel = ols(y=y, x=x, window=10)
+        model = ols(y=y, x=x)
+        model.resid
+        rmodel.resid
+
+    def test_plm_lagged_y_predict(self):
+        y = tm.makeTimeDataFrame()
+        x = {'a' : tm.makeTimeDataFrame(),
+             'b' : tm.makeTimeDataFrame()}
+
+        model = ols(y=y, x=x, window=10)
+        result = model.lagged_y_predict(2)
+
+    def test_plm_f_test(self):
+        y = tm.makeTimeDataFrame()
+        x = {'a' : tm.makeTimeDataFrame(),
+             'b' : tm.makeTimeDataFrame()}
+
+        model = ols(y=y, x=x)
+
+        hyp = '1*a+1*b=0'
+        result = model.f_test(hyp)
+
+        hyp = ['1*a=0',
+               '1*b=0']
+        result = model.f_test(hyp)
+        assert_almost_equal(result['f-stat'], model.f_stat['f-stat'])
+
+    def test_plm_exclude_dummy_corner(self):
+        y = tm.makeTimeDataFrame()
+        x = {'a' : tm.makeTimeDataFrame(),
+             'b' : tm.makeTimeDataFrame()}
+
+        model = ols(y=y, x=x, entity_effects=True, dropped_dummies={'entity' : 'D'})
+        model.summary
+
+        self.assertRaises(Exception, ols, y=y, x=x, entity_effects=True,
+                          dropped_dummies={'entity' : 'E'})
 
 class TestPanelOLS(BaseTest):
 
