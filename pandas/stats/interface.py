@@ -1,4 +1,5 @@
-from pandas.core.api import Series
+from pandas.core.api import (Series, DataFrame, WidePanel, LongPanel,
+                             MultiIndex)
 
 from pandas.stats.ols import OLS, MovingOLS
 from pandas.stats.plm import PanelOLS, MovingPanelOLS, NonPooledPanelOLS
@@ -91,27 +92,32 @@ def ols(**kwargs):
     if window_type != common.FULL_SAMPLE:
         kwargs['window_type'] = common._get_window_type_name(window_type)
 
-    y = kwargs.get('y')
+    x = kwargs.get('x')
+    if isinstance(x, dict):
+        if isinstance(x.values()[0], DataFrame):
+            x = WidePanel(x)
+        else:
+            x = DataFrame(x)
+
     if window_type == common.FULL_SAMPLE:
-        # HACK (!)
         for rolling_field in ('window_type', 'window', 'min_periods'):
             if rolling_field in kwargs:
                 del kwargs[rolling_field]
 
-        if isinstance(y, Series):
-            klass = OLS
-        else:
+        if isinstance(x, (WidePanel, LongPanel)):
             if pool == False:
                 klass = NonPooledPanelOLS
             else:
                 klass = PanelOLS
-    else:
-        if isinstance(y, Series):
-            klass = MovingOLS
         else:
+            klass = OLS
+    else:
+        if isinstance(x, (WidePanel, LongPanel)):
             if pool == False:
                 klass = NonPooledPanelOLS
             else:
                 klass = MovingPanelOLS
+        else:
+            klass = MovingOLS
 
     return klass(**kwargs)

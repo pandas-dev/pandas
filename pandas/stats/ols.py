@@ -16,7 +16,7 @@ import pandas.stats.common as common
 import pandas.stats.math as math
 import pandas.stats.moments as moments
 
-_FP_ERR = 1e-13
+_FP_ERR = 1e-8
 
 class OLS(object):
     """
@@ -242,7 +242,6 @@ class OLS(object):
     def _r2_raw(self):
         """Returns the raw r-squared values."""
         has_intercept = np.abs(self._resid_raw.sum()) < _FP_ERR
-
         if self._intercept:
             return 1 - self.sm_ols.ssr / self.sm_ols.centered_tss
         else:
@@ -1176,7 +1175,8 @@ def _filter_data(lhs, rhs):
         Cleaned lhs and rhs
     """
     if not isinstance(lhs, Series):
-        raise Exception('lhs must be a Series')
+        assert(len(lhs) == len(rhs))
+        lhs = Series(lhs, index=rhs.index)
 
     rhs = _combine_rhs(rhs)
 

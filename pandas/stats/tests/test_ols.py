@@ -11,12 +11,12 @@ import unittest
 import numpy as np
 
 from pandas.core.panel import LongPanel
-from pandas.core.api import DataFrame, Index, Series
+from pandas.core.api import DataFrame, Index, Series, notnull
 from pandas.stats.api import ols
-from pandas.stats.plm import NonPooledPanelOLS
+from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal)
-import pandas.util.testing as testing
+import pandas.util.testing as tm
 
 from common import BaseTest
 
@@ -39,10 +39,6 @@ def _compare_moving_ols(model1, model2):
     assert_frame_equal(model1.beta, model2.beta)
 
 class TestOLS(BaseTest):
-
-    FIELDS = ['beta', 'df', 'df_model', 'df_resid', 'f_stat', 'p_value',
-              'r2', 'r2_adj', 'rmse', 'std_err', 't_stat',
-              'var_beta']
 
     # TODO: Add tests for OLS y predict
     # TODO: Right now we just check for consistency between full-sample and
@@ -140,6 +136,10 @@ class TestOLS(BaseTest):
 
         _check_non_raw_results(moving)
 
+    FIELDS = ['beta', 'df', 'df_model', 'df_resid', 'f_stat', 'p_value',
+              'r2', 'r2_adj', 'rmse', 'std_err', 't_stat',
+              'var_beta']
+
     def compare(self, static, moving, event_index=None,
                 result_index=None):
 
@@ -169,7 +169,7 @@ class TestOLS(BaseTest):
             assert_almost_equal(ref, res)
 
     def test_f_test(self):
-        x = testing.makeTimeDataFrame()
+        x = tm.makeTimeDataFrame()
         y = x.pop('A')
 
         model = ols(y=y, x=x)
@@ -185,8 +185,49 @@ class TestOLS(BaseTest):
 
         self.assertRaises(Exception, model.f_test, '1*A=0')
 
-class TestPanelOLS(BaseTest):
+class TestOLSMisc(unittest.TestCase):
+    '''
+    For test coverage with faux data
+    '''
 
+    def test_r2_no_intercept(self):
+        y = tm.makeTimeSeries()
+        x = tm.makeTimeDataFrame()
+
+        model1 = ols(y=y, x=x)
+
+        x_with = x.copy()
+        x_with['intercept'] = 1.
+
+        model2 = ols(y=y, x=x_with, intercept=False)
+        assert_series_equal(model1.beta, model2.beta)
+
+        # TODO: can we infer whether the intercept is there...
+        self.assert_(model1.r2 != model2.r2)
+
+    def test_summary_many_terms(self):
+        x = DataFrame(np.random.randn(100, 20))
+        y = np.random.randn(100)
+        model = ols(y=y, x=x)
+        model.summary
+
+    def test_y_predict(self):
+        y = tm.makeTimeSeries()
+        x = tm.makeTimeDataFrame()
+        model1 = ols(y=y, x=x)
+        assert_series_equal(model1.y_predict, model1.y_fitted)
+
+    def test_longpanel_series_combo(self):
+        wp = tm.makeWidePanel()
+        lp = wp.to_long()
+
+        y = lp.pop('ItemA')
+        model = ols(y=y, x=lp, entity_effects=True, window=20)
+        self.assert_(notnull(model.beta.values).all())
+        self.assert_(isinstance(model, PanelOLS))
+        model.summary
+
+class TestPanelOLS(BaseTest):
 
     FIELDS = ['beta', 'df', 'df_model', 'df_resid', 'f_stat',
               'p_value', 'r2', 'r2_adj', 'rmse', 'std_err',
@@ -501,7 +542,7 @@ class TestPanelOLS(BaseTest):
             assert_almost_equal(ref, res)
 
     def test_auto_rolling_window_type(self):
-        data = testing.makeTimeDataFrame()
+        data = tm.makeTimeDataFrame()
         y = data.pop('A')
 
         window_model = ols(y=y, x=data, window=20, min_periods=10)

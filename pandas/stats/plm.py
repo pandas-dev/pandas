@@ -71,6 +71,7 @@ class PanelOLS(OLS):
                  dropped_dummies=None, verbose=False, nw_overlap=False):
         self._x_orig = x
         self._y_orig = y
+
         self._weights = weights
         self._intercept = intercept
         self._nw_lags = nw_lags
@@ -171,7 +172,13 @@ class PanelOLS(OLS):
         filtered = data.to_long()
 
         # Filter all data together using to_long
-        data['__y__'] = self._y_orig
+
+        # convert to DataFrame
+        y = self._y_orig
+        if isinstance(y, Series):
+            y = y.unstack()
+
+        data['__y__'] = y
         data_long = data.to_long()
 
         x_filt = filtered.filter(x_names)
