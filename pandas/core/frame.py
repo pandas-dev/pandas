@@ -33,10 +33,10 @@ import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Factory helper methods
 
-_arith_doc ="""
+_arith_doc = """
 Arithmetic method: %s
 
 Parameters
@@ -56,6 +56,7 @@ Returns
 -------
 result : DataFrame
 """
+
 
 def _arith_method(func, name, default_axis='columns'):
     def f(self, other, axis=default_axis, fill_value=None):
@@ -77,6 +78,7 @@ def _arith_method(func, name, default_axis='columns'):
 
     return f
 
+
 def comp_method(func, name):
     def f(self, other):
         if isinstance(other, DataFrame):    # Another DataFrame
@@ -91,8 +93,9 @@ def comp_method(func, name):
 
     return f
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # DataFrame class
+
 
 class DataFrame(NDFrame):
     """
@@ -232,6 +235,7 @@ class DataFrame(NDFrame):
 
     # Fancy indexing
     _ix = None
+
     @property
     def ix(self):
         if self._ix is None:
@@ -318,7 +322,8 @@ class DataFrame(NDFrame):
     __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
                                 default_axis=None)
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__', default_axis=None)
+    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
+                             default_axis=None)
 
     def __neg__(self):
         return self * -1
@@ -433,7 +438,8 @@ class DataFrame(NDFrame):
         """
         from pandas.core.sparse import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
-                               default_kind=kind, default_fill_value=fill_value)
+                               default_kind=kind,
+                               default_fill_value=fill_value)
 
     def toCSV(self, path, nanRep='', cols=None, header=True,
               index=True, mode='wb'):
@@ -646,16 +652,16 @@ class DataFrame(NDFrame):
         # old DataFrame pickle
         if isinstance(state, BlockManager):
             self._data = state
-        elif isinstance(state[0], dict): # pragma: no cover
+        elif isinstance(state[0], dict):  # pragma: no cover
             self._unpickle_frame_compat(state)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             # old pickling format, for compatibility
             self._unpickle_matrix_compat(state)
         self._series_cache = {}
 
-    def _unpickle_frame_compat(self, state): # pragma: no cover
+    def _unpickle_frame_compat(self, state):  # pragma: no cover
         from pandas.core.common import _unpickle_array
-        if len(state) == 2: # pragma: no cover
+        if len(state) == 2:  # pragma: no cover
             series, idx = state
             columns = sorted(series)
         else:
@@ -665,7 +671,7 @@ class DataFrame(NDFrame):
         index = _unpickle_array(idx)
         self._data = self._init_dict(series, index, columns, None)
 
-    def _unpickle_matrix_compat(self, state): # pragma: no cover
+    def _unpickle_matrix_compat(self, state):  # pragma: no cover
         from pandas.core.common import _unpickle_array
         # old unpickling
         (vals, idx, cols), object_state = state
@@ -710,8 +716,8 @@ class DataFrame(NDFrame):
         return self.values
 
     def __array_wrap__(self, result):
-        return self._constructor(result, index=self.index, columns=self.columns,
-                                 copy=False)
+        return self._constructor(result, index=self.index,
+                                 columns=self.columns, copy=False)
 
     #----------------------------------------------------------------------
     # getitem/setitem related
@@ -814,7 +820,7 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
 
         if self._data.is_mixed_dtype():
-            raise ValueError('Boolean setting not possible on mixed-type frame')
+            raise ValueError('Cannot do boolean setting on mixed-type frame')
 
         self.values[mask] = value
 
@@ -1072,8 +1078,8 @@ class DataFrame(NDFrame):
 
     def dropna(self, axis=0, how='any', thresh=None, subset=None):
         """
-        Return object with labels on given axis omitted where alternately any or
-        all of the data are missing
+        Return object with labels on given axis omitted where alternately any
+        or all of the data are missing
 
         Parameters
         ----------
@@ -1095,7 +1101,7 @@ class DataFrame(NDFrame):
             agg_axis = 1
         elif axis == 1:
             agg_axis = 0
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise ValueError('axis must be 0 or 1')
 
         agg_obj = self
@@ -1517,9 +1523,9 @@ class DataFrame(NDFrame):
     def pivot(self, index=None, columns=None, values=None):
         """
         Produce 'pivot' table this DataFrame. Uses unique values from index /
-        columns to form axes and return either DataFrame or WidePanel, depending
-        on whether you request a single value column (DataFrame) or all columns
-        (WidePanel)
+        columns to form axes and return either DataFrame or WidePanel,
+        depending on whether you request a single value column (DataFrame) or
+        all columns (WidePanel)
 
         Parameters
         ----------
@@ -1632,8 +1638,9 @@ class DataFrame(NDFrame):
 
     def delevel(self):
         """
-        For DataFrame with multi-level index, return new DataFrame with labeling
-        information in the columns under names 'level_0', 'level_1', etc.
+        For DataFrame with multi-level index, return new DataFrame with
+        labeling information in the columns under names 'level_0', 'level_1',
+        etc.
 
         Note: experimental, subject ot API change
 
@@ -2163,7 +2170,8 @@ class DataFrame(NDFrame):
                                      numeric_only=numeric_only)
 
         try:
-            y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
+            y, axis_labels = self._get_agg_data(axis,
+                                                numeric_only=numeric_only)
             mask = notnull(y)
             return Series(mask.sum(axis), index=axis_labels)
         except Exception:
@@ -2360,6 +2368,7 @@ class DataFrame(NDFrame):
         """
         from scipy.stats import scoreatpercentile
         per = q * 100
+
         def f(arr):
             arr = arr.values
             if arr.dtype != np.float_:
@@ -2414,9 +2423,9 @@ class DataFrame(NDFrame):
         Series or TimeSeries
         """
         if axis == 0:
-            demeaned = self-self.mean(axis=axis)
+            demeaned = self - self.mean(axis=axis)
         else:
-            demeaned = (self.T-self.mean(axis=axis)).T
+            demeaned = (self.T - self.mean(axis=axis)).T
 
         y = np.array(demeaned.values, subok=True)
 
@@ -2450,9 +2459,9 @@ class DataFrame(NDFrame):
         y[mask] = 0
 
         X = y.sum(axis)
-        XX = (y**2).sum(axis)
+        XX = (y ** 2).sum(axis)
 
-        theVar = (XX - X**2 / count) / (count - 1)
+        theVar = (XX - X ** 2 / count) / (count - 1)
 
         return Series(theVar, index=axis_labels)
 
@@ -2491,10 +2500,11 @@ class DataFrame(NDFrame):
         y[mask] = 0
 
         A = y.sum(axis) / count
-        B = (y**2).sum(axis) / count  - A**2
-        C = (y**3).sum(axis) / count - A**3 - 3*A*B
+        B = (y ** 2).sum(axis) / count - A ** 2
+        C = (y ** 3).sum(axis) / count - A ** 3 - 3 * A * B
 
-        theSkew = (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
+        theSkew = ((np.sqrt((count ** 2 - count)) * C) /
+                   ((count - 2) * np.sqrt(B) ** 3))
 
         return Series(theSkew, index=axis_labels)
 
@@ -2570,7 +2580,7 @@ class DataFrame(NDFrame):
     # Plotting
 
     def plot(self, subplots=False, sharex=True,
-             sharey=False, use_index=True, **kwds): # pragma: no cover
+             sharey=False, use_index=True, **kwds):  # pragma: no cover
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -2615,7 +2625,7 @@ class DataFrame(NDFrame):
             else:
                 ax.plot(x, self[col].values, label=col, **kwds)
 
-    def hist(self): # pragma: no cover
+    def hist(self):  # pragma: no cover
         """
         Draw Histogram the DataFrame's series using matplotlib / pylab.
 
@@ -2628,7 +2638,7 @@ class DataFrame(NDFrame):
 
         n = len(self.columns)
         k = 1
-        while k**2 < n:
+        while k ** 2 < n:
             k += 1
         _, axes = plt.subplots(nrows=k, ncols=k)
 
@@ -2673,60 +2683,61 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
-    def toDataMatrix(self): # pragma: no cover
+    def toDataMatrix(self):  # pragma: no cover
         warnings.warn("toDataMatrix will disappear in next release "
-                      "as there is no longer a DataMatrix class", FutureWarning)
+                      "as there is no longer a DataMatrix class",
+                      FutureWarning)
         return self.copy()
 
-    def rows(self): # pragma: no cover
+    def rows(self):  # pragma: no cover
         """Alias for the frame's index"""
         warnings.warn("Replace usage of .rows() with .index, will be removed "
                       "in next release", FutureWarning)
         return self.index
 
-    def cols(self): # pragma: no cover
+    def cols(self):  # pragma: no cover
         """Return sorted list of frame's columns"""
-        warnings.warn("Replace usage of .cols() with .columns, will be removed "
-                      "in next release", FutureWarning)
+        warnings.warn("Replace usage of .cols() with .columns, will be "
+                      "removed in next release", FutureWarning)
         return list(self.columns)
 
-    def getXS(self, key): # pragma: no cover
+    def getXS(self, key):  # pragma: no cover
         warnings.warn("'getXS' is deprecated. Use 'xs' instead",
                       FutureWarning)
         return self.xs(key)
 
-    def merge(self, *args, **kwargs): # pragma: no cover
+    def merge(self, *args, **kwargs):  # pragma: no cover
         warnings.warn("merge is deprecated. Use 'join' instead",
                       FutureWarning)
         return self.join(*args, **kwargs)
 
-    def asMatrix(self, *args, **kwargs): # pragma: no cover
+    def asMatrix(self, *args, **kwargs):  # pragma: no cover
         warnings.warn("asMatrix is deprecated. Use 'as_matrix' or .values "
                       "instead", FutureWarning)
         return self.as_matrix(*args, **kwargs)
 
-    def toRecords(self, *args, **kwargs): # pragma: no cover
+    def toRecords(self, *args, **kwargs):  # pragma: no cover
         warnings.warn("toRecords is deprecated. Use 'to_records' "
                       "instead", FutureWarning)
         return self.to_records(*args, **kwargs)
 
     @classmethod
-    def fromRecords(cls, *args, **kwargs): # pragma: no cover
+    def fromRecords(cls, *args, **kwargs):  # pragma: no cover
         warnings.warn("fromRecords is deprecated. Use 'from_records' "
                       "instead", FutureWarning)
         return cls.from_records(*args, **kwargs)
 
-    def _firstTimeWithValue(self): # pragma: no cover
+    def _firstTimeWithValue(self):  # pragma: no cover
         warnings.warn("_firstTimeWithValue is deprecated. Use "
                       "first_valid_index instead", FutureWarning)
         return self.first_valid_index()
 
-    def _lastTimeWithValue(self): # pragma: no cover
+    def _lastTimeWithValue(self):  # pragma: no cover
         warnings.warn("_firstTimeWithValue is deprecated. Use "
                       "last_valid_index instead", FutureWarning)
         return self.last_valid_index()
 
-    def dropEmptyRows(self, specificColumns=None): # pragma: no cover
+    def dropEmptyRows(self, specificColumns=None):  # pragma: no cover
         """
         Return DataFrame with rows omitted containing ALL NaN values
         for optionally specified set of columns.
@@ -2747,7 +2758,7 @@ class DataFrame(NDFrame):
         return self.dropna(axis=0, subset=specificColumns, how='all')
 
     def dropIncompleteRows(self, specificColumns=None,
-                           minObs=None): # pragma: no cover
+                           minObs=None):  # pragma: no cover
         """
         Return DataFrame with rows omitted containing ANY NaN values for
         optionally specified set of columns.
@@ -2870,6 +2881,7 @@ def extract_index(data):
 
     return _ensure_index(index)
 
+
 def _union_indexes(indexes):
     if len(indexes) == 1:
         index = indexes[0]
@@ -2886,11 +2898,13 @@ def _union_indexes(indexes):
 
         return index
 
+
 def _any_special_indexes(indexes):
     for index in indexes:
         if type(index) != Index:
             return True
     return False
+
 
 def _check_data_types(data):
     have_raw_arrays = False
@@ -2906,6 +2920,7 @@ def _check_data_types(data):
                         ' with ndarray / sequence input')
 
     return have_raw_arrays
+
 
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
@@ -2929,10 +2944,12 @@ def _prep_ndarray(values, copy=True):
 
     return values
 
+
 def _rec_to_dict(arr):
     columns = list(arr.dtype.names)
     sdict = dict((k, arr[k]) for k in columns)
     return columns, sdict
+
 
 def _homogenize(data, index, columns, dtype=None):
     homogenized = {}
@@ -2983,10 +3000,11 @@ def _homogenize(data, index, columns, dtype=None):
 
     return homogenized
 
+
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
