@@ -194,16 +194,22 @@ class TestOLSMisc(unittest.TestCase):
         y = tm.makeTimeSeries()
         x = tm.makeTimeDataFrame()
 
-        model1 = ols(y=y, x=x)
-
         x_with = x.copy()
         x_with['intercept'] = 1.
 
+        model1 = ols(y=y, x=x)
         model2 = ols(y=y, x=x_with, intercept=False)
         assert_series_equal(model1.beta, model2.beta)
 
         # TODO: can we infer whether the intercept is there...
         self.assert_(model1.r2 != model2.r2)
+
+        # rolling
+
+        model1 = ols(y=y, x=x, window=20)
+        model2 = ols(y=y, x=x_with, window=20, intercept=False)
+        assert_frame_equal(model1.beta, model2.beta)
+        self.assert_((model1.r2 != model2.r2).all())
 
     def test_summary_many_terms(self):
         x = DataFrame(np.random.randn(100, 20))
@@ -216,6 +222,7 @@ class TestOLSMisc(unittest.TestCase):
         x = tm.makeTimeDataFrame()
         model1 = ols(y=y, x=x)
         assert_series_equal(model1.y_predict, model1.y_fitted)
+        assert_almost_equal(model1._y_predict_raw, model1._y_fitted_raw)
 
     def test_longpanel_series_combo(self):
         wp = tm.makeWidePanel()
@@ -226,6 +233,19 @@ class TestOLSMisc(unittest.TestCase):
         self.assert_(notnull(model.beta.values).all())
         self.assert_(isinstance(model, PanelOLS))
         model.summary
+
+    def test_various_attributes(self):
+        # just make sure everything "works". test correctness elsewhere
+
+        x = DataFrame(np.random.randn(100, 5))
+        y = np.random.randn(100)
+        model = ols(y=y, x=x, window=20)
+
+        series_attrs = ['rank', 'df', 'forecast_mean', 'forecast_vol']
+
+        for attr in series_attrs:
+            value = getattr(model, attr)
+            self.assert_(isinstance(value, Series))
 
 class TestPanelOLS(BaseTest):
 

@@ -525,10 +525,7 @@ class MovingOLS(OLS):
         self._window_type = common._get_window_type(window_type)
 
         if self._is_rolling:
-            if window is None:
-                raise Exception('Must pass window when doing rolling '
-                                'regression')
-
+            assert(window is not None)
             if min_periods is None:
                 min_periods = window
         else:
@@ -578,7 +575,7 @@ class MovingOLS(OLS):
         return DataFrame(f_stat_dicts).T
 
     def f_test(self, hypothesis):
-        raise Exception('f_test not supported for rolling/expanding OLS')
+        raise NotImplementedError('must use full sample')
 
     @cache_readonly
     def forecast_mean(self):
