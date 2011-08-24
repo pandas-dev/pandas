@@ -165,7 +165,7 @@ class Index(np.ndarray):
             if loc > 0:
                 return self[loc-1]
             else:
-                return None
+                return np.nan
 
         return label
 
