@@ -663,7 +663,7 @@ class Series(np.ndarray, PandasObject):
 
     def describe(self):
         """
-        Generate various summary statistics of columns, excluding NaN
+        Generate various summary statistics of Series, excluding NaN
         values. These include: count, mean, std, min, max, and 10%/50%/90%
         quantiles
 

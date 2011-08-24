@@ -138,7 +138,7 @@ out using git and compiled / installed like so:
 
 ::
 
-  git clone git@github.com:wesm/pandas.git
+  git clone git://github.com/wesm/pandas.git
 
   cd pandas
 

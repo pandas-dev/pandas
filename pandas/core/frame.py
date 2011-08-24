@@ -2086,7 +2086,7 @@ class DataFrame(NDFrame):
 
     def corr(self):
         """
-        Compute pairwise correlation of columns, excluding NaN values
+        Compute pairwise correlation of columns, excluding NA/null values
 
         Returns
         -------
@@ -2100,13 +2100,13 @@ class DataFrame(NDFrame):
         correl = baseCov / np.outer(sigma, sigma)
 
         # Get the covariance with items that have NaN values
+        mask = np.isfinite(mat)
         for i, A in enumerate(mat):
-            aok = np.isfinite(A)
-            if not aok.all():
+            if not mask[i].all():
                 for j, B in enumerate(mat):
-                    commonVec = aok & np.isfinite(B)
-                    if commonVec.any():
-                        ac, bc = A[commonVec], B[commonVec]
+                    in_common = mask[i] & mask[j]
+                    if in_common.any():
+                        ac, bc = A[in_common], B[in_common]
                         c = np.corrcoef(ac, bc)[0, 1]
                         correl[i, j] = c
                         correl[j, i] = c
@@ -2121,7 +2121,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame
-        axis : int
+        axis : {0, 1}
+            0 to compute column-wise, 1 for row-wise
         drop : boolean, default False
             Drop missing indices from result, default returns union of all
 
@@ -2165,7 +2166,9 @@ class DataFrame(NDFrame):
 
     def describe(self):
         """
-        Generate various summary statistics of columns, excluding NaN values
+        Generate various summary statistics of each column, excluding NaN
+        values. These include: count, mean, std, min, max, and 10%/50%/90%
+        quantiles
 
         Returns
         -------
@@ -2188,22 +2191,22 @@ class DataFrame(NDFrame):
 
     def count(self, axis=0, level=None, numeric_only=False):
         """
-        Return array or Series of # observations over requested axis.
+        Return Series with number of non-NA/null observations over requested
+        axis. Works with non-floating point data as well (detects NaN and None)
 
         Parameters
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a DataFrame
         numeric_only : boolean, default False
             Include only float, int, boolean data
 
-        Notes
-        -----
-        Also examines non-float data and checks for None and NaN in such data
-
         Returns
         -------
-        Series or TimeSeries
+        count : Series (or DataFrame if level specified)
         """
         if level is not None:
             return self._count_level(level, axis=axis,
@@ -2263,7 +2266,8 @@ class DataFrame(NDFrame):
 
     def sum(self, axis=0, numeric_only=False):
         """
-        Return array or Series of sums over requested axis.
+        Return sum over requested axis. NA/null values will be treated as 0. If
+        an entire row/column is NA, the result will be NA
 
         Parameters
         ----------
@@ -2271,10 +2275,6 @@ class DataFrame(NDFrame):
             0 for row-wise, 1 for column-wise
         numeric_only : boolean, default False
             Include only float, int, boolean data
-
-        Returns
-        -------
-        Series or TimeSeries
 
         Examples
         --------
@@ -2288,6 +2288,10 @@ class DataFrame(NDFrame):
         >>> df.sum(axis=0)
         c1    4
         c2    6
+
+        Returns
+        -------
+        sum : Series
         """
         y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
 
@@ -2311,7 +2315,7 @@ class DataFrame(NDFrame):
 
     def min(self, axis=0):
         """
-        Return array or Series of minimums over requested axis.
+        Return minimum over requested axis. NA/null values are excluded
 
         Parameters
         ----------
@@ -2320,7 +2324,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or TimeSeries
+        min : Series
         """
         values = self.values.copy()
         np.putmask(values, -np.isfinite(values), np.inf)
@@ -2328,7 +2332,7 @@ class DataFrame(NDFrame):
 
     def max(self, axis=0):
         """
-        Return array or Series of maximums over requested axis.
+        Return maximum over requested axis. NA/null values are excluded
 
         Parameters
         ----------
@@ -2337,7 +2341,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or TimeSeries
+        max : Series
         """
         values = self.values.copy()
         np.putmask(values, -np.isfinite(values), -np.inf)
@@ -2345,7 +2349,7 @@ class DataFrame(NDFrame):
 
     def product(self, axis=0):
         """
-        Return array or Series of products over requested axis.
+        Return product over requested axis. NA/null values are treated as 1
 
         Parameters
         ----------
@@ -2354,7 +2358,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or TimeSeries
+        product : Series
         """
         y = np.array(self.values, subok=True)
         try:
@@ -2371,19 +2375,16 @@ class DataFrame(NDFrame):
 
     def mean(self, axis=0):
         """
-        Return array or Series of means over requested axis.
+        Return mean over requested axis. NA/null values are excluded
 
         Parameters
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
-        Notes
-        -----
-
         Returns
         -------
-        Series or TimeSeries
+        mean : Series
         """
         summed = self.sum(axis, numeric_only=True)
         count = self.count(axis, numeric_only=True).astype(float)
@@ -2391,14 +2392,13 @@ class DataFrame(NDFrame):
 
     def quantile(self, q=0.5, axis=0):
         """
-        Return array or Series of values at the given quantile over requested
-        axis.
+        Return values at the given quantile over requested axis, a la
+        scoreatpercentile in scipy.stats
 
         Parameters
         ----------
-        q : quantile
+        q : quantile, default 0.5 (50% quantile)
             0 <= q <= 1
-
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
 
@@ -2423,7 +2423,7 @@ class DataFrame(NDFrame):
 
     def median(self, axis=0):
         """
-        Return array or Series of medians over requested axis.
+        Return median over requested axis, NA/null are exluded
 
         Parameters
         ----------
@@ -2450,8 +2450,7 @@ class DataFrame(NDFrame):
 
     def mad(self, axis=0):
         """
-        Return array or Series of mean absolute deviation over
-        requested axis.
+        Return mean absolute deviation over requested axis
 
         Parameters
         ----------
@@ -2460,7 +2459,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or TimeSeries
+        mad : Series
         """
         if axis == 0:
             demeaned = self - self.mean(axis=axis)
@@ -2469,6 +2468,7 @@ class DataFrame(NDFrame):
 
         y = np.array(demeaned.values, subok=True)
 
+        # TODO: is this correct?
         if not issubclass(y.dtype.type, np.int_):
             y[np.isnan(y)] = 0
 
@@ -2481,7 +2481,7 @@ class DataFrame(NDFrame):
 
     def var(self, axis=0):
         """
-        Return array or Series of unbiased variance over requested axis.
+        Return unbiased variance over requested axis
 
         Parameters
         ----------
@@ -2490,7 +2490,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or TimeSeries
+        var : Series
         """
         y, axis_labels = self._get_agg_data(axis, numeric_only=True)
 
@@ -2507,7 +2507,7 @@ class DataFrame(NDFrame):
 
     def std(self, axis=0):
         """
-        Return array or Series of unbiased std deviation over requested axis.
+        Return unbiased std deviation over requested axis
 
         Parameters
         ----------
@@ -2516,13 +2516,13 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or TimeSeries
+        std : Series
         """
         return np.sqrt(self.var(axis=axis))
 
     def skew(self, axis=0):
         """
-        Return array or Series of unbiased skewness over requested axis.
+        Return unbiased skewness over requested axis
 
         Parameters
         ----------
@@ -2531,7 +2531,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or TimeSeries
+        skew : Series
         """
         y, axis_labels = self._get_agg_data(axis, numeric_only=True)
 
@@ -2592,7 +2592,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
+        clipped : DataFrame
         """
         return self.apply(lambda x: x.clip(lower=lower, upper=upper))
 
@@ -2602,7 +2602,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
+        clipped : DataFrame
         """
         return self.apply(lambda x: x.clip_upper(threshold))
 
@@ -2612,7 +2612,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
+        clipped : DataFrame
         """
         return self.apply(lambda x: x.clip_lower(threshold))
 
@@ -2665,14 +2665,14 @@ class DataFrame(NDFrame):
             else:
                 ax.plot(x, self[col].values, label=col, **kwds)
 
-    def hist(self):  # pragma: no cover
+    def hist(self, **kwds):  # pragma: no cover
         """
         Draw Histogram the DataFrame's series using matplotlib / pylab.
 
         Parameters
         ----------
         kwds : other plotting keyword arguments
-
+            To be passed to hist function
         """
         import matplotlib.pyplot as plt
 
@@ -2684,7 +2684,7 @@ class DataFrame(NDFrame):
 
         for i, col in enumerate(_try_sort(self.columns)):
             ax = axes[i / k][i % k]
-            ax.hist(self[col].values)
+            ax.hist(self[col].values, **kwds)
             ax.set_title(col)
 
     #----------------------------------------------------------------------
@@ -2777,7 +2777,7 @@ class DataFrame(NDFrame):
         -------
         This DataFrame with rows containing any NaN values deleted
         """
-        warnings.warn("dropEmptyRows is deprecated. Use dropna with how='all'",
+        warnings.warn("dropEmptyRows is deprecated. Use dropna(how='all')",
                       FutureWarning)
         return self.dropna(axis=0, subset=specificColumns, how='all')
 
@@ -2802,7 +2802,7 @@ class DataFrame(NDFrame):
         This DataFrame with rows containing any NaN values deleted
 
         """
-        warnings.warn("dropEmptyRows is deprecated. Use dropna",
+        warnings.warn("dropEmptyRows is deprecated. Use dropna()",
                       FutureWarning)
         if minObs is None:
             return self.dropna(axis=0, subset=specificColumns, how='any')
