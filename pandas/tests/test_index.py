@@ -74,13 +74,13 @@ class TestIndex(unittest.TestCase):
         # Must also be an Index
         self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
 
-    def test_asOfDate(self):
+    def test_asof(self):
         d = self.dateIndex[0]
-        self.assert_(self.dateIndex.asOfDate(d) is d)
-        self.assert_(self.dateIndex.asOfDate(d - timedelta(1)) is None)
+        self.assert_(self.dateIndex.asof(d) is d)
+        self.assert_(self.dateIndex.asof(d - timedelta(1)) is None)
 
         d = self.dateIndex[-1]
-        self.assert_(self.dateIndex.asOfDate(d + timedelta(1)) is d)
+        self.assert_(self.dateIndex.asof(d + timedelta(1)) is d)
 
     def test_argsort(self):
         result = self.strIndex.argsort()

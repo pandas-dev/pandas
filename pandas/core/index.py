@@ -8,6 +8,7 @@ import numpy as np
 from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
                                 _ensure_index, _is_bool_indexer,
                                 _asarray_tuplesafe)
+from pandas.util.decorators import deprecate
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -25,7 +26,8 @@ def _indexOp(opname):
 
 class Index(np.ndarray):
     """
-    Immutable ndarray implementing an ordered, sliceable set
+    Immutable ndarray implementing an ordered, sliceable set. The basic object
+    storing axis labels for all pandas objects
 
     Parameters
     ----------
@@ -36,8 +38,7 @@ class Index(np.ndarray):
 
     Note
     ----
-    An Index instance can **only** contain immutable objects for
-    reasons of hashability.
+    An Index instance can **only** contain hashable objects
     """
     def __new__(cls, data, dtype=object, copy=False):
         if isinstance(data, np.ndarray):
@@ -67,6 +68,7 @@ class Index(np.ndarray):
     _indexMap = None
     @property
     def indexMap(self):
+        "{label -> location}"
         if self._indexMap is None:
             self._indexMap = _tseries.map_indices_buf(self)
             self._verify_integrity()
@@ -75,6 +77,9 @@ class Index(np.ndarray):
 
     _allDates = None
     def is_all_dates(self):
+        """
+        Checks that all the labels are datetime objects
+        """
         if self._allDates is None:
             self._allDates = _tseries.isAllDates(self)
 
@@ -149,20 +154,33 @@ class Index(np.ndarray):
 
         return np.array_equal(self, other)
 
-    def asOfDate(self, date):
-        if date not in self.indexMap:
-            loc = self.searchsorted(date, side='left')
+    def asof(self, label):
+        """
+        For a sorted index, return the most recent label up to and including
+        the passed label.
+        """
+
+        if label not in self.indexMap:
+            loc = self.searchsorted(label, side='left')
             if loc > 0:
                 return self[loc-1]
             else:
                 return None
 
-        return date
+        return label
 
     def sort(self, *args, **kwargs):
         raise Exception('Cannot sort an Index object')
 
     def shift(self, periods, offset):
+        """
+        Shift Index containing datetime objects by input number of periods and
+        DateOffset
+
+        Returns
+        -------
+        shifted : Index
+        """
         if periods == 0:
             # OK because immutable
             return self
@@ -171,6 +189,9 @@ class Index(np.ndarray):
         return Index([idx + offset for idx in self])
 
     def argsort(self, *args, **kwargs):
+        """
+        See docstring for ndarray.argsort
+        """
         return self.view(np.ndarray).argsort(*args, **kwargs)
 
     def __add__(self, other):
@@ -196,7 +217,7 @@ class Index(np.ndarray):
 
         Returns
         -------
-        Index
+        union : Index
         """
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
@@ -218,7 +239,7 @@ class Index(np.ndarray):
 
         Returns
         -------
-        Index
+        intersection : Index
         """
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
@@ -230,6 +251,21 @@ class Index(np.ndarray):
         return Index(theIntersection)
 
     def diff(self, other):
+        """
+        Compute sorted set difference of two Index objects
+
+        Notes
+        -----
+        One can do either of these and achieve the same result
+
+        >>> index - index2
+        >>> index.diff(index2)
+
+        Returns
+        -------
+        diff : Index
+        """
+
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
 
@@ -240,22 +276,42 @@ class Index(np.ndarray):
         theDiff = sorted(set(self) - set(otherArr))
         return Index(theDiff)
 
-    __sub__ = lambda self, other: self.diff(other)
+    __sub__ = diff
 
     def get_loc(self, key):
+        """
+        Get integer location for requested label
+
+        Returns
+        -------
+        loc : int
+        """
         return self.indexMap[key]
 
     def get_indexer(self, target, method=None):
         """
+        Compute indexer and mask for new index given the current index. The
+        indexer should be then used as an input to ndarray.take to align the
+        current data to the new index. The mask determines whether labels are
+        found or not in the current index
 
         Parameters
         ----------
         target : Index
-        method :
+        method : {'pad', 'ffill', 'backfill', 'bfill'}
+            pad / ffill: propagate LAST valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+
+        Notes
+        -----
+        This is a low-level method and probably should be used at your own risk
+
+        Examples
+        --------
 
         Returns
         -------
-        (indexer, mask)
+        (indexer, mask) : (ndarray, ndarray)
         """
         if method:
             method = method.upper()
@@ -273,11 +329,25 @@ class Index(np.ndarray):
         return indexer, mask
 
     def reindex(self, target, method=None):
+        """
+        For Index, simply returns the new index and the results of
+        get_indexer. Provided here to enable an interface that is amenable for
+        subclasses of Index whose internals are different (like MultiIndex)
+
+        Returns
+        -------
+        (new_index, indexer, mask) : tuple
+        """
         indexer, mask = self.get_indexer(target, method=method)
         return target, indexer, mask
 
     def slice_locs(self, start=None, end=None):
         """
+
+        Parameters
+        ----------
+        start : label
+        end : label
 
 
         Returns
@@ -327,6 +397,12 @@ class Index(np.ndarray):
         if not mask.all():
             raise ValueError('labels %s not contained in axis' % labels[-mask])
         return self.delete(indexer)
+
+    #----------------------------------------------------------------------
+    # deprecated stuff
+
+    asOfDate = deprecate('asOfDate', asof)
+
 
 class DateIndex(Index):
     pass
