@@ -157,9 +157,8 @@ class Index(np.ndarray):
     def asof(self, label):
         """
         For a sorted index, return the most recent label up to and including
-        the passed label.
+        the passed label. Return NaN if not found
         """
-
         if label not in self.indexMap:
             loc = self.searchsorted(label, side='left')
             if loc > 0:

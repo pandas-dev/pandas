@@ -77,7 +77,7 @@ class TestIndex(unittest.TestCase):
     def test_asof(self):
         d = self.dateIndex[0]
         self.assert_(self.dateIndex.asof(d) is d)
-        self.assert_(self.dateIndex.asof(d - timedelta(1)) is None)
+        self.assert_(np.isnan(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
         self.assert_(self.dateIndex.asof(d + timedelta(1)) is d)
