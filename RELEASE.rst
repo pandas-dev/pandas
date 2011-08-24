@@ -168,7 +168,7 @@ Release notes
 * Added deprecation warning to `DataFrame.cols()`, to be removed in next release
 * `DataFrame` deprecations and de-camelCasing: `merge`, `asMatrix`,
   `toDataMatrix`, `_firstTimeWithValue`, `_lastTimeWithValue`, `toRecords`,
-  `fromRecords`
+  `fromRecords`, `tgroupby`
 * `pandas.io.parsers` method deprecations
   * `parseCSV` is now `read_csv` and keyword arguments have been de-camelCased
   * `parseText` is now `read_table`

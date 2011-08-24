@@ -973,7 +973,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         arr[:] = [(1,2.,'Hello'),(2,3.,"World")]
 
         frame = DataFrame.from_records(arr)
-        indexed_frame = DataFrame.from_records(arr, indexField='f1')
+        indexed_frame = DataFrame.from_records(arr, index='f1')
 
         self.assertRaises(Exception, DataFrame.from_records, np.zeros((2, 3)))
 
@@ -984,7 +984,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         records = indexed_frame.to_records(index=False)
         self.assertEqual(len(records.dtype.names), 2)
         self.assert_('index' not in records.dtype.names)
-
 
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
@@ -1336,19 +1335,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         test_comp(operator.ge)
         test_comp(operator.le)
 
-    def test_toCSV_fromcsv(self):
+    def test_to_csv_fromcsv(self):
         path = '__tmp__'
 
         self.frame['A'][:5] = nan
 
-        self.frame.toCSV(path)
-        self.frame.toCSV(path, cols=['A', 'B'])
-        self.frame.toCSV(path, header=False)
-        self.frame.toCSV(path, index=False)
+        self.frame.to_csv(path)
+        self.frame.to_csv(path, cols=['A', 'B'])
+        self.frame.to_csv(path, header=False)
+        self.frame.to_csv(path, index=False)
 
         # test roundtrip
 
-        self.tsframe.toCSV(path)
+        self.tsframe.to_csv(path)
         recons = DataFrame.fromcsv(path)
 
         assert_frame_equal(self.tsframe, recons)
@@ -1358,14 +1357,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
 
         # no index
-        self.tsframe.toCSV(path, index=False)
+        self.tsframe.to_csv(path, index=False)
         recons = DataFrame.fromcsv(path, index_col=None)
         assert_almost_equal(self.tsframe.values, recons.values)
 
         # corner case
         dm = DataFrame({'s1' : Series(range(3),range(3)),
                         's2' : Series(range(2),range(2))})
-        dm.toCSV(path)
+        dm.to_csv(path)
         recons = DataFrame.fromcsv(path)
         assert_frame_equal(dm, recons)
 
@@ -1999,12 +1998,39 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_frame_equal(result, expected)
 
     def test_sort(self):
-        # what to test?
-        sorted = self.frame.sort()
-        sorted_A = self.frame.sort(column='A')
+        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
+                          columns=['A', 'B', 'C', 'D'])
 
-        sorted = self.frame.sort(ascending=False)
-        sorted_A = self.frame.sort(column='A', ascending=False)
+        # axis=0
+        unordered = frame.ix[[3, 2, 4, 1]]
+        sorted_df = unordered.sort()
+        expected = frame
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = unordered.sort(ascending=False)
+        expected = frame[::-1]
+        assert_frame_equal(sorted_df, expected)
+
+        # axis=1
+        unordered = frame.ix[:, ['D', 'B', 'C', 'A']]
+        sorted_df = unordered.sort(axis=1)
+        expected = frame
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = unordered.sort(axis=1, ascending=False)
+        expected = frame.ix[:, ::-1]
+        assert_frame_equal(sorted_df, expected)
+
+        # by column
+        sorted_df = frame.sort(column='A')
+        indexer = frame['A'].argsort().values
+        expected = frame.ix[frame.index[indexer]]
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort(column='A', ascending=False)
+        indexer = indexer[::-1]
+        expected = frame.ix[frame.index[indexer]]
+        assert_frame_equal(sorted_df, expected)
 
     def test_combine_first(self):
         # disjoint

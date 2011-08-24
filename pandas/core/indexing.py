@@ -299,7 +299,9 @@ def _is_label_slice(labels, obj):
     return not crit(obj.start) or not crit(obj.stop)
 
 def _need_slice(obj):
-    return obj.start is not None or obj.stop is not None
+    return (obj.start is not None or
+            obj.stop is not None or
+            (obj.step is not None and obj.step != 1))
 
 def _maybe_droplevels(index, key):
     # drop levels

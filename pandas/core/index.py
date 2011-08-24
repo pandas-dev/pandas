@@ -523,13 +523,17 @@ class MultiIndex(Index):
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
 
+    def argsort(self, *args, **kwargs):
+        return self.get_tuple_index().argsort()
+
     def drop(self, labels):
         try:
             if not isinstance(labels, np.ndarray):
                 labels = _asarray_tuplesafe(labels)
             indexer, mask = self.get_indexer(labels)
             if not mask.all():
-                raise ValueError('labels %s not contained in axis' % labels[-mask])
+                raise ValueError('labels %s not contained in axis'
+                                 % labels[-mask])
             return self.delete(indexer)
         except Exception:
             pass

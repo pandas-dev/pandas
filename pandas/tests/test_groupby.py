@@ -382,17 +382,17 @@ class TestGroupBy(unittest.TestCase):
         for k, v in grouped:
             self.assertEqual(len(v.columns), 2)
 
-        # tgroupby
-        grouping = {
-            'A' : 0,
-            'B' : 1,
-            'C' : 0,
-            'D' : 1
-        }
+        # # tgroupby
+        # grouping = {
+        #     'A' : 0,
+        #     'B' : 1,
+        #     'C' : 0,
+        #     'D' : 1
+        # }
 
-        grouped = self.frame.tgroupby(grouping.get, np.mean)
-        self.assertEqual(len(grouped), len(self.frame.index))
-        self.assertEqual(len(grouped.columns), 2)
+        # grouped = self.frame.tgroupby(grouping.get, np.mean)
+        # self.assertEqual(len(grouped), len(self.frame.index))
+        # self.assertEqual(len(grouped.columns), 2)
 
     def test_multi_iter(self):
         s = Series(np.arange(6))

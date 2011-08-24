@@ -721,15 +721,20 @@ class Series(np.ndarray, PandasObject):
 
         return np.corrcoef(this, that)[0, 1]
 
-    def diff(self):
+    def diff(self, periods=1):
         """
         1st discrete difference of object
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for forming difference
 
         Returns
         -------
         diffed : Series
         """
-        return (self - self.shift(1))
+        return (self - self.shift(periods))
 
     def autocorr(self):
         """
@@ -1478,8 +1483,8 @@ class Series(np.ndarray, PandasObject):
     def asfreq(self, freq, method=None):
         """
         Convert this TimeSeries to the provided frequency using DateOffset
-        object or time rule. Optionally provide fill method to
-        pad/backfill/interpolate missing values.
+        object or time rule. Optionally provide fill method to pad/backfill
+        missing values.
 
         Parameters
         ----------
@@ -1570,7 +1575,7 @@ class Series(np.ndarray, PandasObject):
 
         Returns
         -------
-        y : Series (new object)
+        renamed : Series (new object)
         """
         if isinstance(mapper, (dict, Series)):
             mapper = mapper.__getitem__
