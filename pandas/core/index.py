@@ -307,6 +307,9 @@ class Index(np.ndarray):
 
         Examples
         --------
+        >>> indexer, mask = index.get_indexer(new_index)
+        >>> new_values = cur_values.take(indexer)
+        >>> new_values[-mask] = np.nan
 
         Returns
         -------
@@ -342,16 +345,18 @@ class Index(np.ndarray):
 
     def slice_locs(self, start=None, end=None):
         """
+        For an ordered Index, compute the slice locations for input labels
 
         Parameters
         ----------
-        start : label
+        start : label, default None
+            If None, defaults to the beginning
         end : label
-
+            If None, defaults to the end
 
         Returns
         -------
-        (begin, end) : tuple
+        (begin, end) : (int, int)
 
         Notes
         -----
@@ -374,11 +379,24 @@ class Index(np.ndarray):
         return beg_slice, end_slice
 
     def delete(self, loc):
+        """
+        Make new Index with passed location deleted
+
+        Returns
+        -------
+        new_index : Index
+        """
         arr = np.delete(np.asarray(self), loc)
         return Index(arr)
 
     def insert(self, loc, item):
         """
+        Make new Index inserting new item at location
+
+        Parameters
+        ----------
+        loc : int
+        item : object
 
         Returns
         -------
@@ -391,6 +409,17 @@ class Index(np.ndarray):
         return Index(new_index)
 
     def drop(self, labels):
+        """
+        Make new Index with passed list of labels deleted
+
+        Parameters
+        ----------
+        labels : array-like
+
+        Returns
+        -------
+        dropped : Index
+        """
         labels = np.asarray(list(labels), dtype=object)
         indexer, mask = self.get_indexer(labels)
         if not mask.all():
@@ -407,20 +436,35 @@ class DateIndex(Index):
     pass
 
 
-class Factor(object):
+class Factor(np.ndarray):
     """
     Represents a categorical variable in classic R / S-plus fashion
-    """
-    def __init__(self, labels, levels):
-        self.labels = labels
-        self.levels = levels
 
-    @classmethod
-    def fromarray(cls, values):
-        values = np.asarray(values, dtype=object)
-        levels = Index(sorted(set(values)))
-        labels, _ = _tseries.getMergeVec(values, levels.indexMap)
-        return Factor(labels, levels=levels)
+    Parameters
+    ----------
+    data : array-like
+
+    Returns
+    -------
+    **Attributes**
+      * labels : ndarray
+      * levels : ndarray
+    """
+    def __new__(cls, data):
+        data = np.asarray(data, dtype=object)
+        levels, factor = unique_with_labels(data)
+        factor = factor.view(Factor)
+        factor.levels = levels
+        return factor
+
+    levels = None
+
+    def __array_finalize__(self, obj):
+        self.levels = getattr(obj, 'levels', None)
+
+    @property
+    def labels(self):
+        return self.view(np.ndarray)
 
     def asarray(self):
         return np.asarray(self.levels).take(self.labels)
@@ -438,9 +482,12 @@ class Factor(object):
             i = self.labels[key]
             return self.levels[i]
         else:
-            new_labels = self.labels[key]
-            return Factor(new_labels, self.levels)
+            return np.ndarray.__getitem__(self, key)
 
+def unique_with_labels(values):
+    uniques = Index(_tseries.fast_unique(values))
+    labels = _tseries.get_unique_labels(values, uniques.indexMap)
+    return uniques, labels
 
 class MultiIndex(Index):
     """
@@ -526,7 +573,7 @@ class MultiIndex(Index):
         levels = []
         labels = []
         for arr in arrays:
-            factor = Factor.fromarray(arr)
+            factor = Factor(arr)
             levels.append(factor.levels)
             labels.append(factor.labels)
 

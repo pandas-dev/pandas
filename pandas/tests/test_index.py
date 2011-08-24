@@ -652,8 +652,7 @@ class TestMultiIndex(unittest.TestCase):
 class TestFactor(unittest.TestCase):
 
     def setUp(self):
-        self.factor = Factor.fromarray(['a', 'b', 'b', 'a',
-                                        'a', 'c', 'c', 'c'])
+        self.factor = Factor(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
 
     def test_getitem(self):
         self.assertEqual(self.factor[0], 'a')

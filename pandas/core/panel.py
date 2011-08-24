@@ -1034,8 +1034,8 @@ class LongPanel(Panel, DataFrame):
         for col in exclude:
             del data[col]
 
-        major = Factor.fromarray(data.pop(major_field))
-        minor = Factor.fromarray(data.pop(minor_field))
+        major = Factor(data.pop(major_field))
+        minor = Factor(data.pop(minor_field))
         index = MultiIndex(levels=[major.levels, minor.levels],
                            labels=[major.labels, minor.labels])
         return LongPanel(data, index=index)
@@ -1490,19 +1490,15 @@ def make_mask(index):
     return mask
 
 def _make_long_index(major_values, minor_values):
+    from pandas.core.index import unique_with_labels
     major_values = np.asarray(major_values, dtype=object)
     minor_values = np.asarray(minor_values, dtype=object)
-    major_axis, major_labels = _better_unique(major_values)
-    minor_axis, minor_labels = _better_unique(minor_values)
+    major_axis, major_labels = unique_with_labels(major_values)
+    minor_axis, minor_labels = unique_with_labels(minor_values)
 
     long_index = MultiIndex(levels=[major_axis, minor_axis],
                                  labels=[major_labels, minor_labels])
     return long_index
-
-def _better_unique(values):
-    uniques = Index(_tseries.fast_unique(values))
-    labels = _tseries.get_unique_labels(values, uniques.indexMap)
-    return uniques, labels
 
 def _slow_pivot(index, columns, values):
     """
