@@ -2266,8 +2266,10 @@ class DataFrame(NDFrame):
 
     def sum(self, axis=0, numeric_only=False):
         """
-        Return sum over requested axis. NA/null values will be treated as 0. If
-        an entire row/column is NA, the result will be NA
+        Return sum over requested axis
+
+        NA/null values will be treated as 0. If an entire row/column is NA, the
+        result will be NA
 
         Parameters
         ----------

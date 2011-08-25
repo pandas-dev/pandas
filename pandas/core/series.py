@@ -490,7 +490,13 @@ class Series(np.ndarray, PandasObject):
         -------
         sum : float
         """
-        return self._ndarray_statistic('sum', dtype=dtype)
+        values = self.values.copy()
+        mask = isnull(values)
+        if mask.all():
+            return np.nan
+
+        np.putmask(values, mask, 0)
+        return values.sum()
 
     def mean(self, axis=0, dtype=None, out=None):
         """

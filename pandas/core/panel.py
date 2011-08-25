@@ -17,6 +17,7 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.series import Series
+from pandas.util.decorators import deprecate
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -63,7 +64,7 @@ def _wide_arith_method(op, name):
 
         Parameters
         ----------
-        other : DataFrame or Panel class
+        other : DataFrame or WidePanel
         axis : {'items', 'major', 'minor'}
 
         Returns
@@ -76,6 +77,31 @@ def _wide_arith_method(op, name):
     f.__doc__ = f.__doc__ % str(op)
 
     return f
+
+_agg_doc = """
+Return %(desc)s over requested axis.%(na_info)s
+
+Parameters
+----------
+axis : {'items', 'major', 'minor'} or {0, 1, 2}
+
+Returns
+-------
+%(outname)s : DataFrame
+"""
+
+_na_info = """
+
+NA/null values are %s.
+If all values are NA, result will be NA"""
+
+def _add_docs(method, desc, outname, na_info=None):
+    if na_info is not None:
+        na_info = _na_info % na_info
+    else:
+        na_info = ''
+    doc = _agg_doc % locals()
+    method.__doc__ = doc
 
 class Panel(object):
     """
@@ -770,6 +796,8 @@ class WidePanel(Panel, NDFrame):
 
         return self._wrap_result(result, axis)
 
+    _add_docs(count, 'number of observations', 'count')
+
     def sum(self, axis='major'):
         """
 
@@ -779,6 +807,8 @@ class WidePanel(Panel, NDFrame):
         """
         return self._array_method(np.sum, axis=axis, fill_value=0)
 
+    _add_docs(sum, 'sum', 'sum', na_info='excluded')
+
     def mean(self, axis='major'):
         """
 
@@ -787,6 +817,8 @@ class WidePanel(Panel, NDFrame):
         y : DataFrame
         """
         return self.sum(axis=axis) / self.count(axis=axis)
+
+    _add_docs(mean, 'mean', 'mean', na_info='excluded')
 
     def var(self, axis='major'):
         """
@@ -811,6 +843,8 @@ class WidePanel(Panel, NDFrame):
 
         return self._wrap_result(theVar, axis)
 
+    _add_docs(var, 'unbiased variance', 'variance', na_info='excluded')
+
     def std(self, axis='major'):
         """
 
@@ -819,6 +853,8 @@ class WidePanel(Panel, NDFrame):
         y : DataFrame
         """
         return self.var(axis=axis).apply(np.sqrt)
+
+    _add_docs(std, 'unbiased standard deviation', 'stdev', na_info='excluded')
 
     def skew(self, axis='major'):
         raise NotImplementedError
@@ -832,6 +868,8 @@ class WidePanel(Panel, NDFrame):
         """
         return self._array_method(np.prod, axis=axis, fill_value=1)
 
+    _add_docs(prod, 'product', 'prod', na_info='excluded')
+
     def compound(self, axis='major'):
         """
 
@@ -840,6 +878,9 @@ class WidePanel(Panel, NDFrame):
         y : DataFrame
         """
         return (1 + self).prod(axis=axis) - 1
+
+    _add_docs(compound, 'compounded percentage', 'compounded',
+              na_info='excluded')
 
     def median(self, axis='major'):
         """
@@ -853,13 +894,9 @@ class WidePanel(Panel, NDFrame):
 
         return self.apply(f, axis=axis)
 
-    def max(self, axis='major'):
-        """
+    _add_docs(median, 'median', 'median', na_info='excluded')
 
-        Returns
-        -------
-        y : DataFrame
-        """
+    def max(self, axis='major'):
         i = self._get_axis_number(axis)
 
         y = np.array(self.values)
@@ -874,13 +911,9 @@ class WidePanel(Panel, NDFrame):
 
         return self._wrap_result(result, axis)
 
-    def min(self, axis='major'):
-        """
+    _add_docs(max, 'maximum', 'maximum', na_info='excluded')
 
-        Returns
-        -------
-        y : DataFrame
-        """
+    def min(self, axis='major'):
         i = self._get_axis_number(axis)
 
         y = np.array(self.values)
@@ -895,12 +928,21 @@ class WidePanel(Panel, NDFrame):
 
         return self._wrap_result(result, axis)
 
+    _add_docs(min, 'minimum', 'minimum', na_info='excluded')
+
     def shift(self, lags, axis='major'):
         """
+        Shift major or minor axis by specified number of lags. Drops periods
+
+        Parameters
+        ----------
+        lags : int
+            Needs to be a positive number currently
+        axis : {'major', 'minor'}
 
         Returns
         -------
-        y : WidePanel
+        shifted : WidePanel
         """
         values = self.values
         items = self.items
@@ -920,8 +962,8 @@ class WidePanel(Panel, NDFrame):
                          minor_axis=minor_axis)
 
     def truncate(self, before=None, after=None, axis='major'):
-        """Function truncates a sorted Panel before and/or after
-        some particular dates
+        """Function truncates a sorted Panel before and/or after some
+        particular values on the requested axis
 
         Parameters
         ----------
@@ -929,6 +971,7 @@ class WidePanel(Panel, NDFrame):
             Left boundary
         after : date
             Right boundary
+        axis : {'major', 'minor', 'items'}
 
         Returns
         -------
@@ -945,19 +988,8 @@ class WidePanel(Panel, NDFrame):
     #----------------------------------------------------------------------
     # Deprecated stuff
 
-    def getMinorXS(self, key): # pragma: no cover
-        warnings.warn("getMinorXS has been replaced by the minor_xs function "
-                      "please modify your code accordingly",
-                      FutureWarning)
-
-        return self.minor_xs(key)
-
-    def getMajorXS(self, key): # pragma: no cover
-        warnings.warn("getMajorXS has been replaced by the major_xs function "
-                      "please modify your code accordingly",
-                      FutureWarning)
-
-        return self.major_xs(key)
+    getMinorXS = deprecate('getMinorXS', minor_xs)
+    getMajorXS = deprecate('getMajorXS', major_xs)
 
 #-------------------------------------------------------------------------------
 # LongPanel and friends
@@ -975,9 +1007,9 @@ class LongPanel(Panel, DataFrame):
 
     Note
     ----
-    Constructor should probably not be called directly since it
-    requires creating the major and minor axis label vectors for for
-    the MultiIndex
+    LongPanel will likely disappear in a future release in favor of just using
+    DataFrame objects with hierarchical indexes. You should be careful about
+    writing production code depending on LongPanel
     """
 
     @property
@@ -1155,7 +1187,7 @@ class LongPanel(Panel, DataFrame):
                                    columns=self.minor_axis)
         return WidePanel.from_dict(data)
 
-    toWide = to_wide
+    toWide = deprecate('toWide', to_wide)
 
     def toCSV(self, path):
         def format_cols(items):
