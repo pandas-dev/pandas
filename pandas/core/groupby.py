@@ -71,17 +71,6 @@ class GroupBy(object):
     len(grouped) : int
         Number of groups
     """
-    def __new__(cls, obj, **kwargs):
-        if isinstance(obj, Series):
-            klass = SeriesGroupBy
-        elif isinstance(obj, DataFrame):
-            klass = DataFrameGroupBy
-        elif isinstance(obj, WidePanel):
-            klass = WidePanelGroupBy
-        else: # pragma: no cover
-            raise TypeError('invalid type: %s' % type(obj))
-
-        return klass(obj, **kwds)
 
     def __init__(self, obj, grouper=None, axis=0, level=None,
                  groupings=None, exclusions=None, name=None):
