@@ -57,6 +57,7 @@ Authors
 #-----------------------------------------------------------------------------
 
 # Stdlib
+import ast
 import cStringIO
 import os
 import re
@@ -146,7 +147,7 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
             lineno, inputline = int(matchin.group(1)), matchin.group(2)
 
             # the ....: continuation string
-            continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
+            continuation = '   %s:'% ''.join(['.']*(len(str(lineno))+2))
             Nc = len(continuation)
             # input lines can continue on for more than one line, if
             # we have a '\' line continuation char or a function call
@@ -333,7 +334,7 @@ class EmbeddedSphinxShell(object):
                 if not is_verbatim:
                     self.process_input_line(line, store_history=store_history)
 
-                formatted_line = '%s %s'%(continuation, line)
+                formatted_line = '%s%s'%(continuation, line)
 
             if not is_suppress:
                 ret.append(formatted_line)
@@ -463,9 +464,16 @@ class EmbeddedSphinxShell(object):
 
             line_stripped = line.strip()
 
+            try:
+                leading_whitespace = re.search('\s+', line).group(0)
+            except AttributeError:
+                leading_whitespace = ''
+
             if not len(line):
                 output.append(line) # preserve empty lines in output
                 continue
+
+
 
             # handle decorators
             if line_stripped.startswith('@'):
@@ -536,9 +544,12 @@ class EmbeddedSphinxShell(object):
         output = []
         savefig = False # keep up with this to clear figure
         multiline = False # to handle line continuation
+        multiline_start = None
         fmtin = self.promptin
 
         modified_content = []
+
+        ct = 0
 
         for lineno, line in enumerate(content):
 
@@ -547,9 +558,27 @@ class EmbeddedSphinxShell(object):
                 modified_content.append(line)
                 continue
 
-            modified = u"%s %s" % (fmtin%lineno,line_stripped)
-            modified_content.append(modified)
-            modified_content.append(u'')
+            continuation  = u'   %s:'% ''.join(['.']*(len(str(ct))+2))
+            if not multiline:
+                modified = u"%s %s" % (fmtin % ct, line_stripped)
+                modified_content.append(modified)
+                ct += 1
+                try:
+                    ast.parse(line_stripped)
+                    modified_content.append(u'')
+                except Exception:
+                    multiline = True
+                    multiline_start = lineno
+            else:
+                modified = u'%s %s' % (continuation, line)
+                modified_content.append(modified)
+                try:
+                    ast.parse('\n'.join(content[multiline_start:lineno+1]))
+                    modified_content.append(u'')
+                    multiline = False
+                except Exception:
+                    pass
+
             continue
 
             if not len(line):
@@ -829,7 +858,8 @@ In [106]: print x
 jdh
 
 In [109]: for i in range(10):
-   .....:     print i
+   n
+.....:     print i
    .....:
    .....:
 0

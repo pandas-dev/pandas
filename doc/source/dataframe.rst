@@ -48,7 +48,9 @@ which will be used for many examples to follow:
     from pandas import *; from numpy.random import randn
     index = Index(DateRange('1/1/2009', '12/1/2009', timeRule='EOM'))
     N = len(index)
-    data = {'A' : randn(N), 'B' : randn(N), 'C' : randn(N)}
+    data = {'A' : randn(N),
+            'B' : randn(N),
+            'C' : randn(N)}
     df = DataFrame(data, index=index)
     df
 
