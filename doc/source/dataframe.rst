@@ -43,67 +43,29 @@ Basics
 The canonical DataFrame containing time series data takes this form,
 which will be used for many examples to follow:
 
-::
+.. ipython:: python
 
-    >>> from pandas import *; from numpy.random import randn
-
-    >>> index = DateRange('1/1/2009', '12/1/2009', timeRule='EOM')
-    >>> N = len(index)
-    >>> data = {
-	'A' : randn(N),
-	'B' : randn(N),
-	'C' : randn(N),
-    }
-
-    >>> df = DataFrame(data, index=index)
-
-    >>> print df
-
-			   A              B              C
-    2009-01-30 00:00:00    -0.367014      1.29942        1.40773
-    2009-02-27 00:00:00    0.347326       0.651661       0.143376
-    2009-03-31 00:00:00    -0.677813      0.40488        -0.463113
-    2009-04-30 00:00:00    0.125062       1.09505        -1.03278
-    2009-05-29 00:00:00    0.979307       0.149356       0.708128
-    2009-06-30 00:00:00    -1.24432       0.420788       -1.01815
-    2009-07-31 00:00:00    0.536261       -0.276357      -0.227469
-    2009-08-31 00:00:00    0.0603968      -1.42112       -0.271767
-    2009-09-30 00:00:00    0.537841       -0.361833      -0.0488729
-    2009-10-30 00:00:00    -0.335999      2.54742        -0.878263
-    2009-11-30 00:00:00    -0.568216      -0.557347      -1.58623
+    from pandas import *; from numpy.random import randn
+    index = Index(DateRange('1/1/2009', '12/1/2009', timeRule='EOM'))
+    N = len(index)
+    data = {'A' : randn(N), 'B' : randn(N), 'C' : randn(N)}
+    df = DataFrame(data, index=index)
+    df
 
 The **info** method provides a summary of a DataFrame object and will
 be printed by default when the frame is very large:
 
-::
+.. ipython:: python
 
-    >>> df.info()
-    Index: 11 entries, 2009-01-30 00:00:00 to 2009-11-30 00:00:00
-    Columns:
-    A    11  non-null values
-    B    11  non-null values
-    C    11  non-null values
+    df.info()
 
 The DataFrame's index and columns can be accessed by the **index**
-attribute and **cols** method, respectively:
+attribute and **columns** methods, respectively:
 
-::
+.. ipython:: python
 
-    >>> df.index
-    Index([2009-01-30 00:00:00, 2009-02-27 00:00:00, 2009-03-31 00:00:00,
-	   2009-04-30 00:00:00, 2009-05-29 00:00:00, 2009-06-30 00:00:00,
-	   2009-07-31 00:00:00, 2009-08-31 00:00:00, 2009-09-30 00:00:00,
-	   2009-10-30 00:00:00, 2009-11-30 00:00:00], dtype=object)
-
-    >>> df.cols()
-    ['A', 'B', 'C']
-
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.cols
-   DataFrame.info
+    df.index
+    df.columns
 
 .. _dataframe.cons:
 
@@ -123,148 +85,85 @@ There are many ways to create a DataFrame:
    DataFrame.__init__
    DataFrame.fromRecords
 
-Indexing
---------
+Indexing basics
+---------------
 
-.. note::
+.. seealso:: :ref:`Indexing (main documentation) <indexing>`
 
-    I have eschewed "cute" indexing schemes in the interest of being
-    explicit and maintaining DataFrame's status as a "dict of
-    Series". However, it is always desirable to keep the interface
-    simple and intuitive.
+Column access
+~~~~~~~~~~~~~
 
-DataFrame's basic indexing accesses the **columns** by name, producing
-Series:
+DataFrame's basic *__getitem__* (brackets) accesses the **columns** by name,
+result in a Series
 
-::
+.. ipython:: python
 
-    >>> df['A']
-    2009-01-30 00:00:00    -0.367013536107
-    2009-02-27 00:00:00    0.347325830717
-    2009-03-31 00:00:00    -0.677812757268
-    2009-04-30 00:00:00    0.125061634713
-    2009-05-29 00:00:00    0.979307492892
-    2009-06-30 00:00:00    -1.2443243316
-    2009-07-31 00:00:00    0.536260924391
-    2009-08-31 00:00:00    0.060396849998
-    2009-09-30 00:00:00    0.53784064627
-    2009-10-30 00:00:00    -0.335999254912
-    2009-11-30 00:00:00    -0.568216482894
+    df['A']
 
 
 If you add a Series to the frame, it will be automatically conformed
 to the frame's index:
 
-::
+.. ipython:: python
 
-    >>> df['D'] = df['A'][:5]
-    >>> df
-    			   A              B              C              D
-    2009-01-30 00:00:00    -0.367014      1.29942        1.40773        -0.367014
-    2009-02-27 00:00:00    0.347326       0.651661       0.143376       0.347326
-    2009-03-31 00:00:00    -0.677813      0.40488        -0.463113      -0.677813
-    2009-04-30 00:00:00    0.125062       1.09505        -1.03278       0.125062
-    2009-05-29 00:00:00    0.979307       0.149356       0.708128       0.979307
-    2009-06-30 00:00:00    -1.24432       0.420788       -1.01815       nan
-    2009-07-31 00:00:00    0.536261       -0.276357      -0.227469      nan
-    2009-08-31 00:00:00    0.0603968      -1.42112       -0.271767      nan
-    2009-09-30 00:00:00    0.537841       -0.361833      -0.0488729     nan
-    2009-10-30 00:00:00    -0.335999      2.54742        -0.878263      nan
-    2009-11-30 00:00:00    -0.568216      -0.557347      -1.58623       nan
+    df['D'] = df['A'][:5]
+    df
 
 Columns can be deleted or popped as with a dict:
 
-::
+.. ipython:: python
 
-    >>> del df['C']
-    >>> B = df.pop('B')
-    >>> df.info()
-    Index: 11 entries, 2009-01-30 00:00:00 to 2009-11-30 00:00:00
-    Columns:
-    A    11  non-null values
-    D    5  non-null values
-
+    df
+    del df['C']
+    B = df.pop('B')
+    df
 
 New items in the DataFrame do not need to already be Series. They can
 also be an ndarray of the right length or a scalar value:
 
-::
+.. ipython:: python
 
-    >>> df['N'] = np.arange(len(df))
-    >>> df['S'] = 5
-			   A              D              N              S
-    2009-01-30 00:00:00    -0.367014      -0.367014      0              5
-    2009-02-27 00:00:00    0.347326       0.347326       1              5
-    2009-03-31 00:00:00    -0.677813      -0.677813      2              5
-    2009-04-30 00:00:00    0.125062       0.125062       3              5
-    2009-05-29 00:00:00    0.979307       0.979307       4              5
-    2009-06-30 00:00:00    -1.24432       nan            5              5
-    2009-07-31 00:00:00    0.536261       nan            6              5
-    2009-08-31 00:00:00    0.0603968      nan            7              5
-    2009-09-30 00:00:00    0.537841       nan            8              5
-    2009-10-30 00:00:00    -0.335999      nan            9              5
-    2009-11-30 00:00:00    -0.568216      nan            10             5
+    df['N'] = np.arange(len(df))
+    df['S'] = 5
+    df
 
-To be consistent with this dict-like interface, the *__contains__*
-method considers the columns:
+To be consistent with this dict-like interface, using **in** checks if the key
+is in the columns:
 
-::
+.. ipython:: python
 
-    >>> 'A' in df
+    'A' in df
     True
 
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.__contains__
-   DataFrame.__getitem__
-   DataFrame.__delitem__
    DataFrame.pop
 
-Retrieving cross sections, transposing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Selecting rows (cross-sections)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It is often desirable to retrieve all data associated with a
-particular index values (we have been calling this a *cross
-section*). Rather than use *__getitem__* and extra notation to do
-this, DataFrame has the **xs** method:
+Selecting a row can be done using the **xs** method or via fancy indexing (see the
+`main documentation <indexing>` about fancy indexing):
 
-::
 
-    >>> df.xs(datetime(2009, 8, 31))
-    A    0.060396849998
-    D    nan
-    N    7
-    S    5
+.. ipython:: python
 
-If the cross sections in a data set are of the most interest, it is
-also possible to transpose a DataFrame using the same syntax as an
-ndarray:
+    date = datetime(2009, 8, 31)
+    df.xs(date)
+    df.ix[date]
+    df.ix[10]
 
-::
 
-    >>> dftrans = df.T
-    >>> dftrans
-    <class 'pandas.core.frame.DataFrame'>
-    Index: 4 entries, A to S
-    Columns:
-    2009-01-30 00:00:00    4  non-null values
-    2009-02-27 00:00:00    4  non-null values
-    2009-03-31 00:00:00    4  non-null values
-    2009-04-30 00:00:00    4  non-null values
-    2009-05-29 00:00:00    4  non-null values
-    2009-06-30 00:00:00    3  non-null values
-    2009-07-31 00:00:00    3  non-null values
-    2009-08-31 00:00:00    3  non-null values
-    2009-09-30 00:00:00    3  non-null values
-    2009-10-30 00:00:00    3  non-null values
-    2009-11-30 00:00:00    3  non-null values
+Transposing
+~~~~~~~~~~~
 
-    >>> dftrans[datetime(2009, 9, 30)]
-    A    0.53784064627
-    D    nan
-    N    8
-    S    5
+To transpose, access the **T** attribute, similar to an ndarray
+
+.. ipython:: python
+
+    df.T
+    df.T[date]
 
 Slicing ranges
 ~~~~~~~~~~~~~~
@@ -272,52 +171,25 @@ Slicing ranges
 Similar to Python lists and ndarrays, for convenience DataFrame
 supports slicing:
 
-::
+.. ipython:: python
 
-    >>> df[:2]
-			   A              D              N              S
-    2009-01-30 00:00:00    -0.367014      -0.367014      0              5
-    2009-02-27 00:00:00    0.347326       0.347326       1              5
+    df[:2]
+    df[::-1]
+    df[-3:].T
 
-    >>> df[::-1]
-			   A              D              N              S
-    2009-11-30 00:00:00    -0.568216      nan            10             5
-    2009-10-30 00:00:00    -0.335999      nan            9              5
-    2009-09-30 00:00:00    0.537841       nan            8              5
-    2009-08-31 00:00:00    0.0603968      nan            7              5
-    2009-07-31 00:00:00    0.536261       nan            6              5
-    2009-06-30 00:00:00    -1.24432       nan            5              5
-    2009-05-29 00:00:00    0.979307       0.979307       4              5
-    2009-04-30 00:00:00    0.125062       0.125062       3              5
-    2009-03-31 00:00:00    -0.677813      -0.677813      2              5
-    2009-02-27 00:00:00    0.347326       0.347326       1              5
-    2009-01-30 00:00:00    -0.367014      -0.367014      0              5
+I do not recommend making heavy use of this functionality but rather using it
+as a convenience for interactive programming (useful for seeing the "head" or
+"tail" of a large DataFrame as in the last example).
 
-    >>> df[-3:].T
-	 2009-09-30     2009-10-30     2009-11-30
-    A    0.537841       -0.335999      -0.568216
-    D    nan            nan            nan
-    N    8              9              10
-    S    5              5              5
-
-I do not recommend making heavy use of this functionality but rather
-using it as a convenience for interactive programming (useful for
-seeing the "head" or "tail" of a large DataFrame as in the last
-example).
-
-Boolean
-~~~~~~~
+Boolean indexing
+~~~~~~~~~~~~~~~~
 
 As another indexing convenience, it is possible to use boolean
 indexing to select rows of a DataFrame:
 
-::
+.. ipython:: python
 
-    >>> df[df['A'] > 0.5]
-			   A              D              N              S
-    2009-05-29 00:00:00    0.979307       0.979307       4              5
-    2009-07-31 00:00:00    0.536261       nan            6              5
-    2009-09-30 00:00:00    0.537841       nan            8              5
+    df[df['A'] > 0.5]
 
 As we will see later on, the same operation could be accomplished by
 reindexing. However, the syntax would be more verbose; hence, the
@@ -342,60 +214,23 @@ for two values to be combined. If there is no match for a particular
 illustrate, let's return to a similar example from the beginning of
 the tutorial:
 
-::
+.. ipython:: python
 
-    >>> df
-			   A              B              C
-    2009-01-30 00:00:00    -0.173487      -0.330054      2.45767
-    2009-02-27 00:00:00    -1.70517       -1.34422       0.45781
-    2009-03-31 00:00:00    0.517951       0.437294       0.625021
-    2009-04-30 00:00:00    1.13914        0.976763       0.871074
-    2009-05-29 00:00:00    -0.263249      -1.55445       0.386744
-    2009-06-30 00:00:00    0.994217       -0.15012       -0.444482
-    2009-07-31 00:00:00    1.51264        -1.13902       0.846015
-    2009-08-31 00:00:00    0.323804       -0.793455      -1.97154
-    2009-09-30 00:00:00    -0.0450052     0.404083       0.588554
-    2009-10-30 00:00:00    0.268981       -0.20756       -0.328061
-    2009-11-30 00:00:00    0.471714       -0.0450022     -0.280202
-
-    >>> df + df[:7]
-			   A              B              C
-    2009-01-30 00:00:00    -0.346974      -0.660108      4.91534
-    2009-02-27 00:00:00    -3.41035       -2.68845       0.915621
-    2009-03-31 00:00:00    1.0359         0.874588       1.25004
-    2009-04-30 00:00:00    2.27828        1.95353        1.74215
-    2009-05-29 00:00:00    -0.526498      -3.10889       0.773488
-    2009-06-30 00:00:00    1.98843        -0.30024       -0.888965
-    2009-07-31 00:00:00    3.02528        -2.27803       1.69203
-    2009-08-31 00:00:00    nan            nan            nan
-    2009-09-30 00:00:00    nan            nan            nan
-    2009-10-30 00:00:00    nan            nan            nan
-    2009-11-30 00:00:00    nan            nan            nan
+    df = DataFrame(data, index=index)
+    df
+    df + df[:7]
 
 In this first example, we can see that the indices have been combined
 together, and the portion where dates are missing in one of the frames
 has resulted in all NaN values. The resulting columns will also be the
 union of the frames' columns:
 
-::
+.. ipython:: python
 
-    >>> df2 = df.copy()
-    >>> df2['D'] = 5
-    >>> del df2['A']
-
-    >>> df + df2[::2]
-			   A              B              C              D
-    2009-01-30 00:00:00    nan            -0.660108      4.91534        nan
-    2009-02-27 00:00:00    nan            nan            nan            nan
-    2009-03-31 00:00:00    nan            0.874588       1.25004        nan
-    2009-04-30 00:00:00    nan            nan            nan            nan
-    2009-05-29 00:00:00    nan            -3.10889       0.773488       nan
-    2009-06-30 00:00:00    nan            nan            nan            nan
-    2009-07-31 00:00:00    nan            -2.27803       1.69203        nan
-    2009-08-31 00:00:00    nan            nan            nan            nan
-    2009-09-30 00:00:00    nan            0.808167       1.17711        nan
-    2009-10-30 00:00:00    nan            nan            nan            nan
-    2009-11-30 00:00:00    nan            -0.0900043     -0.560404      nan
+    df2 = df.copy()
+    df2['D'] = 5
+    del df2['A']
+    df + df2[::2]
 
 Here, neither **A** nor **D** was in both frames: they appear in the
 result but are all NaN. An argument could be made to exclude these
@@ -414,7 +249,7 @@ index.
 ::
 
     >>> df - df.xs(df.index[5])
-			   A              B              C
+               A              B              C
     2009-01-30 00:00:00    -1.1677        -0.179934      2.90215
     2009-02-27 00:00:00    -2.69939       -1.1941        0.902293
     2009-03-31 00:00:00    -0.476266      0.587414       1.0695
@@ -436,7 +271,7 @@ user intended.
 ::
 
     >>> df - df['A']
-			   A              B              C
+               A              B              C
     2009-01-30 00:00:00    0              -0.156567      2.63116
     2009-02-27 00:00:00    0              0.360951       2.16298
     2009-03-31 00:00:00    0              -0.0806571     0.10707
@@ -466,7 +301,7 @@ Scalar operations work just as expected:
 ::
 
     >>> df * 5 + 2
-			   A              B              C
+               A              B              C
     2009-01-30 00:00:00    1.13256        0.349729       14.2884
     2009-02-27 00:00:00    -6.52587       -4.72111       4.28905
     2009-03-31 00:00:00    4.58976        4.18647        5.12511
@@ -503,7 +338,7 @@ DataFrame. By default the statistic will be computed for each column
 ::
 
     >>> df
-			   A              B              C              D
+               A              B              C              D
     2009-01-30 00:00:00    -0.173487      -0.330054      2.45767        -0.173487
     2009-02-27 00:00:00    -1.70517       -1.34422       0.45781        -1.70517
     2009-03-31 00:00:00    0.517951       0.437294       0.625021       0.517951
@@ -517,23 +352,23 @@ DataFrame. By default the statistic will be computed for each column
     2009-11-30 00:00:00    0.471714       -0.0450022     -0.280202      nan
 
     >>> df.mean()
-    A	0.27650301895
-    B	-0.340521353823
-    C	0.291691664865
-    D	-0.0969634747505
+    A   0.27650301895
+    B   -0.340521353823
+    C   0.291691664865
+    D   -0.0969634747505
 
     >>> df.mean(axis=1)
-    2009-01-30 00:00:00	0.445160910434
-    2009-02-27 00:00:00	-1.07419006997
-    2009-03-31 00:00:00	0.524554413383
-    2009-04-30 00:00:00	1.03152984415
-    2009-05-29 00:00:00	-0.42354987732
-    2009-06-30 00:00:00	0.133204894302
-    2009-07-31 00:00:00	0.406546724596
-    2009-08-31 00:00:00	-0.813729414124
-    2009-09-30 00:00:00	0.315877288659
-    2009-10-30 00:00:00	-0.088879865383
-    2009-11-30 00:00:00	0.048836496438
+    2009-01-30 00:00:00 0.445160910434
+    2009-02-27 00:00:00 -1.07419006997
+    2009-03-31 00:00:00 0.524554413383
+    2009-04-30 00:00:00 1.03152984415
+    2009-05-29 00:00:00 -0.42354987732
+    2009-06-30 00:00:00 0.133204894302
+    2009-07-31 00:00:00 0.406546724596
+    2009-08-31 00:00:00 -0.813729414124
+    2009-09-30 00:00:00 0.315877288659
+    2009-10-30 00:00:00 -0.088879865383
+    2009-11-30 00:00:00 0.048836496438
 
 The other methods listed function similarly. Combining these methods
 with the arithmetic functionality, we can very easily do things like
@@ -542,13 +377,13 @@ computing the cross-sectional or time series z-score:
 ::
 
     >>> (df - df.mean(1)) / df.std(1)    # cross-sectional
-			   A              B              C              D
+               A              B              C              D
     2009-01-30 00:00:00    -0.839662      0.539768       1.13956        -0.839662
     2009-02-27 00:00:00    -0.615664      1.47701        -0.245682      -0.615664
     ...
 
     >>> (df - df.mean()) / df.std()      # time series
-			   A              B              C              D
+               A              B              C              D
     2009-01-30 00:00:00    -1.79314       -0.173077      0.156054       -0.96237
     2009-02-27 00:00:00    -1.16502       1.7612         -1.15894       -0.437405
     ...
@@ -578,7 +413,7 @@ taking care to compute the variances over the intersection of data:
 ::
 
     >>> df.corr()
-	 A              B              C              D
+     A              B              C              D
     A    1              0.423766       -0.0985818     1
     B    0.423766       1              0.134803       0.839771
     C    -0.0985818     0.134803       1              0.129427
@@ -606,7 +441,7 @@ return type of the function, return a Series or DataFrame.
 ::
 
     >>> df.apply(np.log)
-			   A              B              C
+               A              B              C
     2009-01-30 00:00:00    nan            nan            -0.573389
     2009-02-27 00:00:00    nan            -0.0123289     nan
     2009-03-31 00:00:00    0.0324552      -0.982897      -1.85985
@@ -620,9 +455,9 @@ return type of the function, return a Series or DataFrame.
     2009-11-30 00:00:00    -2.08095       nan            nan
 
     >>> df.apply(lambda x: np.sort(x)[-5:].mean())
-    A	0.517625676559
-    B	0.47682898773
-    C	1.2079285542
+    A   0.517625676559
+    B   0.47682898773
+    C   1.2079285542
 
     >>> df.apply(np.sum, axis=1)
     2009-01-30 00:00:00    -1.35501374903
@@ -675,7 +510,7 @@ function. Obviously this will be fairly slow but can be useful:
 ::
 
     >>> df.applymap(lambda x: x if x > 0 else 0)
-			   A              B              C              D
+               A              B              C              D
     2009-01-30 00:00:00    0              0              0.563612       0
     2009-02-27 00:00:00    0              0.987747       0              0
     2009-03-31 00:00:00    1.03299        0.374225       0.155696       1.03299
@@ -780,7 +615,7 @@ arguments and
 ::
 
     >>> df1
-			   A              B
+               A              B
     2000-01-03 00:00:00    -0.1174        -0.941
     2000-01-04 00:00:00    -0.6034        -0.008094
     2000-01-05 00:00:00    -0.3816        -0.9338
@@ -793,7 +628,7 @@ arguments and
     2000-01-14 00:00:00    -1.084         -0.271
 
     >>> df2
-			   C              D
+               C              D
     2000-01-03 00:00:00    0.2833         -0.1937
     2000-01-05 00:00:00    1.868          1.207
     2000-01-07 00:00:00    -0.8586        -0.7367
@@ -802,7 +637,7 @@ arguments and
 
 
     df1.join(df2)
-			   A              B              C              D
+               A              B              C              D
     2000-01-03 00:00:00    -0.1174        -0.941         0.2833         -0.1937
     2000-01-04 00:00:00    -0.6034        -0.008094      NaN            NaN
     2000-01-05 00:00:00    -0.3816        -0.9338        1.868          1.207
@@ -817,7 +652,7 @@ arguments and
 ::
 
     >>> df1.join(df2, how='inner')
-			   A              B              C              D
+               A              B              C              D
     2000-01-03 00:00:00    -0.1174        -0.941         0.2833         -0.1937
     2000-01-05 00:00:00    -0.3816        -0.9338        1.868          1.207
     2000-01-07 00:00:00    0.9576         0.4652         -0.8586        -0.7367
@@ -832,7 +667,7 @@ mapping.
 ::
 
     >>> df2
-			   C              D              key
+               C              D              key
     2000-01-03 00:00:00    0.2833         -0.1937        0
     2000-01-05 00:00:00    1.868          1.207          1
     2000-01-07 00:00:00    -0.8586        -0.7367        0
@@ -840,12 +675,12 @@ mapping.
     2000-01-13 00:00:00    0.7856         0.9063         0
 
     >>> df3
-	 code
+     code
     0    foo
     1    bar
 
     >>> df2.join(df3, on='key')
-			   C              D              code           key
+               C              D              code           key
     2000-01-03 00:00:00    0.2833         -0.1937        foo            0
     2000-01-05 00:00:00    1.868          1.207          bar            1
     2000-01-07 00:00:00    -0.8586        -0.7367        foo            0

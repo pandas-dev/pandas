@@ -35,6 +35,8 @@ sys.path.extend([
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'numpydoc',
+              'ipython_directive',
+              'ipython_console_highlighting',
               'sphinx.ext.intersphinx',
               'sphinx.ext.todo',
               'sphinx.ext.coverage',

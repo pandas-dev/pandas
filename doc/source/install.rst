@@ -6,16 +6,17 @@
 Installation
 ************
 
-You have the option to install an official release or to build the development
-version from the source repository. If you choose to install from source and
-are on Windows, you will have to ensure that you have a compatible C compiler
-(MinGW or Visual Studio) installed. `How-to install MinGW on Windows
+You have the option to install an `official release
+<http://pypi.python.org/pypi/pandas>`__ or to build the `development version
+<http://github.com/wesm/pandas>`__. If you choose to install from source and
+are running Windows, you will have to ensure that you have a compatible C
+compiler (MinGW or Visual Studio) installed. `How-to install MinGW on Windows
 <http://docs.cython.org/src/tutorial/appendix.html>`__
 
 Python version support
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Officially Python 2.5 to 2.7. I will aim for Python 3.x support in a future
+Officially Python 2.5 to 2.7. I will aim for Python 3.x support in the next
 release. Python 2.4 support is being phased out since the userbase has shrunk
 significantly.
 
