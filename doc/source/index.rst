@@ -1,41 +1,75 @@
 .. Pandas documentation master file, created by
 
 
-pandas: a python data analysis library
-======================================
+pandas: powerful Python data analysis library
+=============================================
 
-:mod:`pandas` is a python package providing convenient data structures
-for time series, cross-sectional, or any other form of "labeled" data,
-with tools for building statistical and econometric models.
+:mod:`pandas` is a `Python <http://www.python.org>`__ package providing fast,
+flexible, and expressive data structures designed to make working with
+"relational" or "labeled" data both easy and intuitive. It aims to be the
+fundamental high-level building block for doing practical data analysis in
+Python. Additionally, it has the broader goal of becoming **the most powerful
+and flexible data analysis and manipulation tool available in any
+language**. It is already well on its way toward this goal.
 
-This library was created with the following design principles:
+pandas is well suited for many different kinds of data:
 
-  - Working with time series and cross-sectional data should be easy
-  - The user should not have to worry (much) about handling missing data
-  - Data alignment should be automatic and transparent
-  - Speed matters
-  - Perhaps most importantly: *things should work just like you want them to*
+  - Tabular data with heterogeneously-typed columns, as in an SQL table or
+    Excel spreadsheet
+  - Ordered and unordered (not necessarily fixed-frequency) time series data.
+  - Arbitrary matrix data (homogeneously typed or heterogeneous) with row and
+    column labels
+  - Any other form of observational / statistical data sets. The data actually
+    need not be labeled at all to be placed into a pandas data structure
 
-Many of these principles are here to address the shortcomings
-frequently experienced using other languages / scientific research
-environments. In MATLAB, for example, you spend a lot of time coercing
-data into matrices, cleaning and aligning it, and keeping everything
-homogeneous. You have to use lots of functions like **nanmean, nanstd,
-repmat** (for broadcasting), and other functions which help you to
-maintain reliable data. Using `NumPy <http://www.numpy.org>`__ and a
-Pythonic approach, pandas helps hide the dirty details of working with
-unclean data, allowing you to focus on the problem you're trying to
-solve rather than the implementation.
+The two primary data structures of pandas, :class:`Series` (1-dimensional)
+and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
+cases in finance, statistics, social science, and many areas of
+engineering. For R users, :class:`DataFrame` provides everything that R's
+``data.frame`` provides and much more. pandas is build on top of `NumPy
+<http://www.numpy.org>`__ and is intended to integrate well within a scientific
+computing environment with many other 3rd party libraries.
 
-pandas is implemented primarily using NumPy and is intended to be able
-to integrate very easily with other NumPy-based scientific libraries,
-such as :mod:`scikits.statsmodels`.
+Here are just a few of the primary features of interest in pandas:
+
+  - Easy handling of missing data (represented as NaN) in floating point as
+    well as non-floating point data
+  - Size mutability: columns can be inserted and deleted from DataFrame and
+    higher dimensional objects
+  - Automatic and explicit data alignment: objects can be explicitly aligned to
+    a set of labels, or the user can simply ignore the labels and let `Series`,
+    `DataFrame`, etc. automatically align the data for you in computations
+  - Powerful, flexible "group by" functionality to perform split-apply-combine
+    operations on data sets, for both aggregating and transforming data sets
+  - Make it easy to collect ragged, differently-indexed data in other Python
+    and NumPy data structures into DataFrame objects
+  - Intelligent label-based slicing, (fancy) indexing, and subsetting of large
+    data sets
+  - Intuitive merging and joining of data sets
+  - Flexible reshaping and pivoting of data sets
+  - Hierarchical labeling of axes (possible to have multiple labels per tick)
+  - Robust IO tools for loading data from flat files (CSV and delimited), Excel
+    files, databases, and saving / loading data from the ultrafast HDF5 format
+
+Many of these principles are here to address the shortcomings frequently
+experienced using other languages / scientific research environments. For data
+scientists, working with data is typically divided into multiple stages:
+munging and cleaning data, analyzing / modeling it, then organizing the results
+of the analysis into a form suitable for plotting or tabular display. pandas
+is the ideal tool for all of these tasks.
+
+Some other notes
+
+ - pandas will soon become a dependency of `statsmodels`, making it a
+   important part of the statistical computing tools available in Python.
+
+ - pandas has been used extensively in production in financial applications.
 
 .. note::
 
-   This documentation assumes general familiarity with NumPy. If you
-   haven't used NumPy much or at all, please check out the `NumPy
-   documentation <http://docs.scipy.org>`__ first.
+   This documentation assumes general familiarity with NumPy. If you haven't
+   used NumPy much or at all, do invest some time in `learning about NumPy
+   <http://docs.scipy.org>`__ first.
 
 See the package overview for more detail about what's in the library.
 
@@ -52,7 +86,9 @@ User manual
 
 **License:** BSD
 
-**Requirements:** python 2.4 to 2.7, NumPy, and dateutil
+**Requirements:** python 2.5 to 2.7, NumPy, and python-dateutil
+
+**Suggested:** scikits.statsmodels
 
 **Code Repository:** http://github.com/wesm/pandas
 
@@ -62,6 +98,7 @@ Library documentation
 .. toctree::
     :maxdepth: 2
 
+    install
     overview
     core
     groupby
@@ -87,6 +124,13 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+History
+-------
+
+pandas development began at `AQR Capital Management <http://www.aqr.com>` in
+April 2008. It was open-sourced at the end of 2009 and continues to be actively
+used and maintained.
 
 Contact
 -------

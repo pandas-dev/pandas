@@ -22,13 +22,6 @@ econometrics. pandas has multiple target audiences:
  * System developers who wish to have a robust and well-tested library
    for building production applications involving such data sets.
 
-History
--------
-
-pandas development began at AQR Capital Management (a quantitative
-hedge fund) in April 2008. It was open-sourced at the end of 2009 and
-continues to be actively used and maintained.
-
 Data structures at a glance
 ---------------------------
 
@@ -96,60 +89,3 @@ though, we like to "favor immutability" where sensible.
 
 What else is in the package?
 ----------------------------
-
-Installation
-------------
-
-You have the option to install an official release or to build from
-source. If you choose to install from source and are on Windows, you
-will have to ensure that you have a compatible C compiler (gcc)
-installed (see below).
-
-Binary installers
-~~~~~~~~~~~~~~~~~
-
-Available from the Google Code website and PyPI.
-
-Dependencies
-~~~~~~~~~~~~
-
-  * `NumPy <http://www.numpy.org>`__: 1.3.0 or higher
-  * `dateutil <http://labix.org/python-dateutil>`__
-
-Optional dependencies
-~~~~~~~~~~~~~~~~~~~~~
-
-  * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
-  * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
-  * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-  * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
-     * Needed for parts of :mod:`pandas.stats`
-
-.. note::
-
-   Without the optional dependencies, many useful features will not
-   work. Hence, it is highly recommended that you install these.
-
-Installing from source
-~~~~~~~~~~~~~~~~~~~~~~
-
-The source code is hosted at http://github.com/wesm/pandas, it can be checked
-out using git and compiled / installed like so:
-
-::
-
-  git clone git://github.com/wesm/pandas.git
-
-  cd pandas
-
-  python setup.py install
-
-On Windows, you will need to download and install `gcc / MinGW
-<http://www.mingw.org/wiki/HOWTO_Install_the_MinGW_GCC_Compiler_Suite>`__.
-After adding it to your system path, you can install pandas by typing
-instead:
-
-::
-
-  python setup.py build --compiler=mingw32
-  python setup.py install
