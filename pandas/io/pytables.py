@@ -9,11 +9,9 @@ from datetime import datetime
 import time
 
 import numpy as np
-from pandas import (Series, TimeSeries, DataFrame, DataMatrix, WidePanel,
-                    LongPanel)
+from pandas import Series, TimeSeries, DataFrame, WidePanel, LongPanel
 from pandas.core.common import adjoin
 import pandas.core.internals as internals
-import pandas._tseries as _tseries
 
 # reading and writing the full object in one go
 _TYPE_MAP = {

@@ -12,11 +12,13 @@ year. Generally, there are two primary kinds of operations of interest:
 
 * **Aggregation**: computing a single number from a group of data. Some
     examples:
+
  * Counting group sizes (using the Python :func:`len` function)
  * Computing group sums or means
 
 * **Transformation**: computing new values for a group, leaving the data
     structure size unchanged. For example
+
  * Rescale a group by its maximum value
  * Standardize a group (subtract the mean, divide by the standard deviation)
 

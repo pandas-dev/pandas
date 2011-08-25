@@ -195,7 +195,7 @@ class TestSparseSeries(TestCase):
         bseries2 = SparseSeries(self.bseries.to_dense())
         assert_equal(self.bseries.sp_values, bseries2.sp_values)
 
-        # pass dict
+        # pass dict?
 
         # don't copy the data by default
         values = np.ones(len(self.bseries.sp_values))

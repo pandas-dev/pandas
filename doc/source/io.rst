@@ -9,11 +9,13 @@ Input / Output Tools
 HDF5 (PyTables)
 ---------------
 
-.. automodule:: pandas.io.pytables
-   :members:
+.. .. autosummary::
+..    :toctree: generated/
+
+..    HDFStore
 
 Text files
 ----------
 
-.. automodule:: pandas.io.parsers
-   :members:
+.. .. automodule:: pandas.io.parsers
+..    :members:
