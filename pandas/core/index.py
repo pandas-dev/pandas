@@ -124,6 +124,9 @@ class Index(np.ndarray):
             return Index(arr_idx[key])
 
     def take(self, *args, **kwargs):
+        """
+        Analogous to ndarray.take
+        """
         taken = self.view(np.ndarray).take(*args, **kwargs)
         return Index(taken)
 
@@ -496,10 +499,10 @@ class MultiIndex(Index):
     Parameters
     ----------
     levels : list or tuple of arrays
-    labels :
-
+        The unique labels for each level
+    labels : list or tuple of arrays
+        Integers for each level designating which label at each location
     """
-
     def __new__(cls, levels=None, labels=None, sortorder=None):
         return np.arange(len(labels[0]), dtype=object).view(cls)
 
@@ -581,6 +584,19 @@ class MultiIndex(Index):
 
     @classmethod
     def from_tuples(cls, tuples, sortorder=None):
+        """
+        Convert list of tuples to MultiIndex
+
+        Parameters
+        ----------
+        tuples : array-like
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that level)
+
+        Returns
+        -------
+        index : MultiIndex
+        """
         arrays = zip(*tuples)
         return MultiIndex.from_arrays(arrays, sortorder=sortorder)
 
@@ -642,6 +658,9 @@ class MultiIndex(Index):
             return result
 
     def take(self, *args, **kwargs):
+        """
+        Analogous to ndarray.take
+        """
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
 
@@ -649,6 +668,18 @@ class MultiIndex(Index):
         return self.get_tuple_index().argsort()
 
     def drop(self, labels):
+        """
+        Make new MultiIndex with passed list of labels deleted
+
+        Parameters
+        ----------
+        labels : array-like
+            Must be a list of tuples
+
+        Returns
+        -------
+        dropped : MultiIndex
+        """
         try:
             if not isinstance(labels, np.ndarray):
                 labels = _asarray_tuplesafe(labels)
@@ -702,7 +733,17 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True):
         """
+        Sort MultiIndex lexicographically by requested level
 
+        Parameters
+        ----------
+        level : int, default 0
+        ascending : boolean, default True
+            False to sort in descending order
+
+        Returns
+        -------
+        sorted_index : MultiIndex
         """
         labels = list(self.labels)
         primary = labels.pop(level)
@@ -721,15 +762,31 @@ class MultiIndex(Index):
 
     def get_indexer(self, target, method=None):
         """
+        Compute indexer and mask for new index given the current index. The
+        indexer should be then used as an input to ndarray.take to align the
+        current data to the new index. The mask determines whether labels are
+        found or not in the current index
 
         Parameters
         ----------
-        target : Index
-        method :
+        target : MultiIndex or Index (of tuples)
+        method : {'pad', 'ffill', 'backfill', 'bfill'}
+            pad / ffill: propagate LAST valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+
+        Notes
+        -----
+        This is a low-level method and probably should be used at your own risk
+
+        Examples
+        --------
+        >>> indexer, mask = index.get_indexer(new_index)
+        >>> new_values = cur_values.take(indexer)
+        >>> new_values[-mask] = np.nan
 
         Returns
         -------
-        (indexer, mask)
+        (indexer, mask) : (ndarray, ndarray)
         """
         if method:
             method = method.upper()
@@ -758,6 +815,15 @@ class MultiIndex(Index):
         return indexer, mask
 
     def reindex(self, target, method=None):
+        """
+        Performs any necessary conversion on the input index and calls
+        get_indexer. This method is here so MultiIndex and an Index of
+        like-labeled tuples can play nice together
+
+        Returns
+        -------
+        (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
+        """
         indexer, mask = self.get_indexer(target, method=method)
 
         # hopefully?
@@ -767,13 +833,32 @@ class MultiIndex(Index):
         return target, indexer, mask
 
     def get_tuple_index(self):
+        """
+        Convert MultiIndex to an Index of tuples
+
+        Returns
+        -------
+        index : Index
+        """
         return Index(list(self))
 
     def slice_locs(self, start=None, end=None):
         """
+        For an ordered MultiIndex, compute the slice locations for input
+        labels. They can tuples representing partial levels, e.g. for a
+        MultiIndex with 3 levels, you can pass a single value (corresponding to
+        the first level), or a 1-, 2-, or 3-tuple.
+
+        Parameters
+        ----------
+        start : label or tuple, default None
+            If None, defaults to the beginning
+        end : label or tuple
+            If None, defaults to the end
 
         Returns
         -------
+        (begin, end) : (int, int)
 
         Notes
         -----
@@ -823,6 +908,17 @@ class MultiIndex(Index):
                 return start + section.searchsorted(idx, side=side)
 
     def get_loc(self, key):
+        """
+        Get integer location slice for requested label or tuple
+
+        Parameters
+        ----------
+        key : label or tuple
+
+        Returns
+        -------
+        loc : int or slice object
+        """
         if isinstance(key, tuple):
             if len(key) == self.nlevels:
                 return self._get_tuple_loc(key)
@@ -854,19 +950,18 @@ class MultiIndex(Index):
 
     def truncate(self, before=None, after=None):
         """
-        Slice index between two major axis values, return new MultiIndex
+        Slice index between two labels / tuples, return new MultiIndex
 
         Parameters
         ----------
-        before : type of major_axis values or None, default None
-            None defaults to start of panel
-
-        after : type of major_axis values or None, default None
-            None defaults to after of panel
+        before : label or tuple, can be partial. Default None
+            None defaults to start
+        after : label or tuple, can be partial. Default None
+            None defaults to end
 
         Returns
         -------
-        MultiIndex
+        truncated : MultiIndex
         """
         if after and before and after < before:
             raise ValueError('after < before')
@@ -884,7 +979,12 @@ class MultiIndex(Index):
 
     def equals(self, other):
         """
-        Determines if two MultiIndex objects are the same
+        Determines if two MultiIndex objects have the same labeling information
+        (the levels themselves do not necessarily have to be the same)
+
+        See also
+        --------
+        equal_levels
         """
         if self is other:
             return True
@@ -901,18 +1001,16 @@ class MultiIndex(Index):
         for i in xrange(self.nlevels):
             svalues = np.asarray(self.levels[i]).take(self.labels[i])
             ovalues = np.asarray(other.levels[i]).take(other.labels[i])
-
             if not np.array_equal(svalues, ovalues):
                 return False
-
-            # if not self.levels[i].equals(other.levels[i]):
-            #     return False
-            # if not np.array_equal(self.labels[i], other.labels[i]):
-            #     return False
 
         return True
 
     def equal_levels(self, other):
+        """
+        Return True if the levels of both MultiIndex objects are the same
+
+        """
         if self.nlevels != other.nlevels:
             return False
 
@@ -923,11 +1021,11 @@ class MultiIndex(Index):
 
     def union(self, other):
         """
-        Form the union of two MultiIndex objects
+        Form the union of two MultiIndex objects, sorting if possible
 
         Parameters
         ----------
-        other : Index or array-like
+        other : MultiIndex or array / Index of tuples
 
         Returns
         -------
@@ -948,11 +1046,11 @@ class MultiIndex(Index):
 
     def intersection(self, other):
         """
-        Form the intersection of two Index objects and sorts if possible
+        Form the intersection of two MultiIndex objects, sorting if possible
 
         Parameters
         ----------
-        other : Index or array-like
+        other : MultiIndex or array / Index of tuples
 
         Returns
         -------
@@ -977,6 +1075,13 @@ class MultiIndex(Index):
         assert(self.nlevels == other.nlevels)
 
     def delete(self, loc):
+        """
+        Make new index with passed location deleted
+
+        Returns
+        -------
+        new_index : MultiIndex
+        """
         new_labels = [np.delete(lab, loc) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
 
