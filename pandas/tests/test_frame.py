@@ -594,22 +594,28 @@ class CheckIndexing(object):
     def test_setitem_boolean_missing(self):
         pass
 
+_seriesd = tm.getSeriesData()
+_tsd = tm.getTimeSeriesData()
+
+_frame = DataFrame(_seriesd)
+_frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
+_intframe = DataFrame(dict((k, v.astype(int))
+                           for k, v in _seriesd.iteritems()))
+
+_tsframe = DataFrame(_tsd)
+
+_mixed_frame = _frame.copy()
+_mixed_frame['foo'] = 'bar'
+
 class TestDataFrame(unittest.TestCase, CheckIndexing):
     klass = DataFrame
 
     def setUp(self):
-        self.seriesd = tm.getSeriesData()
-        self.tsd = tm.getTimeSeriesData()
-
-        self.frame = DataFrame(self.seriesd)
-        self.frame2 = DataFrame(self.seriesd, columns=['D', 'C', 'B', 'A'])
-        self.intframe = DataFrame(dict((k, v.astype(int))
-                                        for k, v in self.seriesd.iteritems()))
-
-        self.tsframe = DataFrame(self.tsd)
-
-        self.mixed_frame = self.frame.copy()
-        self.mixed_frame['foo'] = 'bar'
+        self.frame = _frame.copy()
+        self.frame2 = _frame2.copy()
+        self.intframe = _intframe.copy()
+        self.tsframe = _tsframe.copy()
+        self.mixed_frame = _mixed_frame.copy()
 
         self.ts1 = tm.makeTimeSeries()
         self.ts2 = tm.makeTimeSeries()[5:]
@@ -623,13 +629,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
             'col4' : self.ts4,
         }
         self.empty = DataFrame({})
-
-        self.unsortable = DataFrame(
-            {'foo' : [1] * 1000,
-             datetime.today() : [1] * 1000,
-             'bar' : ['bar'] * 1000,
-             datetime.today() + timedelta(1) : ['bar'] * 1000},
-            index=np.arange(1000))
 
         arr = np.array([[1., 2., 3.],
                         [4., 5., 6.],
@@ -1053,7 +1052,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.empty.info(buf=buf)
 
         # columns are not sortable
-        foo = repr(self.unsortable)
+
+        unsortable = DataFrame({'foo' : [1] * 50,
+                                datetime.today() : [1] * 50,
+                                'bar' : ['bar'] * 50,
+                                datetime.today() + timedelta(1) : ['bar'] * 50},
+                               index=np.arange(50))
+        foo = repr(unsortable)
 
         import pandas.core.common as common
         common.set_printoptions(precision=3, column_space=10)

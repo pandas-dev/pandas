@@ -134,18 +134,6 @@ def _sparse_fillop(this, other, name):
 
     return result, result_index
 
-"""
-Notes.
-
-- Not sure if subclassing is the way to go, could just lead to trouble on down
-  the road (e.g. if putting a SparseSeries in a regular DataFrame...). But on
-  the other hand you do get many things for free...
-
-- Will need to "disable" a number of methods?
-"""
-
-# from line_profiler import LineProfiler
-# prof = LineProfiler()
 
 class SparseSeries(Series):
     """
@@ -157,12 +145,14 @@ class SparseSeries(Series):
     kind : {'block', 'integer'}
     fill_value : float
         Defaults to NaN (code for missing)
+    sparse_index : {BlockIndex, IntIndex}, optional
+        Only if you have one. Mainly used internally
 
     Notes
     -----
-    SparseSeries objects are immutable via the typical Python means. If you must
-    change values, convert to dense, make your changes, then convert back to
-    sparse
+    SparseSeries objects are immutable via the typical Python means. If you
+    must change values, convert to dense, make your changes, then convert back
+    to sparse
     """
     __array_priority__ = 15
 
@@ -370,7 +360,7 @@ class SparseSeries(Series):
 
         Returns
         -------
-        y : ndarray
+        taken : ndarray
         """
         indices = np.asarray(indices, dtype=int)
 
@@ -408,11 +398,20 @@ class SparseSeries(Series):
         else:
             return Series(self.values, index=self.index)
 
-    def astype(self, dtype):
-        # HACK?
+    def astype(self, dtype=None):
+        """
+
+        """
+        if dtype is not None and dtype not in (np.float_, float):
+            raise Exception('Can only support floating point data')
+
         return self.copy()
 
     def copy(self):
+        """
+        Make a copy of the SparseSeries. Only the actual sparse values need to
+        be copied
+        """
         values = self.sp_values.copy()
         return SparseSeries(values, index=self.index,
                             sparse_index=self.sp_index,
@@ -471,17 +470,20 @@ class SparseSeries(Series):
         new_values = self.sp_index.to_int_index().reindex(self.sp_values,
                                                           self.fill_value,
                                                           new_index)
-
-        # indexer = self.sp_index.get_indexer(new_index)
-
-        # new_values = self.sp_values.take(indexer)
-        # new_values[indexer == -1] = self.fill_value
-
         return SparseSeries(new_values, index=self.index,
                             sparse_index=new_index,
                             fill_value=self.fill_value)
 
     def count(self):
+        """
+        Compute sum of non-NA/null observations in SparseSeries. If the
+        fill_value is not NaN, the "sparse" locations will be included in the
+        observation count
+
+        Returns
+        -------
+        nobs : int
+        """
         sp_values = self.sp_values
         valid_spvals = np.isfinite(sp_values).sum()
         if self._null_fill_value:
@@ -501,7 +503,11 @@ class SparseSeries(Series):
 
     def sum(self, axis=None, dtype=None, out=None):
         """
-        Sum of non-null values
+        Sum of non-NA/null values
+
+        Returns
+        -------
+        sum : float
         """
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
@@ -513,13 +519,13 @@ class SparseSeries(Series):
 
     def cumsum(self, axis=0, dtype=None, out=None):
         """
-        Cumulative sum of values. Preserves NaN values
+        Cumulative sum of values. Preserves locations of NaN values
 
         Extra parameters are to preserve ndarray interface.
 
         Returns
         -------
-
+        cumsum : Series
         """
         if not np.isnan(self.fill_value):
             return self.to_dense().cumsum()
@@ -530,7 +536,11 @@ class SparseSeries(Series):
 
     def mean(self, axis=None, dtype=None, out=None):
         """
-        Mean of non-null values
+        Mean of non-NA/null values
+
+        Returns
+        -------
+        mean : float
         """
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
@@ -595,6 +605,18 @@ class SparseDataFrame(DataFrame):
     """
     DataFrame containing sparse floating point data in the form of SparseSeries
     objects
+
+    Parameters
+    ----------
+    data : same types as can be passed to DataFrame
+    index : array-like, optional
+    column : array-like, optional
+    default_kind : {'block', 'integer'}, default 'block'
+        Default sparse kind for converting Series to SparseSeries. Will not
+        override SparseSeries passed into constructor
+    default_fill_value : float
+        Default fill_value for converting Series to SparseSeries. Will not
+        override SparseSeries passed in
     """
     _columns = None
     _series = None
@@ -763,7 +785,7 @@ class SparseDataFrame(DataFrame):
 
     def copy(self):
         """
-        Make a deep copy of this frame
+        Make a deep copy of this SparseDataFrame
         """
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns,
@@ -893,7 +915,8 @@ class SparseDataFrame(DataFrame):
 
     def xs(self, key):
         """
-        Returns a row from the DataFrame as a Series object.
+        Returns a row (cross-section) from the SparseDataFrame as a Series
+        object.
 
         Parameters
         ----------
@@ -901,7 +924,7 @@ class SparseDataFrame(DataFrame):
 
         Returns
         -------
-        Series
+        xs : Series
         """
         i = self.index.get_loc(key)
         series = self._series
@@ -1070,23 +1093,8 @@ class SparseDataFrame(DataFrame):
     T = property(transpose)
 
     def count(self, axis=0, **kwds):
-        """
-        Return array or Series of # observations over requested axis.
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Notes
-        -----
-        Also examines non-float data and checks for None and NaN in such data
-
-        Returns
-        -------
-        Series or TimeSeries
-        """
         return self.apply(SparseSeries.count, axis=axis)
+    count.__doc__ = DataFrame.count.__doc__
 
     def cumsum(self, axis=0):
         """
@@ -1290,8 +1298,12 @@ class SparseWidePanel(WidePanel):
     items : array-like
     major_axis : array-like
     minor_axis : array-like
-    default_fill_value : float, default NaN
-    default_kind : {'block', 'integer'}
+    default_kind : {'block', 'integer'}, default 'block'
+        Default sparse kind for converting Series to SparseSeries. Will not
+        override SparseSeries passed into constructor
+    default_fill_value : float
+        Default fill_value for converting Series to SparseSeries. Will not
+        override SparseSeries passed in
 
     Notes
     -----
@@ -1334,7 +1346,10 @@ class SparseWidePanel(WidePanel):
         pass
 
     @classmethod
-    def from_dict(cls, data, intersect=False):
+    def from_dict(cls, data):
+        """
+        Analogous to WidePanel.from_dict
+        """
         return SparseWidePanel(data)
 
     def to_dense(self):

@@ -2044,44 +2044,6 @@ class DataFrame(NDFrame):
         return join_index
 
     #----------------------------------------------------------------------
-    # groupby
-
-    def groupby(self, by=None, axis=0, level=None):
-        """
-        Group series using mapper (dict or key function, apply given function
-        to group, return result as series) or by a series of columns
-
-        Parameters
-        ----------
-        by : mapping function / list of functions, dict, Series, or tuple /
-            list of column names.
-            Called on each element of the object index to determine the groups.
-            If a dict or Series is passed, the Series or dict VALUES will be
-            used to determine the groups
-        axis : int, default 0
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), group by a particular
-            level
-
-        Examples
-        --------
-        # DataFrame result
-        >>> data.groupby(func, axis=0).mean()
-
-        # DataFrame result
-        >>> data.groupby(['col1', 'col2'])['col3'].mean()
-
-        # DataFrame with hierarchical index
-        >>> data.groupby(['col1', 'col2']).mean()
-
-        Returns
-        -------
-        GroupBy object
-        """
-        from pandas.core.groupby import groupby
-        return groupby(self, by, axis=axis, level=level)
-
-    #----------------------------------------------------------------------
     # Statistical methods, etc.
 
     def corr(self):

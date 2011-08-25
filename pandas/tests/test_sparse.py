@@ -218,7 +218,7 @@ class TestSparseSeries(TestCase):
         assert_equal(sp_series.values, arr)
 
     def test_copy_astype(self):
-        cop = self.bseries.astype(np.int32)
+        cop = self.bseries.astype(np.float_)
         self.assert_(cop is not self.bseries)
         self.assert_(cop.sp_index is self.bseries.sp_index)
         self.assert_(cop.dtype == np.float64)

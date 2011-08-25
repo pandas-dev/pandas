@@ -277,8 +277,9 @@ class BDay(DateOffset, CacheableOffset):
 
 
 class MonthEnd(DateOffset, CacheableOffset):
-    _normalizeFirst = True
     """DateOffset of one month end"""
+
+    _normalizeFirst = True
 
     def apply(self, other):
         n = self.n
@@ -323,6 +324,8 @@ class BMonthEnd(DateOffset, CacheableOffset):
 
 class Week(DateOffset, CacheableOffset):
     """
+    Weekly offset
+
     weekday
     0: Mondays
     1: Tuedays

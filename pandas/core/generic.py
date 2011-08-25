@@ -80,24 +80,40 @@ class PandasObject(Picklable):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def groupby(self, mapper=None, axis=0, level=None):
+    def groupby(self, by=None, axis=0, level=None):
         """
-        Goup series using mapper (dict or key function, apply given
-        function to group, return result as series).
+        Group series using mapper (dict or key function, apply given function
+        to group, return result as series) or by a series of columns
 
         Parameters
         ----------
-        mapper: function, dict or Series
-            Called on each element of the object index to determine
-            the groups.  If a dict or Series is passed, the Series or
-            dict VALUES will be used to determine the groups
+        by : mapping function / list of functions, dict, Series, or tuple /
+            list of column names.
+            Called on each element of the object index to determine the groups.
+            If a dict or Series is passed, the Series or dict VALUES will be
+            used to determine the groups
+        axis : int, default 0
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), group by a particular
+            level
+
+        Examples
+        --------
+        # DataFrame result
+        >>> data.groupby(func, axis=0).mean()
+
+        # DataFrame result
+        >>> data.groupby(['col1', 'col2'])['col3'].mean()
+
+        # DataFrame with hierarchical index
+        >>> data.groupby(['col1', 'col2']).mean()
 
         Returns
         -------
         GroupBy object
         """
         from pandas.core.groupby import groupby
-        return groupby(self, mapper, axis=axis, level=level)
+        return groupby(self, by, axis=axis, level=level)
 
     def truncate(self, before=None, after=None):
         """Function truncate a sorted DataFrame / Series before and/or after
@@ -161,6 +177,13 @@ class PandasObject(Picklable):
         new_axis = axis.drop(labels)
         return self.reindex(**{axis_name : new_axis})
 
+    @property
+    def ix(self):
+        raise NotImplementedError
+
+    def reindex(self, **kwds):
+        raise NotImplementedError
+
 class NDFrame(PandasObject):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -204,7 +227,6 @@ class NDFrame(PandasObject):
         return self._data.axes
 
     def __repr__(self):
-        # TODO
         return 'NDFrame'
 
     @property
@@ -223,13 +245,13 @@ class NDFrame(PandasObject):
 
     def consolidate(self):
         """
-        Compute DataFrame with "consolidated" internals (data of each dtype
+        Compute NDFrame with "consolidated" internals (data of each dtype
         grouped together in a single ndarray). Mainly an internal API function,
         but available here to the savvy user
 
         Returns
         -------
-        consolidated : DataFrame
+        consolidated : type of caller
         """
         cons_data = self._data.consolidate()
         if cons_data is self._data:

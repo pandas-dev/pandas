@@ -13,26 +13,76 @@ from pandas.util.decorators import cache_readonly
 import pandas._tseries as _tseries
 
 
-def groupby(obj, grouper, **kwds):
-    """
-    Intercepts creation and dispatches to the appropriate class based
-    on type.
-    """
-    if isinstance(obj, Series):
-        klass = SeriesGroupBy
-    elif isinstance(obj, DataFrame):
-        klass = DataFrameGroupBy
-    else: # pragma: no cover
-        raise TypeError('invalid type: %s' % type(obj))
-
-    return klass(obj, grouper, **kwds)
-
 class GroupBy(object):
     """
-    Class for grouping and aggregating relational data.
+    Class for grouping and aggregating relational data. See aggregate,
+    transform, and apply functions on this object.
 
-    Supported classes: Series, DataFrame
+    It's easiest to use obj.groupby(...) to use GroupBy, but you can also do:
+
+    Parameters
+    ----------
+    obj : pandas object
+    axis : int, default 0
+    level : int, default None
+        Level of MultiIndex
+    groupings : list of Grouping objects
+        Most users should ignore this
+    exclusions : array-like, optional
+        List of columns to exclude
+    name : string
+        Most users should ignore this
+
+    Notes
+    -----
+    After grouping, see aggregate, apply, and transform functions. Here are
+    some other brief notes about usage:
+
+      * When grouping by multiple groups, the result index will be a MultiIndex
+        (hierarhical) by default.
+
+      * Iteration produces (key, group) tuples, i.e. chunking the data by
+        group. So you can write code like:
+
+        grouped = obj.groupby(grouper, axis=axis)
+        for key, group in grouped:
+            # do something with the data
+
+      * Function calls on GroupBy, if not specially implemented, "dispatch" to
+        the grouped data. So if you group a DataFrame and wish to invoke the
+        std() method on each group, you can simply do:
+
+        df.groupby(mapper).std()
+
+        rather than
+
+        df.groupby(mapper).aggregate(np.std)
+
+        You can pass arguments to these "wrapped" functions, too.
+
+    See the online documentation for full exposition on these topics and much
+    more
+
+    Returns
+    -------
+    **Attributes**
+    groups : dict
+        {group name -> group labels}
+    len(grouped) : int
+        Number of groups
     """
+    def __new__(cls, obj, **kwargs):
+        if isinstance(obj, Series):
+            klass = SeriesGroupBy
+        elif isinstance(obj, DataFrame):
+            klass = DataFrameGroupBy
+        elif isinstance(obj, WidePanel):
+            klass = WidePanelGroupBy
+        else: # pragma: no cover
+            raise TypeError('invalid type: %s' % type(obj))
+
+        return klass(obj, **kwds)
+
     def __init__(self, obj, grouper=None, axis=0, level=None,
                  groupings=None, exclusions=None, name=None):
         self._name = name
@@ -168,7 +218,40 @@ class GroupBy(object):
 
     def apply(self, func):
         """
-        Apply function, combine results together
+        Apply function and combine results together in an intelligent way. The
+        split-apply-combine combination rules attempt to be as common sense
+        based as possible. For example:
+
+        case 1:
+        group DataFrame
+        apply aggregation function (f(chunk) -> Series)
+        yield DataFrame, with group axis having group labels
+
+        case 2:
+        group DataFrame
+        apply transform function ((f(chunk) -> DataFrame with same indexes)
+        yield DataFrame with resulting chunks glued together
+
+        case 3:
+        group Series
+        apply function with f(chunk) -> DataFrame
+        yield DataFrame with result of chunks glued together
+
+        Parameters
+        ----------
+        func : function
+
+        Notes
+        -----
+        See online documentation for full exposition on how to use apply
+
+        See also
+        --------
+        aggregate, transform
+
+        Returns
+        -------
+        applied : type depending on grouped object and function
         """
         return self._python_apply_general(func)
 
@@ -176,10 +259,13 @@ class GroupBy(object):
         raise NotImplementedError
 
     def agg(self, func):
+        """
+        See docstring for aggregate
+        """
         return self.aggregate(func)
 
     def _get_names(self):
-        axes = [ping.levels for ping in self.groupings]
+        axes = [ping.group_index for ping in self.groupings]
         grouping_names = [ping.name for ping in self.groupings]
         shape = self._group_shape
         return zip(grouping_names, _ravel_names(axes, shape))
@@ -193,12 +279,16 @@ class GroupBy(object):
     def mean(self):
         """
         Compute mean of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
         """
         return self._cython_agg_general('mean')
 
     def sum(self):
         """
         Compute sum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
         """
         try:
             return self._cython_agg_general('add')
@@ -326,6 +416,17 @@ class GroupBy(object):
                                            axis=self.axis,
                                            factory=factory)
 
+def groupby(obj, by, **kwds):
+    if isinstance(obj, Series):
+        klass = SeriesGroupBy
+    elif isinstance(obj, DataFrame):
+        klass = DataFrameGroupBy
+    else: # pragma: no cover
+        raise TypeError('invalid type: %s' % type(obj))
+
+    return klass(obj, by, **kwds)
+groupby.__doc__ = GroupBy.__doc__
+
 def _is_indexed_like(obj, other):
     if isinstance(obj, Series):
         if not isinstance(other, Series):
@@ -342,7 +443,20 @@ def _is_indexed_like(obj, other):
     return False
 
 class Grouping(object):
+    """
+    Holds the grouping information for a single key
 
+    Returns
+    -------
+    **Attributes**:
+      * indices : dict of {group -> index_list}
+      * labels : ndarray, group labels
+      * ids : mapping of label -> group
+      * reverse_ids : mapping of group -> label
+      * counts : array of group counts
+      * group_index : unique groups
+      * groups : dict of {group -> label_list}
+    """
     def __init__(self, index, grouper=None, name=None, level=None):
         self.name = name
         self.level = level
@@ -363,8 +477,6 @@ class Grouping(object):
         if not isinstance(self.grouper, np.ndarray):
             self.grouper = _tseries.arrmap(self.index, self.grouper)
 
-        self.indices = _tseries.groupby_indices(self.grouper)
-
     def __repr__(self):
         return 'Grouping(%s)' % self.name
 
@@ -374,6 +486,10 @@ class Grouping(object):
     _labels = None
     _ids = None
     _counts = None
+
+    @cache_readonly
+    def indices(self):
+        return _tseries.groupby_indices(self.grouper)
 
     @property
     def labels(self):
@@ -392,10 +508,6 @@ class Grouping(object):
         return dict((v, k) for k, v in self.ids.iteritems())
 
     @property
-    def levels(self):
-        return [self.ids[k] for k in sorted(self.ids)]
-
-    @property
     def counts(self):
         if self._counts is None:
             self._make_labels()
@@ -403,8 +515,7 @@ class Grouping(object):
 
     @cache_readonly
     def group_index(self):
-        # XXX
-        return Index(Series(self.ids, index=np.arange(len(self.ids))).values)
+        return Index([self.ids[i] for i in range(len(self.ids))])
 
     def _make_labels(self):
         ids, labels, counts  = _tseries.group_labels(self.grouper)
@@ -471,46 +582,70 @@ class SeriesGroupBy(GroupBy):
     def _agg_stride_shape(self):
         return ()
 
-    # def get_group(self, name, obj=None):
-    #     # faster get_group for Series
-    #     if obj is None:
-    #         obj = self.obj
-
-    #     inds = self.primary.indices[name]
-    #     return obj.take(inds)
-
-    def aggregate(self, arg):
+    def aggregate(self, func_or_funcs):
         """
-        See doc for DataFrame.groupby, group series using mapper (dict or key
-        function, apply given function to group, return result as series).
-
-        Main difference here is that applyfunc must return a value, so that the
-        result is a sensible series.
+        Apply aggregation function or functions to groups, yielding most likely
+        Series but in some cases DataFrame depending on the output of the
+        aggregation function
 
         Parameters
         ----------
-        mapper : function
-            Called on each element of the Series index to determine the groups
-        arg : function
-            Function to use to aggregate each group
+        func_or_funcs : function or list / dict of functions
+            List/dict of functions will produce DataFrame with column names
+            determined by the function names themselves (list) or the keys in
+            the dict
+
+        Notes
+        -----
+        agg is an alias for aggregate. Use it.
+
+        Example
+        -------
+        >>> series
+        bar    1.0
+        baz    2.0
+        qot    3.0
+        qux    4.0
+
+        >>> mapper = lambda x: x[0] # first letter
+        >>> grouped = series.groupby(mapper)
+
+        >>> grouped.aggregate(np.sum)
+        b    3.0
+        q    7.0
+
+        >>> grouped.aggregate([np.sum, np.mean, np.std])
+           mean  std  sum
+        b  1.5   0.5  3
+        q  3.5   0.5  7
+
+        >>> grouped.agg({'result' : lambda x: x.mean() / x.std(),
+                         'total' : np.sum})
+           result  total
+        b  2.121   3
+        q  4.95    7
+
+        See also
+        --------
+        apply, transform
 
         Returns
         -------
         Series or DataFrame
         """
-        if isinstance(arg, basestring):
-            return getattr(self, arg)()
+        if isinstance(func_or_funcs, basestring):
+            return getattr(self, func_or_funcs)()
 
         if len(self.groupings) > 1:
-            return self._python_agg_general(arg)
+            return self._python_agg_general(func_or_funcs)
 
-        if hasattr(arg,'__iter__'):
-            ret = self._aggregate_multiple_funcs(arg)
+        if hasattr(func_or_funcs,'__iter__'):
+            ret = self._aggregate_multiple_funcs(func_or_funcs)
         else:
             try:
-                result = self._aggregate_simple(arg)
+                result = self._aggregate_simple(func_or_funcs)
             except Exception:
-                result = self._aggregate_named(arg)
+                result = self._aggregate_named(func_or_funcs)
 
             if len(result) > 0:
                 if isinstance(result.values()[0], Series):
@@ -597,33 +732,21 @@ class SeriesGroupBy(GroupBy):
 
     def transform(self, func):
         """
-        For given Series, group index by given mapper function or dict, take
-        the sub-Series (reindex) for this group and call apply(applyfunc)
-        on this sub-Series. Return a Series of the results for each
-        key.
+        Call function producing a like-indexed Series on each group and return
+        a Series with the transformed values
 
         Parameters
         ----------
-        mapper : function
-            on being called on each element of the Series
-            index, determines the groups.
-
-        applyfunc : function to apply to each group
-
-        Note
-        ----
-        This function does not aggregate like groupby/tgroupby,
-        the results of the given function on the subSeries should be another
-        Series.
+        func : function
+            To apply to each group. Should return a Series with the same index
 
         Example
         -------
-        series.transform(lambda x: mapping[x],
-                         lambda x: (x - x.mean()) / x.std())
+        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
 
         Returns
         -------
-        Series standardized by each unique value of mapping
+        transformed : Series
         """
         result = self.obj.copy()
 
@@ -693,7 +816,6 @@ class DataFrameGroupBy(GroupBy):
         Parameters
         ----------
         arg : function or dict
-
             Function to use for aggregating groups. If a function, must either
             work when passed a DataFrame or when passed to DataFrame.apply. If
             pass a dict, the keys must be DataFrame column names
@@ -798,20 +920,12 @@ class DataFrameGroupBy(GroupBy):
 
     def transform(self, func):
         """
-        For given DataFrame, group index by given mapper function or dict, take
-        the sub-DataFrame (reindex) for this group and call apply(func)
-        on this sub-DataFrame. Return a DataFrame of the results for each
-        key.
-
-        Note: this function does not aggregate like groupby/tgroupby,
-        the results of the given function on the subDataFrame should be another
-        DataFrame.
+        Call function producing a like-indexed DataFrame on each group and
+        return a DataFrame having the same indexes as the original object
+        filled with the transformed values
 
         Parameters
         ----------
-        mapper : function, dict-like, or string
-            Mapping or mapping function. If string given, must be a column
-            name in the frame
         func : function
             Function to apply to each subframe
 
@@ -933,23 +1047,18 @@ class WidePanelGroupBy(GroupBy):
 
     def aggregate(self, func):
         """
-        For given DataFrame, group index by given mapper function or dict, take
-        the sub-DataFrame (reindex) for this group and call apply(func)
-        on this sub-DataFrame. Return a DataFrame of the results for each
-        key.
+        Aggregate using input function or dict of {column -> function}
 
         Parameters
         ----------
-        mapper : function, dict-like, or string
-            Mapping or mapping function. If string given, must be a column
-            name in the frame
-        func : function
-            Function to use for aggregating groups
+        arg : function or dict
+            Function to use for aggregating groups. If a function, must either
+            work when passed a WidePanel or when passed to WidePanel.apply. If
+            pass a dict, the keys must be DataFrame column names
 
-        N.B.: func must produce one value from a Series, otherwise
-        an error will occur.
-
-        Optional: provide set mapping as dictionary
+        Returns
+        -------
+        aggregated : WidePanel
         """
         return self._aggregate_generic(func, axis=self.axis)
 

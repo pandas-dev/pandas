@@ -40,6 +40,8 @@ class DateRange(Index):
     offset : DateOffset, default is 1 BusinessDay
         Used to determine the dates returned
     timeRule : timeRule to use
+    tzinfo : pytz.timezone
+        To endow DateRange with time zone information
     """
     _cache = {}
     def __new__(cls, start=None, end=None, periods=None,
@@ -433,7 +435,7 @@ def generate_range(start=None, end=None, periods=None,
 #         return False
 
 def _in_range(start, end, rng_start, rng_end):
-    return start > rng_start and end
+    return start > rng_start and end < rng_end
 
 def _naive_in_cache_range(start, end):
     if start is None or end is None:
