@@ -240,6 +240,9 @@ class TestSparseSeries(TestCase):
         assert_sp_series_equal(zbcop, self.zbseries)
         assert_sp_series_equal(zicop, self.ziseries)
 
+    def test_astype(self):
+        self.assertRaises(Exception, self.bseries.astype, np.int_)
+
     def test_kind(self):
         self.assertEquals(self.bseries.kind, 'block')
         self.assertEquals(self.iseries.kind, 'integer')

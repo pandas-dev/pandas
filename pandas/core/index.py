@@ -1074,6 +1074,41 @@ class MultiIndex(Index):
 
         assert(self.nlevels == other.nlevels)
 
+    def insert(self, loc, item):
+        """
+        Make new MultiIndex inserting new item at location
+
+        Parameters
+        ----------
+        loc : int
+        item : tuple
+            Must be same length as number of levels in the MultiIndex
+
+        Returns
+        -------
+        new_index : Index
+        """
+        if not isinstance(item, tuple) or len(item) != self.nlevels:
+            raise Exception("%s cannot be inserted in this MultIndex"
+                            % str(item))
+
+        new_levels = []
+        new_labels = []
+        for k, level, labels in zip(item, self.levels, self.labels):
+            if k not in level:
+                # have to insert into level
+                # must insert at end otherwise you have to recompute all the
+                # other labels
+                lev_loc = len(level)
+                level = level.insert(lev_loc, k)
+            else:
+                lev_loc = level.get_loc(k)
+
+            new_levels.append(level)
+            new_labels.append(np.insert(labels, loc, lev_loc))
+
+        return MultiIndex(levels=new_levels, labels=new_labels)
+
     def delete(self, loc):
         """
         Make new index with passed location deleted

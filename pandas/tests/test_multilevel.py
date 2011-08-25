@@ -222,6 +222,12 @@ class TestMultiLevel(unittest.TestCase):
         unstacked = self.ymd.unstack()
         unstacked2 = unstacked.unstack()
 
+    def test_insert_index(self):
+        df = self.ymd[:5].T
+        df[2000, 1, 10] = df[2000, 1, 7]
+        self.assert_(isinstance(df.columns, MultiIndex))
+        self.assert_((df[2000, 1, 10] == df[2000, 1, 7]).all())
+
     def test_alignment(self):
         pass
 

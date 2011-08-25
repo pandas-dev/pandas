@@ -654,6 +654,23 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(Exception, self.index.drop, [('bar', 'two')])
         self.assertRaises(Exception, self.index.drop, index)
 
+    def test_insert(self):
+        # key contained in all levels
+        new_index = self.index.insert(0, ('bar', 'two'))
+        self.assert_(new_index.equal_levels(self.index))
+        self.assert_(new_index[0] == ('bar', 'two'))
+
+        # key not contained in all levels
+        new_index = self.index.insert(0, ('abc', 'three'))
+        self.assert_(np.array_equal(new_index.levels[0],
+                                    list(self.index.levels[0]) + ['abc']))
+        self.assert_(np.array_equal(new_index.levels[1],
+                                    list(self.index.levels[1]) + ['three']))
+        self.assert_(new_index[0] == ('abc', 'three'))
+
+        # key wrong length
+        self.assertRaises(Exception, self.index.insert, 0, ('foo2',))
+
 class TestFactor(unittest.TestCase):
 
     def setUp(self):
