@@ -945,7 +945,7 @@ class TestSparseDataFrame(TestCase):
         self.assert_(isinstance(result, SparseDataFrame))
 
     def test_astype(self):
-        pass
+        self.assertRaises(Exception, self.frame.astype, np.int_)
 
     def test_fillna(self):
         self.assertRaises(NotImplementedError, self.frame.fillna, 0)

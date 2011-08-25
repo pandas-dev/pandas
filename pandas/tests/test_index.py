@@ -605,6 +605,11 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(TypeError, self.index.intersection,
                           self.index.get_tuple_index())
 
+    def test_argsort(self):
+        result = self.index.argsort()
+        expected = self.index.get_tuple_index().argsort()
+        self.assert_(np.array_equal(result, expected))
+
     def test_sortlevel(self):
         import random
 

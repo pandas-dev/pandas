@@ -1074,7 +1074,7 @@ class WidePanelGroupBy(GroupBy):
 class NDArrayGroupBy(GroupBy):
     pass
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Grouping generator for BlockManager
 
 def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):

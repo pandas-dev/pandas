@@ -675,11 +675,6 @@ class TestSeries(unittest.TestCase):
         ordered = ts.order(ascending=False, na_last=False)
         assert_almost_equal(expected, ordered.valid().values)
 
-    def test_map(self):
-        result = self.ts.map(lambda x: x * 2)
-
-        self.assert_(np.array_equal(result, self.ts * 2))
-
     def test_to_csv(self):
         self.ts.to_csv('_foo')
         os.remove('_foo')
@@ -816,6 +811,10 @@ class TestSeries(unittest.TestCase):
 
         for k, v in merged.iteritems():
             self.assertEqual(v, source[target[k]])
+
+        # function
+        result = self.ts.map(lambda x: x * 2)
+        self.assert_(np.array_equal(result, self.ts * 2))
 
     def test_map_int(self):
         left = Series({'a' : 1., 'b' : 2., 'c' : 3., 'd' : 4})

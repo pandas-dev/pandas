@@ -368,7 +368,7 @@ class DataFrame(NDFrame):
         if not data.dtype.names:
             raise Exception('Input was not a structured array!')
 
-        if indexField is not None:
+        if indexField is not None:  # pragma: no cover
             warnings.warn("indexField argument is deprecated. Use index "
                           "instead", FutureWarning)
             index = indexField

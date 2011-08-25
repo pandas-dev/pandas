@@ -20,12 +20,12 @@ _FP_ERR = 1e-8
 
 class OLS(object):
     """
-    Runs a full sample ordinary least squares regression
+    Runs a full sample ordinary least squares regression.
 
     Parameters
     ----------
     y: Series
-    x: Series, DataFrame, or dict of Series
+    x: Series, DataFrame, dict of Series
     intercept: bool
         True if you want an intercept.
     nw_lags: None or int

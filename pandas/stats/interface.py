@@ -9,11 +9,21 @@ def ols(**kwargs):
     """Returns the appropriate OLS object depending on whether you need
     simple or panel OLS, and a full-sample or rolling/expanding OLS.
 
+    Will be a normal linear regression or a (pooled) panel regression depending
+    on the type of the inputs:
+
+    y : Series, x : DataFrame -> OLS
+    y : Series, x : dict of DataFrame -> OLS
+    y : DataFrame, x : DataFrame -> PanelOLS
+    y : DataFrame, x : dict of DataFrame/WidePanel/LongPanel -> PanelOLS
+    y : Series with MultiIndex, x : WidePanel/LongPanel -> PanelOLS
+
     Parameters
     ----------
-    y: Series for simple OLS.  DataFrame for panel OLS.
-    x: Series, DataFrame, or dict of Series for simple OLS.
-       Dict of DataFrame for panel OLS.
+    y: Series or DataFrame
+        See above for types
+    x: Series, DataFrame, dict of Series, dict of DataFrame, WidePanel, or
+        LongPanel
     intercept: bool
         True if you want an intercept.  Defaults to True.
     nw_lags: None or int
@@ -48,11 +58,6 @@ def ols(**kwargs):
         cluster: {'time', 'entity'}
             cluster variances
 
-    Returns
-    -------
-    The appropriate OLS object, which allows you to obtain betas and various
-    statistics, such as std err, t-stat, etc.
-
     Examples
     --------
     # Run simple OLS.
@@ -73,6 +78,11 @@ def ols(**kwargs):
 
     # Run expanding panel OLS with window 10 and entity clustering.
     result = ols(y=y, x=x, cluster='entity', window_type='expanding', window=10)
+
+    Returns
+    -------
+    The appropriate OLS object, which allows you to obtain betas and various
+    statistics, such as std err, t-stat, etc.
     """
     pool = kwargs.get('pool')
     if 'pool' in kwargs:

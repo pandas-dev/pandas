@@ -13,14 +13,13 @@ from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
 def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
-             na_values=None, date_parser=None):
+             na_values=None, date_parser=None, names=None):
     """
     Read CSV file into DataFrame
 
     Parameters
     ----------
     filepath_or_buffer : string or file handle / StringIO
-
     header : int, default 0
         Row to use for the column labels of the parsed DataFrame
     skiprows : list-like
@@ -33,6 +32,12 @@ def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
     date_parser : function
         Function to use for converting dates to strings. Defaults to
         dateutil.parser
+    names : array-like
+        List of column names
+
+    Returns
+    -------
+    parsed : DataFrame
     """
     import csv
 
@@ -54,7 +59,8 @@ def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
         lines = [l for l in reader]
     f.close()
     return _simple_parser(lines, header=header, indexCol=index_col,
-                          na_values=na_values, date_parser=date_parser)
+                          colNames=names, na_values=na_values,
+                          date_parser=date_parser)
 
 def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
                index_col=0, na_values=None, names=None,
@@ -79,6 +85,12 @@ def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
     date_parser : function
         Function to use for converting dates to strings. Defaults to
         dateutil.parser
+    names : array-like
+        List of column names
+
+    Returns
+    -------
+    parsed : DataFrame
     """
     if hasattr(filepath_or_buffer, 'read'):
         reader = filepath_or_buffer
@@ -276,6 +288,10 @@ class ExcelFile(object):
             is no such column
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
+
+        Returns
+        -------
+        parsed : DataFrame
         """
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE

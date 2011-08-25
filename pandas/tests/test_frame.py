@@ -966,14 +966,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
             for k2, v2 in v.iteritems():
                 self.assertEqual(v2, recons_data[k][k2])
 
-    def test_from_records(self):
+    def test_from_records_to_records(self):
         # from numpy documentation
         arr = np.zeros((2,),dtype=('i4,f4,a10'))
         arr[:] = [(1,2.,'Hello'),(2,3.,"World")]
 
         frame = DataFrame.from_records(arr)
-        indexed_frame = DataFrame.from_records(arr, index='f1')
 
+        index = np.arange(len(arr))[::-1]
+        indexed_frame = DataFrame.from_records(arr, index=index)
+        self.assert_(np.array_equal(indexed_frame.index, index))
+
+        indexed_frame = DataFrame.from_records(arr, index='f1')
         self.assertRaises(Exception, DataFrame.from_records, np.zeros((2, 3)))
 
         # what to do?
