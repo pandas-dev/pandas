@@ -90,7 +90,10 @@ There are many ways to create a DataFrame:
 Indexing basics
 ---------------
 
-.. seealso:: :ref:`Indexing (main documentation) <indexing>`
+.. seealso::
+
+    :ref:`Indexing (main documentation) <indexing>` for a more complete
+	 catalogue of the indexing facilities of DataFrame
 
 Column access
 ~~~~~~~~~~~~~
@@ -178,10 +181,6 @@ supports slicing:
     df[::-1]
     df[-3:].T
 
-I do not recommend making heavy use of this functionality but rather using it
-as a convenience for interactive programming (useful for seeing the "head" or
-"tail" of a large DataFrame as in the last example).
-
 Boolean indexing
 ~~~~~~~~~~~~~~~~
 
@@ -247,21 +246,9 @@ keys, and the **index** values of a Series are viewed as *its* keys,
 the default behavior is to match the frame columns on the series
 index.
 
-::
+.. ipython:: python
 
-    >>> df - df.xs(df.index[5])
-               A              B              C
-    2009-01-30 00:00:00    -1.1677        -0.179934      2.90215
-    2009-02-27 00:00:00    -2.69939       -1.1941        0.902293
-    2009-03-31 00:00:00    -0.476266      0.587414       1.0695
-    2009-04-30 00:00:00    0.144924       1.12688        1.31556
-    2009-05-29 00:00:00    -1.25747       -1.40433       0.831226
-    2009-06-30 00:00:00    0              0              0
-    2009-07-31 00:00:00    0.518423       -0.988895      1.2905
-    2009-08-31 00:00:00    -0.670413      -0.643335      -1.52705
-    2009-09-30 00:00:00    -1.03922       0.554203       1.03304
-    2009-10-30 00:00:00    -0.725236      -0.0574399     0.116421
-    2009-11-30 00:00:00    -0.522503      0.105118       0.16428
+    df - df.xs(df.index[5])
 
 However, the user very frequently will want to subtract (or add,
 divide, multiply, ...) a TimeSeries from a DataFrame representing a
