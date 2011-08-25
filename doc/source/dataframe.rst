@@ -133,7 +133,6 @@ is in the columns:
 .. ipython:: python
 
     'A' in df
-    True
 
 .. autosummary::
    :toctree: generated/

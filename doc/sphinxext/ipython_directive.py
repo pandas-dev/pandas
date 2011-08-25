@@ -525,6 +525,95 @@ class EmbeddedSphinxShell(object):
 
         return output
 
+    def process_pure_python2(self, content):
+        """
+        content is a list of strings. it is unedited directive conent
+
+        This runs it line by line in the InteractiveShell, prepends
+        prompts as needed capturing stderr and stdout, then returns
+        the content as a list as if it were ipython code
+        """
+        output = []
+        savefig = False # keep up with this to clear figure
+        multiline = False # to handle line continuation
+        fmtin = self.promptin
+
+        modified_content = []
+
+        for lineno, line in enumerate(content):
+
+            line_stripped = line.strip()
+            if not len(line):
+                modified_content.append(line)
+                continue
+
+            modified = u"%s %s" % (fmtin%lineno,line_stripped)
+            modified_content.append(modified)
+            modified_content.append(u'')
+            continue
+
+            if not len(line):
+                output.append(line) # preserve empty lines in output
+                continue
+
+            # handle decorators
+            if line_stripped.startswith('@'):
+                output.extend([line])
+                if 'savefig' in line:
+                    savefig = True # and need to clear figure
+                continue
+
+            # handle comments
+            if line_stripped.startswith('#'):
+                output.extend([line])
+                continue
+
+            # deal with multilines
+            if not multiline: # not currently on a multiline
+
+                if line_stripped.endswith('\\'): # now we are
+                    multiline = True
+                    cont_len = len(str(lineno)) + 2
+                    line_to_process = line.strip('\\')
+                    output.extend([u"%s %s" % (fmtin%lineno,line)])
+                    continue
+                else: # no we're still not
+                    line_to_process = line.strip('\\')
+            else: # we are currently on a multiline
+                line_to_process += line.strip('\\')
+                if line_stripped.endswith('\\'): # and we still are
+                    continuation = '.' * cont_len
+                    output.extend([(u'   %s: '+line_stripped) % continuation])
+                    continue
+                # else go ahead and run this multiline then carry on
+
+            # get output of line
+            self.process_input_line(unicode(line_to_process.strip()),
+                                    store_history=False)
+            out_line = self.cout.getvalue()
+            self.clear_cout()
+
+            # clear current figure if plotted
+            if savefig:
+                self.ensure_pyplot()
+                self.process_input_line('plt.clf()', store_history=False)
+                self.clear_cout()
+                savefig = False
+
+            # line numbers don't actually matter, they're replaced later
+            if not multiline:
+                in_line = u"%s %s" % (fmtin%lineno,line)
+
+                output.extend([in_line])
+            else:
+                output.extend([(u'   %s: '+line_stripped) % continuation])
+                multiline = False
+            if len(out_line):
+                output.extend([out_line])
+            output.extend([u''])
+
+        return modified_content
+
 class IpythonDirective(Directive):
 
     has_content = True
@@ -605,7 +694,7 @@ class IpythonDirective(Directive):
         # handle pure python code
         if 'python' in self.arguments:
             content = self.content
-            self.content = self.shell.process_pure_python(content)
+            self.content = self.shell.process_pure_python2(content)
 
         parts = '\n'.join(self.content).split('\n\n')
 
