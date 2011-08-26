@@ -66,6 +66,12 @@ class TestSeries(unittest.TestCase):
     def test_constructor_cast(self):
         self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
+    def test_constructor_dict(self):
+        d = {'a' : 0., 'b' : 1., 'c' : 2.}
+        result = Series(d, index=['b', 'c', 'd', 'a'])
+        expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
+        assert_series_equal(result, expected)
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 

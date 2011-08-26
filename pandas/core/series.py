@@ -119,7 +119,7 @@ class Series(np.ndarray, PandasObject):
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data.keys()))
-            data = [data[idx] for idx in index]
+            data = [data.get(idx, np.nan) for idx in index]
 
         # Create array, do *not* copy data by default, infer type
         try:
