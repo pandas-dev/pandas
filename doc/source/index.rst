@@ -114,12 +114,15 @@ Library documentation
 
     install
     overview
-    core
+    basics
     indexing
+    conform
     groupby
+    merging
+    reshaping
+    timeseries
     datetools
     stats
-    r_interface
     io
 
 Other topics of interest
@@ -128,10 +131,10 @@ Other topics of interest
 .. toctree::
     :maxdepth: 2
 
-    examples
-    r_guide
+    r_interface
     missing_data
     related
+    faq
 
 Indices and tables
 ------------------

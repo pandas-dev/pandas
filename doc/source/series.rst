@@ -1,10 +1,9 @@
+.. currentmodule:: pandas
 .. _series:
 
 *******************
 Series / TimeSeries
 *******************
-
-.. currentmodule:: pandas
 
 :class:`Series` is a NumPy ndarray subclass which contains a vector
 of labels corresponding to the data values. The labels, which will be
@@ -22,7 +21,7 @@ NumPy-based functions expecting one-dimensional ndarrays.
    1-dimensional data.
 
    :Parameters:
-       **data** : {array_like, dict}
+       **data** : {array_like, dict, scalar value}
            Data to store in the array. Any data that is valid for
            constructing a 1-D :class:`~numpy.ndarray` can be used
            here.
@@ -36,13 +35,6 @@ NumPy-based functions expecting one-dimensional ndarrays.
        **index** : {array_like}
            Sequence of labels for input data.
 
-   .. seealso::
-       :func:`Series.fromValue`
-
-.. note::
-
-    The basic concepts presented here apply to the higher dimensional
-    data structures in pandas as well
 
 Construction
 ------------

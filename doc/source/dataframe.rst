@@ -11,10 +11,9 @@ collection of identically-indexed Series objects. It supports columns having
 different types, so you can use it to store and manipulate floating point,
 integer, boolean, and arbitrary Python object data.
 
-For many users, DataFrame will be the most commonly used object in pandas, as it
-can serve as the primary container for a full data set of interest. As we will
-see below, it enables operations involving multiple time series or cross
-sections with ease.
+.. note::
+
+    DataFrame is the most commonly used object for most pandas users.
 
 .. class:: DataFrame
 
@@ -31,7 +30,10 @@ sections with ease.
            Explicit set of columns to include, defaults to range(N) if not input
 
        **dtype** : Python type alias or :class:`~numpy.dtype`
-           Type to *attempt* to cast data to
+           Data type to force, otherwise infer
+
+       **copy** : boolean, default False
+	       Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
 Basics
 ------
@@ -93,7 +95,7 @@ Indexing basics
 .. seealso::
 
     :ref:`Indexing (main documentation) <indexing>` for a more complete
-	 catalogue of the indexing facilities of DataFrame
+     catalogue of the indexing facilities of DataFrame
 
 Column access
 ~~~~~~~~~~~~~
@@ -205,8 +207,8 @@ as with Series objects. The addition is the matching of column names
 between DataFrame objects or Series. We will detail how the
 interactions work in each case.
 
-DataFrame {+,-,*,/} DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Binary operation between DataFrame and DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When combining two DataFrames, both index and column values must match
 for two values to be combined. If there is no match for a particular
@@ -237,8 +239,8 @@ result but are all NaN. An argument could be made to exclude these
 columns, but it is very frequently meaningful to know that there was
 no overlap in a particular portion of the data set.
 
-DataFrame {+,-,*,/} Series
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Binary operation between DataFrame and Series
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The choice of behavior between DataFrame and Series was somewhat
 arbitrary. Since the **columns** of the DataFrame are viewed as its
@@ -256,56 +258,30 @@ collection of TimeSeries. Since this is so common, the DataFrame will
 inspect the input Series and its own index to see if this is what the
 user intended.
 
-::
+.. ipython:: python
 
-    >>> df - df['A']
-               A              B              C
-    2009-01-30 00:00:00    0              -0.156567      2.63116
-    2009-02-27 00:00:00    0              0.360951       2.16298
-    2009-03-31 00:00:00    0              -0.0806571     0.10707
-    2009-04-30 00:00:00    0              -0.162378      -0.268067
-    2009-05-29 00:00:00    0              -1.2912        0.649993
-    2009-06-30 00:00:00    0              -1.14434       -1.4387
-    2009-07-31 00:00:00    0              -2.65166       -0.666625
-    2009-08-31 00:00:00    0              -1.11726       -2.29534
-    2009-09-30 00:00:00    0              0.449089       0.633559
-    2009-10-30 00:00:00    0              -0.476541      -0.597042
-    2009-11-30 00:00:00    0              -0.516716      -0.751916
+    df - df['A']
 
 Note that the same result could have been obtained by writing:
 
-::
+.. ipython:: python
 
-    >>> (df.T - df['A']).T
+    (df.T - df['A']).T
 
 but this is fairly awkward (and relatively high cost due to two
 transpose operations).
 
-DataFrame {+,-,*,/} scalar
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Binary operation with scalar value
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Scalar operations work just as expected:
 
-::
+.. ipython:: python
 
-    >>> df * 5 + 2
-               A              B              C
-    2009-01-30 00:00:00    1.13256        0.349729       14.2884
-    2009-02-27 00:00:00    -6.52587       -4.72111       4.28905
-    2009-03-31 00:00:00    4.58976        4.18647        5.12511
-    2009-04-30 00:00:00    7.69571        6.88382        6.35537
-    2009-05-29 00:00:00    0.683756       -5.77223       3.93372
-    2009-06-30 00:00:00    6.97108        1.2494         -0.222412
-    2009-07-31 00:00:00    9.5632         -3.69508       6.23008
-    2009-08-31 00:00:00    3.61902        -1.96728       -7.85768
-    2009-09-30 00:00:00    1.77497        4.02042        4.94277
-    2009-10-30 00:00:00    3.34491        0.962201       0.359695
-    2009-11-30 00:00:00    4.35857        1.77499        0.59899
-
-    >>> 1 / df
-    ...
-    >>> df ** 4
-    ...
+    df = df[:5]
+    df * 5 + 2
+    1 / df
+    df ** 4
 
 Basic statistical functions
 ---------------------------
@@ -323,7 +299,7 @@ addition that the aggregation can be over either axis of the
 DataFrame. By default the statistic will be computed for each column
 (axis 0):
 
-::
+.. ipython:: python
 
     >>> df
                A              B              C              D

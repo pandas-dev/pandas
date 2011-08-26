@@ -2,6 +2,10 @@
 
 .. currentmodule:: pandas
 
+**********************
+Indexing and selection
+**********************
+
 Basics
 ------
 

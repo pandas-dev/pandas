@@ -1,9 +1,10 @@
 .. currentmodule:: pandas
 .. _groupby:
 
-==================
-GroupBy operations
-==================
+*****************************
+Group by: split-apply-combine
+*****************************
+
 
 When we talk about *group by* operations, we are referring to performing
 operations on subsets of a data structure determined by some group membership
