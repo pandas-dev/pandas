@@ -50,6 +50,11 @@ Release notes
     invoke methods on groups. e.g. s.groupby(crit).std() will work even though
     `std` is not implemented on the `GroupBy` class
 
+* Hierarchical / multi-level indexing via the `MultiIndex` class. Integrated
+  `MultiIndex` into `Series` and `DataFrame` fancy indexing, slicing,
+  __getitem__ and __setitem, reindexing, etc. Added `level` keyword argument to
+  `groupby` to enable grouping by a level of a `MultiIndex`
+
 * `Index` objects (labels for axes) are now capable of holding tuples
 
 * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
@@ -283,6 +288,8 @@ Release notes
 
 * Series.{sum, mean, std, ...} now return NA/NaN when the whole Series is NA
 
+* NumPy 1.4 through 1.6 compatibility fixes
+
 Thanks
 ------
 - Joon Ro
@@ -341,6 +348,7 @@ pandas 0.3.0 release notes
 **New features / modules**
 
 * DataFrame / DataMatrix classes
+
  * `corrwith` function to compute column- or row-wise correlations between two
    objects
  * Can boolean-index DataFrame objects, e.g. df[df > 2] = 2, px[px > last_px] = 0
@@ -349,17 +357,23 @@ pandas 0.3.0 release notes
  * Added `reindex_like` method
 
 * WidePanel
+
  * Added `reindex_like` method
 
 * `pandas.io`: IO utilities
+
   * `pandas.io.sql` module
-   * Convenience functions for accessing SQL-like databases
+
+    * Convenience functions for accessing SQL-like databases
+
   * `pandas.io.pytables` module
+
    * Added (still experimental) HDFStore class for storing pandas data
      structures using HDF5 / PyTables
 
 * `pandas.core.datetools`
- * Added WeekOfMonth date offset
+
+  * Added WeekOfMonth date offset
 
 * `pandas.rpy` (experimental) module created, provide some interfacing /
   conversion between rpy2 and pandas
@@ -367,9 +381,12 @@ pandas 0.3.0 release notes
 **Improvements**
 
 * Unit test coverage: 100% line coverage of core data structures
+
 * Speed enhancement to rolling_{median, max, min}
+
 * Column ordering between DataFrame and DataMatrix is now consistent: before
   DataFrame would not respect column order
+
 * Improved {Series, DataFrame}.plot methods to be more flexible (can pass
   matplotlib Axis arguments, plot DataFrame columns in multiple subplots, etc.)
 
@@ -378,22 +395,31 @@ pandas 0.3.0 release notes
 * Exponentially-weighted moment functions in `pandas.stats.moments`
   have a more consistent API and accept a min_periods argument like
   their regular moving counterparts.
+
 * **fillMethod** argument in Series, DataFrame changed to **method**,
-    `FutureWarning` added.
+  `FutureWarning` added.
+
 * **fill** method in Series, DataFrame/DataMatrix, WidePanel renamed to
-    **fillna**, `FutureWarning` added to **fill**
+  **fillna**, `FutureWarning` added to **fill**
+
 * Renamed **DataFrame.getXS** to **xs**, `FutureWarning` added
+
 * Removed **cap** and **floor** functions from DataFrame, renamed to
   **clip_upper** and **clip_lower** for consistency with NumPy
-*
 
 **Bug fixes**
 
 * Fixed bug in IndexableSkiplist Cython code that was breaking
   rolling_max function
+
 * Numerous numpy.int64-related indexing fixes
+
 * Several NumPy 1.4.0 NaN-handling fixes
+
 * Bug fixes to pandas.io.parsers.parseCSV
+
 * Fixed `DateRange` caching issue with unusual date offsets
+
 * Fixed bug in `DateRange.union`
+
 * Fixed corner case in `IndexableSkiplist` implementation
