@@ -1904,12 +1904,6 @@ class DataFrame(NDFrame):
 
         return panel
 
-    def tapply(self, func):
-        """
-        Apply func to the transposed DataFrame, results as per apply
-        """
-        return self.apply(func, axis=1)
-
     def applymap(self, func):
         """
         Apply a function to a DataFrame that is intended to operate
@@ -2772,6 +2766,14 @@ class DataFrame(NDFrame):
             return self.dropna(axis=0, subset=specificColumns, how='any')
         else:
             return self.dropna(axis=0, subset=specificColumns, thresh=minObs)
+
+    def tapply(self, func):
+        """
+        Apply func to the transposed DataFrame, results as per apply
+        """
+        warnings.warn("tapply is deprecated. Use apply(f, axis=1)",
+                      FutureWarning)
+        return self.apply(func, axis=1)
 
     def tgroupby(self, keyfunc, applyfunc):  # pragma: no cover
         """

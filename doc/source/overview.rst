@@ -6,34 +6,41 @@
 Package overview
 ****************
 
-:mod:`pandas` is a library providing, among other things, a set of
-convenient and powerful data structures for working with labeled
-statistical (financial, economic, econometric) data sets. We will
-refer to this data as *time series* and *cross-sectional* (or
-*longitudinal*) which are common terms in statistics and
-econometrics. pandas has multiple target audiences:
+:mod:`pandas` consists of the following things
 
- * Users of R or MATLAB who wish to switch to Python for interactive
-   data analysis and implementation of statistical models
+ * A set of labeled array data structures, the primary of which are
+   Series/TimeSeries and DataFrame
+ * Index objects enabling both simple axis indexing and multi-level /
+   hierarchical axis indexing
+ * An integrated group by for aggregating and transforming data sets
+ * Date range generation (DateRange) and custom date offsets enabling the
+   implementation of customized frequencies
+ * Input/Output tools: loading tabular data from flat files (CSV, delimited,
+   Excel 2003), and saving and loading pandas objects from the fast and
+   efficient PyTables/HDF5 format.
+ * "Sparse" versions of the standard data structures for storing data that is
+   mostly missing or mostly constant (some fixed value)
+ * Moving window statistics (rolling mean, rolling standard deviation, etc.)
+ * Static and moving window linear and `panel regression
+   <http://en.wikipedia.org/wiki/Panel_data>`__
 
- * NumPy users who are looking for richer data structures for working
-   with time series and cross-sectional data.
+License
+-------
 
- * System developers who wish to have a robust and well-tested library
-   for building production applications involving such data sets.
+pandas is released under a standard 3-clause BSD license
 
 Data structures at a glance
 ---------------------------
 
 .. csv-table::
     :header: "Dimensions", "Name", "Description"
-    :widths: 10, 15, 50
+    :widths: 15, 20, 50
 
-    1, Series, "Most generic 1D structure"
-    1, TimeSeries, "Series indexed by datetimes"
-    2, DataFrame, "General 2D indexed tabular structure"
-    3, WidePanel, "General 3D panel data"
-    3, LongPanel, "Stacked (2D) format panel data"
+    1, Series, "1D labeled homogeneously-typed array"
+    1, TimeSeries, "Series with index containing datetimes"
+    2, DataFrame, "General 2D labeled, size-mutable tabular structure with
+    potentially heterogeneously-typed columns"
+    3, WidePanel, "General 3D labeled, also size-mutable array"
 
 Why more than 1 data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -46,46 +53,44 @@ insert and remove objects from these containers in a dictionary-like fashion.
 Also, we would like sensible default behaviors for the common API functions
 which take into account the typical orientation of time series and
 cross-sectional data sets. When using ndarrays to store 2- and 3-dimensional
-data, a burden is placed on the user to consider the orientation of the data set
-when writing functions; axes are considered more or less equivalent (except when
-C- or Fortran-contiguousness matters for performance). In pandas, the axes are
-intended to lend more semantic meaning to the data; i.e., for a particular data
-set there is likely to be a "right" way to orient the data. The goal, then, is
-to reduce the amount of thought required to code up data transformations in
-downstream functions.
+data, a burden is placed on the user to consider the orientation of the data
+set when writing functions; axes are considered more or less equivalent (except
+when C- or Fortran-contiguousness matters for performance). In pandas, the axes
+are intended to lend more semantic meaning to the data; i.e., for a particular
+data set there is likely to be a "right" way to orient the data. The goal,
+then, is to reduce the amount of mental effort required to code up data
+transformations in downstream functions.
 
-Lest we be too hand-wavy, here are some common use cases to
-illustrate:
+For example, with tabular data (DataFrame) it is more semantically helpful to
+think of the **index** (the rows) and the **columns** rather than axis 0 and
+axis 1. And iterating through the columns of the DataFrame thus results in more
+readable code:
 
- (A) :ref:`DataFrame <dataframe>` containing multiple related time series
+::
 
-  * **columns**: "data type" associated with each time series
-  * **index**:  dates shared by time series
+    for col in df.columns:
+        series = df[col]
+        # do something with series
 
- (B) :ref:`DataFrame <dataframe>` containing multiple cross-sections
+Mutability and copying of data
+------------------------------
 
-  * **columns**: "data type" associated with each cross-section
-  * **index**:  individual / entity labels common to cross-sections
+All pandas data structures are value-mutable (the values they contain can be
+altered) but not always size-mutable. The length of a Series cannot be changed,
+but, for example, columns can be inserted into a DataFrame. However, the vast
+majority of methods produce new objects and leave the input data untouched. In
+general, though, we like to **favor immutability** where sensible.
 
- (C) :ref:`WidePanel <panel>` containing panel data
 
-  * **items**: "data type" associated with each collection of time series
-  * **major_axis**: dates shared by time series
-  * **minor_axis**: individual / entity labels common to time series
+History
+-------
 
-Lastly, particularly if you don't buy the above explanation, having a
-specialized vocabulary to refer to types of data sets often serves as
-a benefit when discussing a dataset with other users (or reading their
-code).
+pandas development began at `AQR Capital Management <http://www.aqr.com>`__ in
+April 2008. It was open-sourced at the end of 2009 and continues to be actively
+used and maintained.
 
-A quick note on mutation
-~~~~~~~~~~~~~~~~~~~~~~~~
+Contact
+-------
 
-Most instance methods on the pandas data structures return a new
-object, rather than updating the original object in-place. However,
-when working with the contents (e.g. a column in a DataFrame),
-mutations **will** be reflected in the original structure. In general,
-though, we like to "favor immutability" where sensible.
-
-What else is in the package?
-----------------------------
+Please feel free to send comments or questions directly to Wes McKinney at
+wesmckinn (-at-) gmail (-dot-) com or the pystatsmodels mailing list.

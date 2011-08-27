@@ -5,6 +5,16 @@
 Group by: split-apply-combine
 *****************************
 
+GroupBy is a process involving the following stages
+
+ - **Splitting** the data into groups based on some criteria
+ - **Applying** a function to each group independently
+ - **Combining** the results into a data structure
+
+Of these, the split step is the most straightforward. In fact, in many
+situations you may simply wish to split the data set into groups and do
+something with those groups yourself.
+
 
 When we talk about *group by* operations, we are referring to performing
 operations on subsets of a data structure determined by some group membership
@@ -233,3 +243,7 @@ Transformation
 
 Iterating through groups
 ------------------------
+
+Topical Examples
+----------------
+

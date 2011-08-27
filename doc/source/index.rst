@@ -1,8 +1,23 @@
 .. Pandas documentation master file, created by
 
-
+*********************************************
 pandas: powerful Python data analysis library
-=============================================
+*********************************************
+
+.. note::
+
+    This documentation is currently (as of 8/26) undergoing heavy work. Check
+    back over the next week or two for continuous updates.
+
+`PDF Version <pandas.pdf>`__
+
+.. module:: pandas
+
+**Date**: |today| **Version**: |version|
+
+**Installers:** http://pypi.python.org/pypi/pandas
+
+**Code Repository:** http://github.com/wesm/pandas
 
 :mod:`pandas` is a `Python <http://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with
@@ -26,7 +41,7 @@ The two primary data structures of pandas, :class:`Series` (1-dimensional)
 and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
 cases in finance, statistics, social science, and many areas of
 engineering. For R users, :class:`DataFrame` provides everything that R's
-``data.frame`` provides and much more. pandas is build on top of `NumPy
+``data.frame`` provides and much more. pandas is built on top of `NumPy
 <http://www.numpy.org>`__ and is intended to integrate well within a scientific
 computing environment with many other 3rd party libraries.
 
@@ -74,7 +89,7 @@ Some other notes
    specialized tool.
 
  - pandas will soon become a dependency of `statsmodels
-   <http://statsmodels.sourceforge.net>`__, making it a important part of the
+   <http://statsmodels.sourceforge.net>`__, making it an important part of the
    statistical computing ecosystem in Python.
 
  - pandas has been used extensively in production in financial applications.
@@ -87,71 +102,25 @@ Some other notes
 
 See the package overview for more detail about what's in the library.
 
-User manual
------------
-
-`PDF Version <pandas.pdf>`__
-
-.. module:: pandas
-
-**Date**: |today|
-
-**Version**: |version|
-
-**License:** BSD
-
-**Requirements:** python 2.5 to 2.7, NumPy, and python-dateutil
-
-**Suggested:** scikits.statsmodels
-
-**Code Repository:** http://github.com/wesm/pandas
-
-Library documentation
----------------------
 
 .. toctree::
-    :maxdepth: 2
+    :hidden:
+    :maxdepth: 3
 
     install
     overview
     basics
     indexing
-    conform
+    missing_data
     groupby
     merging
     reshaping
     timeseries
     datetools
+	visualization
     stats
     io
-
-Other topics of interest
-------------------------
-
-.. toctree::
-    :maxdepth: 2
-
+    sparse
     r_interface
-    missing_data
     related
     faq
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-History
--------
-
-pandas development began at `AQR Capital Management <http://www.aqr.com>`__ in
-April 2008. It was open-sourced at the end of 2009 and continues to be actively
-used and maintained.
-
-Contact
--------
-
-Please feel free to send comments or questions directly to
-wesmckinn@gmail.com or the pystatsmodels mailing list.

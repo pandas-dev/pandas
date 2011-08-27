@@ -61,7 +61,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pandas'
-copyright = u'2008-2011, AQR, Wes McKinney'
+copyright = u'2008-2011, AQR and Wes McKinney'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -69,28 +69,6 @@ copyright = u'2008-2011, AQR, Wes McKinney'
 #
 # The short X.Y version.
 import pandas
-
-# def svn_version():
-#     import os, subprocess, re, warnings
-#     env = os.environ.copy()
-#     env['LC_ALL'] = 'C'
-#     try:
-#         out = subprocess.Popen(['svn', 'info'], stdout=subprocess.PIPE,
-#                 env=env).communicate()[0]
-#     except OSError:
-#         warnings.warn(" --- Could not run svn info --- ")
-#         return ""
-
-#     r = re.compile('Revision: ([0-9]+)')
-#     svnver = None
-#     for line in out.split('\n'):
-#         m = r.match(line)
-#         if m:
-#             svnver = m.group(1)
-
-#     if not svnver:
-#         raise ValueError("Error while parsing svn version ?")
-#     return svnver
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = '%s' % (pandas.__version__)

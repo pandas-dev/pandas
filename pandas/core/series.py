@@ -105,6 +105,8 @@ class Series(np.ndarray, PandasObject):
     dtype : numpy.dtype or None
         If None, dtype will be inferred copy : boolean, default False Copy
         input data
+    copy : boolean, default False
+
     """
     _AXIS_NUMBERS = {
         'index' : 0
