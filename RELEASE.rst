@@ -309,11 +309,10 @@ Thanks
 - Dieter Vandenbussche
 
 
-************************
+========================
 pandas 0.3 Release Notes
-************************
+========================
 
-=============
 Release Notes
 =============
 
@@ -323,7 +322,6 @@ enhancements, and general quality-of-life improvements. The most significant
 change from the 0.2 release has been the completion of a rigorous unit test
 suite covering all of the core functionality.
 
-==========
 What is it
 ==========
 
@@ -332,7 +330,6 @@ general code for working with time series and cross-sectional data. It was
 designed with the practical needs of statistical modeling and large,
 inhomogeneous data sets in mind.
 
-===============
 Where to get it
 ===============
 
@@ -340,8 +337,8 @@ Source code: http://github.com/wesm/pandas
 Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 Documentation: http://pandas.sourceforge.net
 
-pandas 0.3.0 release notes
-==========================
+Release notes
+=============
 
 **Release date:** February 20, 2011
 
