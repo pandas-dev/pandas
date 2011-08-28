@@ -16,7 +16,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    from pandas import *
 
 Here is a basic tenet to keep in mind: **data alignment is intrinsic**. Link
-between label and datum will not be broken unless done so explicitly by you.
+between labels and data will not be broken unless done so explicitly by you.
 
 Series
 ------

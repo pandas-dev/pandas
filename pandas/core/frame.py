@@ -100,34 +100,6 @@ def comp_method(func, name):
 
 
 class DataFrame(NDFrame):
-    """
-    Two-dimensional size-mutable, potentially heterogeneous tabular data
-    structure with labeled axes (rows and columns). Arithmetic operations align
-    on both row and column labels. Can be thought of as a dict-like container
-    for Series objects. The primary pandas data structure
-
-    Parameters
-    ----------
-    data : numpy ndarray (structured or homogeneous), dict, or DataFrame
-        Dict can contain Series, arrays, constants, or list-like objects
-    index : Index or array-like
-        Index to use for resulting frame. Will default to np.arange(n) if no
-        indexing information part of input data and no index provided
-    columns : Index or array-like
-        Will default to np.arange(n) if not column labels provided
-    dtype : dtype, default None
-        Data type to force, otherwise infer
-    copy : boolean, default False
-        Copy data from inputs. Only affects DataFrame / 2d ndarray input
-
-    Examples
-    --------
-    >>> d = {'col1' : ts1, 'col2' : ts2}
-    >>> df = DataFrame(data=d, index=index)
-    >>> df2 = DataFrame(np.random.randn(10, 5))
-    >>> df3 = DataFrame(np.random.randn(10, 5),
-                        columns=['a', 'b', 'c', 'd', 'e'])
-    """
     _auto_consolidate = True
 
     _AXIS_NUMBERS = {
@@ -139,6 +111,33 @@ class DataFrame(NDFrame):
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
+        """Two-dimensional size-mutable, potentially heterogeneous tabular data
+        structure with labeled axes (rows and columns). Arithmetic operations
+        align on both row and column labels. Can be thought of as a dict-like
+        container for Series objects. The primary pandas data structure
+
+        Parameters
+        ----------
+        data : numpy ndarray (structured or homogeneous), dict, or DataFrame
+            Dict can contain Series, arrays, constants, or list-like objects
+        index : Index or array-like
+            Index to use for resulting frame. Will default to np.arange(n) if no
+            indexing information part of input data and no index provided
+        columns : Index or array-like
+            Will default to np.arange(n) if not column labels provided
+        dtype : dtype, default None
+            Data type to force, otherwise infer
+        copy : boolean, default False
+            Copy data from inputs. Only affects DataFrame / 2d ndarray input
+
+        Examples
+        --------
+        >>> d = {'col1' : ts1, 'col2' : ts2}
+        >>> df = DataFrame(data=d, index=index)
+        >>> df2 = DataFrame(np.random.randn(10, 5))
+        >>> df3 = DataFrame(np.random.randn(10, 5),
+                            columns=['a', 'b', 'c', 'd', 'e'])
+        """
 
         if data is None:
             data = {}
@@ -409,7 +408,7 @@ class DataFrame(NDFrame):
         return np.rec.fromarrays(arrays, names=names)
 
     @classmethod
-    def fromcsv(cls, path, header=0, delimiter=',', index_col=0):
+    def from_csv(cls, path, header=0, delimiter=',', index_col=0):
         """
         Read delimited file into DataFrame
 
@@ -440,7 +439,7 @@ class DataFrame(NDFrame):
         """
         Convert to SparseDataFrame
 
-        Parametpers
+        Parameters
         ----------
         fill_value : float, default NaN
         kind : {'block', 'integer'}
@@ -2709,6 +2708,12 @@ class DataFrame(NDFrame):
         warnings.warn("fromRecords is deprecated. Use 'from_records' "
                       "instead", FutureWarning)
         return cls.from_records(*args, **kwargs)
+
+    @classmethod
+    def fromcsv(cls, *args, **kwargs):  # pragma: no cover
+        warnings.warn("fromcsv is deprecated. Use 'from_csv' "
+                      "instead", FutureWarning)
+        return cls.from_csv(*args, **kwargs)
 
     combineFirst = deprecate('combineFirst', combine_first)
     getXS = deprecate('getXS', xs)

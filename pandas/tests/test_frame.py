@@ -1948,9 +1948,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         for idx in broadcasted.index:
             self.assert_((broadcasted.xs(idx) == agged[idx]).all())
 
-    def test_tapply(self):
+    def test_apply_axis1(self):
         d = self.frame.index[0]
-        tapplied = self.frame.tapply(np.mean)
+        tapplied = self.frame.apply(np.mean, axis=1)
         self.assertEqual(tapplied[d], np.mean(self.frame.xs(d)))
 
     def test_applymap(self):

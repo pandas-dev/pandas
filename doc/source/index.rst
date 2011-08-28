@@ -105,9 +105,10 @@ See the package overview for more detail about what's in the library.
 
 .. toctree::
     :hidden:
-    :maxdepth: 3
+    :maxdepth: 2
 
     install
+    faq
     overview
     basics
     indexing
@@ -117,10 +118,11 @@ See the package overview for more detail about what's in the library.
     reshaping
     timeseries
     datetools
-	visualization
+    visualization
     stats
     io
     sparse
     r_interface
     related
-    faq
+    comparison_with_r
+    api
