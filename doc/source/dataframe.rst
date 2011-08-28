@@ -6,35 +6,6 @@
 DataFrame
 *********
 
-**DataFrame** is a both 2D-matrix- and dict-like object implementing a named
-collection of identically-indexed Series objects. It supports columns having
-different types, so you can use it to store and manipulate floating point,
-integer, boolean, and arbitrary Python object data.
-
-.. note::
-
-    DataFrame is the most commonly used object for most pandas users.
-
-.. class:: DataFrame
-
-   :Parameters:
-       **data** : dict, 2-D ndarray, or DataFrame
-           * If the dict contains Series, an index need not be specified.
-             The resulting frame will be the union of all the contained
-             Series indices.
-
-       **index** : {array_like}
-           Explicit index to conform to, defaults to range(N) if not input
-
-       **columns** : {array_like}
-           Explicit set of columns to include, defaults to range(N) if not input
-
-       **dtype** : Python type alias or :class:`~numpy.dtype`
-           Data type to force, otherwise infer
-
-       **copy** : boolean, default False
-	       Copy data from inputs. Only affects DataFrame / 2d ndarray input
-
 Basics
 ------
 

@@ -36,7 +36,7 @@ def _arith_method(func, name):
 
     return f
 
-def _long_arith_method(op, name):
+def _panel_arith_method(op, name):
     def f(self, other, axis='items'):
         """
         Wrapper method for %s
@@ -57,26 +57,6 @@ def _long_arith_method(op, name):
 
     return f
 
-def _wide_arith_method(op, name):
-    def f(self, other, axis='items'):
-        """
-        Wrapper method for %s
-
-        Parameters
-        ----------
-        other : DataFrame or WidePanel
-        axis : {'items', 'major', 'minor'}
-
-        Returns
-        -------
-        WidePanel
-        """
-        return self._combine(other, op, axis=axis)
-
-    f.__name__ = name
-    f.__doc__ = f.__doc__ % str(op)
-
-    return f
 
 _agg_doc = """
 Return %(desc)s over requested axis.%(na_info)s
@@ -95,6 +75,7 @@ _na_info = """
 NA/null values are %s.
 If all values are NA, result will be NA"""
 
+
 def _add_docs(method, desc, outname, na_info=None):
     if na_info is not None:
         na_info = _na_info % na_info
@@ -103,11 +84,11 @@ def _add_docs(method, desc, outname, na_info=None):
     doc = _agg_doc % locals()
     method.__doc__ = doc
 
+
 class Panel(object):
     """
     Abstract superclass for LongPanel and WidePanel data structures
     """
-    _values = None
 
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
@@ -121,21 +102,8 @@ class Panel(object):
     __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
-    @property
-    def shape(self):
-        return len(self.items), len(self.major_axis), len(self.minor_axis)
 
 class WidePanel(Panel, NDFrame):
-    """
-    Represents wide format panel data, stored as 3-dimensional array
-
-    Parameters
-    ----------
-    values : ndarray (items x major x minor)
-    items : sequence
-    major_axis : sequence
-    minor_axis : sequence
-    """
     _AXIS_NUMBERS = {
         'items' : 0,
         'major_axis' : 1,
@@ -162,6 +130,23 @@ class WidePanel(Panel, NDFrame):
 
     def __init__(self, data, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
+        """
+        Represents wide format panel data, stored as 3-dimensional array
+
+        Parameters
+        ----------
+        values : ndarray (items x major x minor)
+        items : Index or array-like
+            axis=1
+        major_axis : Index or array-like
+            axis=1
+        minor_axis : Index or array-like
+            axis=2
+        dtype : dtype, default None
+            Data type to force, otherwise infer
+        copy : boolean, default False
+            Copy data from inputs. Only affects DataFrame / 2d ndarray input
+        """
         passed_axes = [items, major_axis, minor_axis]
         if isinstance(data, BlockManager):
             mgr = data
@@ -218,6 +203,10 @@ class WidePanel(Panel, NDFrame):
         mgr = BlockManager(blocks, axes).consolidate()
         return mgr
 
+    @property
+    def shape(self):
+        return len(self.items), len(self.major_axis), len(self.minor_axis)
+
     @classmethod
     def from_dict(cls, data, intersect=False, dtype=float):
         """
@@ -236,7 +225,6 @@ class WidePanel(Panel, NDFrame):
         data, index, columns = _homogenize_dict(data, intersect=intersect,
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
-        axes = [items, index, columns]
         return WidePanel(data, items, index, columns)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
@@ -596,10 +584,10 @@ class WidePanel(Panel, NDFrame):
             new_data = self._data.fillna(value)
             return WidePanel(new_data)
 
-    add = _wide_arith_method(operator.add, 'add')
-    subtract = _wide_arith_method(operator.sub, 'subtract')
-    divide = _wide_arith_method(operator.div, 'divide')
-    multiply = _wide_arith_method(operator.mul, 'multiply')
+    add = _panel_arith_method(operator.add, 'add')
+    subtract = _panel_arith_method(operator.sub, 'subtract')
+    divide = _panel_arith_method(operator.div, 'divide')
+    multiply = _panel_arith_method(operator.mul, 'multiply')
 
     def major_xs(self, key, copy=True):
         """
@@ -1011,6 +999,9 @@ class LongPanel(Panel, DataFrame):
     DataFrame objects with hierarchical indexes. You should be careful about
     writing production code depending on LongPanel
     """
+    @property
+    def wide_shape(self):
+        return (len(self.items), len(self.major_axis), len(self.minor_axis))
 
     @property
     def items(self):
@@ -1142,10 +1133,10 @@ class LongPanel(Panel, DataFrame):
         return LongPanel(new_values, columns=self.items,
                          index=self.index)
 
-    add = _long_arith_method(operator.add, 'add')
-    subtract = _long_arith_method(operator.sub, 'subtract')
-    divide = _long_arith_method(operator.div, 'divide')
-    multiply = _long_arith_method(operator.mul, 'multiply')
+    add = _panel_arith_method(operator.add, 'add')
+    subtract = _panel_arith_method(operator.sub, 'subtract')
+    divide = _panel_arith_method(operator.div, 'divide')
+    multiply = _panel_arith_method(operator.mul, 'multiply')
 
     def to_wide(self):
         """
@@ -1162,7 +1153,7 @@ class LongPanel(Panel, DataFrame):
             return self._to_wide_homogeneous(mask)
 
     def _to_wide_homogeneous(self, mask):
-        values = np.empty(self.shape, dtype=self.values.dtype)
+        values = np.empty(self.wide_shape, dtype=self.values.dtype)
 
         if not issubclass(self.values.dtype.type, np.integer):
             values.fill(np.nan)
@@ -1173,7 +1164,7 @@ class LongPanel(Panel, DataFrame):
         return WidePanel(values, self.items, self.major_axis, self.minor_axis)
 
     def _to_wide_mixed(self, mask):
-        _, N, K = self.shape
+        _, N, K = self.wide_shape
 
         # TODO: make much more efficient
 

@@ -1344,7 +1344,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         test_comp(operator.ge)
         test_comp(operator.le)
 
-    def test_to_csv_fromcsv(self):
+    def test_to_csv_from_csv(self):
         path = '__tmp__'
 
         self.frame['A'][:5] = nan
@@ -1357,24 +1357,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # test roundtrip
 
         self.tsframe.to_csv(path)
-        recons = DataFrame.fromcsv(path)
+        recons = DataFrame.from_csv(path)
 
         assert_frame_equal(self.tsframe, recons)
 
-        recons = DataFrame.fromcsv(path, index_col=None)
+        recons = DataFrame.from_csv(path, index_col=None)
         assert(len(recons.columns) == len(self.tsframe.columns) + 1)
 
 
         # no index
         self.tsframe.to_csv(path, index=False)
-        recons = DataFrame.fromcsv(path, index_col=None)
+        recons = DataFrame.from_csv(path, index_col=None)
         assert_almost_equal(self.tsframe.values, recons.values)
 
         # corner case
         dm = DataFrame({'s1' : Series(range(3),range(3)),
                         's2' : Series(range(2),range(2))})
         dm.to_csv(path)
-        recons = DataFrame.fromcsv(path)
+        recons = DataFrame.from_csv(path)
         assert_frame_equal(dm, recons)
 
         os.remove(path)
