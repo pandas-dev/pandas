@@ -45,6 +45,7 @@ def _panel_arith_method(op, name):
         ----------
         other : DataFrame or Panel class
         axis : {'items', 'major', 'minor'}
+            Axis to broadcast over
 
         Returns
         -------
@@ -585,9 +586,9 @@ class WidePanel(Panel, NDFrame):
             return WidePanel(new_data)
 
     add = _panel_arith_method(operator.add, 'add')
-    subtract = _panel_arith_method(operator.sub, 'subtract')
-    divide = _panel_arith_method(operator.div, 'divide')
-    multiply = _panel_arith_method(operator.mul, 'multiply')
+    subtract = sub = _panel_arith_method(operator.sub, 'subtract')
+    divide = div = _panel_arith_method(operator.div, 'divide')
+    multiply = mul = _panel_arith_method(operator.mul, 'multiply')
 
     def major_xs(self, key, copy=True):
         """

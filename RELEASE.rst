@@ -222,7 +222,7 @@ Release notes
 
 * `DataFrame` deprecations and de-camelCasing: `merge`, `asMatrix`,
   `toDataMatrix`, `_firstTimeWithValue`, `_lastTimeWithValue`, `toRecords`,
-  `fromRecords`, `tgroupby`
+  `fromRecords`, `tgroupby`, `toString`
 
 * `pandas.io.parsers` method deprecations
 

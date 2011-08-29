@@ -14,7 +14,6 @@ labeling information
 
 from StringIO import StringIO
 import operator
-import sys
 import warnings
 
 from numpy import nan
@@ -505,10 +504,14 @@ class DataFrame(NDFrame):
 
         f.close()
 
-    def toString(self, buf=sys.stdout, columns=None, colSpace=None,
-                 nanRep='NaN', formatters=None, float_format=None,
-                 sparsify=True):
+    def to_string(self, buf=None, columns=None, colSpace=None,
+                  nanRep='NaN', formatters=None, float_format=None,
+                  sparsify=True):
         from pandas.core.common import _format, adjoin
+        import sys
+
+        if buf is None:
+            buf = sys.stdout
 
         if colSpace is None:
             def _myformat(v):
@@ -574,7 +577,7 @@ class DataFrame(NDFrame):
 
         return str_index, str_columns
 
-    def info(self, verbose=True, buf=sys.stdout):
+    def info(self, verbose=True, buf=None):
         """
         Concise summary of a DataFrame, used in __repr__ when very large.
 
@@ -584,6 +587,10 @@ class DataFrame(NDFrame):
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
         """
+        import sys
+        if buf is None:
+            buf = sys.stdout
+
         print >> buf, str(type(self))
         print >> buf, self.index.summary()
 
@@ -2720,6 +2727,7 @@ class DataFrame(NDFrame):
     merge = deprecate('merge', join)
     toRecords = deprecate('toRecords', to_records)
     toDict = deprecate('toDict', to_dict)
+    toString = deprecate('toString', to_string)
     _firstTimeWithValue = deprecate('_firstTimeWithValue', first_valid_index)
     _lastTimeWithValue = deprecate('_lastTimeWithValue', last_valid_index)
     toCSV = deprecate('toCSV', to_csv)

@@ -13,6 +13,10 @@ DataFrame
 
 Attributes
 ~~~~~~~~~~
+**Axes**
+
+  * **index**:
+  * **columns**:
 
 Conversion / Constructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -180,33 +184,33 @@ Serialization / IO / Conversion
    DataFrame.to_dict
    DataFrame.to_records
    DataFrame.to_sparse
+   DataFrame.to_string
    DataFrame.save
    DataFrame.load
-   DataFrame.toString
    DataFrame.info
 
-Deprecated (death row)
-~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
+.. Deprecated (death row)
+.. ~~~~~~~~~~~~~~~~~~~~~~
+.. .. autosummary::
+..    :toctree: generated/
 
-   DataFrame.asMatrix
-   DataFrame.cols
-   DataFrame.combineFirst
-   DataFrame.dropEmptyRows
-   DataFrame.dropIncompleteRows
-   DataFrame.getXS
-   DataFrame.merge
-   DataFrame.rows
-   DataFrame.fromRecords
-   DataFrame.fromcsv
-   DataFrame.tapply
-   DataFrame.tgroupby
-   DataFrame.toRecords
-   DataFrame.toCSV
-   DataFrame.toDataMatrix
-   DataFrame.toDict
-   DataFrame.fromRecords
+..    DataFrame.asMatrix
+..    DataFrame.cols
+..    DataFrame.combineFirst
+..    DataFrame.dropEmptyRows
+..    DataFrame.dropIncompleteRows
+..    DataFrame.getXS
+..    DataFrame.merge
+..    DataFrame.rows
+..    DataFrame.fromRecords
+..    DataFrame.fromcsv
+..    DataFrame.tapply
+..    DataFrame.tgroupby
+..    DataFrame.toRecords
+..    DataFrame.toCSV
+..    DataFrame.toDataMatrix
+..    DataFrame.toDict
+..    DataFrame.fromRecords
 
 WidePanel
 ---------

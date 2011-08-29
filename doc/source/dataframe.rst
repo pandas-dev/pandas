@@ -34,103 +34,6 @@ be printed by default when the frame is very large:
 
     df.info()
 
-The DataFrame's index and columns can be accessed by the **index**
-attribute and **columns** methods, respectively:
-
-.. ipython:: python
-
-    df.index
-    df.columns
-
-.. _dataframe.cons:
-
-Construction
-------------
-
-There are many ways to create a DataFrame:
-
-   * From a dict of ndarrays or Series
-   * From a 2D ndarray, optionally providing row and column labels
-   * From a NumPy structured (record) array
-   * From a nested dictionary
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.__init__
-   DataFrame.fromRecords
-
-Indexing basics
----------------
-
-.. seealso::
-
-    :ref:`Indexing (main documentation) <indexing>` for a more complete
-     catalogue of the indexing facilities of DataFrame
-
-Column access
-~~~~~~~~~~~~~
-
-DataFrame's basic *__getitem__* (brackets) accesses the **columns** by name,
-result in a Series
-
-.. ipython:: python
-
-    df['A']
-
-
-If you add a Series to the frame, it will be automatically conformed
-to the frame's index:
-
-.. ipython:: python
-
-    df['D'] = df['A'][:5]
-    df
-
-Columns can be deleted or popped as with a dict:
-
-.. ipython:: python
-
-    df
-    del df['C']
-    B = df.pop('B')
-    df
-
-New items in the DataFrame do not need to already be Series. They can
-also be an ndarray of the right length or a scalar value:
-
-.. ipython:: python
-
-    df['N'] = np.arange(len(df))
-    df['S'] = 5
-    df
-
-To be consistent with this dict-like interface, using **in** checks if the key
-is in the columns:
-
-.. ipython:: python
-
-    'A' in df
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.pop
-
-Selecting rows (cross-sections)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Selecting a row can be done using the **xs** method or via fancy indexing (see the
-`main documentation <indexing>` about fancy indexing):
-
-
-.. ipython:: python
-
-    date = datetime(2009, 8, 31)
-    df.xs(date)
-    df.ix[date]
-    df.ix[10]
-
 
 Transposing
 ~~~~~~~~~~~
@@ -212,35 +115,6 @@ no overlap in a particular portion of the data set.
 
 Binary operation between DataFrame and Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The choice of behavior between DataFrame and Series was somewhat
-arbitrary. Since the **columns** of the DataFrame are viewed as its
-keys, and the **index** values of a Series are viewed as *its* keys,
-the default behavior is to match the frame columns on the series
-index.
-
-.. ipython:: python
-
-    df - df.xs(df.index[5])
-
-However, the user very frequently will want to subtract (or add,
-divide, multiply, ...) a TimeSeries from a DataFrame representing a
-collection of TimeSeries. Since this is so common, the DataFrame will
-inspect the input Series and its own index to see if this is what the
-user intended.
-
-.. ipython:: python
-
-    df - df['A']
-
-Note that the same result could have been obtained by writing:
-
-.. ipython:: python
-
-    (df.T - df['A']).T
-
-but this is fairly awkward (and relatively high cost due to two
-transpose operations).
 
 Binary operation with scalar value
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
