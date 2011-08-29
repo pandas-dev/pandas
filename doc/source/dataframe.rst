@@ -340,29 +340,6 @@ function:
     >>> df.apply(lambda x: np.where(x > 0, x, 0))
     ...
 
-Iterating
----------
-
-DataFrame's iterator functions are consistent with the dict interface:
-
-::
-
-    >>> for column in df:
-    ....    print column
-    A
-    C
-    B
-    D
-
-    >>> for column, series in df.iteritems():
-    ...
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.cols
-   DataFrame.iteritems
-
 Reindexing and filling / padding values
 ---------------------------------------
 

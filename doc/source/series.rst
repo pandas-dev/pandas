@@ -505,11 +505,3 @@ A convenience method for selecting weekdays, similar to
     >>> ts[ts.weekday == 2]
     2010-01-06 00:00:00    3.0
     2010-01-13 00:00:00    8.0
-
-.. autosummary::
-   :toctree: generated/
-
-   Series.asfreq
-   Series.shift
-   Series.asOf
-   Series.weekday

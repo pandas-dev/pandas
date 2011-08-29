@@ -1372,7 +1372,7 @@ class Series(np.ndarray, PandasObject):
             f.write(str(idx) + ',' + str(value) + '\n')
         f.close()
 
-    def valid(self):
+    def dropna(self):
         """
         Return Series without null values
 
@@ -1381,6 +1381,8 @@ class Series(np.ndarray, PandasObject):
         valid : Series
         """
         return remove_na(self)
+
+    valid = dropna
 
     def first_valid_index(self):
         """

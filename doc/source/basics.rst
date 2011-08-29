@@ -156,6 +156,15 @@ interactive data analysis and research. The integrated data alignment features
 of the pandas data structures set pandas apart from the majority of related
 tools for working with labeled data.
 
+.. note::
+
+    In general, we chose to make the default result of operations between
+    differently indexed objects yield the **union** of the indexes in order to
+    avoid loss of information. Having an index label, though the data is
+    missing, is typically important information as part of a computation. You
+    of course have the option of dropping labels with missing data via the
+    **dropna** function.
+
 .. _basics.dataframe:
 
 DataFrame
@@ -372,6 +381,16 @@ Operations with scalars are just as you would expect:
    1 / df
    df ** 4
 
+DataFrame interop with NumPy functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Elementwise NumPy ufuncs (log, exp, sqrt, ...) can be used with no issues on
+DataFrame, assuming the data within are numeric:
+
+.. ipython:: python
+
+   np.exp(df)
+
 Console display
 ~~~~~~~~~~~~~~~
 
@@ -525,8 +544,8 @@ unlike the axis labels, cannot be assigned to.
 
 .. _basics.apply:
 
-Function application and basic stats
-------------------------------------
+Function application and descriptive stats
+------------------------------------------
 
 .. _basics.binop:
 
@@ -573,11 +592,31 @@ either match on the *index* or *columns* via the **axis** keyword:
 
 With WidePanel, describing the matching behavior is a bit more difficult, so
 the arithmetic methods instead (and perhaps confusingly?) give you the option
-to specify the *broadcast axis*.
+to specify the *broadcast axis*. For example, suppose we wished to demean the
+data over a particular axis. This can be accomplished by taking the mean over
+an axis and broadcasting over the same axis:
+
+.. ipython:: python
+
+   major_mean = wp.mean(axis='major')
+   major_mean
+   wp.sub(major_mean, axis='major')
+
+And similarly for axis="items" and axis="minor".
 
 Missing data / operations with fill values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+In Series and DataFrame (though not yet in WidePanel), the arithmetic functions
+have the option of inputting a *fill_value*, namely a value to substitute when
+at most one of the values at a location are missing. For example, when adding
+two DataFrame objects, you may wish to treat NaN as 0 unless both DataFrames
+are missing that value, in which case the result will be NaN (you can later
+replace NaN with some other value using **fillna** if you wish).
+
+.. ipython:: python
+
+   df
 
 .. _basics.reindexing:
 
