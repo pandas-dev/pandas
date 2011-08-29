@@ -63,6 +63,16 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
    Series(np.random.randn(5))
 
+.. note::
+
+    The values in the index must be unique. If they are not, an exception will
+    **not** be raised immediately, but attempting any operation involving the
+    index will later result in an exception. In other words, the Index object
+    containing the labels "lazily" checks whether the values are unique. The
+    reason for being lazy is nearly all performance-based (there are many
+    instances in computations, like parts of GroupBy, where the index is not
+    used).
+
 **From dict**
 
 If **data** is a dict, if **index** is passed the values in data corresponding
@@ -544,8 +554,13 @@ unlike the axis labels, cannot be assigned to.
 
 .. _basics.apply:
 
-Function application and descriptive stats
-------------------------------------------
+Descriptive statistics
+----------------------
+
+.. _basics.apply:
+
+Function application
+--------------------
 
 .. _basics.binop:
 
@@ -620,9 +635,15 @@ replace NaN with some other value using **fillna** if you wish).
 
 .. _basics.reindexing:
 
-Reindexing
-----------
+Reindexing and modifying axis labels
+------------------------------------
 
+
+Dropping labels from an axis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Renaming / mapping labels
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Iteration
@@ -661,9 +682,6 @@ For example:
       ...:     print item
       ...:     print frame
       ...:
-
-Dropping labels from an axis
-----------------------------
 
 .. _basics.cast:
 
