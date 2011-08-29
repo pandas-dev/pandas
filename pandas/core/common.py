@@ -32,6 +32,8 @@ def isnull(input):
     -------
     boolean ndarray or boolean
     '''
+    from pandas.core.generic import PandasObject
+    from pandas import Series
     if isinstance(input, np.ndarray):
         if input.dtype.kind in ('O', 'S'):
             # Working around NumPy ticket 1542
@@ -39,8 +41,14 @@ def isnull(input):
             result = np.empty(shape, dtype=bool)
             vec = _tseries.isnullobj(input.ravel())
             result[:] = vec.reshape(shape)
+
+            if isinstance(input, Series):
+                result = Series(result, index=input.index, copy=False)
         else:
             result = -np.isfinite(input)
+    elif isinstance(input, PandasObject):
+        # TODO: optimize for DataFrame, etc.
+        return input.apply(isnull)
     else:
         result = _tseries.checknull(input)
 

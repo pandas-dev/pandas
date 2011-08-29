@@ -341,8 +341,8 @@ class DataFrame(NDFrame):
         """
         Convert DataFrame to nested dictionary
 
-        Return
-        ------
+        Returns
+        -------
         result : dict like {column -> {index -> value}}
         """
         return dict((k, v.to_dict()) for k, v in self.iteritems())
@@ -2311,7 +2311,7 @@ class DataFrame(NDFrame):
         np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 
-    def product(self, axis=0):
+    def prod(self, axis=0):
         """
         Return product over requested axis. NA/null values are treated as 1
 
@@ -2336,6 +2336,8 @@ class DataFrame(NDFrame):
             theProd = self.apply(np.prod, axis=axis)
 
         return Series(theProd, index=self._get_agg_axis(axis))
+
+    product = prod
 
     def mean(self, axis=0):
         """

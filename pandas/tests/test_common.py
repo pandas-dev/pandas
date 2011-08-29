@@ -1,3 +1,4 @@
+from pandas import Series
 from pandas.core.common import notnull, isnull
 import pandas.core.common as common
 
@@ -10,12 +11,22 @@ def test_notnull():
     assert not notnull(np.inf)
     assert not notnull(-np.inf)
 
+    float_series = Series(np.random.randn(5))
+    obj_series = Series(np.random.randn(5), dtype=object)
+    assert(isinstance(notnull(float_series), Series))
+    assert(isinstance(notnull(obj_series), Series))
+
 def test_isnull():
     assert not isnull(1.)
     assert isnull(None)
     assert isnull(np.NaN)
     assert isnull(np.inf)
     assert isnull(-np.inf)
+
+    float_series = Series(np.random.randn(5))
+    obj_series = Series(np.random.randn(5), dtype=object)
+    assert(isinstance(isnull(float_series), Series))
+    assert(isinstance(isnull(obj_series), Series))
 
 def test_any_none():
     assert(common._any_none(1, 2, 3, None))

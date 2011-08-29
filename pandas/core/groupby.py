@@ -20,6 +20,10 @@ class GroupBy(object):
 
     It's easiest to use obj.groupby(...) to use GroupBy, but you can also do:
 
+    ::
+
+        grouped = groupby(obj, ...)
+
     Parameters
     ----------
     obj : pandas object
@@ -35,30 +39,34 @@ class GroupBy(object):
 
     Notes
     -----
-    After grouping, see aggregate, apply, and transform functions. Here are
-    some other brief notes about usage:
+    After grouping, see aggregate, apply, and transform functions. Here are some
+    other brief notes about usage. When grouping by multiple groups, the result
+    index will be a MultiIndex (hierarhical) by default.
 
-      * When grouping by multiple groups, the result index will be a MultiIndex
-        (hierarhical) by default.
+    Iteration produces (key, group) tuples, i.e. chunking the data by group. So
+    you can write code like:
 
-      * Iteration produces (key, group) tuples, i.e. chunking the data by
-        group. So you can write code like:
+    ::
 
         grouped = obj.groupby(grouper, axis=axis)
         for key, group in grouped:
             # do something with the data
 
-      * Function calls on GroupBy, if not specially implemented, "dispatch" to
-        the grouped data. So if you group a DataFrame and wish to invoke the
-        std() method on each group, you can simply do:
+    Function calls on GroupBy, if not specially implemented, "dispatch" to the
+    grouped data. So if you group a DataFrame and wish to invoke the std()
+    method on each group, you can simply do:
+
+    ::
 
         df.groupby(mapper).std()
 
-        rather than
+    rather than
+
+    ::
 
         df.groupby(mapper).aggregate(np.std)
 
-        You can pass arguments to these "wrapped" functions, too.
+    You can pass arguments to these "wrapped" functions, too.
 
     See the online documentation for full exposition on these topics and much
     more

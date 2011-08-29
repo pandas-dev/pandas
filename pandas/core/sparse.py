@@ -136,24 +136,6 @@ def _sparse_fillop(this, other, name):
 
 
 class SparseSeries(Series):
-    """
-    Data structure for labeled, sparse floating point data
-
-    Parameters
-    ----------
-    data : {array-like, Series, SparseSeries, dict}
-    kind : {'block', 'integer'}
-    fill_value : float
-        Defaults to NaN (code for missing)
-    sparse_index : {BlockIndex, IntIndex}, optional
-        Only if you have one. Mainly used internally
-
-    Notes
-    -----
-    SparseSeries objects are immutable via the typical Python means. If you
-    must change values, convert to dense, make your changes, then convert back
-    to sparse
-    """
     __array_priority__ = 15
 
     sp_index = None
@@ -225,6 +207,27 @@ class SparseSeries(Series):
         output.fill_value = np.float64(fill_value)
         output.index = index
         return output
+
+    def __init__(self, data, index=None, sparse_index=None, kind='block',
+                 fill_value=None, copy=False):
+        """Data structure for labeled, sparse floating point data
+
+Parameters
+----------
+data : {array-like, Series, SparseSeries, dict}
+kind : {'block', 'integer'}
+fill_value : float
+    Defaults to NaN (code for missing)
+sparse_index : {BlockIndex, IntIndex}, optional
+    Only if you have one. Mainly used internally
+
+Notes
+-----
+SparseSeries objects are immutable via the typical Python means. If you
+must change values, convert to dense, make your changes, then convert back
+to sparse
+        """
+        pass
 
     @property
     def _constructor(self):
