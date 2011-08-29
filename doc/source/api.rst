@@ -1,22 +1,180 @@
 .. currentmodule:: pandas
 .. _api:
 
-***********
-API Listing
-***********
+*************
+API Reference
+*************
 
 Series
 ------
 
+Attributes and underlying data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Axes**
+  * **index**: axis labels
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.values
+   Series.dtype
+
+Conversion / Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.__init__
+   Series.astype
+   Series.copy
+
+Indexing, iteration
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.get
+   Series.ix
+   Series.__iter__
+   Series.iteritems
+
+Binary operator functions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.add
+   Series.div
+   Series.mul
+   Series.sub
+   Series.combine
+   Series.combine_first
+
+Function application, GroupBy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.apply
+   Series.map
+   Series.groupby
+
+Computations / Descriptive Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.autocorr
+   Series.clip
+   Series.clip_lower
+   Series.clip_upper
+   Series.corr
+   Series.count
+   Series.cumprod
+   Series.cumsum
+   Series.describe
+   Series.diff
+   Series.max
+   Series.mean
+   Series.median
+   Series.min
+   Series.prod
+   Series.quantile
+   Series.skew
+   Series.std
+   Series.sum
+   Series.var
+
+Reindexing / Selection / Label manipulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.drop
+   Series.reindex
+   Series.reindex_like
+   Series.rename
+   Series.select
+   Series.take
+   Series.truncate
+
+Missing data handling
+~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.dropna
+   Series.fillna
+   Series.interpolate
+
+Reshaping, sorting
+~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.argsort
+   Series.order
+   Series.sort
+   Series.sortlevel
+   Series.unstack
+
+Combining / joining / merging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.append
+
+Time series-related
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.asfreq
+   Series.asof
+   Series.shift
+   Series.first_valid_index
+   Series.last_valid_index
+   Series.weekday
+
+Plotting
+~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.hist
+   Series.plot
+
+Serialization / IO / Conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Series.load
+   Series.save
+   Series.to_csv
+   Series.to_dict
+   Series.to_sparse
+
 DataFrame
 ---------
 
-Attributes
-~~~~~~~~~~
+Attributes and underlying data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **index**:
-  * **columns**:
+  * **index**: row labels
+  * **columns**: column labels
+
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.as_matrix
+   DataFrame.values
+   DataFrame.axes
+   DataFrame.ndim
+   DataFrame.shape
 
 Conversion / Constructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -53,6 +211,9 @@ Binary operator functions
    DataFrame.rmul
    DataFrame.rsub
    DataFrame.combine
+   DataFrame.combineAdd
+   DataFrame.combine_first
+   DataFrame.combineMult
 
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,62 +224,8 @@ Function application, GroupBy
    DataFrame.applymap
    DataFrame.groupby
 
-Data / attributes
-~~~~~~~~~~~~~~~~~
-.. .. autosummary::
-..    :toctree: generated/
-
-..    DataFrame.as_matrix
-..    DataFrame.values
-..    DataFrame.axes
-..    DataFrame.columns
-..    DataFrame.ndim
-..    DataFrame.index
-..    DataFrame.shape
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.as_matrix
-   DataFrame.values
-   DataFrame.axes
-   DataFrame.ndim
-   DataFrame.shape
-
-Alignment / Selection / Reindexing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.drop
-   DataFrame.dropna
-   DataFrame.fillna
-   DataFrame.filter
-   DataFrame.rename
-   DataFrame.reindex
-   DataFrame.reindex_like
-   DataFrame.select
-   DataFrame.take
-   DataFrame.truncate
-   DataFrame.head
-   DataFrame.tail
-
-Reshaping, sorting, transposing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.sort
-   DataFrame.delevel
-   DataFrame.pivot
-   DataFrame.sortlevel
-   DataFrame.stack
-   DataFrame.unstack
-   DataFrame.T
-   DataFrame.transpose
-
-Computations
-~~~~~~~~~~~~
+Computations / Descriptive Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
@@ -137,12 +244,50 @@ Computations
    DataFrame.mean
    DataFrame.median
    DataFrame.min
-   DataFrame.product
+   DataFrame.prod
    DataFrame.quantile
    DataFrame.skew
    DataFrame.sum
    DataFrame.std
    DataFrame.var
+
+Reindexing / Selection / Label manipulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.drop
+   DataFrame.filter
+   DataFrame.reindex
+   DataFrame.reindex_like
+   DataFrame.rename
+   DataFrame.select
+   DataFrame.take
+   DataFrame.truncate
+   DataFrame.head
+   DataFrame.tail
+
+Missing data handling
+~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.dropna
+   DataFrame.fillna
+
+Reshaping, sorting, transposing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.sort
+   DataFrame.delevel
+   DataFrame.pivot
+   DataFrame.sortlevel
+   DataFrame.stack
+   DataFrame.unstack
+   DataFrame.T
+   DataFrame.transpose
 
 Combining / joining / merging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -151,9 +296,6 @@ Combining / joining / merging
 
    DataFrame.join
    DataFrame.append
-   DataFrame.combineAdd
-   DataFrame.combine_first
-   DataFrame.combineMult
 
 Time series-related
 ~~~~~~~~~~~~~~~~~~~
@@ -189,29 +331,6 @@ Serialization / IO / Conversion
    DataFrame.load
    DataFrame.info
 
-.. Deprecated (death row)
-.. ~~~~~~~~~~~~~~~~~~~~~~
-.. .. autosummary::
-..    :toctree: generated/
-
-..    DataFrame.asMatrix
-..    DataFrame.cols
-..    DataFrame.combineFirst
-..    DataFrame.dropEmptyRows
-..    DataFrame.dropIncompleteRows
-..    DataFrame.getXS
-..    DataFrame.merge
-..    DataFrame.rows
-..    DataFrame.fromRecords
-..    DataFrame.fromcsv
-..    DataFrame.tapply
-..    DataFrame.tgroupby
-..    DataFrame.toRecords
-..    DataFrame.toCSV
-..    DataFrame.toDataMatrix
-..    DataFrame.toDict
-..    DataFrame.fromRecords
-
 WidePanel
 ---------
 
@@ -223,6 +342,16 @@ File IO
 
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+GroupBy
+-------
+
+.. currentmodule:: pandas.core.groupby
+
+.. autosummary::
+   :toctree: generated/
+
+   groupby
 
 Moving window statistics
 ------------------------

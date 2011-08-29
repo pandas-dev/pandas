@@ -12,14 +12,14 @@ Package overview
    Series/TimeSeries and DataFrame
  * Index objects enabling both simple axis indexing and multi-level /
    hierarchical axis indexing
- * An integrated group by for aggregating and transforming data sets
+ * An integrated group by engine for aggregating and transforming data sets
  * Date range generation (DateRange) and custom date offsets enabling the
    implementation of customized frequencies
  * Input/Output tools: loading tabular data from flat files (CSV, delimited,
    Excel 2003), and saving and loading pandas objects from the fast and
    efficient PyTables/HDF5 format.
- * "Sparse" versions of the standard data structures for storing data that is
-   mostly missing or mostly constant (some fixed value)
+ * Memory-efficent "sparse" versions of the standard data structures for storing
+   data that is mostly missing or mostly constant (some fixed value)
  * Moving window statistics (rolling mean, rolling standard deviation, etc.)
  * Static and moving window linear and `panel regression
    <http://en.wikipedia.org/wiki/Panel_data>`__
