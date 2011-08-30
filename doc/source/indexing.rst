@@ -11,6 +11,9 @@ Indexing and selecting data
 Basics
 ------
 
+Indexing with boolean arrays
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. _indexing.fancy:
 
 Fancy ndarray-like indexing with labels

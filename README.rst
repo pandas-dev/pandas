@@ -20,56 +20,53 @@ Release Notes
 What it is
 ==========
 
-``pandas`` is a library for pan-el da-ta analysis, i.e. multidimensional
-time series and cross-sectional data sets commonly found in
-statistics, econometrics, or finance. It provides convenient and
-easy-to-understand `NumPy`_-based data structures for generic labeled
-data, with focus on automatically aligning data based on its label(s)
-and handling missing observations. One major goal of the library is to
-simplify the implementation of statistical models on unreliable data.
+**pandas** is a Python package providing fast, flexible, and expressive data
+structures designed to make working with "relational" or "labeled" data both
+easy and intuitive. It aims to be the fundamental high-level building block for
+doing practical, **real world** data analysis in Python. Additionally, it has
+the broader goal of becoming **the most powerful and flexible open source data
+analysis / manipulation tool available in any language**. It is already well on
+its way toward this goal.
 
 
 Main Features
 =============
 
-* Data structures: for 1, 2, and 3 dimensional labeled data
-  sets. Some of their main features include:
+Here are just a few of the things that pandas does well:
 
-  * Automatically aligning data
-  * Handling missing observations in calculations
-  * Convenient slicing and reshaping ("reindexing") functions
-  * Provide 'group by' aggregation or transformation functionality
-  * Tools for merging / joining together data sets
-  * Simple matplotlib integration for plotting
-
-* Date tools: objects for expressing date offsets or generating date
-  ranges; some functionality similar to ``scikits.timeseries``.
-
-* Statistical models: convenient ordinary least squares and panel OLS
-  implementations for in-sample or rolling time series /
-  cross-sectional regressions. These will hopefully be the starting
-  point for implementing other models
-
-``pandas`` is not necessarily intended as a standalone library but rather
-as something which can be used in tandem with other `NumPy`_-based
-packages like ``scikits.statsmodels``. Where possible wheel-reinvention
-has largely been avoided. Also, its time series manipulation
-capability is not as extensive as ``scikits.timeseries``; ``pandas`` does have
-its own time series object which fits into the unified data model.
-
-Some other useful tools for time series data (moving average, standard
-deviation, etc.) are available in the codebase but do not yet have a
-convenient interface. These will be highlighted in a future release.
-
-
+  - Easy handling of **missing data** (represented as NaN) in floating point as
+    well as non-floating point data
+  - Size mutability: columns can be **inserted and deleted** from DataFrame and
+    higher dimensional objects
+  - Automatic and explicit **data alignment**: objects can be explicitly
+    aligned to a set of labels, or the user can simply ignore the labels and
+    let `Series`, `DataFrame`, etc. automatically align the data for you in
+    computations
+  - Powerful, flexible **group by** functionality to perform
+    split-apply-combine operations on data sets, for both aggregating and
+    transforming data
+  - Make it **easy to convert** ragged, differently-indexed data in other
+    Python and NumPy data structures into DataFrame objects
+  - Intelligent label-based **slicing**, **fancy indexing**, and **subsetting**
+    of large data sets
+  - Intuitive **merging** and **joining** data sets
+  - Flexible **reshaping** and pivoting of data sets
+  - **Hierarchical** labeling of axes (possible to have multiple labels per
+    tick)
+  - Robust IO tools for loading data from **flat files** (CSV and delimited),
+    Excel files, databases, and saving / loading data from the ultrafast **HDF5
+    format**
+  - **Time series**-specific functionality: date range generation and frequency
+    conversion, moving window statistics, moving window linear regressions,
+    date shifting and lagging, etc.
 
 Where to get it
 ===============
 
 The source code is currently hosted on GitHub at: http://github.com/wesm/pandas
 
-Binary installers for the latest released version can be `downloaded there`_. 
-Alternately the installers are available at the Python package index::
+Binary installers for the latest released version are available at the Python
+package index::
 
     http://pypi.python.org/pypi/pandas/
 
@@ -89,9 +86,8 @@ Documentation
 
 The official documentation is hosted on SourceForge: http://pandas.sourceforge.net/
 
-The Sphinx documentation is still in an incomplete state, but it
-should provide a good starting point for learning how to use the
-library. Expect the docs to continue to expand as time goes on.
+The Sphinx documentation should provide a good starting point for learning how
+to use the library. Expect the docs to continue to expand as time goes on.
 
 Background
 ==========

@@ -216,5 +216,49 @@ for interpolation methods outside of the filling methods described above.
    In [0]: axes[1].set_title('Interpolated')
 
 
-Missing data casting and indexing rules
+Missing data casting rules and indexing
 ---------------------------------------
+
+While pandas supports storing arrays of integer and boolean type, these types
+are not capable of storing missing data. Until we can switch to using a native
+NA type in NumPy, we've established some "casting rules" when reindexing will
+cause missing data to be introduced into, say, a Series or DataFrame. Here they
+are:
+
+.. csv-table::
+    :header: "data type", "Cast to"
+    :widths: 40, 40
+
+	integer, float
+    boolean, object
+    float, no cast
+    object, no cast
+
+For example:
+
+.. ipython:: python
+
+   s = Series(randn(5), index=[0, 2, 4, 6, 7])
+   s > 0
+   (s > 0).dtype
+   crit = (s > 0).reindex(range(8))
+   crit
+   crit.dtype
+
+Ordinarily NumPy will complain if you try to use an object array (even if it
+contains boolean values) instead of a boolean array to get or set values from
+an ndarray (e.g. selecting values based on some criteria). If a boolean vector
+contains NAs, an exception will be generated:
+
+.. ipython:: python
+
+   reindexed = s.reindex(range(8)).fillna(0)
+   reindexed[crit]
+
+However, these can be filled in using **fillna** and it will work fine:
+
+.. ipython:: python
+
+   reindexed[crit.fillna(False)]
+   reindexed[crit.fillna(True)]
+
