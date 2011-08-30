@@ -1,8 +1,8 @@
 .. Pandas documentation master file, created by
 
-*********************************************
-pandas: powerful Python data analysis library
-*********************************************
+*************************************************
+pandas: Pythonic data analysis for the real world
+*************************************************
 
 .. note::
 

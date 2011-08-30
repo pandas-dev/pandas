@@ -271,6 +271,8 @@ Reindexing / Selection / Label manipulation
    DataFrame.head
    DataFrame.tail
 
+.. _api.dataframe.missing:
+
 Missing data handling
 ~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::

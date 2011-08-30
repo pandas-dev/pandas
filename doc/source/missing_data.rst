@@ -13,6 +13,7 @@ pandas.
 
    import numpy as np; randn = np.random.randn
    from pandas import *
+   import matplotlib.pyplot as plt
 
 .. note::
 
@@ -154,8 +155,8 @@ To remind you, these are the available filling methods:
     :header: "Method", "Action"
     :widths: 30, 50
 
-	pad / ffill, Fill values forward
-	bfill / backfill, Fill values backward
+    pad / ffill, Fill values forward
+    bfill / backfill, Fill values backward
 
 With time series data, using pad/ffill is extremely common so that the "last
 known value" is available at every time point.
@@ -163,8 +164,57 @@ known value" is available at every time point.
 Dropping axis labels with missing data: dropna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+You may wish to simply exclude labels from a data set which refer to missing
+data. To do this, use the **dropna** method:
+
+.. ipython:: python
+   :suppress:
+
+   df['two'] = df['two'].fillna(0)
+   df['three'] = df['three'].fillna(0)
+
+.. ipython:: python
+
+   df
+   df.dropna(axis=0)
+   df.dropna(axis=1)
+   df['one'].dropna()
+
+**dropna** is presently only implemented for Series and DataFrame, but will be
+eventually added to WidePanel. Series.dropna is a simpler method as it only has
+one axis to consider. DataFrame.dropna has considerably more options, which can
+be examined :ref:`in the API <api.dataframe.missing>`.
+
 Interpolation
 ~~~~~~~~~~~~~
+
+A basic linear **interpolate** method has been implemented on Series with
+intended use for time series data. There has not been a great deal of demand
+for interpolation methods outside of the filling methods described above.
+
+.. ipython:: python
+   :suppress:
+
+   np.random.seed(123456)
+   ts = Series(randn(100), index=DateRange('1/1/2000', periods=100,
+                                           timeRule='EOM'))
+   ts[20:40] = np.nan
+   ts[60:80] = np.nan
+   ts = ts.cumsum()
+
+.. ipython::
+
+   In [0]: fig, axes = plt.subplots(ncols=2, figsize=(8, 4))
+
+   In [0]: ts.plot(ax=axes[0])
+
+   In [0]: ts.interpolate().plot(ax=axes[1])
+
+   In [0]: axes[0].set_title('Not interpolated')
+
+   @savefig series_interpolate.png width=6in
+   In [0]: axes[1].set_title('Interpolated')
+
 
 Missing data casting and indexing rules
 ---------------------------------------
