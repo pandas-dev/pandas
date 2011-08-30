@@ -6,35 +6,6 @@
 DataFrame
 *********
 
-Basics
-------
-
-.. note::
-
-    Unlike Series, DataFrame is not a subclass of numpy.ndarray.
-
-The canonical DataFrame containing time series data takes this form,
-which will be used for many examples to follow:
-
-.. ipython:: python
-
-    from pandas import *; from numpy.random import randn
-    index = Index(DateRange('1/1/2009', '12/1/2009', timeRule='EOM'))
-    N = len(index)
-    data = {'A' : randn(N),
-            'B' : randn(N),
-            'C' : randn(N)}
-    df = DataFrame(data, index=index)
-    df
-
-The **info** method provides a summary of a DataFrame object and will
-be printed by default when the frame is very large:
-
-.. ipython:: python
-
-    df.info()
-
-
 Transposing
 ~~~~~~~~~~~
 
@@ -360,37 +331,6 @@ old one, you may wish to "fill" holes with the values as of each date:
 
     >>> filled = df.reindex(new_index, fillMethod='pad')
 
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.reindex
-   DataFrame.fillna
-
-Filtering / selecting columns or indices
-----------------------------------------
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.dropEmptyRows
-   DataFrame.dropIncompleteRows
-   DataFrame.filter
-
-Sorting
--------
-
-TODO
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.sort
-
-Converting to ndarray
----------------------
-
-TODO
-
 Joining / merging DataFrames
 ----------------------------
 
@@ -477,77 +417,3 @@ mapping.
    :toctree: generated/
 
    DataFrame.join
-
-TimeSeries-oriented methods
----------------------------
-
-TODO
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.asfreq
-   DataFrame.truncate
-   DataFrame.diff
-   DataFrame.shift
-
-Sorting
--------
-
-TODO
-
-.. autosummary::
-   :toctree: generated/
-
-   Series.argsort
-   Series.sort
-   Series.order
-
-GroupBy functionality
----------------------
-
-.. seealso:: :ref:`Series GroupBy <series.groupby>`
-
-TODO
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.groupby
-   DataFrame.tgroupby
-
-IO
---
-
-TODO
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.toCSV
-   DataFrame.toString
-   DataFrame.info
-
-Miscellaneous
--------------
-
-TODO
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.append
-   DataFrame.asMatrix
-   DataFrame.values
-   DataFrame.copy
-   DataFrame.pivot
-   DataFrame.T
-   DataFrame.apply
-   DataFrame.tapply
-   DataFrame.applymap
-   DataFrame.sort
-   DataFrame.combineFirst
-   DataFrame.combineAdd
-   DataFrame.combineMult
-   DataFrame.plot
-

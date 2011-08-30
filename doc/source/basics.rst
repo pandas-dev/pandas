@@ -470,6 +470,14 @@ Note that the values in the dict need only be **convertible to
 DataFrame**. Thus, they can be any of the other valid inputs to DataFrame as
 per above.
 
+.. note::
+
+   Unfortunately WidePanel, being less commonly used than Series and DataFrame,
+   has been slightly neglected feature-wise. A number of methods and options
+   available in DataFrame are not available in WidePanel. This will get worked
+   on, of course, in future releases. And faster if you join me in working on
+   the codebase.
+
 Item selection / addition / deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -638,12 +646,115 @@ replace NaN with some other value using **fillna** if you wish).
 Reindexing and modifying axis labels
 ------------------------------------
 
+Reindexing is one of the most important features of the Series and the
+other pandas data structures. In essence it means: *conform data to a
+specified index*.
+
+Using our prior example, we can see the basic behavior:
+
+::
+
+    >>> s.reindex(['f', 'a', 'd', 'e'])
+    f    nan
+    a    0.0
+    d    3.0
+    e    4.0
+
+As you can see, the new index order is as inputted, and values not
+present in the Series appear as NaN.
+
+For TimeSeries or other ordered Series, an additional argument can be
+specified to perform forward- (referred to as "padding") or
+back-filling:
+
+::
+
+    >>> ts
+    2009-01-02 00:00:00    1.0
+    2009-01-07 00:00:00    4.0
+
+    >>> ts.reindex(dates, method='pad')
+    2009-01-01 00:00:00    nan
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    1.0
+    2009-01-06 00:00:00    1.0
+    2009-01-07 00:00:00    4.0
+
+    >>> ts.reindex(dates, method='backfill')
+    2009-01-01 00:00:00    1.0
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    4.0
+    2009-01-06 00:00:00    4.0
+    2009-01-07 00:00:00    4.0
+
+.. note::
+
+    This filling logic assumes that the both the new and old Index
+    objects have ordered values.
+
+Two common reindexing methods are provided: **valid** (which we
+already mentioned) and **truncate** (for selecting intervals of index
+values).
+
+::
+
+    >>> ts
+    2009-01-01 00:00:00    0.0
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    2.0
+    2009-01-06 00:00:00    3.0
+    2009-01-07 00:00:00    4.0
+
+    >>> ts.truncate(before=datetime(2009, 1, 5), after=datetime(2009, 1, 6))
+    2009-01-05 00:00:00    2.0
+    2009-01-06 00:00:00    3.0
+
+Since writing out datetimes interactively like that can be a bit
+verbose, one can also pass a string date representation:
+
+::
+
+    >>> ts.truncate(after='1/5/2009')
+    2009-01-01 00:00:00    0.0
+    2009-01-02 00:00:00    1.0
+    2009-01-05 00:00:00    2.0
+
+
+::
+
+    >>> reindexed = df.reindex(index=new_index,
+                               columns=new_columns)
+
+For time series data, if the new index is higher frequency than the
+old one, you may wish to "fill" holes with the values as of each date:
+
+::
 
 Dropping labels from an axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Renaming / mapping labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One might want to relabel the index based on a mapping or
+function. For this the :func:`Series.rename` method is provided. It
+can accept either a dict or a function:
+
+::
+
+    >>> s
+	a    -0.544970223484
+	b    -0.946388873158
+	c    0.0360854957476
+	d    -0.795018577574
+	e    0.195977583894
+
+	>>> s.rename(str.upper)
+	A    -0.544970223484
+	B    -0.946388873158
+	C    0.0360854957476
+	D    -0.795018577574
+	E    0.195977583894
 
 
 Iteration
