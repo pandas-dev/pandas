@@ -6,15 +6,6 @@
 DataFrame
 *********
 
-Transposing
-~~~~~~~~~~~
-
-To transpose, access the **T** attribute, similar to an ndarray
-
-.. ipython:: python
-
-    df.T
-    df.T[date]
 
 Slicing ranges
 ~~~~~~~~~~~~~~
@@ -41,63 +32,6 @@ indexing to select rows of a DataFrame:
 As we will see later on, the same operation could be accomplished by
 reindexing. However, the syntax would be more verbose; hence, the
 inclusion of this indexing method.
-
-Arithmetic
-----------
-
-.. seealso:: :ref:`Series arithmetic <series.arithmetic>`
-
-Binary operations with DataFrame have similar index-matching behavior
-as with Series objects. The addition is the matching of column names
-between DataFrame objects or Series. We will detail how the
-interactions work in each case.
-
-Binary operation between DataFrame and DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When combining two DataFrames, both index and column values must match
-for two values to be combined. If there is no match for a particular
-(index, column) pair, the result for that location will be NaN. To
-illustrate, let's return to a similar example from the beginning of
-the tutorial:
-
-.. ipython:: python
-
-    df = DataFrame(data, index=index)
-    df
-    df + df[:7]
-
-In this first example, we can see that the indices have been combined
-together, and the portion where dates are missing in one of the frames
-has resulted in all NaN values. The resulting columns will also be the
-union of the frames' columns:
-
-.. ipython:: python
-
-    df2 = df.copy()
-    df2['D'] = 5
-    del df2['A']
-    df + df2[::2]
-
-Here, neither **A** nor **D** was in both frames: they appear in the
-result but are all NaN. An argument could be made to exclude these
-columns, but it is very frequently meaningful to know that there was
-no overlap in a particular portion of the data set.
-
-Binary operation between DataFrame and Series
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Binary operation with scalar value
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Scalar operations work just as expected:
-
-.. ipython:: python
-
-    df = df[:5]
-    df * 5 + 2
-    1 / df
-    df ** 4
 
 Basic statistical functions
 ---------------------------
@@ -167,22 +101,6 @@ computing the cross-sectional or time series z-score:
     2009-01-30 00:00:00    -1.79314       -0.173077      0.156054       -0.96237
     2009-02-27 00:00:00    -1.16502       1.7612         -1.15894       -0.437405
     ...
-
-.. autosummary::
-   :toctree: generated/
-
-   DataFrame.count
-   DataFrame.sum
-   DataFrame.cumsum
-   DataFrame.product
-   DataFrame.mean
-   DataFrame.median
-   DataFrame.min
-   DataFrame.max
-   DataFrame.mad
-   DataFrame.var
-   DataFrame.std
-   DataFrame.skew
 
 Correlation
 ~~~~~~~~~~~

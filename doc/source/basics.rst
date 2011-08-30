@@ -14,11 +14,13 @@ objects. To get started, import numpy and load pandas into your namespace:
    :suppress:
 
    import numpy as np
+   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
 .. ipython:: python
 
-   import numpy as np
+   import numpy as np;
+   randn = np.random.randn # will use this a lot for examples
    from pandas import *
 
 Here is a basic tenet to keep in mind: **data alignment is intrinsic**. Link
@@ -57,11 +59,11 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. ipython:: python
 
-   s = Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    s
    s.index
 
-   Series(np.random.randn(5))
+   Series(randn(5))
 
 .. note::
 
@@ -345,8 +347,8 @@ union of the column and row labels.
 
 .. ipython:: python
 
-    df = DataFrame(np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
-    df2 = DataFrame(np.random.randn(7, 3), columns=['A', 'B', 'C'])
+    df = DataFrame(randn(10, 4), columns=['A', 'B', 'C', 'D'])
+    df2 = DataFrame(randn(7, 3), columns=['A', 'B', 'C'])
     df + df2
 
 When doing an operation between DataFrame and Series, the default behavior is
@@ -366,7 +368,7 @@ column-wise:
 .. ipython:: python
 
    index = DateRange('1/1/2000', periods=8)
-   df = DataFrame(np.random.randn(8, 3), index=index,
+   df = DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
    df
    type(df['A'])
@@ -391,15 +393,30 @@ Operations with scalars are just as you would expect:
    1 / df
    df ** 4
 
+Transposing
+~~~~~~~~~~~
+
+To transpose, access the **T** attribute (also the *transpose* function),
+similar to an ndarray:
+
+.. ipython::
+
+   # only show the first 5 rows
+   In [0]: df[:5].T
+
 DataFrame interop with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Elementwise NumPy ufuncs (log, exp, sqrt, ...) can be used with no issues on
-DataFrame, assuming the data within are numeric:
+Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
+can be used with no issues on DataFrame, assuming the data within are numeric:
 
 .. ipython:: python
 
    np.exp(df)
+   np.asarray(df)
+
+DataFrame is not intended to be a drop-in replacement for ndarray as its
+indexing semantics are quite different in places from a matrix.
 
 Console display
 ~~~~~~~~~~~~~~~
@@ -414,7 +431,7 @@ R package):
    baseball
 
 However, using **to_string** will display any DataFrame in tabular form, though
-it won't always fit the he console width:
+it won't always fit the console width:
 
 .. ipython:: python
 
@@ -452,7 +469,7 @@ Construction of WidePanels works about like you would expect:
 
 .. ipython:: python
 
-   wp = WidePanel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+   wp = WidePanel(randn(2, 5, 4), items=['Item1', 'Item2'],
                   major_axis=DateRange('1/1/2000', periods=5),
                   minor_axis=['A', 'B', 'C', 'D'])
    wp
@@ -462,8 +479,8 @@ Construction of WidePanels works about like you would expect:
 
 .. ipython:: python
 
-   data = {'Item1' : DataFrame(np.random.randn(4, 3)),
-           'Item2' : DataFrame(np.random.randn(4, 2))}
+   data = {'Item1' : DataFrame(randn(4, 3)),
+           'Item2' : DataFrame(randn(4, 2))}
    WidePanel(data)
 
 Note that the values in the dict need only be **convertible to
@@ -565,6 +582,38 @@ unlike the axis labels, cannot be assigned to.
 Descriptive statistics
 ----------------------
 
+A large number of methods for computing descriptive statistics and other related
+operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
+<api.dataframe.stats>`, and :ref:`WidePanel <api.panel.stats>`. Most of these
+are aggregations (hence producing a lower-dimensional result) like **sum**,
+**mean**, and **quantile**, but some of them, like **cumsum** and **cumprod**,
+produce an object of the same size. Generally speaking, these methods take an
+**axis** argument, just like *ndarray.{sum, std, ...}*, but the axis can be
+specified by name or integer:
+
+  - **Series**: no axis argument needed
+  - **DataFrame**: "index" (axis=0), "columns" (axis=1)
+  - **WidePanel**: "items" (axis=0), "major" (axis=1), "minor" (axis=2)
+
+Summarizing data: describe
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For floating point data, there is a convenient ``describe`` function which
+computes a variety of summary statistics about a Series or the columns of a
+DataFrame (excluding NAs of course):
+
+.. ipython:: python
+
+    series = Series(randn(1000))
+	series[::2] = np.nan
+    series.describe()
+    frame = DataFrame(randn(1000, 5))
+	frame.ix[::2] = np.nan
+    frame.describe()
+
+Correlations between objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. _basics.apply:
 
 Function application
@@ -596,9 +645,9 @@ either match on the *index* or *columns* via the **axis** keyword:
 .. ipython:: python
    :suppress:
 
-   d = {'one' : Series(np.random.randn(3), index=['a', 'b', 'c']),
-        'two' : Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
-        'three' : Series(np.random.randn(3), index=['b', 'c', 'd'])}
+   d = {'one' : Series(randn(3), index=['a', 'b', 'c']),
+        'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
+        'three' : Series(randn(3), index=['b', 'c', 'd'])}
    df = DataFrame(d)
 
 .. ipython:: python
@@ -638,8 +687,17 @@ are missing that value, in which case the result will be NaN (you can later
 replace NaN with some other value using **fillna** if you wish).
 
 .. ipython:: python
+   :suppress:
+
+   df2 = df.copy()
+   df2['three']['a'] = 1.
+
+.. ipython:: python
 
    df
+   df2
+   df + df2
+   df.add(df2, fill_value=0)
 
 .. _basics.reindexing:
 
@@ -743,18 +801,18 @@ can accept either a dict or a function:
 ::
 
     >>> s
-	a    -0.544970223484
-	b    -0.946388873158
-	c    0.0360854957476
-	d    -0.795018577574
-	e    0.195977583894
+    a    -0.544970223484
+    b    -0.946388873158
+    c    0.0360854957476
+    d    -0.795018577574
+    e    0.195977583894
 
-	>>> s.rename(str.upper)
-	A    -0.544970223484
-	B    -0.946388873158
-	C    0.0360854957476
-	D    -0.795018577574
-	E    0.195977583894
+    >>> s.rename(str.upper)
+    A    -0.544970223484
+    B    -0.946388873158
+    C    0.0360854957476
+    D    -0.795018577574
+    E    0.195977583894
 
 
 Iteration
