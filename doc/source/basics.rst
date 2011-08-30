@@ -552,7 +552,7 @@ unlike the axis labels, cannot be assigned to.
     strings are involved, the result will be of object dtype. If there are only
     floats and integers, the resulting array will be of float dtype.
 
-.. _basics.apply:
+.. _basics.stats:
 
 Descriptive statistics
 ----------------------

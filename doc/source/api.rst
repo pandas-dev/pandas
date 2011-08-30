@@ -60,6 +60,8 @@ Function application, GroupBy
    Series.map
    Series.groupby
 
+.. _api.series.stats:
+
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -223,6 +225,8 @@ Function application, GroupBy
    DataFrame.apply
    DataFrame.applymap
    DataFrame.groupby
+
+.. _api.dataframe.stats:
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

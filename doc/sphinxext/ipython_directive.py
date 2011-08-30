@@ -464,11 +464,6 @@ class EmbeddedSphinxShell(object):
 
             line_stripped = line.strip()
 
-            try:
-                leading_whitespace = re.search('\s+', line).group(0)
-            except AttributeError:
-                leading_whitespace = ''
-
             if not len(line):
                 output.append(line) # preserve empty lines in output
                 continue
@@ -689,7 +684,13 @@ class IpythonDirective(Directive):
             if len(block):
                 rows, figure = self.shell.process_block(block)
                 for row in rows:
-                    lines.extend(['   %s'%line for line in row.split('\n')])
+                    # hack
+                    # if row == '':
+                    #     continue
+
+                    # lines.extend(['   %s'% row.strip()])
+                    lines.extend(['   %s' % line
+                                  for line in re.split('[\n]+', row)])
 
                 if figure is not None:
                     figures.append(figure)
