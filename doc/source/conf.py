@@ -207,7 +207,8 @@ htmlhelp_basename = 'pandas'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'pandas.tex', u'pandas Documentation',
+  ('index', 'pandas.tex',
+   u'pandas: powerful Python data analysis toolkit',
    u'Wes McKinney', 'manual'),
 ]
 

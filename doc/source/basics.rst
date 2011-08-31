@@ -650,7 +650,7 @@ have the option of inputting a *fill_value*, namely a value to substitute when
 at most one of the values at a location are missing. For example, when adding
 two DataFrame objects, you may wish to treat NaN as 0 unless both DataFrames
 are missing that value, in which case the result will be NaN (you can later
-replace NaN with some other value using **fillna** if you wish).
+replace NaN with some other value using ``fillna`` if you wish).
 
 .. ipython:: python
    :suppress:
@@ -877,6 +877,12 @@ following can be done:
 This means that the reindexed Series's index is the same Python object as the
 DataFrame's index.
 
+
+.. seealso::
+
+   :ref:`Fancy indexing <indexing.fancy>` is an even more concise way of doing
+   reindexing.
+
 .. note::
 
     When writing performance-sensitive code, there is a good reason to spend
@@ -886,6 +892,8 @@ DataFrame's index.
     difference (because ``reindex`` has been heavily optimized), but when CPU
     cycles matter sprinking a few explicit ``reindex`` calls here and there can
     have an impact.
+
+.. _basics.reindex_like:
 
 Reindexing to align with another object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -908,102 +916,94 @@ make this simpler:
    df2
    df.reindex_like(df2)
 
+.. _basics.reindex_fill:
+
 Filling while reindexing
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-For TimeSeries or other ordered Series, an additional argument can be
-specified to perform forward- (referred to as "padding") or
-back-filling:
+``reindex`` takes an optional parameter ``method`` which is a filling method
+chosen from the following table:
 
-::
+.. csv-table::
+    :header: "Method", "Action"
+    :widths: 30, 50
 
-    >>> ts
-    2009-01-02 00:00:00    1.0
-    2009-01-07 00:00:00    4.0
+    pad / ffill, Fill values forward
+    bfill / backfill, Fill values backward
 
-    >>> ts.reindex(dates, method='pad')
-    2009-01-01 00:00:00    nan
-    2009-01-02 00:00:00    1.0
-    2009-01-05 00:00:00    1.0
-    2009-01-06 00:00:00    1.0
-    2009-01-07 00:00:00    4.0
+Other fill methods could be added, of course, but these are the two most
+commonly used for time series data. In a way they only make sense for time
+series or otherwise ordered data, but you may have an application on non-time
+series data where this sort of "interpolation" logic is the correct thing to
+do. More sophisticated interpolation of missing values would be an obvious
+extension.
 
-    >>> ts.reindex(dates, method='backfill')
-    2009-01-01 00:00:00    1.0
-    2009-01-02 00:00:00    1.0
-    2009-01-05 00:00:00    4.0
-    2009-01-06 00:00:00    4.0
-    2009-01-07 00:00:00    4.0
+We illustrate these fill methods on a simple TimeSeries:
 
-.. note::
+.. ipython:: python
 
-    This filling logic assumes that the both the new and old Index
-    objects have ordered values.
+   rng = DateRange('1/3/2000', periods=8)
+   ts = Series(randn(8), index=rng)
+   ts2 = ts[[0, 3, 6]]
+   ts
+   ts2
 
-Two common reindexing methods are provided: **valid** (which we
-already mentioned) and **truncate** (for selecting intervals of index
-values).
+   ts2.reindex(ts.index)
+   ts2.reindex(ts.index, method='ffill')
+   ts2.reindex(ts.index, method='bfill')
 
-::
+Note the same result could have been achieved using :ref:`fillna
+<missing_data.fillna>`:
 
-    >>> ts
-    2009-01-01 00:00:00    0.0
-    2009-01-02 00:00:00    1.0
-    2009-01-05 00:00:00    2.0
-    2009-01-06 00:00:00    3.0
-    2009-01-07 00:00:00    4.0
+.. ipython:: python
 
-    >>> ts.truncate(before=datetime(2009, 1, 5), after=datetime(2009, 1, 6))
-    2009-01-05 00:00:00    2.0
-    2009-01-06 00:00:00    3.0
+   ts2.reindex(ts.index).fillna(method='ffill')
 
-Since writing out datetimes interactively like that can be a bit
-verbose, one can also pass a string date representation:
+Note these methods generally assume that the indexes are **sorted**. They may
+be modified in the future to be a bit more flexible but as time series data is
+ordered most of the time anyway, this has not been a major priority.
 
-::
-
-    >>> ts.truncate(after='1/5/2009')
-    2009-01-01 00:00:00    0.0
-    2009-01-02 00:00:00    1.0
-    2009-01-05 00:00:00    2.0
-
-
-::
-
-    >>> reindexed = df.reindex(index=new_index,
-                               columns=new_columns)
-
-For time series data, if the new index is higher frequency than the
-old one, you may wish to "fill" holes with the values as of each date:
-
-
+.. _basics.drop:
 
 Dropping labels from an axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+A method closely related to ``reindex`` is the ``drop`` function. It removes a
+set of labels from an axis:
+
+.. ipython:: python
+
+   df
+   df.drop(['a', 'd'], axis=0)
+   df.drop(['one'], axis=1)
+
+Note that the following also works, but a bit less obvious / clean:
+
+.. ipython:: python
+
+   df.reindex(df.index - ['a', 'd'])
+
+.. _basics.rename:
+
 Renaming / mapping labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-One might want to relabel the index based on a mapping or
-function. For this the :func:`Series.rename` method is provided. It
-can accept either a dict or a function:
+The ``rename`` method allows you to relabel an axis based on some mapping (a
+dict or Series) or an arbitrary function.
 
-::
+.. ipython:: python
 
-    >>> s
-    a    -0.544970223484
-    b    -0.946388873158
-    c    0.0360854957476
-    d    -0.795018577574
-    e    0.195977583894
+   s
+   s.rename(str.upper)
 
-    >>> s.rename(str.upper)
-    A    -0.544970223484
-    B    -0.946388873158
-    C    0.0360854957476
-    D    -0.795018577574
-    E    0.195977583894
+If you pass a function, it must return a value when called with any of the
+labels (and must produce a set of unique values). But if you pass a dict or
+Series, it need only contain a subset of the labels as keys:
 
+.. ipython:: python
+
+   df.rename(columns={'one' : 'foo', 'two' : 'bar'},
+             index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
 
 Iteration
 ---------

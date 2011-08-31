@@ -117,6 +117,8 @@ NA values in GroupBy
 NA groups in GroupBy are automatically excluded. This behavior is consistent
 with R, for example.
 
+
+
 Cleaning / filling missing data
 --------------------------------
 
@@ -124,6 +126,8 @@ pandas objects are equipped with various data manipulation methods for dealing
 with missing data.
 
 dropna:
+
+.. _missing_data.fillna:
 
 Filling missing values: fillna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

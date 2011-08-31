@@ -362,3 +362,40 @@ GroupBy
 Moving window statistics
 ------------------------
 
+Standard moving window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.stats.moments
+
+.. autosummary::
+   :toctree: generated/
+Apr 4Apr 11Apr 18Apr 25May 2May 9May 16May 23May 30Jun 6Jun 13Jun 20Jun 27Jul 4Jul 11Jul 18Jul 25Aug 1Aug 8Aug 15Aug 22Aug 29Sep 5
+
+JulAugSepOctNovDec2010FebMarAprMayJunJulAugSepOctNovDec2011FebMarAprMayJunJulAugSepOctNovDec
+
+
+   rolling_count
+   rolling_sum
+   rolling_mean
+   rolling_median
+   rolling_var
+   rolling_std
+   rolling_corr
+   rolling_cov
+   rolling_skew
+   rolling_kurt
+   rolling_apply
+   rolling_quantile
+
+Exponentially-weighted moving window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   ewma
+   ewmstd
+   ewmvar
+   ewmcorr
+   ewmcov
+

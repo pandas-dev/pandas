@@ -120,23 +120,6 @@ And the binary moment functions:
 
 .. plot:: plots/stats/moments_rolling_binary.py
 
-Method summary
-~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   rolling_count
-   rolling_sum
-   rolling_mean
-   rolling_median
-   rolling_var
-   rolling_std
-   rolling_corr
-   rolling_cov
-   rolling_skew
-   rolling_kurt
-
 Exponentially weighted moment functions
 ---------------------------------------
 
@@ -175,12 +158,3 @@ The binary `emwcov` and `ewmcorr` are similar to their equal-weighted
 counterparts above.
 
 .. autofunction:: pandas.stats.moments.ewma
-
-.. autosummary::
-   :toctree: generated/
-
-   ewma
-   ewmstd
-   ewmvar
-   ewmcorr
-   ewmcov
