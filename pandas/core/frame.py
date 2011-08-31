@@ -1187,6 +1187,8 @@ class DataFrame(NDFrame):
         else:
             return self.reindex(columns=sort_index)
 
+    order = sort
+
     def sortlevel(self, level=0, axis=0, ascending=True):
         """
         Sort multilevel index by chosen axis and primary level. Data will be

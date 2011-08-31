@@ -153,7 +153,6 @@ class SafeForLongAndSparse(object):
 
         self._check_statistic(self.panel, 'skew', f)
 
-
 class SafeForSparse(object):
 
     @staticmethod
@@ -533,6 +532,28 @@ class TestWidePanel(unittest.TestCase, PanelTests,
                                      minor=self.panel.minor_axis[:-1])
         smaller_like = self.panel.reindex_like(smaller)
         assert_panel_equal(smaller, smaller_like)
+
+    def test_sort(self):
+        import random
+
+        ritems = list(self.panel.items)
+        rmajor = list(self.panel.major_axis)
+        rminor = list(self.panel.minor_axis)
+        random.shuffle(ritems)
+        random.shuffle(rmajor)
+        random.shuffle(rminor)
+
+        random_order = self.panel.reindex(items=ritems)
+        sorted_panel = random_order.sort(axis=0)
+        assert_panel_equal(sorted_panel, self.panel)
+
+        random_order = self.panel.reindex(major=rmajor)
+        sorted_panel = random_order.sort(axis=1)
+        assert_panel_equal(sorted_panel, self.panel)
+
+        random_order = self.panel.reindex(minor=rminor)
+        sorted_panel = random_order.sort(axis=2)
+        assert_panel_equal(sorted_panel, self.panel)
 
     def test_fillna(self):
         filled = self.panel.fillna(0)
