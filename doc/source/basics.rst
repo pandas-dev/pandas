@@ -405,8 +405,8 @@ similar to an ndarray:
    # only show the first 5 rows
    df[:5].T
 
-DataFrame interop with NumPy functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+DataFrame interoperability with NumPy functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
 can be used with no issues on DataFrame, assuming the data within are numeric:
@@ -714,22 +714,22 @@ Here is a quick reference summary table of common functions
 
 .. csv-table::
     :header: "Function", "Description"
-    :widths: 20, 50
+    :widths: 20, 80
 
     ``count``, Number of non-null observations
-	``sum``, Sum of values
-	``mean``, Mean of values
-	``median``, Arithmetic median of values
-	``min``, Minimum
-	``max``, Maximum
-	``prod``, Product of values
-	``std``, Unbiased standard deviation
-	``var``, Unbiased variance
-	``skew``, Unbiased skewness (3rd moment)
-	``kurt``, Unbiased kurtosis (4th moment)
-	``quantile``, Sample quantile (value at %)
-	``cumsum``, Cumulative sum
-	``cumprod``, Cumulative product
+    ``sum``, Sum of values
+    ``mean``, Mean of values
+    ``median``, Arithmetic median of values
+    ``min``, Minimum
+    ``max``, Maximum
+    ``prod``, Product of values
+    ``std``, Unbiased standard deviation
+    ``var``, Unbiased variance
+    ``skew``, Unbiased skewness (3rd moment)
+    ``kurt``, Unbiased kurtosis (4th moment)
+    ``quantile``, Sample quantile (value at %)
+    ``cumsum``, Cumulative sum
+    ``cumprod``, Cumulative product
 
 Summarizing data: describe
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -835,22 +835,81 @@ to :ref:`merging/joining functionality <merging>`:
 Reindexing and altering labels
 ------------------------------
 
-Reindexing is one of the most important features of the Series and the
-other pandas data structures. In essence it means: *conform data to a
-specified index*.
+``reindex`` is the fundamental data alignment method in pandas. It is used to
+implement nearly all other features relying on label-alignment
+functionality. To *reindex* means to conform the data to match a given set of
+labels along a particular axis. This accomplishes several things:
 
-Using our prior example, we can see the basic behavior:
+  * Reorders the existing data to match a new set of labels
+  * Inserts missing value (NA) markers in label locations where no data for
+    that label existed
+  * If specified, **fill** data for missing labels using logic (highly relevant
+    to working with time series data)
 
-::
+Here is a simple example:
 
-    >>> s.reindex(['f', 'a', 'd', 'e'])
-    f    nan
-    a    0.0
-    d    3.0
-    e    4.0
+.. ipython:: python
 
-As you can see, the new index order is as inputted, and values not
-present in the Series appear as NaN.
+   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s
+   s.reindex(['e', 'b', 'f', 'd'])
+
+Here, the ``f`` label was not contained in the Series and hence appears as
+``NaN`` in the result.
+
+With a DataFrame, you can simultaneously reindex the index and columns:
+
+.. ipython:: python
+
+   df
+   df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
+
+Note that the ``Index`` objects containing the actual axis labels can be
+**shared** between objects. So if we have a Series and a DataFrame, the
+following can be done:
+
+.. ipython:: python
+
+   rs = s.reindex(df.index)
+   rs
+   rs.index is df.index
+
+This means that the reindexed Series's index is the same Python object as the
+DataFrame's index.
+
+.. note::
+
+    When writing performance-sensitive code, there is a good reason to spend
+    some time becoming a reindexing ninja: **many operations are faster on
+    pre-aligned data**. Adding two unaligned DataFrames internally triggers a
+    reindexing step. For exploratory analysis you will hardly notice the
+    difference (because ``reindex`` has been heavily optimized), but when CPU
+    cycles matter sprinking a few explicit ``reindex`` calls here and there can
+    have an impact.
+
+Reindexing to align with another object
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You may wish to take an object and reindex its axes to be labeled the same as
+another object. While the syntax for this is straightforwad albeit verbose, it
+is a common enough operation that the ``reindex_like`` method is available to
+make this simpler:
+
+.. ipython:: python
+   :suppress:
+
+   df2 = df.reindex(['a', 'b', 'c'], columns=['one', 'two'])
+   df2 = df2 - df2.mean()
+
+
+.. ipython:: python
+
+   df
+   df2
+   df.reindex_like(df2)
+
+Filling while reindexing
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 For TimeSeries or other ordered Series, an additional argument can be
 specified to perform forward- (referred to as "padding") or
@@ -917,7 +976,7 @@ verbose, one can also pass a string date representation:
 For time series data, if the new index is higher frequency than the
 old one, you may wish to "fill" holes with the values as of each date:
 
-::
+
 
 Dropping labels from an axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
