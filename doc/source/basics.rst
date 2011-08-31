@@ -19,8 +19,9 @@ objects. To get started, import numpy and load pandas into your namespace:
 
 .. ipython:: python
 
-   import numpy as np;
-   randn = np.random.randn # will use this a lot for examples
+   import numpy as np
+   # will use a lot in examples
+   randn = np.random.randn
    from pandas import *
 
 Here is a basic tenet to keep in mind: **data alignment is intrinsic**. Link
@@ -43,7 +44,7 @@ the **index**. The basic method to create a Series is to call:
 
     >>> s = Series(data, index=index)
 
-Here, **data** can be many different things:
+Here, ``data`` can be many different things:
 
  - a Python dict
  - an ndarray
@@ -54,7 +55,7 @@ cases depending on what **data is**:
 
 **From ndarray**
 
-If **data** is an ndarray, **index** must be the same length as **data**. If no
+If ``data`` is an ndarray, **index** must be the same length as **data**. If no
 index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. ipython:: python
@@ -77,7 +78,7 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 **From dict**
 
-If **data** is a dict, if **index** is passed the values in data corresponding
+If ``data`` is a dict, if **index** is passed the values in data corresponding
 to the labels in the index will be pulled out. Otherwise, an index will be
 constructed from the sorted keys of the dict, if possible.
 
@@ -91,8 +92,8 @@ constructed from the sorted keys of the dict, if possible.
 
     NaN (not a number) is the standard missing data marker used in pandas
 
-**From scalar value** If **data** is a scalar value, an index must be provided. The value
-will be repeated to match the length of **index**
+**From scalar value** If ``data`` is a scalar value, an index must be
+provided. The value will be repeated to match the length of **index**
 
 .. ipython:: python
 
@@ -299,8 +300,8 @@ will be conformed to the DataFrame's index:
 You can insert raw ndarrays but their length must match the length of the
 DataFrame's index.
 
-By default, columns get inserted at the end. The **insert**
-function is available to insert at a particular location in the columns:
+By default, columns get inserted at the end. The ``insert`` function is
+available to insert at a particular location in the columns:
 
 .. ipython:: python
 
@@ -396,13 +397,13 @@ Operations with scalars are just as you would expect:
 Transposing
 ~~~~~~~~~~~
 
-To transpose, access the **T** attribute (also the *transpose* function),
+To transpose, access the ``T`` attribute (also the ``transpose`` function),
 similar to an ndarray:
 
-.. ipython::
+.. ipython:: python
 
    # only show the first 5 rows
-   In [0]: df[:5].T
+   df[:5].T
 
 DataFrame interop with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -430,7 +431,7 @@ R package):
    baseball = read_csv('baseball.csv')
    baseball
 
-However, using **to_string** will display any DataFrame in tabular form, though
+However, using ``to_string`` will display any DataFrame in tabular form, though
 it won't always fit the console width:
 
 .. ipython:: python
@@ -577,47 +578,6 @@ unlike the axis labels, cannot be assigned to.
     strings are involved, the result will be of object dtype. If there are only
     floats and integers, the resulting array will be of float dtype.
 
-.. _basics.stats:
-
-Descriptive statistics
-----------------------
-
-A large number of methods for computing descriptive statistics and other related
-operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
-<api.dataframe.stats>`, and :ref:`WidePanel <api.panel.stats>`. Most of these
-are aggregations (hence producing a lower-dimensional result) like **sum**,
-**mean**, and **quantile**, but some of them, like **cumsum** and **cumprod**,
-produce an object of the same size. Generally speaking, these methods take an
-**axis** argument, just like *ndarray.{sum, std, ...}*, but the axis can be
-specified by name or integer:
-
-  - **Series**: no axis argument needed
-  - **DataFrame**: "index" (axis=0), "columns" (axis=1)
-  - **WidePanel**: "items" (axis=0), "major" (axis=1), "minor" (axis=2)
-
-Summarizing data: describe
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-For floating point data, there is a convenient ``describe`` function which
-computes a variety of summary statistics about a Series or the columns of a
-DataFrame (excluding NAs of course):
-
-.. ipython:: python
-
-    series = Series(randn(1000))
-	series[::2] = np.nan
-    series.describe()
-    frame = DataFrame(randn(1000, 5))
-	frame.ix[::2] = np.nan
-    frame.describe()
-
-Correlations between objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _basics.apply:
-
-Function application
---------------------
 
 .. _basics.binop:
 
@@ -676,6 +636,12 @@ an axis and broadcasting over the same axis:
 
 And similarly for axis="items" and axis="minor".
 
+.. note::
+
+   I could be convinced to make the **axis** argument in the DataFrame methods
+   match the broadcasting behavior of WidePanel. Though it would require a
+   transition period so users can change their code...
+
 Missing data / operations with fill values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -699,10 +665,175 @@ replace NaN with some other value using **fillna** if you wish).
    df + df2
    df.add(df2, fill_value=0)
 
+.. _basics.stats:
+
+Descriptive statistics
+----------------------
+
+A large number of methods for computing descriptive statistics and other related
+operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
+<api.dataframe.stats>`, and :ref:`WidePanel <api.panel.stats>`. Most of these
+are aggregations (hence producing a lower-dimensional result) like **sum**,
+**mean**, and **quantile**, but some of them, like **cumsum** and **cumprod**,
+produce an object of the same size. Generally speaking, these methods take an
+**axis** argument, just like *ndarray.{sum, std, ...}*, but the axis can be
+specified by name or integer:
+
+  - **Series**: no axis argument needed
+  - **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
+  - **WidePanel**: "items" (axis=0), "major" (axis=1, default), "minor"
+    (axis=2)
+
+For example:
+
+.. ipython:: python
+
+   df
+   df.mean(0)
+   df.mean(1)
+
+Combined with the broadcasting / arithmetic behavior, one can describe various
+statistical procedures, like standardization (rendering data zero mean and
+standard deviation 1), very concisely:
+
+.. ipython:: python
+
+   ts_stand = (df - df.mean()) / df.std()
+   ts_stand.std()
+   xs_stand = df.sub(df.mean(1), axis=0).div(df.std(1), axis=0)
+   xs_stand.std(1)
+
+Note that methods like **cumsum** and **cumprod** preserve the location of NA
+values:
+
+.. ipython:: python
+
+   df.cumsum()
+
+Here is a quick reference summary table of common functions
+
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 50
+
+    ``count``, Number of non-null observations
+	``sum``, Sum of values
+	``mean``, Mean of values
+	``median``, Arithmetic median of values
+	``min``, Minimum
+	``max``, Maximum
+	``prod``, Product of values
+	``std``, Unbiased standard deviation
+	``var``, Unbiased variance
+	``skew``, Unbiased skewness (3rd moment)
+	``kurt``, Unbiased kurtosis (4th moment)
+	``quantile``, Sample quantile (value at %)
+	``cumsum``, Cumulative sum
+	``cumprod``, Cumulative product
+
+Summarizing data: describe
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For floating point data, there is a convenient ``describe`` function which
+computes a variety of summary statistics about a Series or the columns of a
+DataFrame (excluding NAs of course):
+
+.. ipython:: python
+
+    series = Series(randn(1000))
+    series[::2] = np.nan
+    series.describe()
+    frame = DataFrame(randn(1000, 5))
+    frame.ix[::2] = np.nan
+    frame.describe()
+
+Correlations between objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Several handy methods for computing correlations are provided. The only
+behavior available at the moment is to compute "pairwise complete
+observations". In computing correlations in the presence of missing data, one
+must be careful internally to compute the standard deviation of each Series
+over the labels with valid data in both objects.
+
+.. ipython:: python
+
+   # Series with Series
+   frame[0].corr(frame[0])
+
+   # Pairwise correlation of DataFrame columns
+   frame.corr()
+
+A related method ``corrwith`` is implemented on DataFrame to compute the
+correlation between like-labeled Series contained in different DataFrame
+objects.
+
+.. ipython:: python
+
+   index = ['a', 'b', 'c', 'd', 'e']
+   columns = ['one', 'two', 'three', 'four']
+   df1 = DataFrame(randn(5, 4), index=index, columns=columns)
+   df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
+   df1.corrwith(df2)
+   df2.corrwith(df1, axis=1)
+
+.. _basics.apply:
+
+Function application
+--------------------
+
+Arbitrary functions can be applied along the axes of a DataFrame or WidePanel
+using the ``apply`` method, which, like the descriptive statistics methods,
+take an optional ``axis`` argument:
+
+.. ipython:: python
+
+   df.apply(np.mean)
+   df.apply(np.mean, axis=1)
+   df.apply(lambda x: x.max() - x.min())
+   df.apply(np.cumsum)
+   df.apply(np.exp)
+
+Depending on the return type of the function passed to ``apply``, the result
+will either be of lower dimension or the same dimension.
+
+.. seealso::
+
+   The section on :ref:`GroupBy <groupby>` demonstrates related, flexible
+   functionality for grouping by some criterion, applying, and combining the
+   results into a Series, DataFrame, etc.
+
+Applying elementwise Python functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since not all functions can be vectorized (accept NumPy arrays and return
+another array or value), the methods ``applymap`` on DataFrame and analogously
+``map`` on Series accept any Python function taking a single value and
+returning a single value. For example:
+
+.. ipython:: python
+
+   f = lambda x: len(str(x))
+   df['one'].map(f)
+   df.applymap(f)
+
+``Series.map`` has an additional feature which is that it can be used to easily
+"link" or "map" values defined by a secondary series. This is closely related
+to :ref:`merging/joining functionality <merging>`:
+
+
+.. ipython:: python
+
+   s = Series(['six', 'seven', 'six', 'seven', 'six'],
+              index=['a', 'b', 'c', 'd', 'e'])
+   t = Series({'six' : 6., 'seven' : 7.})
+   s
+   s.map(t)
+
 .. _basics.reindexing:
 
-Reindexing and modifying axis labels
-------------------------------------
+Reindexing and altering labels
+------------------------------
 
 Reindexing is one of the most important features of the Series and the
 other pandas data structures. In essence it means: *conform data to a
@@ -851,6 +982,74 @@ For example:
       ...:     print item
       ...:     print frame
       ...:
+
+.. _basics.sorting:
+
+Sorting by index and value
+--------------------------
+
+A number of methods for sorting Series data are provided:
+
+::
+
+    >>> s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+    >>> s
+    a    -0.308339649397
+    b    -0.447658314192
+    c    -0.391847354208
+    d    0.427084101354
+    e    1.51816072219
+
+    >>> s.order()
+    b    -0.447658314192
+    c    -0.391847354208
+    a    -0.308339649397
+    d    0.427084101354
+    e    1.51816072219
+
+    >>> s.argsort()
+    a    1
+    b    2
+    c    0
+    d    3
+    e    4
+
+    >>> s.sort()    # in-place sort
+    >>> s
+    b    -0.447658314192
+    c    -0.391847354208
+    a    -0.308339649397
+    d    0.427084101354
+    e    1.51816072219
+
+:func:`Series.order` is intended to behave similarly to the R function
+of the same name. In the presence of missing data it accepts an
+optional argument specifying where to sort the NaN values (either the
+end or the beginning). The default is to sort them to the end, which
+is the new sorting behavior in NumPy >= 1.4.0:
+
+::
+
+    >>> s
+    a    -2.21668112685
+    b    -0.520791835078
+    c    NaN
+    d    -0.788775281233
+    e    -0.779555719818
+
+    >>> s.order()
+    a    -2.21668112685
+    d    -0.788775281233
+    e    -0.779555719818
+    b    -0.520791835078
+    c    NaN
+
+    >>> s.order(missingAtEnd=False)
+    c    NaN
+    a    -2.21668112685
+    d    -0.788775281233
+    e    -0.779555719818
+    b    -0.520791835078
 
 .. _basics.cast:
 

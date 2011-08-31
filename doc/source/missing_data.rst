@@ -202,19 +202,14 @@ for interpolation methods outside of the filling methods described above.
    ts[60:80] = np.nan
    ts = ts.cumsum()
 
-.. ipython::
+.. ipython:: python
 
-   In [0]: fig, axes = plt.subplots(ncols=2, figsize=(8, 4))
-
-   In [0]: ts.plot(ax=axes[0])
-
-   In [0]: ts.interpolate().plot(ax=axes[1])
-
-   In [0]: axes[0].set_title('Not interpolated')
-
+   fig, axes = plt.subplots(ncols=2, figsize=(8, 4))
+   ts.plot(ax=axes[0])
+   ts.interpolate().plot(ax=axes[1])
+   axes[0].set_title('Not interpolated')
    @savefig series_interpolate.png width=6in
-   In [0]: axes[1].set_title('Interpolated')
-
+   axes[1].set_title('Interpolated')
 
 Missing data casting rules and indexing
 ---------------------------------------

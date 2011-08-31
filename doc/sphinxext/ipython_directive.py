@@ -540,15 +540,13 @@ class EmbeddedSphinxShell(object):
         multiline_start = None
         fmtin = self.promptin
 
-        modified_content = []
-
         ct = 0
 
         for lineno, line in enumerate(content):
 
             line_stripped = line.strip()
             if not len(line):
-                modified_content.append(line)
+                output.append(line)
                 continue
 
             # handle decorators
@@ -566,27 +564,27 @@ class EmbeddedSphinxShell(object):
             continuation  = u'   %s:'% ''.join(['.']*(len(str(ct))+2))
             if not multiline:
                 modified = u"%s %s" % (fmtin % ct, line_stripped)
-                modified_content.append(modified)
+                output.append(modified)
                 ct += 1
                 try:
                     ast.parse(line_stripped)
-                    modified_content.append(u'')
+                    output.append(u'')
                 except Exception:
                     multiline = True
                     multiline_start = lineno
             else:
                 modified = u'%s %s' % (continuation, line)
-                modified_content.append(modified)
+                output.append(modified)
                 try:
                     ast.parse('\n'.join(content[multiline_start:lineno+1]))
-                    modified_content.append(u'')
+                    output.append(u'')
                     multiline = False
                 except Exception:
                     pass
 
             continue
 
-        return modified_content
+        return output
 
 class IpythonDirective(Directive):
 
