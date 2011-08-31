@@ -100,6 +100,7 @@ def comp_method(func, name):
 
 class DataFrame(NDFrame):
     _auto_consolidate = True
+    _verbose_info = True
 
     _AXIS_NUMBERS = {
         'index' : 0,
@@ -266,7 +267,7 @@ class DataFrame(NDFrame):
         if len(self.index) < 500 and len(self.columns) <= 10:
             self.to_string(buf=buf)
         else:
-            self.info(buf=buf)
+            self.info(buf=buf, verbose=self._verbose_info)
 
         return buf.getvalue()
 
@@ -1167,16 +1168,40 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
+        by = None
         if column:
             assert(axis == 0)
-            series = self[column].order(na_last=False)
-            sort_index = series.index
+            by = self[column].values
+        return self.sort_index(by=by, axis=axis, ascending=ascending)
+
+    def sort_index(self, axis=0, by=None, ascending=True):
+        """
+        Sort DataFrame either by labels (along either axis) or by the values in
+        a column
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            Sort index/rows versus columns
+        by : object
+            Column name in frame
+        ascending : boolean, default True
+            Sort ascending vs. descending
+
+        Returns
+        -------
+        sorted : DataFrame
+        """
+        labels = self._get_axis(axis)
+
+        if by is not None:
+            if isinstance(by, basestring):
+                assert(axis == 0)
+                by = self[by].values
+
+            assert(len(by) == len(labels))
+            sort_index = Series(by, index=labels).order().index
         else:
-            assert(axis in (0, 1))
-            if axis == 0:
-                labels = self.index
-            else:
-                labels = self.columns
             sort_index = labels.take(labels.argsort())
 
         if not ascending:
@@ -1186,8 +1211,6 @@ class DataFrame(NDFrame):
             return self.reindex(sort_index)
         else:
             return self.reindex(columns=sort_index)
-
-    order = sort
 
     def sortlevel(self, level=0, axis=0, ascending=True):
         """

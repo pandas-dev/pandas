@@ -656,6 +656,22 @@ class TestSeries(unittest.TestCase):
         self.assert_(np.array_equal(ts, self.ts.order()))
         self.assert_(np.array_equal(ts.index, self.ts.order().index))
 
+    def test_sort_index(self):
+        import random
+
+        rindex = list(self.ts.index)
+        random.shuffle(rindex)
+
+        random_order = self.ts.reindex(rindex)
+        sorted_series = random_order.sort_index()
+        assert_series_equal(sorted_series, self.ts)
+
+
+        # descending
+        sorted_series = random_order.sort_index(ascending=False)
+        assert_series_equal(sorted_series,
+                            self.ts.reindex(self.ts.index[::-1]))
+
     def test_order(self):
         ts = self.ts.copy()
         ts[:5] = np.NaN

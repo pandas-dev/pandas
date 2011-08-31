@@ -2025,33 +2025,42 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # axis=0
         unordered = frame.ix[[3, 2, 4, 1]]
-        sorted_df = unordered.sort()
+        sorted_df = unordered.sort_index()
         expected = frame
         assert_frame_equal(sorted_df, expected)
 
-        sorted_df = unordered.sort(ascending=False)
+        sorted_df = unordered.sort_index(ascending=False)
         expected = frame[::-1]
         assert_frame_equal(sorted_df, expected)
 
         # axis=1
         unordered = frame.ix[:, ['D', 'B', 'C', 'A']]
-        sorted_df = unordered.sort(axis=1)
+        sorted_df = unordered.sort_index(axis=1)
         expected = frame
         assert_frame_equal(sorted_df, expected)
 
-        sorted_df = unordered.sort(axis=1, ascending=False)
+        sorted_df = unordered.sort_index(axis=1, ascending=False)
         expected = frame.ix[:, ::-1]
         assert_frame_equal(sorted_df, expected)
 
         # by column
-        sorted_df = frame.sort(column='A')
+        sorted_df = frame.sort_index(by='A')
         indexer = frame['A'].argsort().values
         expected = frame.ix[frame.index[indexer]]
         assert_frame_equal(sorted_df, expected)
 
-        sorted_df = frame.sort(column='A', ascending=False)
+        sorted_df = frame.sort_index(by='A', ascending=False)
         indexer = indexer[::-1]
         expected = frame.ix[frame.index[indexer]]
+        assert_frame_equal(sorted_df, expected)
+
+        # check for now
+        sorted_df = frame.sort(column='A')
+        expected = frame.sort_index(by='A')
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort(column='A', ascending=False)
+        expected = frame.sort_index(by='A', ascending=False)
         assert_frame_equal(sorted_df, expected)
 
     def test_combine_first(self):

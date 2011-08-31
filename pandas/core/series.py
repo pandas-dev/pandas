@@ -933,6 +933,26 @@ copy : boolean, default False
         self[:] = sortedSeries
         self.index = sortedSeries.index
 
+    def sort_labels(self, ascending=True):
+        """
+        Sort object by labels (along an axis)
+
+        Parameters
+        ----------
+        ascending : boolean, default True
+            Sort ascending vs. descending
+
+        Returns
+        -------
+        sorted_obj : Series
+        """
+        labels = self.index
+        sort_index = labels.argsort()
+        if not ascending:
+            sort_index = sort_index[::-1]
+        new_labels = labels.take(sort_index)
+        return self.reindex(new_labels)
+
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
         Overrides ndarray.argsort. Argsorts the value, omitting NA/null values,

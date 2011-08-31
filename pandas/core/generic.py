@@ -177,7 +177,7 @@ class PandasObject(Picklable):
         new_axis = axis.drop(labels)
         return self.reindex(**{axis_name : new_axis})
 
-    def sort(self, axis=0, ascending=True):
+    def sort_index(self, axis=0, ascending=True):
         """
         Sort object by labels (along an axis)
 

@@ -57,10 +57,10 @@ class TestMultiLevel(unittest.TestCase):
         repr(self.ymd.T)
 
         buf = StringIO()
-        self.frame.toString(buf=buf)
-        self.ymd.toString(buf=buf)
-        self.frame.T.toString(buf=buf)
-        self.ymd.T.toString(buf=buf)
+        self.frame.to_string(buf=buf)
+        self.ymd.to_string(buf=buf)
+        self.frame.T.to_string(buf=buf)
+        self.ymd.T.to_string(buf=buf)
 
     def test_getitem_simple(self):
         df = self.frame.T

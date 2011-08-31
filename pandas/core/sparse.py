@@ -621,6 +621,7 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries. Will not
         override SparseSeries passed in
     """
+    _verbose_info = False
     _columns = None
     _series = None
 
@@ -760,20 +761,6 @@ class SparseDataFrame(DataFrame):
         self.columns = columns
         self.default_fill_value = fv
         self.default_kind = kind
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular DataFrame
-        """
-        from cStringIO import StringIO
-
-        buf = StringIO()
-        if len(self.index) < 500 and len(self.columns) < 10:
-            self.toString(buf=buf)
-        else:
-            self.info(buf=buf, verbose=False)
-
-        return buf.getvalue()
 
     def to_dense(self):
         """

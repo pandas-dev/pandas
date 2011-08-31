@@ -533,7 +533,7 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         smaller_like = self.panel.reindex_like(smaller)
         assert_panel_equal(smaller, smaller_like)
 
-    def test_sort(self):
+    def test_sort_index(self):
         import random
 
         ritems = list(self.panel.items)
@@ -544,15 +544,21 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         random.shuffle(rminor)
 
         random_order = self.panel.reindex(items=ritems)
-        sorted_panel = random_order.sort(axis=0)
+        sorted_panel = random_order.sort_index(axis=0)
         assert_panel_equal(sorted_panel, self.panel)
 
+        # descending
+        random_order = self.panel.reindex(items=ritems)
+        sorted_panel = random_order.sort_index(axis=0, ascending=False)
+        assert_panel_equal(sorted_panel,
+                           self.panel.reindex(items=self.panel.items[::-1]))
+
         random_order = self.panel.reindex(major=rmajor)
-        sorted_panel = random_order.sort(axis=1)
+        sorted_panel = random_order.sort_index(axis=1)
         assert_panel_equal(sorted_panel, self.panel)
 
         random_order = self.panel.reindex(minor=rminor)
-        sorted_panel = random_order.sort(axis=2)
+        sorted_panel = random_order.sort_index(axis=2)
         assert_panel_equal(sorted_panel, self.panel)
 
     def test_fillna(self):
