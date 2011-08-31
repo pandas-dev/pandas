@@ -1047,68 +1047,45 @@ For example:
 Sorting by index and value
 --------------------------
 
-A number of methods for sorting Series data are provided:
+There are two obvious kinds of sorting that you may be interested in: sorting
+by label and sorting by actual values. The primary method for sorting axis
+labels (indexes) across data structures is the ``sort_index`` method.
 
-::
+.. ipython:: python
 
-    >>> s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
-    >>> s
-    a    -0.308339649397
-    b    -0.447658314192
-    c    -0.391847354208
-    d    0.427084101354
-    e    1.51816072219
+   unsorted_df = df.reindex(index=['a', 'd', 'c', 'b'],
+                            columns=['three', 'two', 'one'])
+   unsorted_df.sort_index()
+   unsorted_df.sort_index(ascending=False)
+   unsorted_df.sort_index(axis=1)
 
-    >>> s.order()
-    b    -0.447658314192
-    c    -0.391847354208
-    a    -0.308339649397
-    d    0.427084101354
-    e    1.51816072219
+``DataFrame.sort_index`` can accept an optional ``by`` argument for ``axis=0``
+which will use an arbitrary vector or a column name of the DataFrame to
+determine the sort order:
 
-    >>> s.argsort()
-    a    1
-    b    2
-    c    0
-    d    3
-    e    4
+.. ipython:: python
 
-    >>> s.sort()    # in-place sort
-    >>> s
-    b    -0.447658314192
-    c    -0.391847354208
-    a    -0.308339649397
-    d    0.427084101354
-    e    1.51816072219
+   df.sort_index(by='two')
 
-:func:`Series.order` is intended to behave similarly to the R function
-of the same name. In the presence of missing data it accepts an
-optional argument specifying where to sort the NaN values (either the
-end or the beginning). The default is to sort them to the end, which
-is the new sorting behavior in NumPy >= 1.4.0:
+Series has the method ``order`` (analogous to `R's order function
+<http://stat.ethz.ch/R-manual/R-patched/library/base/html/order.html>`__) which
+sorts by value, with special treatment of NA values via the ``na_last``
+argument:
 
-::
+.. ipython:: python
 
-    >>> s
-    a    -2.21668112685
-    b    -0.520791835078
-    c    NaN
-    d    -0.788775281233
-    e    -0.779555719818
+   s[2] = np.nan
+   s.order()
+   s.order(na_last=False)
 
-    >>> s.order()
-    a    -2.21668112685
-    d    -0.788775281233
-    e    -0.779555719818
-    b    -0.520791835078
-    c    NaN
+Some other sorting notes / nuances:
 
-    >>> s.order(missingAtEnd=False)
-    c    NaN
-    a    -2.21668112685
-    d    -0.788775281233
-    e    -0.779555719818
-    b    -0.520791835078
+  * ``Series.sort`` sorts a Series by value in-place. This is to provide
+    compatibility with NumPy methods which expect the ``ndarray.sort``
+    behavior.
+  * ``DataFrame.sort`` takes a ``column`` argument instead of ``by``. This
+    method will likely be deprecated in a future release in favor of just using
+    ``sort_index``.
 
 .. _basics.cast:
 

@@ -1195,9 +1195,12 @@ class DataFrame(NDFrame):
         labels = self._get_axis(axis)
 
         if by is not None:
-            if isinstance(by, basestring):
-                assert(axis == 0)
+            try:
+                if by in self.columns:
+                    assert(axis == 0)
                 by = self[by].values
+            except Exception:
+                pass
 
             assert(len(by) == len(labels))
             sort_index = Series(by, index=labels).order().index

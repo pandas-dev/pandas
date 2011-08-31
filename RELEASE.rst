@@ -115,6 +115,9 @@ Release notes
 * `reindex` methods now sport a `copy` option so that data is not forced to be
   copied then the resulting object is indexed the same
 
+* Added `sort_index` methods to Series and WidePanel. Renamed `DataFrame.sort`
+  to `sort_index`. Leaving `DataFrame.sort` for now.
+
 **Improvements to existing features**
 
 * The 2-dimensional `DataFrame` and `DataMatrix` classes have been extensively
