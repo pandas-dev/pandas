@@ -264,7 +264,7 @@ class DataFrame(NDFrame):
         """
         buf = StringIO()
         if len(self.index) < 500 and len(self.columns) <= 10:
-            self.toString(buf=buf)
+            self.to_string(buf=buf)
         else:
             self.info(buf=buf)
 
@@ -1271,7 +1271,8 @@ class DataFrame(NDFrame):
     def rename(self, index=None, columns=None):
         """
         Alter index and / or columns using input function or
-        functions. Function / dict values must be unique (1-to-1)
+        functions. Function / dict values must be unique (1-to-1). Labels not
+        contained in a dict / Series will be left as-is.
 
         Parameters
         ----------
@@ -1289,10 +1290,22 @@ class DataFrame(NDFrame):
         renamed : DataFrame (new object)
         """
         if isinstance(index, (dict, Series)):
-            index = index.__getitem__
+            def index_f(x):
+                if x in index:
+                    return index[x]
+                else:
+                    return x
+        else:
+            index_f = index
 
         if isinstance(columns, (dict, Series)):
-            columns = columns.__getitem__
+            def columns_f(x):
+                if x in columns:
+                    return columns[x]
+                else:
+                    return x
+        else:
+            columns_f = columns
 
         if index is None and columns is None:
             raise Exception('must pass either index or columns')
@@ -1302,10 +1315,10 @@ class DataFrame(NDFrame):
         result = self.copy()
 
         if index is not None:
-            result._rename_index_inplace(index)
+            result._rename_index_inplace(index_f)
 
         if columns is not None:
-            result._rename_columns_inplace(columns)
+            result._rename_columns_inplace(columns_f)
 
         return result
 
@@ -2112,12 +2125,16 @@ class DataFrame(NDFrame):
         left = left + right * 0
         right = right + left * 0
 
-        # demeaned data
-        ldem = left - left.mean(axis)
-        rdem = right - right.mean(axis)
+        if axis == 1:
+            left = left.T
+            right = right.T
 
-        num = (ldem * rdem).sum(axis)
-        dom = (left.count(axis) - 1) * left.std(axis) * right.std(axis)
+        # demeaned data
+        ldem = left - left.mean()
+        rdem = right - right.mean()
+
+        num = (ldem * rdem).sum()
+        dom = (left.count() - 1) * left.std() * right.std()
 
         correl = num / dom
 

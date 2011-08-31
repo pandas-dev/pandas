@@ -1588,10 +1588,16 @@ copy : boolean, default False
         renamed : Series (new object)
         """
         if isinstance(mapper, (dict, Series)):
-            mapper = mapper.__getitem__
+            def mapper_f(x):
+                if x in mapper:
+                    return mapper[x]
+                else:
+                    return x
+        else:
+            mapper_f = mapper
 
         result = self.copy()
-        result.index = [mapper(x) for x in self.index]
+        result.index = [mapper_f(x) for x in self.index]
 
         return result
 

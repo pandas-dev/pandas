@@ -948,6 +948,11 @@ class TestSeries(unittest.TestCase):
         renamed2 = self.ts.rename(rename_dict)
         assert_series_equal(renamed, renamed2)
 
+        # partial dict
+        s = Series(np.arange(4), index=['a', 'b', 'c', 'd'])
+        renamed = s.rename({'b' : 'foo', 'd' : 'bar'})
+        self.assert_(np.array_equal(renamed.index, ['a', 'foo', 'c', 'bar']))
+
     def test_preserveRefs(self):
         seq = self.ts[[5,10,15]]
         seq[1] = np.NaN

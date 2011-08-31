@@ -1077,7 +1077,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df = DataFrame({'foo' : np.inf * np.empty(10)})
         foo = repr(df)
 
-    def test_toString(self):
+    def test_to_string(self):
         # big mixed
         biggie = DataFrame({'A' : randn(1000),
                              'B' : tm.makeStringIndex(1000)},
@@ -1086,25 +1086,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
         buf = StringIO()
-        biggie.toString(buf=buf)
+        biggie.to_string(buf=buf)
 
-        biggie.toString(buf=buf, columns=['B', 'A'], colSpace=17)
-        biggie.toString(buf=buf, columns=['B', 'A'],
+        biggie.to_string(buf=buf, columns=['B', 'A'], colSpace=17)
+        biggie.to_string(buf=buf, columns=['B', 'A'],
                         formatters={'A' : lambda x: '%.1f' % x})
 
-        biggie.toString(buf=buf, columns=['B', 'A'],
+        biggie.to_string(buf=buf, columns=['B', 'A'],
                         float_format=str)
-        biggie.toString(buf=buf, columns=['B', 'A'], colSpace=12,
+        biggie.to_string(buf=buf, columns=['B', 'A'], colSpace=12,
                         float_format=str)
 
         frame = DataFrame(index=np.arange(1000))
-        frame.toString(buf=buf)
+        frame.to_string(buf=buf)
 
-    def test_toString_unicode_columns(self):
+    def test_to_string_unicode_columns(self):
         df = DataFrame({u'\u03c3' : np.arange(10.)})
 
         buf = StringIO()
-        df.toString(buf=buf)
+        df.to_string(buf=buf)
         buf.getvalue()
 
         buf = StringIO()
@@ -1514,6 +1514,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         dropped = a.corrwith(b, axis=1, drop=True)
         self.assert_(a.index[-1] not in dropped.index)
 
+        # non time-series data
+        index = ['a', 'b', 'c', 'd', 'e']
+        columns = ['one', 'two', 'three', 'four']
+        df1 = DataFrame(randn(5, 4), index=index, columns=columns)
+        df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
+        correls = df1.corrwith(df2, axis=1)
+        for row in index[:4]:
+            assert_almost_equal(correls[row], df1.ix[row].corr(df2.ix[row]))
+
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = randn(N)
@@ -1871,6 +1880,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         # have to pass something
         self.assertRaises(Exception, self.frame.rename)
+
+        # partial columns
+        renamed = self.frame.rename(columns={'C' : 'foo', 'D' : 'bar'})
+        self.assert_(np.array_equal(renamed.columns, ['A', 'B', 'foo', 'bar']))
 
     #----------------------------------------------------------------------
     # Time series related
