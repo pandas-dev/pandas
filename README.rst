@@ -1,23 +1,8 @@
-=========================
-Installation from sources
-=========================
+=============================================
+pandas: powerful Python data analysis toolkit
+=============================================
 
-In the ``pandas`` directory (same one where you found this file), execute::
-
-    python setup.py install
-
-On Windows, you will need to install MinGW and execute::
-
-    python setup.py build --compiler=mingw32
-    python setup.py install
-
-See http://pandas.sourceforge.net/ for more information.
-
-=============
-Release Notes
-=============
-
-What it is
+What is it
 ==========
 
 **pandas** is a Python package providing fast, flexible, and expressive data
@@ -27,7 +12,6 @@ doing practical, **real world** data analysis in Python. Additionally, it has
 the broader goal of becoming **the most powerful and flexible open source data
 analysis / manipulation tool available in any language**. It is already well on
 its way toward this goal.
-
 
 Main Features
 =============
@@ -75,6 +59,19 @@ And via ``easy_install`` or ``pip``::
     easy_install pandas
     pip install pandas
 
+Installation from sources
+=========================
+
+In the ``pandas`` directory (same one where you found this file), execute::
+
+    python setup.py install
+
+On Windows, you will need to install MinGW and execute::
+
+    python setup.py build --compiler=mingw32
+    python setup.py install
+
+See http://pandas.sourceforge.net/ for more information.
 
 License
 =======
