@@ -1,9 +1,9 @@
 .. currentmodule:: pandas
 .. _basics:
 
-*********************
-Data structure basics
-*********************
+*************
+pandas basics
+*************
 
 We'll start with a quick, non-comprehensive overview of the fundamental data
 structures in pandas to get you started. The fundamental behavior about data
@@ -14,6 +14,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    :suppress:
 
    import numpy as np
+   from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
@@ -113,6 +114,8 @@ the index.
     s[s > s.median()]
     s[[4, 3, 1]]
     np.exp(s)
+
+We will address array-based indexing in a separate :ref:`section <indexing>`.
 
 Series is dict-like
 ~~~~~~~~~~~~~~~~~~~
@@ -731,6 +734,14 @@ Here is a quick reference summary table of common functions
     ``cumsum``, Cumulative sum
     ``cumprod``, Cumulative product
 
+Note that by chance some NumPy methods, like ``mean``, ``std``, and ``sum``,
+will exclude NAs on Series input:
+
+.. ipython:: python
+
+   np.mean(df['one'])
+   np.mean(df['one'].values)
+
 Summarizing data: describe
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -743,7 +754,7 @@ DataFrame (excluding NAs of course):
     series = Series(randn(1000))
     series[::2] = np.nan
     series.describe()
-    frame = DataFrame(randn(1000, 5))
+    frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
     frame.ix[::2] = np.nan
     frame.describe()
 
@@ -759,7 +770,7 @@ over the labels with valid data in both objects.
 .. ipython:: python
 
    # Series with Series
-   frame[0].corr(frame[0])
+   frame['a'].corr(frame['b'])
 
    # Pairwise correlation of DataFrame columns
    frame.corr()
@@ -796,6 +807,33 @@ take an optional ``axis`` argument:
 
 Depending on the return type of the function passed to ``apply``, the result
 will either be of lower dimension or the same dimension.
+
+``apply`` combined with some cleverness can be used to answer many questions
+about a data set. For example, suppose we wanted to extract the date where the
+maximum value for each column occurred:
+
+
+.. ipython:: python
+
+   tsdf = DataFrame(randn(1000, 3), columns=['A', 'B', 'C'],
+                    index=DateRange('1/1/2000', periods=1000))
+   tsdf.apply(lambda x: x.index[x.dropna().argmax()])
+
+
+Another useful feature is the ability to pass Series methods to carry out some
+Series operation on each column or row:
+
+.. ipython:: python
+   :suppress:
+
+   tsdf = DataFrame(randn(10, 3), columns=['A', 'B', 'C'],
+                    index=DateRange('1/1/2000', periods=10))
+   tsdf.values[3:7] = np.nan
+
+.. ipython:: python
+
+   tsdf
+   tsdf.apply(Series.interpolate)
 
 .. seealso::
 
@@ -1092,8 +1130,48 @@ Some other sorting notes / nuances:
 Copying, type casting
 ---------------------
 
+The ``copy`` method on pandas objects copies the underlying data (though not
+the axis indexes, since they are immutable) and returns a new object. Note that
+**it is seldom necessary to copy objects**. For example, there are only a
+handful of ways to alter a DataFrame *in-place*:
+
+  * Inserting, deleting, or modifying a column
+  * Assigning to the ``index`` or ``columns`` attributes
+  * For homogeneous data, directly modifying the values via the ``values``
+    attribute or fancy indexing
+
+To be clear, no pandas methods have the side effect of modifying your data;
+almost all methods return new objects, leaving the original object
+untouched. If data is modified, it is because you did so explicitly.
+
+Data can be explicitly cast to a NumPy dtype by using the ``astype`` method or
+alternately passing the ``dtype`` keyword argument to the object constructor.
+
+.. ipython:: python
+
+   df = DataFrame(np.arange(12).reshape((4, 3)))
+   df[0].dtype
+   df.astype(float)[0].dtype
+   df = DataFrame(np.arange(12).reshape((4, 3)), dtype=float)
+   df[0].dtype
+
 .. _basics.serialize:
 
 Pickling and serialization
 --------------------------
 
+All pandas objects are equipped with ``save`` and ``load`` methods which use
+Python's ``cPickle`` module to save and load data structures to disk using the
+pickle format.
+
+.. ipython:: python
+
+   df
+   df.save('foo.pickle')
+   DataFrame.load('foo.pickle')
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('foo.pickle')

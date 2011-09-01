@@ -2,22 +2,185 @@
 
 .. currentmodule:: pandas
 
+.. ipython:: python
+   :suppress:
+
+   import numpy as np
+   from pandas import *
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+
 ***************************
 Indexing and selecting data
 ***************************
+
+The axis labeling information in pandas objects serves many purposes:
+
+  - Identifies data (i.e. provides *metadata*) using known indicators,
+    important for for analysis, visualization, and interactive console display
+  - Enables automatic and explicit data alignment
+  - Allows intuitive getting and setting of subsets of the data set
+
+In this section / chapter, we will focus on the latter set of functionality,
+namely how to slice, dice, and generally get and set subsets of pandas
+objects. The primary focus will be on Series and DataFrame as they have
+received more development attention in this area. More work will be invested in
+WidePanel and future higher-dimensional data structures in the future,
+especially in label-based "fancy" indexing.
 
 .. _indexing.basics:
 
 Basics
 ------
 
-Indexing with boolean arrays
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+As mentioned when introducing the data structures in the :ref:`last section
+<basics>`, the primary function of indexing with ``[]`` (a.k.a. *__getitem__*
+for those familiar with implementing class behavior in Python) is selecting out
+lower-dimensional slices. Thus,
+
+  - **Series**: ``series[label]`` returns a scalar value
+  - **DataFrame**: ``frame[colname]`` returns a Series corresponding to the
+    passed column name
+  - **WidePanel**: ``panel[itemname]`` returns a DataFrame corresponding to the
+    passed item name
+
+Here we construct a simple time series data set to use for illustrating the
+indexing functionality:
+
+.. ipython:: python
+
+   dates = np.asarray(DateRange('1/1/2000', periods=8))
+   df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
+   df
+   panel = WidePanel({'one' : df, 'two' : df - df.mean()})
+   panel
+
+.. note::
+
+   None of the indexing functionality is time series specific unless
+   specifically stated.
+
+Thus, as per above, we have the most basic indexing using ``[]``:
+
+.. ipython:: python
+
+   s = df['A']
+   s[dates[5]]
+   panel['two']
+
+Data slices on other axes
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It's certainly possible to retrieve data slices along the other axes of a
+DataFrame or WidePanel. We tend to refer to these slices as
+*cross-sections*. DataFrame has the ``xs`` function for retrieving rows as
+Series and WidePanel has the analogous ``major_xs`` and ``minor_xs`` functions
+for retrieving slices as DataFrames for a given ``major_axis`` or
+``minor_axis`` label, respectively.
+
+.. ipython:: python
+
+   date = dates[5]
+   df.xs(date)
+   panel.major_xs(date)
+   panel.minor_xs('A')
+
+.. note::
+
+   See :ref:`fancy indexing <indexing.fancy>` below for an alternate and more
+   concise way of doing the same thing.
+
+Slicing ranges
+~~~~~~~~~~~~~~
+
+:ref:`Fancy indexing <indexing.fancy>` detailed below is the most robust and
+consistent way of slicing integer ranges, e.g. ``obj[5:10]``, across all of the
+data structures and their axes. On Series, this syntax works exactly as
+expected as with an ndarray, returning a slice of the values and the
+corresponding labels:
+
+.. ipython:: python
+
+   s[:5]
+   s[::2]
+   s[::-1]
+
+Note that setting works as well:
+
+.. ipython:: python
+
+   s2 = s.copy()
+   s2[:5] = 0
+   s2
+
+With DataFrame, slicing inside of ``[]`` **slices the rows**. This is provided
+largely as a convenience since it is such a common operation.
+
+.. ipython:: python
+
+   df[:3]
+   df[::-1]
+
+Boolean indexing
+~~~~~~~~~~~~~~~~
+
+Using a boolean vector to index a Series works exactly like an ndarray:
+
+.. ipython:: python
+
+   s[s > 0]
+   s[(s < 0) & (s > -0.5)]
+
+Again as a convenience, selecting rows from a DataFrame using a boolean vector
+the same length as the DataFrame's index (for example, something derived from
+one of the columns of the DataFrame) is supported:
+
+.. ipython:: python
+
+   df[df['A'] > 0]
+
+With the fancy indexing capabilities discussed later, you are able to do
+boolean indexing in any of axes or combine a boolean vector with an indexing
+expression on one of the other axes
+
+Indexing a DataFrame with a boolean DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+Slicing ranges
+~~~~~~~~~~~~~~
+
+Similar to Python lists and ndarrays, for convenience DataFrame
+supports slicing:
+
+.. ipython:: python
+
+    df[:2]
+    df[::-1]
+    df[-3:].T
+
+Boolean indexing
+~~~~~~~~~~~~~~~~
+
+As another indexing convenience, it is possible to use boolean
+indexing to select rows of a DataFrame:
+
+.. ipython:: python
+
+    df[df['A'] > 0.5]
+
+As we will see later on, the same operation could be accomplished by
+reindexing. However, the syntax would be more verbose; hence, the
+inclusion of this indexing method.
 
 .. _indexing.fancy:
 
 Fancy ndarray-like indexing with labels
 ---------------------------------------
+
+Fancy indexing with integer labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _indexing.hierarchical:
 
