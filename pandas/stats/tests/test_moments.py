@@ -9,6 +9,7 @@ from pandas.core.api import Series, DataFrame, DateRange
 from pandas.util.testing import assert_almost_equal
 import pandas.core.datetools as datetools
 import pandas.stats.moments as moments
+import pandas.util.testing as tm
 
 N, K = 100, 10
 
@@ -236,6 +237,15 @@ class TestMoments(unittest.TestCase):
 
         result = moments.rolling_corr(A, B, 50, min_periods=25)
         assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
+
+        # test for correct bias correction
+        a = tm.makeTimeSeries()
+        b = tm.makeTimeSeries()
+        a[:5] = np.nan
+        b[:10] = np.nan
+
+        result = moments.rolling_corr(a, b, len(a), min_periods=1)
+        assert_almost_equal(result[-1], a.corr(b))
 
     def test_ewmcov(self):
         self._check_binary_ew(moments.ewmcov)

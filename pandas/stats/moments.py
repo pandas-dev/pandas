@@ -48,7 +48,8 @@ def rolling_count(arg, window, time_rule=None):
 def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
     X, Y = _prep_binary(arg1, arg2)
     mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
-    bias_adj = window / (window - 1)
+    count = rolling_count(X + Y, window, time_rule)
+    bias_adj = count / (count - 1)
     return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
 def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):

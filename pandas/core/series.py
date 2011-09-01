@@ -933,7 +933,7 @@ copy : boolean, default False
         self[:] = sortedSeries
         self.index = sortedSeries.index
 
-    def sort_labels(self, ascending=True):
+    def sort_index(self, ascending=True):
         """
         Sort object by labels (along an axis)
 
