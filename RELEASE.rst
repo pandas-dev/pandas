@@ -26,12 +26,12 @@ Release notes
 
 **New features / modules**
 
-  * `pandas.core.sparse` module: "Sparse" (mostly-NA, or some other fill value)
+  - `pandas.core.sparse` module: "Sparse" (mostly-NA, or some other fill value)
     versions of `Series`, `DataFrame`, and `WidePanel`. For low-density data, this
     will result in significant performance boosts, and smaller memory
     footprint. Added `to_sparse` methods to `Series`, `DataFrame`, and
     `WidePanel`. See online documentation for more on these
-  * Fancy indexing operator on Series / DataFrame, e.g. via .ix operator. Both
+  - Fancy indexing operator on Series / DataFrame, e.g. via .ix operator. Both
     getting and setting of values is supported; however, setting values will only
     currently work on homogeneously-typed DataFrame objects. Things like:
 
@@ -39,7 +39,7 @@ Release notes
     * frame.ix[5:10, ['C', 'B', 'A']], frame.ix[5:10, 'A':'C']
     * frame.ix[date1:date2]
 
-  * Significantly enhanced `groupby` functionality
+  - Significantly enhanced `groupby` functionality
 
     * Can groupby multiple keys, e.g. df.groupby(['key1', 'key2']). Iteration with
       multiple groupings products a flattened tuple
@@ -49,53 +49,53 @@ Release notes
       invoke methods on groups. e.g. s.groupby(crit).std() will work even though
       `std` is not implemented on the `GroupBy` class
 
-  * Hierarchical / multi-level indexing via the `MultiIndex` class. Integrated
+  - Hierarchical / multi-level indexing via the `MultiIndex` class. Integrated
     `MultiIndex` into `Series` and `DataFrame` fancy indexing, slicing,
     __getitem__ and __setitem, reindexing, etc. Added `level` keyword argument to
     `groupby` to enable grouping by a level of a `MultiIndex`
-  * `Index` objects (labels for axes) are now capable of holding tuples
-  * `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
+  - `Index` objects (labels for axes) are now capable of holding tuples
+  - `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
     statistics about each data column
-  * `DataFrame.quantile`, `Series.quantile` for computing sample quantiles of data
+  - `DataFrame.quantile`, `Series.quantile` for computing sample quantiles of data
     across requested axis
-  * Added general `DataFrame.dropna` method to replace `dropIncompleteRows` and
+  - Added general `DataFrame.dropna` method to replace `dropIncompleteRows` and
     `dropEmptyRows`, deprecated those.
-  * `Series` arithmetic methods with optional fill_value for missing data,
+  - `Series` arithmetic methods with optional fill_value for missing data,
     e.g. a.add(b, fill_value=0). If a location is missing for both it will still
     be missing in the result though.
-  * fill_value option has been added to `DataFrame`.{add, mul, sub, div} methods
+  - fill_value option has been added to `DataFrame`.{add, mul, sub, div} methods
     similar to `Series`
-  * Boolean indexing with `DataFrame` objects: data[data > 0.1] = 0.1 or
+  - Boolean indexing with `DataFrame` objects: data[data > 0.1] = 0.1 or
     data[data> other] = 1.
-  * `pytz` / tzinfo support in `DateRange`
+  - `pytz` / tzinfo support in `DateRange`
 
     * `tz_localize`, `tz_normalize`, and `tz_validate` methods added
 
-  * Added `ExcelFile` class to `pandas.io.parsers` for parsing multiple sheets out
+  - Added `ExcelFile` class to `pandas.io.parsers` for parsing multiple sheets out
     of a single Excel 2003 document
-  * `GroupBy` aggregations can now optionally *broadcast*, e.g. produce an object
+  - `GroupBy` aggregations can now optionally *broadcast*, e.g. produce an object
     of the same size with the aggregated value propagated
-  * Added `select` function in all data structures: reindex axis based on
+  - Added `select` function in all data structures: reindex axis based on
     arbitrary criterion (function returning boolean value),
     e.g. frame.select(lambda x: 'foo' in x, axis=1)
-  * `DataFrame.consolidate` method, API function relating to redesigned internals
-  * `DataFrame.insert` method for inserting column at a specified location rather
+  - `DataFrame.consolidate` method, API function relating to redesigned internals
+  - `DataFrame.insert` method for inserting column at a specified location rather
     than the default __setitem__ behavior (which puts it at the end)
-  * `HDFStore` class in `pandas.io.pytables` has been largely rewritten using
+  - `HDFStore` class in `pandas.io.pytables` has been largely rewritten using
     patches from Jeff Reback from others. It now supports mixed-type `DataFrame`
     and `Series` data and can store `WidePanel` objects. It also has the option to
     query `DataFrame` and `WidePanel` data. Loading data from legacy `HDFStore`
     files is supported explicitly in the code
-  * Added `set_printoptions` method to modify appearance of DataFrame tabular
+  - Added `set_printoptions` method to modify appearance of DataFrame tabular
     output
-  * `rolling_quantile` functions; a moving version of `Series.quantile` /
+  - `rolling_quantile` functions; a moving version of `Series.quantile` /
     `DataFrame.quantile`
-  * Generic `rolling_apply` moving window function
-  * New `drop` method added to `Series`, `DataFrame`, etc. which can drop a set of
+  - Generic `rolling_apply` moving window function
+  - New `drop` method added to `Series`, `DataFrame`, etc. which can drop a set of
     labels from an axis, producing a new object
-  * `reindex` methods now sport a `copy` option so that data is not forced to be
+  - `reindex` methods now sport a `copy` option so that data is not forced to be
     copied then the resulting object is indexed the same
-  * Added `sort_index` methods to Series and WidePanel. Renamed `DataFrame.sort`
+  - Added `sort_index` methods to Series and WidePanel. Renamed `DataFrame.sort`
     to `sort_index`. Leaving `DataFrame.sort` for now.
 
 **Improvements to existing features**
