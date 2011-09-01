@@ -146,7 +146,19 @@ expression on one of the other axes
 Indexing a DataFrame with a boolean DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+You may wish to set values on a DataFrame based on some boolean criteria
+derived from itself or another DataFrame or set of DataFrames. This can be done
+intuitively like so:
 
+.. ipython:: python
+
+   df2 = df.copy()
+   df2 < 0
+   df2[df2 < 0] = 0
+   df2
+
+Note that such an operation requires that the boolean DataFrame is indexed
+exactly the same.
 
 Slicing ranges
 ~~~~~~~~~~~~~~
