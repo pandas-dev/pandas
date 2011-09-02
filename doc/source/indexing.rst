@@ -6,7 +6,7 @@
    :suppress:
 
    import numpy as np
-   np.random.seed(12345)
+   np.random.seed(123456)
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
@@ -95,10 +95,10 @@ Slicing ranges
 ~~~~~~~~~~~~~~
 
 :ref:`Advanced indexing <indexing.advanced>` detailed below is the most robust
-and consistent way of slicing integer ranges, e.g. ``obj[5:10]``, across all of
-the data structures and their axes. On Series, this syntax works exactly as
-expected as with an ndarray, returning a slice of the values and the
-corresponding labels:
+and consistent way of slicing ranges, e.g. ``obj[5:10]``, across all of the data
+structures and their axes (except in the case of integer labels, more on that
+later). On Series, this syntax works exactly as expected as with an ndarray,
+returning a slice of the values and the corresponding labels:
 
 .. ipython:: python
 
@@ -207,20 +207,139 @@ combine the following kinds of indexing:
   - An integer or single label, e.g. ``5`` or ``'a'``
   - A list or array of labels ``['a', 'b', 'c']`` or integers ``[4, 3, 0]``
   - A slice object with ints ``1:7`` or labels ``'a':'f'``
+  - A boolean array
 
-We'll illustrate all of these methods on the above time series data set.
+We'll illustrate all of these methods. First, note that this provides a concise
+way of reindexing on multiple axes at once:
+
+.. ipython:: python
+
+   subindex = dates[[3,4,5]]
+   df.reindex(index=subindex, columns=['C', 'B'])
+   df.ix[subindex, ['C', 'B']]
+
+Assignment / setting values is possible when using ``ix``:
+
+.. ipython:: python
+
+   df2 = df.copy()
+   df2.ix[subindex, ['C', 'B']] = 0
+   df2
+
+Indexing with an array of integers can also be done:
+
+.. ipython:: python
+
+   df.ix[[4,3,1]]
+   df.ix[dates[[4,3,1]]]
+
+**Slicing** has standard Python semantics for integer slices:
+
+.. ipython:: python
+
+   df.ix[1:7, :2]
+
+Slicing with labels is semantically slightly different because the slice start
+and stop are **inclusive** in the label-based case:
+
+.. ipython:: python
+
+   date1, date2 = dates[[2, 4]]
+   print date1, date2
+   s.ix[date1:date2]
+   df.ix[date1:date2]
+
+Getting and setting rows in a DataFrame, especially by their location, is much
+easier:
+
+.. ipython:: python
+
+   df2 = df[:5].copy()
+   df2.ix[3]
+   df2.ix[3] = np.arange(len(df2.columns))
+   df2
+
+Column or row selection can be combined as you would expect with arrays of
+labels or even boolean vectors:
+
+.. ipython:: python
+
+   df.ix[df['A'] > 0, 'B']
+   df.ix[date1:date2, 'B']
+   df.ix[date1, 'B']
+
+Slicing with labels is closely related to the ``truncate`` method which does
+precisely ``.ix[start:stop]`` but returns a copy (for legacy reasons).
+
+Returning a view versus a copy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The rules about when a view on the data is returned are entirely dependent on
+NumPy. Whenever an array of labels or a boolean vector are involved in the
+indexing operation, the result will be a copy. With single label / scalar
+indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
+returned.
 
 Advanced indexing with integer labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Label-based indexing with integer axis labels is a thorny topic. It has been
+discussed heavily on mailing lists and among various members of the scientific
+Python community. In pandas, our general viewpoint is that labels matter more
+than integer locations. Therefore, advanced indexing with ``.ix`` will always
+
+Setting values in mixed-type objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Setting values on a mixed-type DataFrame or Panel is not yet supported:
+
+.. ipython:: python
+
+   df2 = df[:4]
+   df2['foo'] = 'bar'
+   df2.ix[3]
+   df2.ix[3] = np.nan
+
+The reason it has not been implemented yet is simply due to difficulty of
+implementation relative to its utility. Handling the full spectrum of
+exceptional cases for setting values is trickier than getting values (which is
+relatively straightforward).
 
 .. _indexing.hierarchical:
 
 Hierarchical indexing (MultiIndex)
 ----------------------------------
 
+Hierarchical indexing (also referred to as "multi-level" indexing) is brand new
+in the pandas 0.4 release. It is very exciting as it opens the door to some
+quite sophisticated data analysis and manipulation, especially for working with
+higher dimensional data. In essence, it enables you to effectively store and
+manipulate arbitrarily high dimension data in a 2-dimensional tabular structure
+(DataFrame), for example. It is not limited to DataFrame
+
+In this section, we will show what exactly we mean by "hierarchical" indexing
+and how it integrates with the all of the pandas indexing functionality
+described above and in prior sections. Later, when discussing :ref:`group by
+<groupby>` and :ref:`pivoting and reshaping data <reshaping>`, we'll show
+non-trivial applications to illustrate how it aids in structuring data for
+analysis.
+
+.. note::
+
+   Given that hierarchical indexing is so new to the library, it is definitely
+   "bleeding-edge" functionality but is certainly suitable for production. But,
+   there may inevitably be some minor API changes as more use cases are explored
+   and any weaknesses in the design / implementation are identified. pandas aims
+   to be "eminently usable" so any feedback about new functionality like this is
+   extremely helpful.
+
+Identifying an axis location with multiple labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
 Advanced indexing with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 Indexing internal details
 -------------------------
