@@ -248,6 +248,7 @@ class TestMultiLevel(unittest.TestCase):
                            labels=[[0, 0, 1, 0, 1, 1],
                                    [0, 1, 0, 2, 2, 1]])
         self.assert_(not index.is_lexsorted())
+        self.assert_(index.lexsort_depth == 0)
 
 if __name__ == '__main__':
 

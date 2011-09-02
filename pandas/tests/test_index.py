@@ -392,6 +392,21 @@ class TestMultiIndex(unittest.TestCase):
         expected = df[6:15].stack()
         tm.assert_almost_equal(sliced.values, expected.values)
 
+    def test_slice_locs_not_sorted(self):
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+
+        self.assertRaises(Exception, index.slice_locs, (1, 0, 1),
+                          (2, 1, 0))
+
+        # works
+        sorted_index, _ = index.sortlevel(0)
+        result = sorted_index.slice_locs((1, 0, 1), (2, 1, 0))
+
     def test_slice_locs_partial(self):
         sorted_idx, _ = self.index.sortlevel(0)
 
