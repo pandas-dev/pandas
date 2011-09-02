@@ -8,7 +8,7 @@ import numpy as np
 from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
                                 _ensure_index, _is_bool_indexer,
                                 _asarray_tuplesafe)
-from pandas.util.decorators import deprecate
+from pandas.util.decorators import deprecate, cache_readonly
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -555,8 +555,25 @@ class MultiIndex(Index):
     def is_all_dates(self):
         return False
 
-    def is_sorted(self):
-        raise NotImplementedError
+    def is_lexsorted(self):
+        """
+        Return True if the labels are lexicographically sorted
+        """
+        return self.lexsort_depth == self.nlevels
+
+    @cache_readonly
+    def lexsort_depth(self):
+        if self.sortorder is not None:
+            if self.sortorder == 0:
+                return self.nlevels
+            else:
+                return 0
+
+        for k in range(self.nlevels, 0, -1):
+            if _tseries.is_lexsorted(self.labels[:k]):
+                return k
+
+        return 0
 
     @classmethod
     def from_arrays(cls, arrays, sortorder=None):
@@ -864,9 +881,6 @@ class MultiIndex(Index):
         -----
         This function assumes that the data is sorted by the first level
         """
-        # relax for now
-        # assert(self.sortorder == 0)
-
         if start is None:
             start_slice = 0
         else:
@@ -884,8 +898,9 @@ class MultiIndex(Index):
         return start_slice, end_slice
 
     def _partial_tup_index(self, tup, side='left'):
-        # relax for now
-        # assert(self.sortorder == 0)
+        if len(tup) > self.lexsort_depth:
+            raise Exception('MultiIndex lexsort depth %d, key was %d long' %
+                            (self.lexsort_depth, len(tup)))
 
         n = len(tup)
         start, end = 0, len(self)

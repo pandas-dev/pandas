@@ -135,6 +135,36 @@ def groupby_indices(ndarray values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def is_lexsorted(list list_of_arrays):
+    cdef:
+        int i
+        Py_ssize_t n, nlevels
+        int32_t k, cur, pre
+
+    nlevels = len(list_of_arrays)
+    n = len(list_of_arrays[0])
+
+    cdef int32_t **vecs = <int32_t **> malloc(nlevels * sizeof(int32_t*))
+    for i from 0 <= i < nlevels:
+        vecs[i] = <int32_t *> (<ndarray> list_of_arrays[i]).data
+
+    # assume uniqueness??
+
+    for i from 1 <= i < n:
+        for k from 0 <= k < nlevels:
+            cur = vecs[k][i]
+            pre = vecs[k][i-1]
+            if cur == pre:
+                continue
+            elif cur > pre:
+                break
+            else:
+                return False
+    free(vecs)
+    return True
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_labels(ndarray[object] values):
     '''
     Compute label vector from input values and associated useful data

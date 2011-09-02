@@ -231,8 +231,26 @@ class TestMultiLevel(unittest.TestCase):
     def test_alignment(self):
         pass
 
+    def test_is_lexsorted(self):
+        levels = [[0, 1], [0, 1, 2]]
+
+        index = MultiIndex(levels=levels,
+                           labels=[[0, 0, 0, 1, 1, 1],
+                                   [0, 1, 2, 0, 1, 2]])
+        self.assert_(index.is_lexsorted())
+
+        index = MultiIndex(levels=levels,
+                           labels=[[0, 0, 0, 1, 1, 1],
+                                   [0, 1, 2, 0, 2, 1]])
+        self.assert_(not index.is_lexsorted())
+
+        index = MultiIndex(levels=levels,
+                           labels=[[0, 0, 1, 0, 1, 1],
+                                   [0, 1, 0, 2, 2, 1]])
+        self.assert_(not index.is_lexsorted())
 
 if __name__ == '__main__':
+
     # unittest.main()
     import nose
     # nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
