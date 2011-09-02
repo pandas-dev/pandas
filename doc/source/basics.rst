@@ -516,7 +516,7 @@ Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
 
 As of this writing, indexing with WidePanel is a bit more restrictive than in
-DataFrame. Notably, :ref:`fancy indexing <indexing>` via the **ix** property
+DataFrame. Notably, :ref:`advanced indexing <indexing>` via the **ix** property
 has not yet been integrated in WidePanel. This will be done, however, in a
 future release.
 
@@ -918,8 +918,8 @@ DataFrame's index.
 
 .. seealso::
 
-   :ref:`Fancy indexing <indexing.fancy>` is an even more concise way of doing
-   reindexing.
+   :ref:`Advanced indexing <indexing.advanced>` is an even more concise way of
+   doing reindexing.
 
 .. note::
 
@@ -1138,7 +1138,7 @@ handful of ways to alter a DataFrame *in-place*:
   * Inserting, deleting, or modifying a column
   * Assigning to the ``index`` or ``columns`` attributes
   * For homogeneous data, directly modifying the values via the ``values``
-    attribute or fancy indexing
+    attribute or advanced indexing
 
 To be clear, no pandas methods have the side effect of modifying your data;
 almost all methods return new objects, leaving the original object

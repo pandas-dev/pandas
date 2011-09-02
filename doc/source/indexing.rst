@@ -6,6 +6,7 @@
    :suppress:
 
    import numpy as np
+   np.random.seed(12345)
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
@@ -26,7 +27,7 @@ namely how to slice, dice, and generally get and set subsets of pandas
 objects. The primary focus will be on Series and DataFrame as they have
 received more development attention in this area. More work will be invested in
 WidePanel and future higher-dimensional data structures in the future,
-especially in label-based "fancy" indexing.
+especially in label-based advanced indexing.
 
 .. _indexing.basics:
 
@@ -87,15 +88,15 @@ for retrieving slices as DataFrames for a given ``major_axis`` or
 
 .. note::
 
-   See :ref:`fancy indexing <indexing.fancy>` below for an alternate and more
-   concise way of doing the same thing.
+   See :ref:`advanced indexing <indexing.advanced>` below for an alternate and
+   more concise way of doing the same thing.
 
 Slicing ranges
 ~~~~~~~~~~~~~~
 
-:ref:`Fancy indexing <indexing.fancy>` detailed below is the most robust and
-consistent way of slicing integer ranges, e.g. ``obj[5:10]``, across all of the
-data structures and their axes. On Series, this syntax works exactly as
+:ref:`Advanced indexing <indexing.advanced>` detailed below is the most robust
+and consistent way of slicing integer ranges, e.g. ``obj[5:10]``, across all of
+the data structures and their axes. On Series, this syntax works exactly as
 expected as with an ndarray, returning a slice of the values and the
 corresponding labels:
 
@@ -139,7 +140,7 @@ one of the columns of the DataFrame) is supported:
 
    df[df['A'] > 0]
 
-With the fancy indexing capabilities discussed later, you are able to do
+With the advanced indexing capabilities discussed later, you are able to do
 boolean indexing in any of axes or combine a boolean vector with an indexing
 expression on one of the other axes
 
@@ -183,24 +184,27 @@ indexing to select rows of a DataFrame:
     df[df['A'] > 0.5]
 
 As we will see later on, the same operation could be accomplished by
-reindexing. However, the syntax would be more verbose; hence, the
-inclusion of this indexing method.
+reindexing. However, the syntax would be more verbose; hence, the inclusion of
+this indexing method.
 
-.. _indexing.fancy:
+.. _indexing.advanced:
 
-Fancy ndarray-like indexing with labels
----------------------------------------
+Advanced indexing with labels
+-----------------------------
 
-Fancy indexing with integer labels
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Advanced indexing with integer labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _indexing.hierarchical:
 
 Hierarchical indexing (MultiIndex)
 ----------------------------------
 
-Partial slicing axes with MultiIndex
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Advanced indexing with hierarchical index
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Indexing internal details
 -------------------------
