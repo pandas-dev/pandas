@@ -338,7 +338,7 @@ Creating a MultiIndex (hierarchical index) object
 
 The ``MultiIndex`` object is the hierarchical analogue of the standard
 ``Index`` object which typically stores the axis labels in pandas objects. You
-can think of MultiIndex an array of tuples where each tuple is unique. A
+can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
 ``MultiIndex`` can be created from a list of arrays (using
 ``MultiIndex.from_arrays``) or an array of tuples (using
 ``MultiIndex.from_tuples``).
@@ -372,9 +372,12 @@ as atomic labels on an axis:
 
    Series(randn(8), index=tuples)
 
-The reason that the MultiIndex matters is that it can allow you to do grouping,
-selection, and reshaping operations as we will describe below and in subsequent
-areas of the documentation.
+The reason that the ``MultiIndex`` matters is that it can allow you to do
+grouping, selection, and reshaping operations as we will describe below and in
+subsequent areas of the documentation. As you will see in later sections, you
+can find yourself working with hierarchically-indexed data without creating a
+``MultiIndex`` explicitly yourself. However, when loading data from a file, you
+may wish to generate your own ``MultiIndex`` when preparing the data set.
 
 Basic indexing on axis with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -391,18 +394,138 @@ analogous way to selecting a column in a regular DataFrame:
    df['bar']['one']
    s['qux']
 
+Data alignment and using ``reindex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Operations between differently-indexed objects having ``MultiIndex`` on the
+axes will work as you expect; data alignment will work the same as an Index of
+tuples:
+
+.. ipython:: python
+
+   s + s[:-2]
+   s + s[::2]
+
+``reindex`` can be called with another ``MultiIndex`` or even a list or array
+of tuples:
+
+.. ipython:: python
+
+   s.reindex(index[:3])
+   s.reindex([('foo', 'two'), ('bar', 'one'), ('qux', 'one'), ('baz', 'one')])
+
 Advanced indexing with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Data alignment and ``reindex``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Syntactically integrating ``MultiIndex`` in advanced indexing with ``.ix`` is a
+but challenging, but we've made every effort to do so. for example the
+following works as you would expect:
 
+.. ipython:: python
 
+   df = df.T
+   df
+   df.ix['bar']
+   df.ix['bar', 'two']
 
-"Sortedness" issues
-~~~~~~~~~~~~~~~~~~~
+"Partial" slicing also works quite nicely:
 
+.. ipython:: python
 
+   df.ix['baz':'foo']
+   df.ix[('baz', 'two'):('qux', 'one')]
+   df.ix[('baz', 'two'):'foo']
+
+Passing a list of labels or tuples works similar to reindexing:
+
+.. ipython:: python
+
+   df.ix[[('bar', 'two'), ('qux', 'one')]]
+
+The following does not work, and it's not clear if it should or not:
+
+::
+
+   >>> df.ix[['bar', 'qux']]
+
+The code for implementing ``.ix`` makes every attempt to "do the right thing"
+but as you use it you may uncover corner cases or unintuitive behavior. If you
+do find something like this, do not hesitate to report the issue or ask on the
+mailing list.
+
+The need for sortedness
+~~~~~~~~~~~~~~~~~~~~~~~
+
+**Caveat emptor**: the present implementation of ``MultiIndex`` requires that
+the labels be lexicographically sorted into groups for some of the slicing /
+indexing routines to work correctly. You can think about this as meaning that
+the axis is broken up into a tree structure, where every leaf in a particular
+branch shares the same labels at that level of the hierarchy. However, the
+``MultiIndex`` does not enforce this: **you are responsible for ensuring that
+things are properly sorted**. There is an important new method ``sortlevel``
+which will lexicographically sort an axis with a ``MultiIndex``:
+
+.. ipython:: python
+
+   import random; random.shuffle(tuples)
+   s = Series(randn(8), index=MultiIndex.from_tuples(tuples))
+   s
+   s.sortlevel(0)
+   s.sortlevel(1)
+
+On higher dimensional objects, you can sort any of the other axes by level if
+they have a MultiIndex:
+
+.. ipython:: python
+
+   df.T.sortlevel(1, axis=1)
+
+The ``MultiIndex`` object has code to **explicity check the sort depth**. Thus,
+if you try to index at a depth at which the index is not sorted, it will raise
+an exception. Here is a concrete example to illustrate this:
+
+.. ipython:: python
+
+   tuples = [('a', 'a'), ('a', 'b'), ('b', 'a'), ('b', 'b')]
+   idx = MultiIndex.from_tuples(tuples)
+   idx.lexsort_depth
+
+   reordered = idx[[1, 0, 3, 2]]
+   reordered.lexsort_depth
+
+   s = Series(randn(4), index=reordered)
+   s.ix['a':'a']
+
+However:
+
+::
+
+   >>> s.ix[('a', 'b'):('b', 'a')]
+   Exception: MultiIndex lexsort depth 1, key was 2 long
+
+Some gory internal details
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Internally, the ``MultiIndex`` consists of two things: the **levels** and the
+**labels**:
+
+.. ipython:: python
+
+   index
+   index.levels
+   index.labels
+
+You can probably guess that the labels determine which unique element is
+identified with that location at each layer of the index. It's important to
+note that sortedness is determined **solely** from the integer labels and does
+not check (or care) whether the levels themselves are sorted. Fortunately, the
+constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
+if you compute the levels and labels yourself, please be careful.
+
+Swapping levels
+~~~~~~~~~~~~~~~
+
+This is not yet implemented
 
 Indexing internal details
 -------------------------
@@ -412,3 +535,38 @@ Indexing internal details
     The following is largely relevant for those actually working on the pandas
     codebase. And the source code is still the best place to look at the
     specifics of how things are implemented.
+
+In pandas there are 3 distinct objects which can serve as valid containers for
+the axis labels:
+
+  - ``Index``: the generic "ordered set" object, an ndarray of object dtype
+    assuming nothing about its contents. The labels must be hashable (and
+    likely immutable) and unique. Populates a dict of label to location in
+    Cython to do :math:`O(1)` lookups.
+  - ``MultiIndex``: the standard hierarchical index object
+  - ``DateRange``: fixed frequency date range generated from a time rule or
+    DateOffset. An ndarray of Python datetime objects
+
+The motivation for having an ``Index`` class in the first place was to enable
+different implementations of indexing. This means that it's possible for you,
+the user, to implement a custom ``Index`` subclass that may be better suited to
+a particular application than the ones provided in pandas. For example, we plan
+to add a more efficient datetime index which leverages the new
+``numpy.datetime64`` dtype in the relatively near future.
+
+From an internal implementation point of view, the relevant methods that an
+``Index`` must define are one or more of the following (depending on how
+incompatible the new object internals are with the ``Index`` functions):
+
+  - ``get_loc``: returns an "indexer" (an integer, or in some cases a
+    slice object) for a label
+  - ``slice_locs``: returns the "range" to slice between two labels
+  - ``get_indexer``: Computes the indexing vector for reindexing / data
+    alignment purposes. See the source / docstrings for more on this
+  - ``reindex``: Does any pre-conversion of the input index
+  - ``union``, ``intersection``: computes the union or intersection of two
+    Index objects
+  - ``insert``: Inserts a new label into an Index, yielding a new object
+  - ``delete``: Delete a label, yielding a new object
+  - ``drop``: Deletes a set of labels
+  - ``take``: Analogous to ndarray.take

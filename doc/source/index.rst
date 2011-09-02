@@ -19,6 +19,8 @@ pandas: powerful Python data analysis toolkit
 
 **Code Repository:** http://github.com/wesm/pandas
 
+**Mailing List:** http://groups.google.com/group/pystatsmodels
+
 **pandas** is a `Python <http://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with
 "relational" or "labeled" data both easy and intuitive. It aims to be the
