@@ -35,9 +35,9 @@ Basics
 ------
 
 As mentioned when introducing the data structures in the :ref:`last section
-<basics>`, the primary function of indexing with ``[]`` (a.k.a. *__getitem__*
-for those familiar with implementing class behavior in Python) is selecting out
-lower-dimensional slices. Thus,
+<basics>`, the primary function of indexing with ``[]``
+(a.k.a. ``__getitem__``) for those familiar with implementing class behavior in
+Python) is selecting out lower-dimensional slices. Thus,
 
   - **Series**: ``series[label]`` returns a scalar value
   - **DataFrame**: ``frame[colname]`` returns a Series corresponding to the
@@ -192,7 +192,23 @@ this indexing method.
 Advanced indexing with labels
 -----------------------------
 
+We have avoided excessively overloading the ``[]`` / ``__getitem__`` operator
+to keep the basic functionality of the pandas objects straightforward and
+simple. However, there are often times when you may wish get a subset (or
+analogously set a subset) of the data in a way that is not straightforward
+using the combination of ``reindex`` and ``[]``. Complicated setting operations
+are actually quite difficult because ``reindex`` usually returns a copy.
 
+By *advanced* indexing we are referring to a special ``.ix`` attribute on
+pandas objects which enable you to do getting/setting operations on a
+DataFrame, for example, with matrix/ndarray-like semantics. Thus you can
+combine the following kinds of indexing:
+
+  - An integer or single label, e.g. ``5`` or ``'a'``
+  - A list or array of labels ``['a', 'b', 'c']`` or integers ``[4, 3, 0]``
+  - A slice object with ints ``1:7`` or labels ``'a':'f'``
+
+We'll illustrate all of these methods on the above time series data set.
 
 Advanced indexing with integer labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
