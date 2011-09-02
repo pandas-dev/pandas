@@ -333,13 +333,47 @@ analysis.
    to be "eminently usable" so any feedback about new functionality like this is
    extremely helpful.
 
-Identifying an axis location with multiple labels
+Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The ``MultiIndex`` object is the hierarchical analogue of the standard
+``Index`` object which typically stores the axis labels in pandas objects. You
+can think of MultiIndex an array of tuples where each tuple is unique. A
+``MultiIndex`` can be created from a list of arrays (using
+``MultiIndex.from_arrays``) or an array of tuples (using
+``MultiIndex.from_tuples``).
 
+.. ipython:: python
+
+   arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
+             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+   tuples = zip(*arrays)
+   tuples
+   index = MultiIndex.from_tuples(tuples)
+   s = Series(randn(8), index=index)
+   s
+
+This index can back any axis of a pandas object, and the number of **levels**
+of the index is up to you:
+
+.. ipython:: python
+
+   df = DataFrame(randn(3, 8), index=['A', 'B', 'C'], columns=index)
+   df
+   DataFrame(randn(6, 6), index=index[:6], columns=index[:6])
+
+Basic indexing on axis with MultiIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+
+   df['bar']
 
 Advanced indexing with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Interaction with ``reindex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Indexing internal details
 -------------------------
