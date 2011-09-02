@@ -345,7 +345,7 @@ can think of MultiIndex an array of tuples where each tuple is unique. A
 
 .. ipython:: python
 
-   arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
+   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = zip(*arrays)
    tuples
@@ -362,18 +362,47 @@ of the index is up to you:
    df
    DataFrame(randn(6, 6), index=index[:6], columns=index[:6])
 
+We've "sparsified" the higher levels of the indexes to make the console output a
+bit easier on the eyes.
+
+It's worth keeping in mind that there's nothing preventing you from using tuples
+as atomic labels on an axis:
+
+.. ipython:: python
+
+   Series(randn(8), index=tuples)
+
+The reason that the MultiIndex matters is that it can allow you to do grouping,
+selection, and reshaping operations as we will describe below and in subsequent
+areas of the documentation.
+
 Basic indexing on axis with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One of the important features of hierarchical indexing is that you can select
+data by a "partial" label identifying a subgroup in the data. **Partial**
+selection "drops" levels of the hierarchical index in the result in a completely
+analogous way to selecting a column in a regular DataFrame:
 
 .. ipython:: python
 
    df['bar']
+   df['bar', 'one']
+   df['bar']['one']
+   s['qux']
 
 Advanced indexing with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Interaction with ``reindex``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Data alignment and ``reindex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+"Sortedness" issues
+~~~~~~~~~~~~~~~~~~~
+
+
 
 Indexing internal details
 -------------------------
