@@ -426,12 +426,12 @@ Console display
 ~~~~~~~~~~~~~~~
 
 For very large DataFrame objects, only a summary will be printed to the console
-(here I am reading a CSV version of the **baseball** dataset from the **plyr**
-R package):
+(here I am reading a random subset of the CSV version of the **baseball**
+dataset from the **plyr** R package):
 
 .. ipython:: python
 
-   baseball = read_csv('baseball.csv')
+   baseball = read_csv('datasets/baseball.csv')
    baseball
 
 However, using ``to_string`` will display any DataFrame in tabular form, though
