@@ -1,42 +1,150 @@
 .. currentmodule:: pandas
 .. _groupby:
 
-*****************************
-Group by: split-apply-combine
-*****************************
+.. ipython:: python
+   :suppress:
 
-GroupBy is a process involving the following stages
+   import numpy as np
+   np.random.seed(123456)
+   from pandas import *
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+
+****************************
+GroupBy: split-apply-combine
+****************************
+
+By "group by" we are refer to a process involving one or more of the following
+steps
 
  - **Splitting** the data into groups based on some criteria
  - **Applying** a function to each group independently
  - **Combining** the results into a data structure
 
 Of these, the split step is the most straightforward. In fact, in many
-situations you may simply wish to split the data set into groups and do
-something with those groups yourself.
+situations you may wish to split the data set into groups and do something with
+those groups yourself. In the apply step, we might wish to one of the
+following:
 
+ - **Aggregation**: computing a summary statistic (or statistics) about each
+   group. Some examples:
+    - Compute group sums or means
+    - Compute group sizes / counts
+ - **Transformation**: perform some group-specific computations and return a
+   like-indexed.
+    - Standardizing data (zscore) within group
+    - Filling NAs within groups with a value derived from each group
+ - Some combination of the above: GroupBy will examine the results of the apply
+   step and try to return a sensibly combined result if it doesn't fit into
+   either of the above two categories
 
-When we talk about *group by* operations, we are referring to performing
-operations on subsets of a data structure determined by some group membership
-criteria. For example, for a time series we might wish to group data by month or
-year. Generally, there are two primary kinds of operations of interest:
+Since the set of object instance method on pandas data structures are generally
+rich and expressive, we often simply want to invoke, say, a DataFrame function
+on each group. The name GroupBy should be quite familiar to those who have used
+a SQL-based tool, in which you can write code like:
 
-* **Aggregation**: computing a single number from a group of data. Some
-    examples:
+.. code-block:: sql
 
- * Counting group sizes (using the Python :func:`len` function)
- * Computing group sums or means
+   SELECT Column1, Column2, mean(Column3), sum(Column4)
+   FROM SomeTable
+   GROUP BY Column1, Column2
 
-* **Transformation**: computing new values for a group, leaving the data
-    structure size unchanged. For example
+We aim to make operations like this natural and easy to express using
+pandas. We'll address each area of GroupBy functionality then provide some
+non-trivial examples / use cases.
 
- * Rescale a group by its maximum value
- * Standardize a group (subtract the mean, divide by the standard deviation)
+Splitting an object into groups
+-------------------------------
 
-In designing :mod:`pandas` we wished to provide a simple method for carrying out
-the above kinds of operations. Sometimes procedures don't fit into the above two
-categories of actions, so we provide additionally a simple way to iterate
-through groups, which we illustrate below.
+pandas objects can be split on any of their axes. The abstract definition of
+grouping is to provide a mapping of labels to group names. To create a GroupBy
+object (more on what the GroupBy object is later), you do the following:
+
+.. code-block:: ipython
+
+   # default is axis=0
+   >>> grouped = obj.groupby(key)
+   >>> grouped = obj.groupby(key, axis=1)
+   >>> grouped = obj.groupby([key1, key2])
+
+The mapping can be specified many different ways:
+
+  - A Python function, to be called on each of the axis labels
+  - A list or NumPy array of the same length as the selected axis
+  - A dict or Series, providing a ``label -> group name`` mapping
+  - For DataFrame objects, a string indicating a column to be used to group. Of
+    course ``df.groupby('A')`` is just syntactic sugar for
+    ``df.groupby(df['A'])``, but it makes life simpler
+  - A list of any of the above things
+
+Collectively we refer to the grouping objects as the **keys**. For example,
+consider the following DataFrame:
+
+.. ipython:: python
+
+   df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                          'foo', 'bar', 'foo', 'foo'],
+                   'B' : ['one', 'one', 'two', 'three',
+                          'two', 'two', 'one', 'three'],
+                   'C' : randn(8), 'D' : randn(8)})
+   df
+
+We could naturally group by either the ``A`` or ``B`` columns or both:
+
+.. ipython:: python
+
+   grouped = df.groupby('A')
+   grouped = df.groupby(['A', 'B'])
+
+These will split the DataFrame on its index (rows). We could also split by the
+columns:
+
+.. ipython::
+
+    In [4]: def get_letter_type(letter):
+       ...:     if letter.lower() in 'aeiou':
+       ...:         return 'vowel'
+       ...:     else:
+       ...:         return 'consonant'
+       ...:
+
+    In [5]: grouped = df.groupby(get_letter_type, axis=1)
+
+Note that **no splitting occurs** until requested. Creating the GroupBy object
+only verifies that you've passed a valid mapping.
+
+GroupBy object attributes
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``groups`` attribute is a dict whose keys are the computed unique groups
+and corresponding values being the axis labels belonging to each group. In the
+above example we have:
+
+.. ipython:: python
+
+   df.groupby('A').groups
+   df.groupby(get_letter_type, axis=1).groups
+
+Calling the standard Python ``len`` function on the GroupBy object just returns
+the length of the ``groups`` dict, so it is largely just a convenience:
+
+.. ipython:: python
+
+   grouped = df.groupby(['A', 'B'])
+   grouped.groups
+   len(grouped)
+
+Iterating through groups
+------------------------
+
+Aggregation
+-----------
+
+Transformation
+--------------
+
+Invoking instance methods on groups
+-----------------------------------
 
 Grouping by dicts and functions
 -------------------------------

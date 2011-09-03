@@ -35,9 +35,9 @@ Basics
 ------
 
 As mentioned when introducing the data structures in the :ref:`last section
-<basics>`, the primary function of indexing with ``[]``
-(a.k.a. ``__getitem__``) for those familiar with implementing class behavior in
-Python) is selecting out lower-dimensional slices. Thus,
+<basics>`, the primary function of indexing with ``[]`` (a.k.a. ``__getitem__``
+for those familiar with implementing class behavior in Python) is selecting out
+lower-dimensional slices. Thus,
 
   - **Series**: ``series[label]`` returns a scalar value
   - **DataFrame**: ``frame[colname]`` returns a Series corresponding to the
@@ -418,7 +418,7 @@ Advanced indexing with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Syntactically integrating ``MultiIndex`` in advanced indexing with ``.ix`` is a
-but challenging, but we've made every effort to do so. for example the
+bit challenging, but we've made every effort to do so. for example the
 following works as you would expect:
 
 .. ipython:: python
@@ -563,7 +563,8 @@ incompatible the new object internals are with the ``Index`` functions):
   - ``slice_locs``: returns the "range" to slice between two labels
   - ``get_indexer``: Computes the indexing vector for reindexing / data
     alignment purposes. See the source / docstrings for more on this
-  - ``reindex``: Does any pre-conversion of the input index
+  - ``reindex``: Does any pre-conversion of the input index then calls
+    ``get_indexer``
   - ``union``, ``intersection``: computes the union or intersection of two
     Index objects
   - ``insert``: Inserts a new label into an Index, yielding a new object

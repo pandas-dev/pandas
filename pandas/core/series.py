@@ -254,8 +254,7 @@ copy : boolean, default False
         # boolean
 
         # special handling of boolean data with NAs stored in object
-        # arrays. Sort of an elaborate hack since we can't represent boolean
-        # NA. Hmm
+        # arrays. Since we can't represent NA with dtype=bool
         if _is_bool_indexer(key):
             self._check_bool_indexer(key)
             key = np.asarray(key, dtype=bool)

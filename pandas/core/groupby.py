@@ -177,7 +177,7 @@ class GroupBy(object):
         for each group
         """
         if len(self.groupings) == 1:
-            groups = self.primary.indices.keys()
+            groups = self.primary.groups.keys()
             try:
                 groups = sorted(groups)
             except Exception: # pragma: no cover
