@@ -10,9 +10,9 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
-****************************
-GroupBy: split-apply-combine
-****************************
+*****************************
+Group By: split-apply-combine
+*****************************
 
 By "group by" we are refer to a process involving one or more of the following
 steps
@@ -52,6 +52,8 @@ a SQL-based tool (or ``itertools``), in which you can write code like:
 We aim to make operations like this natural and easy to express using
 pandas. We'll address each area of GroupBy functionality then provide some
 non-trivial examples / use cases.
+
+.. _groupby.split:
 
 Splitting an object into groups
 -------------------------------
@@ -166,6 +168,30 @@ More on the ``sum`` function and aggregation later. Grouping with multiple
 levels (as opposed to a single level) is not yet supported, though implementing
 it is not difficult.
 
+DataFrame column selection in GroupBy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you have created the GroupBy object from a DataFrame, for example, you
+might want to do something different for each of the columns. Thus, using
+``[]`` similar to getting a column from a DataFrame, you can do:
+
+.. ipython:: python
+
+   grouped = df.groupby(['A'])
+   grouped_C = grouped['C']
+   grouped_D = grouped['D']
+
+This is mainly syntactic sugar for the alternative and much more verbose:
+
+.. ipython:: python
+
+   df['C'].groupby(df['A'])
+
+Additionally this method avoids recomputing the internal grouping information
+derived from the passed key.
+
+.. _groupby.iterating:
+
 Iterating through groups
 ------------------------
 
@@ -193,6 +219,8 @@ In the case of grouping by multiple keys, the group name will be a tuple:
 It's standard Python-fu but remember you can unpack the tuple in the for loop
 statement if you wish: ``for (k1, k2), group in grouped:``.
 
+.. _groupby.aggregate:
+
 Aggregation
 -----------
 
@@ -212,6 +240,47 @@ As you can see, the result of the aggregation will have the group names as the
 new index along the grouped axis. In the case of multiple keys, the result is a
 :ref:`MultiIndex <indexing.hierarchical>` by default.
 
+Applying multiple functions at once
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With grouped Series you can also pass a list or dict of functions to do
+aggregation with, outputting a DataFrame:
+
+.. ipython:: python
+
+   grouped = df.groupby('A')
+   grouped['C'].agg([np.sum, np.mean, np.std])
+
+If a dict is passed, the keys will be used to name the columns. Otherwise the
+function's name (stored in the function object) will be used.
+
+.. ipython:: python
+
+   grouped['D'].agg({'result1' : np.sum,
+                     'result2' : np.mean})
+
+We would like to enable this functionality for DataFrame, too. The result will
+likely have a MultiIndex for the columns.
+
+Applying different functions to DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By passing a dict to ``aggregate`` you can apply a different aggregation to the
+columns of a DataFrame:
+
+.. ipython:: python
+
+   grouped.agg({'C' : np.sum,
+                'D' : lambda x: np.std(x, ddof=1)})
+
+The function names can also be strings. In order for a string to be valid it
+must be either implemented on GroupBy or available via :ref:`dispatching
+<groupby.dispatch>`:
+
+.. ipython:: python
+
+   grouped.agg({'C' : 'sum', 'D' : 'std'})
+
 Cython-optimized aggregation functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -224,8 +293,9 @@ Cython implementations:
    df.groupby(['A', 'B']).mean()
 
 Of course ``sum`` and ``mean`` are implemented on pandas objects, so the above
-code would work even without the special versions via the "dispatching" feature
-described below.
+code would work even without the special versions via dispatching (see below).
+
+.. _groupby.transform:
 
 Transformation
 --------------
@@ -251,20 +321,109 @@ each group, which we can easily check:
 .. ipython:: python
 
    grouped = transformed.groupby(lambda x: x.year)
+
+   # OK, close enough to zero
    grouped.mean()
    grouped.std()
+
+.. _groupby.dispatch:
+
+Dispatching to instance methods
+-------------------------------
+
+When doing an aggregation or transformation, you might just want to call an
+instance method on each data group. This is pretty easy to do by passing lambda
+functions:
+
+.. ipython:: python
+
+   grouped = df.groupby('A')
+   grouped.agg(lambda x: x.std())
+
+But, it's rather verbose and can be untidy if you need to pass additional
+arguments. Using a bit of metaprogramming cleverness, GroupBy now has the
+ability to "dispatch" method calls to the groups:
+
+.. ipython:: python
+
+   grouped.std()
+
+What is actually happening here is that a function wrapper is being
+generated. When invoked, it takes any passed arguments and invokes the function
+with any arguments on each group (in the above example, the ``std``
+function). The results are then combined together much in the style of ``agg``
+and ``transform`` (it actually uses ``apply`` to infer the gluing, documented
+next). This enables some operations to be carried out rather succinctly:
+
+.. ipython:: python
+
+   tsdf.ix[::2] = np.nan
+   grouped = tsdf.groupby(lambda x: x.year)
+   grouped.fillna(method='pad')
+
+In this example, we chopped the collection of time series into yearly chunks
+then independently called :ref:`fillna <missing_data.fillna>` on the
+groups.
+
+.. _groupby.apply:
 
 Flexible ``apply``
 ------------------
 
+Some operations on the grouped data might not fit into either the aggregate or
+transform categories. Or, you may simply want GroupBy to infer how to combine
+the results. For these, use the ``apply`` function, which can be substitute for
+both ``aggregate`` and ``transform`` in many standard use cases. However,
+``apply`` can handle some exceptional use cases, for example:
+
+.. ipython:: python
+
+   df
+   grouped = df.groupby('A')
+
+   # could also just call .describe()
+   grouped['C'].apply(lambda x: x.describe())
+
+The dimension of the returned result can also change:
+
+.. ipython::
+
+    In [8]: grouped = df.groupby('A')['C']
+
+    In [10]: def f(group):
+       ....:     return DataFrame({'original' : group,
+       ....:                       'demeaned' : group - group.mean()})
+       ....:
+
+    In [11]: grouped.apply(f)
+
+
 Other useful features
 ---------------------
 
-Invoking instance methods on groups, "dispatching"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Grouping single columns of a DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Automatic exclusion of "nuisance" columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Again consider the example DataFrame we've been looking at:
+
+.. ipython:: python
+
+   df
+
+Supposed we wished to compute the standard deviation grouped by the ``A``
+column. There is a slight problem, namely that we don't care about the data in
+column ``B``. We refer to this as a "nuisance" column. If the passed
+aggregation function can't be applied to some columns, the troublesome columns
+will be (silently) dropped. Thus, this does not pose any problems:
+
+.. ipython:: python
+
+   df.groupby('A').std()
+
+NA group handling
+~~~~~~~~~~~~~~~~~
+
+If there are any NaN values in the grouping key, these will be automatically
+excluded. So there will never be an "NA group". This was not the case in older
+versions of pandas, but users were generally discarding the NA group anyway
+(and supporting it was an implementation headache).
