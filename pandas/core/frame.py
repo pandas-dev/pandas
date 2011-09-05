@@ -795,10 +795,10 @@ class DataFrame(NDFrame):
         loc = self.columns.get_loc(key)
         if isinstance(loc, slice):
             new_columns = self.columns[loc]
-            result = self.reindex(columns=new_columns)
-
-            # HACK: need a more general way of addressing this problem
-            result.columns = _maybe_droplevels(new_columns, key)
+            new_columns = _maybe_droplevels(new_columns, key)
+            new_values = self.values[:, loc]
+            result = DataFrame(new_values, index=self.index,
+                               columns=new_columns)
             return result
         else:
             return self._getitem_single(key)
@@ -1631,11 +1631,9 @@ class DataFrame(NDFrame):
         pivoted : DataFrame (value column specified) or WidePanel (no value
         column specified)
         """
-        from pandas.core.panel import _make_long_index, LongPanel
-
         index_vals = self[index]
         column_vals = self[columns]
-        long_index = _make_long_index(index_vals, column_vals)
+        mindex = MultiIndex.from_arrays([index_vals, column_vals])
 
         if values is None:
             items = self.columns - [index, columns]
@@ -1644,14 +1642,15 @@ class DataFrame(NDFrame):
             items = [values]
             mat = np.atleast_2d(self[values].values).T
 
-        lp = LongPanel(mat, index=long_index, columns=items)
-        lp = lp.sortlevel(level=0)
+        stacked = DataFrame(mat, index=mindex, columns=items)
 
-        wp = lp.to_wide()
+        if not mindex.is_lexsorted:
+            stacked = stacked.sortlevel(level=0)
+
+        unstacked = stacked.unstack()
         if values is not None:
-            return wp[values]
-        else:
-            return wp
+            unstacked.columns = unstacked.columns.droplevel(0)
+        return unstacked
 
     def stack(self):
         """

@@ -1721,7 +1721,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         wp = tm.makeWidePanel()
         lp = wp.to_long()
         df = DataFrame.from_records(lp.toRecords())
-        tm.assert_panel_equal(df.pivot('major', 'minor'), wp)
+        assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)

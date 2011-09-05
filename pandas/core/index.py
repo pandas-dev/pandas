@@ -652,7 +652,7 @@ class MultiIndex(Index):
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = (self.levels, self.labels)
+        subclass_state = (self.levels, self.labels, self.sortorder, self.names)
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -660,10 +660,12 @@ class MultiIndex(Index):
         """Necessary for making this object picklable"""
         nd_state, own_state = state
         np.ndarray.__setstate__(self, nd_state)
-        levels, labels, = own_state
+        levels, labels, sortorder, names = own_state
 
         self.levels = [Index(x) for x in levels]
         self.labels = labels
+        self.names = names
+        self.sortorder = sortorder
 
     def __getitem__(self, key):
         arr_idx = self.view(np.ndarray)
@@ -959,12 +961,12 @@ class MultiIndex(Index):
                     raise KeyError(key)
                 return result
         else:
-            # assert(self.sortorder == 0)
-            # slice level 0
             level = self.levels[0]
             labels = self.labels[0]
-
             loc = level.get_loc(key)
+
+            assert(self.lexsort_depth >= 1)
+
             i = labels.searchsorted(loc, side='left')
             j = labels.searchsorted(loc, side='right')
             return slice(i, j)

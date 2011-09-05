@@ -262,6 +262,22 @@ class TestMultiLevel(unittest.TestCase):
         self.assert_(not index.is_lexsorted())
         self.assert_(index.lexsort_depth == 0)
 
+    def test_frame_getitem_view(self):
+        df = self.frame.T
+        df['foo'].values[:] = 0
+        self.assert_((df['foo'].values == 0).all())
+
+        # but not if it's mixed-type
+        df['foo', 'four'] = 'foo'
+        df = df.sortlevel(0, axis=1)
+        df['foo']['one'] = 2
+        self.assert_((df['foo', 'one'] == 0).all())
+
+    def test_frame_getitem_not_sorted(self):
+        df = self.frame.T
+        df['foo', 'four'] = 'foo'
+        self.assertRaises(Exception, df.__getitem__, 'foo')
+
 if __name__ == '__main__':
 
     # unittest.main()
