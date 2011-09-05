@@ -205,8 +205,14 @@ class _DataFrameIndexer(object):
             is_int_index = _is_integer_index(self.frame.index)
 
             idx = key
-            if _is_int_like(key) and not is_int_index:
-                idx = self.frame.index[key]
+            if _is_int_like(key):
+                if isinstance(self.frame.index, MultiIndex):
+                    try:
+                        return self.frame.xs(key)
+                    except (KeyError, TypeError):
+                        pass
+                elif not is_int_index:
+                    idx = self.frame.index[key]
 
             if self.frame._is_mixed_type:
                 return self.frame.xs(idx)

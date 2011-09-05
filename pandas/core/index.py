@@ -24,6 +24,8 @@ def _indexOp(opname):
         return func(other)
     return wrapper
 
+__DEBUG__ = False
+
 class Index(np.ndarray):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -41,6 +43,10 @@ class Index(np.ndarray):
     An Index instance can **only** contain hashable objects
     """
     def __new__(cls, data, dtype=object, copy=False):
+        if __DEBUG__:
+            import pandas.util.testing as t
+            t.set_trace()
+
         if isinstance(data, np.ndarray):
             subarr = np.array(data, dtype=dtype, copy=copy)
         elif np.isscalar(data):
@@ -288,6 +294,7 @@ class Index(np.ndarray):
         -------
         loc : int
         """
+        self._verify_integrity()
         return self.indexMap[key]
 
     def get_indexer(self, target, method=None):
@@ -503,12 +510,18 @@ class MultiIndex(Index):
     labels : list or tuple of arrays
         Integers for each level designating which label at each location
     """
-    def __new__(cls, levels=None, labels=None, sortorder=None):
+    def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
         return np.arange(len(labels[0]), dtype=object).view(cls)
 
-    def __init__(self, levels, labels, sortorder=None):
+    def __init__(self, levels, labels, sortorder=None, names=None):
         self.levels = [_ensure_index(lev) for lev in levels]
         self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+
+        if names is None:
+            self.names = ['level_%d' % i for i in range(self.nlevels)]
+        else:
+            assert(len(names) == self.nlevels)
+            self.names = list(names)
 
         if sortorder is not None:
             self.sortorder = int(sortorder)
@@ -576,7 +589,7 @@ class MultiIndex(Index):
         return 0
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None):
+    def from_arrays(cls, arrays, sortorder=None, names=None):
         """
         Convert arrays to MultiIndex
 
@@ -597,10 +610,11 @@ class MultiIndex(Index):
             levels.append(factor.levels)
             labels.append(factor.labels)
 
-        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder)
+        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
+                          names=names)
 
     @classmethod
-    def from_tuples(cls, tuples, sortorder=None):
+    def from_tuples(cls, tuples, sortorder=None, names=None):
         """
         Convert list of tuples to MultiIndex
 
@@ -615,7 +629,8 @@ class MultiIndex(Index):
         index : MultiIndex
         """
         arrays = zip(*tuples)
-        return MultiIndex.from_arrays(arrays, sortorder=sortorder)
+        return MultiIndex.from_arrays(arrays, sortorder=sortorder,
+                                      names=names)
 
     @property
     def indexMap(self):
@@ -671,6 +686,7 @@ class MultiIndex(Index):
             result.levels = self.levels
             result.labels = new_labels
             result.sortorder = sortorder
+            result.names = self.names
 
             return result
 

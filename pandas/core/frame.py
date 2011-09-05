@@ -454,7 +454,7 @@ class DataFrame(NDFrame):
                                default_fill_value=fill_value)
 
     def to_csv(self, path, nanRep='', cols=None, header=True,
-              index=True, mode='wb'):
+              index=True, index_label=None, mode='wb'):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -469,6 +469,8 @@ class DataFrame(NDFrame):
             Write out column names
         index : boolean, default True
             Write row names (index)
+        index_label : string, default None
+            Column label for index column if desired
         mode : Python write mode, default 'wb'
         """
         f = open(path, mode)
@@ -479,11 +481,9 @@ class DataFrame(NDFrame):
         series = self._series
         if header:
             joined_cols = ','.join([str(c) for c in cols])
-            if index:
-                # this could be dangerous
-                f.write('index,%s' % joined_cols)
-            else:
-                f.write(joined_cols)
+            if index and index_label:
+                f.write('%s,%s' % (index_label, joined_cols))
+            f.write(joined_cols)
             f.write('\n')
 
         for idx in self.index:
@@ -1724,10 +1724,11 @@ class DataFrame(NDFrame):
             raise Exception('this DataFrame does not have a multi-level index')
 
         new_obj = self.copy()
+        names = self.index.names
 
         zipped = zip(self.index.levels, self.index.labels)
         for i, (lev, lab) in reversed(list(enumerate(zipped))):
-            new_obj.insert(0, 'label_%d' % i, np.asarray(lev).take(lab))
+            new_obj.insert(0, names[i], np.asarray(lev).take(lab))
 
         new_obj.index = np.arange(len(new_obj))
 

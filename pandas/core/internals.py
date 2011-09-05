@@ -312,7 +312,7 @@ class BlockManager(object):
         return tuple(len(ax) for ax in self.axes)
 
     def _verify_integrity(self):
-        _union_block_items(self.blocks)
+        union_items = _union_block_items(self.blocks)
 
         mgr_shape = self.shape
         for block in self.blocks:
@@ -697,7 +697,11 @@ _data_types = [np.float_, np.int_]
 def form_blocks(data, axes):
     # pre-filter out items if we passed it
     items = axes[0]
-    extra_items = items - Index(data.keys())
+
+    if len(data) < len(items):
+        extra_items = items - Index(data.keys())
+    else:
+        extra_items = []
 
     # put "leftover" items in float bucket, where else?
     # generalize?
@@ -821,14 +825,29 @@ def _merge_blocks(blocks, items):
     return new_block.reindex_items_from(items)
 
 def _union_block_items(blocks):
-    seen = None
-    for block in blocks:
-        len_before = 0 if seen is None else len(seen)
-        if seen is None:
-            seen = block.items
-        else:
-            seen = seen.union(block.items)
-        if len(seen) != len_before + len(block.items):
-            raise Exception('item names overlap')
+    tot_len = 0
+    all_items = []
+    slow = False
+    for b in blocks:
+        tot_len += len(b.items)
+        if type(b.items) != Index:
+            slow = True
+        all_items.append(b.items)
 
+    if slow:
+        the_union = _union_items_slow(all_items)
+    else:
+        the_union = _tseries.fast_unique_multiple(all_items)
+
+    if tot_len > len(the_union):
+        raise Exception('item names overlap')
+    return the_union
+
+def _union_items_slow(all_items):
+    seen = None
+    for items in all_items:
+        if seen is None:
+            seen = items
+        else:
+            seen = seen.union(items)
     return seen

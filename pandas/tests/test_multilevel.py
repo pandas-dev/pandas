@@ -145,6 +145,18 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
+    def test_getitem_int(self):
+        levels = [[0, 1], [0, 1, 2]]
+        labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+        index = MultiIndex(levels=levels, labels=labels)
+
+        frame = DataFrame(np.random.randn(6, 2), index=index)
+
+        result = frame.ix[1]
+        expected = frame[-3:]
+        expected.index = expected.index.droplevel(0)
+        assert_frame_equal(result, expected)
+
     def test_getitem_partial(self):
         ymd = self.ymd.T
         result = ymd[2000, 2]
