@@ -965,11 +965,13 @@ class MultiIndex(Index):
             labels = self.labels[0]
             loc = level.get_loc(key)
 
-            assert(self.lexsort_depth >= 1)
-
-            i = labels.searchsorted(loc, side='left')
-            j = labels.searchsorted(loc, side='right')
-            return slice(i, j)
+            if self.lexsort_depth == 0:
+                return labels == loc
+            else:
+                # sorted, so can return slice object -> view
+                i = labels.searchsorted(loc, side='left')
+                j = labels.searchsorted(loc, side='right')
+                return slice(i, j)
 
     def _get_tuple_loc(self, tup):
         indexer = self._get_label_key(tup)

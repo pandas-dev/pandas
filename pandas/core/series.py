@@ -271,7 +271,7 @@ copy : boolean, default False
         values = self.values
         try:
             loc = self.index.get_loc(key)
-            if isinstance(loc, slice):
+            if isinstance(loc, (slice, np.ndarray)):
                 # TODO: what if a level contains tuples??
                 new_index = self.index[loc]
                 new_index = _maybe_droplevels(new_index, key)

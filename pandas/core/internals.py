@@ -438,7 +438,8 @@ class BlockManager(object):
 
         new_axes = list(self.axes)
 
-        if isinstance(loc, slice):
+        # could be an array indexer!
+        if isinstance(loc, (slice, np.ndarray)):
             new_axes[axis] = new_axes[axis][loc]
         else:
             new_axes.pop(axis)

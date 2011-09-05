@@ -793,12 +793,16 @@ class DataFrame(NDFrame):
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
-        if isinstance(loc, slice):
+        if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
-            new_columns = _maybe_droplevels(new_columns, key)
-            new_values = self.values[:, loc]
-            result = DataFrame(new_values, index=self.index,
-                               columns=new_columns)
+            result_columns = _maybe_droplevels(new_columns, key)
+            if self._is_mixed_type:
+                result = self.reindex(columns=new_columns)
+                result.columns = result_columns
+            else:
+                new_values = self.values[:, loc]
+                result = DataFrame(new_values, index=self.index,
+                                   columns=result_columns)
             return result
         else:
             return self._getitem_single(key)

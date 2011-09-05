@@ -276,7 +276,39 @@ class TestMultiLevel(unittest.TestCase):
     def test_frame_getitem_not_sorted(self):
         df = self.frame.T
         df['foo', 'four'] = 'foo'
-        self.assertRaises(Exception, df.__getitem__, 'foo')
+
+        arrays = [np.array(x) for x in zip(*df.columns.get_tuple_index())]
+
+        result = df['foo']
+        result2 = df.ix[:, 'foo']
+        expected = df.reindex(columns=df.columns[arrays[0] == 'foo'])
+        expected.columns = expected.columns.droplevel(0)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        df = df.T
+        result = df.xs('foo')
+        result2 = df.ix['foo']
+        expected = df.reindex(df.index[arrays[0] == 'foo'])
+        expected.index = expected.index.droplevel(0)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+    def test_series_getitem_not_sorted(self):
+        arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
+        ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        tuples = zip(*arrays)
+        index = MultiIndex.from_tuples(tuples)
+        s = Series(randn(8), index=index)
+
+        arrays = [np.array(x) for x in zip(*index.get_tuple_index())]
+
+        result = s['qux']
+        result2 = s.ix['qux']
+        expected = s[arrays[0] == 'qux']
+        expected.index = expected.index.droplevel(0)
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
 
 if __name__ == '__main__':
 
