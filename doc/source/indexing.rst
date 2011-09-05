@@ -473,6 +473,14 @@ which will lexicographically sort an axis with a ``MultiIndex``:
    s.sortlevel(0)
    s.sortlevel(1)
 
+Some indexing will work even if the data are not sorted, but will be rather
+inefficient and will also return a copy of the data rather than a view:
+
+.. ipython:: python
+
+   s['qux']
+   s.sortlevel(1)['qux']
+
 On higher dimensional objects, you can sort any of the other axes by level if
 they have a MultiIndex:
 
@@ -501,7 +509,7 @@ However:
 ::
 
    >>> s.ix[('a', 'b'):('b', 'a')]
-   Exception: MultiIndex lexsort depth 1, key was 2 long
+   Exception: MultiIndex lexsort depth 1, key was length 2
 
 Some gory internal details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
