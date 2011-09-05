@@ -2,6 +2,7 @@ import numpy as np
 import cPickle
 
 from pandas.core.common import _ensure_index
+from pandas.core.index import Index, MultiIndex
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------
@@ -380,4 +381,21 @@ class NDFrame(PandasObject):
 
         result[count == 0] = np.NaN
 
+        return result
+
+    def copy(self):
+        """Make a deep copy of this object"""
+        return self._constructor(self._data.copy())
+
+    def swaplevel(self, i, j, axis=0):
+        """
+        Swap levels i and j in a MultiIndex on a particular axis
+
+        Returns
+        -------
+        swapped : type of caller (new object)
+        """
+        result = self.copy()
+        labels = result._data.axes[axis]
+        result._data.set_axis(axis, labels.swaplevel(i, j))
         return result

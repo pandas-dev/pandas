@@ -15,6 +15,12 @@
 Pivoting and reshaping data
 ***************************
 
+.. note::
+
+   Since some of the functionality documented in this section is very new, the
+   user should keep an eye on any changes to the API or behavior which may
+   occur by the next release.
+
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
@@ -92,3 +98,16 @@ are homogeneously-typed.
 
 Reshaping by stacking and unstacking
 ------------------------------------
+
+Closely related to the ``pivot`` function are the related ``stack`` and
+``unstack`` functions currently available on Series and DataFrame. These
+functions are designed to tie together with ``MultiIndex`` objects (see the
+section on :ref:`hierarchical indexing <indexing.hierarchical>`). Here are
+essentially what these functions do:
+
+  - ``stack``: collapse level in ``axis=1`` to produce new object whose index
+    has the collapsed columns as its lowest level
+  - ``unstack``: inverse operation from ``stack``; "pivot" index level to
+    produce reshaped DataFrame
+
+Actually very hard to explain in words; the clearest way is by example.

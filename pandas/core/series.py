@@ -1046,6 +1046,17 @@ copy : boolean, default False
         new_values = self.values.take(indexer)
         return Series(new_values, index=new_index)
 
+    def swaplevel(self, i, j, copy=True):
+        """
+        Swap levels i and j in a MultiIndex
+
+        Returns
+        -------
+        swapped : Series
+        """
+        new_index = self.index.swaplevel(i, j)
+        return Series(self.values, index=new_index, copy=copy)
+
     def unstack(self, level=-1):
         """
         Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame

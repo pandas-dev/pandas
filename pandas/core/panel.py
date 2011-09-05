@@ -306,16 +306,6 @@ class WidePanel(Panel, NDFrame):
         return self._constructor(arr, items=items, major_axis=major,
                                  minor_axis=minor, copy=copy)
 
-    def copy(self):
-        """
-        Return a copy of WidePanel (only values ndarray copied)
-
-        Returns
-        -------
-        y : WidePanel
-        """
-        return WidePanel(self._data.copy())
-
     fromDict = from_dict
 
     def to_sparse(self, fill_value=None, kind='block'):
