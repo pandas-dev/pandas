@@ -31,7 +31,7 @@ following:
     - Compute group sums or means
     - Compute group sizes / counts
  - **Transformation**: perform some group-specific computations and return a
-   like-indexed.
+   like-indexed. Some examples:
     - Standardizing data (zscore) within group
     - Filling NAs within groups with a value derived from each group
  - Some combination of the above: GroupBy will examine the results of the apply
@@ -238,7 +238,13 @@ the ``aggregate`` or equivalently ``agg`` method:
 
 As you can see, the result of the aggregation will have the group names as the
 new index along the grouped axis. In the case of multiple keys, the result is a
-:ref:`MultiIndex <indexing.hierarchical>` by default.
+:ref:`MultiIndex <indexing.hierarchical>` by default, though this can be
+changed by using the ``as_index`` option:
+
+.. ipython:: python
+
+   grouped = df.groupby(['A', 'B'], as_index=False)
+   grouped.aggregate(np.sum)
 
 Applying multiple functions at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
