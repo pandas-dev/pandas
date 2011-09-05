@@ -1514,15 +1514,7 @@ def make_mask(index):
     return mask
 
 def _make_long_index(major_values, minor_values):
-    from pandas.core.index import unique_with_labels
-    major_values = np.asarray(major_values, dtype=object)
-    minor_values = np.asarray(minor_values, dtype=object)
-    major_axis, major_labels = unique_with_labels(major_values)
-    minor_axis, minor_labels = unique_with_labels(minor_values)
-
-    long_index = MultiIndex(levels=[major_axis, minor_axis],
-                                 labels=[major_labels, minor_labels])
-    return long_index
+    return MultiIndex.from_arrays([major_values, minor_values])
 
 def _slow_pivot(index, columns, values):
     """

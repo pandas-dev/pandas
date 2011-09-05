@@ -137,7 +137,7 @@ Release notes
     `DataFrame.count` to enable this behavior in those methods if so desired
     (disabled by default)
   * `DataFrame.pivot` generalized to enable pivoting multiple columns into a
-    `WidePanel`
+    `DataFrame` with hierarhical columns
   * `DataFrame` constructor can accept structured / record arrays
   * `WidePanel` constructor can accept a dict of DataFrame-like objects. Do not
     need to use `from_dict` anymore (`from_dict` is there to stay, though).
@@ -206,6 +206,10 @@ Release notes
   * More Series deprecations / renaming: `toCSV` to `to_csv`, `asOf` to `asof`,
     `merge` to `map`, `applymap` to `apply`, `toDict` to `to_dict`,
     `combineFirst` to `combine_first`. Will print `FutureWarning`.
+  * `DataFrame.to_csv` does not write an "index" column label by default
+    anymore since the output file can be read back without it. However, there
+    is a new ``index_label`` argument. So you can do ``index_label='index'`` to
+    emulate the old behavior
 
 **Bug fixes**
 
