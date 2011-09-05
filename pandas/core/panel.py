@@ -1496,8 +1496,7 @@ def pivot(index, columns, values):
     if len(index) == 0:
         return DataFrame(index=[])
 
-    hindex = _make_long_index(index, columns)
-
+    hindex = MultiIndex.from_arrays([index, columns])
     series = Series(values.ravel(), index=hindex)
     series = series.sortlevel(0)
     return series.unstack()
@@ -1512,9 +1511,6 @@ def make_mask(index):
     mask = np.zeros(N * K, dtype=bool)
     mask.put(selector, True)
     return mask
-
-def _make_long_index(major_values, minor_values):
-    return MultiIndex.from_arrays([major_values, minor_values])
 
 def _slow_pivot(index, columns, values):
     """

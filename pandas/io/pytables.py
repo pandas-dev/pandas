@@ -9,7 +9,8 @@ from datetime import datetime
 import time
 
 import numpy as np
-from pandas import Series, TimeSeries, DataFrame, WidePanel, LongPanel
+from pandas import (Series, TimeSeries, DataFrame, WidePanel, LongPanel,
+                    MultiIndex)
 from pandas.core.common import adjoin
 import pandas._tseries as _tseries
 
@@ -549,7 +550,6 @@ class HDFStore(object):
         return self._read_panel_table(group, where)['value']
 
     def _read_panel_table(self, group, where=None):
-        from pandas.core.panel import _make_long_index
         table = getattr(group, 'table')
 
         # create the selection
@@ -562,8 +562,7 @@ class HDFStore(object):
         index = _maybe_convert(sel.values['index'],
                                table._v_attrs.index_kind)
         # reconstruct
-        long_index = _make_long_index(np.asarray(index),
-                                      np.asarray(columns))
+        long_index = MultiIndex.from_arrays([index, columns])
         lp = LongPanel(sel.values['values'], index=long_index,
                        columns=fields)
         lp = lp.sortlevel(level=0)
