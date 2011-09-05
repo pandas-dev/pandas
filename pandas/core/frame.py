@@ -1656,7 +1656,7 @@ class DataFrame(NDFrame):
             unstacked.columns = unstacked.columns.droplevel(0)
         return unstacked
 
-    def stack(self):
+    def stack(self, level=-1):
         """
         Convert DataFrame to Series with multi-level Index. Columns become the
         second level of the resulting hierarchical index
@@ -1665,13 +1665,83 @@ class DataFrame(NDFrame):
         -------
         stacked : Series
         """
-        # TODO: what if already have MultiIndex?
+        if isinstance(self.columns, MultiIndex):
+            return self._stack_multi(level=level)
+
         N, K = len(self.index), len(self.columns)
         ilabels = np.arange(N).repeat(K)
         clabels = np.tile(np.arange(K), N).ravel()
-        index = MultiIndex(levels=[self.index, self.columns],
-                           labels=[ilabels, clabels])
-        return Series(self.values.ravel(), index=index)
+        new_index = MultiIndex(levels=[self.index, self.columns],
+                               labels=[ilabels, clabels])
+        return Series(self.values.ravel(), index=new_index)
+
+    def _stack_multi(self, level=-1):
+        import itertools
+        this = self
+        if level < 0:
+            level += self.columns.nlevels
+
+        # this makes life much simpler
+        if level != self.columns.nlevels - 1:
+            last = self.columns.nlevels - 1
+            this.columns = this.columns.swaplevel(level, last)
+
+        if not this.columns.is_lexsorted:
+            this = this.sortlevel(0, axis=1)
+
+        # tuple list excluding level for grouping columns
+        if len(self.columns.levels) > 2:
+            tuples = zip(*[lev.values.take(lab)
+                           for lev, lab in zip(this.columns.levels[:-1],
+                                               this.columns.labels[:-1])])
+            unique_groups = [key for key, _ in itertools.groupby(tuples)]
+            new_names = this.columns.names[:-1]
+            new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
+        else:
+            new_columns = unique_groups = this.columns.levels[0]
+
+        # time to ravel the values
+        new_data = {}
+        level_vals = this.columns.levels[-1]
+        levsize = len(level_vals)
+        for key in unique_groups:
+            loc = this.columns.get_loc(key)
+
+            # can make more efficient?
+            if loc.stop - loc.start != levsize:
+                chunk = this.ix[:, this.columns[loc]]
+                chunk.columns = level_vals.take(chunk.columns.labels[-1])
+                value_slice = chunk.reindex(columns=level_vals).value
+            else:
+                if self._is_mixed_type:
+                    value_slice = this.ix[:, this.columns[loc]].values
+                else:
+                    value_slice = this.values[:, loc]
+
+            new_data[key] = value_slice.ravel()
+
+        N = len(this)
+
+        if isinstance(this.index, MultiIndex):
+            new_levels = list(this.index.levels)
+            new_names = list(this.index.names)
+            new_labels = [lab.repeat(levsize) for lab in this.index.labels]
+        else:
+            new_levels = [this.index]
+            new_labels = [np.arange(N).repeat(levsize)]
+            new_names = ['index'] # something better?
+
+        new_levels.append(self.columns.levels[level])
+        new_labels.append(np.tile(np.arange(levsize), N))
+        new_names.append(self.columns.names[level])
+
+        new_index = MultiIndex(levels=new_levels, labels=new_labels,
+                               names=new_names)
+
+        result = DataFrame(new_data, index=new_index, columns=new_columns)
+        # more efficient way to go about this?
+        result = result.dropna(axis=0, how='all')
+        return result
 
     def unstack(self, level=-1):
         """

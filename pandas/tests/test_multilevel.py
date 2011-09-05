@@ -234,6 +234,11 @@ class TestMultiLevel(unittest.TestCase):
         unstacked = self.ymd.unstack()
         unstacked2 = unstacked.unstack()
 
+    def test_stack_roundtrip(self):
+        unstacked = self.ymd.unstack()
+        restacked = unstacked.stack()
+        assert_frame_equal(restacked, self.ymd)
+
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
