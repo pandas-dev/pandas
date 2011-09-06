@@ -379,6 +379,18 @@ can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
+Level names
+~~~~~~~~~~~
+
+All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
+string names for the levels themselves. This will get increasingly integrated
+in to groupby and reshaping routines. If no names are provided, some arbitrary
+ones will be assigned:
+
+.. ipython:: python
+
+   index.names
+
 Basic indexing on axis with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -510,6 +522,23 @@ However:
 
    >>> s.ix[('a', 'b'):('b', 'a')]
    Exception: MultiIndex lexsort depth 1, key was length 2
+
+The ``delevel`` DataFrame function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As a convenience, there is a new function on DataFrame called ``delevel`` which
+takes a ``MultiIndex`` on the rows and turns the levels into columns of the
+DataFrame:
+
+.. ipython:: python
+
+   df
+   df.delevel()
+
+The output is more similar to a SQL table or a record array. The names for the
+columns derived from the ``MultiIndex`` are the ones stored in the ``names``
+attribute. These will get automatically assigned in various places where
+``MultiIndex`` is created, for example :ref:`GroupBy <groupby>`.
 
 Some gory internal details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
