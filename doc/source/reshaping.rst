@@ -176,3 +176,22 @@ the right thing:
 
    df[:3].unstack(0)
    df2.unstack(1)
+
+Combining with stats and GroupBy
+--------------------------------
+
+It should be no shock that combining ``pivot`` / ``stack`` / ``unstack`` with
+GroupBy and the basic Series and DataFrame statistical functions can produce
+some very expressive and fast data manipulations.
+
+.. ipython:: python
+
+   df
+   df.stack().mean(1).unstack()
+
+   # same result, another way
+   df.groupby(level=1, axis=1).mean()
+
+   df.stack().groupby(level=1).mean()
+
+   df.mean().unstack(0)
