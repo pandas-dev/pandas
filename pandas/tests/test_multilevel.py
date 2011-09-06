@@ -315,6 +315,13 @@ class TestMultiLevel(unittest.TestCase):
         assert_series_equal(stacked['foo'], df['foo'].stack())
         self.assert_(stacked['bar'].dtype == np.float_)
 
+    def test_swaplevel(self):
+        swapped = self.frame['A'].swaplevel(0, 1)
+        self.assert_(not swapped.index.equals(self.frame.index))
+
+        back = swapped.swaplevel(0, 1)
+        self.assert_(back.index.equals(self.frame.index))
+
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]

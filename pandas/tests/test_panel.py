@@ -827,11 +827,11 @@ class TestLongPanel(unittest.TestCase):
         self.panel.toCSV('__tmp__')
         os.remove('__tmp__')
 
-    def test_toString(self):
+    def test_to_string(self):
         from cStringIO import StringIO
 
         buf = StringIO()
-        self.panel.toString(buf)
+        self.panel.to_string(buf)
 
     def test_swapaxes(self):
         swapped = self.panel.swapaxes()

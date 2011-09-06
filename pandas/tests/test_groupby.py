@@ -720,6 +720,9 @@ class TestGroupBy(unittest.TestCase):
         result = df.groupby(level=0).mean()
         self.assert_(result.columns.equals(columns))
 
+        result = df.groupby(level=0, axis=1).mean()
+        self.assert_(result.index.equals(df.index))
+
         result = df.groupby(level=0).agg(np.mean)
         self.assert_(result.columns.equals(columns))
 

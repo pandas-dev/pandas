@@ -284,10 +284,7 @@ class GroupBy(object):
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        if self.axis == 0:
-            return self._cython_agg_general('mean')
-        else:
-            return self.aggregate(lambda x: x.mean(axis=self.axis))
+        return self._cython_agg_general('mean')
 
     def sum(self, axis=None):
         """
@@ -296,10 +293,7 @@ class GroupBy(object):
         For multiple groupings, the result index will be a MultiIndex
         """
         try:
-            if self.axis == 0:
-                return self._cython_agg_general('add')
-            else:
-                return self.aggregate(lambda x: x.sum(axis=self.axis))
+            return self._cython_agg_general('add')
         except Exception:
             return self.aggregate(lambda x: np.sum(x, axis=self.axis))
 
