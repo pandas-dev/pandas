@@ -234,10 +234,48 @@ class TestMultiLevel(unittest.TestCase):
         unstacked = self.ymd.unstack()
         unstacked2 = unstacked.unstack()
 
-    def test_stack_roundtrip(self):
+    def test_stack(self):
+        # regular roundtrip
         unstacked = self.ymd.unstack()
         restacked = unstacked.stack()
         assert_frame_equal(restacked, self.ymd)
+
+        unlexsorted = self.ymd.sortlevel(2)
+
+        unstacked = unlexsorted.unstack(2)
+        restacked = unstacked.stack()
+        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+
+        unlexsorted = unlexsorted[::-1]
+        unstacked = unlexsorted.unstack(1)
+        restacked = unstacked.stack().swaplevel(1, 2)
+        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+
+        unlexsorted = unlexsorted.swaplevel(0, 1)
+        unstacked = unlexsorted.unstack(0).swaplevel(0, 1, axis=1)
+        restacked = unstacked.stack(0).swaplevel(1, 2)
+        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+
+        # columns unsorted
+        unstacked = self.ymd.unstack()
+        unstacked = unstacked.sort(axis=1, ascending=False)
+        restacked = unstacked.stack()
+        assert_frame_equal(restacked, self.ymd)
+
+        # more than 2 levels in the columns
+        unstacked = self.ymd.unstack(1).unstack(1)
+
+        result = unstacked.stack(1)
+        expected = self.ymd.unstack()
+        assert_frame_equal(result, expected)
+
+        result = unstacked.stack(2)
+        expected = self.ymd.unstack(1)
+        assert_frame_equal(result, expected)
+
+        result = unstacked.stack(0)
+        expected = self.ymd.stack().unstack(1).unstack(1)
+        assert_frame_equal(result, expected)
 
     def test_insert_index(self):
         df = self.ymd[:5].T

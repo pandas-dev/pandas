@@ -290,10 +290,6 @@ class DataFrame(NDFrame):
         """True if DataFrame has this column"""
         return key in self.columns
 
-    def copy(self):
-        """Make a deep copy of this DataFrame"""
-        return self._constructor(self._data.copy())
-
     #----------------------------------------------------------------------
     # Arithmetic methods
 
@@ -1256,6 +1252,22 @@ class DataFrame(NDFrame):
         new_values = self.values.take(indexer, axis=axis)
         return self._constructor(new_values, index=index, columns=columns)
 
+    def swaplevel(self, i, j, axis=0):
+        """
+        Swap levels i and j in a MultiIndex on a particular axis
+
+        Returns
+        -------
+        swapped : type of caller (new object)
+        """
+        result = self.copy()
+
+        if axis == 0:
+            result.index = result.index.swaplevel(i, j)
+        else:
+            result.columns = result.columns.swaplevel(i, j)
+        return result
+
     #----------------------------------------------------------------------
     # Filling NA's
 
@@ -1648,7 +1660,7 @@ class DataFrame(NDFrame):
 
         stacked = DataFrame(mat, index=mindex, columns=items)
 
-        if not mindex.is_lexsorted:
+        if not mindex.is_lexsorted():
             stacked = stacked.sortlevel(level=0)
 
         unstacked = stacked.unstack()
@@ -1665,28 +1677,46 @@ class DataFrame(NDFrame):
         -------
         stacked : Series
         """
+        N, K = self.shape
         if isinstance(self.columns, MultiIndex):
-            return self._stack_multi(level=level)
+            return self._stack_multi_columns(level=level)
+        elif isinstance(self.index, MultiIndex):
 
-        N, K = len(self.index), len(self.columns)
-        ilabels = np.arange(N).repeat(K)
-        clabels = np.tile(np.arange(K), N).ravel()
-        new_index = MultiIndex(levels=[self.index, self.columns],
-                               labels=[ilabels, clabels])
+            new_levels = list(self.index.levels)
+            new_levels.append(self.columns)
+
+            new_labels = [lab.repeat(K) for lab in self.index.labels]
+            new_labels.append(np.tile(np.arange(K), N).ravel())
+
+            new_names = list(self.index.names)
+            new_names.append('columns')
+            new_index = MultiIndex(levels=new_levels, labels=new_labels,
+                                   names=new_names)
+        else:
+            ilabels = np.arange(N).repeat(K)
+            clabels = np.tile(np.arange(K), N).ravel()
+            new_index = MultiIndex(levels=[self.index, self.columns],
+                                   labels=[ilabels, clabels])
+
         return Series(self.values.ravel(), index=new_index)
 
-    def _stack_multi(self, level=-1):
+    def _stack_multi_columns(self, level=-1):
         import itertools
-        this = self
+        this = self.copy()
         if level < 0:
             level += self.columns.nlevels
 
         # this makes life much simpler
         if level != self.columns.nlevels - 1:
             last = self.columns.nlevels - 1
-            this.columns = this.columns.swaplevel(level, last)
 
-        if not this.columns.is_lexsorted:
+            # roll levels to put selected level at end
+            roll_columns = this.columns
+            for i in range(level, self.columns.nlevels - 1):
+                roll_columns = roll_columns.swaplevel(i, i + 1)
+            this.columns = roll_columns
+
+        if not this.columns.is_lexsorted():
             this = this.sortlevel(0, axis=1)
 
         # tuple list excluding level for grouping columns
