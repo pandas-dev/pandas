@@ -562,7 +562,12 @@ if you compute the levels and labels yourself, please be careful.
 Swapping levels
 ~~~~~~~~~~~~~~~
 
-This is not yet implemented
+To do this, use the ``swaplevels`` function:
+
+.. ipython:: python
+
+   df
+   df.swaplevels(0, 1)
 
 Indexing internal details
 -------------------------
