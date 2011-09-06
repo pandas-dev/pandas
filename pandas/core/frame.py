@@ -1773,7 +1773,7 @@ class DataFrame(NDFrame):
         """
         return self - self.shift(periods)
 
-    def shift(self, periods, offset=None, time_rule=None, **kwds):
+    def shift(self, periods, offset=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
         optional time offset
@@ -1782,10 +1782,8 @@ class DataFrame(NDFrame):
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset, optional
-            Increment to use from datetools module
-        time_rule : string
-            Time rule to use by name
+        offset : DateOffset, timedelta, or time rule string, optional
+            Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
         -------
@@ -1794,9 +1792,9 @@ class DataFrame(NDFrame):
         if periods == 0:
             return self
 
-        time_rule = kwds.get('timeRule', time_rule)
-        if time_rule is not None and offset is None:
-            offset = datetools.getOffset(time_rule)
+        offset = kwds.get('timeRule', offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset)
 
         def _shift_block(blk, indexer):
             new_values = blk.values.take(indexer, axis=1)

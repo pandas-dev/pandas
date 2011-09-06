@@ -1446,7 +1446,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods, offset=None, time_rule=None, **kwds):
+    def shift(self, periods, offset=None, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset
@@ -1455,10 +1455,8 @@ copy : boolean, default False
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset or timedelta, optional
-            Increment to use from datetools module
-        time_rule : string, optional
-            time rule name to use by name (e.g. 'WEEKDAY')
+        offset : DateOffset, timedelta, or time rule string, optional
+            Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
         -------
@@ -1467,9 +1465,9 @@ copy : boolean, default False
         if periods == 0:
             return self.copy()
 
-        time_rule = kwds.get('timeRule', time_rule)
-        if time_rule is not None and offset is None:
-            offset = datetools.getOffset(time_rule)
+        offset = kwds.get('timeRule', offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset)
 
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)
