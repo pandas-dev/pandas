@@ -1754,7 +1754,7 @@ class DataFrame(NDFrame):
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
         else:
-            dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
+            dateRange = DateRange(self.index[0], self.index[-1], time_rule=freq)
 
         return self.reindex(dateRange, method=method)
 
@@ -1773,7 +1773,7 @@ class DataFrame(NDFrame):
         """
         return self - self.shift(periods)
 
-    def shift(self, periods, offset=None, timeRule=None):
+    def shift(self, periods, offset=None, time_rule=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
         optional time offset
@@ -1784,7 +1784,7 @@ class DataFrame(NDFrame):
             Number of periods to move, can be positive or negative
         offset : DateOffset, optional
             Increment to use from datetools module
-        timeRule : string
+        time_rule : string
             Time rule to use by name
 
         Returns
@@ -1794,8 +1794,9 @@ class DataFrame(NDFrame):
         if periods == 0:
             return self
 
-        if timeRule is not None and offset is None:
-            offset = datetools.getOffset(timeRule)
+        time_rule = kwds.get('timeRule', time_rule)
+        if time_rule is not None and offset is None:
+            offset = datetools.getOffset(time_rule)
 
         def _shift_block(blk, indexer):
             new_values = blk.values.take(indexer, axis=1)
@@ -2213,14 +2214,17 @@ class DataFrame(NDFrame):
             return self._count_level(level, axis=axis,
                                      numeric_only=numeric_only)
 
-        try:
-            y, axis_labels = self._get_agg_data(axis,
-                                                numeric_only=numeric_only)
-            mask = notnull(y)
-            return Series(mask.sum(axis), index=axis_labels)
-        except Exception:
-            f = lambda s: notnull(s).sum()
-            return self.apply(f, axis=axis)
+        if numeric_only:
+            try:
+                y, axis_labels = self._get_agg_data(axis, numeric_only=True)
+                mask = notnull(y)
+                return Series(mask.sum(axis), index=axis_labels)
+            except Exception:
+                f = lambda s: notnull(s).sum()
+                return self.apply(f, axis=axis)
+        else:
+            result = notnull(self.values).sum(axis)
+            return Series(result, index=self._get_agg_axis(axis))
 
     def _count_level(self, level, axis=0, numeric_only=False):
         # TODO: deal with sortedness??

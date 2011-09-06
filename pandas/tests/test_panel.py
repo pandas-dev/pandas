@@ -983,7 +983,7 @@ class TestLongPanel(unittest.TestCase):
         # weird overlap, TODO: test?
         a, b, c = (np.array([1, 2, 3, 4, 4]),
                    np.array(['a', 'a', 'a', 'a', 'a']),
-                   np.array([1, 2, 3, 5, 4]))
+                   np.array([1., 2., 3., 4., 5.]))
         df = pivot(a, b, c)
         expected = _slow_pivot(a, b, c)
         assert_frame_equal(df, expected)

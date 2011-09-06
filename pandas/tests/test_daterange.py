@@ -23,7 +23,7 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 class TestDateRangeGeneration(unittest.TestCase):
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=datetools.bday))
-        rng2 = list(generate_range(START, END, timeRule='WEEKDAY'))
+        rng2 = list(generate_range(START, END, time_rule='WEEKDAY'))
         self.assert_(np.array_equal(rng1, rng2))
 
     def test_1(self):

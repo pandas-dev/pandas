@@ -128,8 +128,10 @@ class _Unstacker(object):
         new_values = np.empty((length, result_width), dtype=self.values.dtype)
         new_mask = np.zeros((length, result_width), dtype=bool)
 
-        if not issubclass(self.values.dtype.type, np.integer):
-            new_values.fill(np.nan)
+        if issubclass(self.values.dtype.type, np.integer):
+            new_values = new_values.astype(float)
+
+        new_values.fill(np.nan)
 
         # is there a simpler / faster way of doing this?
         for i in xrange(self.values.shape[1]):

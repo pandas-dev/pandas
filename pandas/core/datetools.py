@@ -326,14 +326,10 @@ class Week(DateOffset, CacheableOffset):
     """
     Weekly offset
 
-    weekday
-    0: Mondays
-    1: Tuedays
-    2: Wednesdays
-    3: Thursdays
-    4: Fridays
-    5: Saturdays
-    6: Sundays
+    Parameters
+    ----------
+    weekday : int, default None
+        Always generate specific day of week. 0 for Monday
     """
     _normalizeFirst = True
     def __init__(self, n=1, **kwds):

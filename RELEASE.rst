@@ -104,7 +104,7 @@ Release notes
     copied then the resulting object is indexed the same
   - Added `sort_index` methods to Series and WidePanel. Renamed `DataFrame.sort`
     to `sort_index`. Leaving `DataFrame.sort` for now.
-
+v
 **Improvements to existing features**
 
   * The 2-dimensional `DataFrame` and `DataMatrix` classes have been extensively
@@ -217,6 +217,7 @@ Release notes
     anymore since the output file can be read back without it. However, there
     is a new ``index_label`` argument. So you can do ``index_label='index'`` to
     emulate the old behavior
+  * `datetools.Week` argument renamed from `dayOfWeek` to `weekday`
 
 **Bug fixes**
 

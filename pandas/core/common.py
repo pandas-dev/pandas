@@ -67,10 +67,7 @@ def notnull(input):
     -------
     boolean ndarray or boolean
     '''
-    if isinstance(input, np.ndarray):
-        return -isnull(input)
-    else:
-        return not _tseries.checknull(input)
+    return np.negative(isnull(input))
 
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)
