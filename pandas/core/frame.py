@@ -479,7 +479,8 @@ class DataFrame(NDFrame):
             joined_cols = ','.join([str(c) for c in cols])
             if index and index_label:
                 f.write('%s,%s' % (index_label, joined_cols))
-            f.write(joined_cols)
+            else:
+                f.write(joined_cols)
             f.write('\n')
 
         for idx in self.index:
