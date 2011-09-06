@@ -473,7 +473,7 @@ copy : boolean, default False
 
     # TODO: integrate bottleneck
 
-    def count(self):
+    def count(self, level=None):
         """
         Return number of non-NA/null observations in the Series
 
@@ -481,7 +481,40 @@ copy : boolean, default False
         -------
         nobs : int
         """
+        if level is not None:
+            return self._count_level(level)
+
         return notnull(self.values).sum()
+
+    def _count_level(self, level):
+        # TODO: GENERALIZE CODE OVERLAP WITH DATAFRAME
+        # TODO: deal with sortedness??
+        obj = self.sortlevel(level)
+        mask = notnull(obj.values)
+
+        level_index = obj.index.levels[level]
+
+        n = len(level_index)
+        locs = obj.index.labels[level].searchsorted(np.arange(n))
+
+        # WORKAROUND: reduceat fusses about the endpoints. should file ticket?
+        start = locs.searchsorted(0, side='right') - 1
+        end = locs.searchsorted(len(mask), side='left')
+
+        result = np.zeros((n), dtype=int)
+        out = result[start:end]
+        np.add.reduceat(mask, locs[start:end], out=out)
+
+        # WORKAROUND: to see why, try this
+        # arr = np.ones((10, 4), dtype=bool)
+        # np.add.reduceat(arr, [0, 3, 3, 7, 9], axis=0)
+
+        # this stinks
+        if len(locs) > 1:
+            workaround_mask = locs[:-1] == locs[1:]
+            result[:-1][workaround_mask] = 0
+
+        return Series(result, index=level_index)
 
     def sum(self, axis=0, dtype=None, out=None):
         """

@@ -10,6 +10,7 @@ from StringIO import StringIO
 import numpy as np
 
 from pandas.core.api import DataFrame, Series
+from pandas.core.index import MultiIndex
 from pandas.core.panel import WidePanel, LongPanel
 from pandas.util.decorators import cache_readonly
 import pandas.stats.common as common
@@ -767,14 +768,16 @@ class MovingOLS(OLS):
                 i = _get_index(dt)
                 return df.values[i:i+1]
 
-        if isinstance(y, Series):
-            _y_get_index = y.index.get_loc
-            _values = y.values
+        _y_get_index = y.index.get_loc
+        _values = y.values
+        if isinstance(y.index, MultiIndex):
+            def y_slicer(df, dt):
+                loc = _y_get_index(dt)
+                return _values[loc]
+        else:
             def y_slicer(df, dt):
                 i = _y_get_index(dt)
                 return _values[i:i+1]
-        else:
-            y_slicer = lambda s, dt: _y_converter(s.truncate(dt, dt))
 
         last = np.zeros(len(x.columns))
         for i, date in enumerate(dates):

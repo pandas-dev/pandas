@@ -111,10 +111,7 @@ class TestOLS(BaseTest):
                             window=window, **kwds)
         _compare_ols_results(moving, sparse_moving)
 
-        if isinstance(moving.y, Series):
-            index = moving.y.index
-        elif isinstance(moving.y, LongPanel):
-            index = moving.y.major_axis
+        index = moving._index
 
         for n, i in enumerate(moving._valid_indices):
             if window_type == 'rolling' and i >= window:
@@ -571,10 +568,7 @@ class TestPanelOLS(BaseTest):
         moving = ols(y=y, x=x, window_type=window_type,
                      window=window, **kwds)
 
-        if isinstance(moving.y, Series):
-            index = moving.y.index
-        elif isinstance(moving.y, LongPanel):
-            index = moving.y.major_axis
+        index = moving._index
 
         for n, i in enumerate(moving._valid_indices):
             if window_type == 'rolling' and i >= window:

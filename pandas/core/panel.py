@@ -90,19 +90,7 @@ class Panel(object):
     """
     Abstract superclass for LongPanel and WidePanel data structures
     """
-
-    __add__ = _arith_method(operator.add, '__add__')
-    __sub__ = _arith_method(operator.sub, '__sub__')
-    __mul__ = _arith_method(operator.mul, '__mul__')
-    __div__ = _arith_method(operator.div, '__div__')
-    __pow__ = _arith_method(operator.pow, '__pow__')
-
-    __radd__ = _arith_method(operator.add, '__radd__')
-    __rmul__ = _arith_method(operator.mul, '__rmul__')
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
-
+    pass
 
 class WidePanel(Panel, NDFrame):
     _AXIS_NUMBERS = {
@@ -128,6 +116,18 @@ class WidePanel(Panel, NDFrame):
     items = AxisProperty(0)
     major_axis = AxisProperty(1)
     minor_axis = AxisProperty(2)
+
+    __add__ = _arith_method(operator.add, '__add__')
+    __sub__ = _arith_method(operator.sub, '__sub__')
+    __mul__ = _arith_method(operator.mul, '__mul__')
+    __div__ = _arith_method(operator.div, '__div__')
+    __pow__ = _arith_method(operator.pow, '__pow__')
+
+    __radd__ = _arith_method(operator.add, '__radd__')
+    __rmul__ = _arith_method(operator.mul, '__rmul__')
+    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
+    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
+    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
 
     def __init__(self, data, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
@@ -492,7 +492,7 @@ class WidePanel(Panel, NDFrame):
                             minor=other.minor_axis, method=method)
 
     def _combine(self, other, func, axis=0):
-        if isinstance(other, Panel):
+        if isinstance(other, (Panel, LongPanel)):
             return self._combine_panel(other, func)
         elif isinstance(other, DataFrame):
             return self._combine_frame(other, func, axis=axis)
@@ -974,7 +974,7 @@ class WidePanel(Panel, NDFrame):
 # LongPanel and friends
 
 
-class LongPanel(Panel, DataFrame):
+class LongPanel(DataFrame):
     """
     Represents long or "stacked" format panel data
 
@@ -1060,13 +1060,15 @@ class LongPanel(Panel, DataFrame):
     def _combine(self, other, func, axis='items'):
         if isinstance(other, Panel):
             return self._combine_panel(other, func)
+        elif isinstance(other, LongPanel):
+            return self._combine_frame(other, func)
         elif isinstance(other, DataFrame):
-            return self._combine_frame(other, func, axis=axis)
+            return self._combine_panel_frame(other, func, axis=axis)
         elif np.isscalar(other):
             return LongPanel(func(self.values, other), columns=self.items,
                              index=self.index)
 
-    def _combine_frame(self, other, func, axis='items'):
+    def _combine_panel_frame(self, other, func, axis='items'):
         """
         Arithmetic op
 

@@ -90,7 +90,7 @@ class PanelOLS(OLS):
         self._x_trans_raw = self._x_trans.values
         self._y_trans_raw = self._y_trans.values.squeeze()
 
-        self._index = self._y.major_axis
+        self._index = self._x.major_axis
 
         self._T = len(self._index)
 
@@ -125,7 +125,10 @@ class PanelOLS(OLS):
 
         if self._time_effects:
             x_regressor = x.subtract(x.mean('minor', broadcast=True))
-            y_regressor = y.subtract(y.mean('minor', broadcast=True))
+
+            unstacked_y = y.unstack()
+            y_regressor = unstacked_y.sub(unstacked_y.mean(1), axis=0).stack()
+            y_regressor.index = y.index
 
         elif self._intercept:
             # only add intercept when no time effects
@@ -139,8 +142,10 @@ class PanelOLS(OLS):
             y_regressor = y
 
         if weights is not None:
-            y_regressor = y_regressor.multiply(weights)
-            x_regressor = x_regressor.multiply(weights)
+            assert(y_regressor.index is weights.index)
+            assert(x_regressor.index is weights.index)
+            y_regressor = y_regressor * weights
+            x_regressor = x_regressor.mul(weights, axis=0)
 
         return x, x_regressor, x_filtered, y, y_regressor
 
@@ -184,15 +189,15 @@ class PanelOLS(OLS):
         x_filt = filtered.filter(x_names)
 
         if self._weights:
-            weights_filt = filtered.ix[:, ['__weights__']]
+            weights_filt = filtered['__weights__']
         else:
             weights_filt = None
 
         x = data_long.filter(x_names)
-        y = data_long.ix[:, ['__y__']]
+        y = data_long['__y__']
 
         if self._weights:
-            weights = data_long.ix[:, ['__weights__']]
+            weights = data_long['__weights__']
         else:
             weights = None
 
@@ -442,7 +447,7 @@ class PanelOLS(OLS):
 
     @cache_readonly
     def _time_obs_count(self):
-        return self._y_trans.count(level=0)['__y__'].values
+        return self._y_trans.count(level=0).values
 
     @cache_readonly
     def _time_has_obs(self):
@@ -698,7 +703,9 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
     def _beta_matrix(self, lag=0):
         assert(lag >= 0)
 
-        labels = self._y_trans.major_labels - lag
+        index = self._y_trans.index
+        major_labels = index.labels[0]
+        labels = major_labels - lag
         indexer = self._valid_indices.searchsorted(labels, side='left')
 
         beta_matrix = self._beta_raw[indexer]
@@ -807,11 +814,13 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
 
     xx_inv = math.inv(xx)
 
+    yv = y.values
+
     if cluster_axis is None:
         if nw_lags is None:
             return xx_inv * (rmse ** 2)
         else:
-            resid = y.values.squeeze() - np.dot(x.values, beta)
+            resid = yv - np.dot(x.values, beta)
             m = (x.values.T * resid).T
 
             xeps = math.newey_west(m, nw_lags, nobs, df, nw_overlap)
@@ -819,7 +828,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
             return np.dot(xx_inv, np.dot(xeps, xx_inv))
     else:
         Xb = np.dot(x.values, beta).reshape((len(x.values), 1))
-        resid = LongPanel(y.values - Xb, index=y.index,
+        resid = LongPanel(yv[:, None] - Xb, index=y.index,
                           columns=['resid'])
 
         if cluster_axis == 1:
@@ -847,7 +856,7 @@ def _xx_time_effects(x, y):
     xx = np.dot(x.values.T, x.values)
     xt = x.sum('minor').values
 
-    count = y.count(level=0)['__y__'].values
+    count = y.unstack().count(1).values
     selector = count > 0
 
     # X'X - (T'T)^-1 (T'X)

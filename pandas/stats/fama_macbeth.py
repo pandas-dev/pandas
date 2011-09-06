@@ -155,7 +155,7 @@ class MovingFamaMacBeth(FamaMacBeth):
             x_effects=x_effects, cluster=cluster,
             dropped_dummies=dropped_dummies, verbose=verbose)
 
-        self._index = self._ols_result._y.major_axis
+        self._index = self._ols_result._index
         self._T = len(self._index)
 
     @property

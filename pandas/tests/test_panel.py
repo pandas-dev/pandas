@@ -786,10 +786,13 @@ class TestLongPanel(unittest.TestCase):
         wp2 = wp.reindex(major=wp.major_axis[:-1])
         lp2 = wp2.to_long()
 
-        self.assertRaises(Exception, self.panel.__setitem__, 'foo',
-                          lp2.filter(['ItemA']))
+        result = self.panel + lp2
+        assert_frame_equal(result.reindex(lp2.index), lp2 * 2)
 
-        self.assertRaises(Exception, self.panel.add, lp2)
+        # careful, mutation
+        self.panel['foo'] = lp2['ItemA']
+        assert_series_equal(self.panel['foo'].reindex(lp2.index),
+                            lp2['ItemA'])
 
     def test_combineFrame(self):
         wp = self.panel.to_wide()

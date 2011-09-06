@@ -30,3 +30,8 @@ class TestFamaMacBeth(BaseTest):
             reference = fama_macbeth(y=y2, x=x2, **kwds)
 
             assert_almost_equal(reference._stats, result._stats[:, i])
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
