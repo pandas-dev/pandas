@@ -345,14 +345,15 @@ class DataFrame(NDFrame):
         return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
-    def from_records(cls, data, index=None, indexField=None):
+    def from_records(cls, data, index=None, indexField=None,
+                     exclude=None):
         """
         Convert structured or record ndarray to DataFrame
 
         Parameters
         ----------
         data : NumPy structured array
-        index : string or array-like
+        index : string, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
 
@@ -360,21 +361,39 @@ class DataFrame(NDFrame):
         -------
         df : DataFrame
         """
-        if not data.dtype.names:
-            raise Exception('Input was not a structured array!')
-
         if indexField is not None:  # pragma: no cover
             warnings.warn("indexField argument is deprecated. Use index "
                           "instead", FutureWarning)
             index = indexField
 
         columns, sdict = _rec_to_dict(data)
+
+        if exclude is None:
+            exclude = set()
+        else:
+            exclude = set(exclude)
+
+        for col in exclude:
+            del sdict[col]
+            columns.remove(col)
+
         if index is not None:
             if isinstance(index, basestring):
                 result_index = sdict.pop(index)
                 columns.remove(index)
             else:
-                result_index = index
+                try:
+                    arrays = []
+                    for field in index:
+                        arrays.append(sdict[field])
+                    for field in index:
+                        del sdict[field]
+                        columns.remove(field)
+                    result_index = MultiIndex.from_arrays(arrays)
+                except Exception:
+                    if len(index) != len(data):
+                        raise
+                    result_index = index
         else:
             result_index = np.arange(len(data))
 
@@ -3008,10 +3027,19 @@ def _prep_ndarray(values, copy=True):
 
 
 def _rec_to_dict(arr):
-    columns = list(arr.dtype.names)
-    sdict = dict((k, arr[k]) for k in columns)
-    return columns, sdict
+    if isinstance(arr, np.ndarray):
+        columns = list(arr.dtype.names)
+        sdict = dict((k, arr[k]) for k in columns)
+    elif isinstance(arr, DataFrame):
+        columns = list(arr.columns)
+        sdict = arr._series
+    elif isinstance(arr, dict):
+        columns = sorted(arr)
+        sdict = arr.copy()
+    else:  # pragma: no cover
+        raise TypeError('%s' % type(arr))
 
+    return columns, sdict
 
 def _homogenize(data, index, columns, dtype=None):
     homogenized = {}

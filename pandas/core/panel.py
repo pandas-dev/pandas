@@ -1027,32 +1027,8 @@ class LongPanel(Panel, DataFrame):
         -------
         LongPanel
         """
-        if isinstance(data, np.ndarray):
-            # Dtype when you have data
-            if not issubclass(data.dtype.type, np.void):
-                raise ValueError('Input was not a structured array!')
-
-            columns = data.dtype.names
-            data = dict((k, data[k]) for k in columns)
-        elif isinstance(data, DataFrame):
-            data = data._series.copy()
-        elif isinstance(data, dict):
-            # otherwise will pop columns out of original
-            data = data.copy()
-
-        if exclude is None:
-            exclude = set()
-        else:
-            exclude = set(exclude)
-
-        for col in exclude:
-            del data[col]
-
-        major = Factor(data.pop(major_field))
-        minor = Factor(data.pop(minor_field))
-        index = MultiIndex(levels=[major.levels, minor.levels],
-                           labels=[major.labels, minor.labels])
-        return LongPanel(data, index=index)
+        return cls.from_records(data, [major_field, minor_field],
+                                exclude=exclude)
 
     def toRecords(self):
         major = np.asarray(self.major_axis).take(self.major_labels)

@@ -268,39 +268,19 @@ The primary function for changing frequencies is the ``asfreq`` function. This
 is basically just a thin, but convenient wrapper around ``reindex`` which
 generates a ``DateRange`` and calls ``reindex``.
 
-::
+.. ipython:: python
 
-    >>> dr = DateRange('1/1/2010', periods=10,
-                       offset=datetools.BMonthEnd())
-    >>> ts = Series(np.arange(10.), index=dr)
-    >>> ts
-    2010-01-29 00:00:00    0.0
-    2010-02-26 00:00:00    1.0
-    2010-03-31 00:00:00    2.0
-    2010-04-30 00:00:00    3.0
-    2010-05-31 00:00:00    4.0
-    2010-06-30 00:00:00    5.0
-    2010-07-30 00:00:00    6.0
-    2010-08-31 00:00:00    7.0
-    2010-09-30 00:00:00    8.0
-    2010-10-29 00:00:00    9.0
-
-    >>> ts.asfreq('WEEKDAY', method='pad')
-    2010-01-29 00:00:00    0.0
-    2010-02-01 00:00:00    0.0
-    2010-02-02 00:00:00    0.0
-    2010-02-03 00:00:00    0.0
-    2010-02-04 00:00:00    0.0
-    <snip>
-    2010-10-22 00:00:00    8.0
-    2010-10-25 00:00:00    8.0
-    2010-10-26 00:00:00    8.0
-    2010-10-27 00:00:00    8.0
-    2010-10-28 00:00:00    8.0
-    2010-10-29 00:00:00    9.0
+   dr = DateRange('1/1/2010', periods=3, offset=3 * datetools.bday)
+   ts = Series(randn(3), index=dr)
+   ts
+   ts.asfreq(BDay())
+   ts.asfreq(BDay(), method='pad')
 
 Filling forward / backward
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Related to ``asfreq`` and ``reindex`` is the ``fillna`` function documented in
+the :ref:`missing data section <missing_data.fillna>`.
 
 Up- and downsampling
 --------------------
