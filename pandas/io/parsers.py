@@ -165,6 +165,9 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
     else:
         index = np.arange(len(content))
 
+    if len(columns) != len(zipped_content):
+        raise Exception('wrong number of columns')
+
     data = dict(izip(columns, zipped_content))
     data = _floatify(data, na_values=na_values)
     data = _convert_to_ndarrays(data)

@@ -1,125 +1,91 @@
 .. currentmodule:: pandas
 .. _merging:
 
+.. ipython:: python
+   :suppress:
+
+   import numpy as np
+   np.random.seed(123456)
+   from pandas import *
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+
 ***************************
 Merging / Joining data sets
 ***************************
 
+Appending disjoint objects
+--------------------------
 
-Merging Series based on key
----------------------------
+Series and DataFrame have an ``append`` method which will glue together objects
+each of whose ``index`` (Series labels or DataFrame rows) is mutually
+exclusive.
 
-You may be occasionally interested in joining data sets which are
-keyed on different index values. This comes down to a simple mapping
-problem in the one dimensional case and will be more interesting in
-the 2- and 3-D cases, but the basic concept is the same:
+.. ipython:: python
 
-::
+   s = Series(randn(10), index=np.arange(10))
+   s1 = s[:5]
+   s2 = s[-5:]
+   s1.append(s2)
 
-    >>> s = Series(['six', 'seven', 'six', 'seven', 'six'],
-                   index=['a', 'b', 'c', 'd', 'e'])
-    >>> t = Series({'six' : 6., 'seven' : 7.})
+In the case of DataFrame, the indexes must be disjoint but the columns do not need to be:
 
-    >>> s
-    a	six
-    b	seven
-    c	six
-    d	seven
-    e	six
+.. ipython:: python
 
-    >>> s.merge(t)
-    a	6.0
-    b	7.0
-    c	6.0
-    d	7.0
-    e	6.0
-
-
-
-.. autosummary::
-   :toctree: generated/
-
-   Series.merge
-
+   df = DataFrame(randn(6, 4), index=DateRange('1/1/2000', periods=6),
+                  columns=['A', 'B', 'C', 'D'])
+   df1 = df.ix[:3]
+   df2 = df.ix[3:, :3]
+   df1
+   df2
+   df1.append(df2)
 
 Joining / merging DataFrames
 ----------------------------
 
-The **join** method provides effectively SQL-like semantic for
-combining related data sets. The basic join consists of two DataFrame
-arguments and
+The ``join`` method on DataFrame combines objects with **disjoint columns** by
+lining up the rows based on some logic. The default alignment matches ``index``
+on ``index``, with a ``how`` argument with the following options:
 
-::
+  - ``how='left'``: use the calling DataFrame's index
+  - ``how='right'``: use the index of the DataFrame passed to ``join``
+  - ``how='inner'``: intersect the indexes
+  - ``how='outer'``: take the union of the indexes
 
-    >>> df1
-               A              B
-    2000-01-03 00:00:00    -0.1174        -0.941
-    2000-01-04 00:00:00    -0.6034        -0.008094
-    2000-01-05 00:00:00    -0.3816        -0.9338
-    2000-01-06 00:00:00    -0.3298        -0.9548
-    2000-01-07 00:00:00    0.9576         0.4652
-    2000-01-10 00:00:00    -0.7208        -1.131
-    2000-01-11 00:00:00    1.568          0.8498
-    2000-01-12 00:00:00    0.3717         -0.2323
-    2000-01-13 00:00:00    -1.428         -1.997
-    2000-01-14 00:00:00    -1.084         -0.271
+Here are some examples:
 
-    >>> df2
-               C              D
-    2000-01-03 00:00:00    0.2833         -0.1937
-    2000-01-05 00:00:00    1.868          1.207
-    2000-01-07 00:00:00    -0.8586        -0.7367
-    2000-01-11 00:00:00    2.121          0.9104
-    2000-01-13 00:00:00    0.7856         0.9063
+.. ipython:: python
 
+   df1 = df.ix[1:, ['A', 'B']]
+   df2 = df.ix[:5, ['C', 'D']]
+   df1
+   df2
+   df1.join(df2) # defaults to ``how='left'``
+   df1.join(df2, how='outer')
+   df1.join(df2, how='inner')
 
-    df1.join(df2)
-               A              B              C              D
-    2000-01-03 00:00:00    -0.1174        -0.941         0.2833         -0.1937
-    2000-01-04 00:00:00    -0.6034        -0.008094      NaN            NaN
-    2000-01-05 00:00:00    -0.3816        -0.9338        1.868          1.207
-    2000-01-06 00:00:00    -0.3298        -0.9548        NaN            NaN
-    2000-01-07 00:00:00    0.9576         0.4652         -0.8586        -0.7367
-    2000-01-10 00:00:00    -0.7208        -1.131         NaN            NaN
-    2000-01-11 00:00:00    1.568          0.8498         2.121          0.9104
-    2000-01-12 00:00:00    0.3717         -0.2323        NaN            NaN
-    2000-01-13 00:00:00    -1.428         -1.997         0.7856         0.9063
-    2000-01-14 00:00:00    -1.084         -0.271         NaN            NaN
+Joining on a key
+~~~~~~~~~~~~~~~~
 
-::
+``join`` takes an optional ``on`` argument which should be a column name in the
+calling DataFrame which will be used to "align" the passed DataFrame. This is
+best illustrated by example:
 
-    >>> df1.join(df2, how='inner')
-               A              B              C              D
-    2000-01-03 00:00:00    -0.1174        -0.941         0.2833         -0.1937
-    2000-01-05 00:00:00    -0.3816        -0.9338        1.868          1.207
-    2000-01-07 00:00:00    0.9576         0.4652         -0.8586        -0.7367
-    2000-01-11 00:00:00    1.568          0.8498         2.121          0.9104
-    2000-01-13 00:00:00    -1.428         -1.997         0.7856         0.9063
+.. ipython:: python
 
-The index (row labels) are the default key for joining, but a column
-can also be used for a similar SQL-like join: It is also frequently
-necessary to join (or *merge*) data sets based on some other key
-mapping.
+   df['key'] = ['foo', 'bar'] * 3
+   to_join = DataFrame(randn(2, 2), index=['bar', 'foo'],
+                       columns=['j1', 'j2'])
+   df
+   to_join
+   df.join(to_join, on='key')
 
-::
+Merging ordered records
+~~~~~~~~~~~~~~~~~~~~~~~
 
-    >>> df2
-               C              D              key
-    2000-01-03 00:00:00    0.2833         -0.1937        0
-    2000-01-05 00:00:00    1.868          1.207          1
-    2000-01-07 00:00:00    -0.8586        -0.7367        0
-    2000-01-11 00:00:00    2.121          0.9104         1
-    2000-01-13 00:00:00    0.7856         0.9063         0
+This has not been implemented yet
 
-    >>> df3
-     code
-    0    foo
-    1    bar
+Joining multiple DataFrame objects at once
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    >>> df2.join(df3, on='key')
-               C              D              code           key
-    2000-01-03 00:00:00    0.2833         -0.1937        foo            0
-    2000-01-05 00:00:00    1.868          1.207          bar            1
-    2000-01-07 00:00:00    -0.8586        -0.7367        foo            0
-    2000-01-11 00:00:00    2.121          0.9104         bar            1
-    2000-01-13 00:00:00    0.7856         0.9063         foo            0
+This has not been implemented yet, but is due to be implemented soon.

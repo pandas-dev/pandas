@@ -454,7 +454,7 @@ class DataFrame(NDFrame):
                                default_fill_value=fill_value)
 
     def to_csv(self, path, nanRep='', cols=None, header=True,
-              index=True, mode='wb'):
+              index=True, index_label=None, mode='wb'):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -469,6 +469,8 @@ class DataFrame(NDFrame):
             Write out column names
         index : boolean, default True
             Write row names (index)
+        index_label : string, default None
+            Column label for index column if desired
         mode : Python write mode, default 'wb'
         """
         f = open(path, mode)
@@ -479,11 +481,9 @@ class DataFrame(NDFrame):
         series = self._series
         if header:
             joined_cols = ','.join([str(c) for c in cols])
-            if index:
-                # this could be dangerous
-                f.write('index,%s' % joined_cols)
-            else:
-                f.write(joined_cols)
+            if index and index_label:
+                f.write('%s,%s' % (index_label, joined_cols))
+            f.write(joined_cols)
             f.write('\n')
 
         for idx in self.index:
@@ -793,12 +793,16 @@ class DataFrame(NDFrame):
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
-        if isinstance(loc, slice):
+        if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
-            result = self.reindex(columns=new_columns)
-
-            # HACK: need a more general way of addressing this problem
-            result.columns = _maybe_droplevels(new_columns, key)
+            result_columns = _maybe_droplevels(new_columns, key)
+            if self._is_mixed_type:
+                result = self.reindex(columns=new_columns)
+                result.columns = result_columns
+            else:
+                new_values = self.values[:, loc]
+                result = DataFrame(new_values, index=self.index,
+                                   columns=result_columns)
             return result
         else:
             return self._getitem_single(key)
@@ -1631,11 +1635,9 @@ class DataFrame(NDFrame):
         pivoted : DataFrame (value column specified) or WidePanel (no value
         column specified)
         """
-        from pandas.core.panel import _make_long_index, LongPanel
-
         index_vals = self[index]
         column_vals = self[columns]
-        long_index = _make_long_index(index_vals, column_vals)
+        mindex = MultiIndex.from_arrays([index_vals, column_vals])
 
         if values is None:
             items = self.columns - [index, columns]
@@ -1644,14 +1646,15 @@ class DataFrame(NDFrame):
             items = [values]
             mat = np.atleast_2d(self[values].values).T
 
-        lp = LongPanel(mat, index=long_index, columns=items)
-        lp = lp.sortlevel(level=0)
+        stacked = DataFrame(mat, index=mindex, columns=items)
 
-        wp = lp.to_wide()
+        if not mindex.is_lexsorted:
+            stacked = stacked.sortlevel(level=0)
+
+        unstacked = stacked.unstack()
         if values is not None:
-            return wp[values]
-        else:
-            return wp
+            unstacked.columns = unstacked.columns.droplevel(0)
+        return unstacked
 
     def stack(self):
         """
@@ -1724,10 +1727,11 @@ class DataFrame(NDFrame):
             raise Exception('this DataFrame does not have a multi-level index')
 
         new_obj = self.copy()
+        names = self.index.names
 
         zipped = zip(self.index.levels, self.index.labels)
         for i, (lev, lab) in reversed(list(enumerate(zipped))):
-            new_obj.insert(0, 'label_%d' % i, np.asarray(lev).take(lab))
+            new_obj.insert(0, names[i], np.asarray(lev).take(lab))
 
         new_obj.index = np.arange(len(new_obj))
 

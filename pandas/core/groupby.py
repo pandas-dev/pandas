@@ -81,11 +81,16 @@ class GroupBy(object):
     """
 
     def __init__(self, obj, grouper=None, axis=0, level=None,
-                 groupings=None, exclusions=None, name=None):
+                 groupings=None, exclusions=None, name=None, as_index=True):
         self._name = name
         self.obj = obj
         self.axis = axis
         self.level = level
+
+        if not as_index:
+            assert(isinstance(obj, DataFrame))
+            assert(axis == 0)
+        self.as_index = as_index
 
         if groupings is None:
             groupings, exclusions = _get_groupings(obj, grouper, axis=axis,
@@ -317,9 +322,13 @@ class GroupBy(object):
         return self._wrap_aggregated_output(output, mask)
 
     def _get_multi_index(self, mask):
+        masked = [labels for _, labels in self._get_group_levels(mask)]
+        names = [ping.name for ping in self.groupings]
+        return MultiIndex.from_arrays(masked, names=names)
+
+    def _get_group_levels(self, mask):
         name_list = self._get_names()
-        masked = [raveled[mask] for _, raveled in name_list]
-        return MultiIndex.from_arrays(masked)
+        return [(name, raveled[mask]) for name, raveled in name_list]
 
     def _python_agg_general(self, arg):
         group_shape = self._group_shape
@@ -670,12 +679,14 @@ class SeriesGroupBy(GroupBy):
         if len(keys) == 0:
             return Series([])
 
+        key_names = [ping.name for ping in self.groupings]
+
         if isinstance(values[0], Series):
             if not_indexed_same:
                 data_dict = dict(zip(keys, values))
                 result = DataFrame(data_dict).T
                 if len(self.groupings) > 1:
-                    result.index = MultiIndex.from_tuples(keys)
+                    result.index = MultiIndex.from_tuples(keys, names=key_names)
                 return result
             else:
                 cat_values = np.concatenate([x.values for x in values])
@@ -688,7 +699,7 @@ class SeriesGroupBy(GroupBy):
                                      not_indexed_same=not_indexed_same)
         else:
             if len(self.groupings) > 1:
-                index = MultiIndex.from_tuples(keys)
+                index = MultiIndex.from_tuples(keys, names=key_names)
                 return Series(values, index)
             else:
                 return Series(values, keys)
@@ -879,8 +890,15 @@ class DataFrameGroupBy(GroupBy):
 
     def _wrap_aggregated_output(self, output, mask):
         if len(self.groupings) > 1:
-            index = self._get_multi_index(mask)
-            result = DataFrame(output, index=index)
+            if not self.as_index:
+                result = DataFrame(output)
+                group_levels = self._get_group_levels(mask)
+                for i, (name, labels) in enumerate(group_levels):
+                    result.insert(i, name, labels)
+                result = result.consolidate()
+            else:
+                index = self._get_multi_index(mask)
+                result = DataFrame(output, index=index)
         else:
             name_list = self._get_names()
             result = DataFrame(output, index=name_list[0][1])
@@ -895,12 +913,14 @@ class DataFrameGroupBy(GroupBy):
             # XXX
             return DataFrame({})
 
+        key_names = [ping.name for ping in self.groupings]
+
         if isinstance(values[0], DataFrame):
             return self._wrap_frames(keys, values,
                                      not_indexed_same=not_indexed_same)
         else:
             if len(self.groupings) > 1:
-                keys = MultiIndex.from_tuples(keys)
+                keys = MultiIndex.from_tuples(keys, names=key_names)
 
             # obj = self._obj_with_exclusions
 

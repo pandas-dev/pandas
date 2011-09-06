@@ -145,6 +145,18 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
+    def test_getitem_int(self):
+        levels = [[0, 1], [0, 1, 2]]
+        labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+        index = MultiIndex(levels=levels, labels=labels)
+
+        frame = DataFrame(np.random.randn(6, 2), index=index)
+
+        result = frame.ix[1]
+        expected = frame[-3:]
+        expected.index = expected.index.droplevel(0)
+        assert_frame_equal(result, expected)
+
     def test_getitem_partial(self):
         ymd = self.ymd.T
         result = ymd[2000, 2]
@@ -249,6 +261,54 @@ class TestMultiLevel(unittest.TestCase):
                                    [0, 1, 0, 2, 2, 1]])
         self.assert_(not index.is_lexsorted())
         self.assert_(index.lexsort_depth == 0)
+
+    def test_frame_getitem_view(self):
+        df = self.frame.T
+        df['foo'].values[:] = 0
+        self.assert_((df['foo'].values == 0).all())
+
+        # but not if it's mixed-type
+        df['foo', 'four'] = 'foo'
+        df = df.sortlevel(0, axis=1)
+        df['foo']['one'] = 2
+        self.assert_((df['foo', 'one'] == 0).all())
+
+    def test_frame_getitem_not_sorted(self):
+        df = self.frame.T
+        df['foo', 'four'] = 'foo'
+
+        arrays = [np.array(x) for x in zip(*df.columns.get_tuple_index())]
+
+        result = df['foo']
+        result2 = df.ix[:, 'foo']
+        expected = df.reindex(columns=df.columns[arrays[0] == 'foo'])
+        expected.columns = expected.columns.droplevel(0)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        df = df.T
+        result = df.xs('foo')
+        result2 = df.ix['foo']
+        expected = df.reindex(df.index[arrays[0] == 'foo'])
+        expected.index = expected.index.droplevel(0)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+    def test_series_getitem_not_sorted(self):
+        arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
+        ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        tuples = zip(*arrays)
+        index = MultiIndex.from_tuples(tuples)
+        s = Series(randn(8), index=index)
+
+        arrays = [np.array(x) for x in zip(*index.get_tuple_index())]
+
+        result = s['qux']
+        result2 = s.ix['qux']
+        expected = s[arrays[0] == 'qux']
+        expected.index = expected.index.droplevel(0)
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
 
 if __name__ == '__main__':
 

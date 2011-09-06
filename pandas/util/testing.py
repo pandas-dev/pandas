@@ -112,6 +112,8 @@ def assert_series_equal(left, right):
     assert(left.index.equals(right.index))
 
 def assert_frame_equal(left, right):
+    assert(isinstance(left, DataFrame))
+    assert(isinstance(right, DataFrame))
     for col, series in left.iteritems():
         assert(col in right)
         assert_series_equal(series, right[col])

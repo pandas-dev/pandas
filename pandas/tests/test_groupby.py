@@ -588,7 +588,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_grouping_attrs(self):
         deleveled = self.mframe.delevel()
-        grouped = deleveled.groupby(['label_0', 'label_1'])
+        grouped = deleveled.groupby(['level_0', 'level_1'])
 
         for i, ping in enumerate(grouped.groupings):
             the_counts = self.mframe.groupby(level=i).count()['A']
@@ -601,8 +601,8 @@ class TestGroupBy(unittest.TestCase):
         result0 = frame.groupby(level=0).sum()
         result1 = frame.groupby(level=1).sum()
 
-        expected0 = frame.groupby(deleveled['label_0']).sum()
-        expected1 = frame.groupby(deleveled['label_1']).sum()
+        expected0 = frame.groupby(deleveled['level_0']).sum()
+        expected1 = frame.groupby(deleveled['level_1']).sum()
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
@@ -626,10 +626,10 @@ class TestGroupBy(unittest.TestCase):
         result0 = frame.groupby(mapper0, level=0).sum()
         result1 = frame.groupby(mapper1, level=1).sum()
 
-        mapped_label0 = np.array([mapper0.get(x) for x in deleveled['label_0']])
-        mapped_label1 = np.array([mapper1.get(x) for x in deleveled['label_1']])
-        expected0 = frame.groupby(mapped_label0).sum()
-        expected1 = frame.groupby(mapped_label1).sum()
+        mapped_level0 = np.array([mapper0.get(x) for x in deleveled['level_0']])
+        mapped_level1 = np.array([mapper1.get(x) for x in deleveled['level_1']])
+        expected0 = frame.groupby(mapped_level0).sum()
+        expected1 = frame.groupby(mapped_level1).sum()
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)

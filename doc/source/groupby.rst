@@ -10,9 +10,9 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
-****************************
-GroupBy: split-apply-combine
-****************************
+*****************************
+Group By: split-apply-combine
+*****************************
 
 By "group by" we are refer to a process involving one or more of the following
 steps
@@ -31,7 +31,7 @@ following:
     - Compute group sums or means
     - Compute group sizes / counts
  - **Transformation**: perform some group-specific computations and return a
-   like-indexed.
+   like-indexed. Some examples:
     - Standardizing data (zscore) within group
     - Filling NAs within groups with a value derived from each group
  - Some combination of the above: GroupBy will examine the results of the apply
@@ -41,7 +41,7 @@ following:
 Since the set of object instance method on pandas data structures are generally
 rich and expressive, we often simply want to invoke, say, a DataFrame function
 on each group. The name GroupBy should be quite familiar to those who have used
-a SQL-based tool, in which you can write code like:
+a SQL-based tool (or ``itertools``), in which you can write code like:
 
 .. code-block:: sql
 
@@ -52,6 +52,8 @@ a SQL-based tool, in which you can write code like:
 We aim to make operations like this natural and easy to express using
 pandas. We'll address each area of GroupBy functionality then provide some
 non-trivial examples / use cases.
+
+.. _groupby.split:
 
 Splitting an object into groups
 -------------------------------
@@ -110,8 +112,14 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-Note that **no splitting occurs** until requested. Creating the GroupBy object
+Note that **no splitting occurs** until it's needed. Creating the GroupBy object
 only verifies that you've passed a valid mapping.
+
+.. note::
+
+   Many kinds of complicated data manipulations can be expressed in terms of
+   GroupBy operations (though can't be guaranteed to be the most
+   efficient). You can get quite creative with the label mapping functions.
 
 GroupBy object attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -134,224 +142,294 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    grouped.groups
    len(grouped)
 
+GroupBy with MultiIndex
+~~~~~~~~~~~~~~~~~~~~~~~
+
+With :ref:`hierarchically-indexed data <indexing.hierarchical>`, it's quite
+natural to group by one of the levels of the hierarchy.
+
+.. ipython:: python
+   :suppress:
+
+   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+   tuples = zip(*arrays)
+   tuples
+   index = MultiIndex.from_tuples(tuples)
+   s = Series(randn(8), index=index)
+
+.. ipython:: python
+
+   s
+   grouped = s.groupby(level=0)
+   grouped.sum()
+
+More on the ``sum`` function and aggregation later. Grouping with multiple
+levels (as opposed to a single level) is not yet supported, though implementing
+it is not difficult.
+
+DataFrame column selection in GroupBy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you have created the GroupBy object from a DataFrame, for example, you
+might want to do something different for each of the columns. Thus, using
+``[]`` similar to getting a column from a DataFrame, you can do:
+
+.. ipython:: python
+
+   grouped = df.groupby(['A'])
+   grouped_C = grouped['C']
+   grouped_D = grouped['D']
+
+This is mainly syntactic sugar for the alternative and much more verbose:
+
+.. ipython:: python
+
+   df['C'].groupby(df['A'])
+
+Additionally this method avoids recomputing the internal grouping information
+derived from the passed key.
+
+.. _groupby.iterating:
+
 Iterating through groups
 ------------------------
+
+With the GroupBy object in hand, iterating through the grouped data is very
+natural and functions similarly to ``itertools.groupby``:
+
+.. ipython::
+
+   In [4]: grouped = df.groupby('A')
+
+   In [5]: for name, group in grouped:
+      ...:        print name
+      ...:        print group
+      ...:
+
+In the case of grouping by multiple keys, the group name will be a tuple:
+
+.. ipython::
+
+   In [5]: for name, group in df.groupby(['A', 'B']):
+      ...:        print name
+      ...:        print group
+      ...:
+
+It's standard Python-fu but remember you can unpack the tuple in the for loop
+statement if you wish: ``for (k1, k2), group in grouped:``.
+
+.. _groupby.aggregate:
 
 Aggregation
 -----------
 
+Once the GroupBy object has been created, several methods are available to
+perform a computation on the grouped data. An obvious one is aggregation via
+the ``aggregate`` or equivalently ``agg`` method:
+
+.. ipython:: python
+
+   grouped = df.groupby('A')
+   grouped.aggregate(np.sum)
+
+   grouped = df.groupby(['A', 'B'])
+   grouped.aggregate(np.sum)
+
+As you can see, the result of the aggregation will have the group names as the
+new index along the grouped axis. In the case of multiple keys, the result is a
+:ref:`MultiIndex <indexing.hierarchical>` by default, though this can be
+changed by using the ``as_index`` option:
+
+.. ipython:: python
+
+   grouped = df.groupby(['A', 'B'], as_index=False)
+   grouped.aggregate(np.sum)
+
+Applying multiple functions at once
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With grouped Series you can also pass a list or dict of functions to do
+aggregation with, outputting a DataFrame:
+
+.. ipython:: python
+
+   grouped = df.groupby('A')
+   grouped['C'].agg([np.sum, np.mean, np.std])
+
+If a dict is passed, the keys will be used to name the columns. Otherwise the
+function's name (stored in the function object) will be used.
+
+.. ipython:: python
+
+   grouped['D'].agg({'result1' : np.sum,
+                     'result2' : np.mean})
+
+We would like to enable this functionality for DataFrame, too. The result will
+likely have a MultiIndex for the columns.
+
+Applying different functions to DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By passing a dict to ``aggregate`` you can apply a different aggregation to the
+columns of a DataFrame:
+
+.. ipython:: python
+
+   grouped.agg({'C' : np.sum,
+                'D' : lambda x: np.std(x, ddof=1)})
+
+The function names can also be strings. In order for a string to be valid it
+must be either implemented on GroupBy or available via :ref:`dispatching
+<groupby.dispatch>`:
+
+.. ipython:: python
+
+   grouped.agg({'C' : 'sum', 'D' : 'std'})
+
+Cython-optimized aggregation functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some common aggregations, currently only ``sum`` and ``mean``, have optimized
+Cython implementations:
+
+.. ipython:: python
+
+   df.groupby('A').sum()
+   df.groupby(['A', 'B']).mean()
+
+Of course ``sum`` and ``mean`` are implemented on pandas objects, so the above
+code would work even without the special versions via dispatching (see below).
+
+.. _groupby.transform:
+
 Transformation
 --------------
 
-Invoking instance methods on groups
------------------------------------
+The ``transform`` method returns an object that is indexed the same (same size)
+as the one being grouped. Thus, the passed transform function should return a
+result that is the same size as the group chunk. For example, suppose we wished
+to standardize a data set within a group:
 
-Grouping by dicts and functions
+.. ipython:: python
+
+   tsdf = DataFrame(randn(1000, 3),
+                    index=DateRange('1/1/2000', periods=1000),
+                    columns=['A', 'B', 'C'])
+   tsdf
+
+   zscore = lambda x: (x - x.mean()) / x.std()
+   transformed = tsdf.groupby(lambda x: x.year).transform(zscore)
+
+We would expect the result to now have mean 0 and standard deviation 1 within
+each group, which we can easily check:
+
+.. ipython:: python
+
+   grouped = transformed.groupby(lambda x: x.year)
+
+   # OK, close enough to zero
+   grouped.mean()
+   grouped.std()
+
+.. _groupby.dispatch:
+
+Dispatching to instance methods
 -------------------------------
 
-As the axes of :mod:`pandas` data structure are uniquely labeled, the most
-natural way to group data is by providing some assignment of index labels to
-groups. To motivate, consider a simple :class:`Series` instance:
+When doing an aggregation or transformation, you might just want to call an
+instance method on each data group. This is pretty easy to do by passing lambda
+functions:
 
-::
+.. ipython:: python
 
-    >>> anim = Series(np.random.randn(6),
-                      index=['dog', 'cat', 'lion', 'tiger', 'duck', 'buffalo'])
-    >>> anim
-    dog        -0.319350343654
-    cat        -0.224467238308
-    lion       -0.109077865448
-    tiger      0.302085950154
-    duck       0.573503465533
-    buffalo    3.13284403296
+   grouped = df.groupby('A')
+   grouped.agg(lambda x: x.std())
 
+But, it's rather verbose and can be untidy if you need to pass additional
+arguments. Using a bit of metaprogramming cleverness, GroupBy now has the
+ability to "dispatch" method calls to the groups:
 
-Now, suppose we wanted to sort these data by "big" and "small" animals. We could
-store this information in a dict
+.. ipython:: python
 
-::
+   grouped.std()
 
-    >>> sizes = {'dog' : 'small', 'cat' : 'small',
-    ...          'lion' : 'big', 'tiger' : 'big',
-    ...          'duck' : 'small', 'buffalo' : 'big'}
+What is actually happening here is that a function wrapper is being
+generated. When invoked, it takes any passed arguments and invokes the function
+with any arguments on each group (in the above example, the ``std``
+function). The results are then combined together much in the style of ``agg``
+and ``transform`` (it actually uses ``apply`` to infer the gluing, documented
+next). This enables some operations to be carried out rather succinctly:
 
-Now, to group **anim**, we call **groupby**:
+.. ipython:: python
 
-::
+   tsdf.ix[::2] = np.nan
+   grouped = tsdf.groupby(lambda x: x.year)
+   grouped.fillna(method='pad')
 
-    >>> grouped = anim.groupby(sizes)
-    >>> grouped
-    <pandas.core.groupby.SeriesGroupBy object at 0x450f1b0>
+In this example, we chopped the collection of time series into yearly chunks
+then independently called :ref:`fillna <missing_data.fillna>` on the
+groups.
 
-    >>> grouped.groups
-    <class 'pandas.core.groupby.GroupDict'>
-     big   -> 3 values
-     small -> 3 values
+.. _groupby.apply:
 
-    >>> grouped.groups['big']
-    ['lion', 'tiger', 'buffalo']
+Flexible ``apply``
+------------------
 
-Using a dict is not the only way to compute group membership. The most general
-way is to pass a *function* which will be **called on each axis label**. For
-example, suppose we wanted to group the **anim** :class:`Series` by the length
-of their names. We could then do:
+Some operations on the grouped data might not fit into either the aggregate or
+transform categories. Or, you may simply want GroupBy to infer how to combine
+the results. For these, use the ``apply`` function, which can be substitute for
+both ``aggregate`` and ``transform`` in many standard use cases. However,
+``apply`` can handle some exceptional use cases, for example:
 
-::
+.. ipython:: python
 
-    >>> anim.groupby(len).groups
-    <class 'pandas.core.groupby.GroupDict'>
-     3 -> 2 values
-     4 -> 2 values
-     5 -> 1 values
-     7 -> 1 values
+   df
+   grouped = df.groupby('A')
 
-     >>> anim.groupby(len).groups[3]
-     ['dog', 'cat']
+   # could also just call .describe()
+   grouped['C'].apply(lambda x: x.describe())
 
-As a perhaps more practical example, consider a :class:`TimeSeries`:
+The dimension of the returned result can also change:
 
-::
+.. ipython::
 
-    >>> ts
-    2000-01-03 00:00:00    0.56602563035
-    2000-01-04 00:00:00    -1.18181160355
-    2000-01-05 00:00:00    -1.24377783306
-    2000-01-06 00:00:00    -1.12168338772
-    2000-01-07 00:00:00    -0.296293517834
-    2000-01-10 00:00:00    1.02113963739
-    2000-01-11 00:00:00    0.249620178862
-    2000-01-12 00:00:00    1.4956464977
-    2000-01-13 00:00:00    -0.636055727754
-    2000-01-14 00:00:00    1.54251281494
-    2000-01-17 00:00:00    -1.39778010066
-    2000-01-18 00:00:00    -1.27507586526
-    2000-01-19 00:00:00    -0.729895375953
-    2000-01-20 00:00:00    0.23422793374
-    2000-01-21 00:00:00    -0.98459653972
-    2000-01-24 00:00:00    -0.953545408705
-    2000-01-25 00:00:00    0.488341257671
-    2000-01-26 00:00:00    -1.06129410159
-    2000-01-27 00:00:00    -0.475895459693
-    2000-01-28 00:00:00    0.0227612634861
+    In [8]: grouped = df.groupby('A')['C']
 
-Suppose we wished to group the data by day of week. Since the index values are :class:`datetime` objects, we can do:
+    In [10]: def f(group):
+       ....:     return DataFrame({'original' : group,
+       ....:                       'demeaned' : group - group.mean()})
+       ....:
 
-::
-
-    >>> by_weekday = ts.groupby(lambda d: d.weekday())
-    >>> by_weekday.groups
-    <class 'pandas.core.groupby.GroupDict'>
-     0 -> 4 values
-     1 -> 4 values
-     2 -> 4 values
-     3 -> 4 values
-     4 -> 4 values
-
-Understanding the internals of :class:`GroupBy` objects is not essential;
-understanding how to group the data, however, is.
-
-Higher dimensional data structures
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The **groupby** methods for :class:`DataFrame`, :class:`WidePanel`, and
-:class:`LongPanel` additionally have an **axis** argument which allows you to
-select the axis to group on:
-
-::
-
-    >>> df
-                           A              B              C              D
-    2000-01-03 00:00:00    -0.5084        0.3694         -0.7599        -0.4266
-    2000-01-04 00:00:00    0.1099         1.008          0.9618         0.9122
-    2000-01-05 00:00:00    -0.885         0.1133         1.986          1.528
-    2000-01-06 00:00:00    -0.03933       -0.2023        1.134          1.403
-    2000-01-07 00:00:00    -0.9176        -0.4374        0.1027         -0.2443
-    2000-01-10 00:00:00    -0.5625        -0.9719        0.6453         -1.826
-    2000-01-11 00:00:00    -0.9899        0.3301         2.305          -2.087
-    2000-01-12 00:00:00    0.8925         -1.198         -1.216         0.9092
-    2000-01-13 00:00:00    0.3172         -0.8189        0.1865         -2.708
-    2000-01-14 00:00:00    -0.1046        0.2199         0.06312        -2.157
-    2000-01-17 00:00:00    0.2557         0.7938         2.275          0.8623
-    2000-01-18 00:00:00    -0.6812        -0.7695        0.05992        0.1709
-    2000-01-19 00:00:00      0.4017         1.032          -0.3528        -1.319
-    2000-01-20 00:00:00    0.1693         -0.4478        1.238          -0.4015
-    2000-01-21 00:00:00    -0.7986        -2.472         -0.1168        -0.1419
-
-    >>> df.groupby({'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1}, axis=1)
-    >>> df.groupby(lambda d: d.weekday(), axis=0)
-
-The axis names and numbers for **groupby** are as with **reindex** and other related
-methods:
-
-* **DataFrame**: *index* (0) and *columns* (1)
-* **WidePanel**: *index* (0), *major* (1), and *minor* (2)
-* **LongPanel**: **Not yet implemented**
-
-Grouping by a `DataFrame` column
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Sometimes the grouping information is contained in a :class:`DataFrame` of
-interest:
-
-::
-
-    >>> df
-            country        value
-    foo     US             1.715
-    bar     US             -0.6018
-    baz     JP             0.09215
-    quux    JP             -0.9134
-
-One can group by a column of the `DataFrame` and perform operations:
-
-::
-
-    >>> for name, group in df.groupby('country'):
-    ...     print name, group['value'].mean()
-
-    JP -0.410642609813
-    US 0.556770179169
-
-See more detail on iterating over a `GroupBy` object below.
-
-Aggregation
------------
-
-Using a :class:`GroupBy` object, one can call its **aggregate** function with a
-function producing a single value from an :class:`ndarray`.
-
-::
-
-    >>> anim.groupby(sizes).aggregate(len)
-    big      3
-    small    3
-
-    >>> anim.groupby(sizes).aggregate(np.mean)
-    big      -0.0740475497108
-    small    -0.840956376614
+    In [11]: grouped.apply(f)
 
 
-Or, as in the :class:`DataFrame` above (note that **agg** is an alias for
-**aggregate**):
+Other useful features
+---------------------
 
-::
+Automatic exclusion of "nuisance" columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    >>> df.groupby(lambda d: d.weekday()).agg(np.mean)
-         A              B              C              D
-    0    -0.2717        0.06377        0.7201         -0.4636
-    1    -0.5204        0.1896         1.109          -0.3347
-    2    0.1364         -0.01753       0.1391         0.3727
-    3    0.149          -0.4897        0.853          -0.5686
-    4    -0.6069        -0.8965        0.01633        -0.8476
+Again consider the example DataFrame we've been looking at:
 
-Transformation
---------------
+.. ipython:: python
 
+   df
 
+Supposed we wished to compute the standard deviation grouped by the ``A``
+column. There is a slight problem, namely that we don't care about the data in
+column ``B``. We refer to this as a "nuisance" column. If the passed
+aggregation function can't be applied to some columns, the troublesome columns
+will be (silently) dropped. Thus, this does not pose any problems:
 
-Iterating through groups
-------------------------
+.. ipython:: python
 
-Topical Examples
-----------------
+   df.groupby('A').std()
 
+NA group handling
+~~~~~~~~~~~~~~~~~
+
+If there are any NaN values in the grouping key, these will be automatically
+excluded. So there will never be an "NA group". This was not the case in older
+versions of pandas, but users were generally discarding the NA group anyway
+(and supporting it was an implementation headache).

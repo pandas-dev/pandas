@@ -80,7 +80,7 @@ class PandasObject(Picklable):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def groupby(self, by=None, axis=0, level=None):
+    def groupby(self, by=None, axis=0, level=None, as_index=True):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns
@@ -96,6 +96,10 @@ class PandasObject(Picklable):
         level : int, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
             level
+        as_index : boolean, default True
+            For aggregated output, return object with group labels as the
+            index. Only relevant for DataFrame input. as_index=False is
+            effectively "SQL-style" grouped output
 
         Examples
         --------
@@ -113,7 +117,7 @@ class PandasObject(Picklable):
         GroupBy object
         """
         from pandas.core.groupby import groupby
-        return groupby(self, by, axis=axis, level=level)
+        return groupby(self, by, axis=axis, level=level, as_index=as_index)
 
     def truncate(self, before=None, after=None):
         """Function truncate a sorted DataFrame / Series before and/or after
