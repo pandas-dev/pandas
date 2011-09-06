@@ -218,6 +218,9 @@ v
     is a new ``index_label`` argument. So you can do ``index_label='index'`` to
     emulate the old behavior
   * `datetools.Week` argument renamed from `dayOfWeek` to `weekday`
+  * `timeRule` argument in `shift` has been deprecated in favor of using the
+    `offset` argument for everything. So you can still pass a time rule string
+    to `offset`
 
 **Bug fixes**
 

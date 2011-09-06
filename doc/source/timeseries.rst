@@ -128,6 +128,8 @@ particular day of the week:
    d + Week(weekday=4)
    (d + Week(weekday=4)).weekday()
 
+.. _timeseries.timerule:
+
 Time rules
 ~~~~~~~~~~
 
@@ -249,10 +251,22 @@ and in Panel along the ``major_axis``.
 
    ts = ts[:5]
    ts.shift(1)
+
+The shift method accepts an ``offset`` argument which can accept a
+``DateOffset`` class or other ``timedelta``-like object or also a :ref:`time
+rule <timeseries.timerule>`:
+
+.. ipython:: python
+
    ts.shift(5, offset=datetools.bday)
+   ts.shift(5, offset='EOM')
 
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
+
+The primary function for changing frequencies is the ``asfreq`` function. This
+is basically just a thin, but convenient wrapper around ``reindex`` which
+generates a ``DateRange`` and calls ``reindex``.
 
 ::
 
@@ -288,5 +302,54 @@ Frequency conversion
 Filling forward / backward
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TimeSeries-oriented methods
----------------------------
+Up- and downsampling
+--------------------
+
+We plan to add some efficient methods for doing resampling during frequency
+conversion. For example, converting secondly data into 5-minutely data. This is
+extremely common in, but not limited to, financial applications.
+
+Until then, your best bet is a clever (or kludgy, depending on your point of
+view) application of GroupBy. Carry out the following steps:
+
+1. Generate the target ``DateRange`` of interest
+
+.. code-block:: python
+
+   dr1hour = DateRange(start, end, offset=Hour())
+   dr5day = DateRange(start, end, offset=5 * datetools.day)
+   dr10day = DateRange(start, end, offset=10 * datetools.day)
+
+
+2. Use the ``asof`` function ("as of") of the DateRange to do a groupby
+   expression
+
+.. code-block:: python
+
+   grouped = data.groupby(dr5day.asof)
+   means = grouped.mean()
+
+Here is a fully-worked example:
+
+.. ipython:: python
+
+   # some minutely data
+   minutely = DateRange('1/3/2000 00:00:00', '1/3/2000 12:00:00',
+                        offset=datetools.Minute())
+   ts = Series(randn(len(minutely)), index=minutely)
+   ts.index
+
+   hourly = DateRange('1/3/2000', '1/4/2000', offset=datetools.Hour())
+
+   grouped = ts.groupby(hourly.asof)
+   grouped.mean()
+
+Some things to note:
+
+  - This is rather inefficient because we haven't exploited the orderedness of
+    the data at all. Calling the ``asof`` function on every date in the
+    minutely time series is not strictly necessary. We'll be writing some
+    significantly more efficient methods in the near future
+  - The dates in the result mark the **beginning of the period**. Be careful
+    about which convention you use; you don't want to end up misaligning data
+    because you used the wrong upsampling convention
