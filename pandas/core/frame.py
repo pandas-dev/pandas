@@ -2821,7 +2821,7 @@ class DataFrame(NDFrame):
         else:
             return self.dropna(axis=0, subset=specificColumns, thresh=minObs)
 
-    def tapply(self, func):
+    def tapply(self, func):  # pragma: no cover
         """
         Apply func to the transposed DataFrame, results as per apply
         """

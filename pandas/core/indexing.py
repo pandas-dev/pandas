@@ -210,8 +210,10 @@ class _DataFrameIndexer(object):
                     try:
                         return self.frame.xs(key)
                     except (KeyError, TypeError):
-                        pass
-                elif not is_int_index:
+                        if _is_integer_index(self.frame.index.levels[0]):
+                            raise
+
+                if not is_int_index:
                     idx = self.frame.index[key]
 
             if self.frame._is_mixed_type:

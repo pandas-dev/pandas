@@ -172,6 +172,14 @@ class TestMultiLevel(unittest.TestCase):
         expected.index = expected.index.droplevel(0)
         assert_frame_equal(result, expected)
 
+        # raises exception
+        self.assertRaises(KeyError, frame.ix.__getitem__, 3)
+
+        # however this will work
+        result = self.frame.ix[2]
+        expected = self.frame.xs(self.frame.index[2])
+        assert_series_equal(result, expected)
+
     def test_getitem_partial(self):
         ymd = self.ymd.T
         result = ymd[2000, 2]

@@ -24,7 +24,6 @@ def _indexOp(opname):
         return func(other)
     return wrapper
 
-__DEBUG__ = False
 
 class Index(np.ndarray):
     """
@@ -43,10 +42,6 @@ class Index(np.ndarray):
     An Index instance can **only** contain hashable objects
     """
     def __new__(cls, data, dtype=object, copy=False):
-        if __DEBUG__:
-            import pandas.util.testing as t
-            t.set_trace()
-
         if isinstance(data, np.ndarray):
             subarr = np.array(data, dtype=dtype, copy=copy)
         elif np.isscalar(data):

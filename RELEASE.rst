@@ -49,10 +49,17 @@ Release notes
       invoke methods on groups. e.g. s.groupby(crit).std() will work even though
       `std` is not implemented on the `GroupBy` class
 
-  - Hierarchical / multi-level indexing via the `MultiIndex` class. Integrated
-    `MultiIndex` into `Series` and `DataFrame` fancy indexing, slicing,
-    __getitem__ and __setitem, reindexing, etc. Added `level` keyword argument to
-    `groupby` to enable grouping by a level of a `MultiIndex`
+  - Hierarchical / multi-level indexing
+
+    * New the `MultiIndex` class. Integrated `MultiIndex` into `Series` and
+      `DataFrame` fancy indexing, slicing, __getitem__ and __setitem,
+      reindexing, etc. Added `level` keyword argument to `groupby` to enable
+      grouping by a level of a `MultiIndex`
+
+  - New data reshaping functions: `stack` and `unstack` on DataFrame and Series
+
+    * Integrate with MultiIndex to enable sophisticated reshaping of data
+
   - `Index` objects (labels for axes) are now capable of holding tuples
   - `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
     statistics about each data column
