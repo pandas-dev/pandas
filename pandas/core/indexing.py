@@ -1,5 +1,5 @@
 from pandas.core.common import _asarray_tuplesafe
-from pandas.core.index import MultiIndex
+from pandas.core.index import Index, MultiIndex
 
 import numpy as np
 
@@ -232,7 +232,11 @@ class _DataFrameIndexer(object):
         axis_name = self.frame._get_axis_name(axis)
 
         # asarray can be unsafe, NumPy strings are weird
-        keyarr = _asarray_tuplesafe(key)
+        if isinstance(key, Index):
+            # want Index objects to pass through untouched
+            keyarr = key
+        else:
+            keyarr = _asarray_tuplesafe(key)
 
         if keyarr.dtype == np.bool_:
             if isinstance(key, Series):

@@ -50,6 +50,21 @@ class TestMultiLevel(unittest.TestCase):
         expected = self.frame.ix[[0, 3]]
         assert_frame_equal(reindexed, expected)
 
+    def test_reindex_preserve_levels(self):
+        new_index = self.ymd.index[::10]
+        chunk = self.ymd.reindex(new_index)
+        self.assert_(chunk.index is new_index)
+
+        chunk = self.ymd.ix[new_index]
+        self.assert_(chunk.index is new_index)
+
+        ymdT = self.ymd.T
+        chunk = ymdT.reindex(columns=new_index)
+        self.assert_(chunk.columns is new_index)
+
+        chunk = ymdT.ix[:, new_index]
+        self.assert_(chunk.columns is new_index)
+
     def test_repr_to_string(self):
         repr(self.frame)
         repr(self.ymd)
@@ -276,6 +291,12 @@ class TestMultiLevel(unittest.TestCase):
         result = unstacked.stack(0)
         expected = self.ymd.stack().unstack(1).unstack(1)
         assert_frame_equal(result, expected)
+
+        # not all levels present in each echelon
+        unstacked = self.ymd.unstack(2).ix[:, ::3]
+        stacked = unstacked.stack().stack()
+        ymd_stacked = self.ymd.stack()
+        assert_series_equal(stacked, ymd_stacked.reindex(stacked.index))
 
     def test_insert_index(self):
         df = self.ymd[:5].T

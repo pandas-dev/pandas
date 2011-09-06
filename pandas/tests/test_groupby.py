@@ -579,7 +579,7 @@ class TestGroupBy(unittest.TestCase):
             expd = {}
             for (cat1, cat2), group in grouped:
                 expd.setdefault(cat1, {})[cat2] = op(group['C'])
-            exp = DataFrame(expd).T.stack()
+            exp = DataFrame(expd).T.stack(dropna=False)
             result = op(grouped)['C']
             assert_series_equal(result, exp)
 

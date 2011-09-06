@@ -507,7 +507,7 @@ class DataFrame(NDFrame):
         from pandas.core.common import _format, adjoin
         import sys
 
-        if buf is None:
+        if buf is None:  # pragma: no cover
             buf = sys.stdout
 
         if colSpace is None:
@@ -585,7 +585,7 @@ class DataFrame(NDFrame):
         buf : writable buffer, defaults to sys.stdout
         """
         import sys
-        if buf is None:
+        if buf is None:  # pragma: no cover
             buf = sys.stdout
 
         print >> buf, str(type(self))
@@ -1668,7 +1668,7 @@ class DataFrame(NDFrame):
             unstacked.columns = unstacked.columns.droplevel(0)
         return unstacked
 
-    def stack(self, level=-1):
+    def stack(self, level=-1, dropna=True):
         """
         Convert DataFrame to Series with multi-level Index. Columns become the
         second level of the resulting hierarchical index
@@ -1679,7 +1679,7 @@ class DataFrame(NDFrame):
         """
         N, K = self.shape
         if isinstance(self.columns, MultiIndex):
-            return self._stack_multi_columns(level=level)
+            return self._stack_multi_columns(level=level, dropna=True)
         elif isinstance(self.index, MultiIndex):
 
             new_levels = list(self.index.levels)
@@ -1698,9 +1698,14 @@ class DataFrame(NDFrame):
             new_index = MultiIndex(levels=[self.index, self.columns],
                                    labels=[ilabels, clabels])
 
-        return Series(self.values.ravel(), index=new_index)
+        new_values = self.values.ravel()
+        if dropna:
+            mask = notnull(new_values)
+            new_values = new_values[mask]
+            new_index = new_index[mask]
+        return Series(new_values, index=new_index)
 
-    def _stack_multi_columns(self, level=-1):
+    def _stack_multi_columns(self, level=-1, dropna=True):
         import itertools
         this = self.copy()
         if level < 0:
@@ -1741,7 +1746,7 @@ class DataFrame(NDFrame):
             if loc.stop - loc.start != levsize:
                 chunk = this.ix[:, this.columns[loc]]
                 chunk.columns = level_vals.take(chunk.columns.labels[-1])
-                value_slice = chunk.reindex(columns=level_vals).value
+                value_slice = chunk.reindex(columns=level_vals).values
             else:
                 if self._is_mixed_type:
                     value_slice = this.ix[:, this.columns[loc]].values
@@ -1769,8 +1774,12 @@ class DataFrame(NDFrame):
                                names=new_names)
 
         result = DataFrame(new_data, index=new_index, columns=new_columns)
-        # more efficient way to go about this?
-        result = result.dropna(axis=0, how='all')
+
+        # more efficient way to go about this? can do the whole masking biz but
+        # will only save a small amount of time...
+        if dropna:
+            result = result.dropna(axis=0, how='all')
+
         return result
 
     def unstack(self, level=-1):

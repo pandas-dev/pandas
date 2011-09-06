@@ -1361,9 +1361,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         assert_frame_equal(self.tsframe, recons)
 
-        # not sure if this ever should have worked
-        # recons = DataFrame.from_csv(path, index_col=None)
-        # assert(len(recons.columns) == len(self.tsframe.columns) + 1)
+        self.tsframe.to_csv(path, index_label='index')
+        recons = DataFrame.from_csv(path, index_col=None)
+        assert(len(recons.columns) == len(self.tsframe.columns) + 1)
 
         # no index
         self.tsframe.to_csv(path, index=False)
