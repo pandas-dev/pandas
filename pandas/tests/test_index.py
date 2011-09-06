@@ -295,6 +295,31 @@ class TestIndex(unittest.TestCase):
 
         self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
 
+    def test_tuple_union_bug(self):
+        import pandas
+        import numpy as np
+
+        idx1 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B')], dtype=[('num',
+        int),('let', 'a1')])
+        idx2 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B'),(1,'C'),(2,
+        'C')], dtype=[('num', int),('let', 'a1')])
+
+        idx1 = pandas.Index(idx1)
+        idx2 = pandas.Index(idx2)
+
+        # intersection broken?
+        int_idx = idx1.intersection(idx2)
+        # needs to be 1d like idx1 and idx2
+        expected = pandas.Index(sorted(set(idx1) & set(idx2)))
+        self.assert_(int_idx.ndim == 1)
+        self.assert_(int_idx.equals(expected))
+
+        # union broken
+        union_idx = idx1.union(idx2)
+        expected = pandas.Index(sorted(set(idx1) | set(idx2)))
+        self.assert_(union_idx.ndim == 1)
+        self.assert_(union_idx.equals(expected))
+
 class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):
