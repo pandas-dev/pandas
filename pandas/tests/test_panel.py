@@ -8,10 +8,10 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import DataFrame, Index, notnull
+from pandas.core.api import DataFrame, Index, notnull, pivot
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
-from pandas.core.panel import WidePanel, LongPanel, pivot
+from pandas.core.panel import WidePanel, LongPanel
 import pandas.core.panel as panelmod
 
 from pandas.util.testing import (assert_panel_equal,
@@ -969,6 +969,8 @@ class TestLongPanel(unittest.TestCase):
         assert_panel_equal(lp.to_wide(), self.panel.to_wide())
 
     def test_pivot(self):
+        from pandas.core.reshape import _slow_pivot
+
         df = pivot(np.array([1, 2, 3, 4, 5]),
                    np.array(['a', 'b', 'c', 'd', 'e']),
                    np.array([1, 2, 3, 5, 4.]))
@@ -983,7 +985,7 @@ class TestLongPanel(unittest.TestCase):
                    np.array(['a', 'a', 'a', 'a', 'a']),
                    np.array([1, 2, 3, 5, 4]))
         df = pivot(a, b, c)
-        expected = panelmod._slow_pivot(a, b, c)
+        expected = _slow_pivot(a, b, c)
         assert_frame_equal(df, expected)
 
         # corner case, empty

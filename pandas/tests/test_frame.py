@@ -1885,6 +1885,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         renamed = self.frame.rename(columns={'C' : 'foo', 'D' : 'bar'})
         self.assert_(np.array_equal(renamed.columns, ['A', 'B', 'foo', 'bar']))
 
+        # other axis
+        renamed = self.frame.T.rename(index={'C' : 'foo', 'D' : 'bar'})
+        self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
+
     #----------------------------------------------------------------------
     # Time series related
 

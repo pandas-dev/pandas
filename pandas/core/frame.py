@@ -1648,26 +1648,8 @@ class DataFrame(NDFrame):
         pivoted : DataFrame (value column specified) or WidePanel (no value
         column specified)
         """
-        index_vals = self[index]
-        column_vals = self[columns]
-        mindex = MultiIndex.from_arrays([index_vals, column_vals])
-
-        if values is None:
-            items = self.columns - [index, columns]
-            mat = self.reindex(columns=items).values
-        else:
-            items = [values]
-            mat = np.atleast_2d(self[values].values).T
-
-        stacked = DataFrame(mat, index=mindex, columns=items)
-
-        if not mindex.is_lexsorted():
-            stacked = stacked.sortlevel(level=0)
-
-        unstacked = stacked.unstack()
-        if values is not None:
-            unstacked.columns = unstacked.columns.droplevel(0)
-        return unstacked
+        from pandas.core.reshape import pivot
+        return pivot(self, index=index, columns=columns, values=values)
 
     def stack(self, level=-1, dropna=True):
         """
@@ -1678,110 +1660,8 @@ class DataFrame(NDFrame):
         -------
         stacked : Series
         """
-        N, K = self.shape
-        if isinstance(self.columns, MultiIndex):
-            return self._stack_multi_columns(level=level, dropna=True)
-        elif isinstance(self.index, MultiIndex):
-
-            new_levels = list(self.index.levels)
-            new_levels.append(self.columns)
-
-            new_labels = [lab.repeat(K) for lab in self.index.labels]
-            new_labels.append(np.tile(np.arange(K), N).ravel())
-
-            new_names = list(self.index.names)
-            new_names.append('columns')
-            new_index = MultiIndex(levels=new_levels, labels=new_labels,
-                                   names=new_names)
-        else:
-            ilabels = np.arange(N).repeat(K)
-            clabels = np.tile(np.arange(K), N).ravel()
-            new_index = MultiIndex(levels=[self.index, self.columns],
-                                   labels=[ilabels, clabels])
-
-        new_values = self.values.ravel()
-        if dropna:
-            mask = notnull(new_values)
-            new_values = new_values[mask]
-            new_index = new_index[mask]
-        return Series(new_values, index=new_index)
-
-    def _stack_multi_columns(self, level=-1, dropna=True):
-        import itertools
-        this = self.copy()
-        if level < 0:
-            level += self.columns.nlevels
-
-        # this makes life much simpler
-        if level != self.columns.nlevels - 1:
-            last = self.columns.nlevels - 1
-
-            # roll levels to put selected level at end
-            roll_columns = this.columns
-            for i in range(level, self.columns.nlevels - 1):
-                roll_columns = roll_columns.swaplevel(i, i + 1)
-            this.columns = roll_columns
-
-        if not this.columns.is_lexsorted():
-            this = this.sortlevel(0, axis=1)
-
-        # tuple list excluding level for grouping columns
-        if len(self.columns.levels) > 2:
-            tuples = zip(*[lev.values.take(lab)
-                           for lev, lab in zip(this.columns.levels[:-1],
-                                               this.columns.labels[:-1])])
-            unique_groups = [key for key, _ in itertools.groupby(tuples)]
-            new_names = this.columns.names[:-1]
-            new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
-        else:
-            new_columns = unique_groups = this.columns.levels[0]
-
-        # time to ravel the values
-        new_data = {}
-        level_vals = this.columns.levels[-1]
-        levsize = len(level_vals)
-        for key in unique_groups:
-            loc = this.columns.get_loc(key)
-
-            # can make more efficient?
-            if loc.stop - loc.start != levsize:
-                chunk = this.ix[:, this.columns[loc]]
-                chunk.columns = level_vals.take(chunk.columns.labels[-1])
-                value_slice = chunk.reindex(columns=level_vals).values
-            else:
-                if self._is_mixed_type:
-                    value_slice = this.ix[:, this.columns[loc]].values
-                else:
-                    value_slice = this.values[:, loc]
-
-            new_data[key] = value_slice.ravel()
-
-        N = len(this)
-
-        if isinstance(this.index, MultiIndex):
-            new_levels = list(this.index.levels)
-            new_names = list(this.index.names)
-            new_labels = [lab.repeat(levsize) for lab in this.index.labels]
-        else:
-            new_levels = [this.index]
-            new_labels = [np.arange(N).repeat(levsize)]
-            new_names = ['index'] # something better?
-
-        new_levels.append(self.columns.levels[level])
-        new_labels.append(np.tile(np.arange(levsize), N))
-        new_names.append(self.columns.names[level])
-
-        new_index = MultiIndex(levels=new_levels, labels=new_labels,
-                               names=new_names)
-
-        result = DataFrame(new_data, index=new_index, columns=new_columns)
-
-        # more efficient way to go about this? can do the whole masking biz but
-        # will only save a small amount of time...
-        if dropna:
-            result = result.dropna(axis=0, how='all')
-
-        return result
+        from pandas.core.reshape import stack
+        return stack(self, level=level, dropna=dropna)
 
     def unstack(self, level=-1):
         """
@@ -1814,7 +1694,7 @@ class DataFrame(NDFrame):
         -------
         unstacked : DataFrame
         """
-        from pandas.core.series import _Unstacker
+        from pandas.core.reshape import _Unstacker
         unstacker = _Unstacker(self.values, self.index, level=level,
                                value_columns=self.columns)
         return unstacker.get_result()

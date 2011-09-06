@@ -298,6 +298,15 @@ class TestMultiLevel(unittest.TestCase):
         ymd_stacked = self.ymd.stack()
         assert_series_equal(stacked, ymd_stacked.reindex(stacked.index))
 
+    def test_stack_mixed_dtype(self):
+        df = self.frame.T
+        df['foo', 'four'] = 'foo'
+        df = df.sortlevel(1, axis=1)
+
+        stacked = df.stack()
+        assert_series_equal(stacked['foo'], df['foo'].stack())
+        self.assert_(stacked['bar'].dtype == np.float_)
+
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]

@@ -1459,38 +1459,6 @@ def _get_distinct_indexes(indexes):
     indexes = sorted(indexes, key=id)
     return [gp.next() for _, gp in groupby(indexes, id)]
 
-def pivot(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-
-    Parameters
-    ----------
-    index : ndarray
-        Labels to use to make new frame's index
-    columns : ndarray
-        Labels to use to make new frame's columns
-    values : ndarray
-        Values to use for populating new frame's values
-
-    Note
-    ----
-    Obviously, all 3 of the input arguments must have the same length
-
-    Returns
-    -------
-    DataFrame
-    """
-    assert(len(index) == len(columns) == len(values))
-
-    if len(index) == 0:
-        return DataFrame(index=[])
-
-    hindex = MultiIndex.from_arrays([index, columns])
-    series = Series(values.ravel(), index=hindex)
-    series = series.sortlevel(0)
-    return series.unstack()
-
 def make_mask(index):
     """
     Create observation selection vector using major and minor
@@ -1501,32 +1469,6 @@ def make_mask(index):
     mask = np.zeros(N * K, dtype=bool)
     mask.put(selector, True)
     return mask
-
-def _slow_pivot(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-
-    Parameters
-    ----------
-    index : string or object
-        Column name to use to make new frame's index
-    columns : string or object
-        Column name to use to make new frame's columns
-    values : string or object
-        Column name to use for populating new frame's values
-
-    Could benefit from some Cython here.
-    """
-    from itertools import izip
-    tree = {}
-    for i, (idx, col) in enumerate(izip(index, columns)):
-        if col not in tree:
-            tree[col] = {}
-        branch = tree[col]
-        branch[idx] = values[i]
-
-    return DataFrame(tree)
 
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
