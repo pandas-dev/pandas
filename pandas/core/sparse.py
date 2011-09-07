@@ -16,7 +16,7 @@ from pandas.core.index import Index, MultiIndex, NULL_INDEX
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
-from pandas.core.panel import Panel, WidePanel, LongPanel
+from pandas.core.panel import Panel, LongPanel
 import pandas.core.datetools as datetools
 
 from pandas._sparse import BlockIndex, IntIndex
@@ -1278,9 +1278,9 @@ class PanelAxis(object):
 
         setattr(obj, self.cache_field, value)
 
-class SparseWidePanel(WidePanel):
+class SparsePanel(Panel):
     """
-    Sparse version of WidePanel
+    Sparse version of Panel
 
     Parameters
     ----------
@@ -1338,20 +1338,20 @@ class SparseWidePanel(WidePanel):
     @classmethod
     def from_dict(cls, data):
         """
-        Analogous to WidePanel.from_dict
+        Analogous to Panel.from_dict
         """
-        return SparseWidePanel(data)
+        return SparsePanel(data)
 
     def to_dense(self):
         """
-        Convert SparseWidePanel to (dense) WidePanel
+        Convert SparsePanel to (dense) Panel
 
         Returns
         -------
-        dense : WidePanel
+        dense : Panel
         """
-        return WidePanel(self.values, self.items, self.major_axis,
-                         self.minor_axis)
+        return Panel(self.values, self.items, self.major_axis,
+                     self.minor_axis)
 
     @property
     def values(self):
@@ -1407,17 +1407,17 @@ class SparseWidePanel(WidePanel):
 
         Returns
         -------
-        copy : SparseWidePanel
+        copy : SparsePanel
         """
-        return SparseWidePanel(self._frames.copy(), items=self.items,
-                               major_axis=self.major_axis,
-                               minor_axis=self.minor_axis,
-                               default_fill_value=self.default_fill_value,
-                               default_kind=self.default_kind)
+        return SparsePanel(self._frames.copy(), items=self.items,
+                           major_axis=self.major_axis,
+                           minor_axis=self.minor_axis,
+                           default_fill_value=self.default_fill_value,
+                           default_kind=self.default_kind)
 
     def to_long(self, filter_observations=True):
         """
-        Convert SparseWidePanel to (dense) LongPanel
+        Convert SparsePanel to (dense) LongPanel
 
         Returns
         -------
@@ -1425,7 +1425,7 @@ class SparseWidePanel(WidePanel):
         """
         if not filter_observations:
             raise Exception('filter_observations=False not supported for '
-                            'SparseWidePanel.to_long')
+                            'SparsePanel.to_long')
 
         I, N, K = self.shape
         counts = np.zeros(N * K, dtype=int)
@@ -1480,7 +1480,7 @@ class SparseWidePanel(WidePanel):
 
         Returns
         -------
-        reindexed : SparseWidePanel
+        reindexed : SparsePanel
         """
         major = _mut_exclusive(major, major_axis)
         minor = _mut_exclusive(minor, minor_axis)
@@ -1505,11 +1505,11 @@ class SparseWidePanel(WidePanel):
         if copy:
             new_frames = dict((k, v.copy()) for k, v in new_frames.iteritems())
 
-        return SparseWidePanel(new_frames, items=items,
-                               major_axis=major,
-                               minor_axis=minor,
-                               default_fill_value=self.default_fill_value,
-                               default_kind=self.default_kind)
+        return SparsePanel(new_frames, items=items,
+                           major_axis=major,
+                           minor_axis=minor,
+                           default_fill_value=self.default_fill_value,
+                           default_kind=self.default_kind)
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, DataFrame):
@@ -1551,10 +1551,10 @@ class SparseWidePanel(WidePanel):
         return self._new_like(new_frames)
 
     def _new_like(self, new_frames):
-        return SparseWidePanel(new_frames, self.items, self.major_axis,
-                               self.minor_axis,
-                               default_fill_value=self.default_fill_value,
-                               default_kind=self.default_kind)
+        return SparsePanel(new_frames, self.items, self.major_axis,
+                           self.minor_axis,
+                           default_fill_value=self.default_fill_value,
+                           default_kind=self.default_kind)
 
     def _combinePanel(self, other, func):
         # if isinstance(other, LongPanel):
@@ -1576,9 +1576,9 @@ class SparseWidePanel(WidePanel):
         new_default_fill = func(self.default_fill_value,
                                 other.default_fill_value)
 
-        return SparseWidePanel(new_frames, items, major, minor,
-                               default_fill_value=new_default_fill,
-                               default_kind=self.default_kind)
+        return SparsePanel(new_frames, items, major, minor,
+                           default_fill_value=new_default_fill,
+                           default_kind=self.default_kind)
 
     def major_xs(self, key):
         """
@@ -1616,6 +1616,8 @@ class SparseWidePanel(WidePanel):
                                columns=self.items,
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
+
+SparseWidePanel = SparsePanel
 
 def _convert_frames(frames, index, columns, fill_value=nan, kind='block'):
     from pandas.core.panel import _get_combined_index, _get_combined_columns

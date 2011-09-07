@@ -10,7 +10,7 @@ from datetime import datetime
 import unittest
 import numpy as np
 
-from pandas.core.panel import LongPanel, WidePanel
+from pandas.core.panel import LongPanel, Panel
 from pandas.core.api import DataFrame, Index, Series, notnull
 from pandas.stats.api import ols
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
@@ -111,10 +111,7 @@ class TestOLS(BaseTest):
                             window=window, **kwds)
         _compare_ols_results(moving, sparse_moving)
 
-        if isinstance(moving.y, Series):
-            index = moving.y.index
-        elif isinstance(moving.y, LongPanel):
-            index = moving.y.major_axis
+        index = moving._index
 
         for n, i in enumerate(moving._valid_indices):
             if window_type == 'rolling' and i >= window:
@@ -225,7 +222,7 @@ class TestOLSMisc(unittest.TestCase):
         assert_almost_equal(model1._y_predict_raw, model1._y_fitted_raw)
 
     def test_longpanel_series_combo(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         lp = wp.to_long()
 
         y = lp.pop('ItemA')
@@ -273,7 +270,7 @@ class TestOLSMisc(unittest.TestCase):
         model = ols(y=y, x=x, intercept=False)
         model.summary
 
-        model = ols(y=y, x=WidePanel(x))
+        model = ols(y=y, x=Panel(x))
         model.summary
 
     def test_plm_attrs(self):
@@ -571,10 +568,7 @@ class TestPanelOLS(BaseTest):
         moving = ols(y=y, x=x, window_type=window_type,
                      window=window, **kwds)
 
-        if isinstance(moving.y, Series):
-            index = moving.y.index
-        elif isinstance(moving.y, LongPanel):
-            index = moving.y.major_axis
+        index = moving._index
 
         for n, i in enumerate(moving._valid_indices):
             if window_type == 'rolling' and i >= window:

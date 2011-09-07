@@ -50,6 +50,21 @@ class TestMultiLevel(unittest.TestCase):
         expected = self.frame.ix[[0, 3]]
         assert_frame_equal(reindexed, expected)
 
+    def test_reindex_preserve_levels(self):
+        new_index = self.ymd.index[::10]
+        chunk = self.ymd.reindex(new_index)
+        self.assert_(chunk.index is new_index)
+
+        chunk = self.ymd.ix[new_index]
+        self.assert_(chunk.index is new_index)
+
+        ymdT = self.ymd.T
+        chunk = ymdT.reindex(columns=new_index)
+        self.assert_(chunk.columns is new_index)
+
+        chunk = ymdT.ix[:, new_index]
+        self.assert_(chunk.columns is new_index)
+
     def test_repr_to_string(self):
         repr(self.frame)
         repr(self.ymd)
@@ -157,6 +172,14 @@ class TestMultiLevel(unittest.TestCase):
         expected.index = expected.index.droplevel(0)
         assert_frame_equal(result, expected)
 
+        # raises exception
+        self.assertRaises(KeyError, frame.ix.__getitem__, 3)
+
+        # however this will work
+        result = self.frame.ix[2]
+        expected = self.frame.xs(self.frame.index[2])
+        assert_series_equal(result, expected)
+
     def test_getitem_partial(self):
         ymd = self.ymd.T
         result = ymd[2000, 2]
@@ -233,6 +256,71 @@ class TestMultiLevel(unittest.TestCase):
         # just check that it works for now
         unstacked = self.ymd.unstack()
         unstacked2 = unstacked.unstack()
+
+    def test_stack(self):
+        # regular roundtrip
+        unstacked = self.ymd.unstack()
+        restacked = unstacked.stack()
+        assert_frame_equal(restacked, self.ymd)
+
+        unlexsorted = self.ymd.sortlevel(2)
+
+        unstacked = unlexsorted.unstack(2)
+        restacked = unstacked.stack()
+        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+
+        unlexsorted = unlexsorted[::-1]
+        unstacked = unlexsorted.unstack(1)
+        restacked = unstacked.stack().swaplevel(1, 2)
+        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+
+        unlexsorted = unlexsorted.swaplevel(0, 1)
+        unstacked = unlexsorted.unstack(0).swaplevel(0, 1, axis=1)
+        restacked = unstacked.stack(0).swaplevel(1, 2)
+        assert_frame_equal(restacked.sortlevel(0), self.ymd)
+
+        # columns unsorted
+        unstacked = self.ymd.unstack()
+        unstacked = unstacked.sort(axis=1, ascending=False)
+        restacked = unstacked.stack()
+        assert_frame_equal(restacked, self.ymd)
+
+        # more than 2 levels in the columns
+        unstacked = self.ymd.unstack(1).unstack(1)
+
+        result = unstacked.stack(1)
+        expected = self.ymd.unstack()
+        assert_frame_equal(result, expected)
+
+        result = unstacked.stack(2)
+        expected = self.ymd.unstack(1)
+        assert_frame_equal(result, expected)
+
+        result = unstacked.stack(0)
+        expected = self.ymd.stack().unstack(1).unstack(1)
+        assert_frame_equal(result, expected)
+
+        # not all levels present in each echelon
+        unstacked = self.ymd.unstack(2).ix[:, ::3]
+        stacked = unstacked.stack().stack()
+        ymd_stacked = self.ymd.stack()
+        assert_series_equal(stacked, ymd_stacked.reindex(stacked.index))
+
+    def test_stack_mixed_dtype(self):
+        df = self.frame.T
+        df['foo', 'four'] = 'foo'
+        df = df.sortlevel(1, axis=1)
+
+        stacked = df.stack()
+        assert_series_equal(stacked['foo'], df['foo'].stack())
+        self.assert_(stacked['bar'].dtype == np.float_)
+
+    def test_swaplevel(self):
+        swapped = self.frame['A'].swaplevel(0, 1)
+        self.assert_(not swapped.index.equals(self.frame.index))
+
+        back = swapped.swaplevel(0, 1)
+        self.assert_(back.index.equals(self.frame.index))
 
     def test_insert_index(self):
         df = self.ymd[:5].T

@@ -185,9 +185,9 @@ data. To do this, use the **dropna** method:
    df['one'].dropna()
 
 **dropna** is presently only implemented for Series and DataFrame, but will be
-eventually added to WidePanel. Series.dropna is a simpler method as it only has
-one axis to consider. DataFrame.dropna has considerably more options, which can
-be examined :ref:`in the API <api.dataframe.missing>`.
+eventually added to Panel. Series.dropna is a simpler method as it only has one
+axis to consider. DataFrame.dropna has considerably more options, which can be
+examined :ref:`in the API <api.dataframe.missing>`.
 
 Interpolation
 ~~~~~~~~~~~~~

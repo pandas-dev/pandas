@@ -1,6 +1,7 @@
-from pandas import Series
+from pandas import Series, DataFrame
 from pandas.core.common import notnull, isnull
 import pandas.core.common as common
+import pandas.util.testing as tm
 
 import numpy as np
 
@@ -27,6 +28,13 @@ def test_isnull():
     obj_series = Series(np.random.randn(5), dtype=object)
     assert(isinstance(isnull(float_series), Series))
     assert(isinstance(isnull(obj_series), Series))
+
+    # call on DataFrame
+    df = DataFrame(np.random.randn(10, 5))
+    df['foo'] = 'bar'
+    result = isnull(df)
+    expected = result.apply(isnull)
+    tm.assert_frame_equal(result, expected)
 
 def test_any_none():
     assert(common._any_none(1, 2, 3, None))

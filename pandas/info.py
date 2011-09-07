@@ -7,7 +7,7 @@ docstrings of the various objects in the pandas namespace:
 
 Series
 DataFrame
-WidePanel
+Panel
 Index
 DateRange
 HDFStore

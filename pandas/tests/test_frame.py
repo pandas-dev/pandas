@@ -1361,9 +1361,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         assert_frame_equal(self.tsframe, recons)
 
-        # not sure if this ever should have worked
-        # recons = DataFrame.from_csv(path, index_col=None)
-        # assert(len(recons.columns) == len(self.tsframe.columns) + 1)
+        self.tsframe.to_csv(path, index_label='index')
+        recons = DataFrame.from_csv(path, index_col=None)
+        assert(len(recons.columns) == len(self.tsframe.columns) + 1)
 
         # no index
         self.tsframe.to_csv(path, index=False)
@@ -1718,7 +1718,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_frame_equal(pivoted, expected)
 
         # pivot multiple columns
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         lp = wp.to_long()
         df = DataFrame.from_records(lp.toRecords())
         assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
@@ -1884,6 +1884,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # partial columns
         renamed = self.frame.rename(columns={'C' : 'foo', 'D' : 'bar'})
         self.assert_(np.array_equal(renamed.columns, ['A', 'B', 'foo', 'bar']))
+
+        # other axis
+        renamed = self.frame.T.rename(index={'C' : 'foo', 'D' : 'bar'})
+        self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
 
     #----------------------------------------------------------------------
     # Time series related

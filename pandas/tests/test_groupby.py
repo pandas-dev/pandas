@@ -11,7 +11,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.core.panel import WidePanel
+from pandas.core.panel import Panel
 from collections import defaultdict
 import pandas.core.datetools as dt
 import numpy as np
@@ -110,7 +110,7 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_get_group(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         grouped = wp.groupby(lambda x: x.month, axis='major')
 
         gp = grouped.get_group(1)
@@ -445,7 +445,7 @@ class TestGroupBy(unittest.TestCase):
         self.assertEquals(len(groups), 2)
 
     def test_multi_iter_panel(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
                              axis=1)
 
@@ -488,7 +488,7 @@ class TestGroupBy(unittest.TestCase):
                 for n2, gp2 in gp1.groupby('B'):
                     expected[n1][n2] = op(gp2.ix[:, ['C', 'D']])
             expected = dict((k, DataFrame(v)) for k, v in expected.iteritems())
-            expected = WidePanel.fromDict(expected).swapaxes(0, 1)
+            expected = Panel.fromDict(expected).swapaxes(0, 1)
 
             # a little bit crude
             for col in ['C', 'D']:
@@ -508,6 +508,24 @@ class TestGroupBy(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
+    def test_groupby_as_index(self):
+        data = self.df
+
+        grouped = data.groupby(['A'], as_index=False)
+        result = grouped.mean()
+        expected = data.groupby(['A']).mean()
+        expected.insert(0, 'A', expected.index)
+        expected.index = np.arange(len(expected))
+
+        grouped = data.groupby(['A', 'B'], as_index=False)
+        result = grouped.mean()
+        expected = data.groupby(['A', 'B']).mean()
+
+        arrays = zip(*expected.index.get_tuple_index())
+        expected.insert(0, 'A', arrays[0])
+        expected.insert(1, 'B', arrays[1])
+        expected.index = np.arange(len(expected))
+
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()
         grouped = df.groupby([lambda x: x.year,
@@ -519,7 +537,9 @@ class TestGroupBy(unittest.TestCase):
         grouped = df.T.groupby([lambda x: x.year,
                                 lambda x: x.month,
                                 lambda x: x.day], axis=1)
+
         agged = grouped.agg(lambda x: x.sum(1))
+        self.assert_(agged.index.equals(df.columns))
         assert_almost_equal(df.T.values, agged.values)
 
         agged = grouped.agg(lambda x: x.sum(1))
@@ -579,7 +599,7 @@ class TestGroupBy(unittest.TestCase):
             expd = {}
             for (cat1, cat2), group in grouped:
                 expd.setdefault(cat1, {})[cat2] = op(group['C'])
-            exp = DataFrame(expd).T.stack()
+            exp = DataFrame(expd).T.stack(dropna=False)
             result = op(grouped)['C']
             assert_series_equal(result, exp)
 
@@ -686,10 +706,43 @@ class TestGroupBy(unittest.TestCase):
         exp = s1.groupby(s2.reindex(s1.index).get).mean()
         assert_series_equal(agged, exp)
 
+    def test_groupby_with_hier_columns(self):
+        tuples = zip(*[['bar', 'bar', 'baz', 'baz',
+                        'foo', 'foo', 'qux', 'qux'],
+                       ['one', 'two', 'one', 'two',
+                        'one', 'two', 'one', 'two']])
+        index = MultiIndex.from_tuples(tuples)
+        columns = MultiIndex.from_tuples([('A', 'cat'), ('B', 'dog'),
+                                          ('B', 'cat'), ('A', 'dog')])
+        df = DataFrame(np.random.randn(8, 4), index=index,
+                       columns=columns)
+
+        result = df.groupby(level=0).mean()
+        self.assert_(result.columns.equals(columns))
+
+        result = df.groupby(level=0, axis=1).mean()
+        self.assert_(result.index.equals(df.index))
+
+        result = df.groupby(level=0).agg(np.mean)
+        self.assert_(result.columns.equals(columns))
+
+        result = df.groupby(level=0).apply(lambda x: x.mean())
+        self.assert_(result.columns.equals(columns))
+
+        result = df.groupby(level=0, axis=1).agg(lambda x: x.mean(1))
+        self.assert_(result.columns.equals(Index(['A', 'B'])))
+        self.assert_(result.index.equals(df.index))
+
+        # add a nuisance column
+        sorted_columns, _ = columns.sortlevel(0)
+        df['A', 'foo'] = 'bar'
+        result = df.groupby(level=0).mean()
+        self.assert_(result.columns.equals(sorted_columns))
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):
-        self.panel = tm.makeWidePanel()
+        self.panel = tm.makePanel()
         tm.add_nans(self.panel)
 
     def test_groupby(self):

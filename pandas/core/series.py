@@ -473,7 +473,7 @@ copy : boolean, default False
 
     # TODO: integrate bottleneck
 
-    def count(self):
+    def count(self, level=None):
         """
         Return number of non-NA/null observations in the Series
 
@@ -481,7 +481,40 @@ copy : boolean, default False
         -------
         nobs : int
         """
+        if level is not None:
+            return self._count_level(level)
+
         return notnull(self.values).sum()
+
+    def _count_level(self, level):
+        # TODO: GENERALIZE CODE OVERLAP WITH DATAFRAME
+        # TODO: deal with sortedness??
+        obj = self.sortlevel(level)
+        mask = notnull(obj.values)
+
+        level_index = obj.index.levels[level]
+
+        n = len(level_index)
+        locs = obj.index.labels[level].searchsorted(np.arange(n))
+
+        # WORKAROUND: reduceat fusses about the endpoints. should file ticket?
+        start = locs.searchsorted(0, side='right') - 1
+        end = locs.searchsorted(len(mask), side='left')
+
+        result = np.zeros((n), dtype=int)
+        out = result[start:end]
+        np.add.reduceat(mask, locs[start:end], out=out)
+
+        # WORKAROUND: to see why, try this
+        # arr = np.ones((10, 4), dtype=bool)
+        # np.add.reduceat(arr, [0, 3, 3, 7, 9], axis=0)
+
+        # this stinks
+        if len(locs) > 1:
+            workaround_mask = locs[:-1] == locs[1:]
+            result[:-1][workaround_mask] = 0
+
+        return Series(result, index=level_index)
 
     def sum(self, axis=0, dtype=None, out=None):
         """
@@ -1046,6 +1079,17 @@ copy : boolean, default False
         new_values = self.values.take(indexer)
         return Series(new_values, index=new_index)
 
+    def swaplevel(self, i, j, copy=True):
+        """
+        Swap levels i and j in a MultiIndex
+
+        Returns
+        -------
+        swapped : Series
+        """
+        new_index = self.index.swaplevel(i, j)
+        return Series(self.values, index=new_index, copy=copy)
+
     def unstack(self, level=-1):
         """
         Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame
@@ -1077,6 +1121,7 @@ copy : boolean, default False
         -------
         unstacked : DataFrame
         """
+        from pandas.core.reshape import _Unstacker
         unstacker = _Unstacker(self.values, self.index, level=level)
         return unstacker.get_result()
 
@@ -1434,7 +1479,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods, offset=None, timeRule=None):
+    def shift(self, periods, offset=None, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset
@@ -1443,10 +1488,8 @@ copy : boolean, default False
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset or timedelta, optional
-            Increment to use from datetools module
-        timeRule : string, optional
-            time rule name to use by name (e.g. 'WEEKDAY')
+        offset : DateOffset, timedelta, or time rule string, optional
+            Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
         -------
@@ -1455,8 +1498,9 @@ copy : boolean, default False
         if periods == 0:
             return self.copy()
 
-        if timeRule is not None and offset is None:
-            offset = datetools.getOffset(timeRule)
+        offset = kwds.get('timeRule', offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset)
 
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)
@@ -1529,7 +1573,7 @@ copy : boolean, default False
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
         else:
-            dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
+            dateRange = DateRange(self.index[0], self.index[-1], time_rule=freq)
 
         return self.reindex(dateRange, method=method)
 
@@ -1648,175 +1692,6 @@ class TimeSeries(Series):
 
 #-------------------------------------------------------------------------------
 # Supplementary functions
-
-class _Unstacker(object):
-    """
-    Helper class to unstack data / pivot with multi-level index
-
-    Parameters
-    ----------
-    level : int, default last level
-        Level to "unstack"
-
-    Examples
-    --------
-    >>> s
-    one  a   1.
-    one  b   2.
-    two  a   3.
-    two  b   4.
-
-    >>> s.unstack(level=-1)
-         a   b
-    one  1.  2.
-    two  3.  4.
-
-    >>> s.unstack(level=0)
-       one  two
-    a  1.   2.
-    b  3.   4.
-
-    Returns
-    -------
-    unstacked : DataFrame
-    """
-    def __init__(self, values, index, level=-1, value_columns=None):
-        if values.ndim == 1:
-            values = values[:, np.newaxis]
-        self.values = values
-        self.value_columns = value_columns
-
-        if value_columns is None and values.shape[1] != 1:  # pragma: no cover
-            raise ValueError('must pass column labels for multi-column data')
-
-        self.index = index
-
-        if level < 0:
-            level += index.nlevels
-        self.level = level
-
-        self.new_index_levels = list(index.levels)
-        self.removed_level = self.new_index_levels.pop(level)
-
-        v = self.level
-        lshape = self.index.levshape
-        self.full_shape = np.prod(lshape[:v] + lshape[v+1:]), lshape[v]
-
-        self._make_sorted_values_labels()
-        self._make_selectors()
-
-    def _make_sorted_values_labels(self):
-        v = self.level
-
-        labs = self.index.labels
-        to_sort = labs[:v] + labs[v+1:] + [labs[v]]
-        indexer = np.lexsort(to_sort[::-1])
-
-        self.sorted_values = self.values.take(indexer, axis=0)
-        self.sorted_labels = [l.take(indexer) for l in to_sort]
-
-    def _make_selectors(self):
-        new_levels = self.new_index_levels
-
-        # make the mask
-        group_index = self.sorted_labels[0]
-        prev_stride = np.prod([len(x) for x in new_levels[1:]])
-
-        for lev, lab in zip(new_levels[1:], self.sorted_labels[1:-1]):
-            group_index = group_index * prev_stride + lab
-            prev_stride /= len(lev)
-
-        group_mask = np.zeros(self.full_shape[0], dtype=bool)
-        group_mask.put(group_index, True)
-
-        stride = self.index.levshape[self.level]
-        selector = self.sorted_labels[-1] + stride * group_index
-        mask = np.zeros(np.prod(self.full_shape), dtype=bool)
-        mask.put(selector, True)
-
-        # compress labels
-        unique_groups = np.arange(self.full_shape[0])[group_mask]
-        compressor = group_index.searchsorted(unique_groups)
-
-        self.group_mask = group_mask
-        self.group_index = group_index
-        self.mask = mask
-        self.unique_groups = unique_groups
-        self.compressor = compressor
-
-    def get_result(self):
-        from pandas.core.frame import DataFrame
-
-        # TODO: find a better way than this masking business
-
-        values, mask = self.get_new_values()
-        columns = self.get_new_columns()
-        index = self.get_new_index()
-
-        # filter out missing levels
-        values = values[:, mask]
-        columns = columns[mask]
-
-        return DataFrame(values, index=index, columns=columns)
-
-    def get_new_values(self):
-        # place the values
-        length, width = self.full_shape
-        stride = self.values.shape[1]
-        result_width = width * stride
-
-        new_values = np.empty((length, result_width), dtype=self.values.dtype)
-        new_mask = np.zeros((length, result_width), dtype=bool)
-
-        if not issubclass(self.values.dtype.type, np.integer):
-            new_values.fill(np.nan)
-
-        # is there a simpler / faster way of doing this?
-        for i in xrange(self.values.shape[1]):
-            chunk = new_values[:, i * width : (i + 1) * width]
-            mask_chunk = new_mask[:, i * width : (i + 1) * width]
-
-            chunk.flat[self.mask] = self.sorted_values[:, i]
-            mask_chunk.flat[self.mask] = True
-
-        new_values = new_values.take(self.unique_groups, axis=0)
-        return new_values, new_mask.sum(0) > 0
-
-    def get_new_columns(self):
-        if self.value_columns is None:
-            return self.removed_level
-
-        stride = len(self.removed_level)
-        width = len(self.value_columns)
-        propagator = np.repeat(np.arange(width), stride)
-        if isinstance(self.value_columns, MultiIndex):
-            new_levels = self.value_columns.levels + [self.removed_level]
-            new_labels = [lab.take(propagator)
-                          for lab in self.value_columns.labels]
-            new_labels.append(np.tile(np.arange(stride), width))
-        else:
-            new_levels = [self.value_columns, self.removed_level]
-            new_labels = []
-
-            new_labels.append(propagator)
-            new_labels.append(np.tile(np.arange(stride), width))
-
-        return MultiIndex(levels=new_levels, labels=new_labels)
-
-    def get_new_index(self):
-        result_labels = []
-        for cur in self.sorted_labels[:-1]:
-            result_labels.append(cur.take(self.compressor))
-
-        # construct the new index
-        if len(self.new_index_levels) == 1:
-            new_index = self.new_index_levels[0].take(self.unique_groups)
-        else:
-            new_index = MultiIndex(levels=self.new_index_levels,
-                                   labels=result_labels)
-
-        return new_index
-
 
 def remove_na(arr):
     """

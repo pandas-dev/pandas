@@ -26,8 +26,8 @@ In this section / chapter, we will focus on the latter set of functionality,
 namely how to slice, dice, and generally get and set subsets of pandas
 objects. The primary focus will be on Series and DataFrame as they have
 received more development attention in this area. More work will be invested in
-WidePanel and future higher-dimensional data structures in the future,
-especially in label-based advanced indexing.
+Panel and future higher-dimensional data structures in the future, especially
+in label-based advanced indexing.
 
 .. _indexing.basics:
 
@@ -42,7 +42,7 @@ lower-dimensional slices. Thus,
   - **Series**: ``series[label]`` returns a scalar value
   - **DataFrame**: ``frame[colname]`` returns a Series corresponding to the
     passed column name
-  - **WidePanel**: ``panel[itemname]`` returns a DataFrame corresponding to the
+  - **Panel**: ``panel[itemname]`` returns a DataFrame corresponding to the
     passed item name
 
 Here we construct a simple time series data set to use for illustrating the
@@ -53,7 +53,7 @@ indexing functionality:
    dates = np.asarray(DateRange('1/1/2000', periods=8))
    df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df
-   panel = WidePanel({'one' : df, 'two' : df - df.mean()})
+   panel = Panel({'one' : df, 'two' : df - df.mean()})
    panel
 
 .. note::
@@ -73,11 +73,11 @@ Data slices on other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It's certainly possible to retrieve data slices along the other axes of a
-DataFrame or WidePanel. We tend to refer to these slices as
+DataFrame or Panel. We tend to refer to these slices as
 *cross-sections*. DataFrame has the ``xs`` function for retrieving rows as
-Series and WidePanel has the analogous ``major_xs`` and ``minor_xs`` functions
-for retrieving slices as DataFrames for a given ``major_axis`` or
-``minor_axis`` label, respectively.
+Series and Panel has the analogous ``major_xs`` and ``minor_xs`` functions for
+retrieving slices as DataFrames for a given ``major_axis`` or ``minor_axis``
+label, respectively.
 
 .. ipython:: python
 
@@ -379,6 +379,18 @@ can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
+Level names
+~~~~~~~~~~~
+
+All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
+string names for the levels themselves. This will get increasingly integrated
+in to groupby and reshaping routines. If no names are provided, some arbitrary
+ones will be assigned:
+
+.. ipython:: python
+
+   index.names
+
 Basic indexing on axis with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -511,6 +523,23 @@ However:
    >>> s.ix[('a', 'b'):('b', 'a')]
    Exception: MultiIndex lexsort depth 1, key was length 2
 
+The ``delevel`` DataFrame function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As a convenience, there is a new function on DataFrame called ``delevel`` which
+takes a ``MultiIndex`` on the rows and turns the levels into columns of the
+DataFrame:
+
+.. ipython:: python
+
+   df
+   df.delevel()
+
+The output is more similar to a SQL table or a record array. The names for the
+columns derived from the ``MultiIndex`` are the ones stored in the ``names``
+attribute. These will get automatically assigned in various places where
+``MultiIndex`` is created, for example :ref:`GroupBy <groupby>`.
+
 Some gory internal details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -533,7 +562,12 @@ if you compute the levels and labels yourself, please be careful.
 Swapping levels
 ~~~~~~~~~~~~~~~
 
-This is not yet implemented
+To do this, use the ``swaplevels`` function:
+
+.. ipython:: python
+
+   df
+   df.swaplevels(0, 1)
 
 Indexing internal details
 -------------------------

@@ -8,10 +8,10 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import DataFrame, Index, notnull
+from pandas.core.api import DataFrame, Index, notnull, pivot
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
-from pandas.core.panel import WidePanel, LongPanel, pivot
+from pandas.core.panel import Panel, LongPanel
 import pandas.core.panel as panelmod
 
 from pandas.util.testing import (assert_panel_equal,
@@ -312,7 +312,7 @@ class SafeForSparse(object):
         result = p.select(lambda x: x in ('foo',), axis='items')
         self.assert_panel_equal(result, p.reindex(items=[]))
 
-class TestWidePanel(unittest.TestCase, PanelTests,
+class TestPanel(unittest.TestCase, PanelTests,
                     SafeForLongAndSparse,
                     SafeForSparse):
 
@@ -321,36 +321,36 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         assert_panel_equal(x, y)
 
     def setUp(self):
-        self.panel = common.makeWidePanel()
+        self.panel = common.makePanel()
         common.add_nans(self.panel)
 
     def test_constructor(self):
         # with BlockManager
-        wp = WidePanel(self.panel._data)
+        wp = Panel(self.panel._data)
         self.assert_(wp._data is self.panel._data)
 
-        wp = WidePanel(self.panel._data, copy=True)
+        wp = Panel(self.panel._data, copy=True)
         self.assert_(wp._data is not self.panel._data)
         assert_panel_equal(wp, self.panel)
 
         # strings handled prop
-        wp = WidePanel([[['foo', 'foo', 'foo',],
+        wp = Panel([[['foo', 'foo', 'foo',],
                          ['foo', 'foo', 'foo']]])
         self.assert_(wp.values.dtype == np.object_)
 
         vals = self.panel.values
 
         # no copy
-        wp = WidePanel(vals)
+        wp = Panel(vals)
         self.assert_(wp.values is vals)
 
         # copy
-        wp = WidePanel(vals, copy=True)
+        wp = Panel(vals, copy=True)
         self.assert_(wp.values is not vals)
 
     def test_constructor_cast(self):
-        casted = WidePanel(self.panel._data, dtype=int)
-        casted2 = WidePanel(self.panel.values, dtype=int)
+        casted = Panel(self.panel._data, dtype=int)
+        casted2 = Panel(self.panel.values, dtype=int)
 
         exp_values = self.panel.values.astype(int)
         assert_almost_equal(casted.values, exp_values)
@@ -358,7 +358,7 @@ class TestWidePanel(unittest.TestCase, PanelTests,
 
         # can't cast
         data = [[['foo', 'bar', 'baz']]]
-        self.assertRaises(ValueError, WidePanel, data, dtype=float)
+        self.assertRaises(ValueError, Panel, data, dtype=float)
 
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
@@ -378,30 +378,30 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         d3 = {'A' : DataFrame(itema._series),
               'B' : DataFrame(itemb[5:]._series)}
 
-        wp = WidePanel.from_dict(d)
-        wp2 = WidePanel.from_dict(d2) # nested Dict
-        wp3 = WidePanel.from_dict(d3)
+        wp = Panel.from_dict(d)
+        wp2 = Panel.from_dict(d2) # nested Dict
+        wp3 = Panel.from_dict(d3)
         self.assert_(wp.major_axis.equals(self.panel.major_axis))
         assert_panel_equal(wp, wp2)
 
         # intersect
-        wp = WidePanel.from_dict(d, intersect=True)
+        wp = Panel.from_dict(d, intersect=True)
         self.assert_(wp.major_axis.equals(itemb.index[5:]))
 
         # use constructor
-        assert_panel_equal(WidePanel(d), WidePanel.from_dict(d))
-        assert_panel_equal(WidePanel(d2), WidePanel.from_dict(d2))
-        assert_panel_equal(WidePanel(d3), WidePanel.from_dict(d3))
+        assert_panel_equal(Panel(d), Panel.from_dict(d))
+        assert_panel_equal(Panel(d2), Panel.from_dict(d2))
+        assert_panel_equal(Panel(d3), Panel.from_dict(d3))
 
         # cast
-        result = WidePanel(d, dtype=int)
-        expected = WidePanel(dict((k, v.astype(int)) for k, v in d.iteritems()))
+        result = Panel(d, dtype=int)
+        expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
 
     def test_from_dict_mixed(self):
         pass
 
     def test_values(self):
-        self.assertRaises(Exception, WidePanel, np.random.randn(5, 5, 5),
+        self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
                           range(5), range(5), range(4))
 
     def test_getitem(self):
@@ -422,7 +422,7 @@ class TestWidePanel(unittest.TestCase, PanelTests,
         values[1] = 1
         values[2] = 2
 
-        panel = WidePanel(values, range(3), range(3), range(3))
+        panel = Panel(values, range(3), range(3), range(3))
 
         # did we delete the right row?
 
@@ -686,7 +686,7 @@ class TestWidePanel(unittest.TestCase, PanelTests,
 class TestLongPanel(unittest.TestCase):
 
     def setUp(self):
-        panel = common.makeWidePanel()
+        panel = common.makePanel()
         common.add_nans(panel)
 
         self.panel = panel.to_long()
@@ -786,10 +786,13 @@ class TestLongPanel(unittest.TestCase):
         wp2 = wp.reindex(major=wp.major_axis[:-1])
         lp2 = wp2.to_long()
 
-        self.assertRaises(Exception, self.panel.__setitem__, 'foo',
-                          lp2.filter(['ItemA']))
+        result = self.panel + lp2
+        assert_frame_equal(result.reindex(lp2.index), lp2 * 2)
 
-        self.assertRaises(Exception, self.panel.add, lp2)
+        # careful, mutation
+        self.panel['foo'] = lp2['ItemA']
+        assert_series_equal(self.panel['foo'].reindex(lp2.index),
+                            lp2['ItemA'])
 
     def test_combineFrame(self):
         wp = self.panel.to_wide()
@@ -827,11 +830,11 @@ class TestLongPanel(unittest.TestCase):
         self.panel.toCSV('__tmp__')
         os.remove('__tmp__')
 
-    def test_toString(self):
+    def test_to_string(self):
         from cStringIO import StringIO
 
         buf = StringIO()
-        self.panel.toString(buf)
+        self.panel.to_string(buf)
 
     def test_swapaxes(self):
         swapped = self.panel.swapaxes()
@@ -918,7 +921,7 @@ class TestLongPanel(unittest.TestCase):
     def test_mean(self):
         means = self.panel.mean('major')
 
-        # test versus WidePanel version
+        # test versus Panel version
         wide_means = self.panel.to_wide().mean('major')
         assert_frame_equal(means, wide_means)
 
@@ -930,7 +933,7 @@ class TestLongPanel(unittest.TestCase):
     def test_sum(self):
         sums = self.panel.sum('major')
 
-        # test versus WidePanel version
+        # test versus Panel version
         wide_sums = self.panel.to_wide().sum('major')
         assert_frame_equal(sums, wide_sums)
 
@@ -969,6 +972,8 @@ class TestLongPanel(unittest.TestCase):
         assert_panel_equal(lp.to_wide(), self.panel.to_wide())
 
     def test_pivot(self):
+        from pandas.core.reshape import _slow_pivot
+
         df = pivot(np.array([1, 2, 3, 4, 5]),
                    np.array(['a', 'b', 'c', 'd', 'e']),
                    np.array([1, 2, 3, 5, 4.]))
@@ -981,9 +986,9 @@ class TestLongPanel(unittest.TestCase):
         # weird overlap, TODO: test?
         a, b, c = (np.array([1, 2, 3, 4, 4]),
                    np.array(['a', 'a', 'a', 'a', 'a']),
-                   np.array([1, 2, 3, 5, 4]))
+                   np.array([1., 2., 3., 4., 5.]))
         df = pivot(a, b, c)
-        expected = panelmod._slow_pivot(a, b, c)
+        expected = _slow_pivot(a, b, c)
         assert_frame_equal(df, expected)
 
         # corner case, empty

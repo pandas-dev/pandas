@@ -119,7 +119,6 @@ See the package overview for more detail about what's in the library.
     merging
     reshaping
     timeseries
-    datetools
     visualization
     stats
     io

@@ -226,6 +226,11 @@ keys.
 The row and column labels can be accessed respectively by accessing the
 **index** and **columns** attributes:
 
+.. note::
+
+   When a particular set of columns is passed along with a dict of data, the
+   passed columns override the keys in the dict.
+
 .. ipython:: python
 
    df.index
@@ -443,39 +448,32 @@ it won't always fit the console width:
 
 .. _basics.panel:
 
-WidePanel
----------
+Panel
+-----
 
-WidePanel is a somewhat less-used, but still important container for
-3-dimensional data. The term `panel data
-<http://en.wikipedia.org/wiki/Panel_data>`__ is derived from econometrics and
-is partially responsible for the name pandas: pan(el)-da(ta)-s. The names for
-the 3 axes are intended to give some semantic meaning to describing operations
-involving panel data and, in particular, econometric analysis of panel
-data. However, for the strict purposes of slicing and dicing a collection of
-DataFrame objects, you may find the axis names slightly arbitrary:
+Panel is a somewhat less-used, but still important container for 3-dimensional
+data. The term `panel data <http://en.wikipedia.org/wiki/Panel_data>`__ is
+derived from econometrics and is partially responsible for the name pandas:
+pan(el)-da(ta)-s. The names for the 3 axes are intended to give some semantic
+meaning to describing operations involving panel data and, in particular,
+econometric analysis of panel data. However, for the strict purposes of slicing
+and dicing a collection of DataFrame objects, you may find the axis names
+slightly arbitrary:
 
   - **items**: axis 0, each item corresponds to a DataFrame contained inside
   - **major_axis**: axis 1, it is the **index** (rows) of each of the
     DataFrames
   - **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
 
-.. note::
-
-    The "wide" in **WidePanel** name comes from the notion of "long" and "wide"
-    formats of grouped data. The R `reshape function
-    <http://stat.ethz.ch/R-manual/R-patched/library/stats/html/reshape.html>`__
-    has some more to say about these.
-
-Construction of WidePanels works about like you would expect:
+Construction of Panels works about like you would expect:
 
 **3D ndarray with optional axis labels**
 
 .. ipython:: python
 
-   wp = WidePanel(randn(2, 5, 4), items=['Item1', 'Item2'],
-                  major_axis=DateRange('1/1/2000', periods=5),
-                  minor_axis=['A', 'B', 'C', 'D'])
+   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+              major_axis=DateRange('1/1/2000', periods=5),
+              minor_axis=['A', 'B', 'C', 'D'])
    wp
 
 
@@ -485,7 +483,7 @@ Construction of WidePanels works about like you would expect:
 
    data = {'Item1' : DataFrame(randn(4, 3)),
            'Item2' : DataFrame(randn(4, 2))}
-   WidePanel(data)
+   Panel(data)
 
 Note that the values in the dict need only be **convertible to
 DataFrame**. Thus, they can be any of the other valid inputs to DataFrame as
@@ -493,16 +491,16 @@ per above.
 
 .. note::
 
-   Unfortunately WidePanel, being less commonly used than Series and DataFrame,
+   Unfortunately Panel, being less commonly used than Series and DataFrame,
    has been slightly neglected feature-wise. A number of methods and options
-   available in DataFrame are not available in WidePanel. This will get worked
+   available in DataFrame are not available in Panel. This will get worked
    on, of course, in future releases. And faster if you join me in working on
    the codebase.
 
 Item selection / addition / deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Similar to DataFrame functioning as a dict of Series, WidePanel is like a dict
+Similar to DataFrame functioning as a dict of Series, Panel is like a dict
 of DataFrames:
 
 .. ipython:: python
@@ -515,9 +513,9 @@ The API for insertion and deletion is the same as for DataFrame.
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
 
-As of this writing, indexing with WidePanel is a bit more restrictive than in
+As of this writing, indexing with Panel is a bit more restrictive than in
 DataFrame. Notably, :ref:`advanced indexing <indexing>` via the **ix** property
-has not yet been integrated in WidePanel. This will be done, however, in a
+has not yet been integrated in Panel. This will be done, however, in a
 future release.
 
 .. csv-table::
@@ -549,7 +547,7 @@ pandas objects have a number of attributes enabling you to access the metadata
 
     * **Series**: *index* (only axis)
     * **DataFrame**: *index* (rows) and *columns*
-    * **WidePanel**: *items*, *major_axis*, and *minor_axis*
+    * **Panel**: *items*, *major_axis*, and *minor_axis*
 
 Note, **these attributes can be safely assigned to**!
 
@@ -568,7 +566,7 @@ To get the actual data inside a data structure, one need only access the
     df.values
     wp.values
 
-If a DataFrame or WidePanel contains homogeneously-typed data, the ndarray can
+If a DataFrame or Panel contains homogeneously-typed data, the ndarray can
 actually be modified in-place, and the changes will be reflected in the data
 structure. For heterogeneous data (e.g. some of the DataFrame's columns are not
 all the same dtype), this will not be the case. The values attribute itself,
@@ -625,7 +623,7 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis='index')
    df.sub(column, axis=0)
 
-With WidePanel, describing the matching behavior is a bit more difficult, so
+With Panel, describing the matching behavior is a bit more difficult, so
 the arithmetic methods instead (and perhaps confusingly?) give you the option
 to specify the *broadcast axis*. For example, suppose we wished to demean the
 data over a particular axis. This can be accomplished by taking the mean over
@@ -642,13 +640,13 @@ And similarly for axis="items" and axis="minor".
 .. note::
 
    I could be convinced to make the **axis** argument in the DataFrame methods
-   match the broadcasting behavior of WidePanel. Though it would require a
+   match the broadcasting behavior of Panel. Though it would require a
    transition period so users can change their code...
 
 Missing data / operations with fill values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Series and DataFrame (though not yet in WidePanel), the arithmetic functions
+In Series and DataFrame (though not yet in Panel), the arithmetic functions
 have the option of inputting a *fill_value*, namely a value to substitute when
 at most one of the values at a location are missing. For example, when adding
 two DataFrame objects, you may wish to treat NaN as 0 unless both DataFrames
@@ -675,7 +673,7 @@ Descriptive statistics
 
 A large number of methods for computing descriptive statistics and other related
 operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
-<api.dataframe.stats>`, and :ref:`WidePanel <api.panel.stats>`. Most of these
+<api.dataframe.stats>`, and :ref:`Panel <api.panel.stats>`. Most of these
 are aggregations (hence producing a lower-dimensional result) like **sum**,
 **mean**, and **quantile**, but some of them, like **cumsum** and **cumprod**,
 produce an object of the same size. Generally speaking, these methods take an
@@ -684,7 +682,7 @@ specified by name or integer:
 
   - **Series**: no axis argument needed
   - **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
-  - **WidePanel**: "items" (axis=0), "major" (axis=1, default), "minor"
+  - **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
     (axis=2)
 
 For example:
@@ -793,7 +791,7 @@ objects.
 Function application
 --------------------
 
-Arbitrary functions can be applied along the axes of a DataFrame or WidePanel
+Arbitrary functions can be applied along the axes of a DataFrame or Panel
 using the ``apply`` method, which, like the descriptive statistics methods,
 take an optional ``axis`` argument:
 
@@ -1051,7 +1049,7 @@ produces the "keys" of the objects, namely:
 
   * **Series**: the index label
   * **DataFrame**: the column labels
-  * **WidePanel**: the item labels
+  * **Panel**: the item labels
 
 Thus, for example:
 
@@ -1069,7 +1067,7 @@ key-value pairs:
 
   * **Series**: (index, scalar value) pairs
   * **DataFrame**: (column, Series) pairs
-  * **WidePanel**: (item, DataFrame) pairs
+  * **Panel**: (item, DataFrame) pairs
 
 For example:
 

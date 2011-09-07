@@ -300,7 +300,7 @@ def fast_unique_multiple(list arrays):
     except Exception:
         pass
 
-    return np.asarray(uniques, dtype=object)
+    return uniques
 
 # from libcpp.set cimport set as stlset
 

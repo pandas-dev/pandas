@@ -23,7 +23,7 @@ DateRange = daterange.DateRange
 Index = index.Index
 Series = series.Series
 DataFrame = frame.DataFrame
-WidePanel = panel.WidePanel
+Panel = panel.Panel
 
 N = 30
 K = 4
@@ -197,10 +197,10 @@ def makeTimeDataFrame():
     data = getTimeSeriesData()
     return DataFrame(data)
 
-def makeWidePanel():
+def makePanel():
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
     data = dict((c, makeTimeDataFrame()) for c in cols)
-    return WidePanel.fromDict(data)
+    return Panel.fromDict(data)
 
 def add_nans(panel):
     I, J, N = panel.shape
@@ -210,8 +210,8 @@ def add_nans(panel):
             dm[col][:i + j] = np.NaN
 
 def makeLongPanel():
-    wp = makeWidePanel()
+    wp = makePanel()
     add_nans(wp)
 
-    return wp.toLong()
+    return wp.to_long()
 

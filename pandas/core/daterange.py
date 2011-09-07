@@ -39,20 +39,22 @@ class DateRange(Index):
         Number of periods to generate.
     offset : DateOffset, default is 1 BusinessDay
         Used to determine the dates returned
-    timeRule : timeRule to use
+    time_rule : time_rule to use
     tzinfo : pytz.timezone
         To endow DateRange with time zone information
     """
     _cache = {}
     def __new__(cls, start=None, end=None, periods=None,
-                offset=datetools.bday, timeRule=None,
+                offset=datetools.bday, time_rule=None,
                 tzinfo=None, **kwds):
-        if timeRule is not None:
-            offset = datetools.getOffset(timeRule)
 
-        if timeRule is None:
+        time_rule = kwds.get('timeRule', time_rule)
+        if time_rule is not None:
+            offset = datetools.getOffset(time_rule)
+
+        if time_rule is None:
             if offset in datetools._offsetNames:
-                timeRule = datetools._offsetNames[offset]
+                time_rule = datetools._offsetNames[offset]
 
         # Cachable
         if not start:
@@ -73,12 +75,12 @@ class DateRange(Index):
 
         if useCache:
             index = cls._cached_range(start, end, periods=periods,
-                                      offset=offset, timeRule=timeRule)
+                                      offset=offset, time_rule=time_rule)
             if tzinfo is None:
                 return index
         else:
             xdr = generate_range(start=start, end=end, periods=periods,
-                                 offset=offset, timeRule=timeRule)
+                                 offset=offset, time_rule=time_rule)
             index = list(xdr)
 
         if tzinfo is not None:
@@ -117,11 +119,11 @@ class DateRange(Index):
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
-                      timeRule=None):
+                      time_rule=None):
 
         # HACK: fix this dependency later
-        if timeRule is not None:
-            offset = datetools.getOffset(timeRule)
+        if time_rule is not None:
+            offset = datetools.getOffset(time_rule)
 
         if offset is None:
             raise Exception('Must provide a DateOffset!')
@@ -337,7 +339,7 @@ class DateRange(Index):
         return True
 
 def generate_range(start=None, end=None, periods=None,
-                   offset=datetools.BDay(), timeRule=None):
+                   offset=datetools.BDay(), time_rule=None):
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
@@ -365,12 +367,12 @@ def generate_range(start=None, end=None, periods=None,
     DateRange, dateutil.rrule
     """
 
-    if timeRule is not None:
-        offset = datetools.getOffset(timeRule)
+    if time_rule is not None:
+        offset = datetools.getOffset(time_rule)
 
-    if timeRule is None:
+    if time_rule is None:
         if offset in datetools._offsetNames:
-            timeRule = datetools._offsetNames[offset]
+            time_rule = datetools._offsetNames[offset]
 
     start = datetools.to_datetime(start)
     end = datetools.to_datetime(end)

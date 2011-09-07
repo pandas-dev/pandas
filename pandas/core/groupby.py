@@ -8,7 +8,7 @@ from pandas.core.generic import NDFrame, PandasObject
 from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
-from pandas.core.panel import WidePanel
+from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as _tseries
 
@@ -278,7 +278,7 @@ class GroupBy(object):
     def transform(self, func):
         raise NotImplementedError
 
-    def mean(self):
+    def mean(self, axis=None):
         """
         Compute mean of groups, excluding missing values
 
@@ -286,7 +286,7 @@ class GroupBy(object):
         """
         return self._cython_agg_general('mean')
 
-    def sum(self):
+    def sum(self, axis=None):
         """
         Compute sum of values, excluding missing values
 
@@ -295,7 +295,7 @@ class GroupBy(object):
         try:
             return self._cython_agg_general('add')
         except Exception:
-            return self.aggregate(np.sum)
+            return self.aggregate(lambda x: np.sum(x, axis=self.axis))
 
     def _cython_agg_general(self, how):
         label_list = [ping.labels for ping in self.groupings]
@@ -889,19 +889,38 @@ class DataFrameGroupBy(GroupBy):
         return DataFrame(result)
 
     def _wrap_aggregated_output(self, output, mask):
+        agg_axis = 0 if self.axis == 1 else 1
+        agg_labels = self.obj._get_axis(agg_axis)
+        if isinstance(output, dict):
+            if len(output) == len(agg_labels):
+                output_keys = agg_labels
+            else:
+                output_keys = sorted(output)
+                try:
+                    output_keys.sort()
+                except Exception:  # pragma: no cover
+                    pass
+
+                if isinstance(agg_labels, MultiIndex):
+                    output_keys = MultiIndex.from_tuples(output_keys,
+                                                         names=agg_labels.names)
+        else:
+            output_keys = agg_labels
+
         if len(self.groupings) > 1:
             if not self.as_index:
-                result = DataFrame(output)
+                result = DataFrame(output, columns=output_keys)
                 group_levels = self._get_group_levels(mask)
                 for i, (name, labels) in enumerate(group_levels):
                     result.insert(i, name, labels)
                 result = result.consolidate()
             else:
                 index = self._get_multi_index(mask)
-                result = DataFrame(output, index=index)
+                result = DataFrame(output, index=index, columns=output_keys)
         else:
             name_list = self._get_names()
-            result = DataFrame(output, index=name_list[0][1])
+            result = DataFrame(output, index=name_list[0][1],
+                               columns=output_keys)
 
         if self.axis == 1:
             result = result.T
@@ -1060,7 +1079,7 @@ def _all_indexes_same(indexes):
             return False
     return True
 
-class WidePanelGroupBy(GroupBy):
+class PanelGroupBy(GroupBy):
 
     def aggregate(self, func):
         """
@@ -1070,12 +1089,12 @@ class WidePanelGroupBy(GroupBy):
         ----------
         arg : function or dict
             Function to use for aggregating groups. If a function, must either
-            work when passed a WidePanel or when passed to WidePanel.apply. If
+            work when passed a Panel or when passed to Panel.apply. If
             pass a dict, the keys must be DataFrame column names
 
         Returns
         -------
-        aggregated : WidePanel
+        aggregated : Panel
         """
         return self._aggregate_generic(func, axis=self.axis)
 
@@ -1091,7 +1110,7 @@ class WidePanelGroupBy(GroupBy):
             except Exception:
                 result[name] = data.apply(agger, axis=axis)
 
-        result = WidePanel.fromDict(result, intersect=False)
+        result = Panel.fromDict(result, intersect=False)
 
         if axis > 0:
             result = result.swapaxes(0, axis)

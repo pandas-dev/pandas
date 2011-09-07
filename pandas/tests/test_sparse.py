@@ -14,9 +14,8 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
 from numpy.testing import assert_equal
 
-from pandas import Series, DataFrame, DateRange, WidePanel
+from pandas import Series, DataFrame, DateRange, Panel
 from pandas.core.datetools import BDay
-from pandas.core.series import remove_na
 import pandas.core.datetools as datetools
 import pandas.util.testing as testing
 
@@ -24,16 +23,11 @@ import pandas.core.sparse as spm
 reload(spm)
 from pandas.core.sparse import (IntIndex, BlockIndex,
                                 SparseSeries, SparseDataFrame,
-                                SparseWidePanel)
+                                SparsePanel)
 
 import test_panel
 
 
-"""
-Testing TODO
-
-
-"""
 def _test_data1():
     # nan-based
     arr = np.arange(20, dtype=float)
@@ -519,12 +513,6 @@ class TestSparseSeries(TestCase):
         assert_almost_equal(sp_valid, sp.to_dense().valid())
         self.assert_(sp_valid.index.equals(sp.to_dense().valid().index))
         self.assertEquals(len(sp_valid.sp_values), 2)
-
-    def _check_all(self, check_func):
-        check_func(self.bseries)
-        check_func(self.iseries)
-        check_func(self.zbseries)
-        check_func(self.ziseries)
 
     def test_homogenize(self):
         def _check_matches(indices, expected):
@@ -1032,9 +1020,6 @@ class TestSparseDataFrame(TestCase):
         reindexed['G'] = reindexed['A']
         self.assert_('G' not in self.frame)
 
-    def test_fillna(self):
-        pass
-
     def test_density(self):
         df = SparseDataFrame({'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                               'B' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
@@ -1054,7 +1039,7 @@ class TestSparseDataFrame(TestCase):
         def _check(frame):
             dense_frame = frame.to_dense()
 
-            wp = WidePanel.from_dict({'foo' : frame})
+            wp = Panel.from_dict({'foo' : frame})
             from_dense_lp = wp.to_long()
 
             from_sparse_lp = spm.stack_sparse_frame(frame)
@@ -1162,7 +1147,7 @@ def panel_data3():
         'D' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
         }, index=index)
 
-class TestSparseWidePanel(TestCase,
+class TestSparsePanel(TestCase,
                           test_panel.SafeForLongAndSparse,
                           test_panel.SafeForSparse):
 
@@ -1177,7 +1162,7 @@ class TestSparseWidePanel(TestCase,
             'ItemC' : panel_data3(),
             'ItemD' : panel_data1(),
         }
-        self.panel = SparseWidePanel(self.data_dict)
+        self.panel = SparsePanel(self.data_dict)
 
     @staticmethod
     def _test_op(panel, op):
@@ -1186,11 +1171,11 @@ class TestSparseWidePanel(TestCase,
         assert_sp_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_constructor(self):
-        self.assertRaises(Exception, SparseWidePanel, self.data_dict,
+        self.assertRaises(Exception, SparsePanel, self.data_dict,
                           items=['Item0', 'ItemA', 'ItemB'])
 
     def test_from_dict(self):
-        fd = SparseWidePanel.from_dict(self.data_dict)
+        fd = SparsePanel.from_dict(self.data_dict)
         assert_sp_panel_equal(fd, self.panel)
 
     def test_pickle(self):
@@ -1202,13 +1187,13 @@ class TestSparseWidePanel(TestCase,
         _test_roundtrip(self.panel)
 
     def test_dense_to_sparse(self):
-        wp = WidePanel.from_dict(self.data_dict)
+        wp = Panel.from_dict(self.data_dict)
         dwp = wp.to_sparse()
         self.assert_(isinstance(dwp['ItemA']['A'], SparseSeries))
 
     def test_to_dense(self):
         dwp = self.panel.to_dense()
-        dwp2 = WidePanel.from_dict(self.data_dict)
+        dwp2 = Panel.from_dict(self.data_dict)
         assert_panel_equal(dwp, dwp2)
 
     def test_to_long(self):
@@ -1225,7 +1210,7 @@ class TestSparseWidePanel(TestCase,
         _compare_with_dense(self.panel)
         _compare_with_dense(self.panel.reindex(items=['ItemA']))
 
-        zero_panel = SparseWidePanel(self.data_dict, default_fill_value=0)
+        zero_panel = SparsePanel(self.data_dict, default_fill_value=0)
         self.assertRaises(Exception, zero_panel.to_long)
 
         self.assertRaises(Exception, self.panel.to_long,

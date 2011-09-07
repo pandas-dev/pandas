@@ -24,7 +24,6 @@ def _indexOp(opname):
         return func(other)
     return wrapper
 
-__DEBUG__ = False
 
 class Index(np.ndarray):
     """
@@ -43,10 +42,6 @@ class Index(np.ndarray):
     An Index instance can **only** contain hashable objects
     """
     def __new__(cls, data, dtype=object, copy=False):
-        if __DEBUG__:
-            import pandas.util.testing as t
-            t.set_trace()
-
         if isinstance(data, np.ndarray):
             subarr = np.array(data, dtype=dtype, copy=copy)
         elif np.isscalar(data):
@@ -762,6 +757,25 @@ class MultiIndex(Index):
             return new_levels[0].take(new_labels[0])
         else:
             return MultiIndex(levels=new_levels, labels=new_labels)
+
+    def swaplevel(self, i, j):
+        """
+        Swap level i with level j. Do not change the ordering of anything
+
+        Returns
+        -------
+        swapped : MultiIndex
+        """
+        new_levels = list(self.levels)
+        new_labels = list(self.labels)
+        new_names = list(self.names)
+
+        new_levels[i], new_levels[j] = new_levels[j], new_levels[i]
+        new_labels[i], new_labels[j] = new_labels[j], new_labels[i]
+        new_names[i], new_names[j] = new_names[j], new_names[i]
+
+        return MultiIndex(levels=new_levels, labels=new_labels,
+                          names=new_names)
 
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))

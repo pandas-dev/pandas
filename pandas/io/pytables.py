@@ -9,7 +9,7 @@ from datetime import datetime
 import time
 
 import numpy as np
-from pandas import (Series, TimeSeries, DataFrame, WidePanel, LongPanel,
+from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
                     MultiIndex)
 from pandas.core.common import adjoin
 import pandas._tseries as _tseries
@@ -19,7 +19,7 @@ _TYPE_MAP = {
     Series     : 'series',
     TimeSeries : 'series',
     DataFrame  : 'frame',
-    WidePanel  : 'wide',
+    Panel  : 'wide',
     LongPanel  : 'long'
 }
 
@@ -28,8 +28,8 @@ _NAME_MAP = {
     'time_series' : 'TimeSeries',
     'frame' : 'DataFrame',
     'frame_table' : 'DataFrame (Table)',
-    'wide' : 'WidePanel',
-    'wide_table' : 'WidePanel (Table)',
+    'wide' : 'Panel',
+    'wide_table' : 'Panel (Table)',
     'long' : 'LongPanel',
 
     # legacy h5 files
@@ -61,7 +61,7 @@ class HDFStore(object):
     dict-like IO interface for storing pandas objects in PyTables
     format.
 
-    DataFrame and WidePanel can be stored in Table format, which is slower to
+    DataFrame and Panel can be stored in Table format, which is slower to
     read and write but can be searched and manipulated more like an SQL
     table. See HDFStore.put for more information
 
@@ -241,7 +241,7 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, WidePanel, LongPanel}
+        value : {Series, DataFrame, Panel, LongPanel}
         table : boolean, default False
             Write as a PyTables Table structure which may perform worse but
             allow more flexible operations like searching / selecting subsets of
@@ -290,7 +290,7 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, WidePanel, LongPanel}
+        value : {Series, DataFrame, Panel, LongPanel}
 
         Notes
         -----
@@ -389,7 +389,7 @@ class HDFStore(object):
         self._write_block_manager(group, panel._data)
 
     def _read_wide(self, group, where=None):
-        return WidePanel(self._read_block_manager(group))
+        return Panel(self._read_block_manager(group))
 
     def _write_wide_table(self, group, panel, append=False, comp=None):
         self._write_table(group, items=panel.items, index=panel.major_axis,

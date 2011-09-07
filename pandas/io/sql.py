@@ -9,8 +9,7 @@ import traceback
 from numpy import NaN
 
 from pandas.core.datetools import format, to_datetime
-from pandas.core.panel import pivot
-from pandas.core.api import DataFrame, Series, Index, isnull
+from pandas.core.api import DataFrame, Series, Index, isnull, pivot
 
 #-------------------------------------------------------------------------------
 # Query formatting

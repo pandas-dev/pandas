@@ -52,22 +52,22 @@ def new_data_like(sdf):
 # for col, ser in dm.iteritems():
 #     data[col] = SparseSeries(ser)
 
-dwp = WidePanel.fromDict({'foo' : dm})
+dwp = Panel.fromDict({'foo' : dm})
 # sdf = SparseDataFrame(data)
 
 
 lp = stack_sparse_frame(sdf)
 
 
-swp = SparseWidePanel({'A' : sdf})
-swp = SparseWidePanel({'A' : sdf,
+swp = SparsePanel({'A' : sdf})
+swp = SparsePanel({'A' : sdf,
                        'B' : sdf,
                        'C' : sdf,
                        'D' : sdf})
 
 y = sdf
-x = SparseWidePanel({'x1' : sdf + new_data_like(sdf) / 10,
-                     'x2' : sdf + new_data_like(sdf) / 10})
+x = SparsePanel({'x1' : sdf + new_data_like(sdf) / 10,
+                 'x2' : sdf + new_data_like(sdf) / 10})
 
 dense_y = sdf
 dense_x = x.to_dense()

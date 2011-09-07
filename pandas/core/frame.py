@@ -290,10 +290,6 @@ class DataFrame(NDFrame):
         """True if DataFrame has this column"""
         return key in self.columns
 
-    def copy(self):
-        """Make a deep copy of this DataFrame"""
-        return self._constructor(self._data.copy())
-
     #----------------------------------------------------------------------
     # Arithmetic methods
 
@@ -349,14 +345,15 @@ class DataFrame(NDFrame):
         return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
-    def from_records(cls, data, index=None, indexField=None):
+    def from_records(cls, data, index=None, indexField=None,
+                     exclude=None):
         """
         Convert structured or record ndarray to DataFrame
 
         Parameters
         ----------
         data : NumPy structured array
-        index : string or array-like
+        index : string, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
 
@@ -364,21 +361,39 @@ class DataFrame(NDFrame):
         -------
         df : DataFrame
         """
-        if not data.dtype.names:
-            raise Exception('Input was not a structured array!')
-
         if indexField is not None:  # pragma: no cover
             warnings.warn("indexField argument is deprecated. Use index "
                           "instead", FutureWarning)
             index = indexField
 
         columns, sdict = _rec_to_dict(data)
+
+        if exclude is None:
+            exclude = set()
+        else:
+            exclude = set(exclude)
+
+        for col in exclude:
+            del sdict[col]
+            columns.remove(col)
+
         if index is not None:
             if isinstance(index, basestring):
                 result_index = sdict.pop(index)
                 columns.remove(index)
             else:
-                result_index = index
+                try:
+                    arrays = []
+                    for field in index:
+                        arrays.append(sdict[field])
+                    for field in index:
+                        del sdict[field]
+                        columns.remove(field)
+                    result_index = MultiIndex.from_arrays(arrays)
+                except Exception:
+                    if len(index) != len(data):
+                        raise
+                    result_index = index
         else:
             result_index = np.arange(len(data))
 
@@ -483,7 +498,8 @@ class DataFrame(NDFrame):
             joined_cols = ','.join([str(c) for c in cols])
             if index and index_label:
                 f.write('%s,%s' % (index_label, joined_cols))
-            f.write(joined_cols)
+            else:
+                f.write(joined_cols)
             f.write('\n')
 
         for idx in self.index:
@@ -511,7 +527,7 @@ class DataFrame(NDFrame):
         from pandas.core.common import _format, adjoin
         import sys
 
-        if buf is None:
+        if buf is None:  # pragma: no cover
             buf = sys.stdout
 
         if colSpace is None:
@@ -589,7 +605,7 @@ class DataFrame(NDFrame):
         buf : writable buffer, defaults to sys.stdout
         """
         import sys
-        if buf is None:
+        if buf is None:  # pragma: no cover
             buf = sys.stdout
 
         print >> buf, str(type(self))
@@ -1256,6 +1272,22 @@ class DataFrame(NDFrame):
         new_values = self.values.take(indexer, axis=axis)
         return self._constructor(new_values, index=index, columns=columns)
 
+    def swaplevel(self, i, j, axis=0):
+        """
+        Swap levels i and j in a MultiIndex on a particular axis
+
+        Returns
+        -------
+        swapped : type of caller (new object)
+        """
+        result = self.copy()
+
+        if axis == 0:
+            result.index = result.index.swaplevel(i, j)
+        else:
+            result.columns = result.columns.swaplevel(i, j)
+        return result
+
     #----------------------------------------------------------------------
     # Filling NA's
 
@@ -1592,8 +1624,8 @@ class DataFrame(NDFrame):
         """
         Reshape data (produce a "pivot" table) based on column values. Uses
         unique values from index / columns to form axes and return either
-        DataFrame or WidePanel, depending on whether you request a single value
-        column (DataFrame) or all columns (WidePanel)
+        DataFrame or Panel, depending on whether you request a single value
+        column (DataFrame) or all columns (Panel)
 
         Parameters
         ----------
@@ -1632,31 +1664,14 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        pivoted : DataFrame (value column specified) or WidePanel (no value
-        column specified)
+        pivoted : DataFrame
+            If no values column specified, will have hierarchically indexed
+            columns
         """
-        index_vals = self[index]
-        column_vals = self[columns]
-        mindex = MultiIndex.from_arrays([index_vals, column_vals])
+        from pandas.core.reshape import pivot
+        return pivot(self, index=index, columns=columns, values=values)
 
-        if values is None:
-            items = self.columns - [index, columns]
-            mat = self.reindex(columns=items).values
-        else:
-            items = [values]
-            mat = np.atleast_2d(self[values].values).T
-
-        stacked = DataFrame(mat, index=mindex, columns=items)
-
-        if not mindex.is_lexsorted:
-            stacked = stacked.sortlevel(level=0)
-
-        unstacked = stacked.unstack()
-        if values is not None:
-            unstacked.columns = unstacked.columns.droplevel(0)
-        return unstacked
-
-    def stack(self):
+    def stack(self, level=-1, dropna=True):
         """
         Convert DataFrame to Series with multi-level Index. Columns become the
         second level of the resulting hierarchical index
@@ -1665,13 +1680,8 @@ class DataFrame(NDFrame):
         -------
         stacked : Series
         """
-        # TODO: what if already have MultiIndex?
-        N, K = len(self.index), len(self.columns)
-        ilabels = np.arange(N).repeat(K)
-        clabels = np.tile(np.arange(K), N).ravel()
-        index = MultiIndex(levels=[self.index, self.columns],
-                           labels=[ilabels, clabels])
-        return Series(self.values.ravel(), index=index)
+        from pandas.core.reshape import stack
+        return stack(self, level=level, dropna=dropna)
 
     def unstack(self, level=-1):
         """
@@ -1704,7 +1714,7 @@ class DataFrame(NDFrame):
         -------
         unstacked : DataFrame
         """
-        from pandas.core.series import _Unstacker
+        from pandas.core.reshape import _Unstacker
         unstacker = _Unstacker(self.values, self.index, level=level,
                                value_columns=self.columns)
         return unstacker.get_result()
@@ -1764,7 +1774,7 @@ class DataFrame(NDFrame):
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
         else:
-            dateRange = DateRange(self.index[0], self.index[-1], timeRule=freq)
+            dateRange = DateRange(self.index[0], self.index[-1], time_rule=freq)
 
         return self.reindex(dateRange, method=method)
 
@@ -1783,7 +1793,7 @@ class DataFrame(NDFrame):
         """
         return self - self.shift(periods)
 
-    def shift(self, periods, offset=None, timeRule=None):
+    def shift(self, periods, offset=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
         optional time offset
@@ -1792,10 +1802,8 @@ class DataFrame(NDFrame):
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset, optional
-            Increment to use from datetools module
-        timeRule : string
-            Time rule to use by name
+        offset : DateOffset, timedelta, or time rule string, optional
+            Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
         -------
@@ -1804,8 +1812,9 @@ class DataFrame(NDFrame):
         if periods == 0:
             return self
 
-        if timeRule is not None and offset is None:
-            offset = datetools.getOffset(timeRule)
+        offset = kwds.get('timeRule', offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset)
 
         def _shift_block(blk, indexer):
             new_values = blk.values.take(indexer, axis=1)
@@ -2223,14 +2232,17 @@ class DataFrame(NDFrame):
             return self._count_level(level, axis=axis,
                                      numeric_only=numeric_only)
 
-        try:
-            y, axis_labels = self._get_agg_data(axis,
-                                                numeric_only=numeric_only)
-            mask = notnull(y)
-            return Series(mask.sum(axis), index=axis_labels)
-        except Exception:
-            f = lambda s: notnull(s).sum()
-            return self.apply(f, axis=axis)
+        if numeric_only:
+            try:
+                y, axis_labels = self._get_agg_data(axis, numeric_only=True)
+                mask = notnull(y)
+                return Series(mask.sum(axis), index=axis_labels)
+            except Exception:
+                f = lambda s: notnull(s).sum()
+                return self.apply(f, axis=axis)
+        else:
+            result = notnull(self.values).sum(axis)
+            return Series(result, index=self._get_agg_axis(axis))
 
     def _count_level(self, level, axis=0, numeric_only=False):
         # TODO: deal with sortedness??
@@ -2831,7 +2843,7 @@ class DataFrame(NDFrame):
         else:
             return self.dropna(axis=0, subset=specificColumns, thresh=minObs)
 
-    def tapply(self, func):
+    def tapply(self, func):  # pragma: no cover
         """
         Apply func to the transposed DataFrame, results as per apply
         """
@@ -3016,10 +3028,19 @@ def _prep_ndarray(values, copy=True):
 
 
 def _rec_to_dict(arr):
-    columns = list(arr.dtype.names)
-    sdict = dict((k, arr[k]) for k in columns)
-    return columns, sdict
+    if isinstance(arr, np.ndarray):
+        columns = list(arr.dtype.names)
+        sdict = dict((k, arr[k]) for k in columns)
+    elif isinstance(arr, DataFrame):
+        columns = list(arr.columns)
+        sdict = arr._series
+    elif isinstance(arr, dict):
+        columns = sorted(arr)
+        sdict = arr.copy()
+    else:  # pragma: no cover
+        raise TypeError('%s' % type(arr))
 
+    return columns, sdict
 
 def _homogenize(data, index, columns, dtype=None):
     homogenized = {}

@@ -27,10 +27,10 @@ Release notes
 **New features / modules**
 
   - `pandas.core.sparse` module: "Sparse" (mostly-NA, or some other fill value)
-    versions of `Series`, `DataFrame`, and `WidePanel`. For low-density data, this
+    versions of `Series`, `DataFrame`, and `Panel`. For low-density data, this
     will result in significant performance boosts, and smaller memory
     footprint. Added `to_sparse` methods to `Series`, `DataFrame`, and
-    `WidePanel`. See online documentation for more on these
+    `Panel`. See online documentation for more on these
   - Fancy indexing operator on Series / DataFrame, e.g. via .ix operator. Both
     getting and setting of values is supported; however, setting values will only
     currently work on homogeneously-typed DataFrame objects. Things like:
@@ -49,10 +49,17 @@ Release notes
       invoke methods on groups. e.g. s.groupby(crit).std() will work even though
       `std` is not implemented on the `GroupBy` class
 
-  - Hierarchical / multi-level indexing via the `MultiIndex` class. Integrated
-    `MultiIndex` into `Series` and `DataFrame` fancy indexing, slicing,
-    __getitem__ and __setitem, reindexing, etc. Added `level` keyword argument to
-    `groupby` to enable grouping by a level of a `MultiIndex`
+  - Hierarchical / multi-level indexing
+
+    * New the `MultiIndex` class. Integrated `MultiIndex` into `Series` and
+      `DataFrame` fancy indexing, slicing, __getitem__ and __setitem,
+      reindexing, etc. Added `level` keyword argument to `groupby` to enable
+      grouping by a level of a `MultiIndex`
+
+  - New data reshaping functions: `stack` and `unstack` on DataFrame and Series
+
+    * Integrate with MultiIndex to enable sophisticated reshaping of data
+
   - `Index` objects (labels for axes) are now capable of holding tuples
   - `Series.describe`, `DataFrame.describe`: produces an R-like table of summary
     statistics about each data column
@@ -83,8 +90,8 @@ Release notes
     than the default __setitem__ behavior (which puts it at the end)
   - `HDFStore` class in `pandas.io.pytables` has been largely rewritten using
     patches from Jeff Reback from others. It now supports mixed-type `DataFrame`
-    and `Series` data and can store `WidePanel` objects. It also has the option to
-    query `DataFrame` and `WidePanel` data. Loading data from legacy `HDFStore`
+    and `Series` data and can store `Panel` objects. It also has the option to
+    query `DataFrame` and `Panel` data. Loading data from legacy `HDFStore`
     files is supported explicitly in the code
   - Added `set_printoptions` method to modify appearance of DataFrame tabular
     output
@@ -95,9 +102,9 @@ Release notes
     labels from an axis, producing a new object
   - `reindex` methods now sport a `copy` option so that data is not forced to be
     copied then the resulting object is indexed the same
-  - Added `sort_index` methods to Series and WidePanel. Renamed `DataFrame.sort`
+  - Added `sort_index` methods to Series and Panel. Renamed `DataFrame.sort`
     to `sort_index`. Leaving `DataFrame.sort` for now.
-
+<v
 **Improvements to existing features**
 
   * The 2-dimensional `DataFrame` and `DataMatrix` classes have been extensively
@@ -139,13 +146,20 @@ Release notes
   * `DataFrame.pivot` generalized to enable pivoting multiple columns into a
     `DataFrame` with hierarhical columns
   * `DataFrame` constructor can accept structured / record arrays
-  * `WidePanel` constructor can accept a dict of DataFrame-like objects. Do not
+  * `Panel` constructor can accept a dict of DataFrame-like objects. Do not
     need to use `from_dict` anymore (`from_dict` is there to stay, though).
 
 **API Changes**
 
   * The `DataMatrix` variable now refers to `DataFrame`, will be removed within
     two releases
+  * `WidePanel` is now known as `Panel`. The `WidePanel` variable in the pandas
+    namespace now refers to the renamed `Panel` class
+  * `LongPanel` and `Panel` / `WidePanel` now no longer have a common
+    subclass. `LongPanel` is now a subclass of `DataFrame` having a number of
+    additional methods and a hierarchical index instead of the old
+    `LongPanelIndex` object, which has been removed. Legacy `LongPanel` pickles
+    may not load properly
   * Cython is now required to build `pandas` from a development branch. This was
     done to avoid continuing to check in cythonized C files into source
     control. Builds from released source distributions will not require Cython
@@ -191,7 +205,7 @@ Release notes
 
   * `fillMethod` arguments (deprecated in prior release) removed, should be
     replaced with `method`
-  * `Series.fill`, `DataFrame.fill`, and `WidePanel.fill` removed, use `fillna`
+  * `Series.fill`, `DataFrame.fill`, and `Panel.fill` removed, use `fillna`
     instead
   * `groupby` functions now exclude NA / NaN values from the list of groups. This
     matches R behavior with NAs in factors e.g. with the `tapply` function
@@ -201,7 +215,7 @@ Release notes
   * Removed `pandas.core.pytools` module. Code has been moved to
     `pandas.core.common`
   * Tacked on `groupName` attribute for groups in GroupBy renamed to `name`
-  * WidePanel/LongPanel `dims` attribute renamed to `shape` to be more conformant
+  * Panel/LongPanel `dims` attribute renamed to `shape` to be more conformant
   * Slicing a `Series` returns a view now
   * More Series deprecations / renaming: `toCSV` to `to_csv`, `asOf` to `asof`,
     `merge` to `map`, `applymap` to `apply`, `toDict` to `to_dict`,
@@ -210,6 +224,10 @@ Release notes
     anymore since the output file can be read back without it. However, there
     is a new ``index_label`` argument. So you can do ``index_label='index'`` to
     emulate the old behavior
+  * `datetools.Week` argument renamed from `dayOfWeek` to `weekday`
+  * `timeRule` argument in `shift` has been deprecated in favor of using the
+    `offset` argument for everything. So you can still pass a time rule string
+    to `offset`
 
 **Bug fixes**
 

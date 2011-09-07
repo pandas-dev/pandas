@@ -118,6 +118,7 @@ Reshaping, sorting
    Series.argsort
    Series.order
    Series.sort
+   Series.sort_index
    Series.sortlevel
    Series.unstack
 
@@ -286,10 +287,11 @@ Reshaping, sorting, transposing
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.sort
+   DataFrame.sort_index
    DataFrame.delevel
    DataFrame.pivot
    DataFrame.sortlevel
+   DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
    DataFrame.T
@@ -337,8 +339,8 @@ Serialization / IO / Conversion
    DataFrame.load
    DataFrame.info
 
-WidePanel
----------
+Panel
+-----
 
 Input / Output
 --------------
@@ -369,10 +371,6 @@ Standard moving window functions
 
 .. autosummary::
    :toctree: generated/
-Apr 4Apr 11Apr 18Apr 25May 2May 9May 16May 23May 30Jun 6Jun 13Jun 20Jun 27Jul 4Jul 11Jul 18Jul 25Aug 1Aug 8Aug 15Aug 22Aug 29Sep 5
-
-JulAugSepOctNovDec2010FebMarAprMayJunJulAugSepOctNovDec2011FebMarAprMayJunJulAugSepOctNovDec
-
 
    rolling_count
    rolling_sum

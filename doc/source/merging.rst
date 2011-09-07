@@ -60,7 +60,7 @@ Here are some examples:
    df2 = df.ix[:5, ['C', 'D']]
    df1
    df2
-   df1.join(df2) # defaults to ``how='left'``
+   df1.join(df2) # defaults to how='left'
    df1.join(df2, how='outer')
    df1.join(df2, how='inner')
 

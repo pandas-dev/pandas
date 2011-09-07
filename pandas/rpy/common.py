@@ -63,9 +63,9 @@ def _convert_array(obj):
         if len(dim) == 2:
             return pn.DataFrame(arr, index=name_list[0], columns=name_list[1])
         elif len(dim) == 3:
-            return pn.WidePanel(arr, items=name_list[2],
-                                major_axis=name_list[0],
-                                minor_axis=name_list[1])
+            return pn.Panel(arr, items=name_list[2],
+                            major_axis=name_list[0],
+                            minor_axis=name_list[1])
         else:
             print 'Cannot handle dim=%d' % len(dim)
     else:
