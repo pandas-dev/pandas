@@ -40,15 +40,16 @@ Data structures at a glance
     1, TimeSeries, "Series with index containing datetimes"
     2, DataFrame, "General 2D labeled, size-mutable tabular structure with
     potentially heterogeneously-typed columns"
-    3, WidePanel, "General 3D labeled, also size-mutable array"
+    3, Panel, "General 3D labeled, also size-mutable array"
 
 Why more than 1 data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The best way to think about the pandas data structures is as flexible containers
-for lower dimensional data. For example, DataFrame is a container for Series,
-and WidePanel is a container for DataFrame objects. We would like to be able to
-insert and remove objects from these containers in a dictionary-like fashion.
+The best way to think about the pandas data structures is as flexible
+containers for lower dimensional data. For example, DataFrame is a container
+for Series, and Panel is a container for DataFrame objects. We would like to be
+able to insert and remove objects from these containers in a dictionary-like
+fashion.
 
 Also, we would like sensible default behaviors for the common API functions
 which take into account the typical orientation of time series and

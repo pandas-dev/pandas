@@ -11,7 +11,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.core.panel import WidePanel
+from pandas.core.panel import Panel
 from collections import defaultdict
 import pandas.core.datetools as dt
 import numpy as np
@@ -110,7 +110,7 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_get_group(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         grouped = wp.groupby(lambda x: x.month, axis='major')
 
         gp = grouped.get_group(1)
@@ -445,7 +445,7 @@ class TestGroupBy(unittest.TestCase):
         self.assertEquals(len(groups), 2)
 
     def test_multi_iter_panel(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
                              axis=1)
 
@@ -488,7 +488,7 @@ class TestGroupBy(unittest.TestCase):
                 for n2, gp2 in gp1.groupby('B'):
                     expected[n1][n2] = op(gp2.ix[:, ['C', 'D']])
             expected = dict((k, DataFrame(v)) for k, v in expected.iteritems())
-            expected = WidePanel.fromDict(expected).swapaxes(0, 1)
+            expected = Panel.fromDict(expected).swapaxes(0, 1)
 
             # a little bit crude
             for col in ['C', 'D']:
@@ -742,7 +742,7 @@ class TestGroupBy(unittest.TestCase):
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):
-        self.panel = tm.makeWidePanel()
+        self.panel = tm.makePanel()
         tm.add_nans(self.panel)
 
     def test_groupby(self):

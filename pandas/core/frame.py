@@ -1624,8 +1624,8 @@ class DataFrame(NDFrame):
         """
         Reshape data (produce a "pivot" table) based on column values. Uses
         unique values from index / columns to form axes and return either
-        DataFrame or WidePanel, depending on whether you request a single value
-        column (DataFrame) or all columns (WidePanel)
+        DataFrame or Panel, depending on whether you request a single value
+        column (DataFrame) or all columns (Panel)
 
         Parameters
         ----------
@@ -1664,8 +1664,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        pivoted : DataFrame (value column specified) or WidePanel (no value
-        column specified)
+        pivoted : DataFrame
+            If no values column specified, will have hierarchically indexed
+            columns
         """
         from pandas.core.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)

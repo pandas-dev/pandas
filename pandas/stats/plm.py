@@ -10,10 +10,10 @@ import warnings
 
 import numpy as np
 
-from pandas.core.panel import WidePanel, LongPanel
+from pandas.core.panel import Panel, LongPanel
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
-from pandas.core.sparse import SparseWidePanel
+from pandas.core.sparse import SparsePanel
 from pandas.stats.ols import OLS, MovingOLS
 import pandas.stats.common as common
 import pandas.stats.math as math
@@ -25,7 +25,7 @@ class PanelOLS(OLS):
     Parameters
     ----------
     y : DataFrame
-    x : Dict of DataFrame or WidePanel
+    x : Dict of DataFrame or Panel
     intercept : bool
         True if you want an intercept.  True by default.
     nw_lags : None or int
@@ -159,14 +159,14 @@ class PanelOLS(OLS):
         if isinstance(data, LongPanel):
             data = data.to_wide()
         else:
-            if isinstance(data, WidePanel):
+            if isinstance(data, Panel):
                 data = data.copy()
 
-            if not isinstance(data, SparseWidePanel):
+            if not isinstance(data, SparsePanel):
                 data, cat_mapping = self._convert_x(data)
 
-            if not isinstance(data, WidePanel):
-                data = WidePanel.from_dict(data, intersect=True)
+            if not isinstance(data, Panel):
+                data = Panel.from_dict(data, intersect=True)
 
         x_names = data.items
 

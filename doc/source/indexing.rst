@@ -26,8 +26,8 @@ In this section / chapter, we will focus on the latter set of functionality,
 namely how to slice, dice, and generally get and set subsets of pandas
 objects. The primary focus will be on Series and DataFrame as they have
 received more development attention in this area. More work will be invested in
-WidePanel and future higher-dimensional data structures in the future,
-especially in label-based advanced indexing.
+Panel and future higher-dimensional data structures in the future, especially
+in label-based advanced indexing.
 
 .. _indexing.basics:
 
@@ -42,7 +42,7 @@ lower-dimensional slices. Thus,
   - **Series**: ``series[label]`` returns a scalar value
   - **DataFrame**: ``frame[colname]`` returns a Series corresponding to the
     passed column name
-  - **WidePanel**: ``panel[itemname]`` returns a DataFrame corresponding to the
+  - **Panel**: ``panel[itemname]`` returns a DataFrame corresponding to the
     passed item name
 
 Here we construct a simple time series data set to use for illustrating the
@@ -53,7 +53,7 @@ indexing functionality:
    dates = np.asarray(DateRange('1/1/2000', periods=8))
    df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df
-   panel = WidePanel({'one' : df, 'two' : df - df.mean()})
+   panel = Panel({'one' : df, 'two' : df - df.mean()})
    panel
 
 .. note::
@@ -73,11 +73,11 @@ Data slices on other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It's certainly possible to retrieve data slices along the other axes of a
-DataFrame or WidePanel. We tend to refer to these slices as
+DataFrame or Panel. We tend to refer to these slices as
 *cross-sections*. DataFrame has the ``xs`` function for retrieving rows as
-Series and WidePanel has the analogous ``major_xs`` and ``minor_xs`` functions
-for retrieving slices as DataFrames for a given ``major_axis`` or
-``minor_axis`` label, respectively.
+Series and Panel has the analogous ``major_xs`` and ``minor_xs`` functions for
+retrieving slices as DataFrames for a given ``major_axis`` or ``minor_axis``
+label, respectively.
 
 .. ipython:: python
 

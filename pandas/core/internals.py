@@ -838,7 +838,7 @@ def _union_block_items(blocks):
     if slow:
         the_union = _union_items_slow(all_items)
     else:
-        the_union = _tseries.fast_unique_multiple(all_items)
+        the_union = Index(_tseries.fast_unique_multiple(all_items))
 
     if tot_len > len(the_union):
         raise Exception('item names overlap')

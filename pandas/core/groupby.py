@@ -8,7 +8,7 @@ from pandas.core.generic import NDFrame, PandasObject
 from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
-from pandas.core.panel import WidePanel
+from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as _tseries
 
@@ -1079,7 +1079,7 @@ def _all_indexes_same(indexes):
             return False
     return True
 
-class WidePanelGroupBy(GroupBy):
+class PanelGroupBy(GroupBy):
 
     def aggregate(self, func):
         """
@@ -1089,12 +1089,12 @@ class WidePanelGroupBy(GroupBy):
         ----------
         arg : function or dict
             Function to use for aggregating groups. If a function, must either
-            work when passed a WidePanel or when passed to WidePanel.apply. If
+            work when passed a Panel or when passed to Panel.apply. If
             pass a dict, the keys must be DataFrame column names
 
         Returns
         -------
-        aggregated : WidePanel
+        aggregated : Panel
         """
         return self._aggregate_generic(func, axis=self.axis)
 
@@ -1110,7 +1110,7 @@ class WidePanelGroupBy(GroupBy):
             except Exception:
                 result[name] = data.apply(agger, axis=axis)
 
-        result = WidePanel.fromDict(result, intersect=False)
+        result = Panel.fromDict(result, intersect=False)
 
         if axis > 0:
             result = result.swapaxes(0, axis)

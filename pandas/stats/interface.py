@@ -1,4 +1,4 @@
-from pandas.core.api import (Series, DataFrame, WidePanel, LongPanel,
+from pandas.core.api import (Series, DataFrame, Panel, LongPanel,
                              MultiIndex)
 
 from pandas.stats.ols import OLS, MovingOLS
@@ -15,14 +15,14 @@ def ols(**kwargs):
     y : Series, x : DataFrame -> OLS
     y : Series, x : dict of DataFrame -> OLS
     y : DataFrame, x : DataFrame -> PanelOLS
-    y : DataFrame, x : dict of DataFrame/WidePanel/LongPanel -> PanelOLS
-    y : Series with MultiIndex, x : WidePanel/LongPanel -> PanelOLS
+    y : DataFrame, x : dict of DataFrame/Panel/LongPanel -> PanelOLS
+    y : Series with MultiIndex, x : Panel/LongPanel -> PanelOLS
 
     Parameters
     ----------
     y: Series or DataFrame
         See above for types
-    x: Series, DataFrame, dict of Series, dict of DataFrame, WidePanel, or
+    x: Series, DataFrame, dict of Series, dict of DataFrame, Panel, or
         LongPanel
     intercept: bool
         True if you want an intercept.  Defaults to True.
@@ -109,7 +109,7 @@ def ols(**kwargs):
     if isinstance(y, DataFrame) or (isinstance(y, Series) and
                                     isinstance(y.index, MultiIndex)):
         panel = True
-    if isinstance(x, (WidePanel, LongPanel)):
+    if isinstance(x, (Panel, LongPanel)):
         panel = True
 
     if window_type == common.FULL_SAMPLE:

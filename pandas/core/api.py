@@ -10,8 +10,9 @@ from pandas.core.index import Index, Factor, MultiIndex
 from pandas.core.daterange import DateRange
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame
-from pandas.core.panel import WidePanel, LongPanel
+from pandas.core.panel import Panel, LongPanel
 from pandas.core.groupby import groupby
 from pandas.core.reshape import pivot_simple as pivot
 
 DataMatrix = DataFrame
+WidePanel = Panel

@@ -10,7 +10,7 @@ from datetime import datetime
 import unittest
 import numpy as np
 
-from pandas.core.panel import LongPanel, WidePanel
+from pandas.core.panel import LongPanel, Panel
 from pandas.core.api import DataFrame, Index, Series, notnull
 from pandas.stats.api import ols
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
@@ -222,7 +222,7 @@ class TestOLSMisc(unittest.TestCase):
         assert_almost_equal(model1._y_predict_raw, model1._y_fitted_raw)
 
     def test_longpanel_series_combo(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         lp = wp.to_long()
 
         y = lp.pop('ItemA')
@@ -270,7 +270,7 @@ class TestOLSMisc(unittest.TestCase):
         model = ols(y=y, x=x, intercept=False)
         model.summary
 
-        model = ols(y=y, x=WidePanel(x))
+        model = ols(y=y, x=Panel(x))
         model.summary
 
     def test_plm_attrs(self):

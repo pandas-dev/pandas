@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Series
 from pandas.core.index import MultiIndex
-from pandas.core.panel import WidePanel, LongPanel
+from pandas.core.panel import Panel, LongPanel
 from pandas.util.decorators import cache_readonly
 import pandas.stats.common as common
 import pandas.stats.math as math
@@ -638,7 +638,7 @@ class MovingOLS(OLS):
                            index=self.beta.columns)
             result[result_index[i]] = dm
 
-        return WidePanel.fromDict(result, intersect=False)
+        return Panel.from_dict(result, intersect=False)
 
     @cache_readonly
     def y_fitted(self):

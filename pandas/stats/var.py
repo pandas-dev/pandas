@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 from pandas.core.frame import DataFrame
-from pandas.core.panel import WidePanel
+from pandas.core.panel import Panel
 from pandas.core.series import Series
 import pandas.stats.common as common
 from pandas.stats.math import chain_dot, inv
@@ -499,7 +499,7 @@ class PanelVAR(VAR):
 
     Parameters
     ----------
-    data: WidePanel or dict of DataFrame
+    data: Panel or dict of DataFrame
     lags: int
     """
     def __init__(self, data, lags, intercept=True):
@@ -526,8 +526,8 @@ class PanelVAR(VAR):
         """
         forecast = self._forecast_raw(h).T.swapaxes(1, 2)
         index = xrange(1, 1 + h)
-        w = WidePanel(
-            forecast, self._data.items, index, self._data.minor_axis)
+        w = Panel(forecast, items=self._data.items, major_axis=index,
+                  minor_axis=self._data.minor_axis)
         return w
 
     @cache_readonly
@@ -543,7 +543,7 @@ class PanelVAR(VAR):
         """
         d = dict([(key, value.resid)
                   for (key, value) in self.ols_results.iteritems()])
-        return WidePanel.fromDict(d)
+        return Panel.fromDict(d)
 
     def _data_xs(self, i):
         return self._data.values[:, i, :].T
@@ -558,11 +558,11 @@ class PanelVAR(VAR):
 
 
 def _prep_panel_data(data):
-    """Converts the given data into a WidePanel."""
-    if isinstance(data, WidePanel):
+    """Converts the given data into a Panel."""
+    if isinstance(data, Panel):
         return data
 
-    return WidePanel.fromDict(data)
+    return Panel.fromDict(data)
 
 def _drop_incomplete_rows(array):
     mask = np.isfinite(array).all(1)

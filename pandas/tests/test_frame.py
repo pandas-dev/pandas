@@ -1718,7 +1718,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_frame_equal(pivoted, expected)
 
         # pivot multiple columns
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         lp = wp.to_long()
         df = DataFrame.from_records(lp.toRecords())
         assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())

@@ -29,7 +29,7 @@ def _arith_method(func, name):
 
     def f(self, other):
         if not np.isscalar(other):
-            raise ValueError('Simple arithmetic with WidePanel can only be '
+            raise ValueError('Simple arithmetic with Panel can only be '
                             'done with scalar values')
 
         return self._combine(other, func)
@@ -85,14 +85,7 @@ def _add_docs(method, desc, outname, na_info=None):
     doc = _agg_doc % locals()
     method.__doc__ = doc
 
-
-class Panel(object):
-    """
-    Abstract superclass for LongPanel and WidePanel data structures
-    """
-    pass
-
-class WidePanel(Panel, NDFrame):
+class Panel(NDFrame):
     _AXIS_NUMBERS = {
         'items' : 0,
         'major_axis' : 1,
@@ -211,7 +204,7 @@ class WidePanel(Panel, NDFrame):
     @classmethod
     def from_dict(cls, data, intersect=False, dtype=float):
         """
-        Construct WidePanel from dict of DataFrame objects
+        Construct Panel from dict of DataFrame objects
 
         Parameters
         ----------
@@ -221,12 +214,12 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        WidePanel
+        Panel
         """
         data, index, columns = _homogenize_dict(data, intersect=intersect,
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
-        return WidePanel(data, items, index, columns)
+        return Panel(data, items, index, columns)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
         values = _prep_ndarray(data, copy=copy)
@@ -299,7 +292,7 @@ class WidePanel(Panel, NDFrame):
 
     @property
     def _constructor(self):
-        return WidePanel
+        return Panel
 
     def _wrap_array(self, arr, axes, copy=False):
         items, major, minor = axes
@@ -310,7 +303,7 @@ class WidePanel(Panel, NDFrame):
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
-        Convert to SparseWidePanel
+        Convert to SparsePanel
 
         Parameters
         ----------
@@ -321,13 +314,13 @@ class WidePanel(Panel, NDFrame):
         -------
         y : SparseDataFrame
         """
-        from pandas.core.sparse import SparseWidePanel
+        from pandas.core.sparse import SparsePanel
         frames = dict(self.iteritems())
-        return SparseWidePanel(frames, items=self.items,
-                               major_axis=self.major_axis,
-                               minor_axis=self.minor_axis,
-                               default_kind=kind,
-                               default_fill_value=fill_value)
+        return SparsePanel(frames, items=self.items,
+                           major_axis=self.major_axis,
+                           minor_axis=self.minor_axis,
+                           default_kind=kind,
+                           default_fill_value=fill_value)
 
     # TODO: needed?
     def keys(self):
@@ -391,7 +384,7 @@ class WidePanel(Panel, NDFrame):
         return self._data
 
     def __setstate__(self, state):
-        # old WidePanel pickle
+        # old Panel pickle
         if isinstance(state, BlockManager):
             self._data = state
         elif len(state) == 4: # pragma: no cover
@@ -408,7 +401,7 @@ class WidePanel(Panel, NDFrame):
         major = _unpickle(major)
         minor = _unpickle(minor)
         values = _unpickle(vals)
-        wp = WidePanel(values, items, major, minor)
+        wp = Panel(values, items, major, minor)
         self._data = wp._data
 
     def conform(self, frame, axis='items'):
@@ -453,7 +446,7 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        WidePanel (new object)
+        Panel (new object)
         """
         result = self
 
@@ -476,16 +469,16 @@ class WidePanel(Panel, NDFrame):
 
     def reindex_like(self, other, method=None):
         """
-        Reindex WidePanel to match indices of another WidePanel
+        Reindex Panel to match indices of another Panel
 
         Parameters
         ----------
-        other : WidePanel
+        other : Panel
         method : string or None
 
         Returns
         -------
-        reindexed : WidePanel
+        reindexed : Panel
         """
         # todo: object columns
         return self.reindex(major=other.major_axis, items=other.items,
@@ -499,7 +492,7 @@ class WidePanel(Panel, NDFrame):
         elif np.isscalar(other):
             new_values = func(self.values, other)
 
-            return WidePanel(new_values, self.items, self.major_axis,
+            return Panel(new_values, self.items, self.major_axis,
                              self.minor_axis)
 
     def __neg__(self):
@@ -520,8 +513,8 @@ class WidePanel(Panel, NDFrame):
             new_values = func(self.values.swapaxes(0, 2), other.values)
             new_values = new_values.swapaxes(0, 2)
 
-        return WidePanel(new_values, self.items, self.major_axis,
-                         self.minor_axis)
+        return Panel(new_values, self.items, self.major_axis,
+                     self.minor_axis)
 
     def _combine_panel(self, other, func):
         if isinstance(other, LongPanel):
@@ -538,7 +531,7 @@ class WidePanel(Panel, NDFrame):
 
         result_values = func(this.values, other.values)
 
-        return WidePanel(result_values, items, major, minor)
+        return Panel(result_values, items, major, minor)
 
     def fillna(self, value=None, method='pad'):
         """
@@ -570,10 +563,10 @@ class WidePanel(Panel, NDFrame):
             for col, s in self.iteritems():
                 result[col] = s.fillna(method=method, value=value)
 
-            return WidePanel.from_dict(result)
+            return Panel.from_dict(result)
         else:
             new_data = self._data.fillna(value)
-            return WidePanel(new_data)
+            return Panel(new_data)
 
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
@@ -628,11 +621,11 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        grouped : WidePanelGroupBy
+        grouped : PanelGroupBy
         """
-        from pandas.core.groupby import WidePanelGroupBy
+        from pandas.core.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
-        return WidePanelGroupBy(self, function, axis=axis)
+        return PanelGroupBy(self, function, axis=axis)
 
     def swapaxes(self, axis1='major', axis2='minor'):
         """
@@ -640,7 +633,7 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        y : WidePanel (new object)
+        y : Panel (new object)
         """
         i = self._get_axis_number(axis1)
         j = self._get_axis_number(axis2)
@@ -654,7 +647,7 @@ class WidePanel(Panel, NDFrame):
                     for k in range(3))
         new_values = self.values.swapaxes(i, j).copy()
 
-        return WidePanel(new_values, *new_axes)
+        return Panel(new_values, *new_axes)
 
     def to_long(self, filter_observations=True):
         """
@@ -708,7 +701,7 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        y : WidePanel
+        y : Panel
         """
         intersection = self.items.intersection(items)
         return self.reindex(items=intersection)
@@ -727,7 +720,7 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        result : DataFrame or WidePanel
+        result : DataFrame or Panel
         """
         i = self._get_axis_number(axis)
         result = np.apply_along_axis(func, i, self.values)
@@ -921,7 +914,7 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        shifted : WidePanel
+        shifted : Panel
         """
         values = self.values
         items = self.items
@@ -937,7 +930,7 @@ class WidePanel(Panel, NDFrame):
         else:
             raise ValueError('Invalid axis')
 
-        return WidePanel(values, items=items, major_axis=major_axis,
+        return Panel(values, items=items, major_axis=major_axis,
                          minor_axis=minor_axis)
 
     def truncate(self, before=None, after=None, axis='major'):
@@ -954,7 +947,7 @@ class WidePanel(Panel, NDFrame):
 
         Returns
         -------
-        WidePanel
+        Panel
         """
         axis = self._get_axis_name(axis)
         index = self._get_axis(axis)
@@ -969,6 +962,8 @@ class WidePanel(Panel, NDFrame):
 
     getMinorXS = deprecate('getMinorXS', minor_xs)
     getMajorXS = deprecate('getMajorXS', major_xs)
+
+WidePanel = Panel
 
 #-------------------------------------------------------------------------------
 # LongPanel and friends
@@ -1113,7 +1108,7 @@ class LongPanel(DataFrame):
 
         Returns
         -------
-        WidePanel
+        Panel
         """
         mask = make_mask(self.index)
         if self._data.is_mixed_dtype():
@@ -1130,7 +1125,7 @@ class LongPanel(DataFrame):
         for i in xrange(len(self.items)):
             values[i].flat[mask] = self.values[:, i]
 
-        return WidePanel(values, self.items, self.major_axis, self.minor_axis)
+        return Panel(values, self.items, self.major_axis, self.minor_axis)
 
     def _to_wide_mixed(self, mask):
         _, N, K = self.wide_shape
@@ -1145,7 +1140,7 @@ class LongPanel(DataFrame):
             values.ravel()[mask] = item_vals
             data[item] = DataFrame(values, index=self.major_axis,
                                    columns=self.minor_axis)
-        return WidePanel.from_dict(data)
+        return Panel.from_dict(data)
 
     toWide = deprecate('toWide', to_wide)
 

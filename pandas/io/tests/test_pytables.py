@@ -5,7 +5,7 @@ import sys
 
 import numpy as np
 
-from pandas import (Series, DataFrame, WidePanel, LongPanel, DateRange)
+from pandas import (Series, DataFrame, Panel, LongPanel, DateRange)
 from pandas.io.pytables import HDFStore
 import pandas.util.testing as tm
 
@@ -29,7 +29,7 @@ class TesttHDFStore(unittest.TestCase):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
-        self.store['d'] = tm.makeWidePanel()
+        self.store['d'] = tm.makePanel()
         self.assertEquals(len(self.store), 4)
 
     def test_repr(self):
@@ -37,7 +37,7 @@ class TesttHDFStore(unittest.TestCase):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
-        self.store['d'] = tm.makeWidePanel()
+        self.store['d'] = tm.makePanel()
         repr(self.store)
 
     def test_reopen_handle(self):
@@ -115,7 +115,7 @@ class TesttHDFStore(unittest.TestCase):
         self.assertEquals(len(self.store), 0)
 
     def test_remove_crit(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
@@ -217,11 +217,11 @@ class TesttHDFStore(unittest.TestCase):
                               compression=True)
 
     def test_wide(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         self._check_roundtrip(wp, tm.assert_panel_equal)
 
     def test_wide_table(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         self._check_roundtrip_table(wp, tm.assert_panel_equal)
 
     def test_long(self):
@@ -229,7 +229,7 @@ class TesttHDFStore(unittest.TestCase):
             tm.assert_panel_equal(left.to_wide(),
                                   right.to_wide())
 
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         self._check_roundtrip(wp.to_long(), _check)
 
     def test_longpanel(self):
@@ -243,7 +243,7 @@ class TesttHDFStore(unittest.TestCase):
         tm.assert_series_equal(self.store['a'], ts)
 
     def test_panel_select(self):
-        wp = tm.makeWidePanel()
+        wp = tm.makePanel()
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
@@ -351,7 +351,7 @@ def curpath():
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
         return obj.reindex(sorted(obj.index))
-    elif isinstance(obj, WidePanel):
+    elif isinstance(obj, Panel):
         return obj.reindex(major=sorted(obj.major_axis))
     else:
         raise ValueError('type not supported here')
