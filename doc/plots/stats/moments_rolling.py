@@ -21,3 +21,4 @@ plot_timeseries(s,
                         'rolling_skew',
                         'rolling_kurt'))
 plt.show()
+plt.close('all')

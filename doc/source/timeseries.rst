@@ -324,7 +324,7 @@ Here is a fully-worked example:
    grouped = ts.groupby(hourly.asof)
    grouped.mean()
 
-Some things to note:
+Some things to note about this method:
 
   - This is rather inefficient because we haven't exploited the orderedness of
     the data at all. Calling the ``asof`` function on every date in the

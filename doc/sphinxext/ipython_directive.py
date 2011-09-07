@@ -396,7 +396,8 @@ class EmbeddedSphinxShell(object):
         Saves the image file to disk.
         """
         self.ensure_pyplot()
-        command = 'plt.gcf().savefig("%s", bbox_inches="tight", dpi=150)'%image_file
+        command = ('plt.gcf().savefig("%s", bbox_inches="tight", '
+                   'dpi=100)' % image_file)
         #print 'SAVEFIG', command  # dbg
         self.process_input_line('bookmark ipy_thisdir', store_history=False)
         self.process_input_line('cd -b ipy_savedir', store_history=False)

@@ -12,3 +12,4 @@ f = plt.gcf()
 f.autofmt_xdate()
 
 plt.show()
+plt.close('all')

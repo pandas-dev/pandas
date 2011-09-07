@@ -107,11 +107,12 @@ See the package overview for more detail about what's in the library.
 
 .. toctree::
     :hidden:
-    :maxdepth: 2
+    :maxdepth: 3
 
     install
     faq
     overview
+    dsintro
     basics
     indexing
     missing_data

@@ -215,6 +215,8 @@ for interpolation methods outside of the filling methods described above.
    @savefig series_interpolate.png width=6in
    axes[1].set_title('Interpolated')
 
+   plt.close('all')
+
 Missing data casting rules and indexing
 ---------------------------------------
 

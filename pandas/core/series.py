@@ -1335,7 +1335,7 @@ copy : boolean, default False
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', **kwds):  # pragma: no cover
+             style='-', grid=True, **kwds):  # pragma: no cover
         """
         Plot the input series with the index on the x-axis using matplotlib
 
@@ -1390,6 +1390,8 @@ copy : boolean, default False
             ax.set_xticks(xinds + 0.25)
             ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
 
+        ax.grid(grid)
+
         # try to make things prettier
         try:
             fig = plt.gcf()
@@ -1399,7 +1401,7 @@ copy : boolean, default False
 
         plt.draw_if_interactive()
 
-    def hist(self, ax=None, **kwds):  # pragma: no cover
+    def hist(self, ax=None, grid=True, **kwds):  # pragma: no cover
         """
         Draw histogram of the input series using matplotlib
 
@@ -1420,7 +1422,10 @@ copy : boolean, default False
         if ax is None:
             ax = plt.gca()
 
-        ax.hist(self.values)
+        values = self.dropna().values
+
+        ax.hist(values)
+        ax.grid(grid)
 
     def to_csv(self, path):
         """

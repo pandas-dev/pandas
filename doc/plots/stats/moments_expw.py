@@ -30,3 +30,4 @@ fig.autofmt_xdate()
 fig.subplots_adjust(bottom=0.10, top=0.95)
 
 plt.show()
+plt.close('all')

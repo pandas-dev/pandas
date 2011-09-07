@@ -2646,8 +2646,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Plotting
 
-    def plot(self, subplots=False, sharex=True,
-             sharey=False, use_index=True, **kwds):  # pragma: no cover
+    def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
+             figsize=None, grid=True, **kwds):  # pragma: no cover
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -2674,9 +2674,10 @@ class DataFrame(NDFrame):
 
         if subplots:
             _, axes = plt.subplots(nrows=len(self.columns),
-                                   sharex=sharex, sharey=sharey)
+                                   sharex=sharex, sharey=sharey,
+                                   figsize=figsize)
         else:
-            fig = plt.figure()
+            fig = plt.figure(figsize=figsize)
             ax = fig.add_subplot(111)
 
         if use_index:
@@ -2692,7 +2693,18 @@ class DataFrame(NDFrame):
             else:
                 ax.plot(x, self[col].values, label=col, **kwds)
 
-    def hist(self, **kwds):  # pragma: no cover
+            ax.grid(grid)
+
+        # try to make things prettier
+        try:
+            fig = plt.gcf()
+            fig.autofmt_xdate()
+        except Exception:
+            pass
+
+        plt.draw_if_interactive()
+
+    def hist(self, grid=True, **kwds):  # pragma: no cover
         """
         Draw Histogram the DataFrame's series using matplotlib / pylab.
 
@@ -2711,8 +2723,9 @@ class DataFrame(NDFrame):
 
         for i, col in enumerate(_try_sort(self.columns)):
             ax = axes[i / k][i % k]
-            ax.hist(self[col].values, **kwds)
+            ax.hist(self[col].dropna().values, **kwds)
             ax.set_title(col)
+            ax.grid(grid)
 
     #----------------------------------------------------------------------
     # Deprecated stuff

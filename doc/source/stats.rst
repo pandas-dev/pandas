@@ -2,6 +2,17 @@
 
 .. _stats:
 
+.. ipython:: python
+   :suppress:
+
+   import numpy as np
+   np.random.seed(123456)
+   from pandas import *
+   import pandas.util.testing as tm
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+   import matplotlib.pyplot as plt
+
 **********************************
 Built-in statistical functionality
 **********************************
@@ -15,129 +26,78 @@ Built-in statistical functionality
 Moving (rolling) statistics / moments
 -------------------------------------
 
-For working with time series data, a number of functions are provided
-for computing common *moving* or *rolling* statistics. Among these are
-count, sum, mean, median, correlation, variance, covariance, standard
-deviation, skewness, and kurtosis. All of these methods are in the
-:mod:`pandas` namespace, but otherwise they can be found in
-:mod:`pandas.stats.moments`.
+For working with time series data, a number of functions are provided for
+computing common *moving* or *rolling* statistics. Among these are count, sum,
+mean, median, correlation, variance, covariance, standard deviation, skewness,
+and kurtosis. All of these methods are in the :mod:`pandas` namespace, but
+otherwise they can be found in :mod:`pandas.stats.moments`.
 
-Each of these methods observes the same interface (with relevant
-methods accepting two Series arguments instead of one):
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
 
-.. function:: Unary moment functions
+    ``rolling_count``, Number of non-null observations
+    ``rolling_sum``, Sum of values
+    ``rolling_mean``, Mean of values
+    ``rolling_median``, Arithmetic median of values
+    ``rolling_min``, Minimum
+    ``rolling_max``, Maximum
+    ``rolling_std``, Unbiased standard deviation
+    ``rolling_var``, Unbiased variance
+    ``rolling_skew``, Unbiased skewness (3rd moment)
+    ``rolling_kurt``, Unbiased kurtosis (4th moment)
+    ``rolling_quantile``, Sample quantile (value at %)
+    ``rolling_apply``, Generic apply
+    ``rolling_cov``, Unbiased covariance (binary)
+    ``rolling_corr``, Correlation (binary)
 
-   :Parameters:
-       **arg** : ndarray, Series, DataFrame, etc.
-	       If a DataFrame is passed, function will be applied to **columns**
+Generally these methods all have the same interface. The binary operators
+(e.g. ``rolling_corr``) take two Series or DataFrames. Otherwise, they all
+accept the following arguments:
 
-       **window** : int
-           Number of periods to include in window
+  - ``window``: size of moving window
+  - ``min_periods``: threshold of non-null data points to require (otherwise
+    result is NA)
+  - ``time_rule``: optionally specify a :ref:`time rule <timeseries.timerule>`
+    to pre-conform the data to
 
-       **min_periods** : int or None
-	       Number of periods to require to compute a value (defaults to
-	       **window**)
+These functions can be applied to ndarrays or Series objects:
 
-       **time_rule** : string or DateOffset
-            Frequency to pre-convert data to
+.. ipython:: python
 
-.. function:: Binary moment functions
+   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = ts.cumsum()
 
-   :Parameters:
-       **arg1** : ndarray, Series
-	       If a DataFrame is passed, function will be applied to **columns**
+   ts.plot(style='k--')
 
-       **arg2** : ndarray, Series
-	       Must be same type as **arg1**
+   @savefig rolling_mean_ex.png width=4.5in
+   rolling_mean(ts, 60).plot(style='k')
 
-       **window** : int
-           Number of periods to include in window
+They can also be applied to DataFrame objects. This is really just syntactic
+sugar for applying the moving window operator to all of the DataFrame's columns:
 
-       **min_periods** : int or None
-	       Number of periods to require to compute a value (defaults to
-	       **window**)
+.. ipython:: python
+   :suppress:
 
-       **time_rule** : string or DateOffset
-            Frequency to pre-convert data to
+   plt.close('all')
 
-::
+.. ipython:: python
 
-    >>> ts
-    2000-01-31 00:00:00    -0.550139282247
-    2000-02-01 00:00:00    0.0950636484432
-    2000-02-02 00:00:00    0.0621763420914
-    2000-02-03 00:00:00    0.125698607137
-    2000-02-04 00:00:00    0.222288320816
-    2000-02-07 00:00:00    0.903314747152
-    2000-02-08 00:00:00    -0.391449402196
-    2000-02-09 00:00:00    -0.726137553115
-    2000-02-10 00:00:00    -0.89302167539
-    2000-02-11 00:00:00    0.228509179513
+   df = DataFrame(randn(1000, 4), index=ts.index,
+                  columns=['A', 'B', 'C', 'D'])
+   df = df.cumsum()
 
-    >>> rolling_sum(ts, 5, min_periods=3)
-    2000-01-31 00:00:00    NaN
-    2000-02-01 00:00:00    NaN
-    2000-02-02 00:00:00    -0.0913037710365
-    2000-02-03 00:00:00    0.798752592168
-    2000-02-04 00:00:00    1.39432346651
-    2000-02-07 00:00:00    2.44074916551
-    2000-02-08 00:00:00    2.77458564938
-    2000-02-09 00:00:00    1.87181399193
-    2000-02-10 00:00:00    2.48549563273
-    2000-02-11 00:00:00    1.81285272663
-
-If passing a DataFrame argument, the statistics will be applied independently to
-the columns:
-
-::
-
-    >>> df
-			   A              B              C              D
-    2000-01-31 00:00:00    NaN            NaN            0.03752        -0.3952
-    2000-02-01 00:00:00    NaN            NaN            -1.511         -0.1126
-    2000-02-02 00:00:00    1.136          NaN            0.777          -0.3502
-    2000-02-03 00:00:00    0.8901         NaN            1.196          0.7456
-    2000-02-04 00:00:00    0.5956         0.7684         0.9042         0.4984
-    2000-02-07 00:00:00    -0.3502        1.015          0.5366         0.6628
-    2000-02-08 00:00:00    0.5036         1.825          0.8682         -1.69
-    2000-02-09 00:00:00    0.2327         -0.3899        0.4493         -0.1267
-    2000-02-10 00:00:00    1.504          0.3904         -0.06148       1.717
-    2000-02-11 00:00:00    -0.07707       0.2286         -1.039         0.1438
-
-    >>> rolling_mean(df, 5, min_periods=3)
-			   A              B              C              D
-    2000-01-31 00:00:00    NaN            NaN            NaN            NaN
-    2000-02-01 00:00:00    NaN            NaN            NaN            NaN
-    2000-02-02 00:00:00    NaN            NaN            -0.2321        -0.286
-    2000-02-03 00:00:00    NaN            NaN            0.125          -0.02811
-    2000-02-04 00:00:00    0.8737         NaN            0.2809         0.07718
-    2000-02-07 00:00:00    0.5677         NaN            0.3807         0.2888
-    2000-02-08 00:00:00    0.5549         1.203          0.8565         -0.0267
-    2000-02-09 00:00:00    0.3744         0.8047         0.7909         0.018
-    2000-02-10 00:00:00    0.4971         0.7219         0.5394         0.2123
-    2000-02-11 00:00:00    0.3626         0.6139         0.1507         0.1414
-
-Each of these methods can optionally accept a **time_rule** argument
-(see :ref:`time rules <datetools.timerules>`) which is provided as a
-convenience when the user wishes to guarantee that the window of the
-statistic.
-
-Here are some plots of the unary moment functions:
-
-.. plot:: plots/stats/moments_rolling.py
-
-And the binary moment functions:
-
-.. plot:: plots/stats/moments_rolling_binary.py
+   @savefig rolling_mean_frame.png width=4.5in
+   rolling_sum(df, 60).plot(subplots=True)
 
 Exponentially weighted moment functions
 ---------------------------------------
 
-It's also quite common to want to do non-equally weighted moving statistics,
-such as exponentially weighted (EW) moving average or EW moving standard
-deviation. A number of EW functions are provided using the blending method. For
-example, where :math:`y_t` is the result and :math:`x_t` the input, we compute
-an exponentially weighted moving average as
+A related set of functions are exponentially weighted versions of many of the
+above statistics. A number of EW (exponentially weighted) functions are
+provided using the blending method. For example, where :math:`y_t` is the
+result and :math:`x_t` the input, we compute an exponentially weighted moving
+average as
 
 .. math::
 
@@ -158,22 +118,86 @@ directly, it's easier to think about either the **span** or **center of mass
 You can pass one or the other to these functions but not both. **Span**
 corresponds to what is commonly called a "20-day EW moving average" for
 example. **Center of mass** has a more physical interpretation. For example,
-**span** = 20 corresponds to **com** = 9.5.
+**span** = 20 corresponds to **com** = 9.5. Here is the list of functions
+available:
 
-Here are some examples for a univariate time series:
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
 
-.. plot:: plots/stats/moments_expw.py
+    ``ewma``, EW moving average
+    ``ewvar``, EW moving variance
+    ``ewstd``, EW moving standard deviation
+    ``ewmcorr``, EW moving correlation
+    ``ewmcov``, EW moving covariance
 
-The binary `emwcov` and `ewmcorr` are similar to their equal-weighted
-counterparts above.
+Here are an example for a univariate time series:
 
-.. autofunction:: pandas.stats.moments.ewma
+.. ipython:: python
 
+   plt.close('all')
+   ts.plot(style='k--')
+
+   @savefig ewma_ex.png width=4.5in
+   ewma(ts, span=20).plot(style='k')
 
 .. _stats.ols:
 
 Linear and panel regression
 ---------------------------
 
-.. automodule:: pandas.stats.interface
-   :members:
+.. note::
+
+   We plan to move this functionality to `statsmodels
+   <http://statsmodels.sourceforge.net>`__ for the next release. Some of the
+   result attributes may change names in order to foster naming consistency
+   with the rest of statsmodels. We will provide every effort to provide
+   compatibility with older versions of pandas, however.
+
+We have implemented a very fast set of *moving-window linear regression*
+classes in pandas. Two different types of regressions are supported:
+
+  - Standard ordinary least squares (OLS) multiple regression
+  - Multiple regression (OLS-based) on `panel data
+    <http://en.wikipedia.org/wiki/Panel_data>`__ including with fixed-effects
+    (also known as entity or individual effects) or time-effects.
+
+Both kinds of linear models are accessed through the ``ols`` function in the
+pandas namespace. They all take the following arguments to specify either a
+static (full sample) or dynamic (moving window) regression:
+
+  - ``window_type``: ``'full sample'`` (default), ``'expanding'``, or
+    ``rolling``
+  - ``window``: size of the moving window in the ``window_type='rolling'``
+    case. If ``window`` is specified, ``window_type`` will be automatically set
+    to ``'rolling'``
+  - ``min_periods``: minimum number of time periods to require to compute the
+    regression coefficients
+
+Generally speaking, the ``ols`` works by being given a ``y`` (response) object
+and an ``x`` (predictors) object. These can take many forms:
+
+  - ``y``: a Series, ndarray, or DataFrame (panel model)
+  - ``x``: Series, DataFrame, dict of Series, dict of DataFrame, Panel,
+    LongPanel
+
+Based on the types of ``y`` and ``x``, the model will be inferred to either a
+panel model or a regular linear model. If the ``y`` variable is a DataFrame,
+the result will be a panel model. In this case, the ``x`` variable must either
+be a Panel, LongPanel, or a dict of DataFrame (which will be coerced into a
+Panel).
+
+Standard OLS regression
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Let's create some sample
+
+.. ipython:: python
+
+
+Panel regression
+~~~~~~~~~~~~~~~~
+
+We've implemented moving window panel regression on potentially unbalanced
+panel data (see the linked Wikipedia article above if this means nothing to
+you).
