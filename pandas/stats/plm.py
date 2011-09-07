@@ -366,8 +366,8 @@ class PanelOLS(OLS):
 
     @cache_readonly
     def _r2_raw(self):
-        Y = self._y.values.squeeze()
-        X = self._x.values
+        Y = self._y_trans.values.squeeze()
+        X = self._x_trans.values
 
         resid = Y - np.dot(X, self._beta_raw)
 
