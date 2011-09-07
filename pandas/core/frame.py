@@ -855,7 +855,11 @@ class DataFrame(NDFrame):
         if self._data.is_mixed_dtype():
             raise ValueError('Cannot do boolean setting on mixed-type frame')
 
-        self.values[mask] = value
+        if isinstance(value, DataFrame):
+            assert(value._indexed_same(self))
+            np.putmask(self.values, mask, value.values)
+        else:
+            self.values[mask] = value
 
     def insert(self, loc, column, value):
         """
