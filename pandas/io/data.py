@@ -1,19 +1,6 @@
 """
 Module contains tools for collecting data from various remote sources
 
-Examples:
-
-# Data from Yahoo!
-gs = get_data_yahoo("GS")
-
-# Data from FRED
-vix = get_data_fred("VIXCLS")
-
-# Data from Fama/French
-ff = get_data_famafrench("F-F_Research_Data_Factors")
-ff = get_data_famafrench("F-F_Research_Data_Factors_weekly")
-ff = get_data_famafrench("6_Portfolios_2x3")
-ff = get_data_famafrench("F-F_ST_Reversal_Factor")
 
 """
 
@@ -43,6 +30,21 @@ class DataReader(list):
         left boundary for range (defaults to 1/1/2010)
     end : {datetime, None}
         right boundary for range (defaults to today)
+
+    Examples
+    ----------
+
+    # Data from Yahoo!
+    gs = DataReader("GS", "yahoo")
+
+    # Data from FRED
+    vix = DataReader("VIXCLS", "fred")
+
+    # Data from Fama/French
+    ff = DataReader("F-F_Research_Data_Factors", "famafrench")
+    ff = DataReader("F-F_Research_Data_Factors_weekly", "famafrench")
+    ff = DataReader("6_Portfolios_2x3", "famafrench")
+    ff = DataReader("F-F_ST_Reversal_Factor", "famafrench")
     """
     def __new__(cls, name, data_source=None, start=None, end=None, **kwds):
 
@@ -57,7 +59,7 @@ class DataReader(list):
             return self.get_data_yahoo(name=name, start=start, end=end)
         elif(data_source == "fred"):
             return self.get_data_fred(name=name, start=start, end=end)
-        elif(data_source == "yahoo"):
+        elif(data_source == "famafrench"):
             return self.get_data_famafrench(name=name)
 
     def get_data_yahoo(self, name=None, start=None, end=None):
