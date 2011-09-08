@@ -180,13 +180,24 @@ class TesttHDFStore(unittest.TestCase):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['foo', 'bar'])
         frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=['A', 'B', 'C'])
 
         self._check_roundtrip(frame, tm.assert_frame_equal)
         self._check_roundtrip(frame.T, tm.assert_frame_equal)
         self._check_roundtrip(frame['A'], tm.assert_series_equal)
+
+        # check that the
+        try:
+            store = HDFStore(self.scratchpath)
+            store['frame'] = frame
+            recons = store['frame']
+            assert(recons.index.names == ['foo', 'bar'])
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
 
     def test_store_mixed(self):
         def _make_one():
