@@ -1058,16 +1058,16 @@ class SparseDataFrame(DataFrame):
         # need to implement?
         raise NotImplementedError
 
-    def _join_index(self, other, how):
+    def _join_index(self, other, how, lsuffix, rsuffix):
         join_index = self._get_join_index(other, how)
 
-        result_series = self.reindex(join_index)._series
-        other_series = other.reindex(join_index)._series
+        this = self.reindex(join_index)
+        other = other.reindex(join_index)
 
-        for col in other_series:
-            if col in result_series:
-                raise Exception('Overlapping columns!')
+        this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
 
+        result_series = this._series
+        other_series = other._series
         result_series.update(other_series)
 
         return self._constructor(result_series, index=join_index)

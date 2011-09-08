@@ -1410,8 +1410,8 @@ class DataFrame(NDFrame):
         -------
         LongPanel
         """
-        f = (('%s' % prefix) + '%s').__mod__
-        return self.rename(columns=f)
+        new_data = self._data.add_prefix(prefix)
+        return self._constructor(new_data)
 
     def add_suffix(self, suffix):
         """
@@ -1425,8 +1425,8 @@ class DataFrame(NDFrame):
         -------
         with_suffix : DataFrame
         """
-        f = ('%s' + ('%s' % suffix)).__mod__
-        return self.rename(columns=f)
+        new_data = self._data.add_suffix(suffix)
+        return self._constructor(new_data)
 
     #----------------------------------------------------------------------
     # Arithmetic / combination related
@@ -2065,7 +2065,7 @@ class DataFrame(NDFrame):
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns)
 
-    def join(self, other, on=None, how=None):
+    def join(self, other, on=None, how=None, lsuffix='', rsuffix=''):
         """
         Join columns with other DataFrame either on index or on a key
         column
@@ -2083,6 +2083,10 @@ class DataFrame(NDFrame):
             * right: use input frame's index
             * outer: form union of indexes
             * inner: use intersection of indexes
+        lsuffix : string
+            Suffix to use from left frame's overlapping columns
+        rsuffix : string
+            Suffix to use from right frame's overlapping columns
 
         Returns
         -------
@@ -2092,29 +2096,32 @@ class DataFrame(NDFrame):
             if how is not None:
                 raise Exception('how parameter is not valid when '
                                 '*on* specified')
-            return self._join_on(other, on)
+            return self._join_on(other, on, lsuffix, rsuffix)
         else:
             if how is None:
                 how = 'left'
-            return self._join_index(other, how)
+            return self._join_index(other, how, lsuffix, rsuffix)
 
-    def _join_on(self, other, on):
+    def _join_on(self, other, on, lsuffix, rsuffix):
         if len(other.index) == 0:
             return self
 
         if on not in self:
             raise Exception('%s column not contained in this frame!' % on)
 
+        this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
         new_data = self._data.join_on(other._data, self[on], axis=1)
         return self._constructor(new_data)
 
-    def _join_index(self, other, how):
+    def _join_index(self, other, how, lsuffix, rsuffix):
         join_index = self._get_join_index(other, how)
-        this_data = self.reindex(join_index)._data
-        other_data = other.reindex(join_index)._data
+
+        this = self.reindex(join_index)
+        other = other.reindex(join_index)
+        this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
 
         # merge blocks
-        merged_data = this_data.merge(other_data)
+        merged_data = this._data.merge(other._data)
         return self._constructor(merged_data)
 
     def _get_join_index(self, other, how):
@@ -2130,6 +2137,30 @@ class DataFrame(NDFrame):
             raise Exception('do not recognize join method %s' % how)
 
         return join_index
+
+    def _maybe_rename_join(self, other, lsuffix, rsuffix):
+        intersection = self.columns.intersection(other.columns)
+
+        if len(intersection) > 0:
+            if not lsuffix and not rsuffix:
+                raise Exception('columns overlap: %s' % intersection)
+
+            def lrenamer(x):
+                if x in intersection:
+                    return '%s%s' % (x, lsuffix)
+                return x
+
+            def rrenamer(x):
+                if x in intersection:
+                    return '%s%s' % (x, rsuffix)
+                return x
+
+            this = self.rename(columns=lrenamer)
+            other = other.rename(columns=rrenamer)
+        else:
+            this = self
+
+        return this, other
 
     #----------------------------------------------------------------------
     # Statistical methods, etc.

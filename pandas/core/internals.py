@@ -673,6 +673,14 @@ class BlockManager(object):
         new_axes[0] = new_items
         return BlockManager(new_blocks, new_axes)
 
+    def add_prefix(self, prefix):
+        f = (('%s' % prefix) + '%s').__mod__
+        return self.rename_items(f)
+
+    def add_suffix(self, suffix):
+        f = ('%s' + ('%s' % suffix)).__mod__
+        return self.rename_items(f)
+
     def fillna(self, value):
         """
 

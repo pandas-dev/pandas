@@ -2299,6 +2299,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
 
+    def test_join_overlap(self):
+        df1 = self.frame.copy()
+        df2 = self.frame.copy()
+
+        joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
+        df1_suf = df1.add_suffix('_df1')
+        df2_suf = df2.add_suffix('_df2')
+        expected = df1_suf.join(df2_suf)
+        assert_frame_equal(joined, expected)
+
     def test_clip(self):
         median = self.frame.median().median()
 
