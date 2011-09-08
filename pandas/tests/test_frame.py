@@ -1889,6 +1889,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         renamed = self.frame.T.rename(index={'C' : 'foo', 'D' : 'bar'})
         self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
 
+    def test_add_prefix_suffix(self):
+        with_prefix = self.frame.add_prefix('foo#')
+        expected = ['foo#%s' % c for c in self.frame.columns]
+        self.assert_(np.array_equal(with_prefix.columns, expected))
+
+        with_suffix = self.frame.add_suffix('#foo')
+        expected = ['%s#foo' % c for c in self.frame.columns]
+        self.assert_(np.array_equal(with_suffix.columns, expected))
+
     #----------------------------------------------------------------------
     # Time series related
 

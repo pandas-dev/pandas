@@ -964,12 +964,9 @@ class TestLongPanel(unittest.TestCase):
     def test_merge(self):
         pass
 
-    def test_addPrefix(self):
-        lp = self.panel.addPrefix('foo#')
+    def test_add_prefix(self):
+        lp = self.panel.add_prefix('foo#')
         self.assertEqual(lp.items[0], 'foo#ItemA')
-
-        lp = self.panel.addPrefix()
-        assert_panel_equal(lp.to_wide(), self.panel.to_wide())
 
     def test_pivot(self):
         from pandas.core.reshape import _slow_pivot

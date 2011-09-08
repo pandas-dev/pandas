@@ -1398,6 +1398,36 @@ class DataFrame(NDFrame):
         self._data = self._data.rename_items(mapper)
         self._series_cache.clear()
 
+    def add_prefix(self, prefix):
+        """
+        Concatenate prefix string with panel items names.
+
+        Parameters
+        ----------
+        prefix : string
+
+        Returns
+        -------
+        LongPanel
+        """
+        f = (('%s' % prefix) + '%s').__mod__
+        return self.rename(columns=f)
+
+    def add_suffix(self, suffix):
+        """
+        Concatenate suffix string with panel items names
+
+        Parameters
+        ----------
+        suffix : string
+
+        Returns
+        -------
+        with_suffix : DataFrame
+        """
+        f = ('%s' + ('%s' % suffix)).__mod__
+        return self.rename(columns=f)
+
     #----------------------------------------------------------------------
     # Arithmetic / combination related
 

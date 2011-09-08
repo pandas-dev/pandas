@@ -1259,7 +1259,7 @@ class LongPanel(DataFrame):
         if prefix is None:
             prefix = ''
 
-        result = result.addPrefix(prefix)
+        result = result.add_prefix(prefix)
 
         return result
 
@@ -1321,28 +1321,6 @@ class LongPanel(DataFrame):
             return LongPanel(new_values, columns=self.items,
                              index=self.index)
 
-    def addPrefix(self, prefix=None):
-        """
-        Concatenate prefix string with panel items names.
-
-        Parameters
-        ----------
-        prefix : string
-
-        Returns
-        -------
-        LongPanel
-
-        Note
-        ----
-        does *not* copy values matrix
-        """
-        new_items = [_prefix_item(item, prefix) for item in self.items]
-
-        return LongPanel(self.values, columns=new_items,
-                         index=self.index)
-
-
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
         values = np.asarray(values)
@@ -1354,14 +1332,6 @@ def _prep_ndarray(values, copy=True):
             values = values.copy()
     assert(values.ndim == 3)
     return values
-
-
-def _prefix_item(item, prefix=None):
-    if prefix is None:
-        return item
-
-    template = '%s%s'
-    return template % (prefix, item)
 
 def _homogenize_dict(frames, intersect=True, dtype=None):
     """

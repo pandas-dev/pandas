@@ -271,7 +271,7 @@ class PanelOLS(OLS):
 
             dummies = dummies.filter(dummies.items - [to_exclude])
 
-        dummies = dummies.addPrefix('FE_')
+        dummies = dummies.add_prefix('FE_')
         panel = panel.join(dummies)
 
         return panel
@@ -317,7 +317,7 @@ class PanelOLS(OLS):
                 dropped_dummy = True
 
             dummies = _convertDummies(dummies, cat_mappings.get(effect))
-            dummies = dummies.addPrefix('%s_' % effect)
+            dummies = dummies.add_prefix('%s_' % effect)
             panel = panel.join(dummies)
 
         return panel
