@@ -156,6 +156,9 @@ class Index(np.ndarray):
         if not isinstance(other, Index):
             return False
 
+        if type(other) != Index:
+            return other.equals(self)
+
         return np.array_equal(self, other)
 
     def asof(self, label):

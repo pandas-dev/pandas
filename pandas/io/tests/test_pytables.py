@@ -5,7 +5,8 @@ import sys
 
 import numpy as np
 
-from pandas import (Series, DataFrame, Panel, LongPanel, DateRange)
+from pandas import (Series, DataFrame, Panel, LongPanel, DateRange,
+                    MultiIndex)
 from pandas.io.pytables import HDFStore
 import pandas.util.testing as tm
 
@@ -174,6 +175,18 @@ class TesttHDFStore(unittest.TestCase):
         self.store['df'] = df
         recons = self.store['df']
         self.assert_(recons._data.is_consolidated())
+
+    def test_store_hierarchical(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+        frame = DataFrame(np.random.randn(10, 3), index=index,
+                          columns=['A', 'B', 'C'])
+
+        self._check_roundtrip(frame, tm.assert_frame_equal)
+        self._check_roundtrip(frame.T, tm.assert_frame_equal)
+        self._check_roundtrip(frame['A'], tm.assert_series_equal)
 
     def test_store_mixed(self):
         def _make_one():

@@ -359,13 +359,13 @@ class HDFStore(object):
 
         axes = []
         for i in xrange(ndim):
-            ax = _read_index(group, 'axis%d' % i)
+            ax = self._read_index(group, 'axis%d' % i)
             axes.append(ax)
 
         items = axes[0]
         blocks = []
         for i in range(group._v_attrs.nblocks):
-            blk_items = _read_index(group, 'block%d_items' % i)
+            blk_items = self._read_index(group, 'block%d_items' % i)
             values = _read_array(group, 'block%d_values' % i)
             blk = make_block(values, blk_items, items)
             blocks.append(blk)
@@ -410,9 +410,9 @@ class HDFStore(object):
     def _read_long(self, group, where=None):
         from pandas.core.index import MultiIndex
 
-        items = _read_index(group, 'items')
-        major_axis = _read_index(group, 'major_axis')
-        minor_axis = _read_index(group, 'minor_axis')
+        items = self._read_index(group, 'items')
+        major_axis = self._read_index(group, 'major_axis')
+        minor_axis = self._read_index(group, 'minor_axis')
         major_labels = _read_array(group, 'major_labels')
         minor_labels = _read_array(group, 'minor_labels')
         values = _read_array(group, 'values')
@@ -421,12 +421,80 @@ class HDFStore(object):
                            labels=[major_labels, minor_labels])
         return LongPanel(values, index=index, columns=items)
 
-    def _write_index(self, group, key, value):
-        # don't care about type here
-        converted, kind, _ = _convert_index(value)
-        self._write_array(group, key, converted)
-        node = getattr(group, key)
-        node._v_attrs.kind = kind
+    def _write_index(self, group, key, index):
+        if isinstance(index, MultiIndex):
+            setattr(group._v_attrs, '%s_variety' % key, 'multi')
+            self._write_multi_index(group, key, index)
+        else:
+            setattr(group._v_attrs, '%s_variety' % key, 'regular')
+            converted, kind, _ = _convert_index(index)
+            self._write_array(group, key, converted)
+            node = getattr(group, key)
+            node._v_attrs.kind = kind
+
+    def _read_index(self, group, key):
+        try:
+            variety = getattr(group._v_attrs, '%s_variety' % key)
+        except Exception:
+            variety = 'regular'
+
+        if variety == 'multi':
+            return self._read_multi_index(group, key)
+        elif variety == 'regular':
+            _, index = self._read_index_node(getattr(group, key))
+            return index
+        else:
+            raise Exception('unrecognized index variety')
+
+    def _write_multi_index(self, group, key, index):
+        setattr(group._v_attrs, '%s_nlevels' % key, index.nlevels)
+
+        for i, (lev, lab, name) in enumerate(zip(index.levels,
+                                                 index.labels,
+                                                 index.names)):
+            # write the level
+            conv_level, kind, _ = _convert_index(lev)
+            level_key = '%s_level%d' % (key, i)
+            self._write_array(group, level_key, conv_level)
+            node = getattr(group, level_key)
+            node._v_attrs.kind = kind
+            node._v_attrs.name = name
+
+            # write the name
+            setattr(node._v_attrs, '%s_name%d' % (key, i), name)
+
+            # write the labels
+            label_key = '%s_label%d' % (key, i)
+            self._write_array(group, label_key, lab)
+
+    def _read_multi_index(self, group, key):
+        nlevels = getattr(group._v_attrs, '%s_nlevels' % key)
+
+        levels = []
+        labels = []
+        names = []
+        for i in range(nlevels):
+            level_key = '%s_level%d' % (key, i)
+            name, lev = self._read_index_node(getattr(group, level_key))
+            levels.append(lev)
+            names.append(name)
+
+            label_key = '%s_label%d' % (key, i)
+            lab = getattr(group, label_key)[:]
+            labels.append(lab)
+
+        return MultiIndex(levels=levels, labels=labels, names=names)
+
+    def _read_index_node(self, node):
+        data = node[:]
+        kind = node._v_attrs.kind
+
+        try:
+            name = node._v_attrs.name
+        except Exception:
+            name = None
+
+        return name, _unconvert_index(data, kind)
 
     def _write_array(self, group, key, value):
         if key in group:
@@ -531,20 +599,27 @@ class HDFStore(object):
         return handler(group, where)
 
     def _read_series(self, group, where=None):
-        index = _read_index(group, 'index')
+        index = self._read_index(group, 'index')
         values = _read_array(group, 'values')
         return Series(values, index=index)
 
     def _read_legacy_series(self, group, where=None):
-        index = _read_index_legacy(group, 'index')
+        index = self._read_index_legacy(group, 'index')
         values = _read_array(group, 'values')
         return Series(values, index=index)
 
     def _read_legacy_frame(self, group, where=None):
-        index = _read_index_legacy(group, 'index')
-        columns = _read_index_legacy(group, 'columns')
+        index = self._read_index_legacy(group, 'index')
+        columns = self._read_index_legacy(group, 'columns')
         values = _read_array(group, 'values')
         return DataFrame(values, index=index, columns=columns)
+
+    def _read_index_legacy(self, group, key):
+        node = getattr(group, key)
+        data = node[:]
+        kind = node._v_attrs.kind
+
+        return _unconvert_index_legacy(data, kind)
 
     def _read_frame_table(self, group, where=None):
         return self._read_panel_table(group, where)['value']
@@ -618,13 +693,6 @@ def _read_array(group, key):
     else:
         return data
 
-def _read_index(group, key):
-    node = getattr(group, key)
-    data = node[:]
-    kind = node._v_attrs.kind
-
-    return _unconvert_index(data, kind)
-
 def _unconvert_index(data, kind):
     if kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
@@ -634,13 +702,6 @@ def _unconvert_index(data, kind):
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index
-
-def _read_index_legacy(group, key):
-    node = getattr(group, key)
-    data = node[:]
-    kind = node._v_attrs.kind
-
-    return _unconvert_index_legacy(data, kind)
 
 def _unconvert_index_legacy(data, kind, legacy=False):
     if kind == 'datetime':

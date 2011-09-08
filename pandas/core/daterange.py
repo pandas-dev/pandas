@@ -114,6 +114,15 @@ class DateRange(Index):
         self.tzinfo = tzinfo
         Index.__setstate__(self, *index_state)
 
+    def equals(self, other):
+        if self is other:
+            return True
+
+        if not isinstance(other, Index):
+            return False
+
+        return Index.equals(self.view(Index), other)
+
     def is_all_dates(self):
         return True
 
