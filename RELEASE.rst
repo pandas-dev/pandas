@@ -250,6 +250,8 @@ Release notes
   * NumPy 1.4 through 1.6 compatibility fixes
   * Fixed bug in bias correction in `rolling_cov`, was affecting `rolling_corr`
     too
+  * R-square value was incorrect in the presence of fixed and time effects in
+    the `PanelOLS` classes
 
 Thanks
 ------
