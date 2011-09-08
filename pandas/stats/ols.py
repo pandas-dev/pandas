@@ -876,8 +876,8 @@ class MovingOLS(OLS):
         sst = []
         sse = []
 
-        Y = self._y
-        X = self._x
+        Y = self._y_trans
+        X = self._x_trans
 
         dates = self._index
         window = self._window

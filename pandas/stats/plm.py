@@ -396,8 +396,8 @@ class PanelOLS(OLS):
     @cache_readonly
     def _rmse_raw(self):
         """Returns the raw rmse values."""
-        X = self._x.values
-        Y = self._y.values.squeeze()
+        X = self._x_trans.values
+        Y = self._y_trans.values.squeeze()
 
         resid = Y - np.dot(X, self._beta_raw)
         ss = (resid ** 2).sum()
