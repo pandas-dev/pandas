@@ -2110,8 +2110,8 @@ class DataFrame(NDFrame):
             raise Exception('%s column not contained in this frame!' % on)
 
         this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
-        new_data = self._data.join_on(other._data, self[on], axis=1)
-        return self._constructor(new_data)
+        new_data = this._data.join_on(other._data, this[on], axis=1)
+        return this._constructor(new_data)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         join_index = self._get_join_index(other, how)
