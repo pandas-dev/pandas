@@ -997,6 +997,102 @@ class Panel(NDFrame):
 
         return self.reindex(**{axis : new_index})
 
+    def join(self, other, how=None, lsuffix='', rsuffix=''):
+        """
+        Join columns with other DataFrame either on major and minor axes
+        column
+
+        Parameters
+        ----------
+        other : DataFrame
+            Index should be similar to one of the columns in this one
+        how : {'left', 'right', 'outer', 'inner'}
+            How to handle indexes of the two objects. Default: 'left'
+            for joining on index, None otherwise
+            * left: use calling frame's index
+            * right: use input frame's index
+            * outer: form union of indexes
+            * inner: use intersection of indexes
+        lsuffix : string
+            Suffix to use from left frame's overlapping columns
+        rsuffix : string
+            Suffix to use from right frame's overlapping columns
+
+        Returns
+        -------
+        joined : Panel
+        """
+        #if on is not None:
+        #    if how is not None:
+        #        raise Exception('how parameter is not valid when '
+        #                        'on specified')
+        #    return self._join_on(other, on, lsuffix, rsuffix)
+        #else:
+        if how is None:
+             how = 'left'
+        return self._join_index(other, how, lsuffix, rsuffix)
+
+    #NOTE: I don't think is setup for multi-indices?
+    #def _join_on(self, other, on, lsuffix, rsuffix):
+    #    if len(other.major_axis) == 0 and len(other.minor_axis) == 0:
+    #        return self
+
+    #    if on not in self:
+    #        raise Exception("%s column not contained in this panel" % s)
+
+    #    this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
+    #    new_data = this._data.join_on(other._data, this[on], axis=0)
+
+    def _join_index(self, other, how, lsuffix, rsuffix):
+        join_major, join_minor = self._get_join_index(other, how)
+
+        this = self.reindex(major=join_major, minor=join_minor)
+        other = other.reindex(major=join_major, minor=join_minor)
+        #this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
+
+        merged_data = this._data.merge(other._data)
+        return self._constructor(merged_data)
+
+    def _get_join_index(self, other, how):
+        if how == 'left':
+            join_major, join_minor = self.major_axis, self.minor_axis
+        elif how == 'right':
+            join_major, join_minor = other.major_axis, other.minor_axis
+        elif how == 'inner':
+            join_major, join_minor = (
+                            self.major_axis.intersection(other.major_axis),
+                            self.minor_axis.intersection(other.minor_axis))
+        elif how == 'outer':
+            join_major, join_minor = (
+                            self.major_axis.union(other.major_axis),
+                            self.minor_axis.union(other.minor_axis))
+        return join_major, join_minor
+
+    def _maybe_rename_join(self, other, lsuffix, rsuffix):
+        intersection = self.items.intersection(other.items)
+
+        if len(intersection) > 0:
+            if not lsuffix and not rsuffix:
+                raise Exception('items overlap: %s' % intersection)
+
+            def lrenamer(x):
+                if x in intersection:
+                    return '%s%s' % (x, lsuffix)
+                return x
+
+            def rrenamer(x):
+                if x in intersection:
+                    return '%s%s' % (x, rsuffix)
+                return x
+
+            #TODO: is this good enough?
+            self.items = Index(lrenamer)
+            other.items = Index(rrenamer)
+        else:
+            this = self
+
+        return this, other
+
     #----------------------------------------------------------------------
     # Deprecated stuff
 
