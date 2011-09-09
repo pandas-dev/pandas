@@ -13,6 +13,7 @@ import numpy as np
 from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
                                 _try_sort, _default_index, _infer_dtype)
 from pandas.core.index import Factor, Index, MultiIndex
+from pandas.core.indexing import _NDFrameIndexer
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
@@ -294,6 +295,16 @@ class Panel(NDFrame):
     def _constructor(self):
         return Panel
 
+    # Fancy indexing
+    _ix = None
+
+    @property
+    def ix(self):
+        if self._ix is None:
+            self._ix = _NDFrameIndexer(self)
+
+        return self._ix
+
     def _wrap_array(self, arr, axes, copy=False):
         items, major, minor = axes
         return self._constructor(arr, items=items, major_axis=major,
@@ -335,6 +346,10 @@ class Panel(NDFrame):
     def __getitem__(self, key):
         mat = self._data.get(key)
         return DataFrame(mat, index=self.major_axis, columns=self.minor_axis)
+
+    def _slice(self, slobj, axis=0):
+        new_data = self._data.get_slice(slobj, axis=axis)
+        return self._constructor(new_data)
 
     def __setitem__(self, key, value):
         _, N, K = self.shape
@@ -581,15 +596,15 @@ class Panel(NDFrame):
         ----------
         key : object
             Major axis label
+        copy : boolean, default False
+            Copy data
 
         Returns
         -------
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        self._consolidate_inplace()
-        new_data = self._data.xs(key, axis=1, copy=copy)
-        return DataFrame(new_data)
+        return self.xs(key, axis=1, copy=copy)
 
     def minor_xs(self, key, copy=True):
         """
@@ -599,14 +614,39 @@ class Panel(NDFrame):
         ----------
         key : object
             Minor axis label
+        copy : boolean, default False
+            Copy data
 
         Returns
         -------
         y : DataFrame
             index -> major axis, columns -> items
         """
+        return self.xs(key, axis=2, copy=copy)
+
+    def xs(self, key, axis=1, copy=False):
+        """
+        Return slice of panel along selected axis
+
+        Parameters
+        ----------
+        key : object
+            Label
+        axis : {'items', 'major', 'minor}
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis == 0:
+            data = self[key]
+            if copy:
+                data = data.copy()
+            return data
+
         self._consolidate_inplace()
-        new_data = self._data.xs(key, axis=2, copy=copy)
+        axis_number = self._get_axis_number(axis)
+        new_data = self._data.xs(key, axis=axis_number, copy=copy)
         return DataFrame(new_data)
 
     def groupby(self, function, axis='major'):

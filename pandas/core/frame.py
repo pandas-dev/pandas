@@ -25,7 +25,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX
-from pandas.core.indexing import _DataFrameIndexer, _maybe_droplevels
+from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 from pandas.util.decorators import deprecate
@@ -244,7 +244,7 @@ class DataFrame(NDFrame):
     @property
     def ix(self):
         if self._ix is None:
-            self._ix = _DataFrameIndexer(self)
+            self._ix = _NDFrameIndexer(self)
 
         return self._ix
 
@@ -948,19 +948,30 @@ class DataFrame(NDFrame):
     def _series(self):
         return self._data.get_series_dict()
 
-    def xs(self, key, copy=True):
+    def xs(self, key, axis=0, copy=True):
         """
-        Returns a row (cross-section) from the DataFrame as a Series object
+        Returns a cross-section (row or column) from the DataFrame as a Series
+        object. Defaults to returning a row (axis 0)
 
         Parameters
         ----------
         key : object
             Some label contained in the index, or partially in a MultiIndex
+        axis : int, default 0
+            Axis to retrieve cross-section on
+        copy : boolean, default True
+            Whether to make a copy of the data
 
         Returns
         -------
         xs : Series
         """
+        if axis == 1:
+            data = self[key]
+            if copy:
+                data = data.copy()
+            return data
+
         self._consolidate_inplace()
         new_data = self._data.xs(key, axis=1, copy=copy)
         if new_data.ndim == 1:

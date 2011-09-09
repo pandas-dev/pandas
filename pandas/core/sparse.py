@@ -625,6 +625,8 @@ class SparseDataFrame(DataFrame):
     _columns = None
     _series = None
 
+    ndim = 2
+
     def __init__(self, data=None, index=None, columns=None,
                  default_kind='block', default_fill_value=None):
         if default_fill_value is None:
@@ -1301,6 +1303,8 @@ class SparsePanel(Panel):
     items = PanelAxis('_items')
     major_axis = PanelAxis('_major_axis')
     minor_axis = PanelAxis('_minor_axis')
+
+    ndim = 3
 
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=nan, default_kind='block'):

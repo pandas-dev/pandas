@@ -312,9 +312,211 @@ class SafeForSparse(object):
         result = p.select(lambda x: x in ('foo',), axis='items')
         self.assert_panel_equal(result, p.reindex(items=[]))
 
-class TestPanel(unittest.TestCase, PanelTests,
-                    SafeForLongAndSparse,
-                    SafeForSparse):
+class CheckIndexing(object):
+
+
+    def test_getitem(self):
+        self.assertRaises(Exception, self.panel.__getitem__, 'ItemQ')
+
+    def test_delitem_and_pop(self):
+        expected = self.panel['ItemA']
+        result = self.panel.pop('ItemA')
+        assert_frame_equal(expected, result)
+        self.assert_('ItemA' not in self.panel.items)
+
+        del self.panel['ItemB']
+        self.assert_('ItemB' not in self.panel.items)
+        self.assertRaises(Exception, self.panel.__delitem__, 'ItemB')
+
+        values = np.empty((3, 3, 3))
+        values[0] = 0
+        values[1] = 1
+        values[2] = 2
+
+        panel = Panel(values, range(3), range(3), range(3))
+
+        # did we delete the right row?
+
+        panelc = panel.copy()
+        del panelc[0]
+        assert_frame_equal(panelc[1], panel[1])
+        assert_frame_equal(panelc[2], panel[2])
+
+        panelc = panel.copy()
+        del panelc[1]
+        assert_frame_equal(panelc[0], panel[0])
+        assert_frame_equal(panelc[2], panel[2])
+
+        panelc = panel.copy()
+        del panelc[2]
+        assert_frame_equal(panelc[1], panel[1])
+        assert_frame_equal(panelc[0], panel[0])
+
+    def test_setitem(self):
+
+        # LongPanel with one item
+        lp = self.panel.filter(['ItemA']).to_long()
+        self.panel['ItemE'] = lp
+
+        lp = self.panel.filter(['ItemA', 'ItemB']).to_long()
+        self.assertRaises(Exception, self.panel.__setitem__,
+                          'ItemE', lp)
+
+        # DataFrame
+        df = self.panel['ItemA'][2:].filter(items=['A', 'B'])
+        self.panel['ItemF'] = df
+        self.panel['ItemE'] = df
+
+        df2 = self.panel['ItemF']
+
+        assert_frame_equal(df, df2.reindex(index=df.index,
+                                           columns=df.columns))
+
+        # scalar
+        self.panel['ItemG'] = 1
+        self.panel['ItemE'] = 1
+
+        # object dtype
+        self.panel['ItemQ'] = 'foo'
+        self.assert_(self.panel['ItemQ'].values.dtype == np.object_)
+
+        # boolean dtype
+        self.panel['ItemP'] = self.panel['ItemA'] > 0
+        self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
+
+
+    def test_major_xs(self):
+        ref = self.panel['ItemA']
+
+        idx = self.panel.major_axis[5]
+        xs = self.panel.major_xs(idx)
+
+        assert_series_equal(xs['ItemA'], ref.xs(idx))
+
+        # not contained
+        idx = self.panel.major_axis[0] - bday
+        self.assertRaises(Exception, self.panel.major_xs, idx)
+
+    def test_major_xs_mixed(self):
+        self.panel['ItemD'] = 'foo'
+        xs = self.panel.major_xs(self.panel.major_axis[0])
+        self.assert_(xs['ItemA'].dtype == np.float64)
+        self.assert_(xs['ItemD'].dtype == np.object_)
+
+    def test_minor_xs(self):
+        ref = self.panel['ItemA']
+
+        idx = self.panel.minor_axis[1]
+        xs = self.panel.minor_xs(idx)
+
+        assert_series_equal(xs['ItemA'], ref[idx])
+
+        # not contained
+        self.assertRaises(Exception, self.panel.minor_xs, 'E')
+
+    def test_minor_xs_mixed(self):
+        self.panel['ItemD'] = 'foo'
+
+        xs = self.panel.minor_xs('D')
+        self.assert_(xs['ItemA'].dtype == np.float64)
+        self.assert_(xs['ItemD'].dtype == np.object_)
+
+    def test_getitem_fancy_labels(self):
+        p = self.panel
+
+        items = p.items[[1, 0]]
+        dates = p.major_axis[::2]
+        cols = ['D', 'C', 'F']
+
+        # all 3 specified
+        assert_panel_equal(p.ix[items, dates, cols],
+                           p.reindex(items=items, major=dates, minor=cols))
+
+        # 2 specified
+        assert_panel_equal(p.ix[:, dates, cols],
+                           p.reindex(major=dates, minor=cols))
+
+        assert_panel_equal(p.ix[items, :, cols],
+                           p.reindex(items=items, minor=cols))
+
+        assert_panel_equal(p.ix[items, dates, :],
+                           p.reindex(items=items, major=dates))
+
+        # only 1
+        assert_panel_equal(p.ix[items, :, :],
+                           p.reindex(items=items))
+
+        assert_panel_equal(p.ix[:, dates, :],
+                           p.reindex(major=dates))
+
+        assert_panel_equal(p.ix[:, :, cols],
+                           p.reindex(minor=cols))
+
+    def test_getitem_fancy_slice(self):
+        pass
+
+    def test_getitem_fancy_ints(self):
+        pass
+
+    def test_getitem_fancy_xs(self):
+        p = self.panel
+        item = 'ItemB'
+        date = p.major_axis[5]
+        col = 'C'
+
+        # get DataFrame
+        # item
+        assert_frame_equal(p.ix[item], p[item])
+        assert_frame_equal(p.ix[item, :], p[item])
+        assert_frame_equal(p.ix[item, :, :], p[item])
+
+        # major axis, axis=1
+        assert_frame_equal(p.ix[:, date], p.major_xs(date))
+        assert_frame_equal(p.ix[:, date, :], p.major_xs(date))
+
+        # minor axis, axis=2
+        assert_frame_equal(p.ix[:, :, 'C'], p.minor_xs('C'))
+
+        # get Series
+        assert_series_equal(p.ix[item, date], p[item].ix[date])
+        assert_series_equal(p.ix[item, date, :], p[item].ix[date])
+        assert_series_equal(p.ix[item, :, col], p[item][col])
+        assert_series_equal(p.ix[:, date, col], p.major_xs(date).ix[col])
+
+    def test_getitem_fancy_xs_check_view(self):
+        item = 'ItemB'
+        date = self.panel.major_axis[5]
+        col = 'C'
+
+        # make sure it's always a view
+        NS = slice(None, None)
+
+        # DataFrames
+        comp = assert_frame_equal
+        self._check_view(item, comp)
+        self._check_view((item, NS), comp)
+        self._check_view((item, NS, NS), comp)
+        self._check_view((NS, date), comp)
+        self._check_view((NS, date, NS), comp)
+        self._check_view((NS, NS, 'C'), comp)
+
+        # Series
+        comp = assert_series_equal
+        self._check_view((item, date), comp)
+        self._check_view((item, date, NS), comp)
+        self._check_view((item, NS, 'C'), comp)
+        self._check_view((NS, date, 'C'), comp)
+
+    def _check_view(self, indexer, comp):
+        cp = self.panel.copy()
+        obj = cp.ix[indexer]
+        obj.values[:] = 0
+        self.assert_((obj.values == 0).all())
+        comp(cp.ix[indexer].reindex_like(obj), obj)
+
+class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
+                SafeForLongAndSparse,
+                SafeForSparse):
 
     @staticmethod
     def assert_panel_equal(x, y):
@@ -403,75 +605,6 @@ class TestPanel(unittest.TestCase, PanelTests,
     def test_values(self):
         self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
                           range(5), range(5), range(4))
-
-    def test_getitem(self):
-        self.assertRaises(Exception, self.panel.__getitem__, 'ItemQ')
-
-    def test_delitem_and_pop(self):
-        expected = self.panel['ItemA']
-        result = self.panel.pop('ItemA')
-        assert_frame_equal(expected, result)
-        self.assert_('ItemA' not in self.panel.items)
-
-        del self.panel['ItemB']
-        self.assert_('ItemB' not in self.panel.items)
-        self.assertRaises(Exception, self.panel.__delitem__, 'ItemB')
-
-        values = np.empty((3, 3, 3))
-        values[0] = 0
-        values[1] = 1
-        values[2] = 2
-
-        panel = Panel(values, range(3), range(3), range(3))
-
-        # did we delete the right row?
-
-        panelc = panel.copy()
-        del panelc[0]
-        assert_frame_equal(panelc[1], panel[1])
-        assert_frame_equal(panelc[2], panel[2])
-
-        panelc = panel.copy()
-        del panelc[1]
-        assert_frame_equal(panelc[0], panel[0])
-        assert_frame_equal(panelc[2], panel[2])
-
-        panelc = panel.copy()
-        del panelc[2]
-        assert_frame_equal(panelc[1], panel[1])
-        assert_frame_equal(panelc[0], panel[0])
-
-    def test_setitem(self):
-
-        # LongPanel with one item
-        lp = self.panel.filter(['ItemA']).to_long()
-        self.panel['ItemE'] = lp
-
-        lp = self.panel.filter(['ItemA', 'ItemB']).to_long()
-        self.assertRaises(Exception, self.panel.__setitem__,
-                          'ItemE', lp)
-
-        # DataFrame
-        df = self.panel['ItemA'][2:].filter(items=['A', 'B'])
-        self.panel['ItemF'] = df
-        self.panel['ItemE'] = df
-
-        df2 = self.panel['ItemF']
-
-        assert_frame_equal(df, df2.reindex(index=df.index,
-                                           columns=df.columns))
-
-        # scalar
-        self.panel['ItemG'] = 1
-        self.panel['ItemE'] = 1
-
-        # object dtype
-        self.panel['ItemQ'] = 'foo'
-        self.assert_(self.panel['ItemQ'].values.dtype == np.object_)
-
-        # boolean dtype
-        self.panel['ItemP'] = self.panel['ItemA'] > 0
-        self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
@@ -577,42 +710,6 @@ class TestPanel(unittest.TestCase, PanelTests,
         lng = self.panel.to_long(filter_observations=False)
         result = self.panel.add(lng)
         self.assert_panel_equal(result, self.panel * 2)
-
-    def test_major_xs(self):
-        ref = self.panel['ItemA']
-
-        idx = self.panel.major_axis[5]
-        xs = self.panel.major_xs(idx)
-
-        assert_series_equal(xs['ItemA'], ref.xs(idx))
-
-        # not contained
-        idx = self.panel.major_axis[0] - bday
-        self.assertRaises(Exception, self.panel.major_xs, idx)
-
-    def test_major_xs_mixed(self):
-        self.panel['ItemD'] = 'foo'
-        xs = self.panel.major_xs(self.panel.major_axis[0])
-        self.assert_(xs['ItemA'].dtype == np.float64)
-        self.assert_(xs['ItemD'].dtype == np.object_)
-
-    def test_minor_xs(self):
-        ref = self.panel['ItemA']
-
-        idx = self.panel.minor_axis[1]
-        xs = self.panel.minor_xs(idx)
-
-        assert_series_equal(xs['ItemA'], ref[idx])
-
-        # not contained
-        self.assertRaises(Exception, self.panel.minor_xs, 'E')
-
-    def test_minor_xs_mixed(self):
-        self.panel['ItemD'] = 'foo'
-
-        xs = self.panel.minor_xs('D')
-        self.assert_(xs['ItemA'].dtype == np.float64)
-        self.assert_(xs['ItemD'].dtype == np.object_)
 
     def test_swapaxes(self):
         result = self.panel.swapaxes('items', 'minor')
