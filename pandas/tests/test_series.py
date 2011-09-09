@@ -413,9 +413,9 @@ class TestSeries(unittest.TestCase):
         # add some NaNs
         self.series[5:15] = np.NaN
 
-        # omitna or no
+        # skipna or no
         self.assert_(notnull(f(self.series)))
-        self.assert_(isnull(f(self.series, omitna=False)))
+        self.assert_(isnull(f(self.series, skipna=False)))
 
         # check the result is correct
         nona = self.series.dropna()

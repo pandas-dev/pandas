@@ -2363,12 +2363,9 @@ class DataFrame(NDFrame):
 
         return DataFrame(result, index=index, columns=columns)
 
-    def sum(self, axis=0, numeric_only=False):
+    def sum(self, axis=0, numeric_only=False, skipna=True):
         """
         Return sum over requested axis
-
-        NA/null values will be treated as 0. If an entire row/column is NA, the
-        result will be NA
 
         Parameters
         ----------
@@ -2376,6 +2373,9 @@ class DataFrame(NDFrame):
             0 for row-wise, 1 for column-wise
         numeric_only : boolean, default False
             Include only float, int, boolean data
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Examples
         --------
@@ -2403,8 +2403,11 @@ class DataFrame(NDFrame):
             the_sum = y.sum(axis)
         else:
             mask = np.isfinite(y)
-            if not issubclass(y.dtype.type, np.int_):
-                y[-mask] = 0
+
+            if skipna:
+                if not issubclass(y.dtype.type, np.int_):
+                    np.putmask(y, -mask, 0)
+
             the_sum = y.sum(axis)
             the_count = mask.sum(axis)
 
@@ -2414,7 +2417,7 @@ class DataFrame(NDFrame):
 
         return Series(the_sum, index=axis_labels)
 
-    def min(self, axis=0):
+    def min(self, axis=0, skipna=True):
         """
         Return minimum over requested axis. NA/null values are excluded
 
@@ -2422,16 +2425,20 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
         min : Series
         """
         values = self.values.copy()
-        np.putmask(values, -np.isfinite(values), np.inf)
+        if skipna:
+            np.putmask(values, -np.isfinite(values), np.inf)
         return Series(values.min(axis), index=self._get_agg_axis(axis))
 
-    def max(self, axis=0):
+    def max(self, axis=0, skipna=True):
         """
         Return maximum over requested axis. NA/null values are excluded
 
@@ -2439,16 +2446,20 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
         max : Series
         """
         values = self.values.copy()
-        np.putmask(values, -np.isfinite(values), -np.inf)
+        if skipna:
+            np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 
-    def prod(self, axis=0):
+    def prod(self, axis=0, skipna=True):
         """
         Return product over requested axis. NA/null values are treated as 1
 
@@ -2456,6 +2467,9 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
@@ -2463,20 +2477,22 @@ class DataFrame(NDFrame):
         """
         y = np.array(self.values, subok=True)
         try:
-
-            if not issubclass(y.dtype.type, np.int_):
-                y[np.isnan(y)] = 1
+            if skipna:
+                if not issubclass(y.dtype.type, np.int_):
+                    y[np.isnan(y)] = 1
             theProd = y.prod(axis)
             theCount = self.count(axis)
             theProd[theCount == 0] = nan
         except Exception:
-            theProd = self.apply(np.prod, axis=axis)
+            def wrapper(x):
+                return x.prod(skipna=skipna)
+            theProd = self.apply(wrapper, axis=axis)
 
         return Series(theProd, index=self._get_agg_axis(axis))
 
     product = prod
 
-    def mean(self, axis=0):
+    def mean(self, axis=0, skipna=True):
         """
         Return mean over requested axis. NA/null values are excluded
 
@@ -2484,12 +2500,15 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
         mean : Series
         """
-        summed = self.sum(axis, numeric_only=True)
+        summed = self.sum(axis, numeric_only=True, skipna=skipna)
         count = self.count(axis, numeric_only=True).astype(float)
         return summed / count
 
@@ -2524,7 +2543,7 @@ class DataFrame(NDFrame):
 
         return self.apply(f, axis=axis)
 
-    def median(self, axis=0):
+    def median(self, axis=0, skipna=True):
         """
         Return median over requested axis, NA/null are exluded
 
@@ -2532,26 +2551,24 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
         Series or TimeSeries
         """
-        def f(arr):
-            if arr.dtype != np.float_:
-                arr = arr.astype(float)
-            return _tseries.median(arr[notnull(arr)])
-
         if axis == 0:
-            med = [f(self[col].values) for col in self.columns]
+            med = [self[col].median(skipna=skipna) for col in self.columns]
             return Series(med, index=self.columns)
         elif axis == 1:
-            med = [f(self.xs(k).values) for k in self.index]
+            med = [self.xs(k).median(skipna=skipna) for k in self.index]
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
 
-    def mad(self, axis=0):
+    def mad(self, axis=0, skipna=True):
         """
         Return mean absolute deviation over requested axis
 
@@ -2559,30 +2576,21 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
         mad : Series
         """
         if axis == 0:
-            demeaned = self - self.mean(axis=axis)
+            demeaned = self - self.mean(axis=0)
         else:
-            demeaned = (self.T - self.mean(axis=axis)).T
+            demeaned = self.sub(self.mean(axis=1), axis=0)
+        return np.abs(demeaned).mean(axis=axis, skipna=skipna)
 
-        y = np.array(demeaned.values, subok=True)
-
-        # TODO: is this correct?
-        if not issubclass(y.dtype.type, np.int_):
-            y[np.isnan(y)] = 0
-
-        result = np.abs(y).mean(axis=axis)
-
-        if axis == 0:
-            return Series(result, demeaned.columns)
-        else:
-            return Series(result, demeaned.index)
-
-    def var(self, axis=0):
+    def var(self, axis=0, skipna=True):
         """
         Return unbiased variance over requested axis
 
@@ -2590,6 +2598,9 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
@@ -2599,7 +2610,9 @@ class DataFrame(NDFrame):
 
         mask = np.isnan(y)
         count = (y.shape[axis] - mask.sum(axis)).astype(float)
-        y[mask] = 0
+
+        if skipna:
+            np.putmask(y, mask, 0)
 
         X = y.sum(axis)
         XX = (y ** 2).sum(axis)
@@ -2608,7 +2621,7 @@ class DataFrame(NDFrame):
 
         return Series(theVar, index=axis_labels)
 
-    def std(self, axis=0):
+    def std(self, axis=0, skipna=True):
         """
         Return unbiased std deviation over requested axis
 
@@ -2616,14 +2629,17 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
         std : Series
         """
-        return np.sqrt(self.var(axis=axis))
+        return np.sqrt(self.var(axis=axis, skipna=skipna))
 
-    def skew(self, axis=0):
+    def skew(self, axis=0, skipna=True):
         """
         Return unbiased skewness over requested axis
 
@@ -2631,6 +2647,9 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
@@ -2640,16 +2659,24 @@ class DataFrame(NDFrame):
 
         mask = np.isnan(y)
         count = (y.shape[axis] - mask.sum(axis)).astype(float)
-        y[mask] = 0
+
+        if skipna:
+            np.putmask(y, mask, 0)
 
         A = y.sum(axis) / count
         B = (y ** 2).sum(axis) / count - A ** 2
         C = (y ** 3).sum(axis) / count - A ** 3 - 3 * A * B
 
-        theSkew = ((np.sqrt((count ** 2 - count)) * C) /
-                   ((count - 2) * np.sqrt(B) ** 3))
+        # floating point error
+        B = np.where(np.abs(B) < 1e-14, 0, B)
+        C = np.where(np.abs(C) < 1e-14, 0, C)
 
-        return Series(theSkew, index=axis_labels)
+        result = ((np.sqrt((count ** 2 - count)) * C) /
+                  ((count - 2) * np.sqrt(B) ** 3))
+
+        result = np.where(B == 0, 0, result)
+
+        return Series(result, index=axis_labels)
 
     def _get_agg_data(self, axis, numeric_only=True):
         num_cols = self._get_numeric_columns()

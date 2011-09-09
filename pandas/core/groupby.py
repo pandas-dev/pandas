@@ -839,7 +839,10 @@ class DataFrameGroupBy(GroupBy):
             result = DataFrame(result)
         else:
             if len(self.groupings) > 1:
-                return self._python_agg_general(arg, *args, **kwargs)
+                try:
+                    return self._python_agg_general(arg, *args, **kwargs)
+                except Exception:
+                    return self._aggregate_item_by_item(arg, *args, **kwargs)
             result = self._aggregate_generic(arg, *args, **kwargs)
 
         return result

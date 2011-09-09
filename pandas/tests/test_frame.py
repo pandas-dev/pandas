@@ -2340,22 +2340,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         for col, series in self.frame.iteritems():
             self.assertEqual(sumFrame[col], series.sum())
 
-    def _check_statistic(self, frame, name, alternative):
-        f = getattr(frame, name)
-
-        result = f(axis=0)
-        assert_series_equal(result, frame.apply(alternative))
-
-        result = f(axis=1)
-        comp = frame.apply(alternative, axis=1).reindex(result.index)
-        assert_series_equal(result, comp)
-
-        self.assertRaises(Exception, f, axis=2)
-
     def test_count(self):
         f = lambda s: notnull(s).sum()
-
-        self._check_statistic(self.frame, 'count', f)
+        self._check_stat_op('count', f, has_skipna=False)
 
         # corner case
 
@@ -2367,11 +2354,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assert_(isinstance(ct2, Series))
 
     def test_sum(self):
-        def f(x):
-            x = np.asarray(x)
-            return x[notnull(x)].sum()
-
-        self._check_statistic(self.frame, 'sum', f)
+        self._check_stat_op('sum', np.sum)
 
         axis0 = self.empty.sum(0)
         axis1 = self.empty.sum(1)
@@ -2394,18 +2377,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         bools.sum(0)
 
     def test_product(self):
-        def f(x):
-            x = np.asarray(x)
-            return np.prod(x[notnull(x)])
-
-        self._check_statistic(self.frame, 'product', f)
+        self._check_stat_op('product', np.prod)
 
     def test_mean(self):
-        def f(x):
-            x = np.asarray(x)
-            return x[notnull(x)].mean()
-
-        self._check_statistic(self.frame, 'mean', f)
+        self._check_stat_op('mean', np.mean)
 
         # unit test when have object data
         the_mean = self.mixed_frame.mean(axis=0)
@@ -2431,57 +2406,79 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.mixed_frame.skew(1)
 
     def test_median(self):
-        def f(x):
-            x = np.asarray(x)
-            return np.median(x[notnull(x)])
+        def wrapper(x):
+            if isnull(x).any():
+                return np.nan
+            return np.median(x)
 
-        self._check_statistic(self.intframe, 'median', f)
-        self._check_statistic(self.frame, 'median', f)
+        self._check_stat_op('median', wrapper, frame=self.intframe)
+        self._check_stat_op('median', wrapper)
 
     def test_min(self):
-        def f(x):
-            x = np.asarray(x)
-            return x[notnull(x)].min()
-
-        self._check_statistic(self.frame, 'min', f)
+        self._check_stat_op('min', np.min)
 
     def test_max(self):
-        def f(x):
-            x = np.asarray(x)
-            return x[notnull(x)].max()
-
-        self._check_statistic(self.frame, 'max', f)
+        self._check_stat_op('max', np.max)
 
     def test_mad(self):
         f = lambda x: np.abs(x - x.mean()).mean()
-
-        self._check_statistic(self.frame, 'mad', f)
+        self._check_stat_op('mad', f)
 
     def test_var(self):
-        def f(x):
-            x = np.asarray(x)
-            return x[notnull(x)].var(ddof=1)
-
-        self._check_statistic(self.frame, 'var', f)
+        alt = lambda x: np.var(x, ddof=1)
+        self._check_stat_op('var', alt)
 
     def test_std(self):
-        def f(x):
-            x = np.asarray(x)
-            return x[notnull(x)].std(ddof=1)
-
-        self._check_statistic(self.frame, 'std', f)
+        alt = lambda x: np.std(x, ddof=1)
+        self._check_stat_op('std', alt)
 
     def test_skew(self):
-        try:
-            from scipy.stats import skew
-        except ImportError:
-            return
+        from scipy.stats import skew
 
-        def f(x):
-            x = np.asarray(x)
-            return skew(x[notnull(x)], bias=False)
+        def alt(x):
+            if len(x) < 3:
+                return np.nan
+            return skew(x, bias=False)
 
-        self._check_statistic(self.frame, 'skew', f)
+        self._check_stat_op('skew', alt)
+
+    def _check_stat_op(self, name, alternative, frame=None, has_skipna=True):
+        if frame is None:
+            frame = self.frame
+            # set some NAs
+            frame.ix[5:10] = np.nan
+            frame.ix[15:20, -2:] = np.nan
+
+        f = getattr(frame, name)
+
+        if has_skipna:
+            def skipna_wrapper(x):
+                nona = x.dropna().values
+                if len(nona) == 0:
+                    return np.nan
+                return alternative(nona)
+
+            def wrapper(x):
+                return alternative(x.values)
+
+            result0 = f(axis=0, skipna=False)
+            result1 = f(axis=1, skipna=False)
+            assert_series_equal(result0, frame.apply(wrapper))
+            assert_series_equal(result1, frame.apply(wrapper, axis=1))
+        else:
+            skipna_wrapper = alternative
+            wrapper = alternative
+
+        result0 = f(axis=0)
+        result1 = f(axis=1)
+        assert_series_equal(result0, frame.apply(skipna_wrapper))
+        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1))
+
+        # result = f(axis=1)
+        # comp = frame.apply(alternative, axis=1).reindex(result.index)
+        # assert_series_equal(result, comp)
+
+        self.assertRaises(Exception, f, axis=2)
 
     def test_quantile(self):
         try:

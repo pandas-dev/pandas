@@ -518,13 +518,13 @@ copy : boolean, default False
 
         return Series(result, index=level_index)
 
-    def sum(self, axis=0, dtype=None, out=None, omitna=True):
+    def sum(self, axis=0, dtype=None, out=None, skipna=True):
         """
         Sum of values
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
@@ -533,7 +533,7 @@ copy : boolean, default False
         """
         values = self.values.copy()
 
-        if omitna:
+        if skipna:
             mask = isnull(values)
             if mask.all():
                 return np.nan
@@ -541,28 +541,28 @@ copy : boolean, default False
 
         return values.sum()
 
-    def mean(self, axis=0, dtype=None, out=None, omitna=True):
+    def mean(self, axis=0, dtype=None, out=None, skipna=True):
         """
         Mean of values
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
         -------
         mean : float
         """
-        return self._ndarray_statistic('mean', dtype=dtype, omitna=omitna)
+        return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
 
-    def median(self, omitna=True):
+    def median(self, skipna=True):
         """
         Compute median of values
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
@@ -574,7 +574,7 @@ copy : boolean, default False
             arr = arr.astype(float)
         mask = notnull(arr)
 
-        if omitna:
+        if skipna:
             arr = arr[mask]
         else:
             if not mask.all():
@@ -582,28 +582,28 @@ copy : boolean, default False
 
         return _tseries.median(arr)
 
-    def prod(self, axis=0, dtype=None, out=None, omitna=True):
+    def prod(self, axis=0, dtype=None, out=None, skipna=True):
         """
         Product of all values
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
         -------
         product : float
         """
-        return self._ndarray_statistic('prod', dtype=dtype, omitna=omitna)
+        return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
 
-    def min(self, axis=None, out=None, omitna=True):
+    def min(self, axis=None, out=None, skipna=True):
         """
         Minimum of values
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
@@ -611,18 +611,18 @@ copy : boolean, default False
         min : float
         """
         arr = self.values.copy()
-        if omitna:
+        if skipna:
             if not issubclass(arr.dtype.type, np.int_):
                 np.putmask(arr, isnull(arr), np.inf)
         return arr.min()
 
-    def max(self, axis=None, out=None, omitna=True):
+    def max(self, axis=None, out=None, skipna=True):
         """
         Maximum of values
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
@@ -630,12 +630,12 @@ copy : boolean, default False
         max : float
         """
         arr = self.values.copy()
-        if omitna:
+        if skipna:
             if not issubclass(arr.dtype.type, np.int_):
                 np.putmask(arr, isnull(arr), -np.inf)
         return arr.max()
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1, omitna=True):
+    def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True):
         """
         Unbiased standard deviation of values
 
@@ -643,14 +643,14 @@ copy : boolean, default False
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
         -------
         stdev : float
         """
-        if omitna:
+        if skipna:
             nona = remove_na(self.values)
             if len(nona) < 2:
                 return nan
@@ -658,7 +658,7 @@ copy : boolean, default False
         else:
             return self.values.std(axis, dtype, out, ddof)
 
-    def var(self, axis=None, dtype=None, out=None, ddof=1, omitna=True):
+    def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True):
         """
         Unbiased variance of non-NA/null values
 
@@ -666,14 +666,14 @@ copy : boolean, default False
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
         -------
         var : float
         """
-        if omitna:
+        if skipna:
             nona = remove_na(self.values)
             if len(nona) < 2:
                 return nan
@@ -681,13 +681,13 @@ copy : boolean, default False
         else:
             return self.values.var(axis, dtype, out, ddof)
 
-    def skew(self, omitna=True):
+    def skew(self, skipna=True):
         """
         Unbiased skewness of the non-NA/null values
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
@@ -698,7 +698,7 @@ copy : boolean, default False
         mask = notnull(y)
         count = mask.sum()
 
-        if count < len(self) and not omitna:
+        if count < len(self) and not skipna:
             return np.nan
 
         np.putmask(y, -mask, 0)
@@ -708,7 +708,7 @@ copy : boolean, default False
 
         return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
 
-    def cumsum(self, axis=0, dtype=None, out=None, omitna=True):
+    def cumsum(self, axis=0, dtype=None, out=None, skipna=True):
         """
         Cumulative sum of values. Preserves locations of NaN values
 
@@ -716,7 +716,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
@@ -725,7 +725,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
 
-        do_mask = omitna and not issubclass(self.dtype.type, np.int_)
+        do_mask = skipna and not issubclass(self.dtype.type, np.int_)
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 0.)
@@ -737,7 +737,7 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
-    def cumprod(self, axis=0, dtype=None, out=None, omitna=True):
+    def cumprod(self, axis=0, dtype=None, out=None, skipna=True):
         """
         Cumulative product of values. Preserves locations of NaN values
 
@@ -745,7 +745,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        omitna : boolean, default True
+        skipna : boolean, default True
             Exclude NA/null values
 
         Returns
@@ -754,7 +754,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
 
-        do_mask = omitna and not issubclass(self.dtype.type, np.int_)
+        do_mask = skipna and not issubclass(self.dtype.type, np.int_)
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 1.)
@@ -766,11 +766,11 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
-    def _ndarray_statistic(self, funcname, dtype=None, omitna=True):
+    def _ndarray_statistic(self, funcname, dtype=None, skipna=True):
         arr = self.values
         retVal = getattr(arr, funcname)(dtype=dtype)
 
-        if omitna and isnull(retVal):
+        if skipna and isnull(retVal):
             arr = remove_na(arr)
             if len(arr) == 0:
                 return np.nan
