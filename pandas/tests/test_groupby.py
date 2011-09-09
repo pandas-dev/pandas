@@ -686,6 +686,12 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(isinstance(result, DataFrame))
         self.assert_(result.index.equals(ts.index))
 
+    def test_apply_frame_to_series(self):
+        grouped = self.df.groupby(['A', 'B'])
+        result = grouped.apply(len)
+        expected = grouped.count()['C']
+        assert_series_equal(result, expected)
+
     def test_apply_transform(self):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.apply(lambda x: x * 2)

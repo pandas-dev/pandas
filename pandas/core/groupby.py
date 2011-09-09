@@ -938,18 +938,21 @@ class DataFrameGroupBy(GroupBy):
             if len(self.groupings) > 1:
                 keys = MultiIndex.from_tuples(keys, names=key_names)
 
-            # obj = self._obj_with_exclusions
-
-            if self.axis == 0:
-                stacked_values = np.vstack([np.asarray(x) for x in values])
-                columns = values[0].index
-                index = keys
+            if isinstance(values[0], np.ndarray):
+                if self.axis == 0:
+                    stacked_values = np.vstack([np.asarray(x)
+                                                for x in values])
+                    columns = values[0].index
+                    index = keys
+                else:
+                    stacked_values = np.vstack([np.asarray(x)
+                                                for x in values]).T
+                    index = values[0].index
+                    columns = keys
+                return DataFrame(stacked_values, index=index,
+                                 columns=columns)
             else:
-                stacked_values = np.vstack([np.asarray(x) for x in values]).T
-                index = values[0].index
-                columns = keys
-
-            return DataFrame(stacked_values, index=index, columns=columns)
+                return Series(values, index=keys)
 
     def transform(self, func, *args, **kwargs):
         """
