@@ -866,34 +866,38 @@ class Panel(NDFrame):
 
     _add_docs(compound, 'compounded percentage', 'compounded')
 
-    def median(self, axis='major'):
+    def median(self, axis='major', skipna=True):
         def f(arr):
-            return _tseries.median(arr[common.notnull(arr)])
-
+            mask = common.notnull(arr)
+            if skipna:
+                return _tseries.median(arr[mask])
+            else:
+                if not mask.all():
+                    return np.nan
+                return _tseries.median(arr)
         return self.apply(f, axis=axis)
 
     _add_docs(median, 'median', 'median')
 
-    def max(self, axis='major'):
+    def max(self, axis='major', skipna=True):
         i = self._get_axis_number(axis)
 
         y = np.array(self.values)
-        mask = np.isfinite(y)
+        if skipna:
+            np.putmask(y, np.isnan(y), -np.inf)
 
-        y[-mask] = -np.inf
         result = y.max(axis=i)
         result = np.where(np.isneginf(result), np.nan, result)
         return self._wrap_result(result, axis)
 
     _add_docs(max, 'maximum', 'maximum')
 
-    def min(self, axis='major'):
+    def min(self, axis='major', skipna=True):
         i = self._get_axis_number(axis)
 
         y = np.array(self.values)
-        mask = np.isfinite(y)
-
-        y[-mask] = np.inf
+        if skipna:
+            np.putmask(y, np.isnan(y), np.inf)
 
         result = y.min(axis=i)
         result = np.where(np.isinf(result), np.nan, result)

@@ -607,6 +607,10 @@ _tsframe = DataFrame(_tsd)
 _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
 
+class SafeForSparse(object):
+    pass
+
+
 class TestDataFrame(unittest.TestCase, CheckIndexing):
     klass = DataFrame
 
@@ -2356,54 +2360,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
     def test_sum(self):
         self._check_stat_op('sum', np.sum)
 
-        axis0 = self.empty.sum(0)
-        axis1 = self.empty.sum(1)
-        self.assert_(isinstance(axis0, Series))
-        self.assert_(isinstance(axis1, Series))
-        self.assertEquals(len(axis0), 0)
-        self.assertEquals(len(axis1), 0)
-
-    def test_sum_object(self):
-        values = self.frame.values.astype(int)
-        frame = DataFrame(values, index=self.frame.index,
-                           columns=self.frame.columns)
-        deltas = frame * timedelta(1)
-        deltas.sum()
-
-    def test_sum_bool(self):
-        # ensure this works, bug report
-        bools = np.isnan(self.frame)
-        bools.sum(1)
-        bools.sum(0)
-
-    def test_product(self):
-        self._check_stat_op('product', np.prod)
-
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
-        # unit test when have object data
-        the_mean = self.mixed_frame.mean(axis=0)
-        the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
-        self.assert_(the_sum.index.equals(the_mean.index))
-        self.assert_(len(the_mean.index) < len(self.mixed_frame.columns))
-
-        # xs sum mixed type, just want to know it works...
-        the_mean = self.mixed_frame.mean(axis=1)
-        the_sum = self.mixed_frame.sum(axis=1, numeric_only=True)
-        self.assert_(the_sum.index.equals(the_mean.index))
-
-        # take mean of boolean column
-        self.frame['bool'] = self.frame['A'] > 0
-        means = self.frame.mean(0)
-        self.assertEqual(means['bool'], self.frame['bool'].values.mean())
-
-    def test_stats_mixed_type(self):
-        # don't blow up
-        self.mixed_frame.std(1)
-        self.mixed_frame.var(1)
-        self.mixed_frame.mean(1)
-        self.mixed_frame.skew(1)
+    def test_product(self):
+        self._check_stat_op('product', np.prod)
 
     def test_median(self):
         def wrapper(x):
@@ -2411,7 +2372,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                 return np.nan
             return np.median(x)
 
-        self._check_stat_op('median', wrapper, frame=self.intframe)
         self._check_stat_op('median', wrapper)
 
     def test_min(self):
@@ -2479,6 +2439,59 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # assert_series_equal(result, comp)
 
         self.assertRaises(Exception, f, axis=2)
+
+    def test_sum_corner(self):
+        axis0 = self.empty.sum(0)
+        axis1 = self.empty.sum(1)
+        self.assert_(isinstance(axis0, Series))
+        self.assert_(isinstance(axis1, Series))
+        self.assertEquals(len(axis0), 0)
+        self.assertEquals(len(axis1), 0)
+
+    def test_sum_object(self):
+        values = self.frame.values.astype(int)
+        frame = DataFrame(values, index=self.frame.index,
+                           columns=self.frame.columns)
+        deltas = frame * timedelta(1)
+        deltas.sum()
+
+    def test_sum_bool(self):
+        # ensure this works, bug report
+        bools = np.isnan(self.frame)
+        bools.sum(1)
+        bools.sum(0)
+
+    def test_mean_corner(self):
+        # unit test when have object data
+        the_mean = self.mixed_frame.mean(axis=0)
+        the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
+        self.assert_(the_sum.index.equals(the_mean.index))
+        self.assert_(len(the_mean.index) < len(self.mixed_frame.columns))
+
+        # xs sum mixed type, just want to know it works...
+        the_mean = self.mixed_frame.mean(axis=1)
+        the_sum = self.mixed_frame.sum(axis=1, numeric_only=True)
+        self.assert_(the_sum.index.equals(the_mean.index))
+
+        # take mean of boolean column
+        self.frame['bool'] = self.frame['A'] > 0
+        means = self.frame.mean(0)
+        self.assertEqual(means['bool'], self.frame['bool'].values.mean())
+
+    def test_stats_mixed_type(self):
+        # don't blow up
+        self.mixed_frame.std(1)
+        self.mixed_frame.var(1)
+        self.mixed_frame.mean(1)
+        self.mixed_frame.skew(1)
+
+    def test_median_corner(self):
+        def wrapper(x):
+            if isnull(x).any():
+                return np.nan
+            return np.median(x)
+
+        self._check_stat_op('median', wrapper, frame=self.intframe)
 
     def test_quantile(self):
         try:

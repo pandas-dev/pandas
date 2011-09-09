@@ -8,10 +8,11 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import DataFrame, Index, notnull, pivot
+from pandas.core.api import DataFrame, Index, isnull, notnull, pivot
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
 from pandas.core.panel import Panel, LongPanel
+from pandas.core.series import remove_na
 import pandas.core.panel as panelmod
 
 from pandas.util.testing import (assert_panel_equal,
@@ -44,114 +45,91 @@ class SafeForLongAndSparse(object):
 
     def test_count(self):
         f = lambda s: notnull(s).sum()
-
-        self._check_statistic(self.panel, 'count', f)
+        self._check_stat_op('count', f, obj=self.panel, has_skipna=False)
 
     def test_sum(self):
-        def f(x):
-            x = np.asarray(x)
-            nona = x[notnull(x)]
-
-            if len(nona) == 0:
-                return np.NaN
-            else:
-                return nona.sum()
-
-        self._check_statistic(self.panel, 'sum', f)
-
-    def test_prod(self):
-        def f(x):
-            x = np.asarray(x)
-            nona = x[notnull(x)]
-
-            if len(nona) == 0:
-                return np.NaN
-            else:
-                return np.prod(nona)
-
-        self._check_statistic(self.panel, 'prod', f)
+        self._check_stat_op('sum', np.sum)
 
     def test_mean(self):
-        def f(x):
-            x = np.asarray(x)
-            return x[notnull(x)].mean()
+        self._check_stat_op('mean', np.mean)
 
-        self._check_statistic(self.panel, 'mean', f)
+    def test_prod(self):
+        self._check_stat_op('prod', np.prod)
 
     def test_median(self):
-        def f(x):
-            x = np.asarray(x)
-            return np.median(x[notnull(x)])
+        def wrapper(x):
+            if isnull(x).any():
+                return np.nan
+            return np.median(x)
 
-        self._check_statistic(self.panel, 'median', f)
+        self._check_stat_op('median', wrapper)
 
     def test_min(self):
-        def f(x):
-            x = np.asarray(x)
-            nona = x[notnull(x)]
-
-            if len(nona) == 0:
-                return np.NaN
-            else:
-                return nona.min()
-
-        self._check_statistic(self.panel, 'min', f)
+        self._check_stat_op('min', np.min)
 
     def test_max(self):
-        def f(x):
-            x = np.asarray(x)
-            nona = x[notnull(x)]
+        self._check_stat_op('max', np.max)
 
-            if len(nona) == 0:
-                return np.NaN
-            else:
-                return nona.max()
-
-        self._check_statistic(self.panel, 'max', f)
+    # def test_mad(self):
+    #     f = lambda x: np.abs(x - x.mean()).mean()
+    #     self._check_stat_op('mad', f)
 
     def test_var(self):
-        def f(x):
-            x = np.asarray(x)
-            nona = x[notnull(x)]
-
-            if len(nona) < 2:
-                return np.NaN
-            else:
-                return nona.var(ddof=1)
-
-        self._check_statistic(self.panel, 'var', f)
+        def alt(x):
+            if len(x) < 2:
+                return np.nan
+            return np.var(x, ddof=1)
+        self._check_stat_op('var', alt)
 
     def test_std(self):
-        def f(x):
-            x = np.asarray(x)
-            nona = x[notnull(x)]
+        def alt(x):
+            if len(x) < 2:
+                return np.nan
+            return np.std(x, ddof=1)
+        self._check_stat_op('std', alt)
 
-            if len(nona) < 2:
-                return np.NaN
-            else:
-                return nona.std(ddof=1)
+    # def test_skew(self):
+    #     from scipy.stats import skew
 
-        self._check_statistic(self.panel, 'std', f)
+    #     def alt(x):
+    #         if len(x) < 3:
+    #             return np.nan
+    #         return skew(x, bias=False)
 
-    def test_skew(self):
-        return
-        try:
-            from scipy.stats import skew
-        except ImportError:
-            return
+    #     self._check_stat_op('skew', alt)
 
-        def f(x):
-            x = np.asarray(x)
-            return skew(x[notnull(x)], bias=False)
+    def _check_stat_op(self, name, alternative, obj=None, has_skipna=True):
+        if obj is None:
+            obj = self.panel
 
-        self._check_statistic(self.panel, 'skew', f)
+            # # set some NAs
+            # obj.ix[5:10] = np.nan
+            # obj.ix[15:20, -2:] = np.nan
 
-    def _check_statistic(self, frame, name, alternative):
-        f = getattr(frame, name)
+        f = getattr(obj, name)
 
-        for i, ax in enumerate(['items', 'major', 'minor']):
+        if has_skipna:
+            def skipna_wrapper(x):
+                nona = remove_na(x)
+                if len(nona) == 0:
+                    return np.nan
+                return alternative(nona)
+
+            def wrapper(x):
+                return alternative(np.asarray(x))
+
+            for i in range(obj.ndim):
+                result = f(axis=i, skipna=False)
+                assert_frame_equal(result, obj.apply(wrapper, axis=i))
+        else:
+            skipna_wrapper = alternative
+            wrapper = alternative
+
+        for i in range(obj.ndim):
             result = f(axis=i)
-            assert_frame_equal(result, frame.apply(alternative, axis=ax))
+            assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
+
+        self.assertRaises(Exception, f, axis=obj.ndim)
 
 class SafeForSparse(object):
 
