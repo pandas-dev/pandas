@@ -240,10 +240,12 @@ copy : boolean, default False
                 values = self.values
                 try:
                     return values[self.index.get_loc(key)]
-                except KeyError:
-                    if isinstance(key, (int, np.integer)):
+                except KeyError, e1:
+                    try:
                         return values[key]
-                    raise
+                    except Exception, _:
+                        pass
+                    raise e1
         except TypeError:
             pass
 

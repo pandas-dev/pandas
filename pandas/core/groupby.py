@@ -863,9 +863,13 @@ class DataFrameGroupBy(GroupBy):
             else:
                 raise e1
 
-        result = DataFrame(result)
-        if axis == 0:
-            result = result.T
+        if result:
+            if axis == 0:
+                result = DataFrame(result, index=obj.columns).T
+            else:
+                result = DataFrame(result, index=obj.index)
+        else:
+            result = DataFrame(result)
 
         return result
 

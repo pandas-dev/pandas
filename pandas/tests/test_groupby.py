@@ -753,6 +753,46 @@ class TestGroupBy(unittest.TestCase):
         result = df.groupby(level=0).mean()
         self.assert_(result.columns.equals(sorted_columns))
 
+    def test_pass_args_kwargs(self):
+        from scipy.stats import scoreatpercentile
+
+        def f(x, q=None):
+            return scoreatpercentile(x, q)
+        g = lambda x: scoreatpercentile(x, 80)
+
+        # Series
+        ts_grouped = self.ts.groupby(lambda x: x.month)
+        agg_result = ts_grouped.agg(scoreatpercentile, 80)
+        apply_result = ts_grouped.apply(scoreatpercentile, 80)
+        trans_result = ts_grouped.transform(scoreatpercentile, 80)
+
+        agg_expected = ts_grouped.quantile(.8)
+        trans_expected = ts_grouped.transform(g)
+
+        assert_series_equal(apply_result, agg_expected)
+        assert_series_equal(agg_result, agg_expected)
+        assert_series_equal(trans_result, trans_expected)
+
+        agg_result = ts_grouped.agg(f, q=80)
+        apply_result = ts_grouped.apply(f, q=80)
+        trans_result = ts_grouped.transform(f, q=80)
+        assert_series_equal(agg_result, agg_expected)
+        assert_series_equal(apply_result, agg_expected)
+        assert_series_equal(trans_result, trans_expected)
+
+        # DataFrame
+        df_grouped = self.tsframe.groupby(lambda x: x.month)
+        agg_result = df_grouped.agg(scoreatpercentile, 80)
+        apply_result = df_grouped.apply(DataFrame.quantile, .8)
+        expected = df_grouped.quantile(.8)
+        assert_frame_equal(apply_result, expected)
+        assert_frame_equal(agg_result, expected)
+
+        agg_result = df_grouped.agg(f, q=80)
+        apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
+        assert_frame_equal(agg_result, expected)
+        assert_frame_equal(apply_result, expected)
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):
