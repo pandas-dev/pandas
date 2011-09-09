@@ -204,7 +204,6 @@ class PanelOLS(OLS):
         return x, x_filt, y, weights, weights_filt, cat_mapping
 
     def _convert_x(self, x):
-
         # Converts non-numeric data in x to floats. x_converted is the
         # DataFrame with converted values, and x_conversion is a dict that
         # provides the reverse mapping.  For example, if 'A' was converted to 0
@@ -217,12 +216,15 @@ class PanelOLS(OLS):
             if _is_numeric(df):
                 x_converted[key] = df
             else:
-                values = df.values
-                distinct_values = sorted(set(values.flat))
-                cat_mapping[key] = dict(enumerate(distinct_values))
-                new_values = np.searchsorted(distinct_values, values)
-                x_converted[key] = DataFrame(new_values, index=df.index,
-                                              columns=df.columns)
+                try:
+                    df = df.astype(float)
+                except (TypeError, ValueError):
+                    values = df.values
+                    distinct_values = sorted(set(values.flat))
+                    cat_mapping[key] = dict(enumerate(distinct_values))
+                    new_values = np.searchsorted(distinct_values, values)
+                    x_converted[key] = DataFrame(new_values, index=df.index,
+                                                  columns=df.columns)
 
         if len(cat_mapping) == 0:
             x_converted = x

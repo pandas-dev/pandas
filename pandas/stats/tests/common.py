@@ -141,8 +141,8 @@ class BaseTest(unittest.TestCase):
         x1 = DataFrame(np.array(x1_data), index=x1_index,
                         columns=x1_cols)
 
-        x2_data = [['3.14', '1.59'],
-                   ['2.65', '3.14']]
+        x2_data = [['foo', 'bar'],
+                   ['baz', 'foo']]
         x2_index = [datetime(2000, 1, 1),
                     datetime(2000, 1, 2)]
         x2_cols = ['A', 'B']

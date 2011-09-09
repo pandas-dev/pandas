@@ -470,21 +470,21 @@ class TestPanelOLS(BaseTest):
                  [0, 0, 0, 1, 1]]
         assert_almost_equal(result._x.values, exp_x)
 
-        exp_index = Index(['x1_B', 'x1_C', 'x2_2.65', 'x2_3.14', 'intercept'])
+        exp_index = Index(['x1_B', 'x1_C', 'x2_baz', 'x2_foo', 'intercept'])
         self.assertTrue(exp_index.equals(result._x.items))
 
         # _check_non_raw_results(result)
 
     def testWithXEffectsAndConversionAndDroppedDummies(self):
         result = ols(y=self.panel_y3, x=self.panel_x3, x_effects=['x1', 'x2'],
-                     dropped_dummies={'x2' : '3.14'})
+                     dropped_dummies={'x2' : 'foo'})
 
         assert_almost_equal(result._y.values.flat, [1, 2, 3, 4])
         exp_x = [[0, 0, 0, 0, 1], [1, 0, 1, 0, 1], [0, 1, 0, 1, 1],
                  [0, 0, 0, 0, 1]]
         assert_almost_equal(result._x.values, exp_x)
 
-        exp_index = Index(['x1_B', 'x1_C', 'x2_1.59', 'x2_2.65', 'intercept'])
+        exp_index = Index(['x1_B', 'x1_C', 'x2_bar', 'x2_baz', 'intercept'])
         self.assertTrue(exp_index.equals(result._x.items))
 
         # _check_non_raw_results(result)
