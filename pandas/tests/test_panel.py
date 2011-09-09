@@ -42,13 +42,6 @@ class SafeForLongAndSparse(object):
     def test_iter(self):
         common.equalContents(list(self.panel), self.panel.items)
 
-    def _check_statistic(self, frame, name, alternative):
-        f = getattr(frame, name)
-
-        for i, ax in enumerate(['items', 'major', 'minor']):
-            result = f(axis=i)
-            assert_frame_equal(result, frame.apply(alternative, axis=ax))
-
     def test_count(self):
         f = lambda s: notnull(s).sum()
 
@@ -152,6 +145,13 @@ class SafeForLongAndSparse(object):
             return skew(x[notnull(x)], bias=False)
 
         self._check_statistic(self.panel, 'skew', f)
+
+    def _check_statistic(self, frame, name, alternative):
+        f = getattr(frame, name)
+
+        for i, ax in enumerate(['items', 'major', 'minor']):
+            result = f(axis=i)
+            assert_frame_equal(result, frame.apply(alternative, axis=ax))
 
 class SafeForSparse(object):
 

@@ -61,11 +61,14 @@ def _panel_arith_method(op, name):
 
 
 _agg_doc = """
-Return %(desc)s over requested axis.%(na_info)s
+Return %(desc)s over requested axis
 
 Parameters
 ----------
 axis : {'items', 'major', 'minor'} or {0, 1, 2}
+skipna : boolean, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA
 
 Returns
 -------
@@ -78,12 +81,9 @@ NA/null values are %s.
 If all values are NA, result will be NA"""
 
 
-def _add_docs(method, desc, outname, na_info=None):
-    if na_info is not None:
-        na_info = _na_info % na_info
-    else:
-        na_info = ''
-    doc = _agg_doc % locals()
+def _add_docs(method, desc, outname):
+    doc = _agg_doc % {'desc' : desc,
+                      'outname' : outname}
     method.__doc__ = doc
 
 class Panel(NDFrame):
@@ -766,7 +766,7 @@ class Panel(NDFrame):
         result = np.apply_along_axis(func, i, self.values)
         return self._wrap_result(result, axis=axis)
 
-    def _array_method(self, func, axis='major', fill_value=None):
+    def _array_method(self, func, axis='major', fill_value=None, skipna=True):
         """
         Parameters
         ----------
@@ -775,12 +775,15 @@ class Panel(NDFrame):
         axis : {'major', 'minor', 'items'}
         fill_value : boolean, default True
             Replace NaN values with specified first
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
         y : DataFrame
         """
-        result = self._values_aggregate(func, axis, fill_value)
+        result = self._values_aggregate(func, axis, fill_value, skipna=skipna)
         return self._wrap_result(result, axis=axis)
 
     def _wrap_result(self, result, axis):
@@ -794,11 +797,15 @@ class Panel(NDFrame):
 
     def count(self, axis='major'):
         """
-        Return DataFrame of observation counts along desired axis
+        Return number of observations over requested axis.
+
+        Parameters
+        ----------
+        axis : {'items', 'major', 'minor'} or {0, 1, 2}
 
         Returns
         -------
-        y : DataFrame
+        count : DataFrame
         """
         i = self._get_axis_number(axis)
 
@@ -808,45 +815,28 @@ class Panel(NDFrame):
 
         return self._wrap_result(result, axis)
 
-    _add_docs(count, 'number of observations', 'count')
+    def sum(self, axis='major', skipna=True):
+        return self._array_method(np.sum, axis=axis, fill_value=0,
+                                  skipna=skipna)
 
-    def sum(self, axis='major'):
-        """
+    _add_docs(sum, 'sum', 'sum')
 
-        Returns
-        -------
-        y : DataFrame
-        """
-        return self._array_method(np.sum, axis=axis, fill_value=0)
+    def mean(self, axis='major', skipna=True):
+        the_sum = self.sum(axis=axis, skipna=skipna)
+        the_count = self.count(axis=axis)
+        return the_sum / the_count
 
-    _add_docs(sum, 'sum', 'sum', na_info='excluded')
+    _add_docs(mean, 'mean', 'mean')
 
-    def mean(self, axis='major'):
-        """
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        return self.sum(axis=axis) / self.count(axis=axis)
-
-    _add_docs(mean, 'mean', 'mean', na_info='excluded')
-
-    def var(self, axis='major'):
-        """
-
-        Returns
-        -------
-        y : DataFrame
-        """
+    def var(self, axis='major', skipna=True):
         i = self._get_axis_number(axis)
-        index, columns = self._get_plane_axes(axis)
-
         y = np.array(self.values)
         mask = np.isnan(y)
 
         count = (-mask).sum(axis=i).astype(float)
-        y[mask] = 0
+
+        if skipna:
+            y[mask] = 0
 
         X = y.sum(axis=i)
         XX = (y ** 2).sum(axis=i)
@@ -855,58 +845,34 @@ class Panel(NDFrame):
 
         return self._wrap_result(theVar, axis)
 
-    _add_docs(var, 'unbiased variance', 'variance', na_info='excluded')
+    _add_docs(var, 'unbiased variance', 'variance')
 
-    def std(self, axis='major'):
-        """
+    def std(self, axis='major', skipna=True):
+        return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
 
-        Returns
-        -------
-        y : DataFrame
-        """
-        return self.var(axis=axis).apply(np.sqrt)
+    _add_docs(std, 'unbiased standard deviation', 'stdev')
 
-    _add_docs(std, 'unbiased standard deviation', 'stdev', na_info='excluded')
-
-    def skew(self, axis='major'):
+    def skew(self, axis='major', skipna=True):
         raise NotImplementedError
 
-    def prod(self, axis='major'):
-        """
+    def prod(self, axis='major', skipna=True):
+        return self._array_method(np.prod, axis=axis, fill_value=1,
+                                  skipna=skipna)
 
-        Returns
-        -------
-        y : DataFrame
-        """
-        return self._array_method(np.prod, axis=axis, fill_value=1)
+    _add_docs(prod, 'product', 'prod')
 
-    _add_docs(prod, 'product', 'prod', na_info='excluded')
+    def compound(self, axis='major', skipna=True):
+        return (1 + self).prod(axis=axis, skipna=skipna) - 1
 
-    def compound(self, axis='major'):
-        """
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        return (1 + self).prod(axis=axis) - 1
-
-    _add_docs(compound, 'compounded percentage', 'compounded',
-              na_info='excluded')
+    _add_docs(compound, 'compounded percentage', 'compounded')
 
     def median(self, axis='major'):
-        """
-
-        Returns
-        -------
-        y : DataFrame
-        """
         def f(arr):
             return _tseries.median(arr[common.notnull(arr)])
 
         return self.apply(f, axis=axis)
 
-    _add_docs(median, 'median', 'median', na_info='excluded')
+    _add_docs(median, 'median', 'median')
 
     def max(self, axis='major'):
         i = self._get_axis_number(axis)
@@ -914,16 +880,12 @@ class Panel(NDFrame):
         y = np.array(self.values)
         mask = np.isfinite(y)
 
-        fill_value = y.flat[mask.ravel()].min() - 1
-
-        y[-mask] = fill_value
-
+        y[-mask] = -np.inf
         result = y.max(axis=i)
-        result[result == fill_value] = np.NaN
-
+        result = np.where(np.isneginf(result), np.nan, result)
         return self._wrap_result(result, axis)
 
-    _add_docs(max, 'maximum', 'maximum', na_info='excluded')
+    _add_docs(max, 'maximum', 'maximum')
 
     def min(self, axis='major'):
         i = self._get_axis_number(axis)
@@ -931,16 +893,13 @@ class Panel(NDFrame):
         y = np.array(self.values)
         mask = np.isfinite(y)
 
-        fill_value = y.flat[mask.ravel()].max() + 1
-
-        y[-mask] = fill_value
+        y[-mask] = np.inf
 
         result = y.min(axis=i)
-        result[result == fill_value] = np.NaN
-
+        result = np.where(np.isinf(result), np.nan, result)
         return self._wrap_result(result, axis)
 
-    _add_docs(min, 'minimum', 'minimum', na_info='excluded')
+    _add_docs(min, 'minimum', 'minimum')
 
     def shift(self, lags, axis='major'):
         """

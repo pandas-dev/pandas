@@ -307,7 +307,7 @@ class NDFrame(PandasObject):
                                                method=fill_method)
         return self._constructor(new_data)
 
-    def cumsum(self, axis=None):
+    def cumsum(self, axis=None, skipna=True):
         """
         Return DataFrame of cumulative sums over requested axis.
 
@@ -315,6 +315,9 @@ class NDFrame(PandasObject):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
@@ -328,9 +331,14 @@ class NDFrame(PandasObject):
         y = self.values.copy()
         if not issubclass(y.dtype.type, np.int_):
             mask = np.isnan(self.values)
-            np.putmask(y, mask, 0.)
+
+            if skipna:
+                np.putmask(y, mask, 0.)
+
             result = y.cumsum(axis)
-            np.putmask(result, mask, np.nan)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
         else:
             result = y.cumsum(axis)
         return self._wrap_array(result, self.axes, copy=False)
@@ -338,7 +346,7 @@ class NDFrame(PandasObject):
     def _wrap_array(self, array, axes, copy=False):
         raise NotImplementedError
 
-    def cumprod(self, axis=None):
+    def cumprod(self, axis=None, skipna=True):
         """
         Return cumulative product over requested axis as DataFrame
 
@@ -346,6 +354,9 @@ class NDFrame(PandasObject):
         ----------
         axis : {0, 1}
             0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
 
         Returns
         -------
@@ -359,20 +370,24 @@ class NDFrame(PandasObject):
         y = self.values.copy()
         if not issubclass(y.dtype.type, np.int_):
             mask = np.isnan(self.values)
-            np.putmask(y, mask, 1.)
+
+            if skipna:
+                np.putmask(y, mask, 1.)
             result = y.cumprod(axis)
-            np.putmask(result, mask, np.nan)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
         else:
             result = y.cumprod(axis)
         return self._wrap_array(result, self.axes, copy=False)
 
-    def _values_aggregate(self, func, axis, fill_value):
+    def _values_aggregate(self, func, axis, fill_value, skipna=True):
         axis = self._get_axis_number(axis)
 
         values = self.values
         mask = np.isfinite(values)
 
-        if fill_value is not None:
+        if skipna and fill_value is not None:
             values = values.copy()
             values[-mask] = fill_value
 
