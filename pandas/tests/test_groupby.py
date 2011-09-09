@@ -475,6 +475,14 @@ class TestGroupBy(unittest.TestCase):
         grouped = df.groupby(['k1', 'k2'])
         grouped.agg(np.sum)
 
+    def test_multi_key_multiple_functions(self):
+        grouped = self.df.groupby(['A', 'B'])['C']
+
+        agged = grouped.agg([np.mean, np.std])
+        expected = DataFrame({'mean' : grouped.agg(np.mean),
+                              'std' : grouped.agg(np.std)})
+        assert_frame_equal(agged, expected)
+
     def test_groupby_multiple_columns(self):
         data = self.df
         grouped = data.groupby(['A', 'B'])

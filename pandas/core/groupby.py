@@ -218,7 +218,7 @@ class GroupBy(object):
 
         return flatten(self._generator_factory(data), shape_axis=self.axis)
 
-    def apply(self, func):
+    def apply(self, func, *args, **kwargs):
         """
         Apply function and combine results together in an intelligent way. The
         split-apply-combine combination rules attempt to be as common sense
@@ -255,16 +255,16 @@ class GroupBy(object):
         -------
         applied : type depending on grouped object and function
         """
-        return self._python_apply_general(func)
+        return self._python_apply_general(func, *args, **kwargs)
 
-    def aggregate(self, func):
+    def aggregate(self, func, *args, **kwargs):
         raise NotImplementedError
 
-    def agg(self, func):
+    def agg(self, func, *args, **kwargs):
         """
         See docstring for aggregate
         """
-        return self.aggregate(func)
+        return self.aggregate(func, *args, **kwargs)
 
     def _get_names(self):
         axes = [ping.group_index for ping in self.groupings]
@@ -275,10 +275,10 @@ class GroupBy(object):
     def _iterate_slices(self):
         yield self.name, self.obj
 
-    def transform(self, func):
+    def transform(self, func, *args, **kwargs):
         raise NotImplementedError
 
-    def mean(self, axis=None):
+    def mean(self):
         """
         Compute mean of groups, excluding missing values
 
@@ -286,7 +286,7 @@ class GroupBy(object):
         """
         return self._cython_agg_general('mean')
 
-    def sum(self, axis=None):
+    def sum(self):
         """
         Compute sum of values, excluding missing values
 
@@ -330,7 +330,7 @@ class GroupBy(object):
         name_list = self._get_names()
         return [(name, raveled[mask]) for name, raveled in name_list]
 
-    def _python_agg_general(self, arg):
+    def _python_agg_general(self, func, *args, **kwargs):
         group_shape = self._group_shape
         counts = np.zeros(group_shape, dtype=int)
 
@@ -342,7 +342,7 @@ class GroupBy(object):
                     ctchunk[i] = size
                     if size == 0:
                         continue
-                    reschunk[i] = arg(subgen)
+                    reschunk[i] = func(subgen, *args, **kwargs)
                 else:
                     _doit(reschunk[i], ctchunk[i], subgen,
                           shape_axis=shape_axis)
@@ -378,14 +378,14 @@ class GroupBy(object):
 
         return self._wrap_aggregated_output(output, mask)
 
-    def _python_apply_general(self, arg):
+    def _python_apply_general(self, func, *args, **kwargs):
         result_keys = []
         result_values = []
 
         not_indexed_same = False
         for key, group in self:
             group.name = key
-            res = arg(group)
+            res = func(group, *args, **kwargs)
             if not _is_indexed_like(res, group):
                 not_indexed_same = True
 
@@ -588,7 +588,7 @@ class SeriesGroupBy(GroupBy):
     def _agg_stride_shape(self):
         return ()
 
-    def aggregate(self, func_or_funcs):
+    def aggregate(self, func_or_funcs, *args, **kwargs):
         """
         Apply aggregation function or functions to groups, yielding most likely
         Series but in some cases DataFrame depending on the output of the
@@ -640,18 +640,18 @@ class SeriesGroupBy(GroupBy):
         Series or DataFrame
         """
         if isinstance(func_or_funcs, basestring):
-            return getattr(self, func_or_funcs)()
-
-        if len(self.groupings) > 1:
-            return self._python_agg_general(func_or_funcs)
+            return getattr(self, func_or_funcs)(*args, **kwargs)
 
         if hasattr(func_or_funcs,'__iter__'):
             ret = self._aggregate_multiple_funcs(func_or_funcs)
         else:
+            if len(self.groupings) > 1:
+                return self._python_agg_general(func_or_funcs, *args, **kwargs)
+
             try:
-                result = self._aggregate_simple(func_or_funcs)
+                result = self._aggregate_simple(func_or_funcs, *args, **kwargs)
             except Exception:
-                result = self._aggregate_named(func_or_funcs)
+                result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
             if len(result) > 0:
                 if isinstance(result.values()[0], Series):
@@ -711,34 +711,30 @@ class SeriesGroupBy(GroupBy):
         results = {}
 
         for name, func in arg.iteritems():
-            try:
-                result = func(self)
-            except Exception:
-                result = self.aggregate(func)
-            results[name] = result
+            results[name] = self.aggregate(func)
 
         return DataFrame(results)
 
-    def _aggregate_simple(self, arg):
+    def _aggregate_simple(self, func, *args, **kwargs):
         values = self.obj.values
         result = {}
         for k, v in self.primary.indices.iteritems():
-            result[k] = arg(values.take(v))
+            result[k] = func(values.take(v), *args, **kwargs)
 
         return result
 
-    def _aggregate_named(self, arg):
+    def _aggregate_named(self, func, *args, **kwargs):
         result = {}
 
         for name in self.primary:
             grp = self.get_group(name)
             grp.name = name
-            output = arg(grp)
+            output = func(grp, *args, **kwargs)
             result[name] = output
 
         return result
 
-    def transform(self, func):
+    def transform(self, func, *args, **kwargs):
         """
         Call function producing a like-indexed Series on each group and return
         a Series with the transformed values
@@ -760,7 +756,7 @@ class SeriesGroupBy(GroupBy):
 
         for name, group in self:
             group.name = name
-            res = func(group)
+            res = func(group, *args, **kwargs)
             indexer, _ = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
 
@@ -817,7 +813,7 @@ class DataFrameGroupBy(GroupBy):
         else:
             return self.obj
 
-    def aggregate(self, arg):
+    def aggregate(self, arg, *args, **kwargs):
         """
         Aggregate using input function or dict of {column -> function}
 
@@ -843,26 +839,27 @@ class DataFrameGroupBy(GroupBy):
             result = DataFrame(result)
         else:
             if len(self.groupings) > 1:
-                return self._python_agg_general(arg)
-            result = self._aggregate_generic(arg, axis=self.axis)
+                return self._python_agg_general(arg, *args, **kwargs)
+            result = self._aggregate_generic(arg, *args, **kwargs)
 
         return result
 
-    def _aggregate_generic(self, agger, axis=0):
+    def _aggregate_generic(self, func, *args, **kwargs):
         result = {}
-
+        axis = self.axis
         obj = self._obj_with_exclusions
 
         try:
             for name in self.primary:
                 data = self.get_group(name, obj=obj)
                 try:
-                    result[name] = agger(data)
+                    result[name] = func(data, *args, **kwargs)
                 except Exception:
-                    result[name] = data.apply(agger, axis=axis)
+                    wrapper = lambda x: func(x, *args, **kwargs)
+                    result[name] = data.apply(wrapper, axis=axis)
         except Exception, e1:
             if axis == 0:
-                return self._aggregate_item_by_item(agger)
+                return self._aggregate_item_by_item(func, *args, **kwargs)
             else:
                 raise e1
 
@@ -872,7 +869,7 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _aggregate_item_by_item(self, agger):
+    def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
 
         obj = self._obj_with_exclusions
@@ -881,7 +878,7 @@ class DataFrameGroupBy(GroupBy):
         cannot_agg = []
         for item in obj:
             try:
-                result[item] = self[item].agg(agger)
+                result[item] = self[item].agg(func, *args, **kwargs)
             except (ValueError, TypeError):
                 cannot_agg.append(item)
                 continue
@@ -954,7 +951,7 @@ class DataFrameGroupBy(GroupBy):
 
             return DataFrame(stacked_values, index=index, columns=columns)
 
-    def transform(self, func):
+    def transform(self, func, *args, **kwargs):
         """
         Call function producing a like-indexed DataFrame on each group and
         return a DataFrame having the same indexes as the original object
@@ -962,7 +959,7 @@ class DataFrameGroupBy(GroupBy):
 
         Parameters
         ----------
-        func : function
+        f : function
             Function to apply to each subframe
 
         Note
@@ -982,9 +979,10 @@ class DataFrameGroupBy(GroupBy):
             group.name = name
 
             try:
-                res = group.apply(func, axis=self.axis)
+                wrapper = lambda x: func(x, *args, **kwargs)
+                res = group.apply(wrapper, axis=self.axis)
             except Exception: # pragma: no cover
-                res = func(group)
+                res = func(group, *args, **kwargs)
 
             # broadcasting
             if isinstance(res, Series):
@@ -1081,7 +1079,7 @@ def _all_indexes_same(indexes):
 
 class PanelGroupBy(GroupBy):
 
-    def aggregate(self, func):
+    def aggregate(self, func, *args, **kwargs):
         """
         Aggregate using input function or dict of {column -> function}
 
@@ -1096,19 +1094,22 @@ class PanelGroupBy(GroupBy):
         -------
         aggregated : Panel
         """
-        return self._aggregate_generic(func, axis=self.axis)
+        return self._aggregate_generic(func, *args, **kwargs)
 
-    def _aggregate_generic(self, agger, axis=0):
+    def _aggregate_generic(self, func, *args, **kwargs):
         result = {}
+
+        axis = self.axis
 
         obj = self._obj_with_exclusions
 
         for name in self.primary:
             data = self.get_group(name, obj=obj)
             try:
-                result[name] = agger(data)
+                result[name] = func(data, *args, **kwargs)
             except Exception:
-                result[name] = data.apply(agger, axis=axis)
+                wrapper = lambda x: func(x, *args, **kwargs)
+                result[name] = data.apply(wrapper, axis=axis)
 
         result = Panel.fromDict(result, intersect=False)
 
