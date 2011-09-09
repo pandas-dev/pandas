@@ -8,7 +8,7 @@ import unittest
 from numpy import nan
 import numpy as np
 
-from pandas import Index, Series, TimeSeries, DataFrame, isnull
+from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
 from pandas.core.index import MultiIndex
 import pandas.core.datetools as datetools
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -361,43 +361,81 @@ class TestSeries(unittest.TestCase):
         for idx, val in self.ts.iteritems():
             self.assertEqual(val, self.ts[idx])
 
-    def test_stats(self):
+    def test_sum(self):
+        self._check_stat_op('sum', np.sum)
+
+    def test_mean(self):
+        self._check_stat_op('mean', np.mean)
+
+    def test_median(self):
+        self._check_stat_op('median', np.median)
+
+        # test with integers, test failure
+        int_ts = TimeSeries(np.ones(10, dtype=int), index=range(10))
+        self.assertAlmostEqual(np.median(int_ts), int_ts.median())
+
+    def test_prod(self):
+        self._check_stat_op('prod', np.prod)
+
+    def test_min(self):
+        self._check_stat_op('min', np.min)
+
+    def test_max(self):
+        self._check_stat_op('max', np.max)
+
+    def test_std(self):
+        alt = lambda x: np.std(x, ddof=1)
+        self._check_stat_op('std', alt)
+
+    def test_var(self):
+        alt = lambda x: np.var(x, ddof=1)
+        self._check_stat_op('var', alt)
+
+    def test_skew(self):
+        from scipy.stats import skew
+        alt =lambda x: skew(x, bias=False)
+        self._check_stat_op('skew', alt)
+
+    def test_argsort(self):
+        self._check_accum_op('argsort')
+        argsorted = self.ts.argsort()
+        self.assert_(issubclass(argsorted.dtype.type, np.integer))
+
+    def test_cumsum(self):
+        self._check_accum_op('cumsum')
+
+    def test_cumprod(self):
+        self._check_accum_op('cumprod')
+
+    def _check_stat_op(self, name, alternate):
+        f = getattr(Series, name)
+
+        # add some NaNs
         self.series[5:15] = np.NaN
 
-        s1 = np.array(self.series)
-        s1 = s1[-np.isnan(s1)]
+        # omitna or no
+        self.assert_(notnull(f(self.series)))
+        self.assert_(isnull(f(self.series, omitna=False)))
 
-        self.assertEquals(np.min(s1), self.series.min())
-        self.assertEquals(np.max(s1), self.series.max())
-        self.assertEquals(np.sum(s1), self.series.sum())
-        self.assertEquals(np.mean(s1), self.series.mean())
-        self.assertEquals(np.std(s1, ddof=1), self.series.std())
-        self.assertEquals(np.var(s1, ddof=1), self.series.var())
+        # check the result is correct
+        nona = self.series.dropna()
+        assert_almost_equal(f(nona), alternate(nona))
 
-        try:
-            from scipy.stats import skew
-            common.assert_almost_equal(skew(s1, bias=False),
-                                       self.series.skew())
-        except ImportError:
-            pass
-
-        self.assert_(not np.isnan(np.sum(self.series)))
-        self.assert_(not np.isnan(np.mean(self.series)))
-        self.assert_(not np.isnan(np.std(self.series)))
-        self.assert_(not np.isnan(np.var(self.series)))
-        self.assert_(not np.isnan(np.min(self.series)))
-        self.assert_(not np.isnan(np.max(self.series)))
-
-        self.assert_(np.isnan(Series([1.], index=[1]).std()))
-        self.assert_(np.isnan(Series([1.], index=[1]).var()))
-        self.assert_(np.isnan(Series([1.], index=[1]).skew()))
-
-        # all NA
         allna = self.series * nan
-        self.assert_(np.isnan(allna.sum()))
-        self.assert_(np.isnan(allna.mean()))
-        self.assert_(np.isnan(allna.std()))
-        self.assert_(np.isnan(allna.skew()))
+        self.assert_(isnull(f(allna)))
+
+    def _check_accum_op(self, name):
+        func = getattr(np, name)
+        self.assert_(np.array_equal(func(self.ts), func(np.array(self.ts))))
+
+        # with missing values
+        ts = self.ts.copy()
+        ts[::2] = np.NaN
+
+        result = func(ts)[1::2]
+        expected = func(np.array(ts.valid()))
+
+        self.assert_(np.array_equal(result, expected))
 
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.] , index=range(3))
@@ -589,38 +627,6 @@ class TestSeries(unittest.TestCase):
         s = Series([1., 2, 3], index=[0, 1, 2])
         result = s.combine_first(Series([], index=[]))
         assert_series_equal(s, result)
-
-    def test_overloads(self):
-        methods = ['argsort', 'cumsum', 'cumprod']
-
-        for method in methods:
-            func = getattr(np, method)
-
-            self.assert_(np.array_equal(func(self.ts), func(np.array(self.ts))))
-
-            # with missing values
-            ts = self.ts.copy()
-            ts[::2] = np.NaN
-
-            result = func(ts)[1::2]
-            expected = func(np.array(ts.valid()))
-
-            self.assert_(np.array_equal(result, expected))
-
-        argsorted = self.ts.argsort()
-        self.assert_(issubclass(argsorted.dtype.type, np.integer))
-
-    def test_median(self):
-        self.assertAlmostEqual(np.median(self.ts), self.ts.median())
-
-        ts = self.ts.copy()
-        ts[::2] = np.NaN
-
-        self.assertAlmostEqual(np.median(ts.valid()), ts.median())
-
-        # test with integers, test failure
-        int_ts = TimeSeries(np.ones(10, dtype=int), index=range(10))
-        self.assertAlmostEqual(np.median(int_ts), int_ts.median())
 
     def test_corr(self):
         # full overlap

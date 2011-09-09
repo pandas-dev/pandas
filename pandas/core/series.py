@@ -518,103 +518,206 @@ copy : boolean, default False
 
         return Series(result, index=level_index)
 
-    def sum(self, axis=0, dtype=None, out=None):
+    def sum(self, axis=0, dtype=None, out=None, omitna=True):
         """
-        Sum of non-NA/null values
+        Sum of values
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
         sum : float
         """
         values = self.values.copy()
-        mask = isnull(values)
-        if mask.all():
-            return np.nan
 
-        np.putmask(values, mask, 0)
+        if omitna:
+            mask = isnull(values)
+            if mask.all():
+                return np.nan
+            np.putmask(values, mask, 0)
+
         return values.sum()
 
-    def mean(self, axis=0, dtype=None, out=None):
+    def mean(self, axis=0, dtype=None, out=None, omitna=True):
         """
-        Mean of non-NA/null values
+        Mean of values
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
         mean : float
         """
-        return self._ndarray_statistic('mean', dtype=dtype)
+        return self._ndarray_statistic('mean', dtype=dtype, omitna=omitna)
 
-    def prod(self, axis=0, dtype=None, out=None):
+    def median(self, omitna=True):
         """
-        Product of non-NA/null values
+        Compute median of values
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        median : float
+        """
+        arr = self.values
+        if arr.dtype != np.float_:
+            arr = arr.astype(float)
+        mask = notnull(arr)
+
+        if omitna:
+            arr = arr[mask]
+        else:
+            if not mask.all():
+                return np.nan
+
+        return _tseries.median(arr)
+
+    def prod(self, axis=0, dtype=None, out=None, omitna=True):
+        """
+        Product of all values
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
         product : float
         """
-        return self._ndarray_statistic('prod', dtype=dtype)
+        return self._ndarray_statistic('prod', dtype=dtype, omitna=omitna)
 
-    def min(self, axis=None, out=None):
+    def min(self, axis=None, out=None, omitna=True):
         """
-        Minimum of non-NA/null values
+        Minimum of values
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
         min : float
         """
         arr = self.values.copy()
-        if not issubclass(arr.dtype.type, np.int_):
-            np.putmask(arr, isnull(arr), np.inf)
+        if omitna:
+            if not issubclass(arr.dtype.type, np.int_):
+                np.putmask(arr, isnull(arr), np.inf)
         return arr.min()
 
-    def max(self, axis=None, out=None):
+    def max(self, axis=None, out=None, omitna=True):
         """
-        Maximum of non-NA/null values
+        Maximum of values
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
         max : float
         """
         arr = self.values.copy()
-        if not issubclass(arr.dtype.type, np.int_):
-            np.putmask(arr, isnull(arr), -np.inf)
+        if omitna:
+            if not issubclass(arr.dtype.type, np.int_):
+                np.putmask(arr, isnull(arr), -np.inf)
         return arr.max()
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1):
+    def std(self, axis=None, dtype=None, out=None, ddof=1, omitna=True):
         """
-        Unbiased standard deviation of non-NA/null values
+        Unbiased standard deviation of values
 
         Extra parameters are to preserve ndarray interface.
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
         stdev : float
         """
-        nona = remove_na(self.values)
-        if len(nona) < 2:
-            return nan
-        return ndarray.std(nona, axis, dtype, out, ddof)
+        if omitna:
+            nona = remove_na(self.values)
+            if len(nona) < 2:
+                return nan
+            return ndarray.std(nona, axis, dtype, out, ddof)
+        else:
+            return self.values.std(axis, dtype, out, ddof)
 
-    def var(self, axis=None, dtype=None, out=None, ddof=1):
+    def var(self, axis=None, dtype=None, out=None, ddof=1, omitna=True):
         """
         Unbiased variance of non-NA/null values
 
         Extra parameters are to preserve ndarray interface.
 
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
+
         Returns
         -------
         var : float
         """
-        nona = remove_na(self.values)
-        if len(nona) < 2:
-            return nan
-        return ndarray.var(nona, axis, dtype, out, ddof)
+        if omitna:
+            nona = remove_na(self.values)
+            if len(nona) < 2:
+                return nan
+            return ndarray.var(nona, axis, dtype, out, ddof)
+        else:
+            return self.values.var(axis, dtype, out, ddof)
 
-    def cumsum(self, axis=0, dtype=None, out=None):
+    def skew(self, omitna=True):
+        """
+        Unbiased skewness of the non-NA/null values
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        skew : float
+        """
+        y = np.array(self.values)
+        mask = notnull(y)
+        count = mask.sum()
+
+        if count < len(self) and not omitna:
+            return np.nan
+
+        np.putmask(y, -mask, 0)
+        A = y.sum() / count
+        B = (y**2).sum() / count  - A**2
+        C = (y**3).sum() / count - A**3 - 3*A*B
+
+        return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
+
+    def cumsum(self, axis=0, dtype=None, out=None, omitna=True):
         """
         Cumulative sum of values. Preserves locations of NaN values
 
         Extra parameters are to preserve ndarray interface.
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
@@ -622,7 +725,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
 
-        do_mask = not issubclass(self.dtype.type, np.int_)
+        do_mask = omitna and not issubclass(self.dtype.type, np.int_)
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 0.)
@@ -634,11 +737,16 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
-    def cumprod(self, axis=0, dtype=None, out=None):
+    def cumprod(self, axis=0, dtype=None, out=None, omitna=True):
         """
         Cumulative product of values. Preserves locations of NaN values
 
         Extra parameters are to preserve ndarray interface.
+
+        Parameters
+        ----------
+        omitna : boolean, default True
+            Exclude NA/null values
 
         Returns
         -------
@@ -646,7 +754,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
 
-        do_mask = not issubclass(self.dtype.type, np.int_)
+        do_mask = omitna and not issubclass(self.dtype.type, np.int_)
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 1.)
@@ -658,27 +766,11 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
-    def median(self):
-        """
-        Compute median value of non-NA/null values
-
-        Returns
-        -------
-        median : float
-        """
-        arr = self.values
-
-        if arr.dtype != np.float_:
-            arr = arr.astype(float)
-
-        arr = arr[notnull(arr)]
-        return _tseries.median(arr)
-
-    def _ndarray_statistic(self, funcname, dtype=None):
+    def _ndarray_statistic(self, funcname, dtype=None, omitna=True):
         arr = self.values
         retVal = getattr(arr, funcname)(dtype=dtype)
 
-        if isnull(retVal):
+        if omitna and isnull(retVal):
             arr = remove_na(arr)
             if len(arr) == 0:
                 return np.nan
@@ -701,7 +793,7 @@ copy : boolean, default False
         quantile : float
         """
         from scipy.stats import scoreatpercentile
-        return scoreatpercentile(self.valid().values, q * 100)
+        return scoreatpercentile(self.dropna().values, q * 100)
 
     def describe(self):
         """
@@ -722,25 +814,6 @@ copy : boolean, default False
 
         return Series(data, index=names)
 
-    def skew(self):
-        """
-        Unbiased skewness of the non-NA/null values
-
-        Returns
-        -------
-        skew : float
-        """
-        y = np.array(self.values)
-        mask = notnull(y)
-        count = mask.sum()
-        np.putmask(y, -mask, 0)
-
-        A = y.sum() / count
-        B = (y**2).sum() / count  - A**2
-        C = (y**3).sum() / count - A**3 - 3*A*B
-
-        return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
-
     def corr(self, other):
         """
         Compute correlation two Series, excluding missing values
@@ -753,7 +826,7 @@ copy : boolean, default False
         -------
         correlation : float
         """
-        commonIdx = self.valid().index.intersection(other.valid().index)
+        commonIdx = self.dropna().index.intersection(other.dropna().index)
 
         if len(commonIdx) == 0:
             return nan
