@@ -999,12 +999,11 @@ class Panel(NDFrame):
 
     def join(self, other, how=None, lsuffix='', rsuffix=''):
         """
-        Join columns with other DataFrame either on major and minor axes
-        column
+        Join items with other Panel either on major and minor axes column
 
         Parameters
         ----------
-        other : DataFrame
+        other : Panel
             Index should be similar to one of the columns in this one
         how : {'left', 'right', 'outer', 'inner'}
             How to handle indexes of the two objects. Default: 'left'
@@ -1045,11 +1044,9 @@ class Panel(NDFrame):
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         join_major, join_minor = self._get_join_index(other, how)
-
         this = self.reindex(major=join_major, minor=join_minor)
         other = other.reindex(major=join_major, minor=join_minor)
         #this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
-
         merged_data = this._data.merge(other._data)
         return self._constructor(merged_data)
 
@@ -1059,13 +1056,11 @@ class Panel(NDFrame):
         elif how == 'right':
             join_major, join_minor = other.major_axis, other.minor_axis
         elif how == 'inner':
-            join_major, join_minor = (
-                            self.major_axis.intersection(other.major_axis),
-                            self.minor_axis.intersection(other.minor_axis))
+            join_major = self.major_axis.intersection(other.major_axis)
+            join_minor = self.minor_axis.intersection(other.minor_axis)
         elif how == 'outer':
-            join_major, join_minor = (
-                            self.major_axis.union(other.major_axis),
-                            self.minor_axis.union(other.minor_axis))
+            join_major = self.major_axis.union(other.major_axis)
+            join_minor = self.minor_axis.union(other.minor_axis)
         return join_major, join_minor
 
     def _maybe_rename_join(self, other, lsuffix, rsuffix):
