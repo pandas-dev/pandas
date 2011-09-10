@@ -614,7 +614,76 @@ _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
 
 class SafeForSparse(object):
-    pass
+
+    def test_join_index(self):
+        # left / right
+
+        f = self.frame.reindex(columns=['A', 'B'])[:10]
+        f2 = self.frame.reindex(columns=['C', 'D'])
+
+        joined = f.join(f2)
+        self.assert_(f.index.equals(joined.index))
+        self.assertEqual(len(joined.columns), 4)
+
+        joined = f.join(f2, how='left')
+        self.assert_(joined.index.equals(f.index))
+        self.assertEqual(len(joined.columns), 4)
+
+        joined = f.join(f2, how='right')
+        self.assert_(joined.index.equals(f2.index))
+        self.assertEqual(len(joined.columns), 4)
+
+        # corner case
+        self.assertRaises(Exception, self.frame.join, self.frame,
+                          how='left')
+
+        # inner
+
+        f = self.frame.reindex(columns=['A', 'B'])[:10]
+        f2 = self.frame.reindex(columns=['C', 'D'])
+
+        joined = f.join(f2, how='inner')
+        self.assert_(joined.index.equals(f.index.intersection(f2.index)))
+        self.assertEqual(len(joined.columns), 4)
+
+        # corner case
+        self.assertRaises(Exception, self.frame.join, self.frame,
+                          how='inner')
+
+        # outer
+
+        f = self.frame.reindex(columns=['A', 'B'])[:10]
+        f2 = self.frame.reindex(columns=['C', 'D'])
+
+        joined = f.join(f2, how='outer')
+        self.assert_(tm.equalContents(self.frame.index, joined.index))
+        self.assertEqual(len(joined.columns), 4)
+
+        # corner case
+        self.assertRaises(Exception, self.frame.join, self.frame,
+                          how='outer')
+
+        self.assertRaises(Exception, f.join, f2, how='foo')
+
+    def test_join_overlap(self):
+        df1 = self.frame.ix[:, ['A', 'B', 'C']]
+        df2 = self.frame.ix[:, ['B', 'C', 'D']]
+
+        joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
+        df1_suf = df1.ix[:, ['B', 'C']].add_suffix('_df1')
+        df2_suf = df2.ix[:, ['B', 'C']].add_suffix('_df2')
+        no_overlap = self.frame.ix[:, ['A', 'D']]
+        expected = df1_suf.join(df2_suf).join(no_overlap)
+        assert_frame_equal(joined, expected)
+
+    def test_add_prefix_suffix(self):
+        with_prefix = self.frame.add_prefix('foo#')
+        expected = ['foo#%s' % c for c in self.frame.columns]
+        self.assert_(np.array_equal(with_prefix.columns, expected))
+
+        with_suffix = self.frame.add_suffix('#foo')
+        expected = ['%s#foo' % c for c in self.frame.columns]
+        self.assert_(np.array_equal(with_suffix.columns, expected))
 
 
 class TestDataFrame(unittest.TestCase, CheckIndexing):
@@ -1917,15 +1986,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         renamed = self.frame.T.rename(index={'C' : 'foo', 'D' : 'bar'})
         self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
 
-    def test_add_prefix_suffix(self):
-        with_prefix = self.frame.add_prefix('foo#')
-        expected = ['foo#%s' % c for c in self.frame.columns]
-        self.assert_(np.array_equal(with_prefix.columns, expected))
-
-        with_suffix = self.frame.add_suffix('#foo')
-        expected = ['%s#foo' % c for c in self.frame.columns]
-        self.assert_(np.array_equal(with_suffix.columns, expected))
-
     #----------------------------------------------------------------------
     # Time series related
 
@@ -2229,57 +2289,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         comb = self.empty.combineMult(self.frame)
         assert_frame_equal(comb, self.frame)
 
-    def test_join_index(self):
-        # left / right
-
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
-        joined = f.join(f2)
-        self.assert_(f.index.equals(joined.index))
-        self.assertEqual(len(joined.columns), 4)
-
-        joined = f.join(f2, how='left')
-        self.assert_(joined.index.equals(f.index))
-        self.assertEqual(len(joined.columns), 4)
-
-        joined = f.join(f2, how='right')
-        self.assert_(joined.index.equals(f2.index))
-        self.assertEqual(len(joined.columns), 4)
-
-        # corner case
-        self.assertRaises(Exception, self.frame.join, self.frame,
-                          how='left')
-
-        # inner
-
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
-        joined = f.join(f2, how='inner')
-        self.assert_(joined.index.equals(f.index.intersection(f2.index)))
-        self.assertEqual(len(joined.columns), 4)
-
-        # corner case
-        self.assertRaises(Exception, self.frame.join, self.frame,
-                          how='inner')
-
-        # outer
-
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
-        joined = f.join(f2, how='outer')
-        self.assert_(tm.equalContents(self.frame.index, joined.index))
-        self.assertEqual(len(joined.columns), 4)
-
-        # corner case
-        self.assertRaises(Exception, self.frame.join, self.frame,
-                          how='outer')
-
-        self.assertRaises(Exception, f.join, f2, how='foo')
-
-    def test_join(self):
+    def test_join_on(self):
         index, data = tm.getMixedTypeDict()
         target = DataFrame(data, index=index)
 
@@ -2326,17 +2336,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # can't specify how
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
-
-    def test_join_overlap(self):
-        df1 = self.frame.ix[:, ['A', 'B', 'C']]
-        df2 = self.frame.ix[:, ['B', 'C', 'D']]
-
-        joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
-        df1_suf = df1.ix[:, ['B', 'C']].add_suffix('_df1')
-        df2_suf = df2.ix[:, ['B', 'C']].add_suffix('_df2')
-        no_overlap = self.frame.ix[:, ['A', 'D']]
-        expected = df1_suf.join(df2_suf).join(no_overlap)
-        assert_frame_equal(joined, expected)
 
     def test_clip(self):
         median = self.frame.median().median()

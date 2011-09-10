@@ -257,6 +257,9 @@ class TestMultiLevel(unittest.TestCase):
         unstacked = self.ymd.unstack()
         unstacked2 = unstacked.unstack()
 
+        # test that ints work
+        unstacked = self.ymd.astype(int).unstack()
+
     def test_stack(self):
         # regular roundtrip
         unstacked = self.ymd.unstack()

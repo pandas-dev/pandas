@@ -20,13 +20,12 @@ import pandas.core.datetools as datetools
 import pandas.util.testing as testing
 
 import pandas.core.sparse as spm
-reload(spm)
 from pandas.core.sparse import (IntIndex, BlockIndex,
                                 SparseSeries, SparseDataFrame,
                                 SparsePanel)
 
+import test_frame
 import test_panel
-
 
 def _test_data1():
     # nan-based
@@ -589,7 +588,7 @@ class TestSparseSeries(TestCase):
 class TestSparseTimeSeries(TestCase):
     pass
 
-class TestSparseDataFrame(TestCase):
+class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
     klass = SparseDataFrame
 
     def setUp(self):
@@ -1148,8 +1147,8 @@ def panel_data3():
         }, index=index)
 
 class TestSparsePanel(TestCase,
-                          test_panel.SafeForLongAndSparse,
-                          test_panel.SafeForSparse):
+                      test_panel.SafeForLongAndSparse,
+                      test_panel.SafeForSparse):
 
     @staticmethod
     def assert_panel_equal(x, y):

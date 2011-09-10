@@ -1056,6 +1056,14 @@ class SparseDataFrame(DataFrame):
         self.columns = new_columns
         self._series = new_series
 
+    def add_prefix(self, prefix):
+        f = (('%s' % prefix) + '%s').__mod__
+        return self.rename(columns=f)
+
+    def add_suffix(self, suffix):
+        f = ('%s' + ('%s' % suffix)).__mod__
+        return self.rename(columns=f)
+
     def _join_on(self, other, on):
         # need to implement?
         raise NotImplementedError
