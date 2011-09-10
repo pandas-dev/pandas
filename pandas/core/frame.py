@@ -1407,36 +1407,6 @@ class DataFrame(NDFrame):
         self._data = self._data.rename_items(mapper)
         self._series_cache.clear()
 
-    def add_prefix(self, prefix):
-        """
-        Concatenate prefix string with panel items names.
-
-        Parameters
-        ----------
-        prefix : string
-
-        Returns
-        -------
-        LongPanel
-        """
-        new_data = self._data.add_prefix(prefix)
-        return self._constructor(new_data)
-
-    def add_suffix(self, suffix):
-        """
-        Concatenate suffix string with panel items names
-
-        Parameters
-        ----------
-        suffix : string
-
-        Returns
-        -------
-        with_suffix : DataFrame
-        """
-        new_data = self._data.add_suffix(suffix)
-        return self._constructor(new_data)
-
     #----------------------------------------------------------------------
     # Arithmetic / combination related
 
@@ -2115,22 +2085,18 @@ class DataFrame(NDFrame):
         if len(other.index) == 0:
             return self
 
-        if on not in self:
-            raise Exception('%s column not contained in this frame!' % on)
-
-        this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
-        new_data = this._data.join_on(other._data, this[on], axis=1)
-        return this._constructor(new_data)
+        new_data = self._data.join_on(other._data, self[on], axis=1,
+                                      lsuffix=lsuffix, rsuffix=rsuffix)
+        return self._constructor(new_data)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         join_index = self._get_join_index(other, how)
 
         this = self.reindex(join_index)
         other = other.reindex(join_index)
-        this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
 
         # merge blocks
-        merged_data = this._data.merge(other._data)
+        merged_data = this._data.merge(other._data, lsuffix, rsuffix)
         return self._constructor(merged_data)
 
     def _get_join_index(self, other, how):
@@ -2146,30 +2112,6 @@ class DataFrame(NDFrame):
             raise Exception('do not recognize join method %s' % how)
 
         return join_index
-
-    def _maybe_rename_join(self, other, lsuffix, rsuffix):
-        intersection = self.columns.intersection(other.columns)
-
-        if len(intersection) > 0:
-            if not lsuffix and not rsuffix:
-                raise Exception('columns overlap: %s' % intersection)
-
-            def lrenamer(x):
-                if x in intersection:
-                    return '%s%s' % (x, lsuffix)
-                return x
-
-            def rrenamer(x):
-                if x in intersection:
-                    return '%s%s' % (x, rsuffix)
-                return x
-
-            this = self.rename(columns=lrenamer)
-            other = other.rename(columns=rrenamer)
-        else:
-            this = self
-
-        return this, other
 
     #----------------------------------------------------------------------
     # Statistical methods, etc.

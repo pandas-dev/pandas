@@ -399,6 +399,20 @@ class CheckIndexing(object):
         self.assert_(xs['ItemA'].dtype == np.float64)
         self.assert_(xs['ItemD'].dtype == np.object_)
 
+    def test_xs(self):
+        itemA = self.panel.xs('ItemA', axis=0)
+        expected = self.panel['ItemA']
+        assert_frame_equal(itemA, expected)
+
+        # not view by default
+        itemA.values[:] = np.nan
+        self.assert_(not np.isnan(self.panel['ItemA'].values).all())
+
+        # but can get view
+        itemA_view = self.panel.xs('ItemA', axis=0, copy=False)
+        itemA_view.values[:] = np.nan
+        self.assert_(np.isnan(self.panel['ItemA'].values).all())
+
     def test_getitem_fancy_labels(self):
         p = self.panel
 
@@ -758,6 +772,48 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 
+    def test_join(self):
+        p1 = self.panel.ix[:2, :10, :3]
+        p2 = self.panel.ix[2:, 5:, 2:]
+
+        # left join
+        result = p1.join(p2)
+        expected = p1.copy()
+        expected['ItemC'] = p2['ItemC']
+        assert_panel_equal(result, expected)
+
+        # right join
+        result = p1.join(p2, how='right')
+        expected = p2.copy()
+        expected['ItemA'] = p1['ItemA']
+        expected['ItemB'] = p1['ItemB']
+        expected = expected.reindex(items=['ItemA', 'ItemB', 'ItemC'])
+        assert_panel_equal(result, expected)
+
+        # inner join
+        result = p1.join(p2, how='inner')
+        expected = self.panel.ix[:, 5:10, 2:3]
+        assert_panel_equal(result, expected)
+
+        # outer join
+        result = p1.join(p2, how='outer')
+        expected = p1.reindex(major=self.panel.major_axis,
+                              minor=self.panel.minor_axis)
+        expected = expected.join(p2.reindex(major=self.panel.major_axis,
+                                            minor=self.panel.minor_axis))
+        assert_panel_equal(result, expected)
+
+    def test_join_overlap(self):
+        p1 = self.panel.ix[['ItemA', 'ItemB', 'ItemC']]
+        p2 = self.panel.ix[['ItemB', 'ItemC']]
+
+        joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
+        p1_suf = p1.ix[['ItemB', 'ItemC']].add_suffix('_p1')
+        p2_suf = p2.ix[['ItemB', 'ItemC']].add_suffix('_p2')
+        no_overlap = self.panel.ix[['ItemA']]
+        expected = p1_suf.join(p2_suf).join(no_overlap)
+        assert_panel_equal(joined, expected)
+
 class TestLongPanel(unittest.TestCase):
 
     def setUp(self):
@@ -882,6 +938,11 @@ class TestLongPanel(unittest.TestCase):
 
         # one item
         result = self.panel.add(self.panel.filter(['ItemA']))
+
+    def test_combine_scalar(self):
+        result = self.panel.mul(2)
+        expected = DataFrame(self.panel._data) * 2
+        assert_frame_equal(result, expected)
 
     def test_operators(self):
         wp = self.panel.to_wide()

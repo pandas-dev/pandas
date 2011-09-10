@@ -414,3 +414,33 @@ class NDFrame(PandasObject):
         labels = result._data.axes[axis]
         result._data.set_axis(axis, labels.swaplevel(i, j))
         return result
+
+    def add_prefix(self, prefix):
+        """
+        Concatenate prefix string with panel items names.
+
+        Parameters
+        ----------
+        prefix : string
+
+        Returns
+        -------
+        with_prefix : type of caller
+        """
+        new_data = self._data.add_prefix(prefix)
+        return self._constructor(new_data)
+
+    def add_suffix(self, suffix):
+        """
+        Concatenate suffix string with panel items names
+
+        Parameters
+        ----------
+        suffix : string
+
+        Returns
+        -------
+        with_suffix : type of caller
+        """
+        new_data = self._data.add_suffix(suffix)
+        return self._constructor(new_data)

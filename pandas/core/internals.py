@@ -605,22 +605,42 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_axes)
 
-    def merge(self, other):
+    def merge(self, other, lsuffix=None, rsuffix=None):
         assert(self._is_indexed_like(other))
 
-        intersection = self.items.intersection(other.items)
-        try:
-            assert(len(intersection) == 0)
-        except AssertionError:
-            raise Exception('items overlap: %s' % intersection)
+        this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
 
-        cons_items = self.items + other.items
-        consolidated = _consolidate(self.blocks + other.blocks, cons_items)
+        cons_items = this.items + other.items
+        consolidated = _consolidate(this.blocks + other.blocks, cons_items)
 
-        new_axes = list(self.axes)
+        new_axes = list(this.axes)
         new_axes[0] = cons_items
 
         return BlockManager(consolidated, new_axes)
+
+    def _maybe_rename_join(self, other, lsuffix, rsuffix):
+        intersection = self.items.intersection(other.items)
+
+        if len(intersection) > 0:
+            if not lsuffix and not rsuffix:
+                raise Exception('columns overlap: %s' % intersection)
+
+            def lrenamer(x):
+                if x in intersection:
+                    return '%s%s' % (x, lsuffix)
+                return x
+
+            def rrenamer(x):
+                if x in intersection:
+                    return '%s%s' % (x, rsuffix)
+                return x
+
+            this = self.rename_items(lrenamer)
+            other = other.rename_items(rrenamer)
+        else:
+            this = self
+
+        return this, other
 
     def _is_indexed_like(self, other):
         """
@@ -632,7 +652,9 @@ class BlockManager(object):
                 return False
         return True
 
-    def join_on(self, other, on, axis=1):
+    def join_on(self, other, on, axis=1, lsuffix=None, rsuffix=None):
+        this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
+
         other_axis = other.axes[axis]
         indexer, mask = _tseries.getMergeVec(on.astype(object),
                                              other_axis.indexMap)
@@ -642,13 +664,14 @@ class BlockManager(object):
         needs_masking = len(on) > 0 and notmask.any()
         other_blocks = []
         for block in other.blocks:
-            newb = block.reindex_axis(indexer, notmask, needs_masking, axis=axis)
+            newb = block.reindex_axis(indexer, notmask, needs_masking,
+                                      axis=axis)
             other_blocks.append(newb)
 
-        cons_items = self.items + other.items
-        consolidated = _consolidate(self.blocks + other_blocks, cons_items)
+        cons_items = this.items + other.items
+        consolidated = _consolidate(this.blocks + other_blocks, cons_items)
 
-        new_axes = list(self.axes)
+        new_axes = list(this.axes)
         new_axes[0] = cons_items
         return BlockManager(consolidated, new_axes)
 

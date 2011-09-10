@@ -624,7 +624,7 @@ class Panel(NDFrame):
         """
         return self.xs(key, axis=2, copy=copy)
 
-    def xs(self, key, axis=1, copy=False):
+    def xs(self, key, axis=1, copy=True):
         """
         Return slice of panel along selected axis
 
@@ -632,7 +632,7 @@ class Panel(NDFrame):
         ----------
         key : object
             Label
-        axis : {'items', 'major', 'minor}
+        axis : {'items', 'major', 'minor}, default 1/'major'
 
         Returns
         -------
@@ -984,33 +984,15 @@ class Panel(NDFrame):
         -------
         joined : Panel
         """
-        #if on is not None:
-        #    if how is not None:
-        #        raise Exception('how parameter is not valid when '
-        #                        'on specified')
-        #    return self._join_on(other, on, lsuffix, rsuffix)
-        #else:
         if how is None:
-             how = 'left'
+            how = 'left'
         return self._join_index(other, how, lsuffix, rsuffix)
-
-    #NOTE: I don't think is setup for multi-indices?
-    #def _join_on(self, other, on, lsuffix, rsuffix):
-    #    if len(other.major_axis) == 0 and len(other.minor_axis) == 0:
-    #        return self
-
-    #    if on not in self:
-    #        raise Exception("%s column not contained in this panel" % s)
-
-    #    this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
-    #    new_data = this._data.join_on(other._data, this[on], axis=0)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         join_major, join_minor = self._get_join_index(other, how)
         this = self.reindex(major=join_major, minor=join_minor)
         other = other.reindex(major=join_major, minor=join_minor)
-        #this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
-        merged_data = this._data.merge(other._data)
+        merged_data = this._data.merge(other._data, lsuffix, rsuffix)
         return self._constructor(merged_data)
 
     def _get_join_index(self, other, how):
@@ -1025,31 +1007,6 @@ class Panel(NDFrame):
             join_major = self.major_axis.union(other.major_axis)
             join_minor = self.minor_axis.union(other.minor_axis)
         return join_major, join_minor
-
-    def _maybe_rename_join(self, other, lsuffix, rsuffix):
-        intersection = self.items.intersection(other.items)
-
-        if len(intersection) > 0:
-            if not lsuffix and not rsuffix:
-                raise Exception('items overlap: %s' % intersection)
-
-            def lrenamer(x):
-                if x in intersection:
-                    return '%s%s' % (x, lsuffix)
-                return x
-
-            def rrenamer(x):
-                if x in intersection:
-                    return '%s%s' % (x, rsuffix)
-                return x
-
-            #TODO: is this good enough?
-            self.items = Index(lrenamer)
-            other.items = Index(rrenamer)
-        else:
-            this = self
-
-        return this, other
 
     #----------------------------------------------------------------------
     # Deprecated stuff
@@ -1147,15 +1104,15 @@ class LongPanel(DataFrame):
         return self.index.labels[1]
 
     def _combine(self, other, func, axis='items'):
-        if isinstance(other, Panel):
-            return self._combine_panel(other, func)
-        elif isinstance(other, LongPanel):
+        if isinstance(other, LongPanel):
             return self._combine_frame(other, func)
         elif isinstance(other, DataFrame):
             return self._combine_panel_frame(other, func, axis=axis)
         elif np.isscalar(other):
             return LongPanel(func(self.values, other), columns=self.items,
                              index=self.index)
+        else:  # pragma: no cover
+            raise Exception('type %s not supported' % type(other))
 
     def _combine_panel_frame(self, other, func, axis='items'):
         """
@@ -1174,22 +1131,6 @@ class LongPanel(DataFrame):
         wide = self.to_wide()
         result = wide._combine_frame(other, func, axis=axis)
         return result.to_long()
-
-    def _combine_panel(self, other, func):
-        """
-        Arithmetic operation between panels
-        """
-        if self.index is not other.index:
-            raise ValueError("Can only combine identically-indexed "
-                            "panels for now")
-
-        if len(other.items) == 1:
-            new_values = func(self.values, other.values)
-        else:
-            new_values = func(self.values, other.values)
-
-        return LongPanel(new_values, columns=self.items,
-                         index=self.index)
 
     add = _panel_arith_method(operator.add, 'add')
     subtract = _panel_arith_method(operator.sub, 'subtract')
