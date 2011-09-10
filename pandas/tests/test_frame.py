@@ -134,6 +134,12 @@ class CheckIndexing(object):
         expected.values[mask.values] = nan
         assert_frame_equal(df, expected)
 
+        # set from DataFrame
+        expected = df.copy()
+        df[df > np.abs(df)] = df * 2
+        np.putmask(expected.values, mask.values, df.values * 2)
+        assert_frame_equal(df, expected)
+
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
         mask = self.frame['A'] > 0
@@ -981,6 +987,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         indexed_frame = DataFrame.from_records(arr, index=index)
         self.assert_(np.array_equal(indexed_frame.index, index))
 
+        # wrong length
+        self.assertRaises(Exception, DataFrame.from_records, arr,
+                          index=index[:-1])
+
         indexed_frame = DataFrame.from_records(arr, index='f1')
         self.assertRaises(Exception, DataFrame.from_records, np.zeros((2, 3)))
 
@@ -1686,6 +1696,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertRaises(Exception, self.tsframe.xs,
                           self.tsframe.index[0] - datetools.bday)
 
+        # xs get column
+        series = self.frame.xs('A', axis=1)
+        expected = self.frame['A']
+        assert_series_equal(series, expected)
+
+        # no view by default
+        series[:] = 5
+        self.assert_((expected != 5).all())
+
+        # view
+        series = self.frame.xs('A', axis=1, copy=False)
+        series[:] = 5
+        self.assert_((expected == 5).all())
+
     def test_xs_corner(self):
         # pathological mixed-type reordering case
         df = DataFrame(index=[0])
@@ -2304,13 +2328,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
                           how='left')
 
     def test_join_overlap(self):
-        df1 = self.frame.copy()
-        df2 = self.frame.copy()
+        df1 = self.frame.ix[:, ['A', 'B', 'C']]
+        df2 = self.frame.ix[:, ['B', 'C', 'D']]
 
         joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
-        df1_suf = df1.add_suffix('_df1')
-        df2_suf = df2.add_suffix('_df2')
-        expected = df1_suf.join(df2_suf)
+        df1_suf = df1.ix[:, ['B', 'C']].add_suffix('_df1')
+        df2_suf = df2.ix[:, ['B', 'C']].add_suffix('_df2')
+        no_overlap = self.frame.ix[:, ['A', 'D']]
+        expected = df1_suf.join(df2_suf).join(no_overlap)
         assert_frame_equal(joined, expected)
 
     def test_clip(self):

@@ -391,8 +391,6 @@ class DataFrame(NDFrame):
                         columns.remove(field)
                     result_index = MultiIndex.from_arrays(arrays)
                 except Exception:
-                    if len(index) != len(data):
-                        raise
                     result_index = index
         else:
             result_index = np.arange(len(data))
@@ -2308,17 +2306,10 @@ class DataFrame(NDFrame):
             return self._count_level(level, axis=axis,
                                      numeric_only=numeric_only)
 
-        if numeric_only:
-            try:
-                y, axis_labels = self._get_agg_data(axis, numeric_only=True)
-                mask = notnull(y)
-                return Series(mask.sum(axis), index=axis_labels)
-            except Exception:
-                f = lambda s: notnull(s).sum()
-                return self.apply(f, axis=axis)
-        else:
-            result = notnull(self.values).sum(axis)
-            return Series(result, index=self._get_agg_axis(axis))
+        y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only,
+                                            copy=False)
+        mask = notnull(y)
+        return Series(mask.sum(axis), index=axis_labels)
 
     def _count_level(self, level, axis=0, numeric_only=False):
         # TODO: deal with sortedness??
@@ -2476,19 +2467,13 @@ class DataFrame(NDFrame):
         product : Series
         """
         y = np.array(self.values, subok=True)
-        try:
-            if skipna:
-                if not issubclass(y.dtype.type, np.int_):
-                    y[np.isnan(y)] = 1
-            theProd = y.prod(axis)
-            theCount = self.count(axis)
-            theProd[theCount == 0] = nan
-        except Exception:
-            def wrapper(x):
-                return x.prod(skipna=skipna)
-            theProd = self.apply(wrapper, axis=axis)
-
-        return Series(theProd, index=self._get_agg_axis(axis))
+        if skipna:
+            if not issubclass(y.dtype.type, np.int_):
+                y[np.isnan(y)] = 1
+        result = y.prod(axis)
+        count = self.count(axis)
+        result[count == 0] = nan
+        return Series(result, index=self._get_agg_axis(axis))
 
     product = prod
 
@@ -2678,7 +2663,7 @@ class DataFrame(NDFrame):
 
         return Series(result, index=axis_labels)
 
-    def _get_agg_data(self, axis, numeric_only=True):
+    def _get_agg_data(self, axis, numeric_only=True, copy=True):
         num_cols = self._get_numeric_columns()
 
         if len(num_cols) < len(self.columns) and numeric_only:
@@ -2688,7 +2673,9 @@ class DataFrame(NDFrame):
             else:
                 axis_labels = self.index
         else:
-            y = self.values.copy()
+            y = self.values
+            if copy:
+                y = y.copy()
             axis_labels = self._get_agg_axis(axis)
 
         return y, axis_labels
