@@ -184,6 +184,14 @@ For example:
    df.mean(0)
    df.mean(1)
 
+All such methods have a ``skipna`` option signaling whether to exclude missing
+data (``True`` by default):
+
+.. ipython:: python
+
+   df.sum(0, skipna=False)
+   df.sum(axis=1, skipna=True)
+
 Combined with the broadcasting / arithmetic behavior, one can describe various
 statistical procedures, like standardization (rendering data zero mean and
 standard deviation 1), very concisely:
@@ -224,7 +232,7 @@ Here is a quick reference summary table of common functions
     ``cumprod``, Cumulative product
 
 Note that by chance some NumPy methods, like ``mean``, ``std``, and ``sum``,
-will exclude NAs on Series input:
+will exclude NAs on Series input by default:
 
 .. ipython:: python
 

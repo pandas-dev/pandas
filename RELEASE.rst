@@ -104,7 +104,9 @@ Release notes
     copied then the resulting object is indexed the same
   - Added `sort_index` methods to Series and Panel. Renamed `DataFrame.sort`
     to `sort_index`. Leaving `DataFrame.sort` for now.
-<v
+  - Added ``skipna`` option to statistical instance methods on all the data
+    structures
+
 **Improvements to existing features**
 
   * The 2-dimensional `DataFrame` and `DataMatrix` classes have been extensively
