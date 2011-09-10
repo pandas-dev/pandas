@@ -269,7 +269,12 @@ significant. Note the correlation after winsorization remains high:
 
    winz.corrwith(rets)
 
-Multiple regressions can be run by passing a DataFrame for
+Multiple regressions can be run by passing a DataFrame with multiple columns
+for the predictors ``x``:
+
+.. ipython:: python
+
+   ols(y=winz['AAPL'], x=winz.drop(['AAPL'], axis=1))
 
 Panel regression
 ~~~~~~~~~~~~~~~~

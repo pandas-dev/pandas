@@ -106,6 +106,8 @@ Release notes
     to `sort_index`. Leaving `DataFrame.sort` for now.
   - Added ``skipna`` option to statistical instance methods on all the data
     structures
+  - `pandas.io.data` module providing a consistent interface for reading time
+    series data from several different sources
 
 **Improvements to existing features**
 
@@ -272,7 +274,9 @@ Thanks
   - Tim McNamara
   - Justin Berka
   - Dieter Vandenbussche
-
+  - Shane Conway
+  - Skipper Seabold
+  - Chris Jordan-Squire
 
 ========================
 pandas 0.3 Release Notes

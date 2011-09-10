@@ -18,7 +18,9 @@ Python version support
 
 Officially Python 2.5 to 2.7. I will aim for Python 3.x support in the next
 release. Python 2.4 support is being phased out since the userbase has shrunk
-significantly.
+significantly. Continuing Python 2.4 support will require either monetary
+development support or someone contributing to the project to maintain
+compatibility.
 
 
 Binary installers

@@ -261,6 +261,8 @@ Reindexing / Selection / Label manipulation
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.add_prefix
+   DataFrame.add_suffix
    DataFrame.drop
    DataFrame.filter
    DataFrame.reindex
