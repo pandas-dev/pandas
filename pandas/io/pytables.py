@@ -676,9 +676,10 @@ def _convert_index(index):
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
         return converted, 'string', _tables().StringCol(itemsize)
-    elif isinstance(values[0], (int, np.integer)):
+    elif isinstance(values[0], (long, int, np.integer)):
         # take a guess for now, hope the values fit
-        return np.asarray(values, dtype=int), 'integer', _tables().Int64Col()
+        atom = _tables().Int64Col()
+        return np.asarray(values, dtype=np.int64), 'integer', atom
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % type(values[0]))
 
