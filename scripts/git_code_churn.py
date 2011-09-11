@@ -108,8 +108,8 @@ if __name__ == '__main__':
 
     by_date = by_commit.groupby(commits).sum()
 
-    by_date = by_date.drop([datetime(2011, 6, 10)]
+    by_date = by_date.drop([datetime(2011, 6, 10)])
 
     # clean out days where I touched Cython
 
-    by_date = by_date[by_date.sum(1) < 5000]
+    by_date = by_date[by_date < 5000]
