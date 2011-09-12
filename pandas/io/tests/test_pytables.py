@@ -248,6 +248,19 @@ class TesttHDFStore(unittest.TestCase):
         wp = tm.makePanel()
         self._check_roundtrip_table(wp, tm.assert_panel_equal)
 
+    def test_wide_table_dups(self):
+        wp = tm.makePanel()
+        try:
+            store = HDFStore(self.scratchpath)
+            store._quiet = True
+            store.put('panel', wp, table=True)
+            store.put('panel', wp, table=True, append=True)
+            recons = store['panel']
+            tm.assert_panel_equal(recons, wp)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
     def test_long(self):
         def _check(left, right):
             tm.assert_panel_equal(left.to_wide(),

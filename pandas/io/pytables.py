@@ -97,6 +97,8 @@ class HDFStore(object):
     >>> bar = store['foo']   # retrieve
     >>> store.close()
     """
+    _quiet = False
+
     def __init__(self, path, mode='a', complevel=None, complib=None,
                  fletcher32=False):
         try:
@@ -625,6 +627,8 @@ class HDFStore(object):
         return self._read_panel_table(group, where)['value']
 
     def _read_panel_table(self, group, where=None):
+        from pandas.core.common import _asarray_tuplesafe
+
         table = getattr(group, 'table')
 
         # create the selection
@@ -640,8 +644,29 @@ class HDFStore(object):
         long_index = MultiIndex.from_arrays([index, columns])
         lp = LongPanel(sel.values['values'], index=long_index,
                        columns=fields)
-        lp = lp.sortlevel(level=0)
-        wp = lp.to_wide()
+
+        if lp.consistent:
+            lp = lp.sortlevel(level=0)
+            wp = lp.to_wide()
+        else:
+            if not self._quiet:
+                print ('Duplicate entries in table, taking most recently '
+                       'appended')
+
+            # need a better algorithm
+            tuple_index = long_index.get_tuple_index()
+            index_map = _tseries.map_indices_buf(tuple_index)
+
+            unique_tuples = _tseries.fast_unique(tuple_index)
+            unique_tuples = _asarray_tuplesafe(unique_tuples)
+
+            indexer, _ = _tseries.getMergeVec(unique_tuples, index_map)
+
+            new_index = long_index.take(indexer)
+            new_values = lp.values.take(indexer, axis=0)
+
+            lp = LongPanel(new_values, index=new_index, columns=lp.columns)
+            wp = lp.to_wide()
 
         if sel.column_filter:
             new_minor = sorted(set(wp.minor_axis) & sel.column_filter)

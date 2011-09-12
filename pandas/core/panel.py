@@ -1036,6 +1036,25 @@ class LongPanel(DataFrame):
     DataFrame objects with hierarchical indexes. You should be careful about
     writing production code depending on LongPanel
     """
+
+    @property
+    def consistent(self):
+        offset = max(len(self.major_axis), len(self.minor_axis))
+
+        # overflow risk
+        if (offset + 1) ** 2 > 2**32:
+            keys = (self.major_labels.astype(np.int64) * offset +
+                    self.minor_labels.astype(np.int64))
+        else:
+            keys = self.major_labels * offset + self.minor_labels
+
+        unique_keys = np.unique(keys)
+
+        if len(unique_keys) < len(keys):
+            return False
+
+        return True
+
     @property
     def wide_shape(self):
         return (len(self.items), len(self.major_axis), len(self.minor_axis))
@@ -1145,6 +1164,7 @@ class LongPanel(DataFrame):
         -------
         Panel
         """
+        assert(self.consistent)
         mask = make_mask(self.index)
         if self._data.is_mixed_dtype():
             return self._to_wide_mixed(mask)

@@ -511,7 +511,8 @@ class MultiIndex(Index):
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
         return np.arange(len(labels[0]), dtype=object).view(cls)
 
-    def __init__(self, levels, labels, sortorder=None, names=None):
+    def __init__(self, levels, labels, sortorder=None, names=None,
+                 consistent=None):
         self.levels = [_ensure_index(lev) for lev in levels]
         self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
 

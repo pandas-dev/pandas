@@ -260,7 +260,7 @@ def fast_unique(ndarray[object] values):
     except Exception:
         pass
 
-    return np.asarray(uniques, dtype=object)
+    return uniques
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
