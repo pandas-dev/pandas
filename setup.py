@@ -286,6 +286,7 @@ setuptools_args = {}
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"
 
+write_version_py()
 setup(name=DISTNAME,
       version=FULLVERSION,
       maintainer=MAINTAINER,
