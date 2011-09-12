@@ -1058,18 +1058,18 @@ def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
 
     return indexer
 
-def reindex_block(ndarray[float64_t, ndim=1] values,
-                  BlockIndex sparse_index,
-                  ndarray[int32_t, ndim=1] indexer):
-    cdef:
-        pyst i, length
-        ndarray[float64_t, ndim=1] out
+# def reindex_block(ndarray[float64_t, ndim=1] values,
+#                   BlockIndex sparse_index,
+#                   ndarray[int32_t, ndim=1] indexer):
+#     cdef:
+#         pyst i, length
+#         ndarray[float64_t, ndim=1] out
 
-    out = np.empty(length, dtype=np.float64)
+#     out = np.empty(length, dtype=np.float64)
 
-    for i from 0 <= i < length:
-        if indexer[i] == -1:
-            pass
+#     for i from 0 <= i < length:
+#         if indexer[i] == -1:
+#             pass
 
 
 # cdef class SparseCruncher(object):
