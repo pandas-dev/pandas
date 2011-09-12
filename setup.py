@@ -53,10 +53,10 @@ pandas is well suited for many different kinds of data:
 The two primary data structures of pandas, Series (1-dimensional) and DataFrame
 (2-dimensional), handle the vast majority of typical use cases in finance,
 statistics, social science, and many areas of engineering. For R users,
-:class:`DataFrame` provides everything that R's ``data.frame`` provides and much
-more. pandas is built on top of `NumPy <http://www.numpy.org>`__ and is intended
-to integrate well within a scientific computing environment with many other 3rd
-party libraries.
+DataFrame provides everything that R's ``data.frame`` provides and much
+more. pandas is built on top of `NumPy <http://www.numpy.org>`__ and is
+intended to integrate well within a scientific computing environment with many
+other 3rd party libraries.
 
 Here are just a few of the things that pandas does well:
 
