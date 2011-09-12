@@ -6,9 +6,8 @@ include TODO.rst
 include setup.py
 include setupegg.py
 
-graft docs
-prune docs/build
-prune docs/gh-pages
+graft doc
+prune doc/build
 
 graft examples
 graft pandas
