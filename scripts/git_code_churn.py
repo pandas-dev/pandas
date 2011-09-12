@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas import *
 
-repo_path = '/home/wesm/code/pandas'
+repo_path = '/Users/wesm/code/pandas'
 githist = ('git log --pretty=format:\"%h %ad | %s%d [%an]\" --date=short ' +
            repo_path + ' > githist.txt')
 

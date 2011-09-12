@@ -116,7 +116,7 @@ Release notes
     possible their optimal performance characteristics. This should reduce
     confusion from users about which class to use.
 
-    * Note that under ther hood there is a new essentially "lazy evaluation"
+    * Note that under the hood there is a new essentially "lazy evaluation"
       scheme within respect to adding columns to DataFrame. During some
       operations, like-typed blocks will be "consolidated" but not before.
 
