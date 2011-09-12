@@ -19,8 +19,8 @@ Plotting with matplotlib
 
 .. note::
 
-    We intend to build more plotting integration with :ref:`matplotlib
-    <http://matplotlib.sourceforge.net>` as time goes on.
+    We intend to build more plotting integration with `matplotlib
+    <http://matplotlib.sourceforge.net>`__ as time goes on.
 
 We use the standard convention for referencing the matplotlib API:
 

@@ -5,6 +5,8 @@
 API Reference
 *************
 
+.. _api.series:
+
 Series
 ------
 
@@ -159,6 +161,8 @@ Serialization / IO / Conversion
    Series.to_csv
    Series.to_dict
    Series.to_sparse
+
+.. _api.dataframe:
 
 DataFrame
 ---------
@@ -341,17 +345,41 @@ Serialization / IO / Conversion
    DataFrame.load
    DataFrame.info
 
+.. _api.panel:
+
 Panel
 -----
+
+.. _api.panel.stats:
+
+Computations / Descriptive Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Input / Output
 --------------
 
+.. currentmodule:: pandas.io.parsers
+
 File IO
 ~~~~~~~
 
+.. autosummary::
+   :toctree: generated/
+
+   read_table
+   read_csv
+   ExcelFile.parse
+
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+.. currentmodule:: pandas.io.pytables
+
+.. autosummary::
+   :toctree: generated/
+
+   HDFStore.put
+   HDFStore.get
 
 GroupBy
 -------

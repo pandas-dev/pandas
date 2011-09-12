@@ -436,7 +436,7 @@ R package):
 
 .. ipython:: python
 
-   baseball = read_csv('baseball.csv')
+   baseball = read_csv('data/baseball.csv')
    baseball
 
 However, using ``to_string`` will display any DataFrame in tabular form, though

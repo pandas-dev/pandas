@@ -4,11 +4,6 @@
 pandas: powerful Python data analysis toolkit
 *********************************************
 
-.. note::
-
-    This documentation is currently (as of 8/26) undergoing heavy work. Check
-    back over the next week or two for continuous updates.
-
 `PDF Version <pandas.pdf>`__
 
 .. module:: pandas

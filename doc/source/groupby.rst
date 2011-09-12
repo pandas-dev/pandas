@@ -28,12 +28,16 @@ following:
 
  - **Aggregation**: computing a summary statistic (or statistics) about each
    group. Some examples:
+
     - Compute group sums or means
     - Compute group sizes / counts
+
  - **Transformation**: perform some group-specific computations and return a
    like-indexed. Some examples:
+
     - Standardizing data (zscore) within group
     - Filling NAs within groups with a value derived from each group
+
  - Some combination of the above: GroupBy will examine the results of the apply
    step and try to return a sensibly combined result if it doesn't fit into
    either of the above two categories

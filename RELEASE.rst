@@ -22,7 +22,7 @@ Documentation: http://pandas.sourceforge.net
 Release notes
 =============
 
-**Release date:** NOT YET RELEASED
+**Release date:** 9/12/2011
 
 **New features / modules**
 
@@ -256,6 +256,7 @@ Release notes
     too
   * R-square value was incorrect in the presence of fixed and time effects in
     the `PanelOLS` classes
+  * `HDFStore` can handle duplicates in table format, will take
 
 Thanks
 ------
