@@ -1,0 +1,2 @@
+* Check if dateutil is indeed  (>= 1.5) -- absent on Ubuntus
+* IPython 0.11 seems to be required to build docs
