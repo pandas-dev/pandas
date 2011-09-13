@@ -1,0 +1,85 @@
+#!/usr/bin/make -f
+# -*- mode: makefile; coding: utf-8 -*-
+
+PACKAGE_NAME = python-pandas
+PACKAGE_ROOT_DIR = debian/${PACKAGE_NAME}
+
+PYVERS = $(shell pyversions -vs)
+PYVER = $(shell pyversions  -vd)
+
+# Mega rule
+%:
+	: # Explicit build system to avoid use of all-in-1 Makefile
+	dh $@ --buildsystem=python_distutils
+
+
+override_dh_clean:
+	rm -rf build doc/_build doc/auto_examples *-stamp pandas.egg-info pandas/datasets/__config__.py
+	dh_clean
+
+
+override_dh_auto_install: ${PYVERS:%=python-install%} ${PYVERS:%=python-test%}
+# Per Python version logic -- install, test, move .so into -lib
+python-install%:
+	python$* setup.py install --install-layout=deb --root=$(PACKAGE_ROOT_DIR)
+
+python-test%: python-install%
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	: # Run unittests here against installed pandas
+	export PYTHONPATH=`/bin/ls -d $$PWD/$(PACKAGE_ROOT_DIR)/usr/lib/python$*/*/`; \
+	export MPLCONFIGDIR=$(CURDIR)/build HOME=$(CURDIR)/build; \
+	export JOBLIB_MULTIPROCESSING=0; \
+	cd build/; python$* /usr/bin/nosetests -s -e test_fit_works_on_sequences_of_different_length pandas; \
+			   python$* /usr/bin/nosetests --with-doctest --doctest-extension=rst ../doc/
+else
+	: # Skip unittests due to nocheck
+endif
+
+
+override_dh_installdocs:
+	: # Build Documentation using installed pandas
+ifeq (,$(filter nodoc,$(DEB_BUILD_OPTIONS)))
+ifneq (,$(findstring -a,$(DH_INTERNAL_OPTIONS)))
+	: # not building documentation in -a
+else
+	export PYTHONPATH=`/bin/ls -d $$PWD/$(PACKAGE_ROOT_DIR)/usr/lib/python$(PYVER)/*`; \
+	export MPLCONFIGDIR=$(CURDIR)/build HOME=$(CURDIR)/build; \
+	 cd doc; $(MAKE) html
+endif
+endif
+	: # Use jquery from Debian package, so prune shipped one
+	-rm doc/_build/html/_static/jquery.js
+	dh_installdocs -A AUTHORS.rst README*.rst
+
+override_dh_installchangelogs:
+	dh_installchangelogs doc/whats_new.rst
+
+## move binary libraries into -lib
+override_dh_pysupport:
+	: # Move platform-specific libraries into -lib
+	for lib in $$(find $(PACKAGE_ROOT_DIR)/usr -name '*.so'); do \
+	   sdir=$$(dirname $$lib) ; \
+	   tdir=$(PACKAGE_ROOT_DIR)-lib/$${sdir#*$(PACKAGE_NAME)/} ; \
+	   mkdir -p $$tdir ; \
+	   echo "Moving '$$lib' into '$$tdir'." ; \
+	   mv $$lib $$tdir ; \
+	done
+	if [ -x /usr/bin/dh_numpy ]; then dh_numpy -ppython-pandas-lib; fi
+	: # Prune scikits/__init__.py to avoid conflicts
+	find debian -wholename \*scikits/__init__.py -delete
+	dh_pysupport
+
+## immediately useable documentation and exemplar scripts/data
+override_dh_compress:
+	dh_compress -X.py -X.html -X.pdf -X.css -X.jpg -X.txt -X.js -X.json -X.rtc -Xobjects.inv
+
+
+## to prepare next Debian upstream source tarball
+dfsg: dfsg-master
+dfsg-%:
+	git checkout dfsg
+	-git merge --no-commit $*
+	-git rm -rf pandas/externals/joblib
+	# -git rm -f ./pandas/svm/src/libsvm/svm.*
+	git commit -m "Merge $* into DFSG (pruning externals: joblib)" -a
+	git checkout debian

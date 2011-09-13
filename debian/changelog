@@ -1,0 +1,5 @@
+pandas (0.4.0-1) unstable; urgency=low
+
+  * Initial Debian release (Closes: #641464)
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Tue, 13 Sep 2011 12:24:05 -0400

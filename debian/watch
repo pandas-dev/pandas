@@ -1,0 +1,3 @@
+version=3
+opts="dversionmangle=s/.dfsg$//" \
+ http://github.com/scikit-learn/scikit-learn/downloads .*tarball/([\d\.a-z]+)

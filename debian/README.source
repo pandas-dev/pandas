@@ -1,0 +1,8 @@
+pandas for Debian
+-----------------
+
+For flexibility and easier interaction with upstream, packaging VCS is
+done on top of upstream's GIT hosted on github:
+git://github.com/wesm/pandas.git
+
+ -- Yaroslav Halchenko <debian@onerussian.com>, Tue, 13 Sep 2011 12:25:02 -0400
