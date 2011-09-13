@@ -103,7 +103,7 @@ LICENSE = 'BSD'
 AUTHOR = "AQR Capital Management, LLC"
 MAINTAINER = "Wes McKinney"
 MAINTAINER_EMAIL = "wesmckinn@gmail.com"
-URL = "http://github.com/wesm/pandas"
+URL = "http://pandas.sourceforge.net"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
