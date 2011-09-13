@@ -1,35 +1,37 @@
-Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=153
-Name: scikits.learn
-Maintainer: Fabian Pedregosa <fabian.pedregosa@inria.fr>
-Source-Location: http://github.com/scikit-learn/scikit-learn
+Format-Specification: http://anonscm.debian.org/viewvc/dep/web/deps/dep5.mdwn?revision=174&view=co
+Upstream-Name: pandas
+Upstream-Contact: Wes McKinney <wesmckinn@gmail.com>
+Source-Location: http://github.com/wesm/pandas
 
 Files: *
-Copyright: 2007-2010, Scikit-Learn Developers
+Copyright: 2008-2011 AQR Capital Management, LLC
+		   2011 Wes McKinney and pandas developers
 License: BSD-3
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-  .
-  a. Redistributions of source code must retain the above copyright notice,
-     this list of conditions and the following disclaimer.
-  b. Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in the
-     documentation and/or other materials provided with the distribution.
-  c. Neither the name of the Scikit-learn Developers  nor the names of
-     its contributors may be used to endorse or promote products
-     derived from this software without specific prior written
-     permission.
-  .
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
-  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
+ met:
+ .
+  * Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials provided
+     with the distribution.
+  * Neither the name of the copyright holder nor the names of any
+     contributors may be used to endorse or promote products derived
+     from this software without specific prior written permission.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Files: doc/sphinxext/*
 Copyright: 2008, Stefan van der Walt <stefan@mentat.za.net>, Pauli Virtanen <pav@iki.fi>
@@ -41,24 +43,6 @@ License: BSD
      the documentation and/or other materials provided with the
      distribution.
 
-Files: scikits/learn/src/cblas/*
-Copyright: 1996-2006 R. Clint Whaley
-           1998 Jeff Horner
-           2001 Peter Soendergaard
-           1999 Antoine P. Petitet
-           2001 Julian Ruhe
-           2003 Tim Mattox
-           2003 Hank Dietz
-           2003 Camm Maguire
-           1999 The Australian National University
-License: BSD-3
-Comment: Extract from 3.9.25 atlas
-
-Files: scikits/learn/svm/src/lib{svm,linear}
-Copyright: 2000-2010, Chih-Chung Chang and Chih-Jen Lin
-License: BSD-3
-Comment: Partial fork of the LIBSVM package.
-
 Files: debian/*
-Copyright: 2010-2011, Yaroslav Halchenko <debian@onerussian.com>
+Copyright: 2011, Yaroslav Halchenko <debian@onerussian.com>
 License: BSD-3

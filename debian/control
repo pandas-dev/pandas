@@ -3,40 +3,60 @@ Section: python
 Priority: optional
 Maintainer: NeuroDebian Team <team@neuro.debian.net>
 Uploaders: Yaroslav Halchenko <debian@onerussian.com>, Michael Hanke <michael.hanke@gmail.com>
-Build-Depends: debhelper (>= 7.0.50), python-all-dev (>= 2.5), python-support (>= 0.6), python-numpy, python-scipy, libsvm-dev (>= 2.84.0), python-sphinx (>= 1.0~), graphviz, python-nose, python-setuptools, cython (>= 0.12~), python-matplotlib, ipython, swig, python-joblib (>= 0.4.5)
+Build-Depends: debhelper (>= 7.0.50),
+			   python-all-dev (>= 2.5), python-support (>= 0.6),
+			   python-setuptools, cython (>= 0.12~),
+			   python-numpy, python-dateutil,
+			   python-scipy,
+			   python-tables,
+			   python-sphinx (>= 1.0~),
+			   python-nose,
+			   python-matplotlib,
 Standards-Version: 3.9.2
 XS-Python-Version: >= 2.5
 Homepage: http://pandas.sourceforge.net
-Vcs-Browser: http://github.com/yarikoptic/pandas
-Vcs-Git: git://github.com/yarikoptic/pandas.git
-XS-DM-Upload-Allowed: yes
+Vcs-Browser: http://github.com/neurodebian/pandas
+Vcs-Git: git://github.com/neurodebian/pandas.git
 
 Package: python-pandas
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, python-numpy, python-scipy, python-pandas-lib(>= ${source:Version})
+Depends: ${misc:Depends}, ${python:Depends},
+		 python-numpy,
+		 python-dateutil,
+		 python-pandas-lib(>= ${source:Version})
+Recommends: python-scipy,
+ 			python-matplotlib,
+			python-tables,
+			python-scikits.statsmodels
 Provides: ${python:Provides}
-XB-Python-Version: ${python:Versions}
-Recommends: python-nose, python-psyco, python-matplotlib, python-joblib (>= 0.4.5)
-Suggests: python-dap, python-scikits-optimization, python-pandas-doc
-Description: Python modules for machine learning and data mining
- pandas is a collection of Python modules relevant to
- machine/statistical learning and data mining.  Non-exhaustive list of
- included functionality:
-  - Gaussian Mixture Models
-  - Manifold learning
-  - kNN
-  - SVM (via LIBSVM)
+Suggests: python-pandas-doc
+Description: data structures for "relational" or "labeled" data
+ pandas is a Python package providing fast, flexible, and expressive
+ data structures designed to make working with "relational" or
+ "labeled" data both easy and intuitive. It aims to be the fundamental
+ high-level building block for doing practical, real world data
+ analysis in Python. pandas is well suited for many different kinds of
+ data:
+ .
+  - Tabular data with heterogeneously-typed columns, as in an SQL
+    table or Excel spreadsheet
+  - Ordered and unordered (not necessarily fixed-frequency) time
+    series data.
+  - Arbitrary matrix data (homogeneously typed or heterogeneous) with
+    row and column labels
+  - Any other form of observational / statistical data sets. The data
+    actually need not be labeled at all to be placed into a pandas
+    data structure
 
-
-Package: python-pandas-doc
-Architecture: all
-Section: doc
-Depends: ${misc:Depends}, libjs-jquery
-Suggests: python-pandas
-Description: documentation and examples for pandas
- This package contains documentation and example scripts for
- python-pandas.
-
+# No doc package built due to dependency on ipython 0.11 - only experimental
+# Package: python-pandas-doc
+# Architecture: all
+# Section: doc
+# Depends: ${misc:Depends}, libjs-jquery
+# Suggests: python-pandas
+# Description: documentation and examples for pandas
+#  This package contains documentation and example scripts for
+#  python-pandas.
 
 Package: python-pandas-lib
 Architecture: any
@@ -44,6 +64,5 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, ${python:Depends}, python-numpy
 Provides: ${python:Provides}
 XB-Python-Version: ${python:Versions}
 Description: low-level implementations and bindings for pandas
- This is an add-on package for python-pandas. It provides
- low-level implementations and custom Python bindings for the LIBSVM
- library.
+ This is an add-on package for python-pandas providing
+ architecture-dependent extensions.
