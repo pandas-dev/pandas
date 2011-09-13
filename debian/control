@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 7.0.50),
 			   python-setuptools, cython (>= 0.12~),
 			   python-numpy, python-dateutil,
 			   python-scipy,
-			   python-tables,
+			   python-tables, python-xlrd,
 			   python-sphinx (>= 1.0~),
 			   python-nose,
 			   python-matplotlib,
@@ -27,6 +27,7 @@ Depends: ${misc:Depends}, ${python:Depends},
 Recommends: python-scipy,
  			python-matplotlib,
 			python-tables,
+			python-xlrd,
 			python-scikits.statsmodels
 Provides: ${python:Provides}
 Suggests: python-pandas-doc
