@@ -17,8 +17,8 @@ class _Unstacker(object):
 
     Parameters
     ----------
-    level : int, default last level
-        Level to "unstack"
+    level : int or str, default last level
+        Level to "unstack". Accepts a name for the level.
 
     Examples
     --------
@@ -52,6 +52,12 @@ class _Unstacker(object):
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index
+
+        if not isinstance(level, int):
+            try:
+                level = index.names.index(level)
+            except:
+                raise ValueError("level %s not in index names" % s)
 
         if level < 0:
             level += index.nlevels
