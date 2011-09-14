@@ -800,10 +800,11 @@ class MultiIndex(Index):
         sorted_index : MultiIndex
         """
         labels = list(self.labels)
-        try:
-            level = self.names.index(level)
-        except:
-            raise ValueError("level %s not in index names" % level)
+        if not isinstance(level, int):
+            try:
+                level = self.names.index(level)
+            except:
+                raise ValueError("level %s not in index names" % level)
 
         primary = labels.pop(level)
 
