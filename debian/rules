@@ -28,8 +28,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	: # Run unittests here against installed pandas
 	export PYTHONPATH=`/bin/ls -d $$PWD/$(PACKAGE_ROOT_DIR)/usr/lib/python$*/*/`; \
 	export MPLCONFIGDIR=$(CURDIR)/build HOME=$(CURDIR)/build; \
-	cd build/; python$* /usr/bin/nosetests -s -v pandas; \
-			   python$* /usr/bin/nosetests --with-doctest --doctest-extension=rst -v ../doc/
+	cd build/; python$* /usr/bin/nosetests -s -v pandas;
 else
 	: # Skip unittests due to nocheck
 endif
@@ -41,9 +40,10 @@ ifeq (,$(filter nodoc,$(DEB_BUILD_OPTIONS)))
 ifneq (,$(findstring -a,$(DH_INTERNAL_OPTIONS)))
 	: # not building documentation in -a
 else
-	export PYTHONPATH=`/bin/ls -d $$PWD/$(PACKAGE_ROOT_DIR)/usr/lib/python$(PYVER)/*`; \
-	export MPLCONFIGDIR=$(CURDIR)/build HOME=$(CURDIR)/build; \
-	 cd doc; python make.py html
+	: # not building documentation ATM since requires ipython 0.11
+# 	export PYTHONPATH=`/bin/ls -d $$PWD/$(PACKAGE_ROOT_DIR)/usr/lib/python$(PYVER)/*`; \
+# 	export MPLCONFIGDIR=$(CURDIR)/build HOME=$(CURDIR)/build; \
+# 	 cd doc; python make.py html
 endif
 endif
 	: # Use jquery from Debian package, so prune shipped one
