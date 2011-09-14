@@ -790,7 +790,8 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        level : int, default 0
+        level : int or str, default 0
+            If a string is given, must be a name of the level
         ascending : boolean, default True
             False to sort in descending order
 
@@ -799,7 +800,13 @@ class MultiIndex(Index):
         sorted_index : MultiIndex
         """
         labels = list(self.labels)
+        try:
+            level = self.names.index(level)
+        except:
+            raise ValueError("level %s not in index names" % level)
+
         primary = labels.pop(level)
+
 
         # Lexsort starts from END
         indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
