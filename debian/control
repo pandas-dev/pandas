@@ -4,16 +4,16 @@ Priority: optional
 Maintainer: NeuroDebian Team <team@neuro.debian.net>
 Uploaders: Yaroslav Halchenko <debian@onerussian.com>, Michael Hanke <michael.hanke@gmail.com>
 Build-Depends: debhelper (>= 7.0.50),
-			   python-all-dev (>= 2.5), python-support (>= 0.6),
-			   python-setuptools, cython (>= 0.12~),
-			   python-numpy, python-dateutil,
-			   python-scipy,
-			   python-tables, python-xlrd,
-			   python-sphinx (>= 1.0~),
-			   python-nose,
-			   python-matplotlib,
+               python-all-dev (>= 2.5), python-support (>= 0.6),
+               python-setuptools, cython (>= 0.12~),
+               python-numpy, python-dateutil,
+               python-scipy,
+               python-tz,
+               python-tables, python-xlrd,
+               python-sphinx (>= 1.0~),
+               python-nose,
+               python-matplotlib,
 Standards-Version: 3.9.2
-XS-Python-Version: >= 2.5
 Homepage: http://pandas.sourceforge.net
 Vcs-Browser: http://github.com/neurodebian/pandas
 Vcs-Git: git://github.com/neurodebian/pandas.git
@@ -21,14 +21,15 @@ Vcs-Git: git://github.com/neurodebian/pandas.git
 Package: python-pandas
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends},
-		 python-numpy,
-		 python-dateutil,
-		 python-pandas-lib(>= ${source:Version})
+         python-numpy,
+         python-dateutil,
+         python-pandas-lib(>= ${source:Version})
 Recommends: python-scipy,
- 			python-matplotlib,
-			python-tables,
-			python-xlrd,
-			python-scikits.statsmodels
+            python-matplotlib,
+            python-tables,
+            python-tz,
+            python-xlrd,
+            python-scikits.statsmodels
 Provides: ${python:Provides}
 Suggests: python-pandas-doc
 Description: data structures for "relational" or "labeled" data
