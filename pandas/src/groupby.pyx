@@ -6,8 +6,8 @@ cdef inline _isnan(object o):
 
 @cython.boundscheck(False)
 def arrmap(ndarray[object] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
+    cdef Py_ssize_t length = index.shape[0]
+    cdef Py_ssize_t i = 0
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
@@ -22,7 +22,7 @@ def groupby_func(object index, object mapper):
     cdef ndarray[object] mapped_index
     cdef ndarray[object] index_buf
     cdef ndarray[int8_t] mask
-    cdef int i, length
+    cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
@@ -50,7 +50,7 @@ def groupby_func(object index, object mapper):
 def groupby(ndarray[object] index, ndarray[object] labels):
     cdef dict result = {}
     cdef ndarray[int8_t] mask
-    cdef int i, length
+    cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
@@ -100,22 +100,22 @@ cpdef groupby_indices_naive(ndarray[object] values):
 def groupby_indices(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
-        ndarray[int32_t] labels, counts, arr, seen
-        int32_t loc
+        ndarray[Py_ssize_t] labels, counts, arr, seen
+        Py_ssize_t loc
         dict ids = {}
         object val
-        int32_t k
+        Py_ssize_t k
 
     ids, labels, counts = group_labels(values)
     seen = np.zeros_like(counts)
 
     # try not to get in trouble here...
-    cdef int32_t **vecs = <int32_t **> malloc(len(ids) * sizeof(int32_t*))
+    cdef Py_ssize_t **vecs = <Py_ssize_t **> malloc(len(ids) * sizeof(Py_ssize_t*))
     result = {}
     for i from 0 <= i < len(counts):
         arr = np.empty(counts[i], dtype=np.int32)
         result[ids[i]] = arr
-        vecs[i] = <int32_t *> arr.data
+        vecs[i] = <Py_ssize_t *> arr.data
 
     for i from 0 <= i < n:
         k = labels[i]
@@ -265,7 +265,7 @@ def fast_unique(ndarray[object] values):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_unique_labels(ndarray[object] values, dict idMap):
-    cdef int i, length
+    cdef Py_ssize_t i, length
     cdef object idx
     cdef ndarray[int32_t] fillVec
     length = len(values)
@@ -323,7 +323,7 @@ def fast_unique_multiple(list arrays):
 #     return np.asarray(sorted(uniques), dtype=object)
 
 ctypedef double_t (* agg_func)(double_t *out, int32_t *counts, double_t *values,
-                               int32_t *labels, int start, int end,
+                               int32_t *labels, Py_ssize_t start, Py_ssize_t end,
                                Py_ssize_t offset)
 
 cdef agg_func get_agg_func(object how):
@@ -366,7 +366,7 @@ def _group_reorder(values, label_list):
     return sorted_values, sorted_labels
 
 cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
-                           list labels, int start, int end, tuple shape,
+                           list labels, Py_ssize_t start, Py_ssize_t end, tuple shape,
                            Py_ssize_t which, Py_ssize_t offset,
                            agg_func func):
     cdef:
@@ -399,7 +399,7 @@ cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
 # TODO: aggregate multiple columns in single pass
 
 cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
-                         int32_t *labels, int start, int end,
+                         int32_t *labels, Py_ssize_t start, Py_ssize_t end,
                          Py_ssize_t offset):
     cdef:
         Py_ssize_t i, it = start
@@ -432,7 +432,7 @@ cdef double_t _group_add(double_t *out, int32_t *counts, double_t *values,
         it += 1
 
 cdef double_t _group_mean(double_t *out, int32_t *counts, double_t *values,
-                          int32_t *labels, int start, int end,
+                          int32_t *labels, Py_ssize_t start, Py_ssize_t end,
                           Py_ssize_t offset):
     cdef:
         Py_ssize_t i, it = start

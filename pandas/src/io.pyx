@@ -22,7 +22,7 @@ cpdef object to_timestamp(object dt):
     return gmtime(dt)
 
 def array_to_timestamp(ndarray[object, ndim=1] arr):
-    cdef int i, n
+    cdef Py_ssize_t i, n
     cdef ndarray[int64_t, ndim=1] result
 
     n = len(arr)
@@ -34,7 +34,7 @@ def array_to_timestamp(ndarray[object, ndim=1] arr):
     return result
 
 def array_to_datetime(ndarray[int64_t, ndim=1] arr):
-    cdef int i, n
+    cdef Py_ssize_t i, n
     cdef ndarray[object, ndim=1] result
 
     n = len(arr)

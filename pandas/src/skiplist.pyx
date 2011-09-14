@@ -117,7 +117,8 @@ cdef class IndexableSkiplist:
         self.size += 1
 
     cpdef remove(self, double value):
-        cdef int level, d
+        cdef Py_ssize_t level
+        cdef Py_ssize_t d
         cdef Node node, prevnode, tmpnode, next_at_level
         cdef list chain
 

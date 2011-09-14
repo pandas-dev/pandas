@@ -246,10 +246,10 @@ cdef class IntIndex(SparseIndex):
                ndarray[int32_t, ndim=1] indices):
         pass
 
-cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
+cpdef get_blocks(ndarray[Py_ssize_t, ndim=1] indices):
     cdef:
         pyst i, npoints
-        int32_t block, length = 1, cur, prev
+        pyst block, length = 1, cur, prev
         list locs = [], lens = []
 
     npoints = len(indices)
@@ -377,7 +377,7 @@ cdef class BlockIndex(SparseIndex):
         cdef:
             pyst i = 0, j, b
             int32_t offset
-            ndarray[int32_t, ndim=1] indices
+            ndarray[Py_ssize_t, ndim=1] indices
 
         indices = np.empty(self.npoints, dtype=np.int32)
 
@@ -494,7 +494,7 @@ cdef class BlockIndex(SparseIndex):
         '''
         cdef:
             pyst i, cum_len
-            ndarray[int32_t, ndim=1] locs, lens
+            ndarray[Py_ssize_t, ndim=1] locs, lens
 
         locs = self.blocs
         lens = self.blengths
@@ -553,7 +553,7 @@ cdef class BlockMerge(object):
     cdef:
         BlockIndex x, y, result
         ndarray xstart, xlen, xend, ystart, ylen, yend
-        int32_t xi, yi # block indices
+        Py_ssize_t xi, yi # block indices
 
     def __init__(self, BlockIndex x, BlockIndex y):
         self.x = x
@@ -579,7 +579,7 @@ cdef class BlockMerge(object):
     cdef _make_merged_blocks(self):
         raise NotImplementedError
 
-    cdef _set_current_indices(self, int32_t xi, int32_t yi, bint mode):
+    cdef _set_current_indices(self, Py_ssize_t xi, Py_ssize_t yi, bint mode):
         if mode == 0:
             self.xi = xi
             self.yi = yi
@@ -601,8 +601,8 @@ cdef class BlockUnion(BlockMerge):
 
     cdef _make_merged_blocks(self):
         cdef:
-            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
-            int32_t nstart, nend, diff
+            ndarray[Py_ssize_t, ndim=1] xstart, xend, ystart, yend
+            Py_ssize_t nstart, nend, diff
             list out_blocs = [], out_blengths = []
 
         xstart = self.xstart
@@ -638,7 +638,7 @@ cdef class BlockUnion(BlockMerge):
 
         return BlockIndex(self.x.length, out_blocs, out_blengths)
 
-    cdef int32_t _find_next_block_end(self, bint mode) except -1:
+    cdef Py_ssize_t _find_next_block_end(self, bint mode) except -1:
         '''
         Wow, this got complicated in a hurry
 
@@ -646,8 +646,8 @@ cdef class BlockUnion(BlockMerge):
         mode 1: block started in index y
         '''
         cdef:
-            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
-            int32_t xi, yi, xnblocks, ynblocks, nend
+            ndarray[Py_ssize_t, ndim=1] xstart, xend, ystart, yend
+            Py_ssize_t xi, yi, xnblocks, ynblocks, nend
 
         if mode != 0 and mode != 1:
             raise Exception('Mode must be 0 or 1')
@@ -783,8 +783,8 @@ cdef inline tuple block_nanop(ndarray x_, BlockIndex xindex,
                               double_func op):
     cdef:
         BlockIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
-        int xbp = 0, ybp = 0, obp = 0 # block positions
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xbp = 0, ybp = 0, obp = 0 # block positions
         pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
 
         ndarray[float64_t, ndim=1] x, y
@@ -847,8 +847,8 @@ cdef inline tuple int_nanop(ndarray x_, IntIndex xindex,
                             double_func op):
     cdef:
         IntIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
-        ndarray[int32_t, ndim=1] xindices, yindices, out_indices
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
+        ndarray[Py_ssize_t, ndim=1] xindices, yindices, out_indices
         ndarray[float64_t, ndim=1] x, y
         ndarray[float64_t, ndim=1] out
 
@@ -894,9 +894,9 @@ cdef inline tuple block_op(ndarray x_, BlockIndex xindex, float64_t xfill,
 
     cdef:
         BlockIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
-        int xbp = 0, ybp = 0 # block positions
-        int32_t xloc, yloc
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xbp = 0, ybp = 0 # block positions
+        Py_ssize_t xloc, yloc
         pyst xblock = 0, yblock = 0 # block numbers
 
         ndarray[float64_t, ndim=1] x, y
@@ -987,7 +987,7 @@ cdef inline tuple int_op(ndarray x_, IntIndex xindex, float64_t xfill,
                          double_func op):
     cdef:
         IntIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
         int32_t xloc, yloc
         ndarray[int32_t, ndim=1] xindices, yindices, out_indices
         ndarray[float64_t, ndim=1] x, y
@@ -1044,7 +1044,7 @@ cdef inline tuple int_op(ndarray x_, IntIndex xindex, float64_t xfill,
 def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
     cdef object idx
     cdef Py_ssize_t i
-    cdef int new_length = len(values)
+    cdef Py_ssize_t new_length = len(values)
     cdef ndarray[int32_t, ndim=1] indexer
 
     indexer = np.empty(new_length, dtype=np.int32)

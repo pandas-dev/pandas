@@ -39,18 +39,19 @@ def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
              .                        0
     D
     '''
-    cdef int i, j, oldLength, newLength, curLoc
+    cdef int i, j
+    cdef Py_ssize_t oldLength, newLength, curLoc
     # Make empty vectors
-    cdef ndarray[int32_t, ndim=1] fillVec
+    cdef ndarray[Py_ssize_t, ndim=1] fillVec
     cdef ndarray[int8_t, ndim=1] mask
-    cdef int newPos, oldPos
+    cdef Py_ssize_t newPos, oldPos
     cdef object prevOld, curOld
 
     # Get the size
     oldLength = len(oldIndex)
     newLength = len(newIndex)
 
-    fillVec = np.empty(len(newIndex), dtype = np.int32)
+    fillVec = np.empty(len(newIndex), dtype = np.intp)
     fillVec.fill(-1)
 
     mask = np.zeros(len(newIndex), dtype = np.int8)
@@ -126,18 +127,19 @@ def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
              .        1               1
     C        C        2               1
     '''
-    cdef int i, j, oldLength, newLength, curLoc
+    cdef int i, j
+    cdef Py_ssize_t oldLength, newLength, curLoc
     # Make empty vectors
-    cdef ndarray[int32_t, ndim=1] fillVec
+    cdef ndarray[Py_ssize_t, ndim=1] fillVec
     cdef ndarray[int8_t, ndim=1] mask
-    cdef int newPos, oldPos
+    cdef Py_ssize_t newPos, oldPos
     cdef object prevOld, curOld
 
     # Get the size
     oldLength = len(oldIndex)
     newLength = len(newIndex)
 
-    fillVec = np.empty(len(newIndex), dtype = np.int32)
+    fillVec = np.empty(len(newIndex), dtype = np.intp)
     fillVec.fill(-1)
 
     mask = np.zeros(len(newIndex), dtype = np.int8)
@@ -229,11 +231,11 @@ def get_pad_indexer(ndarray[np.uint8_t, cast=True] mask):
     '''
     cdef:
         Py_ssize_t i, n
-        int32_t idx
-        ndarray[int32_t] indexer
+        Py_ssize_t idx
+        ndarray[Py_ssize_t] indexer
 
     n = len(mask)
-    indexer = np.empty(n, dtype=np.int32)
+    indexer = np.empty(n, dtype=np.intp)
 
     idx = 0
     for i from 0 <= i < n:
@@ -252,11 +254,11 @@ def get_backfill_indexer(ndarray[np.uint8_t, cast=True] mask):
     '''
     cdef:
         Py_ssize_t i, n
-        int32_t idx
-        ndarray[int32_t] indexer
+        Py_ssize_t idx
+        ndarray[Py_ssize_t] indexer
 
     n = len(mask)
-    indexer = np.empty(n, dtype=np.int32)
+    indexer = np.empty(n, dtype=np.intp)
 
     idx = n - 1
     i = n - 1
@@ -290,13 +292,13 @@ def backfill_inplace_float64(ndarray[float64_t] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def getMergeVec(ndarray[object] values, dict oldMap):
-    cdef int i, j, length, newLength
+    cdef Py_ssize_t i, j, length, newLength
     cdef object idx
     cdef ndarray[int32_t] fillVec
     cdef ndarray[int8_t] mask
 
     newLength = len(values)
-    fillVec = np.empty(newLength, dtype=np.int32)
+    fillVec = np.empty(newLength, dtype=np.intp)
     mask = np.zeros(newLength, dtype=np.int8)
     for i from 0 <= i < newLength:
         idx = values[i]
