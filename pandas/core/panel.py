@@ -22,6 +22,66 @@ from pandas.util.decorators import deprecate
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
+
+def _ensure_like_indices(time, panels):
+    """
+    Makes sure that time and panels are conformable
+    """
+    n_time = len(time)
+    n_panel = len(panels)
+    u_panels = np.unique(panels) # this sorts!
+    u_time = np.unique(time)
+    if len(u_time) == n_time:
+        time = np.tile(u_time, len(u_panels))
+    if len(u_panels) == n_panel:
+        panels = np.repeat(u_panels, len(u_time))
+    return time, panels
+
+def panel_index(time, panels, names=['time', 'panel']):
+    """
+    Returns a multi-index suitable for a panel-like DataFrame
+
+    Parameters
+    ----------
+    time : array-like
+        Time index, does not have to repeat 
+    panels : array-like
+        Panel index, does not have to repeat
+    names : list, optional
+        List containing the names of the indices
+
+    Returns
+    -------
+    multi_index : MultiIndex
+        Time index is the first level, the panels are the second level.
+
+    Examples
+    --------
+    >>> years = range(1960,1963)
+    >>> panels = ['A', 'B', 'C']
+    >>> panel_idx = panel_index(years, panels)
+    >>> panel_idx
+    MultiIndex([(1960, 'A'), (1961, 'A'), (1962, 'A'), (1960, 'B'), (1961, 'B'),
+       (1962, 'B'), (1960, 'C'), (1961, 'C'), (1962, 'C')], dtype=object)
+    
+    or 
+
+    >>> import numpy as np
+    >>> years = np.repeat(range(1960,1963), 3)
+    >>> panels = np.tile(['A', 'B', 'C'], 3)
+    >>> panel_idx = panel_index(years, panels)
+    >>> panel_idx
+    MultiIndex([(1960, 'A'), (1960, 'B'), (1960, 'C'), (1961, 'A'), (1961, 'B'),
+       (1961, 'C'), (1962, 'A'), (1962, 'B'), (1962, 'C')], dtype=object)
+    """
+    time, panels = _ensure_like_indices(time, panels)
+    time_factor = Factor(time)
+    panel_factor = Factor(panels)
+
+    labels = [time_factor.labels, panel_factor.labels]
+    levels = [time_factor.levels, panel_factor.levels]
+    return MultiIndex(levels, labels, sortorder=None, names=names)
+
 class PanelError(Exception):
     pass
 
