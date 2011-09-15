@@ -12,8 +12,8 @@ import numpy as np
 from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
-def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
-             na_values=None, date_parser=None, names=None):
+def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
+             na_values=None, date_parser=None, names=None, sniff_sep=True):
     """
     Read CSV file into DataFrame
 
@@ -34,6 +34,9 @@ def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
         dateutil.parser
     names : array-like
         List of column names
+    sniff_sep : boolean, default True
+        Attempt to automatically determine the separator for the data. Defaults 
+        to True, however if sep is defined then it will take precedence
 
     Returns
     -------
@@ -50,7 +53,19 @@ def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
         except Exception: # pragma: no cover
             f = open(filepath_or_buffer, 'r')
 
-    reader = csv.reader(f, dialect='excel')
+    # default dialect
+    dia = csv.excel
+    if sep is not None:
+        sniff_sep = False
+        dia.delimiter = sep
+    # attempt to sniff the delimiter
+    if sniff_sep:
+        sample = f.readline()
+        sniffed = csv.Sniffer().sniff(sample)
+        dia.delimiter = sniffed.delimiter
+        f.seek(0)
+        
+    reader = csv.reader(f, dialect=dia)
 
     if skiprows is not None:
         skiprows = set(skiprows)
@@ -63,8 +78,7 @@ def read_csv(filepath_or_buffer, header=0, skiprows=None, index_col=0,
                           date_parser=date_parser)
 
 def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
-               index_col=0, na_values=None, names=None,
-               date_parser=None):
+               index_col=0, na_values=None, date_parser=None, names=None):
     """
     Read delimited file into DataFrame
 
@@ -92,25 +106,8 @@ def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
     -------
     parsed : DataFrame
     """
-    if hasattr(filepath_or_buffer, 'read'):
-        reader = filepath_or_buffer
-    else:
-        try:
-            # universal newline mode
-            reader = open(filepath_or_buffer, 'U')
-        except Exception: # pragma: no cover
-            reader = open(filepath_or_buffer, 'r')
-
-    if skiprows is not None:
-        skiprows = set(skiprows)
-        lines = [l for i, l in enumerate(reader) if i not in skiprows]
-    else:
-        lines = [l for l in reader]
-
-    lines = [re.split(sep, l.rstrip()) for l in lines]
-    return _simple_parser(lines, header=header, indexCol=index_col,
-                          colNames=names, na_values=na_values,
-                          date_parser=date_parser)
+    return read_csv(filepath_or_buffer, sep, header, skiprows, 
+                    index_col, na_values, date_parser, names)
 
 def _simple_parser(lines, colNames=None, header=0, indexCol=0,
                    na_values=None, date_parser=None, parse_dates=True):
