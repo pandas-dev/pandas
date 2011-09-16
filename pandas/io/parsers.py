@@ -20,6 +20,9 @@ def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
     Parameters
     ----------
     filepath_or_buffer : string or file handle / StringIO
+    sep : string, default None
+        Delimiter to use. By default will try to automatically determine
+        this
     header : int, default 0
         Row to use for the column labels of the parsed DataFrame
     skiprows : list-like
