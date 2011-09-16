@@ -217,7 +217,7 @@ def _format(s, nanRep=None, float_format=None):
         if nanRep is not None and isnull(s):
             if np.isnan(s):
                 s = nanRep
-            return (' %s' % s)
+            return (' %s' % str(s))
 
         if float_format:
             formatted = float_format(s)
@@ -232,7 +232,7 @@ def _format(s, nanRep=None, float_format=None):
 
         return formatted
     else:
-        return ' %s' % s
+        return ' %s' % str(s)
 
 #-------------------------------------------------------------------------------
 # miscellaneous python tools

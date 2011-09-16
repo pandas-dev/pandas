@@ -186,6 +186,10 @@ def pivot(self, index=None, columns=None, values=None):
     index_vals = self[index]
     column_vals = self[columns]
     mindex = MultiIndex.from_arrays([index_vals, column_vals])
+    try:
+        mindex._verify_integrity()
+    except Exception:
+        raise Exception('duplicate index/column pairs!')
 
     if values is None:
         items = self.columns - [index, columns]
