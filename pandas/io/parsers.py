@@ -13,7 +13,7 @@ from pandas.core.index import Index
 from pandas.core.frame import DataFrame
 
 def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
-             na_values=None, date_parser=None, names=None, sniff_sep=True):
+             na_values=None, date_parser=None, names=None):
     """
     Read CSV file into DataFrame
 
@@ -37,9 +37,6 @@ def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
         dateutil.parser
     names : array-like
         List of column names
-    sniff_sep : boolean, default True
-        Attempt to automatically determine the separator for the data. Defaults 
-        to True, however if sep is defined then it will take precedence
 
     Returns
     -------
@@ -56,6 +53,7 @@ def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
         except Exception: # pragma: no cover
             f = open(filepath_or_buffer, 'r')
 
+    sniff_sep = True
     # default dialect
     dia = csv.excel
     if sep is not None:
