@@ -13,7 +13,8 @@ import numpy as np
 
 import pandas.core.datetools as datetools
 from pandas.core.index import NULL_INDEX
-from pandas.core.api import (DataFrame, Index, Series, notnull, isnull)
+from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
+                             MultiIndex)
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -1488,6 +1489,48 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         dm.to_csv(path)
         recons = DataFrame.from_csv(path)
         assert_frame_equal(dm, recons)
+
+        os.remove(path)
+
+    def test_to_csv_multiindex(self):
+        path = '__tmp__'
+
+        frame = self.frame
+        old_index = frame.index
+        new_index = MultiIndex.from_arrays(np.arange(len(old_index)*2).reshape(2,-1))
+        frame.index = new_index
+        frame.to_csv(path, header=False)
+        frame.to_csv(path, cols=['A', 'B'])
+
+
+        # round trip
+        frame.to_csv(path)
+
+        df = DataFrame.from_csv(path, index_col=[0,1])
+
+        assert_frame_equal(frame, df)
+        self.frame.index = old_index # needed if setUP becomes a classmethod
+
+        # try multiindex with dates
+        tsframe = self.tsframe
+        old_index = tsframe.index
+        new_index = [old_index, np.arange(len(old_index))]
+        tsframe.index = MultiIndex.from_arrays(new_index)
+
+        tsframe.to_csv(path, index_label = ['time','foo'])
+        recons = DataFrame.from_csv(path, index_col=[0,1])
+        assert_frame_equal(tsframe, recons)
+
+        # do not load index
+        tsframe.to_csv(path)
+        recons = DataFrame.from_csv(path, index_col=None)
+        np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
+
+        # no index
+        tsframe.to_csv(path, index=False)
+        recons = DataFrame.from_csv(path, index_col=None)
+        assert_almost_equal(recons.values, self.tsframe.values)
+        self.tsframe.index = old_index # needed if setUP becomes classmethod
 
         os.remove(path)
 

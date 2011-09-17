@@ -9,7 +9,7 @@ import string
 
 import numpy as np
 
-from pandas.core.index import Index
+from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 
 def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
@@ -27,9 +27,9 @@ def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
         Row to use for the column labels of the parsed DataFrame
     skiprows : list-like
         Row numbers to skip (0-indexed)
-    index_col : int, default 0
+    index_col : int or sequence., default 0
         Column to use as the row labels of the DataFrame. Pass None if there is
-        no such column
+        no such column. If a sequence is given, a MultiIndex is used.
     na_values : list-like, default None
         List of additional strings to recognize as NA/NaN
     date_parser : function
@@ -65,7 +65,7 @@ def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
         sniffed = csv.Sniffer().sniff(sample)
         dia.delimiter = sniffed.delimiter
         f.seek(0)
-        
+
     reader = csv.reader(f, dialect=dia)
 
     if skiprows is not None:
@@ -92,9 +92,9 @@ def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
         Row to use for the column labels of the parsed DataFrame
     skiprows : list-like
         Row numbers to skip (0-indexed)
-    index_col : int, default 0
+    index_col : int or sequence, default 0
         Column to use as the row labels of the DataFrame. Pass None if there is
-        no such column
+        no such column. If a sequence is given, a MultiIndex is used.
     na_values : list-like, default None
         List of additional strings to recognize as NA/NaN
     date_parser : function
@@ -107,7 +107,7 @@ def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
     -------
     parsed : DataFrame
     """
-    return read_csv(filepath_or_buffer, sep, header, skiprows, 
+    return read_csv(filepath_or_buffer, sep, header, skiprows,
                     index_col, na_values, date_parser, names)
 
 def _simple_parser(lines, colNames=None, header=0, indexCol=0,
@@ -149,19 +149,35 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
 
     # no index column specified, so infer that's what is wanted
     if indexCol is not None:
-        if indexCol == 0 and len(content[0]) == len(columns) + 1:
-            index = zipped_content[0]
-            zipped_content = zipped_content[1:]
+        if np.isscalar(indexCol):
+            if indexCol == 0 and len(content[0]) == len(columns) + 1:
+                index = zipped_content[0]
+                zipped_content = zipped_content[1:]
+            else:
+                index = zipped_content.pop(indexCol)
+                columns.pop(indexCol)
+        else: # given a list of index
+            idx_names = []
+            index = []
+            for idx in indexCol:
+                idx_names.append(columns[idx])
+                index.append(zipped_content[idx])
+            #remove index items from content and columns, don't pop in loop
+            for i in range(len(indexCol)):
+                columns.remove(idx_names[i])
+                zipped_content.remove(index[i])
+
+
+        if np.isscalar(indexCol):
+            if parse_dates:
+                index = _try_parse_dates(index, parser=date_parser)
+            index = Index(_maybe_convert_int(np.array(index, dtype=object)))
         else:
-            index = zipped_content.pop(indexCol)
-            columns.pop(indexCol)
-
-        if parse_dates:
-            index = _try_parse_dates(index, parser=date_parser)
-
-        index = _maybe_convert_int(np.array(index, dtype=object))
+            index = MultiIndex.from_arrays(_maybe_convert_int_mindex(index,
+                                                 parse_dates, date_parser),
+                                                 names=idx_names)
     else:
-        index = np.arange(len(content))
+        index = Index(np.arange(len(content)))
 
     if len(columns) != len(zipped_content):
         raise Exception('wrong number of columns')
@@ -169,7 +185,7 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
     data = dict(izip(columns, zipped_content))
     data = _floatify(data, na_values=na_values)
     data = _convert_to_ndarrays(data)
-    return DataFrame(data=data, columns=columns, index=Index(index))
+    return DataFrame(data=data, columns=columns, index=index)
 
 def _floatify(data_dict, na_values=None):
     """
@@ -217,6 +233,20 @@ def _maybe_convert_int(arr):
         pass
 
     return arr
+
+def _maybe_convert_int_mindex(index, parse_dates, date_parser):
+    if len(index) == 0:
+        return index
+
+    for i in range(len(index)):
+        try:
+            int(index[i][0])
+            index[i] = map(int, index[i])
+        except ValueError:
+            if parse_dates:
+                index[i] = _try_parse_dates(index[i], date_parser)
+
+    return index
 
 def _convert_to_ndarrays(dct):
     result = {}

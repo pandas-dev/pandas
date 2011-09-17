@@ -432,8 +432,9 @@ class DataFrame(NDFrame):
         header : int, default 0
             Row to use at header (skip prior rows)
         delimiter : string, default ','
-        index_col : int, default 0
-            Column to use for index
+        index_col : int or sequence, default 0
+            Column to use for index. If a sequence is given, a MultiIndex
+            is used.
 
         Notes
         -----
@@ -483,8 +484,10 @@ class DataFrame(NDFrame):
             Write out column names
         index : boolean, default True
             Write row names (index)
-        index_label : string, default None
-            Column label for index column if desired
+        index_label : string or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
         mode : Python write mode, default 'wb'
         """
         f = open(path, mode)
@@ -495,15 +498,25 @@ class DataFrame(NDFrame):
         series = self._series
         if header:
             joined_cols = ','.join([str(c) for c in cols])
-            if index and index_label:
-                f.write('%s,%s' % (index_label, joined_cols))
+            if index:
+                # should write something for index label
+                if index_label is None:
+                    index_label = getattr(self.index, 'names', ['index'])
+                elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                    # given a string for a DF with Index
+                    index_label = [index_label]
+                f.write('%s,%s' % (",".join(index_label), joined_cols))
             else:
                 f.write(joined_cols)
             f.write('\n')
 
+        nlevels = getattr(self.index, 'nlevels', 1)
         for idx in self.index:
             if index:
-                f.write(str(idx))
+                if nlevels == 1:
+                    f.write(str(idx))
+                else: # handle MultiIndex
+                    f.write(",".join([str(i) for i in idx]))
             for i, col in enumerate(cols):
                 val = series[col].get(idx)
                 if isnull(val):
