@@ -409,8 +409,12 @@ class CheckIndexing(object):
                           (slice(None, None), 'E'), 1)
 
     def test_setitem_fancy_mixed_2d(self):
-        self.assertRaises(Exception, self.mixed_frame.ix.__setitem__,
-                          (slice(0, 5), ['C', 'B', 'A']), 5)
+        self.mixed_frame.ix[:5, ['C', 'B', 'A']] = 5
+        result = self.mixed_frame.ix[:5, ['C', 'B', 'A']]
+        self.assert_((result.values == 5).all())
+
+        self.mixed_frame.ix[5] = np.nan
+        self.assert_(isnull(self.mixed_frame.ix[5]).all())
 
     def test_getitem_fancy_1d(self):
         f = self.frame
@@ -590,6 +594,14 @@ class CheckIndexing(object):
         mask = self.frame['A'][::-1] > 1
         self.assertRaises(Exception, ix.__getitem__, mask)
         self.assertRaises(Exception, ix.__setitem__, mask, 1.)
+
+    def test_setitem_single_column_mixed(self):
+        df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
+                       columns=['foo', 'bar', 'baz'])
+        df['str'] = 'qux'
+        df.ix[::2, 'str'] = nan
+        expected = [nan, 'qux', nan, 'qux', nan]
+        assert_almost_equal(df['str'].values, expected)
 
     def test_setitem_fancy_exceptions(self):
         pass

@@ -101,6 +101,7 @@ def comp_method(func, name):
 class DataFrame(NDFrame):
     _auto_consolidate = True
     _verbose_info = True
+    _het_axis = 1
 
     _AXIS_NUMBERS = {
         'index' : 0,

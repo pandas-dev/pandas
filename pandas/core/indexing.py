@@ -36,11 +36,6 @@ class _NDFrameIndexer(object):
             return self.obj.xs(idx, axis=axis, copy=True)
 
     def __setitem__(self, key, value):
-        # also has the side effect of consolidating in-place
-        if self.obj._is_mixed_type:
-            raise IndexingError('setting on mixed-type frames not '
-                                'yet supported')
-
         if isinstance(key, tuple):
             if len(key) > self.ndim:
                 raise IndexingError('only tuples of length <= %d supported',
@@ -54,7 +49,31 @@ class _NDFrameIndexer(object):
         else:
             indexer = self._convert_to_indexer(key)
 
-        self.obj.values[indexer] = value
+        self._setitem_with_indexer(indexer, value)
+
+    def _setitem_with_indexer(self, indexer, value):
+        # also has the side effect of consolidating in-place
+        if self.obj._is_mixed_type:
+            if not isinstance(indexer, tuple):
+                indexer = self._tuplify(indexer)
+
+            het_axis = self.obj._het_axis
+            het_idx = indexer[het_axis]
+
+            if isinstance(het_idx, (int, long)):
+                het_idx = [het_idx]
+
+            if not np.isscalar(value):
+                raise IndexingError('setting on mixed-type frames only '
+                                    'allowedwith scalar values')
+
+            plane_indexer = indexer[:het_axis] + indexer[het_axis+1:]
+            item_labels = self.obj._get_axis(het_axis)
+            for item in item_labels[het_idx]:
+                data = self.obj[item]
+                data.values[plane_indexer] = value
+        else:
+            self.obj.values[indexer] = value
 
     def _getitem_tuple(self, tup):
         # a bit kludgy
@@ -204,6 +223,11 @@ class _NDFrameIndexer(object):
             if _is_int_like(obj) and not is_int_index:
                 return obj
             return index.get_loc(obj)
+
+    def _tuplify(self, loc):
+        tup = [slice(None, None) for _ in range(self.ndim)]
+        tup[0] = loc
+        return tuple(tup)
 
     def _get_slice_axis(self, slice_obj, axis=0):
         obj = self.obj

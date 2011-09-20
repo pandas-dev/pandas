@@ -44,7 +44,7 @@ def panel_index(time, panels, names=['time', 'panel']):
     Parameters
     ----------
     time : array-like
-        Time index, does not have to repeat 
+        Time index, does not have to repeat
     panels : array-like
         Panel index, does not have to repeat
     names : list, optional
@@ -63,8 +63,8 @@ def panel_index(time, panels, names=['time', 'panel']):
     >>> panel_idx
     MultiIndex([(1960, 'A'), (1961, 'A'), (1962, 'A'), (1960, 'B'), (1961, 'B'),
        (1962, 'B'), (1960, 'C'), (1961, 'C'), (1962, 'C')], dtype=object)
-    
-    or 
+
+    or
 
     >>> import numpy as np
     >>> years = np.repeat(range(1960,1963), 3)
@@ -166,6 +166,7 @@ class Panel(NDFrame):
 
     # major
     _default_stat_axis = 1
+    _het_axis = 0
 
     items = AxisProperty(0)
     major_axis = AxisProperty(1)
