@@ -1120,9 +1120,10 @@ class TestLongPanel(unittest.TestCase):
         a, b, c = (np.array([1, 2, 3, 4, 4]),
                    np.array(['a', 'a', 'a', 'a', 'a']),
                    np.array([1., 2., 3., 4., 5.]))
-        df = pivot(a, b, c)
-        expected = _slow_pivot(a, b, c)
-        assert_frame_equal(df, expected)
+        self.assertRaises(Exception, pivot, a, b, c)
+        # df = pivot(a, b, c)
+        # expected = _slow_pivot(a, b, c)
+        # assert_frame_equal(df, expected)
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))

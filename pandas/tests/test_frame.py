@@ -1820,6 +1820,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df = DataFrame.from_records(lp.toRecords())
         assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
+    def test_pivot_duplicates(self):
+        data = DataFrame({'a' : ['bar', 'bar', 'foo', 'foo', 'foo'],
+                          'b' : ['one', 'two', 'one', 'one', 'two'],
+                          'c' : [1., 2., 3., 3., 4.]})
+        # expected = DataFrame([[1., 2.], [3., 4.]], index=['bar', 'foo'],
+        #                      columns=['one', 'two'])
+        # result = data.pivot('a', 'b', 'c')
+        # assert_frame_equal(result, expected)
+
+        self.assertRaises(Exception, data.pivot, 'a', 'b', 'c')
+
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 

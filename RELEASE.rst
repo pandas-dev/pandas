@@ -1,9 +1,27 @@
-========================
-pandas 0.4 Release Notes
-========================
+=============
+Release Notes
+=============
+
+This is the list of changes to pandas between each release. For full details,
+see the commit logs at http://github.com/wesm/pandas
+
+
+pandas 0.4.1
+============
+
+**Release date:** Not yet released
+
+This is a bug fix release
+
+**Bug fixes**
+
+  -
+
+pandas 0.4
+==========
 
 What is it
-==========
+----------
 
 **pandas** is a library of powerful labeled-axis data structures, statistical
 tools, and general code for working with relational data sets, including time
@@ -13,14 +31,14 @@ particularly well suited for, among other things, financial data analysis
 applications.
 
 Where to get it
-===============
+---------------
 
 Source code: http://github.com/wesm/pandas
 Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 Documentation: http://pandas.sourceforge.net
 
 Release notes
-=============
+-------------
 
 **Release date:** 9/12/2011
 
@@ -279,12 +297,8 @@ Thanks
   - Skipper Seabold
   - Chris Jordan-Squire
 
-========================
-pandas 0.3 Release Notes
-========================
-
-Release Notes
-=============
+pandas 0.3
+==========
 
 This major release of pandas represents approximately 1 year of continuous
 development work and brings with it many new features, bug fixes, speed
@@ -293,7 +307,7 @@ change from the 0.2 release has been the completion of a rigorous unit test
 suite covering all of the core functionality.
 
 What is it
-==========
+----------
 
 **pandas** is a library of labeled data structures, statistical models, and
 general code for working with time series and cross-sectional data. It was
@@ -301,14 +315,14 @@ designed with the practical needs of statistical modeling and large,
 inhomogeneous data sets in mind.
 
 Where to get it
-===============
+---------------
 
 Source code: http://github.com/wesm/pandas
 Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 Documentation: http://pandas.sourceforge.net
 
 Release notes
-=============
+-------------
 
 **Release date:** February 20, 2011
 
