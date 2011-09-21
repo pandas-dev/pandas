@@ -138,13 +138,6 @@ def _mut_exclusive(arg1, arg2):
     else:
         return arg2
 
-def _ensure_index(index_like):
-    from pandas.core.index import Index
-    if not isinstance(index_like, Index):
-        index_like = Index(index_like)
-
-    return index_like
-
 def _any_none(*args):
     for arg in args:
         if arg is None:

@@ -6,8 +6,7 @@ from itertools import izip
 import numpy as np
 
 from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
-                                _ensure_index, _is_bool_indexer,
-                                _asarray_tuplesafe)
+                                _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import deprecate, cache_readonly
 import pandas.core.common as common
 import pandas._tseries as _tseries
@@ -1226,3 +1225,7 @@ def _sparsify(label_list):
 
     return zip(*result)
 
+def _ensure_index(index_like):
+    if isinstance(index_like, Index):
+        return index_like
+    return Index(index_like)

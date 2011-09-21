@@ -17,6 +17,10 @@ This is a bug fix release
 
   -
 
+**Improvements to existing features**
+
+  - Some speed enhancements with internal Index type-checking function
+
 pandas 0.4
 ==========
 

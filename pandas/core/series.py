@@ -13,11 +13,11 @@ import warnings
 from numpy import nan, ndarray
 import numpy as np
 
-from pandas.core.common import (isnull, notnull, _ensure_index,
-                                _is_bool_indexer, _default_index)
+from pandas.core.common import (isnull, notnull, _is_bool_indexer,
+                                _default_index)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util.decorators import deprecate
 import pandas.core.datetools as datetools

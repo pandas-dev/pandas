@@ -11,8 +11,8 @@ import numpy as np
 import operator
 
 from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
-                                _mut_exclusive, _ensure_index, _try_sort)
-from pandas.core.index import Index, MultiIndex, NULL_INDEX
+                                _mut_exclusive, _try_sort)
+from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
@@ -624,7 +624,7 @@ class SparseDataFrame(DataFrame):
     _verbose_info = False
     _columns = None
     _series = None
-
+    _is_mixed_type = False
     ndim = 2
 
     def __init__(self, data=None, index=None, columns=None,
@@ -1055,6 +1055,24 @@ class SparseDataFrame(DataFrame):
 
         self.columns = new_columns
         self._series = new_series
+
+    def _append_column_by_column(self, other):
+        new_data = {}
+        for col in self:
+            values = self[col].values
+            if col in other:
+                other_values = other[col].values
+            else:
+                values = _maybe_upcast(values)
+                other_values = np.empty(len(other), dtype=values.dtype)
+                other_values.fill(np.nan)
+            new_data[col] = np.concatenate((values, other_values))
+
+        for column, series in other.iteritems():
+            if column not in self:
+                new_data[column] = series.values
+
+        return new_data
 
     def add_prefix(self, prefix):
         f = (('%s' % prefix) + '%s').__mod__

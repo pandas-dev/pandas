@@ -3,8 +3,7 @@ import itertools
 from numpy import nan
 import numpy as np
 
-from pandas.core.index import Index
-from pandas.core.common import _ensure_index
+from pandas.core.index import Index, _ensure_index
 import pandas.core.common as common
 import pandas._tseries as _tseries
 

@@ -19,15 +19,15 @@ import warnings
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
+from pandas.core.common import (isnull, notnull, PandasError,
                                 _try_sort, _pfixed, _default_index,
                                 _infer_dtype, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
-from pandas.core.index import Index, MultiIndex, NULL_INDEX
+from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series, _is_bool_indexer
+from pandas.core.series import Series, _is_bool_indexer, _maybe_upcast
 from pandas.util.decorators import deprecate
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -2008,10 +2008,17 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other):
+    def append(self, other, ignore_index=False):
         """
         Append columns of other to end of this frame's columns and index.
         Columns not in this frame are added as new columns.
+
+        Parameters
+        ----------
+        other : DataFrame
+        ignore_index : boolean, default False
+            If True do not use the index labels. Useful for gluing together
+            record arrays
 
         Returns
         -------
@@ -2022,28 +2029,53 @@ class DataFrame(NDFrame):
         if not self:
             return other.copy()
 
-        new_index = np.concatenate((self.index, other.index))
-        new_data = {}
+        if ignore_index:
+            new_index = None
+        else:
+            new_index = np.concatenate((self.index, other.index))
 
-        new_columns = self.columns
+        if self.columns.equals(other.columns):
+            return self._append_same_columns(other, new_index)
+        else:
+            return self._append_different_columns(other, new_index)
 
-        if not new_columns.equals(other.columns):
-            new_columns = self.columns + other.columns
-
-        for column, series in self.iteritems():
-            values = series.values
-            if column in other:
-                other_values = other[column].values
-                new_data[column] = np.concatenate((values, other_values))
-            else:
-                new_data[column] = series
-
-        for column, series in other.iteritems():
-            if column not in self:
-                new_data[column] = series
-
+    def _append_different_columns(self, other, new_index):
+        new_columns = self.columns + other.columns
+        new_data = self._append_column_by_column(other)
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns)
+
+    def _append_same_columns(self, other, new_index):
+        if self._is_mixed_type:
+            new_data = self._append_column_by_column(other)
+        else:
+            new_data= np.concatenate((self.values, other.values), axis=0)
+        return self._constructor(new_data, index=new_index,
+                                 columns=self.columns)
+
+    def _append_column_by_column(self, other):
+        def _concat_missing(values, n):
+            values = _maybe_upcast(values)
+            missing_values = np.empty(n, dtype=values.dtype)
+            missing_values.fill(np.nan)
+            return values, missing_values
+
+        new_data = {}
+        for col in self:
+            values = self._data.get(col)
+            if col in other:
+                other_values = other._data.get(col)
+            else:
+                values, other_values = _concat_missing(values, len(other))
+            new_data[col] = np.concatenate((values, other_values))
+
+        for col in other:
+            values = other._data.get(col)
+            if col not in self:
+                values, missing_values = _concat_missing(values, len(self))
+                new_data[col] = np.concatenate((missing_values, values))
+
+        return new_data
 
     def join(self, other, on=None, how=None, lsuffix='', rsuffix=''):
         """
@@ -3136,7 +3168,6 @@ def _homogenize(data, index, columns, dtype=None):
         homogenized[k] = v
 
     return homogenized
-
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)

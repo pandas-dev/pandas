@@ -10,9 +10,9 @@ import warnings
 
 import numpy as np
 
-from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
+from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
-from pandas.core.index import Factor, Index, MultiIndex
+from pandas.core.index import Factor, Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes

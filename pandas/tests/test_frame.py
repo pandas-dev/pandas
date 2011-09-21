@@ -1517,6 +1517,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         assert_frame_equal(self.frame, appended)
         self.assert_(appended is not self.frame)
 
+    def test_append_records(self):
+        arr1 = np.zeros((2,),dtype=('i4,f4,a10'))
+        arr1[:] = [(1,2.,'Hello'),(2,3.,"World")]
+
+        arr2 = np.zeros((3,),dtype=('i4,f4,a10'))
+        arr2[:] = [(3, 4.,'foo'),
+                   (5, 6.,"bar"),
+                   (7., 8., 'baz')]
+
+        df1 = DataFrame(arr1)
+        df2 = DataFrame(arr2)
+
+        result = df1.append(df2, ignore_index=True)
+        expected = DataFrame(np.concatenate((arr1, arr2)))
+        assert_frame_equal(result, expected)
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
         rule_monthly = self.tsframe.asfreq('EOM')
