@@ -84,8 +84,11 @@ class Block(object):
     def dtype(self):
         return self.values.dtype
 
-    def copy(self):
-        return make_block(self.values.copy(), self.items, self.ref_items)
+    def copy(self, deep=True):
+        values = self.values
+        if deep:
+            values = values.copy()
+        return make_block(values, self.items, self.ref_items)
 
     def merge(self, other):
         assert(self.ref_items.equals(other.ref_items))
@@ -682,13 +685,13 @@ class BlockManager(object):
         new_axes[axis] = new_axis
         return BlockManager(self.blocks, new_axes)
 
-    def rename_items(self, mapper):
+    def rename_items(self, mapper, copydata=True):
         new_items = Index([mapper(x) for x in self.items])
         new_items._verify_integrity()
 
         new_blocks = []
         for block in self.blocks:
-            newb = block.copy()
+            newb = block.copy(deep=copydata)
             newb.set_ref_items(new_items, maybe_rename=True)
             new_blocks.append(newb)
         new_axes = list(self.axes)

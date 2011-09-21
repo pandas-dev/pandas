@@ -1346,7 +1346,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Rename
 
-    def rename(self, index=None, columns=None):
+    def rename(self, index=None, columns=None, copy=True):
         """
         Alter index and / or columns using input function or
         functions. Function / dict values must be unique (1-to-1). Labels not
@@ -1358,6 +1358,8 @@ class DataFrame(NDFrame):
             Transformation to apply to index values
         columns : dict-like or function, optional
             Transformation to apply to column values
+        copy : boolean, default True
+            Also copy underlying data
 
         See also
         --------
@@ -1390,7 +1392,7 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        result = self.copy()
+        result = self.copy(deep=copy)
 
         if index is not None:
             result._rename_index_inplace(index_f)
@@ -1405,7 +1407,7 @@ class DataFrame(NDFrame):
         self._series_cache.clear()
 
     def _rename_columns_inplace(self, mapper):
-        self._data = self._data.rename_items(mapper)
+        self._data = self._data.rename_items(mapper, copydata=False)
         self._series_cache.clear()
 
     #----------------------------------------------------------------------

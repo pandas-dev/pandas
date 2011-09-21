@@ -410,12 +410,15 @@ to sparse
 
         return self.copy()
 
-    def copy(self):
+    def copy(self, deep=True):
         """
         Make a copy of the SparseSeries. Only the actual sparse values need to
         be copied
         """
-        values = self.sp_values.copy()
+        if deep:
+            values = self.sp_values.copy()
+        else:
+            values = self.sp_values
         return SparseSeries(values, index=self.index,
                             sparse_index=self.sp_index,
                             fill_value=self.fill_value)
@@ -775,12 +778,15 @@ class SparseDataFrame(DataFrame):
         data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
 
-    def copy(self):
+    def copy(self, deep=True):
         """
-        Make a deep copy of this SparseDataFrame
+        Make a copy of this SparseDataFrame
         """
-        return SparseDataFrame(self._series, index=self.index,
-                               columns=self.columns,
+        if deep:
+            series = self._series.copy()
+        else:
+            series = self._series
+        return SparseDataFrame(series, index=self.index, columns=self.columns,
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
 

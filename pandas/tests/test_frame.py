@@ -2025,6 +2025,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         renamed = self.frame.T.rename(index={'C' : 'foo', 'D' : 'bar'})
         self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
 
+    def test_rename_nocopy(self):
+        renamed = self.frame.rename(columns={'C' : 'foo'}, copy=False)
+        renamed['foo'] = 1.
+        self.assert_((self.frame['C'] == 1.).all())
+
     #----------------------------------------------------------------------
     # Time series related
 
