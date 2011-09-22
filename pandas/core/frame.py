@@ -648,11 +648,15 @@ class DataFrame(NDFrame):
                                       % (_stringify(cols[0]),
                                          _stringify(cols[-1])))
 
-        counts = self._get_dtype_counts()
+        counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
         buf.write(u'dtypes: %s' % ', '.join(dtypes))
 
-    def _get_dtype_counts(self):
+    @property
+    def dtypes(self):
+        return self.apply(lambda x: x.dtype)
+
+    def get_dtype_counts(self):
         counts = {}
         for _, series in self.iteritems():
             if series.dtype in counts:
@@ -660,7 +664,7 @@ class DataFrame(NDFrame):
             else:
                 counts[series.dtype] = 1
 
-        return counts
+        return Series(counts)
 
     #----------------------------------------------------------------------
     # properties for index and columns

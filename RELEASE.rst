@@ -13,6 +13,10 @@ pandas 0.4.1
 
 This is a bug fix release
 
+**New features / modules**
+
+  - Added new `DataFrame` methods `get_dtype_counts` and property `dtypes`
+
 **Bug fixes**
 
   - Fixed DataFrame constructor bug causing downstream problems (e.g. .copy()

@@ -1543,6 +1543,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.frame.info(buf=io)
         self.tsframe.info(buf=io)
 
+    def test_dtypes(self):
+        self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
+        result = self.mixed_frame.dtypes
+        expected = self.mixed_frame.dtypes
+        assert_series_equal(result, expected)
+
     def test_append(self):
         begin_index = self.frame.index[:5]
         end_index = self.frame.index[5:]
