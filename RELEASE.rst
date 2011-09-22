@@ -15,7 +15,9 @@ This is a bug fix release
 
 **Bug fixes**
 
-  -
+  - Fixed DataFrame constructor bug causing downstream problems (e.g. .copy()
+    failing) when passing a Series as the values along with a column name and
+    index
 
 **Improvements to existing features**
 

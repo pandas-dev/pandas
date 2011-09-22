@@ -3105,6 +3105,8 @@ def _prep_ndarray(values, copy=True):
             arr = np.array(values, dtype=object, copy=True)
         values = arr
     else:
+        # drop subclass info, do not copy data
+        values = np.asarray(values)
         if copy:
             values = values.copy()
 

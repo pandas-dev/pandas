@@ -1018,6 +1018,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         expected = DataFrame({"a" : [0, 0, 0]}, index=idx)
         assert_frame_equal(df, expected)
 
+    def test_constructor_Series_copy_bug(self):
+        df = DataFrame(self.frame['A'], index=self.frame.index, columns=['A'])
+        df.copy()
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),
