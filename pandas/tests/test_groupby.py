@@ -519,12 +519,15 @@ class TestGroupBy(unittest.TestCase):
     def test_groupby_as_index(self):
         data = self.df
 
-        grouped = data.groupby(['A'], as_index=False)
+        # single-key
+        grouped = data.groupby('A', as_index=False)
         result = grouped.mean()
         expected = data.groupby(['A']).mean()
         expected.insert(0, 'A', expected.index)
         expected.index = np.arange(len(expected))
+        assert_frame_equal(result, expected)
 
+        # multi-key
         grouped = data.groupby(['A', 'B'], as_index=False)
         result = grouped.mean()
         expected = data.groupby(['A', 'B']).mean()
@@ -533,6 +536,7 @@ class TestGroupBy(unittest.TestCase):
         expected.insert(0, 'A', arrays[0])
         expected.insert(1, 'B', arrays[1])
         expected.index = np.arange(len(expected))
+        assert_frame_equal(result, expected)
 
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()

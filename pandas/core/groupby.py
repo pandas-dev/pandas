@@ -923,8 +923,12 @@ class DataFrameGroupBy(GroupBy):
                 result = DataFrame(output, index=index, columns=output_keys)
         else:
             name_list = self._get_names()
-            result = DataFrame(output, index=name_list[0][1],
-                               columns=output_keys)
+            name, labels = name_list[0]
+            if not self.as_index:
+                result = DataFrame(output, columns=output_keys)
+                result.insert(0, name, labels)
+            else:
+                result = DataFrame(output, index=labels, columns=output_keys)
 
         if self.axis == 1:
             result = result.T
