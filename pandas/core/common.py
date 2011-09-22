@@ -196,7 +196,8 @@ def _pfixed(s, space, nanRep=None, float_format=None):
 
         return formatted.ljust(space)
     else:
-        return (' %s' % s)[:space].ljust(space)
+        stringified = _stringify(s)
+        return (' %s' % stringified)[:space].ljust(space)
 
 def _stringify(col):
     # unicode workaround
@@ -210,7 +211,7 @@ def _format(s, nanRep=None, float_format=None):
         if nanRep is not None and isnull(s):
             if np.isnan(s):
                 s = nanRep
-            return (' %s' % str(s))
+            return ' %s' % s
 
         if float_format:
             formatted = float_format(s)
@@ -225,7 +226,7 @@ def _format(s, nanRep=None, float_format=None):
 
         return formatted
     else:
-        return ' %s' % str(s)
+        return ' %s' % _stringify(s)
 
 #-------------------------------------------------------------------------------
 # miscellaneous python tools

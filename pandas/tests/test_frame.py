@@ -1163,6 +1163,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         common.set_printoptions(precision=3, column_space=10)
         repr(self.frame)
 
+    def test_repr_tuples(self):
+        buf = StringIO()
+
+        arr = np.empty(10, dtype=object)
+        arr[:] = zip(range(10), range(10))
+        df = DataFrame({'tups' : arr})
+        repr(df)
+        df.to_string(colSpace=10, buf=buf)
+
+    def test_to_string_unicode(self):
+        buf = StringIO()
+
+        unicode_values = [u'\u03c3'] * 10
+        unicode_values = np.array(unicode_values, dtype=object)
+        df = DataFrame({'unicode' : unicode_values})
+        df.to_string(colSpace=10, buf=buf)
+
+    def test_to_string_unicode_columns(self):
+        df = DataFrame({u'\u03c3' : np.arange(10.)})
+
+        buf = StringIO()
+        df.to_string(buf=buf)
+        buf.getvalue()
+
+        buf = StringIO()
+        df.info(buf=buf)
+        buf.getvalue()
+
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
@@ -1194,17 +1222,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         frame = DataFrame(index=np.arange(1000))
         frame.to_string(buf=buf)
-
-    def test_to_string_unicode_columns(self):
-        df = DataFrame({u'\u03c3' : np.arange(10.)})
-
-        buf = StringIO()
-        df.to_string(buf=buf)
-        buf.getvalue()
-
-        buf = StringIO()
-        df.info(buf=buf)
-        buf.getvalue()
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
