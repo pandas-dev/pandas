@@ -16,6 +16,11 @@ This is a bug fix release
 **New features / modules**
 
   - Added new `DataFrame` methods `get_dtype_counts` and property `dtypes`
+  - Setting of values using ``.ix`` indexing attribute in mixed-type DataFrame
+    objects has been implemented (fixes GH #135)
+  - `read_csv` can read multiple columns into a `MultiIndex`. DataFrame's
+    `to_csv` method will properly write out a `MultiIndex` which can be read
+    back (GH #151)
 
 **Bug fixes**
 
@@ -23,6 +28,9 @@ This is a bug fix release
     failing) when passing a Series as the values along with a column name and
     index
   - Fixed single-key groupby on DataFrame with as_index=False (GH #160)
+  - `Series.shift` was failing on integer Series (GH #154)
+  - `unstack` methods were producing incorrect output in the case of duplicate
+    hierarchical labels. An exception will now be raised (GH #147)
 
 **Improvements to existing features**
 
