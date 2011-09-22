@@ -18,6 +18,7 @@ This is a bug fix release
   - Fixed DataFrame constructor bug causing downstream problems (e.g. .copy()
     failing) when passing a Series as the values along with a column name and
     index
+  - Fixed single-key groupby on DataFrame with as_index=False (GH #160)
 
 **Improvements to existing features**
 
