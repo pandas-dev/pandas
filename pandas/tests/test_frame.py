@@ -1704,6 +1704,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         for row in index[:4]:
             assert_almost_equal(correls[row], df1.ix[row].corr(df2.ix[row]))
 
+    def test_corrwith_with_objects(self):
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame()
+        cols = ['A', 'B', 'C', 'D']
+
+        df1['obj'] = 'foo'
+        df2['obj'] = 'bar'
+
+        result = df1.corrwith(df2)
+        expected = df1.ix[:, cols].corrwith(df2.ix[:, cols])
+        assert_series_equal(result, expected)
+
+        result = df1.corrwith(df2, axis=1)
+        expected = df1.ix[:, cols].corrwith(df2.ix[:, cols], axis=1)
+        assert_series_equal(result, expected)
+
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = randn(N)

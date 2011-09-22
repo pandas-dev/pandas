@@ -2214,20 +2214,23 @@ class DataFrame(NDFrame):
         -------
         correls : Series
         """
-        com_index = self._intersect_index(other)
-        com_cols = self._intersect_columns(other)
+        this = self._get_numeric_data()
+        other = other._get_numeric_data()
+
+        com_index = this._intersect_index(other)
+        com_cols = this._intersect_columns(other)
 
         # feels hackish
         if axis == 0:
             result_index = com_index
             if not drop:
-                result_index = self.columns.union(other.columns)
+                result_index = this.columns.union(other.columns)
         else:
             result_index = com_cols
             if not drop:
-                result_index = self.index.union(other.index)
+                result_index = this.index.union(other.index)
 
-        left = self.reindex(index=com_index, columns=com_cols)
+        left = this.reindex(index=com_index, columns=com_cols)
         right = other.reindex(index=com_index, columns=com_cols)
 
         # mask missing values
@@ -2691,6 +2694,15 @@ class DataFrame(NDFrame):
                 cols.append(col)
 
         return cols
+
+    def _get_numeric_data(self):
+        if self._is_mixed_type:
+            return self.ix[:, self._get_numeric_columns()]
+        else:
+            if self.values.dtype != np.object_:
+                return self
+            else:
+                return self.ix[:, []]
 
     def clip(self, upper=None, lower=None):
         """
