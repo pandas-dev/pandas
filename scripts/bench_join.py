@@ -4,21 +4,21 @@ from pandas import *
 from copy import deepcopy
 
 a = np.arange(100000, dtype=np.int64)
-b = a[::2].copy()
+b = np.arange(20000, 120000, dtype=np.int64)
 
 dr1 = DateRange('1/1/2000', periods=100000, offset=datetools.Minute())
-dr2 = DateRange('1/1/2000', periods=50000, offset=datetools.Minute(2))
+dr2 = DateRange(dr1[20000], periods=100000, offset=datetools.Minute(2))
 
 aobj = a.astype(object)
 bobj = b.astype(object)
 
 av = np.random.randn(100000)
-bv = np.random.randn(50000)
+bv = np.random.randn(100000)
 
-K = 1
+K = 5
 
 avf = np.random.randn(100000, K)
-bvf = np.random.randn(50000, K)
+bvf = np.random.randn(100000, K)
 
 a_series = Series(av, index=a)
 b_series = Series(bv, index=b)
@@ -37,7 +37,6 @@ prof = LineProfiler()
 
 from pandas.util.testing import set_trace
 
-@prof
 def do_left_join_multi(a, b, av, bv):
     indexer, mask = lib.ordered_left_join_int64(a, b)
 
@@ -49,15 +48,22 @@ def do_left_join_multi(a, b, av, bv):
     result[:ak] = av.T
 
     bchunk = result[ak:]
-    take_multi(bv.T, indexer, bchunk)
+    _take_multi(bv.T, indexer, bchunk)
     np.putmask(bchunk, np.tile(mask, bk), np.nan)
     return result
 
-def take_multi(data, indexer, out):
+def _take_multi(data, indexer, out):
     if not data.flags.c_contiguous:
         data = data.copy()
     for i in xrange(data.shape[0]):
         data[i].take(indexer, out=out[i])
+
+def do_left_join_multi_put(a, b, av, bv):
+    n, ak = av.shape
+    _, bk = bv.shape
+    result = np.empty((n, ak + bk), dtype=np.float64)
+    lib.ordered_left_join_put(a, b, av, bv, result)
+    return result
 
 def do_left_join_multi_v2(a, b, av, bv):
     indexer, mask = lib.ordered_left_join_int64(a, b)
