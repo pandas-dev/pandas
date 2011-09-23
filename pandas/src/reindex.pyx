@@ -409,6 +409,8 @@ def ordered_left_join_put(ndarray[int64_t] left, ndarray[int64_t] right,
             for k from kleft <= k < kleft + kright:
                 out[i, k] = NaN
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     '''
     Two-pass algorithm?
@@ -459,10 +461,12 @@ def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
 def _inner_join_count(ndarray[int64_t] left, ndarray[int64_t] right):
     pass
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     cdef:
         Py_ssize_t i, j, nright, nleft, tot, count
-        int64_t val
+        int64_t lval, rval
         ndarray[int32_t] lindexer, rindexer
         ndarray[int64_t] result
 
@@ -489,6 +493,7 @@ def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
                     result[count] = right[j]
                     j += 1
                     count += 1
+                break
         elif j == nright:
             while i < nleft:
                 lindexer[count] = i
