@@ -409,19 +409,29 @@ def ordered_left_join_put(ndarray[int64_t] left, ndarray[int64_t] right,
             for k from kleft <= k < kleft + kright:
                 out[i, k] = NaN
 
-
-def ordered_outer_join(ndarray[int64] left, ndarray[int64] right):
+def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
+    '''
+    Two-pass algorithm?
+    '''
     cdef:
-        Py_ssize_t i, j, k, nright, nleft, kright, kleft
+        Py_ssize_t i, j, k, nright, nleft, count
         int64_t val
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] result
 
-    nleft, kleft = (<object> lvalues).shape
-    nright, kright = (<object> rvalues).shape
+    nleft = len(left)
+    nright = len(right)
 
+    lindexer = np.empty(min(nleft, nright), dtype=np.int32)
+    rindexer = np.empty(min(nleft, nright), dtype=np.int32)
+    result = np.empty(min(nleft, nright), dtype=np.int64)
+
+    i = 0
     j = 0
-    for i from 0 <= i < nleft:
-        for k from 0 <= k < kleft:
-            out[i, k] = lvalues[i, k]
+    count = 0
+    while True:
+        if i == nleft:
+            break
 
         val = left[i]
 
@@ -429,16 +439,101 @@ def ordered_outer_join(ndarray[int64] left, ndarray[int64] right):
             j += 1
 
         if j == nright:
-            for k from kleft <= k < kleft + kright:
-                out[i, k] = NaN
-            continue
+            break
 
         if val == right[j]:
-            for k from kleft <= k < kleft + kright:
-                out[i, k] = rvalues[j, k - kleft]
+            lindexer[count] = i
+            rindexer[count] = j
+            result[count] = val
+            count += 1
+            i += 1
+            j += 1
         else:
-            for k from kleft <= k < kleft + kright:
-                out[i, k] = NaN
+            while left[i] < right[j]:
+                i += 1
+
+    return (result[:count].copy(),
+            lindexer[:count].copy(),
+            rindexer[:count].copy())
+
+def _inner_join_count(ndarray[int64_t] left, ndarray[int64_t] right):
+    pass
+
+def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, tot, count
+        int64_t val
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+    tot = nleft + nright
+
+    lindexer = np.empty(tot, dtype=np.int32)
+    rindexer = np.empty(tot, dtype=np.int32)
+    result = np.empty(tot, dtype=np.int64)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[j]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return (result[:count].copy(),
+            lindexer[:count].copy(),
+            rindexer[:count].copy())
+
+def ordered_put_indexer(ndarray[int64_t] left, ndarray[int64_t] right,
+                        ndarray[float64_t, ndim=2] lvalues,
+                        ndarray[float64_t, ndim=2] rvalues,
+                        ndarray[float64_t, ndim=2] out):
+    pass
+
+def ordered_outer_join(ndarray[int64_t] left, ndarray[int64_t] right):
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, kright, kleft
+        int64_t val
+    pass
 
 
 def ordered_inner_join(ndarray[object] left, ndarray[object] right):

@@ -78,3 +78,7 @@ def do_left_join_frame(a, b):
     a.index._indexMap = None
     b.index._indexMap = None
     return a.join(b, how='left')
+
+# a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+# b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
+# print lib.inner_join_indexer(a, b)
