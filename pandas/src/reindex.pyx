@@ -309,3 +309,72 @@ def getMergeVec(ndarray[object] values, dict oldMap):
             fillVec[i] = -1
 
     return fillVec, mask.astype(bool)
+
+def ordered_left_join(ndarray[object] left, ndarray[object] right):
+    # cdef dict right_map = map_indices_buf(right)
+    # return getMergeVec(left, right_map)
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[int32_t] indexer
+        ndarray[uint8_t, cast=True] mask
+        object val
+
+    i = 0
+    j = 0
+    n = len(left)
+    k = len(right)
+
+    indexer = np.zeros(n, dtype=np.int32)
+    mask = np.ones(n, dtype=np.bool)
+
+    for i from 0 <= i < n:
+        val = left[i]
+
+        while j < k and right[j] < val:
+            j += 1
+
+        if j == k:
+            break
+
+        if val == right[j]:
+            indexer[i] = j
+            mask[i] = 0
+
+    return indexer, mask
+
+def ordered_left_join_int64(ndarray[int64_t] left, ndarray[int64_t] right):
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[int32_t] indexer
+        ndarray[uint8_t, cast=True] mask
+        int64_t val
+
+    i = 0
+    j = 0
+    n = len(left)
+    k = len(right)
+
+    indexer = np.zeros(n, dtype=np.int32)
+    mask = np.ones(n, dtype=np.bool)
+
+    for i from 0 <= i < n:
+        val = left[i]
+
+        while j < k and right[j] < val:
+            j += 1
+
+        if j == k:
+            break
+
+        if val == right[j]:
+            indexer[i] = j
+            mask[i] = 0
+
+    return indexer, mask
+
+def ordered_outer_join(ndarray[object] left, ndarray[object] right):
+    pass
+
+def ordered_inner_join(ndarray[object] left, ndarray[object] right):
+    pass
+
