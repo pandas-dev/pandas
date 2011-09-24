@@ -376,10 +376,10 @@ def ordered_left_join_int64(ndarray[int64_t] left, ndarray[int64_t] right):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ordered_left_join_put(ndarray[int64_t] left, ndarray[int64_t] right,
-                          ndarray[float64_t, ndim=2] lvalues,
-                          ndarray[float64_t, ndim=2] rvalues,
-                          ndarray[float64_t, ndim=2] out):
+def left_join_2d(ndarray[int64_t] left, ndarray[int64_t] right,
+                 ndarray[float64_t, ndim=2] lvalues,
+                 ndarray[float64_t, ndim=2] rvalues,
+                 ndarray[float64_t, ndim=2] out):
     cdef:
         Py_ssize_t i, j, k, nright, nleft, kright, kleft
         int64_t val
@@ -408,6 +408,37 @@ def ordered_left_join_put(ndarray[int64_t] left, ndarray[int64_t] right,
         else:
             for k from kleft <= k < kleft + kright:
                 out[i, k] = NaN
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_1d(ndarray[int64_t] left, ndarray[int64_t] right,
+                 ndarray[float64_t] lvalues,
+                 ndarray[float64_t] rvalues,
+                 ndarray[float64_t, ndim=2] out):
+    cdef:
+        Py_ssize_t i, j, nright, nleft
+        int64_t val
+
+    nleft = len(lvalues)
+    nright = len(rvalues)
+
+    j = 0
+    for i from 0 <= i < nleft:
+        out[i, 0] = lvalues[i]
+
+        val = left[i]
+
+        while j < nright and right[j] < val:
+            j += 1
+
+        if j == nright:
+            out[i, 1] = NaN
+            continue
+
+        if val == right[j]:
+            out[i, 1] = rvalues[j]
+        else:
+            out[i, 1] = NaN
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -527,6 +558,83 @@ def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     return (result[:count].copy(),
             lindexer[:count].copy(),
             rindexer[:count].copy())
+
+# @cython.wraparound(False)
+# @cython.boundscheck(False)
+def take_axis0(ndarray[float64_t, ndim=2] values,
+               ndarray[int32_t] indexer,
+               out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[float64_t, ndim=2] outbuf
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = NaN
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_axis1(ndarray[float64_t, ndim=2] values,
+               ndarray[int32_t] indexer,
+               out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[float64_t, ndim=2] outbuf
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for j from 0 <= j < k:
+        idx = indexer[j]
+
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = NaN
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d(ndarray[float64_t] values, ndarray[int32_t] indexer,
+            out=None):
+    cdef:
+        Py_ssize_t i, n, idx
+        ndarray[float64_t] outbuf
+
+    n = len(indexer)
+
+    if out is None:
+        outbuf = np.empty(n, dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = NaN
+        else:
+            outbuf[i] = values[idx]
 
 def ordered_put_indexer(ndarray[int64_t] left, ndarray[int64_t] right,
                         ndarray[float64_t, ndim=2] lvalues,
