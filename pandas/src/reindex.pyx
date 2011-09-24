@@ -455,9 +455,34 @@ def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     nleft = len(left)
     nright = len(right)
 
-    lindexer = np.empty(min(nleft, nright), dtype=np.int32)
-    rindexer = np.empty(min(nleft, nright), dtype=np.int32)
-    result = np.empty(min(nleft, nright), dtype=np.int64)
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            break
+
+        val = left[i]
+
+        while j < nright and right[j] < val:
+            j += 1
+
+        if j == nright:
+            break
+
+        if val == right[j]:
+            count += 1
+            i += 1
+            j += 1
+        else:
+            while left[i] < right[j]:
+                i += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int64)
 
     i = 0
     j = 0
@@ -485,9 +510,7 @@ def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
             while left[i] < right[j]:
                 i += 1
 
-    return (result[:count].copy(),
-            lindexer[:count].copy(),
-            rindexer[:count].copy())
+    return result, lindexer, rindexer
 
 def _inner_join_count(ndarray[int64_t] left, ndarray[int64_t] right):
     pass
@@ -496,18 +519,48 @@ def _inner_join_count(ndarray[int64_t] left, ndarray[int64_t] right):
 @cython.boundscheck(False)
 def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     cdef:
-        Py_ssize_t i, j, nright, nleft, tot, count
+        Py_ssize_t i, j, nright, nleft, count
         int64_t lval, rval
         ndarray[int32_t] lindexer, rindexer
         ndarray[int64_t] result
 
     nleft = len(left)
     nright = len(right)
-    tot = nleft + nright
 
-    lindexer = np.empty(tot, dtype=np.int32)
-    rindexer = np.empty(tot, dtype=np.int32)
-    result = np.empty(tot, dtype=np.int64)
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int64)
+
+    # do it again, but populate the indexers / result
 
     i = 0
     j = 0
@@ -542,7 +595,7 @@ def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
                 result[count] = lval
                 i += 1
                 j += 1
-            elif left[i] < right[j]:
+            elif lval < rval:
                 lindexer[count] = i
                 rindexer[count] = -1
                 result[count] = lval
@@ -555,9 +608,7 @@ def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
 
             count += 1
 
-    return (result[:count].copy(),
-            lindexer[:count].copy(),
-            rindexer[:count].copy())
+    return result, lindexer, rindexer
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

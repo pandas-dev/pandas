@@ -21,6 +21,8 @@ This is a bug fix release
   - `read_csv` can read multiple columns into a `MultiIndex`. DataFrame's
     `to_csv` method will properly write out a `MultiIndex` which can be read
     back (GH #151, thanks to Skipper Seabold)
+  - Wrote fast time series merging / joining methods in Cython. Will be
+    integrated later into DataFrame.join and related functions
 
 **Bug fixes**
 

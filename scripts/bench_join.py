@@ -4,7 +4,7 @@ from pandas import *
 from copy import deepcopy
 import time
 
-n = 100000
+n = 1000000
 K = 1
 pct_overlap = 0.2
 
@@ -135,7 +135,7 @@ def bench_python(n=100000, pct_overlap=0.20):
     import gc
     ns = [2, 3, 4, 5, 6]
     iterations = 50
-    K = 1
+    K = 5
     pct_overlap = 0.2
     kinds = ['outer', 'left', 'inner']
 
