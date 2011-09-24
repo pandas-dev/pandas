@@ -20,7 +20,7 @@ This is a bug fix release
     objects has been implemented (fixes GH #135)
   - `read_csv` can read multiple columns into a `MultiIndex`. DataFrame's
     `to_csv` method will properly write out a `MultiIndex` which can be read
-    back (GH #151)
+    back (GH #151, thanks to Skipper Seabold)
 
 **Bug fixes**
 
