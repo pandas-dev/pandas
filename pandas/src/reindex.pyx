@@ -559,8 +559,8 @@ def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
             lindexer[:count].copy(),
             rindexer[:count].copy())
 
-# @cython.wraparound(False)
-# @cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def take_axis0(ndarray[float64_t, ndim=2] values,
                ndarray[int32_t] indexer,
                out=None):
