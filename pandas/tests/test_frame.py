@@ -2492,6 +2492,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         self.assertEquals(df._get_numeric_columns(), ['a', 'e'])
         # self.assertEquals(df._get_object_columns(), ['c', 'd'])
 
+    def test_get_numeric_data(self):
+        df = DataFrame({'a' : 1., 'b' : 2, 'c' : 'foo'},
+                       index=np.arange(10))
+
+        result = df._get_numeric_data()
+        expected = df.ix[:, ['a', 'b']]
+        assert_frame_equal(result, expected)
+
+        only_obj = df.ix[:, ['c']]
+        result = only_obj._get_numeric_data()
+        expected = df.ix[:, []]
+        assert_frame_equal(result, expected)
+
     def test_statistics(self):
         # unnecessary?
         sumFrame = self.frame.apply(np.sum)

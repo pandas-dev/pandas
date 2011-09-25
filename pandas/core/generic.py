@@ -423,6 +423,7 @@ class NDFrame(PandasObject):
         -------
         swapped : type of caller (new object)
         """
+        axis = self._get_axis_number(axis)
         result = self.copy()
         labels = result._data.axes[axis]
         result._data.set_axis(axis, labels.swaplevel(i, j))
