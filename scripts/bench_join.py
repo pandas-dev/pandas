@@ -86,7 +86,6 @@ def do_outer_join_multi(a, b, av, bv):
     _, bk = bv.shape
     result_index, rindexer, lindexer = lib.outer_join_indexer(a, b)
     result = np.empty((ak + bk, len(result_index)), dtype=np.float64)
-
     lib.take_axis0(av, rindexer, out=result[:ak].T)
     lib.take_axis0(bv, lindexer, out=result[ak:].T)
     return result_index, result

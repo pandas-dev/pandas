@@ -2317,6 +2317,11 @@ class DataFrame(NDFrame):
 
         level_index = axis_index.levels[level]
 
+        if len(self) == 0:
+            return DataFrame(np.zeros((len(level_index),
+                                       len(self.columns)), dtype=int),
+                             index=level_index, columns=self.columns)
+
         n = len(level_index)
         locs = axis_index.labels[level].searchsorted(np.arange(n))
 

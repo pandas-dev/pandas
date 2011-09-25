@@ -493,6 +493,9 @@ copy : boolean, default False
 
         level_index = obj.index.levels[level]
 
+        if len(self) == 0:
+            return Series(0, index=level_index)
+
         n = len(level_index)
         locs = obj.index.labels[level].searchsorted(np.arange(n))
 

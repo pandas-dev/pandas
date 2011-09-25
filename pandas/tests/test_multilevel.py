@@ -252,6 +252,18 @@ class TestMultiLevel(unittest.TestCase):
         df = tm.makeTimeDataFrame()
         self.assertRaises(Exception, df.count, level=0)
 
+    def test_count_level_corner(self):
+        s = self.frame['A'][:0]
+        result = s.count(level=0)
+        expected = Series(0, index=s.index.levels[0])
+        assert_series_equal(result, expected)
+
+        df = self.frame[:0]
+        result = df.count(level=0)
+        expected = DataFrame({}, index=s.index.levels[0],
+                             columns=df.columns).fillna(0).astype(int)
+        assert_frame_equal(result, expected)
+
     def test_unstack(self):
         # just check that it works for now
         unstacked = self.ymd.unstack()
