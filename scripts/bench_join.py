@@ -85,19 +85,22 @@ def do_outer_join_multi(a, b, av, bv):
     n, ak = av.shape
     _, bk = bv.shape
     result_index, rindexer, lindexer = lib.outer_join_indexer(a, b)
-    result = np.empty((ak + bk, len(result_index)), dtype=np.float64)
-    lib.take_axis0(av, rindexer, out=result[:ak].T)
-    lib.take_axis0(bv, lindexer, out=result[ak:].T)
+    result = np.empty((len(result_index), ak + bk), dtype=np.float64)
+    lib.take_join_contiguous(av, bv, lindexer, rindexer, result)
+    # result = np.empty((ak + bk, len(result_index)), dtype=np.float64)
+    # lib.take_axis0(av, rindexer, out=result[:ak].T)
+    # lib.take_axis0(bv, lindexer, out=result[ak:].T)
     return result_index, result
 
 def do_inner_join_multi(a, b, av, bv):
     n, ak = av.shape
     _, bk = bv.shape
     result_index, rindexer, lindexer = lib.inner_join_indexer(a, b)
-    result = np.empty((ak + bk, len(result_index)), dtype=np.float64)
-
-    lib.take_axis0(av, rindexer, out=result[:ak].T)
-    lib.take_axis0(bv, lindexer, out=result[ak:].T)
+    result = np.empty((len(result_index), ak + bk), dtype=np.float64)
+    lib.take_join_contiguous(av, bv, lindexer, rindexer, result)
+    # result = np.empty((ak + bk, len(result_index)), dtype=np.float64)
+    # lib.take_axis0(av, rindexer, out=result[:ak].T)
+    # lib.take_axis0(bv, lindexer, out=result[ak:].T)
     return result_index, result
 
 def do_left_join_multi_v2(a, b, av, bv):

@@ -455,27 +455,28 @@ def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     nleft = len(left)
     nright = len(right)
 
+    assert(left.flags.contiguous)
+    assert(right.flags.contiguous)
+
+    cdef int64_t *lptr = <int64_t*> left.data
+    cdef int64_t *rptr = <int64_t*> right.data
+
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
-            break
-
-        val = left[i]
-
-        while j < nright and right[j] < val:
+    while i < nleft:
+        while j < nright and rptr[j] < lptr[i]:
             j += 1
 
         if j == nright:
             break
 
-        if val == right[j]:
+        if lptr[i] == rptr[j]:
             count += 1
             i += 1
             j += 1
         else:
-            while left[i] < right[j]:
+            while lptr[i] < rptr[j]:
                 i += 1
 
     # do it again now that result size is known
@@ -484,30 +485,30 @@ def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     rindexer = np.empty(count, dtype=np.int32)
     result = np.empty(count, dtype=np.int64)
 
+    cdef int32_t *liptr = <int32_t*> lindexer.data
+    cdef int32_t *riptr = <int32_t*> rindexer.data
+    cdef int64_t *resptr = <int64_t*> result.data
+
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
-            break
-
-        val = left[i]
-
-        while j < nright and right[j] < val:
+    while i < nleft:
+        val = lptr[i]
+        while j < nright and rptr[j] < val:
             j += 1
 
         if j == nright:
             break
 
-        if val == right[j]:
-            lindexer[count] = i
-            rindexer[count] = j
-            result[count] = val
+        if val == rptr[j]:
+            liptr[count] = i
+            riptr[count] = j
+            resptr[count] = val
             count += 1
             i += 1
             j += 1
         else:
-            while left[i] < right[j]:
+            while lptr[i] < rptr[j]:
                 i += 1
 
     return result, lindexer, rindexer
@@ -637,6 +638,46 @@ def take_axis0(ndarray[float64_t, ndim=2] values,
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_join_contiguous(ndarray[float64_t, ndim=2] lvalues,
+                         ndarray[float64_t, ndim=2] rvalues,
+                         ndarray[int32_t] lindexer,
+                         ndarray[int32_t] rindexer,
+                         ndarray out):
+    cdef:
+        Py_ssize_t i, j, rk, lk, n, lidx, ridx
+        float64_t *outbuf
+
+    assert(out.flags.contiguous)
+
+    outbuf = <float64_t*> out.data
+
+    n = len(lindexer)
+    lk = lvalues.shape[1]
+    rk = rvalues.shape[1]
+
+    for i from 0 <= i < n:
+        lidx = lindexer[i]
+        ridx = rindexer[i]
+
+        if lidx == -1:
+            for j from 0 <= j < lk:
+                outbuf[0] = NaN
+                outbuf = outbuf + 1
+        else:
+            for j from 0 <= j < lk:
+                outbuf[0] = lvalues[lidx, j]
+                outbuf = outbuf + 1
+
+        if lidx == -1:
+            for j from 0 <= j < rk:
+                outbuf[0] = NaN
+                outbuf = outbuf + 1
+        else:
+            for j from 0 <= j < rk:
+                outbuf[0] = rvalues[ridx, j]
+                outbuf = outbuf + 1
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

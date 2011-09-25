@@ -36,6 +36,7 @@ improvements
   - Enable sortlevel to work by level name (PR #141)
   - `read_csv` can automatically "sniff" other kinds of delimiters using
     `csv.Sniffer` (PR #146)
+  - Improved speed of unit test suite by about 40%
 
 **Bug fixes**
 
