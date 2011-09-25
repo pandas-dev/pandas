@@ -1,7 +1,7 @@
 # reasonably effecient
 
 def create_panels_append(cls, panels):
-        """ return an appended list of panels """
+        """ return an append list of panels """
         panels = [ a for a in panels if a is not None ]
         # corner cases
         if len(panels) == 0:
@@ -10,42 +10,32 @@ def create_panels_append(cls, panels):
                 return panels[0]
         elif len(panels) == 2 and panels[0] == panels[1]:
                 return panels[0]
-
-        # add indicies that are not in the major set passed in; return a reindex version of p
-        def reindex_major_axis(p, major):
-                index = [ ma for ma in p.major_axis if ma not in major ]
-                major.update(index)
-                return p.reindex(major = index, copy = False)
-
-        # make sure that we can actually append, e.g. that we have non-overlapping major_axis
-        #   if we do, reindex so we don't
-        major = set()
-        panels = [ reindex_major_axis(p, major) for p in panels ]
-        try:
-                major =  np.concatenate([ p.major_axis for p in panels ])
-        except (Exception), detail:
-                raise Exception("cannot append major_axis that dont' match dimensions! -> %s" % str(detail))
-
-        # reindex on minor axis/items
-        try:
-                minor, items = set(), set()
+        #import pdb; pdb.set_trace()
+        # create a joint index for the axis
+        def joint_index_for_axis(panels, axis):
+                s = set()
                 for p in panels:
-                        items.update(p.items)
-                        minor.update(p.minor_axis)
-                minor   = Index(sorted(list(minor)))
-                items   = Index(sorted(list(items)))
-                panels  = [ p.reindex(items = items, minor = minor, copy = False) for p in panels ]
-        except (Exception), detail:
-                raise Exception("cannot append minor/items that dont' match dimensions! -> [%s] %s" % (','.join([ "%s" % p for p in panels ]),str(detail)))
-
+                        s.update(list(getattr(p,axis)))
+                return sorted(list(s))
+        def reindex_on_axis(panels, axis, axis_reindex):
+                new_axis = joint_index_for_axis(panels, axis)
+                new_panels = [ p.reindex(**{ axis_reindex : new_axis, 'copy' : False}) for p in panels ]
+                return new_panels, new_axis
+        # create the joint major index, dont' reindex the sub-panels - we are appending
+        major = joint_index_for_axis(panels, 'major_axis')
+        # reindex on minor axis
+        panels, minor = reindex_on_axis(panels, 'minor_axis', 'minor')
+        # reindex on items
+        panels, items = reindex_on_axis(panels, 'items', 'items')
         # concatenate values
         try:
                 values = np.concatenate([ p.values for p in panels ],axis=1)
         except (Exception), detail:
                 raise Exception("cannot append values that dont' match dimensions! -> [%s] %s" % (','.join([ "%s" % p for p in panels ]),str(detail)))
-        return Panel(values, items, major, minor )
-add_class_method(Panel, create_panels_append, 'append_many')
-
+        #pm('append - create_panel')
+        p = Panel(values, items = items, major_axis = major, minor_axis = minor )
+        #pm('append - done')
+        return p
 
 
 

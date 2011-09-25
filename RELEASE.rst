@@ -39,6 +39,8 @@ improvements
   - Improved speed of unit test suite by about 40%
   - Exception will not be raised calling `HDFStore.remove` on non-existent node
     with where clause
+  - Optimized `_ensure_index` function resulting in performance savings in
+    type-checking Index objects
 
 **Bug fixes**
 
