@@ -54,6 +54,8 @@ improvements
   - Excluding OLS degenerate unit test case that was causing platform specific
     failure (GH #149)
   - Skip blosc-dependent unit tests for PyTables < 2.2 (PR #137)
+  - Calling `copy` on `DateRange` did not copy over attributes to the new object
+    (GH #168)
 
 Thanks
 ------

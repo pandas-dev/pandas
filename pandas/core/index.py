@@ -433,6 +433,14 @@ class Index(np.ndarray):
             raise ValueError('labels %s not contained in axis' % labels[-mask])
         return self.delete(indexer)
 
+    def copy(self, order='C'):
+        """
+        Overridden ndarray.copy to copy over attributes
+        """
+        cp = self.view(np.ndarray).copy(order).view(type(self))
+        cp.__dict__.update(self.__dict__)
+        return cp
+
     #----------------------------------------------------------------------
     # deprecated stuff
 
