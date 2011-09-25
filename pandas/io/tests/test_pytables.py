@@ -129,6 +129,14 @@ class TesttHDFStore(unittest.TestCase):
         self.store.remove('b')
         self.assertEquals(len(self.store), 0)
 
+    def test_remove_where_not_exist(self):
+        crit1 = {
+            'field' : 'index',
+            'op' : '>',
+            'value' : 'foo'
+        }
+        self.store.remove('a', where=[crit1])
+
     def test_remove_crit(self):
         wp = tm.makePanel()
         self.store.put('wp', wp, table=True)

@@ -281,8 +281,9 @@ class HDFStore(object):
         if where is None:
             self.handle.removeNode(self.handle.root, key, recursive=True)
         else:
-            group = getattr(self.handle.root, key)
-            self._delete_from_table(group, where)
+            group = getattr(self.handle.root, key,None)
+            if group is not None:
+                self._delete_from_table(group, where)
 
     def append(self, key, value):
         """
