@@ -117,6 +117,15 @@ class TesttHDFStore(unittest.TestCase):
         self.store.append('c', df[10:])
         tm.assert_frame_equal(self.store['c'], df)
 
+    def test_append_diff_item_order(self):
+        wp = tm.makePanel()
+        wp1 = wp.ix[:, :10, :]
+        wp2 = wp.ix[['ItemC', 'ItemB', 'ItemA'], 10:, :]
+
+        self.store.put('panel', wp1, table=True)
+        self.assertRaises(Exception, self.store.put, 'panel', wp2,
+                          append=True)
+
     def test_remove(self):
         ts = tm.makeTimeSeries()
         df = tm.makeDataFrame()

@@ -37,6 +37,8 @@ improvements
   - `read_csv` can automatically "sniff" other kinds of delimiters using
     `csv.Sniffer` (PR #146)
   - Improved speed of unit test suite by about 40%
+  - Exception will not be raised calling `HDFStore.remove` on non-existent node
+    with where clause
 
 **Bug fixes**
 
