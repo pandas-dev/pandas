@@ -513,11 +513,6 @@ The API for insertion and deletion is the same as for DataFrame.
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
 
-As of this writing, indexing with Panel is a bit more restrictive than in
-DataFrame. Notably, :ref:`advanced indexing <indexing>` via the **ix** property
-has not yet been integrated in Panel. This will be done, however, in a
-future release.
-
 .. csv-table::
     :header: "Operation", "Syntax", "Result"
     :widths: 30, 20, 10
