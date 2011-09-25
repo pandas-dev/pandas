@@ -59,6 +59,8 @@ improvements
   - Skip blosc-dependent unit tests for PyTables < 2.2 (PR #137)
   - Calling `copy` on `DateRange` did not copy over attributes to the new object
     (GH #168)
+  - Fix bug in `HDFStore` in which Panel data could be appended to a Table with
+    different item order, thus resulting in an incorrect result read back
 
 Thanks
 ------
