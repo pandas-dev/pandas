@@ -11,7 +11,8 @@ pandas 0.4.1
 
 **Release date:** Not yet released
 
-This is a bug fix release
+This is primarily bug fix release but includes a handful of new features and
+improvements
 
 **New features / modules**
 
@@ -20,9 +21,21 @@ This is a bug fix release
     objects has been implemented (fixes GH #135)
   - `read_csv` can read multiple columns into a `MultiIndex`. DataFrame's
     `to_csv` method will properly write out a `MultiIndex` which can be read
-    back (GH #151, thanks to Skipper Seabold)
+    back (PR #151, thanks to Skipper Seabold)
   - Wrote fast time series merging / joining methods in Cython. Will be
     integrated later into DataFrame.join and related functions
+  - Added `ignore_index` option to `DataFrame.append` for combining unindexed
+    records stored in a DataFrame
+
+**Improvements to existing features**
+
+  - Some speed enhancements with internal Index type-checking function
+  - `DataFrame.rename` has a new `copy` parameter which can rename a DataFrame
+    in place
+  - Enable unstacking by level name (PR #142)
+  - Enable sortlevel to work by level name (PR #141)
+  - `read_csv` can automatically "sniff" other kinds of delimiters using
+    `csv.Sniffer` (PR #146)
 
 **Bug fixes**
 
@@ -33,10 +46,22 @@ This is a bug fix release
   - `Series.shift` was failing on integer Series (GH #154)
   - `unstack` methods were producing incorrect output in the case of duplicate
     hierarchical labels. An exception will now be raised (GH #147)
+  - Calling `count` with level argument caused reduceat failure or segfault in
+    earlier NumPy (GH #169)
+  - Fixed `DataFrame.corrwith` to automatically exclude non-numeric data (GH
+    #144)
+  - Unicode handling bug fixes in `DataFrame.to_string` (GH #138)
+  - Excluding OLS degenerate unit test case that was causing platform specific
+    failure (GH #149)
+  - Skip blosc-dependent unit tests for PyTables < 2.2 (PR #137)
 
-**Improvements to existing features**
-
-  - Some speed enhancements with internal Index type-checking function
+Thanks
+------
+- Yaroslav Halchenko
+- Jeff Reback
+- Skipper Seabold
+- Dan Lovell
+- Nick Pentreath
 
 pandas 0.4
 ==========
