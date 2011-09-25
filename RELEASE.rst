@@ -11,7 +11,7 @@ pandas 0.4.1
 
 **Release date:** Not yet released
 
-This is primarily bug fix release but includes a handful of new features and
+This is primarily a bug fix release but includes some new features and
 improvements
 
 **New features / modules**

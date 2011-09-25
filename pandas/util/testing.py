@@ -74,8 +74,11 @@ def assert_almost_equal(a, b):
     if isiterable(a):
         np.testing.assert_(isiterable(b))
         np.testing.assert_equal(len(a), len(b))
-        for i in xrange(len(a)):
-            assert_almost_equal(a[i], b[i])
+        if np.array_equal(a, b):
+            return True
+        else:
+            for i in xrange(len(a)):
+                assert_almost_equal(a[i], b[i])
         return True
 
     err_msg = lambda a, b: 'expected %.5f but got %.5f' % (a, b)
