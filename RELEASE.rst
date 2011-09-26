@@ -9,7 +9,7 @@ see the commit logs at http://github.com/wesm/pandas
 pandas 0.4.1
 ============
 
-**Release date:** Not yet released
+**Release date:** 9/25/2011
 
 This is primarily a bug fix release but includes some new features and
 improvements
