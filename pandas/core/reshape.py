@@ -56,16 +56,7 @@ class _Unstacker(object):
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index
-
-        if not isinstance(level, int):
-            try:
-                level = index.names.index(level)
-            except:
-                raise ValueError("level %s not in index names" % s)
-
-        if level < 0:
-            level += index.nlevels
-        self.level = level
+        self.level = self.index._get_level_number(level)
 
         self.new_index_levels = list(index.levels)
         self.removed_level = self.new_index_levels.pop(level)

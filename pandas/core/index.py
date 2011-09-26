@@ -539,6 +539,13 @@ class MultiIndex(Index):
                   for lev, lab in zip(self.levels, self.labels)]
         return izip(*values)
 
+    def _get_level_number(self, level):
+        if not isinstance(level, int):
+            level = self.names.index(level)
+        elif level < 0:
+            level += self.nlevels
+        return level
+
     @property
     def values(self):
         result = np.empty(len(self), dtype=object)
@@ -807,14 +814,8 @@ class MultiIndex(Index):
         sorted_index : MultiIndex
         """
         labels = list(self.labels)
-        if not isinstance(level, int):
-            try:
-                level = self.names.index(level)
-            except:
-                raise ValueError("level %s not in index names" % level)
-
+        level = self._get_level_number(level)
         primary = labels.pop(level)
-
 
         # Lexsort starts from END
         indexer = np.lexsort(tuple(labels[::-1]) + (primary,))

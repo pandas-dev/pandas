@@ -1102,13 +1102,15 @@ class LongPanel(DataFrame):
     def consistent(self):
         offset = max(len(self.major_axis), len(self.minor_axis))
 
-        # overflow risk
-        if (offset + 1) ** 2 > 2**32:
-            keys = (self.major_labels.astype(np.int64) * offset +
-                    self.minor_labels.astype(np.int64))
-        else:
-            keys = self.major_labels * offset + self.minor_labels
+        major_labels = self.major_labels
+        minor_labels = self.minor_labels
 
+        # overflow risk
+        if (offset + 1) ** 2 > 2**32:  # pragma: no cover
+            major_labels = major_labels.astype(np.int64)
+            minor_labels = minor_labels.astype(np.int64)
+
+        keys = major_labels * offset + minor_labels
         unique_keys = np.unique(keys)
 
         if len(unique_keys) < len(keys):
@@ -1188,6 +1190,8 @@ class LongPanel(DataFrame):
             return self._combine_frame(other, func)
         elif isinstance(other, DataFrame):
             return self._combine_panel_frame(other, func, axis=axis)
+        elif isinstance(other, Series):
+            return self._combine_series(other, func, axis=axis)
         elif np.isscalar(other):
             return LongPanel(func(self.values, other), columns=self.items,
                              index=self.index)
@@ -1213,9 +1217,9 @@ class LongPanel(DataFrame):
         return result.to_long()
 
     add = _panel_arith_method(operator.add, 'add')
-    subtract = _panel_arith_method(operator.sub, 'subtract')
-    divide = _panel_arith_method(operator.div, 'divide')
-    multiply = _panel_arith_method(operator.mul, 'multiply')
+    subtract = sub = _panel_arith_method(operator.sub, 'subtract')
+    divide = div = _panel_arith_method(operator.div, 'divide')
+    multiply = mul = _panel_arith_method(operator.mul, 'multiply')
 
     def to_wide(self):
         """

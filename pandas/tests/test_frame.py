@@ -417,6 +417,9 @@ class CheckIndexing(object):
         self.mixed_frame.ix[5] = np.nan
         self.assert_(isnull(self.mixed_frame.ix[5]).all())
 
+        self.assertRaises(Exception, self.mixed_frame.ix.__setitem__,
+                          5, self.mixed_frame.ix[6])
+
     def test_getitem_fancy_1d(self):
         f = self.frame
         ix = f.ix
@@ -699,7 +702,8 @@ class SafeForSparse(object):
         self.assert_(np.array_equal(with_suffix.columns, expected))
 
 
-class TestDataFrame(unittest.TestCase, CheckIndexing):
+class TestDataFrame(unittest.TestCase, CheckIndexing,
+                    SafeForSparse):
     klass = DataFrame
 
     def setUp(self):

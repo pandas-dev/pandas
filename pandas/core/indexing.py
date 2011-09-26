@@ -65,7 +65,7 @@ class _NDFrameIndexer(object):
 
             if not np.isscalar(value):
                 raise IndexingError('setting on mixed-type frames only '
-                                    'allowedwith scalar values')
+                                    'allowed with scalar values')
 
             plane_indexer = indexer[:het_axis] + indexer[het_axis+1:]
             item_labels = self.obj._get_axis(het_axis)

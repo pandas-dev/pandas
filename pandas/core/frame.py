@@ -64,13 +64,7 @@ def _arith_method(func, name, default_axis='columns'):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combine_frame(other, func, fill_value)
         elif isinstance(other, Series):
-            if axis is not None:
-                axis = self._get_axis_name(axis)
-                if axis == 'index':
-                    return self._combine_match_index(other, func, fill_value)
-                else:
-                    return self._combine_match_columns(other, func, fill_value)
-            return self._combine_series_infer(other, func, fill_value)
+            return self._combine_series(other, func, fill_value, axis)
         else:
             return self._combine_const(other, func)
 
@@ -1476,6 +1470,15 @@ class DataFrame(NDFrame):
         same_index = self.index.equals(other.index)
         same_columns = self.columns.equals(other.columns)
         return same_index and same_columns
+
+    def _combine_series(self, other, func, fill_value=None, axis=None):
+        if axis is not None:
+            axis = self._get_axis_name(axis)
+            if axis == 'index':
+                return self._combine_match_index(other, func, fill_value)
+            else:
+                return self._combine_match_columns(other, func, fill_value)
+        return self._combine_series_infer(other, func, fill_value)
 
     def _combine_series_infer(self, other, func, fill_value=None):
         if len(other) == 0:

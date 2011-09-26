@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import DataFrame, Index, isnull, notnull, pivot
+from pandas import DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
 from pandas.core.panel import Panel, LongPanel
@@ -925,6 +925,11 @@ class TestLongPanel(unittest.TestCase):
         assert_series_equal(self.panel['foo'].reindex(lp2.index),
                             lp2['ItemA'])
 
+    def test_ops_scalar(self):
+        result = self.panel.mul(2)
+        expected = DataFrame.__mul__(self.panel, 2)
+        assert_frame_equal(result, expected)
+
     def test_combineFrame(self):
         wp = self.panel.to_wide()
         result = self.panel.add(wp['ItemA'])
@@ -1107,23 +1112,22 @@ class TestLongPanel(unittest.TestCase):
     def test_pivot(self):
         from pandas.core.reshape import _slow_pivot
 
-        df = pivot(np.array([1, 2, 3, 4, 5]),
-                   np.array(['a', 'b', 'c', 'd', 'e']),
-                   np.array([1, 2, 3, 5, 4.]))
+        one, two, three = (np.array([1, 2, 3, 4, 5]),
+                           np.array(['a', 'b', 'c', 'd', 'e']),
+                           np.array([1, 2, 3, 5, 4.]))
+        df = pivot(one, two, three)
         self.assertEqual(df['a'][1], 1)
         self.assertEqual(df['b'][2], 2)
         self.assertEqual(df['c'][3], 3)
         self.assertEqual(df['d'][4], 5)
         self.assertEqual(df['e'][5], 4)
+        assert_frame_equal(df, _slow_pivot(one, two, three))
 
         # weird overlap, TODO: test?
         a, b, c = (np.array([1, 2, 3, 4, 4]),
                    np.array(['a', 'a', 'a', 'a', 'a']),
                    np.array([1., 2., 3., 4., 5.]))
         self.assertRaises(Exception, pivot, a, b, c)
-        # df = pivot(a, b, c)
-        # expected = _slow_pivot(a, b, c)
-        # assert_frame_equal(df, expected)
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
@@ -1150,6 +1154,12 @@ def test_monotonic():
     neg2 = np.array([5, 1, 2, 3, 4, 5])
 
     assert not panelm._monotonic(neg2)
+
+def test_panel_index():
+    index = panelm.panel_index([1,2,3,4], [1,2,3])
+    expected = MultiIndex.from_arrays([np.tile([1,2,3,4], 3),
+                                       np.repeat([1,2,3], 4)])
+    assert(index.equals(expected))
 
 if __name__ == '__main__':
     import nose
