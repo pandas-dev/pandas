@@ -1,8 +1,8 @@
 pandas (0.4.1-1) unstable; urgency=low
 
   * New upstream bugfix release
-  * Dropped all debian/patches -- incorporated upstream
-  * Upon 'rules clean' remove generated pandas/version.py
+    - incorporated all debian/patches
+  * debian/rules: 'clean' removes generated pandas/version.py
   * debian/copyright: adjusted to become DEP-5 compliant
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Sun, 25 Sep 2011 21:48:30 -0400
