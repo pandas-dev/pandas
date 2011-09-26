@@ -99,6 +99,8 @@ class Series(np.ndarray, PandasObject):
         except ValueError:
             if dtype:
                 raise
+            else:  # pragma: no cover
+                subarr = np.array(data, dtype=object)
 
         if subarr.ndim == 0:
             if isinstance(data, list):  # pragma: no cover
