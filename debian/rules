@@ -16,6 +16,8 @@ PYVER = $(shell pyversions  -vd)
 override_dh_clean:
 	rm -rf build doc/_build *-stamp # pandas.egg-info pandas/datasets/__config__.py
 	dh_clean
+	: # prune auto-generated version.py -- will be generated during build again
+	rm -f pandas/version.py
 
 
 override_dh_auto_install: ${PYVERS:%=python-install%} ${PYVERS:%=python-test%}
