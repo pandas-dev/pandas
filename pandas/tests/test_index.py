@@ -255,25 +255,20 @@ class TestIndex(unittest.TestCase):
         idx1 = Index([1, 2, 3, 4, 5])
         idx2 = Index([2, 4, 6])
 
-        r1, r2 = idx1.get_indexer(idx2)
+        r1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, [1, 3, -1])
-        assert_almost_equal(r2, [True, True, False])
 
-        r1, r2 = idx2.get_indexer(idx1, method='pad')
+        r1 = idx2.get_indexer(idx1, method='pad')
         assert_almost_equal(r1, [-1, 0, 0, 1, 1])
-        assert_almost_equal(r2, [False, True, True, True, True])
 
-        rffill1, rffill2 = idx2.get_indexer(idx1, method='ffill')
+        rffill1 = idx2.get_indexer(idx1, method='ffill')
         assert_almost_equal(r1, rffill1)
-        assert_almost_equal(r2, rffill2)
 
-        r1, r2 = idx2.get_indexer(idx1, method='backfill')
+        r1 = idx2.get_indexer(idx1, method='backfill')
         assert_almost_equal(r1, [0, 0, 1, 1, 2])
-        assert_almost_equal(r2, [True, True, True, True, True])
 
-        rbfill1, rbfill2 = idx2.get_indexer(idx1, method='bfill')
+        rbfill1 = idx2.get_indexer(idx1, method='bfill')
         assert_almost_equal(r1, rbfill1)
-        assert_almost_equal(r2, rbfill2)
 
     def test_slice_locs(self):
         idx = Index([0, 1, 2, 5, 6, 7, 9, 10])
@@ -526,31 +521,25 @@ class TestMultiIndex(unittest.TestCase):
         idx1 = index[:5]
         idx2 = index[[1,3,5]]
 
-        r1, r2 = idx1.get_indexer(idx2)
+        r1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, [1, 3, -1])
-        assert_almost_equal(r2, [True, True, False])
 
-        r1, r2 = idx2.get_indexer(idx1, method='pad')
+        r1 = idx2.get_indexer(idx1, method='pad')
         assert_almost_equal(r1, [-1, 0, 0, 1, 1])
-        assert_almost_equal(r2, [False, True, True, True, True])
 
-        rffill1, rffill2 = idx2.get_indexer(idx1, method='ffill')
+        rffill1 = idx2.get_indexer(idx1, method='ffill')
         assert_almost_equal(r1, rffill1)
-        assert_almost_equal(r2, rffill2)
 
-        r1, r2 = idx2.get_indexer(idx1, method='backfill')
+        r1 = idx2.get_indexer(idx1, method='backfill')
         assert_almost_equal(r1, [0, 0, 1, 1, 2])
-        assert_almost_equal(r2, [True, True, True, True, True])
 
-        rbfill1, rbfill2 = idx2.get_indexer(idx1, method='bfill')
+        rbfill1 = idx2.get_indexer(idx1, method='bfill')
         assert_almost_equal(r1, rbfill1)
-        assert_almost_equal(r2, rbfill2)
 
         # pass non-MultiIndex
-        r1, r2 = idx1.get_indexer(idx2.get_tuple_index())
-        rexp1, rexp2 = idx1.get_indexer(idx2)
+        r1 = idx1.get_indexer(idx2.get_tuple_index())
+        rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
-        assert_almost_equal(r2, rexp2)
 
         self.assertRaises(Exception, idx1.get_indexer,
                           list(zip(*idx2.get_tuple_index())[0]))

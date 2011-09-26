@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas.core.index import Index, _ensure_index
 import pandas.core.common as common
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 class Block(object):
     """
@@ -39,8 +39,8 @@ class Block(object):
     @property
     def ref_locs(self):
         if self._ref_locs is None:
-            indexer, mask = self.ref_items.get_indexer(self.items)
-            assert(mask.all())
+            indexer = self.ref_items.get_indexer(self.items)
+            assert((indexer != -1).all())
             self._ref_locs = indexer
         return self._ref_locs
 
@@ -126,7 +126,8 @@ class Block(object):
         -------
         reindexed : Block
         """
-        new_ref_items, indexer, mask = self.items.reindex(new_ref_items)
+        new_ref_items, indexer = self.items.reindex(new_ref_items)
+        mask = indexer != -1
         masked_idx = indexer[mask]
         new_values = self.values.take(masked_idx, axis=0)
         new_items = self.items.take(masked_idx)
@@ -423,8 +424,8 @@ class BlockManager(object):
         # By construction, all of the item should be covered by one of the
         # blocks
         for block in self.blocks:
-            indexer, mask = items.get_indexer(block.items)
-            assert(mask.all())
+            indexer = items.get_indexer(block.items)
+            assert((indexer != -1).all())
             result[indexer] = block.values
             itemmask[indexer] = 1
         assert(itemmask.all())
@@ -555,15 +556,15 @@ class BlockManager(object):
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 
-        new_axis, indexer, mask = cur_axis.reindex(new_axis, method)
+        new_axis, indexer = cur_axis.reindex(new_axis, method)
+        mask = indexer == -1
 
         # TODO: deal with length-0 case? or does it fall out?
-        notmask = -mask
-        needs_masking = len(new_axis) > 0 and notmask.any()
+        needs_masking = len(new_axis) > 0 and mask.any()
 
         new_blocks = []
         for block in self.blocks:
-            newb = block.reindex_axis(indexer, notmask, needs_masking,
+            newb = block.reindex_axis(indexer, mask, needs_masking,
                                       axis=axis)
             new_blocks.append(newb)
 
@@ -582,8 +583,8 @@ class BlockManager(object):
             return data.reindex_items(new_items)
 
         # TODO: this part could be faster (!)
-        new_items, _, mask = self.items.reindex(new_items)
-        notmask = -mask
+        new_items, indexer = self.items.reindex(new_items)
+        mask = indexer == -1
 
         new_blocks = []
         for block in self.blocks:
@@ -591,8 +592,8 @@ class BlockManager(object):
             if len(newb.items) > 0:
                 new_blocks.append(newb)
 
-        if notmask.any():
-            extra_items = new_items[notmask]
+        if mask.any():
+            extra_items = new_items[mask]
 
             block_shape = list(self.shape)
             block_shape[0] = len(extra_items)
@@ -695,16 +696,14 @@ class BlockManager(object):
         this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
 
         other_axis = other.axes[axis]
-        indexer, mask = _tseries.getMergeVec(on.astype(object),
-                                             other_axis.indexMap)
+        indexer = lib.merge_indexer(on.astype(object), other_axis.indexMap)
 
         # TODO: deal with length-0 case? or does it fall out?
-        notmask = -mask
-        needs_masking = len(on) > 0 and notmask.any()
+        mask = indexer == -1
+        needs_masking = len(on) > 0 and mask.any()
         other_blocks = []
         for block in other.blocks:
-            newb = block.reindex_axis(indexer, notmask, needs_masking,
-                                      axis=axis)
+            newb = block.reindex_axis(indexer, mask, needs_masking, axis=axis)
             other_blocks.append(newb)
 
         cons_items = this.items + other.items
@@ -757,8 +756,8 @@ class BlockManager(object):
         result.fill(-1)
 
         for i, blk in enumerate(self.blocks):
-            indexer, mask = self.items.get_indexer(blk.items)
-            assert(mask.all())
+            indexer = self.items.get_indexer(blk.items)
+            assert((indexer != -1).all())
             result.put(indexer, i)
 
         assert((result >= 0).all())
@@ -908,7 +907,7 @@ def _union_block_items(blocks):
     if slow:
         the_union = _union_items_slow(all_items)
     else:
-        the_union = Index(_tseries.fast_unique_multiple(all_items))
+        the_union = Index(lib.fast_unique_multiple(all_items))
 
     if tot_len > len(the_union):
         raise Exception('item names overlap')

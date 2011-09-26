@@ -214,9 +214,10 @@ class _NDFrameIndexer(object):
                 if _is_integer_dtype(objarr) and not is_int_index:
                     return objarr
 
-                indexer, mask = index.get_indexer(objarr)
-                if not mask.all():
-                    raise KeyError('%s not in index' % objarr[-mask])
+                indexer = index.get_indexer(objarr)
+                mask = indexer == -1
+                if mask.any():
+                    raise KeyError('%s not in index' % objarr[mask])
 
                 return indexer
         else:
@@ -292,9 +293,10 @@ class _SeriesIndexer(_NDFrameIndexer):
                 obj[key] = value
 
             def do_list_like():
-                inds, mask = obj.index.get_indexer(key)
-                if not mask.all():
-                    raise IndexingError('Indices %s not found' % key[-mask])
+                inds = obj.index.get_indexer(key)
+                mask = inds == -1
+                if mask.any():
+                    raise IndexingError('Indices %s not found' % key[mask])
                 obj.put(inds, value)
         op = do_default
         if _isboolarr(key):

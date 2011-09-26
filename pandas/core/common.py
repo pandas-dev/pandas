@@ -8,7 +8,7 @@ import itertools
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -39,7 +39,7 @@ def isnull(input):
             # Working around NumPy ticket 1542
             shape = input.shape
             result = np.empty(shape, dtype=bool)
-            vec = _tseries.isnullobj(input.ravel())
+            vec = lib.isnullobj(input.ravel())
             result[:] = vec.reshape(shape)
 
             if isinstance(input, Series):
@@ -50,7 +50,7 @@ def isnull(input):
         # TODO: optimize for DataFrame, etc.
         return input.apply(isnull)
     else:
-        result = _tseries.checknull(input)
+        result = lib.checknull(input)
 
     return result
 
@@ -86,6 +86,56 @@ def null_out_axis(arr, mask, axis):
     indexer[axis] = mask
 
     arr[tuple(indexer)] = np.NaN
+
+def _take_1d_bool(arr, indexer, out):
+    view = arr.view(np.uint8)
+    outview = out.view(np.uint8)
+    lib.take_1d_bool(view, indexer, outview)
+
+_take1d_dict = {
+    'float64' : lib.take_1d_float64,
+    'int32' : lib.take_1d_int32,
+    'int64' : lib.take_1d_int64,
+    'object' : lib.take_1d_object,
+    'bool' : _take_1d_bool
+}
+
+def take_1d(arr, indexer):
+    """
+    Specialized Cython take which sets NaN values
+    """
+    dtype_str = arr.dtype.name
+
+    if dtype_str in ('int32', 'int64', 'bool'):
+        mask = indexer == -1
+        if mask.any():
+            out = arr.take(indexer)
+            out = _maybe_upcast(out)
+            np.putmask(out, mask, np.nan)
+        else:
+            out = np.empty(len(indexer), dtype=arr.dtype)
+            take_f = _take1d_dict[dtype_str]
+            take_f(arr, indexer, out=out)
+    elif dtype_str in ('float64', 'object'):
+        out = np.empty(len(indexer), dtype=arr.dtype)
+        take_f = _take1d_dict[dtype_str]
+        take_f(arr, indexer, out=out)
+    else:
+        out = arr.take(indexer)
+        mask = indexer == -1
+        if mask.any():
+            out = _maybe_upcast(out)
+            np.putmask(out, mask, np.nan)
+
+    return out
+
+def _maybe_upcast(values):
+    if issubclass(values.dtype.type, np.int_):
+        values = values.astype(float)
+    elif issubclass(values.dtype.type, np.bool_):
+        values = values.astype(object)
+
+    return values
 
 #-------------------------------------------------------------------------------
 # Lots of little utilities

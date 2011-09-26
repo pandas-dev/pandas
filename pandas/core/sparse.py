@@ -17,6 +17,7 @@ from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
 from pandas.core.panel import Panel, LongPanel
+import pandas.core.common as common
 import pandas.core.datetools as datetools
 
 from pandas._sparse import BlockIndex, IntIndex
@@ -448,14 +449,8 @@ to sparse
             return SparseSeries(values, index=new_index,
                                 fill_value=self.fill_value)
 
-        values = self.values
-        indexer, mask = self.index.get_indexer(new_index, method=method)
-        new_values = values.take(indexer)
-
-        notmask = -mask
-        if notmask.any():
-            np.putmask(new_values, notmask, nan)
-
+        new_index, fill_vec = self.index.reindex(index, method=method)
+        new_values = common.take_1d(self.values, fill_vec)
         return SparseSeries(new_values, index=new_index,
                             fill_value=self.fill_value)
 
@@ -1019,9 +1014,9 @@ class SparseDataFrame(DataFrame):
         if len(self.index) == 0:
             return SparseDataFrame(index=index, columns=self.columns)
 
-        indexer, mask = self.index.get_indexer(index, method)
-        notmask = -mask
-        need_mask = notmask.any()
+        indexer = self.index.get_indexer(index, method)
+        mask = indexer == -1
+        need_mask = mask.any()
 
         new_series = {}
         for col, series in self.iteritems():
@@ -1029,7 +1024,7 @@ class SparseDataFrame(DataFrame):
             new = values.take(indexer)
 
             if need_mask:
-                new[notmask] = nan
+                np.putmask(new, mask, nan)
 
             new_series[col] = new
 

@@ -9,7 +9,7 @@ from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
                                 _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import deprecate, cache_readonly
 import pandas.core.common as common
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 __all__ = ['Index']
 
@@ -70,7 +70,7 @@ class Index(np.ndarray):
     def indexMap(self):
         "{label -> location}"
         if self._indexMap is None:
-            self._indexMap = _tseries.map_indices_buf(self)
+            self._indexMap = lib.map_indices_buf(self)
             self._verify_integrity()
 
         return self._indexMap
@@ -81,7 +81,7 @@ class Index(np.ndarray):
         Checks that all the labels are datetime objects
         """
         if self._allDates is None:
-            self._allDates = _tseries.isAllDates(self)
+            self._allDates = lib.isAllDates(self)
 
         return self._allDates
 
@@ -232,7 +232,7 @@ class Index(np.ndarray):
         if len(self) == 0:
             return _ensure_index(other)
 
-        return Index(_tseries.fast_unique_multiple([self, other]))
+        return Index(lib.fast_unique_multiple([self, other]))
 
     def intersection(self, other):
         """
@@ -323,19 +323,24 @@ class Index(np.ndarray):
         (indexer, mask) : (ndarray, ndarray)
         """
         if method:
-            method = method.upper()
+            method = method.lower()
 
         aliases = {
-            'FFILL' : 'PAD',
-            'BFILL' : 'BACKFILL'
+            'ffill' : 'pad',
+            'bfill' : 'backfill'
         }
-
         target = _ensure_index(target)
-
         method = aliases.get(method, method)
-        indexer, mask = _tseries.getFillVec(self, target, self.indexMap,
-                                            target.indexMap, method)
-        return indexer, mask
+
+        if method == 'pad':
+            indexer = lib.pad(self, target, self.indexMap, target.indexMap)
+        elif method == 'backfill':
+            indexer = lib.backfill(self, target, self.indexMap, target.indexMap)
+        elif method is None:
+            indexer = lib.merge_indexer(target, self.indexMap)
+        else:
+            raise ValueError('unrecognized method: %s' % method)
+        return indexer
 
     def reindex(self, target, method=None):
         """
@@ -347,8 +352,8 @@ class Index(np.ndarray):
         -------
         (new_index, indexer, mask) : tuple
         """
-        indexer, mask = self.get_indexer(target, method=method)
-        return target, indexer, mask
+        indexer = self.get_indexer(target, method=method)
+        return target, indexer
 
     def slice_locs(self, start=None, end=None):
         """
@@ -428,9 +433,10 @@ class Index(np.ndarray):
         dropped : Index
         """
         labels = np.asarray(list(labels), dtype=object)
-        indexer, mask = self.get_indexer(labels)
-        if not mask.all():
-            raise ValueError('labels %s not contained in axis' % labels[-mask])
+        indexer = self.get_indexer(labels)
+        mask = indexer == -1
+        if mask.any():
+            raise ValueError('labels %s not contained in axis' % labels[mask])
         return self.delete(indexer)
 
     def copy(self, order='C'):
@@ -500,8 +506,8 @@ class Factor(np.ndarray):
             return np.ndarray.__getitem__(self, key)
 
 def unique_with_labels(values):
-    uniques = Index(_tseries.fast_unique(values))
-    labels = _tseries.get_unique_labels(values, uniques.indexMap)
+    uniques = Index(lib.fast_unique(values))
+    labels = lib.get_unique_labels(values, uniques.indexMap)
     return uniques, labels
 
 class MultiIndex(Index):
@@ -596,7 +602,7 @@ class MultiIndex(Index):
                 return 0
 
         for k in range(self.nlevels, 0, -1):
-            if _tseries.is_lexsorted(self.labels[:k]):
+            if lib.is_lexsorted(self.labels[:k]):
                 return k
 
         return 0
@@ -649,7 +655,7 @@ class MultiIndex(Index):
     def indexMap(self):
         if self._indexMap is None:
             zipped = zip(*self.labels)
-            self._indexMap = _tseries.map_indices_list(zipped)
+            self._indexMap = lib.map_indices_list(zipped)
             self._verify_integrity()
 
         return self._indexMap
@@ -731,10 +737,11 @@ class MultiIndex(Index):
         try:
             if not isinstance(labels, np.ndarray):
                 labels = _asarray_tuplesafe(labels)
-            indexer, mask = self.get_indexer(labels)
-            if not mask.all():
+            indexer = self.get_indexer(labels)
+            mask = indexer == -1
+            if mask.any():
                 raise ValueError('labels %s not contained in axis'
-                                 % labels[-mask])
+                                 % labels[mask])
             return self.delete(indexer)
         except Exception:
             pass
@@ -858,11 +865,11 @@ class MultiIndex(Index):
         (indexer, mask) : (ndarray, ndarray)
         """
         if method:
-            method = method.upper()
+            method = method.lower()
 
         aliases = {
-            'FFILL' : 'PAD',
-            'BFILL' : 'BACKFILL'
+            'ffill' : 'pad',
+            'bfill' : 'backfill'
         }
         method = aliases.get(method, method)
 
@@ -878,10 +885,16 @@ class MultiIndex(Index):
             target_index = target
 
         self_index = self.get_tuple_index()
-        indexer, mask = _tseries.getFillVec(self_index, target_index,
-                                            self_index.indexMap,
-                                            target.indexMap, method)
-        return indexer, mask
+
+        if method == 'pad':
+            indexer = lib.pad(self_index, target_index, self_index.indexMap,
+                              target.indexMap)
+        elif method == 'backfill':
+            indexer = lib.backfill(self_index, target_index, self_index.indexMap,
+                                   target.indexMap)
+        else:
+            indexer = lib.merge_indexer(target_index, self_index.indexMap)
+        return indexer
 
     def reindex(self, target, method=None):
         """
@@ -893,13 +906,13 @@ class MultiIndex(Index):
         -------
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
-        indexer, mask = self.get_indexer(target, method=method)
+        indexer = self.get_indexer(target, method=method)
 
         # hopefully?
         if not isinstance(target, MultiIndex):
             target = MultiIndex.from_tuples(target)
 
-        return target, indexer, mask
+        return target, indexer
 
     def get_tuple_index(self):
         """
@@ -1109,8 +1122,7 @@ class MultiIndex(Index):
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
 
-        uniq_tuples = _tseries.fast_unique_multiple([self_tuples,
-                                                     other_tuples])
+        uniq_tuples = lib.fast_unique_multiple([self_tuples, other_tuples])
         return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
 
     def intersection(self, other):

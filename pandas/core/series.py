@@ -14,14 +14,15 @@ from numpy import nan, ndarray
 import numpy as np
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
-                                _default_index)
+                                _default_index, _maybe_upcast)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util.decorators import deprecate
+import pandas.core.common as common
 import pandas.core.datetools as datetools
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -580,7 +581,7 @@ copy : boolean, default False
             if not mask.all():
                 return np.nan
 
-        return _tseries.median(arr)
+        return lib.median(arr)
 
     def prod(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1238,18 +1239,11 @@ copy : boolean, default False
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer, mask = _tseries.getMergeVec(self.values.astype(object),
-                                                 arg.index.indexMap)
-            notmask = -mask
+            indexer = lib.merge_indexer(self.values.astype(object),
+                                        arg.index.indexMap)
 
-            new_values = arg.view(np.ndarray).take(indexer)
-
-            if notmask.any():
-                new_values = _maybe_upcast(new_values)
-                np.putmask(new_values, notmask, np.nan)
-
-            newSer = Series(new_values, index=self.index)
-            return newSer
+            new_values = common.take_1d(np.asarray(arg), indexer)
+            return Series(new_values, index=self.index)
         else:
             return Series([arg(x) for x in self], index=self.index)
 
@@ -1303,14 +1297,8 @@ copy : boolean, default False
         if len(self.index) == 0:
             return Series(nan, index=index)
 
-        new_index, fill_vec, mask = self.index.reindex(index, method=method)
-        new_values = self.values.take(fill_vec)
-
-        notmask = -mask
-        if notmask.any():
-            new_values = _maybe_upcast(new_values)
-            np.putmask(new_values, notmask, nan)
-
+        new_index, fill_vec = self.index.reindex(index, method=method)
+        new_values = common.take_1d(self.values, fill_vec)
         return Series(new_values, index=new_index)
 
     def reindex_like(self, other, method=None):
@@ -1393,9 +1381,9 @@ copy : boolean, default False
             mask = mask.astype(np.uint8)
 
             if method == 'pad':
-                indexer = _tseries.get_pad_indexer(mask)
+                indexer = lib.get_pad_indexer(mask)
             elif method == 'backfill':
-                indexer = _tseries.get_backfill_indexer(mask)
+                indexer = lib.get_backfill_indexer(mask)
 
             new_values = self.values.take(indexer)
             return Series(new_values, index=self.index)
@@ -1773,14 +1761,6 @@ def remove_na(arr):
     Return array containing only true/non-NaN values, possibly empty.
     """
     return arr[notnull(arr)]
-
-def _maybe_upcast(values):
-    if issubclass(values.dtype.type, np.int_):
-        values = values.astype(float)
-    elif issubclass(values.dtype.type, np.bool_):
-        values = values.astype(object)
-
-    return values
 
 def _seriesRepr(index, vals, nanRep='NaN'):
     string_index = index.format()

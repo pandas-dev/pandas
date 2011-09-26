@@ -1,20 +1,7 @@
-def getFillVec(ndarray oldIndex, ndarray newIndex, dict oldMap, dict newMap,
-               kind=None):
-
-    if kind is None:
-        fillVec, maskVec = getMergeVec(newIndex, oldMap)
-    elif kind == 'PAD':
-        fillVec, maskVec = _pad(oldIndex, newIndex, oldMap, newMap)
-    elif kind == 'BACKFILL':
-        fillVec, maskVec = _backfill(oldIndex, newIndex, oldMap, newMap)
-    else:
-        raise Exception("Don't recognize method: %s" % kind)
-
-    return fillVec, maskVec.astype(np.bool)
-
+@cython.boundscheck(False)
 @cython.wraparound(False)
-def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
-              dict oldMap, dict newMap):
+def backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
+             dict oldMap, dict newMap):
     '''
     Backfilling logic for generating fill vector
 
@@ -41,8 +28,7 @@ def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
     '''
     cdef int i, j, oldLength, newLength, curLoc
     # Make empty vectors
-    cdef ndarray[int32_t, ndim=1] fillVec
-    cdef ndarray[int8_t, ndim=1] mask
+    cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
     cdef object prevOld, curOld
 
@@ -50,10 +36,8 @@ def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
     oldLength = len(oldIndex)
     newLength = len(newIndex)
 
-    fillVec = np.empty(len(newIndex), dtype = np.int32)
-    fillVec.fill(-1)
-
-    mask = np.zeros(len(newIndex), dtype = np.int8)
+    fill_vec = np.empty(len(newIndex), dtype = np.int32)
+    fill_vec.fill(-1)
 
     # Current positions
     oldPos = oldLength - 1
@@ -61,7 +45,7 @@ def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
 
     # corner case, no filling possible
     if newIndex[0] > oldIndex[oldLength - 1]:
-        return fillVec, mask
+        return fill_vec
 
     while newPos >= 0:
         curOld = oldIndex[oldPos]
@@ -79,8 +63,7 @@ def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
         if oldPos == 0:
             # Make sure we are before the curOld index
             if newIndex[newPos] <= curOld:
-                fillVec[:newPos + 1] = curLoc
-                mask[:newPos + 1] = 1
+                fill_vec[:newPos + 1] = curLoc
             # Exit the main loop
             break
         else:
@@ -90,8 +73,7 @@ def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
             # Until we reach the previous index
             while newIndex[newPos] > prevOld:
                 # Set the current fill location
-                fillVec[newPos] = curLoc
-                mask[newPos] = 1
+                fill_vec[newPos] = curLoc
 
                 newPos -= 1
                 if newPos < 0:
@@ -100,11 +82,12 @@ def _backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
         # Move one period back
         oldPos -= 1
 
-    return (fillVec, mask)
+    return fill_vec
 
+@cython.boundscheck(False)
 @cython.wraparound(False)
-def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
-         dict oldMap, dict newMap):
+def pad(ndarray[object] oldIndex, ndarray[object] newIndex,
+        dict oldMap, dict newMap):
     '''
     Padding logic for generating fill vector
 
@@ -128,8 +111,7 @@ def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
     '''
     cdef int i, j, oldLength, newLength, curLoc
     # Make empty vectors
-    cdef ndarray[int32_t, ndim=1] fillVec
-    cdef ndarray[int8_t, ndim=1] mask
+    cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
     cdef object prevOld, curOld
 
@@ -137,17 +119,15 @@ def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
     oldLength = len(oldIndex)
     newLength = len(newIndex)
 
-    fillVec = np.empty(len(newIndex), dtype = np.int32)
-    fillVec.fill(-1)
-
-    mask = np.zeros(len(newIndex), dtype = np.int8)
+    fill_vec = np.empty(len(newIndex), dtype = np.int32)
+    fill_vec.fill(-1)
 
     oldPos = 0
     newPos = 0
 
     # corner case, no filling possible
     if newIndex[newLength - 1] < oldIndex[0]:
-        return fillVec, mask
+        return fill_vec
 
     while newPos < newLength:
         curOld = oldIndex[oldPos]
@@ -165,8 +145,7 @@ def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
         # We're at the end of the road, need to propagate this value to the end
         if oldPos == oldLength - 1:
             if newIndex[newPos] >= curOld:
-                fillVec[newPos:] = curLoc
-                mask[newPos:] = 1
+                fill_vec[newPos:] = curLoc
             break
         else:
             # Not at the end, need to go about filling
@@ -179,10 +158,7 @@ def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
             # Until we reach the next OLD value in the NEW index
             while newIndex[newPos] < nextOld:
                 # Use this location to fill
-                fillVec[newPos] = curLoc
-
-                # Set mask to be 1 so will not be NaN'd
-                mask[newPos] = 1
+                fill_vec[newPos] = curLoc
                 newPos += 1
 
                 # We got to the end of the new index
@@ -198,7 +174,7 @@ def _pad(ndarray[object] oldIndex, ndarray[object] newIndex,
         # inc the count
         oldPos += 1
 
-    return fillVec, mask
+    return fill_vec
 
 def pad_inplace_float64(ndarray[float64_t] values,
                         ndarray[np.uint8_t, cast=True] mask):
@@ -289,30 +265,26 @@ def backfill_inplace_float64(ndarray[float64_t] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def getMergeVec(ndarray[object] values, dict oldMap):
+def merge_indexer(ndarray[object] values, dict oldMap):
     cdef int i, j, length, newLength
     cdef object idx
-    cdef ndarray[int32_t] fillVec
-    cdef ndarray[int8_t] mask
+    cdef ndarray[int32_t] fill_vec
 
     newLength = len(values)
-    fillVec = np.empty(newLength, dtype=np.int32)
+    fill_vec = np.empty(newLength, dtype=np.int32)
     mask = np.zeros(newLength, dtype=np.int8)
     for i from 0 <= i < newLength:
         idx = values[i]
         if idx in oldMap:
-            fillVec[i] = oldMap[idx]
-            mask[i] = 1
+            fill_vec[i] = oldMap[idx]
+        else:
+            fill_vec[i] = -1
 
-    for i from 0 <= i < newLength:
-        if mask[i] == 0:
-            fillVec[i] = -1
-
-    return fillVec, mask.astype(bool)
+    return fill_vec
 
 def ordered_left_join(ndarray[object] left, ndarray[object] right):
     # cdef dict right_map = map_indices_buf(right)
-    # return getMergeVec(left, right_map)
+    # return merge_indexer(left, right_map)
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[int32_t] indexer
@@ -708,8 +680,8 @@ def take_axis1(ndarray[float64_t, ndim=2] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d(ndarray[float64_t] values, ndarray[int32_t] indexer,
-            out=None):
+def take_1d_float64(ndarray[float64_t] values, ndarray[int32_t] indexer,
+                    out=None):
     cdef:
         Py_ssize_t i, n, idx
         ndarray[float64_t] outbuf
@@ -725,6 +697,97 @@ def take_1d(ndarray[float64_t] values, ndarray[int32_t] indexer,
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = NaN
+        else:
+            outbuf[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_object(ndarray[object] values, ndarray[int32_t] indexer,
+                   out=None):
+    cdef:
+        Py_ssize_t i, n, idx
+        ndarray[object] outbuf
+        object nan
+
+    nan = np.nan
+
+    n = len(indexer)
+
+    if out is None:
+        outbuf = np.empty(n, dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = nan
+        else:
+            outbuf[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_int32(ndarray[int32_t] values, ndarray[int32_t] indexer,
+                  out=None):
+    cdef:
+        Py_ssize_t i, n, idx
+        ndarray[int32_t] outbuf
+
+    n = len(indexer)
+
+    if out is None:
+        outbuf = np.empty(n, dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            raise ValueError('No NA values allowed')
+        else:
+            outbuf[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_int64(ndarray[int64_t] values, ndarray[int32_t] indexer,
+                  out=None):
+    cdef:
+        Py_ssize_t i, n, idx
+        ndarray[int64_t] outbuf
+
+    n = len(indexer)
+
+    if out is None:
+        outbuf = np.empty(n, dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            raise ValueError('No NA values allowed')
+        else:
+            outbuf[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_bool(ndarray[uint8_t] values, ndarray[int32_t] indexer,
+                 out=None):
+    cdef:
+        Py_ssize_t i, n, idx
+        ndarray[uint8_t] outbuf
+
+    n = len(indexer)
+
+    if out is None:
+        outbuf = np.empty(n, dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            raise ValueError('No NA values allowed')
         else:
             outbuf[i] = values[idx]
 

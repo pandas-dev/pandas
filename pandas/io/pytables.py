@@ -12,7 +12,7 @@ import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
                     MultiIndex)
 from pandas.core.common import adjoin
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -663,12 +663,12 @@ class HDFStore(object):
 
             # need a better algorithm
             tuple_index = long_index.get_tuple_index()
-            index_map = _tseries.map_indices_buf(tuple_index)
+            index_map = lib.map_indices_buf(tuple_index)
 
-            unique_tuples = _tseries.fast_unique(tuple_index)
+            unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
-            indexer, _ = _tseries.getMergeVec(unique_tuples, index_map)
+            indexer = lib.merge_indexer(unique_tuples, index_map)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
@@ -739,7 +739,7 @@ def _unconvert_index(data, kind):
 
 def _unconvert_index_legacy(data, kind, legacy=False):
     if kind == 'datetime':
-        index = _tseries.array_to_datetime(data)
+        index = lib.array_to_datetime(data)
     elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
     else: # pragma: no cover

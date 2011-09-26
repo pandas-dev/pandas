@@ -757,7 +757,7 @@ class SeriesGroupBy(GroupBy):
         for name, group in self:
             group.name = name
             res = func(group, *args, **kwargs)
-            indexer, _ = self.obj.index.get_indexer(group.index)
+            indexer = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
 
         return result

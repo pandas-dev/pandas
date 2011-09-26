@@ -21,13 +21,13 @@ import numpy as np
 
 from pandas.core.common import (isnull, notnull, PandasError,
                                 _try_sort, _pfixed, _default_index,
-                                _infer_dtype, _stringify)
+                                _infer_dtype, _stringify, _maybe_upcast)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series, _is_bool_indexer, _maybe_upcast
+from pandas.core.series import Series, _is_bool_indexer
 from pandas.util.decorators import deprecate
 import pandas.core.common as common
 import pandas.core.datetools as datetools
