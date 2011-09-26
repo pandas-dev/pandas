@@ -620,6 +620,42 @@ class BlockManager(object):
 
         return BlockManager(consolidated, new_axes)
 
+    def merge_with_indexers(self, other, lindexer, lmask, rindexer, rmask,
+                            axis=1):
+        """
+        Parameters
+        ----------
+        other
+        lindexer
+        lmask
+        rindexer
+        rmask
+
+        Returns
+        -------
+        merged : BlockManager
+        """
+        assert(self.is_consolidated())
+        assert(other.is_consolidated())
+
+        this_blockmap = dict((type(blk), blk) for blk in self.blocks)
+        other_blockmap = dict((type(blk), blk) for blk in other.blocks)
+        result_blocks = []
+
+        kinds = [FloatBlock, ObjectBlock, BoolBlock, IntBlock]
+        for klass in kinds:
+            if klass in this_blockmap and other_blockmap:
+                # true merge
+                pass
+            elif klass in this_blockmap:
+                # only take necessary
+                pass
+            elif klass in other_blockmap:
+                # only take necessary
+                pass
+
+        return BlockManager(consolidated, new_axes)
+
     def _maybe_rename_join(self, other, lsuffix, rsuffix):
         intersection = self.items.intersection(other.items)
 
@@ -637,6 +673,7 @@ class BlockManager(object):
                     return '%s%s' % (x, rsuffix)
                 return x
 
+            # XXX: COPIES DATA!
             this = self.rename_items(lrenamer)
             other = other.rename_items(rrenamer)
         else:
