@@ -99,8 +99,8 @@ class TestTseriesUtil(unittest.TestCase):
         self.assert_(np.array_equal(mask, expect_mask))
 
 def test_inner_join_indexer():
-    a = np.array([1, 2, 3, 4, 5])
-    b = np.array([0, 3, 5, 7, 9])
+    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
     index, ares, bres = lib.inner_join_indexer(a, b)
 
@@ -113,8 +113,8 @@ def test_inner_join_indexer():
     assert_almost_equal(bres, bexp)
 
 def test_outer_join_indexer():
-    a = np.array([1, 2, 3, 4, 5])
-    b = np.array([0, 3, 5, 7, 9])
+    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
     index, ares, bres = lib.outer_join_indexer(a, b)
 
