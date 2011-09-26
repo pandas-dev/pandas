@@ -291,7 +291,8 @@ than integer locations. Therefore, advanced indexing with ``.ix`` will always
 Setting values in mixed-type objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Setting values on a mixed-type DataFrame or Panel is not yet supported:
+Setting values on a mixed-type DataFrame or Panel is supported when using scalar
+values, though setting arbitrary vectors is not yet supported:
 
 .. ipython:: python
 
@@ -299,11 +300,7 @@ Setting values on a mixed-type DataFrame or Panel is not yet supported:
    df2['foo'] = 'bar'
    df2.ix[3]
    df2.ix[3] = np.nan
-
-The reason it has not been implemented yet is simply due to difficulty of
-implementation relative to its utility. Handling the full spectrum of
-exceptional cases for setting values is trickier than getting values (which is
-relatively straightforward).
+   df2
 
 .. _indexing.hierarchical:
 
@@ -522,6 +519,16 @@ However:
 
    >>> s.ix[('a', 'b'):('b', 'a')]
    Exception: MultiIndex lexsort depth 1, key was length 2
+
+Swapping levels with ``swaplevel``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``swaplevel`` function can switch the order of two levels:
+
+.. ipython:: python
+
+   df[:5]
+   df[:5].swaplevel(0, 1, axis=0)
 
 The ``delevel`` DataFrame function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

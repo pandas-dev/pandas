@@ -11,8 +11,8 @@ import numpy as np
 import operator
 
 from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
-                                _mut_exclusive, _ensure_index, _try_sort)
-from pandas.core.index import Index, MultiIndex, NULL_INDEX
+                                _mut_exclusive, _try_sort)
+from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
@@ -410,12 +410,15 @@ to sparse
 
         return self.copy()
 
-    def copy(self):
+    def copy(self, deep=True):
         """
         Make a copy of the SparseSeries. Only the actual sparse values need to
         be copied
         """
-        values = self.sp_values.copy()
+        if deep:
+            values = self.sp_values.copy()
+        else:
+            values = self.sp_values
         return SparseSeries(values, index=self.index,
                             sparse_index=self.sp_index,
                             fill_value=self.fill_value)
@@ -624,7 +627,7 @@ class SparseDataFrame(DataFrame):
     _verbose_info = False
     _columns = None
     _series = None
-
+    _is_mixed_type = False
     ndim = 2
 
     def __init__(self, data=None, index=None, columns=None,
@@ -775,12 +778,12 @@ class SparseDataFrame(DataFrame):
         data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
 
-    def copy(self):
+    def copy(self, deep=True):
         """
-        Make a deep copy of this SparseDataFrame
+        Make a copy of this SparseDataFrame
         """
-        return SparseDataFrame(self._series, index=self.index,
-                               columns=self.columns,
+        series = self._series.copy()
+        return SparseDataFrame(series, index=self.index, columns=self.columns,
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
 
@@ -1055,6 +1058,9 @@ class SparseDataFrame(DataFrame):
 
         self.columns = new_columns
         self._series = new_series
+
+    def _get_raw_column(self, col):
+        return self._series[col].values
 
     def add_prefix(self, prefix):
         f = (('%s' % prefix) + '%s').__mod__

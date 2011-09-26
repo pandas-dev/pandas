@@ -19,15 +19,15 @@ import warnings
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import (isnull, notnull, PandasError, _ensure_index,
+from pandas.core.common import (isnull, notnull, PandasError,
                                 _try_sort, _pfixed, _default_index,
                                 _infer_dtype, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
-from pandas.core.index import Index, MultiIndex, NULL_INDEX
+from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series, _is_bool_indexer
+from pandas.core.series import Series, _is_bool_indexer, _maybe_upcast
 from pandas.util.decorators import deprecate
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -64,13 +64,7 @@ def _arith_method(func, name, default_axis='columns'):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combine_frame(other, func, fill_value)
         elif isinstance(other, Series):
-            if axis is not None:
-                axis = self._get_axis_name(axis)
-                if axis == 'index':
-                    return self._combine_match_index(other, func, fill_value)
-                else:
-                    return self._combine_match_columns(other, func, fill_value)
-            return self._combine_series_infer(other, func, fill_value)
+            return self._combine_series(other, func, fill_value, axis)
         else:
             return self._combine_const(other, func)
 
@@ -101,6 +95,7 @@ def comp_method(func, name):
 class DataFrame(NDFrame):
     _auto_consolidate = True
     _verbose_info = True
+    _het_axis = 1
 
     _AXIS_NUMBERS = {
         'index' : 0,
@@ -431,8 +426,9 @@ class DataFrame(NDFrame):
         header : int, default 0
             Row to use at header (skip prior rows)
         delimiter : string, default ','
-        index_col : int, default 0
-            Column to use for index
+        index_col : int or sequence, default 0
+            Column to use for index. If a sequence is given, a MultiIndex
+            is used.
 
         Notes
         -----
@@ -482,8 +478,10 @@ class DataFrame(NDFrame):
             Write out column names
         index : boolean, default True
             Write row names (index)
-        index_label : string, default None
-            Column label for index column if desired
+        index_label : string or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
         mode : Python write mode, default 'wb'
         """
         f = open(path, mode)
@@ -494,15 +492,25 @@ class DataFrame(NDFrame):
         series = self._series
         if header:
             joined_cols = ','.join([str(c) for c in cols])
-            if index and index_label:
-                f.write('%s,%s' % (index_label, joined_cols))
+            if index:
+                # should write something for index label
+                if index_label is None:
+                    index_label = getattr(self.index, 'names', ['index'])
+                elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                    # given a string for a DF with Index
+                    index_label = [index_label]
+                f.write('%s,%s' % (",".join(index_label), joined_cols))
             else:
                 f.write(joined_cols)
             f.write('\n')
 
+        nlevels = getattr(self.index, 'nlevels', 1)
         for idx in self.index:
             if index:
-                f.write(str(idx))
+                if nlevels == 1:
+                    f.write(str(idx))
+                else: # handle MultiIndex
+                    f.write(",".join([str(i) for i in idx]))
             for i, col in enumerate(cols):
                 val = series[col].get(idx)
                 if isnull(val):
@@ -634,11 +642,15 @@ class DataFrame(NDFrame):
                                       % (_stringify(cols[0]),
                                          _stringify(cols[-1])))
 
-        counts = self._get_dtype_counts()
+        counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
         buf.write(u'dtypes: %s' % ', '.join(dtypes))
 
-    def _get_dtype_counts(self):
+    @property
+    def dtypes(self):
+        return self.apply(lambda x: x.dtype)
+
+    def get_dtype_counts(self):
         counts = {}
         for _, series in self.iteritems():
             if series.dtype in counts:
@@ -646,7 +658,7 @@ class DataFrame(NDFrame):
             else:
                 counts[series.dtype] = 1
 
-        return counts
+        return Series(counts)
 
     #----------------------------------------------------------------------
     # properties for index and columns
@@ -1345,7 +1357,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Rename
 
-    def rename(self, index=None, columns=None):
+    def rename(self, index=None, columns=None, copy=True):
         """
         Alter index and / or columns using input function or
         functions. Function / dict values must be unique (1-to-1). Labels not
@@ -1357,6 +1369,8 @@ class DataFrame(NDFrame):
             Transformation to apply to index values
         columns : dict-like or function, optional
             Transformation to apply to column values
+        copy : boolean, default True
+            Also copy underlying data
 
         See also
         --------
@@ -1389,7 +1403,7 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        result = self.copy()
+        result = self.copy(deep=copy)
 
         if index is not None:
             result._rename_index_inplace(index_f)
@@ -1404,7 +1418,7 @@ class DataFrame(NDFrame):
         self._series_cache.clear()
 
     def _rename_columns_inplace(self, mapper):
-        self._data = self._data.rename_items(mapper)
+        self._data = self._data.rename_items(mapper, copydata=False)
         self._series_cache.clear()
 
     #----------------------------------------------------------------------
@@ -1456,6 +1470,15 @@ class DataFrame(NDFrame):
         same_index = self.index.equals(other.index)
         same_columns = self.columns.equals(other.columns)
         return same_index and same_columns
+
+    def _combine_series(self, other, func, fill_value=None, axis=None):
+        if axis is not None:
+            axis = self._get_axis_name(axis)
+            if axis == 'index':
+                return self._combine_match_index(other, func, fill_value)
+            else:
+                return self._combine_match_columns(other, func, fill_value)
+        return self._combine_series_infer(other, func, fill_value)
 
     def _combine_series_infer(self, other, func, fill_value=None):
         if len(other) == 0:
@@ -2007,10 +2030,17 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other):
+    def append(self, other, ignore_index=False):
         """
         Append columns of other to end of this frame's columns and index.
         Columns not in this frame are added as new columns.
+
+        Parameters
+        ----------
+        other : DataFrame
+        ignore_index : boolean, default False
+            If True do not use the index labels. Useful for gluing together
+            record arrays
 
         Returns
         -------
@@ -2021,28 +2051,56 @@ class DataFrame(NDFrame):
         if not self:
             return other.copy()
 
-        new_index = np.concatenate((self.index, other.index))
-        new_data = {}
+        if ignore_index:
+            new_index = None
+        else:
+            new_index = np.concatenate((self.index, other.index))
 
-        new_columns = self.columns
+        if self.columns.equals(other.columns):
+            return self._append_same_columns(other, new_index)
+        else:
+            return self._append_different_columns(other, new_index)
 
-        if not new_columns.equals(other.columns):
-            new_columns = self.columns + other.columns
-
-        for column, series in self.iteritems():
-            values = series.values
-            if column in other:
-                other_values = other[column].values
-                new_data[column] = np.concatenate((values, other_values))
-            else:
-                new_data[column] = series
-
-        for column, series in other.iteritems():
-            if column not in self:
-                new_data[column] = series
-
+    def _append_different_columns(self, other, new_index):
+        new_columns = self.columns + other.columns
+        new_data = self._append_column_by_column(other)
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns)
+
+    def _append_same_columns(self, other, new_index):
+        if self._is_mixed_type:
+            new_data = self._append_column_by_column(other)
+        else:
+            new_data= np.concatenate((self.values, other.values), axis=0)
+        return self._constructor(new_data, index=new_index,
+                                 columns=self.columns)
+
+    def _append_column_by_column(self, other):
+        def _concat_missing(values, n):
+            values = _maybe_upcast(values)
+            missing_values = np.empty(n, dtype=values.dtype)
+            missing_values.fill(np.nan)
+            return values, missing_values
+
+        new_data = {}
+        for col in self:
+            values = self._get_raw_column(col)
+            if col in other:
+                other_values = other._get_raw_column(col)
+            else:
+                values, other_values = _concat_missing(values, len(other))
+            new_data[col] = np.concatenate((values, other_values))
+
+        for col in other:
+            values = other._get_raw_column(col)
+            if col not in self:
+                values, missing_values = _concat_missing(values, len(self))
+                new_data[col] = np.concatenate((missing_values, values))
+
+        return new_data
+
+    def _get_raw_column(self, col):
+        return self._data.get(col)
 
     def join(self, other, on=None, how=None, lsuffix='', rsuffix=''):
         """
@@ -2162,20 +2220,23 @@ class DataFrame(NDFrame):
         -------
         correls : Series
         """
-        com_index = self._intersect_index(other)
-        com_cols = self._intersect_columns(other)
+        this = self._get_numeric_data()
+        other = other._get_numeric_data()
+
+        com_index = this._intersect_index(other)
+        com_cols = this._intersect_columns(other)
 
         # feels hackish
         if axis == 0:
             result_index = com_index
             if not drop:
-                result_index = self.columns.union(other.columns)
+                result_index = this.columns.union(other.columns)
         else:
             result_index = com_cols
             if not drop:
-                result_index = self.index.union(other.index)
+                result_index = this.index.union(other.index)
 
-        left = self.reindex(index=com_index, columns=com_cols)
+        left = this.reindex(index=com_index, columns=com_cols)
         right = other.reindex(index=com_index, columns=com_cols)
 
         # mask missing values
@@ -2261,6 +2322,11 @@ class DataFrame(NDFrame):
         mask = notnull(y)
 
         level_index = axis_index.levels[level]
+
+        if len(self) == 0:
+            return DataFrame(np.zeros((len(level_index),
+                                       len(self.columns)), dtype=int),
+                             index=level_index, columns=self.columns)
 
         n = len(level_index)
         locs = axis_index.labels[level].searchsorted(np.arange(n))
@@ -2639,6 +2705,15 @@ class DataFrame(NDFrame):
                 cols.append(col)
 
         return cols
+
+    def _get_numeric_data(self):
+        if self._is_mixed_type:
+            return self.ix[:, self._get_numeric_columns()]
+        else:
+            if self.values.dtype != np.object_:
+                return self
+            else:
+                return self.ix[:, []]
 
     def clip(self, upper=None, lower=None):
         """
@@ -3057,6 +3132,8 @@ def _prep_ndarray(values, copy=True):
             arr = np.array(values, dtype=object, copy=True)
         values = arr
     else:
+        # drop subclass info, do not copy data
+        values = np.asarray(values)
         if copy:
             values = values.copy()
 
@@ -3135,7 +3212,6 @@ def _homogenize(data, index, columns, dtype=None):
         homogenized[k] = v
 
     return homogenized
-
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)

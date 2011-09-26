@@ -96,6 +96,24 @@ fragile. Type inference is a pretty big deal. So if a column can be coerced to
 integer dtype without altering the contents, it will do so. Any non-numeric
 columns will come through as object dtype as with the rest of pandas objects.
 
+Reading DataFrame objects with ``MultiIndex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Suppose you have data indexed by two columns:
+
+.. ipython:: python
+
+   print open('data/mindex_ex.csv').read()
+
+The ``index_col`` argument to ``read_csv`` and ``read_table`` can take a list of
+column numbers to turn multiple columns into a ``MultiIndex``:
+
+.. ipython:: python
+
+   df = read_csv("data/mindex_ex.csv", index_col=[0,1])
+   df
+   df.ix[1978]
+
 Excel 2003 files
 ----------------
 

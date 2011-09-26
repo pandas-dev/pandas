@@ -11,14 +11,18 @@ from pandas.core.series import Series
 from pandas.core.common import notnull
 from pandas.core.index import MultiIndex
 
+class ReshapeError(Exception):
+    pass
+
+
 class _Unstacker(object):
     """
     Helper class to unstack data / pivot with multi-level index
 
     Parameters
     ----------
-    level : int, default last level
-        Level to "unstack"
+    level : int or str, default last level
+        Level to "unstack". Accepts a name for the level.
 
     Examples
     --------
@@ -52,10 +56,7 @@ class _Unstacker(object):
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index
-
-        if level < 0:
-            level += index.nlevels
-        self.level = level
+        self.level = self.index._get_level_number(level)
 
         self.new_index_levels = list(index.levels)
         self.removed_level = self.new_index_levels.pop(level)
@@ -82,7 +83,8 @@ class _Unstacker(object):
 
         # make the mask
         group_index = self.sorted_labels[0]
-        prev_stride = np.prod([len(x) for x in new_levels[1:]])
+        prev_stride = np.prod([len(x) for x in new_levels[1:]],
+                              dtype=int)
 
         for lev, lab in zip(new_levels[1:], self.sorted_labels[1:-1]):
             group_index = group_index * prev_stride + lab
@@ -99,6 +101,10 @@ class _Unstacker(object):
         # compress labels
         unique_groups = np.arange(self.full_shape[0])[group_mask]
         compressor = group_index.searchsorted(unique_groups)
+
+        if mask.sum() < len(self.index):
+            raise ReshapeError('Index contains duplicate entries, '
+                               'cannot reshape')
 
         self.group_mask = group_mask
         self.group_index = group_index

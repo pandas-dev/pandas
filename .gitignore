@@ -6,6 +6,7 @@ MANIFEST
 *.pyd
 pandas/src/tseries.c
 pandas/src/sparse.c
+pandas/version.py
 doc/source/generated
 *flymake*
 scikits

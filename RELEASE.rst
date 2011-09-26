@@ -1,9 +1,82 @@
-========================
-pandas 0.4 Release Notes
-========================
+=============
+Release Notes
+=============
+
+This is the list of changes to pandas between each release. For full details,
+see the commit logs at http://github.com/wesm/pandas
+
+
+pandas 0.4.1
+============
+
+**Release date:** Not yet released
+
+This is primarily a bug fix release but includes some new features and
+improvements
+
+**New features / modules**
+
+  - Added new `DataFrame` methods `get_dtype_counts` and property `dtypes`
+  - Setting of values using ``.ix`` indexing attribute in mixed-type DataFrame
+    objects has been implemented (fixes GH #135)
+  - `read_csv` can read multiple columns into a `MultiIndex`. DataFrame's
+    `to_csv` method will properly write out a `MultiIndex` which can be read
+    back (PR #151, thanks to Skipper Seabold)
+  - Wrote fast time series merging / joining methods in Cython. Will be
+    integrated later into DataFrame.join and related functions
+  - Added `ignore_index` option to `DataFrame.append` for combining unindexed
+    records stored in a DataFrame
+
+**Improvements to existing features**
+
+  - Some speed enhancements with internal Index type-checking function
+  - `DataFrame.rename` has a new `copy` parameter which can rename a DataFrame
+    in place
+  - Enable unstacking by level name (PR #142)
+  - Enable sortlevel to work by level name (PR #141)
+  - `read_csv` can automatically "sniff" other kinds of delimiters using
+    `csv.Sniffer` (PR #146)
+  - Improved speed of unit test suite by about 40%
+  - Exception will not be raised calling `HDFStore.remove` on non-existent node
+    with where clause
+  - Optimized `_ensure_index` function resulting in performance savings in
+    type-checking Index objects
+
+**Bug fixes**
+
+  - Fixed DataFrame constructor bug causing downstream problems (e.g. .copy()
+    failing) when passing a Series as the values along with a column name and
+    index
+  - Fixed single-key groupby on DataFrame with as_index=False (GH #160)
+  - `Series.shift` was failing on integer Series (GH #154)
+  - `unstack` methods were producing incorrect output in the case of duplicate
+    hierarchical labels. An exception will now be raised (GH #147)
+  - Calling `count` with level argument caused reduceat failure or segfault in
+    earlier NumPy (GH #169)
+  - Fixed `DataFrame.corrwith` to automatically exclude non-numeric data (GH
+    #144)
+  - Unicode handling bug fixes in `DataFrame.to_string` (GH #138)
+  - Excluding OLS degenerate unit test case that was causing platform specific
+    failure (GH #149)
+  - Skip blosc-dependent unit tests for PyTables < 2.2 (PR #137)
+  - Calling `copy` on `DateRange` did not copy over attributes to the new object
+    (GH #168)
+  - Fix bug in `HDFStore` in which Panel data could be appended to a Table with
+    different item order, thus resulting in an incorrect result read back
+
+Thanks
+------
+- Yaroslav Halchenko
+- Jeff Reback
+- Skipper Seabold
+- Dan Lovell
+- Nick Pentreath
+
+pandas 0.4
+==========
 
 What is it
-==========
+----------
 
 **pandas** is a library of powerful labeled-axis data structures, statistical
 tools, and general code for working with relational data sets, including time
@@ -13,14 +86,14 @@ particularly well suited for, among other things, financial data analysis
 applications.
 
 Where to get it
-===============
+---------------
 
 Source code: http://github.com/wesm/pandas
 Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 Documentation: http://pandas.sourceforge.net
 
 Release notes
-=============
+-------------
 
 **Release date:** 9/12/2011
 
@@ -279,12 +352,8 @@ Thanks
   - Skipper Seabold
   - Chris Jordan-Squire
 
-========================
-pandas 0.3 Release Notes
-========================
-
-Release Notes
-=============
+pandas 0.3
+==========
 
 This major release of pandas represents approximately 1 year of continuous
 development work and brings with it many new features, bug fixes, speed
@@ -293,7 +362,7 @@ change from the 0.2 release has been the completion of a rigorous unit test
 suite covering all of the core functionality.
 
 What is it
-==========
+----------
 
 **pandas** is a library of labeled data structures, statistical models, and
 general code for working with time series and cross-sectional data. It was
@@ -301,14 +370,14 @@ designed with the practical needs of statistical modeling and large,
 inhomogeneous data sets in mind.
 
 Where to get it
-===============
+---------------
 
 Source code: http://github.com/wesm/pandas
 Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 Documentation: http://pandas.sourceforge.net
 
 Release notes
-=============
+-------------
 
 **Release date:** February 20, 2011
 

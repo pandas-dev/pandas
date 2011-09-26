@@ -83,6 +83,11 @@ class TestDateRange(unittest.TestCase):
         self.assert_(comp[11])
         self.assert_(not comp[9])
 
+    def test_copy(self):
+        cp = self.rng.copy()
+        repr(cp)
+        self.assert_(cp.equals(self.rng))
+
     def test_repr(self):
         # only really care that it works
         repr(self.rng)

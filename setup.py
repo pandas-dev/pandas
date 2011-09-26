@@ -103,7 +103,7 @@ LICENSE = 'BSD'
 AUTHOR = "AQR Capital Management, LLC"
 MAINTAINER = "Wes McKinney"
 MAINTAINER_EMAIL = "wesmckinn@gmail.com"
-URL = "http://github.com/wesm/pandas"
+URL = "http://pandas.sourceforge.net"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -117,7 +117,7 @@ CLASSIFIERS = [
 
 MAJOR = 0
 MINOR = 4
-MICRO = 0
+MICRO = 1
 ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
@@ -135,8 +135,6 @@ if not ISRELEASED:
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
-from datetime import datetime
-
 version = '%s'
 """
     a = open(filename, 'w')

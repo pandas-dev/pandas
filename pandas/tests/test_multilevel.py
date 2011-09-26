@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas.core.datetools as datetools
 from pandas.core.index import MultiIndex, NULL_INDEX
-from pandas.core.api import (DataFrame, Index, Series, notnull, isnull)
+from pandas import Panel, DataFrame, Index, Series, notnull, isnull
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -220,6 +220,12 @@ class TestMultiLevel(unittest.TestCase):
         self.assertRaises(Exception,
                           self.frame.delevel()['A'].sortlevel)
 
+    def test_sortlevel_by_name(self):
+        self.frame.index.names = ['first', 'second']
+        result = self.frame.sortlevel(level='second')
+        expected = self.frame.sortlevel(level=1)
+        assert_frame_equal(result, expected)
+
     def test_sortlevel_mixed(self):
         sorted_before = self.frame.sortlevel(1)
 
@@ -251,6 +257,18 @@ class TestMultiLevel(unittest.TestCase):
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
         self.assertRaises(Exception, df.count, level=0)
+
+    def test_count_level_corner(self):
+        s = self.frame['A'][:0]
+        result = s.count(level=0)
+        expected = Series(0, index=s.index.levels[0])
+        assert_series_equal(result, expected)
+
+        df = self.frame[:0]
+        result = df.count(level=0)
+        expected = DataFrame({}, index=s.index.levels[0],
+                             columns=df.columns).fillna(0).astype(int)
+        assert_frame_equal(result, expected)
 
     def test_unstack(self):
         # just check that it works for now
@@ -324,6 +342,14 @@ class TestMultiLevel(unittest.TestCase):
 
         back = swapped.swaplevel(0, 1)
         self.assert_(back.index.equals(self.frame.index))
+
+    def test_swaplevel_panel(self):
+        panel = Panel({'ItemA' : self.frame,
+                       'ItemB' : self.frame * 2})
+
+        result = panel.swaplevel(0, 1, axis='major')
+        expected = panel.copy()
+        expected.major_axis = expected.major_axis.swaplevel(0, 1)
 
     def test_insert_index(self):
         df = self.ymd[:5].T

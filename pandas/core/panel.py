@@ -10,9 +10,9 @@ import warnings
 
 import numpy as np
 
-from pandas.core.common import (PandasError, _mut_exclusive, _ensure_index,
+from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
-from pandas.core.index import Factor, Index, MultiIndex
+from pandas.core.index import Factor, Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes
@@ -21,6 +21,66 @@ from pandas.core.series import Series
 from pandas.util.decorators import deprecate
 import pandas.core.common as common
 import pandas._tseries as _tseries
+
+
+def _ensure_like_indices(time, panels):
+    """
+    Makes sure that time and panels are conformable
+    """
+    n_time = len(time)
+    n_panel = len(panels)
+    u_panels = np.unique(panels) # this sorts!
+    u_time = np.unique(time)
+    if len(u_time) == n_time:
+        time = np.tile(u_time, len(u_panels))
+    if len(u_panels) == n_panel:
+        panels = np.repeat(u_panels, len(u_time))
+    return time, panels
+
+def panel_index(time, panels, names=['time', 'panel']):
+    """
+    Returns a multi-index suitable for a panel-like DataFrame
+
+    Parameters
+    ----------
+    time : array-like
+        Time index, does not have to repeat
+    panels : array-like
+        Panel index, does not have to repeat
+    names : list, optional
+        List containing the names of the indices
+
+    Returns
+    -------
+    multi_index : MultiIndex
+        Time index is the first level, the panels are the second level.
+
+    Examples
+    --------
+    >>> years = range(1960,1963)
+    >>> panels = ['A', 'B', 'C']
+    >>> panel_idx = panel_index(years, panels)
+    >>> panel_idx
+    MultiIndex([(1960, 'A'), (1961, 'A'), (1962, 'A'), (1960, 'B'), (1961, 'B'),
+       (1962, 'B'), (1960, 'C'), (1961, 'C'), (1962, 'C')], dtype=object)
+
+    or
+
+    >>> import numpy as np
+    >>> years = np.repeat(range(1960,1963), 3)
+    >>> panels = np.tile(['A', 'B', 'C'], 3)
+    >>> panel_idx = panel_index(years, panels)
+    >>> panel_idx
+    MultiIndex([(1960, 'A'), (1960, 'B'), (1960, 'C'), (1961, 'A'), (1961, 'B'),
+       (1961, 'C'), (1962, 'A'), (1962, 'B'), (1962, 'C')], dtype=object)
+    """
+    time, panels = _ensure_like_indices(time, panels)
+    time_factor = Factor(time)
+    panel_factor = Factor(panels)
+
+    labels = [time_factor.labels, panel_factor.labels]
+    levels = [time_factor.levels, panel_factor.levels]
+    return MultiIndex(levels, labels, sortorder=None, names=names)
 
 class PanelError(Exception):
     pass
@@ -106,6 +166,7 @@ class Panel(NDFrame):
 
     # major
     _default_stat_axis = 1
+    _het_axis = 0
 
     items = AxisProperty(0)
     major_axis = AxisProperty(1)
@@ -1041,13 +1102,15 @@ class LongPanel(DataFrame):
     def consistent(self):
         offset = max(len(self.major_axis), len(self.minor_axis))
 
-        # overflow risk
-        if (offset + 1) ** 2 > 2**32:
-            keys = (self.major_labels.astype(np.int64) * offset +
-                    self.minor_labels.astype(np.int64))
-        else:
-            keys = self.major_labels * offset + self.minor_labels
+        major_labels = self.major_labels
+        minor_labels = self.minor_labels
 
+        # overflow risk
+        if (offset + 1) ** 2 > 2**32:  # pragma: no cover
+            major_labels = major_labels.astype(np.int64)
+            minor_labels = minor_labels.astype(np.int64)
+
+        keys = major_labels * offset + minor_labels
         unique_keys = np.unique(keys)
 
         if len(unique_keys) < len(keys):
@@ -1127,6 +1190,8 @@ class LongPanel(DataFrame):
             return self._combine_frame(other, func)
         elif isinstance(other, DataFrame):
             return self._combine_panel_frame(other, func, axis=axis)
+        elif isinstance(other, Series):
+            return self._combine_series(other, func, axis=axis)
         elif np.isscalar(other):
             return LongPanel(func(self.values, other), columns=self.items,
                              index=self.index)
@@ -1152,9 +1217,9 @@ class LongPanel(DataFrame):
         return result.to_long()
 
     add = _panel_arith_method(operator.add, 'add')
-    subtract = _panel_arith_method(operator.sub, 'subtract')
-    divide = _panel_arith_method(operator.div, 'divide')
-    multiply = _panel_arith_method(operator.mul, 'multiply')
+    subtract = sub = _panel_arith_method(operator.sub, 'subtract')
+    divide = div = _panel_arith_method(operator.div, 'divide')
+    multiply = mul = _panel_arith_method(operator.mul, 'multiply')
 
     def to_wide(self):
         """

@@ -15,6 +15,11 @@ try:
 except ImportError:
     raise nose.SkipTest('no pytables')
 
+from distutils.version import LooseVersion
+
+_default_compressor = LooseVersion(tables.__version__) >= '2.2' \
+                      and 'blosc' or 'zlib'
+
 class TesttHDFStore(unittest.TestCase):
     path = '__test__.h5'
     scratchpath = '__scratch__.h5'
@@ -82,15 +87,24 @@ class TesttHDFStore(unittest.TestCase):
 
     def test_put_compression(self):
         df = tm.makeTimeDataFrame()
-        self.store.put('c', df, table=True, compression='blosc')
-        tm.assert_frame_equal(self.store['c'], df)
 
         self.store.put('c', df, table=True, compression='zlib')
         tm.assert_frame_equal(self.store['c'], df)
 
         # can't compress if table=False
         self.assertRaises(ValueError, self.store.put, 'b', df,
+                          table=False, compression='zlib')
+
+    def test_put_compression_blosc(self):
+        tm.skip_if_no_package('tables', '2.2', app='blosc support')
+        df = tm.makeTimeDataFrame()
+
+        # can't compress if table=False
+        self.assertRaises(ValueError, self.store.put, 'b', df,
                           table=False, compression='blosc')
+
+        self.store.put('c', df, table=True, compression='blosc')
+        tm.assert_frame_equal(self.store['c'], df)
 
     def test_put_integer(self):
         # non-date, non-string index
@@ -103,6 +117,15 @@ class TesttHDFStore(unittest.TestCase):
         self.store.append('c', df[10:])
         tm.assert_frame_equal(self.store['c'], df)
 
+    def test_append_diff_item_order(self):
+        wp = tm.makePanel()
+        wp1 = wp.ix[:, :10, :]
+        wp2 = wp.ix[['ItemC', 'ItemB', 'ItemA'], 10:, :]
+
+        self.store.put('panel', wp1, table=True)
+        self.assertRaises(Exception, self.store.put, 'panel', wp2,
+                          append=True)
+
     def test_remove(self):
         ts = tm.makeTimeSeries()
         df = tm.makeDataFrame()
@@ -114,6 +137,14 @@ class TesttHDFStore(unittest.TestCase):
 
         self.store.remove('b')
         self.assertEquals(len(self.store), 0)
+
+    def test_remove_where_not_exist(self):
+        crit1 = {
+            'field' : 'index',
+            'op' : '>',
+            'value' : 'foo'
+        }
+        self.store.remove('a', where=[crit1])
 
     def test_remove_crit(self):
         wp = tm.makePanel()
@@ -346,7 +377,7 @@ class TesttHDFStore(unittest.TestCase):
     def _check_roundtrip(self, obj, comparator, compression=False):
         options = {}
         if compression:
-            options['complib'] = 'blosc'
+            options['complib'] = _default_compressor
 
         store = HDFStore(self.scratchpath, 'w', **options)
         try:
@@ -360,7 +391,7 @@ class TesttHDFStore(unittest.TestCase):
     def _check_roundtrip_table(self, obj, comparator, compression=False):
         options = {}
         if compression:
-            options['complib'] = 'blosc'
+            options['complib'] = _default_compressor
 
         store = HDFStore(self.scratchpath, 'w', **options)
         try:

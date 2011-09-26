@@ -281,8 +281,9 @@ class HDFStore(object):
         if where is None:
             self.handle.removeNode(self.handle.root, key, recursive=True)
         else:
-            group = getattr(self.handle.root, key)
-            self._delete_from_table(group, where)
+            group = getattr(self.handle.root, key,None)
+            if group is not None:
+                self._delete_from_table(group, where)
 
     def append(self, key, value):
         """
@@ -566,6 +567,13 @@ class HDFStore(object):
         # add kinds
         table._v_attrs.index_kind = index_kind
         table._v_attrs.columns_kind = cols_kind
+        if append:
+            existing_fields = getattr(table._v_attrs,'fields',None)
+            if (existing_fields is not None and
+                existing_fields != list(items)):
+                raise Exception("appended items do not match existing items"
+                                " in table!")
+        # this depends on creation order of the table
         table._v_attrs.fields = list(items)
 
         # add the rows

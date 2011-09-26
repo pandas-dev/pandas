@@ -233,6 +233,11 @@ class TestSparseSeries(TestCase):
         assert_sp_series_equal(zbcop, self.zbseries)
         assert_sp_series_equal(zicop, self.ziseries)
 
+        # no deep copy
+        view = self.bseries.copy(deep=False)
+        view.sp_values[:5] = 5
+        self.assert_((self.bseries.sp_values[:5] == 5).all())
+
     def test_astype(self):
         self.assertRaises(Exception, self.bseries.astype, np.int_)
 
@@ -908,6 +913,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         appended = a.append(b)
         assert_sp_frame_equal(appended, self.frame)
+
+        a = self.frame.ix[:5, :3]
+        b = self.frame.ix[5:]
+        appended = a.append(b)
+        assert_sp_frame_equal(appended.ix[:, :3], self.frame.ix[:, :3])
 
     def test_apply(self):
         applied = self.frame.apply(np.sqrt)

@@ -6,8 +6,7 @@ from itertools import izip
 import numpy as np
 
 from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
-                                _ensure_index, _is_bool_indexer,
-                                _asarray_tuplesafe)
+                                _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import deprecate, cache_readonly
 import pandas.core.common as common
 import pandas._tseries as _tseries
@@ -434,6 +433,14 @@ class Index(np.ndarray):
             raise ValueError('labels %s not contained in axis' % labels[-mask])
         return self.delete(indexer)
 
+    def copy(self, order='C'):
+        """
+        Overridden ndarray.copy to copy over attributes
+        """
+        cp = self.view(np.ndarray).copy(order).view(type(self))
+        cp.__dict__.update(self.__dict__)
+        return cp
+
     #----------------------------------------------------------------------
     # deprecated stuff
 
@@ -531,6 +538,13 @@ class MultiIndex(Index):
         values = [np.asarray(lev).take(lab)
                   for lev, lab in zip(self.levels, self.labels)]
         return izip(*values)
+
+    def _get_level_number(self, level):
+        if not isinstance(level, int):
+            level = self.names.index(level)
+        elif level < 0:
+            level += self.nlevels
+        return level
 
     @property
     def values(self):
@@ -790,7 +804,8 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        level : int, default 0
+        level : int or str, default 0
+            If a string is given, must be a name of the level
         ascending : boolean, default True
             False to sort in descending order
 
@@ -799,6 +814,7 @@ class MultiIndex(Index):
         sorted_index : MultiIndex
         """
         labels = list(self.labels)
+        level = self._get_level_number(level)
         primary = labels.pop(level)
 
         # Lexsort starts from END
@@ -1218,3 +1234,7 @@ def _sparsify(label_list):
 
     return zip(*result)
 
+def _ensure_index(index_like):
+    if isinstance(index_like, Index):
+        return index_like
+    return Index(index_like)

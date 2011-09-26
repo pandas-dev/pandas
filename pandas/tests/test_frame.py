@@ -13,7 +13,8 @@ import numpy as np
 
 import pandas.core.datetools as datetools
 from pandas.core.index import NULL_INDEX
-from pandas.core.api import (DataFrame, Index, Series, notnull, isnull)
+from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
+                             MultiIndex)
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -409,8 +410,15 @@ class CheckIndexing(object):
                           (slice(None, None), 'E'), 1)
 
     def test_setitem_fancy_mixed_2d(self):
+        self.mixed_frame.ix[:5, ['C', 'B', 'A']] = 5
+        result = self.mixed_frame.ix[:5, ['C', 'B', 'A']]
+        self.assert_((result.values == 5).all())
+
+        self.mixed_frame.ix[5] = np.nan
+        self.assert_(isnull(self.mixed_frame.ix[5]).all())
+
         self.assertRaises(Exception, self.mixed_frame.ix.__setitem__,
-                          (slice(0, 5), ['C', 'B', 'A']), 5)
+                          5, self.mixed_frame.ix[6])
 
     def test_getitem_fancy_1d(self):
         f = self.frame
@@ -591,6 +599,14 @@ class CheckIndexing(object):
         self.assertRaises(Exception, ix.__getitem__, mask)
         self.assertRaises(Exception, ix.__setitem__, mask, 1.)
 
+    def test_setitem_single_column_mixed(self):
+        df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
+                       columns=['foo', 'bar', 'baz'])
+        df['str'] = 'qux'
+        df.ix[::2, 'str'] = nan
+        expected = [nan, 'qux', nan, 'qux', nan]
+        assert_almost_equal(df['str'].values, expected)
+
     def test_setitem_fancy_exceptions(self):
         pass
 
@@ -686,7 +702,8 @@ class SafeForSparse(object):
         self.assert_(np.array_equal(with_suffix.columns, expected))
 
 
-class TestDataFrame(unittest.TestCase, CheckIndexing):
+class TestDataFrame(unittest.TestCase, CheckIndexing,
+                    SafeForSparse):
     klass = DataFrame
 
     def setUp(self):
@@ -1005,6 +1022,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         expected = DataFrame({"a" : [0, 0, 0]}, index=idx)
         assert_frame_equal(df, expected)
 
+    def test_constructor_Series_copy_bug(self):
+        df = DataFrame(self.frame['A'], index=self.frame.index, columns=['A'])
+        df.copy()
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),
@@ -1151,6 +1172,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         common.set_printoptions(precision=3, column_space=10)
         repr(self.frame)
 
+    def test_repr_tuples(self):
+        buf = StringIO()
+
+        arr = np.empty(10, dtype=object)
+        arr[:] = zip(range(10), range(10))
+        df = DataFrame({'tups' : arr})
+        repr(df)
+        df.to_string(colSpace=10, buf=buf)
+
+    def test_to_string_unicode(self):
+        buf = StringIO()
+
+        unicode_values = [u'\u03c3'] * 10
+        unicode_values = np.array(unicode_values, dtype=object)
+        df = DataFrame({'unicode' : unicode_values})
+        df.to_string(colSpace=10, buf=buf)
+
+    def test_to_string_unicode_columns(self):
+        df = DataFrame({u'\u03c3' : np.arange(10.)})
+
+        buf = StringIO()
+        df.to_string(buf=buf)
+        buf.getvalue()
+
+        buf = StringIO()
+        df.info(buf=buf)
+        buf.getvalue()
+
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
@@ -1182,17 +1231,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         frame = DataFrame(index=np.arange(1000))
         frame.to_string(buf=buf)
-
-    def test_to_string_unicode_columns(self):
-        df = DataFrame({u'\u03c3' : np.arange(10.)})
-
-        buf = StringIO()
-        df.to_string(buf=buf)
-        buf.getvalue()
-
-        buf = StringIO()
-        df.info(buf=buf)
-        buf.getvalue()
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
@@ -1462,10 +1500,58 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         os.remove(path)
 
+    def test_to_csv_multiindex(self):
+        path = '__tmp__'
+
+        frame = self.frame
+        old_index = frame.index
+        new_index = MultiIndex.from_arrays(np.arange(len(old_index)*2).reshape(2,-1))
+        frame.index = new_index
+        frame.to_csv(path, header=False)
+        frame.to_csv(path, cols=['A', 'B'])
+
+
+        # round trip
+        frame.to_csv(path)
+
+        df = DataFrame.from_csv(path, index_col=[0,1])
+
+        assert_frame_equal(frame, df)
+        self.frame.index = old_index # needed if setUP becomes a classmethod
+
+        # try multiindex with dates
+        tsframe = self.tsframe
+        old_index = tsframe.index
+        new_index = [old_index, np.arange(len(old_index))]
+        tsframe.index = MultiIndex.from_arrays(new_index)
+
+        tsframe.to_csv(path, index_label = ['time','foo'])
+        recons = DataFrame.from_csv(path, index_col=[0,1])
+        assert_frame_equal(tsframe, recons)
+
+        # do not load index
+        tsframe.to_csv(path)
+        recons = DataFrame.from_csv(path, index_col=None)
+        np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
+
+        # no index
+        tsframe.to_csv(path, index=False)
+        recons = DataFrame.from_csv(path, index_col=None)
+        assert_almost_equal(recons.values, self.tsframe.values)
+        self.tsframe.index = old_index # needed if setUP becomes classmethod
+
+        os.remove(path)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
         self.tsframe.info(buf=io)
+
+    def test_dtypes(self):
+        self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
+        result = self.mixed_frame.dtypes
+        expected = self.mixed_frame.dtypes
+        assert_series_equal(result, expected)
 
     def test_append(self):
         begin_index = self.frame.index[:5]
@@ -1504,6 +1590,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         appended = self.empty.append(self.frame)
         assert_frame_equal(self.frame, appended)
         self.assert_(appended is not self.frame)
+
+    def test_append_records(self):
+        arr1 = np.zeros((2,),dtype=('i4,f4,a10'))
+        arr1[:] = [(1,2.,'Hello'),(2,3.,"World")]
+
+        arr2 = np.zeros((3,),dtype=('i4,f4,a10'))
+        arr2[:] = [(3, 4.,'foo'),
+                   (5, 6.,"bar"),
+                   (7., 8., 'baz')]
+
+        df1 = DataFrame(arr1)
+        df2 = DataFrame(arr2)
+
+        result = df1.append(df2, ignore_index=True)
+        expected = DataFrame(np.concatenate((arr1, arr2)))
+        assert_frame_equal(result, expected)
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
@@ -1605,6 +1707,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         correls = df1.corrwith(df2, axis=1)
         for row in index[:4]:
             assert_almost_equal(correls[row], df1.ix[row].corr(df2.ix[row]))
+
+    def test_corrwith_with_objects(self):
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame()
+        cols = ['A', 'B', 'C', 'D']
+
+        df1['obj'] = 'foo'
+        df2['obj'] = 'bar'
+
+        result = df1.corrwith(df2)
+        expected = df1.ix[:, cols].corrwith(df2.ix[:, cols])
+        assert_series_equal(result, expected)
+
+        result = df1.corrwith(df2, axis=1)
+        expected = df1.ix[:, cols].corrwith(df2.ix[:, cols], axis=1)
+        assert_series_equal(result, expected)
 
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
@@ -1820,6 +1938,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         df = DataFrame.from_records(lp.toRecords())
         assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
+    def test_pivot_duplicates(self):
+        data = DataFrame({'a' : ['bar', 'bar', 'foo', 'foo', 'foo'],
+                          'b' : ['one', 'two', 'one', 'one', 'two'],
+                          'c' : [1., 2., 3., 3., 4.]})
+        # expected = DataFrame([[1., 2.], [3., 4.]], index=['bar', 'foo'],
+        #                      columns=['one', 'two'])
+        # result = data.pivot('a', 'b', 'c')
+        # assert_frame_equal(result, expected)
+
+        self.assertRaises(Exception, data.pivot, 'a', 'b', 'c')
+
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 
@@ -1985,6 +2114,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
         # other axis
         renamed = self.frame.T.rename(index={'C' : 'foo', 'D' : 'bar'})
         self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
+
+    def test_rename_nocopy(self):
+        renamed = self.frame.rename(columns={'C' : 'foo'}, copy=False)
+        renamed['foo'] = 1.
+        self.assert_((self.frame['C'] == 1.).all())
 
     #----------------------------------------------------------------------
     # Time series related
@@ -2361,6 +2495,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing):
 
         self.assertEquals(df._get_numeric_columns(), ['a', 'e'])
         # self.assertEquals(df._get_object_columns(), ['c', 'd'])
+
+    def test_get_numeric_data(self):
+        df = DataFrame({'a' : 1., 'b' : 2, 'c' : 'foo'},
+                       index=np.arange(10))
+
+        result = df._get_numeric_data()
+        expected = df.ix[:, ['a', 'b']]
+        assert_frame_equal(result, expected)
+
+        only_obj = df.ix[:, ['c']]
+        result = only_obj._get_numeric_data()
+        expected = df.ix[:, []]
+        assert_frame_equal(result, expected)
 
     def test_statistics(self):
         # unnecessary?

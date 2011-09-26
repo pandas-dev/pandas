@@ -13,11 +13,11 @@ import warnings
 from numpy import nan, ndarray
 import numpy as np
 
-from pandas.core.common import (isnull, notnull, _ensure_index,
-                                _is_bool_indexer, _default_index)
+from pandas.core.common import (isnull, notnull, _is_bool_indexer,
+                                _default_index)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util.decorators import deprecate
 import pandas.core.datetools as datetools
@@ -99,8 +99,8 @@ class Series(np.ndarray, PandasObject):
         except ValueError:
             if dtype:
                 raise
-
-            subarr = np.array(data, dtype=object)
+            else:  # pragma: no cover
+                subarr = np.array(data, dtype=object)
 
         if subarr.ndim == 0:
             if isinstance(data, list):  # pragma: no cover
@@ -492,6 +492,9 @@ copy : boolean, default False
         mask = notnull(obj.values)
 
         level_index = obj.index.levels[level]
+
+        if len(self) == 0:
+            return Series(0, index=level_index)
 
         n = len(level_index)
         locs = obj.index.labels[level].searchsorted(np.arange(n))
@@ -1242,9 +1245,7 @@ copy : boolean, default False
             new_values = arg.view(np.ndarray).take(indexer)
 
             if notmask.any():
-                if issubclass(new_values.dtype.type, np.integer):
-                    new_values = new_values.astype(float)
-
+                new_values = _maybe_upcast(new_values)
                 np.putmask(new_values, notmask, np.nan)
 
             newSer = Series(new_values, index=self.index)
@@ -1307,11 +1308,7 @@ copy : boolean, default False
 
         notmask = -mask
         if notmask.any():
-            if issubclass(new_values.dtype.type, np.int_):
-                new_values = new_values.astype(float)
-            elif issubclass(new_values.dtype.type, np.bool_):
-                new_values = new_values.astype(object)
-
+            new_values = _maybe_upcast(new_values)
             np.putmask(new_values, notmask, nan)
 
         return Series(new_values, index=new_index)
@@ -1581,6 +1578,7 @@ copy : boolean, default False
 
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)
+            new_values = _maybe_upcast(new_values)
 
             if periods > 0:
                 new_values[periods:] = self.values[:-periods]
@@ -1775,6 +1773,14 @@ def remove_na(arr):
     Return array containing only true/non-NaN values, possibly empty.
     """
     return arr[notnull(arr)]
+
+def _maybe_upcast(values):
+    if issubclass(values.dtype.type, np.int_):
+        values = values.astype(float)
+    elif issubclass(values.dtype.type, np.bool_):
+        values = values.astype(object)
+
+    return values
 
 def _seriesRepr(index, vals, nanRep='NaN'):
     string_index = index.format()
