@@ -782,10 +782,7 @@ class SparseDataFrame(DataFrame):
         """
         Make a copy of this SparseDataFrame
         """
-        if deep:
-            series = self._series.copy()
-        else:
-            series = self._series
+        series = self._series.copy()
         return SparseDataFrame(series, index=self.index, columns=self.columns,
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)
@@ -1062,23 +1059,8 @@ class SparseDataFrame(DataFrame):
         self.columns = new_columns
         self._series = new_series
 
-    def _append_column_by_column(self, other):
-        new_data = {}
-        for col in self:
-            values = self[col].values
-            if col in other:
-                other_values = other[col].values
-            else:
-                values = _maybe_upcast(values)
-                other_values = np.empty(len(other), dtype=values.dtype)
-                other_values.fill(np.nan)
-            new_data[col] = np.concatenate((values, other_values))
-
-        for column, series in other.iteritems():
-            if column not in self:
-                new_data[column] = series.values
-
-        return new_data
+    def _get_raw_column(self, col):
+        return self._series[col].values
 
     def add_prefix(self, prefix):
         f = (('%s' % prefix) + '%s').__mod__

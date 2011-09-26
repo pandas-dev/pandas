@@ -2084,20 +2084,23 @@ class DataFrame(NDFrame):
 
         new_data = {}
         for col in self:
-            values = self._data.get(col)
+            values = self._get_raw_column(col)
             if col in other:
-                other_values = other._data.get(col)
+                other_values = other._get_raw_column(col)
             else:
                 values, other_values = _concat_missing(values, len(other))
             new_data[col] = np.concatenate((values, other_values))
 
         for col in other:
-            values = other._data.get(col)
+            values = other._get_raw_column(col)
             if col not in self:
                 values, missing_values = _concat_missing(values, len(self))
                 new_data[col] = np.concatenate((missing_values, values))
 
         return new_data
+
+    def _get_raw_column(self, col):
+        return self._data.get(col)
 
     def join(self, other, on=None, how=None, lsuffix='', rsuffix=''):
         """
