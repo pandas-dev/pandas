@@ -5,6 +5,11 @@ Release Notes
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/wesm/pandas
 
+pandas 0.4.2
+============
+
+**Release date:** not yet released
+
 pandas 0.4.1
 ============
 
