@@ -155,7 +155,7 @@ def take_1d(arr, indexer):
 
     return out
 
-def take_2d(arr, indexer, mask=None, needs_masking=None, axis=0):
+def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
     """
     Specialized Cython take which sets NaN values in one pass
     """
@@ -183,11 +183,11 @@ def take_2d(arr, indexer, mask=None, needs_masking=None, axis=0):
         take_f = _get_take2d_function(dtype_str, axis=axis)
         take_f(arr, indexer, out=out)
     else:
-        out = arr.take(indexer, axis=axis)
         if mask is None:
             mask = indexer == -1
             needs_masking = mask.any()
 
+        out = arr.take(indexer, axis=axis)
         if needs_masking:
             out = _maybe_upcast(out)
             null_out_axis(out, mask, axis)
@@ -200,15 +200,21 @@ def null_out_axis(arr, mask, axis):
 
     arr[tuple(indexer)] = np.NaN
 
-def take_fast(arr, indexer, mask, needs_masking, axis=0):
+def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None):
     if arr.ndim == 2:
-        return take_2d(arr, indexer, mask=mask,
+        return take_2d(arr, indexer, out=out, mask=mask,
                        needs_masking=needs_masking,
                        axis=axis)
-    out = arr.take(indexer, axis=axis)
-    if needs_masking:
-        out = _maybe_upcast(out)
-        null_out_axis(out, mask, axis)
+
+    if out is None:
+        out = arr.take(indexer, axis=axis)
+        if needs_masking:
+            out = _maybe_upcast(out)
+            null_out_axis(out, mask, axis)
+    else:
+        out = arr.take(indexer, axis=axis)
+        if needs_masking and _need_upcast(out):
+            raise Exception('incompatible type for NAs')
     return out
 
 def _maybe_upcast(values):
@@ -218,6 +224,11 @@ def _maybe_upcast(values):
         values = values.astype(object)
 
     return values
+
+def _need_upcast(values):
+    if issubclass(values.dtype.type, (np.int_, np.bool_)):
+        return True
+    return False
 
 #-------------------------------------------------------------------------------
 # Lots of little utilities

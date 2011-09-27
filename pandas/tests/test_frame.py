@@ -2471,6 +2471,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
 
+    def test_join_index_mixed(self):
+        # TODO!
+
+        df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+                        index=np.arange(10))
+        self.assert_(df1['B'].dtype == np.int_)
+        self.assert_(df1['D'].dtype == np.bool_)
+
+        df2 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+                        index=np.arange(0, 10, 2))
+
+        joined = df1.join(df2, lsuffix='_one', rsuffix='_two')
+
     def test_clip(self):
         median = self.frame.median().median()
 

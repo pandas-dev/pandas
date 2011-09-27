@@ -162,13 +162,6 @@ class Block(object):
         new_values.flat[mask] = value
         return make_block(new_values, self.items, self.ref_items)
 
-def _cast_if_bool_int(values):
-    if issubclass(values.dtype.type, np.int_):
-        values = values.astype(float)
-    elif issubclass(values.dtype.type, np.bool_):
-        values = values.astype(object)
-    return values
-
 #-------------------------------------------------------------------------------
 # Is this even possible?
 
@@ -886,6 +879,8 @@ def _consolidate(blocks, items):
     return new_blocks
 
 def _merge_blocks(blocks, items):
+    if len(blocks) == 1:
+        return blocks[0]
     new_values = np.vstack([b.values for b in blocks])
     new_items = np.concatenate([b.items for b in blocks])
     new_block = make_block(new_values, new_items, items)
@@ -918,3 +913,122 @@ def _union_items_slow(all_items):
         else:
             seen = seen.union(items)
     return seen
+
+
+def merge_managers(left, right, index, axis=1):
+    """
+    Parameters
+    ----------
+    other
+    lindexer
+    lmask
+    rindexer
+    rmask
+
+    Returns
+    -------
+    merged : BlockManager
+    """
+    assert(left.is_consolidated())
+    assert(right.is_consolidated())
+
+    if left.axes[axis].equals(index):
+        lindexer = np.arange(index, dtype=np.int32)
+        lmask = np.zeros(len(index), dtype=np.bool)
+        lneed_masking = False
+    else:
+        lindexer = left.axes[axis].get_indexer(index)
+        lmask = lindexer == -1
+        lneed_masking = lmask.any()
+
+    if right.axes[axis].equals(index):
+        rindexer = np.arange(index, dtype=np.int32)
+        rmask = np.zeros(len(index), dtype=np.bool)
+        rneed_masking = False
+    else:
+        rindexer = right.axes[axis].get_indexer(index)
+        rmask = rindexer == -1
+        rneed_masking = rmask.any()
+
+    lblocks = _maybe_upcast_blocks(left.blocks, lneed_masking)
+    rblocks = _maybe_upcast_blocks(right.blocks, rneed_masking)
+
+    left_blockmap = dict((type(blk), blk) for blk in lblocks)
+    right_blockmap = dict((type(blk), blk) for blk in rblocks)
+
+    # do NOT sort
+    result_items = left.items.append(right.items)
+
+    result_axes = list(left.axes)
+    result_axes[0] = result_items
+    result_axes[axis] = index
+
+    result_blocks = []
+
+    kinds = [FloatBlock, ObjectBlock, BoolBlock, IntBlock]
+    for klass in kinds:
+        if klass in left_blockmap and right_blockmap:
+            # true merge
+            left = left_blockmap[klass]
+            right = right_blockmap[klass]
+            new_values = _merge_blocks_fast(left, right,
+                                            lindexer, lmask, lneed_masking,
+                                            rindexer, rmask, rneed_masking,
+                                            axis=axis)
+            new_items = left.items.append(right.items)
+            res_blk = make_block(new_values, new_items, result_items)
+        elif klass in left_blockmap:
+            # only take necessary
+            blk = left_blockmap[klass]
+            res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
+                                       axis=axis)
+            res_blk.ref_items = result_items
+        elif klass in right_blockmap:
+            # only take necessary
+            blk = right_blockmap[klass]
+            res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
+                                       axis=axis)
+            res_blk.ref_items = result_items
+
+        result_blocks.append(res_blk)
+
+    return BlockManager(result_blocks, result_axes)
+
+def _maybe_upcast_blocks(blocks, needs_masking):
+    """
+    Upcast and consolidate if necessary
+    """
+    if not needs_masking:
+        return blocks
+    new_blocks = []
+    for block in blocks:
+        if isinstance(block, IntBlock):
+            newb = make_block(block.values.astype(float), block.items,
+                              block.ref_items)
+        elif isinstance(block, BoolBlock):
+            newb = make_block(block.values.astype(object), block.items,
+                              block.ref_items)
+        else:
+            newb = block
+        new_blocks.append(newb)
+
+    # use any ref_items
+    return _consolidate(blocks, newb.ref_items)
+
+def _merge_blocks_fast(left, right, lindexer, lmask, lneed_masking,
+                       rindexer, rmask, rneed_masking, axis=1):
+    n = len(lindexer)
+    lk = len(left.items)
+    rk = len(right.items)
+
+    out_shape = list(left.shape)
+    out_shape[0] = lk + rk
+    out_shape[axis] = n
+
+    out = np.empty(out_shape, dtype=left.values.dtype)
+    common.take_fast(left.values, lindexer, lmask, lneed_masking,
+                     axis=axis, out=out[:lk].T)
+    common.take_fast(right.values, rindexer, rmask, rneed_masking,
+                     axis=axis, out=out[lk:].T)
+
+    return out
