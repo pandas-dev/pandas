@@ -305,7 +305,7 @@ class TestIndex(unittest.TestCase):
         # intersection broken?
         int_idx = idx1.intersection(idx2)
         # needs to be 1d like idx1 and idx2
-        expected = pandas.Index(sorted(set(idx1) & set(idx2)))
+        expected = idx1[:4] # pandas.Index(sorted(set(idx1) & set(idx2)))
         self.assert_(int_idx.ndim == 1)
         self.assert_(int_idx.equals(expected))
 

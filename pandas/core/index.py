@@ -255,8 +255,9 @@ class Index(np.ndarray):
         if self.equals(other):
             return self
 
-        theIntersection = sorted(set(self) & set(other))
-        return Index(theIntersection)
+        indexer = self.get_indexer(other)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+        return self.take(indexer)
 
     def diff(self, other):
         """
