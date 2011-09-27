@@ -27,59 +27,45 @@ def backfill(ndarray[object] oldIndex, ndarray[object] newIndex,
     D
     '''
     cdef int i, j, oldLength, newLength, curLoc
-    # Make empty vectors
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
     cdef object prevOld, curOld
 
-    # Get the size
     oldLength = len(oldIndex)
     newLength = len(newIndex)
 
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
-    # Current positions
     oldPos = oldLength - 1
     newPos = newLength - 1
 
-    # corner case, no filling possible
     if newIndex[0] > oldIndex[oldLength - 1]:
         return fill_vec
 
     while newPos >= 0:
         curOld = oldIndex[oldPos]
 
-        # Until we reach a point where we are before the curOld point
         while newIndex[newPos] > curOld:
             newPos -= 1
             if newPos < 0:
                 break
 
-        # Get the location in the old index
         curLoc = oldMap[curOld]
 
-        # At the beginning of the old index
         if oldPos == 0:
-            # Make sure we are before the curOld index
             if newIndex[newPos] <= curOld:
                 fill_vec[:newPos + 1] = curLoc
-            # Exit the main loop
             break
         else:
-            # Get the index there
             prevOld = oldIndex[oldPos - 1]
 
-            # Until we reach the previous index
             while newIndex[newPos] > prevOld:
-                # Set the current fill location
                 fill_vec[newPos] = curLoc
 
                 newPos -= 1
                 if newPos < 0:
                     break
-
-        # Move one period back
         oldPos -= 1
 
     return fill_vec
@@ -110,12 +96,10 @@ def pad(ndarray[object] oldIndex, ndarray[object] newIndex,
     C        C        2               1
     '''
     cdef int i, j, oldLength, newLength, curLoc
-    # Make empty vectors
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
     cdef object prevOld, curOld
 
-    # Get the size
     oldLength = len(oldIndex)
     newLength = len(newIndex)
 
@@ -125,53 +109,38 @@ def pad(ndarray[object] oldIndex, ndarray[object] newIndex,
     oldPos = 0
     newPos = 0
 
-    # corner case, no filling possible
     if newIndex[newLength - 1] < oldIndex[0]:
         return fill_vec
 
     while newPos < newLength:
         curOld = oldIndex[oldPos]
 
-        # At beginning, keep going until we go exceed the
-        # first OLD index in the NEW index
         while newIndex[newPos] < curOld:
             newPos += 1
             if newPos > newLength - 1:
                 break
 
-        # We got there, get the current location in the old index
         curLoc = oldMap[curOld]
 
-        # We're at the end of the road, need to propagate this value to the end
         if oldPos == oldLength - 1:
             if newIndex[newPos] >= curOld:
                 fill_vec[newPos:] = curLoc
             break
         else:
-            # Not at the end, need to go about filling
-
-            # Get the next index so we know when to stop propagating this value
             nextOld = oldIndex[oldPos + 1]
-
             done = 0
 
-            # Until we reach the next OLD value in the NEW index
             while newIndex[newPos] < nextOld:
-                # Use this location to fill
                 fill_vec[newPos] = curLoc
                 newPos += 1
 
-                # We got to the end of the new index
                 if newPos > newLength - 1:
                     done = 1
                     break
 
-            # We got to the end of the new index
             if done:
                 break
 
-        # We already advanced the iterold pointer to the next value,
-        # inc the count
         oldPos += 1
 
     return fill_vec
@@ -585,33 +554,6 @@ def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_axis0(ndarray[float64_t, ndim=2] values,
-               ndarray[int32_t] indexer,
-               out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[float64_t, ndim=2] outbuf
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-
-        if idx == -1:
-            for j from 0 <= j < k:
-                outbuf[i, j] = NaN
-        else:
-            for j from 0 <= j < k:
-                outbuf[i, j] = values[idx, j]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def take_join_contiguous(ndarray[float64_t, ndim=2] lvalues,
                          ndarray[float64_t, ndim=2] rvalues,
                          ndarray[int32_t] lindexer,
@@ -650,146 +592,6 @@ def take_join_contiguous(ndarray[float64_t, ndim=2] lvalues,
             for j from 0 <= j < rk:
                 outbuf[0] = rvalues[ridx, j]
                 outbuf = outbuf + 1
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_axis1(ndarray[float64_t, ndim=2] values,
-               ndarray[int32_t] indexer,
-               out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[float64_t, ndim=2] outbuf
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for j from 0 <= j < k:
-        idx = indexer[j]
-
-        if idx == -1:
-            for i from 0 <= i < n:
-                outbuf[i, j] = NaN
-        else:
-            for i from 0 <= i < n:
-                outbuf[i, j] = values[i, idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_1d_float64(ndarray[float64_t] values, ndarray[int32_t] indexer,
-                    out=None):
-    cdef:
-        Py_ssize_t i, n, idx
-        ndarray[float64_t] outbuf
-
-    n = len(indexer)
-
-    if out is None:
-        outbuf = np.empty(n, dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-        if idx == -1:
-            outbuf[i] = NaN
-        else:
-            outbuf[i] = values[idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_1d_object(ndarray[object] values, ndarray[int32_t] indexer,
-                   out=None):
-    cdef:
-        Py_ssize_t i, n, idx
-        ndarray[object] outbuf
-        object nan
-
-    nan = np.nan
-
-    n = len(indexer)
-
-    if out is None:
-        outbuf = np.empty(n, dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-        if idx == -1:
-            outbuf[i] = nan
-        else:
-            outbuf[i] = values[idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_1d_int32(ndarray[int32_t] values, ndarray[int32_t] indexer,
-                  out=None):
-    cdef:
-        Py_ssize_t i, n, idx
-        ndarray[int32_t] outbuf
-
-    n = len(indexer)
-
-    if out is None:
-        outbuf = np.empty(n, dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-        if idx == -1:
-            raise ValueError('No NA values allowed')
-        else:
-            outbuf[i] = values[idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_1d_int64(ndarray[int64_t] values, ndarray[int32_t] indexer,
-                  out=None):
-    cdef:
-        Py_ssize_t i, n, idx
-        ndarray[int64_t] outbuf
-
-    n = len(indexer)
-
-    if out is None:
-        outbuf = np.empty(n, dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-        if idx == -1:
-            raise ValueError('No NA values allowed')
-        else:
-            outbuf[i] = values[idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_1d_bool(ndarray[uint8_t] values, ndarray[int32_t] indexer,
-                 out=None):
-    cdef:
-        Py_ssize_t i, n, idx
-        ndarray[uint8_t] outbuf
-
-    n = len(indexer)
-
-    if out is None:
-        outbuf = np.empty(n, dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-        if idx == -1:
-            raise ValueError('No NA values allowed')
-        else:
-            outbuf[i] = values[idx]
 
 def ordered_put_indexer(ndarray[int64_t] left, ndarray[int64_t] right,
                         ndarray[float64_t, ndim=2] lvalues,

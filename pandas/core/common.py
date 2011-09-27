@@ -81,16 +81,20 @@ def _unpickle_array(bytes):
     arr = read_array(StringIO(bytes))
     return arr
 
-def null_out_axis(arr, mask, axis):
-    indexer = [slice(None)] * arr.ndim
-    indexer[axis] = mask
-
-    arr[tuple(indexer)] = np.NaN
-
 def _take_1d_bool(arr, indexer, out):
     view = arr.view(np.uint8)
     outview = out.view(np.uint8)
     lib.take_1d_bool(view, indexer, outview)
+
+def _take_2d_axis0_bool(arr, indexer, out):
+    view = arr.view(np.uint8)
+    outview = out.view(np.uint8)
+    lib.take_2d_axis0_bool(view, indexer, outview)
+
+def _take_2d_axis1_bool(arr, indexer, out):
+    view = arr.view(np.uint8)
+    outview = out.view(np.uint8)
+    lib.take_2d_axis1_bool(view, indexer, outview)
 
 _take1d_dict = {
     'float64' : lib.take_1d_float64,
@@ -100,9 +104,31 @@ _take1d_dict = {
     'bool' : _take_1d_bool
 }
 
+_take2d_axis0_dict = {
+    'float64' : lib.take_2d_axis0_float64,
+    'int32' : lib.take_2d_axis0_int32,
+    'int64' : lib.take_2d_axis0_int64,
+    'object' : lib.take_2d_axis0_object,
+    'bool' : _take_2d_axis0_bool
+}
+
+_take2d_axis1_dict = {
+    'float64' : lib.take_2d_axis1_float64,
+    'int32' : lib.take_2d_axis1_int32,
+    'int64' : lib.take_2d_axis1_int64,
+    'object' : lib.take_2d_axis1_object,
+    'bool' : _take_2d_axis1_bool
+}
+
+def _get_take2d_function(dtype_str, axis=0):
+    if axis == 0:
+        return _take2d_axis0_dict[dtype_str]
+    else:
+        return _take2d_axis1_dict[dtype_str]
+
 def take_1d(arr, indexer):
     """
-    Specialized Cython take which sets NaN values
+    Specialized Cython take which sets NaN values in one pass
     """
     dtype_str = arr.dtype.name
 
@@ -127,6 +153,62 @@ def take_1d(arr, indexer):
             out = _maybe_upcast(out)
             np.putmask(out, mask, np.nan)
 
+    return out
+
+def take_2d(arr, indexer, mask=None, needs_masking=None, axis=0):
+    """
+    Specialized Cython take which sets NaN values in one pass
+    """
+    dtype_str = arr.dtype.name
+
+    out_shape = list(arr.shape)
+    out_shape[axis] = len(indexer)
+    out_shape = tuple(out_shape)
+
+    if dtype_str in ('int32', 'int64', 'bool'):
+        if mask is None:
+            mask = indexer == -1
+            needs_masking = mask.any()
+
+        if needs_masking:
+            out = arr.take(indexer, axis=axis)
+            out = _maybe_upcast(out)
+            null_out_axis(out, mask, axis)
+        else:
+            out = np.empty(out_shape, dtype=arr.dtype)
+            take_f = _get_take2d_function(dtype_str, axis=axis)
+            take_f(arr, indexer, out=out)
+    elif dtype_str in ('float64', 'object'):
+        out = np.empty(out_shape, dtype=arr.dtype)
+        take_f = _get_take2d_function(dtype_str, axis=axis)
+        take_f(arr, indexer, out=out)
+    else:
+        out = arr.take(indexer, axis=axis)
+        if mask is None:
+            mask = indexer == -1
+            needs_masking = mask.any()
+
+        if needs_masking:
+            out = _maybe_upcast(out)
+            null_out_axis(out, mask, axis)
+
+    return out
+
+def null_out_axis(arr, mask, axis):
+    indexer = [slice(None)] * arr.ndim
+    indexer[axis] = mask
+
+    arr[tuple(indexer)] = np.NaN
+
+def take_fast(arr, indexer, mask, needs_masking, axis=0):
+    if arr.ndim == 2:
+        return take_2d(arr, indexer, mask=mask,
+                       needs_masking=needs_masking,
+                       axis=axis)
+    out = arr.take(indexer, axis=axis)
+    if needs_masking:
+        out = _maybe_upcast(out)
+        null_out_axis(out, mask, axis)
     return out
 
 def _maybe_upcast(values):

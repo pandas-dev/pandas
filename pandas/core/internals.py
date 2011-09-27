@@ -98,21 +98,18 @@ class Block(object):
         #     union_ref = self.ref_items + other.ref_items
         return _merge_blocks([self, other], self.ref_items)
 
-    def reindex_axis(self, indexer, notmask, needs_masking, axis=0):
+    def reindex_axis(self, indexer, mask, needs_masking, axis=0):
         """
         Reindex using pre-computed indexer information
         """
         if self.values.size > 0:
-            new_values = self.values.take(indexer, axis=axis)
+            new_values = common.take_fast(self.values, indexer, mask,
+                                          needs_masking, axis=axis)
         else:
             shape = list(self.shape)
             shape[axis] = len(indexer)
             new_values = np.empty(shape)
             new_values.fill(np.nan)
-
-        if needs_masking:
-            new_values = _cast_if_bool_int(new_values)
-            common.null_out_axis(new_values, notmask, axis)
         return make_block(new_values, self.items, self.ref_items)
 
     def reindex_items_from(self, new_ref_items):
