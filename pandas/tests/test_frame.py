@@ -690,7 +690,9 @@ class SafeForSparse(object):
         df2_suf = df2.ix[:, ['B', 'C']].add_suffix('_df2')
         no_overlap = self.frame.ix[:, ['A', 'D']]
         expected = df1_suf.join(df2_suf).join(no_overlap)
-        assert_frame_equal(joined, expected)
+
+        # column order not necessarily sorted
+        assert_frame_equal(joined, expected.ix[:, joined.columns])
 
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')

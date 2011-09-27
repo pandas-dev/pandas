@@ -415,14 +415,12 @@ class TestPanelOLS(BaseTest):
         result = ols(y=self.panel_y2, x=self.panel_x2, entity_effects=True)
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
-        exp_x = [[0, 6, 14, 1], [0, 9, 17, 1], [1, 30, 48, 1]]
-        # exp_x = [[6, 14, 0, 1], [9, 17, 0, 1], [30, 48, 1, 1]]
-        assert_almost_equal(result._x.values, exp_x)
 
-        exp_index = Index(['FE_B', 'x1', 'x2', 'intercept'])
-        # exp_index = Index(['x1', 'x2', 'FE_B', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.items))
-
+        exp_x = DataFrame([[0, 6, 14, 1], [0, 9, 17, 1], [1, 30, 48, 1]],
+                          index=result._x.index, columns=['FE_B', 'x1', 'x2',
+                                                          'intercept'],
+                          dtype=float)
+        tm.assert_frame_equal(result._x, exp_x.ix[:, result._x.columns])
         # _check_non_raw_results(result)
 
     def testWithEntityEffectsAndDroppedDummies(self):
@@ -430,13 +428,11 @@ class TestPanelOLS(BaseTest):
                      dropped_dummies={'entity' : 'B'})
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
-        exp_x = [[1, 6, 14, 1], [1, 9, 17, 1], [0, 30, 48, 1]]
-        # exp_x = [[6, 14, 1, 1], [9, 17, 1, 1], [30, 48, 0, 1]]
-        assert_almost_equal(result._x.values, exp_x)
-
-        exp_index = Index(['FE_A', 'x1', 'x2', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.items))
-
+        exp_x = DataFrame([[1, 6, 14, 1], [1, 9, 17, 1], [0, 30, 48, 1]],
+                          index=result._x.index, columns=['FE_A', 'x1', 'x2',
+                                                          'intercept'],
+                          dtype=float)
+        tm.assert_frame_equal(result._x, exp_x.ix[:, result._x.columns])
         # _check_non_raw_results(result)
 
     def testWithXEffects(self):

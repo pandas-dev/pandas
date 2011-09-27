@@ -123,6 +123,9 @@ class Index(np.ndarray):
 
             return Index(arr_idx[key])
 
+    def append(self, other):
+        return Index(np.concatenate((self.values, other.values)))
+
     def take(self, *args, **kwargs):
         """
         Analogous to ndarray.take
@@ -717,6 +720,10 @@ class MultiIndex(Index):
         """
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
+
+    def append(self, other):
+        new_tuples = np.concatenate((self.values, other.values))
+        return MultiIndex.from_tuples(new_tuples, names=self.names)
 
     def argsort(self, *args, **kwargs):
         return self.get_tuple_index().argsort()

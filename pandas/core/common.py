@@ -171,28 +171,32 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
             needs_masking = mask.any()
 
         if needs_masking:
-            out = arr.take(indexer, axis=axis)
-            out = _maybe_upcast(out)
-            null_out_axis(out, mask, axis)
+            # upcasting may be required
+            result = arr.take(indexer, axis=axis, out=out)
+            result = _maybe_mask(result, mask, needs_masking, axis=axis,
+                                 out_passed=out is not None)
+            return result
         else:
-            out = np.empty(out_shape, dtype=arr.dtype)
+            if out is None:
+                out = np.empty(out_shape, dtype=arr.dtype)
             take_f = _get_take2d_function(dtype_str, axis=axis)
             take_f(arr, indexer, out=out)
+            return out
     elif dtype_str in ('float64', 'object'):
-        out = np.empty(out_shape, dtype=arr.dtype)
+        if out is None:
+            out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis=axis)
         take_f(arr, indexer, out=out)
+        return out
     else:
         if mask is None:
             mask = indexer == -1
             needs_masking = mask.any()
 
-        out = arr.take(indexer, axis=axis)
-        if needs_masking:
-            out = _maybe_upcast(out)
-            null_out_axis(out, mask, axis)
-
-    return out
+        result = arr.take(indexer, axis=axis, out=out)
+        result = _maybe_mask(result, mask, needs_masking, axis=axis,
+                             out_passed=out is not None)
+        return result
 
 def null_out_axis(arr, mask, axis):
     indexer = [slice(None)] * arr.ndim
@@ -206,16 +210,20 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None):
                        needs_masking=needs_masking,
                        axis=axis)
 
-    if out is None:
-        out = arr.take(indexer, axis=axis)
-        if needs_masking:
-            out = _maybe_upcast(out)
-            null_out_axis(out, mask, axis)
-    else:
-        out = arr.take(indexer, axis=axis)
-        if needs_masking and _need_upcast(out):
+    result = arr.take(indexer, axis=axis, out=out)
+    result = _maybe_mask(result, mask, needs_masking, axis=axis,
+                         out_passed=out is not None)
+    return result
+
+def _maybe_mask(result, mask, needs_masking, axis=0, out_passed=False):
+    if needs_masking:
+        if out_passed and _need_upcast(result):
             raise Exception('incompatible type for NAs')
-    return out
+        else:
+            # a bit spaghettified
+            result = _maybe_upcast(result)
+            null_out_axis(result, mask, axis)
+    return result
 
 def _maybe_upcast(values):
     if issubclass(values.dtype.type, np.int_):

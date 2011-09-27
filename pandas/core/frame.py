@@ -2148,13 +2148,15 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
+        from pandas.core.internals import merge_managers
+
         join_index = self._get_join_index(other, how)
 
-        this = self.reindex(join_index)
-        other = other.reindex(join_index)
+        thisdata, otherdata = self._data._maybe_rename_join(
+            other._data, lsuffix, rsuffix, copydata=False)
 
-        # merge blocks
-        merged_data = this._data.merge(other._data, lsuffix, rsuffix)
+        # this will always ensure copied data
+        merged_data = merge_managers(thisdata, otherdata, join_index, axis=1)
         return self._constructor(merged_data)
 
     def _get_join_index(self, other, how):

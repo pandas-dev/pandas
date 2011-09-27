@@ -611,43 +611,7 @@ class BlockManager(object):
 
         return BlockManager(consolidated, new_axes)
 
-    def merge_with_indexers(self, other, lindexer, lmask, rindexer, rmask,
-                            axis=1):
-        """
-        Parameters
-        ----------
-        other
-        lindexer
-        lmask
-        rindexer
-        rmask
-
-        Returns
-        -------
-        merged : BlockManager
-        """
-        assert(self.is_consolidated())
-        assert(other.is_consolidated())
-
-        this_blockmap = dict((type(blk), blk) for blk in self.blocks)
-        other_blockmap = dict((type(blk), blk) for blk in other.blocks)
-        result_blocks = []
-
-        kinds = [FloatBlock, ObjectBlock, BoolBlock, IntBlock]
-        for klass in kinds:
-            if klass in this_blockmap and other_blockmap:
-                # true merge
-                pass
-            elif klass in this_blockmap:
-                # only take necessary
-                pass
-            elif klass in other_blockmap:
-                # only take necessary
-                pass
-
-        return BlockManager(consolidated, new_axes)
-
-    def _maybe_rename_join(self, other, lsuffix, rsuffix):
+    def _maybe_rename_join(self, other, lsuffix, rsuffix, copydata=True):
         intersection = self.items.intersection(other.items)
 
         if len(intersection) > 0:
@@ -665,8 +629,8 @@ class BlockManager(object):
                 return x
 
             # XXX: COPIES DATA!
-            this = self.rename_items(lrenamer)
-            other = other.rename_items(rrenamer)
+            this = self.rename_items(lrenamer, copydata=copydata)
+            other = other.rename_items(rrenamer, copydata=copydata)
         else:
             this = self
 
@@ -932,9 +896,11 @@ def merge_managers(left, right, index, axis=1):
     assert(left.is_consolidated())
     assert(right.is_consolidated())
 
+    N = len(index)
+
     if left.axes[axis].equals(index):
-        lindexer = np.arange(index, dtype=np.int32)
-        lmask = np.zeros(len(index), dtype=np.bool)
+        lindexer = np.arange(N, dtype=np.int32)
+        lmask = np.zeros(N, dtype=np.bool)
         lneed_masking = False
     else:
         lindexer = left.axes[axis].get_indexer(index)
@@ -942,8 +908,8 @@ def merge_managers(left, right, index, axis=1):
         lneed_masking = lmask.any()
 
     if right.axes[axis].equals(index):
-        rindexer = np.arange(index, dtype=np.int32)
-        rmask = np.zeros(len(index), dtype=np.bool)
+        rindexer = np.arange(N, dtype=np.int32)
+        rmask = np.zeros(N, dtype=np.bool)
         rneed_masking = False
     else:
         rindexer = right.axes[axis].get_indexer(index)
@@ -965,17 +931,19 @@ def merge_managers(left, right, index, axis=1):
 
     result_blocks = []
 
+    # copies all data by definition
+
     kinds = [FloatBlock, ObjectBlock, BoolBlock, IntBlock]
     for klass in kinds:
-        if klass in left_blockmap and right_blockmap:
-            # true merge
-            left = left_blockmap[klass]
-            right = right_blockmap[klass]
-            new_values = _merge_blocks_fast(left, right,
+        if klass in left_blockmap and klass in right_blockmap:
+            # true merge, do not produce intermediate copy
+            lblk = left_blockmap[klass]
+            rblk = right_blockmap[klass]
+            new_values = _merge_blocks_fast(lblk, rblk,
                                             lindexer, lmask, lneed_masking,
                                             rindexer, rmask, rneed_masking,
                                             axis=axis)
-            new_items = left.items.append(right.items)
+            new_items = lblk.items.append(rblk.items)
             res_blk = make_block(new_values, new_items, result_items)
         elif klass in left_blockmap:
             # only take necessary
@@ -989,6 +957,9 @@ def merge_managers(left, right, index, axis=1):
             res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
                                        axis=axis)
             res_blk.ref_items = result_items
+        else:
+            # not found in either
+            continue
 
         result_blocks.append(res_blk)
 
@@ -1013,7 +984,7 @@ def _maybe_upcast_blocks(blocks, needs_masking):
         new_blocks.append(newb)
 
     # use any ref_items
-    return _consolidate(blocks, newb.ref_items)
+    return _consolidate(new_blocks, newb.ref_items)
 
 def _merge_blocks_fast(left, right, lindexer, lmask, lneed_masking,
                        rindexer, rmask, rneed_masking, axis=1):
@@ -1027,8 +998,8 @@ def _merge_blocks_fast(left, right, lindexer, lmask, lneed_masking,
 
     out = np.empty(out_shape, dtype=left.values.dtype)
     common.take_fast(left.values, lindexer, lmask, lneed_masking,
-                     axis=axis, out=out[:lk].T)
+                     axis=axis, out=out[:lk])
     common.take_fast(right.values, rindexer, rmask, rneed_masking,
-                     axis=axis, out=out[lk:].T)
+                     axis=axis, out=out[lk:])
 
     return out
