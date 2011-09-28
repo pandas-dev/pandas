@@ -10,7 +10,7 @@ from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 
 class GroupBy(object):
@@ -313,8 +313,8 @@ class GroupBy(object):
                 cannot_agg.append(name)
                 continue
 
-            result, counts =  _tseries.group_aggregate(obj, label_list,
-                                                       shape, how=how)
+            result, counts =  lib.group_aggregate(obj, label_list,
+                                                  shape, how=how)
             result = result.ravel()
             mask = counts.ravel() > 0
             output[name] = result[mask]
@@ -470,18 +470,20 @@ class Grouping(object):
 
         if level is not None:
             inds = index.labels[level]
-            labels = index.levels[level].values.take(inds)
+            labels = index.levels[level].take(inds)
 
             if grouper is not None:
-                self.grouper = _tseries.arrmap(labels, self.grouper)
+                self.grouper = labels.map(self.grouper)
             else:
                 self.grouper = labels
 
-        self.index = np.asarray(index.values, dtype=object)
+        if not isinstance(index, Index):
+            index = Index(index)
+        self.index = index
 
         # no level passed
         if not isinstance(self.grouper, np.ndarray):
-            self.grouper = _tseries.arrmap(self.index, self.grouper)
+            self.grouper = self.index.map(self.grouper)
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name
@@ -495,7 +497,7 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
-        return _tseries.groupby_indices(self.grouper)
+        return lib.groupby_indices(self.grouper)
 
     @property
     def labels(self):
@@ -524,7 +526,7 @@ class Grouping(object):
         return Index([self.ids[i] for i in range(len(self.ids))])
 
     def _make_labels(self):
-        ids, labels, counts  = _tseries.group_labels(self.grouper)
+        ids, labels, counts  = lib.group_labels(self.grouper)
         sids, slabels, scounts = sort_group_labels(ids, labels, counts)
         self._labels = slabels
         self._ids = sids
@@ -534,7 +536,7 @@ class Grouping(object):
     @property
     def groups(self):
         if self._groups is None:
-            self._groups = _tseries.groupby(self.index, self.grouper)
+            self._groups = self.index.groupby(self.grouper)
         return self._groups
 
 def _get_groupings(obj, grouper=None, axis=0, level=None):

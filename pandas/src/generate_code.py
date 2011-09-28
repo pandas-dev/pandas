@@ -308,6 +308,49 @@ cpdef map_indices_%(name)s(ndarray[%(c_type)s] index):
 
 """
 
+groupby_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[int8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+"""
+
+arrmap_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+"""
+
 # name, ctype, capable of holding NA
 function_list = [
     ('float64', 'float64_t', True),
@@ -339,6 +382,8 @@ def generate_take_cython_file(path='generated.pyx'):
         print >> f, generate_from_template(take_2d_axis0_template, ndim=2)
         print >> f, generate_from_template(take_2d_axis1_template, ndim=2)
         print >> f, generate_from_template(is_monotonic_template)
+        print >> f, generate_from_template(groupby_template)
+        print >> f, generate_from_template(arrmap_template)
 
 if __name__ == '__main__':
     generate_take_cython_file()

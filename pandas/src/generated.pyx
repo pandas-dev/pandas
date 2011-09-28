@@ -1206,3 +1206,200 @@ def is_monotonic_bool(ndarray[uint8_t] arr):
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[int8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_object(ndarray[object] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[int8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[int8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[int8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_bool(ndarray[uint8_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[int8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_float64(ndarray[float64_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_object(ndarray[object] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_int32(ndarray[int32_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_int64(ndarray[int64_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_bool(ndarray[uint8_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+

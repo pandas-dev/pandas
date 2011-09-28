@@ -5,7 +5,7 @@ from copy import deepcopy
 import time
 
 n = 1000000
-K = 1
+K = 5
 pct_overlap = 0.2
 
 a = np.arange(n, dtype=np.int64)
@@ -26,8 +26,8 @@ bvf = np.random.randn(n, K)
 a_series = Series(av, index=a)
 b_series = Series(bv, index=b)
 
-a_frame = DataFrame(avf, index=dr1, columns=range(K))
-b_frame = DataFrame(bvf, index=dr2, columns=range(K, 2 * K))
+a_frame = DataFrame(avf, index=a, columns=range(K))
+b_frame = DataFrame(bvf, index=b, columns=range(K, 2 * K))
 
 def do_left_join(a, b, av, bv):
     out = np.empty((len(a), 2))
@@ -137,7 +137,7 @@ def bench_python(n=100000, pct_overlap=0.20):
     import gc
     ns = [2, 3, 4, 5, 6]
     iterations = 50
-    K = 5
+    K = 1
     pct_overlap = 0.2
     kinds = ['outer', 'left', 'inner']
 
@@ -150,13 +150,17 @@ def bench_python(n=100000, pct_overlap=0.20):
         avf = np.random.randn(n, K)
         bvf = np.random.randn(n, K)
 
+        a_frame = DataFrame(avf, index=a, columns=range(K))
+        b_frame = DataFrame(bvf, index=b, columns=range(K, 2 * K))
+
         all_results[logn] = result = {}
 
         for kind in kinds:
             gc.disable()
             _s = time.clock()
             for _ in range(iterations):
-                join(a, b, avf, bvf, how=kind)
+                a_frame.join(b_frame, how=kind)
+                # join(a, b, avf, bvf, how=kind)
             elapsed = time.clock() - _s
             gc.enable()
             result[kind] = (elapsed / iterations) * 1000

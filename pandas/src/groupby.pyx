@@ -46,31 +46,6 @@ def groupby_func(object index, object mapper):
 
     return result
 
-@cython.boundscheck(False)
-def groupby(ndarray[object] index, ndarray[object] labels):
-    cdef dict result = {}
-    cdef ndarray[int8_t] mask
-    cdef int i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-    mask = isnullobj(labels)
-
-    for i from 0 <= i < length:
-        if mask[i]:
-            continue
-
-        key = labels[i]
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
 
 def func_groupby_indices(object index, object mapper):
     return groupby_indices_naive(arrmap(index, mapper))

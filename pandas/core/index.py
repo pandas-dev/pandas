@@ -383,7 +383,10 @@ class Index(np.ndarray):
         return indexer
 
     def groupby(self, to_groupby):
-        return lib.groupby(self, to_groupby)
+        return lib.groupby_object(self.values, to_groupby)
+
+    def map(self, mapper):
+        return lib.arrmap_object(self.values, mapper)
 
     def _get_method(self, method):
         if method:
@@ -646,7 +649,10 @@ class Int64Index(Index):
             return join_index
 
     def groupby(self, to_groupby):
-        return lib.groupby(self.values.astype(object), to_groupby)
+        return lib.groupby_int64(self, to_groupby)
+
+    def map(self, mapper):
+        return lib.arrmap_int64(self, mapper)
 
     def take(self, *args, **kwargs):
         """

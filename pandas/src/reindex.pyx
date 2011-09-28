@@ -197,18 +197,21 @@ def left_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
     n = len(left)
     k = len(right)
 
-    indexer = np.zeros(n, dtype=np.int32)
+    indexer = np.empty(n, dtype=np.int32)
     for i from 0 <= i < n:
+        if j == k:
+            indexer[i] = -1
+            continue
+
         val = left[i]
 
         while j < k and right[j] < val:
             j += 1
 
-        if j == k:
-            break
-
         if val == right[j]:
             indexer[i] = j
+        else:
+            indexer[i] = -1
 
     return indexer
 
