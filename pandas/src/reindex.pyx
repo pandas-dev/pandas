@@ -251,6 +251,25 @@ def merge_indexer(ndarray[object] values, dict oldMap):
 
     return fill_vec
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def merge_indexer_int64(ndarray[int64_t] values, dict oldMap):
+    cdef int i, j, length, newLength
+    cdef int64_t idx
+    cdef ndarray[int32_t] fill_vec
+
+    newLength = len(values)
+    fill_vec = np.empty(newLength, dtype=np.int32)
+    mask = np.zeros(newLength, dtype=np.int8)
+    for i from 0 <= i < newLength:
+        idx = values[i]
+        if idx in oldMap:
+            fill_vec[i] = oldMap[idx]
+        else:
+            fill_vec[i] = -1
+
+    return fill_vec
+
 def ordered_left_join(ndarray[object] left, ndarray[object] right):
     # cdef dict right_map = map_indices_buf(right)
     # return merge_indexer(left, right_map)

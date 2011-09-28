@@ -37,3 +37,13 @@ for (ni in 1:length(ns)){
 
 rownames(result) <- kinds
 colnames(result) <- log10(ns)
+
+mat <- matrix(rnorm(500000), nrow=100000, ncol=5)
+set.seed(12345)
+indexer <- sample(1:100000)
+
+timing <- rep(0, 10)
+for (i in 1:10) {
+  gc()
+  timing[i] = system.time(mat[indexer,])[3]
+}

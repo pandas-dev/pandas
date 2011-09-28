@@ -129,6 +129,28 @@ cpdef map_indices_buf(ndarray[object] index):
 
     return result
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef map_indices_int64(ndarray[int64_t] index):
+    '''
+    Produce a dict mapping the values of the input array to their respective
+    locations.
+
+    Example:
+        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
+
+    Better to do this with Cython because of the enormous speed boost.
+    '''
+    cdef Py_ssize_t i, length
+    cdef dict result = {}
+
+    length = len(index)
+
+    for i from 0 <= i < length:
+        result[index[i]] = i
+
+    return result
+
 cpdef map_indices_list(list index):
     '''
     Produce a dict mapping the values of the input array to their respective

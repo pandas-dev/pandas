@@ -86,6 +86,26 @@ set_na = "outbuf[i] = NaN"
 set_na_2d = "outbuf[i, j] = NaN"
 raise_on_na = "raise ValueError('No NA values allowed')"
 
+merge_indexer_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def merge_indexer_%(name)s(ndarray[%(c_type)s] values, dict oldMap):
+    cdef int i, j, length, newLength
+    cdef %(c_type)s idx
+    cdef ndarray[int32_t] fill_vec
+
+    newLength = len(values)
+    fill_vec = np.empty(newLength, dtype=np.int32)
+    for i from 0 <= i < newLength:
+        idx = values[i]
+        if idx in oldMap:
+            fill_vec[i] = oldMap[idx]
+        else:
+            fill_vec[i] = -1
+
+    return fill_vec
+
+"""
+
 # name, ctype, capable of holding NA
 function_list = [
     ('float64', 'float64_t', True),
@@ -107,8 +127,9 @@ def generate_from_template(template, ndim=1):
         output.write(func)
     return output.getvalue()
 
-def generate_take_cython_file(path='take.pyx'):
+def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
+        print >> f, generate_from_template(merge_indexer_template)
         print >> f, generate_from_template(take_1d_template)
         print >> f, generate_from_template(take_2d_axis0_template, ndim=2)
         print >> f, generate_from_template(take_2d_axis1_template, ndim=2)

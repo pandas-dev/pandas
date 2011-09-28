@@ -40,9 +40,12 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
-    def __new__(cls, data, dtype=object, copy=False):
+    def __new__(cls, data, dtype=None, copy=False):
         if isinstance(data, np.ndarray):
-            subarr = np.array(data, dtype=dtype, copy=copy)
+            if issubclass(data.dtype.type, np.integer):
+                subarr = data.astype(np.int64)
+                return subarr.view(Int64Index)
+            subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
@@ -50,7 +53,7 @@ class Index(np.ndarray):
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
-            subarr = np.empty(len(data), dtype=dtype)
+            subarr = np.empty(len(data), dtype=object)
             subarr[:] = data
         return subarr.view(cls)
 
@@ -64,6 +67,10 @@ class Index(np.ndarray):
     @property
     def values(self):
         return np.asarray(self)
+
+    @cache_readonly
+    def is_monotonic(self):
+        return lib.is_monotonic(self)
 
     _indexMap = None
     @property
@@ -343,15 +350,9 @@ class Index(np.ndarray):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        if method:
-            method = method.lower()
-
-        aliases = {
-            'ffill' : 'pad',
-            'bfill' : 'backfill'
-        }
         target = _ensure_index(target)
-        method = aliases.get(method, method)
+
+        method = self._get_method(method)
 
         if method == 'pad':
             indexer = lib.pad(self, target, self.indexMap, target.indexMap)
@@ -362,6 +363,16 @@ class Index(np.ndarray):
         else:
             raise ValueError('unrecognized method: %s' % method)
         return indexer
+
+    def _get_method(self, method):
+        if method:
+            method = method.lower()
+
+        aliases = {
+            'ffill' : 'pad',
+            'bfill' : 'backfill'
+        }
+        return aliases.get(method, method)
 
     def reindex(self, target, method=None):
         """
@@ -475,7 +486,53 @@ class Index(np.ndarray):
 
 
 class Int64Index(Index):
-    pass
+
+    @cache_readonly
+    def is_monotonic(self):
+        return lib.is_monotonic_int64(self)
+
+    @property
+    def indexMap(self):
+        "{label -> location}"
+        if self._indexMap is None:
+            self._indexMap = lib.map_indices_int64(self)
+            self._verify_integrity()
+
+        return self._indexMap
+
+    def is_all_dates(self):
+        """
+        Checks that all the labels are datetime objects
+        """
+        return False
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        if not isinstance(other, Int64Index):
+            return False
+
+        return np.array_equal(self, other)
+
+    def get_indexer(self, target, method=None):
+        target = _ensure_index(target)
+
+        method = self._get_method(method)
+
+        if method == 'pad':
+            indexer = lib.pad(self, target, self.indexMap, target.indexMap)
+        elif method == 'backfill':
+            indexer = lib.backfill(self, target, self.indexMap, target.indexMap)
+        elif method is None:
+            indexer = lib.merge_indexer_int64(target, self.indexMap)
+        else:
+            raise ValueError('unrecognized method: %s' % method)
+        return indexer
+    get_indexer.__doc__ = Index.get_indexer__doc__
 
 class DateIndex(Index):
     pass
@@ -892,14 +949,7 @@ class MultiIndex(Index):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        if method:
-            method = method.lower()
-
-        aliases = {
-            'ffill' : 'pad',
-            'bfill' : 'backfill'
-        }
-        method = aliases.get(method, method)
+        method = self._get_method(method)
 
         if isinstance(target, MultiIndex):
             target_index = target.get_tuple_index()

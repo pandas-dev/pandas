@@ -30,4 +30,5 @@ def random_sample_v2():
     from random import choice
     choose = lambda group: choice(group.index)
     indices = [choice(v) for k, v in grouped.groups.iteritems()]
-    return df.reindex(np.asarray(indices))
+    return df.reindex(indices)
+
