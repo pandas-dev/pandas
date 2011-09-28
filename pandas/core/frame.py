@@ -1575,7 +1575,8 @@ class DataFrame(NDFrame):
             this = self.reindex(new_index)
             other = other.reindex(new_index)
 
-        new_columns = _try_sort(set(this.columns + other.columns))
+        # sorts if possible
+        new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
 
         result = {}

@@ -80,76 +80,6 @@ PyDateTime_IMPORT
 # initialize numpy
 import_array()
 
-cpdef map_indices(ndarray index):
-    '''
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    '''
-    cdef int i, length
-    cdef flatiter iter
-    cdef dict result
-    cdef object idx
-
-    result = {}
-
-    iter = <flatiter> PyArray_IterNew(index)
-    length = PyArray_SIZE(index)
-
-    for i from 0 <= i < length:
-        idx = PyArray_GETITEM(index, PyArray_ITER_DATA(iter))
-        result[idx] = i
-        PyArray_ITER_NEXT(iter)
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef map_indices_buf(ndarray[object] index):
-    '''
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    '''
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
-
-    length = len(index)
-
-    for i from 0 <= i < length:
-        result[index[i]] = i
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef map_indices_int64(ndarray[int64_t] index):
-    '''
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    '''
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
-
-    length = len(index)
-
-    for i from 0 <= i < length:
-        result[index[i]] = i
-
-    return result
 
 cpdef map_indices_list(list index):
     '''
@@ -170,6 +100,7 @@ cpdef map_indices_list(list index):
         result[index[i]] = i
 
     return result
+
 
 from libc.stdlib cimport malloc, free
 
@@ -234,41 +165,4 @@ def isAllDates(ndarray[object, ndim=1] arr):
         if not PyDateTime_Check(date):
             return False
 
-    return True
-
-def is_monotonic(ndarray[object] arr):
-    cdef:
-        Py_ssize_t i, n
-        object prev, cur
-
-    n = len(arr)
-
-    if n < 2:
-        return True
-
-    prev = arr[0]
-    for i from 1 <= i < n:
-        cur = arr[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
-
-
-def is_monotonic_int64(ndarray[int64_t] arr):
-    cdef:
-        Py_ssize_t i, n
-        int64_t prev, cur
-
-    n = len(arr)
-
-    if n < 2:
-        return True
-
-    prev = arr[0]
-    for i from 1 <= i < n:
-        cur = arr[i]
-        if cur < prev:
-            return False
-        prev = cur
     return True

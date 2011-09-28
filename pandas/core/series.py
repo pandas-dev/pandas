@@ -1239,8 +1239,8 @@ copy : boolean, default False
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer = lib.merge_indexer(self.values.astype(object),
-                                        arg.index.indexMap)
+            indexer = lib.merge_indexer_object(self.values.astype(object),
+                                               arg.index.indexMap)
 
             new_values = common.take_1d(np.asarray(arg), indexer)
             return Series(new_values, index=self.index)

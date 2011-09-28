@@ -295,6 +295,9 @@ class DateRange(Index):
         else:
             return Index.union(self, other)
 
+    def _wrap_union_result(self, other, result):
+        return Index(result)
+
     def tz_normalize(self, tz):
         """
         Convert DateRange from one time zone to another (using pytz)

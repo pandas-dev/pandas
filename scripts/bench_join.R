@@ -47,3 +47,4 @@ for (i in 1:10) {
   gc()
   timing[i] = system.time(mat[indexer,])[3]
 }
+

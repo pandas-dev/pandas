@@ -112,12 +112,12 @@ class TestIndex(unittest.TestCase):
         boolIdx[5:30:2] = False
 
         subIndex = self.strIndex[boolIdx]
-        tm.assert_dict_equal(tseries.map_indices(subIndex),
-                                 subIndex.indexMap)
+        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
+                             subIndex.indexMap)
 
         subIndex = self.strIndex[list(boolIdx)]
-        tm.assert_dict_equal(tseries.map_indices(subIndex),
-                                 subIndex.indexMap)
+        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
+                             subIndex.indexMap)
 
     def test_fancy(self):
         sl = self.strIndex[[1,2,3]]

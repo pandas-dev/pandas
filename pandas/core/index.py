@@ -42,7 +42,7 @@ class Index(np.ndarray):
     """
     def __new__(cls, data, dtype=None, copy=False):
         if isinstance(data, np.ndarray):
-            if issubclass(data.dtype.type, np.integer):
+            if dtype is None and issubclass(data.dtype.type, np.integer):
                 subarr = data.astype(np.int64)
                 return subarr.view(Int64Index)
             subarr = np.array(data, dtype=object, copy=copy)
@@ -57,12 +57,18 @@ class Index(np.ndarray):
             subarr[:] = data
         return subarr.view(cls)
 
+    @property
+    def dtype(self):
+        return np.dtype('object')
+
     def summary(self):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
         else:
             index_summary = ''
-        return 'Index: %s entries%s' % (len(self), index_summary)
+
+        name = type(self).__name__
+        return '%s: %s entries%s' % (name, len(self), index_summary)
 
     @property
     def values(self):
@@ -70,14 +76,14 @@ class Index(np.ndarray):
 
     @cache_readonly
     def is_monotonic(self):
-        return lib.is_monotonic(self)
+        return lib.is_monotonic_object(self)
 
     _indexMap = None
     @property
     def indexMap(self):
         "{label -> location}"
         if self._indexMap is None:
-            self._indexMap = lib.map_indices_buf(self)
+            self._indexMap = lib.map_indices_object(self)
             self._verify_integrity()
 
         return self._indexMap
@@ -258,7 +264,14 @@ class Index(np.ndarray):
         except Exception:
             pass
 
-        return Index(result)
+        # for subclasses
+        return self._wrap_union_result(other, result)
+
+    def _wrap_union_result(self, other, result):
+        if type(self) == type(other):
+            return type(self)(result)
+        else:
+            return Index(result)
 
     def intersection(self, other):
         """
@@ -354,15 +367,23 @@ class Index(np.ndarray):
 
         method = self._get_method(method)
 
+        if self.dtype != target.dtype:
+            target = Index(target, dtype=object)
+
         if method == 'pad':
-            indexer = lib.pad(self, target, self.indexMap, target.indexMap)
+            indexer = lib.pad_object(self, target, self.indexMap,
+                                     target.indexMap)
         elif method == 'backfill':
-            indexer = lib.backfill(self, target, self.indexMap, target.indexMap)
+            indexer = lib.backfill_object(self, target, self.indexMap,
+                                          target.indexMap)
         elif method is None:
-            indexer = lib.merge_indexer(target, self.indexMap)
+            indexer = lib.merge_indexer_object(target, self.indexMap)
         else:
             raise ValueError('unrecognized method: %s' % method)
         return indexer
+
+    def groupby(self, to_groupby):
+        return lib.groupby(self, to_groupby)
 
     def _get_method(self, method):
         if method:
@@ -487,6 +508,23 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
+    def __new__(cls, data, dtype=None, copy=False):
+        if isinstance(data, np.ndarray):
+            subarr = np.array(data, dtype=np.int64, copy=copy)
+        elif np.isscalar(data):
+            raise ValueError('Index(...) must be called with a collection '
+                             'of some kind, %s was passed' % repr(data))
+        else:
+            # other iterable of some kind
+            if not isinstance(data, (list, tuple)):
+                data = list(data)
+            subarr = np.asarray(data, dtype=np.int64)
+        return subarr.view(cls)
+
+    @property
+    def dtype(self):
+        return np.dtype('int64')
+
     @cache_readonly
     def is_monotonic(self):
         return lib.is_monotonic_int64(self)
@@ -513,26 +551,36 @@ class Int64Index(Index):
         if self is other:
             return True
 
-        if not isinstance(other, Int64Index):
-            return False
+        # if not isinstance(other, Int64Index):
+        #     return False
 
         return np.array_equal(self, other)
 
     def get_indexer(self, target, method=None):
         target = _ensure_index(target)
 
+        if self.dtype != target.dtype:
+            this = Index(self, dtype=object)
+            target = Index(target, dtype=object)
+            return this.get_indexer(target, method=method)
+
         method = self._get_method(method)
 
         if method == 'pad':
-            indexer = lib.pad(self, target, self.indexMap, target.indexMap)
+            indexer = lib.pad_int64(self, target, self.indexMap,
+                                    target.indexMap)
         elif method == 'backfill':
-            indexer = lib.backfill(self, target, self.indexMap, target.indexMap)
+            indexer = lib.backfill_int64(self, target, self.indexMap,
+                                         target.indexMap)
         elif method is None:
             indexer = lib.merge_indexer_int64(target, self.indexMap)
         else:
             raise ValueError('unrecognized method: %s' % method)
         return indexer
-    get_indexer.__doc__ = Index.get_indexer__doc__
+    get_indexer.__doc__ = Index.get_indexer.__doc__
+
+    def groupby(self, to_groupby):
+        return lib.groupby(self.values.astype(object), to_groupby)
 
 class DateIndex(Index):
     pass
@@ -965,13 +1013,14 @@ class MultiIndex(Index):
         self_index = self.get_tuple_index()
 
         if method == 'pad':
-            indexer = lib.pad(self_index, target_index, self_index.indexMap,
-                              target.indexMap)
+            indexer = lib.pad_object(self_index, target_index,
+                                     self_index.indexMap, target.indexMap)
         elif method == 'backfill':
-            indexer = lib.backfill(self_index, target_index, self_index.indexMap,
-                                   target.indexMap)
+            indexer = lib.backfill_object(self_index, target_index,
+                                          self_index.indexMap, target.indexMap)
         else:
-            indexer = lib.merge_indexer(target_index, self_index.indexMap)
+            indexer = lib.merge_indexer_object(target_index,
+                                               self_index.indexMap)
         return indexer
 
     def reindex(self, target, method=None):

@@ -663,12 +663,12 @@ class HDFStore(object):
 
             # need a better algorithm
             tuple_index = long_index.get_tuple_index()
-            index_map = lib.map_indices_buf(tuple_index)
+            index_map = lib.map_indices_object(tuple_index)
 
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
-            indexer = lib.merge_indexer(unique_tuples, index_map)
+            indexer = lib.merge_indexer_object(unique_tuples, index_map)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)

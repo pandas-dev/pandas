@@ -32,3 +32,4 @@ def isnullobj(ndarray input):
         PyArray_ITER_NEXT(iter)
 
     return result
+

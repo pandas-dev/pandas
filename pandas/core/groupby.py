@@ -115,7 +115,7 @@ class GroupBy(object):
             to_groupby = Index(to_groupby)
 
             axis = self.obj._get_axis(self.axis)
-            self._groups = _tseries.groupby(axis, to_groupby)
+            self._groups = axis.groupby(to_groupby)
 
         return self._groups
 
@@ -477,7 +477,7 @@ class Grouping(object):
             else:
                 self.grouper = labels
 
-        self.index = index.values
+        self.index = np.asarray(index.values, dtype=object)
 
         # no level passed
         if not isinstance(self.grouper, np.ndarray):
