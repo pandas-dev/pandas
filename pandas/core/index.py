@@ -255,7 +255,8 @@ class Index(np.ndarray):
 
     def intersection(self, other):
         """
-        Form the intersection of two Index objects and sorts if possible
+        Form the intersection of two Index objects. Sortedness of the result is
+        not guaranteed
 
         Parameters
         ----------

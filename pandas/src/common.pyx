@@ -199,31 +199,7 @@ cdef class MultiMap:
         raise KeyError(key)
 
 
-def isAllDates(ndarray index):
-    cdef int i, length
-    cdef flatiter iter
-    cdef object date
-
-    iter = <flatiter> PyArray_IterNew(index)
-    length = PyArray_SIZE(index)
-
-    if length == 0:
-        return False
-
-    for i from 0 <= i < length:
-        date = PyArray_GETITEM(index, PyArray_ITER_DATA(iter))
-
-        if not PyDateTime_Check(date):
-            return False
-        PyArray_ITER_NEXT(iter)
-
-    return True
-
-def isAllDates2(ndarray[object, ndim=1] arr):
-    '''
-    cannot use
-    '''
-
+def isAllDates(ndarray[object, ndim=1] arr):
     cdef int i, size = len(arr)
     cdef object date
 
@@ -236,4 +212,22 @@ def isAllDates2(ndarray[object, ndim=1] arr):
         if not PyDateTime_Check(date):
             return False
 
+    return True
+
+def is_monotonic(ndarray[object] arr):
+    cdef:
+        Py_ssize_t i, n
+        object prev, cur
+
+    n = len(arr)
+
+    if n < 2:
+        return True
+
+    prev = arr[0]
+    for i from 1 <= i < n:
+        cur = arr[i]
+        if cur < prev:
+            return False
+        prev = cur
     return True
