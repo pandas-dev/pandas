@@ -2149,30 +2149,14 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
-        from pandas.core.internals import merge_managers
-
-        join_index = self._get_join_index(other, how)
+        from pandas.core.internals import join_managers
 
         thisdata, otherdata = self._data._maybe_rename_join(
             other._data, lsuffix, rsuffix, copydata=False)
 
         # this will always ensure copied data
-        merged_data = merge_managers(thisdata, otherdata, join_index, axis=1)
+        merged_data = join_managers(thisdata, otherdata, axis=1, how=how)
         return self._constructor(merged_data)
-
-    def _get_join_index(self, other, how):
-        if how == 'left':
-            join_index = self.index
-        elif how == 'right':
-            join_index = other.index
-        elif how == 'inner':
-            join_index = self.index.intersection(other.index)
-        elif how == 'outer':
-            join_index = self.index.union(other.index)
-        else:
-            raise Exception('do not recognize join method %s' % how)
-
-        return join_index
 
     #----------------------------------------------------------------------
     # Statistical methods, etc.

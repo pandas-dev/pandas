@@ -880,7 +880,7 @@ def _union_items_slow(all_items):
     return seen
 
 
-def merge_managers(left, right, index, axis=1):
+def join_managers(left, right, axis=1, how='left'):
     """
     Parameters
     ----------
@@ -897,23 +897,25 @@ def merge_managers(left, right, index, axis=1):
     assert(left.is_consolidated())
     assert(right.is_consolidated())
 
-    N = len(index)
+    laxis = left.axes[axis]
+    raxis = right.axes[axis]
 
-    if left.axes[axis].equals(index):
-        lindexer = np.arange(N, dtype=np.int32)
+    join_index, lindexer, rindexer = laxis.join(raxis, how=how,
+                                                return_indexers=True)
+
+    N = len(join_index)
+
+    if join_index is laxis:
         lmask = np.zeros(N, dtype=np.bool)
         lneed_masking = False
     else:
-        lindexer = left.axes[axis].get_indexer(index)
         lmask = lindexer == -1
         lneed_masking = lmask.any()
 
-    if right.axes[axis].equals(index):
-        rindexer = np.arange(N, dtype=np.int32)
+    if join_index is raxis:
         rmask = np.zeros(N, dtype=np.bool)
         rneed_masking = False
     else:
-        rindexer = right.axes[axis].get_indexer(index)
         rmask = rindexer == -1
         rneed_masking = rmask.any()
 
@@ -928,7 +930,7 @@ def merge_managers(left, right, index, axis=1):
 
     result_axes = list(left.axes)
     result_axes[0] = result_items
-    result_axes[axis] = index
+    result_axes[axis] = join_index
 
     result_blocks = []
 

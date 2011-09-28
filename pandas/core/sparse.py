@@ -1070,7 +1070,7 @@ class SparseDataFrame(DataFrame):
         raise NotImplementedError
 
     def _join_index(self, other, how, lsuffix, rsuffix):
-        join_index = self._get_join_index(other, how)
+        join_index = self.index.join(other.index, how=how)
 
         this = self.reindex(join_index)
         other = other.reindex(join_index)

@@ -408,6 +408,31 @@ class Index(np.ndarray):
         indexer = self.get_indexer(target, method=method)
         return target, indexer
 
+    def join(self, other, how='left', return_indexers=False):
+        if how == 'left':
+            join_index = self
+        elif how == 'right':
+            join_index = other
+        elif how == 'inner':
+            join_index = self.intersection(other)
+        elif how == 'outer':
+            join_index = self.union(other)
+        else:
+            raise Exception('do not recognize join method %s' % how)
+
+        if return_indexers:
+            if join_index is self:
+                lindexer = np.arange(len(join_index), dtype=np.int32)
+            else:
+                lindexer = self.get_indexer(join_index)
+            if join_index is other:
+                rindexer = np.arange(len(join_index), dtype=np.int32)
+            else:
+                rindexer = other.get_indexer(join_index)
+            return join_index, lindexer, rindexer
+        else:
+            return join_index
+
     def slice_locs(self, start=None, end=None):
         """
         For an ordered Index, compute the slice locations for input labels
