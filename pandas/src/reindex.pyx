@@ -119,38 +119,6 @@ def ordered_left_join(ndarray[object] left, ndarray[object] right):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ordered_left_join_int64(ndarray[int64_t] left, ndarray[int64_t] right):
-    cdef:
-        Py_ssize_t i, j, k, n
-        ndarray[int32_t] indexer
-        ndarray[uint8_t, cast=True] mask
-        int64_t val
-
-    i = 0
-    j = 0
-    n = len(left)
-    k = len(right)
-
-    indexer = np.zeros(n, dtype=np.int32)
-    mask = np.ones(n, dtype=np.bool)
-
-    for i from 0 <= i < n:
-        val = left[i]
-
-        while j < k and right[j] < val:
-            j += 1
-
-        if j == k:
-            break
-
-        if val == right[j]:
-            indexer[i] = j
-            mask[i] = 0
-
-    return indexer, mask
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def left_join_2d(ndarray[int64_t] left, ndarray[int64_t] right,
                  ndarray[float64_t, ndim=2] lvalues,
                  ndarray[float64_t, ndim=2] rvalues,
@@ -214,6 +182,36 @@ def left_join_1d(ndarray[int64_t] left, ndarray[int64_t] right,
             out[i, 1] = rvalues[j]
         else:
             out[i, 1] = NaN
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[int32_t] indexer
+        int64_t val
+
+    i = 0
+    j = 0
+    n = len(left)
+    k = len(right)
+
+    indexer = np.zeros(n, dtype=np.int32)
+    for i from 0 <= i < n:
+        val = left[i]
+
+        while j < k and right[j] < val:
+            j += 1
+
+        if j == k:
+            break
+
+        if val == right[j]:
+            indexer[i] = j
+
+    return indexer
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -288,8 +286,6 @@ def inner_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
 
     return result, lindexer, rindexer
 
-def _inner_join_count(ndarray[int64_t] left, ndarray[int64_t] right):
-    pass
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

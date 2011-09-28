@@ -604,8 +604,56 @@ class Int64Index(Index):
         return indexer
     get_indexer.__doc__ = Index.get_indexer.__doc__
 
+    def join(self, other, how='left', return_indexers=False):
+        if not isinstance(other, Int64Index):
+            return Index.join(self, other, how=how,
+                              return_indexers=return_indexers)
+
+
+        if self.is_monotonic and other.is_monotonic:
+            return self._join_monotonic(other, how=how,
+                                        return_indexers=return_indexers)
+        else:
+            return Index.join(self, other, how=how,
+                              return_indexers=return_indexers)
+
+        # if return_indexers:
+        #     return join_index, lidx, ridx
+        # else:
+        #     return join_index
+
+    def _join_monotonic(self, other, how='left', return_indexers=False):
+        if how == 'left':
+            join_index = self
+            lidx = np.arange(len(self), dtype=np.int32)
+            ridx = lib.left_join_indexer(self, other)
+        elif how == 'right':
+            join_index = other
+            ridx = np.arange(len(other), dtype=np.int32)
+            lidx = lib.left_join_indexer(other, self)
+        elif how == 'inner':
+            join_index, lidx, ridx = lib.inner_join_indexer(self, other)
+            join_index = Int64Index(join_index)
+        elif how == 'outer':
+            join_index, lidx, ridx = lib.outer_join_indexer(self, other)
+            join_index = Int64Index(join_index)
+        else:
+            raise Exception('do not recognize join method %s' % how)
+
+        if return_indexers:
+            return join_index, lidx, ridx
+        else:
+            return join_index
+
     def groupby(self, to_groupby):
         return lib.groupby(self.values.astype(object), to_groupby)
+
+    def take(self, *args, **kwargs):
+        """
+        Analogous to ndarray.take
+        """
+        taken = self.values.take(*args, **kwargs)
+        return Int64Index(taken)
 
 class DateIndex(Index):
     pass
