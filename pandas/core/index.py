@@ -474,6 +474,9 @@ class Index(np.ndarray):
     asOfDate = deprecate('asOfDate', asof)
 
 
+class Int64Index(Index):
+    pass
+
 class DateIndex(Index):
     pass
 

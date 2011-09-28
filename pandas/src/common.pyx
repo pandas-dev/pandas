@@ -231,3 +231,22 @@ def is_monotonic(ndarray[object] arr):
             return False
         prev = cur
     return True
+
+
+def is_monotonic_int64(ndarray[int64_t] arr):
+    cdef:
+        Py_ssize_t i, n
+        int64_t prev, cur
+
+    n = len(arr)
+
+    if n < 2:
+        return True
+
+    prev = arr[0]
+    for i from 1 <= i < n:
+        cur = arr[i]
+        if cur < prev:
+            return False
+        prev = cur
+    return True

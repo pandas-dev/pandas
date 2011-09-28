@@ -524,7 +524,7 @@ def outer_join_indexer(ndarray[int64_t] left, ndarray[int64_t] right):
             while i < nleft:
                 lindexer[count] = i
                 rindexer[count] = -1
-                result[count] = left[j]
+                result[count] = left[i]
                 i += 1
                 count += 1
             break
