@@ -235,7 +235,23 @@ class Index(np.ndarray):
         if len(self) == 0:
             return _ensure_index(other)
 
-        return Index(lib.fast_unique_multiple([self, other]))
+        indexer = self.get_indexer(other)
+        indexer = (indexer == -1).nonzero()[0]
+
+        if len(indexer) > 0:
+            other_diff = other.values.take(indexer)
+            result = list(self) + list(other_diff)
+        else:
+            # contained in
+            result = list(self)
+
+        # timsort wins
+        try:
+            result.sort()
+        except Exception:
+            pass
+
+        return Index(result)
 
     def intersection(self, other):
         """
