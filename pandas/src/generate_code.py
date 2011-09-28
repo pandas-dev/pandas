@@ -106,35 +106,36 @@ def merge_indexer_%(name)s(ndarray[%(c_type)s] values, dict oldMap):
 
 """
 
+'''
+Backfilling logic for generating fill vector
+
+Diagram of what's going on
+
+Old      New    Fill vector    Mask
+         .        0               1
+         .        0               1
+         .        0               1
+A        A        0               1
+         .        1               1
+         .        1               1
+         .        1               1
+         .        1               1
+         .        1               1
+B        B        1               1
+         .        2               1
+         .        2               1
+         .        2               1
+C        C        2               1
+         .                        0
+         .                        0
+D
+'''
+
 backfill_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_%(name)s(ndarray[%(c_type)s] oldIndex,
                       ndarray[%(c_type)s] newIndex,
                       dict oldMap, dict newMap):
-    '''
-    Backfilling logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .        0               1
-             .        0               1
-             .        0               1
-    A        A        0               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    B        B        1               1
-             .        2               1
-             .        2               1
-             .        2               1
-    C        C        2               1
-             .                        0
-             .                        0
-    D
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -181,32 +182,34 @@ def backfill_%(name)s(ndarray[%(c_type)s] oldIndex,
 
 """
 
+'''
+Padding logic for generating fill vector
+
+Diagram of what's going on
+
+Old      New    Fill vector    Mask
+         .                        0
+         .                        0
+         .                        0
+A        A        0               1
+         .        0               1
+         .        0               1
+         .        0               1
+         .        0               1
+         .        0               1
+B        B        1               1
+         .        1               1
+         .        1               1
+         .        1               1
+C        C        2               1
+'''
+
+
 pad_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_%(name)s(ndarray[%(c_type)s] oldIndex,
                  ndarray[%(c_type)s] newIndex,
                  dict oldMap, dict newMap):
-    '''
-    Padding logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .                        0
-             .                        0
-             .                        0
-    A        A        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-    B        B        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    C        C        2               1
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos

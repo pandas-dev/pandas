@@ -205,27 +205,6 @@ def merge_indexer_bool(ndarray[uint8_t] values, dict oldMap):
 def pad_float64(ndarray[float64_t] oldIndex,
                  ndarray[float64_t] newIndex,
                  dict oldMap, dict newMap):
-    '''
-    Padding logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .                        0
-             .                        0
-             .                        0
-    A        A        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-    B        B        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    C        C        2               1
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -281,27 +260,6 @@ def pad_float64(ndarray[float64_t] oldIndex,
 def pad_object(ndarray[object] oldIndex,
                  ndarray[object] newIndex,
                  dict oldMap, dict newMap):
-    '''
-    Padding logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .                        0
-             .                        0
-             .                        0
-    A        A        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-    B        B        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    C        C        2               1
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -357,27 +315,6 @@ def pad_object(ndarray[object] oldIndex,
 def pad_int32(ndarray[int32_t] oldIndex,
                  ndarray[int32_t] newIndex,
                  dict oldMap, dict newMap):
-    '''
-    Padding logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .                        0
-             .                        0
-             .                        0
-    A        A        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-    B        B        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    C        C        2               1
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -433,27 +370,6 @@ def pad_int32(ndarray[int32_t] oldIndex,
 def pad_int64(ndarray[int64_t] oldIndex,
                  ndarray[int64_t] newIndex,
                  dict oldMap, dict newMap):
-    '''
-    Padding logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .                        0
-             .                        0
-             .                        0
-    A        A        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-    B        B        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    C        C        2               1
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -509,27 +425,6 @@ def pad_int64(ndarray[int64_t] oldIndex,
 def pad_bool(ndarray[uint8_t] oldIndex,
                  ndarray[uint8_t] newIndex,
                  dict oldMap, dict newMap):
-    '''
-    Padding logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .                        0
-             .                        0
-             .                        0
-    A        A        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-             .        0               1
-    B        B        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    C        C        2               1
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -586,30 +481,6 @@ def pad_bool(ndarray[uint8_t] oldIndex,
 def backfill_float64(ndarray[float64_t] oldIndex,
                       ndarray[float64_t] newIndex,
                       dict oldMap, dict newMap):
-    '''
-    Backfilling logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .        0               1
-             .        0               1
-             .        0               1
-    A        A        0               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    B        B        1               1
-             .        2               1
-             .        2               1
-             .        2               1
-    C        C        2               1
-             .                        0
-             .                        0
-    D
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -659,30 +530,6 @@ def backfill_float64(ndarray[float64_t] oldIndex,
 def backfill_object(ndarray[object] oldIndex,
                       ndarray[object] newIndex,
                       dict oldMap, dict newMap):
-    '''
-    Backfilling logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .        0               1
-             .        0               1
-             .        0               1
-    A        A        0               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    B        B        1               1
-             .        2               1
-             .        2               1
-             .        2               1
-    C        C        2               1
-             .                        0
-             .                        0
-    D
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -732,30 +579,6 @@ def backfill_object(ndarray[object] oldIndex,
 def backfill_int32(ndarray[int32_t] oldIndex,
                       ndarray[int32_t] newIndex,
                       dict oldMap, dict newMap):
-    '''
-    Backfilling logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .        0               1
-             .        0               1
-             .        0               1
-    A        A        0               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    B        B        1               1
-             .        2               1
-             .        2               1
-             .        2               1
-    C        C        2               1
-             .                        0
-             .                        0
-    D
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -805,30 +628,6 @@ def backfill_int32(ndarray[int32_t] oldIndex,
 def backfill_int64(ndarray[int64_t] oldIndex,
                       ndarray[int64_t] newIndex,
                       dict oldMap, dict newMap):
-    '''
-    Backfilling logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .        0               1
-             .        0               1
-             .        0               1
-    A        A        0               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    B        B        1               1
-             .        2               1
-             .        2               1
-             .        2               1
-    C        C        2               1
-             .                        0
-             .                        0
-    D
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
@@ -878,30 +677,6 @@ def backfill_int64(ndarray[int64_t] oldIndex,
 def backfill_bool(ndarray[uint8_t] oldIndex,
                       ndarray[uint8_t] newIndex,
                       dict oldMap, dict newMap):
-    '''
-    Backfilling logic for generating fill vector
-
-    Diagram of what's going on
-
-    Old      New    Fill vector    Mask
-             .        0               1
-             .        0               1
-             .        0               1
-    A        A        0               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-             .        1               1
-    B        B        1               1
-             .        2               1
-             .        2               1
-             .        2               1
-    C        C        2               1
-             .                        0
-             .                        0
-    D
-    '''
     cdef int i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
     cdef int newPos, oldPos
