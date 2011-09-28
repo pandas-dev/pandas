@@ -905,16 +905,16 @@ def join_managers(left, right, axis=1, how='left'):
 
     N = len(join_index)
 
-    if join_index is laxis:
-        lmask = np.zeros(N, dtype=np.bool)
-        lneed_masking = False
+    if lindexer is None:
+        lmask = None
+        lneed_masking = None
     else:
         lmask = lindexer == -1
         lneed_masking = lmask.any()
 
-    if join_index is raxis:
-        rmask = np.zeros(N, dtype=np.bool)
-        rneed_masking = False
+    if rindexer is None:
+        rmask = None
+        rneed_masking = None
     else:
         rmask = rindexer == -1
         rneed_masking = rmask.any()
@@ -951,14 +951,20 @@ def join_managers(left, right, axis=1, how='left'):
         elif klass in left_blockmap:
             # only take necessary
             blk = left_blockmap[klass]
-            res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
-                                       axis=axis)
+            if lindexer is None:
+                res_blk = blk.copy()
+            else:
+                res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
+                                           axis=axis)
             res_blk.ref_items = result_items
         elif klass in right_blockmap:
             # only take necessary
             blk = right_blockmap[klass]
-            res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
-                                       axis=axis)
+            if rindexer is None:
+                res_blk = blk.copy()
+            else:
+                res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
+                                           axis=axis)
             res_blk.ref_items = result_items
         else:
             # not found in either
@@ -991,7 +997,8 @@ def _maybe_upcast_blocks(blocks, needs_masking):
 
 def _merge_blocks_fast(left, right, lindexer, lmask, lneed_masking,
                        rindexer, rmask, rneed_masking, axis=1):
-    n = len(lindexer)
+
+    n = left.values.shape[axis] if lindexer is None else len(lindexer)
     lk = len(left.items)
     rk = len(right.items)
 
@@ -1000,9 +1007,18 @@ def _merge_blocks_fast(left, right, lindexer, lmask, lneed_masking,
     out_shape[axis] = n
 
     out = np.empty(out_shape, dtype=left.values.dtype)
-    common.take_fast(left.values, lindexer, lmask, lneed_masking,
-                     axis=axis, out=out[:lk])
-    common.take_fast(right.values, rindexer, rmask, rneed_masking,
-                     axis=axis, out=out[lk:])
 
+    if lindexer is None:
+        common.take_fast(left.values, np.arange(n, dtype=np.int32),
+                         None, False, axis=axis, out=out[:lk])
+    else:
+        common.take_fast(left.values, lindexer, lmask, lneed_masking,
+                         axis=axis, out=out[:lk])
+
+    if rindexer is None:
+        common.take_fast(right.values, np.arange(n, dtype=np.int32),
+                         None, False, axis=axis, out=out[lk:])
+    else:
+        common.take_fast(right.values, rindexer, rmask, rneed_masking,
+                         axis=axis, out=out[lk:])
     return out

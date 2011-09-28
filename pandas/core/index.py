@@ -425,11 +425,11 @@ class Index(np.ndarray):
 
         if return_indexers:
             if join_index is self:
-                lindexer = np.arange(len(join_index), dtype=np.int32)
+                lindexer = None
             else:
                 lindexer = self.get_indexer(join_index)
             if join_index is other:
-                rindexer = np.arange(len(join_index), dtype=np.int32)
+                rindexer = None
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
@@ -620,20 +620,15 @@ class Int64Index(Index):
             return Index.join(self, other, how=how,
                               return_indexers=return_indexers)
 
-        # if return_indexers:
-        #     return join_index, lidx, ridx
-        # else:
-        #     return join_index
-
     def _join_monotonic(self, other, how='left', return_indexers=False):
         if how == 'left':
             join_index = self
-            lidx = np.arange(len(self), dtype=np.int32)
+            lidx = None
             ridx = lib.left_join_indexer(self, other)
         elif how == 'right':
             join_index = other
-            ridx = np.arange(len(other), dtype=np.int32)
             lidx = lib.left_join_indexer(other, self)
+            ridx = None
         elif how == 'inner':
             join_index, lidx, ridx = lib.inner_join_indexer(self, other)
             join_index = Int64Index(join_index)
