@@ -82,13 +82,12 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = self.sorted_labels[0]
-        prev_stride = np.prod([len(x) for x in new_levels[1:]],
-                              dtype=int)
+        group_index = np.zeros(len(self.index), dtype=int)
 
-        for lev, lab in zip(new_levels[1:], self.sorted_labels[1:-1]):
-            group_index = group_index * prev_stride + lab
-            prev_stride /= len(lev)
+        for i in xrange(len(new_levels)):
+            stride = np.prod([len(x) for x in new_levels[i+1:]],
+                             dtype=int)
+            group_index += self.sorted_labels[i] * stride
 
         group_mask = np.zeros(self.full_shape[0], dtype=bool)
         group_mask.put(group_index, True)
