@@ -351,24 +351,228 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
 
 """
 
+#----------------------------------------------------------------------
+# Joins on ordered, unique indices
+
+left_join_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
+                             ndarray[%(c_type)s] right):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int32_t] indexer
+        %(c_type)s lval, rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.int32)
+    for i from 0 <= i < nleft:
+        if j == nright:
+            indexer[i] = -1
+            continue
+
+        lval = left[i]
+        rval = right[j]
+
+        if lval == right[j]:
+            indexer[i] = j
+        elif lval > rval:
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+
+    return indexer
+
+"""
+
+inner_join_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
+                              ndarray[%(c_type)s] right):
+    '''
+    Two-pass algorithm?
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        %(c_type)s lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[%(c_type)s] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=%(dtype)s)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+"""
+
+outer_join_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
+                                ndarray[%(c_type)s] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        %(c_type)s lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[%(c_type)s] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=%(dtype)s)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return result, lindexer, rindexer
+
+"""
+
 # name, ctype, capable of holding NA
 function_list = [
-    ('float64', 'float64_t', True),
-    ('object', 'object', True),
-    ('int32', 'int32_t', False),
-    ('int64', 'int64_t', False),
-    ('bool', 'uint8_t', False)
+    ('float64', 'float64_t', 'np.float64', True),
+    ('object', 'object', 'object', True),
+    ('int32', 'int32_t', 'np.int32', False),
+    ('int64', 'int64_t', 'np.int64', False),
+    ('bool', 'uint8_t', 'np.bool', False)
 ]
 
-def generate_from_template(template, ndim=1):
+def generate_from_template(template, ndim=1, subset=None):
     output = StringIO()
-    for name, c_type, can_hold_na in function_list:
+    for name, c_type, dtype, can_hold_na in function_list:
+        if subset is not None and name not in subset:
+            continue
+
         if ndim == 1:
             na_action = set_na if can_hold_na else raise_on_na
         elif ndim == 2:
             na_action = set_na_2d if can_hold_na else raise_on_na
         func = template % {'name' : name, 'c_type' : c_type,
-                           'na_action' : na_action}
+                           'dtype' : dtype, 'na_action' : na_action}
         output.write(func)
     return output.getvalue()
 
@@ -384,6 +588,13 @@ def generate_take_cython_file(path='generated.pyx'):
         print >> f, generate_from_template(is_monotonic_template)
         print >> f, generate_from_template(groupby_template)
         print >> f, generate_from_template(arrmap_template)
+
+        print >> f, generate_from_template(left_join_template,
+                                           subset=['object', 'int64'])
+        print >> f, generate_from_template(outer_join_template,
+                                           subset=['object', 'int64'])
+        print >> f, generate_from_template(inner_join_template,
+                                           subset=['object', 'int64'])
 
 if __name__ == '__main__':
     generate_take_cython_file()

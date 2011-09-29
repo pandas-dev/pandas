@@ -624,16 +624,16 @@ class Int64Index(Index):
         if how == 'left':
             join_index = self
             lidx = None
-            ridx = lib.left_join_indexer(self, other)
+            ridx = lib.left_join_indexer_int64(self, other)
         elif how == 'right':
             join_index = other
-            lidx = lib.left_join_indexer(other, self)
+            lidx = lib.left_join_indexer_int64(other, self)
             ridx = None
         elif how == 'inner':
-            join_index, lidx, ridx = lib.inner_join_indexer(self, other)
+            join_index, lidx, ridx = lib.inner_join_indexer_int64(self, other)
             join_index = Int64Index(join_index)
         elif how == 'outer':
-            join_index, lidx, ridx = lib.outer_join_indexer(self, other)
+            join_index, lidx, ridx = lib.outer_join_indexer_int64(self, other)
             join_index = Int64Index(join_index)
         else:
             raise Exception('do not recognize join method %s' % how)

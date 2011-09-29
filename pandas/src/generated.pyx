@@ -1403,3 +1403,390 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_object(ndarray[object] left,
+                             ndarray[object] right):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int32_t] indexer
+        object lval, rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.int32)
+    for i from 0 <= i < nleft:
+        if j == nright:
+            indexer[i] = -1
+            continue
+
+        lval = left[i]
+        rval = right[j]
+
+        if lval == right[j]:
+            indexer[i] = j
+        elif lval > rval:
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+
+    return indexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_int64(ndarray[int64_t] left,
+                             ndarray[int64_t] right):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int32_t] indexer
+        int64_t lval, rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.int32)
+    for i from 0 <= i < nleft:
+        if j == nright:
+            indexer[i] = -1
+            continue
+
+        lval = left[i]
+        rval = right[j]
+
+        if lval == right[j]:
+            indexer[i] = j
+        elif lval > rval:
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+
+    return indexer
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def outer_join_indexer_object(ndarray[object] left,
+                                ndarray[object] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        object lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[object] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=object)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def outer_join_indexer_int64(ndarray[int64_t] left,
+                                ndarray[int64_t] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        int64_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int64)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return result, lindexer, rindexer
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def inner_join_indexer_object(ndarray[object] left,
+                              ndarray[object] right):
+    '''
+    Two-pass algorithm?
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        object lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[object] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=object)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def inner_join_indexer_int64(ndarray[int64_t] left,
+                              ndarray[int64_t] right):
+    '''
+    Two-pass algorithm?
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        int64_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int64)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+

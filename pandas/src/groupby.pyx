@@ -1,9 +1,6 @@
 #-------------------------------------------------------------------------------
 # Groupby-related functions
 
-cdef inline _isnan(object o):
-    return o != o
-
 @cython.boundscheck(False)
 def arrmap(ndarray[object] index, object func):
     cdef int length = index.shape[0]
