@@ -13,6 +13,7 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
 from pandas.core.panel import Panel
 from collections import defaultdict
+import pandas._tseries as lib
 import pandas.core.datetools as dt
 import numpy as np
 
@@ -796,6 +797,14 @@ class TestGroupBy(unittest.TestCase):
         apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
         assert_frame_equal(agg_result, expected)
         assert_frame_equal(apply_result, expected)
+
+    def test_cython_na_bug(self):
+        values = np.random.randn(10)
+        shape = (5, 5)
+        label_list = [np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2], dtype=np.int32),
+                      np.array([1, 2, 3, 4, 0, 1, 2, 3, 3, 4], dtype=np.int32)]
+
+        lib.group_aggregate(values, label_list, shape)
 
 class TestPanelGroupBy(unittest.TestCase):
 

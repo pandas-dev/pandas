@@ -340,10 +340,10 @@ def _group_reorder(values, label_list):
     sorted_values = values.take(indexer)
     return sorted_values, sorted_labels
 
-cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
+cdef int _aggregate_group(double_t *out, int32_t *counts, double_t *values,
                            list labels, int start, int end, tuple shape,
                            Py_ssize_t which, Py_ssize_t offset,
-                           agg_func func):
+                           agg_func func) except -1:
     cdef:
         ndarray[int32_t] axis
         cdef Py_ssize_t stride
@@ -352,7 +352,7 @@ cdef void _aggregate_group(double_t *out, int32_t *counts, double_t *values,
     if which == len(labels) - 1:
         axis = labels[which]
 
-        while axis[start] == -1 and start < end:
+        while start < end and axis[start] == -1:
             start += 1
         func(out, counts, values, <int32_t*> axis.data, start, end, offset)
     else:
