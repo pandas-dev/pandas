@@ -598,6 +598,20 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_axes)
 
+    def take(self, indices, axis=1):
+        if axis == 0:
+            raise NotImplementedError
+
+        new_axes = list(self.axes)
+        new_axes[axis] = self.axes[axis].take(indices)
+        new_blocks = []
+        for blk in self.blocks:
+            newb = make_block(blk.values.take(indices, axis=axis), blk.items,
+                              self.items)
+            new_blocks.append(newb)
+
+        return BlockManager(new_blocks, new_axes)
+
     def merge(self, other, lsuffix=None, rsuffix=None):
         assert(self._is_indexed_like(other))
 

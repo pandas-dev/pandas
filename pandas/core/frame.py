@@ -1090,19 +1090,22 @@ class DataFrame(NDFrame):
         -------
         taken : DataFrame
         """
-        if axis == 0:
-            new_index = self.index.take(indices)
-            new_columns = self.columns
-        else:
-            new_index = self.index
-            new_columns = self.columns.take(indices)
-
-        # TODO: implement take on BlockManager
         if self._data.is_mixed_dtype():
-            return self.reindex(index=new_index, columns=new_columns)
-
-        new_values = self.values.take(indices, axis=axis)
-        return DataFrame(new_values, index=new_index, columns=new_columns)
+            if axis == 0:
+                new_data = self._data.take(indices, axis=1)
+                return DataFrame(new_data)
+            else:
+                return self.reindex(columns=new_columns)
+        else:
+            new_values = self.values.take(indices, axis=axis)
+            if axis == 0:
+                new_columns = self.columns
+                new_index = self.index.take(indices)
+            else:
+                new_columns = self.columns.take(indices)
+                new_index = self.index
+            return DataFrame(new_values, index=new_index,
+                             columns=new_columns)
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods

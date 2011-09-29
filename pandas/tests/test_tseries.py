@@ -76,7 +76,7 @@ def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = lib.inner_join_indexer(a, b)
+    index, ares, bres = lib.inner_join_indexer_int64(a, b)
 
     index_exp = np.array([3, 5], dtype=np.int64)
     assert_almost_equal(index, index_exp)
@@ -90,7 +90,7 @@ def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = lib.outer_join_indexer(a, b)
+    index, ares, bres = lib.outer_join_indexer_int64(a, b)
 
     index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(index, index_exp)
