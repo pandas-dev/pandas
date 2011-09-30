@@ -41,11 +41,10 @@ def _arith_method(op, name):
             if self.index.equals(other.index):
                 return Series(op(self.values, other.values), index=self.index)
 
-            new_index = self.index + other.index
-            this_reindexed = self.reindex(new_index)
-            other_reindexed = other.reindex(new_index)
+            this_reindexed, other_reindexed = self.align(other, join='outer',
+                                                         copy=False)
             arr = op(this_reindexed.values, other_reindexed.values)
-            return Series(arr, index=new_index)
+            return Series(arr, index=this_reindexed.index)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
@@ -955,9 +954,8 @@ copy : boolean, default False
         this = self
 
         if not self.index.equals(other.index):
-            new_index = self.index + other.index
-            this = self.reindex(new_index)
-            other = other.reindex(new_index)
+            this, other = self.align(other, join='outer')
+            new_index = this.index
 
         this_vals = this.values
         other_vals = other.values
@@ -1264,6 +1262,43 @@ copy : boolean, default False
             return func(self)
         except Exception:
             return Series([func(x) for x in self], index=self.index)
+
+    def align(self, other, join='outer', copy=True):
+        """
+        Align two Series object with the specified join method
+
+        Parameters
+        ----------
+        other : Series
+        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+
+        Returns
+        -------
+        (left, right) : (Series, Series)
+            Aligned Series
+        """
+        join_index, lidx, ridx = self.index.join(other.index, how=join,
+                                                 return_indexers=True)
+
+        if lidx is not None:
+            left = Series(common.take_1d(self.values, lidx), join_index)
+        else:
+            if copy:
+                new_values = self.values.copy()
+            else:
+                new_values = self.values
+            left = Series(new_values, join_index)
+
+        if ridx is not None:
+            right = Series(common.take_1d(other.values, ridx), join_index)
+        else:
+            if copy:
+                new_values = other.values.copy()
+            else:
+                new_values = other.values
+            right = Series(new_values, join_index)
+
+        return left, right
 
     def reindex(self, index=None, method=None, copy=True):
         """Conform Series to new index with optional filling logic, placing

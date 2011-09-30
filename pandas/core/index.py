@@ -248,21 +248,24 @@ class Index(np.ndarray):
         if len(self) == 0:
             return _ensure_index(other)
 
-        indexer = self.get_indexer(other)
-        indexer = (indexer == -1).nonzero()[0]
-
-        if len(indexer) > 0:
-            other_diff = other.values.take(indexer)
-            result = list(self) + list(other_diff)
+        if self.is_monotonic and other.is_monotonic:
+            result = lib.outer_join_indexer_object(self, other)[0]
         else:
-            # contained in
-            result = list(self)
+            indexer = self.get_indexer(other)
+            indexer = (indexer == -1).nonzero()[0]
 
-        # timsort wins
-        try:
-            result.sort()
-        except Exception:
-            pass
+            if len(indexer) > 0:
+                other_diff = other.values.take(indexer)
+                result = list(self) + list(other_diff)
+            else:
+                # contained in
+                result = list(self)
+
+            # timsort wins
+            try:
+                result.sort()
+            except Exception:
+                pass
 
         # for subclasses
         return self._wrap_union_result(other, result)
@@ -292,9 +295,14 @@ class Index(np.ndarray):
         if self.equals(other):
             return self
 
-        indexer = self.get_indexer(other)
-        indexer = indexer.take((indexer != -1).nonzero()[0])
-        return self.take(indexer)
+        other = _ensure_index(other)
+
+        if self.is_monotonic and other.is_monotonic:
+            return Index(lib.inner_join_indexer_object(self, other)[0])
+        else:
+            indexer = self.get_indexer(other)
+            indexer = indexer.take((indexer != -1).nonzero()[0])
+            return self.take(indexer)
 
     def diff(self, other):
         """
