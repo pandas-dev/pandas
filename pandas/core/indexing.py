@@ -198,6 +198,10 @@ class _NDFrameIndexer(object):
         if isinstance(obj, slice):
             if _is_label_slice(index, obj):
                 i, j = index.slice_locs(obj.start, obj.stop)
+
+                if obj.step is not None:
+                    raise Exception('Non-zero step not supported with '
+                                    'label-based slicing')
                 return slice(i, j)
             else:
                 return obj
@@ -238,6 +242,10 @@ class _NDFrameIndexer(object):
         if _is_label_slice(labels, slice_obj):
             i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
             slicer = slice(i, j)
+
+            if slice_obj.step is not None:
+                raise Exception('Non-zero step not supported with label-based '
+                                'slicing')
         else:
             slicer = slice_obj
 

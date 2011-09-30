@@ -252,6 +252,10 @@ class CheckIndexing(object):
         exp.values[5:10] = 5
         assert_frame_equal(f, exp)
 
+    def test_getitem_fancy_slice_integers_step(self):
+        df = DataFrame(np.random.randn(10, 5))
+        self.assertRaises(Exception, df.ix.__getitem__, slice(0, 8, 2))
+
     def test_setitem_fancy_2d(self):
         f = self.frame
         ix = f.ix
