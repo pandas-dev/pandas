@@ -257,15 +257,14 @@ class Index(np.ndarray):
             if len(indexer) > 0:
                 other_diff = other.values.take(indexer)
                 result = list(self) + list(other_diff)
+                # timsort wins
+                try:
+                    result.sort()
+                except Exception:
+                    pass
             else:
                 # contained in
-                result = list(self)
-
-            # timsort wins
-            try:
-                result.sort()
-            except Exception:
-                pass
+                result = sorted(self)
 
         # for subclasses
         return self._wrap_union_result(other, result)

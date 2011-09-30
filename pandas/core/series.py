@@ -1057,7 +1057,8 @@ copy : boolean, default False
         if not ascending:
             sort_index = sort_index[::-1]
         new_labels = labels.take(sort_index)
-        return self.reindex(new_labels)
+        new_values = self.values.take(sort_index)
+        return Series(new_values, new_labels)
 
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
