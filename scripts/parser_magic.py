@@ -1,10 +1,10 @@
+from pandas.util.testing import set_trace
+import pandas.util.testing as tm
+
+from pandas import *
 import ast
 import inspect
 import sys
-
-from pandas import *
-from pandas.util.testing import set_trace
-import pandas.util.testing as tm
 
 def merge(a, b):
     f, args, _ = parse_stmt(inspect.currentframe().f_back)
@@ -23,7 +23,6 @@ def parse_stmt(frame):
     return _parse_call(call)
 
 def _parse_call(call):
-    set_trace()
     func = _maybe_format_attribute(call.func)
 
     str_args = []
@@ -65,4 +64,4 @@ def _format_attribute(attr):
 
 a = tm.makeTimeSeries()
 b = tm.makeTimeSeries()
-df = merge(a * 2, np.log(np.exp(b)))
+df = merge(a, b)

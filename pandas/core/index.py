@@ -643,6 +643,17 @@ class Int64Index(Index):
         else:
             return join_index
 
+    def union(self, other):
+        if not isinstance(other, Int64Index):
+            return Index.union(self, other)
+
+        if self.is_monotonic and other.is_monotonic:
+            result = lib.outer_join_indexer_int64(self, other)[0]
+        else:
+            result = np.unique(np.concatenate((self, other)))
+        return Int64Index(result)
+    union.__doc__ = Index.union.__doc__
+
     def groupby(self, to_groupby):
         return lib.groupby_int64(self, to_groupby)
 
