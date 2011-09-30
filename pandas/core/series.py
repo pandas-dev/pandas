@@ -1322,7 +1322,7 @@ copy : boolean, default False
         """
         return self.reindex(other.index, method=method)
 
-    def take(self, indices):
+    def take(self, indices, axis=0):
         """
         Analogous to ndarray.take, return Series corresponding to requested
         indices

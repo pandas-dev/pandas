@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, PandasObject
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import Panel
@@ -164,13 +164,22 @@ class GroupBy(object):
     def primary(self):
         return self.groupings[0]
 
+    @cache_readonly
+    def use_take(self):
+        group_axis = self.obj._get_axis(self.axis)
+        return isinstance(group_axis, Int64Index) and len(self.groupings) == 1
+
     def get_group(self, name, obj=None):
         if obj is None:
             obj = self.obj
 
-        labels = self.groups[name]
-        axis_name = obj._get_axis_name(self.axis)
-        return obj.reindex(**{axis_name : labels})
+        if self.use_take:
+            inds = self.primary.indices[name]
+            return obj.take(inds, axis=self.axis)
+        else:
+            labels = self.groups[name]
+            axis_name = obj._get_axis_name(self.axis)
+            return obj.reindex(**{axis_name : labels})
 
     def __iter__(self):
         """
