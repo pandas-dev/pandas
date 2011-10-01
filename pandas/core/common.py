@@ -19,7 +19,7 @@ except Exception: # pragma: no cover
 class PandasError(Exception):
     pass
 
-def isnull(input):
+def isnull(obj):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable
     for use on object arrays.
@@ -32,29 +32,31 @@ def isnull(input):
     -------
     boolean ndarray or boolean
     '''
+    if np.isscalar(obj) or obj is None:
+        return lib.checknull(obj)
+
     from pandas.core.generic import PandasObject
     from pandas import Series
-    if isinstance(input, np.ndarray):
-        if input.dtype.kind in ('O', 'S'):
+    if isinstance(obj, np.ndarray):
+        if obj.dtype.kind in ('O', 'S'):
             # Working around NumPy ticket 1542
-            shape = input.shape
+            shape = obj.shape
             result = np.empty(shape, dtype=bool)
-            vec = lib.isnullobj(input.ravel())
+            vec = lib.isnullobj(obj.ravel())
             result[:] = vec.reshape(shape)
 
-            if isinstance(input, Series):
-                result = Series(result, index=input.index, copy=False)
+            if isinstance(obj, Series):
+                result = Series(result, index=obj.index, copy=False)
         else:
-            result = -np.isfinite(input)
-    elif isinstance(input, PandasObject):
+            result = -np.isfinite(obj)
+        return result
+    elif isinstance(obj, PandasObject):
         # TODO: optimize for DataFrame, etc.
-        return input.apply(isnull)
+        return obj.apply(isnull)
     else:
-        result = lib.checknull(input)
+        raise TypeError('cannot handle %s type' % type(obj))
 
-    return result
-
-def notnull(input):
+def notnull(obj):
     '''
     Replacement for numpy.isfinite / -numpy.isnan which is suitable
     for use on object arrays.
@@ -67,7 +69,9 @@ def notnull(input):
     -------
     boolean ndarray or boolean
     '''
-    return np.negative(isnull(input))
+    if np.isscalar(obj) or obj is None:
+        return not lib.checknull(obj)
+    return -isnull(obj)
 
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)

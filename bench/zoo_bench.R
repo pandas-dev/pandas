@@ -12,10 +12,10 @@ timings <- numeric()
 
 ## indices <- as.POSIXct(1:100000)
 
-indices <- as.POSIXct(Sys.Date()) + 1:100000
+indices <- as.POSIXct(Sys.Date()) + 1:1000000
 
-x <- xts(rnorm(100000), indices)
-y <- xts(rnorm(90000), indices[sample(1:100000, 90000)])
+x <- xts(rnorm(1000000), indices)
+y <- xts(rnorm(900000), indices[sample(1:1000000, 900000)])
 
 for (i in 1:10) {
   gc()

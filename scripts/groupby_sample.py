@@ -3,7 +3,7 @@ import numpy as np
 import string
 
 g1 = np.array(list(string.letters))[:-1]
-g2 = np.arange(5100)
+g2 = np.arange(510)
 df_small = DataFrame({'group1' : ["a","b","a","a","b","c","c","c","c",
                                   "c","a","a","a","b","b","b","b"],
                       'group2' : [1,2,3,4,1,3,5,6,5,4,1,2,3,4,3,2,1],
