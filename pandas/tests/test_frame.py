@@ -1548,6 +1548,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_csv_float32_nanrep(self):
+        df = DataFrame(np.random.randn(1, 4).astype(np.float32))
+        df[1] = np.nan
+
+        pth = '__tmp__.csv'
+        df.to_csv(pth, nanRep=999)
+
+        lines = open(pth).readlines()
+        self.assert_(lines[1].split(',')[2] == '999')
+        os.remove(pth)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

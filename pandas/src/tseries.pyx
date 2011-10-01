@@ -227,7 +227,7 @@ cdef inline _isnan(object o):
     return o != o
 
 cdef inline _checknull(object val):
-    if isinstance(val, float):
+    if isinstance(val, (float, np.floating)):
         return val != val or val == INF or val == NEGINF
     else:
         return val is None
