@@ -10,6 +10,43 @@ pandas 0.4.2
 
 **Release date:** not yet released
 
+This is an incremental bug fix and performance enhancement release
+
+**New features / modules**
+
+  - Added `Int64Index` type with specialized join, union, intersection
+  - Refactored `Index` classes to have a `join` method and associated data
+    alignment routines throughout the codebase to be able to leverage optimized
+    joining / merging routines.
+  - Wrote faster Cython data alignment / merging routines resulting in
+    substantial speed increases
+  - Added `is_monotonic` property to `Index` classes with associated Cython
+    code to evaluate the monotonicity of the `Index` values
+
+**Improvements to existing features**
+
+  - Improved performance of `isnull` and `notnull`, a regression from v0.3.0
+    (GH #187)
+  - Wrote templating / code generation script to auto-generate Cython code for
+    various functions which need to be available for the 4 major data types
+    used in pandas (float64, bool, object, int64)
+  - Refactored code related to `DataFrame.join` so that intermediate aligned
+    copies of the data in each `DataFrame` argument do not need to be
+    created. Substantial performance increases result (GH #176)
+  - Substantially improved performance of generic `Index.intersection` and
+    `Index.union`
+  - Implemented `BlockManager.take` resulting in significantly faster `take`
+    performance on mixed-type `DataFrame` objects (GH #104)
+  - Improved performance of `Series.sort_index`
+
+**Bug fixes**
+
+  - Fixed minor unhandled exception in Cython code implementing fast groupby
+    aggregation operations
+  - Fixed bug in unstacking code manifesting with more than 3 hierarchical
+    levels
+  - Throw exception when step specified in label-based slice (GH #185)
+
 pandas 0.4.1
 ============
 
