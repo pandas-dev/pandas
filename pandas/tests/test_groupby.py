@@ -517,7 +517,34 @@ class TestGroupBy(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
-    def test_groupby_as_index(self):
+    def test_groupby_as_index_agg(self):
+        grouped = self.df.groupby('A', as_index=False)
+
+        # single-key
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        assert_frame_equal(result, expected)
+
+        result2 = grouped.agg({'C' : np.mean, 'D' : np.sum})
+        expected2 = grouped.mean()
+        expected2['D'] = grouped.sum()['D']
+        assert_frame_equal(result2, expected2)
+
+        # multi-key
+
+        grouped = self.df.groupby(['A', 'B'], as_index=False)
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        assert_frame_equal(result, expected)
+
+        result2 = grouped.agg({'C' : np.mean, 'D' : np.sum})
+        expected2 = grouped.mean()
+        expected2['D'] = grouped.sum()['D']
+        assert_frame_equal(result2, expected2)
+
+    def test_groupby_as_index_cython(self):
         data = self.df
 
         # single-key

@@ -38,6 +38,11 @@ This is an incremental bug fix and performance enhancement release
   - Implemented `BlockManager.take` resulting in significantly faster `take`
     performance on mixed-type `DataFrame` objects (GH #104)
   - Improved performance of `Series.sort_index`
+  - Significant groupby performance enhancement: removed unnecessary integrity
+    checks in DataFrame internals that were slowing down slicing operations to
+    retrieve groups
+  - Added informative Exception when passing dict to DataFrame groupby
+    aggregation with axis != 0
 
 **Bug fixes**
 
@@ -46,6 +51,8 @@ This is an incremental bug fix and performance enhancement release
   - Fixed bug in unstacking code manifesting with more than 3 hierarchical
     levels
   - Throw exception when step specified in label-based slice (GH #185)
+  - Fix isnull to correctly work with np.float32. Fix upstream bug described in
+    GH #182
 
 pandas 0.4.1
 ============

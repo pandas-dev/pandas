@@ -88,8 +88,11 @@ class GroupBy(object):
         self.level = level
 
         if not as_index:
-            assert(isinstance(obj, DataFrame))
-            assert(axis == 0)
+            if not isinstance(obj, DataFrame):
+                raise TypeError('as_index=False only valid with DataFrame')
+            if axis != 0:
+                raise ValueError('as_index=False only valid for axis=0')
+
         self.as_index = as_index
 
         if groupings is None:
@@ -686,6 +689,9 @@ class SeriesGroupBy(GroupBy):
             else:
                 ret = Series({})
 
+        if not self.as_index:  # pragma: no cover
+            print 'Warning, ignoring as_index=True'
+
         return ret
 
     def _wrap_aggregated_output(self, output, mask):
@@ -858,6 +864,9 @@ class DataFrameGroupBy(GroupBy):
 
         result = {}
         if isinstance(arg, dict):
+            if self.axis != 0:  # pragma: no cover
+                raise ValueError('Can only pass dict with axis=0')
+
             for col, func in arg.iteritems():
                 result[col] = self[col].agg(func)
 
@@ -869,6 +878,19 @@ class DataFrameGroupBy(GroupBy):
                 except Exception:
                     return self._aggregate_item_by_item(arg, *args, **kwargs)
             result = self._aggregate_generic(arg, *args, **kwargs)
+
+        if not self.as_index:
+            if isinstance(result.index, MultiIndex):
+                zipped = zip(result.index.levels, result.index.labels,
+                             result.index.names)
+                for i, (lev, lab, name) in enumerate(zipped):
+                    result.insert(i, name, lev.values.take(lab))
+                result = result.consolidate()
+            else:
+                values = result.index.values
+                name = self.groupings[0].name
+                result.insert(0, name, values)
+            result.index = np.arange(len(result))
 
         return result
 
