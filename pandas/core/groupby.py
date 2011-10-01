@@ -295,6 +295,20 @@ class GroupBy(object):
         """
         return self._cython_agg_general('mean')
 
+    def size(self):
+        """
+        Compute group sizes
+        """
+        result = sorted((k, len(v)) for k, v in self.groups.iteritems())
+        keys, values = zip(*result)
+
+        if len(self.groupings) > 1:
+            index = MultiIndex.from_tuples(keys)
+        else:
+            index = Index(keys)
+
+        return Series(values, index=index)
+
     def sum(self):
         """
         Compute sum of values, excluding missing values

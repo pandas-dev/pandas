@@ -16,7 +16,8 @@ class Block(object):
     """
     __slots__ = ['items', 'ref_items', '_ref_locs', 'values', 'ndim']
 
-    def __init__(self, values, items, ref_items, ndim=2):
+    def __init__(self, values, items, ref_items, ndim=2,
+                 do_integrity_check=False):
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object)
 
@@ -27,7 +28,9 @@ class Block(object):
         self.ndim = ndim
         self.items = _ensure_index(items)
         self.ref_items = _ensure_index(ref_items)
-        self._check_integrity()
+
+        if do_integrity_check:
+            self._check_integrity()
 
     def _check_integrity(self):
         if len(self.items) < 2:
@@ -186,7 +189,7 @@ class ObjectBlock(Block):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
-def make_block(values, items, ref_items):
+def make_block(values, items, ref_items, do_integrity_check=False):
     dtype = values.dtype
     vtype = dtype.type
 
@@ -199,7 +202,8 @@ def make_block(values, items, ref_items):
     else:
         klass = ObjectBlock
 
-    return klass(values, items, ref_items, ndim=values.ndim)
+    return klass(values, items, ref_items, ndim=values.ndim,
+                 do_integrity_check=do_integrity_check)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -221,7 +225,7 @@ class BlockManager(object):
     """
     __slots__ = ['axes', 'blocks', 'ndim']
 
-    def __init__(self, blocks, axes, skip_integrity_check=False):
+    def __init__(self, blocks, axes, do_integrity_check=True):
         self.axes = [_ensure_index(ax) for ax in axes]
         self.blocks = blocks
 
@@ -229,7 +233,7 @@ class BlockManager(object):
         for block in blocks:
             assert(ndim == block.values.ndim)
 
-        if not skip_integrity_check:
+        if do_integrity_check:
             self._verify_integrity()
 
     @property
@@ -281,7 +285,8 @@ class BlockManager(object):
         self.axes = [_ensure_index(ax) for ax in ax_arrays]
         blocks = []
         for values, items in zip(bvalues, bitems):
-            blk = make_block(values, items, self.axes[0])
+            blk = make_block(values, items, self.axes[0],
+                             do_integrity_check=True)
             blocks.append(blk)
         self.blocks = blocks
 
@@ -346,7 +351,7 @@ class BlockManager(object):
         else:
             new_blocks = self._slice_blocks(slobj, axis)
 
-        return BlockManager(new_blocks, new_axes)
+        return BlockManager(new_blocks, new_axes, do_integrity_check=False)
 
     def _slice_blocks(self, slobj, axis):
         new_blocks = []
@@ -589,7 +594,8 @@ class BlockManager(object):
             block_shape[0] = len(extra_items)
             block_values = np.empty(block_shape, dtype=np.float64)
             block_values.fill(nan)
-            na_block = make_block(block_values, extra_items, new_items)
+            na_block = make_block(block_values, extra_items, new_items,
+                                  do_integrity_check=True)
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
@@ -780,7 +786,8 @@ def form_blocks(data, axes):
         block_values = np.empty(shape, dtype=float)
         block_values.fill(nan)
 
-        na_block = make_block(block_values, extra_items, items)
+        na_block = make_block(block_values, extra_items, items,
+                              do_integrity_check=True)
         blocks.append(na_block)
         blocks = _consolidate(blocks, items)
 
@@ -792,7 +799,7 @@ def _simple_blockify(dct, ref_items, dtype):
     if values.dtype != dtype: # pragma: no cover
         values = values.astype(dtype)
 
-    return make_block(values, block_items, ref_items)
+    return make_block(values, block_items, ref_items, do_integrity_check=True)
 
 def _stack_dict(dct, ref_items):
     items = [x for x in ref_items if x in dct]
@@ -857,12 +864,15 @@ def _consolidate(blocks, items):
 
     return new_blocks
 
+# TODO: this could be much optimized
+
 def _merge_blocks(blocks, items):
     if len(blocks) == 1:
         return blocks[0]
     new_values = np.vstack([b.values for b in blocks])
     new_items = np.concatenate([b.items for b in blocks])
-    new_block = make_block(new_values, new_items, items)
+    new_block = make_block(new_values, new_items, items,
+                           do_integrity_check=True)
     return new_block.reindex_items_from(items)
 
 def _union_block_items(blocks):
