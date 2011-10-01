@@ -66,9 +66,7 @@ class DateRange(Index):
         end = datetools.to_datetime(end)
 
         # inside cache range. Handle UTC case
-
-        useCache = (offset.isAnchored() and
-                    isinstance(offset, datetools.CacheableOffset))
+        useCache = _will_use_cache(offset)
 
         start, end, tzinfo = _figure_out_timezone(start, end, tzinfo)
         useCache = useCache and _naive_in_cache_range(start, end)
@@ -285,15 +283,71 @@ class DateRange(Index):
         else:
             left, right = other, self
 
-        left_start, left_end = left[0], left[-1]
-        right_start, right_end = right[0], right[-1]
+        left_end = left[-1]
+        right_start = right[0]
 
         # Only need to "adjoin", not overlap
         if (left_end + offset) >= right_start:
-            return DateRange(left_start, max(left_end, right_end),
-                             offset=offset)
+            return left._fast_union(right)
         else:
             return Index.union(self, other)
+
+    def intersection(self, other):
+        """
+        Specialized intersection for DateRange objects. May be much faster than
+        Index.union
+
+        Parameters
+        ----------
+        other : DateRange or array-like
+
+        Returns
+        -------
+        y : Index or DateRange
+        """
+        if not isinstance(other, DateRange) or other.offset != self.offset:
+            return Index.intersection(self.view(Index), other)
+
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        left_end = left[-1]
+        right_start = right[0]
+
+        if left_end < right_start:
+            return Index([])
+        else:
+            lslice = slice(*left.slice_locs(right_start, None))
+            left_chunk = left.values[lslice]
+            return self._view_like(left_chunk)
+
+    def _fast_union(self, other):
+        left, right = self, other
+
+        left_start, left_end = left[0], left[-1]
+        right_end = right[-1]
+
+        if not _will_use_cache(self.offset):
+            # concatenate dates
+            if left_end < right_end:
+                loc = right.searchsorted(left_end, side='right')
+                right_chunk = right.values[loc:]
+                dates = np.concatenate((left.values, right_chunk))
+                return self._view_like(dates)
+            else:
+                return left
+        else:
+            return DateRange(left_start, max(left_end, right_end),
+                             offset=left.offset)
+
+    def _view_like(self, ndarray):
+        result = ndarray.view(DateRange)
+        result.offset = self.offset
+        result.tzinfo = self.tzinfo
+        return result
 
     def _wrap_union_result(self, other, result):
         return Index(result)
@@ -483,6 +537,11 @@ def _infer_tzinfo(start, end):
     elif end is not None:
         tz = _infer(end, start)
     return tz
+
+def _will_use_cache(offset):
+    return (offset.isAnchored() and
+            isinstance(offset, datetools.CacheableOffset))
+
 
 if __name__ == '__main__':
     import pytz

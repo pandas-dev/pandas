@@ -162,6 +162,37 @@ class TestDateRange(unittest.TestCase):
         the_union = self.rng.union(rng)
         self.assert_(not isinstance(the_union, DateRange))
 
+    def test_union_not_cacheable(self):
+        rng = DateRange('1/1/2000', periods=50, offset=datetools.Minute())
+        rng1 = rng[10:]
+        rng2 = rng[:25]
+        the_union = rng1.union(rng2)
+        self.assert_(the_union.equals(rng))
+
+        rng1 = rng[10:]
+        rng2 = rng[15:35]
+        the_union = rng1.union(rng2)
+        expected = rng[10:]
+        self.assert_(the_union.equals(expected))
+
+    def test_intersection(self):
+        rng = DateRange('1/1/2000', periods=50, offset=datetools.Minute())
+        rng1 = rng[10:]
+        rng2 = rng[:25]
+        the_int = rng1.intersection(rng2)
+        expected = rng[10:25]
+        self.assert_(the_int.equals(expected))
+        self.assert_(isinstance(the_int, DateRange))
+        self.assert_(the_int.offset == rng.offset)
+
+        the_int = rng1.intersection(rng2.view(Index))
+        self.assert_(the_int.equals(expected))
+
+        # non-overlapping
+        the_int = rng[:10].intersection(rng[10:])
+        expected = Index([])
+        self.assert_(the_int.equals(expected))
+
     def test_with_tzinfo(self):
         _skip_if_no_pytz()
         tz = pytz.timezone('US/Central')

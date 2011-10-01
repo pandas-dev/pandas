@@ -53,6 +53,8 @@ This is an incremental bug fix and performance enhancement release
   - Throw exception when step specified in label-based slice (GH #185)
   - Fix isnull to correctly work with np.float32. Fix upstream bug described in
     GH #182
+  - Finish implementation of as_index=False in groupby for DataFrame
+    aggregation (GH #181)
 
 pandas 0.4.1
 ============
