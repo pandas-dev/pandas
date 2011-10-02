@@ -566,6 +566,13 @@ class TestGroupBy(unittest.TestCase):
         expected.index = np.arange(len(expected))
         assert_frame_equal(result, expected)
 
+    def test_groupby_as_index_corner(self):
+        self.assertRaises(TypeError, self.ts.groupby,
+                          lambda x: x.weekday(), as_index=False)
+
+        self.assertRaises(ValueError, self.df.groupby,
+                          lambda x: x.lower(), as_index=False, axis=1)
+
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()
         grouped = df.groupby([lambda x: x.year,
@@ -832,6 +839,29 @@ class TestGroupBy(unittest.TestCase):
                       np.array([1, 2, 3, 4, 0, 1, 2, 3, 3, 4], dtype=np.int32)]
 
         lib.group_aggregate(values, label_list, shape)
+
+    def test_size(self):
+        grouped = self.df.groupby(['A', 'B'])
+        result = grouped.size()
+        for key, group in grouped:
+            self.assertEquals(result[key], len(group))
+
+        grouped = self.df.groupby('A')
+        result = grouped.size()
+        for key, group in grouped:
+            self.assertEquals(result[key], len(group))
+
+        grouped = self.df.groupby('B')
+        result = grouped.size()
+        for key, group in grouped:
+            self.assertEquals(result[key], len(group))
+
+    def test_grouping_ndarray(self):
+        grouped = self.df.groupby(self.df['A'].values)
+
+        result = grouped.sum()
+        expected = self.df.groupby('A').sum()
+        assert_frame_equal(result, expected)
 
 class TestPanelGroupBy(unittest.TestCase):
 

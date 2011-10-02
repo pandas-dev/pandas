@@ -478,6 +478,13 @@ class Grouping(object):
     """
     Holds the grouping information for a single key
 
+    Parameters
+    ----------
+    index : Index
+    grouper :
+    name :
+    level :
+
     Returns
     -------
     **Attributes**:
@@ -493,6 +500,7 @@ class Grouping(object):
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)
+        self.index = index
 
         if level is not None:
             inds = index.labels[level]
@@ -502,10 +510,6 @@ class Grouping(object):
                 self.grouper = labels.map(self.grouper)
             else:
                 self.grouper = labels
-
-        if not isinstance(index, Index):
-            index = Index(index)
-        self.index = index
 
         # no level passed
         if not isinstance(self.grouper, np.ndarray):
