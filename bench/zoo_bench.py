@@ -29,3 +29,12 @@ idx2 = np.sort(sample(stamps, 1000000))
 
 ts1 = Series(np.random.randn(1000000), idx1)
 ts2 = Series(np.random.randn(1000000), idx2)
+
+# Benchmark 1: Two 1-million length time series (int64-based index) with
+# randomly chosen timestamps
+
+# Benchmark 2: Join two 5-variate time series DataFrames (outer and inner join)
+
+df1 = DataFrame(np.random.randn(1000000, 5), idx1, columns=range(5))
+df2 = DataFrame(np.random.randn(1000000, 5), idx2, columns=range(5, 10))
+

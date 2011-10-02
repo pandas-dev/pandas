@@ -631,8 +631,7 @@ class Int64Index(Index):
 
     def join(self, other, how='left', return_indexers=False):
         if not isinstance(other, Int64Index):
-            self_as_index = Index(self, dtype=object)
-            return Index.join(self_as_index, other, how=how,
+            return Index.join(self.astype(object), other, how=how,
                               return_indexers=return_indexers)
 
         if self.is_monotonic and other.is_monotonic:
@@ -657,7 +656,7 @@ class Int64Index(Index):
         elif how == 'outer':
             join_index, lidx, ridx = lib.outer_join_indexer_int64(self, other)
             join_index = Int64Index(join_index)
-        else:
+        else:  # pragma: no cover
             raise Exception('do not recognize join method %s' % how)
 
         if return_indexers:
@@ -667,7 +666,7 @@ class Int64Index(Index):
 
     def union(self, other):
         if not isinstance(other, Int64Index):
-            return Index.union(self, other)
+            return Index.union(self.astype(object), other)
 
         if self.is_monotonic and other.is_monotonic:
             result = lib.outer_join_indexer_int64(self, other)[0]
@@ -976,6 +975,18 @@ class MultiIndex(Index):
         return MultiIndex(levels=self.levels, labels=new_labels)
 
     def append(self, other):
+        """
+        Append two MultiIndex objects
+
+        Parameters
+        ----------
+        other : MultiIndex
+
+        Returns
+        -------
+        appended : MultiIndex
+        """
+        assert(isinstance(other, MultiIndex))
         new_tuples = np.concatenate((self.values, other.values))
         return MultiIndex.from_tuples(new_tuples, names=self.names)
 

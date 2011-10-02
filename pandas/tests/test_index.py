@@ -387,6 +387,9 @@ class TestInt64Index(unittest.TestCase):
         # guarantee of sortedness
         res, lidx, ridx = self.index.join(other, how='outer',
                                           return_indexers=True)
+        noidx_res = self.index.join(other, how='outer')
+        self.assert_(res.equals(noidx_res))
+
         eres = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 25])
         elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1],
                          dtype='i4')
@@ -401,6 +404,9 @@ class TestInt64Index(unittest.TestCase):
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='outer',
                                           return_indexers=True)
+        noidx_res = self.index.join(other_mono, how='outer')
+        self.assert_(res.equals(noidx_res))
+
         eridx = np.array([-1, 0, 1, -1, 2, -1, 3, -1, -1, 4, -1, -1, -1, 5],
                          dtype='i4')
         self.assert_(isinstance(res, Int64Index))
@@ -482,8 +488,16 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(ridx is None)
 
-    def test_join_corner(self):
-        pass
+        # monotonic
+        res, lidx, ridx = self.index.join(other_mono, how='right',
+                                          return_indexers=True)
+        eres = other_mono
+        elidx = np.array([-1, 1, -1, -1, 6, -1],
+                         dtype='i4')
+        self.assert_(isinstance(other, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(ridx is None)
 
     def test_join_non_int_index(self):
         other = Index([3, 6, 7, 8, 10], dtype=object)
@@ -502,6 +516,14 @@ class TestInt64Index(unittest.TestCase):
 
         right = self.index.join(other, how='right')
         self.assert_(right.equals(other))
+
+    def test_union(self):
+
+        # corner case, non-Int64Index
+        other = Index([1, 2, 3, 4, 5])
+        result = self.index.union(other)
+        expected = np.unique(np.concatenate((self.index, other)))
+        self.assert_(np.array_equal(result, expected))
 
     def test_cant_or_shouldnt_cast(self):
         # can't
@@ -538,6 +560,10 @@ class TestMultiIndex(unittest.TestCase):
 
         result = MultiIndex.from_arrays(arrays)
         self.assertEquals(list(result), list(self.index))
+
+    def test_append(self):
+        result = self.index[:3].append(self.index[3:])
+        self.assert_(result.equals(self.index))
 
     def test_get_level_values(self):
         result = self.index.get_level_values(0)
@@ -891,6 +917,11 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex.from_tuples([('bar', 'two')])
         self.assertRaises(Exception, self.index.drop, [('bar', 'two')])
         self.assertRaises(Exception, self.index.drop, index)
+
+        # mixed partial / full drop
+        dropped = self.index.drop(['foo', ('qux', 'one')])
+        expected = self.index[[2, 3, 5]]
+        self.assert_(dropped.equals(expected))
 
     def test_insert(self):
         # key contained in all levels
