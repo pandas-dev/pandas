@@ -1418,9 +1418,13 @@ def left_join_indexer_object(ndarray[object] left,
     nright = len(right)
 
     indexer = np.empty(nleft, dtype=np.int32)
-    for i from 0 <= i < nleft:
+    while True:
+        if i == nleft:
+            break
+
         if j == nright:
             indexer[i] = -1
+            i += 1
             continue
 
         lval = left[i]
@@ -1428,12 +1432,14 @@ def left_join_indexer_object(ndarray[object] left,
 
         if lval == right[j]:
             indexer[i] = j
+            i += 1
+            j += 1
         elif lval > rval:
             indexer[i] = -1
             j += 1
         else:
             indexer[i] = -1
-
+            i += 1
     return indexer
 
 @cython.wraparound(False)
@@ -1451,9 +1457,13 @@ def left_join_indexer_int64(ndarray[int64_t] left,
     nright = len(right)
 
     indexer = np.empty(nleft, dtype=np.int32)
-    for i from 0 <= i < nleft:
+    while True:
+        if i == nleft:
+            break
+
         if j == nright:
             indexer[i] = -1
+            i += 1
             continue
 
         lval = left[i]
@@ -1461,12 +1471,14 @@ def left_join_indexer_int64(ndarray[int64_t] left,
 
         if lval == right[j]:
             indexer[i] = j
+            i += 1
+            j += 1
         elif lval > rval:
             indexer[i] = -1
             j += 1
         else:
             indexer[i] = -1
-
+            i += 1
     return indexer
 
 
