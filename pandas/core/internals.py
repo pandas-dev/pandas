@@ -383,8 +383,20 @@ class BlockManager(object):
     def nblocks(self):
         return len(self.blocks)
 
-    def copy(self):
-        copy_blocks = [block.copy() for block in self.blocks]
+    def copy(self, deep=True):
+        """
+        Make deep or shallow copy of BlockManager
+
+        Parameters
+        ----------
+        deep : boolean, default True
+            If False, return shallow copy (do not copy data)
+
+        Returns
+        -------
+        copy : BlockManager
+        """
+        copy_blocks = [block.copy(deep=deep) for block in self.blocks]
         return BlockManager(copy_blocks, self.axes)
 
     def as_matrix(self, items=None):

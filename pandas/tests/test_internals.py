@@ -233,7 +233,10 @@ class TestBlockManager(unittest.TestCase):
         self.assert_(mgr2.get('quux').dtype == np.float_)
 
     def test_copy(self):
-        pass
+        shallow = self.mgr.copy(deep=False)
+
+        for cp_blk, blk in zip(shallow.blocks, self.mgr.blocks):
+            self.assert_(cp_blk.values is blk.values)
 
     def test_as_matrix(self):
         pass
