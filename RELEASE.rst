@@ -14,7 +14,10 @@ This is an incremental bug fix and performance enhancement release
 
 **New features / modules**
 
-  - Added `Int64Index` type with specialized join, union, intersection
+  - Added fast `Int64Index` type with specialized join, union,
+    intersection. Will result in significant performance enhancements for
+    int64-based time series (e.g. using NumPy's datetime64 one day) and also
+    faster operations on DataFrame objects storing record array-like data.
   - Refactored `Index` classes to have a `join` method and associated data
     alignment routines throughout the codebase to be able to leverage optimized
     joining / merging routines.
@@ -48,6 +51,10 @@ This is an incremental bug fix and performance enhancement release
     retrieve groups
   - Added informative Exception when passing dict to DataFrame groupby
     aggregation with axis != 0
+
+**API Changes**
+
+None
 
 **Bug fixes**
 
@@ -102,6 +109,10 @@ improvements
     with where clause
   - Optimized `_ensure_index` function resulting in performance savings in
     type-checking Index objects
+
+**API Changes**
+
+None
 
 **Bug fixes**
 

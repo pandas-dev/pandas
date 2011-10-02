@@ -53,7 +53,7 @@ def isnull(obj):
     elif isinstance(obj, PandasObject):
         # TODO: optimize for DataFrame, etc.
         return obj.apply(isnull)
-    else:
+    else:  # pragma: no cover
         raise TypeError('cannot handle %s type' % type(obj))
 
 def notnull(obj):
@@ -130,30 +130,47 @@ def _get_take2d_function(dtype_str, axis=0):
     else:
         return _take2d_axis1_dict[dtype_str]
 
-def take_1d(arr, indexer):
+def take_1d(arr, indexer, out=None):
     """
     Specialized Cython take which sets NaN values in one pass
     """
     dtype_str = arr.dtype.name
 
+    n = len(indexer)
+
+    if not isinstance(indexer, np.ndarray):
+        # Cython methods expects 32-bit integers
+        indexer = np.array(indexer, dtype=np.int32)
+
+    out_passed = out is not None
+
     if dtype_str in ('int32', 'int64', 'bool'):
-        mask = indexer == -1
-        if mask.any():
-            out = arr.take(indexer)
-            out = _maybe_upcast(out)
-            np.putmask(out, mask, np.nan)
-        else:
-            out = np.empty(len(indexer), dtype=arr.dtype)
+        try:
+            if out is None:
+                out = np.empty(n, dtype=arr.dtype)
             take_f = _take1d_dict[dtype_str]
             take_f(arr, indexer, out=out)
+        except ValueError:
+            mask = indexer == -1
+            out = arr.take(indexer, out=out)
+            if mask.any():
+                if out_passed:
+                    raise Exception('out with dtype %s does not support NA' %
+                                    out.dtype)
+                out = _maybe_upcast(out)
+                np.putmask(out, mask, np.nan)
     elif dtype_str in ('float64', 'object'):
-        out = np.empty(len(indexer), dtype=arr.dtype)
+        if out is None:
+            out = np.empty(n, dtype=arr.dtype)
         take_f = _take1d_dict[dtype_str]
         take_f(arr, indexer, out=out)
     else:
-        out = arr.take(indexer)
+        out = arr.take(indexer, out=out)
         mask = indexer == -1
         if mask.any():
+            if out_passed:
+                raise Exception('out with dtype %s does not support NA' %
+                                out.dtype)
             out = _maybe_upcast(out)
             np.putmask(out, mask, np.nan)
 
@@ -168,6 +185,10 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
     out_shape = list(arr.shape)
     out_shape[axis] = len(indexer)
     out_shape = tuple(out_shape)
+
+    if not isinstance(indexer, np.ndarray):
+        # Cython methods expects 32-bit integers
+        indexer = np.array(indexer, dtype=np.int32)
 
     if dtype_str in ('int32', 'int64', 'bool'):
         if mask is None:
