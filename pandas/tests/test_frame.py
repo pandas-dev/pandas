@@ -3006,6 +3006,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(index=range(20), columns=cols, data=data)
         self.assert_(df.columns.tolist() == df.fillna().columns.tolist())
 
+    def test_take(self):
+        # homogeneous
+        #----------------------------------------
+
+        # mixed-dtype
+        #----------------------------------------
+        order = [4, 1, 2, 0, 3]
+
+        result = self.mixed_frame.take(order, axis=0)
+        expected = self.mixed_frame.reindex(self.mixed_frame.index.take(order))
+        assert_frame_equal(result, expected)
+
+        # axis = 1
+        result = self.mixed_frame.take(order, axis=1)
+        expected = self.mixed_frame.ix[:, ['foo', 'B', 'C', 'A', 'D']]
+        assert_frame_equal(result, expected)
 
 if __name__ == '__main__':
     # unittest.main()

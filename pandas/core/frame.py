@@ -1095,6 +1095,7 @@ class DataFrame(NDFrame):
                 new_data = self._data.take(indices, axis=1)
                 return DataFrame(new_data)
             else:
+                new_columns = self.columns.take(indices)
                 return self.reindex(columns=new_columns)
         else:
             new_values = self.values.take(indices, axis=axis)

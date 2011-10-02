@@ -23,6 +23,7 @@ This is an incremental bug fix and performance enhancement release
   - Added `is_monotonic` property to `Index` classes with associated Cython
     code to evaluate the monotonicity of the `Index` values
   - Add method `get_level_values` to `MultiIndex`
+  - Implemented shallow copy of `BlockManager` object in `DataFrame` internals
 
 **Improvements to existing features**
 
