@@ -5,24 +5,26 @@ Parts of this file were taken from the pyzmq project
 (https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
 Lesser GPU General Public License.
 """
+
+from distutils.core import setup, Command
 # use setuptools if available
-# try:
-#     from setuptools import setup
-#     _have_setuptools = True
-# except ImportError:
-#     _have_setuptools = False
+try:
+    from setuptools import setup
+    _have_setuptools = True
+except ImportError:
+    _have_setuptools = False
 
 from datetime import datetime
 from glob import glob
 import os
 import sys
 import shutil
+import warnings
 
 import numpy as np
 
 # from numpy.distutils.core import setup
 
-from distutils.core import setup, Command
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext
@@ -128,10 +130,10 @@ if not ISRELEASED:
         import subprocess
         pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
                                 stdout=subprocess.PIPE).stdout
-        rev = pipe.read().strip()
+        rev = pipe.read().strip().decode('ascii')
         FULLVERSION += "-%s" % rev
     except:
-        print "WARNING: Couldn't get git revision"
+        warnings.warn("WARNING: Couldn't get git revision")
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
@@ -215,10 +217,10 @@ class CheckingBuildExt(build_ext):
         for ext in extensions:
           for src in ext.sources:
             if not os.path.exists(src):
-                print """Cython-generated file '%s' not found.
+                raise Exception("""Cython-generated file '%s' not found.
                 Cython is required to compile pandas from a development branch.
                 Please install Cython or download a release package of pandas.
-                """ % src
+                """ % src)
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
@@ -279,7 +281,7 @@ sparse_ext = Extension('pandas._sparse',
 extensions = [tseries_ext,
               sparse_ext]
 
-setuptools_args = {}
+setuptools_args = {'use_2to3': True}
 
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"

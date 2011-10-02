@@ -49,8 +49,8 @@ cdef double_t *get_double_ptr(ndarray arr):
 cdef extern from "math.h":
     double sqrt(double x)
 
-cdef extern from "cobject.h":
-    pass # for datetime API
+#cdef extern from "cobject.h":
+#    pass # for datetime API
 
 cdef extern from "datetime.h":
 
