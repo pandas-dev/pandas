@@ -779,6 +779,23 @@ class MultiIndex(Index):
         result[:] = list(self)
         return result
 
+    def get_level_values(self, level):
+        """
+        Return vector of label values for requested level, equal to the length
+        of the index
+
+        Parameters
+        ----------
+        level : int
+
+        Returns
+        -------
+        values : ndarray
+        """
+        unique_vals = self.levels[level].values
+        labels = self.labels[level]
+        return unique_vals.take(labels)
+
     def __contains__(self, key):
         try:
             label_key = self._get_label_key(key)

@@ -335,6 +335,11 @@ class TestMultiIndex(unittest.TestCase):
         result = MultiIndex.from_arrays(arrays)
         self.assertEquals(list(result), list(self.index))
 
+    def test_get_level_values(self):
+        result = self.index.get_level_values(0)
+        expected = ['foo', 'foo', 'bar', 'baz', 'qux', 'qux']
+        self.assert_(np.array_equal(result, expected))
+
     def test_nlevels(self):
         self.assertEquals(self.index.nlevels, 2)
 

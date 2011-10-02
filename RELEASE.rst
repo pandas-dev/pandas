@@ -22,6 +22,7 @@ This is an incremental bug fix and performance enhancement release
     substantial speed increases
   - Added `is_monotonic` property to `Index` classes with associated Cython
     code to evaluate the monotonicity of the `Index` values
+  - Add method `get_level_values` to `MultiIndex`
 
 **Improvements to existing features**
 
@@ -35,6 +36,9 @@ This is an incremental bug fix and performance enhancement release
     created. Substantial performance increases result (GH #176)
   - Substantially improved performance of generic `Index.intersection` and
     `Index.union`
+  - Improved performance of `DateRange.union` with overlapping ranges and
+    non-cacheable offsets (like Minute). Implemented analogous fast
+    `DateRange.intersection` for overlapping ranges.
   - Implemented `BlockManager.take` resulting in significantly faster `take`
     performance on mixed-type `DataFrame` objects (GH #104)
   - Improved performance of `Series.sort_index`
@@ -55,6 +59,12 @@ This is an incremental bug fix and performance enhancement release
     GH #182
   - Finish implementation of as_index=False in groupby for DataFrame
     aggregation (GH #181)
+
+Thanks
+------
+
+- Uri Laserson
+- Scott Sinclair
 
 pandas 0.4.1
 ============
