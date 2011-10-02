@@ -59,7 +59,7 @@ class Index(np.ndarray):
 
     @property
     def dtype(self):
-        return np.dtype('object')
+        return self.values.dtype
 
     def summary(self):
         if len(self) > 0:
@@ -544,17 +544,32 @@ class Index(np.ndarray):
 class Int64Index(Index):
 
     def __new__(cls, data, dtype=None, copy=False):
-        if isinstance(data, np.ndarray):
-            subarr = np.array(data, dtype=np.int64, copy=copy)
-        elif np.isscalar(data):
-            raise ValueError('Index(...) must be called with a collection '
-                             'of some kind, %s was passed' % repr(data))
-        else:
+        if not isinstance(data, np.ndarray):
+            if np.isscalar(data):
+                raise ValueError('Index(...) must be called with a collection '
+                                 'of some kind, %s was passed' % repr(data))
+
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
-            subarr = np.asarray(data, dtype=np.int64)
+            data= np.asarray(data)
+
+        if issubclass(data.dtype.type, basestring):
+            raise TypeError('String dtype not supported, you may need '
+                            'to explicitly cast to int')
+        elif issubclass(data.dtype.type, np.integer):
+            subarr = np.array(data, dtype=np.int64, copy=copy)
+        else:
+            subarr = np.array(data, dtype=np.int64, copy=copy)
+            if len(data) > 0:
+                if (subarr != data).any():
+                    raise TypeError('Unsafe NumPy casting, you must explicitly '
+                                    'cast')
+
         return subarr.view(cls)
+
+    def astype(self, dtype):
+        return Index(self.values.astype(dtype))
 
     @property
     def dtype(self):
@@ -609,16 +624,16 @@ class Int64Index(Index):
                                          target.indexMap)
         elif method is None:
             indexer = lib.merge_indexer_int64(target, self.indexMap)
-        else:
+        else:  # pragma: no cover
             raise ValueError('unrecognized method: %s' % method)
         return indexer
     get_indexer.__doc__ = Index.get_indexer.__doc__
 
     def join(self, other, how='left', return_indexers=False):
         if not isinstance(other, Int64Index):
-            return Index.join(self, other, how=how,
+            self_as_index = Index(self, dtype=object)
+            return Index.join(self_as_index, other, how=how,
                               return_indexers=return_indexers)
-
 
         if self.is_monotonic and other.is_monotonic:
             return self._join_monotonic(other, how=how,
@@ -760,6 +775,10 @@ class MultiIndex(Index):
             self.sortorder = int(sortorder)
         else:
             self.sortorder = sortorder
+
+    @property
+    def dtype(self):
+        return np.dtype('O')
 
     def __iter__(self):
         values = [np.asarray(lev).take(lab)

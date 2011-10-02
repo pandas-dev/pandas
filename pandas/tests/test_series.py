@@ -595,8 +595,8 @@ class TestSeries(unittest.TestCase):
             _check_fill(op, equiv_op, a, b, fill_value=fv)
 
     def test_combine_first(self):
-        series = Series(common.makeIntIndex(20).astype(float),
-                        index=common.makeIntIndex(20))
+        values = common.makeIntIndex(20).values.astype(float)
+        series = Series(values, index=common.makeIntIndex(20))
 
         series_copy = series * 2
         series_copy[::2] = np.NaN

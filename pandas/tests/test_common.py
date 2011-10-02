@@ -126,9 +126,6 @@ def test_groupby():
 
 class TestTake(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     def test_1d_with_out(self):
         def _test_dtype(dtype):
             out = np.empty(5, dtype=dtype)
