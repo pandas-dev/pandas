@@ -12,6 +12,9 @@ import itertools
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
+import decimal
+import math
+
 import pandas._tseries as lib
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
@@ -354,6 +357,109 @@ def set_printoptions(precision=None, column_space=None):
         _float_format = lambda x: float_format % x
     if column_space is not None:
         _column_space = column_space
+
+class EngFormatter(object):
+    """
+    Formats float values according to engineering format.
+
+    Based on matplotlib.ticker.EngFormatter
+    """
+
+    # The SI engineering prefixes
+    ENG_PREFIXES = {
+        -24: "y",
+        -21: "z",
+        -18: "a",
+        -15: "f",
+        -12: "p",
+         -9: "n",
+         -6: "u",
+         -3: "m",
+          0: "",
+          3: "k",
+          6: "M",
+          9: "G",
+         12: "T",
+         15: "P",
+         18: "E",
+         21: "Z",
+         24: "Y"
+      }
+
+    def __init__(self, precision=None, use_eng_prefix=False):
+        self.precision = precision
+        self.use_eng_prefix = use_eng_prefix
+
+    def __call__(self, num):
+        """ Formats a number in engineering notation, appending a letter
+        representing the power of 1000 of the original number. Some examples:
+
+        >>> format_eng(0)       for self.precision = 0
+        '0'
+
+        >>> format_eng(1000000) for self.precision = 1,
+                                    self.use_eng_prefix = True
+        '1.0M'
+
+        >>> format_eng("-1e-6") for self.precision = 2
+                                    self.use_eng_prefix = False
+        '-1.00E-06'
+
+        @param num: the value to represent
+        @type num: either a numeric value or a string that can be converted to
+                   a numeric value (as per decimal.Decimal constructor)
+
+        @return: engineering formatted string
+        """
+
+        dnum = decimal.Decimal(str(num))
+
+        sign = 1
+
+        if dnum < 0:
+            sign = -1
+            dnum = -dnum
+
+        if dnum != 0:
+            pow10 = decimal.Decimal(int(math.floor(dnum.log10()/3)*3))
+        else:
+            pow10 = decimal.Decimal(0)
+
+        pow10 = pow10.min(max(self.ENG_PREFIXES.keys()))
+        pow10 = pow10.max(min(self.ENG_PREFIXES.keys()))
+        int_pow10 = int(pow10)
+
+        if self.use_eng_prefix:
+            prefix = self.ENG_PREFIXES[int_pow10]
+        else:
+            if int_pow10 < 0:
+                prefix = 'E-%02d' % (-int_pow10)
+            else:
+                prefix = 'E+%02d' % int_pow10
+
+        mant = sign*dnum/(10**pow10)
+
+        if self.precision is None:
+            format_str = u"%g%s"
+        elif self.precision == 0:
+            format_str = u"%i%s"
+        elif self.precision > 0:
+            format_str = (u"%%.%if%%s" % self.precision)
+
+        formatted = format_str % (mant, prefix)
+
+        return formatted.strip()
+
+def set_eng_float_format(precision=3, use_eng_prefix=False):
+    """
+    Alter default behavior on how float is formatted in DataFrame.
+    Format float in engineering format.
+
+    See also EngFormatter.
+    """
+    global _float_format, _column_space
+    _float_format = EngFormatter(precision, use_eng_prefix)
+    _column_space = max(12, precision + 9)
 
 _float_format = lambda x: '%.4g' % x
 _column_space = 12
