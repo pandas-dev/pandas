@@ -999,7 +999,7 @@ def join_managers(left, right, axis=1, how='left'):
             if rindexer is None:
                 res_blk = blk.copy()
             else:
-                res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
+                res_blk = blk.reindex_axis(rindexer, rmask, rneed_masking,
                                            axis=axis)
             res_blk.ref_items = result_items
         else:

@@ -255,6 +255,7 @@ class CheckIndexing(object):
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.randn(10, 5))
         self.assertRaises(Exception, df.ix.__getitem__, slice(0, 8, 2))
+        self.assertRaises(Exception, df.ix.__setitem__, slice(0, 8, 2), np.nan)
 
     def test_setitem_fancy_2d(self):
         f = self.frame
@@ -2489,17 +2490,44 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           how='left')
 
     def test_join_index_mixed(self):
-        # TODO!
+        join_types = ['inner', 'outer', 'left', 'right']
 
         df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
-                        index=np.arange(10))
+                        index=np.arange(10),
+                        columns=['A', 'B', 'C', 'D'])
         self.assert_(df1['B'].dtype == np.int_)
         self.assert_(df1['D'].dtype == np.bool_)
 
         df2 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
-                        index=np.arange(0, 10, 2))
+                        index=np.arange(0, 10, 2),
+                        columns=['A', 'B', 'C', 'D'])
 
+        # overlap
         joined = df1.join(df2, lsuffix='_one', rsuffix='_two')
+        expected_columns = ['A_one', 'B_one', 'C_one', 'D_one',
+                            'A_two', 'B_two', 'C_two', 'D_two']
+        df1.columns = expected_columns[:4]
+        df2.columns = expected_columns[4:]
+        expected = _join_by_hand(df1, df2)
+        assert_frame_equal(joined, expected)
+
+        # no overlapping blocks
+        df1 = DataFrame(index=np.arange(10))
+        df1['bool'] = True
+        df1['string'] = 'foo'
+
+        df2 = DataFrame(index=np.arange(5, 15))
+        df2['int'] = 1
+        df2['float'] = 1.
+
+        for kind in join_types:
+            joined = df1.join(df2, how=kind)
+            expected = _join_by_hand(df1, df2, how=kind)
+            assert_frame_equal(joined, expected)
+
+            joined = df2.join(df1, how=kind)
+            expected = _join_by_hand(df2, df1, how=kind)
+            assert_frame_equal(joined, expected)
 
     def test_clip(self):
         median = self.frame.median().median()
@@ -3022,6 +3050,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = self.mixed_frame.take(order, axis=1)
         expected = self.mixed_frame.ix[:, ['foo', 'B', 'C', 'A', 'D']]
         assert_frame_equal(result, expected)
+
+def _join_by_hand(a, b, how='left'):
+    join_index = a.index.join(b.index, how=how)
+
+    a_re = a.reindex(join_index)
+    b_re = b.reindex(join_index)
+
+    result_columns = a.columns.append(b.columns)
+
+    for col, s in b_re.iteritems():
+        a_re[col] = s
+    return a_re.reindex(columns=result_columns)
 
 if __name__ == '__main__':
     # unittest.main()
