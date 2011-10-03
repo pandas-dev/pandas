@@ -49,7 +49,7 @@ cdef class IndexableSkiplist:
     lookup by rank.
     '''
     cdef:
-        int size, maxlevels
+        Py_ssize_t size, maxlevels
         Node head
 
     def __init__(self, expected_size=100):
@@ -63,8 +63,8 @@ cdef class IndexableSkiplist:
     def __getitem__(self, i):
         return self.get(i)
 
-    cpdef get(self, int i):
-        cdef int level
+    cpdef get(self, Py_ssize_t i):
+        cdef Py_ssize_t level
         cdef Node node
 
         node = self.head
@@ -78,7 +78,7 @@ cdef class IndexableSkiplist:
         return node.value
 
     cpdef insert(self, double value):
-        cdef int level, steps, d
+        cdef Py_ssize_t level, steps, d
         cdef Node node, prevnode, newnode, next_at_level, tmp
         cdef list chain, steps_at_level
 
@@ -117,7 +117,7 @@ cdef class IndexableSkiplist:
         self.size += 1
 
     cpdef remove(self, double value):
-        cdef int level, d
+        cdef Py_ssize_t level, d
         cdef Node node, prevnode, tmpnode, next_at_level
         cdef list chain
 
