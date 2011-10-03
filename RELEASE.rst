@@ -8,7 +8,7 @@ see the commit logs at http://github.com/wesm/pandas
 pandas 0.4.2
 ============
 
-**Release date:** not yet released
+**Release date:** 10/3/2011
 
 This is a performance optimization release with several bug fixes. The new
 Int64Index and new merging / joining Cython code and related Python
@@ -71,6 +71,8 @@ None
     GH #182
   - Finish implementation of as_index=False in groupby for DataFrame
     aggregation (GH #181)
+  - Raise SkipTest for pre-epoch HDFStore failure. Real fix will be sorted out
+    via datetime64 dtype
 
 Thanks
 ------
