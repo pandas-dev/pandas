@@ -17,6 +17,8 @@ import pandas.util.testing as common
 #-------------------------------------------------------------------------------
 # Series test cases
 
+JOIN_TYPES = ['inner', 'outer', 'left', 'right']
+
 class TestSeries(unittest.TestCase):
 
     def setUp(self):
@@ -868,6 +870,49 @@ class TestSeries(unittest.TestCase):
         # elementwise-apply
         import math
         assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
+
+    def test_align(self):
+        def _check_align(a, b, how='left'):
+            aa, ab = a.align(b, join=how)
+
+            join_index = a.index.join(b.index, how=how)
+            ea = a.reindex(join_index)
+            eb = b.reindex(join_index)
+
+            assert_series_equal(aa, ea)
+            assert_series_equal(ab, eb)
+
+        for kind in JOIN_TYPES:
+            _check_align(self.ts[2:], self.ts[:-5])
+
+    def test_align_nocopy(self):
+        b = self.ts[:5].copy()
+
+        # do copy
+        a = self.ts.copy()
+        ra, _ = a.align(b, join='left')
+        ra[:5] = 5
+        self.assert_(not (a[:5] == 5).any())
+
+        # do not copy
+        a = self.ts.copy()
+        ra, _ = a.align(b, join='left', copy=False)
+        ra[:5] = 5
+        self.assert_((a[:5] == 5).all())
+
+        # do copy
+        a = self.ts.copy()
+        b = self.ts[:5].copy()
+        _, rb = a.align(b, join='right')
+        rb[:3] = 5
+        self.assert_(not (b[:3] == 5).any())
+
+        # do not copy
+        a = self.ts.copy()
+        b = self.ts[:5].copy()
+        _, rb = a.align(b, join='right', copy=False)
+        rb[:2] = 5
+        self.assert_((b[:2] == 5).all())
 
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)

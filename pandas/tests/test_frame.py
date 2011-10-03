@@ -26,6 +26,8 @@ import pandas.util.testing as tm
 #-------------------------------------------------------------------------------
 # DataFrame test cases
 
+JOIN_TYPES = ['inner', 'outer', 'left', 'right']
+
 class CheckIndexing(object):
 
     def test_getitem(self):
@@ -2490,7 +2492,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           how='left')
 
     def test_join_index_mixed(self):
-        join_types = ['inner', 'outer', 'left', 'right']
 
         df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
                         index=np.arange(10),
@@ -2520,7 +2521,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df2['int'] = 1
         df2['float'] = 1.
 
-        for kind in join_types:
+        for kind in JOIN_TYPES:
             joined = df1.join(df2, how=kind)
             expected = _join_by_hand(df1, df2, how=kind)
             assert_frame_equal(joined, expected)

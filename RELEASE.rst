@@ -21,6 +21,8 @@ This is an incremental bug fix and performance enhancement release
   - Refactored `Index` classes to have a `join` method and associated data
     alignment routines throughout the codebase to be able to leverage optimized
     joining / merging routines.
+  - Added `Series.align` method for aligning two series with choice of join
+    method
   - Wrote faster Cython data alignment / merging routines resulting in
     substantial speed increases
   - Added `is_monotonic` property to `Index` classes with associated Cython

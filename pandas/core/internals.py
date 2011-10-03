@@ -972,7 +972,7 @@ def join_managers(left, right, axis=1, how='left'):
 
     # copies all data by definition
 
-    kinds = [FloatBlock, ObjectBlock, BoolBlock, IntBlock]
+    kinds = set(left_blockmap) | set(right_blockmap)
     for klass in kinds:
         if klass in left_blockmap and klass in right_blockmap:
             # true merge, do not produce intermediate copy
@@ -1002,9 +1002,6 @@ def join_managers(left, right, axis=1, how='left'):
                 res_blk = blk.reindex_axis(rindexer, rmask, rneed_masking,
                                            axis=axis)
             res_blk.ref_items = result_items
-        else:
-            # not found in either
-            continue
 
         result_blocks.append(res_blk)
 
