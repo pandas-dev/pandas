@@ -251,7 +251,7 @@ def _maybe_mask(result, mask, needs_masking, axis=0, out_passed=False):
     return result
 
 def _maybe_upcast(values):
-    if issubclass(values.dtype.type, np.int_):
+    if issubclass(values.dtype.type, np.integer):
         values = values.astype(float)
     elif issubclass(values.dtype.type, np.bool_):
         values = values.astype(object)
@@ -259,7 +259,7 @@ def _maybe_upcast(values):
     return values
 
 def _need_upcast(values):
-    if issubclass(values.dtype.type, (np.int_, np.bool_)):
+    if issubclass(values.dtype.type, (np.integer, np.bool_)):
         return True
     return False
 

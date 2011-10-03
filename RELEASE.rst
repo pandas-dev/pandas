@@ -10,7 +10,9 @@ pandas 0.4.2
 
 **Release date:** not yet released
 
-This is an incremental bug fix and performance enhancement release
+This is a performance optimization release with several bug fixes. The new
+Int64Index and new merging / joining Cython code and related Python
+infrastructure are the main new additions
 
 **New features / modules**
 

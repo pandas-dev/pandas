@@ -446,8 +446,8 @@ class HDFStore(object):
         elif variety == 'regular':
             _, index = self._read_index_node(getattr(group, key))
             return index
-        else:
-            raise Exception('unrecognized index variety')
+        else:  # pragma: no cover
+            raise Exception('unrecognized index variety: %s' % variety)
 
     def _write_multi_index(self, group, key, index):
         setattr(group._v_attrs, '%s_nlevels' % key, index.nlevels)
@@ -657,7 +657,7 @@ class HDFStore(object):
             lp = lp.sortlevel(level=0)
             wp = lp.to_wide()
         else:
-            if not self._quiet:
+            if not self._quiet:  # pragma: no cover
                 print ('Duplicate entries in table, taking most recently '
                        'appended')
 
