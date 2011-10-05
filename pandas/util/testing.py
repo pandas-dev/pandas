@@ -70,6 +70,10 @@ def isiterable(obj):
 def assert_almost_equal(a, b):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
+    
+    if isinstance(a, basestring):
+        assert a == b, (a, b)
+        return True
 
     if isiterable(a):
         np.testing.assert_(isiterable(b))

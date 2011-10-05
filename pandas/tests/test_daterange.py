@@ -298,6 +298,7 @@ def _skip_if_no_pytz():
     try:
         import pytz
     except ImportError:
+        import nose
         raise nose.SkipTest
 
 if __name__ == '__main__':
