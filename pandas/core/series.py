@@ -419,6 +419,9 @@ copy : boolean, default False
         Lazily iterate over (index, value) tuples
         """
         return itertools.izip(iter(self.index), iter(self))
+    
+    if py3compat.PY3:
+        items = iteritems
 
     #----------------------------------------------------------------------
     #   Arithmetic operators

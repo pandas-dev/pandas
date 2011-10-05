@@ -278,6 +278,9 @@ class DataFrame(NDFrame):
         """Iterator over (column, series) pairs"""
         series = self._series
         return ((k, series[k]) for k in self.columns)
+    
+    if py3compat.PY3:
+        items = iteritems
 
     def __len__(self):
         """Returns length of index"""
