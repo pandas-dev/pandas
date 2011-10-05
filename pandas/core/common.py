@@ -1,8 +1,10 @@
 """
 Misc tools for implementing data structures
 """
-
-from cStringIO import StringIO
+try:
+    from io import BytesIO
+except ImportError:   # Python < 2.6
+    from cStringIO import StringIO as BytesIO
 import itertools
 
 from numpy.lib.format import read_array, write_array
@@ -77,13 +79,13 @@ def notnull(obj):
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)
 
-    buf = StringIO()
+    buf = BytesIO()
     write_array(buf, arr)
 
     return buf.getvalue()
 
 def _unpickle_array(bytes):
-    arr = read_array(StringIO(bytes))
+    arr = read_array(BytesIO(bytes))
     return arr
 
 def _take_1d_bool(arr, indexer, out):

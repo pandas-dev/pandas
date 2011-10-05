@@ -926,7 +926,7 @@ class DataFrame(NDFrame):
     def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
-        if hasattr(value, '__iter__'):
+        if hasattr(value, '__iter__') and not isinstance(value, basestring):
             if isinstance(value, Series):
                 if value.index.equals(self.index):
                     # copy the values
