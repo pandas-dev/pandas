@@ -61,7 +61,7 @@ class TestGroupBy(unittest.TestCase):
                                 columns=['A', 'B', 'C'])
 
     def test_basic(self):
-        data = Series(np.arange(9) / 3, index=np.arange(9))
+        data = Series(np.arange(9) // 3, index=np.arange(9))
 
         index = np.arange(9)
         np.random.shuffle(index)
@@ -197,7 +197,7 @@ class TestGroupBy(unittest.TestCase):
         grouped.mean()
 
     def test_transform(self):
-        data = Series(np.arange(9) / 3, index=np.arange(9))
+        data = Series(np.arange(9) // 3, index=np.arange(9))
 
         index = np.arange(9)
         np.random.shuffle(index)

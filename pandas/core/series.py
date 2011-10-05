@@ -1542,7 +1542,7 @@ copy : boolean, default False
         path : string or None
             Output filepath. If None, write to stdout
         """
-        f = open(path, 'wb')
+        f = open(path, 'w')
         for idx, value in self.iteritems():
             f.write(str(idx) + ',' + str(value) + '\n')
         f.close()
