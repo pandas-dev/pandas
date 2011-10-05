@@ -15,6 +15,7 @@ from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.series import Series
 from pandas.util.decorators import deprecate
+from pandas.util import py3compat
 import pandas.core.common as common
 import pandas._tseries as _tseries
 
@@ -170,15 +171,21 @@ class Panel(NDFrame):
 
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
+    __truediv__ = _arith_method(operator.truediv, '__truediv__')
+    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
     __mul__ = _arith_method(operator.mul, '__mul__')
-    __div__ = _arith_method(operator.div, '__div__')
     __pow__ = _arith_method(operator.pow, '__pow__')
 
     __radd__ = _arith_method(operator.add, '__radd__')
     __rmul__ = _arith_method(operator.mul, '__rmul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
+    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__')
+    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
+
+    if not py3compat.PY3:
+        __div__ = _arith_method(operator.div, '__div__')
+        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
 
     def __init__(self, data, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
@@ -642,8 +649,12 @@ class Panel(NDFrame):
 
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
-    divide = div = _panel_arith_method(operator.div, 'divide')
     multiply = mul = _panel_arith_method(operator.mul, 'multiply')
+    
+    try:
+        divide = div = _panel_arith_method(operator.div, 'divide')
+    except AttributeError:   # Python 3
+        divide = div = _panel_arith_method(operator.truediv, 'divide')
 
     def major_xs(self, key, copy=True):
         """
@@ -1214,8 +1225,12 @@ class LongPanel(DataFrame):
 
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
-    divide = div = _panel_arith_method(operator.div, 'divide')
     multiply = mul = _panel_arith_method(operator.mul, 'multiply')
+    
+    try:
+        divide = div = _panel_arith_method(operator.div, 'divide')
+    except AttributeError:   # Python 3
+        divide = div = _panel_arith_method(operator.truediv, 'divide')
 
     def to_wide(self):
         """

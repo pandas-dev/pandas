@@ -480,7 +480,10 @@ class groupby(dict):
         for value in seq:
             k = key(value)
             self.setdefault(k, []).append(value)
-    __iter__ = dict.iteritems
+    try:
+        __iter__ = dict.iteritems
+    except AttributeError:  # Python 3
+        __iter__ = dict.items
 
 def map_indices_py(arr):
     """

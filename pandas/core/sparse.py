@@ -20,6 +20,8 @@ from pandas.core.panel import Panel, LongPanel
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 
+from pandas.util import py3compat
+
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 
@@ -296,24 +298,31 @@ to sparse
     __add__ = _sparse_op_wrap(operator.add, 'add')
     __sub__ = _sparse_op_wrap(operator.sub, 'sub')
     __mul__ = _sparse_op_wrap(operator.mul, 'mul')
-    __div__ = _sparse_op_wrap(operator.div, 'div')
     __truediv__ = _sparse_op_wrap(operator.truediv, 'truediv')
+    __floordiv__ = _sparse_op_wrap(operator.floordiv, 'floordiv')
     __pow__ = _sparse_op_wrap(operator.pow, 'pow')
 
     # reverse operators
     __radd__ = _sparse_op_wrap(operator.add, '__radd__')
-    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
     __rsub__ = _sparse_op_wrap(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
     __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, '__rtruediv__')
+    __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'floordiv')
     __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
 
     # Inplace operators
     __iadd__ = __add__
     __isub__ = __sub__
     __imul__ = __mul__
-    __idiv__ = __div__
+    __itruediv__ = __truediv__
+    __ifloordiv__ = __floordiv__
     __ipow__ = __pow__
+    
+    # Python 2 division operators
+    if not py3compat.PY3:
+        __div__ = _sparse_op_wrap(operator.div, 'div')
+        __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+        __idiv__ = __div__
 
     @property
     def values(self):

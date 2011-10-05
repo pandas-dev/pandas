@@ -30,6 +30,7 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 from pandas.util.decorators import deprecate
+from pandas.util import py3compat
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
@@ -292,7 +293,7 @@ class DataFrame(NDFrame):
     add = _arith_method(operator.add, 'add')
     mul = _arith_method(operator.mul, 'multiply')
     sub = _arith_method(operator.sub, 'subtract')
-    div = _arith_method(operator.div, 'divide')
+    div = _arith_method(lambda x, y: x / y, 'divide')
 
     radd = _arith_method(operator.add, 'add')
     rmul = _arith_method(operator.mul, 'multiply')
@@ -302,19 +303,26 @@ class DataFrame(NDFrame):
     __add__ = _arith_method(operator.add, '__add__', default_axis=None)
     __sub__ = _arith_method(operator.sub, '__sub__', default_axis=None)
     __mul__ = _arith_method(operator.mul, '__mul__', default_axis=None)
-    __div__ = _arith_method(operator.div, '__div__', default_axis=None)
     __truediv__ = _arith_method(operator.truediv, '__truediv__',
+                               default_axis=None)
+    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__',
                                default_axis=None)
     __pow__ = _arith_method(operator.pow, '__pow__', default_axis=None)
 
     __radd__ = _arith_method(operator.add, '__radd__', default_axis=None)
     __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
-    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
                                 default_axis=None)
+    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__',
+                               default_axis=None)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
+    
+    # Python 2 division methods
+    if not py3compat.PY3:
+        __div__ = _arith_method(operator.div, '__div__', default_axis=None)
+        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
 
     def __neg__(self):
         return self * -1

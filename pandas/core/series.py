@@ -21,6 +21,7 @@ from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util.decorators import deprecate
+from pandas.util import py3compat
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas._tseries as lib
@@ -425,24 +426,30 @@ copy : boolean, default False
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
     __mul__ = _arith_method(operator.mul, '__mul__')
-    __div__ = _arith_method(operator.div, '__div__')
     __truediv__ = _arith_method(operator.truediv, '__truediv__')
+    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
     __pow__ = _arith_method(operator.pow, '__pow__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__')
 
     __radd__ = _arith_method(operator.add, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
-    __rdiv__ = _arith_method(lambda x, y: y / x, '__div__')
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')
+    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
 
     # Inplace operators
     __iadd__ = __add__
     __isub__ = __sub__
     __imul__ = __mul__
-    __idiv__ = __div__
+    __itruediv__ = __truediv__
+    __ifloordiv__ = __floordiv__
     __ipow__ = __pow__
+    
+    # Python 2 division operators
+    if not py3compat.PY3:
+        __div__ = _arith_method(operator.div, '__div__')
+        __rdiv__ = _arith_method(lambda x, y: y / x, '__div__')
+        __idiv__ = __div__
 
     #----------------------------------------------------------------------
     # Misc public methods
@@ -1031,7 +1038,10 @@ copy : boolean, default False
     add = _flex_method(operator.add, 'add')
     sub = _flex_method(operator.sub, 'subtract')
     mul = _flex_method(operator.mul, 'multiply')
-    div = _flex_method(operator.div, 'divide')
+    try:
+        div = _flex_method(operator.div, 'divide')
+    except AttributeError:    # Python 3
+        div = _flex_method(operator.truediv, 'divide')
 
     def combine(self, other, func, fill_value=nan):
         """
