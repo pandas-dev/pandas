@@ -31,7 +31,7 @@ N = 30
 K = 4
 
 def rands(n):
-    choices = string.letters + string.digits
+    choices = string.ascii_letters + string.digits
     return ''.join([random.choice(choices) for _ in xrange(n)])
 
 #-------------------------------------------------------------------------------
