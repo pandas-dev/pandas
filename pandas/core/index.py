@@ -296,6 +296,9 @@ class Index(np.ndarray):
 
         other = _ensure_index(other)
 
+        if other.dtype != np.object_:
+            other = other.astype(object)
+
         if self.is_monotonic and other.is_monotonic:
             return Index(lib.inner_join_indexer_object(self, other)[0])
         else:
@@ -663,6 +666,19 @@ class Int64Index(Index):
             return join_index, lidx, ridx
         else:
             return join_index
+
+    def intersection(self, other):
+        if not isinstance(other, Int64Index):
+            return Index.intersection(self.astype(object), other)
+
+        if self.is_monotonic and other.is_monotonic:
+            result = lib.inner_join_indexer_int64(self, other)[0]
+        else:
+            indexer = self.get_indexer(other)
+            indexer = indexer.take((indexer != -1).nonzero()[0])
+            return self.take(indexer)
+        return Int64Index(result)
+    intersection.__doc__ = Index.intersection.__doc__
 
     def union(self, other):
         if not isinstance(other, Int64Index):

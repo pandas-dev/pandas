@@ -517,6 +517,17 @@ class TestInt64Index(unittest.TestCase):
         right = self.index.join(other, how='right')
         self.assert_(right.equals(other))
 
+    def test_intersection(self):
+        other = Index([1, 2, 3, 4, 5])
+        result = self.index.intersection(other)
+        expected = np.sort(np.intersect1d(self.index.values, other.values))
+        self.assert_(np.array_equal(result, expected))
+
+        result = other.intersection(self.index)
+        expected = np.sort(np.asarray(np.intersect1d(self.index.values,
+                                                     other.values)))
+        self.assert_(np.array_equal(result, expected))
+
     def test_union(self):
 
         # corner case, non-Int64Index
