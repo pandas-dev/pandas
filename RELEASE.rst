@@ -5,6 +5,21 @@ Release Notes
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/wesm/pandas
 
+pandas 0.4.3
+============
+
+**Release date:** not yet released
+
+**Improvements to existing features**
+
+  - Skip xlrd-related unit tests if not installed
+
+**Bug fixes**
+
+  - Fix broken interaction between `Index` and `Int64Index` when calling
+    intersection. Implement `Int64Index.intersection`
+  - `MultiIndex.sortlevel` discarded the level names (GH #202)
+
 pandas 0.4.2
 ============
 

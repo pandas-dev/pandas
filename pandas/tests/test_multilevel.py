@@ -24,7 +24,8 @@ class TestMultiLevel(unittest.TestCase):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
                                columns=['A', 'B', 'C'])
 
@@ -219,6 +220,9 @@ class TestMultiLevel(unittest.TestCase):
         a_sorted = self.frame['A'].sortlevel(0)
         self.assertRaises(Exception,
                           self.frame.delevel()['A'].sortlevel)
+
+        # preserve names
+        self.assertEquals(a_sorted.index.names, self.frame.index.names)
 
     def test_sortlevel_by_name(self):
         self.frame.index.names = ['first', 'second']

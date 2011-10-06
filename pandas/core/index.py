@@ -1120,7 +1120,7 @@ class MultiIndex(Index):
 
         new_labels = [lab.take(indexer) for lab in self.labels]
         new_index = MultiIndex(levels=self.levels, labels=new_labels,
-                               sortorder=level)
+                               names=self.names, sortorder=level)
 
         return new_index, indexer
 
