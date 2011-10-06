@@ -476,7 +476,7 @@ class DataFrame(NDFrame):
                                default_fill_value=fill_value)
 
     def to_csv(self, path, nanRep='', cols=None, header=True,
-              index=True, index_label=None, mode='wb'):
+              index=True, index_label=None, mode='w'):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -495,7 +495,7 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
-        mode : Python write mode, default 'wb'
+        mode : Python write mode, default 'w'
         """
         f = open(path, mode)
         csvout = csv.writer(f)
@@ -670,7 +670,7 @@ class DataFrame(NDFrame):
 
     def get_dtype_counts(self):
         counts = {}
-        for _, series in self.iteritems():
+        for _, series in self.iterkv():
             if series.dtype in counts:
                 counts[series.dtype] += 1
             else:

@@ -800,7 +800,7 @@ class TestMultiIndex(unittest.TestCase):
         assert_almost_equal(r1, rexp1)
 
         self.assertRaises(Exception, idx1.get_indexer,
-                          list(zip(*idx2.get_tuple_index())[0]))
+                          list(list(zip(*idx2.get_tuple_index()))[0]))
 
     def test_format(self):
         self.index.format()
