@@ -3,6 +3,8 @@ from datetime import datetime
 import os
 import unittest
 
+import nose
+
 from numpy import nan
 import numpy as np
 
@@ -120,6 +122,11 @@ c,4,5
         assert_frame_equal(df, df2)
 
     def test_excel_table(self):
+        try:
+            import xlrd
+        except ImportError:
+            raise nose.SkipTest('xlrd not installed, skipping')
+
         pth = os.path.join(self.dirpath, 'test.xls')
         xls = ExcelFile(pth)
         df = xls.parse('Sheet1')
