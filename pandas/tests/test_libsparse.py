@@ -333,7 +333,7 @@ class TestSparseOperators(TestCase):
 
 # too cute? oh but how I abhor code duplication
 
-check_ops = ['add', 'sub', 'mul', 'div']
+check_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 def make_nanoptestf(op):
     def f(self):
         sparse_op = getattr(splib, 'sparse_nan%s' % op)

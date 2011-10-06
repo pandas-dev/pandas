@@ -361,12 +361,14 @@ class TestSparseSeries(TestCase,
         def check(a, b):
             _check_op(a, b, operator.add)
             _check_op(a, b, operator.sub)
-            _check_op(a, b, operator.div)
+            _check_op(a, b, operator.truediv)
+            _check_op(a, b, operator.floordiv)
             _check_op(a, b, operator.mul)
 
             _check_op(a, b, lambda x, y: operator.add(y, x))
             _check_op(a, b, lambda x, y: operator.sub(y, x))
-            _check_op(a, b, lambda x, y: operator.div(y, x))
+            _check_op(a, b, lambda x, y: operator.truediv(y, x))
+            _check_op(a, b, lambda x, y: operator.floordiv(y, x))
             _check_op(a, b, lambda x, y: operator.mul(y, x))
 
             # NaN ** 0 = 1 in C?
@@ -761,7 +763,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                 assert_sp_frame_equal(mixed_result, sparse_result,
                                       exact_indices=False)
 
-        opnames = ['add', 'sub', 'mul', 'div']
+        opnames = ['add', 'sub', 'mul', 'truediv', 'floordiv']
         ops = [getattr(operator, name) for name in opnames]
 
         fidx = frame.index
