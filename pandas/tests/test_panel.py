@@ -221,11 +221,12 @@ class SafeForSparse(object):
         common.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
+        """Test panel.iteritems(), aka panel.iterkv()"""
         # just test that it works
-        for k, v in self.panel.iteritems():
+        for k, v in self.panel.iterkv():
             pass
 
-        self.assertEqual(len(list(self.panel.iteritems())),
+        self.assertEqual(len(list(self.panel.iterkv())),
                          len(self.panel.items))
 
     def test_combineFrame(self):

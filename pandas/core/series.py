@@ -420,6 +420,7 @@ copy : boolean, default False
         """
         return itertools.izip(iter(self.index), iter(self))
     
+    iterkv = iteritems
     if py3compat.PY3:
         items = iteritems
 

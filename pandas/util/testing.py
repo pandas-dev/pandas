@@ -123,7 +123,7 @@ def assert_series_equal(left, right):
 def assert_frame_equal(left, right):
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
-    for col, series in left.iteritems():
+    for col, series in left.iterkv():
         assert(col in right)
         assert_series_equal(series, right[col])
     for col in right:
@@ -136,7 +136,7 @@ def assert_panel_equal(left, right):
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
 
-    for col, series in left.iteritems():
+    for col, series in left.iterkv():
         assert(col in right)
         assert_frame_equal(series, right[col])
 

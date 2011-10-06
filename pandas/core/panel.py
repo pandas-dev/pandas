@@ -336,6 +336,10 @@ class Panel(NDFrame):
     def iteritems(self):
         for item in self.items:
             yield item, self[item]
+    
+    # Name that won't get automatically converted to items by 2to3. items is
+    # already in use for the first axis.
+    iterkv = iteritems
 
     def _get_plane_axes(self, axis):
         """
@@ -390,7 +394,7 @@ class Panel(NDFrame):
         y : SparseDataFrame
         """
         from pandas.core.sparse import SparsePanel
-        frames = dict(self.iteritems())
+        frames = dict(self.iterkv())
         return SparsePanel(frames, items=self.items,
                            major_axis=self.major_axis,
                            minor_axis=self.minor_axis,
@@ -639,7 +643,7 @@ class Panel(NDFrame):
         """
         if value is None:
             result = {}
-            for col, s in self.iteritems():
+            for col, s in self.iterkv():
                 result[col] = s.fillna(method=method, value=value)
 
             return Panel.from_dict(result)
