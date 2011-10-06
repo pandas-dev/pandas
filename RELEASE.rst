@@ -13,12 +13,16 @@ pandas 0.4.3
 **Improvements to existing features**
 
   - Skip xlrd-related unit tests if not installed
+  - `Index.append` and `MultiIndex.append` can accept a list of Index objects to
+    concatenate together
 
 **Bug fixes**
 
   - Fix broken interaction between `Index` and `Int64Index` when calling
     intersection. Implement `Int64Index.intersection`
   - `MultiIndex.sortlevel` discarded the level names (GH #202)
+  - Fix bugs in groupby, join, and append due to improper concatenation of
+    `MultiIndex` objets (GH #201)
 
 pandas 0.4.2
 ============
