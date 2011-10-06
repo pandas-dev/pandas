@@ -233,6 +233,30 @@ class TestTake(unittest.TestCase):
         result = common.take_2d(arr, [0, 2, -1])
         self.assert_(result.dtype == np.object_)
 
+    def test_2d_float32(self):
+        arr = np.random.randn(4, 3).astype(np.float32)
+        indexer = [0, 2, -1, 1, -1]
+
+        # axis=0
+        result = common.take_2d(arr, indexer)
+        result2 = np.empty_like(result)
+        common.take_2d(arr, indexer, out=result2)
+        tm.assert_almost_equal(result, result)
+
+        expected = arr.take(indexer, axis=0)
+        expected[[2, 4]] = np.nan
+        tm.assert_almost_equal(result, expected)
+
+        # axis=1
+        result = common.take_2d(arr, indexer, axis=1)
+        result2 = np.empty_like(result)
+        common.take_2d(arr, indexer, axis=1, out=result2)
+        tm.assert_almost_equal(result, result)
+
+        expected = arr.take(indexer, axis=1)
+        expected[:, [2, 4]] = np.nan
+        tm.assert_almost_equal(result, expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

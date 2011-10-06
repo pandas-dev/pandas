@@ -440,6 +440,10 @@ class TestInt64Index(unittest.TestCase):
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='inner',
                                           return_indexers=True)
+
+        res2 = self.index.intersection(other_mono)
+        self.assert_(res.equals(res2))
+
         eridx = np.array([1, 4])
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
