@@ -725,8 +725,9 @@ class SeriesGroupBy(GroupBy):
                 return result
             else:
                 cat_values = np.concatenate([x.values for x in values])
-                cat_index = np.concatenate([np.asarray(x.index)
-                                            for x in values])
+                cat_index = values[0].index
+                if len(values) > 1:
+                    cat_index = cat_index.append([x.index for x in values[1:]])
                 return Series(cat_values, index=cat_index)
         elif isinstance(values[0], DataFrame):
             # possible that Series -> DataFrame by applied function

@@ -113,8 +113,8 @@ def assert_dict_equal(a, b, compare_keys=True):
 
 def assert_series_equal(left, right):
     assert(left.dtype == right.dtype)
-    assert_almost_equal(left, right)
     assert(left.index.equals(right.index))
+    assert_almost_equal(left, right)
 
 def assert_frame_equal(left, right):
     assert(isinstance(left, DataFrame))

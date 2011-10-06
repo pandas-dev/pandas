@@ -137,7 +137,22 @@ class Index(np.ndarray):
             return Index(arr_idx[key])
 
     def append(self, other):
-        return Index(np.concatenate((self.values, other.values)))
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        if isinstance(other, (list, tuple)):
+            to_concat = (self.values,) + tuple(other)
+        else:
+            to_concat = self.values, other.values
+        return Index(np.concatenate(to_concat))
 
     def take(self, *args, **kwargs):
         """
@@ -996,14 +1011,32 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        other : MultiIndex
+        other : MultiIndex or list/tuple of MultiIndex objects
 
         Returns
         -------
         appended : MultiIndex
         """
-        assert(isinstance(other, MultiIndex))
-        new_tuples = np.concatenate((self.values, other.values))
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        if isinstance(other, (list, tuple)):
+            for k in other:
+                assert(isinstance(k, MultiIndex))
+
+            to_concat = (self.values,) + tuple(k.values for k in other)
+        else:
+            to_concat = self.values, other.values
+        new_tuples = np.concatenate(to_concat)
         return MultiIndex.from_tuples(new_tuples, names=self.names)
 
     def argsort(self, *args, **kwargs):

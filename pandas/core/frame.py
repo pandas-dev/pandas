@@ -2059,7 +2059,8 @@ class DataFrame(NDFrame):
         if ignore_index:
             new_index = None
         else:
-            new_index = np.concatenate((self.index, other.index))
+            new_index = self.index.append(other.index)
+            new_index._verify_integrity()
 
         if self.columns.equals(other.columns):
             return self._append_same_columns(other, new_index)

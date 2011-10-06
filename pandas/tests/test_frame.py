@@ -1611,6 +1611,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(self.frame, appended)
         self.assert_(appended is not self.frame)
 
+        # overlap
+        self.assertRaises(Exception, self.frame.append, self.frame)
+
     def test_append_records(self):
         arr1 = np.zeros((2,),dtype=('i4,f4,a10'))
         arr1[:] = [(1,2.,'Hello'),(2,3.,"World")]

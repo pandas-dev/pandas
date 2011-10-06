@@ -34,6 +34,15 @@ class TestMultiLevel(unittest.TestCase):
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
 
+    def test_append(self):
+        a, b = self.frame[:5], self.frame[5:]
+
+        result = a.append(b)
+        tm.assert_frame_equal(result, self.frame)
+
+        result = a['A'].append(b['A'])
+        tm.assert_series_equal(result, self.frame['A'])
+
     def test_pickle(self):
         import cPickle
         def _test_roundtrip(frame):
@@ -353,6 +362,28 @@ class TestMultiLevel(unittest.TestCase):
         restacked = unstacked.stack()
         assert_series_equal(restacked,
                             result.reindex(restacked.index).astype(float))
+
+    def test_groupby_transform(self):
+        s = self.frame['A']
+        grouper = s.index.get_level_values(0)
+
+        grouped = s.groupby(grouper)
+
+        applied = grouped.apply(lambda x: x * 2)
+        expected = grouped.transform(lambda x: x * 2)
+        assert_series_equal(applied.reindex(expected.index), expected)
+
+    def test_join(self):
+        a = self.frame.ix[:5, ['A']]
+        b = self.frame.ix[2:, ['B', 'C']]
+
+        joined = a.join(b, how='outer').reindex(self.frame.index)
+        expected = self.frame.copy()
+        expected.values[np.isnan(joined.values)] = np.nan
+
+        self.assert_(not np.isnan(joined.values).all())
+
+        assert_frame_equal(joined, expected)
 
     def test_swaplevel(self):
         swapped = self.frame['A'].swaplevel(0, 1)

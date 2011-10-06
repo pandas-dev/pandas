@@ -925,8 +925,7 @@ copy : boolean, default False
         -------
         y : Series
         """
-        new_index = np.concatenate((self.index, other.index))
-        new_index = Index(new_index)
+        new_index = self.index.append(other.index)
         new_index._verify_integrity()
 
         new_values = np.concatenate((self, other))
