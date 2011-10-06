@@ -436,7 +436,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             self.assertEqual(val, self.ts[i])
 
     def test_keys(self):
-        self.assert_(self.ts.keys() is self.ts.index)
+        # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
+        # to .keys() in a list()
+        getkeys = self.ts.keys
+        self.assert_(getkeys() is self.ts.index)
 
     def test_values(self):
         self.assert_(np.array_equal(self.ts, self.ts.values))
