@@ -392,7 +392,7 @@ def rands(n):
     """Generates a random alphanumeric string of length *n*"""
     from random import Random
     import string
-    return ''.join(Random().sample(string.letters+string.digits, n))
+    return ''.join(Random().sample(string.ascii_letters+string.digits, n))
 
 def adjoin(space, *lists):
     """
@@ -463,7 +463,8 @@ class groupby(dict):
     try:
         __iter__ = dict.iteritems
     except AttributeError:  # Python 3
-        __iter__ = dict.items
+        def __iter__(self):
+            return iter(dict.items(self))
 
 def map_indices_py(arr):
     """
