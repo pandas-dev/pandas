@@ -210,7 +210,10 @@ class PanelOLS(OLS):
         # for x named 'variety', then x_conversion['variety'][0] is 'A'.
         x_converted = {}
         cat_mapping = {}
-        for key, df in x.iteritems():
+        # x can be either a dict or a Panel, but in Python 3, dicts don't have
+        # .iteritems
+        iteritems = getattr(x, 'iteritems', x.items)
+        for key, df in iteritems():
             assert(isinstance(df, DataFrame))
 
             if _is_numeric(df):

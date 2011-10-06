@@ -278,6 +278,7 @@ class DataFrame(NDFrame):
         series = self._series
         return ((k, series[k]) for k in self.columns)
     
+    iterkv = iteritems
     if py3compat.PY3:
         items = iteritems
 
