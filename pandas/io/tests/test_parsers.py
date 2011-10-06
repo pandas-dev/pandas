@@ -120,6 +120,11 @@ c,4,5
         assert_frame_equal(df, df2)
 
     def test_excel_table(self):
+        try:
+            import xlrd
+        except ImportError:
+            import nose
+            raise nose.SkipTest
         pth = os.path.join(self.dirpath, 'test.xls')
         xls = ExcelFile(pth)
         df = xls.parse('Sheet1')
