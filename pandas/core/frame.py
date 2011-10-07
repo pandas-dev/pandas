@@ -495,7 +495,17 @@ class DataFrame(NDFrame):
             if index:
                 # should write something for index label
                 if index_label is None:
-                    index_label = getattr(self.index, 'names', ['index'])
+                    if isinstance(self.index, MultiIndex):
+                        index_label = []
+                        for i, name in enumerate(self.index.names):
+                            if name is None:
+                                name = 'level_%d' % i
+                            index_label.append(name)
+                    else:
+                        if self.index.name is None:
+                            index_label = self.index.name
+                            if index_label is None:
+                                index_label = ['index']
                 elif not isinstance(index_label, (list, tuple, np.ndarray)):
                     # given a string for a DF with Index
                     index_label = [index_label]
@@ -1782,7 +1792,10 @@ class DataFrame(NDFrame):
 
         zipped = zip(self.index.levels, self.index.labels)
         for i, (lev, lab) in reversed(list(enumerate(zipped))):
-            new_obj.insert(0, names[i], np.asarray(lev).take(lab))
+            col_name = names[i]
+            if col_name is None:
+                col_name = 'level_%d' % i
+            new_obj.insert(0, col_name, np.asarray(lev).take(lab))
 
         new_obj.index = np.arange(len(new_obj))
 

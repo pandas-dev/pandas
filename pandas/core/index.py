@@ -815,10 +815,14 @@ class MultiIndex(Index):
         self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
 
         if names is None:
-            self.names = ['level_%d' % i for i in range(self.nlevels)]
+            self.names = [None] * self.nlevels
         else:
             assert(len(names) == self.nlevels)
             self.names = list(names)
+
+        # # set the name
+        # for i, name in enumerate(self.names):
+        #     self.levels[i].name == name
 
         if sortorder is not None:
             self.sortorder = int(sortorder)

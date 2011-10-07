@@ -373,6 +373,14 @@ class TestMultiLevel(unittest.TestCase):
         assert_series_equal(restacked,
                             result.reindex(restacked.index).astype(float))
 
+    def test_stack_unstack_preserve_names(self):
+        unstacked = self.frame.unstack()
+        self.assertEquals(unstacked.index.name, 'first')
+        self.assertEquals(unstacked.columns.names, [None, 'second'])
+
+        restacked = unstacked.stack()
+        self.assertEquals(restacked.index.names, self.frame.index.names)
+
     def test_groupby_transform(self):
         s = self.frame['A']
         grouper = s.index.get_level_values(0)

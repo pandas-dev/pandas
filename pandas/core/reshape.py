@@ -59,6 +59,9 @@ class _Unstacker(object):
         self.level = self.index._get_level_number(level)
 
         self.new_index_levels = list(index.levels)
+        self.new_index_names = list(index.names)
+
+        self.removed_name = self.new_index_names.pop(level)
         self.removed_level = self.new_index_levels.pop(level)
 
         v = self.level
@@ -158,17 +161,22 @@ class _Unstacker(object):
         propagator = np.repeat(np.arange(width), stride)
         if isinstance(self.value_columns, MultiIndex):
             new_levels = self.value_columns.levels + [self.removed_level]
+            new_names = self.value_columns.names + [self.removed_name]
+
             new_labels = [lab.take(propagator)
                           for lab in self.value_columns.labels]
             new_labels.append(np.tile(np.arange(stride), width))
         else:
             new_levels = [self.value_columns, self.removed_level]
+            new_names = [self.value_columns.name, self.removed_name]
+
             new_labels = []
 
             new_labels.append(propagator)
             new_labels.append(np.tile(np.arange(stride), width))
 
-        return MultiIndex(levels=new_levels, labels=new_labels)
+        return MultiIndex(levels=new_levels, labels=new_labels,
+                          names=new_names)
 
     def get_new_index(self):
         result_labels = []
@@ -178,9 +186,11 @@ class _Unstacker(object):
         # construct the new index
         if len(self.new_index_levels) == 1:
             new_index = self.new_index_levels[0].take(self.unique_groups)
+            new_index.name = self.new_index_names[0]
         else:
             new_index = MultiIndex(levels=self.new_index_levels,
-                                   labels=result_labels)
+                                   labels=result_labels,
+                                   names=self.new_index_names)
 
         return new_index
 
@@ -279,7 +289,6 @@ def stack(frame, level=-1, dropna=True):
     if isinstance(frame.columns, MultiIndex):
         return _stack_multi_columns(frame, level=level, dropna=True)
     elif isinstance(frame.index, MultiIndex):
-
         new_levels = list(frame.index.levels)
         new_levels.append(frame.columns)
 
@@ -287,14 +296,15 @@ def stack(frame, level=-1, dropna=True):
         new_labels.append(np.tile(np.arange(K), N).ravel())
 
         new_names = list(frame.index.names)
-        new_names.append('columns')
+        new_names.append(frame.columns.name)
         new_index = MultiIndex(levels=new_levels, labels=new_labels,
                                names=new_names)
     else:
         ilabels = np.arange(N).repeat(K)
         clabels = np.tile(np.arange(K), N).ravel()
         new_index = MultiIndex(levels=[frame.index, frame.columns],
-                               labels=[ilabels, clabels])
+                               labels=[ilabels, clabels],
+                               names=[frame.index.name, frame.columns.name])
 
     new_values = frame.values.ravel()
     if dropna:
@@ -359,7 +369,7 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     else:
         new_levels = [this.index]
         new_labels = [np.arange(N).repeat(levsize)]
-        new_names = ['index'] # something better?
+        new_names = [this.index.name] # something better?
 
     new_levels.append(frame.columns.levels[level])
     new_labels.append(np.tile(np.arange(levsize), N))
