@@ -53,8 +53,8 @@ def isnull(obj):
     elif isinstance(obj, PandasObject):
         # TODO: optimize for DataFrame, etc.
         return obj.apply(isnull)
-    else:  # pragma: no cover
-        raise TypeError('cannot handle %s type' % type(obj))
+    else:
+        return obj is None
 
 def notnull(obj):
     '''
@@ -69,9 +69,10 @@ def notnull(obj):
     -------
     boolean ndarray or boolean
     '''
-    if np.isscalar(obj) or obj is None:
-        return not lib.checknull(obj)
-    return -isnull(obj)
+    res = isnull(obj)
+    if np.isscalar(res):
+        return not res
+    return -res
 
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)

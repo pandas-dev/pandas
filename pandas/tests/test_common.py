@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import unittest
 
 from pandas import Series, DataFrame
@@ -37,6 +39,10 @@ def test_isnull():
     result = isnull(df)
     expected = result.apply(isnull)
     tm.assert_frame_equal(result, expected)
+
+def test_isnull_datetime():
+    assert (not isnull(datetime.now()))
+    assert notnull(datetime.now())
 
 def test_any_none():
     assert(common._any_none(1, 2, 3, None))
