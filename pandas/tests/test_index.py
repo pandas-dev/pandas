@@ -568,6 +568,14 @@ class TestMultiIndex(unittest.TestCase):
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels])
 
+    def test_constructor_single_level(self):
+        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                                  labels=[[0, 1, 2, 3]],
+                                  names=['first'])
+        self.assert_(isinstance(single_level, Index))
+        self.assert_(not isinstance(single_level, MultiIndex))
+        self.assert_(single_level.name == 'first')
+
     def test_from_arrays(self):
         arrays = []
         for lev, lab in zip(self.index.levels, self.index.labels):
@@ -822,7 +830,6 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex(levels=self.index.levels[:-1],
                            labels=self.index.labels[:-1])
         self.assert_(not self.index.equals(index))
-        self.assert_(not self.index.equal_levels(index))
 
         # levels are different
         major_axis = Index(range(4))

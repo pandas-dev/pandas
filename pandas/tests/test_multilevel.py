@@ -29,6 +29,10 @@ class TestMultiLevel(unittest.TestCase):
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
                                columns=['A', 'B', 'C'])
 
+        self.single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                                       labels=[[0, 1, 2, 3]],
+                                       names=['first'])
+
         tm.N = 100
         self.tdf = tm.makeTimeDataFrame()
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
@@ -153,6 +157,12 @@ class TestMultiLevel(unittest.TestCase):
         result = ft.ix['B', 'foo']
         expected = ft.xs('B')['foo']
         assert_series_equal(result, expected)
+
+    def test_get_loc_single_level(self):
+        s = Series(np.random.randn(len(self.single_level)),
+                   index=self.single_level)
+        for k in self.single_level.values:
+            s[k]
 
     def test_getitem_toplevel(self):
         df = self.frame.T

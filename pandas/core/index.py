@@ -40,11 +40,10 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
-    def __new__(cls, data, dtype=None, copy=False):
+    def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
             if dtype is None and issubclass(data.dtype.type, np.integer):
-                subarr = data.astype(np.int64)
-                return subarr.view(Int64Index)
+                return Int64Index(data, copy=copy, name=self.name)
             subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
@@ -55,7 +54,13 @@ class Index(np.ndarray):
                 data = list(data)
             subarr = np.empty(len(data), dtype=object)
             subarr[:] = data
-        return subarr.view(cls)
+
+        subarr = subarr.view(cls)
+        subarr.name = name
+        return subarr
+
+    def __array_finalize__(self, obj):
+        self.name = getattr(obj, 'name', None)
 
     @property
     def dtype(self):
@@ -134,7 +139,7 @@ class Index(np.ndarray):
             if _is_bool_indexer(key):
                 key = np.asarray(key)
 
-            return Index(arr_idx[key])
+            return Index(arr_idx[key], name=self.name)
 
     def append(self, other):
         """
@@ -159,7 +164,7 @@ class Index(np.ndarray):
         Analogous to ndarray.take
         """
         taken = self.view(np.ndarray).take(*args, **kwargs)
-        return Index(taken)
+        return Index(taken, name=self.name)
 
     def format(self, vertical=False):
         """
@@ -561,7 +566,7 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
-    def __new__(cls, data, dtype=None, copy=False):
+    def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
                 raise ValueError('Index(...) must be called with a collection '
@@ -584,7 +589,9 @@ class Int64Index(Index):
                     raise TypeError('Unsafe NumPy casting, you must explicitly '
                                     'cast')
 
-        return subarr.view(cls)
+        subarr = subarr.view(cls)
+        subarr.name = name
+        return subarr
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype))
@@ -788,6 +795,18 @@ class MultiIndex(Index):
         Integers for each level designating which label at each location
     """
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
+        assert(len(levels) == len(labels))
+        if len(levels) == 0:
+            raise Exception('Must pass non-zero number of levels/labels')
+
+        if len(levels) == 1:
+            if names:
+                name = names[0]
+            else:
+                name = None
+
+            return Index(levels[0], name=name).take(labels[0])
+
         return np.arange(len(labels[0]), dtype=object).view(cls)
 
     def __init__(self, levels, labels, sortorder=None, names=None,

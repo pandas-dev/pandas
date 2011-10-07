@@ -46,7 +46,7 @@ class DateRange(Index):
     _cache = {}
     def __new__(cls, start=None, end=None, periods=None,
                 offset=datetools.bday, time_rule=None,
-                tzinfo=None, **kwds):
+                tzinfo=None, name=None, **kwds):
 
         time_rule = kwds.get('timeRule', time_rule)
         if time_rule is not None:
@@ -73,7 +73,8 @@ class DateRange(Index):
 
         if useCache:
             index = cls._cached_range(start, end, periods=periods,
-                                      offset=offset, time_rule=time_rule)
+                                      offset=offset, time_rule=time_rule,
+                                      name=name)
             if tzinfo is None:
                 return index
         else:
@@ -86,6 +87,7 @@ class DateRange(Index):
 
         index = np.array(index, dtype=object, copy=False)
         index = index.view(cls)
+        index.name = name
         index.offset = offset
         index.tzinfo = tzinfo
         return index
@@ -126,7 +128,7 @@ class DateRange(Index):
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
-                      time_rule=None):
+                      time_rule=None, name=None):
 
         # HACK: fix this dependency later
         if time_rule is not None:
@@ -142,6 +144,7 @@ class DateRange(Index):
             cachedRange = arr.view(DateRange)
             cachedRange.offset = offset
             cachedRange.tzinfo = None
+            cachedRange.name = None
             cls._cache[offset] = cachedRange
         else:
             cachedRange = cls._cache[offset]
@@ -175,7 +178,7 @@ class DateRange(Index):
             endLoc = cachedRange.indexMap[end] + 1
 
         indexSlice = cachedRange[startLoc:endLoc]
-
+        indexSlice.name = name
         return indexSlice
 
     def __array_finalize__(self, obj):
@@ -207,9 +210,10 @@ class DateRange(Index):
                 new_index.offset = self.offset
 
             new_index.tzinfo = self.tzinfo
+            new_index.name = self.name
             return new_index
         else:
-            return Index(result)
+            return Index(result, name=self.name)
 
     def summary(self):
         if len(self) > 0:
@@ -256,7 +260,7 @@ class DateRange(Index):
 
         start = self[0] + n * self.offset
         end = self[-1] + n * self.offset
-        return DateRange(start, end, offset=self.offset)
+        return DateRange(start, end, offset=self.offset, name=self.name)
 
     def union(self, other):
         """
@@ -347,6 +351,7 @@ class DateRange(Index):
         result = ndarray.view(DateRange)
         result.offset = self.offset
         result.tzinfo = self.tzinfo
+        result.name = self.name
         return result
 
     def _wrap_union_result(self, other, result):
@@ -364,6 +369,7 @@ class DateRange(Index):
         new_dates = new_dates.view(DateRange)
         new_dates.offset = self.offset
         new_dates.tzinfo = tz
+        new_dates.name = self.name
         return new_dates
 
     def tz_localize(self, tz):
@@ -378,6 +384,7 @@ class DateRange(Index):
         new_dates = new_dates.view(DateRange)
         new_dates.offset = self.offset
         new_dates.tzinfo = tz
+        new_dates.name = self.name
         return new_dates
 
     def tz_validate(self):
