@@ -19,12 +19,53 @@ import pandas.util.testing as common
 
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
+class CheckNameIntegration(object):
+
+    def test_scalarop_preserve_name(self):
+        result = self.ts * 2
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_copy_name(self):
+        result = self.ts.copy()
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_binop_maybe_preserve_name(self):
+        # names match, preserve
+        result = self.ts * self.ts
+        self.assertEquals(result.name, self.ts.name)
+
+        result = self.ts * self.ts[:-2]
+        self.assertEquals(result.name, self.ts.name)
+
+        # names don't match, don't preserve
+        cp = self.ts.copy()
+        cp.name = 'something else'
+        result = self.ts + cp
+        self.assert_(result.name is None)
+
+    def test_getitem_preserve_name(self):
+        result = self.ts[self.ts > 0]
+        self.assertEquals(result.name, self.ts.name)
+
+        result = self.ts[[0, 2, 4]]
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_pickle_preserve_name(self):
+        s = Series(1, index=np.arange(10), name='foo')
+        unpickled = self._pickle_roundtrip(s)
+        self.assertEquals(s.name, unpickled.name)
+
 class TestSeries(unittest.TestCase):
 
     def setUp(self):
         self.ts = common.makeTimeSeries()
+        self.ts.name = 'ts'
+
         self.series = common.makeStringSeries()
+        self.series.name = 'series'
+
         self.objSeries = common.makeObjectSeries()
+        self.objSeries.name = 'objects'
 
         self.empty = Series([], index=[])
 
@@ -127,15 +168,17 @@ class TestSeries(unittest.TestCase):
     def test_contains(self):
         common.assert_contains_all(self.ts.index, self.ts)
 
-    def test_save_load(self):
-        self.series.save('tmp1')
-        self.ts.save('tmp3')
-        unp_series = Series.load('tmp1')
-        unp_ts = Series.load('tmp3')
-        os.remove('tmp1')
-        os.remove('tmp3')
+    def test_pickle(self):
+        unp_series = self._pickle_roundtrip(self.series)
+        unp_ts = self._pickle_roundtrip(self.ts)
         assert_series_equal(unp_series, self.series)
         assert_series_equal(unp_ts, self.ts)
+
+    def _pickle_roundtrip(self, obj):
+        obj.save('__tmp__')
+        unpickled = Series.load('__tmp__')
+        os.remove('__tmp__')
+        return unpickled
 
     def test_getitem_get(self):
         idx1 = self.series.index[5]
