@@ -23,6 +23,10 @@ pandas 0.4.3
   - `MultiIndex.sortlevel` discarded the level names (GH #202)
   - Fix bugs in groupby, join, and append due to improper concatenation of
     `MultiIndex` objets (GH #201)
+  - Fix regression from 0.4.1, `isnull` and `notnull` ceased to work on other
+    kinds of Python scalar objects like `datetime.datetime`
+  - Raise more helpful exception when attempting to write empty DataFrame or
+    LongPanel to `HDFStore`
 
 pandas 0.4.2
 ============

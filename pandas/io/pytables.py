@@ -403,6 +403,9 @@ class HDFStore(object):
         return self._read_panel_table(group, where)
 
     def _write_long(self, group, panel, append=False):
+        if len(panel.values) == 0:
+            raise ValueError('Can not write empty structure, data length was 0')
+
         self._write_index(group, 'major_axis', panel.major_axis)
         self._write_index(group, 'minor_axis', panel.minor_axis)
         self._write_index(group, 'items', panel.items)
@@ -425,6 +428,9 @@ class HDFStore(object):
         return LongPanel(values, index=index, columns=items)
 
     def _write_index(self, group, key, index):
+        if len(index) == 0:
+            raise ValueError('Can not write empty structure, axis length was 0')
+
         if isinstance(index, MultiIndex):
             setattr(group._v_attrs, '%s_variety' % key, 'multi')
             self._write_multi_index(group, key, index)
