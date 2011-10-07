@@ -39,18 +39,29 @@ def _arith_method(op, name):
 
         if isinstance(other, Series):
             if self.index.equals(other.index):
-                return Series(op(self.values, other.values), index=self.index)
+                name = _maybe_match_name(self, other)
+                return Series(op(self.values, other.values), index=self.index,
+                              name=name)
 
             this_reindexed, other_reindexed = self.align(other, join='outer',
                                                          copy=False)
             arr = op(this_reindexed.values, other_reindexed.values)
-            return Series(arr, index=this_reindexed.index)
+
+            name = _maybe_match_name(self, other)
+            return Series(arr, index=this_reindexed.index, name=name)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
-            return Series(op(self.values, other), index=self.index)
+            return Series(op(self.values, other), index=self.index,
+                          name=self.name)
     return wrapper
+
+def _maybe_match_name(a, b):
+    name = None
+    if a.name == b.name:
+        name = a.name
+    return name
 
 def _flex_method(op, name):
     def f(self, other, fill_value=None):
@@ -201,6 +212,7 @@ copy : boolean, default False
         to pass on the index.
         """
         self._index = getattr(obj, '_index', None)
+        self.name = getattr(obj, 'name', None)
 
     def __contains__(self, key):
         return key in self.index
@@ -208,7 +220,7 @@ copy : boolean, default False
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(ndarray.__reduce__(self))
-        subclass_state = (self.index, )
+        subclass_state = (self.index, self.name)
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -216,8 +228,14 @@ copy : boolean, default False
         """Necessary for making this object picklable"""
         nd_state, own_state = state
         ndarray.__setstate__(self, nd_state)
-        index, = own_state
+
+        # backwards compat
+        index, name = own_state[0], None
+        if len(own_state) > 1:
+            name = own_state[1]
+
         self.index = index
+        self.name = name
 
     _ix = None
 
@@ -247,8 +265,8 @@ copy : boolean, default False
             pass
 
         def _index_with(indexer):
-            return Series(self.values[indexer],
-                          index=self.index[indexer])
+            return Series(self.values[indexer], index=self.index[indexer],
+                          name=self.name)
 
         # boolean
 
@@ -274,7 +292,7 @@ copy : boolean, default False
                 # TODO: what if a level contains tuples??
                 new_index = self.index[loc]
                 new_index = _maybe_droplevels(new_index, key)
-                return Series(values[loc], index=new_index)
+                return Series(values[loc], index=new_index, name=self.name)
             else:
                 return values[loc]
         except KeyError:
@@ -286,7 +304,7 @@ copy : boolean, default False
     _get_val_at = ndarray.__getitem__
 
     def __getslice__(self, i, j):
-        return Series(self.values[i:j], index=self.index[i:j])
+        return Series(self.values[i:j], index=self.index[i:j], name=self.name)
 
     def __setitem__(self, key, value):
         values = self.values
@@ -418,7 +436,7 @@ copy : boolean, default False
         -------
         cp : Series
         """
-        return Series(self.values.copy(), index=self.index)
+        return Series(self.values.copy(), index=self.index, name=self.name)
 
     def to_dict(self):
         """
@@ -929,7 +947,8 @@ copy : boolean, default False
         new_index._verify_integrity()
 
         new_values = np.concatenate((self, other))
-        return Series(new_values, index=new_index)
+        name = _maybe_match_name(self, other)
+        return Series(new_values, index=new_index, name=name)
 
     def _binop(self, other, func, fill_value=None):
         """
@@ -971,7 +990,8 @@ copy : boolean, default False
             other_vals[other_mask & mask] = fill_value
 
         result = func(this_vals, other_vals)
-        return Series(result, index=new_index)
+        name = _maybe_match_name(self, other)
+        return Series(result, index=new_index, name=name)
 
     add = _flex_method(operator.add, 'add')
     sub = _flex_method(operator.sub, 'subtract')
@@ -996,7 +1016,7 @@ copy : boolean, default False
         """
         if isinstance(other, Series):
             new_index = self.index + other.index
-
+            new_name = _maybe_match_name(self, other)
             new_values = np.empty(len(new_index), dtype=self.dtype)
             for i, idx in enumerate(new_index):
                 new_values[i] = func(self.get(idx, fill_value),
@@ -1004,8 +1024,8 @@ copy : boolean, default False
         else:
             new_index = self.index
             new_values = func(self.values, other)
-
-        return Series(new_values, index=new_index)
+            new_name = self.name
+        return Series(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
         """
@@ -1023,8 +1043,9 @@ copy : boolean, default False
         new_index = self.index + other.index
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
-        result = Series(np.where(isnull(this), other, this), index=new_index)
-        return result
+        name = _maybe_match_name(self, other)
+        return Series(np.where(isnull(this), other, this), index=new_index,
+                      name=name)
 
     #----------------------------------------------------------------------
     # Reindexing, sorting
@@ -1057,7 +1078,7 @@ copy : boolean, default False
             sort_index = sort_index[::-1]
         new_labels = labels.take(sort_index)
         new_values = self.values.take(sort_index)
-        return Series(new_values, new_labels)
+        return Series(new_values, new_labels, name=self.name)
 
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
@@ -1075,9 +1096,9 @@ copy : boolean, default False
             result = values.copy()
             notmask = -mask
             result[notmask] = np.argsort(values[notmask])
-            return Series(result, index=self.index)
+            return Series(result, index=self.index, name=self.name)
         else:
-            return Series(np.argsort(values), index=self.index)
+            return Series(np.argsort(values), index=self.index, name=self.name)
 
     def order(self, na_last=True, ascending=True, **kwds):
         """
@@ -1129,7 +1150,8 @@ copy : boolean, default False
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
 
-        return Series(arr[sortedIdx], index=self.index[sortedIdx])
+        return Series(arr[sortedIdx], index=self.index[sortedIdx],
+                      name=self.name)
 
     def sortlevel(self, level=0, ascending=True):
         """
@@ -1151,7 +1173,7 @@ copy : boolean, default False
 
         new_index, indexer = self.index.sortlevel(level, ascending=ascending)
         new_values = self.values.take(indexer)
-        return Series(new_values, index=new_index)
+        return Series(new_values, index=new_index, name=self.name)
 
     def swaplevel(self, i, j, copy=True):
         """
@@ -1162,7 +1184,7 @@ copy : boolean, default False
         swapped : Series
         """
         new_index = self.index.swaplevel(i, j)
-        return Series(self.values, index=new_index, copy=copy)
+        return Series(self.values, index=new_index, copy=copy, name=self.name)
 
     def unstack(self, level=-1):
         """
@@ -1241,9 +1263,10 @@ copy : boolean, default False
                                                arg.index.indexMap)
 
             new_values = common.take_1d(np.asarray(arg), indexer)
-            return Series(new_values, index=self.index)
+            return Series(new_values, index=self.index, name=self.name)
         else:
-            return Series([arg(x) for x in self], index=self.index)
+            return Series([arg(x) for x in self], index=self.index,
+                          name=self.name)
 
     def apply(self, func):
         """
@@ -1261,7 +1284,8 @@ copy : boolean, default False
         try:
             return func(self)
         except Exception:
-            return Series([func(x) for x in self], index=self.index)
+            return Series([func(x) for x in self], index=self.index,
+                          name=self.name)
 
     def align(self, other, join='outer', copy=True):
         """
@@ -1281,22 +1305,24 @@ copy : boolean, default False
                                                  return_indexers=True)
 
         if lidx is not None:
-            left = Series(common.take_1d(self.values, lidx), join_index)
+            left = Series(common.take_1d(self.values, lidx), join_index,
+                          name=self.name)
         else:
             if copy:
                 new_values = self.values.copy()
             else:
                 new_values = self.values
-            left = Series(new_values, join_index)
+            left = Series(new_values, join_index, name=self.name)
 
         if ridx is not None:
-            right = Series(common.take_1d(other.values, ridx), join_index)
+            right = Series(common.take_1d(other.values, ridx), join_index,
+                           name=other.name)
         else:
             if copy:
                 new_values = other.values.copy()
             else:
                 new_values = other.values
-            right = Series(new_values, join_index)
+            right = Series(new_values, join_index, name=other.name)
 
         return left, right
 
@@ -1330,11 +1356,11 @@ copy : boolean, default False
 
         index = _ensure_index(index)
         if len(self.index) == 0:
-            return Series(nan, index=index)
+            return Series(nan, index=index, name=self.name)
 
         new_index, fill_vec = self.index.reindex(index, method=method)
         new_values = common.take_1d(self.values, fill_vec)
-        return Series(new_values, index=new_index)
+        return Series(new_values, index=new_index, name=self.name)
 
     def reindex_like(self, other, method=None):
         """
@@ -1372,7 +1398,7 @@ copy : boolean, default False
         """
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
-        return Series(new_values, index=new_index)
+        return Series(new_values, index=new_index, name=self.name)
 
     def fillna(self, value=None, method='pad'):
         """
@@ -1421,7 +1447,7 @@ copy : boolean, default False
                 indexer = lib.get_backfill_indexer(mask)
 
             new_values = self.values.take(indexer)
-            return Series(new_values, index=self.index)
+            return Series(new_values, index=self.index, name=self.name)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous
@@ -1610,9 +1636,10 @@ copy : boolean, default False
                 new_values[:periods] = self.values[-periods:]
                 new_values[periods:] = nan
 
-            return Series(new_values, index=self.index)
+            return Series(new_values, index=self.index, name=self.name)
         else:
-            return Series(self, index=self.index.shift(periods, offset))
+            return Series(self, index=self.index.shift(periods, offset),
+                          name=self.name)
 
     def asof(self, date):
         """
@@ -1712,7 +1739,7 @@ copy : boolean, default False
         result[firstIndex:][invalid] = np.interp(inds[invalid], inds[valid],
                                                  values[firstIndex:][valid])
 
-        return Series(result, index=self.index)
+        return Series(result, index=self.index, name=self.name)
 
     def rename(self, mapper):
         """
@@ -1764,8 +1791,7 @@ copy : boolean, default False
 
     @property
     def weekday(self):
-        return Series([d.weekday() for d in self.index],
-                      index=self.index)
+        return Series([d.weekday() for d in self.index], index=self.index)
 
     #----------------------------------------------------------------------
     # Deprecated stuff

@@ -43,7 +43,7 @@ class Index(np.ndarray):
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
             if dtype is None and issubclass(data.dtype.type, np.integer):
-                return Int64Index(data, copy=copy, name=self.name)
+                return Int64Index(data, copy=copy, name=name)
             subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '

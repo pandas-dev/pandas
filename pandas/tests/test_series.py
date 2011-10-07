@@ -55,7 +55,7 @@ class CheckNameIntegration(object):
         unpickled = self._pickle_roundtrip(s)
         self.assertEquals(s.name, unpickled.name)
 
-class TestSeries(unittest.TestCase):
+class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def setUp(self):
         self.ts = common.makeTimeSeries()
