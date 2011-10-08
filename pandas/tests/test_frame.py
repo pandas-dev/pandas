@@ -48,6 +48,16 @@ class CheckIndexing(object):
         self.assert_('random' not in self.frame)
         self.assertRaises(Exception, self.frame.__getitem__, 'random')
 
+    def test_getitem_pop_assign_name(self):
+        s = self.frame['A']
+        self.assertEqual(s.name, 'A')
+
+        s = self.frame.pop('A')
+        self.assertEqual(s.name, 'A')
+
+        s = self.frame.ix[:, 'B']
+        self.assertEqual(s.name, 'B')
+
     def test_getitem_iterator(self):
         idx = iter(['A', 'B', 'C'])
         result = self.frame.ix[:, idx]

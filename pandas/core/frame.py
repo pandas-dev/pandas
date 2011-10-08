@@ -849,7 +849,7 @@ class DataFrame(NDFrame):
             return res
 
         values = self._data.get(key)
-        res = Series(values, index=self.index)
+        res = Series(values, index=self.index, name=key)
         self._series_cache[key] = res
         return res
 
@@ -995,7 +995,7 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
         new_data = self._data.xs(key, axis=1, copy=copy)
         if new_data.ndim == 1:
-            return Series(new_data.as_matrix(), index=self.columns)
+            return Series(new_data.as_matrix(), index=self.columns, name=key)
         else:
             result = DataFrame(new_data)
             result.index = _maybe_droplevels(result.index, key)

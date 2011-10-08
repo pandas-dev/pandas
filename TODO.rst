@@ -1,0 +1,2 @@
+- SparseSeries name integration + tests
+- Refactor Series.repr

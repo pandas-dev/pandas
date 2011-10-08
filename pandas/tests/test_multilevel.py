@@ -1,20 +1,16 @@
 # pylint: disable-msg=W0612,E1101
 from cStringIO import StringIO
-import operator
 import unittest
 
-from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 
-import pandas.core.datetools as datetools
-from pandas.core.index import MultiIndex, NULL_INDEX
-from pandas import Panel, DataFrame, Index, Series, notnull, isnull
+from pandas.core.index import MultiIndex
+from pandas import Panel, DataFrame, Series, notnull, isnull
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 randn)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 

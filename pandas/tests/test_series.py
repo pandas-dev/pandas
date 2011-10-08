@@ -29,6 +29,10 @@ class CheckNameIntegration(object):
         result = self.ts.copy()
         self.assertEquals(result.name, self.ts.name)
 
+    def test_append_preserve_name(self):
+        result = self.ts[:5].append(self.ts[5:])
+        self.assertEquals(result.name, self.ts.name)
+
     def test_binop_maybe_preserve_name(self):
         # names match, preserve
         result = self.ts * self.ts
@@ -43,6 +47,10 @@ class CheckNameIntegration(object):
         result = self.ts + cp
         self.assert_(result.name is None)
 
+    def test_combine_first_name(self):
+        result = self.ts.combine_first(self.ts[:5])
+        self.assertEquals(result.name, self.ts.name)
+
     def test_getitem_preserve_name(self):
         result = self.ts[self.ts > 0]
         self.assertEquals(result.name, self.ts.name)
@@ -50,10 +58,34 @@ class CheckNameIntegration(object):
         result = self.ts[[0, 2, 4]]
         self.assertEquals(result.name, self.ts.name)
 
+        result = self.ts[5:10]
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_multilevel_preserve_name(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        s = Series(np.random.randn(len(index)), index=index, name='sth')
+
+        result = s['foo']
+        result2 = s.ix['foo']
+        self.assertEquals(result.name, s.name)
+        self.assertEquals(result2.name, s.name)
+
     def test_pickle_preserve_name(self):
         s = Series(1, index=np.arange(10), name='foo')
         unpickled = self._pickle_roundtrip(s)
         self.assertEquals(s.name, unpickled.name)
+
+    def test_argsort_preserve_name(self):
+        result = self.ts.argsort()
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_sort_index_name(self):
+        result = self.ts.sort_index(ascending=False)
+        self.assertEquals(result.name, self.ts.name)
 
 class TestSeries(unittest.TestCase, CheckNameIntegration):
 
