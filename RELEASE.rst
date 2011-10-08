@@ -10,6 +10,13 @@ pandas 0.4.3
 
 **Release date:** not yet released
 
+**New features / modules**
+
+  - Add `name` attribute to standard Index so that stacking / unstacking does
+    not discard names and so that indexed DataFrame objects can be reliably
+    round-tripped to flat files, pickle, HDF5, etc.
+  - Add `name` attribute to `Series` and added relevant logic and tests
+
 **Improvements to existing features**
 
   - Skip xlrd-related unit tests if not installed
@@ -22,7 +29,7 @@ pandas 0.4.3
     intersection. Implement `Int64Index.intersection`
   - `MultiIndex.sortlevel` discarded the level names (GH #202)
   - Fix bugs in groupby, join, and append due to improper concatenation of
-    `MultiIndex` objets (GH #201)
+    `MultiIndex` objects (GH #201)
   - Fix regression from 0.4.1, `isnull` and `notnull` ceased to work on other
     kinds of Python scalar objects like `datetime.datetime`
   - Raise more helpful exception when attempting to write empty DataFrame or

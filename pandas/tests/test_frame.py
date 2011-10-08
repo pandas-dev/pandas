@@ -1524,18 +1524,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         frame = self.frame
         old_index = frame.index
-        new_index = MultiIndex.from_arrays(np.arange(len(old_index)*2).reshape(2,-1))
+        arrays = np.arange(len(old_index)*2).reshape(2,-1)
+        new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
         frame.index = new_index
         frame.to_csv(path, header=False)
         frame.to_csv(path, cols=['A', 'B'])
 
-
         # round trip
         frame.to_csv(path)
-
         df = DataFrame.from_csv(path, index_col=[0,1])
 
         assert_frame_equal(frame, df)
+        self.assertEqual(frame.index.names, df.index.names)
         self.frame.index = old_index # needed if setUP becomes a classmethod
 
         # try multiindex with dates
@@ -1964,6 +1964,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         })
 
         assert_frame_equal(pivoted, expected)
+
+        # name tracking
+        self.assertEqual(pivoted.index.name, 'index')
+        self.assertEqual(pivoted.columns.name, 'columns')
+
+        # don't specify values
+        pivoted = frame.pivot(index='index', columns='columns')
+        self.assertEqual(pivoted.index.name, 'index')
+        self.assertEqual(pivoted.columns.names, [None, 'columns'])
 
         # pivot multiple columns
         wp = tm.makePanel()

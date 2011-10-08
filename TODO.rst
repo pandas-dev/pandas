@@ -1,2 +1,6 @@
 - SparseSeries name integration + tests
 - Refactor Series.repr
+- .name pickling / unpicking / HDFStore handling
+- Is there a way to write hierarchical columns to csv?
+- Possible to blow away existing name when creating MultiIndex?
+- prettytable output with index names

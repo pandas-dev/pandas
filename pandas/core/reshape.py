@@ -200,7 +200,8 @@ def pivot(self, index=None, columns=None, values=None):
     """
     index_vals = self[index]
     column_vals = self[columns]
-    mindex = MultiIndex.from_arrays([index_vals, column_vals])
+    mindex = MultiIndex.from_arrays([index_vals, column_vals],
+                                    names=[index, columns])
 
     if values is None:
         items = self.columns - [index, columns]

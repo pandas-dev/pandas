@@ -566,7 +566,8 @@ class TestMultiIndex(unittest.TestCase):
         minor_labels = np.array([0, 1, 0, 1, 0, 1])
 
         self.index = MultiIndex(levels=[major_axis, minor_axis],
-                                labels=[major_labels, minor_labels])
+                                labels=[major_labels, minor_labels],
+                                names=['first', 'second'])
 
     def test_constructor_single_level(self):
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
@@ -603,7 +604,6 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(result == expected)
 
     def test_pickle(self):
-        import pickle
         pickled = pickle.dumps(self.index)
         unpickled = pickle.loads(pickled)
         self.assert_(self.index.equals(unpickled))
@@ -944,6 +944,11 @@ class TestMultiIndex(unittest.TestCase):
         dropped = self.index.drop(['foo', ('qux', 'one')])
         expected = self.index[[2, 3, 5]]
         self.assert_(dropped.equals(expected))
+
+    def test_droplevel_with_names(self):
+        index = self.index[self.index.get_loc('foo')]
+        dropped = index.droplevel(0)
+        self.assertEqual(dropped.name, 'second')
 
     def test_insert(self):
         # key contained in all levels

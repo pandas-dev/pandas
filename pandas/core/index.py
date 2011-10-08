@@ -5,10 +5,9 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
+from pandas.core.common import (adjoin as _adjoin, _stringify,
                                 _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import deprecate, cache_readonly
-import pandas.core.common as common
 import pandas._tseries as lib
 
 __all__ = ['Index']
@@ -820,9 +819,9 @@ class MultiIndex(Index):
             assert(len(names) == self.nlevels)
             self.names = list(names)
 
-        # # set the name
-        # for i, name in enumerate(self.names):
-        #     self.levels[i].name == name
+        # set the name
+        for i, name in enumerate(self.names):
+            self.levels[i].name = name
 
         if sortorder is not None:
             self.sortorder = int(sortorder)
@@ -1028,18 +1027,6 @@ class MultiIndex(Index):
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
 
-    def append(self, other):
-        """
-        Append two MultiIndex objects
-
-        Parameters
-        ----------
-        other : MultiIndex or list/tuple of MultiIndex objects
-
-        Returns
-        -------
-        appended : MultiIndex
-        """
     def append(self, other):
         """
         Append a collection of Index options together
