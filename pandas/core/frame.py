@@ -13,6 +13,7 @@ labeling information
 # pylint: disable=W0212,W0231,W0703,W0622
 
 from StringIO import StringIO
+import csv
 import operator
 import warnings
 
@@ -485,13 +486,13 @@ class DataFrame(NDFrame):
         mode : Python write mode, default 'wb'
         """
         f = open(path, mode)
+        csvout = csv.writer(f)
 
         if cols is None:
             cols = self.columns
 
         series = self._series
         if header:
-            joined_cols = ','.join([str(c) for c in cols])
             if index:
                 # should write something for index label
                 if index_label is None:
@@ -509,31 +510,26 @@ class DataFrame(NDFrame):
                 elif not isinstance(index_label, (list, tuple, np.ndarray)):
                     # given a string for a DF with Index
                     index_label = [index_label]
-                f.write('%s,%s' % (",".join(index_label), joined_cols))
+                csvout.writerow(list(index_label) + list(cols))
             else:
-                f.write(joined_cols)
-            f.write('\n')
+                csvout.writerow(cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
         for idx in self.index:
+            row_fields = []
             if index:
                 if nlevels == 1:
-                    f.write(str(idx))
+                    row_fields = [idx]
                 else: # handle MultiIndex
-                    f.write(",".join([str(i) for i in idx]))
+                    row_fields = list(idx)
             for i, col in enumerate(cols):
                 val = series[col].get(idx)
                 if isnull(val):
                     val = nanRep
-                else:
-                    val = str(val)
 
-                if i > 0 or index:
-                    f.write(',%s' % val)
-                else:
-                    f.write('%s' % val)
+                row_fields.append(val)
 
-            f.write('\n')
+            csvout.writerow(row_fields)
 
         f.close()
 

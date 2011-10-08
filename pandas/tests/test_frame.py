@@ -1582,6 +1582,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         lines = open(pth).readlines()
         self.assert_(lines[1].split(',')[2] == '999')
         os.remove(pth)
+    
+    def test_to_csv_withcommas(self):
+        "Commas inside fields should be correctly escaped when saving as CSV."
+        path = '__tmp__'
+        df = DataFrame({'A':[1,2,3], 'B':['5,6','7,8','9,0']})
+        df.to_csv(path)
+        df2 = DataFrame.from_csv(path)
+        assert_frame_equal(df2, df)
+        
+        os.remove(path)
 
     def test_info(self):
         io = StringIO()

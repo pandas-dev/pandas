@@ -5,6 +5,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+import csv
 import itertools
 import operator
 import sys
@@ -1589,8 +1590,8 @@ copy : boolean, default False
             Output filepath. If None, write to stdout
         """
         f = open(path, 'wb')
-        for idx, value in self.iteritems():
-            f.write(str(idx) + ',' + str(value) + '\n')
+        csvout = csv.writer(f)
+        csvout.writerows(self.iteritems())
         f.close()
 
     def dropna(self):
