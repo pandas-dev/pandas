@@ -3,11 +3,7 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 
-from cStringIO import StringIO
 import operator
-import sys
-import warnings
-
 import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive,

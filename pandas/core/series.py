@@ -186,6 +186,10 @@ copy : boolean, default False
         """
         pass
 
+    @property
+    def _constructor(self):
+        return Series
+
     def __hash__(self):
         raise TypeError('unhashable type')
 
@@ -304,7 +308,8 @@ copy : boolean, default False
     _get_val_at = ndarray.__getitem__
 
     def __getslice__(self, i, j):
-        return Series(self.values[i:j], index=self.index[i:j], name=self.name)
+        return self._constructor(self.values[i:j], index=self.index[i:j],
+                                 name=self.name)
 
     def __setitem__(self, key, value):
         values = self.values
@@ -354,24 +359,52 @@ copy : boolean, default False
     def __repr__(self):
         """Clean string representation of a Series"""
         if len(self.index) > 500:
-            return self._make_repr(50)
+            return self._tidy_repr(30)
         elif len(self.index) > 0:
-            return _seriesRepr(self.index, self.values)
+            return self._get_repr(name=True)
         else:
             return '%s' % ndarray.__repr__(self)
 
-    def _make_repr(self, max_vals=50):
+    def _tidy_repr(self, max_vals=20):
+        num = max_vals // 2
+        head = self[:num]._get_repr(name=False)
+        tail = self[-(max_vals - num):]._get_repr(name=False)
+        result = head + '\n...\n' + tail
+        result = '%s\nName: %s, Length: %d' % (result, self.name, len(self))
+        return result
+
+    def to_string(self, buffer=sys.stdout, nanRep='NaN'):
+        print >> buffer, self._get_repr(nanRep=nanRep)
+
+    def _get_repr(self, name=False, nanRep='NaN'):
         vals = self.values
         index = self.index
 
-        num = max_vals // 2
-        head = _seriesRepr(index[:num], vals[:num])
-        tail = _seriesRepr(index[-(max_vals - num):], vals[-(max_vals - num):])
-        return head + '\n...\n' + tail + '\nlength: %d' % len(vals)
+        string_index = index.format()
+        maxlen = max(len(x) for x in string_index)
+        padSpace = min(maxlen, 60)
 
-    def toString(self, buffer=sys.stdout, nanRep='NaN'):
-        print >> buffer, _seriesRepr(self.index, self.values,
-                                     nanRep=nanRep)
+        def _format_float(k, v):
+            if np.isnan(v):
+                v = nanRep
+            else:
+                v = str(v)
+            return '%s    %s' % (str(k).ljust(padSpace), v)
+
+        def _format_nonfloat(k, v):
+            return '%s    %s' % (str(k).ljust(padSpace), v)
+
+        if vals.dtype == np.float_:
+            _format = _format_float
+        else:
+            _format = _format_nonfloat
+
+        it = itertools.starmap(_format,
+                               itertools.izip(string_index, vals))
+        it = list(it)
+        if name:
+            it.append('Name: %s, Length: %d' % (str(self.name), len(self)))
+        return '\n'.join(it)
 
     def __str__(self):
         return repr(self)
@@ -462,7 +495,8 @@ copy : boolean, default False
         sp : SparseSeries
         """
         from pandas.core.sparse import SparseSeries
-        return SparseSeries(self, kind=kind, fill_value=fill_value)
+        return SparseSeries(self, kind=kind, fill_value=fill_value,
+                            name=self.name)
 
     def get(self, key, default=None):
         """
@@ -946,9 +980,9 @@ copy : boolean, default False
         new_index = self.index.append(other.index)
         new_index._verify_integrity()
 
-        new_values = np.concatenate((self, other))
+        new_values = np.concatenate((self.values, other.values))
         name = _maybe_match_name(self, other)
-        return Series(new_values, index=new_index, name=name)
+        return self._constructor(new_values, index=new_index, name=name)
 
     def _binop(self, other, func, fill_value=None):
         """
@@ -1804,6 +1838,7 @@ copy : boolean, default False
 
     asOf = deprecate('asOf', asof)
     toDict = deprecate('toDict', to_dict)
+    toString = deprecate('toString', to_string)
     merge = deprecate('merge', map)
     applymap = deprecate('applymap', apply)
     combineFirst = deprecate('combineFirst', combine_first)
@@ -1822,28 +1857,3 @@ def remove_na(arr):
     Return array containing only true/non-NaN values, possibly empty.
     """
     return arr[notnull(arr)]
-
-def _seriesRepr(index, vals, nanRep='NaN'):
-    string_index = index.format()
-    maxlen = max(len(x) for x in string_index)
-    padSpace = min(maxlen, 60)
-
-    if vals.dtype == np.object_:
-        def _format(k, v):
-            return '%s    %s' % (str(k).ljust(padSpace), v)
-    elif vals.dtype == np.float_:
-        def _format(k, v):
-            if np.isnan(v):
-                v = nanRep
-            else:
-                v = str(v)
-
-            return '%s    %s' % (str(k).ljust(padSpace), v)
-    else:
-        def _format(k, v):
-            return '%s    %s' % (str(k).ljust(padSpace), v)
-
-    it = itertools.starmap(_format,
-                           itertools.izip(string_index, vals))
-
-    return '\n'.join(it)

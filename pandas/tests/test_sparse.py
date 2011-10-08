@@ -26,6 +26,7 @@ from pandas.core.sparse import (IntIndex, BlockIndex,
 
 import test_frame
 import test_panel
+import test_series
 
 def _test_data1():
     # nan-based
@@ -101,7 +102,8 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
     for item in right:
         assert(item in left)
 
-class TestSparseSeries(TestCase):
+class TestSparseSeries(TestCase,
+                       test_series.CheckNameIntegration):
 
     def setUp(self):
         arr, index = _test_data1()
@@ -109,6 +111,10 @@ class TestSparseSeries(TestCase):
         date_index = DateRange('1/1/2011', periods=len(index))
 
         self.bseries = SparseSeries(arr, index=index, kind='block')
+        self.bseries.name = 'bseries'
+
+        self.ts = self.bseries
+
         self.btseries = SparseSeries(arr, index=date_index, kind='block')
 
         self.iseries = SparseSeries(arr, index=index, kind='integer')
@@ -160,6 +166,11 @@ class TestSparseSeries(TestCase):
         ziseries = series.to_sparse(kind='integer', fill_value=0)
         assert_sp_series_equal(zbseries, self.zbseries)
         assert_sp_series_equal(ziseries, self.ziseries)
+
+    def test_to_dense_preserve_name(self):
+        assert(self.bseries.name is not None)
+        result = self.bseries.to_dense()
+        self.assertEquals(result.name, self.bseries.name)
 
     def test_constructor(self):
         # test setup guys

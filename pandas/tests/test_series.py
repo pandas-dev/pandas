@@ -75,9 +75,14 @@ class CheckNameIntegration(object):
         self.assertEquals(result2.name, s.name)
 
     def test_pickle_preserve_name(self):
-        s = Series(1, index=np.arange(10), name='foo')
-        unpickled = self._pickle_roundtrip(s)
-        self.assertEquals(s.name, unpickled.name)
+        unpickled = self._pickle_roundtrip(self.ts)
+        self.assertEquals(unpickled.name, self.ts.name)
+
+    def _pickle_roundtrip(self, obj):
+        obj.save('__tmp__')
+        unpickled = Series.load('__tmp__')
+        os.remove('__tmp__')
+        return unpickled
 
     def test_argsort_preserve_name(self):
         result = self.ts.argsort()
@@ -85,6 +90,10 @@ class CheckNameIntegration(object):
 
     def test_sort_index_name(self):
         result = self.ts.sort_index(ascending=False)
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_to_sparse_pass_name(self):
+        result = self.ts.to_sparse()
         self.assertEquals(result.name, self.ts.name)
 
 class TestSeries(unittest.TestCase, CheckNameIntegration):

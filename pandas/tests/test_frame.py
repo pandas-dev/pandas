@@ -18,8 +18,7 @@ from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 randn)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 
@@ -47,16 +46,6 @@ class CheckIndexing(object):
 
         self.assert_('random' not in self.frame)
         self.assertRaises(Exception, self.frame.__getitem__, 'random')
-
-    def test_getitem_pop_assign_name(self):
-        s = self.frame['A']
-        self.assertEqual(s.name, 'A')
-
-        s = self.frame.pop('A')
-        self.assertEqual(s.name, 'A')
-
-        s = self.frame.ix[:, 'B']
-        self.assertEqual(s.name, 'B')
 
     def test_getitem_iterator(self):
         idx = iter(['A', 'B', 'C'])
@@ -648,6 +637,19 @@ _mixed_frame['foo'] = 'bar'
 
 class SafeForSparse(object):
 
+    def test_getitem_pop_assign_name(self):
+        s = self.frame['A']
+        self.assertEqual(s.name, 'A')
+
+        s = self.frame.pop('A')
+        self.assertEqual(s.name, 'A')
+
+        s = self.frame.ix[:, 'B']
+        self.assertEqual(s.name, 'B')
+
+        s2 = s.ix[:]
+        self.assertEqual(s2.name, 'B')
+
     def test_join_index(self):
         # left / right
 
@@ -697,6 +699,15 @@ class SafeForSparse(object):
                           how='outer')
 
         self.assertRaises(Exception, f.join, f2, how='foo')
+
+    def test_join_index_series(self):
+        df = self.frame.copy()
+        s = df.pop(self.frame.columns[-1])
+        joined = df.join(s)
+        assert_frame_equal(joined, self.frame)
+
+        s.name = None
+        self.assertRaises(Exception, df.join, s)
 
     def test_join_overlap(self):
         df1 = self.frame.ix[:, ['A', 'B', 'C']]
@@ -2551,6 +2562,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             joined = df2.join(df1, how=kind)
             expected = _join_by_hand(df2, df1, how=kind)
             assert_frame_equal(joined, expected)
+
+    def test_join_on_series(self):
+        pass
 
     def test_clip(self):
         median = self.frame.median().median()

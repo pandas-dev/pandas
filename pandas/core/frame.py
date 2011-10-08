@@ -2156,9 +2156,14 @@ class DataFrame(NDFrame):
         else:
             if how is None:
                 how = 'left'
+
             return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_on(self, other, on, lsuffix, rsuffix):
+        if isinstance(other, Series):
+            assert(other.name is not None)
+            other = DataFrame({other.name : other})
+
         if len(other.index) == 0:
             return self
 
@@ -2168,6 +2173,10 @@ class DataFrame(NDFrame):
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         from pandas.core.internals import join_managers
+
+        if isinstance(other, Series):
+            assert(other.name is not None)
+            other = DataFrame({other.name : other})
 
         thisdata, otherdata = self._data._maybe_rename_join(
             other._data, lsuffix, rsuffix, copydata=False)
