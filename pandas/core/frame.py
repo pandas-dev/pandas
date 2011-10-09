@@ -498,7 +498,7 @@ class DataFrame(NDFrame):
         mode : Python write mode, default 'w'
         """
         f = open(path, mode)
-        csvout = csv.writer(f)
+        csvout = csv.writer(f, lineterminator='\n')
 
         if cols is None:
             cols = self.columns

@@ -23,11 +23,12 @@ if sys.version_info.major >= 3:
         _have_setuptools = True
     except ImportError:
         raise ImportError('require setuptools/distribute for Py3k')
-    setuptools_args = {'use_2to3': True}
+    setuptools_args = {'use_2to3': True,
+                       'zip_safe': False,}
 else:
     setuptools_args = {}
 
-    
+
 import numpy as np
 
 # from numpy.distutils.core import setup
