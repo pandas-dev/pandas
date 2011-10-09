@@ -1604,7 +1604,7 @@ copy : boolean, default False
             Output filepath. If None, write to stdout
         """
         f = open(path, 'w')
-        csvout = csv.writer(f)
+        csvout = csv.writer(f, lineterminator='\n')
         csvout.writerows(self.iteritems())
         f.close()
 
