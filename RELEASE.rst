@@ -10,8 +10,12 @@ pandas 0.4.3
 
 **Release date:** not yet released
 
+This is largely a bugfix release from 0.4.2 but also includes a handful of new
+and enhanced features. Also, pandas can now be installed and used on Python 3!
+
 **New features / modules**
 
+  - Python 3 support using 2to3 (PR #200, Thomas Kluyver)
   - Add `name` attribute to standard Index so that stacking / unstacking does
     not discard names and so that indexed DataFrame objects can be reliably
     round-tripped to flat files, pickle, HDF5, etc.
@@ -22,6 +26,9 @@ pandas 0.4.3
   - Skip xlrd-related unit tests if not installed
   - `Index.append` and `MultiIndex.append` can accept a list of Index objects to
     concatenate together
+  - Altered binary operations on differently-indexed SparseSeries objects to use
+    the integer-based (dense) alignment logic which results in more than 10x
+    speedup over the block logic. Have not figured out why this is yet (GH #205)
 
 **Bug fixes**
 

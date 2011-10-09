@@ -747,12 +747,16 @@ cpdef sparse_nanpow(ndarray x, SparseIndex xindex,
 cdef inline tuple sparse_nancombine(ndarray x, SparseIndex xindex,
                                     ndarray y, SparseIndex yindex,
                                     double_func op):
-    if isinstance(xindex, BlockIndex):
-        return block_nanop(x, xindex.to_block_index(),
-                           y, yindex.to_block_index(), op)
-    elif isinstance(xindex, IntIndex):
-        return int_nanop(x, xindex.to_int_index(),
-                         y, yindex.to_int_index(), op)
+    # block_nanop is up to 40x slower and I don't know why yet
+    return int_nanop(x, xindex.to_int_index(),
+                     y, yindex.to_int_index(), op)
+
+    # if isinstance(xindex, BlockIndex):
+    #     return block_nanop(x, xindex.to_block_index(),
+    #                        y, yindex.to_block_index(), op)
+    # elif isinstance(xindex, IntIndex):
+    #     return int_nanop(x, xindex.to_int_index(),
+    #                      y, yindex.to_int_index(), op)
 
 cpdef sparse_add(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
