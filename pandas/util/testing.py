@@ -31,7 +31,7 @@ N = 30
 K = 4
 
 def rands(n):
-    choices = string.letters + string.digits
+    choices = string.ascii_letters + string.digits
     return ''.join([random.choice(choices) for _ in xrange(n)])
 
 #-------------------------------------------------------------------------------
@@ -70,6 +70,10 @@ def isiterable(obj):
 def assert_almost_equal(a, b):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
+    
+    if isinstance(a, basestring):
+        assert a == b, (a, b)
+        return True
 
     if isiterable(a):
         np.testing.assert_(isiterable(b))
@@ -119,7 +123,7 @@ def assert_series_equal(left, right):
 def assert_frame_equal(left, right):
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
-    for col, series in left.iteritems():
+    for col, series in left.iterkv():
         assert(col in right)
         assert_series_equal(series, right[col])
     for col in right:
@@ -132,7 +136,7 @@ def assert_panel_equal(left, right):
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
 
-    for col, series in left.iteritems():
+    for col, series in left.iterkv():
         assert(col in right)
         assert_frame_equal(series, right[col])
 

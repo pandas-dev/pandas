@@ -31,6 +31,15 @@ cdef inline float64_t __div(float64_t a, float64_t b):
     else:
         return a / b
 
+cdef inline float64_t __floordiv(float64_t a, float64_t b):
+    if b == 0:
+        if a >= 0:
+            return INF
+        else:
+            return -INF
+    else:
+        return a // b
+
 cdef inline float64_t __mul(float64_t a, float64_t b):
     return a * b
 cdef inline float64_t __eq(float64_t a, float64_t b):
@@ -725,6 +734,12 @@ cpdef sparse_nandiv(ndarray x, SparseIndex xindex,
                     ndarray y, SparseIndex yindex):
     return sparse_nancombine(x, xindex, y, yindex, __div)
 
+sparse_nantruediv = sparse_nandiv
+
+cpdef sparse_nanfloordiv(ndarray x, SparseIndex xindex,
+                    ndarray y, SparseIndex yindex):
+    return sparse_nancombine(x, xindex, y, yindex, __floordiv)
+
 cpdef sparse_nanpow(ndarray x, SparseIndex xindex,
                     ndarray y, SparseIndex yindex):
     return sparse_nancombine(x, xindex, y, yindex, __pow)
@@ -758,6 +773,12 @@ cpdef sparse_div(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __div)
+sparse_truediv = sparse_div
+
+cpdef sparse_floordiv(ndarray x, SparseIndex xindex, float64_t xfill,
+                 ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                             y, yindex, yfill, __floordiv)
 
 cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):

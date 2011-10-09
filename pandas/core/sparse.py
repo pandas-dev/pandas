@@ -20,6 +20,8 @@ from pandas.core.panel import Panel, LongPanel
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 
+from pandas.util import py3compat
+
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 
@@ -296,24 +298,31 @@ to sparse
     __add__ = _sparse_op_wrap(operator.add, 'add')
     __sub__ = _sparse_op_wrap(operator.sub, 'sub')
     __mul__ = _sparse_op_wrap(operator.mul, 'mul')
-    __div__ = _sparse_op_wrap(operator.div, 'div')
     __truediv__ = _sparse_op_wrap(operator.truediv, 'truediv')
+    __floordiv__ = _sparse_op_wrap(operator.floordiv, 'floordiv')
     __pow__ = _sparse_op_wrap(operator.pow, 'pow')
 
     # reverse operators
     __radd__ = _sparse_op_wrap(operator.add, '__radd__')
-    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
     __rsub__ = _sparse_op_wrap(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
     __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, '__rtruediv__')
+    __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'floordiv')
     __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
 
     # Inplace operators
     __iadd__ = __add__
     __isub__ = __sub__
     __imul__ = __mul__
-    __idiv__ = __div__
+    __itruediv__ = __truediv__
+    __ifloordiv__ = __floordiv__
     __ipow__ = __pow__
+    
+    # Python 2 division operators
+    if not py3compat.PY3:
+        __div__ = _sparse_op_wrap(operator.div, 'div')
+        __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+        __idiv__ = __div__
 
     @property
     def values(self):
@@ -1590,7 +1599,7 @@ class SparsePanel(Panel):
             return self._combinePanel(other, func)
         elif np.isscalar(other):
             new_frames = dict((k, func(v, other))
-                              for k, v in self.iteritems())
+                              for k, v in self.iterkv())
             return self._new_like(new_frames)
 
     def _combineFrame(self, other, func, axis=0):
@@ -1666,7 +1675,7 @@ class SparsePanel(Panel):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        slices = dict((k, v.xs(key)) for k, v in self.iteritems())
+        slices = dict((k, v.xs(key)) for k, v in self.iterkv())
         return DataFrame(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
@@ -1683,7 +1692,7 @@ class SparsePanel(Panel):
         y : SparseDataFrame
             index -> major axis, columns -> items
         """
-        slices = dict((k, v[key]) for k, v in self.iteritems())
+        slices = dict((k, v[key]) for k, v in self.iterkv())
         return SparseDataFrame(slices, index=self.major_axis,
                                columns=self.items,
                                default_fill_value=self.default_fill_value,

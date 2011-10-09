@@ -11,6 +11,7 @@ import numpy as np
 from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
 from pandas.core.index import MultiIndex
 import pandas.core.datetools as datetools
+from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as common
 
@@ -435,7 +436,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             self.assertEqual(val, self.ts[i])
 
     def test_keys(self):
-        self.assert_(self.ts.keys() is self.ts.index)
+        # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
+        # to .keys() in a list()
+        getkeys = self.ts.keys
+        self.assert_(getkeys() is self.ts.index)
 
     def test_values(self):
         self.assert_(np.array_equal(self.ts, self.ts.values))
@@ -566,13 +570,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         def check(other):
             _check_op(other, operator.add)
             _check_op(other, operator.sub)
-            _check_op(other, operator.div)
+            _check_op(other, operator.truediv)
+            _check_op(other, operator.floordiv)
             _check_op(other, operator.mul)
             _check_op(other, operator.pow)
 
             _check_op(other, lambda x, y: operator.add(y, x))
             _check_op(other, lambda x, y: operator.sub(y, x))
-            _check_op(other, lambda x, y: operator.div(y, x))
+            _check_op(other, lambda x, y: operator.truediv(y, x))
+            _check_op(other, lambda x, y: operator.floordiv(y, x))
             _check_op(other, lambda x, y: operator.mul(y, x))
             _check_op(other, lambda x, y: operator.pow(y, x))
 
@@ -630,7 +636,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         _check_op(arr, operator.add)
         _check_op(arr, operator.sub)
         _check_op(arr, operator.mul)
-        _check_op(arr, operator.div)
+        _check_op(arr, operator.truediv)
+        _check_op(arr, operator.floordiv)
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
@@ -671,7 +678,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
         ops = [Series.add, Series.sub, Series.mul, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul, operator.div]
+        equivs = [operator.add, operator.sub, operator.mul]
+        if py3compat.PY3:
+            equivs.append(operator.truediv)
+        else:
+            equivs.append(operator.div)
         fillvals = [0, 0, 1, 1]
 
         for op, equiv_op, fv in zip(ops, equivs, fillvals):
