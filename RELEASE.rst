@@ -11,15 +11,17 @@ pandas 0.4.3
 **Release date:** not yet released
 
 This is largely a bugfix release from 0.4.2 but also includes a handful of new
-and enhanced features. Also, pandas can now be installed and used on Python 3!
+and enhanced features. Also, pandas can now be installed and used on Python 3
+(thanks Thomas Kluyver!).
 
 **New features / modules**
 
   - Python 3 support using 2to3 (PR #200, Thomas Kluyver)
+  - Add `name` attribute to `Series` and added relevant logic and tests. Name
+    now prints as part of `Series.__repr__`
   - Add `name` attribute to standard Index so that stacking / unstacking does
     not discard names and so that indexed DataFrame objects can be reliably
     round-tripped to flat files, pickle, HDF5, etc.
-  - Add `name` attribute to `Series` and added relevant logic and tests
   - Add `isnull` and `notnull` as instance methods on Series (PR #209, GH #203)
 
 **Improvements to existing features**
@@ -30,6 +32,7 @@ and enhanced features. Also, pandas can now be installed and used on Python 3!
   - Altered binary operations on differently-indexed SparseSeries objects to use
     the integer-based (dense) alignment logic which is faster with a larger
     number of blocks (GH #205)
+  - Refactored `Series.__repr__` to be a bit more clean and consistent
 
 **API Changes**
 

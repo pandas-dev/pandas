@@ -824,13 +824,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(len(result), ts.count())
 
         common.assert_dict_equal(result, ts, compare_keys=False)
-    
+
     def test_isnull(self):
         ser = Series([0,5.4,3,nan,-0.001])
         assert_series_equal(ser.isnull(), Series([False,False,False,True,False]))
         ser = Series(["hi","",nan])
         assert_series_equal(ser.isnull(), Series([False,False,True]))
-    
+
     def test_notnull(self):
         ser = Series([0,5.4,3,nan,-0.001])
         assert_series_equal(ser.notnull(), Series([True,True,True,False,True]))
@@ -1291,6 +1291,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = self.ts.select(lambda x: x.weekday() == 2)
         expected = self.ts[self.ts.weekday == 2]
         assert_series_equal(result, expected)
+
+#----------------------------------------------------------------------
+# Misc not safe for sparse
+
+    def test_dropna_preserve_name(self):
+        self.ts[:5] = np.nan
+        result = self.ts.dropna()
+        self.assertEquals(result.name, self.ts.name)
 
 if __name__ == '__main__':
     import nose
