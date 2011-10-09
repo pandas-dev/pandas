@@ -20,6 +20,7 @@ and enhanced features. Also, pandas can now be installed and used on Python 3!
     not discard names and so that indexed DataFrame objects can be reliably
     round-tripped to flat files, pickle, HDF5, etc.
   - Add `name` attribute to `Series` and added relevant logic and tests
+  - Add `isnull` and `notnull` as instance methods on Series (PR #209, GH #203)
 
 **Improvements to existing features**
 
@@ -45,6 +46,7 @@ and enhanced features. Also, pandas can now be installed and used on Python 3!
     `DataFrame.to_csv` (PR #206, Thomas Kluyver)
   - Fix Python ndarray access in Cython code for sparse blocked index integrity
     check
+  - Fix bug writing Series to CSV in Python 3 (PR #209)
 
 Thanks
 ------
