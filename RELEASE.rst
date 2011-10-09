@@ -8,7 +8,7 @@ see the commit logs at http://github.com/wesm/pandas
 pandas 0.4.3
 ============
 
-**Release date:** not yet released
+**Release date:** 10/9/2011
 
 This is largely a bugfix release from 0.4.2 but also includes a handful of new
 and enhanced features. Also, pandas can now be installed and used on Python 3
