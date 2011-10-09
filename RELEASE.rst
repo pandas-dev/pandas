@@ -34,6 +34,14 @@ pandas 0.4.3
     kinds of Python scalar objects like `datetime.datetime`
   - Raise more helpful exception when attempting to write empty DataFrame or
     LongPanel to `HDFStore` (GH #204)
+  - Use stdlib csv module to properly escape strings with commas in
+    `DataFrame.to_csv` (PR #206, Thomas Kluyver)
+
+Thanks
+------
+
+  - Thomas Kluyver
+  - rsamson
 
 pandas 0.4.2
 ============
