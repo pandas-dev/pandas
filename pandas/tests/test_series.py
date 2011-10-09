@@ -824,6 +824,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(len(result), ts.count())
 
         common.assert_dict_equal(result, ts, compare_keys=False)
+    
+    def test_isnull(self):
+        ser = Series([0,5.4,3,nan,-0.001])
+        assert_series_equal(ser.isnull(), Series([False,False,False,True,False]))
+        ser = Series(["hi","",nan])
+        assert_series_equal(ser.isnull(), Series([False,False,True]))
+    
+    def test_notnull(self):
+        ser = Series([0,5.4,3,nan,-0.001])
+        assert_series_equal(ser.notnull(), Series([True,True,True,False,True]))
+        ser = Series(["hi","",nan])
+        assert_series_equal(ser.notnull(), Series([True,True,False]))
 
     def test_shift(self):
         shifted = self.ts.shift(1)
