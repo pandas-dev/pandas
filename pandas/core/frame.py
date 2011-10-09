@@ -278,7 +278,7 @@ class DataFrame(NDFrame):
         """Iterator over (column, series) pairs"""
         series = self._series
         return ((k, series[k]) for k in self.columns)
-    
+
     iterkv = iteritems
     if py3compat.PY3:
         items = iteritems
@@ -322,7 +322,7 @@ class DataFrame(NDFrame):
                                default_axis=None)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
-    
+
     # Python 2 division methods
     if not py3compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', default_axis=None)
@@ -2297,11 +2297,11 @@ class DataFrame(NDFrame):
         tmp = self.reindex(columns=cols)
 
         cols_destat = ['count', 'mean', 'std', 'min',
-                       '10%', '50%', '90%', 'max']
+                       '25%', '50%', '75%', 'max']
 
         data = [tmp.count(), tmp.mean(), tmp.std(), tmp.min(),
-                tmp.quantile(.1), tmp.median(),
-                tmp.quantile(.9), tmp.max()]
+                tmp.quantile(.25), tmp.median(),
+                tmp.quantile(.75), tmp.max()]
 
         return self._constructor(data, index=cols_destat, columns=cols)
 

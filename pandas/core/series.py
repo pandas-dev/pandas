@@ -419,7 +419,7 @@ copy : boolean, default False
         Lazily iterate over (index, value) tuples
         """
         return itertools.izip(iter(self.index), iter(self))
-    
+
     iterkv = iteritems
     if py3compat.PY3:
         items = iteritems
@@ -448,7 +448,7 @@ copy : boolean, default False
     __itruediv__ = __truediv__
     __ifloordiv__ = __floordiv__
     __ipow__ = __pow__
-    
+
     # Python 2 division operators
     if not py3compat.PY3:
         __div__ = _arith_method(operator.div, '__div__')
@@ -870,10 +870,10 @@ copy : boolean, default False
         desc : Series
         """
         names = ['count', 'mean', 'std', 'min',
-                 '10%', '50%', '90%', 'max']
+                 '25%', '50%', '75%', 'max']
 
         data = [self.count(), self.mean(), self.std(), self.min(),
-                self.quantile(.1), self.median(), self.quantile(.9),
+                self.quantile(.25), self.median(), self.quantile(.75),
                 self.max()]
 
         return Series(data, index=names)
@@ -1619,7 +1619,7 @@ copy : boolean, default False
         return remove_na(self)
 
     valid = dropna
-    
+
     isnull = isnull
     notnull = notnull
 

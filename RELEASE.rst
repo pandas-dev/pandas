@@ -31,6 +31,14 @@ and enhanced features. Also, pandas can now be installed and used on Python 3!
     the integer-based (dense) alignment logic which is faster with a larger
     number of blocks (GH #205)
 
+**API Changes**
+
+  - `Series.describe` and `DataFrame.describe` now bring the 25% and 75%
+    quartiles instead of the 10% and 90% deciles. The other outputs have not
+    changed
+  - `Series.toString` will print deprecation warning, has been de-camelCased to
+    `to_string`
+
 **Bug fixes**
 
   - Fix broken interaction between `Index` and `Int64Index` when calling

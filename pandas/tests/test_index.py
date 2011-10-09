@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 
 from pandas.core.index import (Index, Int64Index, Factor,
-                               MultiIndex, NULL_INDEX)
+                               MultiIndex)
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 import pandas._tseries as tseries
