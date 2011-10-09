@@ -336,7 +336,7 @@ class Panel(NDFrame):
     def iteritems(self):
         for item in self.items:
             yield item, self[item]
-    
+
     # Name that won't get automatically converted to items by 2to3. items is
     # already in use for the first axis.
     iterkv = iteritems
@@ -654,7 +654,7 @@ class Panel(NDFrame):
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
     multiply = mul = _panel_arith_method(operator.mul, 'multiply')
-    
+
     try:
         divide = div = _panel_arith_method(operator.div, 'divide')
     except AttributeError:   # Python 3
@@ -1230,7 +1230,7 @@ class LongPanel(DataFrame):
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
     multiply = mul = _panel_arith_method(operator.mul, 'multiply')
-    
+
     try:
         divide = div = _panel_arith_method(operator.div, 'divide')
     except AttributeError:   # Python 3
@@ -1383,7 +1383,7 @@ class LongPanel(DataFrame):
             mapped = np.array([transform(val) for val in items])
 
             items = np.array(sorted(set(mapped)))
-            labels = items.searchsorted(mapped[labels])
+            labels = Index(items).get_indexer(mapped[labels])
             dim = len(items)
 
         values = np.eye(dim, dtype=float)
