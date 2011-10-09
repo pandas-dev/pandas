@@ -58,6 +58,7 @@ and enhanced features. Also, pandas can now be installed and used on Python 3
   - Fix Python ndarray access in Cython code for sparse blocked index integrity
     check
   - Fix bug writing Series to CSV in Python 3 (PR #209)
+  - Miscellaneous Python 3 bugfixes
 
 Thanks
 ------
