@@ -802,6 +802,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_to_csv(self):
         self.ts.to_csv('_foo')
+
+        lines = open('_foo', 'U').readlines()
+        assert(lines[1] != '\n')
+
         os.remove('_foo')
 
     def test_to_dict(self):
