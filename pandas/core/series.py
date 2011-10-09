@@ -1603,7 +1603,7 @@ copy : boolean, default False
         path : string or None
             Output filepath. If None, write to stdout
         """
-        f = open(path, 'wb')
+        f = open(path, 'w')
         csvout = csv.writer(f)
         csvout.writerows(self.iteritems())
         f.close()
