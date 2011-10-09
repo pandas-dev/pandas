@@ -27,8 +27,8 @@ and enhanced features. Also, pandas can now be installed and used on Python 3!
   - `Index.append` and `MultiIndex.append` can accept a list of Index objects to
     concatenate together
   - Altered binary operations on differently-indexed SparseSeries objects to use
-    the integer-based (dense) alignment logic which results in more than 10x
-    speedup over the block logic. Have not figured out why this is yet (GH #205)
+    the integer-based (dense) alignment logic which is faster with a larger
+    number of blocks (GH #205)
 
 **Bug fixes**
 
@@ -43,6 +43,8 @@ and enhanced features. Also, pandas can now be installed and used on Python 3!
     LongPanel to `HDFStore` (GH #204)
   - Use stdlib csv module to properly escape strings with commas in
     `DataFrame.to_csv` (PR #206, Thomas Kluyver)
+  - Fix Python ndarray access in Cython code for sparse blocked index integrity
+    check
 
 Thanks
 ------
