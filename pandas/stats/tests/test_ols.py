@@ -46,6 +46,14 @@ class TestOLS(BaseTest):
     # with trusted implementations of panel OLS (e.g. R).
     # TODO: Add tests for non pooled OLS.
 
+    @classmethod
+    def setupClass(cls):
+        try:
+            import scikits.statsmodels.api as _
+        except ImportError:
+            import nose
+            raise nose.SkipTest
+
     def testOLSWithDatasets(self):
         import scikits.statsmodels.datasets as datasets
 
@@ -171,6 +179,13 @@ class TestOLSMisc(unittest.TestCase):
     '''
     For test coverage with faux data
     '''
+    @classmethod
+    def setupClass(cls):
+        try:
+            import scikits.statsmodels.api as _
+        except ImportError:
+            import nose
+            raise nose.SkipTest
 
     def test_f_test(self):
         x = tm.makeTimeDataFrame()
