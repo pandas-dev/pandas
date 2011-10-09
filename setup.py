@@ -3,16 +3,11 @@
 """
 Parts of this file were taken from the pyzmq project
 (https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
-Lesser GPU General Public License.
+Lesser GNU General Public License.
 """
 
 from distutils.core import setup, Command
 # use setuptools if available
-try:
-    from setuptools import setup
-    _have_setuptools = True
-except ImportError:
-    _have_setuptools = False
 
 from datetime import datetime
 from glob import glob
@@ -21,6 +16,18 @@ import sys
 import shutil
 import warnings
 
+
+if sys.version_info.major >= 3:
+    try:
+        from setuptools import setup
+        _have_setuptools = True
+    except ImportError:
+        raise ImportError('require setuptools/distribute for Py3k')
+    setuptools_args = {'use_2to3': True}
+else:
+    setuptools_args = {}
+
+    
 import numpy as np
 
 # from numpy.distutils.core import setup
@@ -282,9 +289,6 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 extensions = [tseries_ext,
               sparse_ext]
-
-setuptools_args = {'use_2to3': True}
-
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"
 
