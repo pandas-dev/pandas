@@ -424,9 +424,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.series[5:7] = np.NaN
         str(self.series)
 
-    def test_toString(self):
+    def test_to_string(self):
         from cStringIO import StringIO
-        self.ts.toString(buffer=StringIO())
+        self.ts.to_string(buffer=StringIO())
 
     def test_iter(self):
         for i, val in enumerate(self.series):
