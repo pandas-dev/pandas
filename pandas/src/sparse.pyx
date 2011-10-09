@@ -364,7 +364,7 @@ cdef class BlockIndex(SparseIndex):
                     raise ValueError('Block %d extends beyond end' % i)
 
             # no zero-length blocks
-            if self.blengths[i] == 0:
+            if blengths[i] == 0:
                 raise ValueError('Zero-length block %d' % i)
 
     def equals(self, other):
@@ -747,7 +747,7 @@ cpdef sparse_nanpow(ndarray x, SparseIndex xindex,
 cdef inline tuple sparse_nancombine(ndarray x, SparseIndex xindex,
                                     ndarray y, SparseIndex yindex,
                                     double_func op):
-    # block_nanop is up to 40x slower and I don't know why yet
+    # faster to convert to IntIndex
     return int_nanop(x, xindex.to_int_index(),
                      y, yindex.to_int_index(), op)
 

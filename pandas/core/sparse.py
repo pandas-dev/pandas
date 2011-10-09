@@ -317,7 +317,7 @@ to sparse
     __itruediv__ = __truediv__
     __ifloordiv__ = __floordiv__
     __ipow__ = __pow__
-    
+
     # Python 2 division operators
     if not py3compat.PY3:
         __div__ = _sparse_op_wrap(operator.div, 'div')
