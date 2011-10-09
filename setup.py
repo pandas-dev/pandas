@@ -17,7 +17,7 @@ import shutil
 import warnings
 
 
-if sys.version_info.major >= 3:
+if sys.version_info[0] >= 3:
     try:
         from setuptools import setup
         _have_setuptools = True
