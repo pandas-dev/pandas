@@ -1619,6 +1619,9 @@ copy : boolean, default False
         return remove_na(self)
 
     valid = dropna
+    
+    isnull = isnull
+    notnull = notnull
 
     def first_valid_index(self):
         """
