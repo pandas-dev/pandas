@@ -1097,7 +1097,7 @@ class _JoinOperation(object):
         return make_block(out, new_items, self.result_items)
 
     @staticmethod
-    def _upcast_blocks(self, blocks, need_masking=True):
+    def _upcast_blocks(blocks, need_masking=True):
         """
         Upcast and consolidate if necessary
         """
