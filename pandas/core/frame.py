@@ -1010,7 +1010,37 @@ class DataFrame(NDFrame):
             return result
 
     #----------------------------------------------------------------------
-    # Reindexing
+    # Reindexing and alignment
+
+    def align(self, other, join='outer', copy=True):
+        """
+        Align two DataFrame object on their index and columns with the specified
+        join method for each axis Index
+
+        Parameters
+        ----------
+        other : DataFrame
+        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+
+        Returns
+        -------
+        (left, right) : (Series, Series)
+            Aligned Series
+        """
+        join_index, ilidx, iridx = self.index.join(other.index, how=join,
+                                                   return_indexers=True)
+
+        # TODO: speed up on homogeneous DataFrame objects
+        join_columns, clidx, cridx = self.columns.join(other.columns, how=join,
+                                                       return_indexers=True)
+
+        def _align_frame(frame, row_idx, col_idx):
+            new_data = frame._data
+            return DataFrame(new_data)
+
+        left = _align_frame(self, ilidx, clidx)
+        right = _align_frame(other, iridx, cridx)
+        return left, right
 
     def reindex(self, index=None, columns=None, method=None, copy=True):
         """Conform Series to new index with optional filling logic, placing

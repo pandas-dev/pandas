@@ -1353,26 +1353,19 @@ copy : boolean, default False
         join_index, lidx, ridx = self.index.join(other.index, how=join,
                                                  return_indexers=True)
 
-        if lidx is not None:
-            left = Series(common.take_1d(self.values, lidx), join_index,
-                          name=self.name)
-        else:
-            if copy:
-                new_values = self.values.copy()
+        def _align_series(series, indexer):
+            if indexer is not None:
+                new_values = common.take_1d(series.values, indexer)
             else:
-                new_values = self.values
-            left = Series(new_values, join_index, name=self.name)
+                if copy:
+                    new_values = series.values.copy()
+                else:
+                    new_values = series.values
+            result = Series(new_values, join_index, name=series.name)
+            return result
 
-        if ridx is not None:
-            right = Series(common.take_1d(other.values, ridx), join_index,
-                           name=other.name)
-        else:
-            if copy:
-                new_values = other.values.copy()
-            else:
-                new_values = other.values
-            right = Series(new_values, join_index, name=other.name)
-
+        left = _align_series(self, lidx)
+        right = _align_series(other, ridx)
         return left, right
 
     def reindex(self, index=None, method=None, copy=True):

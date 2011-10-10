@@ -11,3 +11,4 @@ TODO
 - prettytable output with index names
 - Add load/save functions to top level pandas namespace
 - _consolidate, does it always copy?
+- Series.align with fill method. Will have to generate more Cython code

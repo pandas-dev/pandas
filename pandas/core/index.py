@@ -441,6 +441,10 @@ class Index(np.ndarray):
         return target, indexer
 
     def join(self, other, how='left', return_indexers=False):
+        if self.is_monotonic and other.is_monotonic:
+            return self._join_monotonic(other, how=how,
+                                        return_indexers=return_indexers)
+
         if how == 'left':
             join_index = self
         elif how == 'right':
@@ -462,6 +466,29 @@ class Index(np.ndarray):
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
+        else:
+            return join_index
+
+    def _join_monotonic(self, other, how='left', return_indexers=False):
+        if how == 'left':
+            join_index = self
+            lidx = None
+            ridx = lib.left_join_indexer_object(self, other)
+        elif how == 'right':
+            join_index = other
+            lidx = lib.left_join_indexer_object(other, self)
+            ridx = None
+        elif how == 'inner':
+            join_index, lidx, ridx = lib.inner_join_indexer_object(self, other)
+            join_index = Index(join_index)
+        elif how == 'outer':
+            join_index, lidx, ridx = lib.outer_join_indexer_object(self, other)
+            join_index = Index(join_index)
+        else:  # pragma: no cover
+            raise Exception('do not recognize join method %s' % how)
+
+        if return_indexers:
+            return join_index, lidx, ridx
         else:
             return join_index
 
