@@ -989,10 +989,10 @@ class _JoinOperation(object):
         rblocks = self.right.blocks
 
         # will short-circuit and not compute lneed_masking
-        if self._may_need_upcasting(lblocks) and self.lneed_masking:
+        if self.lneed_masking:
             lblocks = self._upcast_blocks(lblocks)
 
-        if self._may_need_upcasting(rblocks) and self.rneed_masking:
+        if self.rneed_masking:
             rblocks = self._upcast_blocks(rblocks)
 
         left_blockmap = dict((type(blk), blk) for blk in lblocks)
@@ -1001,7 +1001,12 @@ class _JoinOperation(object):
         return left_blockmap, right_blockmap
 
     def _reindex_block(self, block, side='left', copy=True):
-        indexer = self.lindexer if side == 'left' else self.rindexer
+        if side == 'left':
+            indexer = self.lindexer
+            mask, need_masking = self.lmask_info
+        else:
+            indexer = self.rindexer
+            mask, need_masking = self.rmask_info
 
         # still some inefficiency here for bool/int64 because in the case where
         # no masking is needed, take_fast will recompute the mask
@@ -1009,16 +1014,18 @@ class _JoinOperation(object):
         if indexer is None and copy:
             result = block.copy()
         else:
-            result = block.reindex_axis(indexer, None, False, axis=self.axis)
+            result = block.reindex_axis(indexer, mask, need_masking,
+                                        axis=self.axis)
 
         result.ref_items = self.result_items
         return result
 
     @cache_readonly
     def lmask_info(self):
-        if self.lindexer is None:
+        if (self.lindexer is None or
+            not self._may_need_upcasting(self.left.blocks)):
             lmask = None
-            lneed_masking = None
+            lneed_masking = False
         else:
             lmask = self.lindexer == -1
             lneed_masking = lmask.any()
@@ -1027,9 +1034,10 @@ class _JoinOperation(object):
 
     @cache_readonly
     def rmask_info(self):
-        if self.rindexer is None:
+        if (self.rindexer is None or
+            not self._may_need_upcasting(self.right.blocks)):
             rmask = None
-            rneed_masking = None
+            rneed_masking = False
         else:
             rmask = self.rindexer == -1
             rneed_masking = rmask.any()
@@ -1041,16 +1049,8 @@ class _JoinOperation(object):
         return self.lmask_info[1]
 
     @property
-    def lmask(self):
-        return self.lmask_info[0]
-
-    @property
     def rneed_masking(self):
         return self.rmask_info[1]
-
-    @property
-    def rmask(self):
-        return self.rmask_info[0]
 
     @staticmethod
     def _may_need_upcasting(blocks):
@@ -1097,12 +1097,12 @@ class _JoinOperation(object):
         return make_block(out, new_items, self.result_items)
 
     @staticmethod
-    def _upcast_blocks(blocks, need_masking=True):
+    def _upcast_blocks(blocks):
         """
         Upcast and consolidate if necessary
         """
-        if not need_masking:
-            return blocks
+        # if not need_masking:
+        #     return blocks
 
         new_blocks = []
         for block in blocks:

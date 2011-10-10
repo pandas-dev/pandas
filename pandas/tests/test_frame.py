@@ -700,6 +700,23 @@ class SafeForSparse(object):
 
         self.assertRaises(Exception, f.join, f2, how='foo')
 
+    def test_join_index_more(self):
+        af = self.frame.ix[:, ['A', 'B']]
+        bf = self.frame.ix[::2, ['C', 'D']]
+
+        expected = af.copy()
+        expected['C'] = self.frame['C'][::2]
+        expected['D'] = self.frame['D'][::2]
+
+        result = af.join(bf)
+        assert_frame_equal(result, expected)
+
+        result = af.join(bf, how='right')
+        assert_frame_equal(result, expected[::2])
+
+        result = bf.join(af, how='right')
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
     def test_join_index_series(self):
         df = self.frame.copy()
         s = df.pop(self.frame.columns[-1])
@@ -1582,7 +1599,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         lines = open(pth).readlines()
         self.assert_(lines[1].split(',')[2] == '999')
         os.remove(pth)
-    
+
     def test_to_csv_withcommas(self):
         "Commas inside fields should be correctly escaped when saving as CSV."
         path = '__tmp__'
@@ -1590,7 +1607,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.to_csv(path)
         df2 = DataFrame.from_csv(path)
         assert_frame_equal(df2, df)
-        
+
         os.remove(path)
 
     def test_info(self):
