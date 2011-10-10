@@ -915,7 +915,10 @@ def _union_items_slow(all_items):
             seen = seen.union(items)
     return seen
 
+from line_profiler import LineProfiler
+prof = LineProfiler()
 
+@prof
 def join_managers(left, right, axis=1, how='left'):
     """
     Parameters
