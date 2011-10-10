@@ -136,7 +136,7 @@ def join(a, b, av, bv, how="left"):
 def bench_python(n=100000, pct_overlap=0.20, K=1):
     import gc
     ns = [2, 3, 4, 5, 6]
-    iterations = 50
+    iterations = 200
     pct_overlap = 0.2
     kinds = ['outer', 'left', 'inner']
 
@@ -156,11 +156,16 @@ def bench_python(n=100000, pct_overlap=0.20, K=1):
 
         for kind in kinds:
             gc.disable()
+            elapsed = 0
             _s = time.clock()
-            for _ in range(iterations):
+            for i in range(iterations):
+                if i % 10 == 0:
+                    elapsed += time.clock() - _s
+                    gc.collect()
+                    _s = time.clock()
                 a_frame.join(b_frame, how=kind)
                 # join(a, b, avf, bvf, how=kind)
-            elapsed = time.clock() - _s
+            elapsed += time.clock() - _s
             gc.enable()
             result[kind] = (elapsed / iterations) * 1000
 

@@ -4,6 +4,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.index import Index, _ensure_index
+from pandas.util.decorators import cache_readonly
 import pandas.core.common as common
 import pandas._tseries as lib
 
@@ -915,146 +916,205 @@ def _union_items_slow(all_items):
             seen = seen.union(items)
     return seen
 
-from line_profiler import LineProfiler
-prof = LineProfiler()
+def join_managers(left, right, axis=1, how='left', copy=True):
+    op = _JoinOperation(left, right, axis=axis, how=how)
+    return op.get_result(copy=copy)
 
-@prof
-def join_managers(left, right, axis=1, how='left'):
+class _JoinOperation(object):
     """
-    Parameters
-    ----------
-    other
-    lindexer
-    lmask
-    rindexer
-    rmask
-
-    Returns
-    -------
-    merged : BlockManager
+    Object responsible for orchestrating efficient join operation between two
+    BlockManager data structures
     """
-    assert(left.is_consolidated())
-    assert(right.is_consolidated())
+    def __init__(self, left, right, axis=1, how='left'):
+        self.left = left
+        self.right = right
+        self.axis = axis
+        self.how = how
 
-    laxis = left.axes[axis]
-    raxis = right.axes[axis]
+        assert(left.is_consolidated())
+        assert(right.is_consolidated())
 
-    join_index, lindexer, rindexer = laxis.join(raxis, how=how,
-                                                return_indexers=True)
+        laxis = left.axes[axis]
+        raxis = right.axes[axis]
 
-    N = len(join_index)
+        (self.join_index,
+         self.lindexer,
+         self.rindexer) = laxis.join(raxis, how=how, return_indexers=True)
 
-    if lindexer is None:
-        lmask = None
-        lneed_masking = None
-    else:
-        lmask = lindexer == -1
-        lneed_masking = lmask.any()
+        # do NOT sort
+        self.result_items = left.items.append(right.items)
+        self.result_axes = list(left.axes)
+        self.result_axes[0] = self.result_items
+        self.result_axes[axis] = self.join_index
 
-    if rindexer is None:
-        rmask = None
-        rneed_masking = None
-    else:
-        rmask = rindexer == -1
-        rneed_masking = rmask.any()
+    def get_result(self, copy=False):
+        """
+        Parameters
+        ----------
+        other
+        lindexer
+        lmask
+        rindexer
+        rmask
 
-    lblocks = _maybe_upcast_blocks(left.blocks, lneed_masking)
-    rblocks = _maybe_upcast_blocks(right.blocks, rneed_masking)
+        Returns
+        -------
+        merged : BlockManager
+        """
+        left_blockmap, right_blockmap = self._prepare_blocks()
 
-    left_blockmap = dict((type(blk), blk) for blk in lblocks)
-    right_blockmap = dict((type(blk), blk) for blk in rblocks)
+        result_blocks = []
 
-    # do NOT sort
-    result_items = left.items.append(right.items)
+        # maybe want to enable flexible copying
 
-    result_axes = list(left.axes)
-    result_axes[0] = result_items
-    result_axes[axis] = join_index
+        kinds = set(left_blockmap) | set(right_blockmap)
+        for klass in kinds:
+            lblk = left_blockmap.get(klass)
+            rblk = right_blockmap.get(klass)
 
-    result_blocks = []
-
-    # copies all data by definition
-
-    kinds = set(left_blockmap) | set(right_blockmap)
-    for klass in kinds:
-        if klass in left_blockmap and klass in right_blockmap:
-            # true merge, do not produce intermediate copy
-            lblk = left_blockmap[klass]
-            rblk = right_blockmap[klass]
-            new_values = _merge_blocks_fast(lblk, rblk,
-                                            lindexer, lmask, lneed_masking,
-                                            rindexer, rmask, rneed_masking,
-                                            axis=axis)
-            new_items = lblk.items.append(rblk.items)
-            res_blk = make_block(new_values, new_items, result_items)
-        elif klass in left_blockmap:
-            # only take necessary
-            blk = left_blockmap[klass]
-            if lindexer is None:
-                res_blk = blk.copy()
+            if lblk and rblk:
+                # true merge, do not produce intermediate copy
+                res_blk = self._merge_blocks(lblk, rblk)
+            elif lblk:
+                res_blk = self._reindex_block(lblk, side='left')
             else:
-                res_blk = blk.reindex_axis(lindexer, lmask, lneed_masking,
-                                           axis=axis)
-            res_blk.ref_items = result_items
-        elif klass in right_blockmap:
-            # only take necessary
-            blk = right_blockmap[klass]
-            if rindexer is None:
-                res_blk = blk.copy()
-            else:
-                res_blk = blk.reindex_axis(rindexer, rmask, rneed_masking,
-                                           axis=axis)
-            res_blk.ref_items = result_items
+                res_blk = self._reindex_block(rblk, side='right')
 
-        result_blocks.append(res_blk)
+            result_blocks.append(res_blk)
 
-    return BlockManager(result_blocks, result_axes)
+        return BlockManager(result_blocks, self.result_axes)
 
-def _maybe_upcast_blocks(blocks, needs_masking):
-    """
-    Upcast and consolidate if necessary
-    """
-    if not needs_masking:
-        return blocks
-    new_blocks = []
-    for block in blocks:
-        if isinstance(block, IntBlock):
-            newb = make_block(block.values.astype(float), block.items,
-                              block.ref_items)
-        elif isinstance(block, BoolBlock):
-            newb = make_block(block.values.astype(object), block.items,
-                              block.ref_items)
+    def _prepare_blocks(self):
+        lblocks = self.left.blocks
+        rblocks = self.right.blocks
+
+        # will short-circuit and not compute lneed_masking
+        if self._may_need_upcasting(lblocks) and self.lneed_masking:
+            lblocks = self._upcast_blocks(lblocks)
+
+        if self._may_need_upcasting(rblocks) and self.rneed_masking:
+            rblocks = self._upcast_blocks(rblocks)
+
+        left_blockmap = dict((type(blk), blk) for blk in lblocks)
+        right_blockmap = dict((type(blk), blk) for blk in rblocks)
+
+        return left_blockmap, right_blockmap
+
+    def _reindex_block(self, block, side='left', copy=True):
+        indexer = self.lindexer if side == 'left' else self.rindexer
+
+        # still some inefficiency here for bool/int64 because in the case where
+        # no masking is needed, take_fast will recompute the mask
+
+        if indexer is None and copy:
+            result = block.copy()
         else:
-            newb = block
-        new_blocks.append(newb)
+            result = block.reindex_axis(indexer, None, False, axis=self.axis)
 
-    # use any ref_items
-    return _consolidate(new_blocks, newb.ref_items)
+        result.ref_items = self.result_items
+        return result
 
-def _merge_blocks_fast(left, right, lindexer, lmask, lneed_masking,
-                       rindexer, rmask, rneed_masking, axis=1):
+    @cache_readonly
+    def lmask_info(self):
+        if self.lindexer is None:
+            lmask = None
+            lneed_masking = None
+        else:
+            lmask = self.lindexer == -1
+            lneed_masking = lmask.any()
 
-    n = left.values.shape[axis] if lindexer is None else len(lindexer)
-    lk = len(left.items)
-    rk = len(right.items)
+        return lmask, lneed_masking
 
-    out_shape = list(left.shape)
-    out_shape[0] = lk + rk
-    out_shape[axis] = n
+    @cache_readonly
+    def rmask_info(self):
+        if self.rindexer is None:
+            rmask = None
+            rneed_masking = None
+        else:
+            rmask = self.rindexer == -1
+            rneed_masking = rmask.any()
 
-    out = np.empty(out_shape, dtype=left.values.dtype)
+        return rmask, rneed_masking
 
-    if lindexer is None:
-        common.take_fast(left.values, np.arange(n, dtype=np.int32),
-                         None, False, axis=axis, out=out[:lk])
-    else:
-        common.take_fast(left.values, lindexer, lmask, lneed_masking,
-                         axis=axis, out=out[:lk])
+    @property
+    def lneed_masking(self):
+        return self.lmask_info[1]
 
-    if rindexer is None:
-        common.take_fast(right.values, np.arange(n, dtype=np.int32),
-                         None, False, axis=axis, out=out[lk:])
-    else:
-        common.take_fast(right.values, rindexer, rmask, rneed_masking,
-                         axis=axis, out=out[lk:])
-    return out
+    @property
+    def lmask(self):
+        return self.lmask_info[0]
+
+    @property
+    def rneed_masking(self):
+        return self.rmask_info[1]
+
+    @property
+    def rmask(self):
+        return self.rmask_info[0]
+
+    @staticmethod
+    def _may_need_upcasting(blocks):
+        for block in blocks:
+            if isinstance(block, (IntBlock, BoolBlock)):
+                return True
+        return False
+
+    def _merge_blocks(self, lblk, rblk):
+        lidx = self.lindexer
+        ridx = self.rindexer
+
+        n = lblk.values.shape[self.axis] if lidx is None else len(lidx)
+        lk = len(lblk.items)
+        rk = len(rblk.items)
+
+        out_shape = list(lblk.shape)
+        out_shape[0] = lk + rk
+        out_shape[self.axis] = n
+
+        out = np.empty(out_shape, dtype=lblk.values.dtype)
+
+        # is this really faster than assigning to arr.flat?
+        if lidx is None:
+            # out[:lk] = lblk.values
+            common.take_fast(lblk.values, np.arange(n, dtype='i4'),
+                             None, False,
+                             axis=self.axis, out=out[:lk])
+        else:
+            # write out the values to the result array
+            common.take_fast(lblk.values, lidx, None, False,
+                             axis=self.axis, out=out[:lk])
+        if ridx is None:
+            # out[lk:] = lblk.values
+            common.take_fast(rblk.values, np.arange(n, dtype='i4'),
+                             None, False,
+                             axis=self.axis, out=out[lk:])
+        else:
+            common.take_fast(rblk.values, ridx, None, False,
+                             axis=self.axis, out=out[lk:])
+
+        # does not sort
+        new_items = lblk.items.append(rblk.items)
+        return make_block(out, new_items, self.result_items)
+
+    @staticmethod
+    def _upcast_blocks(self, blocks, need_masking=True):
+        """
+        Upcast and consolidate if necessary
+        """
+        if not need_masking:
+            return blocks
+
+        new_blocks = []
+        for block in blocks:
+            if isinstance(block, IntBlock):
+                newb = make_block(block.values.astype(float), block.items,
+                                  block.ref_items)
+            elif isinstance(block, BoolBlock):
+                newb = make_block(block.values.astype(object), block.items,
+                                  block.ref_items)
+            else:
+                newb = block
+            new_blocks.append(newb)
+
+        # use any ref_items
+        return _consolidate(new_blocks, newb.ref_items)

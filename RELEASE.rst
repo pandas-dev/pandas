@@ -5,6 +5,17 @@ Release Notes
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/wesm/pandas
 
+pandas 0.4.4
+============
+
+**Release date:** not yet released
+
+**Improvements to existing features**
+
+  - Refactored merging / joining code into a tidy class and disabled unnecessary
+    computations in the float/object case, thus getting about 10% better
+    performance
+
 pandas 0.4.3
 ============
 
