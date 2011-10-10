@@ -861,6 +861,14 @@ class DataFrame(NDFrame):
         res = Series(values, index=self.index, name=key)
         self._series_cache[key] = res
         return res
+    
+    def __getattr__(self, name):
+        """After regular attribute access, try looking up the name of a column.
+        This allows simpler access to columns for interactive use."""
+        if name in self.columns:
+            return self[name]
+        raise AttributeError("'%s' object has no attribute '%s'" % \
+                                                    (type(self).__name__, name))
 
     def __setitem__(self, key, value):
         # support boolean setting with DataFrame input, e.g.

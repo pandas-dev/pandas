@@ -67,6 +67,10 @@ class CheckIndexing(object):
 
         subframe_obj = self.tsframe[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
+    
+    def test_getattr(self):
+        tm.assert_series_equal(self.frame.A, self.frame['A'])
+        self.assertRaises(AttributeError, getattr, self.frame, 'NONEXISTENT_NAME')
 
     def test_setitem(self):
         # not sure what else to do here
