@@ -49,10 +49,13 @@ class Index(np.ndarray):
                              'of some kind, %s was passed' % repr(data))
         else:
             # other iterable of some kind
-            if not isinstance(data, (list, tuple)):
-                data = list(data)
-            subarr = np.empty(len(data), dtype=object)
-            subarr[:] = data
+            subarr = _asarray_tuplesafe(data, dtype=object)
+
+            # if not isinstance(data, (list, tuple)):
+            #     data = list(data)
+
+            # subarr = np.empty(len(data), dtype=object)
+            # subarr[:] = data
 
         subarr = subarr.view(cls)
         subarr.name = name

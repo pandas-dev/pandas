@@ -2219,7 +2219,13 @@ class DataFrame(NDFrame):
         if len(other.index) == 0:
             return self
 
-        new_data = self._data.join_on(other._data, self[on], axis=1,
+        if isinstance(on, (list, tuple)):
+            join_key = zip(*[self[k] for k in on])
+            join_key = common._asarray_tuplesafe(join_key, dtype=object)
+        else:
+            join_key = np.asarray(self[on])
+
+        new_data = self._data.join_on(other._data, join_key, axis=1,
                                       lsuffix=lsuffix, rsuffix=rsuffix)
         return self._constructor(new_data)
 

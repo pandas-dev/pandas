@@ -732,8 +732,7 @@ class BlockManager(object):
         this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
 
         other_axis = other.axes[axis]
-        indexer = lib.merge_indexer_object(on.astype(object),
-                                           other_axis.indexMap)
+        indexer = other_axis.get_indexer(on)
 
         # TODO: deal with length-0 case? or does it fall out?
         mask = indexer == -1

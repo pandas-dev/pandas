@@ -2551,6 +2551,36 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
 
+    def test_join_on_multikey(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        to_join = DataFrame(np.random.randn(10, 3), index=index,
+                            columns=['j_one', 'j_two', 'j_three'])
+
+        # a little relevant example with NAs
+        key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
+                'qux', 'snap']
+        key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
+                'three', 'one']
+
+        data = np.random.randn(len(key1))
+        data = DataFrame({'key1' : key1, 'key2' : key2,
+                          'data' : data})
+
+        joined = data.join(to_join, on=['key1', 'key2'])
+
+        join_key = Index(zip(key1, key2))
+        indexer = to_join.index.get_indexer(join_key)
+        ex_values = to_join.values.take(indexer, axis=0)
+        ex_values[indexer == -1] = np.nan
+        expected = data.join(DataFrame(ex_values, columns=to_join.columns))
+
+        # TODO: columns aren't in the same order yet
+        assert_frame_equal(joined, expected.ix[:, joined.columns])
+
     def test_join_index_mixed(self):
 
         df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},

@@ -514,11 +514,11 @@ def intersection(*seqs):
         result &= seq
     return type(seqs[0])(list(result))
 
-def _asarray_tuplesafe(values):
-    if not isinstance(values, (list, np.ndarray)):
+def _asarray_tuplesafe(values, dtype=None):
+    if not isinstance(values, (list, tuple, np.ndarray)):
         values = list(values)
 
-    result = np.asarray(values)
+    result = np.asarray(values, dtype=dtype)
 
     if issubclass(result.dtype.type, basestring):
         result = np.asarray(values, dtype=object)
