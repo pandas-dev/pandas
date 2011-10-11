@@ -83,14 +83,20 @@ class Index(np.ndarray):
         return lib.is_monotonic_object(self)
 
     _indexMap = None
+    _integrity = False
     @property
     def indexMap(self):
         "{label -> location}"
         if self._indexMap is None:
             self._indexMap = lib.map_indices_object(self)
-            self._verify_integrity()
+            self._integrity = len(self._indexMap) == len(self)
 
+        if not self._integrity:
+            raise Exception('Index cannot contain duplicate values!')
         return self._indexMap
+
+    def _verify_integrity(self):
+        return len(self.indexMap) == len(self)
 
     _allDates = None
     def is_all_dates(self):
@@ -101,10 +107,6 @@ class Index(np.ndarray):
             self._allDates = lib.isAllDates(self)
 
         return self._allDates
-
-    def _verify_integrity(self):
-        if len(self.indexMap) < len(self):
-            raise Exception('Index cannot contain duplicate values!')
 
     def __iter__(self):
         return iter(self.view(np.ndarray))
@@ -361,7 +363,6 @@ class Index(np.ndarray):
         -------
         loc : int
         """
-        self._verify_integrity()
         return self.indexMap[key]
 
     def get_indexer(self, target, method=None):
@@ -635,7 +636,10 @@ class Int64Index(Index):
         "{label -> location}"
         if self._indexMap is None:
             self._indexMap = lib.map_indices_int64(self)
-            self._verify_integrity()
+            self._integrity = len(self._indexMap) == len(self)
+
+        if not self._integrity:
+            raise Exception('Index cannot contain duplicate values!')
 
         return self._indexMap
 
@@ -992,7 +996,10 @@ class MultiIndex(Index):
         if self._indexMap is None:
             zipped = zip(*self.labels)
             self._indexMap = lib.map_indices_list(zipped)
-            self._verify_integrity()
+            self._integrity = len(self._indexMap) == len(self)
+
+        if not self._integrity:
+            raise Exception('Index cannot contain duplicate values!')
 
         return self._indexMap
 

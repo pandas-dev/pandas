@@ -471,6 +471,32 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_axes)
 
+    def fast_2d_xs(self, loc, copy=False):
+        """
+
+        """
+        if len(self.blocks) == 1:
+            result = self.blocks[0].values[:, loc]
+            if copy:
+                result = result.copy()
+            return result
+
+        if not copy:
+            raise Exception('cannot get view of mixed-type or '
+                            'non-consolidated DataFrame')
+
+        items = self.items
+        dtype = _interleaved_dtype(self.blocks)
+        n = len(items)
+        result = np.empty(n, dtype=dtype)
+        for blk in self.blocks:
+            values = blk.values
+            for j, item in enumerate(blk.items):
+                i = items.get_loc(item)
+                result[i] = values[j, loc]
+
+        return result
+
     def consolidate(self):
         """
         Join together blocks having same dtype
@@ -1141,3 +1167,4 @@ class _JoinOperation(object):
 
         # use any ref_items
         return _consolidate(new_blocks, newb.ref_items)
+

@@ -1002,13 +1002,19 @@ class DataFrame(NDFrame):
             return data
 
         self._consolidate_inplace()
-        new_data = self._data.xs(key, axis=1, copy=copy)
-        if new_data.ndim == 1:
-            return Series(new_data.as_matrix(), index=self.columns, name=key)
+        loc = self.index.get_loc(key)
+        if np.isscalar(loc):
+            new_values = self._data.fast_2d_xs(loc, copy=copy)
+            return Series(new_values, index=self.columns, name=key)
         else:
-            result = DataFrame(new_data)
-            result.index = _maybe_droplevels(result.index, key)
-            return result
+            new_data = self._data.xs(key, axis=1, copy=copy)
+            if new_data.ndim == 1:
+                return Series(new_data.as_matrix(), index=self.columns,
+                              name=key)
+            else:
+                result = DataFrame(new_data)
+                result.index = _maybe_droplevels(result.index, key)
+                return result
 
     #----------------------------------------------------------------------
     # Reindexing and alignment

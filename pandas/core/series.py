@@ -990,7 +990,7 @@ copy : boolean, default False
         y : Series
         """
         new_index = self.index.append(other.index)
-        new_index._verify_integrity()
+        assert(new_index._verify_integrity())
 
         new_values = np.concatenate((self.values, other.values))
         name = _maybe_match_name(self, other)
