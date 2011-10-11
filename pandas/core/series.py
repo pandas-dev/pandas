@@ -1350,6 +1350,13 @@ copy : boolean, default False
         (left, right) : (Series, Series)
             Aligned Series
         """
+        if self.index.equals(other.index):
+            left, right = self, other
+            if copy:
+                left = left.copy()
+                right = right.copy()
+            return left, right
+
         join_index, lidx, ridx = self.index.join(other.index, how=join,
                                                  return_indexers=True)
 

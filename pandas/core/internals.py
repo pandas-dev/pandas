@@ -580,6 +580,24 @@ class BlockManager(object):
         new_axes[axis] = new_axis
         return BlockManager(new_blocks, new_axes)
 
+    def reindex_indexer(self, new_axis, indexer, axis=1):
+        """
+        pandas-indexer with -1's only
+        """
+        if axis == 0:
+            raise NotImplementedError
+
+        new_axes = list(self.axes)
+        new_axes[axis] = new_axis
+        new_blocks = []
+        for blk in self.blocks:
+            new_values = common.take_fast(blk.values, indexer, None,
+                                          False, axis=axis)
+            newb = make_block(new_values, blk.items, self.items)
+            new_blocks.append(newb)
+
+        return BlockManager(new_blocks, new_axes)
+
     def reindex_items(self, new_items):
         """
 
@@ -617,16 +635,21 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_axes)
 
-    def take(self, indices, axis=1):
+    def take(self, indexer, axis=1, pandas_indexer=False):
         if axis == 0:
             raise NotImplementedError
 
+        if pandas_indexer:
+            take_f = lambda arr: common.take_fast(arr, indexer,
+                                                  None, False, axis=axis)
+        else:
+            take_f = lambda arr: arr.take(indexer, axis=axis)
+
         new_axes = list(self.axes)
-        new_axes[axis] = self.axes[axis].take(indices)
+        new_axes[axis] = self.axes[axis].take(indexer)
         new_blocks = []
         for blk in self.blocks:
-            newb = make_block(blk.values.take(indices, axis=axis), blk.items,
-                              self.items)
+            newb = make_block(take_f(blk.values), blk.items, self.items)
             new_blocks.append(newb)
 
         return BlockManager(new_blocks, new_axes)

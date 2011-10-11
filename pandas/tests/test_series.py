@@ -1025,6 +1025,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rb[:2] = 5
         self.assert_((b[:2] == 5).all())
 
+    def test_align_sameindex(self):
+        a, b = self.ts.align(self.ts)
+        self.assert_(a.index is self.ts.index)
+        self.assert_(b.index is self.ts.index)
+
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
         self.assertEqual(id(self.series.index), id(identity.index))

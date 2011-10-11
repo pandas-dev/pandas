@@ -90,6 +90,7 @@ def comp_method(func, name):
 
     return f
 
+
 #----------------------------------------------------------------------
 # DataFrame class
 
@@ -1027,15 +1028,33 @@ class DataFrame(NDFrame):
         (left, right) : (Series, Series)
             Aligned Series
         """
-        join_index, ilidx, iridx = self.index.join(other.index, how=join,
-                                                   return_indexers=True)
-
-        # TODO: speed up on homogeneous DataFrame objects
-        join_columns, clidx, cridx = self.columns.join(other.columns, how=join,
+        if self.index.equals(other.index):
+            join_index = self.index
+            ilidx, iridx = None, None
+        else:
+            join_index, ilidx, iridx = self.index.join(other.index, how=join,
                                                        return_indexers=True)
+
+        if self.columns.equals(other.columns):
+            join_columns = self.columns
+            clidx, cridx = None, None
+        else:
+            join_columns, clidx, cridx = self.columns.join(other.columns,
+                                                           how=join,
+                                                           return_indexers=True)
 
         def _align_frame(frame, row_idx, col_idx):
             new_data = frame._data
+            if row_idx is not None:
+                new_data = new_data.reindex_indexer(join_index, row_idx, axis=1)
+
+            if col_idx is not None:
+                # TODO: speed up on homogeneous DataFrame objects
+                new_data = new_data.reindex_items(join_columns)
+
+            if copy and new_data is frame._data:
+                new_data = new_data.copy()
+
             return DataFrame(new_data)
 
         left = _align_frame(self, ilidx, clidx)
@@ -1477,7 +1496,8 @@ class DataFrame(NDFrame):
     # Arithmetic / combination related
 
     def _combine_frame(self, other, func, fill_value=None):
-        new_index = self.index.union(other.index)
+        this, other = self.align(other, join='outer', copy=False)
+        new_index, new_columns = this.index, this.columns
 
         # some shortcuts
         if fill_value is None:
@@ -1487,18 +1507,6 @@ class DataFrame(NDFrame):
                 return other * nan
             elif not other:
                 return self * nan
-
-        need_reindex = False
-        new_columns = self.columns.union(other.columns)
-        need_reindex = (need_reindex or not new_index.equals(self.index)
-                        or not new_index.equals(other.index))
-        need_reindex = (need_reindex or not new_columns.equals(self.columns)
-                        or not new_columns.equals(other.columns))
-
-        this = self
-        if need_reindex:
-            this = self.reindex(index=new_index, columns=new_columns)
-            other = other.reindex(index=new_index, columns=new_columns)
 
         this_vals = this.values
         other_vals = other.values
@@ -2275,21 +2283,7 @@ class DataFrame(NDFrame):
         this = self._get_numeric_data()
         other = other._get_numeric_data()
 
-        com_index = this._intersect_index(other)
-        com_cols = this._intersect_columns(other)
-
-        # feels hackish
-        if axis == 0:
-            result_index = com_index
-            if not drop:
-                result_index = this.columns.union(other.columns)
-        else:
-            result_index = com_cols
-            if not drop:
-                result_index = this.index.union(other.index)
-
-        left = this.reindex(index=com_index, columns=com_cols)
-        right = other.reindex(index=com_index, columns=com_cols)
+        left, right = this.align(other, join='inner', copy=False)
 
         # mask missing values
         left = left + right * 0
@@ -2309,6 +2303,8 @@ class DataFrame(NDFrame):
         correl = num / dom
 
         if not drop:
+            raxis = 1 if axis == 0 else 0
+            result_index = this._get_axis(raxis).union(other._get_axis(raxis))
             correl = correl.reindex(result_index)
 
         return correl
