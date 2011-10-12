@@ -128,8 +128,8 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 4
-MICRO = 4
+MINOR = 5
+MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 

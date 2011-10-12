@@ -5,10 +5,17 @@ Release Notes
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/wesm/pandas
 
-pandas 0.4.4
+pandas 0.5.0
 ============
 
 **Release date:** not yet released
+
+**API Changes**
+
+  - `read_table`, `read_csv`, and `ExcelFile.parse` default arguments for
+    `index_col` is now None. To use one or more of the columns as the resulting
+    DataFrame's index, these must be explicitly specified now
+  - Parsing functions no longer parse dates by default (GH #225)
 
 **New features / modules**
 
@@ -18,13 +25,6 @@ pandas 0.4.4
   - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
   - Added private `_get_duplicates` function to `Index` for identifying
     duplicate values more easily
-
-**API Changes**
-
-  - `read_table`, `read_csv`, and `ExcelFile.parse` default arguments for
-    `index_col` is now None. To use one or more of the columns as the resulting
-    DataFrame's index, these must be explicitly specified now
-  - Parsing functions no longer parse dates by default (GH #225)
 
 **Improvements to existing features**
 
