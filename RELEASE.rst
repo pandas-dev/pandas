@@ -12,6 +12,7 @@ pandas 0.4.4
 
 **New features / modules**
 
+  - Added `DataFrame.align` method with standard join options
   - Added `parse_dates` option to `read_csv` and `read_table` methods to
     optionally try to parse dates in the index columns
   - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
@@ -35,6 +36,8 @@ pandas 0.4.4
     performance
   - Improved speed of `DataFrame.xs` on mixed-type DataFrame objects by about
     5x, regression from 0.3.0
+  - With new `DataFrame.align` method, speeding up binary operations between
+    differently-indexed DataFrame objects by 10-25%.
 
 **Bug fixes**
 
