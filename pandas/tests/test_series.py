@@ -1288,6 +1288,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(ser.last_valid_index() is None)
         self.assert_(ser.first_valid_index() is None)
 
+    def test_mpl_compat_hack(self):
+        result = self.ts[:, np.newaxis]
+        expected = self.ts.values[:, np.newaxis]
+        assert_almost_equal(result, expected)
+
 #-------------------------------------------------------------------------------
 # GroupBy
 

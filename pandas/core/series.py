@@ -288,7 +288,10 @@ copy : boolean, default False
         # [slice(0, 5, None)] will break if you convert to ndarray,
         # e.g. as requested by np.median
 
-        return _index_with(key)
+        try:
+            return _index_with(key)
+        except Exception:
+            return self.values[key]
 
     def _multilevel_index(self, key):
         values = self.values
