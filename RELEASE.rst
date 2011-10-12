@@ -15,6 +15,8 @@ pandas 0.4.4
   - Added `parse_dates` option to `read_csv` and `read_table` methods to
     optionally try to parse dates in the index columns
   - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
+  - Added private `_get_duplicates` function to `Index` for identifying
+    duplicate values more easily
 
 **API Changes**
 
@@ -25,6 +27,9 @@ pandas 0.4.4
 
 **Improvements to existing features**
 
+  - File parsing functions like `read_csv` and `read_table` will explicitly
+    check if a parsed index has duplicates and raise a more helpful exception
+    rather than deferring the check until later
   - Refactored merging / joining code into a tidy class and disabled unnecessary
     computations in the float/object case, thus getting about 10% better
     performance

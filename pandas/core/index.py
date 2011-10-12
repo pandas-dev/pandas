@@ -99,7 +99,19 @@ class Index(np.ndarray):
         return self._indexMap
 
     def _verify_integrity(self):
+        if self._indexMap is None:
+            try:
+                self.indexMap
+            except Exception:
+                return False
         return len(self.indexMap) == len(self)
+
+    def _get_duplicates(self):
+        from collections import defaultdict
+        counter = defaultdict(lambda: 0)
+        for k in self.values:
+            counter[k] += 1
+        return sorted(k for k, v in counter.iteritems() if v > 1)
 
     _allDates = None
     def is_all_dates(self):

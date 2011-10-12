@@ -196,11 +196,16 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
                 index = _try_parse_dates(index, parser=date_parser)
             index = Index(_maybe_convert_int(np.array(index, dtype=object)))
         else:
-            index = MultiIndex.from_arrays(_maybe_convert_int_mindex(index,
-                                                 parse_dates, date_parser),
+            arrays = _maybe_convert_int_mindex(index, parse_dates,
+                                               date_parser)
+            index = MultiIndex.from_arrays(arrays,
                                                  names=idx_names)
     else:
         index = Index(np.arange(len(content)))
+
+    if not index._verify_integrity():
+        dups = index._get_duplicates()
+        raise Exception('Index has duplicates: %s' % str(dups))
 
     if len(columns) != len(zipped_content):
         raise Exception('wrong number of columns')

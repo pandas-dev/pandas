@@ -33,7 +33,7 @@ class TestIndex(unittest.TestCase):
 
     def test_duplicates(self):
         idx = Index([0, 0, 0])
-        self.assertRaises(Exception, idx._verify_integrity)
+        self.assert_(not idx._verify_integrity())
 
     def test_sort(self):
         self.assertRaises(Exception, self.strIndex.sort)

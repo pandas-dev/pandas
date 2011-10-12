@@ -2125,7 +2125,7 @@ class DataFrame(NDFrame):
             new_index = None
         else:
             new_index = self.index.append(other.index)
-            new_index._verify_integrity()
+            assert(new_index._verify_integrity())
 
         if self.columns.equals(other.columns):
             return self._append_same_columns(other, new_index)
