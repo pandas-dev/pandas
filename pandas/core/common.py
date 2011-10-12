@@ -518,7 +518,7 @@ def _asarray_tuplesafe(values, dtype=None):
     if not isinstance(values, (list, tuple, np.ndarray)):
         values = list(values)
 
-    if isinstance(values, list) and dtype == np.object_:
+    if isinstance(values, list) and dtype in [np.object_, object]:
         return lib.list_to_object_array(values)
 
     result = np.asarray(values, dtype=dtype)
