@@ -24,10 +24,10 @@ CSV & Text files
 
 The two workhorse functions for reading text files (a.k.a. flat files) are
 :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
-They both utilize the same parsing code for intelligently converting tabular
-data into a DataFrame object. They take a number of different arguments:
+They both use the same parsing code to intelligently convert tabular
+data into a DataFrame object. They can take a number of arguments:
 
-  - ``path_or_buffer``: Either a string path to a file or any object with a
+  - ``path_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
   - ``delimiter``: For ``read_table`` only, a regular expression to split
     fields on. ``read_csv`` uses the ``csv`` module to do this and hence only
