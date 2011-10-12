@@ -10,11 +10,32 @@ pandas 0.4.4
 
 **Release date:** not yet released
 
+**New features / modules**
+
+  - Added `parse_dates` option to `read_csv` and `read_table` methods to
+    optionally try to parse dates in the index columns
+  - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
+
+**API Changes**
+
+  - `read_table`, `read_csv`, and `ExcelFile.parse` default arguments for
+    `index_col` is now None. To use one or more of the columns as the resulting
+    DataFrame's index, these must be explicitly specified now
+  - Parsing functions no longer parse dates by default (GH #225)
+
 **Improvements to existing features**
 
   - Refactored merging / joining code into a tidy class and disabled unnecessary
     computations in the float/object case, thus getting about 10% better
     performance
+  - Improved speed of `DataFrame.xs` on mixed-type DataFrame objects by about
+    5x, regression from 0.3.0
+
+**Bug fixes**
+
+  - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
+    be reported upstream to matplotlib (GH #224)
+
 
 pandas 0.4.3
 ============

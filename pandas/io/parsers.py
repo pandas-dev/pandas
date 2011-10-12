@@ -9,36 +9,10 @@ import numpy as np
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 
-def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
-             na_values=None, date_parser=None, names=None):
-    """
-    Read CSV file into DataFrame
 
-    Parameters
-    ----------
-    filepath_or_buffer : string or file handle / StringIO
-    sep : string, default None
-        Delimiter to use. By default will try to automatically determine
-        this
-    header : int, default 0
-        Row to use for the column labels of the parsed DataFrame
-    skiprows : list-like
-        Row numbers to skip (0-indexed)
-    index_col : int or sequence., default 0
-        Column to use as the row labels of the DataFrame. Pass None if there is
-        no such column. If a sequence is given, a MultiIndex is used.
-    na_values : list-like, default None
-        List of additional strings to recognize as NA/NaN
-    date_parser : function
-        Function to use for converting dates to strings. Defaults to
-        dateutil.parser
-    names : array-like
-        List of column names
-
-    Returns
-    -------
-    parsed : DataFrame
-    """
+def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
+             skiprows=None, na_values=None, parse_dates=False,
+             date_parser=None):
     import csv
 
     if hasattr(filepath_or_buffer, 'read'):
@@ -71,43 +45,77 @@ def read_csv(filepath_or_buffer, sep=None, header=0, skiprows=None, index_col=0,
     else:
         lines = [l for l in reader]
     f.close()
-    return _simple_parser(lines, header=header, indexCol=index_col,
-                          colNames=names, na_values=na_values,
+
+    if date_parser is not None:
+        parse_dates = True
+
+    return _simple_parser(lines,
+                          header=header,
+                          index_col=index_col,
+                          colNames=names,
+                          na_values=na_values,
+                          parse_dates=parse_dates,
                           date_parser=date_parser)
 
-def read_table(filepath_or_buffer, sep='\t', header=0, skiprows=None,
-               index_col=0, na_values=None, date_parser=None, names=None):
-    """
-    Read delimited file into DataFrame
 
-    Parameters
-    ----------
-    filepath_or_buffer : string or file handle
-    sep : string, default '\t'
-        Delimiter to use
-    header : int, default 0
-        Row to use for the column labels of the parsed DataFrame
-    skiprows : list-like
-        Row numbers to skip (0-indexed)
-    index_col : int or sequence, default 0
-        Column to use as the row labels of the DataFrame. Pass None if there is
-        no such column. If a sequence is given, a MultiIndex is used.
-    na_values : list-like, default None
-        List of additional strings to recognize as NA/NaN
-    date_parser : function
-        Function to use for converting dates to strings. Defaults to
-        dateutil.parser
-    names : array-like
-        List of column names
+def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
+               names=None, skiprows=None, na_values=None, parse_dates=False,
+               date_parser=None):
+    return read_csv(filepath_or_buffer, sep=sep, header=header,
+                    skiprows=skiprows, index_col=index_col,
+                    na_values=na_values, date_parser=date_parser,
+                    names=names, parse_dates=parse_dates)
 
-    Returns
-    -------
-    parsed : DataFrame
-    """
-    return read_csv(filepath_or_buffer, sep, header, skiprows,
-                    index_col, na_values, date_parser, names)
+_parser_params = """Parameters
+----------
+filepath_or_buffer : string or file handle / StringIO
+%s
+header : int, default 0
+    Row to use for the column labels of the parsed DataFrame
+skiprows : list-like
+    Row numbers to skip (0-indexed)
+index_col : int or sequence, default None
+    Column to use as the row labels of the DataFrame. If a sequence is
+    given, a MultiIndex is used.
+na_values : list-like, default None
+    List of additional strings to recognize as NA/NaN
+parse_dates : boolean, default False
+    Attempt to parse dates in the index column(s)
+date_parser : function
+    Function to use for converting dates to strings. Defaults to
+    dateutil.parser
+names : array-like
+    List of column names"""
 
-def _simple_parser(lines, colNames=None, header=0, indexCol=0,
+_csv_sep = """sep : string, default None
+    Delimiter to use. By default will try to automatically determine
+    this"""
+
+_table_sep = """sep : string, default \\t (tab-stop)
+    Delimiter to use"""
+
+read_csv.__doc__ = """
+Read CSV (comma-separated) file into DataFrame
+
+%s
+
+Returns
+-------
+parsed : DataFrame
+""" % (_parser_params % _csv_sep)
+
+read_table.__doc__ = """
+Read delimited file into DataFrame
+
+%s
+
+Returns
+-------
+parsed : DataFrame
+""" % (_parser_params % _table_sep)
+
+
+def _simple_parser(lines, colNames=None, header=0, index_col=0,
                    na_values=None, date_parser=None, parse_dates=True):
     """
     Workhorse function for processing nested list into DataFrame
@@ -142,30 +150,48 @@ def _simple_parser(lines, colNames=None, header=0, indexCol=0,
     zipped_content = zip(*content)
 
     if len(content) == 0: # pragma: no cover
-        raise Exception('No content to parse')
+        if index_col is not None:
+            if np.isscalar(index_col):
+                index = Index([], name=columns.pop(index_col))
+            else:
+                cp_cols = list(columns)
+                names = []
+                for i in index_col:
+                    name = cp_cols[i]
+                    columns.remove(name)
+                    names.append(name)
+                index = MultiIndex.fromarrays([[]] * len(index_col),
+                                              names=names)
+        else:
+            index = Index([])
+
+        return DataFrame(index=index, columns=columns)
+
+    if index_col is None and len(content[0]) == len(columns) + 1:
+        index_col = 0
 
     # no index column specified, so infer that's what is wanted
-    if indexCol is not None:
-        if np.isscalar(indexCol):
-            if indexCol == 0 and len(content[0]) == len(columns) + 1:
+    if index_col is not None:
+        if np.isscalar(index_col):
+            if index_col == 0 and len(content[0]) == len(columns) + 1:
                 index = zipped_content[0]
                 zipped_content = zipped_content[1:]
             else:
-                index = zipped_content.pop(indexCol)
-                columns.pop(indexCol)
+                index = zipped_content.pop(index_col)
+                columns.pop(index_col)
         else: # given a list of index
             idx_names = []
             index = []
-            for idx in indexCol:
+            for idx in index_col:
                 idx_names.append(columns[idx])
                 index.append(zipped_content[idx])
             #remove index items from content and columns, don't pop in loop
-            for i in range(len(indexCol)):
+            for i in range(len(index_col)):
                 columns.remove(idx_names[i])
                 zipped_content.remove(index[i])
 
 
-        if np.isscalar(indexCol):
+        if np.isscalar(index_col):
             if parse_dates:
                 index = _try_parse_dates(index, parser=date_parser)
             index = Index(_maybe_convert_int(np.array(index, dtype=object)))
@@ -232,9 +258,6 @@ def _maybe_convert_int(arr):
     return arr
 
 def _maybe_convert_int_mindex(index, parse_dates, date_parser):
-    if len(index) == 0:
-        return index
-
     for i in range(len(index)):
         try:
             int(index[i][0])
@@ -298,8 +321,8 @@ class ExcelFile(object):
     def __repr__(self):
         return object.__repr__(self)
 
-    def parse(self, sheetname, header=0, skiprows=None, index_col=0,
-              na_values=None):
+    def parse(self, sheetname, header=0, skiprows=None, index_col=None,
+              parse_dates=False, date_parser=None, na_values=None):
         """
         Read Excel table into DataFrame
 
@@ -348,7 +371,8 @@ class ExcelFile(object):
                         value = datetime(*dt)
                 row.append(value)
             data.append(row)
-        return _simple_parser(data, header=header, indexCol=index_col,
+        return _simple_parser(data, header=header, index_col=index_col,
+                              parse_dates=parse_dates, date_parser=date_parser,
                               na_values=na_values)
 
 #-------------------------------------------------------------------------------
@@ -363,7 +387,8 @@ def parseCSV(filepath, header=0, skiprows=None, indexCol=0,
     """
     warnings.warn("parseCSV is deprecated. Use read_csv instead", FutureWarning)
     return read_csv(filepath, header=header, skiprows=skiprows,
-                    index_col=indexCol, na_values=na_values)
+                    index_col=indexCol, na_values=na_values,
+                    parse_dates=True)
 
 def parseText(filepath, sep='\t', header=0,
               indexCol=0, colNames=None): # pragma: no cover
@@ -374,7 +399,7 @@ def parseText(filepath, sep='\t', header=0,
     warnings.warn("parseText is deprecated. Use read_table instead",
                   FutureWarning)
     return read_table(filepath, sep=sep, header=header, index_col=indexCol,
-                      names=colNames)
+                      names=colNames, parse_dates=True)
 
 
 def parseExcel(filepath, header=None, indexCol=0,
@@ -385,6 +410,7 @@ def parseExcel(filepath, header=None, indexCol=0,
     warnings.warn("parseExcel is deprecated. Use the ExcelFile class instead",
                   FutureWarning)
     excel_file = ExcelFile(filepath)
-    return excel_file.parse(sheetname, header=header, index_col=indexCol)
+    return excel_file.parse(sheetname, header=header, index_col=indexCol,
+                            parse_dates=True)
 
 

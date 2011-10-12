@@ -257,6 +257,23 @@ def isnullobj(ndarray input):
 
     return result
 
+def list_to_object_array(list obj):
+    '''
+    Convert list to object ndarray. Seriously can't believe I had to write this
+    function
+    '''
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] arr
+
+    n = len(obj)
+    arr = np.empty(n, dtype=object)
+
+    for i from 0 <= i < n:
+        arr[i] = obj[i]
+
+    return arr
+
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"

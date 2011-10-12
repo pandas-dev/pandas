@@ -430,7 +430,8 @@ class DataFrame(NDFrame):
         return np.rec.fromarrays(arrays, names=names)
 
     @classmethod
-    def from_csv(cls, path, header=0, delimiter=',', index_col=0):
+    def from_csv(cls, path, header=0, delimiter=',', index_col=0,
+                 parse_dates=True):
         """
         Read delimited file into DataFrame
 
@@ -447,16 +448,15 @@ class DataFrame(NDFrame):
         Notes
         -----
         Will attempt to convert index to datetimes for time series
-        data. Use read_csv for more options
+        data. Use read_table for more options
 
         Returns
         -------
         y : DataFrame or DataFrame
         """
         from pandas.io.parsers import read_table
-        df = read_table(path, header=header, sep=delimiter,
-                        index_col=index_col)
-        return df
+        return read_table(path, header=header, sep=delimiter,
+                          parse_dates=parse_dates, index_col=index_col)
 
     def to_sparse(self, fill_value=None, kind='block'):
         """

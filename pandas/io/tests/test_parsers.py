@@ -34,12 +34,11 @@ ignore,this,row
                     [nan, 5, nan],
                     [7, 8, nan]]
 
-        df = read_csv(StringIO(data), index_col=None, na_values=['baz'],
-                      skiprows=[1])
+        df = read_csv(StringIO(data), na_values=['baz'], skiprows=[1])
         assert_almost_equal(df.values, expected)
 
-        df2 = read_table(StringIO(data), sep=',', index_col=None,
-                         na_values=['baz'], skiprows=[1])
+        df2 = read_table(StringIO(data), sep=',', na_values=['baz'],
+                         skiprows=[1])
         assert_almost_equal(df2.values, expected)
 
     def test_unnamed_columns(self):
@@ -51,7 +50,7 @@ ignore,this,row
         expected = [[1,2,3,4,5.],
                     [6,7,8,9,10],
                     [11,12,13,14,15]]
-        df = read_table(StringIO(data), sep=',', index_col=None)
+        df = read_table(StringIO(data), sep=',')
         assert_almost_equal(df.values, expected)
         self.assert_(np.array_equal(df.columns,
                                     ['A', 'B', 'C', 'Unnamed: 3',
@@ -84,7 +83,7 @@ c,4,5
 """
         df = read_csv(StringIO(data),
                       date_parser=lambda x: datetime.strptime(x, '%Y%m%d'))
-        expected = read_csv(StringIO(data))
+        expected = read_csv(StringIO(data), parse_dates=True)
         assert_frame_equal(df, expected)
 
     def test_no_header(self):
@@ -92,11 +91,9 @@ c,4,5
 6,7,8,9,10
 11,12,13,14,15
 """
-        df = read_table(StringIO(data), sep=',', index_col=None,
-                        header=None)
+        df = read_table(StringIO(data), sep=',', header=None)
         names = ['foo', 'bar', 'baz', 'quux', 'panda']
-        df2 = read_table(StringIO(data), sep=',', index_col=None,
-                        header=None, names=names)
+        df2 = read_table(StringIO(data), sep=',', header=None, names=names)
         expected = [[1,2,3,4,5.],
                     [6,7,8,9,10],
                     [11,12,13,14,15]]
@@ -106,16 +103,16 @@ c,4,5
         self.assert_(np.array_equal(df2.columns, names))
 
     def test_read_csv_dataframe(self):
-        df = read_csv(self.csv1)
-        df2 = read_table(self.csv1, sep=',')
+        df = read_csv(self.csv1, index_col=0, parse_dates=True)
+        df2 = read_table(self.csv1, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
         self.assert_(isinstance(df.index[0], datetime))
         self.assert_(df.values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
     def test_read_csv_no_index_name(self):
-        df = read_csv(self.csv2)
-        df2 = read_table(self.csv2, sep=',')
+        df = read_csv(self.csv2, index_col=0, parse_dates=True)
+        df2 = read_table(self.csv2, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
         self.assert_(isinstance(df.index[0], datetime))
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
@@ -129,11 +126,21 @@ c,4,5
 
         pth = os.path.join(self.dirpath, 'test.xls')
         xls = ExcelFile(pth)
-        df = xls.parse('Sheet1')
-        df2 = read_csv(self.csv1)
-        df3 = xls.parse('Sheet2', skiprows=[1])
+        df = xls.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xls.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
+
+    def test_read_table_wrong_num_columns(self):
+        data = """A,B,C,D,E,F
+1,2,3,4,5
+6,7,8,9,10
+11,12,13,14,15
+"""
+        self.assertRaises(Exception, read_csv, StringIO(data))
+
+
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
