@@ -833,278 +833,6 @@ def take_1d_bool(ndarray[uint8_t] values, ndarray[int32_t] indexer,
             outbuf[i] = values[idx]
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis0_float64(ndarray[float64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[float64_t, ndim=2] outbuf
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-
-        if idx == -1:
-            for j from 0 <= j < k:
-                outbuf[i, j] = NaN
-        else:
-            for j from 0 <= j < k:
-                outbuf[i, j] = values[idx, j]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis0_object(ndarray[object, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[object, ndim=2] outbuf
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-
-        if idx == -1:
-            for j from 0 <= j < k:
-                outbuf[i, j] = NaN
-        else:
-            for j from 0 <= j < k:
-                outbuf[i, j] = values[idx, j]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis0_int32(ndarray[int32_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[int32_t, ndim=2] outbuf
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-
-        if idx == -1:
-            for j from 0 <= j < k:
-                raise ValueError('No NA values allowed')
-        else:
-            for j from 0 <= j < k:
-                outbuf[i, j] = values[idx, j]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis0_int64(ndarray[int64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[int64_t, ndim=2] outbuf
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-
-        if idx == -1:
-            for j from 0 <= j < k:
-                raise ValueError('No NA values allowed')
-        else:
-            for j from 0 <= j < k:
-                outbuf[i, j] = values[idx, j]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis0_bool(ndarray[uint8_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[uint8_t, ndim=2] outbuf
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for i from 0 <= i < n:
-        idx = indexer[i]
-
-        if idx == -1:
-            for j from 0 <= j < k:
-                raise ValueError('No NA values allowed')
-        else:
-            for j from 0 <= j < k:
-                outbuf[i, j] = values[idx, j]
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis1_float64(ndarray[float64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[float64_t, ndim=2] outbuf
-
-    n = len(values)
-    k = len(indexer)
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for j from 0 <= j < k:
-        idx = indexer[j]
-
-        if idx == -1:
-            for i from 0 <= i < n:
-                outbuf[i, j] = NaN
-        else:
-            for i from 0 <= i < n:
-                outbuf[i, j] = values[i, idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis1_object(ndarray[object, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[object, ndim=2] outbuf
-
-    n = len(values)
-    k = len(indexer)
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for j from 0 <= j < k:
-        idx = indexer[j]
-
-        if idx == -1:
-            for i from 0 <= i < n:
-                outbuf[i, j] = NaN
-        else:
-            for i from 0 <= i < n:
-                outbuf[i, j] = values[i, idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis1_int32(ndarray[int32_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[int32_t, ndim=2] outbuf
-
-    n = len(values)
-    k = len(indexer)
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for j from 0 <= j < k:
-        idx = indexer[j]
-
-        if idx == -1:
-            for i from 0 <= i < n:
-                raise ValueError('No NA values allowed')
-        else:
-            for i from 0 <= i < n:
-                outbuf[i, j] = values[i, idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis1_int64(ndarray[int64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[int64_t, ndim=2] outbuf
-
-    n = len(values)
-    k = len(indexer)
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for j from 0 <= j < k:
-        idx = indexer[j]
-
-        if idx == -1:
-            for i from 0 <= i < n:
-                raise ValueError('No NA values allowed')
-        else:
-            for i from 0 <= i < n:
-                outbuf[i, j] = values[i, idx]
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_2d_axis1_bool(ndarray[uint8_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
-                           out=None):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        ndarray[uint8_t, ndim=2] outbuf
-
-    n = len(values)
-    k = len(indexer)
-
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-    for j from 0 <= j < k:
-        idx = indexer[j]
-
-        if idx == -1:
-            for i from 0 <= i < n:
-                raise ValueError('No NA values allowed')
-        else:
-            for i from 0 <= i < n:
-                outbuf[i, j] = values[i, idx]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_float64(ndarray[float64_t] arr):
@@ -1405,12 +1133,362 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def take_2d_axis0_float64(ndarray[float64_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[float64_t, ndim=2] outbuf
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = NaN
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis0_object(ndarray[object, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[object, ndim=2] outbuf
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = NaN
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis0_int32(ndarray[int32_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int32_t, ndim=2] outbuf
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+
+        if idx == -1:
+            for j from 0 <= j < k:
+                raise ValueError('No NA values allowed')
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis0_int64(ndarray[int64_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int64_t, ndim=2] outbuf
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+
+        if idx == -1:
+            for j from 0 <= j < k:
+                raise ValueError('No NA values allowed')
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis0_bool(ndarray[uint8_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[uint8_t, ndim=2] outbuf
+
+    n = len(indexer)
+    k = values.shape[1]
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+
+        if idx == -1:
+            for j from 0 <= j < k:
+                raise ValueError('No NA values allowed')
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_float64(ndarray[float64_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[float64_t, ndim=2] outbuf
+
+    n = len(values)
+    k = len(indexer)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for j from 0 <= j < k:
+        idx = indexer[j]
+
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = NaN
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_object(ndarray[object, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[object, ndim=2] outbuf
+
+    n = len(values)
+    k = len(indexer)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for j from 0 <= j < k:
+        idx = indexer[j]
+
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = NaN
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_int32(ndarray[int32_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int32_t, ndim=2] outbuf
+
+    n = len(values)
+    k = len(indexer)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for j from 0 <= j < k:
+        idx = indexer[j]
+
+        if idx == -1:
+            for i from 0 <= i < n:
+                raise ValueError('No NA values allowed')
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_int64(ndarray[int64_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int64_t, ndim=2] outbuf
+
+    n = len(values)
+    k = len(indexer)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for j from 0 <= j < k:
+        idx = indexer[j]
+
+        if idx == -1:
+            for i from 0 <= i < n:
+                raise ValueError('No NA values allowed')
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_bool(ndarray[uint8_t, ndim=2] values,
+                           ndarray[int32_t] indexer,
+                           out=None):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[uint8_t, ndim=2] outbuf
+
+    n = len(values)
+    k = len(indexer)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+    for j from 0 <= j < k:
+        idx = indexer[j]
+
+        if idx == -1:
+            for i from 0 <= i < n:
+                raise ValueError('No NA values allowed')
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_float64(ndarray[float64_t] left,
+                             ndarray[float64_t] right):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int32_t] indexer
+        float64_t lval, rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.int32)
+    while True:
+        if i == nleft:
+            break
+
+        if j == nright:
+            indexer[i] = -1
+            i += 1
+            continue
+
+        lval = left[i]
+        rval = right[j]
+
+        if lval == right[j]:
+            indexer[i] = j
+            i += 1
+            j += 1
+        elif lval > rval:
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+            i += 1
+    return indexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def left_join_indexer_object(ndarray[object] left,
                              ndarray[object] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int32_t] indexer
         object lval, rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.int32)
+    while True:
+        if i == nleft:
+            break
+
+        if j == nright:
+            indexer[i] = -1
+            i += 1
+            continue
+
+        lval = left[i]
+        rval = right[j]
+
+        if lval == right[j]:
+            indexer[i] = j
+            i += 1
+            j += 1
+        elif lval > rval:
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+            i += 1
+    return indexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_int32(ndarray[int32_t] left,
+                             ndarray[int32_t] right):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int32_t] indexer
+        int32_t lval, rval
 
     i = 0
     j = 0
@@ -1484,6 +1562,102 @@ def left_join_indexer_int64(ndarray[int64_t] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def outer_join_indexer_float64(ndarray[float64_t] left,
+                                ndarray[float64_t] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        float64_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[float64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.float64)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def outer_join_indexer_object(ndarray[object] left,
                                 ndarray[object] right):
     cdef:
@@ -1527,6 +1701,102 @@ def outer_join_indexer_object(ndarray[object] left,
     lindexer = np.empty(count, dtype=np.int32)
     rindexer = np.empty(count, dtype=np.int32)
     result = np.empty(count, dtype=object)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def outer_join_indexer_int32(ndarray[int32_t] left,
+                                ndarray[int32_t] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        int32_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int32_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int32)
 
     # do it again, but populate the indexers / result
 
@@ -1677,6 +1947,69 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def inner_join_indexer_float64(ndarray[float64_t] left,
+                              ndarray[float64_t] right):
+    '''
+    Two-pass algorithm?
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        float64_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[float64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.float64)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def inner_join_indexer_object(ndarray[object] left,
                               ndarray[object] right):
     '''
@@ -1714,6 +2047,69 @@ def inner_join_indexer_object(ndarray[object] left,
     lindexer = np.empty(count, dtype=np.int32)
     rindexer = np.empty(count, dtype=np.int32)
     result = np.empty(count, dtype=object)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def inner_join_indexer_int32(ndarray[int32_t] left,
+                              ndarray[int32_t] right):
+    '''
+    Two-pass algorithm?
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        int32_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int32_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int32)
 
     i = 0
     j = 0

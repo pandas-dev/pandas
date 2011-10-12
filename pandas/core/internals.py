@@ -485,8 +485,9 @@ class BlockManager(object):
             raise Exception('cannot get view of mixed-type or '
                             'non-consolidated DataFrame')
 
-        items = self.items
         dtype = _interleaved_dtype(self.blocks)
+
+        items = self.items
         n = len(items)
         result = np.empty(n, dtype=dtype)
         for blk in self.blocks:
@@ -496,6 +497,37 @@ class BlockManager(object):
                 result[i] = values[j, loc]
 
         return result
+
+    # def fast_2d_xs2(self, loc, copy=False):
+    #     """
+
+    #     """
+    #     if len(self.blocks) == 1:
+    #         result = self.blocks[0].values[:, loc]
+    #         if copy:
+    #             result = result.copy()
+    #         return result
+
+    #     if not copy:
+    #         raise Exception('cannot get view of mixed-type or '
+    #                         'non-consolidated DataFrame')
+
+    #     def _get_put_function(source_dtype, out_dtype):
+    #         src = source_dtype.name
+    #         dst = out_dtype.name
+    #         return getattr(lib, 'put2d_%s_%s' % (src, dst))
+
+    #     out_dtype = np.dtype(_interleaved_dtype(self.blocks))
+
+    #     items = self.items
+    #     n = len(items)
+    #     out = np.empty(n, dtype=out_dtype)
+    #     for blk in self.blocks:
+    #         values = blk.values
+    #         indexer = lib.merge_indexer_object(blk.items, items.indexMap)
+    #         putf = _get_put_function(values.dtype, out_dtype)
+    #         putf(values, indexer, loc, out)
+    #     return out
 
     def consolidate(self):
         """
@@ -904,7 +936,7 @@ def _interleaved_dtype(blocks):
     elif have_bool:
         return np.bool_
     elif have_int and not have_float:
-        return np.int_
+        return np.int64
     else:
         return np.float64
 

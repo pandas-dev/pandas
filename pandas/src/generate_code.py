@@ -558,6 +558,45 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
 """
 
+#----------------------------------------------------------------------
+# Fast "put" logic for speeding up interleaving logic
+
+put2d_template = """
+def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
+                              ndarray[int32_t] indexer, Py_ssize_t loc,
+                              ndarray[%(dest_type2)s] out):
+    cdef:
+        Py_ssize_t i, j, k
+
+    k = len(values)
+    for j from 0 <= j < k:
+        i = indexer[j]
+        out[i] = values[j, loc]
+"""
+
+def generate_put_functions():
+    function_list = [
+        ('float64', 'float64_t', 'object'),
+        ('float64', 'float64_t', 'float64_t'),
+        ('object', 'object', 'object'),
+        ('int32', 'int32_t', 'int64_t'),
+        ('int32', 'int32_t', 'float64_t'),
+        ('int32', 'int32_t', 'object'),
+        ('int64', 'int64_t', 'int64_t'),
+        ('int64', 'int64_t', 'float64_t'),
+        ('int64', 'int64_t', 'object'),
+        ('bool', 'uint8_t', 'uint8_t'),
+        ('bool', 'uint8_t', 'object')
+    ]
+
+    output = StringIO()
+    for name, c_type, dest_type in function_list:
+        func = put2d_template % {'name' : name, 'c_type' : c_type,
+                                 'dest_type' : dest_type.replace('_t', ''),
+                                 'dest_type2' : dest_type}
+        output.write(func)
+    return output.getvalue()
+
 # name, ctype, capable of holding NA
 function_list = [
     ('float64', 'float64_t', 'np.float64', True),
@@ -567,10 +606,10 @@ function_list = [
     ('bool', 'uint8_t', 'np.bool', False)
 ]
 
-def generate_from_template(template, ndim=1, subset=None):
+def generate_from_template(template, ndim=1, exclude=None):
     output = StringIO()
     for name, c_type, dtype, can_hold_na in function_list:
-        if subset is not None and name not in subset:
+        if exclude is not None and name in exclude:
             continue
 
         if ndim == 1:
@@ -582,25 +621,34 @@ def generate_from_template(template, ndim=1, subset=None):
         output.write(func)
     return output.getvalue()
 
+templates_1d = [map_indices_template,
+                merge_indexer_template,
+                pad_template,
+                backfill_template,
+                take_1d_template,
+                is_monotonic_template,
+                groupby_template,
+                arrmap_template]
+
+nobool_1d_templates = [left_join_template,
+                       outer_join_template,
+                       inner_join_template]
+
+templates_2d = [take_2d_axis0_template,
+                take_2d_axis1_template]
+
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
-        print >> f, generate_from_template(map_indices_template)
-        print >> f, generate_from_template(merge_indexer_template)
-        print >> f, generate_from_template(pad_template)
-        print >> f, generate_from_template(backfill_template)
-        print >> f, generate_from_template(take_1d_template)
-        print >> f, generate_from_template(take_2d_axis0_template, ndim=2)
-        print >> f, generate_from_template(take_2d_axis1_template, ndim=2)
-        print >> f, generate_from_template(is_monotonic_template)
-        print >> f, generate_from_template(groupby_template)
-        print >> f, generate_from_template(arrmap_template)
+        for template in templates_1d:
+            print >> f, generate_from_template(template)
 
-        print >> f, generate_from_template(left_join_template,
-                                           subset=['object', 'int64'])
-        print >> f, generate_from_template(outer_join_template,
-                                           subset=['object', 'int64'])
-        print >> f, generate_from_template(inner_join_template,
-                                           subset=['object', 'int64'])
+        for template in templates_2d:
+            print >> f, generate_from_template(template, ndim=2)
+
+        for template in nobool_1d_templates:
+            print >> f, generate_from_template(template, exclude=['bool'])
+
+        # print >> f, generate_put_functions()
 
 if __name__ == '__main__':
     generate_take_cython_file()

@@ -224,3 +224,4 @@ def take_join_contiguous(ndarray[float64_t, ndim=2] lvalues,
             for j from 0 <= j < rk:
                 outbuf[0] = rvalues[ridx, j]
                 outbuf = outbuf + 1
+
