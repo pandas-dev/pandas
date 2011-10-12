@@ -19,40 +19,55 @@
 IO Tools (Text, CSV, HDF5, ...)
 *******************************
 
-Text files
-----------
+CSV & Text files
+----------------
 
-The two workhorse functions for reading text (a.k.a. flat) files are
-``read_csv`` and ``read_table``. They both utilize the same parsing code for
-intelligently converting tabular data into a DataFrame object. They take a
-number of different arguments:
+The two workhorse functions for reading text files (a.k.a. flat files) are
+:func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
+They both utilize the same parsing code for intelligently converting tabular
+data into a DataFrame object. They take a number of different arguments:
 
-  - ``path_or_buffer``: Either a string path to a file or any object (such as
-    an open ``file`` or ``StringIO``) with a ``read`` method.
+  - ``path_or_buffer``: Either a string path to a file or any object with a
+    ``read`` method (such as an open file or ``StringIO``).
   - ``delimiter``: For ``read_table`` only, a regular expression to split
     fields on. ``read_csv`` uses the ``csv`` module to do this and hence only
-    supports comma-separated values
-  - ``skiprows``: Rows in the file to skip
-  - ``header``: row number to use as the columns, defaults to 0 (first row)
-  - ``index_col``: integer, defaulting to 0 (the first column), instructing the
-    parser to use a particular column as the ``index`` (row labels) of the
-    resulting DataFrame
-  - ``na_values``: optional list of strings to recognize as NA/NaN
+    supports comma-separated values.
+  - ``header``: row number to use as the column names, and the start of the data.
+    Defaults to 0 (first row); specify None if there is no header row.
+  - ``names``: List of column names to use if header is None.
+  - ``skiprows``: A collection of numbers for rows in the file to skip.
+  - ``index_col``: column number, or list of column numbers, to use as the
+    ``index`` (row labels) of the resulting DataFrame. By default, it will number
+    the rows without using any column, unless there is one more data column than
+    there are headers, in which case the first column is taken as the index.
+  - ``parse_dates``: If True, attempt to parse the index column as dates. False
+    by default.
   - ``date_parser``: function to use to parse strings into datetime
-    objects. Defaults to the very robust ``dateutil.parser``
-  - ``names``: optional list of column names for the data. Otherwise will be
-    read from the file
+    objects. If ``parse_dates`` is True, it defaults to the very robust
+    ``dateutil.parser``. Specifying this implicitly sets ``parse_dates`` as True.
+  - ``na_values``: optional list of strings to recognize as NaN (missing values),
+    in addition to a default set.
+  
 
 .. code-block:: ipython
 
-    In [2]: print open('foo.csv').read()
-    A,B,C
+    In [1]: print open('foo.csv').read()
+    date,A,B,C
     20090101,a,1,2
     20090102,b,3,4
     20090103,c,4,5
+    
+    # A basic index is created by default:
+    In [3]: read_csv('foo.csv')
+    Out[3]:
+       date      A  B  C
+    0  20090101  a  1  2
+    1  20090102  b  3  4
+    2  20090103  c  4  5
 
-    In [3]: df = read_csv('foo.csv')
-
+    # Use a column as an index, and parse it as dates.
+    In [3]: df = read_csv('foo.csv', index_col=0, parse_dates=True)
+    
     In [4]: df
     Out[4]:
                 A  B  C
@@ -60,35 +75,10 @@ number of different arguments:
     2009-01-02  b  3  4
     2009-01-03  c  4  5
 
-    # dates parsed to datetime
+    # These are python datetime objects
     In [16]: df.index
     Out[16]: Index([2009-01-01 00:00:00, 2009-01-02 00:00:00,
                     2009-01-03 00:00:00], dtype=object)
-
-If ``index_col=None``, the index will be a generic ``0...nrows-1``:
-
-.. code-block:: ipython
-
-    In [1]: print open('foo.csv').read()
-    index,A,B,C
-    20090101,a,1,2
-    20090102,b,3,4
-    20090103,c,4,5
-
-    In [2]: read_csv('foo.csv')
-    Out[2]:
-                A  B  C
-    2009-01-01  a  1  2
-    2009-01-02  b  3  4
-    2009-01-03  c  4  5
-
-
-    In [3]: read_csv('foo.csv', index_col=None)
-    Out[3]:
-       index     A  B  C
-    0  20090101  a  1  2
-    1  20090102  b  3  4
-    2  20090103  c  4  5
 
 
 The parsers make every attempt to "do the right thing" and not be very
