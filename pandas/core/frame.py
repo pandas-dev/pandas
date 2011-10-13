@@ -15,6 +15,7 @@ labeling information
 from StringIO import StringIO
 import csv
 import operator
+import sys
 import warnings
 
 from numpy import nan
@@ -550,7 +551,6 @@ class DataFrame(NDFrame):
                   nanRep='NaN', formatters=None, float_format=None,
                   sparsify=True):
         from pandas.core.common import _format, adjoin
-        import sys
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout
@@ -629,7 +629,6 @@ class DataFrame(NDFrame):
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
         """
-        import sys
         if buf is None:  # pragma: no cover
             buf = sys.stdout
 
@@ -3303,6 +3302,22 @@ def _homogenize(data, index, columns, dtype=None):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
+
+def install_ipython_completers():
+    """Register the DataFrame type with IPython's tab completion machinery, so
+    that it knows about accessing column names as attributes."""
+    from IPython.utils.generics import complete_object
+    
+    @complete_object.when_type(DataFrame)
+    def complete_dataframe(obj, prev_completions):
+        return prev_completions + [c for c in obj.columns \
+                                                if py3compat.isidentifier(c)]
+
+# Importing IPython brings in about 200 modules, so we want to avoid it unless
+# we're in IPython (when those modules are loaded anyway).
+if "IPython" in sys.modules:
+    install_ipython_completers()
+
 
 if __name__ == '__main__':
     import nose
