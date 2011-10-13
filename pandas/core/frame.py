@@ -3316,7 +3316,10 @@ def install_ipython_completers():
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
 # we're in IPython (when those modules are loaded anyway).
 if "IPython" in sys.modules:
-    install_ipython_completers()
+    try:
+        install_ipython_completers()
+    except Exception:
+        pass
 
 
 if __name__ == '__main__':
