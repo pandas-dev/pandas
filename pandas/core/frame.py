@@ -33,7 +33,7 @@ from pandas.util.decorators import deprecate
 from pandas.util import py3compat
 import pandas.core.common as common
 import pandas.core.datetools as datetools
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 #----------------------------------------------------------------------
 # Factory helper methods
@@ -861,7 +861,7 @@ class DataFrame(NDFrame):
         res = Series(values, index=self.index, name=key)
         self._series_cache[key] = res
         return res
-    
+
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.
         This allows simpler access to columns for interactive use."""
@@ -3125,7 +3125,7 @@ def extract_index(data):
         if isinstance(v, Series):
             return v.index
         elif isinstance(v, dict):
-            return Index(_try_sort(v))
+            return v.keys()
 
     index = None
     if len(data) == 0:
@@ -3155,26 +3155,45 @@ def extract_index(data):
 
 def _union_indexes(indexes):
     if len(indexes) == 1:
-        index = indexes[0]
-    if _any_special_indexes(indexes):
+        result = indexes[0]
+        if isinstance(result, list):
+            result = Index(sorted(result))
+        return result
+
+    indexes, kind = _sanitize_and_check(indexes)
+
+    if kind == 'special':
         result = indexes[0]
         for other in indexes[1:]:
             result = result.union(other)
         return result
-    else:
+    elif kind == 'array':
         index = indexes[0]
         for other in indexes[1:]:
             if not index.equals(other):
-                return Index(_tseries.fast_unique_multiple(indexes))
+                return Index(lib.fast_unique_multiple(indexes))
 
         return index
+    else:
+        return Index(lib.fast_unique_multiple_list(indexes))
 
 
-def _any_special_indexes(indexes):
-    for index in indexes:
-        if type(index) != Index:
-            return True
-    return False
+def _sanitize_and_check(indexes):
+    kinds = list(set([type(index) for index in indexes]))
+
+    if list in kinds:
+        if len(kinds) > 1:
+            indexes = [Index(_try_sort(x)) if not isinstance(x, Index) else x
+                       for x in indexes]
+            kinds.remove(list)
+        else:
+            return indexes, 'list'
+
+
+    if len(kinds) > 1 or Index not in kinds:
+        return indexes, 'special'
+    else:
+        return indexes, 'array'
 
 
 def _check_data_types(data):

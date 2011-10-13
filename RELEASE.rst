@@ -25,9 +25,13 @@ pandas 0.5.0
   - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
   - Added private `_get_duplicates` function to `Index` for identifying
     duplicate values more easily
+  - Added column attribute access to DataFrame, e.g. df.A equivalent to df['A']
+    if 'A' is a column in the DataFrame (PR #213)
 
 **Improvements to existing features**
 
+  - Added Cython function for converting tuples to ndarray very fast. Speeds up
+    many MultiIndex-related operations
   - File parsing functions like `read_csv` and `read_table` will explicitly
     check if a parsed index has duplicates and raise a more helpful exception
     rather than deferring the check until later
@@ -38,6 +42,7 @@ pandas 0.5.0
     5x, regression from 0.3.0
   - With new `DataFrame.align` method, speeding up binary operations between
     differently-indexed DataFrame objects by 10-25%.
+  - Significantly sped up conversion of nested dict into DataFrame
 
 **Bug fixes**
 

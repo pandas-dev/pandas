@@ -215,27 +215,6 @@ def group_labels2(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique(ndarray[object] values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i from 0 <= i < n:
-        val = values[i]
-        if val not in table:
-            table[val] = stub
-            uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
-
-    return uniques
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def get_unique_labels(ndarray[object] values, dict idMap):
     cdef int i, length
     cdef object idx
@@ -247,32 +226,6 @@ def get_unique_labels(ndarray[object] values, dict idMap):
         fillVec[i] = idMap[idx]
 
     return fillVec
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def fast_unique_multiple(list arrays):
-    cdef:
-        ndarray[object] buf
-        Py_ssize_t k = len(arrays)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i from 0 <= i < k:
-        buf = arrays[i]
-        n = len(buf)
-        for j from 0 <= j < n:
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
-
-    return uniques
 
 # from libcpp.set cimport set as stlset
 

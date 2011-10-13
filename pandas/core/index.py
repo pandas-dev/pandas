@@ -39,6 +39,7 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
+    name = None
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
             if dtype is None and issubclass(data.dtype.type, np.integer):
@@ -50,12 +51,6 @@ class Index(np.ndarray):
         else:
             # other iterable of some kind
             subarr = _asarray_tuplesafe(data, dtype=object)
-
-            # if not isinstance(data, (list, tuple)):
-            #     data = list(data)
-
-            # subarr = np.empty(len(data), dtype=object)
-            # subarr[:] = data
 
         subarr = subarr.view(cls)
         subarr.name = name
