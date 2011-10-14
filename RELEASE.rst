@@ -15,7 +15,8 @@ pandas 0.5.0
   - `read_table`, `read_csv`, and `ExcelFile.parse` default arguments for
     `index_col` is now None. To use one or more of the columns as the resulting
     DataFrame's index, these must be explicitly specified now
-  - Parsing functions no longer parse dates by default (GH #225)
+  - Parsing functions like `read_csv` no longer parse dates by default (GH
+    #225)
 
 **New features / modules**
 
