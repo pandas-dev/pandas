@@ -872,6 +872,24 @@ class TestGroupBy(unittest.TestCase):
         expected = self.df.groupby('A').sum()
         assert_frame_equal(result, expected)
 
+    def test_apply_example(self):
+        df = DataFrame({'d' : [1.,1.,1.,2.,2.,2.],
+                        'c' : np.tile(['a','b','c'], 2),
+                        'v' : np.arange(1., 7.)})
+
+        def f(group):
+            v = group['v']
+            group['v2'] = (v - v.min()) / (v.max() - v.min())
+            return group
+
+        result = df.groupby('d').apply(f)
+
+        expected = df.copy()
+        expected['v2'] = np.tile([0., 0.5, 1], 2)
+
+        assert_frame_equal(result, expected)
+
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):

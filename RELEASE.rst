@@ -47,6 +47,8 @@ pandas 0.5.0
   - With new `DataFrame.align` method, speeding up binary operations between
     differently-indexed DataFrame objects by 10-25%.
   - Significantly sped up conversion of nested dict into DataFrame
+  - Can pass hierarchical index level name to `groupby` instead of the level
+    number if desired (GH #223)
 
 **Bug fixes**
 
