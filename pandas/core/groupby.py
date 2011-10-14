@@ -503,6 +503,10 @@ class Grouping(object):
         self.index = index
 
         if level is not None:
+            if not isinstance(level, int):
+                assert(level in index.names)
+                level = index.names.index(level)
+
             inds = index.labels[level]
             labels = index.levels[level].take(inds)
 

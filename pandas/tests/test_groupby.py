@@ -56,7 +56,8 @@ class TestGroupBy(unittest.TestCase):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
         self.mframe = DataFrame(np.random.randn(10, 3), index=index,
                                 columns=['A', 'B', 'C'])
 
@@ -655,7 +656,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_grouping_attrs(self):
         deleveled = self.mframe.delevel()
-        grouped = deleveled.groupby(['level_0', 'level_1'])
+        grouped = deleveled.groupby(['first', 'second'])
 
         for i, ping in enumerate(grouped.groupings):
             the_counts = self.mframe.groupby(level=i).count()['A']
@@ -668,11 +669,19 @@ class TestGroupBy(unittest.TestCase):
         result0 = frame.groupby(level=0).sum()
         result1 = frame.groupby(level=1).sum()
 
-        expected0 = frame.groupby(deleveled['level_0']).sum()
-        expected1 = frame.groupby(deleveled['level_1']).sum()
+        expected0 = frame.groupby(deleveled['first']).sum()
+        expected1 = frame.groupby(deleveled['second']).sum()
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
+
+        # groupby level name
+        result0 = frame.groupby(level='first').sum()
+        result1 = frame.groupby(level='second').sum()
+        assert_frame_equal(result0, expected0)
+        assert_frame_equal(result1, expected1)
+
+        # axis=1
 
         result0 = frame.T.groupby(level=0, axis=1).sum()
         result1 = frame.T.groupby(level=1, axis=1).sum()
@@ -693,8 +702,8 @@ class TestGroupBy(unittest.TestCase):
         result0 = frame.groupby(mapper0, level=0).sum()
         result1 = frame.groupby(mapper1, level=1).sum()
 
-        mapped_level0 = np.array([mapper0.get(x) for x in deleveled['level_0']])
-        mapped_level1 = np.array([mapper1.get(x) for x in deleveled['level_1']])
+        mapped_level0 = np.array([mapper0.get(x) for x in deleveled['first']])
+        mapped_level1 = np.array([mapper1.get(x) for x in deleveled['second']])
         expected0 = frame.groupby(mapped_level0).sum()
         expected1 = frame.groupby(mapped_level1).sum()
 
