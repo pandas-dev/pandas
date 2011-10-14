@@ -39,9 +39,6 @@ def ols(**kwargs):
     Panel OLS options:
         pool: bool
             Whether to run pooled panel regression.  Defaults to true.
-        weights: DataFrame
-            Weight for each observation.  The weights are not normalized;
-            they're multiplied directly by each observation.
         entity_effects: bool
             Whether to account for entity fixed effects.  Defaults to false.
         time_effects: bool

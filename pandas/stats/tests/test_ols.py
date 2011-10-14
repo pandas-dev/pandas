@@ -381,41 +381,6 @@ class TestPanelOLS(BaseTest):
         self.assertTrue(result._x_filtered.major_axis.equals(
             result.y_fitted.index))
 
-    def testWithWeights(self):
-        data = np.arange(10).reshape((5, 2))
-        index = [datetime(2000, 1, 1),
-                 datetime(2000, 1, 2),
-                 datetime(2000, 1, 3),
-                 datetime(2000, 1, 4),
-                 datetime(2000, 1, 5)]
-        cols = ['A', 'B']
-        weights = DataFrame(data, index=index, columns=cols)
-
-        result = ols(y=self.panel_y2, x=self.panel_x2, weights=weights)
-
-        assert_almost_equal(result._y_trans.values.flat, [0, 16, 25])
-
-        exp_x = [[0, 0, 0],
-                 [36, 68, 4],
-                 [150, 240, 5]]
-        assert_almost_equal(result._x_trans.values, exp_x)
-
-
-        exp_x_filtered = [[6, 14, 1],
-                          [9, 17, 1],
-                          [30, 48, 1],
-                          [11, 20, 1],
-                          [12, 21, 1]]
-#         exp_x_filtered = [[0, 0, 0],
-#                           [36, 68, 4],
-#                           [150, 240, 5],
-#                           [66, 120, 6],
-#                           [84, 147, 7]]
-
-        assert_almost_equal(result._x_filtered.values, exp_x_filtered)
-
-        # _check_non_raw_results(result)
-
     def testWithTimeEffects(self):
         result = ols(y=self.panel_y2, x=self.panel_x2, time_effects=True)
 
@@ -513,15 +478,6 @@ class TestPanelOLS(BaseTest):
                             self.series_x, self.series_y, nw_lags=1,
                             nw_overlap=True)
 
-    def testRollingWithWeights(self):
-        idx = self.panel_y.index
-        cols = self.panel_y.columns
-
-
-        weights = DataFrame(np.random.standard_normal((len(idx), len(cols))),
-                            index=idx, columns=cols)
-        self.checkMovingOLS(self.panel_x,
-                            self.panel_y, weights=weights)
 
     def testRolling(self):
         self.checkMovingOLS(self.panel_x, self.panel_y)

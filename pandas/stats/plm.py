@@ -36,9 +36,6 @@ class PanelOLS(OLS):
         FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
     window : int
         size of window (for rolling/expanding OLS)
-    weights : DataFrame
-        Weight for each observation.  The weights are not normalized;
-        they're multiplied directly by each observation.
     pool : bool, default True
         Whether to run pooled panel regression
     entity_effects : bool, deafult False
@@ -65,14 +62,12 @@ class PanelOLS(OLS):
         2. There is autocorrelation - use 'entity'
 
     """
-    def __init__(self, y, x, weights=None,
-                 intercept=True, nw_lags=None, entity_effects=False,
+    def __init__(self, y, x, intercept=True, nw_lags=None, entity_effects=False,
                  time_effects=False, x_effects=None, cluster=None,
                  dropped_dummies=None, verbose=False, nw_overlap=False):
         self._x_orig = x
         self._y_orig = y
 
-        self._weights = weights
         self._intercept = intercept
         self._nw_lags = nw_lags
         self._nw_overlap = nw_overlap
@@ -110,8 +105,7 @@ class PanelOLS(OLS):
 
         The categorical variables will get dropped from x.
         """
-        (x, x_filtered, y, weights,
-         weights_filt, cat_mapping) = self._filter_data()
+        (x, x_filtered, y, cat_mapping) = self._filter_data()
 
         self.log('Adding dummies to X variables')
         x = self._add_dummies(x, cat_mapping)
@@ -141,12 +135,6 @@ class PanelOLS(OLS):
             x_regressor = x
             y_regressor = y
 
-        if weights is not None:
-            assert(y_regressor.index is weights.index)
-            assert(x_regressor.index is weights.index)
-            y_regressor = y_regressor * weights
-            x_regressor = x_regressor.mul(weights, axis=0)
-
         return x, x_regressor, x_filtered, y, y_regressor
 
     def _filter_data(self):
@@ -170,9 +158,6 @@ class PanelOLS(OLS):
 
         x_names = data.items
 
-        if self._weights is not None:
-            data['__weights__'] = self._weights
-
         # Filter x's without y (so we can make a prediction)
         filtered = data.to_long()
 
@@ -187,21 +172,10 @@ class PanelOLS(OLS):
         data_long = data.to_long()
 
         x_filt = filtered.filter(x_names)
-
-        if self._weights:
-            weights_filt = filtered['__weights__']
-        else:
-            weights_filt = None
-
         x = data_long.filter(x_names)
         y = data_long['__y__']
 
-        if self._weights:
-            weights = data_long['__weights__']
-        else:
-            weights = None
-
-        return x, x_filt, y, weights, weights_filt, cat_mapping
+        return x, x_filt, y, cat_mapping
 
     def _convert_x(self, x):
         # Converts non-numeric data in x to floats. x_converted is the
@@ -527,9 +501,6 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         Minimum number of total observations to require. Default is
         rank(X matrix) + 1. In some cases we might want to be able to
         relax this number.
-    weights : DataFrame
-        Weight for each observation.  The weights are not normalized;
-        they're multiplied directly by each observation.
     pool : bool
         Whether to run pooled panel regression.  Defaults to true.
     entity_effects : bool
@@ -554,7 +525,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         1. Countries are correlated - use 'time'
         2. There is autocorrelation - use 'entity'
     """
-    def __init__(self, y, x, weights=None,
+    def __init__(self, y, x,
                  window_type='expanding', window=None,
                  min_periods=None,
                  min_obs=None,
@@ -567,8 +538,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
                  dropped_dummies=None,
                  verbose=False):
 
-        self._args = dict(weights=weights,
-                          intercept=intercept,
+        self._args = dict(intercept=intercept,
                           nw_lags=nw_lags,
                           nw_overlap=nw_overlap,
                           entity_effects=entity_effects,

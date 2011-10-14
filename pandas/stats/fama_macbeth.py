@@ -25,7 +25,7 @@ def fama_macbeth(**kwargs):
     return klass(**kwargs)
 
 class FamaMacBeth(object):
-    def __init__(self, y, x, weights=None, intercept=True, nw_lags=None,
+    def __init__(self, y, x, intercept=True, nw_lags=None,
                  nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
                  cluster=None, dropped_dummies={}, verbose=False):
@@ -33,7 +33,7 @@ class FamaMacBeth(object):
 
         from pandas.stats.plm import MovingPanelOLS
         self._ols_result = MovingPanelOLS(
-            y=y, x=x, weights=weights, window_type='rolling', window=1,
+            y=y, x=x, window_type='rolling', window=1,
             intercept=intercept,
             nw_lags=nw_lags, entity_effects=entity_effects,
             time_effects=time_effects, x_effects=x_effects, cluster=cluster,
@@ -141,7 +141,7 @@ Formula: Y ~ %(formulaRHS)s
         return template % params
 
 class MovingFamaMacBeth(FamaMacBeth):
-    def __init__(self, y, x, weights=None, window_type='rolling', window=10,
+    def __init__(self, y, x, window_type='rolling', window=10,
                  intercept=True, nw_lags=None, nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
                  cluster=None, dropped_dummies={}, verbose=False):
@@ -149,7 +149,7 @@ class MovingFamaMacBeth(FamaMacBeth):
         self._window = window
 
         FamaMacBeth.__init__(
-            self, y=y, x=x, weights=weights, intercept=intercept,
+            self, y=y, x=x, intercept=intercept,
             nw_lags=nw_lags, nw_lags_beta=nw_lags_beta,
             entity_effects=entity_effects, time_effects=time_effects,
             x_effects=x_effects, cluster=cluster,
