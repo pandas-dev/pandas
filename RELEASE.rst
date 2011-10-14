@@ -17,6 +17,8 @@ pandas 0.5.0
     DataFrame's index, these must be explicitly specified now
   - Parsing functions like `read_csv` no longer parse dates by default (GH
     #225)
+  - Removed `weights` option in panel regression which was not doing anything
+    principled
 
 **New features / modules**
 
