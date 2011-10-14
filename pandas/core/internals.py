@@ -498,37 +498,6 @@ class BlockManager(object):
 
         return result
 
-    # def fast_2d_xs2(self, loc, copy=False):
-    #     """
-
-    #     """
-    #     if len(self.blocks) == 1:
-    #         result = self.blocks[0].values[:, loc]
-    #         if copy:
-    #             result = result.copy()
-    #         return result
-
-    #     if not copy:
-    #         raise Exception('cannot get view of mixed-type or '
-    #                         'non-consolidated DataFrame')
-
-    #     def _get_put_function(source_dtype, out_dtype):
-    #         src = source_dtype.name
-    #         dst = out_dtype.name
-    #         return getattr(lib, 'put2d_%s_%s' % (src, dst))
-
-    #     out_dtype = np.dtype(_interleaved_dtype(self.blocks))
-
-    #     items = self.items
-    #     n = len(items)
-    #     out = np.empty(n, dtype=out_dtype)
-    #     for blk in self.blocks:
-    #         values = blk.values
-    #         indexer = lib.merge_indexer_object(blk.items, items.indexMap)
-    #         putf = _get_put_function(values.dtype, out_dtype)
-    #         putf(values, indexer, loc, out)
-    #     return out
-
     def consolidate(self):
         """
         Join together blocks having same dtype

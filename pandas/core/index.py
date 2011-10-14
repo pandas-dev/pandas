@@ -403,21 +403,24 @@ class Index(np.ndarray):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        target = _ensure_index(target)
-
         method = self._get_method(method)
 
         if self.dtype != target.dtype:
             target = Index(target, dtype=object)
 
         if method == 'pad':
+            target = _ensure_index(target)
             indexer = lib.pad_object(self, target, self.indexMap,
                                      target.indexMap)
         elif method == 'backfill':
+            target = _ensure_index(target)
             indexer = lib.backfill_object(self, target, self.indexMap,
                                           target.indexMap)
         elif method is None:
-            indexer = lib.merge_indexer_object(target, self.indexMap)
+            if isinstance(target, list):
+                indexer = lib.merge_indexer_list(target, self.indexMap)
+            else:
+                indexer = lib.merge_indexer_object(target, self.indexMap)
         else:
             raise ValueError('unrecognized method: %s' % method)
         return indexer
@@ -1256,8 +1259,13 @@ class MultiIndex(Index):
             indexer = lib.backfill_object(self_index, target_index,
                                           self_index.indexMap, target.indexMap)
         else:
-            indexer = lib.merge_indexer_object(target_index,
-                                               self_index.indexMap)
+            if isinstance(target_index, list):
+                indexer = lib.merge_indexer_list(target_index,
+                                                 self_index.indexMap)
+            else:
+                indexer = lib.merge_indexer_object(target_index,
+                                                   self_index.indexMap)
+
         return indexer
 
     def reindex(self, target, method=None):
