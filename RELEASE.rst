@@ -103,6 +103,8 @@ pandas 0.5.0
 
   - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
     be reported upstream to matplotlib (GH #224)
+  - Fixed problem in which data would get upcasted to object dtype in
+    GroupBy.apply operations (GH #237)
 
 Thanks
 ------
