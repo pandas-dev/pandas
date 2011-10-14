@@ -28,6 +28,7 @@ pandas 0.5.0
     duplicate values more easily
   - Added column attribute access to DataFrame, e.g. df.A equivalent to df['A']
     if 'A' is a column in the DataFrame (PR #213)
+  - Added IPython tab completion hook for DataFrame columns. (PR #233, GH #230)
 
 **Improvements to existing features**
 
@@ -50,6 +51,10 @@ pandas 0.5.0
   - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
     be reported upstream to matplotlib (GH #224)
 
+Thanks
+------
+
+  - Thomas Kluyver
 
 pandas 0.4.3
 ============
