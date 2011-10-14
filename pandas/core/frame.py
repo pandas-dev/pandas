@@ -2225,6 +2225,8 @@ class DataFrame(NDFrame):
 
         if isinstance(on, (list, tuple)):
             join_key = zip(*[self[k] for k in on])
+            join_key = common._asarray_tuplesafe(join_key,
+                                                 dtype=np.object_)
         else:
             join_key = np.asarray(self[on])
 
