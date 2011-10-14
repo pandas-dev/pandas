@@ -426,7 +426,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_to_string(self):
         from cStringIO import StringIO
-        self.ts.to_string(buffer=StringIO())
+        buf = StringIO()
+
+        s = self.ts.to_string()
+
+        retval = self.ts.to_string(buf=buf)
+        self.assert_(retval is None)
+        self.assertEqual(buf.getvalue().strip(), s)
 
     def test_iter(self):
         for i, val in enumerate(self.series):

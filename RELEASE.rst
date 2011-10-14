@@ -19,6 +19,9 @@ pandas 0.5.0
     #225)
   - Removed `weights` option in panel regression which was not doing anything
     principled
+  - Changed `buffer` argument name in `Series.to_string` to `buf`
+  - `Series.to_string` and `DataFrame.to_string` now return strings by default
+    instead of printing to sys.stdout
 
 **New features / modules**
 

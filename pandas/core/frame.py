@@ -552,8 +552,10 @@ class DataFrame(NDFrame):
                   sparsify=True):
         from pandas.core.common import _format, adjoin
 
+        return_ = False
         if buf is None:  # pragma: no cover
-            buf = sys.stdout
+            buf = StringIO()
+            return_ = True
 
         if colSpace is None:
             def _myformat(v):
@@ -595,6 +597,9 @@ class DataFrame(NDFrame):
 
         for s in to_write:
             print >> buf, s
+
+        if return_:
+            return buf.getvalue()
 
     def _get_formatted_labels(self, sparsify=True):
         from pandas.core.index import _sparsify
@@ -3307,7 +3312,7 @@ def install_ipython_completers():
     """Register the DataFrame type with IPython's tab completion machinery, so
     that it knows about accessing column names as attributes."""
     from IPython.utils.generics import complete_object
-    
+
     @complete_object.when_type(DataFrame)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.columns \

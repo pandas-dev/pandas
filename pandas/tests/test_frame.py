@@ -67,10 +67,11 @@ class CheckIndexing(object):
 
         subframe_obj = self.tsframe[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
-    
+
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
-        self.assertRaises(AttributeError, getattr, self.frame, 'NONEXISTENT_NAME')
+        self.assertRaises(AttributeError, getattr, self.frame,
+                          'NONEXISTENT_NAME')
 
     def test_setitem(self):
         # not sure what else to do here
@@ -1268,20 +1269,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
+        s = biggie.to_string()
+
         buf = StringIO()
-        biggie.to_string(buf=buf)
+        retval = biggie.to_string(buf=buf)
+        self.assert_(retval is None)
+        self.assertEqual(buf.getvalue(), s)
 
-        biggie.to_string(buf=buf, columns=['B', 'A'], colSpace=17)
-        biggie.to_string(buf=buf, columns=['B', 'A'],
-                        formatters={'A' : lambda x: '%.1f' % x})
+        self.assert_(isinstance(s, basestring))
 
-        biggie.to_string(buf=buf, columns=['B', 'A'],
-                        float_format=str)
-        biggie.to_string(buf=buf, columns=['B', 'A'], colSpace=12,
-                        float_format=str)
+        biggie.to_string(columns=['B', 'A'], colSpace=17)
+        biggie.to_string(columns=['B', 'A'],
+                         formatters={'A' : lambda x: '%.1f' % x})
+
+        biggie.to_string(columns=['B', 'A'], float_format=str)
+        biggie.to_string(columns=['B', 'A'], colSpace=12,
+                         float_format=str)
 
         frame = DataFrame(index=np.arange(1000))
-        frame.to_string(buf=buf)
+        frame.to_string()
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),

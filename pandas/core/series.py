@@ -378,8 +378,12 @@ copy : boolean, default False
         result = '%s\nName: %s, Length: %d' % (result, self.name, len(self))
         return result
 
-    def to_string(self, buffer=sys.stdout, nanRep='NaN'):
-        print >> buffer, self._get_repr(nanRep=nanRep)
+    def to_string(self, buf=None, nanRep='NaN'):
+        the_repr = self._get_repr(nanRep=nanRep)
+        if buf is None:
+            return the_repr
+        else:
+            print >> buf, the_repr
 
     def _get_repr(self, name=False, nanRep='NaN'):
         vals = self.values
