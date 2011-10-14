@@ -10,6 +10,11 @@ pandas 0.5.0
 
 **Release date:** not yet released
 
+
+
+Thanks to Thomas Kluyver and others for contributing patches and feedback
+leading to some of the minor API changes listed below.
+
 **API Changes**
 
   - `read_table`, `read_csv`, and `ExcelFile.parse` default arguments for
@@ -105,11 +110,6 @@ pandas 0.5.0
     be reported upstream to matplotlib (GH #224)
   - Fixed problem in which data would get upcasted to object dtype in
     GroupBy.apply operations (GH #237)
-
-Thanks
-------
-
-  - Thomas Kluyver
 
 pandas 0.4.3
 ============
