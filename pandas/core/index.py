@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.core.common import (adjoin as _adjoin, _stringify,
                                 _is_bool_indexer, _asarray_tuplesafe)
-from pandas.util.decorators import deprecate, cache_readonly
+from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
 
 __all__ = ['Index']
@@ -594,11 +594,6 @@ class Index(np.ndarray):
         cp = self.view(np.ndarray).copy(order).view(type(self))
         cp.__dict__.update(self.__dict__)
         return cp
-
-    #----------------------------------------------------------------------
-    # deprecated stuff
-
-    asOfDate = deprecate('asOfDate', asof)
 
 
 class Int64Index(Index):

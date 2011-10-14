@@ -14,7 +14,6 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.series import Series
-from pandas.util.decorators import deprecate
 from pandas.util import py3compat
 import pandas.core.common as common
 import pandas._tseries as _tseries
@@ -1080,12 +1079,6 @@ class Panel(NDFrame):
             join_minor = self.minor_axis.union(other.minor_axis)
         return join_major, join_minor
 
-    #----------------------------------------------------------------------
-    # Deprecated stuff
-
-    getMinorXS = deprecate('getMinorXS', minor_xs)
-    getMajorXS = deprecate('getMajorXS', major_xs)
-
 WidePanel = Panel
 
 #-------------------------------------------------------------------------------
@@ -1276,8 +1269,6 @@ class LongPanel(DataFrame):
             data[item] = DataFrame(values, index=self.major_axis,
                                    columns=self.minor_axis)
         return Panel.from_dict(data)
-
-    toWide = deprecate('toWide', to_wide)
 
     def toCSV(self, path):
         def format_cols(items):

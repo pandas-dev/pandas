@@ -16,7 +16,6 @@ from StringIO import StringIO
 import csv
 import operator
 import sys
-import warnings
 
 from numpy import nan
 import numpy as np
@@ -30,7 +29,6 @@ from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
-from pandas.util.decorators import deprecate
 from pandas.util import py3compat
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -355,8 +353,7 @@ class DataFrame(NDFrame):
         return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
-    def from_records(cls, data, index=None, indexField=None,
-                     exclude=None):
+    def from_records(cls, data, index=None, exclude=None):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -371,11 +368,6 @@ class DataFrame(NDFrame):
         -------
         df : DataFrame
         """
-        if indexField is not None:  # pragma: no cover
-            warnings.warn("indexField argument is deprecated. Use index "
-                          "instead", FutureWarning)
-            index = indexField
-
         columns, sdict = _rec_to_dict(data)
 
         if exclude is None:
@@ -2942,124 +2934,6 @@ class DataFrame(NDFrame):
         DataFrame
         """
         return self.mul(other, fill_value=1.)
-
-    def toDataMatrix(self):  # pragma: no cover
-        warnings.warn("toDataMatrix will disappear in next release "
-                      "as there is no longer a DataMatrix class",
-                      FutureWarning)
-        return self.copy()
-
-    def rows(self):  # pragma: no cover
-        """Alias for the frame's index"""
-        warnings.warn("Replace usage of .rows() with .index, will be removed "
-                      "in next release", FutureWarning)
-        return self.index
-
-    def cols(self):  # pragma: no cover
-        """Return sorted list of frame's columns"""
-        warnings.warn("Replace usage of .cols() with .columns, will be "
-                      "removed in next release", FutureWarning)
-        return list(self.columns)
-
-    def asMatrix(self, *args, **kwargs):  # pragma: no cover
-        warnings.warn("asMatrix is deprecated. Use 'as_matrix' or .values "
-                      "instead", FutureWarning)
-        return self.as_matrix(*args, **kwargs)
-
-    @classmethod
-    def fromRecords(cls, *args, **kwargs):  # pragma: no cover
-        warnings.warn("fromRecords is deprecated. Use 'from_records' "
-                      "instead", FutureWarning)
-        return cls.from_records(*args, **kwargs)
-
-    @classmethod
-    def fromcsv(cls, *args, **kwargs):  # pragma: no cover
-        warnings.warn("fromcsv is deprecated. Use 'from_csv' "
-                      "instead", FutureWarning)
-        return cls.from_csv(*args, **kwargs)
-
-    combineFirst = deprecate('combineFirst', combine_first)
-    getXS = deprecate('getXS', xs)
-    merge = deprecate('merge', join)
-    toRecords = deprecate('toRecords', to_records)
-    toDict = deprecate('toDict', to_dict)
-    toString = deprecate('toString', to_string)
-    _firstTimeWithValue = deprecate('_firstTimeWithValue', first_valid_index)
-    _lastTimeWithValue = deprecate('_lastTimeWithValue', last_valid_index)
-    toCSV = deprecate('toCSV', to_csv)
-
-    def dropEmptyRows(self, specificColumns=None):  # pragma: no cover
-        """
-        Return DataFrame with rows omitted containing ALL NaN values
-        for optionally specified set of columns.
-
-        Parameters
-        ----------
-        specificColumns : list-like, optional keyword
-            Columns to consider in removing NaN values. As a typical
-            application, you might provide the list of the columns involved in
-            a regression to exlude all the missing data in one shot.
-
-        Returns
-        -------
-        This DataFrame with rows containing any NaN values deleted
-        """
-        warnings.warn("dropEmptyRows is deprecated. Use dropna(how='all')",
-                      FutureWarning)
-        return self.dropna(axis=0, subset=specificColumns, how='all')
-
-    def dropIncompleteRows(self, specificColumns=None,
-                           minObs=None):  # pragma: no cover
-        """
-        Return DataFrame with rows omitted containing ANY NaN values for
-        optionally specified set of columns.
-
-        Parameters
-        ----------
-        minObs : int or None (default)
-           Instead of requiring all the columns to have observations, require
-           only minObs observations
-        specificColumns : list-like, optional keyword
-            Columns to consider in removing NaN values. As a typical
-            application, you might provide the list of the columns involved in
-            a regression to exlude all the missing data in one shot.
-
-        Returns
-        -------
-        This DataFrame with rows containing any NaN values deleted
-
-        """
-        warnings.warn("dropEmptyRows is deprecated. Use dropna()",
-                      FutureWarning)
-        if minObs is None:
-            return self.dropna(axis=0, subset=specificColumns, how='any')
-        else:
-            return self.dropna(axis=0, subset=specificColumns, thresh=minObs)
-
-    def tapply(self, func):  # pragma: no cover
-        """
-        Apply func to the transposed DataFrame, results as per apply
-        """
-        warnings.warn("tapply is deprecated. Use apply(f, axis=1)",
-                      FutureWarning)
-        return self.apply(func, axis=1)
-
-    def tgroupby(self, keyfunc, applyfunc):  # pragma: no cover
-        """
-        Aggregate columns based on passed function
-
-        Parameters
-        ----------
-        keyfunc : function
-        applyfunc : function
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        warnings.warn("tgroupby is deprecated. Use groupby with axis=1",
-                      FutureWarning)
-        return self.T.groupby(keyfunc).aggregate(applyfunc).T
 
 def group_agg(values, bounds, f):
     """

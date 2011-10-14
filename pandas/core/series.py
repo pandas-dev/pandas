@@ -8,8 +8,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 import csv
 import itertools
 import operator
-import sys
-import warnings
 
 from numpy import nan, ndarray
 import numpy as np
@@ -20,7 +18,6 @@ from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
-from pandas.util.decorators import deprecate
 from pandas.util import py3compat
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -1156,7 +1153,7 @@ copy : boolean, default False
         else:
             return Series(np.argsort(values), index=self.index, name=self.name)
 
-    def order(self, na_last=True, ascending=True, **kwds):
+    def order(self, na_last=True, ascending=True):
         """
         Sorts Series object, by value, maintaining index-value link
 
@@ -1178,11 +1175,6 @@ copy : boolean, default False
             except TypeError:
                 # stable sort not available for object dtype
                 return arr.argsort()
-
-        if 'missingAtEnd' in kwds:  # pragma: no cover
-            warnings.warn("missingAtEnd is deprecated, use na_last",
-                          FutureWarning)
-            na_last = kwds['missingAtEnd']
 
         arr = self.values
         sortedIdx = np.empty(len(self), dtype=np.int32)
@@ -1852,24 +1844,6 @@ copy : boolean, default False
     def weekday(self):
         return Series([d.weekday() for d in self.index], index=self.index)
 
-    #----------------------------------------------------------------------
-    # Deprecated stuff
-
-    @classmethod
-    def fromValue(cls, value=nan, index=None, dtype=None):  # pragma: no cover
-        warnings.warn("'fromValue', can call Series(value, index=index) now",
-                      FutureWarning)
-        return Series(value, index=index, dtype=dtype)
-
-    asOf = deprecate('asOf', asof)
-    toDict = deprecate('toDict', to_dict)
-    toString = deprecate('toString', to_string)
-    merge = deprecate('merge', map)
-    applymap = deprecate('applymap', apply)
-    combineFirst = deprecate('combineFirst', combine_first)
-    _firstTimeWithValue = deprecate('_firstTimeWithValue', first_valid_index)
-    _lastTimeWithValue = deprecate('_lastTimeWithValue', last_valid_index)
-    toCSV = deprecate('toCSV', to_csv)
 
 class TimeSeries(Series):
     pass

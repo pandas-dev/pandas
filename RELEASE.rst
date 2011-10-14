@@ -22,6 +22,52 @@ pandas 0.5.0
   - Changed `buffer` argument name in `Series.to_string` to `buf`
   - `Series.to_string` and `DataFrame.to_string` now return strings by default
     instead of printing to sys.stdout
+  - Series functions renamed (and thus deprecated) in 0.4 series have been
+    removed:
+
+    * `asOf`, use `asof`
+    * `toDict`, use `to_dict`
+    * `toString`, use `to_string`
+    * `toCSV`, use `to_csv`
+    * `merge`, use `map`
+    * `applymap`, use `apply`
+    * `combineFirst`, use `combine_first`
+    * `_firstTimeWithValue` use `first_valid_index`
+    * `_lastTimeWithValue` use `last_valid_index`
+
+  - DataFrame functions renamed / deprecated in 0.4 series have been removed:
+
+    * `asMatrix` method, use `as_matrix` or `values` attribute
+    * `combineFirst`, use `combine_first`
+    * `getXS`, use `xs`
+    * `merge`, use `join`
+    * `fromRecords`, use `from_records`
+    * `fromcsv`, use `from_csv`
+    * `toRecords`, use `to_records`
+    * `toDict`, use `to_dict`
+    * `toString`, use `to_string`
+    * `toCSV`, use `to_csv`
+    * `_firstTimeWithValue` use `first_valid_index`
+    * `_lastTimeWithValue` use `last_valid_index`
+    * `toDataMatrix` is no longer needed
+    * `rows()` method, use `index` attribute
+    * `cols()` method, use `columns` attribute
+    * `dropEmptyRows()`, use `dropna(how='all')`
+    * `dropIncompleteRows()`, use `dropna()`
+    * `tapply(f)`, use `apply(f, axis=1)`
+    * `tgroupby(keyfunc, aggfunc)`, use `groupby` with `axis=1`
+
+  - Other outstanding deprecations have been removed:
+
+    * `indexField` argument in `DataFrame.from_records`
+    * `missingAtEnd` argument in `Series.order`. Use `na_last` instead
+    * `Series.fromValue` classmethod, use regular `Series` constructor instead
+    * Functions `parseCSV`, `parseText`, and `parseExcel` methods in
+      `pandas.io.parsers` have been removed
+    * `Index.asOfDate` function
+    * `Panel.getMinorXS` (use `minor_xs`) and `Panel.getMajorXS` (use
+      `major_xs`)
+    * `Panel.toWide`, use `Panel.to_wide` instead
 
 **New features / modules**
 
