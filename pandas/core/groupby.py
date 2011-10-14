@@ -1069,22 +1069,35 @@ class DataFrameGroupBy(GroupBy):
                               axis=self.axis)
 
 def _concat_frames(frames, index, columns=None, axis=0):
-    if axis == 0:
-        all_index = [np.asarray(x.index) for x in frames]
-        new_index = Index(np.concatenate(all_index))
+    if len(frames) == 1:
+        return frames[0]
 
+    if axis == 0:
+        new_index = _concat_indexes([x.index for x in frames])
         if columns is None:
             new_columns = frames[0].columns
         else:
             new_columns = columns
     else:
-        all_columns = [np.asarray(x.columns) for x in frames]
-        new_columns = Index(np.concatenate(all_columns))
+        new_columns = _concat_indexes([x.columns for x in frames])
         new_index = index
 
-    new_values = np.concatenate([x.values for x in frames], axis=axis)
-    result = DataFrame(new_values, index=new_index, columns=new_columns)
-    return result.reindex(index=index, columns=columns)
+    if frames[0]._is_mixed_type:
+        new_data = {}
+        for col in new_columns:
+            new_data[col] = np.concatenate([x[col].values for x in frames])
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+    else:
+        new_values = np.concatenate([x.values for x in frames], axis=axis)
+        result = DataFrame(new_values, index=new_index, columns=new_columns)
+        return result.reindex(index=index, columns=columns)
+
+def _concat_indexes(indexes):
+    if len(indexes) == 1:
+        new_index = indexes[0]
+    else:
+        new_index = indexes[0].append(indexes[1:])
+    return new_index
 
 def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
     if axis == 0:
@@ -1096,8 +1109,14 @@ def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
         new_columns = _make_concat_multiindex(all_columns, keys, groupings)
         new_index = frames[0].index
 
-    new_values = np.concatenate([x.values for x in frames], axis=axis)
-    return DataFrame(new_values, index=new_index, columns=new_columns)
+    if frames[0]._is_mixed_type:
+        new_data = {}
+        for col in new_columns:
+            new_data[col] = np.concatenate([x[col].values for x in frames])
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+    else:
+        new_values = np.concatenate([x.values for x in frames], axis=axis)
+        return DataFrame(new_values, index=new_index, columns=new_columns)
 
 def _make_concat_multiindex(indexes, keys, groupings):
     if not _all_indexes_same(indexes):

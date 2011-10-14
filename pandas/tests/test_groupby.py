@@ -872,7 +872,7 @@ class TestGroupBy(unittest.TestCase):
         expected = self.df.groupby('A').sum()
         assert_frame_equal(result, expected)
 
-    def test_apply_example(self):
+    def test_apply_typecast_fail(self):
         df = DataFrame({'d' : [1.,1.,1.,2.,2.,2.],
                         'c' : np.tile(['a','b','c'], 2),
                         'v' : np.arange(1., 7.)})
@@ -889,6 +889,24 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result, expected)
 
+    def test_apply_multiindex_fail(self):
+        index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
+                                        [1, 2, 3, 1, 2, 3]])
+        df = DataFrame({'d' : [1.,1.,1.,2.,2.,2.],
+                        'c' : np.tile(['a','b','c'], 2),
+                        'v' : np.arange(1., 7.)}, index=index)
+
+        def f(group):
+            v = group['v']
+            group['v2'] = (v - v.min()) / (v.max() - v.min())
+            return group
+
+        result = df.groupby('d').apply(f)
+
+        expected = df.copy()
+        expected['v2'] = np.tile([0., 0.5, 1], 2)
+
+        assert_frame_equal(result, expected)
 
 class TestPanelGroupBy(unittest.TestCase):
 
