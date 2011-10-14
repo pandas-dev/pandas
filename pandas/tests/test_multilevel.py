@@ -377,6 +377,11 @@ class TestMultiLevel(unittest.TestCase):
         restacked = unstacked.stack()
         self.assertEquals(restacked.index.names, self.frame.index.names)
 
+    def test_unstack_level_name(self):
+        result = self.frame.unstack('second')
+        expected = self.frame.unstack(level=1)
+        assert_frame_equal(result, expected)
+
     def test_groupby_transform(self):
         s = self.frame['A']
         grouper = s.index.get_level_values(0)

@@ -61,8 +61,8 @@ class _Unstacker(object):
         self.new_index_levels = list(index.levels)
         self.new_index_names = list(index.names)
 
-        self.removed_name = self.new_index_names.pop(level)
-        self.removed_level = self.new_index_levels.pop(level)
+        self.removed_name = self.new_index_names.pop(self.level)
+        self.removed_level = self.new_index_levels.pop(self.level)
 
         v = self.level
         lshape = self.index.levshape
