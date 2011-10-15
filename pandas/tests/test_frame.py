@@ -3165,6 +3165,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame.ix[:, ['foo', 'B', 'C', 'A', 'D']]
         assert_frame_equal(result, expected)
 
+    def test_iterkv_names(self):
+        for k, v in self.mixed_frame.iterkv():
+            self.assertEqual(v.name, k)
+
+    def test_series_put_names(self):
+        series = self.mixed_frame._series
+        for k, v in series.iteritems():
+            self.assertEqual(v.name, k)
+
 def _join_by_hand(a, b, how='left'):
     join_index = a.index.join(b.index, how=how)
 

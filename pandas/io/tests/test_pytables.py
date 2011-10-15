@@ -214,6 +214,11 @@ class TesttHDFStore(unittest.TestCase):
         self.assertRaises(ValueError, self._check_roundtrip, df[:0],
                           tm.assert_frame_equal)
 
+    def test_can_serialize_dates(self):
+        rng = [x.date() for x in DateRange('1/1/2000', '1/30/2000')]
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        self._check_roundtrip(frame, tm.assert_frame_equal)
+
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
