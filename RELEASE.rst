@@ -113,6 +113,8 @@ leading to some of the minor API changes listed below.
   - Fixed outer join bug with empty DataFrame (GH #238)
   - DataFrame.iteritems was not returning Series with the name attribute
     set. Also neither was DataFrame._series
+  - Can store datetime.date objects in HDFStore (GH #231)
+  - Index and Series names are now stored in HDFStore
 
 pandas 0.4.3
 ============

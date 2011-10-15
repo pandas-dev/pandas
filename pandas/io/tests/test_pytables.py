@@ -232,12 +232,37 @@ class TesttHDFStore(unittest.TestCase):
         self._check_roundtrip(frame.T, tm.assert_frame_equal)
         self._check_roundtrip(frame['A'], tm.assert_series_equal)
 
-        # check that the
+        # check that the names are stored
         try:
             store = HDFStore(self.scratchpath)
             store['frame'] = frame
             recons = store['frame']
             assert(recons.index.names == ['foo', 'bar'])
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def test_store_index_name(self):
+        df = tm.makeDataFrame()
+        df.index.name = 'foo'
+        try:
+            store = HDFStore(self.scratchpath)
+            store['frame'] = df
+            recons = store['frame']
+            assert(recons.index.name == 'foo')
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def test_store_series_name(self):
+        df = tm.makeDataFrame()
+        series = df['A']
+
+        try:
+            store = HDFStore(self.scratchpath)
+            store['series'] = series
+            recons = store['series']
+            assert(recons.name == 'A')
         finally:
             store.close()
             os.remove(self.scratchpath)

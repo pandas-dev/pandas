@@ -10,7 +10,7 @@ import time
 
 import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
-                    MultiIndex)
+                    Index, MultiIndex)
 from pandas.core.common import adjoin
 import pandas._tseries as lib
 
@@ -331,6 +331,7 @@ class HDFStore(object):
     def _write_series(self, group, series):
         self._write_index(group, 'index', series.index)
         self._write_array(group, 'values', series.values)
+        group._v_attrs.name = series.name
 
     def _write_frame(self, group, df):
         self._write_block_manager(group, df._data)
@@ -440,6 +441,7 @@ class HDFStore(object):
             self._write_array(group, key, converted)
             node = getattr(group, key)
             node._v_attrs.kind = kind
+            node._v_attrs.name = index.name
 
     def _read_index(self, group, key):
         try:
@@ -503,7 +505,10 @@ class HDFStore(object):
         except Exception:
             name = None
 
-        return name, _unconvert_index(data, kind)
+        index = Index(_unconvert_index(data, kind))
+        index.name = name
+
+        return name, index
 
     def _write_array(self, group, key, value):
         if key in group:
@@ -617,7 +622,8 @@ class HDFStore(object):
     def _read_series(self, group, where=None):
         index = self._read_index(group, 'index')
         values = _read_array(group, 'values')
-        return Series(values, index=index)
+        name = getattr(group._v_attrs, 'name', None)
+        return Series(values, index=index, name=name)
 
     def _read_legacy_series(self, group, where=None):
         index = self._read_index_legacy(group, 'index')
