@@ -2638,6 +2638,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_join_on_series(self):
         pass
 
+    def test_join_empty_bug(self):
+        # generated an exception in 0.4.3
+        x = DataFrame()
+        x.join(DataFrame([3], index=[0], columns=['A']), how='outer')
+
     def test_clip(self):
         median = self.frame.median().median()
 
