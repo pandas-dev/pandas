@@ -826,6 +826,10 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         expected = p1_suf.join(p2_suf).join(no_overlap)
         assert_panel_equal(joined, expected)
 
+    def test_repr_empty(self):
+        empty = Panel()
+        repr(empty)
+
 class TestLongPanel(unittest.TestCase):
 
     def setUp(self):
@@ -1143,6 +1147,8 @@ class TestLongPanel(unittest.TestCase):
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
+
+
 
 def test_group_agg():
     values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))

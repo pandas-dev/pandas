@@ -317,11 +317,17 @@ class Panel(NDFrame):
 
         dims = 'Dimensions: %d (items) x %d (major) x %d (minor)' % (I, N, K)
 
-        major = 'Major axis: %s to %s' % (self.major_axis[0],
-                                          self.major_axis[-1])
+        if len(self.major_axis) > 0:
+            major = 'Major axis: %s to %s' % (self.major_axis[0],
+                                              self.major_axis[-1])
+        else:
+            major = 'Major axis: None'
 
-        minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
-                                          self.minor_axis[-1])
+        if len(self.minor_axis) > 0:
+            minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
+                                              self.minor_axis[-1])
+        else:
+            minor = 'Minor axis: None'
 
         if len(self.items) > 0:
             items = 'Items: %s to %s' % (self.items[0], self.items[-1])

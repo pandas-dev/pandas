@@ -116,6 +116,7 @@ leading to some of the minor API changes listed below.
   - Can store datetime.date objects in HDFStore (GH #231)
   - Index and Series names are now stored in HDFStore
   - Can create empty Panel (GH #239)
+  - Panel.__repr__ raised exception on length-0 major/minor axes
 
 pandas 0.4.3
 ============
