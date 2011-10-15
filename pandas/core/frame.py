@@ -276,8 +276,7 @@ class DataFrame(NDFrame):
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
-        series = self._series
-        return ((k, series[k]) for k in self.columns)
+        return ((k, self[k]) for k in self.columns)
 
     iterkv = iteritems
     if py3compat.PY3:

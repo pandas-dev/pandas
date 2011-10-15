@@ -875,7 +875,7 @@ def _blocks_to_series_dict(blocks, index=None):
 
     for block in blocks:
         for item, vec in zip(block.items, block.values):
-            series_dict[item] = Series(vec, index=index)
+            series_dict[item] = Series(vec, index=index, name=item)
     return series_dict
 
 def _interleaved_dtype(blocks):

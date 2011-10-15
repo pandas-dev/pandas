@@ -110,6 +110,9 @@ leading to some of the minor API changes listed below.
     be reported upstream to matplotlib (GH #224)
   - Fixed problem in which data would get upcasted to object dtype in
     GroupBy.apply operations (GH #237)
+  - Fixed outer join bug with empty DataFrame (GH #238)
+  - DataFrame.iteritems was not returning Series with the name attribute
+    set. Also neither was DataFrame._series
 
 pandas 0.4.3
 ============
