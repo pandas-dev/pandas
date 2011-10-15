@@ -186,7 +186,7 @@ class Panel(NDFrame):
         __div__ = _arith_method(operator.div, '__div__')
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
 
-    def __init__(self, data, items=None, major_axis=None, minor_axis=None,
+    def __init__(self, data=None, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
         """
         Represents wide format panel data, stored as 3-dimensional array
@@ -205,6 +205,9 @@ class Panel(NDFrame):
         copy : boolean, default False
             Copy data from inputs. Only affects DataFrame / 2d ndarray input
         """
+        if data is None:
+            data = {}
+
         passed_axes = [items, major_axis, minor_axis]
         if isinstance(data, BlockManager):
             mgr = data

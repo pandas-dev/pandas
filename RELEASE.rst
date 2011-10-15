@@ -115,6 +115,7 @@ leading to some of the minor API changes listed below.
     set. Also neither was DataFrame._series
   - Can store datetime.date objects in HDFStore (GH #231)
   - Index and Series names are now stored in HDFStore
+  - Can create empty Panel (GH #239)
 
 pandas 0.4.3
 ============

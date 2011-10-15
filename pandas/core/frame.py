@@ -3031,6 +3031,9 @@ def extract_index(data):
 
 
 def _union_indexes(indexes):
+    if len(indexes) == 0:
+        return Index([])
+
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):

@@ -560,6 +560,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         data = [[['foo', 'bar', 'baz']]]
         self.assertRaises(ValueError, Panel, data, dtype=float)
 
+    def test_constructor_empty_panel(self):
+        empty = Panel()
+        self.assert_(len(empty.items) == 0)
+        self.assert_(len(empty.major_axis) == 0)
+        self.assert_(len(empty.minor_axis) == 0)
+
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
 
