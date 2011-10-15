@@ -10,11 +10,11 @@ pandas 0.5.0
 
 **Release date:** not yet released
 
-This major release of pandas includes a number of API changes (see below) and
-cleanup of deprecated APIs from pre-0.4.0 releases. There are also bug fixes,
-some new features, performance enhancements, and includes a new IPython
-completer hook to enable tab completion of DataFrame columns accesses as
-attributes (a new feature).
+This release of pandas includes a number of API changes (see below) and cleanup
+of deprecated APIs from pre-0.4.0 releases. There are also bug fixes, some new
+features, performance enhancements, and includes a new IPython completer hook to
+enable tab completion of DataFrame columns accesses as attributes (a new
+feature).
 
 In addition to the changes listed here from 0.4.3 to 0.5.0, the minor releases
 0.4.1, 0.4.2, and 0.4.3 brought some significant new functionality and
