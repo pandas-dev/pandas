@@ -96,6 +96,8 @@ feedback on the library.
 
 **Improvements to existing features**
 
+  - Major performance improvements in file parsing functions `read_csv` and
+    `read_table`
   - Added Cython function for converting tuples to ndarray very fast. Speeds up
     many MultiIndex-related operations
   - File parsing functions like `read_csv` and `read_table` will explicitly
@@ -127,6 +129,7 @@ feedback on the library.
   - Panel.__repr__ raised exception on length-0 major/minor axes
   - Be less aggressive about converting float->int in `read_csv` and
     `read_table`
+  - `read_csv` will set Index name attribute
 
 pandas 0.4.3
 ============
