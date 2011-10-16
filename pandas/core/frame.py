@@ -2497,7 +2497,7 @@ class DataFrame(NDFrame):
         min : Series
         """
         values = self.values.copy()
-        if skipna:
+        if skipna and not issubclass(values.dtype.type, np.int_):
             np.putmask(values, -np.isfinite(values), np.inf)
         return Series(values.min(axis), index=self._get_agg_axis(axis))
 
@@ -2518,7 +2518,7 @@ class DataFrame(NDFrame):
         max : Series
         """
         values = self.values.copy()
-        if skipna:
+        if skipna and not issubclass(values.dtype.type, np.int_):
             np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 
