@@ -5,6 +5,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+import collections
 import csv
 import itertools
 import operator
@@ -873,12 +874,20 @@ copy : boolean, default False
         -------
         desc : Series
         """
-        names = ['count', 'mean', 'std', 'min',
-                 '25%', '50%', '75%', 'max']
+        if self.dtype == object:
+            names = ['count', 'unique', 'top', 'freq']
+            
+            objcounts = collections.Counter(self)
+            top, freq = objcounts.most_common(1)[0]
+            data = [self.count(), len(objcounts), top, freq]
+            
+        else:    
+            names = ['count', 'mean', 'std', 'min',
+                     '25%', '50%', '75%', 'max']
 
-        data = [self.count(), self.mean(), self.std(), self.min(),
-                self.quantile(.25), self.median(), self.quantile(.75),
-                self.max()]
+            data = [self.count(), self.mean(), self.std(), self.min(),
+                    self.quantile(.25), self.median(), self.quantile(.75),
+                    self.max()]
 
         return Series(data, index=names)
 
