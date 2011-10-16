@@ -18,55 +18,91 @@ def maybe_convert_float_list(tuple values):
 
     return val
 
-def maybe_convert_float_tuple(tuple values, set na_values):
+def maybe_convert_numeric(tuple values, set na_values):
     cdef:
         Py_ssize_t i, n
-        ndarray[float64_t] result
+        ndarray[float64_t] floats
+        ndarray[int64_t] ints
+        bint seen_float = 0
         object val
+        float64_t fval
 
     n = len(values)
-    result = np.empty(n, dtype='f8')
+
+    floats = np.empty(n, dtype='f8')
+    ints = np.empty(n, dtype='i8')
 
     for i from 0 <= i < n:
         val = values[i]
 
         if cpython.PyFloat_Check(val):
-            result[i] = val
+            floats[i] = val
+            seen_float = 1
         elif val in na_values:
-            result[i] = nan
+            floats[i] = nan
+            seen_float = 1
         elif val is None:
-            result[i] = nan
+            floats[i] = nan
+            seen_float = 1
         elif len(val) == 0:
-            result[i] = nan
+            floats[i] = nan
+            seen_float = 1
         else:
-            result[i] = float(val)
+            fval = float(val)
+            floats[i] = fval
+            if not seen_float:
+                if '.' in val:
+                    seen_float = 1
+                else:
+                    ints[i] = <int64_t> fval
 
-    return result
+    if seen_float:
+        return floats
+    else:
+        return ints
 
-def maybe_convert_float_list(list values, set na_values):
+def maybe_convert_numeric_list(list values, set na_values):
     cdef:
         Py_ssize_t i, n
-        ndarray[float64_t] result
+        ndarray[float64_t] floats
+        ndarray[int64_t] ints
+        bint seen_float = 0
         object val
+        float64_t fval
 
     n = len(values)
-    result = np.empty(n, dtype='f8')
+
+    floats = np.empty(n, dtype='f8')
+    ints = np.empty(n, dtype='i8')
 
     for i from 0 <= i < n:
         val = values[i]
 
         if cpython.PyFloat_Check(val):
-            result[i] = val
+            floats[i] = val
+            seen_float = 1
         elif val in na_values:
-            result[i] = nan
+            floats[i] = nan
+            seen_float = 1
         elif val is None:
-            result[i] = nan
+            floats[i] = nan
+            seen_float = 1
         elif len(val) == 0:
-            result[i] = nan
+            floats[i] = nan
+            seen_float = 1
         else:
-            result[i] = float(val)
+            fval = float(val)
+            floats[i] = fval
+            if not seen_float:
+                if '.' in val:
+                    seen_float = 1
+                else:
+                    ints[i] = <int64_t> fval
 
-    return result
+    if seen_float:
+        return floats
+    else:
+        return ints
 
 def string_to_ndarray_tuple(tuple values):
     cdef:

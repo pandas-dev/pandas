@@ -237,7 +237,7 @@ def _floatify(tup, na_values):
     """
     try:
         if isinstance(tup, tuple):
-            return lib.maybe_convert_float_tuple(tup, na_values)
+            return lib.maybe_convert_numeric(tup, na_values)
         else:
             return lib.maybe_convert_float_list(tup, na_values)
     except Exception:
@@ -283,7 +283,6 @@ def _convert_to_ndarrays(dct, na_values):
 
 def _convert_ndarray(tup, na_values):
     values = _floatify(tup, na_values)
-    values = _maybe_convert_int(values)
     values = _maybe_convert_bool(values)
     return values
 

@@ -125,6 +125,8 @@ feedback on the library.
   - Index and Series names are now stored in HDFStore
   - Can create empty Panel (GH #239)
   - Panel.__repr__ raised exception on length-0 major/minor axes
+  - Be less aggressive about converting float->int in `read_csv` and
+    `read_table`
 
 pandas 0.4.3
 ============

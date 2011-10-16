@@ -174,6 +174,16 @@ True,3
         data = read_csv(StringIO(data))
         self.assert_(data['A'].dtype == np.bool_)
 
+    def test_int_conversion(self):
+        data = """A,B
+1.0,1
+2.0,2
+3.0,3
+"""
+        data = read_csv(StringIO(data))
+        self.assert_(data['A'].dtype == np.float_)
+        self.assert_(data['B'].dtype == np.int_)
+
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
