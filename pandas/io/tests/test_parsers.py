@@ -8,7 +8,7 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame
+from pandas import DataFrame, Index
 from pandas.io.parsers import read_csv, read_table, ExcelFile
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
@@ -76,7 +76,7 @@ d,,f
 6,7,8,9,10
 11,12,13,14,15
 """
-        df = read_table(StringIO(data), sep=',', index_col=None)
+        df = read_table(StringIO(data), sep=',')
         self.assert_(np.array_equal(df.columns,
                                     ['A', 'A.1', 'B', 'B.1', 'B.2']))
 
@@ -86,7 +86,7 @@ a,1,2
 b,3,4
 c,4,5
 """
-        df = read_csv(StringIO(data), index_col=None)
+        df = read_csv(StringIO(data))
         # TODO
 
     def test_csv_custom_parser(self):
@@ -120,6 +120,7 @@ c,4,5
         df = read_csv(self.csv1, index_col=0, parse_dates=True)
         df2 = read_table(self.csv1, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
+        self.assert_(df.index.name == 'index')
         self.assert_(isinstance(df.index[0], datetime))
         self.assert_(df.values.dtype == np.float64)
         assert_frame_equal(df, df2)
@@ -183,6 +184,15 @@ True,3
         data = read_csv(StringIO(data))
         self.assert_(data['A'].dtype == np.float_)
         self.assert_(data['B'].dtype == np.int_)
+
+    def test_infer_index_col(self):
+        data = """A,B,C
+foo,1,2,3
+bar,4,5,6
+baz,7,8,9
+"""
+        data = read_csv(StringIO(data))
+        self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

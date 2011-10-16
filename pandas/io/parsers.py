@@ -148,8 +148,6 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
             columns = colNames
         content = lines
 
-    zipped_content = zip(*content)
-
     if len(content) == 0: # pragma: no cover
         if index_col is not None:
             if np.isscalar(index_col):
@@ -181,18 +179,21 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
         na_values = set(list(na_values)) | NA_VALUES
 
 
+    zipped_content = list(lib.to_object_array(content).T)
+
     if index_col is None and len(content[0]) == len(columns) + 1:
         index_col = 0
 
     # no index column specified, so infer that's what is wanted
     if index_col is not None:
         if np.isscalar(index_col):
-            if index_col == 0 and len(content[0]) == len(columns) + 1:
-                index = zipped_content[0]
-                zipped_content = zipped_content[1:]
+            index = zipped_content.pop(index_col)
+
+            if len(content[0]) == len(columns) + 1:
+                name = None
             else:
-                index = zipped_content.pop(index_col)
-                columns.pop(index_col)
+                name = columns.pop(index_col)
+
         else: # given a list of index
             idx_names = []
             index = []
@@ -204,11 +205,10 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
                 columns.remove(idx_names[i])
                 zipped_content.remove(index[i])
 
-
         if np.isscalar(index_col):
             if parse_dates:
-                index = _try_parse_dates(index, parser=date_parser)
-            index = Index(_convert_ndarray(index, na_values))
+                index = lib.try_parse_dates(index, parser=date_parser)
+            index = Index(_convert_types(index, na_values), name=name)
         else:
             arrays = _maybe_convert_int_mindex(index, parse_dates,
                                                date_parser)
@@ -224,27 +224,10 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
     if len(columns) != len(zipped_content):
         raise Exception('wrong number of columns')
 
-    data = dict(izip(columns, zipped_content))
+    data = dict((k, v) for k, v in zip(columns, zipped_content))
     data = _convert_to_ndarrays(data, na_values)
-
     return DataFrame(data=data, columns=columns, index=index)
 
-
-
-def _floatify(tup, na_values):
-    """
-
-    """
-    try:
-        if isinstance(tup, tuple):
-            return lib.maybe_convert_numeric(tup, na_values)
-        else:
-            return lib.maybe_convert_float_list(tup, na_values)
-    except Exception:
-        if isinstance(tup, tuple):
-            return lib.string_to_ndarray_tuple(tup)
-        else:
-            return lib.string_to_ndarray_list(tup)
 
 def _maybe_convert_int(arr):
     if len(arr) == 0: # pragma: no cover
@@ -259,11 +242,6 @@ def _maybe_convert_int(arr):
 
     return arr
 
-def _maybe_convert_bool(arr):
-    if arr.dtype == np.object_:
-        return lib.maybe_convert_bool_object(arr)
-    return arr
-
 def _maybe_convert_int_mindex(index, parse_dates, date_parser):
     for i in range(len(index)):
         try:
@@ -271,41 +249,25 @@ def _maybe_convert_int_mindex(index, parse_dates, date_parser):
             index[i] = map(int, index[i])
         except ValueError:
             if parse_dates:
-                index[i] = _try_parse_dates(index[i], date_parser)
+                index[i] = lib.try_parse_dates(index[i], date_parser)
 
     return index
 
 def _convert_to_ndarrays(dct, na_values):
     result = {}
     for c, values in dct.iteritems():
-        result[c] = _convert_ndarray(values, na_values)
+        result[c] = _convert_types(values, na_values)
     return result
 
-def _convert_ndarray(tup, na_values):
-    values = _floatify(tup, na_values)
-    values = _maybe_convert_bool(values)
-    return values
-
-def _try_parse_dates(values, parser=None):
-    if parser is None:
-        try:
-            from dateutil import parser
-            parse_date = parser.parse
-        except ImportError: # pragma: no cover
-            def parse_date(s):
-                try:
-                    return datetime.strptime(s, '%m/%d/%Y')
-                except Exception:
-                    return s
-    else:
-        parse_date = parser
-
-    # EAFP
+def _convert_types(values, na_values):
     try:
-        return [parse_date(val) for val in values]
+        values = lib.maybe_convert_numeric(values, na_values)
     except Exception:
-        # failed
-        return values
+        lib.sanitize_objects(values)
+
+    if values.dtype == np.object_:
+        return lib.maybe_convert_bool(values)
+    return values
 
 #-------------------------------------------------------------------------------
 # ExcelFile class
