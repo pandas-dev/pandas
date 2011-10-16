@@ -2609,9 +2609,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_min(self):
         self._check_stat_op('min', np.min)
+        self._check_stat_op('min', np.min, frame=self.intframe)
 
     def test_max(self):
         self._check_stat_op('max', np.max)
+        self._check_stat_op('max', np.max, frame=self.intframe)
 
     def test_mad(self):
         f = lambda x: np.abs(x - x.mean()).mean()
