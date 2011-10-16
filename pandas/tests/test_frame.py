@@ -1616,8 +1616,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(pth)
 
     def test_to_csv_withcommas(self):
-        "Commas inside fields should be correctly escaped when saving as CSV."
+
         path = '__tmp__'
+        # Commas inside fields should be correctly escaped when saving as CSV.
+
         df = DataFrame({'A':[1,2,3], 'B':['5,6','7,8','9,0']})
         df.to_csv(path)
         df2 = DataFrame.from_csv(path)

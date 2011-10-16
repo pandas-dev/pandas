@@ -56,6 +56,20 @@ ignore,this,row
                                     ['A', 'B', 'C', 'Unnamed: 3',
                                      'Unnamed: 4']))
 
+    def test_string_nas(self):
+        data = """A,B,C
+a,b,c
+d,,f
+,g,h
+"""
+        result = read_csv(StringIO(data))
+        expected = DataFrame([['a', 'b', 'c'],
+                              ['d', np.nan, 'f'],
+                              [np.nan, 'g', 'h']],
+                             columns=['A', 'B', 'C'])
+
+        assert_frame_equal(result, expected)
+
     def test_duplicate_columns(self):
         data = """A,A,B,B,B
 1,2,3,4,5
@@ -150,6 +164,15 @@ foo,12,13,14,15
 bar,12,13,14,15
 """
         self.assertRaises(Exception, read_csv, StringIO(data), index_col=0)
+
+    def test_parse_bools(self):
+        data = """A,B
+True,1
+False,2
+True,3
+"""
+        data = read_csv(StringIO(data))
+        self.assert_(data['A'].dtype == np.bool_)
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

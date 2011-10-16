@@ -9,6 +9,7 @@ import numpy as np
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 
+import pandas._tseries as lib
 
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
@@ -167,6 +168,19 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
 
         return DataFrame(index=index, columns=columns)
 
+
+    # common NA values
+    # no longer excluding inf representations
+    # '1.#INF','-1.#INF', '1.#INF000000',
+    NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                     '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
+                     'nan', ''])
+    if na_values is None:
+        na_values = NA_VALUES
+    else:
+        na_values = set(list(na_values)) | NA_VALUES
+
+
     if index_col is None and len(content[0]) == len(columns) + 1:
         index_col = 0
 
@@ -194,7 +208,7 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
         if np.isscalar(index_col):
             if parse_dates:
                 index = _try_parse_dates(index, parser=date_parser)
-            index = Index(_maybe_convert_int(np.array(index, dtype=object)))
+            index = Index(_convert_ndarray(index, na_values))
         else:
             arrays = _maybe_convert_int_mindex(index, parse_dates,
                                                date_parser)
@@ -211,39 +225,26 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
         raise Exception('wrong number of columns')
 
     data = dict(izip(columns, zipped_content))
-    data = _floatify(data, na_values=na_values)
-    data = _convert_to_ndarrays(data)
+    data = _convert_to_ndarrays(data, na_values)
+
     return DataFrame(data=data, columns=columns, index=index)
 
-def _floatify(data_dict, na_values=None):
+
+
+def _floatify(tup, na_values):
     """
 
     """
-    # common NA values
-    # no longer excluding inf representations
-    # '1.#INF','-1.#INF', '1.#INF000000',
-    NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                     '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
-                     'nan', ''])
-    if na_values is None:
-        na_values = NA_VALUES
-    else:
-        na_values = set(list(na_values)) | NA_VALUES
-
-    def _convert_float(val):
-        if val in na_values:
-            return np.nan
+    try:
+        if isinstance(tup, tuple):
+            return lib.maybe_convert_float_tuple(tup, na_values)
         else:
-            try:
-                return np.float64(val)
-            except Exception:
-                return val
-
-    result = {}
-    for col, values in data_dict.iteritems():
-        result[col] = [_convert_float(val) for val in values]
-
-    return result
+            return lib.maybe_convert_float_list(tup, na_values)
+    except Exception:
+        if isinstance(tup, tuple):
+            return lib.string_to_ndarray_tuple(tup)
+        else:
+            return lib.string_to_ndarray_list(tup)
 
 def _maybe_convert_int(arr):
     if len(arr) == 0: # pragma: no cover
@@ -251,15 +252,16 @@ def _maybe_convert_int(arr):
 
     try:
         if arr.dtype == np.object_:
-            return arr.astype(int)
-
-        if abs(arr[0] - int(arr[0])) < 1e-10:
-            casted = arr.astype(int)
-            if (np.abs(casted - arr) < 1e-10).all():
-                return casted
+            return lib.maybe_convert_int_object(arr)
+        return lib.maybe_convert_int(arr)
     except (TypeError, ValueError):
         pass
 
+    return arr
+
+def _maybe_convert_bool(arr):
+    if arr.dtype == np.object_:
+        return lib.maybe_convert_bool_object(arr)
     return arr
 
 def _maybe_convert_int_mindex(index, parse_dates, date_parser):
@@ -273,15 +275,17 @@ def _maybe_convert_int_mindex(index, parse_dates, date_parser):
 
     return index
 
-def _convert_to_ndarrays(dct):
+def _convert_to_ndarrays(dct, na_values):
     result = {}
     for c, values in dct.iteritems():
-        try:
-            values = np.array(values, dtype=float)
-        except Exception:
-            values = np.array(values, dtype=object)
-        result[c] = _maybe_convert_int(values)
+        result[c] = _convert_ndarray(values, na_values)
     return result
+
+def _convert_ndarray(tup, na_values):
+    values = _floatify(tup, na_values)
+    values = _maybe_convert_int(values)
+    values = _maybe_convert_bool(values)
+    return values
 
 def _try_parse_dates(values, parser=None):
     if parser is None:

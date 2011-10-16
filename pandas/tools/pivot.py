@@ -50,5 +50,6 @@ if __name__ == '__main__':
     data['values'] = np.random.randn(n)
     data = DataFrame(data)
 
-    table = pivot_table(data, values='values', xby=['k1', 'k2'], yby=['k3', 'k4'])
+    table = pivot_table(data, values='values',
+                        xby=['k1', 'k2'], yby=['k3', 'k4'])
 
