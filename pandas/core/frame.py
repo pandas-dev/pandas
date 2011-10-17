@@ -491,8 +491,6 @@ class DataFrame(NDFrame):
         mode : Python write mode, default 'w'
         delimiter : character, default ","
             Field delimiter for the output file.
-
-
         """
         f = open(path, mode)
         csvout = csv.writer(f, lineterminator='\n', delimiter=delimiter)
