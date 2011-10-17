@@ -489,6 +489,10 @@ class DataFrame(NDFrame):
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
         mode : Python write mode, default 'w'
+        delimiter : character, default ","
+            Field delimiter for the output file.
+
+
         """
         f = open(path, mode)
         csvout = csv.writer(f, lineterminator='\n', delimiter=delimiter)
