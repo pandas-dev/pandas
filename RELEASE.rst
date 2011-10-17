@@ -127,9 +127,11 @@ feedback on the library.
   - Index and Series names are now stored in HDFStore
   - Can create empty Panel (GH #239)
   - Panel.__repr__ raised exception on length-0 major/minor axes
-  - Be less aggressive about converting float->int in `read_csv` and
-    `read_table`
-  - `read_csv` will set Index name attribute
+  - `read_csv` / `read_table` fixes
+    - Be less aggressive about converting float->int in cases of floating point
+      representations of integers like 1.0, 2.0, etc.
+    - "True"/"False" will not get correctly converted to boolean
+    - Index name attribute will get set when specifying an index column
 
 pandas 0.4.3
 ============

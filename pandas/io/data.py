@@ -11,7 +11,7 @@ import urllib
 from zipfile import ZipFile
 from StringIO import StringIO
 
-from pandas import DataFrame, Index
+from pandas import DataFrame, read_csv
 
 class DataReader(list):
 
@@ -19,7 +19,7 @@ class DataReader(list):
     Imports data from a number of online sources.
 
     Currently supports Yahoo! finance, St. Louis FED (FRED), and Kenneth French's data library.
-    
+
     Parameters
     ----------
     name : str
@@ -52,8 +52,8 @@ class DataReader(list):
             start = dt.datetime(2010, 1, 1)
         if(end is None):
             end = dt.datetime.today()
-        
-        self = super(DataReader, cls).__new__(cls)                
+
+        self = super(DataReader, cls).__new__(cls)
 
         if(data_source == "yahoo"):
             return self.get_data_yahoo(name=name, start=start, end=end)
@@ -86,20 +86,11 @@ class DataReader(list):
           '&g=d' + \
           '&ignore=.csv'
 
-        days = urllib.urlopen(url).readlines()
+        lines = urllib.urlopen(url).read()
+        return read_csv(StringIO(lines), index_col=0, parse_dates=True)
 
-        data = np.array([day[:-2].split(',') for day in days])
-        header = [str.lower(name) for name in data[0]]
-        index = Index([dt.datetime.strptime(row[0], "%Y-%m-%d") for row in data[1:]])
-        data = np.array([[row[1], row[2], row[3], row[4], int(row[5]), row[6]] for row in data[1:]], dtype=float)
-
-        data = DataFrame(data, index, columns=header[1:]).sort()
-
-        return data
-
-
-
-    def get_data_fred(self, name=None, start=dt.datetime(2010, 1, 1), end=dt.datetime.today()):
+    def get_data_fred(self, name=None, start=dt.datetime(2010, 1, 1),
+                      end=dt.datetime.today()):
         """
         Get data for the given name from the St. Louis FED (FRED).
         Date format is datetime
@@ -144,7 +135,7 @@ class DataReader(list):
             dataset = [d.split() for d in data[(file_edges[i] + 1):file_edges[i+1]]]
             if(len(dataset) > 10):
                 ncol = np.median(np.array([len(d) for d in dataset]))
-                header_index = np.where(np.array([len(d) for d in dataset]) == (ncol-1))[0][-1]         
+                header_index = np.where(np.array([len(d) for d in dataset]) == (ncol-1))[0][-1]
                 header = dataset[header_index]
                 # to ensure the header is unique
                 header = [str(j + 1) + " " + header[j] for j in range(len(header))]
