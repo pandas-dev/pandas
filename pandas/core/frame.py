@@ -469,7 +469,7 @@ class DataFrame(NDFrame):
                                default_fill_value=fill_value)
 
     def to_csv(self, path, nanRep='', cols=None, header=True,
-              index=True, index_label=None, mode='w'):
+              index=True, index_label=None, mode='w', delimiter=","):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -491,7 +491,7 @@ class DataFrame(NDFrame):
         mode : Python write mode, default 'w'
         """
         f = open(path, mode)
-        csvout = csv.writer(f, lineterminator='\n')
+        csvout = csv.writer(f, lineterminator='\n', delimiter=delimiter)
 
         if cols is None:
             cols = self.columns
