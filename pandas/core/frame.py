@@ -2219,9 +2219,6 @@ class DataFrame(NDFrame):
             assert(other.name is not None)
             other = DataFrame({other.name : other})
 
-        if len(other.index) == 0:
-            return self
-
         if isinstance(on, (list, tuple)):
             if len(on) == 1:
                 join_key = self[on[0]].values

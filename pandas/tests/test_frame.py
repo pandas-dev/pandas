@@ -3106,6 +3106,11 @@ class TestDataFrameJoin(unittest.TestCase):
             self.assert_(col in merged)
             self.assert_(merged[col].isnull().all())
 
+        merged2 = self.target.join(self.source.reindex([]), on='C',
+                                   how='inner')
+        self.assert_(merged2.columns.equals(merged.columns))
+        self.assertEqual(len(merged2), 0)
+
     def test_join_on_inner(self):
         df = DataFrame({'key' : ['a', 'a', 'd', 'b', 'b', 'c']})
         df2 = DataFrame({'value' : [0, 1]}, index=['a', 'b'])

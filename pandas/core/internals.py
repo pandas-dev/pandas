@@ -736,7 +736,6 @@ class BlockManager(object):
         other_axis = other.axes[axis]
         indexer = other_axis.get_indexer(on)
 
-        # TODO: deal with length-0 case? or does it fall out?
         if how == 'left':
             mask = indexer == -1
             needs_masking = len(on) > 0 and mask.any()
