@@ -2223,11 +2223,14 @@ class DataFrame(NDFrame):
             return self
 
         if isinstance(on, (list, tuple)):
-            join_key = zip(*[self[k] for k in on])
-            join_key = common._asarray_tuplesafe(join_key,
-                                                 dtype=np.object_)
+            if len(on) == 1:
+                join_key = self[on[0]].values
+            else:
+                join_key = zip(*[self[k] for k in on])
+                join_key = common._asarray_tuplesafe(join_key,
+                                                     dtype=np.object_)
         else:
-            join_key = np.asarray(self[on])
+            join_key = self[on].values
 
         new_data = self._data.join_on(other._data, join_key, axis=1,
                                       lsuffix=lsuffix, rsuffix=rsuffix)

@@ -2554,8 +2554,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # merge column not p resent
         self.assertRaises(Exception, target.join, source, on='E')
 
-        # corner cases
-
         # nothing to merge
         merged = target.join(source.reindex([]), on='C')
 
@@ -2567,6 +2565,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # can't specify how
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
+
+    def test_join_on_singlekey_list(self):
+        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
+        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
+
+        # corner cases
+        joined = df.join(df2, on=['key'])
+        expected = df.join(df2, on='key')
+
+        assert_frame_equal(joined, expected)
 
     def test_join_on_multikey(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
