@@ -1,3 +1,11 @@
+pandas (0.4.3-1) unstable; urgency=low
+
+  * New upstream release(s): primarily bugfixes and optimizations but also
+    with some minor API changes and new functionality
+  * Adjusted debian/watch to match new layout on github
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Tue, 18 Oct 2011 11:27:50 -0400
+
 pandas (0.4.1-1) unstable; urgency=low
 
   * New upstream bugfix release
