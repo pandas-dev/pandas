@@ -3,26 +3,36 @@
 """
 Parts of this file were taken from the pyzmq project
 (https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
-Lesser GPU General Public License.
+Lesser GNU General Public License.
 """
+
+from distutils.core import setup, Command
 # use setuptools if available
-# try:
-#     from setuptools import setup
-#     _have_setuptools = True
-# except ImportError:
-#     _have_setuptools = False
 
 from datetime import datetime
 from glob import glob
 import os
 import sys
 import shutil
+import warnings
+
+
+if sys.version_info[0] >= 3:
+    try:
+        from setuptools import setup
+        _have_setuptools = True
+    except ImportError:
+        raise ImportError('require setuptools/distribute for Py3k')
+    setuptools_args = {'use_2to3': True,
+                       'zip_safe': False,}
+else:
+    setuptools_args = {}
+
 
 import numpy as np
 
 # from numpy.distutils.core import setup
 
-from distutils.core import setup, Command
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext
@@ -111,13 +121,15 @@ CLASSIFIERS = [
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
     'Programming Language :: Python',
+    'Programming Language :: Python :: 2',
+    'Programming Language :: Python :: 3',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering',
 ]
 
 MAJOR = 0
 MINOR = 4
-MICRO = 1
+MICRO = 3
 ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
@@ -128,10 +140,10 @@ if not ISRELEASED:
         import subprocess
         pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
                                 stdout=subprocess.PIPE).stdout
-        rev = pipe.read().strip()
+        rev = pipe.read().strip().decode('ascii')
         FULLVERSION += "-%s" % rev
     except:
-        print "WARNING: Couldn't get git revision"
+        warnings.warn("WARNING: Couldn't get git revision")
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
@@ -215,10 +227,10 @@ class CheckingBuildExt(build_ext):
         for ext in extensions:
           for src in ext.sources:
             if not os.path.exists(src):
-                print """Cython-generated file '%s' not found.
+                raise Exception("""Cython-generated file '%s' not found.
                 Cython is required to compile pandas from a development branch.
                 Please install Cython or download a release package of pandas.
-                """ % src
+                """ % src)
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
@@ -278,9 +290,6 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 extensions = [tseries_ext,
               sparse_ext]
-
-setuptools_args = {}
-
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"
 
@@ -293,13 +302,15 @@ setup(name=DISTNAME,
                 'pandas.io',
                 'pandas.sandbox',
                 'pandas.stats',
-                'pandas.util'],
-      package_data={'pandas' : ['tests/*.py'],
-                    'pandas.io' : ['tests/*.py',
-                                   'tests/*.h5',
+                'pandas.util',
+                'pandas.tests',
+                'pandas.io.tests',
+                'pandas.stats.tests',
+                ],
+      package_data={'pandas.io' : ['tests/*.h5',
                                    'tests/*.csv',
                                    'tests/*.xls'],
-                    'pandas.stats' : ['tests/*.py']},
+                    },
       ext_modules=extensions,
       maintainer_email=MAINTAINER_EMAIL,
       description=DESCRIPTION,

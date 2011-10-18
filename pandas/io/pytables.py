@@ -12,7 +12,7 @@ import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
                     MultiIndex)
 from pandas.core.common import adjoin
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -403,6 +403,9 @@ class HDFStore(object):
         return self._read_panel_table(group, where)
 
     def _write_long(self, group, panel, append=False):
+        if len(panel.values) == 0:
+            raise ValueError('Can not write empty structure, data length was 0')
+
         self._write_index(group, 'major_axis', panel.major_axis)
         self._write_index(group, 'minor_axis', panel.minor_axis)
         self._write_index(group, 'items', panel.items)
@@ -425,6 +428,9 @@ class HDFStore(object):
         return LongPanel(values, index=index, columns=items)
 
     def _write_index(self, group, key, index):
+        if len(index) == 0:
+            raise ValueError('Can not write empty structure, axis length was 0')
+
         if isinstance(index, MultiIndex):
             setattr(group._v_attrs, '%s_variety' % key, 'multi')
             self._write_multi_index(group, key, index)
@@ -446,8 +452,8 @@ class HDFStore(object):
         elif variety == 'regular':
             _, index = self._read_index_node(getattr(group, key))
             return index
-        else:
-            raise Exception('unrecognized index variety')
+        else:  # pragma: no cover
+            raise Exception('unrecognized index variety: %s' % variety)
 
     def _write_multi_index(self, group, key, index):
         setattr(group._v_attrs, '%s_nlevels' % key, index.nlevels)
@@ -657,18 +663,18 @@ class HDFStore(object):
             lp = lp.sortlevel(level=0)
             wp = lp.to_wide()
         else:
-            if not self._quiet:
+            if not self._quiet:  # pragma: no cover
                 print ('Duplicate entries in table, taking most recently '
                        'appended')
 
             # need a better algorithm
             tuple_index = long_index.get_tuple_index()
-            index_map = _tseries.map_indices_buf(tuple_index)
+            index_map = lib.map_indices_object(tuple_index)
 
-            unique_tuples = _tseries.fast_unique(tuple_index)
+            unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
-            indexer, _ = _tseries.getMergeVec(unique_tuples, index_map)
+            indexer = lib.merge_indexer_object(unique_tuples, index_map)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
@@ -739,7 +745,7 @@ def _unconvert_index(data, kind):
 
 def _unconvert_index_legacy(data, kind, legacy=False):
     if kind == 'datetime':
-        index = _tseries.array_to_datetime(data)
+        index = lib.array_to_datetime(data)
     elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
     else: # pragma: no cover

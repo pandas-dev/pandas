@@ -1,14 +1,16 @@
 """
 Misc tools for implementing data structures
 """
-
-from cStringIO import StringIO
+try:
+    from io import BytesIO
+except ImportError:   # Python < 2.6
+    from cStringIO import StringIO as BytesIO
 import itertools
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -19,7 +21,7 @@ except Exception: # pragma: no cover
 class PandasError(Exception):
     pass
 
-def isnull(input):
+def isnull(obj):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable
     for use on object arrays.
@@ -32,29 +34,31 @@ def isnull(input):
     -------
     boolean ndarray or boolean
     '''
+    if np.isscalar(obj) or obj is None:
+        return lib.checknull(obj)
+
     from pandas.core.generic import PandasObject
     from pandas import Series
-    if isinstance(input, np.ndarray):
-        if input.dtype.kind in ('O', 'S'):
+    if isinstance(obj, np.ndarray):
+        if obj.dtype.kind in ('O', 'S'):
             # Working around NumPy ticket 1542
-            shape = input.shape
+            shape = obj.shape
             result = np.empty(shape, dtype=bool)
-            vec = _tseries.isnullobj(input.ravel())
+            vec = lib.isnullobj(obj.ravel())
             result[:] = vec.reshape(shape)
 
-            if isinstance(input, Series):
-                result = Series(result, index=input.index, copy=False)
+            if isinstance(obj, Series):
+                result = Series(result, index=obj.index, copy=False)
         else:
-            result = -np.isfinite(input)
-    elif isinstance(input, PandasObject):
+            result = -np.isfinite(obj)
+        return result
+    elif isinstance(obj, PandasObject):
         # TODO: optimize for DataFrame, etc.
-        return input.apply(isnull)
+        return obj.apply(isnull)
     else:
-        result = _tseries.checknull(input)
+        return obj is None
 
-    return result
-
-def notnull(input):
+def notnull(obj):
     '''
     Replacement for numpy.isfinite / -numpy.isnan which is suitable
     for use on object arrays.
@@ -67,25 +71,200 @@ def notnull(input):
     -------
     boolean ndarray or boolean
     '''
-    return np.negative(isnull(input))
+    res = isnull(obj)
+    if np.isscalar(res):
+        return not res
+    return -res
 
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)
 
-    buf = StringIO()
+    buf = BytesIO()
     write_array(buf, arr)
 
     return buf.getvalue()
 
 def _unpickle_array(bytes):
-    arr = read_array(StringIO(bytes))
+    arr = read_array(BytesIO(bytes))
     return arr
+
+def _take_1d_bool(arr, indexer, out):
+    view = arr.view(np.uint8)
+    outview = out.view(np.uint8)
+    lib.take_1d_bool(view, indexer, outview)
+
+def _take_2d_axis0_bool(arr, indexer, out):
+    view = arr.view(np.uint8)
+    outview = out.view(np.uint8)
+    lib.take_2d_axis0_bool(view, indexer, outview)
+
+def _take_2d_axis1_bool(arr, indexer, out):
+    view = arr.view(np.uint8)
+    outview = out.view(np.uint8)
+    lib.take_2d_axis1_bool(view, indexer, outview)
+
+_take1d_dict = {
+    'float64' : lib.take_1d_float64,
+    'int32' : lib.take_1d_int32,
+    'int64' : lib.take_1d_int64,
+    'object' : lib.take_1d_object,
+    'bool' : _take_1d_bool
+}
+
+_take2d_axis0_dict = {
+    'float64' : lib.take_2d_axis0_float64,
+    'int32' : lib.take_2d_axis0_int32,
+    'int64' : lib.take_2d_axis0_int64,
+    'object' : lib.take_2d_axis0_object,
+    'bool' : _take_2d_axis0_bool
+}
+
+_take2d_axis1_dict = {
+    'float64' : lib.take_2d_axis1_float64,
+    'int32' : lib.take_2d_axis1_int32,
+    'int64' : lib.take_2d_axis1_int64,
+    'object' : lib.take_2d_axis1_object,
+    'bool' : _take_2d_axis1_bool
+}
+
+def _get_take2d_function(dtype_str, axis=0):
+    if axis == 0:
+        return _take2d_axis0_dict[dtype_str]
+    else:
+        return _take2d_axis1_dict[dtype_str]
+
+def take_1d(arr, indexer, out=None):
+    """
+    Specialized Cython take which sets NaN values in one pass
+    """
+    dtype_str = arr.dtype.name
+
+    n = len(indexer)
+
+    if not isinstance(indexer, np.ndarray):
+        # Cython methods expects 32-bit integers
+        indexer = np.array(indexer, dtype=np.int32)
+
+    out_passed = out is not None
+
+    if dtype_str in ('int32', 'int64', 'bool'):
+        try:
+            if out is None:
+                out = np.empty(n, dtype=arr.dtype)
+            take_f = _take1d_dict[dtype_str]
+            take_f(arr, indexer, out=out)
+        except ValueError:
+            mask = indexer == -1
+            out = arr.take(indexer, out=out)
+            if mask.any():
+                if out_passed:
+                    raise Exception('out with dtype %s does not support NA' %
+                                    out.dtype)
+                out = _maybe_upcast(out)
+                np.putmask(out, mask, np.nan)
+    elif dtype_str in ('float64', 'object'):
+        if out is None:
+            out = np.empty(n, dtype=arr.dtype)
+        take_f = _take1d_dict[dtype_str]
+        take_f(arr, indexer, out=out)
+    else:
+        out = arr.take(indexer, out=out)
+        mask = indexer == -1
+        if mask.any():
+            if out_passed:
+                raise Exception('out with dtype %s does not support NA' %
+                                out.dtype)
+            out = _maybe_upcast(out)
+            np.putmask(out, mask, np.nan)
+
+    return out
+
+def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
+    """
+    Specialized Cython take which sets NaN values in one pass
+    """
+    dtype_str = arr.dtype.name
+
+    out_shape = list(arr.shape)
+    out_shape[axis] = len(indexer)
+    out_shape = tuple(out_shape)
+
+    if not isinstance(indexer, np.ndarray):
+        # Cython methods expects 32-bit integers
+        indexer = np.array(indexer, dtype=np.int32)
+
+    if dtype_str in ('int32', 'int64', 'bool'):
+        if mask is None:
+            mask = indexer == -1
+            needs_masking = mask.any()
+
+        if needs_masking:
+            # upcasting may be required
+            result = arr.take(indexer, axis=axis, out=out)
+            result = _maybe_mask(result, mask, needs_masking, axis=axis,
+                                 out_passed=out is not None)
+            return result
+        else:
+            if out is None:
+                out = np.empty(out_shape, dtype=arr.dtype)
+            take_f = _get_take2d_function(dtype_str, axis=axis)
+            take_f(arr, indexer, out=out)
+            return out
+    elif dtype_str in ('float64', 'object'):
+        if out is None:
+            out = np.empty(out_shape, dtype=arr.dtype)
+        take_f = _get_take2d_function(dtype_str, axis=axis)
+        take_f(arr, indexer, out=out)
+        return out
+    else:
+        if mask is None:
+            mask = indexer == -1
+            needs_masking = mask.any()
+
+        result = arr.take(indexer, axis=axis, out=out)
+        result = _maybe_mask(result, mask, needs_masking, axis=axis,
+                             out_passed=out is not None)
+        return result
 
 def null_out_axis(arr, mask, axis):
     indexer = [slice(None)] * arr.ndim
     indexer[axis] = mask
 
     arr[tuple(indexer)] = np.NaN
+
+def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None):
+    if arr.ndim == 2:
+        return take_2d(arr, indexer, out=out, mask=mask,
+                       needs_masking=needs_masking,
+                       axis=axis)
+
+    result = arr.take(indexer, axis=axis, out=out)
+    result = _maybe_mask(result, mask, needs_masking, axis=axis,
+                         out_passed=out is not None)
+    return result
+
+def _maybe_mask(result, mask, needs_masking, axis=0, out_passed=False):
+    if needs_masking:
+        if out_passed and _need_upcast(result):
+            raise Exception('incompatible type for NAs')
+        else:
+            # a bit spaghettified
+            result = _maybe_upcast(result)
+            null_out_axis(result, mask, axis)
+    return result
+
+def _maybe_upcast(values):
+    if issubclass(values.dtype.type, np.integer):
+        values = values.astype(float)
+    elif issubclass(values.dtype.type, np.bool_):
+        values = values.astype(object)
+
+    return values
+
+def _need_upcast(values):
+    if issubclass(values.dtype.type, (np.integer, np.bool_)):
+        return True
+    return False
 
 #-------------------------------------------------------------------------------
 # Lots of little utilities
@@ -235,7 +414,7 @@ def rands(n):
     """Generates a random alphanumeric string of length *n*"""
     from random import Random
     import string
-    return ''.join(Random().sample(string.letters+string.digits, n))
+    return ''.join(Random().sample(string.ascii_letters+string.digits, n))
 
 def adjoin(space, *lists):
     """
@@ -303,7 +482,11 @@ class groupby(dict):
         for value in seq:
             k = key(value)
             self.setdefault(k, []).append(value)
-    __iter__ = dict.iteritems
+    try:
+        __iter__ = dict.iteritems
+    except AttributeError:  # Python 3
+        def __iter__(self):
+            return iter(dict.items(self))
 
 def map_indices_py(arr):
     """

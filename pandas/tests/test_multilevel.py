@@ -1,20 +1,16 @@
 # pylint: disable-msg=W0612,E1101
 from cStringIO import StringIO
-import operator
 import unittest
 
-from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 
-import pandas.core.datetools as datetools
-from pandas.core.index import MultiIndex, NULL_INDEX
-from pandas import Panel, DataFrame, Index, Series, notnull, isnull
+from pandas.core.index import MultiIndex
+from pandas import Panel, DataFrame, Series, notnull, isnull
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 randn)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 
@@ -24,14 +20,28 @@ class TestMultiLevel(unittest.TestCase):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
                                columns=['A', 'B', 'C'])
+
+        self.single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                                       labels=[[0, 1, 2, 3]],
+                                       names=['first'])
 
         tm.N = 100
         self.tdf = tm.makeTimeDataFrame()
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
+
+    def test_append(self):
+        a, b = self.frame[:5], self.frame[5:]
+
+        result = a.append(b)
+        tm.assert_frame_equal(result, self.frame)
+
+        result = a['A'].append(b['A'])
+        tm.assert_series_equal(result, self.frame['A'])
 
     def test_pickle(self):
         import cPickle
@@ -144,6 +154,12 @@ class TestMultiLevel(unittest.TestCase):
         expected = ft.xs('B')['foo']
         assert_series_equal(result, expected)
 
+    def test_get_loc_single_level(self):
+        s = Series(np.random.randn(len(self.single_level)),
+                   index=self.single_level)
+        for k in self.single_level.values:
+            s[k]
+
     def test_getitem_toplevel(self):
         df = self.frame.T
 
@@ -219,6 +235,9 @@ class TestMultiLevel(unittest.TestCase):
         a_sorted = self.frame['A'].sortlevel(0)
         self.assertRaises(Exception,
                           self.frame.delevel()['A'].sortlevel)
+
+        # preserve names
+        self.assertEquals(a_sorted.index.names, self.frame.index.names)
 
     def test_sortlevel_by_name(self):
         self.frame.index.names = ['first', 'second']
@@ -335,6 +354,50 @@ class TestMultiLevel(unittest.TestCase):
         stacked = df.stack()
         assert_series_equal(stacked['foo'], df['foo'].stack())
         self.assert_(stacked['bar'].dtype == np.float_)
+
+    def test_unstack_bug(self):
+        df = DataFrame({'state': ['naive','naive','naive',
+                                  'activ','activ','activ'],
+                        'exp':['a','b','b','b','a','a'],
+                        'barcode':[1,2,3,4,1,3],
+                        'v':['hi','hi','bye','bye','bye','peace'],
+                        'extra': np.arange(6.)})
+
+        result = df.groupby(['state','exp','barcode','v']).apply(len)
+        unstacked = result.unstack()
+        restacked = unstacked.stack()
+        assert_series_equal(restacked,
+                            result.reindex(restacked.index).astype(float))
+
+    def test_stack_unstack_preserve_names(self):
+        unstacked = self.frame.unstack()
+        self.assertEquals(unstacked.index.name, 'first')
+        self.assertEquals(unstacked.columns.names, [None, 'second'])
+
+        restacked = unstacked.stack()
+        self.assertEquals(restacked.index.names, self.frame.index.names)
+
+    def test_groupby_transform(self):
+        s = self.frame['A']
+        grouper = s.index.get_level_values(0)
+
+        grouped = s.groupby(grouper)
+
+        applied = grouped.apply(lambda x: x * 2)
+        expected = grouped.transform(lambda x: x * 2)
+        assert_series_equal(applied.reindex(expected.index), expected)
+
+    def test_join(self):
+        a = self.frame.ix[:5, ['A']]
+        b = self.frame.ix[2:, ['B', 'C']]
+
+        joined = a.join(b, how='outer').reindex(self.frame.index)
+        expected = self.frame.copy()
+        expected.values[np.isnan(joined.values)] = np.nan
+
+        self.assert_(not np.isnan(joined.values).all())
+
+        assert_frame_equal(joined, expected)
 
     def test_swaplevel(self):
         swapped = self.frame['A'].swaplevel(0, 1)

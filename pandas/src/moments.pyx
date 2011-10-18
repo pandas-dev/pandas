@@ -25,9 +25,9 @@
 #               Series: Prentice-Hall Series in Automatic Computation
 
 
-def kth_smallest(ndarray[double_t, ndim=1] a, int k):
+def kth_smallest(ndarray[double_t, ndim=1] a, Py_ssize_t k):
     cdef:
-        int i,j,l,m,n
+        Py_ssize_t i,j,l,m,n
         double_t x, t
 
     n = len(a)
@@ -121,8 +121,8 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
 def roll_mean(ndarray[double_t] input,
                int win, int minp):
     cdef double val, prev, sum_x = 0
-    cdef int nobs = 0, i
-    cdef int N = len(input)
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
@@ -177,8 +177,8 @@ def ewma(ndarray[double_t] input, double_t com):
     '''
 
     cdef double cur, prev, neww, oldw, adj
-    cdef int i
-    cdef int N = len(input)
+    cdef Py_ssize_t i
+    cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
@@ -215,8 +215,8 @@ def ewma(ndarray[double_t] input, double_t com):
 
 def roll_var(ndarray[double_t] input, int win, int minp):
     cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
-    cdef int i
-    cdef int N = len(input)
+    cdef Py_ssize_t i
+    cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
@@ -262,8 +262,8 @@ def roll_var(ndarray[double_t] input, int win, int minp):
 def roll_skew(ndarray[double_t] input, int win, int minp):
     cdef double val, prev
     cdef double x = 0, xx = 0, xxx = 0
-    cdef int nobs = 0, i
-    cdef int N = len(input)
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
@@ -325,8 +325,8 @@ def roll_kurt(ndarray[double_t] input,
                int win, int minp):
     cdef double val, prev
     cdef double x = 0, xx = 0, xxx = 0, xxxx = 0
-    cdef int nobs = 0, i
-    cdef int N = len(input)
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
@@ -398,9 +398,9 @@ cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
     cdef ndarray[double_t] input = arg
     cdef double val, prev, midpoint
     cdef IndexableSkiplist skiplist
-    cdef int nobs = 0, i
+    cdef Py_ssize_t nobs = 0, i
 
-    cdef int N = len(input)
+    cdef Py_ssize_t N = len(input)
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
     skiplist = IndexableSkiplist(win)
@@ -446,7 +446,7 @@ def roll_median(ndarray input, int win, int minp):
 # Cython to be able to get this right.
 
 cdef double_t _get_median(object sl, int nobs, int minp):
-    cdef int midpoint
+    cdef Py_ssize_t midpoint
     cdef IndexableSkiplist skiplist = <IndexableSkiplist> sl
     if nobs >= minp:
         midpoint = nobs / 2
@@ -489,8 +489,8 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int win,
    '''
    cdef double val, prev, midpoint
    cdef IndexableSkiplist skiplist
-   cdef int nobs = 0, i
-   cdef int N = len(input)
+   cdef Py_ssize_t nobs = 0, i
+   cdef Py_ssize_t N = len(input)
    cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
    skiplist = IndexableSkiplist(win)

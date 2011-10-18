@@ -26,6 +26,7 @@ from pandas.core.sparse import (IntIndex, BlockIndex,
 
 import test_frame
 import test_panel
+import test_series
 
 def _test_data1():
     # nan-based
@@ -89,7 +90,7 @@ def assert_sp_frame_equal(left, right, exact_indices=True):
         assert(col in left)
 
 def assert_sp_panel_equal(left, right, exact_indices=True):
-    for item, frame in left.iteritems():
+    for item, frame in left.iterkv():
         assert(item in right)
         # trade-off?
         assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)
@@ -101,7 +102,8 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
     for item in right:
         assert(item in left)
 
-class TestSparseSeries(TestCase):
+class TestSparseSeries(TestCase,
+                       test_series.CheckNameIntegration):
 
     def setUp(self):
         arr, index = _test_data1()
@@ -109,6 +111,10 @@ class TestSparseSeries(TestCase):
         date_index = DateRange('1/1/2011', periods=len(index))
 
         self.bseries = SparseSeries(arr, index=index, kind='block')
+        self.bseries.name = 'bseries'
+
+        self.ts = self.bseries
+
         self.btseries = SparseSeries(arr, index=date_index, kind='block')
 
         self.iseries = SparseSeries(arr, index=index, kind='integer')
@@ -160,6 +166,11 @@ class TestSparseSeries(TestCase):
         ziseries = series.to_sparse(kind='integer', fill_value=0)
         assert_sp_series_equal(zbseries, self.zbseries)
         assert_sp_series_equal(ziseries, self.ziseries)
+
+    def test_to_dense_preserve_name(self):
+        assert(self.bseries.name is not None)
+        result = self.bseries.to_dense()
+        self.assertEquals(result.name, self.bseries.name)
 
     def test_constructor(self):
         # test setup guys
@@ -350,12 +361,14 @@ class TestSparseSeries(TestCase):
         def check(a, b):
             _check_op(a, b, operator.add)
             _check_op(a, b, operator.sub)
-            _check_op(a, b, operator.div)
+            _check_op(a, b, operator.truediv)
+            _check_op(a, b, operator.floordiv)
             _check_op(a, b, operator.mul)
 
             _check_op(a, b, lambda x, y: operator.add(y, x))
             _check_op(a, b, lambda x, y: operator.sub(y, x))
-            _check_op(a, b, lambda x, y: operator.div(y, x))
+            _check_op(a, b, lambda x, y: operator.truediv(y, x))
+            _check_op(a, b, lambda x, y: operator.floordiv(y, x))
             _check_op(a, b, lambda x, y: operator.mul(y, x))
 
             # NaN ** 0 = 1 in C?
@@ -750,7 +763,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                 assert_sp_frame_equal(mixed_result, sparse_result,
                                       exact_indices=False)
 
-        opnames = ['add', 'sub', 'mul', 'div']
+        opnames = ['add', 'sub', 'mul', 'truediv', 'floordiv']
         ops = [getattr(operator, name) for name in opnames]
 
         fidx = frame.index

@@ -69,6 +69,8 @@ Dependencies
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
+  * `Cython <http://www.cython.org>`__: Only necessary to build development
+    version
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting

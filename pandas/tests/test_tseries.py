@@ -23,86 +23,60 @@ class TestTseriesUtil(unittest.TestCase):
     def test_groupby_withnull(self):
         pass
 
-    def test_getMergeVec(self):
+    def test_merge_indexer(self):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler, mask = lib.getFillVec(old, new, old.indexMap,
-                                          new.indexMap, None)
+        filler = lib.merge_indexer_object(new, old.indexMap)
 
         expect_filler = [-1, 0, -1, -1, -1, 1, -1, -1, -1, -1, 2, -1]
-        expect_mask = np.zeros(12, dtype=bool)
-        expect_mask[[1, 5, 10]] = True
-
         self.assert_(np.array_equal(filler, expect_filler))
-        self.assert_(np.array_equal(mask, expect_mask))
 
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler, mask = lib.getFillVec(old, new, old.indexMap,
-                                          new.indexMap, None)
-
+        filler = lib.merge_indexer_object(new, old.indexMap)
         expect_filler = [-1, -1, -1, -1, -1]
-        expect_mask = np.zeros(5, dtype=bool)
         self.assert_(np.array_equal(filler, expect_filler))
-        self.assert_(np.array_equal(mask, expect_mask))
 
     def test_backfill(self):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler, mask = lib.getFillVec(old, new, old.indexMap,
-                                          new.indexMap, 'BACKFILL')
+        filler = lib.backfill_object(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
-        expect_mask = np.ones(12, dtype=bool)
-        expect_mask[-1] = False
-
         self.assert_(np.array_equal(filler, expect_filler))
-        self.assert_(np.array_equal(mask, expect_mask))
 
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler, mask = lib.getFillVec(old, new, old.indexMap,
-                                          new.indexMap, 'BACKFILL')
+        filler = lib.backfill_object(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [-1, -1, -1, -1, -1]
-        expect_mask = np.zeros(5, dtype=bool)
         self.assert_(np.array_equal(filler, expect_filler))
-        self.assert_(np.array_equal(mask, expect_mask))
 
     def test_pad(self):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler, mask = lib.getFillVec(old, new, old.indexMap,
-                                          new.indexMap, 'PAD')
+        filler = lib.pad_object(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
-        expect_mask = np.ones(12, dtype=bool)
-        expect_mask[0] = False
-
         self.assert_(np.array_equal(filler, expect_filler))
-        self.assert_(np.array_equal(mask, expect_mask))
 
         # corner case
         old = Index([5, 10])
         new = Index(range(5))
-        filler, mask = lib.getFillVec(old, new, old.indexMap,
-                                          new.indexMap, 'PAD')
-
+        filler = lib.pad_object(old, new, old.indexMap, new.indexMap)
         expect_filler = [-1, -1, -1, -1, -1]
-        expect_mask = np.zeros(5, dtype=bool)
         self.assert_(np.array_equal(filler, expect_filler))
-        self.assert_(np.array_equal(mask, expect_mask))
 
 def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = lib.inner_join_indexer(a, b)
+    index, ares, bres = lib.inner_join_indexer_int64(a, b)
 
     index_exp = np.array([3, 5], dtype=np.int64)
     assert_almost_equal(index, index_exp)
@@ -116,7 +90,7 @@ def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = lib.outer_join_indexer(a, b)
+    index, ares, bres = lib.outer_join_indexer_int64(a, b)
 
     index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(index, index_exp)
@@ -125,6 +99,28 @@ def test_outer_join_indexer():
     bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4])
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
+
+def test_is_lexsorted():
+    failure = [
+        np.array([3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                  3, 3,
+               3, 3,
+           3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+           2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
+           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+           1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+           0, 0, 0, 0, 0, 0, 0, 0, 0]),
+        np.array([30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+                  15, 14,
+       13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 30, 29, 28,
+       27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
+       10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 30, 29, 28, 27, 26, 25,
+       24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10,  9,  8,
+        7,  6,  5,  4,  3,  2,  1,  0, 30, 29, 28, 27, 26, 25, 24, 23, 22,
+       21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,
+        4,  3,  2,  1,  0])]
+
+    assert(not lib.is_lexsorted(failure))
 
 class TestMoments(unittest.TestCase):
     pass

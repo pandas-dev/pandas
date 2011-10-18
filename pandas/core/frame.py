@@ -13,6 +13,7 @@ labeling information
 # pylint: disable=W0212,W0231,W0703,W0622
 
 from StringIO import StringIO
+import csv
 import operator
 import warnings
 
@@ -21,14 +22,15 @@ import numpy as np
 
 from pandas.core.common import (isnull, notnull, PandasError,
                                 _try_sort, _pfixed, _default_index,
-                                _infer_dtype, _stringify)
+                                _infer_dtype, _stringify, _maybe_upcast)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series, _is_bool_indexer, _maybe_upcast
+from pandas.core.series import Series, _is_bool_indexer
 from pandas.util.decorators import deprecate
+from pandas.util import py3compat
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas._tseries as _tseries
@@ -277,6 +279,10 @@ class DataFrame(NDFrame):
         series = self._series
         return ((k, series[k]) for k in self.columns)
 
+    iterkv = iteritems
+    if py3compat.PY3:
+        items = iteritems
+
     def __len__(self):
         """Returns length of index"""
         return len(self.index)
@@ -291,7 +297,7 @@ class DataFrame(NDFrame):
     add = _arith_method(operator.add, 'add')
     mul = _arith_method(operator.mul, 'multiply')
     sub = _arith_method(operator.sub, 'subtract')
-    div = _arith_method(operator.div, 'divide')
+    div = _arith_method(lambda x, y: x / y, 'divide')
 
     radd = _arith_method(operator.add, 'add')
     rmul = _arith_method(operator.mul, 'multiply')
@@ -301,19 +307,26 @@ class DataFrame(NDFrame):
     __add__ = _arith_method(operator.add, '__add__', default_axis=None)
     __sub__ = _arith_method(operator.sub, '__sub__', default_axis=None)
     __mul__ = _arith_method(operator.mul, '__mul__', default_axis=None)
-    __div__ = _arith_method(operator.div, '__div__', default_axis=None)
     __truediv__ = _arith_method(operator.truediv, '__truediv__',
+                               default_axis=None)
+    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__',
                                default_axis=None)
     __pow__ = _arith_method(operator.pow, '__pow__', default_axis=None)
 
     __radd__ = _arith_method(operator.add, '__radd__', default_axis=None)
     __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
-    __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
                                 default_axis=None)
+    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__',
+                               default_axis=None)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
+
+    # Python 2 division methods
+    if not py3compat.PY3:
+        __div__ = _arith_method(operator.div, '__div__', default_axis=None)
+        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
 
     def __neg__(self):
         return self * -1
@@ -463,7 +476,7 @@ class DataFrame(NDFrame):
                                default_fill_value=fill_value)
 
     def to_csv(self, path, nanRep='', cols=None, header=True,
-              index=True, index_label=None, mode='wb'):
+              index=True, index_label=None, mode='w'):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -482,48 +495,53 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
-        mode : Python write mode, default 'wb'
+        mode : Python write mode, default 'w'
         """
         f = open(path, mode)
+        csvout = csv.writer(f, lineterminator='\n')
 
         if cols is None:
             cols = self.columns
 
         series = self._series
         if header:
-            joined_cols = ','.join([str(c) for c in cols])
             if index:
                 # should write something for index label
                 if index_label is None:
-                    index_label = getattr(self.index, 'names', ['index'])
+                    if isinstance(self.index, MultiIndex):
+                        index_label = []
+                        for i, name in enumerate(self.index.names):
+                            if name is None:
+                                name = 'level_%d' % i
+                            index_label.append(name)
+                    else:
+                        if self.index.name is None:
+                            index_label = self.index.name
+                            if index_label is None:
+                                index_label = ['index']
                 elif not isinstance(index_label, (list, tuple, np.ndarray)):
                     # given a string for a DF with Index
                     index_label = [index_label]
-                f.write('%s,%s' % (",".join(index_label), joined_cols))
+                csvout.writerow(list(index_label) + list(cols))
             else:
-                f.write(joined_cols)
-            f.write('\n')
+                csvout.writerow(cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
         for idx in self.index:
+            row_fields = []
             if index:
                 if nlevels == 1:
-                    f.write(str(idx))
+                    row_fields = [idx]
                 else: # handle MultiIndex
-                    f.write(",".join([str(i) for i in idx]))
+                    row_fields = list(idx)
             for i, col in enumerate(cols):
                 val = series[col].get(idx)
                 if isnull(val):
                     val = nanRep
-                else:
-                    val = str(val)
 
-                if i > 0 or index:
-                    f.write(',%s' % val)
-                else:
-                    f.write('%s' % val)
+                row_fields.append(val)
 
-            f.write('\n')
+            csvout.writerow(row_fields)
 
         f.close()
 
@@ -652,7 +670,7 @@ class DataFrame(NDFrame):
 
     def get_dtype_counts(self):
         counts = {}
-        for _, series in self.iteritems():
+        for _, series in self.iterkv():
             if series.dtype in counts:
                 counts[series.dtype] += 1
             else:
@@ -839,7 +857,7 @@ class DataFrame(NDFrame):
             return res
 
         values = self._data.get(key)
-        res = Series(values, index=self.index)
+        res = Series(values, index=self.index, name=key)
         self._series_cache[key] = res
         return res
 
@@ -909,7 +927,7 @@ class DataFrame(NDFrame):
     def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
-        if hasattr(value, '__iter__'):
+        if hasattr(value, '__iter__') and not isinstance(value, basestring):
             if isinstance(value, Series):
                 if value.index.equals(self.index):
                     # copy the values
@@ -985,7 +1003,7 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
         new_data = self._data.xs(key, axis=1, copy=copy)
         if new_data.ndim == 1:
-            return Series(new_data.as_matrix(), index=self.columns)
+            return Series(new_data.as_matrix(), index=self.columns, name=key)
         else:
             result = DataFrame(new_data)
             result.index = _maybe_droplevels(result.index, key)
@@ -1090,19 +1108,23 @@ class DataFrame(NDFrame):
         -------
         taken : DataFrame
         """
-        if axis == 0:
-            new_index = self.index.take(indices)
-            new_columns = self.columns
-        else:
-            new_index = self.index
-            new_columns = self.columns.take(indices)
-
-        # TODO: implement take on BlockManager
         if self._data.is_mixed_dtype():
-            return self.reindex(index=new_index, columns=new_columns)
-
-        new_values = self.values.take(indices, axis=axis)
-        return DataFrame(new_values, index=new_index, columns=new_columns)
+            if axis == 0:
+                new_data = self._data.take(indices, axis=1)
+                return DataFrame(new_data)
+            else:
+                new_columns = self.columns.take(indices)
+                return self.reindex(columns=new_columns)
+        else:
+            new_values = self.values.take(indices, axis=axis)
+            if axis == 0:
+                new_columns = self.columns
+                new_index = self.index.take(indices)
+            else:
+                new_columns = self.columns.take(indices)
+                new_index = self.index
+            return DataFrame(new_values, index=new_index,
+                             columns=new_columns)
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods
@@ -1575,7 +1597,8 @@ class DataFrame(NDFrame):
             this = self.reindex(new_index)
             other = other.reindex(new_index)
 
-        new_columns = _try_sort(set(this.columns + other.columns))
+        # sorts if possible
+        new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
 
         result = {}
@@ -1777,7 +1800,10 @@ class DataFrame(NDFrame):
 
         zipped = zip(self.index.levels, self.index.labels)
         for i, (lev, lab) in reversed(list(enumerate(zipped))):
-            new_obj.insert(0, names[i], np.asarray(lev).take(lab))
+            col_name = names[i]
+            if col_name is None:
+                col_name = 'level_%d' % i
+            new_obj.insert(0, col_name, np.asarray(lev).take(lab))
 
         new_obj.index = np.arange(len(new_obj))
 
@@ -2054,7 +2080,8 @@ class DataFrame(NDFrame):
         if ignore_index:
             new_index = None
         else:
-            new_index = np.concatenate((self.index, other.index))
+            new_index = self.index.append(other.index)
+            new_index._verify_integrity()
 
         if self.columns.equals(other.columns):
             return self._append_same_columns(other, new_index)
@@ -2137,9 +2164,14 @@ class DataFrame(NDFrame):
         else:
             if how is None:
                 how = 'left'
+
             return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_on(self, other, on, lsuffix, rsuffix):
+        if isinstance(other, Series):
+            assert(other.name is not None)
+            other = DataFrame({other.name : other})
+
         if len(other.index) == 0:
             return self
 
@@ -2148,28 +2180,18 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
-        join_index = self._get_join_index(other, how)
+        from pandas.core.internals import join_managers
 
-        this = self.reindex(join_index)
-        other = other.reindex(join_index)
+        if isinstance(other, Series):
+            assert(other.name is not None)
+            other = DataFrame({other.name : other})
 
-        # merge blocks
-        merged_data = this._data.merge(other._data, lsuffix, rsuffix)
+        thisdata, otherdata = self._data._maybe_rename_join(
+            other._data, lsuffix, rsuffix, copydata=False)
+
+        # this will always ensure copied data
+        merged_data = join_managers(thisdata, otherdata, axis=1, how=how)
         return self._constructor(merged_data)
-
-    def _get_join_index(self, other, how):
-        if how == 'left':
-            join_index = self.index
-        elif how == 'right':
-            join_index = other.index
-        elif how == 'inner':
-            join_index = self.index.intersection(other.index)
-        elif how == 'outer':
-            join_index = self.index.union(other.index)
-        else:
-            raise Exception('do not recognize join method %s' % how)
-
-        return join_index
 
     #----------------------------------------------------------------------
     # Statistical methods, etc.
@@ -2275,11 +2297,11 @@ class DataFrame(NDFrame):
         tmp = self.reindex(columns=cols)
 
         cols_destat = ['count', 'mean', 'std', 'min',
-                       '10%', '50%', '90%', 'max']
+                       '25%', '50%', '75%', 'max']
 
         data = [tmp.count(), tmp.mean(), tmp.std(), tmp.min(),
-                tmp.quantile(.1), tmp.median(),
-                tmp.quantile(.9), tmp.max()]
+                tmp.quantile(.25), tmp.median(),
+                tmp.quantile(.75), tmp.max()]
 
         return self._constructor(data, index=cols_destat, columns=cols)
 

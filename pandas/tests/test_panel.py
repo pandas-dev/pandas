@@ -14,6 +14,7 @@ from pandas.core.frame import group_agg
 from pandas.core.panel import Panel, LongPanel
 from pandas.core.series import remove_na
 import pandas.core.panel as panelmod
+from pandas.util import py3compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -199,7 +200,8 @@ class SafeForSparse(object):
         self._test_op(self.panel, operator.add)
         self._test_op(self.panel, operator.sub)
         self._test_op(self.panel, operator.mul)
-        self._test_op(self.panel, operator.div)
+        self._test_op(self.panel, operator.truediv)
+        self._test_op(self.panel, operator.floordiv)
         self._test_op(self.panel, operator.pow)
 
         self._test_op(self.panel, lambda x, y: y + x)
@@ -219,11 +221,12 @@ class SafeForSparse(object):
         common.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
+        """Test panel.iteritems(), aka panel.iterkv()"""
         # just test that it works
-        for k, v in self.panel.iteritems():
+        for k, v in self.panel.iterkv():
             pass
 
-        self.assertEqual(len(list(self.panel.iteritems())),
+        self.assertEqual(len(list(self.panel.iterkv())),
                          len(self.panel.items))
 
     def test_combineFrame(self):
@@ -258,7 +261,10 @@ class SafeForSparse(object):
         check_op(operator.add, 'add')
         check_op(operator.sub, 'subtract')
         check_op(operator.mul, 'multiply')
-        check_op(operator.div, 'divide')
+        if py3compat.PY3:
+            check_op(operator.truediv, 'divide')
+        else:
+            check_op(operator.div, 'divide')
 
     def test_combinePanel(self):
         result = self.panel.add(self.panel)
@@ -843,8 +849,8 @@ class TestLongPanel(unittest.TestCase):
         K = 10
 
         recs = np.zeros(K, dtype='O,O,f8,f8')
-        recs['f0'] = range(K / 2) * 2
-        recs['f1'] = np.arange(K) / (K / 2)
+        recs['f0'] = range(K // 2) * 2
+        recs['f1'] = np.arange(K) / (K // 2)
         recs['f2'] = np.arange(K) * 2
         recs['f3'] = np.arange(K)
 

@@ -11,18 +11,103 @@ import numpy as np
 from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
 from pandas.core.index import MultiIndex
 import pandas.core.datetools as datetools
+from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as common
 
 #-------------------------------------------------------------------------------
 # Series test cases
 
-class TestSeries(unittest.TestCase):
+JOIN_TYPES = ['inner', 'outer', 'left', 'right']
+
+class CheckNameIntegration(object):
+
+    def test_scalarop_preserve_name(self):
+        result = self.ts * 2
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_copy_name(self):
+        result = self.ts.copy()
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_append_preserve_name(self):
+        result = self.ts[:5].append(self.ts[5:])
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_binop_maybe_preserve_name(self):
+        # names match, preserve
+        result = self.ts * self.ts
+        self.assertEquals(result.name, self.ts.name)
+
+        result = self.ts * self.ts[:-2]
+        self.assertEquals(result.name, self.ts.name)
+
+        # names don't match, don't preserve
+        cp = self.ts.copy()
+        cp.name = 'something else'
+        result = self.ts + cp
+        self.assert_(result.name is None)
+
+    def test_combine_first_name(self):
+        result = self.ts.combine_first(self.ts[:5])
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_getitem_preserve_name(self):
+        result = self.ts[self.ts > 0]
+        self.assertEquals(result.name, self.ts.name)
+
+        result = self.ts[[0, 2, 4]]
+        self.assertEquals(result.name, self.ts.name)
+
+        result = self.ts[5:10]
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_multilevel_preserve_name(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        s = Series(np.random.randn(len(index)), index=index, name='sth')
+
+        result = s['foo']
+        result2 = s.ix['foo']
+        self.assertEquals(result.name, s.name)
+        self.assertEquals(result2.name, s.name)
+
+    def test_pickle_preserve_name(self):
+        unpickled = self._pickle_roundtrip(self.ts)
+        self.assertEquals(unpickled.name, self.ts.name)
+
+    def _pickle_roundtrip(self, obj):
+        obj.save('__tmp__')
+        unpickled = Series.load('__tmp__')
+        os.remove('__tmp__')
+        return unpickled
+
+    def test_argsort_preserve_name(self):
+        result = self.ts.argsort()
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_sort_index_name(self):
+        result = self.ts.sort_index(ascending=False)
+        self.assertEquals(result.name, self.ts.name)
+
+    def test_to_sparse_pass_name(self):
+        result = self.ts.to_sparse()
+        self.assertEquals(result.name, self.ts.name)
+
+class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def setUp(self):
         self.ts = common.makeTimeSeries()
+        self.ts.name = 'ts'
+
         self.series = common.makeStringSeries()
+        self.series.name = 'series'
+
         self.objSeries = common.makeObjectSeries()
+        self.objSeries.name = 'objects'
 
         self.empty = Series([], index=[])
 
@@ -125,15 +210,17 @@ class TestSeries(unittest.TestCase):
     def test_contains(self):
         common.assert_contains_all(self.ts.index, self.ts)
 
-    def test_save_load(self):
-        self.series.save('tmp1')
-        self.ts.save('tmp3')
-        unp_series = Series.load('tmp1')
-        unp_ts = Series.load('tmp3')
-        os.remove('tmp1')
-        os.remove('tmp3')
+    def test_pickle(self):
+        unp_series = self._pickle_roundtrip(self.series)
+        unp_ts = self._pickle_roundtrip(self.ts)
         assert_series_equal(unp_series, self.series)
         assert_series_equal(unp_ts, self.ts)
+
+    def _pickle_roundtrip(self, obj):
+        obj.save('__tmp__')
+        unpickled = Series.load('__tmp__')
+        os.remove('__tmp__')
+        return unpickled
 
     def test_getitem_get(self):
         idx1 = self.series.index[5]
@@ -337,9 +424,9 @@ class TestSeries(unittest.TestCase):
         self.series[5:7] = np.NaN
         str(self.series)
 
-    def test_toString(self):
+    def test_to_string(self):
         from cStringIO import StringIO
-        self.ts.toString(buffer=StringIO())
+        self.ts.to_string(buffer=StringIO())
 
     def test_iter(self):
         for i, val in enumerate(self.series):
@@ -349,7 +436,10 @@ class TestSeries(unittest.TestCase):
             self.assertEqual(val, self.ts[i])
 
     def test_keys(self):
-        self.assert_(self.ts.keys() is self.ts.index)
+        # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
+        # to .keys() in a list()
+        getkeys = self.ts.keys
+        self.assert_(getkeys() is self.ts.index)
 
     def test_values(self):
         self.assert_(np.array_equal(self.ts, self.ts.values))
@@ -480,13 +570,15 @@ class TestSeries(unittest.TestCase):
         def check(other):
             _check_op(other, operator.add)
             _check_op(other, operator.sub)
-            _check_op(other, operator.div)
+            _check_op(other, operator.truediv)
+            _check_op(other, operator.floordiv)
             _check_op(other, operator.mul)
             _check_op(other, operator.pow)
 
             _check_op(other, lambda x, y: operator.add(y, x))
             _check_op(other, lambda x, y: operator.sub(y, x))
-            _check_op(other, lambda x, y: operator.div(y, x))
+            _check_op(other, lambda x, y: operator.truediv(y, x))
+            _check_op(other, lambda x, y: operator.floordiv(y, x))
             _check_op(other, lambda x, y: operator.mul(y, x))
             _check_op(other, lambda x, y: operator.pow(y, x))
 
@@ -544,7 +636,8 @@ class TestSeries(unittest.TestCase):
         _check_op(arr, operator.add)
         _check_op(arr, operator.sub)
         _check_op(arr, operator.mul)
-        _check_op(arr, operator.div)
+        _check_op(arr, operator.truediv)
+        _check_op(arr, operator.floordiv)
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
@@ -585,7 +678,11 @@ class TestSeries(unittest.TestCase):
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
         ops = [Series.add, Series.sub, Series.mul, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul, operator.div]
+        equivs = [operator.add, operator.sub, operator.mul]
+        if py3compat.PY3:
+            equivs.append(operator.truediv)
+        else:
+            equivs.append(operator.div)
         fillvals = [0, 0, 1, 1]
 
         for op, equiv_op, fv in zip(ops, equivs, fillvals):
@@ -595,8 +692,8 @@ class TestSeries(unittest.TestCase):
             _check_fill(op, equiv_op, a, b, fill_value=fv)
 
     def test_combine_first(self):
-        series = Series(common.makeIntIndex(20).astype(float),
-                        index=common.makeIntIndex(20))
+        values = common.makeIntIndex(20).values.astype(float)
+        series = Series(values, index=common.makeIntIndex(20))
 
         series_copy = series * 2
         series_copy[::2] = np.NaN
@@ -705,6 +802,10 @@ class TestSeries(unittest.TestCase):
 
     def test_to_csv(self):
         self.ts.to_csv('_foo')
+
+        lines = open('_foo', 'U').readlines()
+        assert(lines[1] != '\n')
+
         os.remove('_foo')
 
     def test_to_dict(self):
@@ -727,6 +828,18 @@ class TestSeries(unittest.TestCase):
         self.assertEqual(len(result), ts.count())
 
         common.assert_dict_equal(result, ts, compare_keys=False)
+
+    def test_isnull(self):
+        ser = Series([0,5.4,3,nan,-0.001])
+        assert_series_equal(ser.isnull(), Series([False,False,False,True,False]))
+        ser = Series(["hi","",nan])
+        assert_series_equal(ser.isnull(), Series([False,False,True]))
+
+    def test_notnull(self):
+        ser = Series([0,5.4,3,nan,-0.001])
+        assert_series_equal(ser.notnull(), Series([True,True,True,False,True]))
+        ser = Series(["hi","",nan])
+        assert_series_equal(ser.notnull(), Series([True,True,False]))
 
     def test_shift(self):
         shifted = self.ts.shift(1)
@@ -868,6 +981,49 @@ class TestSeries(unittest.TestCase):
         # elementwise-apply
         import math
         assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
+
+    def test_align(self):
+        def _check_align(a, b, how='left'):
+            aa, ab = a.align(b, join=how)
+
+            join_index = a.index.join(b.index, how=how)
+            ea = a.reindex(join_index)
+            eb = b.reindex(join_index)
+
+            assert_series_equal(aa, ea)
+            assert_series_equal(ab, eb)
+
+        for kind in JOIN_TYPES:
+            _check_align(self.ts[2:], self.ts[:-5])
+
+    def test_align_nocopy(self):
+        b = self.ts[:5].copy()
+
+        # do copy
+        a = self.ts.copy()
+        ra, _ = a.align(b, join='left')
+        ra[:5] = 5
+        self.assert_(not (a[:5] == 5).any())
+
+        # do not copy
+        a = self.ts.copy()
+        ra, _ = a.align(b, join='left', copy=False)
+        ra[:5] = 5
+        self.assert_((a[:5] == 5).all())
+
+        # do copy
+        a = self.ts.copy()
+        b = self.ts[:5].copy()
+        _, rb = a.align(b, join='right')
+        rb[:3] = 5
+        self.assert_(not (b[:3] == 5).any())
+
+        # do not copy
+        a = self.ts.copy()
+        b = self.ts[:5].copy()
+        _, rb = a.align(b, join='right', copy=False)
+        rb[:2] = 5
+        self.assert_((b[:2] == 5).all())
 
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
@@ -1139,6 +1295,14 @@ class TestSeries(unittest.TestCase):
         result = self.ts.select(lambda x: x.weekday() == 2)
         expected = self.ts[self.ts.weekday == 2]
         assert_series_equal(result, expected)
+
+#----------------------------------------------------------------------
+# Misc not safe for sparse
+
+    def test_dropna_preserve_name(self):
+        self.ts[:5] = np.nan
+        result = self.ts.dropna()
+        self.assertEquals(result.name, self.ts.name)
 
 if __name__ == '__main__':
     import nose

@@ -1,3 +1,5 @@
+# pylint: disable=E1101,E1103,W0232
+
 from datetime import datetime, timedelta
 import operator
 import pickle
@@ -5,7 +7,8 @@ import unittest
 
 import numpy as np
 
-from pandas.core.index import Index, Factor, MultiIndex, NULL_INDEX
+from pandas.core.index import (Index, Int64Index, Factor,
+                               MultiIndex)
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 import pandas._tseries as tseries
@@ -112,12 +115,12 @@ class TestIndex(unittest.TestCase):
         boolIdx[5:30:2] = False
 
         subIndex = self.strIndex[boolIdx]
-        tm.assert_dict_equal(tseries.map_indices(subIndex),
-                                 subIndex.indexMap)
+        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
+                             subIndex.indexMap)
 
         subIndex = self.strIndex[list(boolIdx)]
-        tm.assert_dict_equal(tseries.map_indices(subIndex),
-                                 subIndex.indexMap)
+        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
+                             subIndex.indexMap)
 
     def test_fancy(self):
         sl = self.strIndex[[1,2,3]]
@@ -255,25 +258,20 @@ class TestIndex(unittest.TestCase):
         idx1 = Index([1, 2, 3, 4, 5])
         idx2 = Index([2, 4, 6])
 
-        r1, r2 = idx1.get_indexer(idx2)
+        r1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, [1, 3, -1])
-        assert_almost_equal(r2, [True, True, False])
 
-        r1, r2 = idx2.get_indexer(idx1, method='pad')
+        r1 = idx2.get_indexer(idx1, method='pad')
         assert_almost_equal(r1, [-1, 0, 0, 1, 1])
-        assert_almost_equal(r2, [False, True, True, True, True])
 
-        rffill1, rffill2 = idx2.get_indexer(idx1, method='ffill')
+        rffill1 = idx2.get_indexer(idx1, method='ffill')
         assert_almost_equal(r1, rffill1)
-        assert_almost_equal(r2, rffill2)
 
-        r1, r2 = idx2.get_indexer(idx1, method='backfill')
+        r1 = idx2.get_indexer(idx1, method='backfill')
         assert_almost_equal(r1, [0, 0, 1, 1, 2])
-        assert_almost_equal(r2, [True, True, True, True, True])
 
-        rbfill1, rbfill2 = idx2.get_indexer(idx1, method='bfill')
+        rbfill1 = idx2.get_indexer(idx1, method='bfill')
         assert_almost_equal(r1, rbfill1)
-        assert_almost_equal(r2, rbfill2)
 
     def test_slice_locs(self):
         idx = Index([0, 1, 2, 5, 6, 7, 9, 10])
@@ -310,7 +308,7 @@ class TestIndex(unittest.TestCase):
         # intersection broken?
         int_idx = idx1.intersection(idx2)
         # needs to be 1d like idx1 and idx2
-        expected = pandas.Index(sorted(set(idx1) & set(idx2)))
+        expected = idx1[:4] # pandas.Index(sorted(set(idx1) & set(idx2)))
         self.assert_(int_idx.ndim == 1)
         self.assert_(int_idx.equals(expected))
 
@@ -319,6 +317,244 @@ class TestIndex(unittest.TestCase):
         expected = pandas.Index(sorted(set(idx1) | set(idx2)))
         self.assert_(union_idx.ndim == 1)
         self.assert_(union_idx.equals(expected))
+
+
+class TestInt64Index(unittest.TestCase):
+
+    def setUp(self):
+        self.index = Int64Index(np.arange(0, 20, 2))
+
+    def test_constructor(self):
+        # pass list, coerce fine
+        index = Int64Index([-5, 0, 1, 2])
+        expected = np.array([-5, 0, 1, 2], dtype=np.int64)
+        self.assert_(np.array_equal(index, expected))
+
+        # from iterable
+        index = Int64Index(iter([-5, 0, 1, 2]))
+        self.assert_(np.array_equal(index, expected))
+
+        # scalar raise Exception
+        self.assertRaises(ValueError, Int64Index, 5)
+
+    def test_constructor_corner(self):
+        arr = np.array([1, 2, 3, 4], dtype=object)
+        index = Int64Index(arr)
+        self.assert_(index.values.dtype == np.int64)
+        self.assert_(index.equals(arr))
+
+        # preventing casting
+        arr = np.array([1, '2', 3, '4'], dtype=object)
+        self.assertRaises(TypeError, Int64Index, arr)
+
+    def test_dtype(self):
+        self.assert_(self.index.dtype == np.int64)
+
+    def test_is_monotonic(self):
+        self.assert_(self.index.is_monotonic)
+
+        index = Int64Index([4, 3, 2, 1])
+        self.assert_(not index.is_monotonic)
+
+    def test_equals(self):
+        same_values = Index(self.index, dtype=object)
+        self.assert_(self.index.equals(same_values))
+        self.assert_(same_values.equals(self.index))
+
+    def test_get_indexer(self):
+        target = Int64Index(np.arange(10))
+        indexer = self.index.get_indexer(target)
+        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1])
+        self.assert_(np.array_equal(indexer, expected))
+
+    def test_get_indexer_pad(self):
+        target = Int64Index(np.arange(10))
+        indexer = self.index.get_indexer(target, method='pad')
+        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        self.assert_(np.array_equal(indexer, expected))
+
+    def test_get_indexer_backfill(self):
+        target = Int64Index(np.arange(10))
+        indexer = self.index.get_indexer(target, method='backfill')
+        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5])
+        self.assert_(np.array_equal(indexer, expected))
+
+    def test_join_outer(self):
+        other = Int64Index([7, 12, 25, 1, 2, 5])
+        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
+
+        # not monotonic
+        # guarantee of sortedness
+        res, lidx, ridx = self.index.join(other, how='outer',
+                                          return_indexers=True)
+        noidx_res = self.index.join(other, how='outer')
+        self.assert_(res.equals(noidx_res))
+
+        eres = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 25])
+        elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1],
+                         dtype='i4')
+        eridx = np.array([-1, 3, 4, -1, 5, -1, 0, -1, -1, 1, -1, -1, -1, 2],
+                         dtype='i4')
+
+        self.assert_(isinstance(res, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(np.array_equal(ridx, eridx))
+
+        # monotonic
+        res, lidx, ridx = self.index.join(other_mono, how='outer',
+                                          return_indexers=True)
+        noidx_res = self.index.join(other_mono, how='outer')
+        self.assert_(res.equals(noidx_res))
+
+        eridx = np.array([-1, 0, 1, -1, 2, -1, 3, -1, -1, 4, -1, -1, -1, 5],
+                         dtype='i4')
+        self.assert_(isinstance(res, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(np.array_equal(ridx, eridx))
+
+    def test_join_inner(self):
+        other = Int64Index([7, 12, 25, 1, 2, 5])
+        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
+
+        # not monotonic
+        res, lidx, ridx = self.index.join(other, how='inner',
+                                          return_indexers=True)
+
+        # no guarantee of sortedness, so sort for comparison purposes
+        ind = res.argsort()
+        res = res.take(ind)
+        lidx = lidx.take(ind)
+        ridx = ridx.take(ind)
+
+        eres = Int64Index([2, 12])
+        elidx = np.array([1, 6])
+        eridx = np.array([4, 1])
+
+        self.assert_(isinstance(res, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(np.array_equal(ridx, eridx))
+
+        # monotonic
+        res, lidx, ridx = self.index.join(other_mono, how='inner',
+                                          return_indexers=True)
+
+        res2 = self.index.intersection(other_mono)
+        self.assert_(res.equals(res2))
+
+        eridx = np.array([1, 4])
+        self.assert_(isinstance(res, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(np.array_equal(ridx, eridx))
+
+    def test_join_left(self):
+        other = Int64Index([7, 12, 25, 1, 2, 5])
+        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
+
+        # not monotonic
+        res, lidx, ridx = self.index.join(other, how='left',
+                                          return_indexers=True)
+        eres = self.index
+        eridx = np.array([-1, 4, -1, -1, -1, -1, 1, -1, -1, -1],
+                         dtype='i4')
+
+        self.assert_(isinstance(res, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(lidx is None)
+        self.assert_(np.array_equal(ridx, eridx))
+
+        # monotonic
+        res, lidx, ridx = self.index.join(other_mono, how='left',
+                                          return_indexers=True)
+        eridx = np.array([-1, 1, -1, -1, -1, -1, 4, -1, -1, -1],
+                         dtype='i4')
+        self.assert_(isinstance(res, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(lidx is None)
+        self.assert_(np.array_equal(ridx, eridx))
+
+    def test_join_right(self):
+        other = Int64Index([7, 12, 25, 1, 2, 5])
+        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
+
+        # not monotonic
+        res, lidx, ridx = self.index.join(other, how='right',
+                                          return_indexers=True)
+        eres = other
+        elidx = np.array([-1, 6, -1, -1, 1, -1],
+                         dtype='i4')
+
+        self.assert_(isinstance(other, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(ridx is None)
+
+        # monotonic
+        res, lidx, ridx = self.index.join(other_mono, how='right',
+                                          return_indexers=True)
+        eres = other_mono
+        elidx = np.array([-1, 1, -1, -1, 6, -1],
+                         dtype='i4')
+        self.assert_(isinstance(other, Int64Index))
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(ridx is None)
+
+    def test_join_non_int_index(self):
+        other = Index([3, 6, 7, 8, 10], dtype=object)
+
+        outer = self.index.join(other, how='outer')
+        expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14,
+                          16, 18], dtype=object)
+        self.assert_(outer.equals(expected))
+
+        inner = self.index.join(other, how='inner')
+        expected = Index([6, 8, 10], dtype=object)
+        self.assert_(inner.equals(expected))
+
+        left = self.index.join(other, how='left')
+        self.assert_(left.equals(self.index))
+
+        right = self.index.join(other, how='right')
+        self.assert_(right.equals(other))
+
+    def test_intersection(self):
+        other = Index([1, 2, 3, 4, 5])
+        result = self.index.intersection(other)
+        expected = np.sort(np.intersect1d(self.index.values, other.values))
+        self.assert_(np.array_equal(result, expected))
+
+        result = other.intersection(self.index)
+        expected = np.sort(np.asarray(np.intersect1d(self.index.values,
+                                                     other.values)))
+        self.assert_(np.array_equal(result, expected))
+
+    def test_union(self):
+
+        # corner case, non-Int64Index
+        other = Index([1, 2, 3, 4, 5])
+        result = self.index.union(other)
+        expected = np.unique(np.concatenate((self.index, other)))
+        self.assert_(np.array_equal(result, expected))
+
+    def test_cant_or_shouldnt_cast(self):
+        # can't
+        data = ['foo', 'bar', 'baz']
+        self.assertRaises(TypeError, Int64Index, data)
+
+        # shouldn't
+        data = ['0', '1', '2']
+        self.assertRaises(TypeError, Int64Index, data)
+
+    def test_view_Index(self):
+        self.index.view(Index)
+
+    def test_prevent_casting(self):
+        result = self.index.astype('O')
+        self.assert_(result.dtype == np.object_)
 
 class TestMultiIndex(unittest.TestCase):
 
@@ -330,7 +566,16 @@ class TestMultiIndex(unittest.TestCase):
         minor_labels = np.array([0, 1, 0, 1, 0, 1])
 
         self.index = MultiIndex(levels=[major_axis, minor_axis],
-                                labels=[major_labels, minor_labels])
+                                labels=[major_labels, minor_labels],
+                                names=['first', 'second'])
+
+    def test_constructor_single_level(self):
+        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                                  labels=[[0, 1, 2, 3]],
+                                  names=['first'])
+        self.assert_(isinstance(single_level, Index))
+        self.assert_(not isinstance(single_level, MultiIndex))
+        self.assert_(single_level.name == 'first')
 
     def test_from_arrays(self):
         arrays = []
@@ -339,6 +584,15 @@ class TestMultiIndex(unittest.TestCase):
 
         result = MultiIndex.from_arrays(arrays)
         self.assertEquals(list(result), list(self.index))
+
+    def test_append(self):
+        result = self.index[:3].append(self.index[3:])
+        self.assert_(result.equals(self.index))
+
+    def test_get_level_values(self):
+        result = self.index.get_level_values(0)
+        expected = ['foo', 'foo', 'bar', 'baz', 'qux', 'qux']
+        self.assert_(np.array_equal(result, expected))
 
     def test_nlevels(self):
         self.assertEquals(self.index.nlevels, 2)
@@ -350,7 +604,6 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(result == expected)
 
     def test_pickle(self):
-        import pickle
         pickled = pickle.dumps(self.index)
         unpickled = pickle.loads(pickled)
         self.assert_(self.index.equals(unpickled))
@@ -526,34 +779,28 @@ class TestMultiIndex(unittest.TestCase):
         idx1 = index[:5]
         idx2 = index[[1,3,5]]
 
-        r1, r2 = idx1.get_indexer(idx2)
+        r1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, [1, 3, -1])
-        assert_almost_equal(r2, [True, True, False])
 
-        r1, r2 = idx2.get_indexer(idx1, method='pad')
+        r1 = idx2.get_indexer(idx1, method='pad')
         assert_almost_equal(r1, [-1, 0, 0, 1, 1])
-        assert_almost_equal(r2, [False, True, True, True, True])
 
-        rffill1, rffill2 = idx2.get_indexer(idx1, method='ffill')
+        rffill1 = idx2.get_indexer(idx1, method='ffill')
         assert_almost_equal(r1, rffill1)
-        assert_almost_equal(r2, rffill2)
 
-        r1, r2 = idx2.get_indexer(idx1, method='backfill')
+        r1 = idx2.get_indexer(idx1, method='backfill')
         assert_almost_equal(r1, [0, 0, 1, 1, 2])
-        assert_almost_equal(r2, [True, True, True, True, True])
 
-        rbfill1, rbfill2 = idx2.get_indexer(idx1, method='bfill')
+        rbfill1 = idx2.get_indexer(idx1, method='bfill')
         assert_almost_equal(r1, rbfill1)
-        assert_almost_equal(r2, rbfill2)
 
         # pass non-MultiIndex
-        r1, r2 = idx1.get_indexer(idx2.get_tuple_index())
-        rexp1, rexp2 = idx1.get_indexer(idx2)
+        r1 = idx1.get_indexer(idx2.get_tuple_index())
+        rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
-        assert_almost_equal(r2, rexp2)
 
         self.assertRaises(Exception, idx1.get_indexer,
-                          list(zip(*idx2.get_tuple_index())[0]))
+                          list(list(zip(*idx2.get_tuple_index()))[0]))
 
     def test_format(self):
         self.index.format()
@@ -583,7 +830,6 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex(levels=self.index.levels[:-1],
                            labels=self.index.labels[:-1])
         self.assert_(not self.index.equals(index))
-        self.assert_(not self.index.equal_levels(index))
 
         # levels are different
         major_axis = Index(range(4))
@@ -693,6 +939,16 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex.from_tuples([('bar', 'two')])
         self.assertRaises(Exception, self.index.drop, [('bar', 'two')])
         self.assertRaises(Exception, self.index.drop, index)
+
+        # mixed partial / full drop
+        dropped = self.index.drop(['foo', ('qux', 'one')])
+        expected = self.index[[2, 3, 5]]
+        self.assert_(dropped.equals(expected))
+
+    def test_droplevel_with_names(self):
+        index = self.index[self.index.get_loc('foo')]
+        dropped = index.droplevel(0)
+        self.assertEqual(dropped.name, 'second')
 
     def test_insert(self):
         # key contained in all levels

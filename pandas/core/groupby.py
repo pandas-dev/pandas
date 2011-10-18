@@ -5,12 +5,12 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, PandasObject
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 
 class GroupBy(object):
@@ -88,8 +88,11 @@ class GroupBy(object):
         self.level = level
 
         if not as_index:
-            assert(isinstance(obj, DataFrame))
-            assert(axis == 0)
+            if not isinstance(obj, DataFrame):
+                raise TypeError('as_index=False only valid with DataFrame')
+            if axis != 0:
+                raise ValueError('as_index=False only valid for axis=0')
+
         self.as_index = as_index
 
         if groupings is None:
@@ -115,7 +118,7 @@ class GroupBy(object):
             to_groupby = Index(to_groupby)
 
             axis = self.obj._get_axis(self.axis)
-            self._groups = _tseries.groupby(axis, to_groupby)
+            self._groups = axis.groupby(to_groupby)
 
         return self._groups
 
@@ -164,13 +167,22 @@ class GroupBy(object):
     def primary(self):
         return self.groupings[0]
 
+    @cache_readonly
+    def use_take(self):
+        group_axis = self.obj._get_axis(self.axis)
+        return isinstance(group_axis, Int64Index) and len(self.groupings) == 1
+
     def get_group(self, name, obj=None):
         if obj is None:
             obj = self.obj
 
-        labels = self.groups[name]
-        axis_name = obj._get_axis_name(self.axis)
-        return obj.reindex(**{axis_name : labels})
+        if self.use_take:
+            inds = self.primary.indices[name]
+            return obj.take(inds, axis=self.axis)
+        else:
+            labels = self.groups[name]
+            axis_name = obj._get_axis_name(self.axis)
+            return obj.reindex(**{axis_name : labels})
 
     def __iter__(self):
         """
@@ -286,6 +298,20 @@ class GroupBy(object):
         """
         return self._cython_agg_general('mean')
 
+    def size(self):
+        """
+        Compute group sizes
+        """
+        result = sorted((k, len(v)) for k, v in self.groups.iteritems())
+        keys, values = zip(*result)
+
+        if len(self.groupings) > 1:
+            index = MultiIndex.from_tuples(keys)
+        else:
+            index = Index(keys)
+
+        return Series(values, index=index)
+
     def sum(self):
         """
         Compute sum of values, excluding missing values
@@ -313,8 +339,8 @@ class GroupBy(object):
                 cannot_agg.append(name)
                 continue
 
-            result, counts =  _tseries.group_aggregate(obj, label_list,
-                                                       shape, how=how)
+            result, counts =  lib.group_aggregate(obj, label_list,
+                                                  shape, how=how)
             result = result.ravel()
             mask = counts.ravel() > 0
             output[name] = result[mask]
@@ -452,6 +478,13 @@ class Grouping(object):
     """
     Holds the grouping information for a single key
 
+    Parameters
+    ----------
+    index : Index
+    grouper :
+    name :
+    level :
+
     Returns
     -------
     **Attributes**:
@@ -467,21 +500,20 @@ class Grouping(object):
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)
+        self.index = index
 
         if level is not None:
             inds = index.labels[level]
-            labels = index.levels[level].values.take(inds)
+            labels = index.levels[level].take(inds)
 
             if grouper is not None:
-                self.grouper = _tseries.arrmap(labels, self.grouper)
+                self.grouper = labels.map(self.grouper)
             else:
                 self.grouper = labels
 
-        self.index = index.values
-
         # no level passed
         if not isinstance(self.grouper, np.ndarray):
-            self.grouper = _tseries.arrmap(self.index, self.grouper)
+            self.grouper = self.index.map(self.grouper)
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name
@@ -495,7 +527,7 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
-        return _tseries.groupby_indices(self.grouper)
+        return lib.groupby_indices(self.grouper)
 
     @property
     def labels(self):
@@ -524,7 +556,7 @@ class Grouping(object):
         return Index([self.ids[i] for i in range(len(self.ids))])
 
     def _make_labels(self):
-        ids, labels, counts  = _tseries.group_labels(self.grouper)
+        ids, labels, counts  = lib.group_labels(self.grouper)
         sids, slabels, scounts = sort_group_labels(ids, labels, counts)
         self._labels = slabels
         self._ids = sids
@@ -534,7 +566,7 @@ class Grouping(object):
     @property
     def groups(self):
         if self._groups is None:
-            self._groups = _tseries.groupby(self.index, self.grouper)
+            self._groups = self.index.groupby(self.grouper)
         return self._groups
 
 def _get_groupings(obj, grouper=None, axis=0, level=None):
@@ -661,6 +693,9 @@ class SeriesGroupBy(GroupBy):
             else:
                 ret = Series({})
 
+        if not self.as_index:  # pragma: no cover
+            print 'Warning, ignoring as_index=True'
+
         return ret
 
     def _wrap_aggregated_output(self, output, mask):
@@ -690,8 +725,9 @@ class SeriesGroupBy(GroupBy):
                 return result
             else:
                 cat_values = np.concatenate([x.values for x in values])
-                cat_index = np.concatenate([np.asarray(x.index)
-                                            for x in values])
+                cat_index = values[0].index
+                if len(values) > 1:
+                    cat_index = cat_index.append([x.index for x in values[1:]])
                 return Series(cat_values, index=cat_index)
         elif isinstance(values[0], DataFrame):
             # possible that Series -> DataFrame by applied function
@@ -757,7 +793,7 @@ class SeriesGroupBy(GroupBy):
         for name, group in self:
             group.name = name
             res = func(group, *args, **kwargs)
-            indexer, _ = self.obj.index.get_indexer(group.index)
+            indexer = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
 
         return result
@@ -833,6 +869,9 @@ class DataFrameGroupBy(GroupBy):
 
         result = {}
         if isinstance(arg, dict):
+            if self.axis != 0:  # pragma: no cover
+                raise ValueError('Can only pass dict with axis=0')
+
             for col, func in arg.iteritems():
                 result[col] = self[col].agg(func)
 
@@ -844,6 +883,19 @@ class DataFrameGroupBy(GroupBy):
                 except Exception:
                     return self._aggregate_item_by_item(arg, *args, **kwargs)
             result = self._aggregate_generic(arg, *args, **kwargs)
+
+        if not self.as_index:
+            if isinstance(result.index, MultiIndex):
+                zipped = zip(result.index.levels, result.index.labels,
+                             result.index.names)
+                for i, (lev, lab, name) in enumerate(zipped):
+                    result.insert(i, name, lev.values.take(lab))
+                result = result.consolidate()
+            else:
+                values = result.index.values
+                name = self.groupings[0].name
+                result.insert(0, name, values)
+            result.index = np.arange(len(result))
 
         return result
 

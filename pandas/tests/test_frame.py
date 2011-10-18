@@ -18,13 +18,14 @@ from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 randn)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases
+
+JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 class CheckIndexing(object):
 
@@ -251,6 +252,11 @@ class CheckIndexing(object):
         ix[5:10].values[:] = 5
         exp.values[5:10] = 5
         assert_frame_equal(f, exp)
+
+    def test_getitem_fancy_slice_integers_step(self):
+        df = DataFrame(np.random.randn(10, 5))
+        self.assertRaises(Exception, df.ix.__getitem__, slice(0, 8, 2))
+        self.assertRaises(Exception, df.ix.__setitem__, slice(0, 8, 2), np.nan)
 
     def test_setitem_fancy_2d(self):
         f = self.frame
@@ -631,6 +637,19 @@ _mixed_frame['foo'] = 'bar'
 
 class SafeForSparse(object):
 
+    def test_getitem_pop_assign_name(self):
+        s = self.frame['A']
+        self.assertEqual(s.name, 'A')
+
+        s = self.frame.pop('A')
+        self.assertEqual(s.name, 'A')
+
+        s = self.frame.ix[:, 'B']
+        self.assertEqual(s.name, 'B')
+
+        s2 = s.ix[:]
+        self.assertEqual(s2.name, 'B')
+
     def test_join_index(self):
         # left / right
 
@@ -681,6 +700,15 @@ class SafeForSparse(object):
 
         self.assertRaises(Exception, f.join, f2, how='foo')
 
+    def test_join_index_series(self):
+        df = self.frame.copy()
+        s = df.pop(self.frame.columns[-1])
+        joined = df.join(s)
+        assert_frame_equal(joined, self.frame)
+
+        s.name = None
+        self.assertRaises(Exception, df.join, s)
+
     def test_join_overlap(self):
         df1 = self.frame.ix[:, ['A', 'B', 'C']]
         df2 = self.frame.ix[:, ['B', 'C', 'D']]
@@ -690,7 +718,9 @@ class SafeForSparse(object):
         df2_suf = df2.ix[:, ['B', 'C']].add_suffix('_df2')
         no_overlap = self.frame.ix[:, ['A', 'D']]
         expected = df1_suf.join(df2_suf).join(no_overlap)
-        assert_frame_equal(joined, expected)
+
+        # column order not necessarily sorted
+        assert_frame_equal(joined, expected.ix[:, joined.columns])
 
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
@@ -1505,18 +1535,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         frame = self.frame
         old_index = frame.index
-        new_index = MultiIndex.from_arrays(np.arange(len(old_index)*2).reshape(2,-1))
+        arrays = np.arange(len(old_index)*2).reshape(2,-1)
+        new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
         frame.index = new_index
         frame.to_csv(path, header=False)
         frame.to_csv(path, cols=['A', 'B'])
 
-
         # round trip
         frame.to_csv(path)
-
         df = DataFrame.from_csv(path, index_col=[0,1])
 
         assert_frame_equal(frame, df)
+        self.assertEqual(frame.index.names, df.index.names)
         self.frame.index = old_index # needed if setUP becomes a classmethod
 
         # try multiindex with dates
@@ -1540,6 +1570,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(recons.values, self.tsframe.values)
         self.tsframe.index = old_index # needed if setUP becomes classmethod
 
+        os.remove(path)
+
+    def test_to_csv_float32_nanrep(self):
+        df = DataFrame(np.random.randn(1, 4).astype(np.float32))
+        df[1] = np.nan
+
+        pth = '__tmp__.csv'
+        df.to_csv(pth, nanRep=999)
+
+        lines = open(pth).readlines()
+        self.assert_(lines[1].split(',')[2] == '999')
+        os.remove(pth)
+    
+    def test_to_csv_withcommas(self):
+        "Commas inside fields should be correctly escaped when saving as CSV."
+        path = '__tmp__'
+        df = DataFrame({'A':[1,2,3], 'B':['5,6','7,8','9,0']})
+        df.to_csv(path)
+        df2 = DataFrame.from_csv(path)
+        assert_frame_equal(df2, df)
+        
         os.remove(path)
 
     def test_info(self):
@@ -1590,6 +1641,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         appended = self.empty.append(self.frame)
         assert_frame_equal(self.frame, appended)
         self.assert_(appended is not self.frame)
+
+        # overlap
+        self.assertRaises(Exception, self.frame.append, self.frame)
 
     def test_append_records(self):
         arr1 = np.zeros((2,),dtype=('i4,f4,a10'))
@@ -1931,6 +1985,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         })
 
         assert_frame_equal(pivoted, expected)
+
+        # name tracking
+        self.assertEqual(pivoted.index.name, 'index')
+        self.assertEqual(pivoted.columns.name, 'columns')
+
+        # don't specify values
+        pivoted = frame.pivot(index='index', columns='columns')
+        self.assertEqual(pivoted.index.name, 'index')
+        self.assertEqual(pivoted.columns.names, [None, 'columns'])
 
         # pivot multiple columns
         wp = tm.makePanel()
@@ -2351,23 +2414,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(comb, self.frame)
 
     def test_combine_first_mixed_bug(self):
-	idx = Index(['a','b','c','e'])
-	ser1 = Series([5.0,-9.0,4.0,100.],index=idx)
-	ser2 = Series(['a', 'b', 'c', 'e'], index=idx)
-	ser3 = Series([12,4,5,97], index=idx)
+        idx = Index(['a','b','c','e'])
+        ser1 = Series([5.0,-9.0,4.0,100.],index=idx)
+        ser2 = Series(['a', 'b', 'c', 'e'], index=idx)
+        ser3 = Series([12,4,5,97], index=idx)
 
-	frame1 = DataFrame({"col0" : ser1,
-                            "col2" : ser2,
-                            "col3" : ser3})
+        frame1 = DataFrame({"col0" : ser1,
+                                "col2" : ser2,
+                                "col3" : ser3})
 
-	idx = Index(['a','b','c','f'])
-	ser1 = Series([5.0,-9.0,4.0,100.], index=idx)
-	ser2 = Series(['a','b','c','f'], index=idx)
-	ser3 = Series([12,4,5,97],index=idx)
+        idx = Index(['a','b','c','f'])
+        ser1 = Series([5.0,-9.0,4.0,100.], index=idx)
+        ser2 = Series(['a','b','c','f'], index=idx)
+        ser3 = Series([12,4,5,97],index=idx)
 
-	frame2 = DataFrame({"col1" : ser1,
-                             "col2" : ser2,
-                             "col5" : ser3})
+        frame2 = DataFrame({"col1" : ser1,
+                                 "col2" : ser2,
+                                 "col5" : ser3})
 
 
         combined = frame1.combine_first(frame2)
@@ -2470,6 +2533,48 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # can't specify how
         self.assertRaises(Exception, target.join, source, on='C',
                           how='left')
+
+    def test_join_index_mixed(self):
+
+        df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+                        index=np.arange(10),
+                        columns=['A', 'B', 'C', 'D'])
+        self.assert_(df1['B'].dtype == np.int_)
+        self.assert_(df1['D'].dtype == np.bool_)
+
+        df2 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+                        index=np.arange(0, 10, 2),
+                        columns=['A', 'B', 'C', 'D'])
+
+        # overlap
+        joined = df1.join(df2, lsuffix='_one', rsuffix='_two')
+        expected_columns = ['A_one', 'B_one', 'C_one', 'D_one',
+                            'A_two', 'B_two', 'C_two', 'D_two']
+        df1.columns = expected_columns[:4]
+        df2.columns = expected_columns[4:]
+        expected = _join_by_hand(df1, df2)
+        assert_frame_equal(joined, expected)
+
+        # no overlapping blocks
+        df1 = DataFrame(index=np.arange(10))
+        df1['bool'] = True
+        df1['string'] = 'foo'
+
+        df2 = DataFrame(index=np.arange(5, 15))
+        df2['int'] = 1
+        df2['float'] = 1.
+
+        for kind in JOIN_TYPES:
+            joined = df1.join(df2, how=kind)
+            expected = _join_by_hand(df1, df2, how=kind)
+            assert_frame_equal(joined, expected)
+
+            joined = df2.join(df1, how=kind)
+            expected = _join_by_hand(df2, df1, how=kind)
+            assert_frame_equal(joined, expected)
+
+    def test_join_on_series(self):
+        pass
 
     def test_clip(self):
         median = self.frame.median().median()
@@ -2976,6 +3081,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(index=range(20), columns=cols, data=data)
         self.assert_(df.columns.tolist() == df.fillna().columns.tolist())
 
+    def test_take(self):
+        # homogeneous
+        #----------------------------------------
+
+        # mixed-dtype
+        #----------------------------------------
+        order = [4, 1, 2, 0, 3]
+
+        result = self.mixed_frame.take(order, axis=0)
+        expected = self.mixed_frame.reindex(self.mixed_frame.index.take(order))
+        assert_frame_equal(result, expected)
+
+        # axis = 1
+        result = self.mixed_frame.take(order, axis=1)
+        expected = self.mixed_frame.ix[:, ['foo', 'B', 'C', 'A', 'D']]
+        assert_frame_equal(result, expected)
+
+def _join_by_hand(a, b, how='left'):
+    join_index = a.index.join(b.index, how=how)
+
+    a_re = a.reindex(join_index)
+    b_re = b.reindex(join_index)
+
+    result_columns = a.columns.append(b.columns)
+
+    for col, s in b_re.iteritems():
+        a_re[col] = s
+    return a_re.reindex(columns=result_columns)
 
 if __name__ == '__main__':
     # unittest.main()

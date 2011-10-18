@@ -13,6 +13,7 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
 from pandas.core.panel import Panel
 from collections import defaultdict
+import pandas._tseries as lib
 import pandas.core.datetools as dt
 import numpy as np
 
@@ -60,7 +61,7 @@ class TestGroupBy(unittest.TestCase):
                                 columns=['A', 'B', 'C'])
 
     def test_basic(self):
-        data = Series(np.arange(9) / 3, index=np.arange(9))
+        data = Series(np.arange(9) // 3, index=np.arange(9))
 
         index = np.arange(9)
         np.random.shuffle(index)
@@ -196,7 +197,7 @@ class TestGroupBy(unittest.TestCase):
         grouped.mean()
 
     def test_transform(self):
-        data = Series(np.arange(9) / 3, index=np.arange(9))
+        data = Series(np.arange(9) // 3, index=np.arange(9))
 
         index = np.arange(9)
         np.random.shuffle(index)
@@ -516,7 +517,34 @@ class TestGroupBy(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
-    def test_groupby_as_index(self):
+    def test_groupby_as_index_agg(self):
+        grouped = self.df.groupby('A', as_index=False)
+
+        # single-key
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        assert_frame_equal(result, expected)
+
+        result2 = grouped.agg({'C' : np.mean, 'D' : np.sum})
+        expected2 = grouped.mean()
+        expected2['D'] = grouped.sum()['D']
+        assert_frame_equal(result2, expected2)
+
+        # multi-key
+
+        grouped = self.df.groupby(['A', 'B'], as_index=False)
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        assert_frame_equal(result, expected)
+
+        result2 = grouped.agg({'C' : np.mean, 'D' : np.sum})
+        expected2 = grouped.mean()
+        expected2['D'] = grouped.sum()['D']
+        assert_frame_equal(result2, expected2)
+
+    def test_groupby_as_index_cython(self):
         data = self.df
 
         # single-key
@@ -537,6 +565,13 @@ class TestGroupBy(unittest.TestCase):
         expected.insert(1, 'B', arrays[1])
         expected.index = np.arange(len(expected))
         assert_frame_equal(result, expected)
+
+    def test_groupby_as_index_corner(self):
+        self.assertRaises(TypeError, self.ts.groupby,
+                          lambda x: x.weekday(), as_index=False)
+
+        self.assertRaises(ValueError, self.df.groupby,
+                          lambda x: x.lower(), as_index=False, axis=1)
 
     def test_groupby_multiple_key(self):
         df = tm.makeTimeDataFrame()
@@ -796,6 +831,37 @@ class TestGroupBy(unittest.TestCase):
         apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
         assert_frame_equal(agg_result, expected)
         assert_frame_equal(apply_result, expected)
+
+    def test_cython_na_bug(self):
+        values = np.random.randn(10)
+        shape = (5, 5)
+        label_list = [np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2], dtype=np.int32),
+                      np.array([1, 2, 3, 4, 0, 1, 2, 3, 3, 4], dtype=np.int32)]
+
+        lib.group_aggregate(values, label_list, shape)
+
+    def test_size(self):
+        grouped = self.df.groupby(['A', 'B'])
+        result = grouped.size()
+        for key, group in grouped:
+            self.assertEquals(result[key], len(group))
+
+        grouped = self.df.groupby('A')
+        result = grouped.size()
+        for key, group in grouped:
+            self.assertEquals(result[key], len(group))
+
+        grouped = self.df.groupby('B')
+        result = grouped.size()
+        for key, group in grouped:
+            self.assertEquals(result[key], len(group))
+
+    def test_grouping_ndarray(self):
+        grouped = self.df.groupby(self.df['A'].values)
+
+        result = grouped.sum()
+        expected = self.df.groupby('A').sum()
+        assert_frame_equal(result, expected)
 
 class TestPanelGroupBy(unittest.TestCase):
 

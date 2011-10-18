@@ -13,11 +13,14 @@ import operator
 from pandas.core.common import (isnull, _pickle_array, _unpickle_array,
                                 _mut_exclusive, _try_sort)
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
-from pandas.core.series import Series, TimeSeries
+from pandas.core.series import Series, TimeSeries, _maybe_match_name
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
 from pandas.core.panel import Panel, LongPanel
+import pandas.core.common as common
 import pandas.core.datetools as datetools
+
+from pandas.util import py3compat
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
@@ -79,7 +82,8 @@ def _sparse_op_wrap(op, name):
             return SparseSeries(op(self.sp_values, other),
                                 index=self.index,
                                 sparse_index=self.sp_index,
-                                fill_value=new_fill_value)
+                                fill_value=new_fill_value,
+                                name=self.name)
         else: # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
@@ -110,9 +114,10 @@ def _sparse_series_op(left, right, op, name):
     except ZeroDivisionError:
         fill_value = nan
 
+    new_name = _maybe_match_name(left, right)
     return SparseSeries(result, index=new_index,
                         sparse_index=result_index,
-                        fill_value=fill_value)
+                        fill_value=fill_value, name=new_name)
 
 def _sparse_nanop(this, other, name):
     sparse_op = getattr(splib, 'sparse_nan%s' % name)
@@ -142,7 +147,7 @@ class SparseSeries(Series):
     fill_value = None
 
     def __new__(cls, data, index=None, sparse_index=None, kind='block',
-                fill_value=None, copy=False):
+                fill_value=None, name=None, copy=False):
 
         is_sparse_series = isinstance(data, SparseSeries)
         if fill_value is None:
@@ -206,10 +211,11 @@ class SparseSeries(Series):
         output.sp_index = sparse_index
         output.fill_value = np.float64(fill_value)
         output.index = index
+        output.name = name
         return output
 
     def __init__(self, data, index=None, sparse_index=None, kind='block',
-                 fill_value=None, copy=False):
+                 fill_value=None, name=None, copy=False):
         """Data structure for labeled, sparse floating point data
 
 Parameters
@@ -231,9 +237,9 @@ to sparse
 
     @property
     def _constructor(self):
-        def make_sp_series(data, index=None):
+        def make_sp_series(data, index=None, name=None):
             return SparseSeries(data, index=index, fill_value=self.fill_value,
-                                kind=self.kind)
+                                kind=self.kind, name=name)
 
         return make_sp_series
 
@@ -250,6 +256,7 @@ to sparse
         to pass on the index.
         """
         self._index = getattr(obj, '_index', None)
+        self.name = getattr(obj, 'name', None)
         self.sp_index = getattr(obj, 'sp_index', None)
         self.fill_value = getattr(obj, 'fill_value', None)
 
@@ -257,7 +264,8 @@ to sparse
         """Necessary for making this object picklable"""
         object_state = list(ndarray.__reduce__(self))
 
-        subclass_state = (self.index, self.fill_value, self.sp_index)
+        subclass_state = (self.index, self.fill_value, self.sp_index,
+                          self.name)
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -266,11 +274,16 @@ to sparse
         nd_state, own_state = state
         ndarray.__setstate__(self, nd_state)
 
-        index, fill_value, sp_index = own_state
+
+        index, fill_value, sp_index = own_state[:3]
+        name = None
+        if len(own_state) > 3:
+            name = own_state[3]
 
         self.sp_index = sp_index
         self.fill_value = fill_value
         self.index = index
+        self.name = name
 
     def __len__(self):
         return self.sp_index.length
@@ -285,24 +298,31 @@ to sparse
     __add__ = _sparse_op_wrap(operator.add, 'add')
     __sub__ = _sparse_op_wrap(operator.sub, 'sub')
     __mul__ = _sparse_op_wrap(operator.mul, 'mul')
-    __div__ = _sparse_op_wrap(operator.div, 'div')
     __truediv__ = _sparse_op_wrap(operator.truediv, 'truediv')
+    __floordiv__ = _sparse_op_wrap(operator.floordiv, 'floordiv')
     __pow__ = _sparse_op_wrap(operator.pow, 'pow')
 
     # reverse operators
     __radd__ = _sparse_op_wrap(operator.add, '__radd__')
-    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
     __rsub__ = _sparse_op_wrap(lambda x, y: y - x, '__rsub__')
-    __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
     __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, '__rtruediv__')
+    __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'floordiv')
     __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
 
     # Inplace operators
     __iadd__ = __add__
     __isub__ = __sub__
     __imul__ = __mul__
-    __idiv__ = __div__
+    __itruediv__ = __truediv__
+    __ifloordiv__ = __floordiv__
     __ipow__ = __pow__
+
+    # Python 2 division operators
+    if not py3compat.PY3:
+        __div__ = _sparse_op_wrap(operator.div, 'div')
+        __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
+        __idiv__ = __div__
 
     @property
     def values(self):
@@ -341,7 +361,7 @@ to sparse
 
         dataSlice = self.values[key]
         new_index = Index(self.index.view(ndarray)[key])
-        return self._constructor(dataSlice, index=new_index)
+        return self._constructor(dataSlice, index=new_index, name=self.name)
 
     def _get_val_at(self, loc):
         n = len(self)
@@ -381,9 +401,6 @@ to sparse
 
         return result
 
-    def __getslice__(self, i, j):
-        return self._constructor(self.values[i:j], index=self.index[i:j])
-
     def __setitem__(self, key, value):
         raise Exception('SparseSeries objects are immutable')
 
@@ -397,9 +414,9 @@ to sparse
         if sparse_only:
             int_index = self.sp_index.to_int_index()
             index = self.index.take(int_index.indices)
-            return Series(self.sp_values, index=index)
+            return Series(self.sp_values, index=index, name=self.name)
         else:
-            return Series(self.values, index=self.index)
+            return Series(self.values, index=self.index, name=self.name)
 
     def astype(self, dtype=None):
         """
@@ -421,7 +438,7 @@ to sparse
             values = self.sp_values
         return SparseSeries(values, index=self.index,
                             sparse_index=self.sp_index,
-                            fill_value=self.fill_value)
+                            fill_value=self.fill_value, name=self.name)
 
     def reindex(self, index=None, method=None, copy=True):
         """
@@ -448,16 +465,10 @@ to sparse
             return SparseSeries(values, index=new_index,
                                 fill_value=self.fill_value)
 
-        values = self.values
-        indexer, mask = self.index.get_indexer(new_index, method=method)
-        new_values = values.take(indexer)
-
-        notmask = -mask
-        if notmask.any():
-            np.putmask(new_values, notmask, nan)
-
+        new_index, fill_vec = self.index.reindex(index, method=method)
+        new_values = common.take_1d(self.values, fill_vec)
         return SparseSeries(new_values, index=new_index,
-                            fill_value=self.fill_value)
+                            fill_value=self.fill_value, name=self.name)
 
     def sparse_reindex(self, new_index):
         """
@@ -603,6 +614,22 @@ to sparse
                             index=self.index,
                             sparse_index=new_sp_index,
                             fill_value=self.fill_value)
+
+    def combine_first(self, other):
+        """
+        Combine Series values, choosing the calling Series's values
+        first. Result index will be the union of the two indexes
+
+        Parameters
+        ----------
+        other : Series
+
+        Returns
+        -------
+        y : Series
+        """
+        dense_combined = self.to_dense().combine_first(other.to_dense())
+        return dense_combined.to_sparse(fill_value=self.fill_value)
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass
@@ -866,7 +893,10 @@ class SparseDataFrame(DataFrame):
         Retrieve column or slice from DataFrame
         """
         try:
-            return self._series[item]
+            # unsure about how kludgy this is
+            s = self._series[item]
+            s.name = item
+            return s
         except (TypeError, KeyError):
             if isinstance(item, slice):
                 dateRange = self.index[item]
@@ -908,7 +938,7 @@ class SparseDataFrame(DataFrame):
 
     values = property(as_matrix)
 
-    def xs(self, key):
+    def xs(self, key, axis=0, copy=False):
         """
         Returns a row (cross-section) from the SparseDataFrame as a Series
         object.
@@ -921,6 +951,10 @@ class SparseDataFrame(DataFrame):
         -------
         xs : Series
         """
+        if axis == 1:
+            data = self[key]
+            return data
+
         i = self.index.get_loc(key)
         series = self._series
         values = [series[k][i] for k in self.columns]
@@ -1019,9 +1053,9 @@ class SparseDataFrame(DataFrame):
         if len(self.index) == 0:
             return SparseDataFrame(index=index, columns=self.columns)
 
-        indexer, mask = self.index.get_indexer(index, method)
-        notmask = -mask
-        need_mask = notmask.any()
+        indexer = self.index.get_indexer(index, method)
+        mask = indexer == -1
+        need_mask = mask.any()
 
         new_series = {}
         for col, series in self.iteritems():
@@ -1029,7 +1063,7 @@ class SparseDataFrame(DataFrame):
             new = values.take(indexer)
 
             if need_mask:
-                new[notmask] = nan
+                np.putmask(new, mask, nan)
 
             new_series[col] = new
 
@@ -1075,7 +1109,12 @@ class SparseDataFrame(DataFrame):
         raise NotImplementedError
 
     def _join_index(self, other, how, lsuffix, rsuffix):
-        join_index = self._get_join_index(other, how)
+        if isinstance(other, Series):
+            assert(other.name is not None)
+            other = SparseDataFrame({other.name : other},
+                                    default_fill_value=self.default_fill_value)
+
+        join_index = self.index.join(other.index, how=how)
 
         this = self.reindex(join_index)
         other = other.reindex(join_index)
@@ -1560,7 +1599,7 @@ class SparsePanel(Panel):
             return self._combinePanel(other, func)
         elif np.isscalar(other):
             new_frames = dict((k, func(v, other))
-                              for k, v in self.iteritems())
+                              for k, v in self.iterkv())
             return self._new_like(new_frames)
 
     def _combineFrame(self, other, func, axis=0):
@@ -1636,7 +1675,7 @@ class SparsePanel(Panel):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        slices = dict((k, v.xs(key)) for k, v in self.iteritems())
+        slices = dict((k, v.xs(key)) for k, v in self.iterkv())
         return DataFrame(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
@@ -1653,7 +1692,7 @@ class SparsePanel(Panel):
         y : SparseDataFrame
             index -> major axis, columns -> items
         """
-        slices = dict((k, v[key]) for k, v in self.iteritems())
+        slices = dict((k, v[key]) for k, v in self.iterkv())
         return SparseDataFrame(slices, index=self.major_axis,
                                columns=self.items,
                                default_fill_value=self.default_fill_value,

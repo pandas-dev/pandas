@@ -198,6 +198,10 @@ class _NDFrameIndexer(object):
         if isinstance(obj, slice):
             if _is_label_slice(index, obj):
                 i, j = index.slice_locs(obj.start, obj.stop)
+
+                if obj.step is not None:
+                    raise Exception('Non-zero step not supported with '
+                                    'label-based slicing')
                 return slice(i, j)
             else:
                 return obj
@@ -214,9 +218,10 @@ class _NDFrameIndexer(object):
                 if _is_integer_dtype(objarr) and not is_int_index:
                     return objarr
 
-                indexer, mask = index.get_indexer(objarr)
-                if not mask.all():
-                    raise KeyError('%s not in index' % objarr[-mask])
+                indexer = index.get_indexer(objarr)
+                mask = indexer == -1
+                if mask.any():
+                    raise KeyError('%s not in index' % objarr[mask])
 
                 return indexer
         else:
@@ -237,6 +242,10 @@ class _NDFrameIndexer(object):
         if _is_label_slice(labels, slice_obj):
             i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
             slicer = slice(i, j)
+
+            if slice_obj.step is not None:
+                raise Exception('Non-zero step not supported with label-based '
+                                'slicing')
         else:
             slicer = slice_obj
 
@@ -292,9 +301,10 @@ class _SeriesIndexer(_NDFrameIndexer):
                 obj[key] = value
 
             def do_list_like():
-                inds, mask = obj.index.get_indexer(key)
-                if not mask.all():
-                    raise IndexingError('Indices %s not found' % key[-mask])
+                inds = obj.index.get_indexer(key)
+                mask = inds == -1
+                if mask.any():
+                    raise IndexingError('Indices %s not found' % key[mask])
                 obj.put(inds, value)
         op = do_default
         if _isboolarr(key):

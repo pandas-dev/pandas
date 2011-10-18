@@ -5,11 +5,10 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import (_format, adjoin as _adjoin, _stringify,
+from pandas.core.common import (adjoin as _adjoin, _stringify,
                                 _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import deprecate, cache_readonly
-import pandas.core.common as common
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 __all__ = ['Index']
 
@@ -40,9 +39,11 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
-    def __new__(cls, data, dtype=object, copy=False):
+    def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
-            subarr = np.array(data, dtype=dtype, copy=copy)
+            if dtype is None and issubclass(data.dtype.type, np.integer):
+                return Int64Index(data, copy=copy, name=name)
+            subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
@@ -50,27 +51,43 @@ class Index(np.ndarray):
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
-            subarr = np.empty(len(data), dtype=dtype)
+            subarr = np.empty(len(data), dtype=object)
             subarr[:] = data
-        return subarr.view(cls)
+
+        subarr = subarr.view(cls)
+        subarr.name = name
+        return subarr
+
+    def __array_finalize__(self, obj):
+        self.name = getattr(obj, 'name', None)
+
+    @property
+    def dtype(self):
+        return self.values.dtype
 
     def summary(self):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
         else:
             index_summary = ''
-        return 'Index: %s entries%s' % (len(self), index_summary)
+
+        name = type(self).__name__
+        return '%s: %s entries%s' % (name, len(self), index_summary)
 
     @property
     def values(self):
         return np.asarray(self)
+
+    @cache_readonly
+    def is_monotonic(self):
+        return lib.is_monotonic_object(self)
 
     _indexMap = None
     @property
     def indexMap(self):
         "{label -> location}"
         if self._indexMap is None:
-            self._indexMap = _tseries.map_indices_buf(self)
+            self._indexMap = lib.map_indices_object(self)
             self._verify_integrity()
 
         return self._indexMap
@@ -81,7 +98,7 @@ class Index(np.ndarray):
         Checks that all the labels are datetime objects
         """
         if self._allDates is None:
-            self._allDates = _tseries.isAllDates(self)
+            self._allDates = lib.isAllDates(self)
 
         return self._allDates
 
@@ -121,14 +138,32 @@ class Index(np.ndarray):
             if _is_bool_indexer(key):
                 key = np.asarray(key)
 
-            return Index(arr_idx[key])
+            return Index(arr_idx[key], name=self.name)
+
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        if isinstance(other, (list, tuple)):
+            to_concat = (self.values,) + tuple(other)
+        else:
+            to_concat = self.values, other.values
+        return Index(np.concatenate(to_concat))
 
     def take(self, *args, **kwargs):
         """
         Analogous to ndarray.take
         """
         taken = self.view(np.ndarray).take(*args, **kwargs)
-        return Index(taken)
+        return Index(taken, name=self.name)
 
     def format(self, vertical=False):
         """
@@ -232,11 +267,37 @@ class Index(np.ndarray):
         if len(self) == 0:
             return _ensure_index(other)
 
-        return Index(_tseries.fast_unique_multiple([self, other]))
+        if self.is_monotonic and other.is_monotonic:
+            result = lib.outer_join_indexer_object(self, other)[0]
+        else:
+            indexer = self.get_indexer(other)
+            indexer = (indexer == -1).nonzero()[0]
+
+            if len(indexer) > 0:
+                other_diff = other.values.take(indexer)
+                result = list(self) + list(other_diff)
+                # timsort wins
+                try:
+                    result.sort()
+                except Exception:
+                    pass
+            else:
+                # contained in
+                result = sorted(self)
+
+        # for subclasses
+        return self._wrap_union_result(other, result)
+
+    def _wrap_union_result(self, other, result):
+        if type(self) == type(other):
+            return type(self)(result)
+        else:
+            return Index(result)
 
     def intersection(self, other):
         """
-        Form the intersection of two Index objects and sorts if possible
+        Form the intersection of two Index objects. Sortedness of the result is
+        not guaranteed
 
         Parameters
         ----------
@@ -252,8 +313,17 @@ class Index(np.ndarray):
         if self.equals(other):
             return self
 
-        theIntersection = sorted(set(self) & set(other))
-        return Index(theIntersection)
+        other = _ensure_index(other)
+
+        if other.dtype != np.object_:
+            other = other.astype(object)
+
+        if self.is_monotonic and other.is_monotonic:
+            return Index(lib.inner_join_indexer_object(self, other)[0])
+        else:
+            indexer = self.get_indexer(other)
+            indexer = indexer.take((indexer != -1).nonzero()[0])
+            return self.take(indexer)
 
     def diff(self, other):
         """
@@ -322,20 +392,40 @@ class Index(np.ndarray):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        if method:
-            method = method.upper()
-
-        aliases = {
-            'FFILL' : 'PAD',
-            'BFILL' : 'BACKFILL'
-        }
-
         target = _ensure_index(target)
 
-        method = aliases.get(method, method)
-        indexer, mask = _tseries.getFillVec(self, target, self.indexMap,
-                                            target.indexMap, method)
-        return indexer, mask
+        method = self._get_method(method)
+
+        if self.dtype != target.dtype:
+            target = Index(target, dtype=object)
+
+        if method == 'pad':
+            indexer = lib.pad_object(self, target, self.indexMap,
+                                     target.indexMap)
+        elif method == 'backfill':
+            indexer = lib.backfill_object(self, target, self.indexMap,
+                                          target.indexMap)
+        elif method is None:
+            indexer = lib.merge_indexer_object(target, self.indexMap)
+        else:
+            raise ValueError('unrecognized method: %s' % method)
+        return indexer
+
+    def groupby(self, to_groupby):
+        return lib.groupby_object(self.values, to_groupby)
+
+    def map(self, mapper):
+        return lib.arrmap_object(self.values, mapper)
+
+    def _get_method(self, method):
+        if method:
+            method = method.lower()
+
+        aliases = {
+            'ffill' : 'pad',
+            'bfill' : 'backfill'
+        }
+        return aliases.get(method, method)
 
     def reindex(self, target, method=None):
         """
@@ -347,8 +437,33 @@ class Index(np.ndarray):
         -------
         (new_index, indexer, mask) : tuple
         """
-        indexer, mask = self.get_indexer(target, method=method)
-        return target, indexer, mask
+        indexer = self.get_indexer(target, method=method)
+        return target, indexer
+
+    def join(self, other, how='left', return_indexers=False):
+        if how == 'left':
+            join_index = self
+        elif how == 'right':
+            join_index = other
+        elif how == 'inner':
+            join_index = self.intersection(other)
+        elif how == 'outer':
+            join_index = self.union(other)
+        else:
+            raise Exception('do not recognize join method %s' % how)
+
+        if return_indexers:
+            if join_index is self:
+                lindexer = None
+            else:
+                lindexer = self.get_indexer(join_index)
+            if join_index is other:
+                rindexer = None
+            else:
+                rindexer = other.get_indexer(join_index)
+            return join_index, lindexer, rindexer
+        else:
+            return join_index
 
     def slice_locs(self, start=None, end=None):
         """
@@ -428,9 +543,10 @@ class Index(np.ndarray):
         dropped : Index
         """
         labels = np.asarray(list(labels), dtype=object)
-        indexer, mask = self.get_indexer(labels)
-        if not mask.all():
-            raise ValueError('labels %s not contained in axis' % labels[-mask])
+        indexer = self.get_indexer(labels)
+        mask = indexer == -1
+        if mask.any():
+            raise ValueError('labels %s not contained in axis' % labels[mask])
         return self.delete(indexer)
 
     def copy(self, order='C'):
@@ -446,6 +562,168 @@ class Index(np.ndarray):
 
     asOfDate = deprecate('asOfDate', asof)
 
+
+class Int64Index(Index):
+
+    def __new__(cls, data, dtype=None, copy=False, name=None):
+        if not isinstance(data, np.ndarray):
+            if np.isscalar(data):
+                raise ValueError('Index(...) must be called with a collection '
+                                 'of some kind, %s was passed' % repr(data))
+
+            # other iterable of some kind
+            if not isinstance(data, (list, tuple)):
+                data = list(data)
+            data= np.asarray(data)
+
+        if issubclass(data.dtype.type, basestring):
+            raise TypeError('String dtype not supported, you may need '
+                            'to explicitly cast to int')
+        elif issubclass(data.dtype.type, np.integer):
+            subarr = np.array(data, dtype=np.int64, copy=copy)
+        else:
+            subarr = np.array(data, dtype=np.int64, copy=copy)
+            if len(data) > 0:
+                if (subarr != data).any():
+                    raise TypeError('Unsafe NumPy casting, you must explicitly '
+                                    'cast')
+
+        subarr = subarr.view(cls)
+        subarr.name = name
+        return subarr
+
+    def astype(self, dtype):
+        return Index(self.values.astype(dtype))
+
+    @property
+    def dtype(self):
+        return np.dtype('int64')
+
+    @cache_readonly
+    def is_monotonic(self):
+        return lib.is_monotonic_int64(self)
+
+    @property
+    def indexMap(self):
+        "{label -> location}"
+        if self._indexMap is None:
+            self._indexMap = lib.map_indices_int64(self)
+            self._verify_integrity()
+
+        return self._indexMap
+
+    def is_all_dates(self):
+        """
+        Checks that all the labels are datetime objects
+        """
+        return False
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        # if not isinstance(other, Int64Index):
+        #     return False
+
+        return np.array_equal(self, other)
+
+    def get_indexer(self, target, method=None):
+        target = _ensure_index(target)
+
+        if self.dtype != target.dtype:
+            this = Index(self, dtype=object)
+            target = Index(target, dtype=object)
+            return this.get_indexer(target, method=method)
+
+        method = self._get_method(method)
+
+        if method == 'pad':
+            indexer = lib.pad_int64(self, target, self.indexMap,
+                                    target.indexMap)
+        elif method == 'backfill':
+            indexer = lib.backfill_int64(self, target, self.indexMap,
+                                         target.indexMap)
+        elif method is None:
+            indexer = lib.merge_indexer_int64(target, self.indexMap)
+        else:  # pragma: no cover
+            raise ValueError('unrecognized method: %s' % method)
+        return indexer
+    get_indexer.__doc__ = Index.get_indexer.__doc__
+
+    def join(self, other, how='left', return_indexers=False):
+        if not isinstance(other, Int64Index):
+            return Index.join(self.astype(object), other, how=how,
+                              return_indexers=return_indexers)
+
+        if self.is_monotonic and other.is_monotonic:
+            return self._join_monotonic(other, how=how,
+                                        return_indexers=return_indexers)
+        else:
+            return Index.join(self, other, how=how,
+                              return_indexers=return_indexers)
+
+    def _join_monotonic(self, other, how='left', return_indexers=False):
+        if how == 'left':
+            join_index = self
+            lidx = None
+            ridx = lib.left_join_indexer_int64(self, other)
+        elif how == 'right':
+            join_index = other
+            lidx = lib.left_join_indexer_int64(other, self)
+            ridx = None
+        elif how == 'inner':
+            join_index, lidx, ridx = lib.inner_join_indexer_int64(self, other)
+            join_index = Int64Index(join_index)
+        elif how == 'outer':
+            join_index, lidx, ridx = lib.outer_join_indexer_int64(self, other)
+            join_index = Int64Index(join_index)
+        else:  # pragma: no cover
+            raise Exception('do not recognize join method %s' % how)
+
+        if return_indexers:
+            return join_index, lidx, ridx
+        else:
+            return join_index
+
+    def intersection(self, other):
+        if not isinstance(other, Int64Index):
+            return Index.intersection(self.astype(object), other)
+
+        if self.is_monotonic and other.is_monotonic:
+            result = lib.inner_join_indexer_int64(self, other)[0]
+        else:
+            indexer = self.get_indexer(other)
+            indexer = indexer.take((indexer != -1).nonzero()[0])
+            return self.take(indexer)
+        return Int64Index(result)
+    intersection.__doc__ = Index.intersection.__doc__
+
+    def union(self, other):
+        if not isinstance(other, Int64Index):
+            return Index.union(self.astype(object), other)
+
+        if self.is_monotonic and other.is_monotonic:
+            result = lib.outer_join_indexer_int64(self, other)[0]
+        else:
+            result = np.unique(np.concatenate((self, other)))
+        return Int64Index(result)
+    union.__doc__ = Index.union.__doc__
+
+    def groupby(self, to_groupby):
+        return lib.groupby_int64(self, to_groupby)
+
+    def map(self, mapper):
+        return lib.arrmap_int64(self, mapper)
+
+    def take(self, *args, **kwargs):
+        """
+        Analogous to ndarray.take
+        """
+        taken = self.values.take(*args, **kwargs)
+        return Int64Index(taken)
 
 class DateIndex(Index):
     pass
@@ -500,8 +778,8 @@ class Factor(np.ndarray):
             return np.ndarray.__getitem__(self, key)
 
 def unique_with_labels(values):
-    uniques = Index(_tseries.fast_unique(values))
-    labels = _tseries.get_unique_labels(values, uniques.indexMap)
+    uniques = Index(lib.fast_unique(values))
+    labels = lib.get_unique_labels(values, uniques.indexMap)
     return uniques, labels
 
 class MultiIndex(Index):
@@ -516,6 +794,18 @@ class MultiIndex(Index):
         Integers for each level designating which label at each location
     """
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
+        assert(len(levels) == len(labels))
+        if len(levels) == 0:
+            raise Exception('Must pass non-zero number of levels/labels')
+
+        if len(levels) == 1:
+            if names:
+                name = names[0]
+            else:
+                name = None
+
+            return Index(levels[0], name=name).take(labels[0])
+
         return np.arange(len(labels[0]), dtype=object).view(cls)
 
     def __init__(self, levels, labels, sortorder=None, names=None,
@@ -524,15 +814,23 @@ class MultiIndex(Index):
         self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
 
         if names is None:
-            self.names = ['level_%d' % i for i in range(self.nlevels)]
+            self.names = [None] * self.nlevels
         else:
             assert(len(names) == self.nlevels)
             self.names = list(names)
+
+        # set the name
+        for i, name in enumerate(self.names):
+            self.levels[i].name = name
 
         if sortorder is not None:
             self.sortorder = int(sortorder)
         else:
             self.sortorder = sortorder
+
+    @property
+    def dtype(self):
+        return np.dtype('O')
 
     def __iter__(self):
         values = [np.asarray(lev).take(lab)
@@ -551,6 +849,23 @@ class MultiIndex(Index):
         result = np.empty(len(self), dtype=object)
         result[:] = list(self)
         return result
+
+    def get_level_values(self, level):
+        """
+        Return vector of label values for requested level, equal to the length
+        of the index
+
+        Parameters
+        ----------
+        level : int
+
+        Returns
+        -------
+        values : ndarray
+        """
+        unique_vals = self.levels[level].values
+        labels = self.labels[level]
+        return unique_vals.take(labels)
 
     def __contains__(self, key):
         try:
@@ -596,7 +911,7 @@ class MultiIndex(Index):
                 return 0
 
         for k in range(self.nlevels, 0, -1):
-            if _tseries.is_lexsorted(self.labels[:k]):
+            if lib.is_lexsorted(self.labels[:k]):
                 return k
 
         return 0
@@ -649,7 +964,7 @@ class MultiIndex(Index):
     def indexMap(self):
         if self._indexMap is None:
             zipped = zip(*self.labels)
-            self._indexMap = _tseries.map_indices_list(zipped)
+            self._indexMap = lib.map_indices_list(zipped)
             self._verify_integrity()
 
         return self._indexMap
@@ -712,6 +1027,28 @@ class MultiIndex(Index):
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels)
 
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        if isinstance(other, (list, tuple)):
+            for k in other:
+                assert(isinstance(k, MultiIndex))
+
+            to_concat = (self.values,) + tuple(k.values for k in other)
+        else:
+            to_concat = self.values, other.values
+        new_tuples = np.concatenate(to_concat)
+        return MultiIndex.from_tuples(new_tuples, names=self.names)
+
     def argsort(self, *args, **kwargs):
         return self.get_tuple_index().argsort()
 
@@ -731,10 +1068,11 @@ class MultiIndex(Index):
         try:
             if not isinstance(labels, np.ndarray):
                 labels = _asarray_tuplesafe(labels)
-            indexer, mask = self.get_indexer(labels)
-            if not mask.all():
+            indexer = self.get_indexer(labels)
+            mask = indexer == -1
+            if mask.any():
                 raise ValueError('labels %s not contained in axis'
-                                 % labels[-mask])
+                                 % labels[mask])
             return self.delete(indexer)
         except Exception:
             pass
@@ -825,7 +1163,7 @@ class MultiIndex(Index):
 
         new_labels = [lab.take(indexer) for lab in self.labels]
         new_index = MultiIndex(levels=self.levels, labels=new_labels,
-                               sortorder=level)
+                               names=self.names, sortorder=level)
 
         return new_index, indexer
 
@@ -857,14 +1195,7 @@ class MultiIndex(Index):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        if method:
-            method = method.upper()
-
-        aliases = {
-            'FFILL' : 'PAD',
-            'BFILL' : 'BACKFILL'
-        }
-        method = aliases.get(method, method)
+        method = self._get_method(method)
 
         if isinstance(target, MultiIndex):
             target_index = target.get_tuple_index()
@@ -878,10 +1209,17 @@ class MultiIndex(Index):
             target_index = target
 
         self_index = self.get_tuple_index()
-        indexer, mask = _tseries.getFillVec(self_index, target_index,
-                                            self_index.indexMap,
-                                            target.indexMap, method)
-        return indexer, mask
+
+        if method == 'pad':
+            indexer = lib.pad_object(self_index, target_index,
+                                     self_index.indexMap, target.indexMap)
+        elif method == 'backfill':
+            indexer = lib.backfill_object(self_index, target_index,
+                                          self_index.indexMap, target.indexMap)
+        else:
+            indexer = lib.merge_indexer_object(target_index,
+                                               self_index.indexMap)
+        return indexer
 
     def reindex(self, target, method=None):
         """
@@ -893,13 +1231,13 @@ class MultiIndex(Index):
         -------
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
-        indexer, mask = self.get_indexer(target, method=method)
+        indexer = self.get_indexer(target, method=method)
 
         # hopefully?
         if not isinstance(target, MultiIndex):
             target = MultiIndex.from_tuples(target)
 
-        return target, indexer, mask
+        return target, indexer
 
     def get_tuple_index(self):
         """
@@ -1109,8 +1447,7 @@ class MultiIndex(Index):
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
 
-        uniq_tuples = _tseries.fast_unique_multiple([self_tuples,
-                                                     other_tuples])
+        uniq_tuples = lib.fast_unique_multiple([self_tuples, other_tuples])
         return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
 
     def intersection(self, other):

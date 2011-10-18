@@ -179,7 +179,10 @@ class TesttHDFStore(unittest.TestCase):
 
         dr = DateRange('1/1/1940', '1/1/1960')
         ts = Series(np.random.randn(len(dr)), index=dr)
-        self._check_roundtrip(ts, tm.assert_series_equal)
+        try:
+            self._check_roundtrip(ts, tm.assert_series_equal)
+        except OverflowError:
+            raise nose.SkipTest('known failer on some windows platforms')
 
     def test_frame(self):
         df = tm.makeDataFrame()
@@ -206,6 +209,10 @@ class TesttHDFStore(unittest.TestCase):
         self.store['df'] = df
         recons = self.store['df']
         self.assert_(recons._data.is_consolidated())
+
+        # empty
+        self.assertRaises(ValueError, self._check_roundtrip, df[:0],
+                          tm.assert_frame_equal)
 
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -299,6 +306,10 @@ class TesttHDFStore(unittest.TestCase):
 
         wp = tm.makePanel()
         self._check_roundtrip(wp.to_long(), _check)
+
+        # empty
+        self.assertRaises(ValueError, self._check_roundtrip, wp.to_long()[:0],
+                          _check)
 
     def test_longpanel(self):
         pass

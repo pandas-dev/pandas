@@ -4,9 +4,6 @@ Module contains tools for processing files into DataFrames or other objects
 
 from datetime import datetime
 from itertools import izip
-import re
-import string
-
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex

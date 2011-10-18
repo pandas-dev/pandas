@@ -5,11 +5,146 @@ Release Notes
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/wesm/pandas
 
+pandas 0.4.3
+============
+
+**Release date:** not yet released
+
+This is largely a bugfix release from 0.4.2 but also includes a handful of new
+and enhanced features. Also, pandas can now be installed and used on Python 3
+(thanks Thomas Kluyver!).
+
+**New features / modules**
+
+  - Python 3 support using 2to3 (PR #200, Thomas Kluyver)
+  - Add `name` attribute to `Series` and added relevant logic and tests. Name
+    now prints as part of `Series.__repr__`
+  - Add `name` attribute to standard Index so that stacking / unstacking does
+    not discard names and so that indexed DataFrame objects can be reliably
+    round-tripped to flat files, pickle, HDF5, etc.
+  - Add `isnull` and `notnull` as instance methods on Series (PR #209, GH #203)
+
+**Improvements to existing features**
+
+  - Skip xlrd-related unit tests if not installed
+  - `Index.append` and `MultiIndex.append` can accept a list of Index objects to
+    concatenate together
+  - Altered binary operations on differently-indexed SparseSeries objects to use
+    the integer-based (dense) alignment logic which is faster with a larger
+    number of blocks (GH #205)
+  - Refactored `Series.__repr__` to be a bit more clean and consistent
+
+**API Changes**
+
+  - `Series.describe` and `DataFrame.describe` now bring the 25% and 75%
+    quartiles instead of the 10% and 90% deciles. The other outputs have not
+    changed
+  - `Series.toString` will print deprecation warning, has been de-camelCased to
+    `to_string`
+
+**Bug fixes**
+
+  - Fix broken interaction between `Index` and `Int64Index` when calling
+    intersection. Implement `Int64Index.intersection`
+  - `MultiIndex.sortlevel` discarded the level names (GH #202)
+  - Fix bugs in groupby, join, and append due to improper concatenation of
+    `MultiIndex` objects (GH #201)
+  - Fix regression from 0.4.1, `isnull` and `notnull` ceased to work on other
+    kinds of Python scalar objects like `datetime.datetime`
+  - Raise more helpful exception when attempting to write empty DataFrame or
+    LongPanel to `HDFStore` (GH #204)
+  - Use stdlib csv module to properly escape strings with commas in
+    `DataFrame.to_csv` (PR #206, Thomas Kluyver)
+  - Fix Python ndarray access in Cython code for sparse blocked index integrity
+    check
+  - Fix bug writing Series to CSV in Python 3 (PR #209)
+  - Miscellaneous Python 3 bugfixes
+
+Thanks
+------
+
+  - Thomas Kluyver
+  - rsamson
+
+pandas 0.4.2
+============
+
+**Release date:** 10/3/2011
+
+This is a performance optimization release with several bug fixes. The new
+Int64Index and new merging / joining Cython code and related Python
+infrastructure are the main new additions
+
+**New features / modules**
+
+  - Added fast `Int64Index` type with specialized join, union,
+    intersection. Will result in significant performance enhancements for
+    int64-based time series (e.g. using NumPy's datetime64 one day) and also
+    faster operations on DataFrame objects storing record array-like data.
+  - Refactored `Index` classes to have a `join` method and associated data
+    alignment routines throughout the codebase to be able to leverage optimized
+    joining / merging routines.
+  - Added `Series.align` method for aligning two series with choice of join
+    method
+  - Wrote faster Cython data alignment / merging routines resulting in
+    substantial speed increases
+  - Added `is_monotonic` property to `Index` classes with associated Cython
+    code to evaluate the monotonicity of the `Index` values
+  - Add method `get_level_values` to `MultiIndex`
+  - Implemented shallow copy of `BlockManager` object in `DataFrame` internals
+
+**Improvements to existing features**
+
+  - Improved performance of `isnull` and `notnull`, a regression from v0.3.0
+    (GH #187)
+  - Wrote templating / code generation script to auto-generate Cython code for
+    various functions which need to be available for the 4 major data types
+    used in pandas (float64, bool, object, int64)
+  - Refactored code related to `DataFrame.join` so that intermediate aligned
+    copies of the data in each `DataFrame` argument do not need to be
+    created. Substantial performance increases result (GH #176)
+  - Substantially improved performance of generic `Index.intersection` and
+    `Index.union`
+  - Improved performance of `DateRange.union` with overlapping ranges and
+    non-cacheable offsets (like Minute). Implemented analogous fast
+    `DateRange.intersection` for overlapping ranges.
+  - Implemented `BlockManager.take` resulting in significantly faster `take`
+    performance on mixed-type `DataFrame` objects (GH #104)
+  - Improved performance of `Series.sort_index`
+  - Significant groupby performance enhancement: removed unnecessary integrity
+    checks in DataFrame internals that were slowing down slicing operations to
+    retrieve groups
+  - Added informative Exception when passing dict to DataFrame groupby
+    aggregation with axis != 0
+
+**API Changes**
+
+None
+
+**Bug fixes**
+
+  - Fixed minor unhandled exception in Cython code implementing fast groupby
+    aggregation operations
+  - Fixed bug in unstacking code manifesting with more than 3 hierarchical
+    levels
+  - Throw exception when step specified in label-based slice (GH #185)
+  - Fix isnull to correctly work with np.float32. Fix upstream bug described in
+    GH #182
+  - Finish implementation of as_index=False in groupby for DataFrame
+    aggregation (GH #181)
+  - Raise SkipTest for pre-epoch HDFStore failure. Real fix will be sorted out
+    via datetime64 dtype
+
+Thanks
+------
+
+- Uri Laserson
+- Scott Sinclair
 
 pandas 0.4.1
 ============
 
-**Release date:** Not yet released
+**Release date:** 9/25/2011
 
 This is primarily a bug fix release but includes some new features and
 improvements
@@ -41,6 +176,10 @@ improvements
     with where clause
   - Optimized `_ensure_index` function resulting in performance savings in
     type-checking Index objects
+
+**API Changes**
+
+None
 
 **Bug fixes**
 
