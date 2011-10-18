@@ -729,15 +729,24 @@ class BlockManager(object):
                 return False
         return True
 
-    def join_on(self, other, on, axis=1, lsuffix=None, rsuffix=None):
+    def join_on(self, other, on, how='left', axis=1, lsuffix=None,
+                rsuffix=None):
         this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
 
         other_axis = other.axes[axis]
         indexer = other_axis.get_indexer(on)
 
         # TODO: deal with length-0 case? or does it fall out?
-        mask = indexer == -1
-        needs_masking = len(on) > 0 and mask.any()
+        if how == 'left':
+            mask = indexer == -1
+            needs_masking = len(on) > 0 and mask.any()
+        else:
+            mask = indexer != -1
+            this = this.take(mask.nonzero()[0], axis=axis)
+            indexer = indexer[mask]
+            mask = None
+            needs_masking = False
+
         other_blocks = []
         for block in other.blocks:
             newb = block.reindex_axis(indexer, mask, needs_masking, axis=axis)

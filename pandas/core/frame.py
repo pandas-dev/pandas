@@ -2179,14 +2179,15 @@ class DataFrame(NDFrame):
     def join(self, other, on=None, how=None, lsuffix='', rsuffix=''):
         """
         Join columns with other DataFrame either on index or on a key
-        column
+        column.
 
         Parameters
         ----------
         other : DataFrame
             Index should be similar to one of the columns in this one
         on : string, default None
-            Column name to use, otherwise join on index
+            Column name to use, otherwise join on index. Just like an Excel
+            VLOOKUP operation
         how : {'left', 'right', 'outer', 'inner'}
             How to handle indexes of the two objects. Default: 'left'
             for joining on index, None otherwise
@@ -2203,18 +2204,17 @@ class DataFrame(NDFrame):
         -------
         joined : DataFrame
         """
+        if how is None:
+            how = 'left'
         if on is not None:
-            if how is not None:
-                raise Exception('how parameter is not valid when '
-                                '*on* specified')
-            return self._join_on(other, on, lsuffix, rsuffix)
+            return self._join_on(other, on, how, lsuffix, rsuffix)
         else:
-            if how is None:
-                how = 'left'
-
             return self._join_index(other, how, lsuffix, rsuffix)
 
-    def _join_on(self, other, on, lsuffix, rsuffix):
+    def _join_on(self, other, on, how, lsuffix, rsuffix):
+        if how not in ['left', 'inner']:
+            raise Exception('Only inner / left joins currently supported')
+
         if isinstance(other, Series):
             assert(other.name is not None)
             other = DataFrame({other.name : other})
@@ -2232,7 +2232,7 @@ class DataFrame(NDFrame):
         else:
             join_key = self[on].values
 
-        new_data = self._data.join_on(other._data, join_key, axis=1,
+        new_data = self._data.join_on(other._data, join_key, how=how, axis=1,
                                       lsuffix=lsuffix, rsuffix=rsuffix)
         return self._constructor(new_data)
 

@@ -2520,139 +2520,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         comb = self.empty.combineMult(self.frame)
         assert_frame_equal(comb, self.frame)
 
-    def test_join_on(self):
-        index, data = tm.getMixedTypeDict()
-        target = DataFrame(data, index=index)
-
-        # Join on string value
-        source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
-                            index=data['C'])
-        merged = target.join(source, on='C')
-        self.assert_(np.array_equal(merged['MergedA'], target['A']))
-        self.assert_(np.array_equal(merged['MergedD'], target['D']))
-
-        # join with duplicates (fix regression from DataFrame/Matrix merge)
-        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
-        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
-        joined = df.join(df2, on='key')
-        expected = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c'],
-                              'value' : [0, 0, 1, 1, 2]})
-        assert_frame_equal(joined, expected)
-
-        # Test when some are missing
-        df_a = DataFrame([[1], [2], [3]], index=['a', 'b', 'c'],
-                         columns=['one'])
-        df_b = DataFrame([['foo'], ['bar']], index=[1, 2],
-                         columns=['two'])
-        df_c = DataFrame([[1], [2]], index=[1, 2],
-                         columns=['three'])
-        joined = df_a.join(df_b, on='one')
-        joined = joined.join(df_c, on='one')
-        self.assert_(np.isnan(joined['two']['c']))
-        self.assert_(np.isnan(joined['three']['c']))
-
-        # merge column not p resent
-        self.assertRaises(Exception, target.join, source, on='E')
-
-        # nothing to merge
-        merged = target.join(source.reindex([]), on='C')
-
-        # overlap
-        source_copy = source.copy()
-        source_copy['A'] = 0
-        self.assertRaises(Exception, target.join, source_copy, on='A')
-
-        # can't specify how
-        self.assertRaises(Exception, target.join, source, on='C',
-                          how='left')
-
-    def test_join_on_singlekey_list(self):
-        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
-        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
-
-        # corner cases
-        joined = df.join(df2, on=['key'])
-        expected = df.join(df2, on='key')
-
-        assert_frame_equal(joined, expected)
-
-    def test_join_on_multikey(self):
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['first', 'second'])
-        to_join = DataFrame(np.random.randn(10, 3), index=index,
-                            columns=['j_one', 'j_two', 'j_three'])
-
-        # a little relevant example with NAs
-        key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
-                'qux', 'snap']
-        key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
-                'three', 'one']
-
-        data = np.random.randn(len(key1))
-        data = DataFrame({'key1' : key1, 'key2' : key2,
-                          'data' : data})
-
-        joined = data.join(to_join, on=['key1', 'key2'])
-
-        join_key = Index(zip(key1, key2))
-        indexer = to_join.index.get_indexer(join_key)
-        ex_values = to_join.values.take(indexer, axis=0)
-        ex_values[indexer == -1] = np.nan
-        expected = data.join(DataFrame(ex_values, columns=to_join.columns))
-
-        # TODO: columns aren't in the same order yet
-        assert_frame_equal(joined, expected.ix[:, joined.columns])
-
-    def test_join_index_mixed(self):
-
-        df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
-                        index=np.arange(10),
-                        columns=['A', 'B', 'C', 'D'])
-        self.assert_(df1['B'].dtype == np.int_)
-        self.assert_(df1['D'].dtype == np.bool_)
-
-        df2 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
-                        index=np.arange(0, 10, 2),
-                        columns=['A', 'B', 'C', 'D'])
-
-        # overlap
-        joined = df1.join(df2, lsuffix='_one', rsuffix='_two')
-        expected_columns = ['A_one', 'B_one', 'C_one', 'D_one',
-                            'A_two', 'B_two', 'C_two', 'D_two']
-        df1.columns = expected_columns[:4]
-        df2.columns = expected_columns[4:]
-        expected = _join_by_hand(df1, df2)
-        assert_frame_equal(joined, expected)
-
-        # no overlapping blocks
-        df1 = DataFrame(index=np.arange(10))
-        df1['bool'] = True
-        df1['string'] = 'foo'
-
-        df2 = DataFrame(index=np.arange(5, 15))
-        df2['int'] = 1
-        df2['float'] = 1.
-
-        for kind in JOIN_TYPES:
-            joined = df1.join(df2, how=kind)
-            expected = _join_by_hand(df1, df2, how=kind)
-            assert_frame_equal(joined, expected)
-
-            joined = df2.join(df1, how=kind)
-            expected = _join_by_hand(df2, df1, how=kind)
-            assert_frame_equal(joined, expected)
-
-    def test_join_on_series(self):
-        pass
-
-    def test_join_empty_bug(self):
-        # generated an exception in 0.4.3
-        x = DataFrame()
-        x.join(DataFrame([3], index=[0], columns=['A']), how='outer')
-
     def test_clip(self):
         median = self.frame.median().median()
 
@@ -3183,6 +3050,160 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         series = self.mixed_frame._series
         for k, v in series.iteritems():
             self.assertEqual(v.name, k)
+
+
+
+class TestDataFrameJoin(unittest.TestCase):
+
+    def setUp(self):
+        index, data = tm.getMixedTypeDict()
+        self.target = DataFrame(data, index=index)
+
+        # Join on string value
+        self.source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
+                                index=data['C'])
+
+    def test_join_on(self):
+        target = self.target
+        source = self.source
+
+        merged = target.join(source, on='C')
+        self.assert_(np.array_equal(merged['MergedA'], target['A']))
+        self.assert_(np.array_equal(merged['MergedD'], target['D']))
+
+        # join with duplicates (fix regression from DataFrame/Matrix merge)
+        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
+        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
+        joined = df.join(df2, on='key')
+        expected = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c'],
+                              'value' : [0, 0, 1, 1, 2]})
+        assert_frame_equal(joined, expected)
+
+        # Test when some are missing
+        df_a = DataFrame([[1], [2], [3]], index=['a', 'b', 'c'],
+                         columns=['one'])
+        df_b = DataFrame([['foo'], ['bar']], index=[1, 2],
+                         columns=['two'])
+        df_c = DataFrame([[1], [2]], index=[1, 2],
+                         columns=['three'])
+        joined = df_a.join(df_b, on='one')
+        joined = joined.join(df_c, on='one')
+        self.assert_(np.isnan(joined['two']['c']))
+        self.assert_(np.isnan(joined['three']['c']))
+
+        # merge column not p resent
+        self.assertRaises(Exception, target.join, source, on='E')
+
+        # overlap
+        source_copy = source.copy()
+        source_copy['A'] = 0
+        self.assertRaises(Exception, target.join, source_copy, on='A')
+
+    def test_join_with_len0(self):
+        # nothing to merge
+        merged = self.target.join(self.source.reindex([]), on='C')
+        for col in self.source:
+            self.assert_(col in merged)
+            self.assert_(merged[col].isnull().all())
+
+    def test_join_on_inner(self):
+        df = DataFrame({'key' : ['a', 'a', 'd', 'b', 'b', 'c']})
+        df2 = DataFrame({'value' : [0, 1]}, index=['a', 'b'])
+
+        joined = df.join(df2, on='key', how='inner')
+
+        expected = df.join(df2, on='key')
+        expected = expected[expected['value'].notnull()]
+        self.assert_(np.array_equal(joined['key'], expected['key']))
+        self.assert_(np.array_equal(joined['value'], expected['value']))
+        self.assert_(joined.index.equals(expected.index))
+
+    def test_join_on_singlekey_list(self):
+        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
+        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
+
+        # corner cases
+        joined = df.join(df2, on=['key'])
+        expected = df.join(df2, on='key')
+
+        assert_frame_equal(joined, expected)
+
+    def test_join_on_multikey(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        to_join = DataFrame(np.random.randn(10, 3), index=index,
+                            columns=['j_one', 'j_two', 'j_three'])
+
+        # a little relevant example with NAs
+        key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
+                'qux', 'snap']
+        key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
+                'three', 'one']
+
+        data = np.random.randn(len(key1))
+        data = DataFrame({'key1' : key1, 'key2' : key2,
+                          'data' : data})
+
+        joined = data.join(to_join, on=['key1', 'key2'])
+
+        join_key = Index(zip(key1, key2))
+        indexer = to_join.index.get_indexer(join_key)
+        ex_values = to_join.values.take(indexer, axis=0)
+        ex_values[indexer == -1] = np.nan
+        expected = data.join(DataFrame(ex_values, columns=to_join.columns))
+
+        # TODO: columns aren't in the same order yet
+        assert_frame_equal(joined, expected.ix[:, joined.columns])
+
+    def test_join_index_mixed(self):
+
+        df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+                        index=np.arange(10),
+                        columns=['A', 'B', 'C', 'D'])
+        self.assert_(df1['B'].dtype == np.int_)
+        self.assert_(df1['D'].dtype == np.bool_)
+
+        df2 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+                        index=np.arange(0, 10, 2),
+                        columns=['A', 'B', 'C', 'D'])
+
+        # overlap
+        joined = df1.join(df2, lsuffix='_one', rsuffix='_two')
+        expected_columns = ['A_one', 'B_one', 'C_one', 'D_one',
+                            'A_two', 'B_two', 'C_two', 'D_two']
+        df1.columns = expected_columns[:4]
+        df2.columns = expected_columns[4:]
+        expected = _join_by_hand(df1, df2)
+        assert_frame_equal(joined, expected)
+
+        # no overlapping blocks
+        df1 = DataFrame(index=np.arange(10))
+        df1['bool'] = True
+        df1['string'] = 'foo'
+
+        df2 = DataFrame(index=np.arange(5, 15))
+        df2['int'] = 1
+        df2['float'] = 1.
+
+        for kind in JOIN_TYPES:
+            joined = df1.join(df2, how=kind)
+            expected = _join_by_hand(df1, df2, how=kind)
+            assert_frame_equal(joined, expected)
+
+            joined = df2.join(df1, how=kind)
+            expected = _join_by_hand(df2, df1, how=kind)
+            assert_frame_equal(joined, expected)
+
+    def test_join_on_series(self):
+        pass
+
+    def test_join_empty_bug(self):
+        # generated an exception in 0.4.3
+        x = DataFrame()
+        x.join(DataFrame([3], index=[0], columns=['A']), how='outer')
 
 def _join_by_hand(a, b, how='left'):
     join_index = a.index.join(b.index, how=how)
