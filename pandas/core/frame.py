@@ -2871,12 +2871,14 @@ class DataFrame(NDFrame):
             x = range(len(self))
 
         for i, col in enumerate(_try_sort(self.columns)):
+            empty = np.all(np.isnan(self[col].values))
+            y = self[col].values if not empty else np.zeros(x.shape)
             if subplots:
                 ax = axes[i]
-                ax.plot(x, self[col].values, 'k', label=col, **kwds)
+                ax.plot(x, y, 'k', label=col, **kwds)
                 ax.legend(loc='best')
             else:
-                ax.plot(x, self[col].values, label=col, **kwds)
+                ax.plot(x, y, label=col, **kwds)
 
             ax.grid(grid)
 
