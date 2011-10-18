@@ -57,7 +57,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
             floats[i] = nan
             seen_float = 1
         else:
-            fval = cpython.PyFloat_FromString(val)
+            fval = float(val)
             floats[i] = fval
             if not seen_float:
                 if '.' in val:
