@@ -53,6 +53,19 @@ class CheckIndexing(object):
         expected = self.frame.ix[:, ['A', 'B', 'C']]
         assert_frame_equal(result, expected)
 
+    def test_getitem_list(self):
+        result = self.frame[['B', 'A']]
+        result2 = self.frame[Index(['B', 'A'])]
+
+        expected = self.frame.ix[:, ['B', 'A']]
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        self.assertRaises(Exception, self.frame.__getitem__,
+                          ['B', 'A', 'foo'])
+        self.assertRaises(Exception, self.frame.__getitem__,
+                          Index(['B', 'A', 'foo']))
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]
