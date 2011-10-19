@@ -223,38 +223,23 @@ def array_to_datetime(ndarray[int64_t, ndim=1] arr):
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef inline _isnan(object o):
-    return o != o
-
 cdef inline _checknull(object val):
-    if isinstance(val, (float, np.floating)):
-        return val != val or val == INF or val == NEGINF
-    else:
-        return val is None
+    return val is None or val != val
 
 cpdef checknull(object val):
     return _checknull(val)
 
-def isnullobj(ndarray input):
-    cdef int i, length
+def isnullobj(ndarray[object] arr):
+    cdef Py_ssize_t i, n
     cdef object val
-    cdef ndarray[npy_int8, ndim=1] result
-    cdef flatiter iter
+    cdef ndarray[uint8_t, cast=True] result
 
-    length = PyArray_SIZE(input)
-
-    result = <ndarray> np.zeros(length, dtype=np.int8)
-
-    iter= PyArray_IterNew(input)
-
-    for i from 0 <= i < length:
-        val = PyArray_GETITEM(input, PyArray_ITER_DATA(iter))
-
+    n = len(arr)
+    result = np.zeros(n, dtype=bool)
+    for i from 0 <= i < n:
+        val = arr[i]
         if _checknull(val):
             result[i] = 1
-
-        PyArray_ITER_NEXT(iter)
-
     return result
 
 def list_to_object_array(list obj):
