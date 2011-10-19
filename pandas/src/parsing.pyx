@@ -94,6 +94,71 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     else:
         return ints
 
+def convert_sql_column(ndarray[object] objects):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[float64_t] floats
+        ndarray[int64_t] ints
+        ndarray[uint8_t, cast=True] bools
+        bint seen_float = 0
+        bint seen_int = 0
+        bint seen_object = 0
+        bint seen_bool = 0
+        bint seen_null = 0
+        object val, onan
+        float64_t fval, fnan
+
+    n = len(objects)
+
+    floats = np.empty(n, dtype='f8')
+    ints = np.empty(n, dtype='i8')
+    bools = np.empty(n, dtype=bool)
+
+    onan = np.nan
+    fnan = np.nan
+
+    for i from 0 <= i < n:
+        val = objects[i]
+
+        if val is None:
+            seen_null = 1
+            objects[i] = onan
+            floats[i] = fnan
+        elif cpython.PyBool_Check(val):
+            seen_bool = 1
+            bools[i] = val
+        elif cpython.PyInt_Check(val):
+            seen_int = 1
+            floats[i] = <float64_t> val
+            if not seen_null:
+                ints[i] = val
+        elif cpython.PyFloat_Check(val):
+            floats[i] = val
+            seen_float = 1
+        elif cpython.PyString_Check(val) or cpython.PyUnicode_Check(val):
+            seen_object = 1
+        else:
+            try:
+                floats[i] = float(val)
+                seen_float = 1
+            except Exception:
+                pass
+
+    if seen_null:
+        if seen_float:
+            return floats
+        else:
+            return objects
+    else:
+        if seen_int:
+            return ints
+        elif seen_float:
+            return floats
+        elif seen_bool:
+            return bools
+        elif seen_object:
+            return objects
+
 def try_parse_dates(ndarray[object] values, parser=None):
     cdef:
         Py_ssize_t i, n

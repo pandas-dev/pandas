@@ -11,6 +11,7 @@ import numpy as np
 from pandas import DataFrame, Index
 from pandas.io.parsers import read_csv, read_table, ExcelFile
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
+import pandas._tseries as lib
 
 class TestParsers(unittest.TestCase):
 
@@ -193,6 +194,59 @@ baz,7,8,9
 """
         data = read_csv(StringIO(data))
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
+
+
+def test_convert_sql_column_floats():
+    arr = np.array([1.5, None, 3, 4.2], dtype=object)
+    result = lib.convert_sql_column(arr)
+    expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
+    assert_same_values_and_dtype(result, expected)
+
+def test_convert_sql_column_strings():
+    arr = np.array(['1.5', None, '3', '4.2'], dtype=object)
+    result = lib.convert_sql_column(arr)
+    expected = np.array(['1.5', np.nan, '3', '4.2'], dtype=object)
+    assert_same_values_and_dtype(result, expected)
+
+def test_convert_sql_column_unicode():
+    arr = np.array([u'1.5', None, u'3', u'4.2'], dtype=object)
+    result = lib.convert_sql_column(arr)
+    expected = np.array([u'1.5', np.nan, u'3', u'4.2'], dtype=object)
+    assert_same_values_and_dtype(result, expected)
+
+def test_convert_sql_column_ints():
+    arr = np.array([1, 2, 3, 4], dtype='O')
+    arr2 = np.array([1, 2, 3, 4], dtype='i4').astype('O')
+    result = lib.convert_sql_column(arr)
+    result2 = lib.convert_sql_column(arr2)
+    expected = np.array([1, 2, 3, 4], dtype='i8')
+    assert_same_values_and_dtype(result, expected)
+    assert_same_values_and_dtype(result2, expected)
+
+def test_convert_sql_column_bools():
+    arr = np.array([True, False, True, False], dtype='O')
+    result = lib.convert_sql_column(arr)
+    expected = np.array([True, False, True, False], dtype=bool)
+    assert_same_values_and_dtype(result, expected)
+
+    arr = np.array([True, False, None, False], dtype='O')
+    result = lib.convert_sql_column(arr)
+    expected = np.array([True, False, np.nan, False], dtype=object)
+    assert_same_values_and_dtype(result, expected)
+
+def test_convert_sql_column_decimals():
+    from decimal import Decimal
+    arr = np.array([Decimal('1.5'), None, Decimal('3'), Decimal('4.2')])
+    result = lib.convert_sql_column(arr)
+    expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
+    assert_same_values_and_dtype(result, expected)
+
+def test_convert_sql_column_other():
+    arr = np.array([1.5, None, 3, 4.2])
+
+def assert_same_values_and_dtype(res, exp):
+    assert(res.dtype == exp.dtype)
+    assert_almost_equal(res, exp)
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
