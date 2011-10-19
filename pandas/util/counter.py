@@ -1,6 +1,16 @@
 # This is copied from collections in Python 2.7, for compatibility with older
 # versions of Python. It can be dropped when we depend on Python 2.7/3.1
 
+import heapq as _heapq
+from itertools import repeat as _repeat, chain as _chain, starmap as _starmap
+from operator import itemgetter as _itemgetter
+
+try:
+    from collections import Mapping
+except:
+    # ABCs were only introduced in Python 2.6, so this is a hack for Python 2.5:
+    Mapping = dict
+
 class Counter(dict):
     '''Dict subclass for counting hashable items.  Sometimes called a bag
     or multiset.  Elements are stored as dictionary keys and their counts
