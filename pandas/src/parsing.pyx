@@ -27,6 +27,30 @@ def to_object_array(list rows):
 
     return result
 
+def to_object_array_tuples(list rows):
+    cdef:
+        Py_ssize_t i, j, n, k, tmp
+        ndarray[object, ndim=2] result
+        tuple row
+
+    n = len(rows)
+
+    k = 0
+    for i from 0 <= i < n:
+        tmp = len(rows[i])
+        if tmp > k:
+            k = tmp
+
+    result = np.empty((n, k), dtype=object)
+
+    for i from 0 <= i < n:
+        row = rows[i]
+
+        for j from 0 <= j < len(row):
+            result[i, j] = row[j]
+
+    return result
+
 def maybe_convert_numeric(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n

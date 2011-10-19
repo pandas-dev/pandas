@@ -229,19 +229,6 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
     return DataFrame(data=data, columns=columns, index=index)
 
 
-def _maybe_convert_int(arr):
-    if len(arr) == 0: # pragma: no cover
-        return arr
-
-    try:
-        if arr.dtype == np.object_:
-            return lib.maybe_convert_int_object(arr)
-        return lib.maybe_convert_int(arr)
-    except (TypeError, ValueError):
-        pass
-
-    return arr
-
 def _maybe_convert_int_mindex(index, parse_dates, date_parser):
     for i in range(len(index)):
         try:
