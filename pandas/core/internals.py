@@ -171,20 +171,34 @@ class Block(object):
 
 class FloatBlock(Block):
 
+    def should_store(self, value):
+        # when inserting a column should not coerce integers to floats
+        # unnecessarily
+        return issubclass(value.dtype.type, np.floating)
+
     def can_store(self, value):
         return issubclass(value.dtype.type, (np.integer, np.floating))
 
 class IntBlock(Block):
+
+    def should_store(self, value):
+        return self.can_store(value)
 
     def can_store(self, value):
         return issubclass(value.dtype.type, np.integer)
 
 class BoolBlock(Block):
 
+    def should_store(self, value):
+        return self.can_store(value)
+
     def can_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
 class ObjectBlock(Block):
+
+    def should_store(self, value):
+        return self.can_store(value)
 
     def can_store(self, value):
         return not issubclass(value.dtype.type,
@@ -534,7 +548,7 @@ class BlockManager(object):
         assert(value.shape[1:] == self.shape[1:])
         if item in self.items:
             i, block = self._find_block(item)
-            if not block.can_store(value):
+            if not block.should_store(value):
                 # delete from block, create and append new block
                 self._delete_from_block(i, item)
                 self._add_new_block(item, value)

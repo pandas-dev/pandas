@@ -160,6 +160,10 @@ class CheckIndexing(object):
         np.putmask(expected.values, mask.values, df.values * 2)
         assert_frame_equal(df, expected)
 
+    def test_setitem_cast(self):
+        self.frame['D'] = self.frame['D'].astype('i8')
+        self.assert_(self.frame['D'].dtype == np.int64)
+
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
         mask = self.frame['A'] > 0
@@ -284,8 +288,8 @@ class CheckIndexing(object):
         frame = self.frame.copy()
         expected = frame.copy()
         frame.ix[:, ['B', 'A']] = 1
-        expected['B'] = 1
-        expected['A'] = 1
+        expected['B'] = 1.
+        expected['A'] = 1.
         assert_frame_equal(frame, expected)
 
         # case 2
@@ -370,7 +374,7 @@ class CheckIndexing(object):
 
         # get view with single block
         sliced = self.frame.ix[:, -3:]
-        sliced['C'] = 4
+        sliced['C'] = 4.
         self.assert_((self.frame['C'] == 4).all())
 
     def test_fancy_setitem_int_labels(self):
