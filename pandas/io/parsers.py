@@ -2,14 +2,12 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 
-from datetime import datetime
-from itertools import izip
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
-
 import pandas._tseries as lib
+
 
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
@@ -53,7 +51,7 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
     return _simple_parser(lines,
                           header=header,
                           index_col=index_col,
-                          colNames=names,
+                          names=names,
                           na_values=na_values,
                           parse_dates=parse_dates,
                           date_parser=date_parser)
@@ -116,13 +114,18 @@ parsed : DataFrame
 """ % (_parser_params % _table_sep)
 
 
-def _simple_parser(lines, colNames=None, header=0, index_col=0,
+def _simple_parser(lines, names=None, header=0, index_col=0,
                    na_values=None, date_parser=None, parse_dates=True):
     """
     Workhorse function for processing nested list into DataFrame
 
     Should be replaced by np.genfromtxt eventually?
     """
+    passed_names = names is not None
+    if passed_names:
+        names = list(names)
+        header = None
+
     if header is not None:
         columns = []
         for i, c in enumerate(lines[header]):
@@ -141,31 +144,50 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
             counts[col] = cur_count + 1
     else:
         ncols = len(lines[0])
-        if not colNames:
+        if not names:
             columns = ['X.%d' % (i + 1) for i in range(ncols)]
         else:
-            assert(len(colNames) == ncols)
-            columns = colNames
+            columns = names
         content = lines
+
+    # spaghetti
+
+    # implicitly index_col=0 b/c 1 fewer column names
+    index_name = None
+    implicit_first_col = (len(content) > 0 and
+                          len(content[0]) == len(columns) + 1)
+
+    if implicit_first_col:
+        if index_col is None:
+            index_col = 0
+        index_name = None
+    elif np.isscalar(index_col):
+        if passed_names:
+            index_name = None
+        else:
+            index_name = columns.pop(index_col)
+    elif index_col is not None:
+        if not passed_names:
+            cp_cols = list(columns)
+            index_name = []
+            for i in index_col:
+                name = cp_cols[i]
+                columns.remove(name)
+                index_name.append(name)
+        else:
+            index_name=None
 
     if len(content) == 0: # pragma: no cover
         if index_col is not None:
             if np.isscalar(index_col):
-                index = Index([], name=columns.pop(index_col))
+                index = Index([], name=index_name)
             else:
-                cp_cols = list(columns)
-                names = []
-                for i in index_col:
-                    name = cp_cols[i]
-                    columns.remove(name)
-                    names.append(name)
                 index = MultiIndex.fromarrays([[]] * len(index_col),
-                                              names=names)
+                                              names=index_name)
         else:
             index = Index([])
 
         return DataFrame(index=index, columns=columns)
-
 
     # common NA values
     # no longer excluding inf representations
@@ -178,42 +200,29 @@ def _simple_parser(lines, colNames=None, header=0, index_col=0,
     else:
         na_values = set(list(na_values)) | NA_VALUES
 
-
     zipped_content = list(lib.to_object_array(content).T)
-
-    if index_col is None and len(content[0]) == len(columns) + 1:
-        index_col = 0
 
     # no index column specified, so infer that's what is wanted
     if index_col is not None:
         if np.isscalar(index_col):
             index = zipped_content.pop(index_col)
-
-            if len(content[0]) == len(columns) + 1:
-                name = None
-            else:
-                name = columns.pop(index_col)
-
         else: # given a list of index
-            idx_names = []
             index = []
             for idx in index_col:
-                idx_names.append(columns[idx])
                 index.append(zipped_content[idx])
             #remove index items from content and columns, don't pop in loop
             for i in range(len(index_col)):
-                columns.remove(idx_names[i])
                 zipped_content.remove(index[i])
 
         if np.isscalar(index_col):
             if parse_dates:
                 index = lib.try_parse_dates(index, parser=date_parser)
-            index = Index(_convert_types(index, na_values), name=name)
+            index = Index(_convert_types(index, na_values),
+                          name=index_name)
         else:
             arrays = _maybe_convert_int_mindex(index, parse_dates,
                                                date_parser)
-            index = MultiIndex.from_arrays(arrays,
-                                                 names=idx_names)
+            index = MultiIndex.from_arrays(arrays, names=index_name)
     else:
         index = Index(np.arange(len(content)))
 

@@ -113,9 +113,25 @@ c,4,5
                     [6,7,8,9,10],
                     [11,12,13,14,15]]
         assert_almost_equal(df.values, expected)
+        assert_almost_equal(df.values, df2.values)
         self.assert_(np.array_equal(df.columns,
                                     ['X.1', 'X.2', 'X.3', 'X.4', 'X.5']))
         self.assert_(np.array_equal(df2.columns, names))
+
+    def test_header_with_index_col(self):
+        data = """foo,1,2,3
+bar,4,5,6
+baz,7,8,9
+"""
+        names = ['A', 'B', 'C']
+        df = read_csv(StringIO(data), names=names)
+
+        self.assertEqual(names, ['A', 'B', 'C'])
+
+        data = [[1,2,3],[4,5,6],[7,8,9]]
+        expected = DataFrame(data, index=['foo','bar','baz'],
+                             columns=['A','B','C'])
+        assert_frame_equal(df, expected)
 
     def test_read_csv_dataframe(self):
         df = read_csv(self.csv1, index_col=0, parse_dates=True)
@@ -196,53 +212,52 @@ baz,7,8,9
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
 
-def test_convert_sql_column_floats():
-    arr = np.array([1.5, None, 3, 4.2], dtype=object)
-    result = lib.convert_sql_column(arr)
-    expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
-    assert_same_values_and_dtype(result, expected)
+class TestParseSQL(unittest.TestCase):
 
-def test_convert_sql_column_strings():
-    arr = np.array(['1.5', None, '3', '4.2'], dtype=object)
-    result = lib.convert_sql_column(arr)
-    expected = np.array(['1.5', np.nan, '3', '4.2'], dtype=object)
-    assert_same_values_and_dtype(result, expected)
+    def test_convert_sql_column_floats(self):
+        arr = np.array([1.5, None, 3, 4.2], dtype=object)
+        result = lib.convert_sql_column(arr)
+        expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
+        assert_same_values_and_dtype(result, expected)
 
-def test_convert_sql_column_unicode():
-    arr = np.array([u'1.5', None, u'3', u'4.2'], dtype=object)
-    result = lib.convert_sql_column(arr)
-    expected = np.array([u'1.5', np.nan, u'3', u'4.2'], dtype=object)
-    assert_same_values_and_dtype(result, expected)
+    def test_convert_sql_column_strings(self):
+        arr = np.array(['1.5', None, '3', '4.2'], dtype=object)
+        result = lib.convert_sql_column(arr)
+        expected = np.array(['1.5', np.nan, '3', '4.2'], dtype=object)
+        assert_same_values_and_dtype(result, expected)
 
-def test_convert_sql_column_ints():
-    arr = np.array([1, 2, 3, 4], dtype='O')
-    arr2 = np.array([1, 2, 3, 4], dtype='i4').astype('O')
-    result = lib.convert_sql_column(arr)
-    result2 = lib.convert_sql_column(arr2)
-    expected = np.array([1, 2, 3, 4], dtype='i8')
-    assert_same_values_and_dtype(result, expected)
-    assert_same_values_and_dtype(result2, expected)
+    def test_convert_sql_column_unicode(self):
+        arr = np.array([u'1.5', None, u'3', u'4.2'], dtype=object)
+        result = lib.convert_sql_column(arr)
+        expected = np.array([u'1.5', np.nan, u'3', u'4.2'], dtype=object)
+        assert_same_values_and_dtype(result, expected)
 
-def test_convert_sql_column_bools():
-    arr = np.array([True, False, True, False], dtype='O')
-    result = lib.convert_sql_column(arr)
-    expected = np.array([True, False, True, False], dtype=bool)
-    assert_same_values_and_dtype(result, expected)
+    def test_convert_sql_column_ints(self):
+        arr = np.array([1, 2, 3, 4], dtype='O')
+        arr2 = np.array([1, 2, 3, 4], dtype='i4').astype('O')
+        result = lib.convert_sql_column(arr)
+        result2 = lib.convert_sql_column(arr2)
+        expected = np.array([1, 2, 3, 4], dtype='i8')
+        assert_same_values_and_dtype(result, expected)
+        assert_same_values_and_dtype(result2, expected)
 
-    arr = np.array([True, False, None, False], dtype='O')
-    result = lib.convert_sql_column(arr)
-    expected = np.array([True, False, np.nan, False], dtype=object)
-    assert_same_values_and_dtype(result, expected)
+    def test_convert_sql_column_bools(self):
+        arr = np.array([True, False, True, False], dtype='O')
+        result = lib.convert_sql_column(arr)
+        expected = np.array([True, False, True, False], dtype=bool)
+        assert_same_values_and_dtype(result, expected)
 
-def test_convert_sql_column_decimals():
-    from decimal import Decimal
-    arr = np.array([Decimal('1.5'), None, Decimal('3'), Decimal('4.2')])
-    result = lib.convert_sql_column(arr)
-    expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
-    assert_same_values_and_dtype(result, expected)
+        arr = np.array([True, False, None, False], dtype='O')
+        result = lib.convert_sql_column(arr)
+        expected = np.array([True, False, np.nan, False], dtype=object)
+        assert_same_values_and_dtype(result, expected)
 
-def test_convert_sql_column_other():
-    arr = np.array([1.5, None, 3, 4.2])
+    def test_convert_sql_column_decimals(self):
+        from decimal import Decimal
+        arr = np.array([Decimal('1.5'), None, Decimal('3'), Decimal('4.2')])
+        result = lib.convert_sql_column(arr)
+        expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
+        assert_same_values_and_dtype(result, expected)
 
 def assert_same_values_and_dtype(res, exp):
     assert(res.dtype == exp.dtype)
