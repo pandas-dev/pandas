@@ -592,6 +592,21 @@ copy : boolean, default False
 
         return Series(result, index=level_index)
 
+    def histogram(self):
+        """
+        Returns Series containing counts of unique values. The result Series's
+        index will be the sorted unique values
+
+        Returns
+        -------
+        histogram : Series
+        """
+        from collections import defaultdict
+        counter = defaultdict(lambda: 0)
+        for value in self.values:
+            counter[value] += 1
+        return Series(counter)
+
     def sum(self, axis=0, dtype=None, out=None, skipna=True):
         """
         Sum of values
@@ -881,12 +896,12 @@ copy : boolean, default False
         """
         if self.dtype == object:
             names = ['count', 'unique', 'top', 'freq']
-            
+
             objcounts = Counter(self)
             top, freq = objcounts.most_common(1)[0]
             data = [self.count(), len(objcounts), top, freq]
-            
-        else:    
+
+        else:
             names = ['count', 'mean', 'std', 'min',
                      '25%', '50%', '75%', 'max']
 
