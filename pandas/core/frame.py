@@ -2871,7 +2871,7 @@ class DataFrame(NDFrame):
             x = range(len(self))
 
         for i, col in enumerate(_try_sort(self.columns)):
-            empty = np.all(np.isnan(self[col].values))
+            empty = self[col].count() == 0
             y = self[col].values if not empty else np.zeros(x.shape)
             if subplots:
                 ax = axes[i]
