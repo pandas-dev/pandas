@@ -5,10 +5,15 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import collections
 import csv
 import itertools
 import operator
+
+try:
+    from collections import Counter
+except ImportError:
+    # For Python < 2.7, we include a local copy of this:
+    from pandas.util.counter import Counter
 
 from numpy import nan, ndarray
 import numpy as np
@@ -877,7 +882,7 @@ copy : boolean, default False
         if self.dtype == object:
             names = ['count', 'unique', 'top', 'freq']
             
-            objcounts = collections.Counter(self)
+            objcounts = Counter(self)
             top, freq = objcounts.most_common(1)[0]
             data = [self.count(), len(objcounts), top, freq]
             
