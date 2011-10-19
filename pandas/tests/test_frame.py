@@ -53,6 +53,19 @@ class CheckIndexing(object):
         expected = self.frame.ix[:, ['A', 'B', 'C']]
         assert_frame_equal(result, expected)
 
+    def test_getitem_list(self):
+        result = self.frame[['B', 'A']]
+        result2 = self.frame[Index(['B', 'A'])]
+
+        expected = self.frame.ix[:, ['B', 'A']]
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        self.assertRaises(Exception, self.frame.__getitem__,
+                          ['B', 'A', 'foo'])
+        self.assertRaises(Exception, self.frame.__getitem__,
+                          Index(['B', 'A', 'foo']))
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]
@@ -146,6 +159,10 @@ class CheckIndexing(object):
         df[df > np.abs(df)] = df * 2
         np.putmask(expected.values, mask.values, df.values * 2)
         assert_frame_equal(df, expected)
+
+    def test_setitem_cast(self):
+        self.frame['D'] = self.frame['D'].astype('i8')
+        self.assert_(self.frame['D'].dtype == np.int64)
 
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
@@ -271,8 +288,8 @@ class CheckIndexing(object):
         frame = self.frame.copy()
         expected = frame.copy()
         frame.ix[:, ['B', 'A']] = 1
-        expected['B'] = 1
-        expected['A'] = 1
+        expected['B'] = 1.
+        expected['A'] = 1.
         assert_frame_equal(frame, expected)
 
         # case 2
@@ -357,7 +374,7 @@ class CheckIndexing(object):
 
         # get view with single block
         sliced = self.frame.ix[:, -3:]
-        sliced['C'] = 4
+        sliced['C'] = 4.
         self.assert_((self.frame['C'] == 4).all())
 
     def test_fancy_setitem_int_labels(self):
@@ -2596,9 +2613,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_min(self):
         self._check_stat_op('min', np.min)
+        self._check_stat_op('min', np.min, frame=self.intframe)
 
     def test_max(self):
         self._check_stat_op('max', np.max)
+        self._check_stat_op('max', np.max, frame=self.intframe)
 
     def test_mad(self):
         f = lambda x: np.abs(x - x.mean()).mean()
@@ -3105,6 +3124,11 @@ class TestDataFrameJoin(unittest.TestCase):
         for col in self.source:
             self.assert_(col in merged)
             self.assert_(merged[col].isnull().all())
+
+        merged2 = self.target.join(self.source.reindex([]), on='C',
+                                   how='inner')
+        self.assert_(merged2.columns.equals(merged.columns))
+        self.assertEqual(len(merged2), 0)
 
     def test_join_on_inner(self):
         df = DataFrame({'key' : ['a', 'a', 'd', 'b', 'b', 'c']})

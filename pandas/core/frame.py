@@ -469,7 +469,7 @@ class DataFrame(NDFrame):
                                default_fill_value=fill_value)
 
     def to_csv(self, path, nanRep='', cols=None, header=True,
-              index=True, index_label=None, mode='w'):
+              index=True, index_label=None, mode='w', delimiter=","):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -489,9 +489,11 @@ class DataFrame(NDFrame):
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
         mode : Python write mode, default 'w'
+        delimiter : character, default ","
+            Field delimiter for the output file.
         """
         f = open(path, mode)
-        csvout = csv.writer(f, lineterminator='\n')
+        csvout = csv.writer(f, lineterminator='\n', delimiter=delimiter)
 
         if cols is None:
             cols = self.columns
@@ -806,21 +808,33 @@ class DataFrame(NDFrame):
             new_data = self._data.get_slice(key, axis=1)
             return self._constructor(new_data)
         # either boolean or fancy integer index
-        elif isinstance(key, np.ndarray):
-            if len(key) != len(self.index):
-                raise ValueError('Item wrong length %d instead of %d!' %
-                                 (len(key), len(self.index)))
+        elif isinstance(key, (np.ndarray, list)):
+            if isinstance(key, list):
+                key = np.array(key, dtype=object)
 
             # also raises Exception if object array with NA values
             if _is_bool_indexer(key):
                 key = np.asarray(key, dtype=bool)
-
-            new_index = self.index[key]
-            return self.reindex(new_index)
+            return self._getitem_array(key)
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
         else:
             return self._getitem_single(key)
+
+    def _getitem_array(self, key):
+        if key.dtype == np.bool_:
+            if len(key) != len(self.index):
+                raise ValueError('Item wrong length %d instead of %d!' %
+                                 (len(key), len(self.index)))
+
+            new_index = self.index[key]
+            return self.reindex(new_index)
+        else:
+            indexer = self.columns.get_indexer(key)
+            mask = indexer == -1
+            if mask.any():
+                raise Exception("No column(s) named: %s" % str(key[mask]))
+            return self.reindex(columns=key)
 
     def _slice(self, slobj, axis=0):
         if axis == 0:
@@ -2219,9 +2233,6 @@ class DataFrame(NDFrame):
             assert(other.name is not None)
             other = DataFrame({other.name : other})
 
-        if len(other.index) == 0:
-            return self
-
         if isinstance(on, (list, tuple)):
             if len(on) == 1:
                 join_key = self[on[0]].values
@@ -2500,7 +2511,7 @@ class DataFrame(NDFrame):
         min : Series
         """
         values = self.values.copy()
-        if skipna:
+        if skipna and not issubclass(values.dtype.type, np.int_):
             np.putmask(values, -np.isfinite(values), np.inf)
         return Series(values.min(axis), index=self._get_agg_axis(axis))
 
@@ -2521,7 +2532,7 @@ class DataFrame(NDFrame):
         max : Series
         """
         values = self.values.copy()
-        if skipna:
+        if skipna and not issubclass(values.dtype.type, np.int_):
             np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 

@@ -5,6 +5,23 @@ Release Notes
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/wesm/pandas
 
+What is it
+----------
+
+**pandas** is a library of powerful labeled-axis data structures, statistical
+tools, and general code for working with relational data sets, including time
+series and cross-sectional data. It was designed with the practical needs of
+statistical modeling and large, inhomogeneous data sets in mind. It is
+particularly well suited for, among other things, financial data analysis
+applications.
+
+Where to get it
+---------------
+
+Source code: http://github.com/wesm/pandas
+Binary installers on PyPI: http://pypi.python.org/pypi/pandas
+Documentation: http://pandas.sourceforge.net
+
 pandas 0.5.0
 ============
 
@@ -31,7 +48,7 @@ feedback on the library.
   - Parsing functions like `read_csv` no longer parse dates by default (GH
     #225)
   - Removed `weights` option in panel regression which was not doing anything
-    principled
+    principled (GH #155)
   - Changed `buffer` argument name in `Series.to_string` to `buf`
   - `Series.to_string` and `DataFrame.to_string` now return strings by default
     instead of printing to sys.stdout
@@ -93,6 +110,10 @@ feedback on the library.
   - Added column attribute access to DataFrame, e.g. df.A equivalent to df['A']
     if 'A' is a column in the DataFrame (PR #213)
   - Added IPython tab completion hook for DataFrame columns. (PR #233, GH #230)
+  - Implement `Series.describe` for Series containing objects (PR #241)
+  - Add inner join option to `DataFrame.join` when joining on key(s) (GH #248)
+  - Can select set of DataFrame columns by passing a list to `__getitem__` (GH
+    #253)
 
 **Improvements to existing features**
 
@@ -105,36 +126,57 @@ feedback on the library.
     rather than deferring the check until later
   - Refactored merging / joining code into a tidy class and disabled unnecessary
     computations in the float/object case, thus getting about 10% better
-    performance
+    performance (GH #211)
   - Improved speed of `DataFrame.xs` on mixed-type DataFrame objects by about
-    5x, regression from 0.3.0
+    5x, regression from 0.3.0 (GH #215)
   - With new `DataFrame.align` method, speeding up binary operations between
     differently-indexed DataFrame objects by 10-25%.
-  - Significantly sped up conversion of nested dict into DataFrame
+  - Significantly sped up conversion of nested dict into DataFrame (GH #212)
   - Can pass hierarchical index level name to `groupby` instead of the level
     number if desired (GH #223)
+  - Add support for different delimiters in `DataFrame.to_csv` (PR #244)
 
 **Bug fixes**
 
   - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
     be reported upstream to matplotlib (GH #224)
-  - Fixed problem in which data would get upcasted to object dtype in
-    GroupBy.apply operations (GH #237)
-  - Fixed outer join bug with empty DataFrame (GH #238)
   - DataFrame.iteritems was not returning Series with the name attribute
     set. Also neither was DataFrame._series
   - Can store datetime.date objects in HDFStore (GH #231)
   - Index and Series names are now stored in HDFStore
+  - Fixed problem in which data would get upcasted to object dtype in
+    GroupBy.apply operations (GH #237)
+  - Fixed outer join bug with empty DataFrame (GH #238)
   - Can create empty Panel (GH #239)
+  - Fix join on single key when passing list with 1 entry (GH #246)
+  - Don't raise Exception on plotting DataFrame with an all-NA column (GH #251,
+    PR #254)
+  - Bug min/max errors when called on integer DataFrames (PR #241)
+  - `DataFrame.iteritems` and `DataFrame._series` not assigning name attribute
   - Panel.__repr__ raised exception on length-0 major/minor axes
+  - `DataFrame.join` on key with empty DataFrame produced incorrect columns
   - `read_csv` / `read_table` fixes
     - Be less aggressive about converting float->int in cases of floating point
       representations of integers like 1.0, 2.0, etc.
     - "True"/"False" will not get correctly converted to boolean
     - Index name attribute will get set when specifying an index column
+    - Passing column names should force `header=None` (GH #257)
+    - Don't modify passed column names when `index_col` is not
+      None (GH #258)
+
+Thanks
+------
+
+- Thomas Kluyver
+- Daniel Fortunov
+- Aman Thakral
+- Luca Beltrame
 
 pandas 0.4.3
 ============
+
+Release notes
+-------------
 
 **Release date:** 10/9/2011
 
@@ -196,6 +238,9 @@ Thanks
 
 pandas 0.4.2
 ============
+
+Release notes
+-------------
 
 **Release date:** 10/3/2011
 
@@ -272,6 +317,9 @@ Thanks
 pandas 0.4.1
 ============
 
+Release notes
+-------------
+
 **Release date:** 9/25/2011
 
 This is primarily a bug fix release but includes some new features and
@@ -341,23 +389,6 @@ Thanks
 
 pandas 0.4
 ==========
-
-What is it
-----------
-
-**pandas** is a library of powerful labeled-axis data structures, statistical
-tools, and general code for working with relational data sets, including time
-series and cross-sectional data. It was designed with the practical needs of
-statistical modeling and large, inhomogeneous data sets in mind. It is
-particularly well suited for, among other things, financial data analysis
-applications.
-
-Where to get it
----------------
-
-Source code: http://github.com/wesm/pandas
-Binary installers on PyPI: http://pypi.python.org/pypi/pandas
-Documentation: http://pandas.sourceforge.net
 
 Release notes
 -------------
@@ -619,29 +650,14 @@ Thanks
   - Skipper Seabold
   - Chris Jordan-Squire
 
-pandas 0.3
-==========
+pandas 0.3.0
+============
 
 This major release of pandas represents approximately 1 year of continuous
 development work and brings with it many new features, bug fixes, speed
 enhancements, and general quality-of-life improvements. The most significant
 change from the 0.2 release has been the completion of a rigorous unit test
 suite covering all of the core functionality.
-
-What is it
-----------
-
-**pandas** is a library of labeled data structures, statistical models, and
-general code for working with time series and cross-sectional data. It was
-designed with the practical needs of statistical modeling and large,
-inhomogeneous data sets in mind.
-
-Where to get it
----------------
-
-Source code: http://github.com/wesm/pandas
-Binary installers on PyPI: http://pypi.python.org/pypi/pandas
-Documentation: http://pandas.sourceforge.net
 
 Release notes
 -------------

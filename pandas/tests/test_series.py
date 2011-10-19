@@ -550,6 +550,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()
+        _ = self.objSeries.describe()
 
     def test_append(self):
         appendedSeries = self.series.append(self.ts)
