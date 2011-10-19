@@ -102,7 +102,6 @@ def convert_sql_column(ndarray[object] objects):
         ndarray[uint8_t, cast=True] bools
         bint seen_float = 0
         bint seen_int = 0
-        bint seen_object = 0
         bint seen_bool = 0
         bint seen_null = 0
         object val, onan
@@ -135,9 +134,7 @@ def convert_sql_column(ndarray[object] objects):
         elif cpython.PyFloat_Check(val):
             floats[i] = val
             seen_float = 1
-        elif cpython.PyString_Check(val) or cpython.PyUnicode_Check(val):
-            seen_object = 1
-        else:
+        elif not (cpython.PyString_Check(val) or cpython.PyUnicode_Check(val)):
             try:
                 floats[i] = float(val)
                 seen_float = 1
@@ -156,7 +153,7 @@ def convert_sql_column(ndarray[object] objects):
             return floats
         elif seen_bool:
             return bools
-        elif seen_object:
+        else:
             return objects
 
 def try_parse_dates(ndarray[object] values, parser=None):
