@@ -938,7 +938,7 @@ def is_monotonic_bool(ndarray[uint8_t] arr):
 @cython.boundscheck(False)
 def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[int8_t] mask
+    cdef ndarray[uint8_t, cast=True] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
@@ -964,7 +964,7 @@ def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_object(ndarray[object] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[int8_t] mask
+    cdef ndarray[uint8_t, cast=True] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
@@ -990,7 +990,7 @@ def groupby_object(ndarray[object] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[int8_t] mask
+    cdef ndarray[uint8_t, cast=True] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
@@ -1016,7 +1016,7 @@ def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[int8_t] mask
+    cdef ndarray[uint8_t, cast=True] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
@@ -1042,7 +1042,7 @@ def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_bool(ndarray[uint8_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[int8_t] mask
+    cdef ndarray[uint8_t, cast=True] mask
     cdef int i, length
     cdef list members
     cdef object idx, key

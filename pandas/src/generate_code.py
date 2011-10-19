@@ -312,7 +312,7 @@ groupby_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[int8_t] mask
+    cdef ndarray[uint8_t, cast=True] mask
     cdef int i, length
     cdef list members
     cdef object idx, key

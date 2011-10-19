@@ -49,9 +49,6 @@ cdef double_t *get_double_ptr(ndarray arr):
 cdef extern from "math.h":
     double sqrt(double x)
 
-#cdef extern from "cobject.h":
-#    pass # for datetime API
-
 cdef extern from "datetime.h":
 
     ctypedef class datetime.datetime [object PyDateTime_DateTime]:
@@ -227,7 +224,10 @@ cdef inline _checknull(object val):
     return val is None or val != val
 
 cpdef checknull(object val):
-    return _checknull(val)
+    if isinstance(val, (float, np.floating)):
+        return val != val or val == INF or val == NEGINF
+    else:
+        return _checknull(val)
 
 def isnullobj(ndarray[object] arr):
     cdef Py_ssize_t i, n
