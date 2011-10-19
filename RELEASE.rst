@@ -28,16 +28,16 @@ pandas 0.5.0
 **Release date:** not yet released
 
 This release of pandas includes a number of API changes (see below) and cleanup
-of deprecated APIs from pre-0.4.0 releases. There are also bug fixes, some new
-features, performance enhancements, and includes a new IPython completer hook to
-enable tab completion of DataFrame columns accesses as attributes (a new
-feature).
+of deprecated APIs from pre-0.4.0 releases. There are also bug fixes, new
+features, numerous significant performance enhancements, and includes a new
+IPython completer hook to enable tab completion of DataFrame columns accesses
+as attributes (a new feature).
 
 In addition to the changes listed here from 0.4.3 to 0.5.0, the minor releases
 0.4.1, 0.4.2, and 0.4.3 brought some significant new functionality and
 performance improvements that are worth taking a look at.
 
-Thanks to Thomas Kluyver and others for contributing patches and providing
+Thanks to all for bug reports, contributed patches and generally providing
 feedback on the library.
 
 **API Changes**
@@ -135,6 +135,8 @@ feedback on the library.
   - Can pass hierarchical index level name to `groupby` instead of the level
     number if desired (GH #223)
   - Add support for different delimiters in `DataFrame.to_csv` (PR #244)
+  - Add more helpful error message when importing pandas post-installation from
+    the source directory (GH #250)
 
 **Bug fixes**
 
