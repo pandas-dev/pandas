@@ -138,6 +138,7 @@ feedback on the library.
   - Add more helpful error message when importing pandas post-installation from
     the source directory (GH #250)
 
+
 **Bug fixes**
 
   - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
@@ -165,6 +166,8 @@ feedback on the library.
     - Passing column names should force `header=None` (GH #257)
     - Don't modify passed column names when `index_col` is not
       None (GH #258)
+    - Can sniff CSV separator in zip file (since seek is not supported, was
+      failing before)
 
 Thanks
 ------
@@ -291,6 +294,8 @@ infrastructure are the main new additions
     retrieve groups
   - Added informative Exception when passing dict to DataFrame groupby
     aggregation with axis != 0
+  - Significantly speed up DataFrame `__repr__` and `count` on large mixed-type
+    DataFrame objects
 
 **API Changes**
 

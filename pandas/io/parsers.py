@@ -2,6 +2,8 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 
+from StringIO import StringIO
+
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
@@ -31,10 +33,12 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
         dia.delimiter = sep
     # attempt to sniff the delimiter
     if sniff_sep:
-        sample = f.readline()
-        sniffed = csv.Sniffer().sniff(sample)
+        line = f.readline()
+        sniffed = csv.Sniffer().sniff(line)
         dia.delimiter = sniffed.delimiter
-        f.seek(0)
+        buf = list(csv.reader(StringIO(line), dialect=dia))
+    else:
+        buf = []
 
     reader = csv.reader(f, dialect=dia)
 
@@ -46,7 +50,7 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
                         parse_dates=parse_dates,
                         date_parser=date_parser,
                         skiprows=skiprows,
-                        chunksize=chunksize)
+                        chunksize=chunksize, buf=buf)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -144,7 +148,7 @@ class TextParser(object):
 
     def __init__(self, data, names=None, header=0, index_col=None,
                  na_values=None, parse_dates=False, date_parser=None,
-                 chunksize=None, skiprows=None):
+                 chunksize=None, skiprows=None, buf=None):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -152,9 +156,10 @@ class TextParser(object):
         """
         self.data = data
 
-        self.buf = []
+        # can pass rows read so far
+        self.buf = [] if buf is None else buf
+        self.pos = len(self.buf)
 
-        self.pos = 0
         self.names = list(names) if names is not None else names
         self.header = header
         self.index_col = index_col
@@ -179,7 +184,10 @@ class TextParser(object):
             self.header = None
 
         if self.header is not None:
-            line = self._next_line()
+            if len(self.buf) > 0:
+                line = self.buf[0]
+            else:
+                line = self._next_line()
             while self.header > self.pos:
                 line = self._next_line()
 
@@ -196,9 +204,9 @@ class TextParser(object):
                 if cur_count > 0:
                     columns[i] = '%s.%d' % (col, cur_count)
                 counts[col] = cur_count + 1
+            self._clear_buffer()
         else:
             line = self._next_line()
-            self.buf.append(line)
 
             ncols = len(line)
             if not names:
@@ -206,7 +214,6 @@ class TextParser(object):
             else:
                 columns = names
 
-        self._clear_buffer()
 
         return columns
 
@@ -435,16 +442,8 @@ class ExcelFile(object):
         datemode = self.book.datemode
         sheet = self.book.sheet_by_name(sheetname)
 
-        if skiprows is None:
-            skiprows = set()
-        else:
-            skiprows = set(skiprows)
-
         data = []
         for i in range(sheet.nrows):
-            if i in skiprows:
-                continue
-
             row = []
             for value, typ in zip(sheet.row_values(i), sheet.row_types(i)):
                 if typ == XL_CELL_DATE:

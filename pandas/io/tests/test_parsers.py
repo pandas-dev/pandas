@@ -128,8 +128,8 @@ baz,7,8,9
 
         self.assertEqual(names, ['A', 'B', 'C'])
 
-        data = [[1,2,3],[4,5,6],[7,8,9]]
-        expected = DataFrame(data, index=['foo','bar','baz'],
+        values = [[1,2,3],[4,5,6],[7,8,9]]
+        expected = DataFrame(values, index=['foo','bar','baz'],
                              columns=['A','B','C'])
         assert_frame_equal(df, expected)
 
