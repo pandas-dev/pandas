@@ -3216,7 +3216,7 @@ def install_ipython_completers():
     @complete_object.when_type(DataFrame)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.columns \
-                                                if py3compat.isidentifier(c)]
+                    if isinstance(c, basestring) and py3compat.isidentifier(c)]
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
 # we're in IPython (when those modules are loaded anyway).
