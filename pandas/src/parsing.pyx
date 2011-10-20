@@ -126,7 +126,7 @@ def convert_sql_column(ndarray[object] objects):
         elif cpython.PyBool_Check(val):
             seen_bool = 1
             bools[i] = val
-        elif cpython.PyInt_Check(val):
+        elif cpython.PyInt_Check(val) or cpython.PyLong_Check(val):
             seen_int = 1
             floats[i] = <float64_t> val
             if not seen_null:

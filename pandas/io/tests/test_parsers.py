@@ -246,6 +246,17 @@ class TestParseSQL(unittest.TestCase):
         expected = np.array([1, 2, 3, np.nan, 4], dtype='f8')
         assert_same_values_and_dtype(result, expected)
 
+    def test_convert_sql_column_longs(self):
+        arr = np.array([1L, 2L, 3L, 4L], dtype='O')
+        result = lib.convert_sql_column(arr)
+        expected = np.array([1, 2, 3, 4], dtype='i8')
+        assert_same_values_and_dtype(result, expected)
+
+        arr = np.array([1L, 2L, 3L, None, 4L], dtype='O')
+        result = lib.convert_sql_column(arr)
+        expected = np.array([1, 2, 3, np.nan, 4], dtype='f8')
+        assert_same_values_and_dtype(result, expected)
+
     def test_convert_sql_column_bools(self):
         arr = np.array([True, False, True, False], dtype='O')
         result = lib.convert_sql_column(arr)
