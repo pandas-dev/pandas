@@ -11,7 +11,7 @@ import pandas._tseries as lib
 
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None):
+             date_parser=None, nrows=None, iterator=False, chunksize=None):
     import csv
 
     if hasattr(filepath_or_buffer, 'read'):
@@ -38,23 +38,22 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
 
     reader = csv.reader(f, dialect=dia)
 
-    if skiprows is not None:
-        skiprows = set(skiprows)
-        lines = [l for i, l in enumerate(reader) if i not in skiprows]
-    else:
-        lines = [l for l in reader]
-    f.close()
-
     if date_parser is not None:
         parse_dates = True
 
-    return _simple_parser(lines,
-                          header=header,
-                          index_col=index_col,
-                          names=names,
-                          na_values=na_values,
-                          parse_dates=parse_dates,
-                          date_parser=date_parser)
+    parser = TextParser(reader, header=header, index_col=index_col,
+                        names=names, na_values=na_values,
+                        parse_dates=parse_dates,
+                        date_parser=date_parser,
+                        skiprows=skiprows,
+                        chunksize=chunksize)
+
+    if nrows is not None:
+        return parser.get_chunk(nrows)
+    elif chunksize or iterator:
+        return parser
+
+    return parser.get_chunk()
 
 
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
@@ -114,80 +113,27 @@ parsed : DataFrame
 """ % (_parser_params % _table_sep)
 
 
-def _simple_parser(lines, names=None, header=0, index_col=0,
-                   na_values=None, date_parser=None, parse_dates=True):
+class TextParser(object):
     """
-    Workhorse function for processing nested list into DataFrame
+    Converts lists of lists/tuples into DataFrames with proper type inference
+    and optional (e.g. string to datetime) conversion. Also enables iterating
+    lazily over chunks of large files
 
-    Should be replaced by np.genfromtxt eventually?
+    Parameters
+    ----------
+    data : list or csv reader-like object
+    names : sequence, default
+    header : int, default 0
+        Row to use to parse column labels. Defaults to the first row. Prior
+        rows will be discarded
+    index_col : int or list, default None
+        Column or columns to use as the (possibly hierarchical) index
+    na_values : iterable, defualt None
+        Custom NA values
+    parse_dates : boolean, default False
+    date_parser : function, default None
+    skiprows
     """
-    passed_names = names is not None
-    if passed_names:
-        names = list(names)
-        header = None
-
-    if header is not None:
-        columns = []
-        for i, c in enumerate(lines[header]):
-            if c == '':
-                columns.append('Unnamed: %d' % i)
-            else:
-                columns.append(c)
-
-        content = lines[header+1:]
-
-        counts = {}
-        for i, col in enumerate(columns):
-            cur_count = counts.get(col, 0)
-            if cur_count > 0:
-                columns[i] = '%s.%d' % (col, cur_count)
-            counts[col] = cur_count + 1
-    else:
-        ncols = len(lines[0])
-        if not names:
-            columns = ['X.%d' % (i + 1) for i in range(ncols)]
-        else:
-            columns = names
-        content = lines
-
-    # spaghetti
-
-    # implicitly index_col=0 b/c 1 fewer column names
-    index_name = None
-    implicit_first_col = (len(content) > 0 and
-                          len(content[0]) == len(columns) + 1)
-
-    if implicit_first_col:
-        if index_col is None:
-            index_col = 0
-        index_name = None
-    elif np.isscalar(index_col):
-        if passed_names:
-            index_name = None
-        else:
-            index_name = columns.pop(index_col)
-    elif index_col is not None:
-        if not passed_names:
-            cp_cols = list(columns)
-            index_name = []
-            for i in index_col:
-                name = cp_cols[i]
-                columns.remove(name)
-                index_name.append(name)
-        else:
-            index_name=None
-
-    if len(content) == 0: # pragma: no cover
-        if index_col is not None:
-            if np.isscalar(index_col):
-                index = Index([], name=index_name)
-            else:
-                index = MultiIndex.fromarrays([[]] * len(index_col),
-                                              names=index_name)
-        else:
-            index = Index([])
-
-        return DataFrame(index=index, columns=columns)
 
     # common NA values
     # no longer excluding inf representations
@@ -195,48 +141,220 @@ def _simple_parser(lines, names=None, header=0, index_col=0,
     NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
                      '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
                      'nan', ''])
-    if na_values is None:
-        na_values = NA_VALUES
-    else:
-        na_values = set(list(na_values)) | NA_VALUES
 
-    zipped_content = list(lib.to_object_array(content).T)
+    def __init__(self, data, names=None, header=0, index_col=None,
+                 na_values=None, parse_dates=False, date_parser=None,
+                 chunksize=None, skiprows=None):
+        """
+        Workhorse function for processing nested list into DataFrame
 
-    # no index column specified, so infer that's what is wanted
-    if index_col is not None:
-        if np.isscalar(index_col):
-            index = zipped_content.pop(index_col)
-        else: # given a list of index
-            index = []
-            for idx in index_col:
-                index.append(zipped_content[idx])
-            #remove index items from content and columns, don't pop in loop
-            for i in range(len(index_col)):
-                zipped_content.remove(index[i])
+        Should be replaced by np.genfromtxt eventually?
+        """
+        self.data = data
 
-        if np.isscalar(index_col):
-            if parse_dates:
-                index = lib.try_parse_dates(index, parser=date_parser)
-            index = Index(_convert_types(index, na_values),
-                          name=index_name)
+        self.buf = []
+
+        self.pos = 0
+        self.names = list(names) if names is not None else names
+        self.header = header
+        self.index_col = index_col
+        self.parse_dates = parse_dates
+        self.date_parser = date_parser
+        self.chunksize = chunksize
+        self.passed_names = names is not None
+        self.skiprows = set() if skiprows is None else set(skiprows)
+
+        if na_values is None:
+            self.na_values = self.NA_VALUES
         else:
-            arrays = _maybe_convert_int_mindex(index, parse_dates,
-                                               date_parser)
-            index = MultiIndex.from_arrays(arrays, names=index_name)
-    else:
-        index = Index(np.arange(len(content)))
+            self.na_values = set(list(na_values)) | self.NA_VALUES
 
-    if not index._verify_integrity():
-        dups = index._get_duplicates()
-        raise Exception('Index has duplicates: %s' % str(dups))
+        self.columns = self._infer_columns()
+        self.index_name = self._get_index_name()
 
-    if len(columns) != len(zipped_content):
-        raise Exception('wrong number of columns')
+    def _infer_columns(self):
+        names = self.names
+        passed_names = self.names is not None
+        if passed_names:
+            self.header = None
 
-    data = dict((k, v) for k, v in zip(columns, zipped_content))
-    data = _convert_to_ndarrays(data, na_values)
-    return DataFrame(data=data, columns=columns, index=index)
+        if self.header is not None:
+            line = self._next_line()
+            while self.header > self.pos:
+                line = self._next_line()
 
+            columns = []
+            for i, c in enumerate(line):
+                if c == '':
+                    columns.append('Unnamed: %d' % i)
+                else:
+                    columns.append(c)
+
+            counts = {}
+            for i, col in enumerate(columns):
+                cur_count = counts.get(col, 0)
+                if cur_count > 0:
+                    columns[i] = '%s.%d' % (col, cur_count)
+                counts[col] = cur_count + 1
+        else:
+            line = self._next_line()
+            self.buf.append(line)
+
+            ncols = len(line)
+            if not names:
+                columns = ['X.%d' % (i + 1) for i in range(ncols)]
+            else:
+                columns = names
+
+        self._clear_buffer()
+
+        return columns
+
+    def _next_line(self):
+        if isinstance(self.data, list):
+            if self.pos in self.skiprows:
+                self.pos += 1
+
+            line = self.data[self.pos]
+        else:
+            if self.pos in self.skiprows:
+                self.data.next()
+                self.pos += 1
+            line = self.data.next()
+        self.pos += 1
+        self.buf.append(line)
+
+        return line
+
+    def _clear_buffer(self):
+        self.buf = []
+
+    def __iter__(self):
+        try:
+            yield self.get_chunk(self.chunksize)
+        except StopIteration:
+            pass
+
+    def _get_index_name(self):
+        columns = self.columns
+
+        try:
+            line = self._next_line()
+        except StopIteration:
+            line = None
+
+        # implicitly index_col=0 b/c 1 fewer column names
+        index_name = None
+        implicit_first_col = (line is not None and
+                              len(line) == len(columns) + 1)
+
+        passed_names = self.names is not None
+
+        if implicit_first_col:
+            if self.index_col is None:
+                self.index_col = 0
+            index_name = None
+        elif np.isscalar(self.index_col):
+            if passed_names:
+                index_name = None
+            else:
+                index_name = columns.pop(self.index_col)
+        elif self.index_col is not None:
+            if not passed_names:
+                cp_cols = list(columns)
+                index_name = []
+                for i in self.index_col:
+                    name = cp_cols[i]
+                    columns.remove(name)
+                    index_name.append(name)
+            else:
+                index_name=None
+
+        return index_name
+
+    def get_chunk(self, rows=None):
+        content = self._get_lines(rows)
+
+        if len(content) == 0: # pragma: no cover
+            if self.index_col is not None:
+                if np.isscalar(self.index_col):
+                    index = Index([], name=self.index_name)
+                else:
+                    index = MultiIndex.from_arrays([[]] * len(self.index_col),
+                                                   names=self.index_name)
+            else:
+                index = Index([])
+
+            return DataFrame(index=index, columns=self.columns)
+
+        zipped_content = list(lib.to_object_array(content).T)
+
+        # no index column specified, so infer that's what is wanted
+        if self.index_col is not None:
+            if np.isscalar(self.index_col):
+                index = zipped_content.pop(self.index_col)
+            else: # given a list of index
+                index = []
+                for idx in self.index_col:
+                    index.append(zipped_content[idx])
+                #remove index items from content and columns, don't pop in loop
+                for i in range(len(self.index_col)):
+                    zipped_content.remove(index[i])
+
+            if np.isscalar(self.index_col):
+                if self.parse_dates:
+                    index = lib.try_parse_dates(index, parser=self.date_parser)
+                index = Index(_convert_types(index, self.na_values),
+                              name=self.index_name)
+            else:
+                arrays = _maybe_convert_int_mindex(index, self.parse_dates,
+                                                   self.date_parser)
+                index = MultiIndex.from_arrays(arrays, names=self.index_name)
+        else:
+            index = Index(np.arange(len(content)))
+
+        if not index._verify_integrity():
+            dups = index._get_duplicates()
+            raise Exception('Index has duplicates: %s' % str(dups))
+
+        if len(self.columns) != len(zipped_content):
+            raise Exception('wrong number of columns')
+
+        data = dict((k, v) for k, v in zip(self.columns, zipped_content))
+        data = _convert_to_ndarrays(data, self.na_values)
+        return DataFrame(data=data, columns=self.columns, index=index)
+
+    def _get_lines(self, rows=None):
+        source = self.data
+        lines = self.buf
+
+        # already fetched some number
+        if rows is not None:
+            rows -= len(self.buf)
+
+        if isinstance(source, list):
+            if self.pos >= len(source):
+                raise StopIteration
+            if rows is None:
+                lines.extend(source[self.pos:])
+                self.pos = len(source)
+            else:
+                lines.extend(source[self.pos:self.pos+rows])
+                self.pos += rows
+        else:
+            try:
+                if rows is not None:
+                    for _ in xrange(rows):
+                        lines.append(source.next())
+                else:
+                    while True:
+                        lines.append(source.next())
+            except StopIteration:
+                pass
+
+        self.buf = []
+
+        return lines
 
 def _maybe_convert_int_mindex(index, parse_dates, date_parser):
     for i in range(len(index)):
@@ -288,7 +406,8 @@ class ExcelFile(object):
         return object.__repr__(self)
 
     def parse(self, sheetname, header=0, skiprows=None, index_col=None,
-              parse_dates=False, date_parser=None, na_values=None):
+              parse_dates=False, date_parser=None, na_values=None,
+              chunksize=None):
         """
         Read Excel table into DataFrame
 
@@ -337,6 +456,12 @@ class ExcelFile(object):
                         value = datetime(*dt)
                 row.append(value)
             data.append(row)
-        return _simple_parser(data, header=header, index_col=index_col,
-                              parse_dates=parse_dates, date_parser=date_parser,
-                              na_values=na_values)
+
+        parser = TextParser(data, header=header, index_col=index_col,
+                            na_values=na_values,
+                            parse_dates=parse_dates,
+                            date_parser=date_parser,
+                            skiprows=skiprows,
+                            chunksize=chunksize)
+
+        return parser.get_chunk()
