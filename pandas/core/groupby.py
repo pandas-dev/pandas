@@ -333,9 +333,10 @@ class GroupBy(object):
         output = {}
         cannot_agg = []
         for name, obj in self._iterate_slices():
-            try:
-                obj = np.asarray(obj, dtype=float)
-            except ValueError:
+            if issubclass(obj.dtype.type, np.number):
+                if obj.dtype != np.float64:
+                    obj = obj.astype('f8')
+            else:
                 cannot_agg.append(name)
                 continue
 
