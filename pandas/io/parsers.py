@@ -3,13 +3,13 @@ Module contains tools for processing files into DataFrames or other objects
 """
 
 from StringIO import StringIO
+import zipfile
 
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import pandas._tseries as lib
-
 
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
@@ -117,6 +117,18 @@ parsed : DataFrame
 """ % (_parser_params % _table_sep)
 
 
+class BufferedReader(object):
+    """
+    For handling different kinds of files, e.g. zip files where reading out a
+    chunk of lines is faster than reading out one line at a time.
+    """
+
+    def __init__(self, fh, delimiter=','):
+        pass
+
+class BufferedCSVReader(BufferedReader):
+    pass
+
 class TextParser(object):
     """
     Converts lists of lists/tuples into DataFrames with proper type inference
@@ -176,6 +188,7 @@ class TextParser(object):
 
         self.columns = self._infer_columns()
         self.index_name = self._get_index_name()
+        self._first_chunk = True
 
     def _infer_columns(self):
         names = self.names
@@ -238,7 +251,8 @@ class TextParser(object):
 
     def __iter__(self):
         try:
-            yield self.get_chunk(self.chunksize)
+            while True:
+                yield self.get_chunk(self.chunksize)
         except StopIteration:
             pass
 
@@ -280,7 +294,16 @@ class TextParser(object):
         return index_name
 
     def get_chunk(self, rows=None):
-        content = self._get_lines(rows)
+        try:
+            content = self._get_lines(rows)
+        except StopIteration:
+            if self._first_chunk:
+                content = []
+            else:
+                raise
+
+        # done with first read, next time raise StopIteration
+        self._first_chunk = False
 
         if len(content) == 0: # pragma: no cover
             if self.index_col is not None:
@@ -357,7 +380,9 @@ class TextParser(object):
                     while True:
                         lines.append(source.next())
             except StopIteration:
-                pass
+                if len(lines) == 0:
+                    raise
+            self.pos += len(lines)
 
         self.buf = []
 
