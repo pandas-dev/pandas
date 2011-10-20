@@ -135,6 +135,7 @@ def convert_sql_column(ndarray[object] objects):
             floats[i] = val
             seen_float = 1
         elif not (cpython.PyString_Check(val) or cpython.PyUnicode_Check(val)):
+            # this will convert Decimal objects
             try:
                 floats[i] = float(val)
                 seen_float = 1
@@ -142,7 +143,7 @@ def convert_sql_column(ndarray[object] objects):
                 pass
 
     if seen_null:
-        if seen_float:
+        if seen_float or seen_int:
             return floats
         else:
             return objects
