@@ -556,6 +556,11 @@ class TestInt64Index(unittest.TestCase):
         result = self.index.astype('O')
         self.assert_(result.dtype == np.object_)
 
+    def test_take_preserve_name(self):
+        index = Int64Index([1,2,3,4], name='foo')
+        taken = index.take([3,0,1])
+        self.assertEqual(index.name, taken.name)
+
 class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):
@@ -966,6 +971,10 @@ class TestMultiIndex(unittest.TestCase):
 
         # key wrong length
         self.assertRaises(Exception, self.index.insert, 0, ('foo2',))
+
+    def test_take_preserve_name(self):
+        taken = self.index.take([3,0,1])
+        self.assertEqual(taken.names, self.index.names)
 
 class TestFactor(unittest.TestCase):
 

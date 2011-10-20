@@ -759,7 +759,7 @@ class Int64Index(Index):
         Analogous to ndarray.take
         """
         taken = self.values.take(*args, **kwargs)
-        return Int64Index(taken)
+        return Int64Index(taken, name=self.name)
 
 class DateIndex(Index):
     pass
@@ -1064,7 +1064,8 @@ class MultiIndex(Index):
         Analogous to ndarray.take
         """
         new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
-        return MultiIndex(levels=self.levels, labels=new_labels)
+        return MultiIndex(levels=self.levels, labels=new_labels,
+                          names=self.names)
 
     def append(self, other):
         """

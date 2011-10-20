@@ -158,6 +158,8 @@ feedback on the library.
   - `DataFrame.iteritems` and `DataFrame._series` not assigning name attribute
   - Panel.__repr__ raised exception on length-0 major/minor axes
   - `DataFrame.join` on key with empty DataFrame produced incorrect columns
+  - `Int64Index.take` and `MultiIndex.take` lost name field, fix downstream
+    issue GH #262
   - `read_csv` / `read_table` fixes
     - Be less aggressive about converting float->int in cases of floating point
       representations of integers like 1.0, 2.0, etc.

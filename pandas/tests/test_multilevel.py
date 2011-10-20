@@ -75,6 +75,10 @@ class TestMultiLevel(unittest.TestCase):
         chunk = ymdT.ix[:, new_index]
         self.assert_(chunk.columns is new_index)
 
+    def test_sort_index_preserve_levels(self):
+        result = self.frame.sort_index()
+        self.assertEquals(result.index.names, self.frame.index.names)
+
     def test_repr_to_string(self):
         repr(self.frame)
         repr(self.ymd)
