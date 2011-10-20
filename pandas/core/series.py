@@ -592,20 +592,21 @@ copy : boolean, default False
 
         return Series(result, index=level_index)
 
-    def histogram(self):
+    def value_counts(self):
         """
-        Returns Series containing counts of unique values. The result Series's
-        index will be the sorted unique values
+        Returns Series containing counts of unique values. The resulting Series
+        will be in descending order so that the first element is the most
+        frequently-occurring element
 
         Returns
         -------
-        histogram : Series
+        counts : Series
         """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
         for value in self.values:
             counter[value] += 1
-        return Series(counter)
+        return Series(counter).order(ascending=False)
 
     def sum(self, axis=0, dtype=None, out=None, skipna=True):
         """

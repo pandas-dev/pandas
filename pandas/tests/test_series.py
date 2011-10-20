@@ -759,14 +759,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertEqual(self.ts.count(), np.isfinite(self.ts).sum())
 
-    def test_histogram(self):
-        s = Series(['a', 'b', 'b', 'b', 'a', 'c', 'd', 'd', 'a'])
-        hist = s.histogram()
-        expected = Series([3, 3, 1, 2], index=['a', 'b', 'c', 'd'])
+    def test_value_counts(self):
+        s = Series(['a', 'b', 'b', 'b', 'b', 'a', 'c', 'd', 'd', 'a'])
+        hist = s.value_counts()
+        expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
         assert_series_equal(hist, expected)
 
         s = Series({})
-        hist = s.histogram()
+        hist = s.value_counts()
         expected = Series([])
         assert_series_equal(hist, expected)
 
