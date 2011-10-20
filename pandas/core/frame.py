@@ -2387,10 +2387,18 @@ class DataFrame(NDFrame):
             return self._count_level(level, axis=axis,
                                      numeric_only=numeric_only)
 
-        y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only,
-                                            copy=False)
-        mask = notnull(y)
-        return Series(mask.sum(axis), index=axis_labels)
+        if numeric_only:
+            frame = self.ix[:, self._get_numeric_columns()]
+        else:
+            frame = self
+
+        result = frame.apply(Series.count, axis=axis)
+
+        # what happens with empty DataFrame
+        if isinstance(result, DataFrame):
+            result = Series({})
+
+        return result
 
     def _count_level(self, level, axis=0, numeric_only=False):
         # TODO: deal with sortedness??
