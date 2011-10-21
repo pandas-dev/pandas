@@ -830,6 +830,26 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         empty = Panel()
         repr(empty)
 
+    def test_rename(self):
+        mapper = {
+            'ItemA' : 'foo',
+            'ItemB' : 'bar',
+            'ItemC' : 'baz'
+        }
+
+        renamed = self.panel.rename_axis(mapper, axis=0)
+        exp = Index(['foo', 'bar', 'baz'])
+        self.assert_(renamed.items.equals(exp))
+
+        renamed = self.panel.rename_axis(str.lower, axis=2)
+        exp = Index(['a', 'b', 'c', 'd'])
+        self.assert_(renamed.minor_axis.equals(exp))
+
+        # don't copy
+        renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
+        renamed_nocopy['foo'] = 3.
+        self.assert_((self.panel['ItemA'].values == 3).all())
+
 class TestLongPanel(unittest.TestCase):
 
     def setUp(self):
@@ -1147,7 +1167,6 @@ class TestLongPanel(unittest.TestCase):
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
-
 
 
 def test_group_agg():

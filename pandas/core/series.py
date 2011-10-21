@@ -1858,15 +1858,7 @@ copy : boolean, default False
         -------
         renamed : Series (new object)
         """
-        if isinstance(mapper, (dict, Series)):
-            def mapper_f(x):
-                if x in mapper:
-                    return mapper[x]
-                else:
-                    return x
-        else:
-            mapper_f = mapper
-
+        mapper_f = _get_rename_function(mapper)
         result = self.copy()
         result.index = [mapper_f(x) for x in self.index]
 
@@ -1888,3 +1880,16 @@ def remove_na(arr):
     Return array containing only true/non-NaN values, possibly empty.
     """
     return arr[notnull(arr)]
+
+
+def _get_rename_function(mapper):
+    if isinstance(mapper, (dict, Series)):
+        def f(x):
+            if x in mapper:
+                return mapper[x]
+            else:
+                return x
+    else:
+        f = mapper
+
+    return f

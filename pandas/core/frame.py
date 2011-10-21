@@ -1474,26 +1474,13 @@ class DataFrame(NDFrame):
         -------
         renamed : DataFrame (new object)
         """
-        if isinstance(index, (dict, Series)):
-            def index_f(x):
-                if x in index:
-                    return index[x]
-                else:
-                    return x
-        else:
-            index_f = index
-
-        if isinstance(columns, (dict, Series)):
-            def columns_f(x):
-                if x in columns:
-                    return columns[x]
-                else:
-                    return x
-        else:
-            columns_f = columns
+        from pandas.core.series import _get_rename_function
 
         if index is None and columns is None:
             raise Exception('must pass either index or columns')
+
+        index_f = _get_rename_function(index)
+        columns_f = _get_rename_function(columns)
 
         self._consolidate_inplace()
 

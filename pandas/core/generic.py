@@ -458,3 +458,40 @@ class NDFrame(PandasObject):
         """
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data)
+
+    def rename_axis(self, mapper, axis=0, copy=True):
+        """
+        Alter index and / or columns using input function or
+        functions. Function / dict values must be unique (1-to-1). Labels not
+        contained in a dict / Series will be left as-is.
+
+        Parameters
+        ----------
+        index : dict-like or function, optional
+            Transformation to apply to index values
+        columns : dict-like or function, optional
+            Transformation to apply to column values
+        copy : boolean, default True
+            Also copy underlying data
+
+        See also
+        --------
+        Series.rename
+
+        Returns
+        -------
+        renamed : DataFrame (new object)
+        """
+        # should move this at some point
+        from pandas.core.series import _get_rename_function
+
+        mapper_f = _get_rename_function(mapper)
+
+        if axis == 0:
+            new_data = self._data.rename_items(mapper_f, copydata=copy)
+        else:
+            new_data = self._data.rename_axis(mapper_f, axis=axis)
+            if copy:
+                new_data = new_data.copy()
+
+        return self._constructor(new_data)

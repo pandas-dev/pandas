@@ -119,6 +119,8 @@ feedback on the library.
     #253)
   - Can use & and | to intersection / union Index objects, respectively (GH
     #261)
+  - Added `pivot_table` convenience function to pandas namespace (GH #234)
+  - Implemented `Panel.rename_axis` function (GH #243)
 
 **Improvements to existing features**
 

@@ -531,3 +531,4 @@ def _asarray_tuplesafe(values, dtype=None):
         result[:] = values
 
     return result
+
