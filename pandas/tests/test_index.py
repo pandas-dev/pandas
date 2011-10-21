@@ -922,6 +922,9 @@ class TestMultiIndex(unittest.TestCase):
         result = self.index - self.index.sortlevel(1)[0]
         self.assert_(len(result) == 0)
 
+    def test_from_tuples(self):
+        self.assertRaises(Exception, MultiIndex.from_tuples, [])
+
     def test_argsort(self):
         result = self.index.argsort()
         expected = self.index.get_tuple_index().argsort()

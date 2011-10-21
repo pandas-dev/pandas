@@ -999,6 +999,8 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
         """
+        if len(tuples) == 0:
+            raise Exception('Cannot infer number of levels from empty list')
         arrays = zip(*tuples)
         return MultiIndex.from_arrays(arrays, sortorder=sortorder,
                                       names=names)
