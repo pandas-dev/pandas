@@ -907,9 +907,16 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
+        # empty difference
         result = first - first
         expected = first[:0]
         self.assert_(result.equals(expected))
+
+        # names not the same
+        chunklet = self.index[-3:]
+        chunklet.names = ['foo', 'baz']
+        result = first - chunklet
+        self.assertEqual(result.names, [None, None])
 
     def test_argsort(self):
         result = self.index.argsort()

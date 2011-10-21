@@ -1531,12 +1531,16 @@ class MultiIndex(Index):
         """
         self._assert_can_do_setop(other)
 
+        result_names = self.names if self.names == other.names else None
+
         if self.equals(other):
-            return self[:0]
+            return MultiIndex(levels=[[]]*self.nlevels,
+                              labels=[[]]*self.nlevels,
+                              names=result_names)
 
         difference = sorted(set(self.values) - set(other.values))
         return MultiIndex.from_tuples(difference, sortorder=0,
-                                      names=self.names)
+                                      names=result_names)
 
     def _assert_can_do_setop(self, other):
         if not isinstance(other, MultiIndex):
