@@ -201,7 +201,8 @@ class TextParser(object):
                 line = self.buf[0]
             else:
                 line = self._next_line()
-            while self.header > self.pos:
+
+            while self.pos <= self.header:
                 line = self._next_line()
 
             columns = []
@@ -226,7 +227,6 @@ class TextParser(object):
                 columns = ['X.%d' % (i + 1) for i in range(ncols)]
             else:
                 columns = names
-
 
         return columns
 
@@ -258,6 +258,7 @@ class TextParser(object):
 
     def _get_index_name(self):
         columns = self.columns
+        passed_names = self.names is not None
 
         try:
             line = self._next_line()
@@ -265,31 +266,23 @@ class TextParser(object):
             line = None
 
         # implicitly index_col=0 b/c 1 fewer column names
-        index_name = None
         implicit_first_col = (line is not None and
                               len(line) == len(columns) + 1)
 
-        passed_names = self.names is not None
-
+        index_name = None
         if implicit_first_col:
             if self.index_col is None:
                 self.index_col = 0
             index_name = None
         elif np.isscalar(self.index_col):
-            if passed_names:
-                index_name = None
-            else:
-                index_name = columns.pop(self.index_col)
+            index_name = columns.pop(self.index_col)
         elif self.index_col is not None:
-            if not passed_names:
-                cp_cols = list(columns)
-                index_name = []
-                for i in self.index_col:
-                    name = cp_cols[i]
-                    columns.remove(name)
-                    index_name.append(name)
-            else:
-                index_name=None
+            cp_cols = list(columns)
+            index_name = []
+            for i in self.index_col:
+                name = cp_cols[i]
+                columns.remove(name)
+                index_name.append(name)
 
         return index_name
 

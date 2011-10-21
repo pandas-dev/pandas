@@ -14,6 +14,14 @@ from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
 
 class TestParsers(unittest.TestCase):
+    data1 = """index,A,B,C,D
+foo,2,3,4,5
+bar,7,8,9,10
+baz,12,13,14,15
+qux,12,13,14,15
+foo2,12,13,14,15
+bar2,12,13,14,15
+"""
 
     def setUp(self):
         self.dirpath = curpath()
@@ -181,7 +189,9 @@ qux,12,13,14,15
 foo,12,13,14,15
 bar,12,13,14,15
 """
-        self.assertRaises(Exception, read_csv, StringIO(data), index_col=0)
+
+        self.assertRaises(Exception, read_csv, StringIO(data),
+                          index_col=0)
 
     def test_parse_bools(self):
         data = """A,B
@@ -211,6 +221,76 @@ baz,7,8,9
         data = read_csv(StringIO(data))
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
+    def test_read_nrows(self):
+        df = read_csv(StringIO(self.data1), nrows=3)
+        expected = read_csv(StringIO(self.data1))[:3]
+        assert_frame_equal(df, expected)
+
+    def test_read_chunksize(self):
+        reader = read_csv(StringIO(self.data1), index_col=0, chunksize=2)
+        df = read_csv(StringIO(self.data1), index_col=0)
+
+        chunks = list(reader)
+
+        assert_frame_equal(chunks[0], df[:2])
+        assert_frame_equal(chunks[1], df[2:4])
+        assert_frame_equal(chunks[2], df[4:])
+
+    def test_iterator(self):
+        reader = read_csv(StringIO(self.data1), index_col=0, iterator=True)
+        df = read_csv(StringIO(self.data1), index_col=0)
+
+        chunk = reader.get_chunk(3)
+        assert_frame_equal(chunk, df[:3])
+
+        last_chunk = reader.get_chunk(5)
+        assert_frame_equal(last_chunk, df[3:])
+
+    def test_header_not_first_line(self):
+        data = """got,to,ignore,this,line
+got,to,ignore,this,line
+index,A,B,C,D
+foo,2,3,4,5
+bar,7,8,9,10
+baz,12,13,14,15
+"""
+        data2 = """index,A,B,C,D
+foo,2,3,4,5
+bar,7,8,9,10
+baz,12,13,14,15
+"""
+
+        df = read_csv(StringIO(data), header=2, index_col=0)
+        expected = read_csv(StringIO(data2), header=0, index_col=0)
+        assert_frame_equal(df, expected)
+
+    def test_pass_names_with_index(self):
+        lines = self.data1.split('\n')
+        no_header = '\n'.join(lines[1:])
+
+        # regular index
+        names = ['index', 'A', 'B', 'C', 'D']
+        df = read_csv(StringIO(no_header), index_col=0, names=names)
+        expected = read_csv(StringIO(self.data1), index_col=0)
+        assert_frame_equal(df, expected)
+
+        # multi index
+        data = """index1,index2,A,B,C,D
+foo,one,2,3,4,5
+foo,two,7,8,9,10
+foo,three,12,13,14,15
+bar,one,12,13,14,15
+bar,two,12,13,14,15
+"""
+        lines = data.split('\n')
+        no_header = '\n'.join(lines[1:])
+        names = ['index1', 'index2', 'A', 'B', 'C', 'D']
+        df = read_csv(StringIO(no_header), index_col=[0, 1], names=names)
+        expected = read_csv(StringIO(data), index_col=[0, 1])
+        assert_frame_equal(df, expected)
+
+    def test_multi_index_no_level_names(self):
+        pass
 
 class TestParseSQL(unittest.TestCase):
 
