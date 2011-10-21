@@ -8,12 +8,12 @@ see the commit logs at http://github.com/wesm/pandas
 What is it
 ----------
 
-**pandas** is a library of powerful labeled-axis data structures, statistical
-tools, and general code for working with relational data sets, including time
-series and cross-sectional data. It was designed with the practical needs of
-statistical modeling and large, inhomogeneous data sets in mind. It is
-particularly well suited for, among other things, financial data analysis
-applications.
+pandas is a Python package providing fast, flexible, and expressive data
+structures designed to make working with “relational” or “labeled” data both
+easy and intuitive. It aims to be the fundamental high-level building block for
+doing practical, real world data analysis in Python. Additionally, it has the
+broader goal of becoming the most powerful and flexible open source data
+analysis / manipulation tool available in any language.
 
 Where to get it
 ---------------
