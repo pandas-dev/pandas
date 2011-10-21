@@ -6,6 +6,7 @@
    :suppress:
 
    import numpy as np
+   import os
    np.random.seed(123456)
    from pandas import *
    from StringIO import StringIO
@@ -29,9 +30,8 @@ data into a DataFrame object. They can take a number of arguments:
 
   - ``path_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
-  - ``delimiter``: For ``read_table`` only, a regular expression to split
-    fields on. ``read_csv`` uses the ``csv`` module to do this and hence only
-    supports comma-separated values.
+  - ``sep``: A delimiter / separator to split fields on. `read_csv` is capable
+    of inferring automatically "sniffing" the delimiter in some cases
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
   - ``names``: List of column names to use if header is None.
@@ -47,44 +47,88 @@ data into a DataFrame object. They can take a number of arguments:
     ``dateutil.parser``. Specifying this implicitly sets ``parse_dates`` as True.
   - ``na_values``: optional list of strings to recognize as NaN (missing values),
     in addition to a default set.
-  
+  - ``nrows``: Number of rows to read out of the file. Useful to only read a
+    small portion of a large file
+  - ``chunksize``: An number of rows to be used to "chunk" a file into
+    pieces. Will cause an ``TextParser`` object to be returned. More on this
+    below in the section on :ref:`iterating and chunking <io.chunking>`
+  - ``iterator``: If True, return a ``TextParser`` to enable reading a file
+    into memory piece by piece
 
-.. code-block:: ipython
+.. ipython:: python
+   :suppress:
 
-    In [1]: print open('foo.csv').read()
-    date,A,B,C
-    20090101,a,1,2
-    20090102,b,3,4
-    20090103,c,4,5
-    
-    # A basic index is created by default:
-    In [3]: read_csv('foo.csv')
-    Out[3]:
-       date      A  B  C
-    0  20090101  a  1  2
-    1  20090102  b  3  4
-    2  20090103  c  4  5
+   f = open('foo.csv', 'w')
+   f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
+   f.close()
 
-    # Use a column as an index, and parse it as dates.
-    In [3]: df = read_csv('foo.csv', index_col=0, parse_dates=True)
-    
-    In [4]: df
-    Out[4]:
-                A  B  C
-    2009-01-01  a  1  2
-    2009-01-02  b  3  4
-    2009-01-03  c  4  5
+Consider a typical CSV file containing, in this case, some time series data:
 
-    # These are python datetime objects
-    In [16]: df.index
-    Out[16]: Index([2009-01-01 00:00:00, 2009-01-02 00:00:00,
-                    2009-01-03 00:00:00], dtype=object)
+.. ipython:: python
 
+   print open('foo.csv').read()
+
+The default for `read_csv` is to create a DataFrame with simple numbered rows:
+
+.. ipython:: python
+
+   read_csv('foo.csv')
+
+In the case of indexed data, you can pass the column number (or a list of
+column numbers, for a hierarchical index) you wish to use as the index. If the
+index values are dates and you want them to be converted to ``datetime``
+objects, pass ``parse_dates=True``:
+
+.. ipython:: python
+
+   # Use a column as an index, and parse it as dates.
+   df = read_csv('foo.csv', index_col=0, parse_dates=True)
+   df
+   # These are python datetime objects
+   df.index
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('foo.csv')
 
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
 integer dtype without altering the contents, it will do so. Any non-numeric
 columns will come through as object dtype as with the rest of pandas objects.
+
+Files with an "implicit" index column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+   :suppress:
+
+   f = open('foo.csv', 'w')
+   f.write('A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
+   f.close()
+
+Consider a file with one less entry in the header than the number of data
+column:
+
+.. ipython:: python
+
+   print open('foo.csv').read()
+
+In this special case, ``read_csv`` assumes that the first column is to be used
+as the index of the DataFrame:
+
+.. ipython:: python
+
+   read_csv('foo.csv')
+
+Note that the dates weren't automatically parsed. In that case you would need
+to do as before:
+
+.. ipython:: python
+
+   df = read_csv('foo.csv', parse_dates=True)
+   df.index
+
 
 Reading DataFrame objects with ``MultiIndex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -103,6 +147,65 @@ column numbers to turn multiple columns into a ``MultiIndex``:
    df = read_csv("data/mindex_ex.csv", index_col=[0,1])
    df
    df.ix[1978]
+
+.. .. _io.sniff:
+
+.. Automatically "sniffing" the delimiter
+.. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. ``read_csv`` is capable of inferring delimited, but not necessarily
+.. comma-separated, files in some cases:
+
+.. .. ipython:: python
+
+..    print open('tmp.csv').read()
+..    read_csv('tmp.csv')
+
+
+
+.. _io.chunking:
+
+Iterating through files chunk by chunk
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Suppose you wish to iterate through a (potentially very large) file lazily
+rather than reading the entire file into memory, such as the following:
+
+.. ipython:: python
+   :suppress:
+
+   df[:7].to_csv('tmp.sv', delimiter='|')
+
+.. ipython:: python
+
+   print open('tmp.sv').read()
+   table = read_table('tmp.sv', sep='|')
+   table
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
+
+By specifiying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
+value will be an iterable object of type ``TextParser``:
+
+.. ipython::
+
+   In [1]: reader = read_table('tmp.sv', sep='|', chunksize=4)
+
+   In [1]: reader
+
+   In [2]: for chunk in reader:
+      ...:     print chunk
+      ...:
+
+Specifying ``iterator=True`` will also return the ``TextParser`` object:
+
+.. ipython:: python
+
+   reader = read_table('tmp.sv', sep='|', iterator=True)
+   reader.get_chunk(5)
 
 Excel 2003 files
 ----------------
@@ -132,7 +235,6 @@ performance HDF5 format using the excellent `PyTables
 .. ipython:: python
    :suppress:
 
-   import os
    os.remove('store.h5')
 
 .. ipython:: python

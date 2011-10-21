@@ -144,7 +144,8 @@ feedback on the library.
   - Add support for different delimiters in `DataFrame.to_csv` (PR #244)
   - Add more helpful error message when importing pandas post-installation from
     the source directory (GH #250)
-
+  - Significantly speed up DataFrame `__repr__` and `count` on large mixed-type
+    DataFrame objects
 
 **Bug fixes**
 
@@ -305,8 +306,6 @@ infrastructure are the main new additions
     retrieve groups
   - Added informative Exception when passing dict to DataFrame groupby
     aggregation with axis != 0
-  - Significantly speed up DataFrame `__repr__` and `count` on large mixed-type
-    DataFrame objects
 
 **API Changes**
 
