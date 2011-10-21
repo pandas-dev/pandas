@@ -918,6 +918,10 @@ class TestMultiIndex(unittest.TestCase):
         result = first - chunklet
         self.assertEqual(result.names, [None, None])
 
+        # empty, but non-equal
+        result = self.index - self.index.sortlevel(1)[0]
+        self.assert_(len(result) == 0)
+
     def test_argsort(self):
         result = self.index.argsort()
         expected = self.index.get_tuple_index().argsort()

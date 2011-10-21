@@ -1539,8 +1539,14 @@ class MultiIndex(Index):
                               names=result_names)
 
         difference = sorted(set(self.values) - set(other.values))
-        return MultiIndex.from_tuples(difference, sortorder=0,
-                                      names=result_names)
+
+        if not difference:
+            return MultiIndex(levels=[[]]*self.nlevels,
+                              labels=[[]]*self.nlevels,
+                              names=result_names)
+        else:
+            return MultiIndex.from_tuples(difference, sortorder=0,
+                                          names=result_names)
 
     def _assert_can_do_setop(self, other):
         if not isinstance(other, MultiIndex):
