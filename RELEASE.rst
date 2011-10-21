@@ -18,9 +18,9 @@ analysis / manipulation tool available in any language.
 Where to get it
 ---------------
 
-Source code: http://github.com/wesm/pandas
-Binary installers on PyPI: http://pypi.python.org/pypi/pandas
-Documentation: http://pandas.sourceforge.net
+* Source code: http://github.com/wesm/pandas
+* Binary installers on PyPI: http://pypi.python.org/pypi/pandas
+* Documentation: http://pandas.sourceforge.net
 
 pandas 0.5.0
 ============

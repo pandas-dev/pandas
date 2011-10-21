@@ -239,6 +239,7 @@ baz,7,8,9
 
     def test_iterator(self):
         reader = read_csv(StringIO(self.data1), index_col=0, iterator=True)
+
         df = read_csv(StringIO(self.data1), index_col=0)
 
         chunk = reader.get_chunk(3)
@@ -257,6 +258,10 @@ baz,7,8,9
         assert_frame_equal(chunks[0], df[:2])
         assert_frame_equal(chunks[1], df[2:4])
         assert_frame_equal(chunks[2], df[4:])
+
+        treader = read_table(StringIO(self.data1), sep=',', index_col=0,
+                             iterator=True)
+        self.assert_(isinstance(treader, TextParser))
 
     def test_header_not_first_line(self):
         data = """got,to,ignore,this,line

@@ -62,13 +62,17 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
 
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None):
+               date_parser=None, nrows=None, iterator=False, chunksize=None):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
-                    names=names, parse_dates=parse_dates)
+                    names=names, parse_dates=parse_dates,
+                    nrows=nrows, iterator=iterator, chunksize=chunksize)
 
-_parser_params = """Parameters
+_parser_params = """Also supports optionally iterating or breaking of the file
+into chunks.
+
+Parameters
 ----------
 filepath_or_buffer : string or file handle / StringIO
 %s
@@ -79,6 +83,8 @@ skiprows : list-like
 index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
+names : array-like
+    List of column names
 na_values : list-like, default None
     List of additional strings to recognize as NA/NaN
 parse_dates : boolean, default False
@@ -86,8 +92,17 @@ parse_dates : boolean, default False
 date_parser : function
     Function to use for converting dates to strings. Defaults to
     dateutil.parser
-names : array-like
-    List of column names"""
+nrows : int, default None
+    Number of rows of file to read. Useful for reading pieces of large files
+iterator : boolean, default False
+    Return TextParser object
+chunksize : int, default None
+    Return TextParser object for iteration
+
+Returns
+-------
+result : DataFrame or TextParser
+"""
 
 _csv_sep = """sep : string, default None
     Delimiter to use. By default will try to automatically determine
