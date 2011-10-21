@@ -1,6 +1,7 @@
 """
 Misc tools for implementing data structures
 """
+import cPickle
 try:
     from io import BytesIO
 except ImportError:   # Python < 2.6
@@ -532,3 +533,40 @@ def _asarray_tuplesafe(values, dtype=None):
 
     return result
 
+
+def save(obj, path):
+    """
+    Pickle (serialize) object to input file path
+
+    Parameters
+    ----------
+    obj : any object
+    path : string
+        File path
+    """
+    f = open(path, 'wb')
+    try:
+        cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
+    finally:
+        f.close()
+
+
+def load(path):
+    """
+    Load pickled pandas object (or any other pickled object) from the specified
+    file path
+
+    Parameters
+    ----------
+    path : string
+        File path
+
+    Returns
+    -------
+    unpickled : type of object stored in file
+    """
+    f = open(path, 'rb')
+    try:
+        return cPickle.load(f)
+    finally:
+        f.close()

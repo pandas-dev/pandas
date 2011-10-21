@@ -1,6 +1,7 @@
 import numpy as np
 import cPickle
 
+from pandas.core.common import save, load
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.datetools as datetools
 
@@ -9,20 +10,12 @@ import pandas.core.datetools as datetools
 
 class Picklable(object):
 
-    def save(self, fileName):
-        f = open(fileName, 'wb')
-        try:
-            cPickle.dump(self, f, protocol=cPickle.HIGHEST_PROTOCOL)
-        finally:
-            f.close()
+    def save(self, path):
+        save(self, path)
 
     @classmethod
-    def load(cls, fileName):
-        f = open(fileName, 'rb')
-        try:
-            return cPickle.load(f)
-        finally:
-            f.close()
+    def load(cls, path):
+        return load(path)
 
 class PandasError(Exception):
     pass
@@ -461,26 +454,24 @@ class NDFrame(PandasObject):
 
     def rename_axis(self, mapper, axis=0, copy=True):
         """
-        Alter index and / or columns using input function or
-        functions. Function / dict values must be unique (1-to-1). Labels not
-        contained in a dict / Series will be left as-is.
+        Alter index and / or columns using input function or functions.
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is.
 
         Parameters
         ----------
-        index : dict-like or function, optional
-            Transformation to apply to index values
-        columns : dict-like or function, optional
-            Transformation to apply to column values
+        mapper : dict-like or function, optional
+        axis : int, default 0
         copy : boolean, default True
             Also copy underlying data
 
         See also
         --------
-        Series.rename
+        DataFrame.rename
 
         Returns
         -------
-        renamed : DataFrame (new object)
+        renamed : type of caller
         """
         # should move this at some point
         from pandas.core.series import _get_rename_function
