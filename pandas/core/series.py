@@ -19,7 +19,8 @@ from numpy import nan, ndarray
 import numpy as np
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
-                                _default_index, _maybe_upcast)
+                                _default_index, _maybe_upcast,
+                                _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -109,7 +110,6 @@ class Series(np.ndarray, PandasObject):
                 index = Index(sorted(data.keys()))
             data = [data.get(idx, np.nan) for idx in index]
 
-        # Create array, do *not* copy data by default, infer type
         try:
             subarr = np.array(data, dtype=dtype, copy=copy)
         except ValueError:
@@ -139,9 +139,11 @@ class Series(np.ndarray, PandasObject):
                 subarr.fill(value)
             else:
                 return subarr.item()
-
         elif subarr.ndim > 1:
-            raise Exception('Data must be 1-dimensional')
+            if isinstance(data, np.ndarray):
+                raise Exception('Data must be 1-dimensional')
+            else:
+                subarr = _asarray_tuplesafe(data, dtype=dtype)
 
         if index is None:
             index = _default_index(len(subarr))

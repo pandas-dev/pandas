@@ -298,7 +298,7 @@ class TestGroupBy(unittest.TestCase):
     def test_series_describe_single(self):
         ts = tm.makeTimeSeries()
         grouped = ts.groupby(lambda x: x.month)
-        result = grouped.agg(lambda x: x.describe())
+        result = grouped.apply(lambda x: x.describe())
         expected = grouped.describe()
         assert_frame_equal(result, expected)
 

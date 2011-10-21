@@ -157,6 +157,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
         assert_series_equal(result, expected)
 
+    def test_constructor_tuples(self):
+        data = [(1, 1), (2, 2), (2, 3)]
+        s = Series(data)
+        self.assertEqual(list(s), data)
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 

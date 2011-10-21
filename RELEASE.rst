@@ -146,6 +146,16 @@ feedback on the library.
 
 **Bug fixes**
 
+  - `read_csv` / `read_table` fixes
+    - Be less aggressive about converting float->int in cases of floating point
+      representations of integers like 1.0, 2.0, etc.
+    - "True"/"False" will not get correctly converted to boolean
+    - Index name attribute will get set when specifying an index column
+    - Passing column names should force `header=None` (GH #257)
+    - Don't modify passed column names when `index_col` is not
+      None (GH #258)
+    - Can sniff CSV separator in zip file (since seek is not supported, was
+      failing before)
   - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
     be reported upstream to matplotlib (GH #224)
   - DataFrame.iteritems was not returning Series with the name attribute
@@ -166,16 +176,7 @@ feedback on the library.
   - Implemented `MultiIndex.diff` (GH #260)
   - `Int64Index.take` and `MultiIndex.take` lost name field, fix downstream
     issue GH #262
-  - `read_csv` / `read_table` fixes
-    - Be less aggressive about converting float->int in cases of floating point
-      representations of integers like 1.0, 2.0, etc.
-    - "True"/"False" will not get correctly converted to boolean
-    - Index name attribute will get set when specifying an index column
-    - Passing column names should force `header=None` (GH #257)
-    - Don't modify passed column names when `index_col` is not
-      None (GH #258)
-    - Can sniff CSV separator in zip file (since seek is not supported, was
-      failing before)
+  - Can pass list of tuples to `Series` (GH #270)
 
 Thanks
 ------

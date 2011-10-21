@@ -760,7 +760,10 @@ class SeriesGroupBy(GroupBy):
         values = self.obj.values
         result = {}
         for k, v in self.primary.indices.iteritems():
-            result[k] = func(values.take(v), *args, **kwargs)
+            agged = func(values.take(v), *args, **kwargs)
+            if isinstance(output, np.ndarray):
+                raise Exception('Must produce aggregated value')
+            result[k] = agged
 
         return result
 
@@ -771,6 +774,8 @@ class SeriesGroupBy(GroupBy):
             grp = self.get_group(name)
             grp.name = name
             output = func(grp, *args, **kwargs)
+            if isinstance(output, np.ndarray):
+                raise Exception('Must produce aggregated value')
             result[name] = output
 
         return result
