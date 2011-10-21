@@ -1,5 +1,6 @@
 from cStringIO import StringIO
 from datetime import datetime
+import csv
 import os
 import unittest
 
@@ -9,7 +10,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Index
-from pandas.io.parsers import read_csv, read_table, ExcelFile
+from pandas.io.parsers import read_csv, read_table, ExcelFile, TextParser
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
 
@@ -246,6 +247,17 @@ baz,7,8,9
         last_chunk = reader.get_chunk(5)
         assert_frame_equal(last_chunk, df[3:])
 
+        # pass list
+        lines = list(csv.reader(StringIO(self.data1)))
+        parser = TextParser(lines, index_col=0, chunksize=2)
+
+        df = read_csv(StringIO(self.data1), index_col=0)
+
+        chunks = list(parser)
+        assert_frame_equal(chunks[0], df[:2])
+        assert_frame_equal(chunks[1], df[2:4])
+        assert_frame_equal(chunks[2], df[4:])
+
     def test_header_not_first_line(self):
         data = """got,to,ignore,this,line
 got,to,ignore,this,line
@@ -290,7 +302,19 @@ bar,two,12,13,14,15
         assert_frame_equal(df, expected)
 
     def test_multi_index_no_level_names(self):
-        pass
+        data = """index1,index2,A,B,C,D
+foo,one,2,3,4,5
+foo,two,7,8,9,10
+foo,three,12,13,14,15
+bar,one,12,13,14,15
+bar,two,12,13,14,15
+"""
+        lines = data.split('\n')
+        no_header = '\n'.join(lines[1:])
+        names = ['A', 'B', 'C', 'D']
+        df = read_csv(StringIO(no_header), index_col=[0, 1], names=names)
+        expected = read_csv(StringIO(data), index_col=[0, 1])
+        assert_frame_equal(df, expected)
 
 class TestParseSQL(unittest.TestCase):
 

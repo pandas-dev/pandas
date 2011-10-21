@@ -258,7 +258,6 @@ class TextParser(object):
 
     def _get_index_name(self):
         columns = self.columns
-        passed_names = self.names is not None
 
         try:
             line = self._next_line()
@@ -266,13 +265,15 @@ class TextParser(object):
             line = None
 
         # implicitly index_col=0 b/c 1 fewer column names
-        implicit_first_col = (line is not None and
-                              len(line) == len(columns) + 1)
+        if line is not None:
+            implicit_first_cols = len(line) - len(columns)
+        else:
+            implicit_first_cols = 0
 
         index_name = None
-        if implicit_first_col:
+        if implicit_first_cols > 0:
             if self.index_col is None:
-                self.index_col = 0
+                self.index_col = range(implicit_first_cols)
             index_name = None
         elif np.isscalar(self.index_col):
             index_name = columns.pop(self.index_col)
