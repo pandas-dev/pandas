@@ -356,11 +356,11 @@ def set_printoptions(precision=None, column_space=None):
 _float_format = lambda x: '%.4g' % x
 _column_space = 12
 
-def _pfixed(s, space, nanRep=None, float_format=None):
+def _pfixed(s, space, na_rep=None, float_format=None):
     if isinstance(s, float):
-        if nanRep is not None and isnull(s):
+        if na_rep is not None and isnull(s):
             if np.isnan(s):
-                s = nanRep
+                s = na_rep
             return (' %s' % s).ljust(space)
 
         if float_format:
@@ -386,11 +386,11 @@ def _stringify(col):
     else:
         return '%s' % col
 
-def _format(s, nanRep=None, float_format=None):
+def _format(s, na_rep=None, float_format=None):
     if isinstance(s, float):
-        if nanRep is not None and isnull(s):
+        if na_rep is not None and isnull(s):
             if np.isnan(s):
-                s = nanRep
+                s = na_rep
             return ' %s' % s
 
         if float_format:

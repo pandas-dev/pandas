@@ -468,8 +468,9 @@ class DataFrame(NDFrame):
                                default_kind=kind,
                                default_fill_value=fill_value)
 
-    def to_csv(self, path, nanRep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', delimiter=","):
+    def to_csv(self, path, na_rep='', cols=None, header=True,
+              index=True, index_label=None, mode='w', delimiter=",",
+              nanRep=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -494,6 +495,12 @@ class DataFrame(NDFrame):
         """
         f = open(path, mode)
         csvout = csv.writer(f, lineterminator='\n', delimiter=delimiter)
+
+        if nanRep is not None:  # pragma: no cover
+            import warnings
+            warnings.warn("nanRep is deprecated, use na_rep",
+                          FutureWarning)
+            na_rep = nanRep
 
         if cols is None:
             cols = self.columns
@@ -532,7 +539,7 @@ class DataFrame(NDFrame):
             for i, col in enumerate(cols):
                 val = series[col].get(idx)
                 if isnull(val):
-                    val = nanRep
+                    val = na_rep
 
                 row_fields.append(val)
 
@@ -541,9 +548,15 @@ class DataFrame(NDFrame):
         f.close()
 
     def to_string(self, buf=None, columns=None, colSpace=None,
-                  nanRep='NaN', formatters=None, float_format=None,
-                  sparsify=True):
+                  na_rep='NaN', formatters=None, float_format=None,
+                  sparsify=True, nanRep=None):
         from pandas.core.common import _format, adjoin
+
+        if nanRep is not None:  # pragma: no cover
+            import warnings
+            warnings.warn("nanRep is deprecated, use na_rep",
+                          FutureWarning)
+            na_rep = nanRep
 
         return_ = False
         if buf is None:  # pragma: no cover
@@ -552,11 +565,11 @@ class DataFrame(NDFrame):
 
         if colSpace is None:
             def _myformat(v):
-                return _format(v, nanRep=nanRep,
+                return _format(v, na_rep=na_rep,
                                float_format=float_format)
         else:
             def _myformat(v):
-                return _pfixed(v, colSpace, nanRep=nanRep,
+                return _pfixed(v, colSpace, na_rep=na_rep,
                                float_format=float_format)
 
         if formatters is None:

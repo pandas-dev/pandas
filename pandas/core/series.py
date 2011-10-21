@@ -383,14 +383,20 @@ copy : boolean, default False
         result = '%s\nName: %s, Length: %d' % (result, self.name, len(self))
         return result
 
-    def to_string(self, buf=None, nanRep='NaN'):
-        the_repr = self._get_repr(nanRep=nanRep)
+    def to_string(self, buf=None, na_rep='NaN', nanRep=None):
+        if nanRep is not None:  # pragma: no cover
+            import warnings
+            warnings.warn("nanRep is deprecated, use na_rep",
+                          FutureWarning)
+            na_rep = nanRep
+
+        the_repr = self._get_repr(na_rep=na_rep)
         if buf is None:
             return the_repr
         else:
             print >> buf, the_repr
 
-    def _get_repr(self, name=False, nanRep='NaN'):
+    def _get_repr(self, name=False, na_rep='NaN'):
         vals = self.values
         index = self.index
 
@@ -400,7 +406,7 @@ copy : boolean, default False
 
         def _format_float(k, v):
             if np.isnan(v):
-                v = nanRep
+                v = na_rep
             else:
                 v = str(v)
             return '%s    %s' % (str(k).ljust(padSpace), v)

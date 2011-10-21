@@ -1626,7 +1626,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df[1] = np.nan
 
         pth = '__tmp__.csv'
-        df.to_csv(pth, nanRep=999)
+        df.to_csv(pth, na_rep=999)
 
         lines = open(pth).readlines()
         self.assert_(lines[1].split(',')[2] == '999')
