@@ -863,7 +863,7 @@ class TestMultiIndex(unittest.TestCase):
         piece1 = self.index[:5][::-1]
         piece2 = self.index[3:]
 
-        the_union = piece1.union(piece2)
+        the_union = piece1 | piece2
 
         tups = sorted(self.index.get_tuple_index())
         expected = MultiIndex.from_tuples(tups)
@@ -884,7 +884,7 @@ class TestMultiIndex(unittest.TestCase):
         piece1 = self.index[:5][::-1]
         piece2 = self.index[3:]
 
-        the_int = piece1.intersection(piece2)
+        the_int = piece1 & piece2
         tups = sorted(self.index[3:5].get_tuple_index())
         expected = MultiIndex.from_tuples(tups)
         self.assert_(the_int.equals(expected))
@@ -895,6 +895,21 @@ class TestMultiIndex(unittest.TestCase):
 
         self.assertRaises(TypeError, self.index.intersection,
                           self.index.get_tuple_index())
+
+    def test_diff(self):
+        first = self.index
+        result = first - self.index[-3:]
+        expected = MultiIndex.from_tuples(sorted(self.index[:-3].values),
+                                          sortorder=0,
+                                          names=self.index.names)
+
+        self.assert_(isinstance(result, MultiIndex))
+        self.assert_(result.equals(expected))
+        self.assertEqual(result.names, self.index.names)
+
+        result = first - first
+        expected = first[:0]
+        self.assert_(result.equals(expected))
 
     def test_argsort(self):
         result = self.index.argsort()

@@ -114,6 +114,7 @@ feedback on the library.
   - Add inner join option to `DataFrame.join` when joining on key(s) (GH #248)
   - Can select set of DataFrame columns by passing a list to `__getitem__` (GH
     #253)
+  - Can use & and | to intersection / union Index objects, respectively
 
 **Improvements to existing features**
 
@@ -158,6 +159,7 @@ feedback on the library.
   - `DataFrame.iteritems` and `DataFrame._series` not assigning name attribute
   - Panel.__repr__ raised exception on length-0 major/minor axes
   - `DataFrame.join` on key with empty DataFrame produced incorrect columns
+  - Implemented `MultiIndex.diff` (GH #260)
   - `Int64Index.take` and `MultiIndex.take` lost name field, fix downstream
     issue GH #262
   - `read_csv` / `read_table` fixes

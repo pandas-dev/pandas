@@ -259,6 +259,15 @@ class Index(np.ndarray):
     __le__ = _indexOp('__le__')
     __ge__ = _indexOp('__ge__')
 
+    def __sub__(self, other):
+        return self.diff(other)
+
+    def __and__(self, other):
+        return self.intersection(other)
+
+    def __or__(self, other):
+        return self.union(other)
+
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible
@@ -362,8 +371,6 @@ class Index(np.ndarray):
         otherArr = np.asarray(other)
         theDiff = sorted(set(self) - set(otherArr))
         return Index(theDiff)
-
-    __sub__ = diff
 
     def get_loc(self, key):
         """
@@ -1513,6 +1520,23 @@ class MultiIndex(Index):
         other_tuples = other.get_tuple_index()
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
+
+    def diff(self, other):
+        """
+        Compute sorted set difference of two MultiIndex objects
+
+        Returns
+        -------
+        diff : MultiIndex
+        """
+        self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self[:0]
+
+        difference = sorted(set(self.values) - set(other.values))
+        return MultiIndex.from_tuples(difference, sortorder=0,
+                                      names=self.names)
 
     def _assert_can_do_setop(self, other):
         if not isinstance(other, MultiIndex):
