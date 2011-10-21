@@ -4,9 +4,49 @@ import numpy as np
 def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
                 fill_value=None):
     """
+    Create a spreadsheet-style pivot table as a DataFrame. The levels in the
+    pivot table will be stored in MultiIndex objects (hierarchical indexes) on
+    the index and columns of the result DataFrame
 
+    Parameters
+    ----------
+    data : DataFrame
+    values : column to aggregate, optional
+    xby : list
+        Columns to group on the x-axis of the pivot table
+    yby : list
+        Columns to group on the x-axis of the pivot table
+    aggfunc : function, default numpy.mean
+    fill_value : scalar, default None
+        Value to replace missing values with
+
+    Examples
+    --------
+    >>> df
+       A   B   C      D
+    0  foo one small  1
+    1  foo one large  2
+    2  foo one large  2
+    3  foo two small  3
+    4  foo two small  3
+    5  bar one large  4
+    6  bar one small  5
+    7  bar two small  6
+    8  bar two large  7
+
+    >>> table = pivot_table(df, values='D', xby=['A, 'B'],
+                            yby=['C'], aggfunc=np.sum)
+    >>> table
+              small  large
+    foo  one  1      4
+         two  6      NaN
+    bar  one  5      4
+         two  6      7
+
+    Returns
+    -------
+    table : DataFrame
     """
-
     xby = [] if xby is None else list(xby)
     yby = [] if yby is None else list(yby)
 

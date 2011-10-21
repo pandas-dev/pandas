@@ -26,3 +26,4 @@ from pandas.io.pytables import HDFStore
 from pandas.stats.api import *
 from pandas.util.testing import debug
 
+from pandas.tools.pivot import pivot_table
