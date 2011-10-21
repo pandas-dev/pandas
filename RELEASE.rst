@@ -52,6 +52,8 @@ feedback on the library.
   - Changed `buffer` argument name in `Series.to_string` to `buf`
   - `Series.to_string` and `DataFrame.to_string` now return strings by default
     instead of printing to sys.stdout
+  - Deprecated `nanRep` argument in various `to_string` and `to_csv` functions
+    in favor of `na_rep`. Will be removed in 0.6 (GH #275)
   - Series functions renamed (and thus deprecated) in 0.4 series have been
     removed:
 

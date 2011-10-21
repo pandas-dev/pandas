@@ -11,14 +11,14 @@ TODO
 TODO docs
 ---------
 
-- read_csv / read_table
+- DONE read_csv / read_table
   - auto-sniff delimiter
   - MultiIndex
   - generally more documentation
 
 - pivot_table
 
-- Set mixed-type values with .ix
+- DONE Set mixed-type values with .ix
 - get_dtype_counts / dtypes
 - save / load functions
 - combine_first

@@ -11,15 +11,9 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
-***************************
-Pivoting and reshaping data
-***************************
-
-.. note::
-
-   Since some of the functionality documented in this section is very new, the
-   user should keep an eye on any changes to the API or behavior which may
-   occur by the next release.
+**********************
+Reshaping fundamentals
+**********************
 
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
@@ -195,3 +189,52 @@ some very expressive and fast data manipulations.
    df.stack().groupby(level=1).mean()
 
    df.mean().unstack(0)
+
+
+**********************************
+Pivot tables and cross-tabulations
+**********************************
+
+The function `pandas.pivot_table` can be used to create spreadsheet-style pivot
+tables. It takes a number of arguments
+
+- ``data``: A DataFrame object
+- ``values``: column to aggregate
+- ``xby``: list of columns to group by on the `x`-axis
+- ``yby``: list of columns to group by on the `y`-axis
+- ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``
+
+Consider a data set like this:
+
+.. ipython:: python
+
+   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
+                   'B' : ['A', 'B', 'C'] * 4,
+                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
+                   'D' : np.random.randn(12),
+                   'E' : np.random.randn(12)})
+   df
+
+We can produce pivot tables from this data very easily:
+
+.. ipython:: python
+
+   pivot_table(df, values='D', xby=['A', 'B'], yby=['C'])
+   pivot_table(df, values='D', xby=['B'], yby=['A', 'C'], aggfunc=np.sum)
+
+The result object is a DataFrame having potentially hierarchical indexes on the
+rows and columns. If the ``values`` column name is not given, the pivot table
+will include all of the data that can be aggregated in an additional level of
+hierarchy in the columns:
+
+.. ipython:: python
+
+   pivot_table(df, xby=['A', 'B'], yby=['C'])
+
+You can render a nice output of the table omitting the missing values by
+calling ``to_string`` if you wish:
+
+.. ipython:: python
+
+   table = pivot_table(df, xby=['A', 'B'], yby=['C'])
+   print table.to_string(na_rep='')

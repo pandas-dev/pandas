@@ -34,7 +34,8 @@ data into a DataFrame object. They can take a number of arguments:
     of inferring automatically "sniffing" the delimiter in some cases
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
-  - ``names``: List of column names to use if header is None.
+  - ``names``: List of column names to use. If passed, header will be
+    implicitly set to None.
   - ``skiprows``: A collection of numbers for rows in the file to skip.
   - ``index_col``: column number, or list of column numbers, to use as the
     ``index`` (row labels) of the resulting DataFrame. By default, it will number
