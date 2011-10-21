@@ -104,6 +104,9 @@ feedback on the library.
   - Added `DataFrame.align` method with standard join options
   - Added `parse_dates` option to `read_csv` and `read_table` methods to
     optionally try to parse dates in the index columns
+  - Add `nrows`, `chunksize`, and `iterator` arguments to `read_csv` and
+    `read_table`. The last two return a new `TextParser` class capable of
+    lazily iterating through chunks of a flat file (GH #242)
   - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
   - Added private `_get_duplicates` function to `Index` for identifying
     duplicate values more easily
@@ -114,7 +117,8 @@ feedback on the library.
   - Add inner join option to `DataFrame.join` when joining on key(s) (GH #248)
   - Can select set of DataFrame columns by passing a list to `__getitem__` (GH
     #253)
-  - Can use & and | to intersection / union Index objects, respectively
+  - Can use & and | to intersection / union Index objects, respectively (GH
+    #261)
 
 **Improvements to existing features**
 
