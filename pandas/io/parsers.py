@@ -288,7 +288,10 @@ class TextParser(object):
         index_name = None
         if implicit_first_cols > 0:
             if self.index_col is None:
-                self.index_col = range(implicit_first_cols)
+                if implicit_first_cols == 1:
+                    self.index_col = 0
+                else:
+                    self.index_col = range(implicit_first_cols)
             index_name = None
         elif np.isscalar(self.index_col):
             index_name = columns.pop(self.index_col)

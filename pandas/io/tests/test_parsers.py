@@ -110,6 +110,17 @@ c,4,5
         expected = read_csv(StringIO(data), parse_dates=True)
         assert_frame_equal(df, expected)
 
+    def test_parse_dates_implicit_first_col(self):
+        data = """A,B,C
+20090101,a,1,2
+20090102,b,3,4
+20090103,c,4,5
+"""
+        df = read_csv(StringIO(data), parse_dates=True)
+        expected = read_csv(StringIO(data), index_col=0, parse_dates=True)
+        self.assert_(isinstance(df.index[0], datetime))
+        assert_frame_equal(df, expected)
+
     def test_no_header(self):
         data = """1,2,3,4,5
 6,7,8,9,10
@@ -220,6 +231,15 @@ bar,4,5,6
 baz,7,8,9
 """
         data = read_csv(StringIO(data))
+        self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
+
+    def test_sniff_delimiter(self):
+        data = """index|A|B|C
+foo|1|2|3
+bar|4|5|6
+baz|7|8|9
+"""
+        data = read_csv(StringIO(data), index_col=0)
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
     def test_read_nrows(self):
