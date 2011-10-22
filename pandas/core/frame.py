@@ -3014,16 +3014,15 @@ class _DataFrameFormatter(object):
         else:
             fmt_index = [index.format(name=show_index_names)]
 
+        adjoined = adjoin(1, *fmt_index).split('\n')
+
         # empty space for columns
-        padding = [''] * columns.nlevels
-        fmt_index = [padding + list(rows) for rows in fmt_index]
-
         if show_col_names:
-            namecol = self._get_column_name_list()
-            namecol = namecol + [''] * (len(fmt_index[0]) - len(namecol))
-            fmt_index.append(namecol)
+            col_header = ['  %s' % x for x in self._get_column_name_list()]
+        else:
+            col_header = [''] * columns.nlevels
 
-        return adjoin(1, *fmt_index).split('\n')
+        return col_header + adjoined
 
     def _get_column_name_list(self):
         names = []
