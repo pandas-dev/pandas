@@ -20,7 +20,7 @@ import sys
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import (isnull, notnull, PandasError,
+from pandas.core.common import (isnull, notnull, PandasError, adjoin,
                                 _try_sort, _pfixed, _default_index,
                                 _infer_dtype, _stringify, _maybe_upcast)
 from pandas.core.daterange import DateRange
@@ -563,7 +563,7 @@ class DataFrame(NDFrame):
             na_rep = nanRep
 
 
-        formatter = _DataFrameFormatter(buf=buf, columns=columns,
+        formatter = _DataFrameFormatter(self, buf=buf, columns=columns,
                                         col_space=colSpace, na_rep=na_rep,
                                         formatters=formatters,
                                         float_format=float_format,
@@ -571,7 +571,7 @@ class DataFrame(NDFrame):
                                         index_names=index_names)
 
         if buf is None:
-            return formatter.get_result()
+            return formatter.buf.getvalue()
 
     def info(self, verbose=True, buf=None):
         """
@@ -2903,36 +2903,43 @@ class DataFrame(NDFrame):
 
 
 class _DataFrameFormatter(object):
-
+    """
+    Render a console-friendly tabular output of a DataFrame
+    """
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  na_rep='NaN', formatters=None, float_format=None,
                  sparsify=True, index_names=True):
 
         self.frame = frame
-        self.buf = buf if buf is None else StringIO()
-        self.index_names = index_names
+        self.buf = buf if buf is not None else StringIO()
+        self.show_index_names = index_names
+        self.sparsify = sparsify
+        self.float_format = float_format
+        self.formatters = formatters
+        self.na_rep = na_rep
+        self.col_space = col_space
+        self.column_filter = frame.columns if columns is None else set(columns)
 
-        if columns is None:
-            self.columns = frame.columns
-        else:
-            self.columns = [c for c in columns if c in frame]
-
-    def get_result(self):
-        pass
+        self._write_to_buffer()
 
     def _write_to_buffer(self):
-        from pandas.core.common import adjoin
+        frame = self.frame
+        format_col = self._get_column_formatter()
 
         to_write = []
 
-        if len(columns) == 0 or len(self.index) == 0:
+        if len(frame.columns) == 0 or len(frame.index) == 0:
             to_write.append('Empty %s' % type(self).__name__)
-            to_write.append(repr(self.index))
+            to_write.append(repr(frame.index))
         else:
-            (str_index,
-             str_columns) = self._get_formatted_labels(sparsify=sparsify)
-            stringified = [str_columns[i] + _format_col(c)
-                           for i, c in enumerate(columns)]
+            # may include levels names also
+            str_index = self._get_formatted_index()
+            str_columns = self._get_formatted_column_labels()
+
+            stringified = [str_columns[i] + format_col(c)
+                           for i, c in enumerate(frame.columns)
+                           if c in self.column_filter]
+
             to_write.append(adjoin(1, str_index, *stringified))
 
         for s in to_write:
@@ -2940,56 +2947,99 @@ class _DataFrameFormatter(object):
                 to_write = [unicode(s) for s in to_write]
                 break
 
-        for s in to_write:
-            print >> buf, s
+        self.buf.writelines(to_write)
 
     def _get_column_formatter(self):
         from pandas.core.common import _format
 
-        na_rep = self.na_rep
-        float_format = self.float_format
         col_space = self.col_space
 
         if col_space is None:
             def _myformat(v):
-                return _format(v, na_rep=na_rep,
-                               float_format=float_format)
+                return _format(v, na_rep=self.na_rep,
+                               float_format=self.float_format)
         else:
             def _myformat(v):
-                return _pfixed(v, col_space, na_rep=na_rep,
-                               float_format=float_format)
+                return _pfixed(v, col_space, na_rep=self.na_rep,
+                               float_format=self.float_format)
 
         formatters = {} if self.formatters is None else self.formatters
 
         def _format_col(col):
             formatter = formatters.get(col, _myformat)
-            return [formatter(x) for x in col]
+            return [formatter(x) for x in self.frame[col]]
 
         return _format_col
 
-    def _get_formatted_labels(self, sparsify=True):
+    def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
 
-        if isinstance(self.index, MultiIndex):
-            fmt_index = self.index.format(sparsify=sparsify)
-        else:
-            fmt_index = self.index.format()
+        columns = self.frame.columns
 
-        if isinstance(self.columns, MultiIndex):
-            fmt_columns = self.columns.format(sparsify=False, adjoin=False)
+        if isinstance(columns, MultiIndex):
+            fmt_columns = columns.format(sparsify=False, adjoin=False)
             str_columns = zip(*[[' %s' % y for y in x]
                                 for x in zip(*fmt_columns)])
-            if sparsify:
+            if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
-            str_index = [''] * self.columns.nlevels + fmt_index
         else:
-            str_columns = [[' %s' % x] for x in self.columns.format()]
-            str_index = [''] + fmt_index
+            str_columns = [[' %s' % x] for x in columns.format()]
 
-        return str_index, str_columns
+        if self.show_index_names and self.has_index_names:
+            for x in str_columns:
+                x.append('')
 
+        return str_columns
+
+    @property
+    def has_index_names(self):
+        return _has_names(self.frame.index)
+
+    @property
+    def has_column_names(self):
+        return _has_names(self.frame.columns)
+
+    def _get_formatted_index(self):
+        index = self.frame.index
+        columns = self.frame.columns
+
+        show_index_names = self.show_index_names and self.has_index_names
+        show_col_names = self.show_index_names and self.has_column_names
+
+        if isinstance(index, MultiIndex):
+            fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
+                                     names=show_index_names)
+        else:
+            fmt_index = [index.format(name=show_index_names)]
+
+        # empty space for columns
+        padding = [''] * columns.nlevels
+        fmt_index = [padding + list(rows) for rows in fmt_index]
+
+        if show_col_names:
+            namecol = self._get_column_name_list()
+            namecol = namecol + [''] * (len(fmt_index[0]) - len(namecol))
+            fmt_index.append(namecol)
+
+        return adjoin(1, *fmt_index).split('\n')
+
+    def _get_column_name_list(self):
+        names = []
+        columns = self.frame.columns
+        if isinstance(columns, MultiIndex):
+            names.extend('' if name is None else name
+                         for name in columns.names)
+        else:
+            names.append('' if columns.name is None else columns.name)
+        return names
+
+def _has_names(index):
+    if isinstance(index, MultiIndex):
+        return any([x is not None for x in index.names])
+    else:
+        return index.name is not None
 
 def group_agg(values, bounds, f):
     """

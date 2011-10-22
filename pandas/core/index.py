@@ -63,6 +63,10 @@ class Index(np.ndarray):
     def dtype(self):
         return self.values.dtype
 
+    @property
+    def nlevels(self):
+        return 1
+
     def summary(self):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
@@ -177,20 +181,26 @@ class Index(np.ndarray):
         taken = self.view(np.ndarray).take(*args, **kwargs)
         return Index(taken, name=self.name)
 
-    def format(self, vertical=False):
+    def format(self, name=False):
         """
         Render a string representation of the Index
         """
+        result = []
+
+        if name:
+            result.append(self.name if self.name is not None else '')
+
         if self.is_all_dates():
-            to_join = []
             zero_time = time(0, 0)
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
                     return ['%s' % x for x in self]
-                to_join.append(dt.strftime("%Y-%m-%d"))
-            return to_join
+                result.append(dt.strftime("%Y-%m-%d"))
+            return result
 
-        return [_stringify(x) for x in self]
+        result.extend(_stringify(x) for x in self)
+
+        return result
 
     def equals(self, other):
         """
@@ -917,16 +927,21 @@ class MultiIndex(Index):
         except Exception:
             return False
 
-    def format(self, space=2, sparsify=True, vertical=False, adjoin=True):
+    def format(self, space=2, sparsify=True, adjoin=True, names=False):
         if len(self) == 0:
             return []
 
         stringified_levels = [lev.format() for lev in self.levels]
 
         result_levels = []
-        for lab, lev in zip(self.labels, stringified_levels):
-            taken = np.array(lev, dtype=object).take(lab)
-            result_levels.append(taken)
+        for lab, lev, name in zip(self.labels, stringified_levels, self.names):
+            level = []
+
+            if names:
+                level.append(name if name is not None else '')
+
+            level.extend(np.array(lev, dtype=object).take(lab))
+            result_levels.append(level)
 
         if sparsify:
             result_levels = _sparsify(result_levels)
