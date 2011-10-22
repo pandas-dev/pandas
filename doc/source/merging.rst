@@ -14,8 +14,8 @@
 Merging / Joining data sets
 ***************************
 
-Appending disjoint objects
---------------------------
+Appending DataFrame objects
+---------------------------
 
 Series and DataFrame have an ``append`` method which will glue together objects
 each of whose ``index`` (Series labels or DataFrame rows) is mutually
@@ -39,6 +39,27 @@ In the case of DataFrame, the indexes must be disjoint but the columns do not ne
    df1
    df2
    df1.append(df2)
+
+Appending record-array like DataFrames
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For DataFrames which don't have a meaningful index, you may wish to append them
+and ignore the fact that they may have overlapping indexes:
+
+.. ipython:: python
+
+   df1 = DataFrame(randn(6, 4), columns=['A', 'B', 'C', 'D'])
+   df2 = DataFrame(randn(3, 4), columns=['A', 'B', 'C', 'D'])
+
+   df1
+   df2
+
+To do this, use the ``ignore_index`` argument:
+
+.. ipython:: python
+
+   df1.append(df2, ignore_index=True)
+
 
 Joining / merging DataFrames
 ----------------------------

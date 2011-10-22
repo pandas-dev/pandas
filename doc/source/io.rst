@@ -175,7 +175,7 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
    :suppress:
 
-   df[:7].to_csv('tmp.sv', delimiter='|')
+   df[:7].to_csv('tmp.sv', sep='|')
 
 .. ipython:: python
 

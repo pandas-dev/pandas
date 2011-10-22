@@ -439,12 +439,51 @@ R package):
    baseball = read_csv('data/baseball.csv')
    baseball
 
-However, using ``to_string`` will display any DataFrame in tabular form, though
-it won't always fit the console width:
+However, using ``to_string`` will return a string representation of the
+DataFrame in tabular form, though it won't always fit the console width:
 
 .. ipython:: python
 
-   baseball.ix[-20:, :12].to_string()
+   print baseball.ix[-20:, :12].to_string()
+
+DataFrame column types
+~~~~~~~~~~~~~~~~~~~~~~
+
+The four main types stored in pandas objects are float, int, boolean, and
+object. A convenient ``dtypes`` attribute return a Series with the data type of
+each column:
+
+.. ipython:: python
+
+   baseball.dtypes
+
+The related method ``get_dtype_counts`` will return the number of columns of
+each type:
+
+.. ipython:: python
+
+   baseball.get_dtype_counts()
+
+DataFrame column attribute access and IPython completion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If a DataFrame column label is a valid Python variable name, the column can be
+accessed like attributes:
+
+.. ipython:: python
+
+   df = DataFrame({'foo1' : np.random.randn(5),
+                   'foo2' : np.random.randn(5)})
+   df
+   df.foo1
+
+The columns are also connected to the `IPython <http://ipython.org>`__
+completion mechanism so they can be tab-completed:
+
+.. code-block:: ipython
+
+    In [5]: df.fo<TAB>
+    df.foo1  df.foo2
 
 .. _basics.panel:
 

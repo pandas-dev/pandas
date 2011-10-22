@@ -250,6 +250,8 @@ changed by using the ``as_index`` option:
    grouped = df.groupby(['A', 'B'], as_index=False)
    grouped.aggregate(np.sum)
 
+   df.groupby('A', as_index=False).sum()
+
 Note that you could use the ``delevel`` DataFrame function to achieve the same
 result as the column names are stored in the resulting ``MultiIndex``:
 

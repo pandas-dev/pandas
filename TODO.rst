@@ -15,25 +15,25 @@ TODO docs
   - auto-sniff delimiter
   - MultiIndex
   - generally more documentation
-
-- pivot_table
-
+- DONE pivot_table
 - DONE Set mixed-type values with .ix
-- get_dtype_counts / dtypes
-- save / load functions
-- combine_first
-- describe for Series
-- DataFrame.to_string
-- Index / MultiIndex names
-- Unstack / stack by level name
-- ignore_index in DataFrame.append
+- DONE get_dtype_counts / dtypes
+- DONE save / load functions
+- DONE isnull/notnull as instance methods
+- DONE DataFrame.to_string
+- DONE IPython tab complete hook
+- DONE ignore_index in DataFrame.append
+- DONE describe for Series with dtype=object
+- DONE as_index=False in groupby
+- DONOTWANT is_monotonic
+- DONE DataFrame.to_csv: different delimiters
 - Inner join on key
 - Multi-key joining
-- as_index=False in groupby
-- is_monotonic
-- isnull/notnull as instance methods
+- Index / MultiIndex names
+
+- combine_first
+- Unstack / stack by level name
 - name attribute on Series
-- DataFrame.to_csv: different delimiters?
 - groupby with level name
 - MultiIndex
   - get_level_values
@@ -43,7 +43,6 @@ TODO docs
 - df[col_list]
 - Panel.rename_axis
 - & and | for intersection / union
-- IPython tab complete hook
 
 Performance blog
 ----------------

@@ -242,9 +242,9 @@ will exclude NAs on Series input by default:
 Summarizing data: describe
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For floating point data, there is a convenient ``describe`` function which
-computes a variety of summary statistics about a Series or the columns of a
-DataFrame (excluding NAs of course):
+There is a convenient ``describe`` function which computes a variety of summary
+statistics about a Series or the columns of a DataFrame (excluding NAs of
+course):
 
 .. ipython:: python
 
@@ -254,6 +254,16 @@ DataFrame (excluding NAs of course):
     frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
     frame.ix[::2] = np.nan
     frame.describe()
+
+For a non-numerical Series object, `describe` will give a simple summary of the
+number of unique values and most frequently occurring values:
+
+
+.. ipython:: python
+
+   s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
+   s.describe()
+
 
 Correlations between objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -657,15 +667,28 @@ alternately passing the ``dtype`` keyword argument to the object constructor.
 Pickling and serialization
 --------------------------
 
-All pandas objects are equipped with ``save`` and ``load`` methods which use
-Python's ``cPickle`` module to save and load data structures to disk using the
-pickle format.
+All pandas objects are equipped with ``save`` methods which use Python's
+``cPickle`` module to save data structures to disk using the pickle format.
 
 .. ipython:: python
 
    df
    df.save('foo.pickle')
-   DataFrame.load('foo.pickle')
+
+The ``load`` function in the ``pandas`` namespace can be used to load any
+pickled pandas object (or any other pickled object) from file:
+
+
+.. ipython:: python
+
+   load('foo.pickle')
+
+There is also a ``save`` function which takes any object as its first argument:
+
+.. ipython:: python
+
+   save(df, 'foo.pickle')
+   load('foo.pickle')
 
 .. ipython:: python
    :suppress:
