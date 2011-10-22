@@ -1712,6 +1712,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(np.concatenate((arr1, arr2)))
         assert_frame_equal(result, expected)
 
+    def test_append_different_columns(self):
+        df = DataFrame({'bools' : np.random.randn(10) > 0,
+                        'ints' : np.random.randint(0, 10, 10),
+                        'floats' : np.random.randn(10),
+                        'strings' : ['foo', 'bar'] * 5})
+
+        a = df[:5].ix[:, ['bools', 'ints', 'floats']]
+        b = df[5:].ix[:, ['strings', 'ints', 'floats']]
+
+        appended = a.append(b)
+        self.assert_(isnull(appended['strings'][:5]).all())
+        self.assert_(isnull(appended['bools'][5:]).all())
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
         rule_monthly = self.tsframe.asfreq('EOM')
