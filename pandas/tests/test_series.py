@@ -555,7 +555,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()
-        _ = self.objSeries.describe()
+
+    def test_describe_objects(self):
+        s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
+        result = s.describe()
+        expected = Series({'count' : 7, 'unique' : 4,
+                           'top' : 'a', 'freq' : 3}, index=result.index)
+        assert_series_equal(result, expected)
 
     def test_append(self):
         appendedSeries = self.series.append(self.ts)
@@ -768,6 +774,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(['a', 'b', 'b', 'b', 'b', 'a', 'c', 'd', 'd', 'a'])
         hist = s.value_counts()
         expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
+        assert_series_equal(hist, expected)
+
+        # handle NA's properly
+        s[5:7] = np.nan
+        hist = s.value_counts()
+        expected = s.dropna().value_counts()
         assert_series_equal(hist, expected)
 
         s = Series({})

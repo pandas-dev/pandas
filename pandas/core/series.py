@@ -604,7 +604,7 @@ copy : boolean, default False
         """
         Returns Series containing counts of unique values. The resulting Series
         will be in descending order so that the first element is the most
-        frequently-occurring element
+        frequently-occurring element. Excludes NA values
 
         Returns
         -------
@@ -612,7 +612,7 @@ copy : boolean, default False
         """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
-        for value in self.values:
+        for value in self.dropna().values:
             counter[value] += 1
         return Series(counter).order(ascending=False)
 
@@ -906,7 +906,7 @@ copy : boolean, default False
         if self.dtype == object:
             names = ['count', 'unique', 'top', 'freq']
 
-            objcounts = Counter(self)
+            objcounts = Counter(self.dropna().values)
             top, freq = objcounts.most_common(1)[0]
             data = [self.count(), len(objcounts), top, freq]
 
