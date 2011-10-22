@@ -274,22 +274,30 @@ else:
     cmdclass['build_ext'] =  build_ext
     cmdclass['sdist'] =  CheckSDist
 
-tseries_depends = ['reindex', 'io', 'common', 'groupby'
-                   'skiplist', 'isnull', 'moments', 'operators']
-
+tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
+                   'generated', 'parsing']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
+if suffix == '.pyx':
+    tseries_depends = [srcpath(f, suffix='.pyx')
+                       for f in tseries_depends]
+else:
+    tseries_depends = None
+
+print tseries_depends
+
 tseries_ext = Extension('pandas._tseries',
+                        depends=tseries_depends,
                         sources=[srcpath('tseries', suffix=suffix)],
-                        # depends=[srcpath(f, suffix='.pyx')
-                        #          for f in tseries_depends],
                         include_dirs=[np.get_include()])
+
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 extensions = [tseries_ext,
               sparse_ext]
+
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"
 

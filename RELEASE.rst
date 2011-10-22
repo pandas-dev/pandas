@@ -149,6 +149,7 @@ feedback on the library.
     the source directory (GH #250)
   - Significantly speed up DataFrame `__repr__` and `count` on large mixed-type
     DataFrame objects
+  - Better handling of pyx file dependencies in Cython module build (GH #271)
 
 **Bug fixes**
 
