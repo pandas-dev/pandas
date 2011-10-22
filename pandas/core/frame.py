@@ -553,8 +553,8 @@ class DataFrame(NDFrame):
 
     def to_string(self, buf=None, columns=None, colSpace=None,
                   na_rep='NaN', formatters=None, float_format=None,
-                  sparsify=True, nanRep=None):
-        from pandas.core.common import _format, adjoin
+                  sparsify=True, nanRep=None, index_names=True):
+
 
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -562,77 +562,16 @@ class DataFrame(NDFrame):
                           FutureWarning)
             na_rep = nanRep
 
-        return_ = False
-        if buf is None:  # pragma: no cover
-            buf = StringIO()
-            return_ = True
 
-        if colSpace is None:
-            def _myformat(v):
-                return _format(v, na_rep=na_rep,
-                               float_format=float_format)
-        else:
-            def _myformat(v):
-                return _pfixed(v, colSpace, na_rep=na_rep,
-                               float_format=float_format)
+        formatter = _DataFrameFormatter(buf=buf, columns=columns,
+                                        col_space=colSpace, na_rep=na_rep,
+                                        formatters=formatters,
+                                        float_format=float_format,
+                                        sparsify=sparsify,
+                                        index_names=index_names)
 
-        if formatters is None:
-            formatters = {}
-
-        def _format_col(col):
-            formatter = formatters.get(col, _myformat)
-            return [formatter(x) for x in self[col]]
-
-        if columns is None:
-            columns = self.columns
-        else:
-            columns = [c for c in columns if c in self]
-
-        to_write = []
-
-        if len(columns) == 0 or len(self.index) == 0:
-            to_write.append('Empty %s' % type(self).__name__)
-            to_write.append(repr(self.index))
-        else:
-            (str_index,
-             str_columns) = self._get_formatted_labels(sparsify=sparsify)
-            stringified = [str_columns[i] + _format_col(c)
-                           for i, c in enumerate(columns)]
-            to_write.append(adjoin(1, str_index, *stringified))
-
-        for s in to_write:
-            if isinstance(s, unicode):
-                to_write = [unicode(s) for s in to_write]
-                break
-
-        for s in to_write:
-            print >> buf, s
-
-        if return_:
-            return buf.getvalue()
-
-    def _get_formatted_labels(self, sparsify=True):
-        from pandas.core.index import _sparsify
-
-        if isinstance(self.index, MultiIndex):
-            fmt_index = self.index.format(sparsify=sparsify)
-        else:
-            fmt_index = self.index.format()
-
-        if isinstance(self.columns, MultiIndex):
-            fmt_columns = self.columns.format(sparsify=False, adjoin=False)
-            str_columns = zip(*[[' %s' % y for y in x]
-                                for x in zip(*fmt_columns)])
-            if sparsify:
-                str_columns = _sparsify(str_columns)
-
-            str_columns = [list(x) for x in zip(*str_columns)]
-            str_index = [''] * self.columns.nlevels + fmt_index
-        else:
-            str_columns = [[' %s' % x] for x in self.columns.format()]
-            str_index = [''] + fmt_index
-
-        return str_index, str_columns
+        if buf is None:
+            return formatter.get_result()
 
     def info(self, verbose=True, buf=None):
         """
@@ -2961,6 +2900,96 @@ class DataFrame(NDFrame):
         DataFrame
         """
         return self.mul(other, fill_value=1.)
+
+
+class _DataFrameFormatter(object):
+
+    def __init__(self, frame, buf=None, columns=None, col_space=None,
+                 na_rep='NaN', formatters=None, float_format=None,
+                 sparsify=True, index_names=True):
+
+        self.frame = frame
+        self.buf = buf if buf is None else StringIO()
+        self.index_names = index_names
+
+        if columns is None:
+            self.columns = frame.columns
+        else:
+            self.columns = [c for c in columns if c in frame]
+
+    def get_result(self):
+        pass
+
+    def _write_to_buffer(self):
+        from pandas.core.common import adjoin
+
+        to_write = []
+
+        if len(columns) == 0 or len(self.index) == 0:
+            to_write.append('Empty %s' % type(self).__name__)
+            to_write.append(repr(self.index))
+        else:
+            (str_index,
+             str_columns) = self._get_formatted_labels(sparsify=sparsify)
+            stringified = [str_columns[i] + _format_col(c)
+                           for i, c in enumerate(columns)]
+            to_write.append(adjoin(1, str_index, *stringified))
+
+        for s in to_write:
+            if isinstance(s, unicode):
+                to_write = [unicode(s) for s in to_write]
+                break
+
+        for s in to_write:
+            print >> buf, s
+
+    def _get_column_formatter(self):
+        from pandas.core.common import _format
+
+        na_rep = self.na_rep
+        float_format = self.float_format
+        col_space = self.col_space
+
+        if col_space is None:
+            def _myformat(v):
+                return _format(v, na_rep=na_rep,
+                               float_format=float_format)
+        else:
+            def _myformat(v):
+                return _pfixed(v, col_space, na_rep=na_rep,
+                               float_format=float_format)
+
+        formatters = {} if self.formatters is None else self.formatters
+
+        def _format_col(col):
+            formatter = formatters.get(col, _myformat)
+            return [formatter(x) for x in col]
+
+        return _format_col
+
+    def _get_formatted_labels(self, sparsify=True):
+        from pandas.core.index import _sparsify
+
+        if isinstance(self.index, MultiIndex):
+            fmt_index = self.index.format(sparsify=sparsify)
+        else:
+            fmt_index = self.index.format()
+
+        if isinstance(self.columns, MultiIndex):
+            fmt_columns = self.columns.format(sparsify=False, adjoin=False)
+            str_columns = zip(*[[' %s' % y for y in x]
+                                for x in zip(*fmt_columns)])
+            if sparsify:
+                str_columns = _sparsify(str_columns)
+
+            str_columns = [list(x) for x in zip(*str_columns)]
+            str_index = [''] * self.columns.nlevels + fmt_index
+        else:
+            str_columns = [[' %s' % x] for x in self.columns.format()]
+            str_index = [''] + fmt_index
+
+        return str_index, str_columns
+
 
 def group_agg(values, bounds, f):
     """

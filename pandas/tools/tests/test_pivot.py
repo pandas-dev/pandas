@@ -23,7 +23,7 @@ class TestPivotTable(unittest.TestCase):
 
     def test_pivot_table(self):
         xby = ['A', 'B']
-        yby=  ['C']
+        yby=  'C'
         table = pivot_table(self.data, values='D', xby=xby, yby=yby)
 
         if len(xby) > 1:
@@ -36,14 +36,14 @@ class TestPivotTable(unittest.TestCase):
         else:
             self.assertEqual(table.columns.name, yby[0])
 
-        expected = self.data.groupby(xby + yby)['D'].agg(np.mean).unstack()
+        expected = self.data.groupby(xby + [yby])['D'].agg(np.mean).unstack()
         assert_frame_equal(table, expected)
 
     def test_pivot_table_multiple(self):
         xby = ['A', 'B']
-        yby=  ['C']
+        yby=  'C'
         table = pivot_table(self.data, xby=xby, yby=yby)
-        expected = self.data.groupby(xby + yby).agg(np.mean).unstack()
+        expected = self.data.groupby(xby + [yby]).agg(np.mean).unstack()
         assert_frame_equal(table, expected)
 
 if __name__ == '__main__':

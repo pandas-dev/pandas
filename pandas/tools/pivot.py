@@ -47,8 +47,8 @@ def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
     -------
     table : DataFrame
     """
-    xby = [] if xby is None else list(xby)
-    yby = [] if yby is None else list(yby)
+    xby = _convert_by(xby)
+    yby = _convert_by(yby)
 
     keys = xby + yby
     grouped = data.groupby(keys)
@@ -66,6 +66,15 @@ def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
         table = table.fillna(value=fill_value)
 
     return table
+
+def _convert_by(by):
+    if by is None:
+        by = []
+    elif np.isscalar(by):
+        by = [by]
+    else:
+        by = list(by)
+    return by
 
 def pprint_table(table):
     pass
