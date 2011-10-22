@@ -967,7 +967,7 @@ copy : boolean, default False
         """
         return self.corr(self.shift(1))
 
-    def clip(self, upper=None, lower=None):
+    def clip(self, lower=None, upper=None, out=None):
         """
         Trim values at input threshold(s)
 
@@ -980,6 +980,9 @@ copy : boolean, default False
         -------
         clipped : Series
         """
+        if out is not None:  # pragma: no cover
+            raise Exception('out argument is not supported yet')
+
         result = self
         if lower is not None:
             result = result.clip_lower(lower)

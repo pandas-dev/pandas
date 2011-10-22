@@ -843,6 +843,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(self.ts.clip(lower=val).min(), val)
         self.assertEqual(self.ts.clip(upper=val).max(), val)
 
+        result = self.ts.clip(-0.5, 0.5)
+        expected = np.clip(self.ts, -0.5, 0.5)
+        assert_series_equal(result, expected)
+        self.assert_(isinstance(expected, Series))
+
     def test_valid(self):
         ts = self.ts.copy()
         ts[::2] = np.NaN

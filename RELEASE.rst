@@ -55,6 +55,9 @@ feedback on the library.
   - Deprecated `nanRep` argument in various `to_string` and `to_csv` functions
     in favor of `na_rep`. Will be removed in 0.6 (GH #275)
   - Renamed `delimiter` to `sep` in `DataFrame.from_csv` for consistency
+  - Changed order of `Series.clip` arguments to match those of `numpy.clip` and
+    added (unimplemented) `out` argument so `numpy.clip` can be called on a
+    Series (GH #272)
   - Series functions renamed (and thus deprecated) in 0.4 series have been
     removed:
 
