@@ -436,16 +436,19 @@ class DataFrame(NDFrame):
             Field delimiter
         index_col : int or sequence, default 0
             Column to use for index. If a sequence is given, a MultiIndex
-            is used.
+            is used. Different default from read_table
+        parse_dates : boolean, default True
+            Parse dates. Different default from read_table
 
         Notes
         -----
-        Will attempt to convert index to datetimes for time series
-        data. Use read_table for more options
+        Preferable to use read_table for most general purposes but from_csv
+        makes for an easy roundtrip to and from file, especially with a
+        DataFrame of time series data
 
         Returns
         -------
-        y : DataFrame or DataFrame
+        y : DataFrame
         """
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
@@ -469,9 +472,8 @@ class DataFrame(NDFrame):
                                default_kind=kind,
                                default_fill_value=fill_value)
 
-    def to_csv(self, path, na_rep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', sep=",",
-              nanRep=None):
+    def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
+              index=True, index_label=None, mode='w', nanRep=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -482,6 +484,7 @@ class DataFrame(NDFrame):
         nanRep : string, default ''
             Missing data rep'n
         cols : sequence, optional
+            Columns to write
         header : boolean, default True
             Write out column names
         index : boolean, default True
