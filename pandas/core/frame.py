@@ -422,7 +422,7 @@ class DataFrame(NDFrame):
         return np.rec.fromarrays(arrays, names=names)
 
     @classmethod
-    def from_csv(cls, path, header=0, delimiter=',', index_col=0,
+    def from_csv(cls, path, header=0, sep=',', index_col=0,
                  parse_dates=True):
         """
         Read delimited file into DataFrame
@@ -432,7 +432,8 @@ class DataFrame(NDFrame):
         path : string
         header : int, default 0
             Row to use at header (skip prior rows)
-        delimiter : string, default ','
+        sep : string, default ','
+            Field delimiter
         index_col : int or sequence, default 0
             Column to use for index. If a sequence is given, a MultiIndex
             is used.
@@ -447,7 +448,7 @@ class DataFrame(NDFrame):
         y : DataFrame or DataFrame
         """
         from pandas.io.parsers import read_table
-        return read_table(path, header=header, sep=delimiter,
+        return read_table(path, header=header, sep=sep,
                           parse_dates=parse_dates, index_col=index_col)
 
     def to_sparse(self, fill_value=None, kind='block'):
@@ -469,7 +470,7 @@ class DataFrame(NDFrame):
                                default_fill_value=fill_value)
 
     def to_csv(self, path, na_rep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', delimiter=",",
+              index=True, index_label=None, mode='w', sep=",",
               nanRep=None):
         """
         Write DataFrame to a comma-separated values (csv) file
@@ -490,11 +491,11 @@ class DataFrame(NDFrame):
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
         mode : Python write mode, default 'w'
-        delimiter : character, default ","
+        sep : character, default ","
             Field delimiter for the output file.
         """
         f = open(path, mode)
-        csvout = csv.writer(f, lineterminator='\n', delimiter=delimiter)
+        csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
 
         if nanRep is not None:  # pragma: no cover
             import warnings

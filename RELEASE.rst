@@ -54,6 +54,7 @@ feedback on the library.
     instead of printing to sys.stdout
   - Deprecated `nanRep` argument in various `to_string` and `to_csv` functions
     in favor of `na_rep`. Will be removed in 0.6 (GH #275)
+  - Renamed `delimiter` to `sep` in `DataFrame.from_csv` for consistency
   - Series functions renamed (and thus deprecated) in 0.4 series have been
     removed:
 
