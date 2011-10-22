@@ -157,6 +157,29 @@ replace NaN with some other value using ``fillna`` if you wish).
    df + df2
    df.add(df2, fill_value=0)
 
+Combining overlapping data sets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A problem occasionally arising is the combination of two similar data sets
+where values in one are preferred over the other. An example would be two data
+series representing a particular economic indicator where one is considered to
+be of "higher quality". However, the lower quality series might extend further
+back in history or have more complete data coverage. As such, we would like to
+combine two DataFrame objects where missing values in one DataFrame are
+conditionally filled with like-labeled values from the other DataFrame. The
+function implementing this operation is ``combine_first``, which we illustrate:
+
+.. ipython:: python
+
+   df1 = DataFrame({'A' : [1., np.nan, 3., 5., np.nan],
+                    'B' : [np.nan, 2., 3., np.nan, 6.]})
+   df2 = DataFrame({'A' : [5., 2., 4., np.nan, 3., 7.],
+                    'B' : [np.nan, np.nan, 3., 4., 6., 8.]})
+   df1
+   df2
+   df1.combine_first(df2)
+
+
 .. _basics.stats:
 
 Descriptive statistics
