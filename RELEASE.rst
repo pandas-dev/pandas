@@ -197,6 +197,7 @@ Thanks
 - Daniel Fortunov
 - Aman Thakral
 - Luca Beltrame
+- Wouter Overmeire
 
 pandas 0.4.3
 ============

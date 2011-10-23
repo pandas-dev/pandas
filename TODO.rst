@@ -33,13 +33,11 @@ TODO docs
 - DONE & and | for intersection / union
 - DONE Update to reflect Python 3 support in intro
 - DONE Index / MultiIndex names
-
-- Unstack / stack by level name
-- name attribute on Series
+- DONE Unstack / stack by level name
+- DONE name attribute on Series
 
 - Inner join on key
 - Multi-key joining
-
 - align functions
 - df[col_list]
 - Panel.rename_axis

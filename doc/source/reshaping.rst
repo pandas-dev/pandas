@@ -11,9 +11,9 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
-**********************
-Reshaping fundamentals
-**********************
+**************************
+Reshaping and Pivot Tables
+**************************
 
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
@@ -113,7 +113,7 @@ take a prior example data set from the hierarchical indexing section:
                    'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two',
                    'one', 'two', 'one', 'two']])
-   index = MultiIndex.from_tuples(tuples)
+   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    df = DataFrame(randn(8, 2), index=index, columns=['A', 'B'])
    df2 = df[:4]
    df2
@@ -142,6 +142,13 @@ unstacks the **last level**:
    stacked.unstack(1)
    stacked.unstack(0)
 
+If the indexes have names, you can use the level names instead of specifying
+the level numbers:
+
+.. ipython:: python
+
+   stacked.unstack('second')
+
 These functions are very intelligent about handling missing data and do not
 expect each subgroup within the hierarchical index to have the same set of
 labels. They also can handle the index being unsorted (but you can make it
@@ -150,7 +157,8 @@ sorted by calling ``sortlevel``, of course). Here is a more complex example:
 .. ipython:: python
 
    columns = MultiIndex.from_tuples([('A', 'cat'), ('B', 'dog'),
-                                     ('B', 'cat'), ('A', 'dog')])
+                                     ('B', 'cat'), ('A', 'dog')],
+                                    names=['exp', 'animal'])
    df = DataFrame(randn(8, 4), index=index, columns=columns)
    df2 = df.ix[[0, 1, 2, 4, 5, 7]]
    df2
@@ -160,8 +168,8 @@ which level in the columns to stack:
 
 .. ipython:: python
 
-   df2.stack(1)
-   df2.stack(0)
+   df2.stack('exp')
+   df2.stack('animal')
 
 Unstacking when the columns are a ``MultiIndex`` is also careful about doing
 the right thing:

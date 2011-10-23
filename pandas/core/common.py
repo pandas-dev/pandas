@@ -16,6 +16,7 @@ import pandas._tseries as lib
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
     np.seterr(all='ignore')
+    np.set_printoptions(suppress=True)
 except Exception: # pragma: no cover
     pass
 

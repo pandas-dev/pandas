@@ -181,6 +181,20 @@ tools for working with labeled data.
     of course have the option of dropping labels with missing data via the
     **dropna** function.
 
+Name attribute
+~~~~~~~~~~~~~~
+
+Series can also have a ``name`` attribute:
+
+.. ipython:: python
+
+   s = Series(np.random.randn(5), name='something')
+   s
+   s.name
+
+The Series ``name`` will be assigned automatically in many cases, in particular
+when taking 1D slices of DataFrame as you will see below.
+
 .. _basics.dataframe:
 
 DataFrame
