@@ -30,19 +30,19 @@ TODO docs
 - DONE combine_first
 - DONE groupby with level name
 - DONE MultiIndex get_level_values
+- DONE & and | for intersection / union
+- DONE Update to reflect Python 3 support in intro
+- DONE Index / MultiIndex names
 
-- Index / MultiIndex names
 - Unstack / stack by level name
 - name attribute on Series
 
 - Inner join on key
 - Multi-key joining
 
-- Update to reflect Python 3 support in intro
 - align functions
 - df[col_list]
 - Panel.rename_axis
-- & and | for intersection / union
 
 Performance blog
 ----------------

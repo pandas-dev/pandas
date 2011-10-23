@@ -5,7 +5,7 @@ import unittest
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull
 
 from pandas.util.testing import (assert_almost_equal,
@@ -23,7 +23,7 @@ class TestMultiLevel(unittest.TestCase):
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
-                               columns=['A', 'B', 'C'])
+                               columns=Index(['A', 'B', 'C'], name='exp'))
 
         self.single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                        labels=[[0, 1, 2, 3]],
@@ -376,7 +376,7 @@ class TestMultiLevel(unittest.TestCase):
     def test_stack_unstack_preserve_names(self):
         unstacked = self.frame.unstack()
         self.assertEquals(unstacked.index.name, 'first')
-        self.assertEquals(unstacked.columns.names, [None, 'second'])
+        self.assertEquals(unstacked.columns.names, ['exp', 'second'])
 
         restacked = unstacked.stack()
         self.assertEquals(restacked.index.names, self.frame.index.names)
@@ -384,6 +384,12 @@ class TestMultiLevel(unittest.TestCase):
     def test_unstack_level_name(self):
         result = self.frame.unstack('second')
         expected = self.frame.unstack(level=1)
+        assert_frame_equal(result, expected)
+
+    def test_stack_level_name(self):
+        unstacked = self.frame.unstack('second')
+        result = unstacked.stack('exp')
+        expected = self.frame.unstack().stack(0)
         assert_frame_equal(result, expected)
 
     def test_groupby_transform(self):

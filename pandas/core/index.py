@@ -97,6 +97,12 @@ class Index(np.ndarray):
             raise Exception('Index cannot contain duplicate values!')
         return self._indexMap
 
+    def _get_level_number(self, level):
+        if not isinstance(level, int):
+            assert(level == self.name)
+            level = 0
+        return level
+
     def _verify_integrity(self):
         if self._indexMap is None:
             try:

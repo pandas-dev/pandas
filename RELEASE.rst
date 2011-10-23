@@ -188,6 +188,7 @@ feedback on the library.
   - `Int64Index.take` and `MultiIndex.take` lost name field, fix downstream
     issue GH #262
   - Can pass list of tuples to `Series` (GH #270)
+  - Can pass level name to `DataFrame.stack`
 
 Thanks
 ------

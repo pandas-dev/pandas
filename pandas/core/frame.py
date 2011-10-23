@@ -1739,6 +1739,11 @@ class DataFrame(NDFrame):
         Convert DataFrame to Series with multi-level Index. Columns become the
         second level of the resulting hierarchical index
 
+        Parameters
+        ----------
+        level : int or string, default last level
+            Level to stack, can pass level name
+
         Returns
         -------
         stacked : Series
@@ -1752,8 +1757,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int, default last level
-            Level to unstack
+        level : int or string, default last level
+            Level to unstack, can pass level name
 
         Examples
         --------
