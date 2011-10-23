@@ -369,11 +369,16 @@ copy : boolean, default False
     def __repr__(self):
         """Clean string representation of a Series"""
         if len(self.index) > 500:
-            return self._tidy_repr(30)
+            result = self._tidy_repr(30)
         elif len(self.index) > 0:
-            return self._get_repr(name=True)
+            result = self._get_repr(name=True)
         else:
-            return '%s' % ndarray.__repr__(self)
+            result = '%s' % ndarray.__repr__(self)
+
+        if self.index.name is not None:
+            result = '%s\n%s' % (self.index.name, result)
+
+        return result
 
     def _tidy_repr(self, max_vals=20):
         num = max_vals // 2
