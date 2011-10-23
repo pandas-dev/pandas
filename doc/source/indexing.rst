@@ -346,9 +346,17 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = zip(*arrays)
    tuples
-   index = MultiIndex.from_tuples(tuples)
+   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    s = Series(randn(8), index=index)
    s
+
+All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
+string names for the levels themselves. If no names are provided, some
+arbitrary ones will be assigned:
+
+.. ipython:: python
+
+   index.names
 
 This index can back any axis of a pandas object, and the number of **levels**
 of the index is up to you:
@@ -376,17 +384,17 @@ can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
-Level names
-~~~~~~~~~~~
+Reconstructing the level labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
-string names for the levels themselves. This will get increasingly integrated
-in to groupby and reshaping routines. If no names are provided, some arbitrary
-ones will be assigned:
+The method ``get_level_values`` will return a vector of the labels for each
+location at a particular level:
 
 .. ipython:: python
 
-   index.names
+   index.get_level_values(0)
+   index.get_level_values(1)
+
 
 Basic indexing on axis with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -575,6 +583,16 @@ To do this, use the ``swaplevels`` function:
 
    df
    df.swaplevels(0, 1)
+
+Index methods
+-------------
+
+The pandas Index class and its subclasses can be viewed as implementing an
+*ordered set* in addition to providing the support infrastructure necessary for
+lookups, data alignment, and reindexing.
+
+Set operations on Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Indexing internal details
 -------------------------

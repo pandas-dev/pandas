@@ -127,6 +127,7 @@ feedback on the library.
     #261)
   - Added `pivot_table` convenience function to pandas namespace (GH #234)
   - Implemented `Panel.rename_axis` function (GH #243)
+  - DataFrame will show index level names in console output
 
 **Improvements to existing features**
 

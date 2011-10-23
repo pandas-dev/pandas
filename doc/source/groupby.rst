@@ -159,7 +159,7 @@ natural to group by one of the levels of the hierarchy.
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = zip(*arrays)
    tuples
-   index = MultiIndex.from_tuples(tuples)
+   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    s = Series(randn(8), index=index)
 
 .. ipython:: python
@@ -167,6 +167,13 @@ natural to group by one of the levels of the hierarchy.
    s
    grouped = s.groupby(level=0)
    grouped.sum()
+
+If the MultiIndex has names specified, these can be passed instead of the level
+number:
+
+.. ipython:: python
+
+   s.groupby(level='second').sum()
 
 More on the ``sum`` function and aggregation later. Grouping with multiple
 levels (as opposed to a single level) is not yet supported, though implementing

@@ -27,16 +27,16 @@ TODO docs
 - DONE as_index=False in groupby
 - DONOTWANT is_monotonic
 - DONE DataFrame.to_csv: different delimiters
-- Inner join on key
-- Multi-key joining
-- Index / MultiIndex names
+- DONE combine_first
+- DONE groupby with level name
+- DONE MultiIndex get_level_values
 
-- combine_first
+- Index / MultiIndex names
 - Unstack / stack by level name
 - name attribute on Series
-- groupby with level name
-- MultiIndex
-  - get_level_values
+
+- Inner join on key
+- Multi-key joining
 
 - Update to reflect Python 3 support in intro
 - align functions
