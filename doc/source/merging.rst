@@ -89,8 +89,9 @@ Joining on a key
 ~~~~~~~~~~~~~~~~
 
 ``join`` takes an optional ``on`` argument which should be a column name in the
-calling DataFrame which will be used to "align" the passed DataFrame. This is
-best illustrated by example:
+calling DataFrame which will be used to "align" the passed DataFrame. The
+joining currently aligns the calling DataFrame's column (or columns) on the
+passed DataFrame's index. This is best illustrated by example:
 
 .. ipython:: python
 
@@ -100,6 +101,44 @@ best illustrated by example:
    df
    to_join
    df.join(to_join, on='key')
+
+To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
+
+.. ipython:: python
+
+   index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                              ['one', 'two', 'three']],
+                      labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                      names=['first', 'second'])
+   to_join = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['j_one', 'j_two', 'j_three'])
+
+   # a little relevant example with NAs
+   key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
+           'qux', 'snap']
+   key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
+           'three', 'one']
+
+   data = np.random.randn(len(key1))
+   data = DataFrame({'key1' : key1, 'key2' : key2,
+                     'data' : data})
+   data
+   to_join
+
+
+.. ipython:: python
+
+   data.join(to_join, on=['key1', 'key2'])
+
+This is by default a "many-to-one" or "VLOOKUP"-style left join operation. An
+inner join is also supported:
+
+.. ipython:: python
+
+   data.join(to_join, on=['key1', 'key2'], how='inner')
+
+This drops any rows where there was no match.
 
 Merging ordered records
 ~~~~~~~~~~~~~~~~~~~~~~~

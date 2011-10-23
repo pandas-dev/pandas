@@ -35,9 +35,9 @@ TODO docs
 - DONE Index / MultiIndex names
 - DONE Unstack / stack by level name
 - DONE name attribute on Series
+- DONE Multi-key joining
+- DONE Inner join on key
 
-- Inner join on key
-- Multi-key joining
 - align functions
 - df[col_list]
 - Panel.rename_axis
