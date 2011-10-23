@@ -611,7 +611,8 @@ copy : boolean, default False
             counter[value] += 1
         return Series(counter).order(ascending=False)
 
-    def sum(self, axis=0, dtype=None, out=None, skipna=True):
+
+    def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         """
         Sum of values
 
@@ -620,10 +621,17 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         sum : float
         """
+        if level is not None:
+            sumfunc = lambda x: x.sum(dtype=dtype,skipna=skipna)
+            return self.groupby(level=level).aggregate(sumfunc)
+
         values = self.values.copy()
 
         if skipna:
@@ -634,7 +642,7 @@ copy : boolean, default False
 
         return values.sum()
 
-    def mean(self, axis=0, dtype=None, out=None, skipna=True):
+    def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         """
         Mean of values
 
@@ -643,13 +651,20 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         mean : float
         """
-        return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
+        if level is None:
+            return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
 
-    def median(self, skipna=True):
+        meanfunc = lambda x: x.mean(dtype=dtype,skipna=skipna)
+        return self.groupby(level=level).aggregate(meanfunc)
+
+    def median(self, skipna=True, level=None):
         """
         Compute median of values
 
@@ -657,6 +672,9 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
+
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
@@ -673,9 +691,13 @@ copy : boolean, default False
             if not mask.all():
                 return np.nan
 
-        return lib.median(arr)
+        if level is None:
+            return lib.median(arr)
 
-    def prod(self, axis=0, dtype=None, out=None, skipna=True):
+        medianfunc = lambda x: x.median(skipna=skipna)
+        return self.groupby(level=level).aggregate(medianfunc)
+
+    def prod(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         """
         Product of all values
 
@@ -684,13 +706,20 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         product : float
         """
-        return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
+        if level is None:
+            return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
 
-    def min(self, axis=None, out=None, skipna=True):
+        prodfunc = lambda x: x.prod(dtype=dtype,skipna=skipna)
+        return self.groupby(level=level).aggregate(prodfunc)
+
+    def min(self, axis=None, out=None, skipna=True, level=None):
         """
         Minimum of values
 
@@ -699,17 +728,26 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         min : float
         """
         arr = self.values.copy()
+
         if skipna:
             if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), np.inf)
-        return arr.min()
 
-    def max(self, axis=None, out=None, skipna=True):
+        if level is None:
+            return arr.min()
+
+        minfunc = lambda x: x.min(axis=None, out=None, skipna=True)
+        return self.groupby(level=level).aggregate(minfunc)
+
+    def max(self, axis=None, out=None, skipna=True, level=None):
         """
         Maximum of values
 
@@ -718,17 +756,27 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         max : float
         """
         arr = self.values.copy()
+
         if skipna:
             if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), -np.inf)
-        return arr.max()
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True):
+        if level is None:
+            return arr.max()
+
+        maxfunc = lambda x: x.max(axis=None, out=None, skipna=True)
+        return self.groupby(level=level).aggregate(maxfunc)
+
+    def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
+            level=None):
         """
         Unbiased standard deviation of values
 
@@ -739,19 +787,27 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         stdev : float
         """
+        if not level is None:
+            stdfunc = lambda x: x.std(axis=axis,out=out,skipna=skipna)
+            return self.groupby(level=level).aggregate(stdfunc)
+
         if skipna:
             nona = remove_na(self.values)
             if len(nona) < 2:
                 return nan
             return ndarray.std(nona, axis, dtype, out, ddof)
-        else:
-            return self.values.std(axis, dtype, out, ddof)
 
-    def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True):
+        return self.values.std(axis, dtype, out, ddof)
+
+    def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
+            level=None):
         """
         Unbiased variance of non-NA/null values
 
@@ -762,19 +818,26 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         var : float
         """
+        if not level is None:
+            varfunc = lambda x: x.var(axis=axis,out=out,skipna=skipna)
+            return self.groupby(level=level).aggregate(varfunc)
+
         if skipna:
             nona = remove_na(self.values)
             if len(nona) < 2:
                 return nan
             return ndarray.var(nona, axis, dtype, out, ddof)
-        else:
-            return self.values.var(axis, dtype, out, ddof)
 
-    def skew(self, skipna=True):
+        return self.values.var(axis, dtype, out, ddof)
+
+    def skew(self, skipna=True, level=None):
         """
         Unbiased skewness of the non-NA/null values
 
@@ -783,10 +846,17 @@ copy : boolean, default False
         skipna : boolean, default True
             Exclude NA/null values
 
+        level : integer, default None
+            Choose a level to groupby before applying operation
+
         Returns
         -------
         skew : float
         """
+        if not level is None:
+            skewfunc = lambda x: x.skew(skipna=skipna)
+            return self.groupby(level=level).aggregate(skewfunc)
+
         y = np.array(self.values)
         mask = notnull(y)
         count = mask.sum()

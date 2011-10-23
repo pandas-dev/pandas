@@ -2425,7 +2425,7 @@ class DataFrame(NDFrame):
 
         return DataFrame(result, index=index, columns=columns)
 
-    def sum(self, axis=0, numeric_only=False, skipna=True):
+    def sum(self, axis=0, numeric_only=False, skipna=True, level=None):
         """
         Return sum over requested axis
 
@@ -2438,6 +2438,8 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Examples
         --------
@@ -2456,6 +2458,10 @@ class DataFrame(NDFrame):
         -------
         sum : Series
         """
+        if not level is None:
+            sumfunc = lambda x: x.sum(skipna=skipna)
+            return self.groupby(level=level).aggregate(sumfunc)
+
         y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
 
         if len(axis_labels) == 0:
@@ -2479,7 +2485,7 @@ class DataFrame(NDFrame):
 
         return Series(the_sum, index=axis_labels)
 
-    def min(self, axis=0, skipna=True):
+    def min(self, axis=0, skipna=True, level=None):
         """
         Return minimum over requested axis. NA/null values are excluded
 
@@ -2490,6 +2496,8 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
@@ -2498,9 +2506,14 @@ class DataFrame(NDFrame):
         values = self.values.copy()
         if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), np.inf)
+
+        if not level is None:
+            minfunc = lambda x: x.min(skipna=skipna)
+            return self.groupby(level=level).aggregate(minfunc)
+
         return Series(values.min(axis), index=self._get_agg_axis(axis))
 
-    def max(self, axis=0, skipna=True):
+    def max(self, axis=0, skipna=True, level=None):
         """
         Return maximum over requested axis. NA/null values are excluded
 
@@ -2511,6 +2524,8 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
@@ -2519,9 +2534,14 @@ class DataFrame(NDFrame):
         values = self.values.copy()
         if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), -np.inf)
+
+        if not level is None:
+            maxfunc = lambda x: x.max(skipna=skipna)
+            return self.groupby(level=level).aggregate(maxfunc)
+
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 
-    def prod(self, axis=0, skipna=True):
+    def prod(self, axis=0, skipna=True, level=None):
         """
         Return product over requested axis. NA/null values are treated as 1
 
@@ -2532,11 +2552,17 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
         product : Series
         """
+        if not level is None:
+            prodfunc = lambda x: x.prod(skipna=skipna)
+            return self.groupby(level=level).aggregate(prodfunc)
+
         y = np.array(self.values, subok=True)
         if skipna:
             if not issubclass(y.dtype.type, np.integer):
@@ -2544,11 +2570,10 @@ class DataFrame(NDFrame):
         result = y.prod(axis)
         count = self.count(axis)
         result[count == 0] = nan
+
         return Series(result, index=self._get_agg_axis(axis))
 
-    product = prod
-
-    def mean(self, axis=0, skipna=True):
+    def mean(self, axis=0, skipna=True, level=None):
         """
         Return mean over requested axis. NA/null values are excluded
 
@@ -2559,11 +2584,17 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
         mean : Series
         """
+        if not level is None:
+            meanfunc = lambda x: x.mean(skipna=skipna)
+            return self.groupby(level=level).aggregate(meanfunc)
+
         summed = self.sum(axis, numeric_only=True, skipna=skipna)
         count = self.count(axis, numeric_only=True).astype(float)
         return summed / count
@@ -2599,7 +2630,7 @@ class DataFrame(NDFrame):
 
         return self.apply(f, axis=axis)
 
-    def median(self, axis=0, skipna=True):
+    def median(self, axis=0, skipna=True, level=None):
         """
         Return median over requested axis, NA/null are exluded
 
@@ -2610,11 +2641,17 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
         Series or TimeSeries
         """
+        if not level is None:
+            medianfunc = lambda x: x.median(skipna=skipna)
+            return self.groupby(level=level).aggregate(medianfunc)
+
         if axis == 0:
             med = [self[col].median(skipna=skipna) for col in self.columns]
             return Series(med, index=self.columns)
@@ -2624,7 +2661,7 @@ class DataFrame(NDFrame):
         else:
             raise Exception('Must have 0<= axis <= 1')
 
-    def mad(self, axis=0, skipna=True):
+    def mad(self, axis=0, skipna=True, level=None):
         """
         Return mean absolute deviation over requested axis
 
@@ -2635,18 +2672,24 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
         mad : Series
         """
+        if not level is None:
+            madfunc = lambda x: x.mad(skipna=skipna)
+            return self.groupby(level=level).aggregate(madfunc)
+
         if axis == 0:
             demeaned = self - self.mean(axis=0)
         else:
             demeaned = self.sub(self.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
 
-    def var(self, axis=0, skipna=True):
+    def var(self, axis=0, skipna=True, level=None):
         """
         Return unbiased variance over requested axis
 
@@ -2657,11 +2700,17 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
         var : Series
         """
+        if not level is None:
+            varfunc = lambda x: x.var(skipna=skipna)
+            return self.groupby(level=level).aggregate(varfunc)
+
         y, axis_labels = self._get_agg_data(axis, numeric_only=True)
 
         mask = np.isnan(y)
@@ -2677,7 +2726,7 @@ class DataFrame(NDFrame):
 
         return Series(theVar, index=axis_labels)
 
-    def std(self, axis=0, skipna=True):
+    def std(self, axis=0, skipna=True, level=None):
         """
         Return unbiased std deviation over requested axis
 
@@ -2688,14 +2737,20 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
         std : Series
         """
+        if not level is None:
+            stdfunc = lambda x: x.std(skipna=skipna)
+            return self.groupby(level=level).aggregate(stdfunc)
+
         return np.sqrt(self.var(axis=axis, skipna=skipna))
 
-    def skew(self, axis=0, skipna=True):
+    def skew(self, axis=0, skipna=True, level=None):
         """
         Return unbiased skewness over requested axis
 
@@ -2706,11 +2761,17 @@ class DataFrame(NDFrame):
         skipna : boolean, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA
+        level : integer, default None
+            Choose a level to groupby before applying operation
 
         Returns
         -------
         skew : Series
         """
+        if not level is None:
+            skewfunc = lambda x: x.skew(skipna=skipna)
+            return self.groupby(level=level).aggregate(skewfunc)
+
         y, axis_labels = self._get_agg_data(axis, numeric_only=True)
 
         mask = np.isnan(y)
