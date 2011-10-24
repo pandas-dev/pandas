@@ -129,6 +129,8 @@ feedback on the library.
   - Implemented `Panel.rename_axis` function (GH #243)
   - DataFrame will show index level names in console output
   - Implemented `Panel.take`
+  - Add `set_eng_float_format` function for setting alternate DataFrame
+    floating point string formatting
 
 **Improvements to existing features**
 
