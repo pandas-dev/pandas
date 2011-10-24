@@ -1501,12 +1501,15 @@ class MultiIndex(Index):
         if len(other) == 0 or self.equals(other):
             return self
 
+        result_names = self.names if self.names == other.names else None
+
         # TODO: optimize / make less wasteful
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
 
         uniq_tuples = lib.fast_unique_multiple([self_tuples, other_tuples])
-        return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
+        return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
+                                      names=result_names)
 
     def intersection(self, other):
         """
@@ -1528,11 +1531,19 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
+        result_names = self.names if self.names == other.names else None
+
         # TODO: optimize / make less wasteful
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
-        return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0)
+        if len(uniq_tuples) == 0:
+            return MultiIndex(levels=[[]]*self.nlevels,
+                              labels=[[]]*self.nlevels,
+                              names=result_names)
+        else:
+            return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
+                                          names=result_names)
 
     def diff(self, other):
         """
@@ -1553,7 +1564,7 @@ class MultiIndex(Index):
 
         difference = sorted(set(self.values) - set(other.values))
 
-        if not difference:
+        if len(difference) == 0:
             return MultiIndex(levels=[[]]*self.nlevels,
                               labels=[[]]*self.nlevels,
                               names=result_names)

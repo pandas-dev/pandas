@@ -920,6 +920,11 @@ class TestMultiIndex(unittest.TestCase):
         the_int = self.index.intersection(self.index)
         self.assert_(the_int is self.index)
 
+        # empty intersection: disjoint
+        empty = self.index[:2] & self.index[2:]
+        expected = self.index[:0]
+        self.assert_(empty.equals(expected))
+
         tuples = self.index.get_tuple_index()
         result = self.index & tuples
         self.assert_(result.equals(tuples))
@@ -935,9 +940,19 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
-        # empty difference
-        result = first - first
-        expected = first[:0]
+        # empty difference: reflexive
+        result = self.index - self.index
+        expected = self.index[:0]
+        self.assert_(result.equals(expected))
+
+        # empty difference: superset
+        result = self.index[-3:] - self.index
+        expected = self.index[:0]
+        self.assert_(result.equals(expected))
+
+        # empty difference: degenerate
+        result = self.index[:0] - self.index
+        expected = self.index[:0]
         self.assert_(result.equals(expected))
 
         # names not the same

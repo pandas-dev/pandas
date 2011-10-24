@@ -193,6 +193,7 @@ feedback on the library.
   - Can pass list of tuples to `Series` (GH #270)
   - Can pass level name to `DataFrame.stack`
   - Support set operations between MultiIndex and Index
+  - Fix many corner cases in MultiIndex set operations
 
 Thanks
 ------
