@@ -285,8 +285,6 @@ if suffix == '.pyx':
 else:
     tseries_depends = None
 
-print tseries_depends
-
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends,
                         sources=[srcpath('tseries', suffix=suffix)],

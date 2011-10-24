@@ -334,12 +334,25 @@ foo,three,12,13,14,15
 bar,one,12,13,14,15
 bar,two,12,13,14,15
 """
+
+        data2 = """A,B,C,D
+foo,one,2,3,4,5
+foo,two,7,8,9,10
+foo,three,12,13,14,15
+bar,one,12,13,14,15
+bar,two,12,13,14,15
+"""
+
         lines = data.split('\n')
         no_header = '\n'.join(lines[1:])
         names = ['A', 'B', 'C', 'D']
         df = read_csv(StringIO(no_header), index_col=[0, 1], names=names)
         expected = read_csv(StringIO(data), index_col=[0, 1])
         assert_frame_equal(df, expected)
+
+        # 2 implicit first cols
+        df2 = read_csv(StringIO(data2))
+        assert_frame_equal(df2, df)
 
 class TestParseSQL(unittest.TestCase):
 
