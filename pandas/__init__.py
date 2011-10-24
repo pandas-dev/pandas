@@ -8,7 +8,7 @@ import numpy as np
 
 try:
     import pandas._tseries as lib
-except Exception, e:
+except Exception, e:  # pragma: no cover
     if 'No module named' in e.message:
         raise ImportError('C extensions not built: if you installed already '
                           'verify that you are not importing from the source '

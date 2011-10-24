@@ -34,6 +34,7 @@ class TestIndex(unittest.TestCase):
     def test_duplicates(self):
         idx = Index([0, 0, 0])
         self.assert_(not idx._verify_integrity())
+        self.assertRaises(Exception, getattr, idx, 'indexMap')
 
     def test_sort(self):
         self.assertRaises(Exception, self.strIndex.sort)
@@ -582,6 +583,13 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(not isinstance(single_level, MultiIndex))
         self.assert_(single_level.name == 'first')
 
+        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                                  labels=[[0, 1, 2, 3]])
+        self.assert_(single_level.name is None)
+
+    def test_constructor_no_levels(self):
+        self.assertRaises(Exception, MultiIndex, levels=[], labels=[])
+
     def test_from_arrays(self):
         arrays = []
         for lev, lab in zip(self.index.levels, self.index.labels):
@@ -832,9 +840,17 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(not self.index.equals(self.index.get_tuple_index()))
 
         # different number of levels
-        index = MultiIndex(levels=self.index.levels[:-1],
-                           labels=self.index.labels[:-1])
-        self.assert_(not self.index.equals(index))
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+
+        index2 = MultiIndex(levels=index.levels[:-1],
+                            labels=index.labels[:-1])
+        self.assert_(not index.equals(index2))
+        self.assert_(not index.equal_levels(index2))
 
         # levels are different
         major_axis = Index(range(4))
@@ -877,8 +893,19 @@ class TestMultiIndex(unittest.TestCase):
         the_union = self.index.union(self.index[:0])
         self.assert_(the_union is self.index)
 
-        self.assertRaises(TypeError, self.index.union,
-                          self.index.get_tuple_index())
+        tuples = self.index.get_tuple_index()
+        result = self.index[:4] | tuples[4:]
+        self.assert_(result.equals(tuples))
+
+    def test_union_with_regular_index(self):
+        other = Index(['A', 'B', 'C'])
+
+        result = other.union(self.index)
+        self.assert_(('foo', 'one') in result)
+        self.assert_('B' in result)
+
+        result2 = self.index.union(other)
+        self.assert_(result.equals(result2))
 
     def test_intersection(self):
         piece1 = self.index[:5][::-1]
@@ -893,8 +920,9 @@ class TestMultiIndex(unittest.TestCase):
         the_int = self.index.intersection(self.index)
         self.assert_(the_int is self.index)
 
-        self.assertRaises(TypeError, self.index.intersection,
-                          self.index.get_tuple_index())
+        tuples = self.index.get_tuple_index()
+        result = self.index & tuples
+        self.assert_(result.equals(tuples))
 
     def test_diff(self):
         first = self.index

@@ -350,6 +350,10 @@ class TestMultiLevel(unittest.TestCase):
         ymd_stacked = self.ymd.stack()
         assert_series_equal(stacked, ymd_stacked.reindex(stacked.index))
 
+        # stack with negative number
+        result = self.ymd.unstack(0).stack(-2)
+        expected = self.ymd.unstack(0).stack(0)
+
     def test_stack_mixed_dtype(self):
         df = self.frame.T
         df['foo', 'four'] = 'foo'
@@ -391,6 +395,10 @@ class TestMultiLevel(unittest.TestCase):
         result = unstacked.stack('exp')
         expected = self.frame.unstack().stack(0)
         assert_frame_equal(result, expected)
+
+        result = self.frame.stack('exp')
+        expected = self.frame.stack()
+        assert_series_equal(result, expected)
 
     def test_groupby_transform(self):
         s = self.frame['A']

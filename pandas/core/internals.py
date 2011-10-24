@@ -176,31 +176,19 @@ class FloatBlock(Block):
         # unnecessarily
         return issubclass(value.dtype.type, np.floating)
 
-    def can_store(self, value):
-        return issubclass(value.dtype.type, (np.integer, np.floating))
-
 class IntBlock(Block):
 
     def should_store(self, value):
-        return self.can_store(value)
-
-    def can_store(self, value):
         return issubclass(value.dtype.type, np.integer)
 
 class BoolBlock(Block):
 
     def should_store(self, value):
-        return self.can_store(value)
-
-    def can_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
 class ObjectBlock(Block):
 
     def should_store(self, value):
-        return self.can_store(value)
-
-    def can_store(self, value):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
@@ -676,21 +664,24 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_axes)
 
-    def take(self, indexer, axis=1, pandas_indexer=False):
+    def take(self, indexer, axis=1):
         if axis == 0:
             raise NotImplementedError
 
-        if pandas_indexer:
-            take_f = lambda arr: common.take_fast(arr, indexer,
-                                                  None, False, axis=axis)
-        else:
-            take_f = lambda arr: arr.take(indexer, axis=axis)
+        indexer = np.asarray(indexer, dtype='i4')
+
+        n = len(self.axes[axis])
+        if ((indexer == -1) | (indexer >= n)).any():
+            raise Exception('Indices must be nonzero and less than '
+                            'the axis length')
 
         new_axes = list(self.axes)
         new_axes[axis] = self.axes[axis].take(indexer)
         new_blocks = []
         for blk in self.blocks:
-            newb = make_block(take_f(blk.values), blk.items, self.items)
+            new_values = common.take_fast(blk.values, indexer,
+                                          None, False, axis=axis)
+            newb = make_block(new_values, blk.items, self.items)
             new_blocks.append(newb)
 
         return BlockManager(new_blocks, new_axes)

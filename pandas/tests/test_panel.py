@@ -419,6 +419,11 @@ class CheckIndexing(object):
         itemA_view.values[:] = np.nan
         self.assert_(np.isnan(self.panel['ItemA'].values).all())
 
+        # mixed-type
+        self.panel['strings'] = 'foo'
+        self.assertRaises(Exception, self.panel.xs, 'D', axis=2,
+                          copy=False)
+
     def test_getitem_fancy_labels(self):
         p = self.panel
 
@@ -669,6 +674,20 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                                      minor=self.panel.minor_axis[:-1])
         smaller_like = self.panel.reindex_like(smaller)
         assert_panel_equal(smaller, smaller_like)
+
+    def test_take(self):
+        # axis == 0
+        result = self.panel.take([2, 0, 1], axis=0)
+        expected = self.panel.reindex(items=['ItemC', 'ItemA', 'ItemB'])
+        assert_panel_equal(result, expected)
+
+        # axis >= 1
+        result = self.panel.take([3, 0, 1, 2], axis=2)
+        expected = self.panel.reindex(minor=['D', 'A', 'B', 'C'])
+        assert_panel_equal(result, expected)
+
+        self.assertRaises(Exception, self.panel.take, [3, -1, 1, 2], axis=2)
+        self.assertRaises(Exception, self.panel.take, [4, 0, 1, 2], axis=2)
 
     def test_sort_index(self):
         import random
@@ -985,6 +1004,17 @@ class TestLongPanel(unittest.TestCase):
         expected = DataFrame(self.panel._data) * 2
         assert_frame_equal(result, expected)
 
+    def test_combine_series(self):
+        s = self.panel['ItemA'][:10]
+        result = self.panel.add(s, axis=0)
+        expected = DataFrame.add(self.panel, s, axis=0)
+        assert_frame_equal(result, expected)
+
+        s = self.panel.ix[5]
+        result = self.panel + s
+        expected = DataFrame.add(self.panel, s, axis=1)
+        assert_frame_equal(result, expected)
+
     def test_operators(self):
         wp = self.panel.to_wide()
         result = (self.panel + 1).to_wide()
@@ -999,9 +1029,6 @@ class TestLongPanel(unittest.TestCase):
 
         sorted_major = sorted_minor.sortlevel(level=0)
         self.assert_(is_sorted(sorted_major.major_labels))
-
-    def test_to_wide(self):
-        pass
 
     def test_toCSV(self):
         self.panel.toCSV('__tmp__')

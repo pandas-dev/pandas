@@ -287,6 +287,9 @@ def stack(frame, level=-1, dropna=True):
     stacked : Series
     """
     N, K = frame.shape
+    if isinstance(level, int) and level < 0:
+        level += frame.columns.nlevels
+
     level = frame.columns._get_level_number(level)
 
     if isinstance(frame.columns, MultiIndex):
@@ -318,8 +321,6 @@ def stack(frame, level=-1, dropna=True):
 
 def _stack_multi_columns(frame, level=-1, dropna=True):
     this = frame.copy()
-    if level < 0:
-        level += frame.columns.nlevels
 
     # this makes life much simpler
     if level != frame.columns.nlevels - 1:

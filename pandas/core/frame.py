@@ -2308,7 +2308,7 @@ class DataFrame(NDFrame):
         else:
             frame = self
 
-        result = frame.apply(Series.count, axis=axis)
+        result = DataFrame.apply(frame, Series.count, axis=axis)
 
         # what happens with empty DataFrame
         if isinstance(result, DataFrame):

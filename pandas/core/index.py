@@ -39,6 +39,11 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
+    _map_indices = lib.map_indices_object
+    _is_monotonic = lib.is_monotonic_object
+    _groupby = lib.groupby_object
+    _arrmap = lib.arrmap_object
+
     name = None
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
@@ -67,6 +72,10 @@ class Index(np.ndarray):
     def nlevels(self):
         return 1
 
+    @property
+    def _constructor(self):
+        return Index
+
     def summary(self):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
@@ -82,15 +91,16 @@ class Index(np.ndarray):
 
     @cache_readonly
     def is_monotonic(self):
-        return lib.is_monotonic_object(self)
+        return self._is_monotonic(self)
 
     _indexMap = None
     _integrity = False
+
     @property
     def indexMap(self):
         "{label -> location}"
         if self._indexMap is None:
-            self._indexMap = lib.map_indices_object(self)
+            self._indexMap = self._map_indices(self)
             self._integrity = len(self._indexMap) == len(self)
 
         if not self._integrity:
@@ -185,7 +195,7 @@ class Index(np.ndarray):
         Analogous to ndarray.take
         """
         taken = self.view(np.ndarray).take(*args, **kwargs)
-        return Index(taken, name=self.name)
+        return self._constructor(taken, name=self.name)
 
     def format(self, name=False):
         """
@@ -305,7 +315,7 @@ class Index(np.ndarray):
             return _ensure_index(other)
 
         if self.is_monotonic and other.is_monotonic:
-            result = lib.outer_join_indexer_object(self, other)[0]
+            result = lib.outer_join_indexer_object(self, other.values)[0]
         else:
             indexer = self.get_indexer(other)
             indexer = (indexer == -1).nonzero()[0]
@@ -356,9 +366,10 @@ class Index(np.ndarray):
             other = other.astype(object)
 
         if self.is_monotonic and other.is_monotonic:
-            return Index(lib.inner_join_indexer_object(self, other)[0])
+            return Index(lib.inner_join_indexer_object(self,
+                                                       other.values)[0])
         else:
-            indexer = self.get_indexer(other)
+            indexer = self.get_indexer(other.values)
             indexer = indexer.take((indexer != -1).nonzero()[0])
             return self.take(indexer)
 
@@ -446,10 +457,10 @@ class Index(np.ndarray):
         return indexer
 
     def groupby(self, to_groupby):
-        return lib.groupby_object(self.values, to_groupby)
+        return self._groupby(self.values, to_groupby)
 
     def map(self, mapper):
-        return lib.arrmap_object(self.values, mapper)
+        return self._arrmap(self.values, mapper)
 
     def _get_method(self, method):
         if method:
@@ -621,6 +632,11 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
+    _map_indices = lib.map_indices_int64
+    _is_monotonic = lib.is_monotonic_int64
+    _groupby = lib.groupby_int64
+    _arrmap = lib.arrmap_int64
+
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -648,28 +664,16 @@ class Int64Index(Index):
         subarr.name = name
         return subarr
 
+    @property
+    def _constructor(self):
+        return Int64Index
+
     def astype(self, dtype):
         return Index(self.values.astype(dtype))
 
     @property
     def dtype(self):
         return np.dtype('int64')
-
-    @cache_readonly
-    def is_monotonic(self):
-        return lib.is_monotonic_int64(self)
-
-    @property
-    def indexMap(self):
-        "{label -> location}"
-        if self._indexMap is None:
-            self._indexMap = lib.map_indices_int64(self)
-            self._integrity = len(self._indexMap) == len(self)
-
-        if not self._integrity:
-            raise Exception('Index cannot contain duplicate values!')
-
-        return self._indexMap
 
     def is_all_dates(self):
         """
@@ -770,19 +774,6 @@ class Int64Index(Index):
             result = np.unique(np.concatenate((self, other)))
         return Int64Index(result)
     union.__doc__ = Index.union.__doc__
-
-    def groupby(self, to_groupby):
-        return lib.groupby_int64(self, to_groupby)
-
-    def map(self, mapper):
-        return lib.arrmap_int64(self, mapper)
-
-    def take(self, *args, **kwargs):
-        """
-        Analogous to ndarray.take
-        """
-        taken = self.values.take(*args, **kwargs)
-        return Int64Index(taken, name=self.name)
 
 class DateIndex(Index):
     pass
@@ -1267,16 +1258,9 @@ class MultiIndex(Index):
         """
         method = self._get_method(method)
 
+        target_index = target
         if isinstance(target, MultiIndex):
             target_index = target.get_tuple_index()
-        else:
-            if len(target) > 0:
-                val = target[0]
-                if not isinstance(val, tuple) or len(val) != self.nlevels:
-                    raise ValueError('can only pass MultiIndex or '
-                                     'array of tuples')
-
-            target_index = target
 
         self_index = self.get_tuple_index()
 
@@ -1509,6 +1493,9 @@ class MultiIndex(Index):
         -------
         Index
         """
+        if not isinstance(other, MultiIndex):
+            return other.union(self)
+
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
@@ -1533,6 +1520,9 @@ class MultiIndex(Index):
         -------
         Index
         """
+        if not isinstance(other, MultiIndex):
+            return other.intersection(self)
+
         self._assert_can_do_setop(other)
 
         if self.equals(other):

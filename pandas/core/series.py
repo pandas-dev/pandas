@@ -9,12 +9,6 @@ import csv
 import itertools
 import operator
 
-try:
-    from collections import Counter
-except ImportError:
-    # For Python < 2.7, we include a local copy of this:
-    from pandas.util.counter import Counter
-
 from numpy import nan, ndarray
 import numpy as np
 
@@ -444,7 +438,7 @@ copy : boolean, default False
         return itertools.izip(iter(self.index), iter(self))
 
     iterkv = iteritems
-    if py3compat.PY3:
+    if py3compat.PY3:  # pragma: no cover
         items = iteritems
 
     #----------------------------------------------------------------------
@@ -908,6 +902,12 @@ copy : boolean, default False
         -------
         desc : Series
         """
+        try:
+            from collections import Counter
+        except ImportError:  # pragma: no cover
+            # For Python < 2.7, we include a local copy of this:
+            from pandas.util.counter import Counter
+
         if self.dtype == object:
             names = ['count', 'unique', 'top', 'freq']
 
@@ -1094,7 +1094,8 @@ copy : boolean, default False
     mul = _flex_method(operator.mul, 'multiply')
     try:
         div = _flex_method(operator.div, 'divide')
-    except AttributeError:    # Python 3
+    except AttributeError:  # pragma: no cover
+        # Python 3
         div = _flex_method(operator.truediv, 'divide')
 
     def combine(self, other, func, fill_value=nan):

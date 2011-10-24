@@ -204,7 +204,7 @@ class PandasObject(Picklable):
     def ix(self):
         raise NotImplementedError
 
-    def reindex(self, **kwds):
+    def reindex(self, *args, **kwds):
         raise NotImplementedError
 
 class NDFrame(PandasObject):
@@ -486,3 +486,25 @@ class NDFrame(PandasObject):
                 new_data = new_data.copy()
 
         return self._constructor(new_data)
+
+    def take(self, indices, axis=0):
+        """
+        Analogous to ndarray.take
+
+        Parameters
+        ----------
+        indices : list / array of ints
+        axis : int, default 0
+
+        Returns
+        -------
+        taken : type of caller
+        """
+        if axis == 0:
+            labels = self._get_axis(axis)
+            new_items = labels.take(indices)
+            new_data = self._data.reindex_items(new_items)
+        else:
+            new_data = self._data.take(indices, axis=axis)
+        return self._constructor(new_data)
+

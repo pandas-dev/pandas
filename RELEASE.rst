@@ -128,6 +128,7 @@ feedback on the library.
   - Added `pivot_table` convenience function to pandas namespace (GH #234)
   - Implemented `Panel.rename_axis` function (GH #243)
   - DataFrame will show index level names in console output
+  - Implemented `Panel.take`
 
 **Improvements to existing features**
 
@@ -189,6 +190,7 @@ feedback on the library.
     issue GH #262
   - Can pass list of tuples to `Series` (GH #270)
   - Can pass level name to `DataFrame.stack`
+  - Support set operations between MultiIndex and Index
 
 Thanks
 ------
