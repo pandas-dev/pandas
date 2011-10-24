@@ -1922,7 +1922,7 @@ class DataFrame(NDFrame):
         -------
         applied : Series or DataFrame
         """
-        if not len(self.columns):
+        if len(self.columns) == 0 and len(self.index) == 0:
             return self
 
         if isinstance(func, np.ufunc):
@@ -2902,7 +2902,7 @@ class _DataFrameFormatter(object):
         to_write = []
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            to_write.append('Empty %s' % type(self).__name__)
+            to_write.append('Empty %s\n' % type(self.frame).__name__)
             to_write.append(repr(frame.index))
         else:
             # may include levels names also

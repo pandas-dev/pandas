@@ -2347,6 +2347,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         applied = self.empty.apply(np.mean)
         self.assert_(not applied)
 
+        no_rows = self.frame[:0]
+        result = no_rows.apply(lambda x: x.mean())
+        expected = Series(np.nan, index=self.frame.columns)
+        assert_series_equal(result, expected)
+
+        no_cols = self.frame.ix[:, []]
+        result = no_cols.apply(lambda x: x.mean(), axis=1)
+        expected = Series(np.nan, index=self.frame.index)
+        assert_series_equal(result, expected)
 
     def test_apply_broadcast(self):
         broadcasted = self.frame.apply(np.mean, broadcast=True)

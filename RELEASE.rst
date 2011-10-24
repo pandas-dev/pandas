@@ -196,6 +196,7 @@ feedback on the library.
   - Fix many corner cases in MultiIndex set operations
   - Fix MultiIndex-handling bug with GroupBy.apply when returned groups are not
     indexed the same
+  - Fix corner case bugs in DataFrame.apply
 
 Thanks
 ------
