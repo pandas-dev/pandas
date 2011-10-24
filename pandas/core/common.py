@@ -416,7 +416,7 @@ class EngFormatter(object):
 
         sign = 1
 
-        if dnum < 0:
+        if dnum < 0:  # pragma: no cover
             sign = -1
             dnum = -dnum
 
@@ -439,7 +439,7 @@ class EngFormatter(object):
 
         mant = sign*dnum/(10**pow10)
 
-        if self.precision is None:
+        if self.precision is None:  # pragma: no cover
             format_str = u"%g%s"
         elif self.precision == 0:
             format_str = u"%i%s"

@@ -11,6 +11,7 @@ from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 
+import pandas.core.common as common
 import pandas.core.datetools as datetools
 from pandas.core.index import NULL_INDEX
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
@@ -1245,9 +1246,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                index=np.arange(50))
         foo = repr(unsortable)
 
-        import pandas.core.common as common
         common.set_printoptions(precision=3, column_space=10)
         repr(self.frame)
+
+    def test_eng_float_formatter(self):
+        self.frame.ix[5] = 0
+
+        common.set_eng_float_format()
+
+        repr(self.frame)
+
+        common.set_eng_float_format(use_eng_prefix=True)
+
+        repr(self.frame)
+
+        common.set_eng_float_format(precision=0)
+
+        repr(self.frame)
+
+        common.set_printoptions(precision=4)
 
     def test_repr_tuples(self):
         buf = StringIO()

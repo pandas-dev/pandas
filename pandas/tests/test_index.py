@@ -944,16 +944,19 @@ class TestMultiIndex(unittest.TestCase):
         result = self.index - self.index
         expected = self.index[:0]
         self.assert_(result.equals(expected))
+        self.assertEqual(result.names, self.index.names)
 
         # empty difference: superset
         result = self.index[-3:] - self.index
         expected = self.index[:0]
         self.assert_(result.equals(expected))
+        self.assertEqual(result.names, self.index.names)
 
         # empty difference: degenerate
         result = self.index[:0] - self.index
         expected = self.index[:0]
         self.assert_(result.equals(expected))
+        self.assertEqual(result.names, self.index.names)
 
         # names not the same
         chunklet = self.index[-3:]

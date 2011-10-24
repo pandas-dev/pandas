@@ -194,6 +194,8 @@ feedback on the library.
   - Can pass level name to `DataFrame.stack`
   - Support set operations between MultiIndex and Index
   - Fix many corner cases in MultiIndex set operations
+  - Fix MultiIndex-handling bug with GroupBy.apply when returned groups are not
+    indexed the same
 
 Thanks
 ------

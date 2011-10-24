@@ -913,6 +913,31 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result, expected)
 
+    def test_apply_corner(self):
+        result = self.tsframe.groupby(lambda x: x.year).apply(lambda x: x * 2)
+        expected = self.tsframe * 2
+        assert_frame_equal(result, expected)
+
+    def test_transform_mixed_type(self):
+        index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
+                                        [1, 2, 3, 1, 2, 3]])
+        df = DataFrame({'d' : [1.,1.,1.,2.,2.,2.],
+                        'c' : np.tile(['a','b','c'], 2),
+                        'v' : np.arange(1., 7.)}, index=index)
+
+        def f(group):
+            group['g'] = group['d'] * 2
+            return group[:1]
+
+        grouped = df.groupby('c')
+        result = grouped.apply(f)
+
+        self.assert_(result['d'].dtype == np.float64)
+
+        for key, group in grouped:
+            res = f(group)
+            assert_frame_equal(res, result.ix[key])
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):

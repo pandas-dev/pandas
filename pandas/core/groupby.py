@@ -412,8 +412,13 @@ class GroupBy(object):
         not_indexed_same = False
         for key, group in self:
             group.name = key
+
+            # group might be modified
+            group_axes = _get_axes(group)
+
             res = func(group, *args, **kwargs)
-            if not _is_indexed_like(res, group):
+
+            if not _is_indexed_like(res, group_axes):
                 not_indexed_same = True
 
             result_keys.append(key)
@@ -460,18 +465,19 @@ def groupby(obj, by, **kwds):
     return klass(obj, by, **kwds)
 groupby.__doc__ = GroupBy.__doc__
 
-def _is_indexed_like(obj, other):
-    if isinstance(obj, Series):
-        if not isinstance(other, Series):
-            return False
-        return obj.index.equals(other.index)
-    elif isinstance(obj, DataFrame):
-        if isinstance(other, Series):
-            return obj.index.equals(other.index)
+def _get_axes(group):
+    if isinstance(group, Series):
+        return [group.index]
+    else:
+        return group.axes
 
-        # deal with this when a case arises
-        assert(isinstance(other, DataFrame))
-        return obj._indexed_same(other)
+def _is_indexed_like(obj, axes):
+    if isinstance(obj, Series):
+        if len(axes) > 1:
+            return False
+        return obj.index.equals(axes[0])
+    elif isinstance(obj, DataFrame):
+        return obj.index.equals(axes[0])
 
     return False
 
@@ -1093,11 +1099,7 @@ def _concat_frames(frames, index, columns=None, axis=0):
         return result.reindex(index=index, columns=columns)
 
 def _concat_indexes(indexes):
-    if len(indexes) == 1:
-        new_index = indexes[0]
-    else:
-        new_index = indexes[0].append(indexes[1:])
-    return new_index
+    return indexes[0].append(indexes[1:])
 
 def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
     if axis == 0:
@@ -1135,8 +1137,14 @@ def _make_concat_multiindex(indexes, keys, groupings):
                 to_concat.append(np.repeat(k, len(index)))
             label_list.append(np.concatenate(to_concat))
 
-        # these go in the last level
-        label_list.append(np.concatenate(indexes))
+        concat_index = _concat_indexes(indexes)
+
+        # these go at the end
+        if isinstance(concat_index, MultiIndex):
+            for level in range(concat_index.nlevels):
+                label_list.append(concat_index.get_level_values(level))
+        else:
+            label_list.append(concat_index.values)
 
         return MultiIndex.from_arrays(label_list)
 
