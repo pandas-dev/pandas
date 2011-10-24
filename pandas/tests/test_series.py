@@ -1137,7 +1137,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # NO NaNs introduced
         reindexed_int = int_ts.reindex(int_ts.index[::2])
-        self.assert_(reindexed_int.dtype == np.int64)
+        self.assert_(reindexed_int.dtype == np.int_)
 
     def test_reindex_bool(self):
 

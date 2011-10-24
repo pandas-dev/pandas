@@ -743,7 +743,8 @@ class TestGroupBy(unittest.TestCase):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.apply(len)
         expected = grouped.count()['C']
-        assert_series_equal(result, expected)
+        self.assert_(result.index.equals(expected.index))
+        self.assert_(np.array_equal(result.values, expected.values))
 
     def test_apply_transform(self):
         grouped = self.ts.groupby(lambda x: x.month)
