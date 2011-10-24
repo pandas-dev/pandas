@@ -221,8 +221,8 @@ True,3
 3.0,3
 """
         data = read_csv(StringIO(data))
-        self.assert_(data['A'].dtype == np.float_)
-        self.assert_(data['B'].dtype == np.int_)
+        self.assert_(data['A'].dtype == np.float64)
+        self.assert_(data['B'].dtype == np.int64)
 
     def test_infer_index_col(self):
         data = """A,B,C

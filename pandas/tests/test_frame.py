@@ -198,7 +198,7 @@ class CheckIndexing(object):
         self.assertEqual(dm.values.dtype, np.object_)
 
         dm['C'] = 1
-        self.assertEqual(dm['C'].dtype, np.int_)
+        self.assertEqual(dm['C'].dtype, np.int64)
 
         # set existing column
         dm['A'] = 'bar'
@@ -371,7 +371,7 @@ class CheckIndexing(object):
 
     def test_fancy_getitem_slice_mixed(self):
         sliced = self.mixed_frame.ix[:, -3:]
-        self.assert_(sliced['D'].dtype == np.float_)
+        self.assert_(sliced['D'].dtype == np.float64)
 
         # get view with single block
         sliced = self.frame.ix[:, -3:]
@@ -935,13 +935,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         }
         frame = DataFrame(test_data, dtype=float)
         self.assertEqual(len(frame), 3)
-        self.assert_(frame['B'].dtype == np.float_)
-        self.assert_(frame['A'].dtype == np.float_)
+        self.assert_(frame['B'].dtype == np.float64)
+        self.assert_(frame['A'].dtype == np.float64)
 
         frame = DataFrame(test_data)
         self.assertEqual(len(frame), 3)
         self.assert_(frame['B'].dtype == np.object_)
-        self.assert_(frame['A'].dtype == np.float_)
+        self.assert_(frame['A'].dtype == np.float64)
 
         # can't cast to float
         test_data = {
@@ -951,7 +951,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = DataFrame(test_data, dtype=float)
         self.assertEqual(len(frame), 20)
         self.assert_(frame['A'].dtype == np.object_)
-        self.assert_(frame['B'].dtype == np.float_)
+        self.assert_(frame['B'].dtype == np.float64)
 
     def test_constructor_dict_dont_upcast(self):
         d = {'Col1': {'Row1': 'A String', 'Row2': np.nan}}
@@ -973,7 +973,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # cast type
         frame = DataFrame(mat, columns=['A', 'B', 'C'],
                            index=[1, 2], dtype=int)
-        self.assert_(frame.values.dtype == np.int_)
+        self.assert_(frame.values.dtype == np.int64)
 
         # 1-D input
         frame = DataFrame(np.zeros(3), columns=['A'], index=[1, 2, 3])
@@ -1022,16 +1022,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # does not error but ends up float
         df = DataFrame(index=range(10), columns=['a','b'], dtype=int)
-        self.assert_(df.values.dtype == np.float_)
+        self.assert_(df.values.dtype == np.float64)
 
     def test_constructor_scalar_inference(self):
         data = {'int' : 1, 'bool' : True,
                 'float' : 3., 'object' : 'foo'}
         df = DataFrame(data, index=np.arange(10))
 
-        self.assert_(df['int'].dtype == np.int_)
+        self.assert_(df['int'].dtype == np.int64)
         self.assert_(df['bool'].dtype == np.bool_)
-        self.assert_(df['float'].dtype == np.float_)
+        self.assert_(df['float'].dtype == np.float64)
         self.assert_(df['object'].dtype == np.object_)
 
     def test_constructor_DataFrame(self):
@@ -1039,7 +1039,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df, self.frame)
 
         df_casted = DataFrame(self.frame, dtype=int)
-        self.assert_(df_casted.values.dtype == np.int_)
+        self.assert_(df_casted.values.dtype == np.int64)
 
     def test_constructor_more(self):
         # used to be in test_matrix.py
@@ -1079,7 +1079,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         index=np.arange(10))
 
         self.assertEqual(len(dm.columns), 2)
-        self.assert_(dm.values.dtype == np.float_)
+        self.assert_(dm.values.dtype == np.float64)
 
     def test_constructor_ragged(self):
         data = {'A' : randn(10),
@@ -2162,13 +2162,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_reindex_int(self):
         smaller = self.intframe.reindex(self.intframe.index[::2])
 
-        self.assert_(smaller['A'].dtype == np.int_)
+        self.assert_(smaller['A'].dtype == np.int64)
 
         bigger = smaller.reindex(self.intframe.index)
-        self.assert_(bigger['A'].dtype == np.float_)
+        self.assert_(bigger['A'].dtype == np.float64)
 
         smaller = self.intframe.reindex(columns=['A', 'B'])
-        self.assert_(smaller['A'].dtype == np.int_)
+        self.assert_(smaller['A'].dtype == np.int64)
 
     def test_reindex_like(self):
         other = self.frame.reindex(index=self.frame.index[:10],
@@ -2966,7 +2966,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # ints are weird
 
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
-        self.assert_(smaller['E'].dtype == np.float_)
+        self.assert_(smaller['E'].dtype == np.float64)
 
     def test_rename_objects(self):
         renamed = self.mixed_frame.rename(columns=str.upper)
@@ -3306,7 +3306,7 @@ class TestDataFrameJoin(unittest.TestCase):
         df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
-        self.assert_(df1['B'].dtype == np.int_)
+        self.assert_(df1['B'].dtype == np.int64)
         self.assert_(df1['D'].dtype == np.bool_)
 
         df2 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},

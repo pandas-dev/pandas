@@ -815,7 +815,6 @@ class BlockManager(object):
         assert((result >= 0).all())
         return result
 
-_data_types = [np.float_, np.int_]
 def form_blocks(data, axes):
     # pre-filter out items if we passed it
     items = axes[0]
@@ -847,7 +846,7 @@ def form_blocks(data, axes):
         blocks.append(float_block)
 
     if len(int_dict):
-        int_block = _simple_blockify(int_dict, items, np.int_)
+        int_block = _simple_blockify(int_dict, items, np.int64)
         blocks.append(int_block)
 
     if len(bool_dict):

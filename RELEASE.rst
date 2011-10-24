@@ -200,6 +200,7 @@ feedback on the library.
     indexed the same
   - Fix corner case bugs in DataFrame.apply
   - Setting DataFrame index did not cause Series cache to get cleared
+  - Various int32 -> int64 platform-specific issues
 
 Thanks
 ------

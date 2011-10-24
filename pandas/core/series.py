@@ -709,7 +709,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
         if skipna:
-            if not issubclass(arr.dtype.type, np.int_):
+            if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), np.inf)
         return arr.min()
 
@@ -728,7 +728,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
         if skipna:
-            if not issubclass(arr.dtype.type, np.int_):
+            if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), -np.inf)
         return arr.max()
 
@@ -822,7 +822,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
 
-        do_mask = skipna and not issubclass(self.dtype.type, np.int_)
+        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 0.)
@@ -851,7 +851,7 @@ copy : boolean, default False
         """
         arr = self.values.copy()
 
-        do_mask = skipna and not issubclass(self.dtype.type, np.int_)
+        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
             mask = isnull(arr)
             np.putmask(arr, mask, 1.)

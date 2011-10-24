@@ -321,7 +321,7 @@ class NDFrame(PandasObject):
             axis = self._get_axis_number(axis)
 
         y = self.values.copy()
-        if not issubclass(y.dtype.type, np.int_):
+        if not issubclass(y.dtype.type, np.integer):
             mask = np.isnan(self.values)
 
             if skipna:
@@ -360,7 +360,7 @@ class NDFrame(PandasObject):
             axis = self._get_axis_number(axis)
 
         y = self.values.copy()
-        if not issubclass(y.dtype.type, np.int_):
+        if not issubclass(y.dtype.type, np.integer):
             mask = np.isnan(self.values)
 
             if skipna:

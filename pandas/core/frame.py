@@ -2455,7 +2455,7 @@ class DataFrame(NDFrame):
             mask = np.isfinite(y)
 
             if skipna:
-                if not issubclass(y.dtype.type, np.int_):
+                if not issubclass(y.dtype.type, np.integer):
                     np.putmask(y, -mask, 0)
 
             the_sum = y.sum(axis)
@@ -2484,7 +2484,7 @@ class DataFrame(NDFrame):
         min : Series
         """
         values = self.values.copy()
-        if skipna and not issubclass(values.dtype.type, np.int_):
+        if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), np.inf)
         return Series(values.min(axis), index=self._get_agg_axis(axis))
 
@@ -2505,7 +2505,7 @@ class DataFrame(NDFrame):
         max : Series
         """
         values = self.values.copy()
-        if skipna and not issubclass(values.dtype.type, np.int_):
+        if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
 
@@ -2527,7 +2527,7 @@ class DataFrame(NDFrame):
         """
         y = np.array(self.values, subok=True)
         if skipna:
-            if not issubclass(y.dtype.type, np.int_):
+            if not issubclass(y.dtype.type, np.integer):
                 y[np.isnan(y)] = 1
         result = y.prod(axis)
         count = self.count(axis)
