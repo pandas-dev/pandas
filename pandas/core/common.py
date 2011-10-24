@@ -4,7 +4,8 @@ Misc tools for implementing data structures
 import cPickle
 try:
     from io import BytesIO
-except ImportError:   # Python < 2.6
+except ImportError:  # pragma: no cover
+    # Python < 2.6
     from cStringIO import StringIO as BytesIO
 import itertools
 
@@ -486,7 +487,8 @@ class groupby(dict):
             self.setdefault(k, []).append(value)
     try:
         __iter__ = dict.iteritems
-    except AttributeError:  # Python 3
+    except AttributeError:  # pragma: no cover
+        # Python 3
         def __iter__(self):
             return iter(dict.items(self))
 

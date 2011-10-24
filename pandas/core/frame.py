@@ -279,7 +279,7 @@ class DataFrame(NDFrame):
         return ((k, self[k]) for k in self.columns)
 
     iterkv = iteritems
-    if py3compat.PY3:
+    if py3compat.PY3:  # pragma: no cover
         items = iteritems
 
     def __len__(self):
@@ -727,25 +727,6 @@ class DataFrame(NDFrame):
         self._data = dm._data
 
     #----------------------------------------------------------------------
-    # Private helper methods
-
-    def _intersect_index(self, other):
-        common_index = self.index
-
-        if not common_index.equals(other.index):
-            common_index = common_index.intersection(other.index)
-
-        return common_index
-
-    def _intersect_columns(self, other):
-        common_cols = self.columns
-
-        if not common_cols.equals(other.columns):
-            common_cols = common_cols.intersection(other.columns)
-
-        return common_cols
-
-    #----------------------------------------------------------------------
     # Array interface
 
     def __array__(self, dtype=None):
@@ -981,13 +962,9 @@ class DataFrame(NDFrame):
             return Series(new_values, index=self.columns, name=key)
         else:
             new_data = self._data.xs(key, axis=1, copy=copy)
-            if new_data.ndim == 1:
-                return Series(new_data.as_matrix(), index=self.columns,
-                              name=key)
-            else:
-                result = DataFrame(new_data)
-                result.index = _maybe_droplevels(result.index, key)
-                return result
+            result = DataFrame(new_data)
+            result.index = _maybe_droplevels(result.index, key)
+            return result
 
     #----------------------------------------------------------------------
     # Reindexing and alignment
@@ -1464,15 +1441,6 @@ class DataFrame(NDFrame):
     def _combine_frame(self, other, func, fill_value=None):
         this, other = self.align(other, join='outer', copy=False)
         new_index, new_columns = this.index, this.columns
-
-        # some shortcuts
-        if fill_value is None:
-            if not self and not other:
-                return self._constructor(index=new_index)
-            elif not self:
-                return other * nan
-            elif not other:
-                return self * nan
 
         this_vals = this.values
         other_vals = other.values
@@ -2174,7 +2142,7 @@ class DataFrame(NDFrame):
             return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_on(self, other, on, how, lsuffix, rsuffix):
-        if how not in ['left', 'inner']:
+        if how not in ('left', 'inner'):  # pragma: no cover
             raise Exception('Only inner / left joins currently supported')
 
         if isinstance(other, Series):
@@ -3295,7 +3263,7 @@ def _homogenize(data, index, columns, dtype=None):
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
 
-def install_ipython_completers():
+def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so
     that it knows about accessing column names as attributes."""
     from IPython.utils.generics import complete_object
@@ -3307,7 +3275,7 @@ def install_ipython_completers():
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
 # we're in IPython (when those modules are loaded anyway).
-if "IPython" in sys.modules:
+if "IPython" in sys.modules:  # pragma: no cover
     try:
         install_ipython_completers()
     except Exception:

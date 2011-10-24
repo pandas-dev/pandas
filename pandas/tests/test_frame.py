@@ -1095,6 +1095,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(self.frame['A'], index=self.frame.index, columns=['A'])
         df.copy()
 
+    def test_constructor_mixed_dict_and_Series(self):
+        data = {}
+        data['A'] = {'foo' : 1, 'bar' : 2, 'baz' : 3}
+        data['B'] = Series([4, 3, 2, 1], index=['bar', 'qux', 'baz', 'foo'])
+
+        result = DataFrame(data)
+        self.assert_(result.index.is_monotonic)
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),
@@ -1397,6 +1405,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         const_add = self.frame.add(1)
         assert_frame_equal(const_add, self.frame + 1)
+
+        # corner cases
+        result = self.frame.add(self.frame[:0])
+        assert_frame_equal(result, self.frame * np.nan)
+
+        result = self.frame[:0].add(self.frame)
+        assert_frame_equal(result, self.frame * np.nan)
 
     def test_arith_flex_series(self):
         df = self.simple
@@ -2160,8 +2175,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex(columns=[])
         self.assert_(not newFrame)
 
-    def test_reindex_mixed(self):
-        pass
+    def test_align(self):
+
+        af, bf = self.frame.align(self.frame)
+        self.assert_(af._data is not self.frame._data)
+
+        af, bf = self.frame.align(self.frame, copy=False)
+        self.assert_(af._data is self.frame._data)
 
     #----------------------------------------------------------------------
     # Transposing
@@ -3195,6 +3215,11 @@ class TestDataFrameJoin(unittest.TestCase):
         # TODO: columns aren't in the same order yet
         assert_frame_equal(joined, expected.ix[:, joined.columns])
 
+    def test_join_on_series(self):
+        result = self.target.join(self.source['MergedA'], on='C')
+        expected = self.target.join(self.source[['MergedA']], on='C')
+        assert_frame_equal(result, expected)
+
     def test_join_index_mixed(self):
 
         df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
@@ -3233,9 +3258,6 @@ class TestDataFrameJoin(unittest.TestCase):
             joined = df2.join(df1, how=kind)
             expected = _join_by_hand(df2, df1, how=kind)
             assert_frame_equal(joined, expected)
-
-    def test_join_on_series(self):
-        pass
 
     def test_join_empty_bug(self):
         # generated an exception in 0.4.3
