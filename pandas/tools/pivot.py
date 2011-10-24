@@ -1,7 +1,7 @@
 from pandas import DataFrame
 import numpy as np
 
-def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
+def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
                 fill_value=None):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
@@ -12,9 +12,9 @@ def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
     ----------
     data : DataFrame
     values : column to aggregate, optional
-    xby : list
+    rows : list
         Columns to group on the x-axis of the pivot table
-    yby : list
+    cols : list
         Columns to group on the x-axis of the pivot table
     aggfunc : function, default numpy.mean
     fill_value : scalar, default None
@@ -34,8 +34,8 @@ def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
     7  bar two small  6
     8  bar two large  7
 
-    >>> table = pivot_table(df, values='D', xby=['A, 'B'],
-                            yby=['C'], aggfunc=np.sum)
+    >>> table = pivot_table(df, values='D', rows=['A, 'B'],
+                            cols=['C'], aggfunc=np.sum)
     >>> table
               small  large
     foo  one  1      4
@@ -47,10 +47,10 @@ def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
     -------
     table : DataFrame
     """
-    xby = _convert_by(xby)
-    yby = _convert_by(yby)
+    rows = _convert_by(rows)
+    cols = _convert_by(cols)
 
-    keys = xby + yby
+    keys = rows + cols
     grouped = data.groupby(keys)
 
     if values is not None:
@@ -59,7 +59,7 @@ def pivot_table(data, values=None, xby=None, yby=None, aggfunc=np.mean,
     agged = grouped.agg(aggfunc)
 
     table = agged
-    for k in yby:
+    for k in cols:
         table = table.unstack(level=k)
 
     if fill_value is not None:
@@ -100,5 +100,5 @@ if __name__ == '__main__':
     data = DataFrame(data)
 
     table = pivot_table(data, values='values',
-                        xby=['k1', 'k2'], yby=['k3', 'k4'])
+                        rows=['k1', 'k2'], cols=['k3', 'k4'])
 

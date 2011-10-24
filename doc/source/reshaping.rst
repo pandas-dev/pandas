@@ -208,8 +208,8 @@ tables. It takes a number of arguments
 
 - ``data``: A DataFrame object
 - ``values``: column to aggregate
-- ``xby``: list of columns to group by on the `x`-axis
-- ``yby``: list of columns to group by on the `y`-axis
+- ``rows``: list of columns to group by on the table rows
+- ``cols``: list of columns to group by on the table columns
 - ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``
 
 Consider a data set like this:
@@ -227,8 +227,8 @@ We can produce pivot tables from this data very easily:
 
 .. ipython:: python
 
-   pivot_table(df, values='D', xby=['A', 'B'], yby=['C'])
-   pivot_table(df, values='D', xby=['B'], yby=['A', 'C'], aggfunc=np.sum)
+   pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
+   pivot_table(df, values='D', rows=['B'], cols=['A', 'C'], aggfunc=np.sum)
 
 The result object is a DataFrame having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
@@ -237,12 +237,12 @@ hierarchy in the columns:
 
 .. ipython:: python
 
-   pivot_table(df, xby=['A', 'B'], yby=['C'])
+   pivot_table(df, rows=['A', 'B'], cols=['C'])
 
 You can render a nice output of the table omitting the missing values by
 calling ``to_string`` if you wish:
 
 .. ipython:: python
 
-   table = pivot_table(df, xby=['A', 'B'], yby=['C'])
+   table = pivot_table(df, rows=['A', 'B'], cols=['C'])
    print table.to_string(na_rep='')

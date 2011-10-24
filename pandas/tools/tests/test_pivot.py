@@ -22,28 +22,28 @@ class TestPivotTable(unittest.TestCase):
                                'E' : np.random.randn(11)})
 
     def test_pivot_table(self):
-        xby = ['A', 'B']
-        yby=  'C'
-        table = pivot_table(self.data, values='D', xby=xby, yby=yby)
+        rows = ['A', 'B']
+        cols=  'C'
+        table = pivot_table(self.data, values='D', rows=rows, cols=cols)
 
-        if len(xby) > 1:
-            self.assertEqual(table.index.names, xby)
+        if len(rows) > 1:
+            self.assertEqual(table.index.names, rows)
         else:
-            self.assertEqual(table.index.name, xby[0])
+            self.assertEqual(table.index.name, rows[0])
 
-        if len(yby) > 1:
-            self.assertEqual(table.columns.names, yby)
+        if len(cols) > 1:
+            self.assertEqual(table.columns.names, cols)
         else:
-            self.assertEqual(table.columns.name, yby[0])
+            self.assertEqual(table.columns.name, cols[0])
 
-        expected = self.data.groupby(xby + [yby])['D'].agg(np.mean).unstack()
+        expected = self.data.groupby(rows + [cols])['D'].agg(np.mean).unstack()
         assert_frame_equal(table, expected)
 
     def test_pivot_table_multiple(self):
-        xby = ['A', 'B']
-        yby=  'C'
-        table = pivot_table(self.data, xby=xby, yby=yby)
-        expected = self.data.groupby(xby + [yby]).agg(np.mean).unstack()
+        rows = ['A', 'B']
+        cols=  'C'
+        table = pivot_table(self.data, rows=rows, cols=cols)
+        expected = self.data.groupby(rows + [cols]).agg(np.mean).unstack()
         assert_frame_equal(table, expected)
 
 if __name__ == '__main__':
