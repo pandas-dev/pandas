@@ -2101,11 +2101,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         data = DataFrame({'a' : ['bar', 'bar', 'foo', 'foo', 'foo'],
                           'b' : ['one', 'two', 'one', 'one', 'two'],
                           'c' : [1., 2., 3., 3., 4.]})
-        # expected = DataFrame([[1., 2.], [3., 4.]], index=['bar', 'foo'],
-        #                      columns=['one', 'two'])
-        # result = data.pivot('a', 'b', 'c')
-        # assert_frame_equal(result, expected)
-
         self.assertRaises(Exception, data.pivot, 'a', 'b', 'c')
 
     def test_reindex(self):
@@ -2191,6 +2186,63 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # length zero
         newFrame = self.frame.reindex(columns=[])
         self.assert_(not newFrame)
+
+    def test_add_index(self):
+        df = DataFrame({'A' : ['foo', 'foo', 'foo', 'bar', 'bar'],
+                        'B' : ['one', 'two', 'three', 'one', 'two'],
+                        'C' : ['a', 'b', 'c', 'd', 'e'],
+                        'D' : np.random.randn(5),
+                        'E' : np.random.randn(5)})
+
+        # new object, single-column
+        result = df.set_index('C')
+        result_nodrop = df.set_index('C', drop=False)
+
+        index = Index(df['C'], name='C')
+
+        expected = df.ix[:, ['A', 'B', 'D', 'E']]
+        expected.index = index
+
+        expected_nodrop = df.copy()
+        expected_nodrop.index = index
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result_nodrop, expected_nodrop)
+        self.assertEqual(result.index.name, index.name)
+
+        # inplace, single
+        df2 = df.copy()
+        df2.set_index('C', inplace=True)
+        assert_frame_equal(df2, expected)
+
+        df3 = df.copy()
+        df3.set_index('C', drop=False, inplace=True)
+        assert_frame_equal(df3, expected_nodrop)
+
+        # create new object, multi-column
+        result = df.set_index(['A', 'B'])
+        result_nodrop = df.set_index(['A', 'B'], drop=False)
+
+        index = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
+
+        expected = df.ix[:, ['C', 'D', 'E']]
+        expected.index = index
+
+        expected_nodrop = df.copy()
+        expected_nodrop.index = index
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result_nodrop, expected_nodrop)
+        self.assertEqual(result.index.names, index.names)
+
+        # inplace
+        df2 = df.copy()
+        df2.set_index(['A', 'B'], inplace=True)
+        assert_frame_equal(df2, expected)
+
+        df3 = df.copy()
+        df3.set_index(['A', 'B'], drop=False, inplace=True)
+        assert_frame_equal(df3, expected_nodrop)
 
     def test_align(self):
 

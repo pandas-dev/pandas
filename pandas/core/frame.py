@@ -643,8 +643,13 @@ class DataFrame(NDFrame):
         self._series_cache.clear()
     columns = property(fset=_set_columns, fget=_get_columns)
 
-    # reference underlying BlockManager
-    index = AxisProperty(1)
+    def _get_index(self):
+        return self._data.axes[1]
+
+    def _set_index(self, value):
+        self._data.set_axis(1, value)
+        self._series_cache.clear()
+    index = property(fset=_set_index, fget=_get_index)
 
     def as_matrix(self, columns=None):
         """
@@ -1098,6 +1103,50 @@ class DataFrame(NDFrame):
         """
         return self.reindex(index=other.index, columns=other.columns,
                             method=method, copy=copy)
+
+    def set_index(self, col_or_cols, drop=True, inplace=False):
+        """
+        Set the DataFrame index (row labels) using one or more existing
+        columns. By default yields a new object.
+
+        Parameters
+        ----------
+        col_or_cols : column label or list of column labels
+        drop : boolean, default True
+            Delete columns to be used as the new index
+        inplace : boolean, default False
+            Modify the DataFrame in place (do not create a new object)
+
+        Returns
+        -------
+        dataframe : DataFrame
+        """
+        cols = col_or_cols
+        if not isinstance(col_or_cols, (list, tuple)):
+            cols = [col_or_cols]
+
+        if inplace:
+            frame = self
+
+        else:
+            frame = self.copy()
+
+        arrays = []
+        for col in cols:
+            level = frame[col]
+            if drop:
+                del frame[col]
+            arrays.append(level)
+
+        index = MultiIndex.from_arrays(arrays, names=cols)
+
+        if not index._verify_integrity():
+            duplicates = index._get_duplicates()
+            raise Exception('Index has duplicate keys: %s' % duplicates)
+
+        frame.index = index
+
+        return frame
 
     def take(self, indices, axis=0):
         """

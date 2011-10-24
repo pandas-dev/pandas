@@ -131,6 +131,8 @@ feedback on the library.
   - Implemented `Panel.take`
   - Add `set_eng_float_format` function for setting alternate DataFrame
     floating point string formatting
+  - Add convenience `set_index` function for creating a DataFrame index from
+    its existing columns
 
 **Improvements to existing features**
 
@@ -194,9 +196,10 @@ feedback on the library.
   - Can pass level name to `DataFrame.stack`
   - Support set operations between MultiIndex and Index
   - Fix many corner cases in MultiIndex set operations
-  - Fix MultiIndex-handling bug with GroupBy.apply when returned groups are not
+    - Fix MultiIndex-handling bug with GroupBy.apply when returned groups are not
     indexed the same
   - Fix corner case bugs in DataFrame.apply
+  - Setting DataFrame index did not cause Series cache to get cleared
 
 Thanks
 ------
