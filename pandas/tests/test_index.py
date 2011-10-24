@@ -601,6 +601,10 @@ class TestMultiIndex(unittest.TestCase):
     def test_constructor_no_levels(self):
         self.assertRaises(Exception, MultiIndex, levels=[], labels=[])
 
+    def test_duplicate_names(self):
+        self.index.names = ['foo', 'foo']
+        self.assertRaises(Exception, self.index._get_level_number, 'foo')
+
     def test_from_arrays(self):
         arrays = []
         for lev, lab in zip(self.index.levels, self.index.labels):

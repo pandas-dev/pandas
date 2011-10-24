@@ -889,6 +889,11 @@ class MultiIndex(Index):
 
     def _get_level_number(self, level):
         if not isinstance(level, int):
+            count = self.names.count(level)
+            if count > 1:
+                raise Exception('The name %s occurs multiple times, use a '
+                                'level number' % level)
+
             level = self.names.index(level)
         elif level < 0:
             level += self.nlevels
