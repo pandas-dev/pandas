@@ -1498,9 +1498,6 @@ class MultiIndex(Index):
         -------
         Index
         """
-        if not isinstance(other, MultiIndex):
-            return other.union(self)
-
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
@@ -1508,7 +1505,6 @@ class MultiIndex(Index):
 
         result_names = self.names if self.names == other.names else None
 
-        # TODO: optimize / make less wasteful
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
 
@@ -1528,9 +1524,6 @@ class MultiIndex(Index):
         -------
         Index
         """
-        if not isinstance(other, MultiIndex):
-            return other.intersection(self)
-
         self._assert_can_do_setop(other)
 
         if self.equals(other):
@@ -1538,7 +1531,6 @@ class MultiIndex(Index):
 
         result_names = self.names if self.names == other.names else None
 
-        # TODO: optimize / make less wasteful
         self_tuples = self.get_tuple_index()
         other_tuples = other.get_tuple_index()
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
