@@ -175,7 +175,7 @@ class TestIndex(unittest.TestCase):
         secondCat = self.strIndex + self.strIndex
 
         self.assert_(tm.equalContents(np.append(self.strIndex,
-                                                    self.dateIndex), firstCat))
+                                                self.dateIndex), firstCat))
         self.assert_(tm.equalContents(secondCat, self.strIndex))
         tm.assert_contains_all(self.strIndex, firstCat.indexMap)
         tm.assert_contains_all(self.strIndex, secondCat.indexMap)
@@ -183,6 +183,17 @@ class TestIndex(unittest.TestCase):
 
         # this is valid too
         shifted = self.dateIndex + timedelta(1)
+
+    def test_append_multiple(self):
+        index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
+
+        foos = [index[:2], index[2:4], index[4:]]
+        result = foos[0].append(foos[1:])
+        self.assert_(result.equals(index))
+
+        # empty
+        result = index.append([])
+        self.assert_(result.equals(index))
 
     def test_add_string(self):
         # from bug report
@@ -600,6 +611,14 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
+        self.assert_(result.equals(self.index))
+
+        foos = [self.index[:1], self.index[1:3], self.index[3:]]
+        result = foos[0].append(foos[1:])
+        self.assert_(result.equals(self.index))
+
+        # empty
+        result = self.index.append([])
         self.assert_(result.equals(self.index))
 
     def test_get_level_values(self):
