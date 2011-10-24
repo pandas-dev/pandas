@@ -950,6 +950,9 @@ class TestMultiIndex(unittest.TestCase):
         result = self.index - self.index.sortlevel(1)[0]
         self.assert_(len(result) == 0)
 
+        # raise Exception called with non-MultiIndex
+        self.assertRaises(Exception, first.diff, first.get_tuple_index())
+
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
 

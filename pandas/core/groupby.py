@@ -690,13 +690,7 @@ class SeriesGroupBy(GroupBy):
             except Exception:
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
-            if len(result) > 0:
-                if isinstance(result.values()[0], Series):
-                    ret = DataFrame(result).T
-                else:
-                    ret = Series(result)
-            else:
-                ret = Series({})
+            ret = Series(result)
 
         if not self.as_index:  # pragma: no cover
             print 'Warning, ignoring as_index=True'
@@ -761,7 +755,7 @@ class SeriesGroupBy(GroupBy):
         result = {}
         for k, v in self.primary.indices.iteritems():
             agged = func(values.take(v), *args, **kwargs)
-            if isinstance(output, np.ndarray):
+            if isinstance(agged, np.ndarray):
                 raise Exception('Must produce aggregated value')
             result[k] = agged
 

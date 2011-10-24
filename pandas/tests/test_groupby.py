@@ -111,6 +111,11 @@ class TestGroupBy(unittest.TestCase):
         expected = grouped.mean()
         assert_frame_equal(result, expected)
 
+    def test_agg_must_add(self):
+        grouped = self.df.groupby('A')['C']
+        self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
+        self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
+
     def test_get_group(self):
         wp = tm.makePanel()
         grouped = wp.groupby(lambda x: x.month, axis='major')
