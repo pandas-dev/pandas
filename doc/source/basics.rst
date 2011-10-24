@@ -467,7 +467,7 @@ Reindexing to align with another object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may wish to take an object and reindex its axes to be labeled the same as
-another object. While the syntax for this is straightforwad albeit verbose, it
+another object. While the syntax for this is straightforward albeit verbose, it
 is a common enough operation that the ``reindex_like`` method is available to
 make this simpler:
 
@@ -483,6 +483,36 @@ make this simpler:
    df
    df2
    df.reindex_like(df2)
+
+.. _basics.align:
+
+Aligning objects with each other with ``align``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``align`` method is the fastest way to simultaneously align two objects. It
+supports a ``join`` argument (related to :ref:`joining and merging <merging>`):
+
+  - ``join='outer'``: take the union of the indexes
+  - ``join='left'``: use the calling object's index
+  - ``join='right'``: use the passed object's index
+  - ``join='inner'``: intersect the indexes
+
+It returns a tuple with both of the reindexed Series:
+
+.. ipython:: python
+
+   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s1 = s[:4]
+   s2 = s[1:]
+   s1.align(s2)
+   s1.align(s2, join='inner')
+   s1.align(s2, join='left')
+
+For DataFrames, the join method will be applied to both the
+
+.. ipython:: python
+
+   df.align(df2, join='inner')
 
 .. _basics.reindex_fill:
 
@@ -572,6 +602,9 @@ Series, it need only contain a subset of the labels as keys:
 
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
+
+The Panel class has an a related ``rename_axis`` class which can rename any of
+its three axes.
 
 Iteration
 ---------

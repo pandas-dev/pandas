@@ -187,6 +187,17 @@ As we will see later on, the same operation could be accomplished by
 reindexing. However, the syntax would be more verbose; hence, the inclusion of
 this indexing method.
 
+Selecting DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can pass a list of columns to ``[]`` to select columns in that order:
+
+.. ipython:: python
+
+   df[['C', 'A', 'B']]
+
+If a column is not contained in the DataFrame, an exception will be raised:
+
 .. _indexing.advanced:
 
 Advanced indexing with labels

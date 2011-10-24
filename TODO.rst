@@ -37,10 +37,9 @@ TODO docs
 - DONE name attribute on Series
 - DONE Multi-key joining
 - DONE Inner join on key
-
-- align functions
-- df[col_list]
-- Panel.rename_axis
+- DONE align functions
+- DONE df[col_list]
+- DONE Panel.rename_axis
 
 Performance blog
 ----------------
