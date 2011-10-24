@@ -2244,6 +2244,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df3.set_index(['A', 'B'], drop=False, inplace=True)
         assert_frame_equal(df3, expected_nodrop)
 
+        # corner case
+        self.assertRaises(Exception, df.set_index, 'A')
+
     def test_align(self):
 
         af, bf = self.frame.align(self.frame)
