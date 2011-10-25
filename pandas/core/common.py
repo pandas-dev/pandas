@@ -394,15 +394,15 @@ class EngFormatter(object):
         """ Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
 
-        >>> format_eng(0)       for self.precision = 0
+        >>> format_eng(0)      # for self.precision = 0
         '0'
 
-        >>> format_eng(1000000) for self.precision = 1,
-                                    self.use_eng_prefix = True
+        >>> format_eng(1000000) # for self.precision = 1,
+                                #     self.use_eng_prefix = True
         '1.0M'
 
-        >>> format_eng("-1e-6") for self.precision = 2
-                                    self.use_eng_prefix = False
+        >>> format_eng("-1e-6") # for self.precision = 2
+                                #     self.use_eng_prefix = False
         '-1.00E-06'
 
         @param num: the value to represent

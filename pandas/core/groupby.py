@@ -669,7 +669,7 @@ class SeriesGroupBy(GroupBy):
         q  3.5   0.5  7
 
         >>> grouped.agg({'result' : lambda x: x.mean() / x.std(),
-                         'total' : np.sum})
+        ...              'total' : np.sum})
            result  total
         b  2.121   3
         q  4.95    7

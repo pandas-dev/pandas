@@ -133,7 +133,7 @@ class DataFrame(NDFrame):
         >>> df = DataFrame(data=d, index=index)
         >>> df2 = DataFrame(np.random.randn(10, 5))
         >>> df3 = DataFrame(np.random.randn(10, 5),
-                            columns=['a', 'b', 'c', 'd', 'e'])
+        ...                 columns=['a', 'b', 'c', 'd', 'e'])
         """
 
         if data is None:
@@ -1959,7 +1959,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df.apply(numpy.sqrt) --> DataFrame
+        >>> df.apply(numpy.sqrt) # returns DataFrame
         >>> df.apply(numpy.sum, axis=0) # equiv to df.sum(0)
         >>> df.apply(numpy.sum, axis=1) # equiv to df.sum(1)
 

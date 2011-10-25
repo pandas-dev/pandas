@@ -35,7 +35,7 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     8  bar two large  7
 
     >>> table = pivot_table(df, values='D', rows=['A, 'B'],
-                            cols=['C'], aggfunc=np.sum)
+    ...                     cols=['C'], aggfunc=np.sum)
     >>> table
               small  large
     foo  one  1      4

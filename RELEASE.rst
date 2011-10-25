@@ -203,6 +203,7 @@ feedback on the library.
   - Various int32 -> int64 platform-specific issues
   - Don't be too aggressive converting to integer when parsing file with
     MultiIndex (GH #285)
+  - Fix bug when slicing Series with negative indices before beginning
 
 Thanks
 ------
