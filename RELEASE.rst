@@ -201,6 +201,8 @@ feedback on the library.
   - Fix corner case bugs in DataFrame.apply
   - Setting DataFrame index did not cause Series cache to get cleared
   - Various int32 -> int64 platform-specific issues
+  - Don't be too aggressive converting to integer when parsing file with
+    MultiIndex (GH #285)
 
 Thanks
 ------

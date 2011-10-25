@@ -1619,7 +1619,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # round trip
         frame.to_csv(path)
-        df = DataFrame.from_csv(path, index_col=[0,1])
+        df = DataFrame.from_csv(path, index_col=[0,1], parse_dates=False)
 
         assert_frame_equal(frame, df)
         self.assertEqual(frame.index.names, df.index.names)
