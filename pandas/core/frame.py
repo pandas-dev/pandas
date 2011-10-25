@@ -2887,6 +2887,25 @@ class DataFrame(NDFrame):
             ax.set_title(col)
             ax.grid(grid)
 
+    def boxplot(self, grid=True, **kwds):  # pragma: no cover
+        """
+        Draw boxplot of the DataFrame's series using matplotlib / pylab.
+
+        Parameters
+        ----------
+        grid : boolean, default True
+            Add grid to plot.
+        kwds : other plotting keyword arguments
+            To be passed to boxplot function
+        """
+        import matplotlib.pyplot as plt
+
+        _, ax = plt.subplots(nrows=1, ncols=1)
+        ax.boxplot(self.dropna().values, **kwds)
+        ax.set_xticklabels(self.columns)
+        ax.grid(grid)
+        plt.draw_if_interactive()
+
     #----------------------------------------------------------------------
     # Deprecated stuff
 
