@@ -249,6 +249,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s[range(5)]
         assert_series_equal(result, s)
 
+    def test_getitem_slice_bug(self):
+        s = Series(range(10), range(10))
+        result = s[-12:]
+        assert_series_equal(result, s)
+
+        result = s[-7:]
+        assert_series_equal(result, s[3:])
+
+        result = s[:-12]
+        assert_series_equal(result, s[:0])
+
     def test_getitem_int64(self):
         idx = np.int64(5)
         self.assertEqual(self.ts[idx], self.ts[5])

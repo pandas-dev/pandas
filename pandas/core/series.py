@@ -257,6 +257,7 @@ copy : boolean, default False
             if isinstance(self.index, MultiIndex):
                 return self._multilevel_index(key)
             else:
+                hash(key)
                 values = self.values
                 try:
                     return values[self.index.get_loc(key)]
@@ -312,8 +313,12 @@ copy : boolean, default False
     _get_val_at = ndarray.__getitem__
 
     def __getslice__(self, i, j):
-        return self._constructor(self.values[i:j], index=self.index[i:j],
-                                 name=self.name)
+        if i < 0:
+            i -= len(self)
+        if j < 0:
+            j -= len(self)
+        slobj = slice(i, j)
+        return self.__getitem__(slobj)
 
     def __setitem__(self, key, value):
         values = self.values
