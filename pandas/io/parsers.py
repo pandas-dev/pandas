@@ -349,8 +349,11 @@ class TextParser(object):
                 index = Index(_convert_types(index, self.na_values),
                               name=self.index_name)
             else:
-                arrays = _maybe_convert_int_mindex(index, self.parse_dates,
-                                                   self.date_parser)
+                arrays = []
+                for arr in index:
+                    if self.parse_dates:
+                        arr = lib.try_parse_dates(arr, parser=self.date_parser)
+                    arrays.append(_convert_types(arr, self.na_values))
                 index = MultiIndex.from_arrays(arrays, names=self.index_name)
         else:
             index = Index(np.arange(len(content)))

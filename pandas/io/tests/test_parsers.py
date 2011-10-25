@@ -354,6 +354,21 @@ bar,two,12,13,14,15
         df2 = read_csv(StringIO(data2))
         assert_frame_equal(df2, df)
 
+    def test_multi_index_parse_dates(self):
+        data = """index1,index2,A,B,C
+20090101,one,a,1,2
+20090101,two,b,3,4
+20090101,three,c,4,5
+20090102,one,a,1,2
+20090102,two,b,3,4
+20090102,three,c,4,5
+20090103,one,a,1,2
+20090103,two,b,3,4
+20090103,three,c,4,5
+"""
+        df = read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
+        self.assert_(isinstance(df.index.levels[0][0], datetime))
+
 class TestParseSQL(unittest.TestCase):
 
     def test_convert_sql_column_floats(self):
