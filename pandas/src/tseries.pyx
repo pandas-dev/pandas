@@ -235,7 +235,7 @@ def isnullobj(ndarray[object] arr):
     cdef ndarray[uint8_t] result
 
     n = len(arr)
-    result = np.zeros(n, dtype=bool)
+    result = np.zeros(n, dtype=np.uint8)
     for i from 0 <= i < n:
         val = arr[i]
         if _checknull(val):
