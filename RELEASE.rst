@@ -25,7 +25,7 @@ Where to get it
 pandas 0.5.0
 ============
 
-**Release date:** not yet released
+**Release date:** 10/24/2011
 
 This release of pandas includes a number of API changes (see below) and cleanup
 of deprecated APIs from pre-0.4.0 releases. There are also bug fixes, new
