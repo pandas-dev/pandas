@@ -938,13 +938,13 @@ def is_monotonic_bool(ndarray[uint8_t] arr):
 @cython.boundscheck(False)
 def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t, cast=True] mask
+    cdef ndarray[uint8_t] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels)
+    mask = isnullobj(labels).view(np.uint8)
 
     for i from 0 <= i < length:
         if mask[i]:
@@ -964,13 +964,13 @@ def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_object(ndarray[object] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t, cast=True] mask
+    cdef ndarray[uint8_t] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels)
+    mask = isnullobj(labels).view(np.uint8)
 
     for i from 0 <= i < length:
         if mask[i]:
@@ -990,13 +990,13 @@ def groupby_object(ndarray[object] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t, cast=True] mask
+    cdef ndarray[uint8_t] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels)
+    mask = isnullobj(labels).view(np.uint8)
 
     for i from 0 <= i < length:
         if mask[i]:
@@ -1016,13 +1016,13 @@ def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t, cast=True] mask
+    cdef ndarray[uint8_t] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels)
+    mask = isnullobj(labels).view(np.uint8)
 
     for i from 0 <= i < length:
         if mask[i]:
@@ -1042,13 +1042,13 @@ def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
 @cython.boundscheck(False)
 def groupby_bool(ndarray[uint8_t] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t, cast=True] mask
+    cdef ndarray[uint8_t] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels)
+    mask = isnullobj(labels).view(np.uint8)
 
     for i from 0 <= i < length:
         if mask[i]:

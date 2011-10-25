@@ -232,7 +232,7 @@ cpdef checknull(object val):
 def isnullobj(ndarray[object] arr):
     cdef Py_ssize_t i, n
     cdef object val
-    cdef ndarray[uint8_t, cast=True] result
+    cdef ndarray[uint8_t] result
 
     n = len(arr)
     result = np.zeros(n, dtype=bool)
@@ -240,7 +240,7 @@ def isnullobj(ndarray[object] arr):
         val = arr[i]
         if _checknull(val):
             result[i] = 1
-    return result
+    return result.view(np.bool_)
 
 def list_to_object_array(list obj):
     '''

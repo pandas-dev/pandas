@@ -312,13 +312,13 @@ groupby_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray[object] labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t, cast=True] mask
+    cdef ndarray[uint8_t] mask
     cdef int i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels)
+    mask = isnullobj(labels).view(np.uint8)
 
     for i from 0 <= i < length:
         if mask[i]:

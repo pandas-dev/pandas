@@ -99,7 +99,7 @@ def convert_sql_column(ndarray[object] objects):
         Py_ssize_t i, n
         ndarray[float64_t] floats
         ndarray[int64_t] ints
-        ndarray[uint8_t, cast=True] bools
+        ndarray[uint8_t] bools
         bint seen_float = 0
         bint seen_int = 0
         bint seen_bool = 0
@@ -111,7 +111,7 @@ def convert_sql_column(ndarray[object] objects):
 
     floats = np.empty(n, dtype='f8')
     ints = np.empty(n, dtype='i8')
-    bools = np.empty(n, dtype=bool)
+    bools = np.empty(n, dtype=np.uint8)
 
     onan = np.nan
     fnan = np.nan
@@ -153,7 +153,7 @@ def convert_sql_column(ndarray[object] objects):
         elif seen_float:
             return floats
         elif seen_bool:
-            return bools
+            return bools.view(np.bool_)
         else:
             return objects
 
@@ -206,11 +206,11 @@ def sanitize_objects(ndarray[object] values):
 def maybe_convert_bool(ndarray[object] arr):
     cdef:
         Py_ssize_t i, n
-        ndarray[uint8_t, cast=True] result
+        ndarray[uint8_t] result
         object val
 
     n = len(arr)
-    result = np.empty(n, dtype=bool)
+    result = np.empty(n, dtype=np.uint8)
 
     for i from 0 <= i < n:
         val = arr[i]
@@ -222,4 +222,4 @@ def maybe_convert_bool(ndarray[object] arr):
         else:
             return arr
 
-    return result
+    return result.view(np.bool_)
