@@ -718,6 +718,25 @@ copy : boolean, default False
                 np.putmask(arr, isnull(arr), np.inf)
         return arr.min()
 
+    def argmin(self, axis=None, out=None, skipna=True):
+        """
+        Index of first occurence of minimum of values.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        Index of mimimum of values.
+        """
+        arr = self.values.copy()
+        if skipna:
+            if not issubclass(arr.dtype.type, np.integer):
+                np.putmask(arr, isnull(arr), np.inf)
+        return self.index[arr.argmin()]
+
     def max(self, axis=None, out=None, skipna=True):
         """
         Maximum of values
@@ -736,6 +755,25 @@ copy : boolean, default False
             if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), -np.inf)
         return arr.max()
+
+    def argmax(self, axis=None, out=None, skipna=True):
+        """
+        Index of first occurence of maximum of values.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        Index of mimimum of values.
+        """
+        arr = self.values.copy()
+        if skipna:
+            if not issubclass(arr.dtype.type, np.integer):
+                np.putmask(arr, isnull(arr), -np.inf)
+        return self.index[arr.argmax()]
 
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True):
         """
