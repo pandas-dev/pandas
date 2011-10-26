@@ -453,6 +453,23 @@ def _bucket_locs(index, buckets, inclusive=False):
 
     return locs
 
+def count_level_1d(ndarray[uint8_t, cast=True] mask,
+                  ndarray[int32_t] labels, Py_ssize_t max_bin):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[int64_t] counts
+
+    counts = np.zeros(max_bin, dtype='i8')
+
+    n = len(mask)
+
+    for i from 0 <= i < n:
+        if mask[i]:
+            counts[labels[i]] += 1
+
+    return counts
+
+
 '''
 
 def ts_upsample_mean(ndarray[object] indices,

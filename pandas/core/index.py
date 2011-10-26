@@ -1217,6 +1217,8 @@ class MultiIndex(Index):
         -------
         sorted_index : MultiIndex
         """
+        # TODO: check if lexsorted when level=0
+
         labels = list(self.labels)
         level = self._get_level_number(level)
         primary = labels.pop(level)

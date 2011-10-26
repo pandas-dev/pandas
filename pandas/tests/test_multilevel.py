@@ -281,6 +281,24 @@ class TestMultiLevel(unittest.TestCase):
         df = tm.makeTimeDataFrame()
         self.assertRaises(Exception, df.count, level=0)
 
+    def test_count_level_series(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz'],
+                                   ['one', 'two', 'three', 'four']],
+                           labels=[[0, 0, 0, 2, 2],
+                                   [2, 0, 1, 1, 2]])
+
+        s = Series(np.random.randn(len(index)), index=index)
+
+        result = s.count(level=0)
+        expected = s.groupby(level=0).count()
+        assert_series_equal(result.astype('f8'),
+                            expected.reindex(result.index).fillna(0))
+
+        result = s.count(level=1)
+        expected = s.groupby(level=1).count()
+        assert_series_equal(result.astype('f8'),
+                            expected.reindex(result.index).fillna(0))
+
     def test_count_level_corner(self):
         s = self.frame['A'][:0]
         result = s.count(level=0)

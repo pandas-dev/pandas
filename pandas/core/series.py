@@ -573,36 +573,17 @@ copy : boolean, default False
 
     def _count_level(self, level):
         # TODO: GENERALIZE CODE OVERLAP WITH DATAFRAME
-        # TODO: deal with sortedness??
-        obj = self.sortlevel(level)
-        mask = notnull(obj.values)
-
-        level_index = obj.index.levels[level]
+        mask = notnull(self.values)
+        level_index = self.index.levels[level]
 
         if len(self) == 0:
             return Series(0, index=level_index)
 
-        n = len(level_index)
-        locs = obj.index.labels[level].searchsorted(np.arange(n))
-
-        # WORKAROUND: reduceat fusses about the endpoints. should file ticket?
-        start = locs.searchsorted(0, side='right') - 1
-        end = locs.searchsorted(len(mask), side='left')
-
-        result = np.zeros((n), dtype=int)
-        out = result[start:end]
-        np.add.reduceat(mask, locs[start:end], out=out)
-
-        # WORKAROUND: to see why, try this
-        # arr = np.ones((10, 4), dtype=bool)
-        # np.add.reduceat(arr, [0, 3, 3, 7, 9], axis=0)
-
-        # this stinks
-        if len(locs) > 1:
-            workaround_mask = locs[:-1] == locs[1:]
-            result[:-1][workaround_mask] = 0
-
-        return Series(result, index=level_index)
+        # call cython function
+        max_bin = len(level_index)
+        counts = lib.count_level_1d(mask.view(np.uint8),
+                                    self.index.labels[level], max_bin)
+        return Series(counts, index=level_index)
 
     def value_counts(self):
         """
