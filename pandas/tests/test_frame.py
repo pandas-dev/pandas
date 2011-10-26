@@ -1676,6 +1676,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_csv_bug(self):
+        from pandas import read_csv
+        path = '__tmp__.csv'
+        f1 = StringIO('a,1.0\nb,2.0')
+        df = DataFrame.from_csv(f1,header=None)
+        newdf = DataFrame({'t': df[df.columns[0]]})
+        newdf.to_csv(path)
+
+        recons = read_csv(path, index_col=0)
+        assert_frame_equal(recons, newdf)
+
+        os.remove(path)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

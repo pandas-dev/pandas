@@ -521,10 +521,11 @@ class DataFrame(NDFrame):
                                 name = 'level_%d' % i
                             index_label.append(name)
                     else:
-                        if self.index.name is None:
-                            index_label = self.index.name
-                            if index_label is None:
-                                index_label = ['index']
+                        index_label = self.index.name
+                        if index_label is None:
+                            index_label = ['index']
+                        else:
+                            index_label = [index_label]
                 elif not isinstance(index_label, (list, tuple, np.ndarray)):
                     # given a string for a DF with Index
                     index_label = [index_label]
