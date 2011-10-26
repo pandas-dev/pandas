@@ -22,6 +22,16 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
+pandas 0.5.1
+============
+
+**Release date:** Not yet released
+
+**Bug fixes**
+
+  - Fix bug in `DataFrame.to_csv` when writing a DataFrame with an index
+    name (GH #290)
+
 pandas 0.5.0
 ============
 
