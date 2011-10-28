@@ -31,6 +31,13 @@ pandas 0.5.1
 
   - Fix bug in `DataFrame.to_csv` when writing a DataFrame with an index
     name (GH #290)
+  - DataFrame should clear its Series caches on consolidation, was causing
+    "stale" Series to be returned in some corner cases (GH #304)
+
+Thanks
+------
+
+- Kieran O'Mahony
 
 pandas 0.5.0
 ============
