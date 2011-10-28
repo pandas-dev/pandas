@@ -238,6 +238,21 @@ class CheckIndexing(object):
         # self.assert_(dm.objects is not None)
         self.assert_(dm[2].dtype == np.object_)
 
+    def test_setitem_clear_caches(self):
+        # GH #304
+        df = DataFrame({'x': [1.1, 2.1, 3.1, 4.1], 'y': [5.1, 6.1, 7.1, 8.1]},
+                       index=[0,1,2,3])
+        df.insert(2, 'z', np.nan)
+
+        # cache it
+        foo = df['z']
+
+        df.ix[2:, 'z'] = 42
+
+        expected = Series([np.nan, np.nan, 42, 42], index=df.index)
+        self.assert_(df['z'] is not foo)
+        assert_series_equal(df['z'], expected)
+
     def test_delitem_corner(self):
         f = self.frame.copy()
         del f['D']

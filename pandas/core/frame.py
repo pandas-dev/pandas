@@ -641,7 +641,7 @@ class DataFrame(NDFrame):
 
     def _set_columns(self, value):
         self._data.set_axis(0, value)
-        self._series_cache.clear()
+        self._clear_caches()
     columns = property(fset=_set_columns, fget=_get_columns)
 
     def _get_index(self):
@@ -649,8 +649,15 @@ class DataFrame(NDFrame):
 
     def _set_index(self, value):
         self._data.set_axis(1, value)
-        self._series_cache.clear()
+        self._clear_caches()
     index = property(fset=_set_index, fget=_get_index)
+
+    def _clear_caches(self):
+        self._series_cache.clear()
+
+    def _consolidate_inplace(self):
+        self._clear_caches()
+        NDFrame._consolidate_inplace(self)
 
     def as_matrix(self, columns=None):
         """
@@ -1479,11 +1486,11 @@ class DataFrame(NDFrame):
 
     def _rename_index_inplace(self, mapper):
         self._data = self._data.rename_axis(mapper, axis=1)
-        self._series_cache.clear()
+        self._clear_caches()
 
     def _rename_columns_inplace(self, mapper):
         self._data = self._data.rename_items(mapper, copydata=False)
-        self._series_cache.clear()
+        self._clear_caches()
 
     #----------------------------------------------------------------------
     # Arithmetic / combination related
