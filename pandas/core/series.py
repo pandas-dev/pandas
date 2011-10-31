@@ -553,6 +553,16 @@ copy : boolean, default False
         else:
             return default
 
+    def head(self, n=5):
+        """Returns first n rows of Series
+        """
+        return self[:n]
+
+    def tail(self, n=5):
+        """Returns last n rows of Series
+        """
+        return self[-n:]
+
     #----------------------------------------------------------------------
     # Statistics, overridden ndarray methods
 
