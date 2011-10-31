@@ -391,3 +391,52 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
     return result
 
+
+def melt(frame, id_vars=None, value_vars=None):
+    """
+    "Unpivots" a DataFrame from wide format to long format, optionally leaving
+    id variables set
+
+    Parameters
+    ----------
+    frame : DataFrame
+    id_vars :
+    value_vars :
+
+    Examples
+    --------
+    >>> df
+    A B C
+    a 1 2
+    b 3 4
+    c 5 6
+
+    >>> melt(df, ['A'])
+    A variable value
+    a B        1
+    b B        3
+    c B        5
+    a C        2
+    b C        4
+    c C        6
+    """
+    # TODO: what about the existing index?
+
+    N, K = frame.shape
+
+    mdata = {}
+
+    if id_vars is not None:
+        idvars = list(idvars)
+        frame = frame.copy()
+        K -= len(idvars)
+        for col in idvars:
+            mdata[col] = np.tile(frame.pop(col).values, K)
+    else:
+        idvars = []
+
+    mcolumns = idvars + ['variable', 'value']
+
+    mdata['value'] = frame.values.ravel('F')
+    mdata['variable'] = np.asarray(frame.columns).repeat(N)
+    return DataFrame(mdata, columns=mcolumns)

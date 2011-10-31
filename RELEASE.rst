@@ -27,6 +27,14 @@ pandas 0.5.1
 
 **Release date:** Not yet released
 
+**New features / modules**
+
+  - Add `melt` function to `pandas.core.reshape`
+
+**Improvements to existing features**
+
+  - Sped up `DataFrame.apply` performance in most cases
+
 **Bug fixes**
 
   - Fix bug in `DataFrame.to_csv` when writing a DataFrame with an index

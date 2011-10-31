@@ -12,6 +12,7 @@ labeling information
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
+from itertools import izip
 from StringIO import StringIO
 import csv
 import operator
@@ -1994,26 +1995,29 @@ class DataFrame(NDFrame):
 
     def _apply_standard(self, func, axis):
         if axis == 0:
-            target = self
-            agg_index = self.columns
+            series_gen = ((c, self[c]) for c in self.columns)
+            res_index = self.columns
+            res_columns = self.index
         elif axis == 1:
-            target = self.T
-            agg_index = self.index
+            res_index = self.index
+            res_columns = self.columns
+            series_gen = ((i, Series(v, self.columns))
+                          for i, v in izip(self.index, self.values))
 
         results = {}
-        for k in target.columns:
-            results[k] = func(target[k])
+        for k, v in series_gen:
+            results[k] = func(v)
 
         if hasattr(results.values()[0], '__iter__'):
-            result = self._constructor(data=results, index=target.index,
-                                       columns=target.columns)
+            result = self._constructor(data=results, index=res_columns,
+                                       columns=res_index)
 
             if axis == 1:
                 result = result.T
 
             return result
         else:
-            return Series(results, index=agg_index)
+            return Series(results, index=res_index)
 
     def _apply_broadcast(self, func, axis):
         if axis == 0:
