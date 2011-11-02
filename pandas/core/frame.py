@@ -2572,6 +2572,7 @@ class DataFrame(NDFrame):
         result[count == 0] = nan
 
         return Series(result, index=self._get_agg_axis(axis))
+    product = prod
 
     def mean(self, axis=0, skipna=True, level=None):
         """
