@@ -1245,8 +1245,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_frame_equal(unstacked, expected)
 
     def test_head_tail(self):
-        assert_frame_equal(self.series.head(), self.series[:5])
-        assert_frame_equal(self.series.tail(), self.series[-5:])
+        assert_series_equal(self.series.head(), self.series[:5])
+        assert_series_equal(self.series.tail(), self.series[-5:])
 
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
