@@ -5,12 +5,12 @@ to disk
 
 # pylint: disable-msg=E1101,W0613,W0603
 
-from datetime import datetime
+from datetime import datetime, date
 import time
 
 import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
-                    MultiIndex)
+                    Index, MultiIndex)
 from pandas.core.common import adjoin
 import pandas._tseries as lib
 
@@ -331,6 +331,7 @@ class HDFStore(object):
     def _write_series(self, group, series):
         self._write_index(group, 'index', series.index)
         self._write_array(group, 'values', series.values)
+        group._v_attrs.name = series.name
 
     def _write_frame(self, group, df):
         self._write_block_manager(group, df._data)
@@ -440,6 +441,7 @@ class HDFStore(object):
             self._write_array(group, key, converted)
             node = getattr(group, key)
             node._v_attrs.kind = kind
+            node._v_attrs.name = index.name
 
     def _read_index(self, group, key):
         try:
@@ -503,7 +505,10 @@ class HDFStore(object):
         except Exception:
             name = None
 
-        return name, _unconvert_index(data, kind)
+        index = Index(_unconvert_index(data, kind))
+        index.name = name
+
+        return name, index
 
     def _write_array(self, group, key, value):
         if key in group:
@@ -617,7 +622,8 @@ class HDFStore(object):
     def _read_series(self, group, where=None):
         index = self._read_index(group, 'index')
         values = _read_array(group, 'values')
-        return Series(values, index=index)
+        name = getattr(group._v_attrs, 'name', None)
+        return Series(values, index=index, name=name)
 
     def _read_legacy_series(self, group, where=None):
         index = self._read_index_legacy(group, 'index')
@@ -706,11 +712,14 @@ def _convert_index(index):
     # Let's assume the index is homogeneous
     values = np.asarray(index)
 
-    import time
-    if isinstance(values[0], datetime):
-        converted = np.array([time.mktime(v.timetuple())
-                              for v in values], dtype=np.int64)
-        return converted, 'datetime', _tables().Time64Col()
+    if isinstance(values[0], (datetime, date)):
+        if isinstance(values[0], datetime):
+            kind = 'datetime'
+        else:
+            kind = 'date'
+        converted = np.array([time.mktime(v.timetuple()) for v in values],
+                             dtype=np.int64)
+        return converted, kind, _tables().Time64Col()
     elif isinstance(values[0], basestring):
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
@@ -721,7 +730,6 @@ def _convert_index(index):
         return np.asarray(values, dtype=np.int64), 'integer', atom
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % type(values[0]))
-
 
 def _read_array(group, key):
     import tables
@@ -737,6 +745,10 @@ def _unconvert_index(data, kind):
     if kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
+    elif kind == 'date':
+        index = np.array([date.fromtimestamp(v) for v in data],
+                         dtype=object)
+
     elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
     else: # pragma: no cover

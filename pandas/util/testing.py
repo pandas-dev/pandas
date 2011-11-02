@@ -1,3 +1,5 @@
+from __future__ import division
+
 # pylint: disable-msg=W0402
 
 from datetime import datetime
@@ -70,7 +72,7 @@ def isiterable(obj):
 def assert_almost_equal(a, b):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
-    
+
     if isinstance(a, basestring):
         assert a == b, (a, b)
         return True
@@ -116,9 +118,9 @@ def assert_dict_equal(a, b, compare_keys=True):
         assert_almost_equal(a[k], b[k])
 
 def assert_series_equal(left, right):
+    assert_almost_equal(left.values, right.values)
     assert(left.dtype == right.dtype)
     assert(left.index.equals(right.index))
-    assert_almost_equal(left, right)
 
 def assert_frame_equal(left, right):
     assert(isinstance(left, DataFrame))

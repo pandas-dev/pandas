@@ -49,9 +49,6 @@ cdef double_t *get_double_ptr(ndarray arr):
 cdef extern from "math.h":
     double sqrt(double x)
 
-#cdef extern from "cobject.h":
-#    pass # for datetime API
-
 cdef extern from "datetime.h":
 
     ctypedef class datetime.datetime [object PyDateTime_DateTime]:
@@ -223,42 +220,122 @@ def array_to_datetime(ndarray[int64_t, ndim=1] arr):
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef inline _isnan(object o):
-    return o != o
-
 cdef inline _checknull(object val):
+    return val is None or val != val
+
+cpdef checknull(object val):
     if isinstance(val, (float, np.floating)):
         return val != val or val == INF or val == NEGINF
     else:
-        return val is None
+        return _checknull(val)
 
-cpdef checknull(object val):
-    return _checknull(val)
-
-def isnullobj(ndarray input):
-    cdef int i, length
+def isnullobj(ndarray[object] arr):
+    cdef Py_ssize_t i, n
     cdef object val
-    cdef ndarray[npy_int8, ndim=1] result
-    cdef flatiter iter
+    cdef ndarray[uint8_t] result
 
-    length = PyArray_SIZE(input)
-
-    result = <ndarray> np.zeros(length, dtype=np.int8)
-
-    iter= PyArray_IterNew(input)
-
-    for i from 0 <= i < length:
-        val = PyArray_GETITEM(input, PyArray_ITER_DATA(iter))
-
+    n = len(arr)
+    result = np.zeros(n, dtype=np.uint8)
+    for i from 0 <= i < n:
+        val = arr[i]
         if _checknull(val):
             result[i] = 1
+    return result.view(np.bool_)
 
-        PyArray_ITER_NEXT(iter)
+def list_to_object_array(list obj):
+    '''
+    Convert list to object ndarray. Seriously can't believe I had to write this
+    function
+    '''
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] arr
 
-    return result
+    n = len(obj)
+    arr = np.empty(n, dtype=object)
+
+    for i from 0 <= i < n:
+        arr[i] = obj[i]
+
+    return arr
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_unique(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        list uniques = []
+        dict table = {}
+        object val, stub = 0
+
+    for i from 0 <= i < n:
+        val = values[i]
+        if val not in table:
+            table[val] = stub
+            uniques.append(val)
+    try:
+        uniques.sort()
+    except Exception:
+        pass
+
+    return uniques
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_unique_multiple(list arrays):
+    cdef:
+        ndarray[object] buf
+        Py_ssize_t k = len(arrays)
+        Py_ssize_t i, j, n
+        list uniques = []
+        dict table = {}
+        object val, stub = 0
+
+    for i from 0 <= i < k:
+        buf = arrays[i]
+        n = len(buf)
+        for j from 0 <= j < n:
+            val = buf[j]
+            if val not in table:
+                table[val] = stub
+                uniques.append(val)
+    try:
+        uniques.sort()
+    except Exception:
+        pass
+
+    return uniques
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_unique_multiple_list(list lists):
+    cdef:
+        list buf
+        Py_ssize_t k = len(lists)
+        Py_ssize_t i, j, n
+        list uniques = []
+        dict table = {}
+        object val, stub = 0
+
+    for i from 0 <= i < k:
+        buf = lists[i]
+        n = len(buf)
+        for j from 0 <= j < n:
+            val = buf[j]
+            if val not in table:
+                table[val] = stub
+                uniques.append(val)
+    try:
+        uniques.sort()
+    except Exception:
+        pass
+
+    return uniques
 
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
 include "reindex.pyx"
 include "generated.pyx"
+include "parsing.pyx"

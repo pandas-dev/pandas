@@ -214,6 +214,11 @@ class TesttHDFStore(unittest.TestCase):
         self.assertRaises(ValueError, self._check_roundtrip, df[:0],
                           tm.assert_frame_equal)
 
+    def test_can_serialize_dates(self):
+        rng = [x.date() for x in DateRange('1/1/2000', '1/30/2000')]
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        self._check_roundtrip(frame, tm.assert_frame_equal)
+
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
@@ -227,12 +232,37 @@ class TesttHDFStore(unittest.TestCase):
         self._check_roundtrip(frame.T, tm.assert_frame_equal)
         self._check_roundtrip(frame['A'], tm.assert_series_equal)
 
-        # check that the
+        # check that the names are stored
         try:
             store = HDFStore(self.scratchpath)
             store['frame'] = frame
             recons = store['frame']
             assert(recons.index.names == ['foo', 'bar'])
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def test_store_index_name(self):
+        df = tm.makeDataFrame()
+        df.index.name = 'foo'
+        try:
+            store = HDFStore(self.scratchpath)
+            store['frame'] = df
+            recons = store['frame']
+            assert(recons.index.name == 'foo')
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def test_store_series_name(self):
+        df = tm.makeDataFrame()
+        series = df['A']
+
+        try:
+            store = HDFStore(self.scratchpath)
+            store['series'] = series
+            recons = store['series']
+            assert(recons.name == 'A')
         finally:
             store.close()
             os.remove(self.scratchpath)

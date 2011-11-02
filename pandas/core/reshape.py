@@ -61,8 +61,8 @@ class _Unstacker(object):
         self.new_index_levels = list(index.levels)
         self.new_index_names = list(index.names)
 
-        self.removed_name = self.new_index_names.pop(level)
-        self.removed_level = self.new_index_levels.pop(level)
+        self.removed_name = self.new_index_names.pop(self.level)
+        self.removed_level = self.new_index_levels.pop(self.level)
 
         v = self.level
         lshape = self.index.levshape
@@ -287,6 +287,11 @@ def stack(frame, level=-1, dropna=True):
     stacked : Series
     """
     N, K = frame.shape
+    if isinstance(level, int) and level < 0:
+        level += frame.columns.nlevels
+
+    level = frame.columns._get_level_number(level)
+
     if isinstance(frame.columns, MultiIndex):
         return _stack_multi_columns(frame, level=level, dropna=True)
     elif isinstance(frame.index, MultiIndex):
@@ -316,8 +321,6 @@ def stack(frame, level=-1, dropna=True):
 
 def _stack_multi_columns(frame, level=-1, dropna=True):
     this = frame.copy()
-    if level < 0:
-        level += frame.columns.nlevels
 
     # this makes life much simpler
     if level != frame.columns.nlevels - 1:
@@ -388,3 +391,52 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
     return result
 
+
+def melt(frame, id_vars=None, value_vars=None):
+    """
+    "Unpivots" a DataFrame from wide format to long format, optionally leaving
+    id variables set
+
+    Parameters
+    ----------
+    frame : DataFrame
+    id_vars :
+    value_vars :
+
+    Examples
+    --------
+    >>> df
+    A B C
+    a 1 2
+    b 3 4
+    c 5 6
+
+    >>> melt(df, ['A'])
+    A variable value
+    a B        1
+    b B        3
+    c B        5
+    a C        2
+    b C        4
+    c C        6
+    """
+    # TODO: what about the existing index?
+
+    N, K = frame.shape
+
+    mdata = {}
+
+    if id_vars is not None:
+        idvars = list(idvars)
+        frame = frame.copy()
+        K -= len(idvars)
+        for col in idvars:
+            mdata[col] = np.tile(frame.pop(col).values, K)
+    else:
+        idvars = []
+
+    mcolumns = idvars + ['variable', 'value']
+
+    mdata['value'] = frame.values.ravel('F')
+    mdata['variable'] = np.asarray(frame.columns).repeat(N)
+    return DataFrame(mdata, columns=mcolumns)

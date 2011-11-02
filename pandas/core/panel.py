@@ -14,7 +14,6 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.series import Series
-from pandas.util.decorators import deprecate
 from pandas.util import py3compat
 import pandas.core.common as common
 import pandas._tseries as _tseries
@@ -187,7 +186,7 @@ class Panel(NDFrame):
         __div__ = _arith_method(operator.div, '__div__')
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
 
-    def __init__(self, data, items=None, major_axis=None, minor_axis=None,
+    def __init__(self, data=None, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
         """
         Represents wide format panel data, stored as 3-dimensional array
@@ -206,6 +205,9 @@ class Panel(NDFrame):
         copy : boolean, default False
             Copy data from inputs. Only affects DataFrame / 2d ndarray input
         """
+        if data is None:
+            data = {}
+
         passed_axes = [items, major_axis, minor_axis]
         if isinstance(data, BlockManager):
             mgr = data
@@ -315,11 +317,17 @@ class Panel(NDFrame):
 
         dims = 'Dimensions: %d (items) x %d (major) x %d (minor)' % (I, N, K)
 
-        major = 'Major axis: %s to %s' % (self.major_axis[0],
-                                          self.major_axis[-1])
+        if len(self.major_axis) > 0:
+            major = 'Major axis: %s to %s' % (self.major_axis[0],
+                                              self.major_axis[-1])
+        else:
+            major = 'Major axis: None'
 
-        minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
-                                          self.minor_axis[-1])
+        if len(self.minor_axis) > 0:
+            minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
+                                              self.minor_axis[-1])
+        else:
+            minor = 'Minor axis: None'
 
         if len(self.items) > 0:
             items = 'Items: %s to %s' % (self.items[0], self.items[-1])
@@ -657,7 +665,8 @@ class Panel(NDFrame):
 
     try:
         divide = div = _panel_arith_method(operator.div, 'divide')
-    except AttributeError:   # Python 3
+    except AttributeError:  # pragma: no cover
+        # Python 3
         divide = div = _panel_arith_method(operator.truediv, 'divide')
 
     def major_xs(self, key, copy=True):
@@ -1080,12 +1089,6 @@ class Panel(NDFrame):
             join_minor = self.minor_axis.union(other.minor_axis)
         return join_major, join_minor
 
-    #----------------------------------------------------------------------
-    # Deprecated stuff
-
-    getMinorXS = deprecate('getMinorXS', minor_xs)
-    getMajorXS = deprecate('getMajorXS', major_xs)
-
 WidePanel = Panel
 
 #-------------------------------------------------------------------------------
@@ -1233,7 +1236,8 @@ class LongPanel(DataFrame):
 
     try:
         divide = div = _panel_arith_method(operator.div, 'divide')
-    except AttributeError:   # Python 3
+    except AttributeError:  # pragma: no cover
+        # Python 3
         divide = div = _panel_arith_method(operator.truediv, 'divide')
 
     def to_wide(self):
@@ -1276,8 +1280,6 @@ class LongPanel(DataFrame):
             data[item] = DataFrame(values, index=self.major_axis,
                                    columns=self.minor_axis)
         return Panel.from_dict(data)
-
-    toWide = deprecate('toWide', to_wide)
 
     def toCSV(self, path):
         def format_cols(items):

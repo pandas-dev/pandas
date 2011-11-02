@@ -157,6 +157,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
         assert_series_equal(result, expected)
 
+    def test_constructor_tuples(self):
+        data = [(1, 1), (2, 2), (2, 3)]
+        s = Series(data)
+        self.assertEqual(list(s), data)
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 
@@ -243,6 +248,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(range(5), index=range(5))
         result = s[range(5)]
         assert_series_equal(result, s)
+
+    def test_getitem_slice_bug(self):
+        s = Series(range(10), range(10))
+        result = s[-12:]
+        assert_series_equal(result, s)
+
+        result = s[-7:]
+        assert_series_equal(result, s[3:])
+
+        result = s[:-12]
+        assert_series_equal(result, s[:0])
 
     def test_getitem_int64(self):
         idx = np.int64(5)
@@ -426,7 +442,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_to_string(self):
         from cStringIO import StringIO
-        self.ts.to_string(buffer=StringIO())
+        buf = StringIO()
+
+        s = self.ts.to_string()
+
+        retval = self.ts.to_string(buf=buf)
+        self.assert_(retval is None)
+        self.assertEqual(buf.getvalue().strip(), s)
 
     def test_iter(self):
         for i, val in enumerate(self.series):
@@ -544,6 +566,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()
+
+    def test_describe_objects(self):
+        s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
+        result = s.describe()
+        expected = Series({'count' : 7, 'unique' : 4,
+                           'top' : 'a', 'freq' : 3}, index=result.index)
+        assert_series_equal(result, expected)
 
     def test_append(self):
         appendedSeries = self.series.append(self.ts)
@@ -752,6 +781,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertEqual(self.ts.count(), np.isfinite(self.ts).sum())
 
+    def test_value_counts(self):
+        s = Series(['a', 'b', 'b', 'b', 'b', 'a', 'c', 'd', 'd', 'a'])
+        hist = s.value_counts()
+        expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
+        assert_series_equal(hist, expected)
+
+        # handle NA's properly
+        s[5:7] = np.nan
+        hist = s.value_counts()
+        expected = s.dropna().value_counts()
+        assert_series_equal(hist, expected)
+
+        s = Series({})
+        hist = s.value_counts()
+        expected = Series([])
+        assert_series_equal(hist, expected)
+
     def test_sort(self):
         ts = self.ts.copy()
         ts.sort()
@@ -819,6 +865,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertEqual(self.ts.clip(lower=val).min(), val)
         self.assertEqual(self.ts.clip(upper=val).max(), val)
+
+        result = self.ts.clip(-0.5, 0.5)
+        expected = np.clip(self.ts, -0.5, 0.5)
+        assert_series_equal(result, expected)
+        self.assert_(isinstance(expected, Series))
 
     def test_valid(self):
         ts = self.ts.copy()
@@ -1024,6 +1075,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         _, rb = a.align(b, join='right', copy=False)
         rb[:2] = 5
         self.assert_((b[:2] == 5).all())
+
+    def test_align_sameindex(self):
+        a, b = self.ts.align(self.ts)
+        self.assert_(a.index is self.ts.index)
+        self.assert_(b.index is self.ts.index)
 
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)
@@ -1282,6 +1338,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ser = Series([], index=[])
         self.assert_(ser.last_valid_index() is None)
         self.assert_(ser.first_valid_index() is None)
+
+    def test_mpl_compat_hack(self):
+        result = self.ts[:, np.newaxis]
+        expected = self.ts.values[:, np.newaxis]
+        assert_almost_equal(result, expected)
 
 #-------------------------------------------------------------------------------
 # GroupBy

@@ -91,7 +91,7 @@ def ordered_left_join(ndarray[object] left, ndarray[object] right):
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[int32_t] indexer
-        ndarray[uint8_t, cast=True] mask
+        ndarray[uint8_t] mask
         object val
 
     i = 0
@@ -100,7 +100,7 @@ def ordered_left_join(ndarray[object] left, ndarray[object] right):
     k = len(right)
 
     indexer = np.zeros(n, dtype=np.int32)
-    mask = np.ones(n, dtype=np.bool)
+    mask = np.ones(n, dtype=np.uint8)
 
     for i from 0 <= i < n:
         val = left[i]
@@ -115,7 +115,7 @@ def ordered_left_join(ndarray[object] left, ndarray[object] right):
             indexer[i] = j
             mask[i] = 0
 
-    return indexer, mask
+    return indexer, mask.view(np.bool_)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -224,3 +224,21 @@ def take_join_contiguous(ndarray[float64_t, ndim=2] lvalues,
             for j from 0 <= j < rk:
                 outbuf[0] = rvalues[ridx, j]
                 outbuf = outbuf + 1
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def merge_indexer_list(list values, dict oldMap):
+    cdef int i, j, length, newLength
+    cdef object idx
+    cdef ndarray[int32_t] fill_vec
+
+    newLength = len(values)
+    fill_vec = np.empty(newLength, dtype=np.int32)
+    for i from 0 <= i < newLength:
+        idx = values[i]
+        if idx in oldMap:
+            fill_vec[i] = oldMap[idx]
+        else:
+            fill_vec[i] = -1
+
+    return fill_vec

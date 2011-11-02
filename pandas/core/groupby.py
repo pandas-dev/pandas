@@ -333,9 +333,10 @@ class GroupBy(object):
         output = {}
         cannot_agg = []
         for name, obj in self._iterate_slices():
-            try:
-                obj = np.asarray(obj, dtype=float)
-            except ValueError:
+            if issubclass(obj.dtype.type, np.number):
+                if obj.dtype != np.float64:
+                    obj = obj.astype('f8')
+            else:
                 cannot_agg.append(name)
                 continue
 
@@ -411,8 +412,13 @@ class GroupBy(object):
         not_indexed_same = False
         for key, group in self:
             group.name = key
+
+            # group might be modified
+            group_axes = _get_axes(group)
+
             res = func(group, *args, **kwargs)
-            if not _is_indexed_like(res, group):
+
+            if not _is_indexed_like(res, group_axes):
                 not_indexed_same = True
 
             result_keys.append(key)
@@ -459,18 +465,19 @@ def groupby(obj, by, **kwds):
     return klass(obj, by, **kwds)
 groupby.__doc__ = GroupBy.__doc__
 
-def _is_indexed_like(obj, other):
-    if isinstance(obj, Series):
-        if not isinstance(other, Series):
-            return False
-        return obj.index.equals(other.index)
-    elif isinstance(obj, DataFrame):
-        if isinstance(other, Series):
-            return obj.index.equals(other.index)
+def _get_axes(group):
+    if isinstance(group, Series):
+        return [group.index]
+    else:
+        return group.axes
 
-        # deal with this when a case arises
-        assert(isinstance(other, DataFrame))
-        return obj._indexed_same(other)
+def _is_indexed_like(obj, axes):
+    if isinstance(obj, Series):
+        if len(axes) > 1:
+            return False
+        return obj.index.equals(axes[0])
+    elif isinstance(obj, DataFrame):
+        return obj.index.equals(axes[0])
 
     return False
 
@@ -503,6 +510,10 @@ class Grouping(object):
         self.index = index
 
         if level is not None:
+            if not isinstance(level, int):
+                assert(level in index.names)
+                level = index.names.index(level)
+
             inds = index.labels[level]
             labels = index.levels[level].take(inds)
 
@@ -658,7 +669,7 @@ class SeriesGroupBy(GroupBy):
         q  3.5   0.5  7
 
         >>> grouped.agg({'result' : lambda x: x.mean() / x.std(),
-                         'total' : np.sum})
+        ...              'total' : np.sum})
            result  total
         b  2.121   3
         q  4.95    7
@@ -685,13 +696,7 @@ class SeriesGroupBy(GroupBy):
             except Exception:
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
-            if len(result) > 0:
-                if isinstance(result.values()[0], Series):
-                    ret = DataFrame(result).T
-                else:
-                    ret = Series(result)
-            else:
-                ret = Series({})
+            ret = Series(result)
 
         if not self.as_index:  # pragma: no cover
             print 'Warning, ignoring as_index=True'
@@ -755,7 +760,10 @@ class SeriesGroupBy(GroupBy):
         values = self.obj.values
         result = {}
         for k, v in self.primary.indices.iteritems():
-            result[k] = func(values.take(v), *args, **kwargs)
+            agged = func(values.take(v), *args, **kwargs)
+            if isinstance(agged, np.ndarray):
+                raise Exception('Must produce aggregated value')
+            result[k] = agged
 
         return result
 
@@ -766,6 +774,8 @@ class SeriesGroupBy(GroupBy):
             grp = self.get_group(name)
             grp.name = name
             output = func(grp, *args, **kwargs)
+            if isinstance(output, np.ndarray):
+                raise Exception('Must produce aggregated value')
             result[name] = output
 
         return result
@@ -1065,22 +1075,31 @@ class DataFrameGroupBy(GroupBy):
                               axis=self.axis)
 
 def _concat_frames(frames, index, columns=None, axis=0):
-    if axis == 0:
-        all_index = [np.asarray(x.index) for x in frames]
-        new_index = Index(np.concatenate(all_index))
+    if len(frames) == 1:
+        return frames[0]
 
+    if axis == 0:
+        new_index = _concat_indexes([x.index for x in frames])
         if columns is None:
             new_columns = frames[0].columns
         else:
             new_columns = columns
     else:
-        all_columns = [np.asarray(x.columns) for x in frames]
-        new_columns = Index(np.concatenate(all_columns))
+        new_columns = _concat_indexes([x.columns for x in frames])
         new_index = index
 
-    new_values = np.concatenate([x.values for x in frames], axis=axis)
-    result = DataFrame(new_values, index=new_index, columns=new_columns)
-    return result.reindex(index=index, columns=columns)
+    if frames[0]._is_mixed_type:
+        new_data = {}
+        for col in new_columns:
+            new_data[col] = np.concatenate([x[col].values for x in frames])
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+    else:
+        new_values = np.concatenate([x.values for x in frames], axis=axis)
+        result = DataFrame(new_values, index=new_index, columns=new_columns)
+        return result.reindex(index=index, columns=columns)
+
+def _concat_indexes(indexes):
+    return indexes[0].append(indexes[1:])
 
 def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
     if axis == 0:
@@ -1092,8 +1111,14 @@ def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
         new_columns = _make_concat_multiindex(all_columns, keys, groupings)
         new_index = frames[0].index
 
-    new_values = np.concatenate([x.values for x in frames], axis=axis)
-    return DataFrame(new_values, index=new_index, columns=new_columns)
+    if frames[0]._is_mixed_type:
+        new_data = {}
+        for col in new_columns:
+            new_data[col] = np.concatenate([x[col].values for x in frames])
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+    else:
+        new_values = np.concatenate([x.values for x in frames], axis=axis)
+        return DataFrame(new_values, index=new_index, columns=new_columns)
 
 def _make_concat_multiindex(indexes, keys, groupings):
     if not _all_indexes_same(indexes):
@@ -1112,8 +1137,14 @@ def _make_concat_multiindex(indexes, keys, groupings):
                 to_concat.append(np.repeat(k, len(index)))
             label_list.append(np.concatenate(to_concat))
 
-        # these go in the last level
-        label_list.append(np.concatenate(indexes))
+        concat_index = _concat_indexes(indexes)
+
+        # these go at the end
+        if isinstance(concat_index, MultiIndex):
+            for level in range(concat_index.nlevels):
+                label_list.append(concat_index.get_level_values(level))
+        else:
+            label_list.append(concat_index.values)
 
         return MultiIndex.from_arrays(label_list)
 

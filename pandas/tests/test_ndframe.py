@@ -13,15 +13,15 @@ class TestNDFrame(unittest.TestCase):
 
     def test_constructor(self):
         # with cast
-        ndf = NDFrame(self.ndf._data, dtype=int)
-        self.assert_(ndf.values.dtype == np.int_)
+        ndf = NDFrame(self.ndf._data, dtype=np.int64)
+        self.assert_(ndf.values.dtype == np.int64)
 
     def test_ndim(self):
         self.assertEquals(self.ndf.ndim, 2)
 
     def test_astype(self):
         casted = self.ndf.astype(int)
-        self.assert_(casted.values.dtype == np.int_)
+        self.assert_(casted.values.dtype == np.int64)
 
 if __name__ == '__main__':
     import nose

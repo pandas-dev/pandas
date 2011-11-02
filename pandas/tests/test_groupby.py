@@ -56,7 +56,8 @@ class TestGroupBy(unittest.TestCase):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]])
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
         self.mframe = DataFrame(np.random.randn(10, 3), index=index,
                                 columns=['A', 'B', 'C'])
 
@@ -109,6 +110,11 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.agg(np.mean)
         expected = grouped.mean()
         assert_frame_equal(result, expected)
+
+    def test_agg_must_add(self):
+        grouped = self.df.groupby('A')['C']
+        self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
+        self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
 
     def test_get_group(self):
         wp = tm.makePanel()
@@ -297,7 +303,7 @@ class TestGroupBy(unittest.TestCase):
     def test_series_describe_single(self):
         ts = tm.makeTimeSeries()
         grouped = ts.groupby(lambda x: x.month)
-        result = grouped.agg(lambda x: x.describe())
+        result = grouped.apply(lambda x: x.describe())
         expected = grouped.describe()
         assert_frame_equal(result, expected)
 
@@ -655,7 +661,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_grouping_attrs(self):
         deleveled = self.mframe.delevel()
-        grouped = deleveled.groupby(['level_0', 'level_1'])
+        grouped = deleveled.groupby(['first', 'second'])
 
         for i, ping in enumerate(grouped.groupings):
             the_counts = self.mframe.groupby(level=i).count()['A']
@@ -668,11 +674,19 @@ class TestGroupBy(unittest.TestCase):
         result0 = frame.groupby(level=0).sum()
         result1 = frame.groupby(level=1).sum()
 
-        expected0 = frame.groupby(deleveled['level_0']).sum()
-        expected1 = frame.groupby(deleveled['level_1']).sum()
+        expected0 = frame.groupby(deleveled['first']).sum()
+        expected1 = frame.groupby(deleveled['second']).sum()
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
+
+        # groupby level name
+        result0 = frame.groupby(level='first').sum()
+        result1 = frame.groupby(level='second').sum()
+        assert_frame_equal(result0, expected0)
+        assert_frame_equal(result1, expected1)
+
+        # axis=1
 
         result0 = frame.T.groupby(level=0, axis=1).sum()
         result1 = frame.T.groupby(level=1, axis=1).sum()
@@ -693,8 +707,8 @@ class TestGroupBy(unittest.TestCase):
         result0 = frame.groupby(mapper0, level=0).sum()
         result1 = frame.groupby(mapper1, level=1).sum()
 
-        mapped_level0 = np.array([mapper0.get(x) for x in deleveled['level_0']])
-        mapped_level1 = np.array([mapper1.get(x) for x in deleveled['level_1']])
+        mapped_level0 = np.array([mapper0.get(x) for x in deleveled['first']])
+        mapped_level1 = np.array([mapper1.get(x) for x in deleveled['second']])
         expected0 = frame.groupby(mapped_level0).sum()
         expected1 = frame.groupby(mapped_level1).sum()
 
@@ -729,7 +743,8 @@ class TestGroupBy(unittest.TestCase):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.apply(len)
         expected = grouped.count()['C']
-        assert_series_equal(result, expected)
+        self.assert_(result.index.equals(expected.index))
+        self.assert_(np.array_equal(result.values, expected.values))
 
     def test_apply_transform(self):
         grouped = self.ts.groupby(lambda x: x.month)
@@ -862,6 +877,67 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.sum()
         expected = self.df.groupby('A').sum()
         assert_frame_equal(result, expected)
+
+    def test_apply_typecast_fail(self):
+        df = DataFrame({'d' : [1.,1.,1.,2.,2.,2.],
+                        'c' : np.tile(['a','b','c'], 2),
+                        'v' : np.arange(1., 7.)})
+
+        def f(group):
+            v = group['v']
+            group['v2'] = (v - v.min()) / (v.max() - v.min())
+            return group
+
+        result = df.groupby('d').apply(f)
+
+        expected = df.copy()
+        expected['v2'] = np.tile([0., 0.5, 1], 2)
+
+        assert_frame_equal(result, expected)
+
+    def test_apply_multiindex_fail(self):
+        index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
+                                        [1, 2, 3, 1, 2, 3]])
+        df = DataFrame({'d' : [1.,1.,1.,2.,2.,2.],
+                        'c' : np.tile(['a','b','c'], 2),
+                        'v' : np.arange(1., 7.)}, index=index)
+
+        def f(group):
+            v = group['v']
+            group['v2'] = (v - v.min()) / (v.max() - v.min())
+            return group
+
+        result = df.groupby('d').apply(f)
+
+        expected = df.copy()
+        expected['v2'] = np.tile([0., 0.5, 1], 2)
+
+        assert_frame_equal(result, expected)
+
+    def test_apply_corner(self):
+        result = self.tsframe.groupby(lambda x: x.year).apply(lambda x: x * 2)
+        expected = self.tsframe * 2
+        assert_frame_equal(result, expected)
+
+    def test_transform_mixed_type(self):
+        index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
+                                        [1, 2, 3, 1, 2, 3]])
+        df = DataFrame({'d' : [1.,1.,1.,2.,2.,2.],
+                        'c' : np.tile(['a','b','c'], 2),
+                        'v' : np.arange(1., 7.)}, index=index)
+
+        def f(group):
+            group['g'] = group['d'] * 2
+            return group[:1]
+
+        grouped = df.groupby('c')
+        result = grouped.apply(f)
+
+        self.assert_(result['d'].dtype == np.float64)
+
+        for key, group in grouped:
+            res = f(group)
+            assert_frame_equal(res, result.ix[key])
 
 class TestPanelGroupBy(unittest.TestCase):
 

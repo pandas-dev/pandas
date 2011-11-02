@@ -833,6 +833,304 @@ def take_1d_bool(ndarray[uint8_t] values, ndarray[int32_t] indexer,
             outbuf[i] = values[idx]
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def is_monotonic_float64(ndarray[float64_t] arr):
+    cdef:
+        Py_ssize_t i, n
+        float64_t prev, cur
+
+    n = len(arr)
+
+    if n < 2:
+        return True
+
+    prev = arr[0]
+    for i from 1 <= i < n:
+        cur = arr[i]
+        if cur < prev:
+            return False
+        prev = cur
+    return True
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def is_monotonic_object(ndarray[object] arr):
+    cdef:
+        Py_ssize_t i, n
+        object prev, cur
+
+    n = len(arr)
+
+    if n < 2:
+        return True
+
+    prev = arr[0]
+    for i from 1 <= i < n:
+        cur = arr[i]
+        if cur < prev:
+            return False
+        prev = cur
+    return True
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def is_monotonic_int32(ndarray[int32_t] arr):
+    cdef:
+        Py_ssize_t i, n
+        int32_t prev, cur
+
+    n = len(arr)
+
+    if n < 2:
+        return True
+
+    prev = arr[0]
+    for i from 1 <= i < n:
+        cur = arr[i]
+        if cur < prev:
+            return False
+        prev = cur
+    return True
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def is_monotonic_int64(ndarray[int64_t] arr):
+    cdef:
+        Py_ssize_t i, n
+        int64_t prev, cur
+
+    n = len(arr)
+
+    if n < 2:
+        return True
+
+    prev = arr[0]
+    for i from 1 <= i < n:
+        cur = arr[i]
+        if cur < prev:
+            return False
+        prev = cur
+    return True
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def is_monotonic_bool(ndarray[uint8_t] arr):
+    cdef:
+        Py_ssize_t i, n
+        uint8_t prev, cur
+
+    n = len(arr)
+
+    if n < 2:
+        return True
+
+    prev = arr[0]
+    for i from 1 <= i < n:
+        cur = arr[i]
+        if cur < prev:
+            return False
+        prev = cur
+    return True
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[uint8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels).view(np.uint8)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_object(ndarray[object] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[uint8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels).view(np.uint8)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[uint8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels).view(np.uint8)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[uint8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels).view(np.uint8)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def groupby_bool(ndarray[uint8_t] index, ndarray[object] labels):
+    cdef dict result = {}
+    cdef ndarray[uint8_t] mask
+    cdef int i, length
+    cdef list members
+    cdef object idx, key
+
+    length = len(index)
+    mask = isnullobj(labels).view(np.uint8)
+
+    for i from 0 <= i < length:
+        if mask[i]:
+            continue
+
+        key = labels[i]
+        idx = index[i]
+        if key in result:
+            members = result[key]
+            members.append(idx)
+        else:
+            result[key] = [idx]
+
+    return result
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_float64(ndarray[float64_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_object(ndarray[object] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_int32(ndarray[int32_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_int64(ndarray[int64_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def arrmap_bool(ndarray[uint8_t] index, object func):
+    cdef int length = index.shape[0]
+    cdef int i = 0
+
+    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    for i from 0 <= i < length:
+        result[i] = func(index[i])
+
+    return result
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_float64(ndarray[float64_t, ndim=2] values,
@@ -1105,303 +1403,44 @@ def take_2d_axis1_bool(ndarray[uint8_t, ndim=2] values,
                 outbuf[i, j] = values[i, idx]
 
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic_float64(ndarray[float64_t] arr):
+@cython.boundscheck(False)
+def left_join_indexer_float64(ndarray[float64_t] left,
+                             ndarray[float64_t] right):
     cdef:
-        Py_ssize_t i, n
-        float64_t prev, cur
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int32_t] indexer
+        float64_t lval, rval
 
-    n = len(arr)
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
 
-    if n < 2:
-        return True
+    indexer = np.empty(nleft, dtype=np.int32)
+    while True:
+        if i == nleft:
+            break
 
-    prev = arr[0]
-    for i from 1 <= i < n:
-        cur = arr[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def is_monotonic_object(ndarray[object] arr):
-    cdef:
-        Py_ssize_t i, n
-        object prev, cur
-
-    n = len(arr)
-
-    if n < 2:
-        return True
-
-    prev = arr[0]
-    for i from 1 <= i < n:
-        cur = arr[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def is_monotonic_int32(ndarray[int32_t] arr):
-    cdef:
-        Py_ssize_t i, n
-        int32_t prev, cur
-
-    n = len(arr)
-
-    if n < 2:
-        return True
-
-    prev = arr[0]
-    for i from 1 <= i < n:
-        cur = arr[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def is_monotonic_int64(ndarray[int64_t] arr):
-    cdef:
-        Py_ssize_t i, n
-        int64_t prev, cur
-
-    n = len(arr)
-
-    if n < 2:
-        return True
-
-    prev = arr[0]
-    for i from 1 <= i < n:
-        cur = arr[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def is_monotonic_bool(ndarray[uint8_t] arr):
-    cdef:
-        Py_ssize_t i, n
-        uint8_t prev, cur
-
-    n = len(arr)
-
-    if n < 2:
-        return True
-
-    prev = arr[0]
-    for i from 1 <= i < n:
-        cur = arr[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
-    cdef dict result = {}
-    cdef ndarray[int8_t] mask
-    cdef int i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-    mask = isnullobj(labels)
-
-    for i from 0 <= i < length:
-        if mask[i]:
+        if j == nright:
+            indexer[i] = -1
+            i += 1
             continue
 
-        key = labels[i]
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
+        lval = left[i]
+        rval = right[j]
+
+        if lval == right[j]:
+            indexer[i] = j
+            i += 1
+            j += 1
+        elif lval > rval:
+            indexer[i] = -1
+            j += 1
         else:
-            result[key] = [idx]
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_object(ndarray[object] index, ndarray[object] labels):
-    cdef dict result = {}
-    cdef ndarray[int8_t] mask
-    cdef int i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-    mask = isnullobj(labels)
-
-    for i from 0 <= i < length:
-        if mask[i]:
-            continue
-
-        key = labels[i]
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
-    cdef dict result = {}
-    cdef ndarray[int8_t] mask
-    cdef int i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-    mask = isnullobj(labels)
-
-    for i from 0 <= i < length:
-        if mask[i]:
-            continue
-
-        key = labels[i]
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
-    cdef dict result = {}
-    cdef ndarray[int8_t] mask
-    cdef int i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-    mask = isnullobj(labels)
-
-    for i from 0 <= i < length:
-        if mask[i]:
-            continue
-
-        key = labels[i]
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def groupby_bool(ndarray[uint8_t] index, ndarray[object] labels):
-    cdef dict result = {}
-    cdef ndarray[int8_t] mask
-    cdef int i, length
-    cdef list members
-    cdef object idx, key
-
-    length = len(index)
-    mask = isnullobj(labels)
-
-    for i from 0 <= i < length:
-        if mask[i]:
-            continue
-
-        key = labels[i]
-        idx = index[i]
-        if key in result:
-            members = result[key]
-            members.append(idx)
-        else:
-            result[key] = [idx]
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap_float64(ndarray[float64_t] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap_object(ndarray[object] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap_int32(ndarray[int32_t] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap_int64(ndarray[int64_t] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap_bool(ndarray[uint8_t] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
+            indexer[i] = -1
+            i += 1
+    return indexer
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1411,6 +1450,45 @@ def left_join_indexer_object(ndarray[object] left,
         Py_ssize_t i, j, nleft, nright
         ndarray[int32_t] indexer
         object lval, rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.int32)
+    while True:
+        if i == nleft:
+            break
+
+        if j == nright:
+            indexer[i] = -1
+            i += 1
+            continue
+
+        lval = left[i]
+        rval = right[j]
+
+        if lval == right[j]:
+            indexer[i] = j
+            i += 1
+            j += 1
+        elif lval > rval:
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+            i += 1
+    return indexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_int32(ndarray[int32_t] left,
+                             ndarray[int32_t] right):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int32_t] indexer
+        int32_t lval, rval
 
     i = 0
     j = 0
@@ -1484,6 +1562,102 @@ def left_join_indexer_int64(ndarray[int64_t] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def outer_join_indexer_float64(ndarray[float64_t] left,
+                                ndarray[float64_t] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        float64_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[float64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.float64)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def outer_join_indexer_object(ndarray[object] left,
                                 ndarray[object] right):
     cdef:
@@ -1527,6 +1701,102 @@ def outer_join_indexer_object(ndarray[object] left,
     lindexer = np.empty(count, dtype=np.int32)
     rindexer = np.empty(count, dtype=np.int32)
     result = np.empty(count, dtype=object)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                i += 1
+                count += 1
+            break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                j += 1
+
+            count += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def outer_join_indexer_int32(ndarray[int32_t] left,
+                                ndarray[int32_t] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        int32_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int32_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft:
+            if j == nright:
+                # we are done
+                break
+            else:
+                while j < nright:
+                    j += 1
+                    count += 1
+                break
+        elif j == nright:
+            while i < nleft:
+                i += 1
+                count += 1
+            break
+        else:
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+            elif left[i] < right[j]:
+                i += 1
+            else:
+                j += 1
+
+            count += 1
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int32)
 
     # do it again, but populate the indexers / result
 
@@ -1677,6 +1947,69 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def inner_join_indexer_float64(ndarray[float64_t] left,
+                              ndarray[float64_t] right):
+    '''
+    Two-pass algorithm?
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        float64_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[float64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.float64)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def inner_join_indexer_object(ndarray[object] left,
                               ndarray[object] right):
     '''
@@ -1714,6 +2047,69 @@ def inner_join_indexer_object(ndarray[object] left,
     lindexer = np.empty(count, dtype=np.int32)
     rindexer = np.empty(count, dtype=np.int32)
     result = np.empty(count, dtype=object)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def inner_join_indexer_int32(ndarray[int32_t] left,
+                              ndarray[int32_t] right):
+    '''
+    Two-pass algorithm?
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        int32_t lval, rval
+        ndarray[int32_t] lindexer, rindexer
+        ndarray[int32_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    while True:
+        if i == nleft or j == nright:
+             break
+        else:
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                i += 1
+                j += 1
+                count += 1
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int32)
+    rindexer = np.empty(count, dtype=np.int32)
+    result = np.empty(count, dtype=np.int32)
 
     i = 0
     j = 0

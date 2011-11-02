@@ -74,6 +74,9 @@ def _convert_array(obj):
 def _convert_vector(obj):
     if isinstance(obj, robj.IntVector):
         return _convert_int_vector(obj)
+    elif isinstance(obj, robj.StrVector):
+        return _convert_str_vector(obj)
+
     return list(obj)
 
 NA_INTEGER = -2147483648
@@ -83,6 +86,13 @@ def _convert_int_vector(obj):
     mask = arr == NA_INTEGER
     if mask.any():
         arr = arr.astype(float)
+        arr[mask] = np.nan
+    return arr
+
+def _convert_str_vector(obj):
+    arr = np.asarray(obj, dtype=object)
+    mask = arr == robj.NA_Character
+    if mask.any():
         arr[mask] = np.nan
     return arr
 

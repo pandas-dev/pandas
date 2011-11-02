@@ -5,10 +5,247 @@ Release Notes
 This is the list of changes to pandas between each release. For full details,
 see the commit logs at http://github.com/wesm/pandas
 
+What is it
+----------
+
+pandas is a Python package providing fast, flexible, and expressive data
+structures designed to make working with “relational” or “labeled” data both
+easy and intuitive. It aims to be the fundamental high-level building block for
+doing practical, real world data analysis in Python. Additionally, it has the
+broader goal of becoming the most powerful and flexible open source data
+analysis / manipulation tool available in any language.
+
+Where to get it
+---------------
+
+* Source code: http://github.com/wesm/pandas
+* Binary installers on PyPI: http://pypi.python.org/pypi/pandas
+* Documentation: http://pandas.sourceforge.net
+
+pandas 0.5.1
+============
+
+**Release date:** Not yet released
+
+**New features / modules**
+
+  - Add `melt` function to `pandas.core.reshape`
+
+**Improvements to existing features**
+
+  - Sped up `DataFrame.apply` performance in most cases
+
+**Bug fixes**
+
+  - Fix bug in `DataFrame.to_csv` when writing a DataFrame with an index
+    name (GH #290)
+  - DataFrame should clear its Series caches on consolidation, was causing
+    "stale" Series to be returned in some corner cases (GH #304)
+
+Thanks
+------
+
+- Kieran O'Mahony
+
+pandas 0.5.0
+============
+
+**Release date:** 10/24/2011
+
+This release of pandas includes a number of API changes (see below) and cleanup
+of deprecated APIs from pre-0.4.0 releases. There are also bug fixes, new
+features, numerous significant performance enhancements, and includes a new
+IPython completer hook to enable tab completion of DataFrame columns accesses
+as attributes (a new feature).
+
+In addition to the changes listed here from 0.4.3 to 0.5.0, the minor releases
+0.4.1, 0.4.2, and 0.4.3 brought some significant new functionality and
+performance improvements that are worth taking a look at.
+
+Thanks to all for bug reports, contributed patches and generally providing
+feedback on the library.
+
+**API Changes**
+
+  - `read_table`, `read_csv`, and `ExcelFile.parse` default arguments for
+    `index_col` is now None. To use one or more of the columns as the resulting
+    DataFrame's index, these must be explicitly specified now
+  - Parsing functions like `read_csv` no longer parse dates by default (GH
+    #225)
+  - Removed `weights` option in panel regression which was not doing anything
+    principled (GH #155)
+  - Changed `buffer` argument name in `Series.to_string` to `buf`
+  - `Series.to_string` and `DataFrame.to_string` now return strings by default
+    instead of printing to sys.stdout
+  - Deprecated `nanRep` argument in various `to_string` and `to_csv` functions
+    in favor of `na_rep`. Will be removed in 0.6 (GH #275)
+  - Renamed `delimiter` to `sep` in `DataFrame.from_csv` for consistency
+  - Changed order of `Series.clip` arguments to match those of `numpy.clip` and
+    added (unimplemented) `out` argument so `numpy.clip` can be called on a
+    Series (GH #272)
+  - Series functions renamed (and thus deprecated) in 0.4 series have been
+    removed:
+
+    * `asOf`, use `asof`
+    * `toDict`, use `to_dict`
+    * `toString`, use `to_string`
+    * `toCSV`, use `to_csv`
+    * `merge`, use `map`
+    * `applymap`, use `apply`
+    * `combineFirst`, use `combine_first`
+    * `_firstTimeWithValue` use `first_valid_index`
+    * `_lastTimeWithValue` use `last_valid_index`
+
+  - DataFrame functions renamed / deprecated in 0.4 series have been removed:
+
+    * `asMatrix` method, use `as_matrix` or `values` attribute
+    * `combineFirst`, use `combine_first`
+    * `getXS`, use `xs`
+    * `merge`, use `join`
+    * `fromRecords`, use `from_records`
+    * `fromcsv`, use `from_csv`
+    * `toRecords`, use `to_records`
+    * `toDict`, use `to_dict`
+    * `toString`, use `to_string`
+    * `toCSV`, use `to_csv`
+    * `_firstTimeWithValue` use `first_valid_index`
+    * `_lastTimeWithValue` use `last_valid_index`
+    * `toDataMatrix` is no longer needed
+    * `rows()` method, use `index` attribute
+    * `cols()` method, use `columns` attribute
+    * `dropEmptyRows()`, use `dropna(how='all')`
+    * `dropIncompleteRows()`, use `dropna()`
+    * `tapply(f)`, use `apply(f, axis=1)`
+    * `tgroupby(keyfunc, aggfunc)`, use `groupby` with `axis=1`
+
+  - Other outstanding deprecations have been removed:
+
+    * `indexField` argument in `DataFrame.from_records`
+    * `missingAtEnd` argument in `Series.order`. Use `na_last` instead
+    * `Series.fromValue` classmethod, use regular `Series` constructor instead
+    * Functions `parseCSV`, `parseText`, and `parseExcel` methods in
+      `pandas.io.parsers` have been removed
+    * `Index.asOfDate` function
+    * `Panel.getMinorXS` (use `minor_xs`) and `Panel.getMajorXS` (use
+      `major_xs`)
+    * `Panel.toWide`, use `Panel.to_wide` instead
+
+**New features / modules**
+
+  - Added `DataFrame.align` method with standard join options
+  - Added `parse_dates` option to `read_csv` and `read_table` methods to
+    optionally try to parse dates in the index columns
+  - Add `nrows`, `chunksize`, and `iterator` arguments to `read_csv` and
+    `read_table`. The last two return a new `TextParser` class capable of
+    lazily iterating through chunks of a flat file (GH #242)
+  - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
+  - Added private `_get_duplicates` function to `Index` for identifying
+    duplicate values more easily
+  - Added column attribute access to DataFrame, e.g. df.A equivalent to df['A']
+    if 'A' is a column in the DataFrame (PR #213)
+  - Added IPython tab completion hook for DataFrame columns. (PR #233, GH #230)
+  - Implement `Series.describe` for Series containing objects (PR #241)
+  - Add inner join option to `DataFrame.join` when joining on key(s) (GH #248)
+  - Can select set of DataFrame columns by passing a list to `__getitem__` (GH
+    #253)
+  - Can use & and | to intersection / union Index objects, respectively (GH
+    #261)
+  - Added `pivot_table` convenience function to pandas namespace (GH #234)
+  - Implemented `Panel.rename_axis` function (GH #243)
+  - DataFrame will show index level names in console output
+  - Implemented `Panel.take`
+  - Add `set_eng_float_format` function for setting alternate DataFrame
+    floating point string formatting
+  - Add convenience `set_index` function for creating a DataFrame index from
+    its existing columns
+
+**Improvements to existing features**
+
+  - Major performance improvements in file parsing functions `read_csv` and
+    `read_table`
+  - Added Cython function for converting tuples to ndarray very fast. Speeds up
+    many MultiIndex-related operations
+  - File parsing functions like `read_csv` and `read_table` will explicitly
+    check if a parsed index has duplicates and raise a more helpful exception
+    rather than deferring the check until later
+  - Refactored merging / joining code into a tidy class and disabled unnecessary
+    computations in the float/object case, thus getting about 10% better
+    performance (GH #211)
+  - Improved speed of `DataFrame.xs` on mixed-type DataFrame objects by about
+    5x, regression from 0.3.0 (GH #215)
+  - With new `DataFrame.align` method, speeding up binary operations between
+    differently-indexed DataFrame objects by 10-25%.
+  - Significantly sped up conversion of nested dict into DataFrame (GH #212)
+  - Can pass hierarchical index level name to `groupby` instead of the level
+    number if desired (GH #223)
+  - Add support for different delimiters in `DataFrame.to_csv` (PR #244)
+  - Add more helpful error message when importing pandas post-installation from
+    the source directory (GH #250)
+  - Significantly speed up DataFrame `__repr__` and `count` on large mixed-type
+    DataFrame objects
+  - Better handling of pyx file dependencies in Cython module build (GH #271)
+
+**Bug fixes**
+
+  - `read_csv` / `read_table` fixes
+    - Be less aggressive about converting float->int in cases of floating point
+      representations of integers like 1.0, 2.0, etc.
+    - "True"/"False" will not get correctly converted to boolean
+    - Index name attribute will get set when specifying an index column
+    - Passing column names should force `header=None` (GH #257)
+    - Don't modify passed column names when `index_col` is not
+      None (GH #258)
+    - Can sniff CSV separator in zip file (since seek is not supported, was
+      failing before)
+  - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
+    be reported upstream to matplotlib (GH #224)
+  - DataFrame.iteritems was not returning Series with the name attribute
+    set. Also neither was DataFrame._series
+  - Can store datetime.date objects in HDFStore (GH #231)
+  - Index and Series names are now stored in HDFStore
+  - Fixed problem in which data would get upcasted to object dtype in
+    GroupBy.apply operations (GH #237)
+  - Fixed outer join bug with empty DataFrame (GH #238)
+  - Can create empty Panel (GH #239)
+  - Fix join on single key when passing list with 1 entry (GH #246)
+  - Don't raise Exception on plotting DataFrame with an all-NA column (GH #251,
+    PR #254)
+  - Bug min/max errors when called on integer DataFrames (PR #241)
+  - `DataFrame.iteritems` and `DataFrame._series` not assigning name attribute
+  - Panel.__repr__ raised exception on length-0 major/minor axes
+  - `DataFrame.join` on key with empty DataFrame produced incorrect columns
+  - Implemented `MultiIndex.diff` (GH #260)
+  - `Int64Index.take` and `MultiIndex.take` lost name field, fix downstream
+    issue GH #262
+  - Can pass list of tuples to `Series` (GH #270)
+  - Can pass level name to `DataFrame.stack`
+  - Support set operations between MultiIndex and Index
+  - Fix many corner cases in MultiIndex set operations
+    - Fix MultiIndex-handling bug with GroupBy.apply when returned groups are not
+    indexed the same
+  - Fix corner case bugs in DataFrame.apply
+  - Setting DataFrame index did not cause Series cache to get cleared
+  - Various int32 -> int64 platform-specific issues
+  - Don't be too aggressive converting to integer when parsing file with
+    MultiIndex (GH #285)
+  - Fix bug when slicing Series with negative indices before beginning
+
+Thanks
+------
+
+- Thomas Kluyver
+- Daniel Fortunov
+- Aman Thakral
+- Luca Beltrame
+- Wouter Overmeire
+
 pandas 0.4.3
 ============
 
-**Release date:** not yet released
+Release notes
+-------------
+
+**Release date:** 10/9/2011
 
 This is largely a bugfix release from 0.4.2 but also includes a handful of new
 and enhanced features. Also, pandas can now be installed and used on Python 3
@@ -68,6 +305,9 @@ Thanks
 
 pandas 0.4.2
 ============
+
+Release notes
+-------------
 
 **Release date:** 10/3/2011
 
@@ -144,6 +384,9 @@ Thanks
 pandas 0.4.1
 ============
 
+Release notes
+-------------
+
 **Release date:** 9/25/2011
 
 This is primarily a bug fix release but includes some new features and
@@ -213,23 +456,6 @@ Thanks
 
 pandas 0.4
 ==========
-
-What is it
-----------
-
-**pandas** is a library of powerful labeled-axis data structures, statistical
-tools, and general code for working with relational data sets, including time
-series and cross-sectional data. It was designed with the practical needs of
-statistical modeling and large, inhomogeneous data sets in mind. It is
-particularly well suited for, among other things, financial data analysis
-applications.
-
-Where to get it
----------------
-
-Source code: http://github.com/wesm/pandas
-Binary installers on PyPI: http://pypi.python.org/pypi/pandas
-Documentation: http://pandas.sourceforge.net
 
 Release notes
 -------------
@@ -491,29 +717,14 @@ Thanks
   - Skipper Seabold
   - Chris Jordan-Squire
 
-pandas 0.3
-==========
+pandas 0.3.0
+============
 
 This major release of pandas represents approximately 1 year of continuous
 development work and brings with it many new features, bug fixes, speed
 enhancements, and general quality-of-life improvements. The most significant
 change from the 0.2 release has been the completion of a rigorous unit test
 suite covering all of the core functionality.
-
-What is it
-----------
-
-**pandas** is a library of labeled data structures, statistical models, and
-general code for working with time series and cross-sectional data. It was
-designed with the practical needs of statistical modeling and large,
-inhomogeneous data sets in mind.
-
-Where to get it
----------------
-
-Source code: http://github.com/wesm/pandas
-Binary installers on PyPI: http://pypi.python.org/pypi/pandas
-Documentation: http://pandas.sourceforge.net
 
 Release notes
 -------------

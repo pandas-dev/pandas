@@ -227,7 +227,7 @@ class TestBlockManager(unittest.TestCase):
         self.assert_(mgr2.get('baz').dtype == np.object_)
 
         mgr2.set('quux', randn(N).astype(int))
-        self.assert_(mgr2.get('quux').dtype == np.int_)
+        self.assert_(mgr2.get('quux').dtype == np.int64)
 
         mgr2.set('quux', randn(N))
         self.assert_(mgr2.get('quux').dtype == np.float_)
@@ -249,7 +249,7 @@ class TestBlockManager(unittest.TestCase):
 
         blocks = [get_int_ex(['a']), get_int_ex(['b'])]
         mgr = BlockManager.from_blocks(blocks, np.arange(index_sz))
-        self.assert_(mgr.as_matrix().dtype == np.int_)
+        self.assert_(mgr.as_matrix().dtype == np.int64)
 
     def test_xs(self):
         pass

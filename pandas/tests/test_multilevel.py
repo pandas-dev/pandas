@@ -5,7 +5,7 @@ import unittest
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull
 
 from pandas.util.testing import (assert_almost_equal,
@@ -23,7 +23,7 @@ class TestMultiLevel(unittest.TestCase):
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
-                               columns=['A', 'B', 'C'])
+                               columns=Index(['A', 'B', 'C'], name='exp'))
 
         self.single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                        labels=[[0, 1, 2, 3]],
@@ -74,6 +74,10 @@ class TestMultiLevel(unittest.TestCase):
 
         chunk = ymdT.ix[:, new_index]
         self.assert_(chunk.columns is new_index)
+
+    def test_sort_index_preserve_levels(self):
+        result = self.frame.sort_index()
+        self.assertEquals(result.index.names, self.frame.index.names)
 
     def test_repr_to_string(self):
         repr(self.frame)
@@ -277,6 +281,24 @@ class TestMultiLevel(unittest.TestCase):
         df = tm.makeTimeDataFrame()
         self.assertRaises(Exception, df.count, level=0)
 
+    def test_count_level_series(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz'],
+                                   ['one', 'two', 'three', 'four']],
+                           labels=[[0, 0, 0, 2, 2],
+                                   [2, 0, 1, 1, 2]])
+
+        s = Series(np.random.randn(len(index)), index=index)
+
+        result = s.count(level=0)
+        expected = s.groupby(level=0).count()
+        assert_series_equal(result.astype('f8'),
+                            expected.reindex(result.index).fillna(0))
+
+        result = s.count(level=1)
+        expected = s.groupby(level=1).count()
+        assert_series_equal(result.astype('f8'),
+                            expected.reindex(result.index).fillna(0))
+
     def test_count_level_corner(self):
         s = self.frame['A'][:0]
         result = s.count(level=0)
@@ -346,6 +368,10 @@ class TestMultiLevel(unittest.TestCase):
         ymd_stacked = self.ymd.stack()
         assert_series_equal(stacked, ymd_stacked.reindex(stacked.index))
 
+        # stack with negative number
+        result = self.ymd.unstack(0).stack(-2)
+        expected = self.ymd.unstack(0).stack(0)
+
     def test_stack_mixed_dtype(self):
         df = self.frame.T
         df['foo', 'four'] = 'foo'
@@ -372,10 +398,25 @@ class TestMultiLevel(unittest.TestCase):
     def test_stack_unstack_preserve_names(self):
         unstacked = self.frame.unstack()
         self.assertEquals(unstacked.index.name, 'first')
-        self.assertEquals(unstacked.columns.names, [None, 'second'])
+        self.assertEquals(unstacked.columns.names, ['exp', 'second'])
 
         restacked = unstacked.stack()
         self.assertEquals(restacked.index.names, self.frame.index.names)
+
+    def test_unstack_level_name(self):
+        result = self.frame.unstack('second')
+        expected = self.frame.unstack(level=1)
+        assert_frame_equal(result, expected)
+
+    def test_stack_level_name(self):
+        unstacked = self.frame.unstack('second')
+        result = unstacked.stack('exp')
+        expected = self.frame.unstack().stack(0)
+        assert_frame_equal(result, expected)
+
+        result = self.frame.stack('exp')
+        expected = self.frame.stack()
+        assert_series_equal(result, expected)
 
     def test_groupby_transform(self):
         s = self.frame['A']
