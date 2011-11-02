@@ -25,7 +25,7 @@ from pandas.core.common import (isnull, notnull, PandasError, adjoin,
                                 _try_sort, _pfixed, _default_index,
                                 _infer_dtype, _stringify, _maybe_upcast)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import AxisProperty, NDFrame
+from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
@@ -60,6 +60,39 @@ Returns
 result : DataFrame
 """
 
+_stat_doc = """
+Return %(name)s over requested axis.
+%(na_action)s
+
+Parameters
+----------
+axis : {0, 1}
+    0 for row-wise, 1 for column-wise
+skipna : boolean, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA
+level : int, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a DataFrame
+%(extras)s
+Returns
+-------
+%(shortname)s : Series (or DataFrame if level specified)
+"""
+
+_doc_exclude_na = "NA/null values are excluded"
+
+_numeric_only_doc = """numeric_only : boolean, default False
+    Include only float, int, boolean data
+"""
+
+def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
+                  extras=''):
+    doc = _stat_doc % {'name' : name,
+                       'shortname' : shortname,
+                       'na_action' : na_action,
+                       'extras' : extras}
+    f.__doc__ = doc
 
 def _arith_method(func, name, default_axis='columns'):
     def f(self, other, axis=default_axis, fill_value=None):
@@ -2426,38 +2459,6 @@ class DataFrame(NDFrame):
         return DataFrame(result, index=index, columns=columns)
 
     def sum(self, axis=0, numeric_only=False, skipna=True, level=None):
-        """
-        Return sum over requested axis
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        numeric_only : boolean, default False
-            Include only float, int, boolean data
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Examples
-        --------
-        >>> df
-            c1  c2
-        a   1   0
-        b   0   2
-        c   3   0
-        d   0   4
-
-        >>> df.sum(axis=0)
-        c1    4
-        c2    6
-
-        Returns
-        -------
-        sum : Series
-        """
         if not level is None:
             sumfunc = lambda x: x.sum(skipna=skipna)
             return self.groupby(level=level).aggregate(sumfunc)
@@ -2484,25 +2485,9 @@ class DataFrame(NDFrame):
                 the_sum[ct_mask] = nan
 
         return Series(the_sum, index=axis_labels)
+    _add_stat_doc(sum, 'sum', 'sum', extras=_numeric_only_doc)
 
     def min(self, axis=0, skipna=True, level=None):
-        """
-        Return minimum over requested axis. NA/null values are excluded
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        min : Series
-        """
         values = self.values.copy()
         if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), np.inf)
@@ -2512,25 +2497,9 @@ class DataFrame(NDFrame):
             return self.groupby(level=level).aggregate(minfunc)
 
         return Series(values.min(axis), index=self._get_agg_axis(axis))
+    _add_stat_doc(min, 'minimum', 'min')
 
     def max(self, axis=0, skipna=True, level=None):
-        """
-        Return maximum over requested axis. NA/null values are excluded
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        max : Series
-        """
         values = self.values.copy()
         if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), -np.inf)
@@ -2540,25 +2509,9 @@ class DataFrame(NDFrame):
             return self.groupby(level=level).aggregate(maxfunc)
 
         return Series(values.max(axis), index=self._get_agg_axis(axis))
+    _add_stat_doc(max, 'maximum', 'max')
 
     def prod(self, axis=0, skipna=True, level=None):
-        """
-        Return product over requested axis. NA/null values are treated as 1
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        product : Series
-        """
         if not level is None:
             prodfunc = lambda x: x.prod(skipna=skipna)
             return self.groupby(level=level).aggregate(prodfunc)
@@ -2572,26 +2525,11 @@ class DataFrame(NDFrame):
         result[count == 0] = nan
 
         return Series(result, index=self._get_agg_axis(axis))
+    _add_stat_doc(prod, 'product', 'product',
+                  na_action='NA/null values are treated as 1')
     product = prod
 
     def mean(self, axis=0, skipna=True, level=None):
-        """
-        Return mean over requested axis. NA/null values are excluded
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        mean : Series
-        """
         if not level is None:
             meanfunc = lambda x: x.mean(skipna=skipna)
             return self.groupby(level=level).aggregate(meanfunc)
@@ -2599,6 +2537,7 @@ class DataFrame(NDFrame):
         summed = self.sum(axis, numeric_only=True, skipna=skipna)
         count = self.count(axis, numeric_only=True).astype(float)
         return summed / count
+    _add_stat_doc(mean, 'mean', 'mean')
 
     def quantile(self, q=0.5, axis=0):
         """
@@ -2632,23 +2571,6 @@ class DataFrame(NDFrame):
         return self.apply(f, axis=axis)
 
     def median(self, axis=0, skipna=True, level=None):
-        """
-        Return median over requested axis, NA/null are exluded
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        Series or TimeSeries
-        """
         if not level is None:
             medianfunc = lambda x: x.median(skipna=skipna)
             return self.groupby(level=level).aggregate(medianfunc)
@@ -2661,25 +2583,9 @@ class DataFrame(NDFrame):
             return Series(med, index=self.index)
         else:
             raise Exception('Must have 0<= axis <= 1')
+    _add_stat_doc(median, 'median', 'median')
 
     def mad(self, axis=0, skipna=True, level=None):
-        """
-        Return mean absolute deviation over requested axis
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        mad : Series
-        """
         if not level is None:
             madfunc = lambda x: x.mad(skipna=skipna)
             return self.groupby(level=level).aggregate(madfunc)
@@ -2689,25 +2595,9 @@ class DataFrame(NDFrame):
         else:
             demeaned = self.sub(self.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
+    _add_stat_doc(mad, 'mean absolute deviation', 'mad')
 
     def var(self, axis=0, skipna=True, level=None):
-        """
-        Return unbiased variance over requested axis
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        var : Series
-        """
         if not level is None:
             varfunc = lambda x: x.var(skipna=skipna)
             return self.groupby(level=level).aggregate(varfunc)
@@ -2726,49 +2616,17 @@ class DataFrame(NDFrame):
         theVar = (XX - X ** 2 / count) / (count - 1)
 
         return Series(theVar, index=axis_labels)
+    _add_stat_doc(var, 'unbiased variance', 'var')
 
     def std(self, axis=0, skipna=True, level=None):
-        """
-        Return unbiased std deviation over requested axis
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        std : Series
-        """
         if not level is None:
             stdfunc = lambda x: x.std(skipna=skipna)
             return self.groupby(level=level).aggregate(stdfunc)
 
         return np.sqrt(self.var(axis=axis, skipna=skipna))
+    _add_stat_doc(std, 'unbiased standard deviation', 'std')
 
     def skew(self, axis=0, skipna=True, level=None):
-        """
-        Return unbiased skewness over requested axis
-
-        Parameters
-        ----------
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-        level : integer, default None
-            Choose a level to groupby before applying operation
-
-        Returns
-        -------
-        skew : Series
-        """
         if not level is None:
             skewfunc = lambda x: x.skew(skipna=skipna)
             return self.groupby(level=level).aggregate(skewfunc)
@@ -2795,6 +2653,7 @@ class DataFrame(NDFrame):
         result = np.where(B == 0, 0, result)
 
         return Series(result, index=axis_labels)
+    _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
     def _get_agg_data(self, axis, numeric_only=True, copy=True):
         num_cols = self._get_numeric_columns()

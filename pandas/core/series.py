@@ -611,7 +611,6 @@ copy : boolean, default False
             counter[value] += 1
         return Series(counter).order(ascending=False)
 
-
     def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         """
         Sum of values
@@ -620,13 +619,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        sum : float
+        sum : float (or Series if level specified)
         """
         if level is not None:
             sumfunc = lambda x: x.sum(dtype=dtype,skipna=skipna)
@@ -650,13 +649,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        mean : float
+        mean : float (or Series if level specified)
         """
         if level is None:
             return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
@@ -672,13 +671,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        median : float
+        median : float (or Series if level specified)
         """
         arr = self.values
         if arr.dtype != np.float_:
@@ -705,13 +704,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        product : float
+        product : float (or Series if level specified)
         """
         if level is None:
             return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
@@ -727,13 +726,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        min : float
+        min : float (or Series if level specified)
         """
         arr = self.values.copy()
 
@@ -755,13 +754,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        max : float
+        max : float (or Series if level specified)
         """
         arr = self.values.copy()
 
@@ -786,13 +785,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        stdev : float
+        stdev : float (or Series if level specified)
         """
         if not level is None:
             stdfunc = lambda x: x.std(axis=axis,out=out,skipna=skipna)
@@ -817,13 +816,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        var : float
+        var : float (or Series if level specified)
         """
         if not level is None:
             varfunc = lambda x: x.var(axis=axis,out=out,skipna=skipna)
@@ -845,13 +844,13 @@ copy : boolean, default False
         ----------
         skipna : boolean, default True
             Exclude NA/null values
-
-        level : integer, default None
-            Choose a level to groupby before applying operation
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
 
         Returns
         -------
-        skew : float
+        skew : float (or Series if level specified)
         """
         if not level is None:
             skewfunc = lambda x: x.skew(skipna=skipna)
