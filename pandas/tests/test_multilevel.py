@@ -29,6 +29,15 @@ class TestMultiLevel(unittest.TestCase):
                                        labels=[[0, 1, 2, 3]],
                                        names=['first'])
 
+        # create test series object
+        arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        tuples = zip(*arrays)
+        index = MultiIndex.from_tuples(tuples)
+        s = Series(randn(8), index=index)
+        s[3] = np.NaN
+        self.series = s
+
         tm.N = 100
         self.tdf = tm.makeTimeDataFrame()
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
@@ -530,6 +539,28 @@ class TestMultiLevel(unittest.TestCase):
         expected.index = expected.index.droplevel(0)
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
+
+    def test_series_group_min_max(self):
+        for op in ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 
+                   'std', 'var']:
+            leftside = getattr(self.series.groupby(level=0), op)()
+            rightside = getattr(self.series, op)(level=0)
+            assert_series_equal(leftside, rightside)
+
+            leftside = getattr(self.series.groupby(level=1), op)()
+            rightside = getattr(self.series, op)(level=1)
+            assert_series_equal(leftside, rightside)
+
+    def test_frame_group_ops(self):
+        for op in ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
+                   'mad', 'std', 'var']:
+            leftside = getattr(self.frame.groupby(level=0), op)()
+            rightside = getattr(self.frame, op)(level=0)
+            assert_frame_equal(leftside, rightside)
+
+            leftside = getattr(self.frame.groupby(level=1), op)()
+            rightside = getattr(self.frame, op)(level=1)
+            assert_frame_equal(leftside, rightside)
 
 if __name__ == '__main__':
 
