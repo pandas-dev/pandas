@@ -492,8 +492,52 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_min(self):
         self._check_stat_op('min', np.min)
 
+    def test_argmin(self):
+        """
+        test argmin
+        _check_stat_op approach can not be used here because of isnull check.
+        """
+        # add some NaNs
+        self.series[5:15] = np.NaN
+
+        # skipna or no
+        self.assertEqual(self.series[self.series.argmin()], self.series.min())
+        self.assert_(isnull(self.series[self.series.argmin(skipna=False)]))
+
+        # no NaNs
+        nona = self.series.dropna()
+        self.assertEqual(nona[nona.argmin()], nona.min())
+        self.assertEqual(nona.index.values.tolist().index(nona.argmin()),
+                         nona.values.argmin())
+
+        # all NaNs
+        allna = self.series * nan
+        self.assertEqual(allna.argmin(), allna.index[0])
+
     def test_max(self):
         self._check_stat_op('max', np.max)
+
+    def test_argmax(self):
+        """
+        test argmax
+        _check_stat_op approach can not be used here because of isnull check.
+        """
+        # add some NaNs
+        self.series[5:15] = np.NaN
+
+        # skipna or no
+        self.assertEqual(self.series[self.series.argmax()], self.series.max())
+        self.assert_(isnull(self.series[self.series.argmax(skipna=False)]))
+
+        # no NaNs
+        nona = self.series.dropna()
+        self.assertEqual(nona[nona.argmax()], nona.max())
+        self.assertEqual(nona.index.values.tolist().index(nona.argmax()),
+                         nona.values.argmax())
+
+        # all NaNs
+        allna = self.series * nan
+        self.assertEqual(allna.argmax(), allna.index[0])
 
     def test_std(self):
         alt = lambda x: np.std(x, ddof=1)

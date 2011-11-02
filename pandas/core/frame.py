@@ -2500,9 +2500,10 @@ class DataFrame(NDFrame):
             np.putmask(values, -np.isfinite(values), np.inf)
         return Series(values.min(axis), index=self._get_agg_axis(axis))
 
-    def max(self, axis=0, skipna=True):
+    def argmin(self, axis=0, skipna=True):
         """
-        Return maximum over requested axis. NA/null values are excluded
+        Return index of first occurence of minimum over requested axis.
+        NA/null values are excluded.
 
         Parameters
         ----------
@@ -2514,12 +2515,59 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+        argmin : Series
+        """
+        values = self.values.copy()
+        if skipna and not issubclass(values.dtype.type, np.integer):
+            np.putmask(values, -np.isfinite(values), np.inf)
+        argmin_index = self._get_agg_axis([1, 0][axis])
+        return Series([argmin_index[i] for i in values.argmin(axis)],
+                      index=self._get_agg_axis(axis))
+
+    def max(self, axis=0, skipna=True):
+        """
+        Return maximum over requested axis. NA/null values are excluded
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be first index.
+
+        Returns
+        -------
         max : Series
         """
         values = self.values.copy()
         if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), -np.inf)
         return Series(values.max(axis), index=self._get_agg_axis(axis))
+
+    def argmax(self, axis=0, skipna=True):
+        """
+        Return index of first occurence of maximum over requested axis.
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be first index.
+
+        Returns
+        -------
+        max : Series
+        """
+        values = self.values.copy()
+        if skipna and not issubclass(values.dtype.type, np.integer):
+            np.putmask(values, -np.isfinite(values), -np.inf)
+        argmax_index = self._get_agg_axis([1, 0][axis])
+        return Series([argmax_index[i] for i in values.argmax(axis)],
+                      index=self._get_agg_axis(axis))
 
     def prod(self, axis=0, skipna=True):
         """

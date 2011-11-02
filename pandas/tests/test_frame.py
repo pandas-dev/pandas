@@ -2757,9 +2757,73 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('min', np.min)
         self._check_stat_op('min', np.min, frame=self.intframe)
 
+    def test_argmin(self):
+        def validate(f, s, axis, skipna):
+            def get_result(f, i, v, axis, skipna):
+                if axis == 0:
+                    return (f[i][v], f[i].min(skipna=skipna))
+                else:
+                    return (f[v][i], f.ix[i].min(skipna=skipna))
+            for i, v in s.iteritems():
+                (r1, r2) = get_result(f, i, v, axis, skipna)
+                if np.isnan(r1) or np.isinf(r1):
+                    self.assert_(np.isnan(r2) or np.isinf(r2))
+                elif np.isnan(r2) or np.isinf(r2):
+                    self.assert_(np.isnan(r1) or np.isinf(r1))
+                else:
+                    self.assertEqual(r1, r2)
+
+        frame = self.frame
+        frame.ix[5:10] = np.nan
+        frame.ix[15:20, -2:] = np.nan
+        for skipna in [True, False]:
+            for axis in [0, 1]:
+                validate(frame,
+                         frame.argmin(axis=axis, skipna=skipna),
+                         axis,
+                         skipna)
+                validate(self.intframe,
+                         self.intframe.argmin(axis=axis, skipna=skipna),
+                         axis,
+                         skipna)
+
+        self.assertRaises(Exception, frame.argmin, axis=2)
+
     def test_max(self):
         self._check_stat_op('max', np.max)
         self._check_stat_op('max', np.max, frame=self.intframe)
+
+    def test_argmax(self):
+        def validate(f, s, axis, skipna):
+            def get_result(f, i, v, axis, skipna):
+                if axis == 0:
+                    return (f[i][v], f[i].max(skipna=skipna))
+                else:
+                    return (f[v][i], f.ix[i].max(skipna=skipna))
+            for i, v in s.iteritems():
+                (r1, r2) = get_result(f, i, v, axis, skipna)
+                if np.isnan(r1) or np.isinf(r1):
+                    self.assert_(np.isnan(r2) or np.isinf(r2))
+                elif np.isnan(r2) or np.isinf(r2):
+                    self.assert_(np.isnan(r1) or np.isinf(r1))
+                else:
+                    self.assertEqual(r1, r2)
+
+        frame = self.frame
+        frame.ix[5:10] = np.nan
+        frame.ix[15:20, -2:] = np.nan
+        for skipna in [True, False]:
+            for axis in [0, 1]:
+                validate(frame,
+                         frame.argmax(axis=axis, skipna=skipna),
+                         axis,
+                         skipna)
+                validate(self.intframe,
+                         self.intframe.argmax(axis=axis, skipna=skipna),
+                         axis,
+                         skipna)
+
+        self.assertRaises(Exception, frame.argmax, axis=2)
 
     def test_mad(self):
         f = lambda x: np.abs(x - x.mean()).mean()
