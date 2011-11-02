@@ -1628,7 +1628,9 @@ copy : boolean, default False
         isin : Series (boolean dtype)
         """
         value_set = set(values)
-        return self.map(value_set.__contains__)
+        result = lib.ismember(self, value_set)
+        # return self.map(value_set.__contains__)
+        return Series(result, self.index, name=self.name)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous

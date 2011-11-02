@@ -164,6 +164,26 @@ def isAllDates(ndarray[object, ndim=1] arr):
 
     return True
 
+def ismember(ndarray arr, set values):
+    cdef:
+        Py_ssize_t i, n
+        flatiter it
+        ndarray[uint8_t] result
+        object val
+
+    it = <flatiter> PyArray_IterNew(arr)
+    n = len(arr)
+    result = np.empty(n, dtype=np.uint8)
+    for i from 0 <= i < n:
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        if val in values:
+            result[i] = 1
+        else:
+            result[i] = 0
+        PyArray_ITER_NEXT(it)
+
+    return result.view(np.bool_)
+
 #----------------------------------------------------------------------
 # datetime / io related
 
