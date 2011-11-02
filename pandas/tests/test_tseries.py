@@ -122,6 +122,31 @@ def test_is_lexsorted():
 
     assert(not lib.is_lexsorted(failure))
 
+# def test_get_group_index():
+#     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype='i4')
+#     b = np.array([1, 0, 3, 2, 0, 2, 3, 0], dtype='i4')
+#     expected = np.array([1, 4, 11, 2, 8, 6, 3, 0], dtype='i4')
+
+#     result = lib.get_group_index([a, b], (3, 4))
+
+#     assert(np.array_equal(result, expected))
+
+def test_groupsort_indexer():
+    a = np.random.randint(0, 1000, 100).astype('i4')
+    b = np.random.randint(0, 1000, 100).astype('i4')
+
+    result = lib.groupsort_indexer(a, 1000)
+
+    # need to use a stable sort
+    expected = np.argsort(a, kind='mergesort')
+    assert(np.array_equal(result, expected))
+
+    # compare with lexsort
+    key = a * 1000 + b
+    result = lib.groupsort_indexer(key, 1000000)
+    expected = np.lexsort((b, a))
+    assert(np.array_equal(result, expected))
+
 class TestMoments(unittest.TestCase):
     pass
 

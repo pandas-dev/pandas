@@ -85,12 +85,8 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = np.zeros(len(self.index), dtype=int)
-
-        for i in xrange(len(new_levels)):
-            stride = np.prod([len(x) for x in new_levels[i+1:]],
-                             dtype=int)
-            group_index += self.sorted_labels[i] * stride
+        group_index = get_group_index(self.sorted_labels,
+                                      [len(x) for x in new_levels])
 
         group_mask = np.zeros(self.full_shape[0], dtype=bool)
         group_mask.put(group_index, True)
@@ -193,6 +189,13 @@ class _Unstacker(object):
                                    names=self.new_index_names)
 
         return new_index
+
+def get_group_index(label_list, shape):
+    group_index = np.zeros(len(label_list[0]), dtype=int)
+    for i in xrange(len(shape)):
+        stride = np.prod([x for x in shape[i+1:]], dtype=int)
+        group_index += label_list[i] * stride
+    return group_index
 
 def pivot(self, index=None, columns=None, values=None):
     """

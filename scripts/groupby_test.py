@@ -86,30 +86,45 @@ grouped = df.groupby(['key1', 'key2'])
 # print 'got'
 # print result
 
-tm.N = 10000
+# tm.N = 10000
 
-mapping = {'A': 0, 'C': 1, 'B': 0, 'D': 1}
-tf = lambda x: x - x.mean()
+# mapping = {'A': 0, 'C': 1, 'B': 0, 'D': 1}
+# tf = lambda x: x - x.mean()
 
-df = tm.makeTimeDataFrame()
-ts = df['A']
+# df = tm.makeTimeDataFrame()
+# ts = df['A']
 
-# grouped = df.groupby(lambda x: x.strftime('%m/%y'))
-grouped = df.groupby(mapping, axis=1)
-groupedT = df.T.groupby(mapping, axis=0)
+# # grouped = df.groupby(lambda x: x.strftime('%m/%y'))
+# grouped = df.groupby(mapping, axis=1)
+# groupedT = df.T.groupby(mapping, axis=0)
 
-r1 = groupedT.transform(tf).T
-r2 = grouped.transform(tf)
+# r1 = groupedT.transform(tf).T
+# r2 = grouped.transform(tf)
 
-fillit = lambda x: x.fillna(method='pad')
+# fillit = lambda x: x.fillna(method='pad')
 
-f = lambda x: x
+# f = lambda x: x
 
-transformed = df.groupby(lambda x: x.strftime('%m/%y')).transform(lambda x: x)
+# transformed = df.groupby(lambda x: x.strftime('%m/%y')).transform(lambda x: x)
 
-def ohlc(group):
-    return Series([group[0], group.max(), group.min(), group[-1]],
-                  index=['open', 'high', 'low', 'close'])
-grouper = [lambda x: x.year, lambda x: x.month]
-dr = DateRange('1/1/2000', '1/1/2002')
-ts = Series(np.random.randn(len(dr)), index=dr)
+# def ohlc(group):
+#     return Series([group[0], group.max(), group.min(), group[-1]],
+#                   index=['open', 'high', 'low', 'close'])
+# grouper = [lambda x: x.year, lambda x: x.month]
+# dr = DateRange('1/1/2000', '1/1/2002')
+# ts = Series(np.random.randn(len(dr)), index=dr)
+
+import string
+
+k = 20
+n = 1000
+
+keys = list(string.letters[:k])
+
+df = DataFrame({'A' : np.tile(keys, n),
+                'B' : np.repeat(keys[:k/2], n * 2),
+                'C' : np.random.randn(k * n)})
+
+def f():
+    for x in df.groupby(['A', 'B']):
+        pass

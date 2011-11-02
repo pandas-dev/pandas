@@ -1232,16 +1232,22 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
     -------
     generator
     """
-    sorted_data, sorted_labels = _group_reorder(data, label_list, axis=axis)
-
-    gen = _generate_groups(sorted_data, sorted_labels, shape,
-                           0, len(label_list[0]), axis=axis, which=0,
-                           factory=factory)
-    for key, group in gen:
-        yield key, group
-
-def _group_reorder(data, label_list, axis=0):
     indexer = np.lexsort(label_list[::-1])
+
+    from pandas.core.reshape import get_group_index
+    group_index = get_group_index(label_list, shape)
+
+    na_mask = np.zeros(len(label_list[0]), dtype=bool)
+    for arr in label_list:
+        na_mask |= arr == -1
+    group_index[na_mask] = -1
+
+    indexer2 = lib.groupsort_indexer(group_index.astype('i4'),
+                                     np.prod(shape))
+    assert((indexer == indexer2).all())
+
+    indexer = indexer2
+
     sorted_labels = [labels.take(indexer) for labels in label_list]
 
     if isinstance(data, BlockManager):
@@ -1254,7 +1260,11 @@ def _group_reorder(data, label_list, axis=0):
     elif isinstance(data, DataFrame):
         sorted_data = data.take(indexer, axis=axis)
 
-    return sorted_data, sorted_labels
+    gen = _generate_groups(sorted_data, sorted_labels, shape,
+                           0, len(label_list[0]), axis=axis, which=0,
+                           factory=factory)
+    for key, group in gen:
+        yield key, group
 
 def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
                      factory=lambda x: x):
