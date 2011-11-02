@@ -1,3 +1,9 @@
+pandas (0.5.0+git7-gcf32be2-1) unstable; urgency=low
+
+  * New upstream release with post-release fixes
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Tue, 01 Nov 2011 21:15:06 -0400
+
 pandas (0.4.3-1) unstable; urgency=low
 
   * New upstream release(s): primarily bugfixes and optimizations but also
