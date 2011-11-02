@@ -30,6 +30,10 @@ pandas 0.5.1
 **New features / modules**
 
   - Add `melt` function to `pandas.core.reshape`
+  - Add `level` parameter to group by level in Series and DataFrame
+    descriptive statistics (PR #313)
+  - Add `head` and `tail` methods to Series, analogous to to DataFrame (PR
+    #296)
 
 **Improvements to existing features**
 
@@ -46,6 +50,8 @@ Thanks
 ------
 
 - Kieran O'Mahony
+- Jeff Hammerbacher
+- Adam Klein
 
 pandas 0.5.0
 ============

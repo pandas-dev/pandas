@@ -388,7 +388,9 @@ class GroupBy(object):
             mask = counts.ravel() > 0
             output = output.reshape((np.prod(group_shape),) + stride_shape)
             output = output[mask]
-        except TypeError:
+        except Exception:
+            # we failed, try to go slice-by-slice / column-by-column
+
             result = np.empty(group_shape, dtype=float)
             result.fill(np.nan)
             # iterate through "columns" ex exclusions to populate output dict
