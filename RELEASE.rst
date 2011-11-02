@@ -34,6 +34,8 @@ pandas 0.5.1
     descriptive statistics (PR #313)
   - Add `head` and `tail` methods to Series, analogous to to DataFrame (PR
     #296)
+  - Add `Series.isin` function which checks if each value is contained in a
+    passed sequence (GH #289)
 
 **Improvements to existing features**
 

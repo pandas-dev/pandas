@@ -1248,6 +1248,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(self.series.head(), self.series[:5])
         assert_series_equal(self.series.tail(), self.series[-5:])
 
+    def test_isin(self):
+        s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
+
+        result = s.isin(['A', 'C'])
+        expected = Series([True, False, True, False, False, False, True, True])
+        assert_series_equal(result, expected)
+
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
 

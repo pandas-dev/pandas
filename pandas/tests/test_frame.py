@@ -2510,7 +2510,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame.reindex(columns=['B', 'D'])
         assert_frame_equal(result, expected)
 
-    def test_sort(self):
+    def test_sort_index(self):
         frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
                           columns=['A', 'B', 'C', 'D'])
 
@@ -2553,6 +2553,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         sorted_df = frame.sort(column='A', ascending=False)
         expected = frame.sort_index(by='A', ascending=False)
         assert_frame_equal(sorted_df, expected)
+
+    # punting on trying to fix this for now
+    # def test_frame_column_inplace_sort_exception(self):
+    #     s = self.frame['A']
+    #     self.assert_(not s.flags.owndata)
+    #     self.assertRaises(Exception, s.sort)
 
     def test_combine_first(self):
         # disjoint

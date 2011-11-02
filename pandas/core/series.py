@@ -1221,6 +1221,11 @@ copy : boolean, default False
         ndarray. No return value
         """
         sortedSeries = self.order(na_last=True)
+
+        # if not self.flags.owndata:
+        #     raise Exception('This Series is a view of some other array, to '
+        #                     'sort in-place you must create a copy')
+
         self[:] = sortedSeries
         self.index = sortedSeries.index
 
@@ -1608,6 +1613,22 @@ copy : boolean, default False
 
             new_values = self.values.take(indexer)
             return Series(new_values, index=self.index, name=self.name)
+
+    def isin(self, values):
+        """
+        Return boolean vector showing whether each element in the Series is
+        exactly contained in the passed sequence of values
+
+        Parameters
+        ----------
+        values : sequence
+
+        Returns
+        -------
+        isin : Series (boolean dtype)
+        """
+        value_set = set(values)
+        return self.map(value_set.__contains__)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous
