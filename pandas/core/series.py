@@ -1458,7 +1458,10 @@ copy : boolean, default False
         y : Series
         """
         try:
-            return func(self)
+            result = func(self)
+            if not isinstance(result, Series):
+                result = Series(result, index=self.index, name=self.name)
+            return result
         except Exception:
             return Series([func(x) for x in self], index=self.index,
                           name=self.name)
