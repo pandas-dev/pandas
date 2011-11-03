@@ -333,7 +333,7 @@ class GroupBy(object):
         output = {}
         cannot_agg = []
         for name, obj in self._iterate_slices():
-            if issubclass(obj.dtype.type, np.number):
+            if issubclass(obj.dtype.type, (np.number, np.bool_)):
                 if obj.dtype != np.float64:
                     obj = obj.astype('f8')
             else:

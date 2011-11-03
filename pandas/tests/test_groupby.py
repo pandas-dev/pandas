@@ -659,6 +659,15 @@ class TestGroupBy(unittest.TestCase):
         _testit(lambda x: x.sum())
         _testit(lambda x: x.mean())
 
+
+    def test_cython_agg_boolean(self):
+        frame = DataFrame({'a': np.random.randint(0, 5, 50),
+                           'b': np.random.randint(0, 2, 50).astype('bool')})
+        result = frame.groupby('a')['b'].mean()
+        expected = frame.groupby('a')['b'].agg(np.mean)
+
+        assert_series_equal(result, expected)
+
     def test_grouping_attrs(self):
         deleveled = self.mframe.delevel()
         grouped = deleveled.groupby(['first', 'second'])
