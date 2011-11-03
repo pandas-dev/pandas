@@ -13,6 +13,10 @@ from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
 
 
+class GroupByError(Exception):
+    pass
+
+
 class GroupBy(object):
     """
     Class for grouping and aggregating relational data. See aggregate,
@@ -345,6 +349,9 @@ class GroupBy(object):
             result = result.ravel()
             mask = counts.ravel() > 0
             output[name] = result[mask]
+
+        if len(output) == 0:
+            raise GroupByError('No numeric types to aggregate')
 
         return self._wrap_aggregated_output(output, mask)
 

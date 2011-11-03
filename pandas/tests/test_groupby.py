@@ -8,6 +8,7 @@ from pandas.core.daterange import DateRange
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands, groupby
 from pandas.core.frame import DataFrame
+from pandas.core.groupby import GroupByError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -659,7 +660,6 @@ class TestGroupBy(unittest.TestCase):
         _testit(lambda x: x.sum())
         _testit(lambda x: x.mean())
 
-
     def test_cython_agg_boolean(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': np.random.randint(0, 2, 50).astype('bool')})
@@ -667,6 +667,11 @@ class TestGroupBy(unittest.TestCase):
         expected = frame.groupby('a')['b'].agg(np.mean)
 
         assert_series_equal(result, expected)
+
+    def test_cython_agg_nothing_to_agg(self):
+        frame = DataFrame({'a': np.random.randint(0, 5, 50),
+                           'b': ['foo', 'bar'] * 25})
+        self.assertRaises(GroupByError, frame.groupby('a')['b'].mean)
 
     def test_grouping_attrs(self):
         deleveled = self.mframe.delevel()
