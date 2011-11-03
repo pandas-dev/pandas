@@ -491,6 +491,51 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         modMonth = (someDate.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(someDate) and modMonth == 0
 
+class QuarterEnd(DateOffset, CacheableOffset):
+    """DateOffset increments between business Quarter dates
+    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
+    """
+    _outputName = 'QuarterEnd'
+    _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.n = n
+        self.startingMonth = kwds.get('startingMonth', 3)
+
+        if self.startingMonth < 1 or self.startingMonth > 3:
+            raise Exception('Start month must be 1<=day<=3, got %d'
+                            % self.startingMonth)
+
+        self.offset = MonthEnd(3)
+        self.kwds = kwds
+
+    def isAnchored(self):
+        return (self.n == 1 and self.startingMonth is not None)
+
+    def apply(self, other):
+        n = self.n
+
+        wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
+
+        monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
+        if monthsToGo == 3:
+            monthsToGo = 0
+
+        if n > 0 and not (other.day >= nDaysInMonth and monthsToGo == 0):
+            n = n - 1
+        elif n <= 0 and other.day > nDaysInMonth and monthsToGo == 0:
+            n = n + 1
+
+        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
+
+        return other
+
+    def onOffset(self, someDate):
+        modMonth = (someDate.month - self.startingMonth) % 3
+        return MonthEnd().onOffset(someDate) and modMonth == 0
+
 class BYearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessYearEnd'
@@ -607,8 +652,10 @@ yearBegin = YearBegin()
 bmonthEnd = BMonthEnd()
 businessMonthEnd = bmonthEnd
 bquarterEnd = BQuarterEnd()
+quarterEnd = QuarterEnd()
 byearEnd = BYearEnd()
 week = Week()
+
 
 # Functions/offsets to roll dates forward
 thisMonthEnd = MonthEnd(0)
@@ -616,6 +663,7 @@ thisBMonthEnd = BMonthEnd(0)
 thisYearEnd = YearEnd(0)
 thisYearBegin = YearBegin(0)
 thisBQuarterEnd = BQuarterEnd(0)
+thisQuarterEnd = QuarterEnd(0)
 
 # Functions to check where a date lies
 isBusinessDay = BDay().onOffset
