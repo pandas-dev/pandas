@@ -3219,7 +3219,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assertEqual(v.name, k)
 
 
-
 class TestDataFrameJoin(unittest.TestCase):
 
     def setUp(self):

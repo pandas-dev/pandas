@@ -5,6 +5,8 @@ import os
 import operator
 import unittest
 
+import nose
+
 from numpy import nan
 import numpy as np
 
@@ -1377,7 +1379,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEquals(result.name, self.ts.name)
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
 

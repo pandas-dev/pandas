@@ -47,7 +47,13 @@ class TestOLS(BaseTest):
     # TODO: Add tests for non pooled OLS.
 
     @classmethod
-    def setupClass(cls):
+    def setUpClass(cls):
+        try:
+            import matplotlib as mpl
+            mpl.use('Agg', warn=False)
+        except ImportError:
+            pass
+
         try:
             import scikits.statsmodels.api as _
         except ImportError:

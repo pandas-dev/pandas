@@ -1636,7 +1636,7 @@ copy : boolean, default False
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', grid=True, **kwds):  # pragma: no cover
+             style='-', grid=True, **kwds):
         """
         Plot the input series with the index on the x-axis using matplotlib
 
@@ -1697,12 +1697,12 @@ copy : boolean, default False
         try:
             fig = plt.gcf()
             fig.autofmt_xdate()
-        except Exception:
+        except Exception:  # pragma: no cover
             pass
 
         plt.draw_if_interactive()
 
-    def hist(self, ax=None, grid=True, **kwds):  # pragma: no cover
+    def hist(self, ax=None, grid=True, **kwds):
         """
         Draw histogram of the input series using matplotlib
 

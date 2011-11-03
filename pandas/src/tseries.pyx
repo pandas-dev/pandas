@@ -165,6 +165,18 @@ def isAllDates(ndarray[object, ndim=1] arr):
     return True
 
 def ismember(ndarray arr, set values):
+    '''
+    Checks whether
+
+    Parameters
+    ----------
+    arr : ndarray
+    values : set
+
+    Returns
+    -------
+    ismember : ndarray (boolean dtype)
+    '''
     cdef:
         Py_ssize_t i, n
         flatiter it

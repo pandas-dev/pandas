@@ -2738,7 +2738,7 @@ class DataFrame(NDFrame):
     # Plotting
 
     def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, **kwds):  # pragma: no cover
+             figsize=None, grid=True, legend=True, ax=None, **kwds):
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -2764,12 +2764,15 @@ class DataFrame(NDFrame):
         import matplotlib.pyplot as plt
 
         if subplots:
-            _, axes = plt.subplots(nrows=len(self.columns),
+            fig, axes = plt.subplots(nrows=len(self.columns),
                                    sharex=sharex, sharey=sharey,
                                    figsize=figsize)
         else:
-            fig = plt.figure(figsize=figsize)
-            ax = fig.add_subplot(111)
+            if ax is None:
+                fig = plt.figure(figsize=figsize)
+                ax = fig.add_subplot(111)
+            else:
+                fig = ax.get_figure()
 
         if use_index:
             x = self.index
@@ -2781,23 +2784,25 @@ class DataFrame(NDFrame):
             y = self[col].values if not empty else np.zeros(x.shape)
             if subplots:
                 ax = axes[i]
-                ax.plot(x, y, 'k', label=col, **kwds)
+                ax.plot(x, y, 'k', label=str(col), **kwds)
                 ax.legend(loc='best')
             else:
-                ax.plot(x, y, label=col, **kwds)
+                ax.plot(x, y, label=str(col), **kwds)
 
             ax.grid(grid)
 
         # try to make things prettier
         try:
-            fig = plt.gcf()
             fig.autofmt_xdate()
         except Exception:
             pass
 
+        if legend and not subplots:
+            ax.legend(loc='best')
+
         plt.draw_if_interactive()
 
-    def hist(self, grid=True, **kwds):  # pragma: no cover
+    def hist(self, grid=True, **kwds):
         """
         Draw Histogram the DataFrame's series using matplotlib / pylab.
 
