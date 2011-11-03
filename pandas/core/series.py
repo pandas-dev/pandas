@@ -1320,11 +1320,11 @@ copy : boolean, default False
             argsorted = argsorted[::-1]
 
         if na_last:
-            n = sum(good)
+            n = good.sum()
             sortedIdx[:n] = idx[good][argsorted]
             sortedIdx[n:] = idx[bad]
         else:
-            n = sum(bad)
+            n = bad.sum()
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
 
