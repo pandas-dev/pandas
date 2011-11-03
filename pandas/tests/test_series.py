@@ -77,6 +77,20 @@ class CheckNameIntegration(object):
         self.assertEquals(result.name, s.name)
         self.assertEquals(result2.name, s.name)
 
+    def test_name_printing(self):
+        # test small series
+        s = Series([0, 1, 2])
+        s.name = "test"
+        self.assert_("Name: test" in s.__repr__())
+        s.name = None
+        self.assert_(not "Name:" in s.__repr__())
+        # test big series (diff code path)
+        s = Series(range(0,1000))
+        s.name = "test"
+        self.assert_("Name: test" in s.__repr__())
+        s.name = None
+        self.assert_(not "Name:" in s.__repr__())
+
     def test_pickle_preserve_name(self):
         unpickled = self._pickle_roundtrip(self.ts)
         self.assertEquals(unpickled.name, self.ts.name)

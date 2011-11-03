@@ -384,7 +384,8 @@ copy : boolean, default False
         head = self[:num]._get_repr(name=False)
         tail = self[-(max_vals - num):]._get_repr(name=False)
         result = head + '\n...\n' + tail
-        result = '%s\nName: %s, Length: %d' % (result, self.name, len(self))
+        namestr = ("Name: %s, " % self.name) if self.name else ""
+        result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
     def to_string(self, buf=None, na_rep='NaN', nanRep=None):
@@ -427,7 +428,8 @@ copy : boolean, default False
                                itertools.izip(string_index, vals))
         it = list(it)
         if name:
-            it.append('Name: %s, Length: %d' % (str(self.name), len(self)))
+            namestr = ("Name: %s, " % self.name) if self.name else ""
+            it.append('%sLength: %d' % (namestr, len(self)))
         return '\n'.join(it)
 
     def __str__(self):
