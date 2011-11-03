@@ -551,6 +551,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assert_(np.array_equal(result, expected))
 
+    def test_round(self):
+        # numpy.round doesn't preserve metadata, probably a numpy bug,
+        # re: GH #314
+        result = np.round(self.ts, 2)
+        expected = Series(np.round(self.ts.values, 2), index=self.ts.index)
+        assert_series_equal(result, expected)
+        self.assertEqual(result.name, self.ts.name)
+
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.] , index=range(3))
         result = s.prod()

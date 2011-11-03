@@ -940,6 +940,17 @@ copy : boolean, default False
 
         return retVal
 
+    def round(self, decimals=0, out=None):
+        """
+
+        """
+        result = self.values.round(decimals, out=out)
+        if out is None:
+            result = Series(result, index=self.index, name=self.name)
+
+        return result
+    round.__doc__ = np.ndarray.round.__doc__
+
     def quantile(self, q=0.5):
         """
         Return value at the given quantile, a la scoreatpercentile in
