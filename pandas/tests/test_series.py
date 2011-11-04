@@ -64,6 +64,28 @@ class CheckNameIntegration(object):
         result = self.ts[5:10]
         self.assertEquals(result.name, self.ts.name)
 
+    def test_multilevel_name_print(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        s = Series(range(0,len(index)), index=index, name='sth')
+        expected = ["first  second",
+                    "foo    one       0",
+                    "       two       1",
+                    "       three     2",
+                    "bar    one       3",
+                    "       two       4",
+                    "baz    two       5",
+                    "       three     6",
+                    "qux    one       7",
+                    "       two       8",
+                    "       three     9",
+                    "Name: sth, Length: 10"]
+        expected = "\n".join(expected)
+        self.assertEquals(s.__repr__(), expected)
+
     def test_multilevel_preserve_name(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
