@@ -2209,9 +2209,11 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
             Index should be similar to one of the columns in this one
-        on : string, default None
-            Column name to use, otherwise join on index. Just like an Excel
-            VLOOKUP operation
+        on : column name, tuple/list of column names, or array-like
+            Column(s) to use for joining, otherwise join on index. If multiples
+            columns given, the passed DataFrame must have a MultiIndex. Can
+            pass an array as the join key if not already contained in the
+            calling DataFrame. Like an Excel VLOOKUP operation
         how : {'left', 'right', 'outer', 'inner'}
             How to handle indexes of the two objects. Default: 'left'
             for joining on index, None otherwise
@@ -2250,6 +2252,8 @@ class DataFrame(NDFrame):
                 join_key = zip(*[self[k] for k in on])
                 join_key = common._asarray_tuplesafe(join_key,
                                                      dtype=np.object_)
+        elif isinstance(on, np.ndarray) and len(on) == len(self):
+            join_key = on
         else:
             join_key = self[on].values
 

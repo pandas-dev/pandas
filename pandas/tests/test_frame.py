@@ -3270,6 +3270,14 @@ class TestDataFrameJoin(unittest.TestCase):
         source_copy['A'] = 0
         self.assertRaises(Exception, target.join, source_copy, on='A')
 
+    def test_join_on_pass_vector(self):
+        expected = self.target.join(self.source, on='C')
+        del expected['C']
+
+        join_col = self.target.pop('C')
+        result = self.target.join(self.source, on=join_col)
+        assert_frame_equal(result, expected)
+
     def test_join_with_len0(self):
         # nothing to merge
         merged = self.target.join(self.source.reindex([]), on='C')
