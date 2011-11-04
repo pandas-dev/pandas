@@ -2949,6 +2949,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         desc = self.mixed_frame.describe()
         desc = self.frame.describe()
 
+    def test_describe_no_numeric(self):
+        df = DataFrame({'A' : ['foo', 'foo', 'bar'] * 8,
+                        'B' : ['a', 'b', 'c', 'd'] * 6})
+        desc = df.describe()
+        expected = DataFrame(dict((k, v.describe())
+                                  for k, v in df.iteritems()),
+                             columns=df.columns)
+        assert_frame_equal(desc, expected)
+
     def test_get_axis_etc(self):
         f = self.frame
 

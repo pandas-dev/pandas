@@ -2366,6 +2366,12 @@ class DataFrame(NDFrame):
         DataFrame
         """
         cols = self._get_numeric_columns()
+
+        if len(cols) == 0:
+            return DataFrame(dict((k, v.describe())
+                                  for k, v in self.iteritems()),
+                             columns=self.columns)
+
         tmp = self.reindex(columns=cols)
 
         cols_destat = ['count', 'mean', 'std', 'min',
