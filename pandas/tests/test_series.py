@@ -82,9 +82,9 @@ class CheckNameIntegration(object):
                     "qux    one       7",
                     "       two       8",
                     "       three     9",
-                    "Name: sth, Length: 10"]
+                    "Name: sth"]
         expected = "\n".join(expected)
-        self.assertEquals(s.__repr__(), expected)
+        self.assertEquals(repr(s), expected)
 
     def test_multilevel_preserve_name(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],

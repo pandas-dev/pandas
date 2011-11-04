@@ -5,8 +5,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+from itertools import izip
 import csv
-import itertools
 import operator
 
 from numpy import nan, ndarray
@@ -336,21 +336,23 @@ copy : boolean, default False
         if len(self.index) > 500:
             result = self._tidy_repr(30)
         elif len(self.index) > 0:
-            result = self._get_repr(name=True)
+            result = self._get_repr(print_header=True,
+                                    length=len(self) > 50,
+                                    name=True)
         else:
             result = '%s' % ndarray.__repr__(self)
-
-        if self.index.name is not None:
-            result = '%s\n%s' % (self.index.name, result)
 
         return result
 
     def _tidy_repr(self, max_vals=20):
         num = max_vals // 2
-        head = self[:num]._get_repr(name=False)
-        tail = self[-(max_vals - num):]._get_repr(name=False)
+        head = self[:num]._get_repr(print_header=True, length=False,
+                                    name=False)
+        tail = self[-(max_vals - num):]._get_repr(print_header=False,
+                                                  length=False,
+                                                  name=False)
         result = head + '\n...\n' + tail
-        namestr = ("Name: %s, " % self.name) if self.name else ""
+        namestr = "Name: %s, " % self.name if self.name else ""
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
@@ -367,43 +369,46 @@ copy : boolean, default False
         else:
             print >> buf, the_repr
 
-    def _get_repr(self, name=False, na_rep='NaN'):
+    def _get_repr(self, name=False, print_header=False, length=True,
+                  na_rep='NaN'):
         vals = self.values
         index = self.index
 
         is_multi = isinstance(index, MultiIndex)
         if is_multi:
+            have_header = any(name for name in index.names)
             string_index = index.format(names=True)
             header, string_index = string_index[0], string_index[1:]
         else:
+            have_header = index.name is not None
+            header = index.name
             string_index = index.format()
 
         maxlen = max(len(x) for x in string_index)
         padSpace = min(maxlen, 60)
 
-        def _format_float(k, v):
-            if np.isnan(v):
+        def _format(k, v):
+            if isnull(v):
                 v = na_rep
-            else:
-                v = str(v)
             return '%s    %s' % (str(k).ljust(padSpace), v)
 
-        def _format_nonfloat(k, v):
-            return '%s    %s' % (str(k).ljust(padSpace), v)
+        it = [_format(idx, v) for idx, v in izip(string_index, vals)]
 
-        if vals.dtype == np.float_:
-            _format = _format_float
-        else:
-            _format = _format_nonfloat
-
-        it = itertools.starmap(_format,
-                               itertools.izip(string_index, vals))
-        it = list(it)
-        if is_multi and any(name for name in index.names):
+        if print_header and have_header:
             it.insert(0, header)
+
+        footer = ''
         if name:
-            namestr = ("Name: %s, " % self.name) if self.name else ""
-            it.append('%sLength: %d' % (namestr, len(self)))
+            footer += "Name: %s" % self.name if self.name else ''
+
+        if length:
+            if footer:
+                footer += ', '
+            footer += 'Length: %d' % len(self)
+
+        if footer:
+            it.append(footer)
+
         return '\n'.join(it)
 
     def __str__(self):
@@ -416,7 +421,7 @@ copy : boolean, default False
         """
         Lazily iterate over (index, value) tuples
         """
-        return itertools.izip(iter(self.index), iter(self))
+        return izip(iter(self.index), iter(self))
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
