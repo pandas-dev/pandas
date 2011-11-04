@@ -399,7 +399,7 @@ copy : boolean, default False
         it = itertools.starmap(_format,
                                itertools.izip(string_index, vals))
         it = list(it)
-        if is_multi:
+        if is_multi and any(name for name in index.names):
             it.insert(0, header)
         if name:
             namestr = ("Name: %s, " % self.name) if self.name else ""
