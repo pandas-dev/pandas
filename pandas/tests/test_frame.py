@@ -1119,6 +1119,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame(data)
         self.assert_(result.index.is_monotonic)
 
+    def test_constructor_tuples(self):
+        result = DataFrame({'A': [(1, 2), (3, 4)]})
+        expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
+        assert_frame_equal(result, expected)
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),

@@ -104,48 +104,14 @@ class Series(np.ndarray, PandasObject):
                 index = Index(sorted(data.keys()))
             data = [data.get(idx, np.nan) for idx in index]
 
-        try:
-            subarr = np.array(data, dtype=dtype, copy=copy)
-        except ValueError:
-            if dtype:
-                raise
-            else:  # pragma: no cover
-                subarr = np.array(data, dtype=object)
+        subarr = _sanitize_array(data, index, dtype, copy,
+                                 raise_cast_failure=True)
 
-        if subarr.ndim == 0:
-            if isinstance(data, list):  # pragma: no cover
-                subarr = np.array(data, dtype=object)
-            elif index is not None:
-                value = data
-
-                # If we create an empty array using a string to infer
-                # the dtype, NumPy will only allocate one character per entry
-                # so this is kind of bad. Alternately we could use np.repeat
-                # instead of np.empty (but then you still don't want things
-                # coming out as np.str_!
-                if isinstance(value, basestring) and dtype is None:
-                    dtype = np.object_
-
-                if dtype is None:
-                    subarr = np.empty(len(index), dtype=type(value))
-                else:
-                    subarr = np.empty(len(index), dtype=dtype)
-                subarr.fill(value)
-            else:
-                return subarr.item()
-        elif subarr.ndim > 1:
-            if isinstance(data, np.ndarray):
-                raise Exception('Data must be 1-dimensional')
-            else:
-                subarr = _asarray_tuplesafe(data, dtype=dtype)
+        if not isinstance(subarr, np.ndarray):
+            return subarr
 
         if index is None:
             index = _default_index(len(subarr))
-
-        # This is to prevent mixed-type Series getting all casted to
-        # NumPy string type, e.g. NaN --> '-1#IND'.
-        if issubclass(subarr.dtype.type, basestring):
-            subarr = np.array(data, dtype=object, copy=copy)
 
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)
@@ -2000,6 +1966,50 @@ def remove_na(arr):
     """
     return arr[notnull(arr)]
 
+
+def _sanitize_array(data, index, dtype=None, copy=False,
+                    raise_cast_failure=False):
+    try:
+        subarr = np.array(data, dtype=dtype, copy=copy)
+    except (ValueError, TypeError):
+        if dtype and raise_cast_failure:
+            raise
+        else:  # pragma: no cover
+            subarr = np.array(data, dtype=object)
+
+    if subarr.ndim == 0:
+        if isinstance(data, list):  # pragma: no cover
+            subarr = np.array(data, dtype=object)
+        elif index is not None:
+            value = data
+
+            # If we create an empty array using a string to infer
+            # the dtype, NumPy will only allocate one character per entry
+            # so this is kind of bad. Alternately we could use np.repeat
+            # instead of np.empty (but then you still don't want things
+            # coming out as np.str_!
+            if isinstance(value, basestring) and dtype is None:
+                dtype = np.object_
+
+            if dtype is None:
+                subarr = np.empty(len(index), dtype=type(value))
+            else:
+                subarr = np.empty(len(index), dtype=dtype)
+            subarr.fill(value)
+        else:
+            return subarr.item()
+    elif subarr.ndim > 1:
+        if isinstance(data, np.ndarray):
+            raise Exception('Data must be 1-dimensional')
+        else:
+            subarr = _asarray_tuplesafe(data, dtype=dtype)
+
+    # This is to prevent mixed-type Series getting all casted to
+    # NumPy string type, e.g. NaN --> '-1#IND'.
+    if issubclass(subarr.dtype.type, basestring):
+        subarr = np.array(data, dtype=object, copy=copy)
+
+    return subarr
 
 def _get_rename_function(mapper):
     if isinstance(mapper, (dict, Series)):

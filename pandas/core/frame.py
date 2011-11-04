@@ -3199,6 +3199,8 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 def _homogenize(data, index, columns, dtype=None):
+    from pandas.core.series import _sanitize_array
+
     homogenized = {}
 
     if dtype is not None:
@@ -3225,23 +3227,9 @@ def _homogenize(data, index, columns, dtype=None):
         else:
             if isinstance(v, dict):
                 v = [v.get(i, nan) for i in index]
-            elif np.isscalar(v):
-                _v = np.empty(len(index), dtype=_infer_dtype(v))
-                _v.fill(v)
-                v = _v
-            else:
-                assert(len(v) == len(index))
 
-            # only *attempt* to cast to dtype
-            try:
-                arr = np.asarray(v, dtype=dtype)
-
-                # prevent NumPy from casting things to string when it shouldn't
-                if issubclass(arr.dtype.type, basestring):
-                    arr = np.array(v, dtype=object, copy=False)
-                v = arr
-            except Exception:
-                v = np.asarray(v)
+            v = _sanitize_array(v, index, dtype=dtype, copy=False,
+                                raise_cast_failure=False)
 
         homogenized[k] = v
 
