@@ -371,7 +371,13 @@ copy : boolean, default False
         vals = self.values
         index = self.index
 
-        string_index = index.format()
+        is_multi = isinstance(index, MultiIndex)
+        if is_multi:
+            string_index = index.format(names=True)
+            header, string_index = string_index[0], string_index[1:]
+        else:
+            string_index = index.format()
+
         maxlen = max(len(x) for x in string_index)
         padSpace = min(maxlen, 60)
 
@@ -393,6 +399,8 @@ copy : boolean, default False
         it = itertools.starmap(_format,
                                itertools.izip(string_index, vals))
         it = list(it)
+        if is_multi:
+            it.insert(0, header)
         if name:
             namestr = ("Name: %s, " % self.name) if self.name else ""
             it.append('%sLength: %d' % (namestr, len(self)))
