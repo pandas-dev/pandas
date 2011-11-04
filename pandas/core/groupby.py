@@ -917,11 +917,9 @@ class DataFrameGroupBy(GroupBy):
             result = DataFrame(result)
         else:
             if len(self.groupings) > 1:
-                try:
-                    return self._python_agg_general(arg, *args, **kwargs)
-                except Exception:
-                    return self._aggregate_item_by_item(arg, *args, **kwargs)
-            result = self._aggregate_generic(arg, *args, **kwargs)
+                return self._python_agg_general(arg, *args, **kwargs)
+            else:
+                result = self._aggregate_generic(arg, *args, **kwargs)
 
         if not self.as_index:
             if isinstance(result.index, MultiIndex):
@@ -971,7 +969,6 @@ class DataFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-
         result = {}
         cannot_agg = []
         for item in obj:
