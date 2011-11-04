@@ -2207,8 +2207,10 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        other : DataFrame
-            Index should be similar to one of the columns in this one
+        other : DataFrame, or Series with name field set
+            Index should be similar to one of the columns in this one. If a
+            Series is passed, its name attribute must be set, and that will be
+            used as the column name in the resulting joined DataFrame
         on : column name, tuple/list of column names, or array-like
             Column(s) to use for joining, otherwise join on index. If multiples
             columns given, the passed DataFrame must have a MultiIndex. Can
