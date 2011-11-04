@@ -65,6 +65,12 @@ class DateRange(Index):
         start = datetools.to_datetime(start)
         end = datetools.to_datetime(end)
 
+        if start is not None and not isinstance(start, datetime):
+            raise ValueError('Failed to convert %s to datetime' % start)
+
+        if end is not None and not isinstance(end, datetime):
+            raise ValueError('Failed to convert %s to datetime' % end)
+
         # inside cache range. Handle UTC case
         useCache = _will_use_cache(offset)
 
