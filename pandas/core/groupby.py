@@ -7,6 +7,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, PandasObject
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.core.internals import BlockManager
+from pandas.core.reshape import get_group_index
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
@@ -87,7 +88,13 @@ class GroupBy(object):
     def __init__(self, obj, grouper=None, axis=0, level=None,
                  groupings=None, exclusions=None, name=None, as_index=True):
         self._name = name
+
+        if isinstance(obj, NDFrame):
+            obj._consolidate_inplace()
+
         self.obj = obj
+
+
         self.axis = axis
         self.level = level
 
@@ -109,22 +116,25 @@ class GroupBy(object):
     def __len__(self):
         return len(self.groups)
 
-    _groups = None
-    @property
+    @cache_readonly
     def groups(self):
-        if self._groups is not None:
-            return self._groups
-
         if len(self.groupings) == 1:
-            self._groups = self.primary.groups
+            return self.primary.groups
         else:
             to_groupby = zip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
 
             axis = self.obj._get_axis(self.axis)
-            self._groups = axis.groupby(to_groupby)
+            return axis.groupby(to_groupby)
 
-        return self._groups
+    @cache_readonly
+    def indices(self):
+        if len(self.groupings) == 1:
+            return self.primary.indices
+        else:
+            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = Index(to_groupby)
+            return lib.groupby_indices(to_groupby)
 
     @property
     def name(self):
@@ -174,15 +184,16 @@ class GroupBy(object):
     @cache_readonly
     def use_take(self):
         group_axis = self.obj._get_axis(self.axis)
+
         take_types = Int64Index, MultiIndex
-        return isinstance(group_axis, take_types) and len(self.groupings) == 1
+        return isinstance(group_axis, take_types) or len(self.groupings) > 1
 
     def get_group(self, name, obj=None):
         if obj is None:
             obj = self.obj
 
         if self.use_take:
-            inds = self.primary.indices[name]
+            inds = self.indices[name]
             return obj.take(inds, axis=self.axis)
         else:
             labels = self.groups[name]
@@ -199,7 +210,7 @@ class GroupBy(object):
         for each group
         """
         if len(self.groupings) == 1:
-            groups = self.primary.groups.keys()
+            groups = self.groups.keys()
             try:
                 groups = sorted(groups)
             except Exception: # pragma: no cover
@@ -213,6 +224,16 @@ class GroupBy(object):
                 yield it
 
     def _multi_iter(self):
+        # This is slower
+        # groups = self.indices.keys()
+        # try:
+        #     groups = sorted(groups)
+        # except Exception: # pragma: no cover
+        #     pass
+
+        # for key in groups:
+        #     yield key, self.get_group(key)
+
         tipo = type(self.obj)
         data = self.obj
         if (isinstance(self.obj, NDFrame) and
@@ -229,8 +250,6 @@ class GroupBy(object):
                 else:
                     for subcat, data in flatten(subgen, level=level+1,
                                                 shape_axis=shape_axis):
-                        if data.shape[shape_axis] == 0:
-                            continue
                         yield (ids[cat],) + subcat, data
 
         return flatten(self._generator_factory(data), shape_axis=self.axis)
@@ -1242,21 +1261,14 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
     -------
     generator
     """
-    indexer = np.lexsort(label_list[::-1])
-
-    from pandas.core.reshape import get_group_index
+    # indexer = np.lexsort(label_list[::-1])
     group_index = get_group_index(label_list, shape)
-
     na_mask = np.zeros(len(label_list[0]), dtype=bool)
     for arr in label_list:
         na_mask |= arr == -1
     group_index[na_mask] = -1
-
-    indexer2 = lib.groupsort_indexer(group_index.astype('i4'),
-                                     np.prod(shape))
-    assert((indexer == indexer2).all())
-
-    indexer = indexer2
+    indexer = lib.groupsort_indexer(group_index.astype('i4'),
+                                    np.prod(shape))
 
     sorted_labels = [labels.take(indexer) for labels in label_list]
 
@@ -1304,6 +1316,10 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
     for i, right in enumerate(edges):
         if do_slice:
             slob = slice(start + left, start + right)
+
+            # skip empty groups in the cartesian product
+            if left == right:
+                continue
             yield i, slicer(data, slob)
         else:
             # yield subgenerators, yikes
