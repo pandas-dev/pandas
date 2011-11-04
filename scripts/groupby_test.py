@@ -114,17 +114,23 @@ grouped = df.groupby(['key1', 'key2'])
 # dr = DateRange('1/1/2000', '1/1/2002')
 # ts = Series(np.random.randn(len(dr)), index=dr)
 
-import string
+# import string
 
-k = 20
-n = 1000
+# k = 20
+# n = 1000
 
-keys = list(string.letters[:k])
+# keys = list(string.letters[:k])
 
-df = DataFrame({'A' : np.tile(keys, n),
-                'B' : np.repeat(keys[:k/2], n * 2),
-                'C' : np.random.randn(k * n)})
+# df = DataFrame({'A' : np.tile(keys, n),
+#                 'B' : np.repeat(keys[:k/2], n * 2),
+#                 'C' : np.random.randn(k * n)})
 
-def f():
-    for x in df.groupby(['A', 'B']):
-        pass
+# def f():
+#     for x in df.groupby(['A', 'B']):
+#         pass
+
+a = np.arange(100).repeat(100)
+b = np.tile(np.arange(100), 100)
+index = MultiIndex.from_arrays([a, b])
+s = Series(np.random.randn(len(index)), index)
+

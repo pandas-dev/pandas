@@ -174,7 +174,8 @@ class GroupBy(object):
     @cache_readonly
     def use_take(self):
         group_axis = self.obj._get_axis(self.axis)
-        return isinstance(group_axis, Int64Index) and len(self.groupings) == 1
+        take_types = Int64Index, MultiIndex
+        return isinstance(group_axis, take_types) and len(self.groupings) == 1
 
     def get_group(self, name, obj=None):
         if obj is None:
