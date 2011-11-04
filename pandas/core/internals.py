@@ -989,13 +989,15 @@ class _JoinOperation(object):
     BlockManager data structures
     """
     def __init__(self, left, right, axis=1, how='left'):
+        if not left.is_consolidated():
+            left = left.consolidate()
+        if not right.is_consolidated():
+            right = right.consolidate()
+
         self.left = left
         self.right = right
         self.axis = axis
         self.how = how
-
-        assert(left.is_consolidated())
-        assert(right.is_consolidated())
 
         laxis = left.axes[axis]
         raxis = right.axes[axis]

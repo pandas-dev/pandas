@@ -3378,6 +3378,15 @@ class TestDataFrameJoin(unittest.TestCase):
         x = DataFrame()
         x.join(DataFrame([3], index=[0], columns=['A']), how='outer')
 
+    def test_join_unconsolidated(self):
+        # GH #331
+        a = DataFrame(randn(30,2), columns=['a','b'])
+        c = Series(randn(30))
+        a['c'] = c
+        d = DataFrame(randn(30,1), columns=['d'])
+
+        a.join(d)
+
 def _join_by_hand(a, b, how='left'):
     join_index = a.index.join(b.index, how=how)
 
