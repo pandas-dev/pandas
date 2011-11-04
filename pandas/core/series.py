@@ -356,21 +356,21 @@ copy : boolean, default False
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
-    def to_string(self, buf=None, na_rep='NaN', nanRep=None):
+    def to_string(self, buf=None, na_rep='NaN', float_format=None, nanRep=None):
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
-        the_repr = self._get_repr(na_rep=na_rep)
+        the_repr = self._get_repr(float_format=float_format, na_rep=na_rep)
         if buf is None:
             return the_repr
         else:
             print >> buf, the_repr
 
     def _get_repr(self, name=False, print_header=False, length=True,
-                  na_rep='NaN'):
+                  na_rep='NaN', float_format=None):
         vals = self.values
         index = self.index
 
@@ -387,9 +387,14 @@ copy : boolean, default False
         maxlen = max(len(x) for x in string_index)
         padSpace = min(maxlen, 60)
 
+        if float_format is None:
+            float_format = str
+
         def _format(k, v):
             if isnull(v):
                 v = na_rep
+            if isinstance(v, (float, np.floating)):
+                v = float_format(v)
             return '%s    %s' % (str(k).ljust(padSpace), v)
 
         it = [_format(idx, v) for idx, v in izip(string_index, vals)]

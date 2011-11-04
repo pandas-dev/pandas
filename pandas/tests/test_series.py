@@ -488,6 +488,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(retval is None)
         self.assertEqual(buf.getvalue().strip(), s)
 
+        # pass float_format
+        format = '%.4f'.__mod__
+        result = self.ts.to_string(float_format=format)
+        result = [x.split()[1] for x in result.split('\n')[:-1]]
+        expected = [format(x) for x in self.ts]
+        self.assertEqual(result, expected)
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
