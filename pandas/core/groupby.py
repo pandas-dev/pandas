@@ -114,7 +114,7 @@ class GroupBy(object):
         self.exclusions = set(exclusions)
 
     def __len__(self):
-        return len(self.groups)
+        return len(self.indices)
 
     @cache_readonly
     def groups(self):
@@ -181,24 +181,12 @@ class GroupBy(object):
     def primary(self):
         return self.groupings[0]
 
-    @cache_readonly
-    def use_take(self):
-        group_axis = self.obj._get_axis(self.axis)
-
-        take_types = Int64Index, MultiIndex
-        return isinstance(group_axis, take_types) or len(self.groupings) > 1
-
     def get_group(self, name, obj=None):
         if obj is None:
             obj = self.obj
 
-        if self.use_take:
-            inds = self.indices[name]
-            return obj.take(inds, axis=self.axis)
-        else:
-            labels = self.groups[name]
-            axis_name = obj._get_axis_name(self.axis)
-            return obj.reindex(**{axis_name : labels})
+        inds = self.indices[name]
+        return obj.take(inds, axis=self.axis)
 
     def __iter__(self):
         """
@@ -210,7 +198,7 @@ class GroupBy(object):
         for each group
         """
         if len(self.groupings) == 1:
-            groups = self.groups.keys()
+            groups = self.indices.keys()
             try:
                 groups = sorted(groups)
             except Exception: # pragma: no cover
