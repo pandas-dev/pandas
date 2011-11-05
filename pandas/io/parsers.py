@@ -1,6 +1,7 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+from __future__ import print_function
 
 from StringIO import StringIO
 import zipfile
@@ -13,7 +14,8 @@ import pandas._tseries as lib
 
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None, nrows=None, iterator=False, chunksize=None):
+             date_parser=None, nrows=None, iterator=False, chunksize=None,
+             skip_footer=0):
     import csv
 
     if hasattr(filepath_or_buffer, 'read'):
@@ -50,7 +52,8 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
                         parse_dates=parse_dates,
                         date_parser=date_parser,
                         skiprows=skiprows,
-                        chunksize=chunksize, buf=buf)
+                        chunksize=chunksize, buf=buf,
+                        skip_footer=skip_footer)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -62,12 +65,14 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
 
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None, nrows=None, iterator=False, chunksize=None):
+               date_parser=None, nrows=None, iterator=False, chunksize=None,
+               skip_footer=0):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
                     names=names, parse_dates=parse_dates,
-                    nrows=nrows, iterator=iterator, chunksize=chunksize)
+                    nrows=nrows, iterator=iterator, chunksize=chunksize,
+                    skip_footer=skip_footer)
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -98,6 +103,8 @@ iterator : boolean, default False
     Return TextParser object
 chunksize : int, default None
     Return TextParser object for iteration
+skip_footer : int, default 0
+    Number of line at bottom of file to skip
 
 Returns
 -------
@@ -163,7 +170,10 @@ class TextParser(object):
         Custom NA values
     parse_dates : boolean, default False
     date_parser : function, default None
-    skiprows
+    skiprows : list of integers
+        Row numbers to skip
+    skip_footer : int
+        Number of line at bottom of file to skip
     """
 
     # common NA values
@@ -175,7 +185,7 @@ class TextParser(object):
 
     def __init__(self, data, names=None, header=0, index_col=None,
                  na_values=None, parse_dates=False, date_parser=None,
-                 chunksize=None, skiprows=None, buf=None):
+                 chunksize=None, skiprows=None, skip_footer=0, buf=None):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -195,6 +205,9 @@ class TextParser(object):
         self.chunksize = chunksize
         self.passed_names = names is not None
         self.skiprows = set() if skiprows is None else set(skiprows)
+        self.skip_footer = skip_footer
+
+        assert(self.skip_footer >= 0)
 
         if na_values is None:
             self.na_values = self.NA_VALUES
@@ -306,6 +319,9 @@ class TextParser(object):
         return index_name
 
     def get_chunk(self, rows=None):
+        if rows is not None and self.skip_footer:
+            print('skip_footer not supported for iteration')
+
         try:
             content = self._get_lines(rows)
         except StopIteration:
@@ -400,6 +416,9 @@ class TextParser(object):
             self.pos += len(lines)
 
         self.buf = []
+
+        if self.skip_footer:
+            lines = lines[:-self.skip_footer]
 
         return lines
 

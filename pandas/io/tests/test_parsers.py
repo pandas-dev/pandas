@@ -382,6 +382,21 @@ bar,two,12,13,14,15
         df = read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
         self.assert_(isinstance(df.index.levels[0][0], datetime))
 
+    def test_skip_footer(self):
+        data = """A,B,C
+1,2,3
+4,5,6
+7,8,9
+want to skip this
+also also skip this
+and this
+"""
+        result = read_csv(StringIO(data), skip_footer=3)
+        no_footer = '\n'.join(data.split('\n')[:-4])
+        expected = read_csv(StringIO(no_footer))
+
+        assert_frame_equal(result, expected)
+
 class TestParseSQL(unittest.TestCase):
 
     def test_convert_sql_column_floats(self):
