@@ -51,6 +51,19 @@ ignore,this,row
                          skiprows=[1])
         assert_almost_equal(df2.values, expected)
 
+    def test_detect_string_na(self):
+        data = """A,B
+foo,bar
+NA,baz
+NaN,nan
+"""
+        expected = [['foo', 'bar'],
+                    [nan, 'baz'],
+                    [nan, nan]]
+
+        df = read_csv(StringIO(data))
+        assert_almost_equal(df.values, expected)
+
     def test_unnamed_columns(self):
         data = """A,B,C,,
 1,2,3,4,5

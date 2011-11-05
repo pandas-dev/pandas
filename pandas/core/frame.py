@@ -2890,7 +2890,11 @@ class _DataFrameFormatter(object):
         self.formatters = formatters
         self.na_rep = na_rep
         self.col_space = col_space
-        self.column_filter = frame.columns if columns is None else set(columns)
+
+        if columns is not None:
+            self.columns = _ensure_index(columns)
+        else:
+            self.columns = frame.columns
 
         self._write_to_buffer()
 
@@ -2909,8 +2913,7 @@ class _DataFrameFormatter(object):
             str_columns = self._get_formatted_column_labels()
 
             stringified = [str_columns[i] + format_col(c)
-                           for i, c in enumerate(frame.columns)
-                           if c in self.column_filter]
+                           for i, c in enumerate(self.columns)]
 
             to_write.append(adjoin(1, str_index, *stringified))
 
@@ -2946,10 +2949,8 @@ class _DataFrameFormatter(object):
     def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
 
-        columns = self.frame.columns
-
-        if isinstance(columns, MultiIndex):
-            fmt_columns = columns.format(sparsify=False, adjoin=False)
+        if isinstance(self.columns, MultiIndex):
+            fmt_columns = self.columns.format(sparsify=False, adjoin=False)
             str_columns = zip(*[[' %s' % y for y in x]
                                 for x in zip(*fmt_columns)])
             if self.sparsify:
@@ -2957,7 +2958,7 @@ class _DataFrameFormatter(object):
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            str_columns = [[' %s' % x] for x in columns.format()]
+            str_columns = [[' %s' % x] for x in self.columns.format()]
 
         if self.show_index_names and self.has_index_names:
             for x in str_columns:

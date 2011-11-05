@@ -1324,6 +1324,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         foo = repr(df)
 
     def test_to_string(self):
+        from pandas import read_table
+        import re
+
         # big mixed
         biggie = DataFrame({'A' : randn(1000),
                              'B' : tm.makeStringIndex(1000)},
@@ -1340,7 +1343,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assert_(isinstance(s, basestring))
 
-        biggie.to_string(columns=['B', 'A'], colSpace=17)
+        # print in right order
+        result = biggie.to_string(columns=['B', 'A'], colSpace=17,
+                                  float_format='%.6f'.__mod__)
+        lines = result.split('\n')
+        header = lines[0].strip().split()
+        joined = '\n'.join([re.sub('\s+', ' ', x).strip() for x in lines[1:]])
+        recons = read_table(StringIO(joined), names=header, sep=' ')
+        assert_series_equal(recons['B'], biggie['B'])
+        assert_series_equal(np.round(recons['A'], 2),
+                            np.round(biggie['A'], 2))
+
+        # expected = ['B', 'A']
+        # self.assertEqual(header, expected)
+
+        result = biggie.to_string(columns=['A'], colSpace=17)
+        header = result.split('\n')[0].strip().split()
+        expected = ['A']
+        self.assertEqual(header, expected)
+
         biggie.to_string(columns=['B', 'A'],
                          formatters={'A' : lambda x: '%.1f' % x})
 

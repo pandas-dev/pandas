@@ -190,7 +190,7 @@ def try_parse_dates(ndarray[object] values, parser=None):
 
     return result
 
-def sanitize_objects(ndarray[object] values):
+def sanitize_objects(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
         object val, onan
@@ -200,7 +200,7 @@ def sanitize_objects(ndarray[object] values):
 
     for i from 0 <= i < n:
         val = values[i]
-        if val == '':
+        if val == '' or val in na_values:
             values[i] = onan
 
 def maybe_convert_bool(ndarray[object] arr):

@@ -424,7 +424,7 @@ def _convert_types(values, na_values):
     try:
         values = lib.maybe_convert_numeric(values, na_values)
     except Exception:
-        lib.sanitize_objects(values)
+        lib.sanitize_objects(values, na_values)
 
     if values.dtype == np.object_:
         return lib.maybe_convert_bool(values)
