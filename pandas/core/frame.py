@@ -882,7 +882,7 @@ class DataFrame(NDFrame):
         if mask.dtype != np.bool_:
             raise ValueError('Must pass DataFrame with boolean values only')
 
-        if self._data.is_mixed_dtype():
+        if self._is_mixed_type:
             raise ValueError('Cannot do boolean setting on mixed-type frame')
 
         if isinstance(value, DataFrame):
@@ -2026,7 +2026,7 @@ class DataFrame(NDFrame):
             else:
                 return self._apply_broadcast(func, axis)
 
-    def _apply_standard(self, func, axis):
+    def _apply_standard(self, func, axis, ignore_failures=False):
         if axis == 0:
             series_gen = ((c, self[c]) for c in self.columns)
             res_index = self.columns
@@ -2038,8 +2038,20 @@ class DataFrame(NDFrame):
                           for i, v in izip(self.index, self.values))
 
         results = {}
-        for k, v in series_gen:
-            results[k] = func(v)
+        if ignore_failures:
+            successes = []
+            for i, (k, v) in enumerate(series_gen):
+                try:
+                    results[k] = func(v)
+                    successes.append(i)
+                except Exception:
+                    pass
+            # so will work with MultiIndex, need test
+            if len(successes) < len(res_index):
+                res_index = res_index.take(successes)
+        else:
+            for k, v in series_gen:
+                results[k] = func(v)
 
         if hasattr(results.values()[0], '__iter__'):
             result = self._constructor(data=results, index=res_columns,
@@ -2470,10 +2482,10 @@ class DataFrame(NDFrame):
 
         return DataFrame(result, index=index, columns=columns)
 
-    def sum(self, axis=0, numeric_only=False, skipna=True, level=None):
-        if not level is None:
-            sumfunc = lambda x: x.sum(skipna=skipna)
-            return self.groupby(level=level).aggregate(sumfunc)
+    def sum(self, axis=0, numeric_only=True, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('sum', axis=axis, level=level,
+                                      skipna=skipna)
 
         y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
 
@@ -2485,9 +2497,8 @@ class DataFrame(NDFrame):
         else:
             mask = np.isfinite(y)
 
-            if skipna:
-                if not issubclass(y.dtype.type, np.integer):
-                    np.putmask(y, -mask, 0)
+            if skipna and not issubclass(y.dtype.type, np.integer):
+                np.putmask(y, -mask, 0)
 
             the_sum = y.sum(axis)
             the_count = mask.sum(axis)
@@ -2500,119 +2511,106 @@ class DataFrame(NDFrame):
     _add_stat_doc(sum, 'sum', 'sum', extras=_numeric_only_doc)
 
     def min(self, axis=0, skipna=True, level=None):
-        values = self.values.copy()
+        if level is not None:
+            return self._agg_by_level('min', axis=axis, level=level,
+                                      skipna=skipna)
+
+        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
+
         if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), np.inf)
 
-        if not level is None:
-            minfunc = lambda x: x.min(skipna=skipna)
-            return self.groupby(level=level).aggregate(minfunc)
-
-        return Series(values.min(axis), index=self._get_agg_axis(axis))
+        return Series(values.min(axis), index=axis_labels)
     _add_stat_doc(min, 'minimum', 'min')
 
     def max(self, axis=0, skipna=True, level=None):
-        values = self.values.copy()
+        if level is not None:
+            return self._agg_by_level('max', axis=axis, level=level,
+                                      skipna=skipna)
+
+        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
         if skipna and not issubclass(values.dtype.type, np.integer):
             np.putmask(values, -np.isfinite(values), -np.inf)
 
-        if not level is None:
-            maxfunc = lambda x: x.max(skipna=skipna)
-            return self.groupby(level=level).aggregate(maxfunc)
-
-        return Series(values.max(axis), index=self._get_agg_axis(axis))
+        return Series(values.max(axis), index=axis_labels)
     _add_stat_doc(max, 'maximum', 'max')
 
     def prod(self, axis=0, skipna=True, level=None):
-        if not level is None:
-            prodfunc = lambda x: x.prod(skipna=skipna)
-            return self.groupby(level=level).aggregate(prodfunc)
+        if level is not None:
+            return self._agg_by_level('prod', axis=axis, level=level,
+                                      skipna=skipna)
 
-        y = np.array(self.values, subok=True)
-        if skipna:
-            if not issubclass(y.dtype.type, np.integer):
-                y[np.isnan(y)] = 1
-        result = y.prod(axis)
-        count = self.count(axis)
+        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
+
+        if skipna and not issubclass(values.dtype.type, np.integer):
+            values[np.isnan(values)] = 1
+        result = values.prod(axis)
+        count = self.count(axis, numeric_only=True)
         result[count == 0] = nan
 
-        return Series(result, index=self._get_agg_axis(axis))
+        return Series(result, index=axis_labels)
     _add_stat_doc(prod, 'product', 'product',
                   na_action='NA/null values are treated as 1')
     product = prod
 
     def mean(self, axis=0, skipna=True, level=None):
-        if not level is None:
-            meanfunc = lambda x: x.mean(skipna=skipna)
-            return self.groupby(level=level).aggregate(meanfunc)
+        if level is not None:
+            return self._agg_by_level('mean', axis=axis, level=level,
+                                      skipna=skipna)
 
         summed = self.sum(axis, numeric_only=True, skipna=skipna)
         count = self.count(axis, numeric_only=True).astype(float)
         return summed / count
     _add_stat_doc(mean, 'mean', 'mean')
 
-    def quantile(self, q=0.5, axis=0):
-        """
-        Return values at the given quantile over requested axis, a la
-        scoreatpercentile in scipy.stats
-
-        Parameters
-        ----------
-        q : quantile, default 0.5 (50% quantile)
-            0 <= q <= 1
-        axis : {0, 1}
-            0 for row-wise, 1 for column-wise
-
-        Returns
-        -------
-        quantiles : Series
-        """
-        from scipy.stats import scoreatpercentile
-        per = q * 100
-
-        def f(arr):
-            arr = arr.values
-            if arr.dtype != np.float_:
-                arr = arr.astype(float)
-            arr = arr[notnull(arr)]
-            if len(arr) == 0:
-                return nan
-            else:
-                return scoreatpercentile(arr, per)
-
-        return self.apply(f, axis=axis)
-
     def median(self, axis=0, skipna=True, level=None):
-        if not level is None:
-            medianfunc = lambda x: x.median(skipna=skipna)
-            return self.groupby(level=level).aggregate(medianfunc)
+        if level is not None:
+            return self._agg_by_level('median', axis=axis, level=level,
+                                      skipna=skipna)
+
+        frame = self._get_numeric_frame()
 
         if axis == 0:
-            med = [self[col].median(skipna=skipna) for col in self.columns]
-            return Series(med, index=self.columns)
+            values = frame.values.T
+            result_index = frame.columns
         elif axis == 1:
-            med = [self.xs(k).median(skipna=skipna) for k in self.index]
-            return Series(med, index=self.index)
+            values = frame.values
+            result_index = self.index
         else:
-            raise Exception('Must have 0<= axis <= 1')
+            raise ValueError('axis must be in {0, 1}')
+
+        def get_median(x):
+            mask = notnull(x)
+            if not skipna and not mask.all():
+                return np.nan
+            return lib.median(x[mask])
+
+        if values.dtype != np.float64:
+            values = values.astype('f8')
+
+        medians = [get_median(arr) for arr in values]
+        return Series(medians, index=result_index)
+
     _add_stat_doc(median, 'median', 'median')
 
     def mad(self, axis=0, skipna=True, level=None):
-        if not level is None:
-            madfunc = lambda x: x.mad(skipna=skipna)
-            return self.groupby(level=level).aggregate(madfunc)
+        if level is not None:
+            return self._agg_by_level('mad', axis=axis, level=level,
+                                      skipna=skipna)
+
+        frame = self._get_numeric_frame()
 
         if axis == 0:
-            demeaned = self - self.mean(axis=0)
+            demeaned = frame - frame.mean(axis=0)
         else:
-            demeaned = self.sub(self.mean(axis=1), axis=0)
+            demeaned = frame.sub(frame.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
     _add_stat_doc(mad, 'mean absolute deviation', 'mad')
 
     def var(self, axis=0, skipna=True, level=None):
-        if not level is None:
-            varfunc = lambda x: x.var(skipna=skipna)
-            return self.groupby(level=level).aggregate(varfunc)
+        if level is not None:
+            return self._agg_by_level('var', axis=axis, level=level,
+                                      skipna=skipna)
 
         y, axis_labels = self._get_agg_data(axis, numeric_only=True)
 
@@ -2631,17 +2629,17 @@ class DataFrame(NDFrame):
     _add_stat_doc(var, 'unbiased variance', 'var')
 
     def std(self, axis=0, skipna=True, level=None):
-        if not level is None:
-            stdfunc = lambda x: x.std(skipna=skipna)
-            return self.groupby(level=level).aggregate(stdfunc)
+        if level is not None:
+            return self._agg_by_level('std', axis=axis, level=level,
+                                      skipna=skipna)
 
         return np.sqrt(self.var(axis=axis, skipna=skipna))
     _add_stat_doc(std, 'unbiased standard deviation', 'std')
 
     def skew(self, axis=0, skipna=True, level=None):
-        if not level is None:
-            skewfunc = lambda x: x.skew(skipna=skipna)
-            return self.groupby(level=level).aggregate(skewfunc)
+        if level is not None:
+            return self._agg_by_level('skew', axis=axis, level=level,
+                                      skipna=skipna)
 
         y, axis_labels = self._get_agg_data(axis, numeric_only=True)
 
@@ -2666,6 +2664,17 @@ class DataFrame(NDFrame):
 
         return Series(result, index=axis_labels)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
+
+    def _get_numeric_frame(self):
+        frame = self
+        if self._is_mixed_type:
+            frame = self.ix[:, self._get_numeric_columns()]
+        return frame
+
+    def _agg_by_level(self, name, axis=0, level=0, skipna=True):
+        method = getattr(type(self), name)
+        applyf = lambda x: method(x, axis=axis, skipna=skipna)
+        return self.groupby(level=level, axis=axis).aggregate(applyf)
 
     def _get_agg_data(self, axis, numeric_only=True, copy=True):
         num_cols = self._get_numeric_columns()
@@ -2710,6 +2719,37 @@ class DataFrame(NDFrame):
                 return self
             else:
                 return self.ix[:, []]
+
+    def quantile(self, q=0.5, axis=0):
+        """
+        Return values at the given quantile over requested axis, a la
+        scoreatpercentile in scipy.stats
+
+        Parameters
+        ----------
+        q : quantile, default 0.5 (50% quantile)
+            0 <= q <= 1
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+
+        Returns
+        -------
+        quantiles : Series
+        """
+        from scipy.stats import scoreatpercentile
+        per = q * 100
+
+        def f(arr):
+            arr = arr.values
+            if arr.dtype != np.float_:
+                arr = arr.astype(float)
+            arr = arr[notnull(arr)]
+            if len(arr) == 0:
+                return nan
+            else:
+                return scoreatpercentile(arr, per)
+
+        return self.apply(f, axis=axis)
 
     def clip(self, upper=None, lower=None):
         """

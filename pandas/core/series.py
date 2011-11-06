@@ -85,6 +85,34 @@ def _flex_method(op, name):
     f.__name__ = name
     return f
 
+_stat_doc = """
+Return %(name)s  of values
+%(na_action)s
+
+Parameters
+----------
+skipna : boolean, default True
+    Exclude NA/null values
+level : int, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a smaller Series
+%(extras)s
+Returns
+-------
+%(shortname)s : float (or Series if level specified)
+"""
+_doc_exclude_na = "NA/null values are excluded"
+_doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
+                          "interface.\n")
+
+def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
+                  extras=''):
+    doc = _stat_doc % {'name' : name,
+                       'shortname' : shortname,
+                       'na_action' : na_action,
+                       'extras' : extras}
+    f.__doc__ = doc
+
 #-------------------------------------------------------------------------------
 # Series class
 
@@ -558,9 +586,15 @@ copy : boolean, default False
         """
         Return number of non-NA/null observations in the Series
 
+        Parameters
+        ----------
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
+
         Returns
         -------
-        nobs : int
+        nobs : int or Series (if level specified)
         """
         if level is not None:
             return self._count_level(level)
@@ -598,24 +632,8 @@ copy : boolean, default False
         return Series(counter).order(ascending=False)
 
     def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
-        """
-        Sum of values
-
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        sum : float (or Series if level specified)
-        """
         if level is not None:
-            sumfunc = lambda x: x.sum(dtype=dtype,skipna=skipna)
-            return self.groupby(level=level).aggregate(sumfunc)
+            return self._agg_by_level('sum', level=level, skipna=skipna)
 
         values = self.values.copy()
 
@@ -626,45 +644,27 @@ copy : boolean, default False
             np.putmask(values, mask, 0)
 
         return values.sum()
+    _add_stat_doc(sum, 'sum', 'sum', extras=_doc_ndarray_interface)
 
     def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
-        """
-        Mean of values
+        if level is not None:
+            return self._agg_by_level('mean', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
+        return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
+    _add_stat_doc(mean, 'mean', 'mean', extras=_doc_ndarray_interface)
 
-        Returns
-        -------
-        mean : float (or Series if level specified)
-        """
-        if level is None:
-            return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
+    def mad(self, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('mad', level=level, skipna=skipna)
 
-        meanfunc = lambda x: x.mean(dtype=dtype,skipna=skipna)
-        return self.groupby(level=level).aggregate(meanfunc)
+        demeaned = self - self.mean(skipna=skipna)
+        return np.abs(demeaned).mean(skipna=skipna)
+    _add_stat_doc(mad, 'mean absolute deviation', 'mad')
 
     def median(self, skipna=True, level=None):
-        """
-        Compute median of values
+        if level is not None:
+            return self._agg_by_level('median', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        median : float (or Series if level specified)
-        """
         arr = self.values
         if arr.dtype != np.float_:
             arr = arr.astype(float)
@@ -676,112 +676,46 @@ copy : boolean, default False
             if not mask.all():
                 return np.nan
 
-        if level is None:
-            return lib.median(arr)
-
-        medianfunc = lambda x: x.median(skipna=skipna)
-        return self.groupby(level=level).aggregate(medianfunc)
+        return lib.median(arr)
+    _add_stat_doc(median, 'median', 'median')
 
     def prod(self, axis=0, dtype=None, out=None, skipna=True, level=None):
-        """
-        Product of all values
+        if level is not None:
+            return self._agg_by_level('prod', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        product : float (or Series if level specified)
-        """
-        if level is None:
-            return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
-
-        prodfunc = lambda x: x.prod(dtype=dtype,skipna=skipna)
-        return self.groupby(level=level).aggregate(prodfunc)
+        return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
+    _add_stat_doc(prod, 'product', 'product')
 
     def min(self, axis=None, out=None, skipna=True, level=None):
-        """
-        Minimum of values
+        if level is not None:
+            return self._agg_by_level('min', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        min : float (or Series if level specified)
-        """
         arr = self.values.copy()
 
         if skipna:
             if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), np.inf)
 
-        if level is None:
-            return arr.min()
-
-        minfunc = lambda x: x.min(axis=None, out=None, skipna=True)
-        return self.groupby(level=level).aggregate(minfunc)
+        return arr.min()
+    _add_stat_doc(min, 'minimum', 'min')
 
     def max(self, axis=None, out=None, skipna=True, level=None):
-        """
-        Maximum of values
+        if level is not None:
+            return self._agg_by_level('max', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        max : float (or Series if level specified)
-        """
         arr = self.values.copy()
 
         if skipna:
             if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), -np.inf)
 
-        if level is None:
-            return arr.max()
-
-        maxfunc = lambda x: x.max(axis=None, out=None, skipna=True)
-        return self.groupby(level=level).aggregate(maxfunc)
+        return arr.max()
+    _add_stat_doc(max, 'maximum', 'max')
 
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
-        """
-        Unbiased standard deviation of values
-
-        Extra parameters are to preserve ndarray interface.
-
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        stdev : float (or Series if level specified)
-        """
-        if not level is None:
-            stdfunc = lambda x: x.std(axis=axis,out=out,skipna=skipna)
-            return self.groupby(level=level).aggregate(stdfunc)
+        if level is not None:
+            return self._agg_by_level('std', level=level, skipna=skipna)
 
         if skipna:
             nona = remove_na(self.values)
@@ -790,29 +724,12 @@ copy : boolean, default False
             return ndarray.std(nona, axis, dtype, out, ddof)
 
         return self.values.std(axis, dtype, out, ddof)
+    _add_stat_doc(std, 'unbiased standard deviation', 'stdev')
 
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
-        """
-        Unbiased variance of non-NA/null values
-
-        Extra parameters are to preserve ndarray interface.
-
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        var : float (or Series if level specified)
-        """
-        if not level is None:
-            varfunc = lambda x: x.var(axis=axis,out=out,skipna=skipna)
-            return self.groupby(level=level).aggregate(varfunc)
+        if level is not None:
+            return self._agg_by_level('var', level=level, skipna=skipna)
 
         if skipna:
             nona = remove_na(self.values)
@@ -821,26 +738,11 @@ copy : boolean, default False
             return ndarray.var(nona, axis, dtype, out, ddof)
 
         return self.values.var(axis, dtype, out, ddof)
+    _add_stat_doc(var, 'unbiased variance', 'var')
 
     def skew(self, skipna=True, level=None):
-        """
-        Unbiased skewness of the non-NA/null values
-
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-        level : int, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series
-
-        Returns
-        -------
-        skew : float (or Series if level specified)
-        """
-        if not level is None:
-            skewfunc = lambda x: x.skew(skipna=skipna)
-            return self.groupby(level=level).aggregate(skewfunc)
+        if level is not None:
+            return self._agg_by_level('skew', level=level, skipna=skipna)
 
         y = np.array(self.values)
         mask = notnull(y)
@@ -855,6 +757,24 @@ copy : boolean, default False
         C = (y**3).sum() / count - A**3 - 3*A*B
 
         return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
+    _add_stat_doc(skew, 'unbiased skewness', 'skew')
+
+    def _ndarray_statistic(self, funcname, dtype=None, skipna=True):
+        arr = self.values
+        retVal = getattr(arr, funcname)(dtype=dtype)
+
+        if skipna and isnull(retVal):
+            arr = remove_na(arr)
+            if len(arr) == 0:
+                return np.nan
+            retVal = getattr(arr, funcname)(dtype=dtype)
+
+        return retVal
+
+    def _agg_by_level(self, name, level=0, skipna=True):
+        method = getattr(type(self), name)
+        applyf = lambda x: method(x, skipna=skipna)
+        return self.groupby(level=level).aggregate(applyf)
 
     def cumsum(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -913,18 +833,6 @@ copy : boolean, default False
             np.putmask(result, mask, np.nan)
 
         return Series(result, index=self.index)
-
-    def _ndarray_statistic(self, funcname, dtype=None, skipna=True):
-        arr = self.values
-        retVal = getattr(arr, funcname)(dtype=dtype)
-
-        if skipna and isnull(retVal):
-            arr = remove_na(arr)
-            if len(arr) == 0:
-                return np.nan
-            retVal = getattr(arr, funcname)(dtype=dtype)
-
-        return retVal
 
     def round(self, decimals=0, out=None):
         """

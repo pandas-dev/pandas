@@ -1,4 +1,4 @@
-# pylint: disable-msg=W0612,E1101
+# pylint: disable-msg=W0612,E1101,W0141
 from cStringIO import StringIO
 import unittest
 
@@ -13,6 +13,19 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
+
+try:
+    from itertools import product as cart_product
+except ImportError:  # python 2.5
+    def cart_product(*args, **kwds):
+        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+        pools = map(tuple, args) * kwds.get('repeat', 1)
+        result = [[]]
+        for pool in pools:
+            result = [x+[y] for x in result for y in pool]
+        for prod in result:
+            yield tuple(prod)
 
 class TestMultiLevel(unittest.TestCase):
 
@@ -540,26 +553,38 @@ class TestMultiLevel(unittest.TestCase):
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
-    def test_series_group_min_max(self):
-        for op in ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 
-                   'std', 'var']:
-            leftside = getattr(self.series.groupby(level=0), op)()
-            rightside = getattr(self.series, op)(level=0)
-            assert_series_equal(leftside, rightside)
+    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
+                     'mad', 'std', 'var']
 
-            leftside = getattr(self.series.groupby(level=1), op)()
-            rightside = getattr(self.series, op)(level=1)
+    def test_series_group_min_max(self):
+        for op, level, skipna in cart_product(self.AGG_FUNCTIONS,
+                                              range(2),
+                                              [False, True]):
+            grouped = self.series.groupby(level=level)
+            aggf = lambda x: getattr(x, op)(skipna=skipna)
+            # skipna=True
+            leftside = grouped.agg(aggf)
+            rightside = getattr(self.series, op)(level=level, skipna=skipna)
             assert_series_equal(leftside, rightside)
 
     def test_frame_group_ops(self):
-        for op in ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
-                   'mad', 'std', 'var']:
-            leftside = getattr(self.frame.groupby(level=0), op)()
-            rightside = getattr(self.frame, op)(level=0)
-            assert_frame_equal(leftside, rightside)
+        self.frame.ix[1, [1, 2]] = np.nan
+        self.frame.ix[7, [0, 1]] = np.nan
 
-            leftside = getattr(self.frame.groupby(level=1), op)()
-            rightside = getattr(self.frame, op)(level=1)
+        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
+                                                    range(2), range(2),
+                                                    [False, True]):
+            if axis == 0:
+                frame = self.frame
+            else:
+                frame = self.frame.T
+
+            grouped = frame.groupby(level=level, axis=axis)
+
+            aggf = lambda x: getattr(x, op)(skipna=skipna, axis=axis)
+            leftside = grouped.agg(aggf)
+            rightside = getattr(frame, op)(level=level, axis=axis,
+                                           skipna=skipna)
             assert_frame_equal(leftside, rightside)
 
 if __name__ == '__main__':

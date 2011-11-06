@@ -171,9 +171,21 @@ class GroupBy(object):
         f = getattr(type(self.obj), name)
 
         def wrapper(*args, **kwargs):
+            # a little trickery for aggregation functions that need an axis
+            # argument
+            kwargs_with_axis = kwargs.copy()
+            if 'axis' not in kwargs_with_axis:
+                kwargs_with_axis['axis'] = self.axis
+
+            def curried_with_axis(x):
+                return f(x, *args, **kwargs_with_axis)
             def curried(x):
                 return f(x, *args, **kwargs)
-            return self.apply(curried)
+
+            try:
+                return self.apply(curried_with_axis)
+            except Exception:
+                return self.apply(curried)
 
         return wrapper
 
@@ -212,16 +224,6 @@ class GroupBy(object):
                 yield it
 
     def _multi_iter(self):
-        # This is slower
-        # groups = self.indices.keys()
-        # try:
-        #     groups = sorted(groups)
-        # except Exception: # pragma: no cover
-        #     pass
-
-        # for key in groups:
-        #     yield key, self.get_group(key)
-
         tipo = type(self.obj)
         data = self.obj
         if (isinstance(self.obj, NDFrame) and

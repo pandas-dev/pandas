@@ -2853,6 +2853,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertRaises(Exception, f, axis=2)
 
+        # make sure works on mixed-type frame
+        getattr(self.mixed_frame, name)(axis=0)
+        getattr(self.mixed_frame, name)(axis=1)
+
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)
         axis1 = self.empty.sum(1)
