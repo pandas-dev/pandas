@@ -32,41 +32,58 @@ class OLS(object):
     nw_lags: None or int
         Number of Newey-West lags.
     """
-    def __init__(self, y, x, intercept=True, nw_lags=None, nw_overlap=False):
+    def __init__(self, y, x, intercept=True, weights=None, nw_lags=None,
+                 nw_overlap=False):
         import scikits.statsmodels.api as sm
         self._x_orig = x
         self._y_orig = y
+        self._weights_orig = weights
         self._intercept = intercept
         self._nw_lags = nw_lags
         self._nw_overlap = nw_overlap
 
-        (self._y, self._x, self._x_filtered,
+        (self._y, self._x, self._weights, self._x_filtered,
          self._index, self._time_has_obs) = self._prepare_data()
 
-        # for compat with PanelOLS
-        self._x_trans = self._x
-        self._y_trans = self._y
+        if self._weights is not None:
+            self._x_trans = self._x.mul(np.sqrt(self._weights), axis=0)
+            self._y_trans = self._y * np.sqrt(self._weights)
+            self.sm_ols = sm.WLS(self._y.values,
+                                 self._x.values,
+                                 weights=self._weights.values).fit()
+        else:
+            self._x_trans = self._x
+            self._y_trans = self._y
+            self.sm_ols = sm.OLS(self._y.values,
+                                 self._x.values).fit()
 
-        self._x_raw = self._x.values
-        self._y_raw = self._y.view(np.ndarray)
-
-        self.sm_ols = sm.OLS(self._y_raw, self._x.values).fit()
+        self._y_raw = self._y_trans.values
 
     def _prepare_data(self):
         """
-        Filters the data and sets up an intercept if necessary.
+        Cleans the input for single OLS.
+
+        Parameters
+        ----------
+        lhs: Series
+            Dependent variable in the regression.
+        rhs: dict, whose values are Series, DataFrame, or dict
+            Explanatory variables of the regression.
 
         Returns
         -------
-        (DataFrame, Series).
+        Series, DataFrame
+            Cleaned lhs and rhs
         """
-        (y, x, x_filtered,
-         union_index, valid) = _filter_data(self._y_orig, self._x_orig)
-
+        (filt_lhs, filt_rhs, filt_weights,
+         pre_filt_rhs, index, valid) = _filter_data(self._y_orig, self._x_orig,
+                                                    self._weights_orig)
         if self._intercept:
-            x['intercept'] = x_filtered['intercept'] = 1.
+            filt_rhs['intercept'] = 1.
+            pre_filt_rhs['intercept'] = 1.
 
-        return y, x, x_filtered, union_index, valid
+        return (filt_lhs, filt_rhs, filt_weights,
+                pre_filt_rhs, index, valid)
 
     @property
     def nobs(self):
@@ -952,8 +969,8 @@ class MovingOLS(OLS):
     @cache_readonly
     def _var_beta_raw(self):
         """Returns the raw covariance of beta."""
-        x = self._x
-        y = self._y
+        x = self._x_trans
+        y = self._y_trans
         dates = self._index
         nobs = self._nobs
         rmse = self._rmse_raw
@@ -1156,7 +1173,7 @@ def _combine_rhs(rhs):
 
     return series
 
-def _filter_data(lhs, rhs):
+def _filter_data(lhs, rhs, weights=None):
     """
     Cleans the input for single OLS.
 
@@ -1177,32 +1194,27 @@ def _filter_data(lhs, rhs):
         lhs = Series(lhs, index=rhs.index)
 
     rhs = _combine_rhs(rhs)
+    lhs = DataFrame({'__y__' : lhs})
+    pre_filt_rhs = rhs.dropna(how='any')
 
-    rhs_valid = np.isfinite(rhs.values).sum(1) == len(rhs.columns)
+    combined = rhs.join(lhs, how='outer')
+    if weights is not None:
+        combined['__weights__'] = weights
 
-    if not rhs_valid.all():
-        pre_filtered_rhs = rhs[rhs_valid]
+    valid = (combined.count(1) == len(combined.columns)).values
+
+    combined = combined[valid]
+
+    if weights is not None:
+        filt_weights = combined.pop('__weights__')
     else:
-        pre_filtered_rhs = rhs
+        filt_weights = None
 
-    index = lhs.index + rhs.index
-    if not index.equals(rhs.index) or not index.equals(lhs.index):
-        rhs = rhs.reindex(index)
-        lhs = lhs.reindex(index)
+    filt_lhs = combined.pop('__y__')
+    filt_rhs = combined
 
-        rhs_valid = np.isfinite(rhs.values).sum(1) == len(rhs.columns)
-
-    lhs_valid = np.isfinite(lhs.values)
-    valid = rhs_valid & lhs_valid
-
-    if not valid.all():
-        filt_index = rhs.index[valid]
-        filtered_rhs = rhs.reindex(filt_index)
-        filtered_lhs = lhs.reindex(filt_index)
-    else:
-        filtered_rhs, filtered_lhs = rhs, lhs
-
-    return filtered_lhs, filtered_rhs, pre_filtered_rhs, index, valid
+    return (filt_lhs, filt_rhs, filt_weights,
+            pre_filt_rhs, combined.index, valid)
 
 # A little kludge so we can use this method for both
 # MovingOLS and MovingPanelOLS

@@ -34,22 +34,22 @@ class TestOLSFilter(unittest.TestCase):
         self.DICT1 = data
 
     def testFilterWithSeriesRHS(self):
-        (lhs, rhs, rhs_pre,
-        index, valid) = _filter_data(self.TS1, {'x1' : self.TS2})
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS1, {'x1' : self.TS2}, None)
         self.tsAssertEqual(self.TS1, lhs)
         self.tsAssertEqual(self.TS2[:3], rhs['x1'])
         self.tsAssertEqual(self.TS2, rhs_pre['x1'])
 
     def testFilterWithSeriesRHS2(self):
-        (lhs, rhs, rhs_pre,
-        index, valid) = _filter_data(self.TS2, {'x1' : self.TS1})
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS2, {'x1' : self.TS1}, None)
         self.tsAssertEqual(self.TS2[:3], lhs)
         self.tsAssertEqual(self.TS1, rhs['x1'])
         self.tsAssertEqual(self.TS1, rhs_pre['x1'])
 
     def testFilterWithSeriesRHS3(self):
-        (lhs, rhs, rhs_pre,
-        index, valid) = _filter_data(self.TS3, {'x1' : self.TS4})
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS3, {'x1' : self.TS4}, None)
         exp_lhs = self.TS3[2:3]
         exp_rhs = self.TS4[2:3]
         exp_rhs_pre = self.TS4[1:]
@@ -58,8 +58,8 @@ class TestOLSFilter(unittest.TestCase):
         self.tsAssertEqual(exp_rhs_pre, rhs_pre['x1'])
 
     def testFilterWithDataFrameRHS(self):
-        (lhs, rhs, rhs_pre,
-        index, valid) = _filter_data(self.TS1, self.DF1)
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS1, self.DF1, None)
         exp_lhs = self.TS1[1:]
         exp_rhs1 = self.TS2[1:3]
         exp_rhs2 = self.TS4[1:3]
@@ -68,8 +68,8 @@ class TestOLSFilter(unittest.TestCase):
         self.tsAssertEqual(exp_rhs2, rhs['x2'])
 
     def testFilterWithDictRHS(self):
-        (lhs, rhs, rhs_pre,
-        index, valid) = _filter_data(self.TS1, self.DICT1)
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS1, self.DICT1, None)
         exp_lhs = self.TS1[1:]
         exp_rhs1 = self.TS2[1:3]
         exp_rhs2 = self.TS4[1:3]

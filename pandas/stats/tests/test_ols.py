@@ -20,6 +20,11 @@ import pandas.util.testing as tm
 
 from common import BaseTest
 
+try:
+    import scikits.statsmodels.api as sm
+except ImportError:
+    pass
+
 def _check_repr(obj):
     repr(obj)
     str(obj)
@@ -61,17 +66,43 @@ class TestOLS(BaseTest):
             raise nose.SkipTest
 
     def testOLSWithDatasets(self):
-        import scikits.statsmodels.datasets as datasets
-
-        self.checkDataSet(datasets.ccard.load(), skip_moving=True)
-        self.checkDataSet(datasets.cpunish.load(), skip_moving=True)
-        self.checkDataSet(datasets.longley.load(), skip_moving=True)
-        self.checkDataSet(datasets.stackloss.load(), skip_moving=True)
-        self.checkDataSet(datasets.copper.load())
-        self.checkDataSet(datasets.scotland.load())
+        self.checkDataSet(sm.datasets.ccard.load(), skip_moving=True)
+        self.checkDataSet(sm.datasets.cpunish.load(), skip_moving=True)
+        self.checkDataSet(sm.datasets.longley.load(), skip_moving=True)
+        self.checkDataSet(sm.datasets.stackloss.load(), skip_moving=True)
+        self.checkDataSet(sm.datasets.copper.load())
+        self.checkDataSet(sm.datasets.scotland.load())
 
         # degenerate case fails on some platforms
         # self.checkDataSet(datasets.ccard.load(), 39, 49) # one col in X all 0s
+
+    def testWLS(self):
+        X = DataFrame(np.random.randn(30, 4), columns=['A', 'B', 'C', 'D'])
+        Y = np.random.randn(30)
+        weights = X.std(1)
+
+        self._check_wls(X, Y, weights)
+
+        weights.ix[[5, 15]] = np.nan
+        Y[[2, 21]] = np.nan
+        self._check_wls(X, Y, weights)
+
+    def _check_wls(self, x, y, weights):
+        result = ols(y=y, x=x, weights=1/weights)
+
+        combined = x.copy()
+        combined['__y__'] = y
+        combined['__weights__'] = weights
+        combined = combined.dropna()
+
+        endog = combined.pop('__y__').values
+        aweights = combined.pop('__weights__').values
+        exog = sm.add_constant(combined.values, prepend=False)
+
+        sm_result = sm.WLS(endog, exog, weights=1/aweights).fit()
+
+        assert_almost_equal(sm_result.params, result._beta_raw)
+        assert_almost_equal(sm_result.resid, result._resid_raw)
 
     def checkDataSet(self, dataset, start=None, end=None, skip_moving=False):
         exog = dataset.exog[start : end]
@@ -91,7 +122,6 @@ class TestOLS(BaseTest):
             self.checkMovingOLS('expanding', x, y, nw_lags=1, nw_overlap=True)
 
     def checkOLS(self, exog, endog, x, y):
-        import scikits.statsmodels.api as sm
         reference = sm.OLS(endog, sm.add_constant(exog, prepend=False)).fit()
         result = ols(y=y, x=x)
 
