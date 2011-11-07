@@ -557,6 +557,33 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
 
     return counts
 
+def duplicated(list values, take_last=False):
+    cdef:
+        Py_ssize_t i, n
+        dict seen = {}
+        object row
+
+    n = len(values)
+    cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
+
+    if take_last:
+        for i from n > i >= 0:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = None
+                result[i] = 0
+    else:
+        for i from 0 <= i < n:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = None
+                result[i] = 0
+
+    return result.view(np.bool_)
 
 '''
 

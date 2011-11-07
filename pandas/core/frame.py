@@ -1310,6 +1310,54 @@ class DataFrame(NDFrame):
         new_labels = labels[mask]
         return self.reindex(**{axis_name : new_labels})
 
+    def drop_duplicates(self, col_or_columns=None, take_last=False):
+        """
+        Return DataFrame with duplicate rows removed, optionally only
+        considering certain columns
+
+        Parameters
+        ----------
+        col_or_columns : column label or sequence of labels, optional
+            Only consider certain columns for identifying duplicates, by
+            default use all of the columns
+        take_last : boolean, default False
+            Take the last observed row in a row. Defaults to the first row
+
+        Returns
+        -------
+        deduplicated : DataFrame
+        """
+        duplicated = self.duplicated(col_or_columns, take_last=take_last)
+        return self[-duplicated]
+
+    def duplicated(self, col_or_columns=None, take_last=False):
+        """
+        Return boolean Series denoting duplicate rows, optionally only
+        considering certain columns
+
+        Parameters
+        ----------
+        col_or_columns : column label or sequence of labels, optional
+            Only consider certain columns for identifying duplicates, by
+            default use all of the columns
+        take_last : boolean, default False
+            Take the last observed row in a row. Defaults to the first row
+
+        Returns
+        -------
+        duplicated : Series
+        """
+        if col_or_columns is not None:
+            if isinstance(col_or_columns, list):
+                keys = zip(*[self[x] for x in col_or_columns])
+            else:
+                keys = list(self[col_or_columns])
+        else:
+            keys = zip(*self.values.T)
+
+        duplicated = lib.duplicated(keys, take_last=take_last)
+        return Series(duplicated, index=self.index)
+
     #----------------------------------------------------------------------
     # Sorting
 
