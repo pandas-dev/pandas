@@ -294,6 +294,11 @@ class TestMultiLevel(unittest.TestCase):
                 result = frame.count(axis=axis, level=i)
                 expected = frame.groupby(axis=axis, level=i).count(axis=axis)
 
+        self.frame.ix[1, [1, 2]] = np.nan
+        self.frame.ix[7, [0, 1]] = np.nan
+        self.ymd.ix[1, [1, 2]] = np.nan
+        self.ymd.ix[7, [0, 1]] = np.nan
+
         _check_counts(self.frame)
         _check_counts(self.ymd)
         _check_counts(self.frame.T, axis=1)

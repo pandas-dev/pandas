@@ -2435,52 +2435,26 @@ class DataFrame(NDFrame):
         return result
 
     def _count_level(self, level, axis=0, numeric_only=False):
-        # TODO: deal with sortedness??
-        obj = self.sortlevel(level, axis=axis)
-        axis_index = obj._get_axis(axis)
-        y, _ = self._get_agg_data(axis, numeric_only=numeric_only)
-        mask = notnull(y)
-
-        level_index = axis_index.levels[level]
-
-        if len(self) == 0:
-            return DataFrame(np.zeros((len(level_index),
-                                       len(self.columns)), dtype=int),
-                             index=level_index, columns=self.columns)
-
-        n = len(level_index)
-        locs = axis_index.labels[level].searchsorted(np.arange(n))
-
-        # WORKAROUND: reduceat fusses about the endpoints. should file ticket?
-        start = locs.searchsorted(0, side='right') - 1
-        end = locs.searchsorted(len(mask), side='left')
-
-        if axis == 0:
-            index = level_index
-            columns = self.columns
-            result = np.zeros((n, len(self.columns)), dtype=int)
-            out = result[start:end]
-            np.add.reduceat(mask, locs[start:end], axis=axis, out=out)
+        if numeric_only:
+            frame = self._get_numeric_data()
         else:
-            index = self.index
-            columns = level_index
-            result = np.zeros((len(self.index), n), dtype=int)
-            out = result[:, start:end]
-            np.add.reduceat(mask, locs[start:end], axis=axis, out=out)
+            frame = self
 
-        # WORKAROUND: to see why, try this
-        # arr = np.ones((10, 4), dtype=bool)
-        # np.add.reduceat(arr, [0, 3, 3, 7, 9], axis=0)
+        if axis == 1:
+            frame = frame.T
 
-        # this stinks
-        if len(locs) > 1:
-            workaround_mask = locs[:-1] == locs[1:]
-            if axis == 0:
-                result[:-1][workaround_mask] = 0
-            else:
-                result[:, :-1][:, workaround_mask] = 0
+        mask = notnull(frame.values)
+        level_index = frame.index.levels[level]
+        counts = lib.count_level_2d(mask, frame.index.labels[level],
+                                    len(level_index))
 
-        return DataFrame(result, index=index, columns=columns)
+        result = DataFrame(counts, index=level_index,
+                           columns=frame.columns)
+
+        if axis == 1:
+            return result.T
+        else:
+            return result
 
     def sum(self, axis=0, numeric_only=True, skipna=True, level=None):
         if level is not None:
@@ -2568,7 +2542,7 @@ class DataFrame(NDFrame):
             return self._agg_by_level('median', axis=axis, level=level,
                                       skipna=skipna)
 
-        frame = self._get_numeric_frame()
+        frame = self._get_numeric_data()
 
         if axis == 0:
             values = frame.values.T
@@ -2598,7 +2572,7 @@ class DataFrame(NDFrame):
             return self._agg_by_level('mad', axis=axis, level=level,
                                       skipna=skipna)
 
-        frame = self._get_numeric_frame()
+        frame = self._get_numeric_data()
 
         if axis == 0:
             demeaned = frame - frame.mean(axis=0)
@@ -2664,12 +2638,6 @@ class DataFrame(NDFrame):
 
         return Series(result, index=axis_labels)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
-
-    def _get_numeric_frame(self):
-        frame = self
-        if self._is_mixed_type:
-            frame = self.ix[:, self._get_numeric_columns()]
-        return frame
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True):
         method = getattr(type(self), name)
@@ -2945,8 +2913,10 @@ class _DataFrameFormatter(object):
         to_write = []
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            to_write.append('Empty %s\n' % type(self.frame).__name__)
-            to_write.append(repr(frame.index))
+            info_line = 'Empty %s\nColumns: %s\nIndex: %s'
+            to_write.append(info_line % (type(self.frame).__name__,
+                                         repr(frame.columns),
+                                         repr(frame.index)))
         else:
             # may include levels names also
             str_index = self._get_formatted_index()

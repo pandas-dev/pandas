@@ -1351,8 +1351,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         joined = '\n'.join([re.sub('\s+', ' ', x).strip() for x in lines[1:]])
         recons = read_table(StringIO(joined), names=header, sep=' ')
         assert_series_equal(recons['B'], biggie['B'])
-        assert_series_equal(np.round(recons['A'], 2),
-                            np.round(biggie['A'], 2))
+        self.assertEqual(recons['A'].count(), biggie['A'].count())
+        self.assert_((np.abs(recons['A'].dropna() -
+                             biggie['A'].dropna()) < 0.1).all())
 
         # expected = ['B', 'A']
         # self.assertEqual(header, expected)

@@ -526,7 +526,7 @@ def _bucket_locs(index, buckets, inclusive=False):
     return locs
 
 def count_level_1d(ndarray[uint8_t, cast=True] mask,
-                  ndarray[int32_t] labels, Py_ssize_t max_bin):
+                   ndarray[int32_t] labels, Py_ssize_t max_bin):
     cdef:
         Py_ssize_t i, n
         ndarray[int64_t] counts
@@ -538,6 +538,22 @@ def count_level_1d(ndarray[uint8_t, cast=True] mask,
     for i from 0 <= i < n:
         if mask[i]:
             counts[labels[i]] += 1
+
+    return counts
+
+def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
+                   ndarray[int32_t] labels, Py_ssize_t max_bin):
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[int64_t, ndim=2] counts
+
+    n, k = (<object> mask).shape
+    counts = np.zeros((max_bin, k), dtype='i8')
+
+    for i from 0 <= i < n:
+        for j from 0 <= j < k:
+            if mask[i, j]:
+                counts[labels[i], j] += 1
 
     return counts
 

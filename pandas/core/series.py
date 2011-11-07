@@ -597,23 +597,19 @@ copy : boolean, default False
         nobs : int or Series (if level specified)
         """
         if level is not None:
-            return self._count_level(level)
+            mask = notnull(self.values)
+            level_index = self.index.levels[level]
+
+            if len(self) == 0:
+                return Series(0, index=level_index)
+
+            # call cython function
+            max_bin = len(level_index)
+            counts = lib.count_level_1d(mask.view(np.uint8),
+                                        self.index.labels[level], max_bin)
+            return Series(counts, index=level_index)
 
         return notnull(self.values).sum()
-
-    def _count_level(self, level):
-        # TODO: GENERALIZE CODE OVERLAP WITH DATAFRAME
-        mask = notnull(self.values)
-        level_index = self.index.levels[level]
-
-        if len(self) == 0:
-            return Series(0, index=level_index)
-
-        # call cython function
-        max_bin = len(level_index)
-        counts = lib.count_level_1d(mask.view(np.uint8),
-                                    self.index.labels[level], max_bin)
-        return Series(counts, index=level_index)
 
     def value_counts(self):
         """
