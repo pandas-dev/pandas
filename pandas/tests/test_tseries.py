@@ -147,6 +147,30 @@ def test_groupsort_indexer():
     expected = np.lexsort((b, a))
     assert(np.array_equal(result, expected))
 
+
+def test_duplicated_with_nas():
+    keys = [0, 1, np.nan, 0, 2, np.nan]
+
+    result = lib.duplicated(keys)
+    expected = [False, False, False, True, False, True]
+    assert(np.array_equal(result, expected))
+
+    result = lib.duplicated(keys, take_last=True)
+    expected = [True, False, True, False, False, False]
+    assert(np.array_equal(result, expected))
+
+    keys = [(0, 0), (0, np.nan), (np.nan, 0), (np.nan, np.nan)] * 2
+
+    result = lib.duplicated(keys)
+    falses = [False] * 4
+    trues = [True] * 4
+    expected = falses + trues
+    assert(np.array_equal(result, expected))
+
+    result = lib.duplicated(keys, take_last=True)
+    expected = trues + falses
+    assert(np.array_equal(result, expected))
+
 class TestMoments(unittest.TestCase):
     pass
 
