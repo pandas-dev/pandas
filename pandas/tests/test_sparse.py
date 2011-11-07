@@ -135,6 +135,10 @@ class TestSparseSeries(TestCase,
         self.ziseries2 = SparseSeries(arr, index=index, kind='integer',
                                       fill_value=0)
 
+    def test_construct_DataFrame_with_sp_series(self):
+        # it works!
+        df = DataFrame({'col' : self.bseries})
+
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
         series = self.bseries.to_dense()

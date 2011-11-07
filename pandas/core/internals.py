@@ -878,8 +878,18 @@ def _simple_blockify(dct, ref_items, dtype):
     return make_block(values, block_items, ref_items, do_integrity_check=True)
 
 def _stack_dict(dct, ref_items):
+    from pandas.core.series import Series
+
+    # fml
+    def _asarray_compat(x):
+        # asarray shouldn't be called on SparseSeries
+        if isinstance(x, Series):
+            return x.values
+        else:
+            return np.asarray(x)
+
     items = [x for x in ref_items if x in dct]
-    stacked = np.vstack([np.asarray(dct[k]) for k in items])
+    stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):
