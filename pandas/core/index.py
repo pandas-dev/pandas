@@ -315,6 +315,8 @@ class Index(np.ndarray):
             return _ensure_index(other)
 
         if self.is_monotonic and other.is_monotonic:
+            if other.dtype != np.object_:
+                other = Index(other, dtype=object)
             result = lib.outer_join_indexer_object(self, other.values)[0]
         else:
             indexer = self.get_indexer(other)
