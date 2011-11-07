@@ -112,7 +112,7 @@ class TestGroupBy(unittest.TestCase):
         expected = grouped.mean()
         assert_frame_equal(result, expected)
 
-    def test_agg_must_add(self):
+    def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
         self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
@@ -549,6 +549,30 @@ class TestGroupBy(unittest.TestCase):
         result2 = grouped.agg({'C' : np.mean, 'D' : np.sum})
         expected2 = grouped.mean()
         expected2['D'] = grouped.sum()['D']
+        assert_frame_equal(result2, expected2)
+
+    def test_as_index_series_return_frame(self):
+        grouped = self.df.groupby('A', as_index=False)
+        grouped2 = self.df.groupby(['A', 'B'], as_index=False)
+
+        result = grouped['C'].agg(np.sum)
+        expected = grouped.agg(np.sum).ix[:, ['A', 'C']]
+        self.assert_(isinstance(result, DataFrame))
+        assert_frame_equal(result, expected)
+
+        result2 = grouped2['C'].agg(np.sum)
+        expected2 = grouped2.agg(np.sum).ix[:, ['A', 'B', 'C']]
+        self.assert_(isinstance(result2, DataFrame))
+        assert_frame_equal(result2, expected2)
+
+        result = grouped['C'].sum()
+        expected = grouped.sum().ix[:, ['A', 'C']]
+        self.assert_(isinstance(result, DataFrame))
+        assert_frame_equal(result, expected)
+
+        result2 = grouped2['C'].sum()
+        expected2 = grouped2.sum().ix[:, ['A', 'B', 'C']]
+        self.assert_(isinstance(result2, DataFrame))
         assert_frame_equal(result2, expected2)
 
     def test_groupby_as_index_cython(self):

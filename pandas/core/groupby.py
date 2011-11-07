@@ -86,8 +86,8 @@ class GroupBy(object):
     """
 
     def __init__(self, obj, grouper=None, axis=0, level=None,
-                 groupings=None, exclusions=None, name=None, as_index=True):
-        self._name = name
+                 groupings=None, exclusions=None, column=None, as_index=True):
+        self._column = column
 
         if isinstance(obj, NDFrame):
             obj._consolidate_inplace()
@@ -105,13 +105,14 @@ class GroupBy(object):
                 raise ValueError('as_index=False only valid for axis=0')
 
         self.as_index = as_index
+        self.grouper = grouper
 
         if groupings is None:
             groupings, exclusions = _get_groupings(obj, grouper, axis=axis,
                                                    level=level)
 
         self.groupings = groupings
-        self.exclusions = set(exclusions)
+        self.exclusions = set(exclusions) if exclusions else set()
 
     def __len__(self):
         return len(self.indices)
@@ -138,10 +139,10 @@ class GroupBy(object):
 
     @property
     def name(self):
-        if self._name is None:
+        if self._column is None:
             return 'result'
         else:
-            return self._name
+            return self._column
 
     @property
     def _obj_with_exclusions(self):
@@ -854,12 +855,30 @@ class DataFrameGroupBy(GroupBy):
         return n,
 
     def __getitem__(self, key):
-        return SeriesGroupBy(self.obj[key], groupings=self.groupings,
-                             exclusions=self.exclusions, name=key)
+        if self._column is not None:
+            raise Exception('Column %s already selected' % self._column)
+
+        if key not in self.obj:  # pragma: no cover
+            raise KeyError(str(key))
+
+        # kind of a kludge
+        if self.as_index:
+            return SeriesGroupBy(self.obj[key], column=key,
+                                 groupings=self.groupings,
+                                 exclusions=self.exclusions)
+        else:
+            return DataFrameGroupBy(self.obj, self.grouper, column=key,
+                                    groupings=self.groupings,
+                                    exclusions=self.exclusions,
+                                    as_index=self.as_index)
 
     def _iterate_slices(self):
         if self.axis == 0:
-            slice_axis = self.obj.columns
+            # kludge
+            if self._column is None:
+                slice_axis = self.obj.columns
+            else:
+                slice_axis = [self._column]
             slicer = lambda x: self.obj[x]
         else:
             slice_axis = self.obj.index
@@ -873,6 +892,9 @@ class DataFrameGroupBy(GroupBy):
 
     @cache_readonly
     def _obj_with_exclusions(self):
+        if self._column is not None:
+            return self.obj.reindex(columns=[self._column])
+
         if len(self.exclusions) > 0:
             return self.obj.drop(self.exclusions, axis=1)
         else:
@@ -901,8 +923,11 @@ class DataFrameGroupBy(GroupBy):
             if self.axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
 
+            obj = self._obj_with_exclusions
             for col, func in arg.iteritems():
-                result[col] = self[col].agg(func)
+                colg = SeriesGroupBy(obj[col], column=col,
+                                     groupings=self.groupings)
+                result[col] = colg.agg(func)
 
             result = DataFrame(result)
         else:
@@ -927,23 +952,25 @@ class DataFrameGroupBy(GroupBy):
         return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
-        result = {}
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        try:
-            for name in self.primary:
-                data = self.get_group(name, obj=obj)
+        result = {}
+        if axis == 0:
+            try:
+                for name in self.indices:
+                    data = self.get_group(name, obj=obj)
+                    result[name] = func(data, *args, **kwargs)
+            except Exception:
+                return self._aggregate_item_by_item(func, *args, **kwargs)
+        else:
+            for name in self.indices:
                 try:
+                    data = self.get_group(name, obj=obj)
                     result[name] = func(data, *args, **kwargs)
                 except Exception:
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
-        except Exception, e1:
-            if axis == 0:
-                return self._aggregate_item_by_item(func, *args, **kwargs)
-            else:
-                raise e1
 
         if result:
             if axis == 0:
@@ -963,12 +990,18 @@ class DataFrameGroupBy(GroupBy):
         cannot_agg = []
         for item in obj:
             try:
-                result[item] = self[item].agg(func, *args, **kwargs)
+                colg = SeriesGroupBy(obj[item], column=item,
+                                     groupings=self.groupings)
+                result[item] = colg.agg(func, *args, **kwargs)
             except (ValueError, TypeError):
                 cannot_agg.append(item)
                 continue
 
-        return DataFrame(result)
+        result_columns = obj.columns
+        if cannot_agg:
+            result_columns = result_columns.drop(cannot_agg)
+
+        return DataFrame(result, columns=result_columns)
 
     def _wrap_aggregated_output(self, output, mask):
         agg_axis = 0 if self.axis == 1 else 1
