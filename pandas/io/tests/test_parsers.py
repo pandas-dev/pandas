@@ -397,6 +397,15 @@ and this
 
         assert_frame_equal(result, expected)
 
+    def test_no_unnamed_index(self):
+        data = """ id c0 c1 c2
+0 1 0 a b
+1 2 0 c d
+2 2 2 e f
+"""
+        df = read_table(StringIO(data), sep=' ')
+        self.assert_(df.index.name is None)
+
 class TestParseSQL(unittest.TestCase):
 
     def test_convert_sql_column_floats(self):
