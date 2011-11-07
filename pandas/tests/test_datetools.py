@@ -4,7 +4,7 @@ import unittest
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
-    WeekOfMonth, format, ole2datetime, to_datetime, normalize_date,
+    WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName)
 
 from nose.tools import assert_raises
@@ -526,6 +526,115 @@ class TestBQuarterEnd(unittest.TestCase):
                  (BQuarterEnd(1, startingMonth=3), datetime(2008, 5, 30), False),
                  (BQuarterEnd(1, startingMonth=3), datetime(2007, 6, 29), True),
                  (BQuarterEnd(1, startingMonth=3), datetime(2007, 6, 30), False),
+             ]
+
+        for offset, date, expected in tests:
+            assertOnOffset(offset, date, expected)
+
+class TestQuarterEnd(unittest.TestCase):
+    def test_corner(self):
+        self.assertRaises(Exception, QuarterEnd, startingMonth=4)
+        self.assertRaises(Exception, QuarterEnd, startingMonth=-1)
+
+    def test_isAnchored(self):
+        self.assert_(QuarterEnd(startingMonth=1).isAnchored())
+        self.assert_(QuarterEnd().isAnchored())
+        self.assert_(not QuarterEnd(2, startingMonth=1).isAnchored())
+
+    def test_offset(self):
+        tests = []
+
+        tests.append((QuarterEnd(startingMonth=1),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
+                       datetime(2008, 1, 31): datetime(2008, 4, 30),
+                       datetime(2008, 2, 15): datetime(2008, 4, 30),
+                       datetime(2008, 2, 29): datetime(2008, 4, 30),
+                       datetime(2008, 3, 15): datetime(2008, 4, 30),
+                       datetime(2008, 3, 31): datetime(2008, 4, 30),
+                       datetime(2008, 4, 15): datetime(2008, 4, 30),
+                       datetime(2008, 4, 30): datetime(2008, 7, 31),}))
+
+        tests.append((QuarterEnd(startingMonth=2),
+                      {datetime(2008, 1, 1): datetime(2008, 2, 29),
+                       datetime(2008, 1, 31): datetime(2008, 2, 29),
+                       datetime(2008, 2, 15): datetime(2008, 2, 29),
+                       datetime(2008, 2, 29): datetime(2008, 5, 31),
+                       datetime(2008, 3, 15): datetime(2008, 5, 31),
+                       datetime(2008, 3, 31): datetime(2008, 5, 31),
+                       datetime(2008, 4, 15): datetime(2008, 5, 31),
+                       datetime(2008, 4, 30): datetime(2008, 5, 31),}))
+
+        tests.append((QuarterEnd(startingMonth=1, n=0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
+                       datetime(2008, 1, 31): datetime(2008, 1, 31),
+                       datetime(2008, 2, 15): datetime(2008, 4, 30),
+                       datetime(2008, 2, 29): datetime(2008, 4, 30),
+                       datetime(2008, 3, 15): datetime(2008, 4, 30),
+                       datetime(2008, 3, 31): datetime(2008, 4, 30),
+                       datetime(2008, 4, 15): datetime(2008, 4, 30),
+                       datetime(2008, 4, 30): datetime(2008, 4, 30),}))
+
+        tests.append((QuarterEnd(startingMonth=1, n=-1),
+                      {datetime(2008, 1, 1): datetime(2007, 10, 31),
+                       datetime(2008, 1, 31): datetime(2007, 10, 31),
+                       datetime(2008, 2, 15): datetime(2008, 1, 31),
+                       datetime(2008, 2, 29): datetime(2008, 1, 31),
+                       datetime(2008, 3, 15): datetime(2008, 1, 31),
+                       datetime(2008, 3, 31): datetime(2008, 1, 31),
+                       datetime(2008, 4, 15): datetime(2008, 1, 31),
+                       datetime(2008, 4, 30): datetime(2008, 1, 31),}))
+
+        tests.append((QuarterEnd(startingMonth=1, n=2),
+                      {datetime(2008, 1, 31): datetime(2008, 7, 31),
+                       datetime(2008, 2, 15): datetime(2008, 7, 31),
+                       datetime(2008, 2, 29): datetime(2008, 7, 31),
+                       datetime(2008, 3, 15): datetime(2008, 7, 31),
+                       datetime(2008, 3, 31): datetime(2008, 7, 31),
+                       datetime(2008, 4, 15): datetime(2008, 7, 31),
+                       datetime(2008, 4, 30): datetime(2008, 10, 31),}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
+
+        # corner
+        offset = QuarterEnd(n=-1, startingMonth=1)
+        self.assertEqual(datetime(2010, 2, 1) + offset, datetime(2010, 1, 31))
+
+    def test_onOffset(self):
+
+        tests = [(QuarterEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
+                 (QuarterEnd(1, startingMonth=1), datetime(2007, 12, 31), False),
+                 (QuarterEnd(1, startingMonth=1), datetime(2008, 2, 29), False),
+                 (QuarterEnd(1, startingMonth=1), datetime(2007, 3, 30), False),
+                 (QuarterEnd(1, startingMonth=1), datetime(2007, 3, 31), False),
+                 (QuarterEnd(1, startingMonth=1), datetime(2008, 4, 30), True),
+                 (QuarterEnd(1, startingMonth=1), datetime(2008, 5, 30), False),
+                 (QuarterEnd(1, startingMonth=1), datetime(2008, 5, 31), False),
+                 (QuarterEnd(1, startingMonth=1), datetime(2007, 6, 29), False),
+                 (QuarterEnd(1, startingMonth=1), datetime(2007, 6, 30), False),
+
+                 (QuarterEnd(1, startingMonth=2), datetime(2008, 1, 31), False),
+                 (QuarterEnd(1, startingMonth=2), datetime(2007, 12, 31), False),
+                 (QuarterEnd(1, startingMonth=2), datetime(2008, 2, 29), True),
+                 (QuarterEnd(1, startingMonth=2), datetime(2007, 3, 30), False),
+                 (QuarterEnd(1, startingMonth=2), datetime(2007, 3, 31), False),
+                 (QuarterEnd(1, startingMonth=2), datetime(2008, 4, 30), False),
+                 (QuarterEnd(1, startingMonth=2), datetime(2008, 5, 30), False),
+                 (QuarterEnd(1, startingMonth=2), datetime(2008, 5, 31), True),
+                 (QuarterEnd(1, startingMonth=2), datetime(2007, 6, 29), False),
+                 (QuarterEnd(1, startingMonth=2), datetime(2007, 6, 30), False),
+
+                 (QuarterEnd(1, startingMonth=3), datetime(2008, 1, 31), False),
+                 (QuarterEnd(1, startingMonth=3), datetime(2007, 12, 31), True),
+                 (QuarterEnd(1, startingMonth=3), datetime(2008, 2, 29), False),
+                 (QuarterEnd(1, startingMonth=3), datetime(2007, 3, 30), False),
+                 (QuarterEnd(1, startingMonth=3), datetime(2007, 3, 31), True),
+                 (QuarterEnd(1, startingMonth=3), datetime(2008, 4, 30), False),
+                 (QuarterEnd(1, startingMonth=3), datetime(2008, 5, 30), False),
+                 (QuarterEnd(1, startingMonth=3), datetime(2008, 5, 31), False),
+                 (QuarterEnd(1, startingMonth=3), datetime(2007, 6, 29), False),
+                 (QuarterEnd(1, startingMonth=3), datetime(2007, 6, 30), True),
              ]
 
         for offset, date, expected in tests:
