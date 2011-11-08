@@ -356,6 +356,11 @@ class DataFrame(NDFrame):
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
 
+    # boolean operators
+    __and__ = _arith_method(operator.and_, '__and__')
+    __or__ = _arith_method(operator.or_, '__or__')
+    __xor__ = _arith_method(operator.xor, '__xor__')
+
     # Python 2 division methods
     if not py3compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', default_axis=None)

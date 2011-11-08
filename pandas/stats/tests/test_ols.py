@@ -427,6 +427,37 @@ class TestPanelOLS(BaseTest):
         self.assertTrue(result._x_filtered.major_axis.equals(
             result.y_fitted.index))
 
+    def test_wls_panel(self):
+        y = tm.makeTimeDataFrame()
+        x = Panel({'x1' : tm.makeTimeDataFrame(),
+                   'x2' : tm.makeTimeDataFrame()})
+
+        y.ix[[1, 7], 'A'] = np.nan
+        y.ix[[6, 15], 'B'] = np.nan
+        y.ix[[3, 20], 'C'] = np.nan
+        y.ix[[5, 11], 'D'] = np.nan
+
+        stack_y = y.stack()
+        stack_x = DataFrame(dict((k, v.stack())
+                                  for k, v in x.iteritems()))
+
+        weights = x.std('items')
+        stack_weights = weights.stack()
+
+        stack_y.index = stack_y.index.get_tuple_index()
+        stack_x.index = stack_x.index.get_tuple_index()
+        stack_weights.index = stack_weights.index.get_tuple_index()
+
+        result = ols(y=y, x=x, weights=1/weights)
+        expected = ols(y=stack_y, x=stack_x, weights=1/stack_weights)
+
+        assert_almost_equal(result.beta, expected.beta)
+
+        for attr in ['resid', 'y_fitted']:
+            rvals = getattr(result, attr).stack().values
+            evals = getattr(expected, attr).values
+            assert_almost_equal(rvals, evals)
+
     def testWithTimeEffects(self):
         result = ols(y=self.panel_y2, x=self.panel_x2, time_effects=True)
 
