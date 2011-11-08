@@ -45,6 +45,7 @@ pandas 0.5.1
     DataFrame rows and checking for duplicate rows, respectively (GH #319)
   - Implement logical (boolean) operators &, |, ^ on DataFrame (GH #347)
   - Add `Series.mad`, mean absolute deviation, matching DataFrame
+  - Add `QuarterEnd` DateOffset (PR #321)
 
 **Improvements to existing features**
 
