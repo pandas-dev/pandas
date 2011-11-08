@@ -382,6 +382,10 @@ bar,two,12,13,14,15
         df = read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
         self.assert_(isinstance(df.index.levels[0][0], datetime))
 
+        # specify columns out of order!
+        df2 = read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
+        self.assert_(isinstance(df2.index.levels[1][0], datetime))
+
     def test_skip_footer(self):
         data = """A,B,C
 1,2,3

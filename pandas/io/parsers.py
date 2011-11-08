@@ -368,9 +368,9 @@ class TextParser(object):
                 index = []
                 for idx in self.index_col:
                     index.append(zipped_content[idx])
-                #remove index items from content and columns, don't pop in loop
-                for i in range(len(self.index_col)):
-                    zipped_content.remove(index[i])
+                # remove index items from content and columns, don't pop in loop
+                for i in reversed(sorted(self.index_col)):
+                    zipped_content.pop(i)
 
             if np.isscalar(self.index_col):
                 if self.parse_dates:
