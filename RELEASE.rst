@@ -36,10 +36,35 @@ pandas 0.5.1
     #296)
   - Add `Series.isin` function which checks if each value is contained in a
     passed sequence (GH #289)
+  - Add `float_format` option to `Series.to_string`
+  - Add `skip_footer` (GH #291) and `converters` (GH #343 ) options to
+    `read_csv` and `read_table`
+  - Add proper, tested weighted least squares to standard and panel OLS (GH
+    #303)
+  - Add `drop_duplicates` and `duplicated` functions for removing duplicate
+    DataFrame rows and checking for duplicate rows, respectively (GH #319)
+  - Implement logical (boolean) operators &, |, ^ on DataFrame (GH #347)
+  - Add `Series.mad`, mean absolute deviation, matching DataFrame
 
 **Improvements to existing features**
 
   - Sped up `DataFrame.apply` performance in most cases
+  - Raise more helpful exception if date parsing fails in DateRange (GH #298)
+  - Vastly improved performance of GroupBy on axes with a MultiIndex (GH #299)
+  - Print level names in hierarchical index in Series repr (GH #305)
+  - Return DataFrame when performing GroupBy on selected column and
+    as_index=False (GH #308)
+  - Can pass vector to `on` argument in `DataFrame.join` (GH #312)
+  - Don't show Series name if it's None in the repr, also omit length for short
+    Series (GH #317)
+  - Show legend by default in `DataFrame.plot`, add `legend` boolean flag (GH
+    #324)
+  - Significantly improved performance of `Series.order`, which also makes
+    np.unique called in a Series faster (GH #327)
+  - Faster cythonized count by level in Series and DataFrame (GH #341)
+  - Raise exception if dateutil 2.0 installed on Python 2.x runtime (GH #346)
+  - Significant GroupBy performance enhancement with multiple keys with many
+    "empty" combinations
 
 **Bug fixes**
 
@@ -47,6 +72,23 @@ pandas 0.5.1
     name (GH #290)
   - DataFrame should clear its Series caches on consolidation, was causing
     "stale" Series to be returned in some corner cases (GH #304)
+  - DataFrame constructor failed if a column had a list of tuples (GH #293)
+  - Ensure that `Series.apply` always returns a Series and implement
+    `Series.round` (GH #314)
+  - Support boolean columns in Cythonized groupby functions (GH #315)
+  - `DataFrame.describe` should not fail if there are no numeric columns,
+    instead return categorical describe (GH #323)
+  - Fixed bug which could cause columns to be printed in wrong order in
+    `DataFrame.to_string` if specific list of columns passed (GH #325)
+  - Fix legend plotting failure if DataFrame columns are integers (GH #326)
+  - Shift start date back by one month for Yahoo! Finance API in pandas.io.data
+    (GH #329)
+  - Fix `DataFrame.join` failure on unconsolidated inputs (GH #331)
+  - DataFrame.min/max will no longer fail on mixed-type DataFrame (GH #337)
+  - Fix `read_csv` / `read_table` failure when passing list to index_col that is
+    not in ascending order (GH #349)
+  - Fix failure passing Int64Index to Index.union when both are monotonic
+  - Fix error when passing SparseSeries to (dense) DataFrame constructor
 
 Thanks
 ------
@@ -54,6 +96,12 @@ Thanks
 - Kieran O'Mahony
 - Jeff Hammerbacher
 - Adam Klein
+- Nathan Pinger
+- Wouter Overmeire
+- carljv
+- Marius Cobzarenco
+- Jev Kuznetsov
+- Dieter Vandenbussche
 
 pandas 0.5.0
 ============
