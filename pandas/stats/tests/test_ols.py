@@ -10,9 +10,10 @@ from datetime import datetime
 import unittest
 import numpy as np
 
-from pandas.core.panel import LongPanel, Panel
-from pandas.core.api import DataFrame, Index, Series, notnull
+from pandas.core.panel import Panel
+from pandas import DataFrame, Index, DateRange, Series, notnull, datetools
 from pandas.stats.api import ols
+from pandas.stats.ols import _filter_data
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal)
@@ -78,7 +79,7 @@ class TestOLS(BaseTest):
 
     def testWLS(self):
         X = DataFrame(np.random.randn(30, 4), columns=['A', 'B', 'C', 'D'])
-        Y = np.random.randn(30)
+        Y = Series(np.random.randn(30))
         weights = X.std(1)
 
         self._check_wls(X, Y, weights)
@@ -103,6 +104,9 @@ class TestOLS(BaseTest):
 
         assert_almost_equal(sm_result.params, result._beta_raw)
         assert_almost_equal(sm_result.resid, result._resid_raw)
+
+        self.checkMovingOLS('rolling', x, y, weights=weights)
+        self.checkMovingOLS('expanding', x, y, weights=weights)
 
     def checkDataSet(self, dataset, start=None, end=None, skip_moving=False):
         exog = dataset.exog[start : end]
@@ -144,15 +148,16 @@ class TestOLS(BaseTest):
 
         _check_non_raw_results(result)
 
-    def checkMovingOLS(self, window_type, x, y, **kwds):
+    def checkMovingOLS(self, window_type, x, y, weights=None, **kwds):
         from scikits.statsmodels.tools.tools import rank
         window = rank(x.values) * 2
 
-        moving = ols(y=y, x=x, window_type=window_type,
+        moving = ols(y=y, x=x, weights=weights, window_type=window_type,
                      window=window, **kwds)
 
         # check that sparse version is the same
         sparse_moving = ols(y=y.to_sparse(), x=x.to_sparse(),
+                            weights=weights,
                             window_type=window_type,
                             window=window, **kwds)
         _compare_ols_results(moving, sparse_moving)
@@ -172,7 +177,7 @@ class TestOLS(BaseTest):
                 x_iter[k] = v.truncate(before=prior_date, after=date)
             y_iter = y.truncate(before=prior_date, after=date)
 
-            static = ols(y=y_iter, x=x_iter, **kwds)
+            static = ols(y=y_iter, x=x_iter, weights=weights, **kwds)
 
             self.compare(static, moving, event_index=i,
                          result_index=n)
@@ -186,15 +191,20 @@ class TestOLS(BaseTest):
     def compare(self, static, moving, event_index=None,
                 result_index=None):
 
+        index = moving._index
+
         # Check resid if we have a time index specified
         if event_index is not None:
             ref = static._resid_raw[-1]
-            res = moving._resid_raw[event_index]
+
+            label = index[event_index]
+
+            res = moving.resid[label]
 
             assert_almost_equal(ref, res)
 
             ref = static._y_fitted_raw[-1]
-            res = moving._y_fitted_raw[event_index]
+            res = moving.y_fitted[label]
 
             assert_almost_equal(ref, res)
 
@@ -657,6 +667,83 @@ def _period_slice(panelModel, i):
     L, R = index.get_major_bounds(period, period)
 
     return slice(L, R)
+
+class TestOLSFilter(unittest.TestCase):
+
+    def setUp(self):
+        date_index = DateRange(datetime(2009, 12, 11), periods=3,
+                               offset=datetools.bday)
+        ts = Series([3, 1, 4], index=date_index)
+        self.TS1 = ts
+
+        date_index = DateRange(datetime(2009, 12, 11), periods=5,
+                               offset=datetools.bday)
+        ts = Series([1, 5, 9, 2, 6], index=date_index)
+        self.TS2 = ts
+
+        date_index = DateRange(datetime(2009, 12, 11), periods=3,
+                               offset=datetools.bday)
+        ts = Series([5, np.nan, 3], index=date_index)
+        self.TS3 = ts
+
+        date_index = DateRange(datetime(2009, 12, 11), periods=5,
+                               offset=datetools.bday)
+        ts = Series([np.nan, 5, 8, 9, 7], index=date_index)
+        self.TS4 = ts
+
+        data = {'x1' : self.TS2, 'x2' : self.TS4}
+        self.DF1 = DataFrame(data=data)
+
+        data = {'x1' : self.TS2, 'x2' : self.TS4}
+        self.DICT1 = data
+
+    def testFilterWithSeriesRHS(self):
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS1, {'x1' : self.TS2}, None)
+        self.tsAssertEqual(self.TS1, lhs)
+        self.tsAssertEqual(self.TS2[:3], rhs['x1'])
+        self.tsAssertEqual(self.TS2, rhs_pre['x1'])
+
+    def testFilterWithSeriesRHS2(self):
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS2, {'x1' : self.TS1}, None)
+        self.tsAssertEqual(self.TS2[:3], lhs)
+        self.tsAssertEqual(self.TS1, rhs['x1'])
+        self.tsAssertEqual(self.TS1, rhs_pre['x1'])
+
+    def testFilterWithSeriesRHS3(self):
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS3, {'x1' : self.TS4}, None)
+        exp_lhs = self.TS3[2:3]
+        exp_rhs = self.TS4[2:3]
+        exp_rhs_pre = self.TS4[1:]
+        self.tsAssertEqual(exp_lhs, lhs)
+        self.tsAssertEqual(exp_rhs, rhs['x1'])
+        self.tsAssertEqual(exp_rhs_pre, rhs_pre['x1'])
+
+    def testFilterWithDataFrameRHS(self):
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS1, self.DF1, None)
+        exp_lhs = self.TS1[1:]
+        exp_rhs1 = self.TS2[1:3]
+        exp_rhs2 = self.TS4[1:3]
+        self.tsAssertEqual(exp_lhs, lhs)
+        self.tsAssertEqual(exp_rhs1, rhs['x1'])
+        self.tsAssertEqual(exp_rhs2, rhs['x2'])
+
+    def testFilterWithDictRHS(self):
+        (lhs, rhs, weights, rhs_pre,
+        index, valid) = _filter_data(self.TS1, self.DICT1, None)
+        exp_lhs = self.TS1[1:]
+        exp_rhs1 = self.TS2[1:3]
+        exp_rhs2 = self.TS4[1:3]
+        self.tsAssertEqual(exp_lhs, lhs)
+        self.tsAssertEqual(exp_rhs1, rhs['x1'])
+        self.tsAssertEqual(exp_rhs2, rhs['x2'])
+
+    def tsAssertEqual(self, ts1, ts2):
+        self.assert_(np.array_equal(ts1, ts2))
+
 
 if __name__ == '__main__':
     import nose

@@ -424,17 +424,6 @@ class TextParser(object):
 
         return lines
 
-def _maybe_convert_int_mindex(index, parse_dates, date_parser):
-    for i in range(len(index)):
-        try:
-            int(index[i][0])
-            index[i] = map(int, index[i])
-        except ValueError:
-            if parse_dates:
-                index[i] = lib.try_parse_dates(index[i], date_parser)
-
-    return index
-
 def _convert_to_ndarrays(dct, na_values):
     result = {}
     for c, values in dct.iteritems():

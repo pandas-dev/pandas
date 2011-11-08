@@ -57,8 +57,6 @@ class OLS(object):
             self.sm_ols = sm.OLS(self._y.values,
                                  self._x.values).fit()
 
-        self._y_raw = self._y_trans.values
-
     def _prepare_data(self):
         """
         Cleans the input for single OLS.
@@ -91,7 +89,7 @@ class OLS(object):
 
     @property
     def _nobs(self):
-        return len(self._y_raw)
+        return len(self._y)
 
     @property
     def nw_lags(self):
@@ -326,7 +324,7 @@ class OLS(object):
         Returns the raw covariance of beta.
         """
         x = self._x.values
-        y = self._y_raw
+        y = self._y.values
 
         xx = np.dot(x.T, x)
 
@@ -523,19 +521,19 @@ class MovingOLS(OLS):
         True if you want an intercept.
     nw_lags: None or int
         Number of Newey-West lags.
-    window_type: int
-        FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
+    window_type: {'full sample', 'rolling', 'expanding'}
+        Default expanding
     window: int
         size of window (for rolling/expanding OLS)
     """
-    def __init__(self, y, x, window_type='expanding',
+    def __init__(self, y, x, weights=None, window_type='expanding',
                  window=None, min_periods=None, intercept=True,
                  nw_lags=None, nw_overlap=False):
 
         self._args = dict(intercept=intercept, nw_lags=nw_lags,
                           nw_overlap=nw_overlap)
 
-        OLS.__init__(self, y=y, x=x, **self._args)
+        OLS.__init__(self, y=y, x=x, weights=weights, **self._args)
 
         self._set_window(window_type, window, min_periods)
 
@@ -762,6 +760,7 @@ class MovingOLS(OLS):
                 return df.values[i:i+1, :]
 
         last = np.zeros((K, K))
+
         for i, date in enumerate(dates):
             if not valid[i]:
                 cum_xx.append(last)
@@ -950,7 +949,7 @@ class MovingOLS(OLS):
     @cache_readonly
     def _resid_raw(self):
         """Returns the raw residuals."""
-        return (self._y_raw - self._y_fitted_raw)
+        return (self._y.values - self._y_fitted_raw)
 
     @cache_readonly
     def _std_err_raw(self):
@@ -1109,10 +1108,13 @@ class MovingOLS(OLS):
     def _beta_matrix(self, lag=0):
         assert(lag >= 0)
 
+        betas = self._beta_raw
+
         labels = np.arange(len(self._y)) - lag
         indexer = self._valid_obs_labels.searchsorted(labels, side='left')
+        indexer[indexer == len(betas)] = len(betas) - 1
 
-        beta_matrix = self._beta_raw[indexer]
+        beta_matrix = betas[indexer]
         beta_matrix[labels < self._valid_obs_labels[0]] = np.NaN
 
         return beta_matrix
@@ -1202,7 +1204,7 @@ def _filter_data(lhs, rhs, weights=None):
         combined['__weights__'] = weights
 
     valid = (combined.count(1) == len(combined.columns)).values
-
+    index = combined.index
     combined = combined[valid]
 
     if weights is not None:
@@ -1214,7 +1216,7 @@ def _filter_data(lhs, rhs, weights=None):
     filt_rhs = combined
 
     return (filt_lhs, filt_rhs, filt_weights,
-            pre_filt_rhs, combined.index, valid)
+            pre_filt_rhs, index, valid)
 
 # A little kludge so we can use this method for both
 # MovingOLS and MovingPanelOLS
