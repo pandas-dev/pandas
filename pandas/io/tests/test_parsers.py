@@ -406,6 +406,24 @@ and this
         df = read_table(StringIO(data), sep=' ')
         self.assert_(df.index.name is None)
 
+    def test_converters(self):
+        data = """A,B,C,D
+a,1,2,01/01/2009
+b,3,4,01/02/2009
+c,4,5,01/03/2009
+"""
+        from dateutil import parser
+
+        result = read_csv(StringIO(data), converters={'D' : parser.parse})
+        result2 = read_csv(StringIO(data), converters={3 : parser.parse})
+
+        expected = read_csv(StringIO(data))
+        expected['D'] = expected['D'].map(parser.parse)
+
+        self.assert_(isinstance(result['D'][0], datetime))
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
 class TestParseSQL(unittest.TestCase):
 
     def test_convert_sql_column_floats(self):

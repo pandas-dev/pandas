@@ -15,7 +15,7 @@ import pandas._tseries as lib
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
              date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0):
+             skip_footer=0, converters=None):
     import csv
 
     if hasattr(filepath_or_buffer, 'read'):
@@ -53,7 +53,8 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
                         date_parser=date_parser,
                         skiprows=skiprows,
                         chunksize=chunksize, buf=buf,
-                        skip_footer=skip_footer)
+                        skip_footer=skip_footer,
+                        converters=converters)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -66,13 +67,13 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
                date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0):
+               skip_footer=0, converters=None):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
                     names=names, parse_dates=parse_dates,
                     nrows=nrows, iterator=iterator, chunksize=chunksize,
-                    skip_footer=skip_footer)
+                    skip_footer=skip_footer, converters=converters)
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -105,6 +106,9 @@ chunksize : int, default None
     Return TextParser object for iteration
 skip_footer : int, default 0
     Number of line at bottom of file to skip
+converters : dict. optional
+    Dict of functions for converting values in certain columns. Keys can either
+    be integers or column labels
 
 Returns
 -------
@@ -185,7 +189,8 @@ class TextParser(object):
 
     def __init__(self, data, names=None, header=0, index_col=None,
                  na_values=None, parse_dates=False, date_parser=None,
-                 chunksize=None, skiprows=None, skip_footer=0, buf=None):
+                 chunksize=None, skiprows=None, skip_footer=0,
+                 converters=None, buf=None):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -206,6 +211,12 @@ class TextParser(object):
         self.passed_names = names is not None
         self.skiprows = set() if skiprows is None else set(skiprows)
         self.skip_footer = skip_footer
+
+        if converters is not None:
+            assert(isinstance(converters, dict))
+            self.converters = converters
+        else:
+            self.converters = {}
 
         assert(self.skip_footer >= 0)
 
@@ -384,7 +395,15 @@ class TextParser(object):
             raise Exception('wrong number of columns')
 
         data = dict((k, v) for k, v in zip(self.columns, zipped_content))
+
+        # apply converters
+        for col, f in self.converters.iteritems():
+            if isinstance(col, int) and col not in self.columns:
+                col = self.columns[col]
+            data[col] = np.vectorize(f)(data[col])
+
         data = _convert_to_ndarrays(data, self.na_values)
+
         return DataFrame(data=data, columns=self.columns, index=index)
 
     def _get_lines(self, rows=None):
