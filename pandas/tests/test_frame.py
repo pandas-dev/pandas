@@ -2556,6 +2556,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         tapplied = self.frame.apply(np.mean, axis=1)
         self.assertEqual(tapplied[d], np.mean(self.frame.xs(d)))
 
+    def test_apply_ignore_failures(self):
+        result = self.mixed_frame._apply_standard(np.mean, 0,
+                                                  ignore_failures=True)
+        expected = self.mixed_frame._get_numeric_data().apply(np.mean)
+        assert_series_equal(result, expected)
+
+        # test with hierarchical index
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
