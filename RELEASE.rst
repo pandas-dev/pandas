@@ -46,6 +46,7 @@ pandas 0.5.1
   - Implement logical (boolean) operators &, |, ^ on DataFrame (GH #347)
   - Add `Series.mad`, mean absolute deviation, matching DataFrame
   - Add `QuarterEnd` DateOffset (PR #321)
+  - Add matrix multiplication function `dot` to DataFrame (GH #65)
 
 **Improvements to existing features**
 
@@ -106,6 +107,7 @@ Thanks
 - Marius Cobzarenco
 - Jev Kuznetsov
 - Dieter Vandenbussche
+- rsamson
 
 pandas 0.5.0
 ============

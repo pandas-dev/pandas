@@ -3338,6 +3338,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for k, v in series.iteritems():
             self.assertEqual(v.name, k)
 
+    def test_dot(self):
+        a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
+                      columns=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
+                      columns=['one', 'two'])
+
+        result = a.dot(b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        assert_frame_equal(result, expected)
+        foo
+
 class TestDataFrameJoin(unittest.TestCase):
 
     def setUp(self):

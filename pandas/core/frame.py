@@ -377,6 +377,23 @@ class DataFrame(NDFrame):
     __le__ = comp_method(operator.le, '__le__')
     __ge__ = comp_method(operator.ge, '__ge__')
 
+    def dot(self, other):
+        """
+        Matrix multiplication with DataFrame objects. Does no data alignment
+
+        Parameters
+        ----------
+        other : DataFrame
+
+        Returns
+        -------
+        dot_product : DataFrame
+        """
+        lvals = self.values
+        rvals = other.values
+        result = np.dot(lvals, rvals)
+        return DataFrame(result, index=self.index, columns=other.columns)
+
     #----------------------------------------------------------------------
     # IO methods (to / from other formats)
 
