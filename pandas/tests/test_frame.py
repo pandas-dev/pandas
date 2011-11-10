@@ -3514,6 +3514,39 @@ class TestDataFrameJoin(unittest.TestCase):
 
         a.join(d)
 
+    def test_join_multiindex(self):
+        index1 = MultiIndex.from_arrays([['a','a','a','b','b','b'],
+                                         [1,2,3,1,2,3]],
+                                        names=['first', 'second'])
+
+        index2 = MultiIndex.from_arrays([['b','b','b','c','c','c'],
+                                         [1,2,3,1,2,3]],
+                                        names=['first', 'second'])
+
+        df1 = DataFrame(data=np.random.randn(6), index=index1,
+                        columns=['var X'])
+        df2 = DataFrame(data=np.random.randn(6), index=index2,
+                        columns=['var Y'])
+
+        df1 = df1.sortlevel(0)
+        df2 = df2.sortlevel(0)
+
+        joined = df1.join(df2, how='outer')
+        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        assert_frame_equal(joined, expected)
+        self.assertEqual(joined.index.names, index1.names)
+
+        df1 = df1.sortlevel(1)
+        df2 = df2.sortlevel(1)
+
+        joined = df1.join(df2, how='outer').sortlevel(0)
+        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        assert_frame_equal(joined, expected)
+        self.assertEqual(joined.index.names, index1.names)
+
+
 def _join_by_hand(a, b, how='left'):
     join_index = a.index.join(b.index, how=how)
 

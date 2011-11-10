@@ -91,7 +91,7 @@ class Index(np.ndarray):
 
     @cache_readonly
     def is_monotonic(self):
-        return self._is_monotonic(self)
+        return self._is_monotonic(self.values)
 
     _indexMap = None
     _integrity = False
@@ -517,6 +517,9 @@ class Index(np.ndarray):
             return join_index
 
     def _join_monotonic(self, other, how='left', return_indexers=False):
+        this_vals = self.values
+        other_vals = other.values
+
         if how == 'left':
             join_index = self
             lidx = None
@@ -526,11 +529,13 @@ class Index(np.ndarray):
             lidx = lib.left_join_indexer_object(other, self)
             ridx = None
         elif how == 'inner':
-            join_index, lidx, ridx = lib.inner_join_indexer_object(self, other)
-            join_index = Index(join_index)
+            join_index, lidx, ridx = lib.inner_join_indexer_object(this_vals,
+                                                                   other_vals)
+            join_index = self._wrap_joined_index(join_index, other)
         elif how == 'outer':
-            join_index, lidx, ridx = lib.outer_join_indexer_object(self, other)
-            join_index = Index(join_index)
+            join_index, lidx, ridx = lib.outer_join_indexer_object(this_vals,
+                                                                   other_vals)
+            join_index = self._wrap_joined_index(join_index, other)
         else:  # pragma: no cover
             raise Exception('do not recognize join method %s' % how)
 
@@ -538,6 +543,10 @@ class Index(np.ndarray):
             return join_index, lidx, ridx
         else:
             return join_index
+
+    def _wrap_joined_index(self, joined, other):
+        name = self.name if self.name == other.name else None
+        return Index(joined, name=name)
 
     def slice_locs(self, start=None, end=None):
         """
@@ -1640,6 +1649,11 @@ class MultiIndex(Index):
             self.__bounds = self.labels[0].searchsorted(inds)
 
         return self.__bounds
+
+
+    def _wrap_joined_index(self, joined, other):
+        names = self.names if self.names == other.names else None
+        return MultiIndex.from_tuples(joined, names=names)
 
 # For utility purposes
 
