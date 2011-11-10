@@ -1,3 +1,5 @@
+from __future__ import division
+
 # pylint: disable-msg=W0402
 
 from datetime import datetime
@@ -116,7 +118,7 @@ def assert_dict_equal(a, b, compare_keys=True):
         assert_almost_equal(a[k], b[k])
 
 def assert_series_equal(left, right):
-    assert_almost_equal(left, right)
+    assert_almost_equal(left.values, right.values)
     assert(left.dtype == right.dtype)
     assert(left.index.equals(right.index))
 

@@ -1,6 +1,7 @@
 import numpy as np
 import cPickle
 
+from pandas.core.common import save, load
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.datetools as datetools
 
@@ -9,20 +10,12 @@ import pandas.core.datetools as datetools
 
 class Picklable(object):
 
-    def save(self, fileName):
-        f = open(fileName, 'wb')
-        try:
-            cPickle.dump(self, f, protocol=cPickle.HIGHEST_PROTOCOL)
-        finally:
-            f.close()
+    def save(self, path):
+        save(self, path)
 
     @classmethod
-    def load(cls, fileName):
-        f = open(fileName, 'rb')
-        try:
-            return cPickle.load(f)
-        finally:
-            f.close()
+    def load(cls, path):
+        return load(path)
 
 class PandasError(Exception):
     pass
@@ -211,7 +204,7 @@ class PandasObject(Picklable):
     def ix(self):
         raise NotImplementedError
 
-    def reindex(self, **kwds):
+    def reindex(self, *args, **kwds):
         raise NotImplementedError
 
 class NDFrame(PandasObject):
@@ -328,7 +321,7 @@ class NDFrame(PandasObject):
             axis = self._get_axis_number(axis)
 
         y = self.values.copy()
-        if not issubclass(y.dtype.type, np.int_):
+        if not issubclass(y.dtype.type, np.integer):
             mask = np.isnan(self.values)
 
             if skipna:
@@ -367,7 +360,7 @@ class NDFrame(PandasObject):
             axis = self._get_axis_number(axis)
 
         y = self.values.copy()
-        if not issubclass(y.dtype.type, np.int_):
+        if not issubclass(y.dtype.type, np.integer):
             mask = np.isnan(self.values)
 
             if skipna:
@@ -458,3 +451,60 @@ class NDFrame(PandasObject):
         """
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data)
+
+    def rename_axis(self, mapper, axis=0, copy=True):
+        """
+        Alter index and / or columns using input function or functions.
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is.
+
+        Parameters
+        ----------
+        mapper : dict-like or function, optional
+        axis : int, default 0
+        copy : boolean, default True
+            Also copy underlying data
+
+        See also
+        --------
+        DataFrame.rename
+
+        Returns
+        -------
+        renamed : type of caller
+        """
+        # should move this at some point
+        from pandas.core.series import _get_rename_function
+
+        mapper_f = _get_rename_function(mapper)
+
+        if axis == 0:
+            new_data = self._data.rename_items(mapper_f, copydata=copy)
+        else:
+            new_data = self._data.rename_axis(mapper_f, axis=axis)
+            if copy:
+                new_data = new_data.copy()
+
+        return self._constructor(new_data)
+
+    def take(self, indices, axis=0):
+        """
+        Analogous to ndarray.take
+
+        Parameters
+        ----------
+        indices : list / array of ints
+        axis : int, default 0
+
+        Returns
+        -------
+        taken : type of caller
+        """
+        if axis == 0:
+            labels = self._get_axis(axis)
+            new_items = labels.take(indices)
+            new_data = self._data.reindex_items(new_items)
+        else:
+            new_data = self._data.take(indices, axis=axis)
+        return self._constructor(new_data)
+

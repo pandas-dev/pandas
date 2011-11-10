@@ -187,6 +187,17 @@ As we will see later on, the same operation could be accomplished by
 reindexing. However, the syntax would be more verbose; hence, the inclusion of
 this indexing method.
 
+Selecting DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can pass a list of columns to ``[]`` to select columns in that order:
+
+.. ipython:: python
+
+   df[['C', 'A', 'B']]
+
+If a column is not contained in the DataFrame, an exception will be raised:
+
 .. _indexing.advanced:
 
 Advanced indexing with labels
@@ -302,6 +313,58 @@ values, though setting arbitrary vectors is not yet supported:
    df2.ix[3] = np.nan
    df2
 
+.. _indexing.class:
+
+Index objects
+-------------
+
+The pandas Index class and its subclasses can be viewed as implementing an
+*ordered set* in addition to providing the support infrastructure necessary for
+lookups, data alignment, and reindexing. The easiest way to create one directly
+is to pass a list or other sequence to ``Index``:
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'])
+   index
+   'd' in index
+
+You can also pass a ``name`` to be stored in the index:
+
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'], name='something')
+   index.name
+
+Starting with pandas 0.5, the name, if set, will be shown in the console
+display:
+
+.. ipython:: python
+
+   index = Index(range(5), name='rows')
+   columns = Index(['A', 'B', 'C'], name='cols')
+   df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
+   df
+   df['A']
+
+
+Set operations on Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
+(-)``. These can be directly called as instance methods or used via overloaded
+operators:
+
+.. ipython:: python
+
+   a = Index(['c', 'b', 'a'])
+   b = Index(['c', 'e', 'd'])
+   a.union(b)
+   a | b
+   a & b
+   a - b
+
 .. _indexing.hierarchical:
 
 Hierarchical indexing (MultiIndex)
@@ -346,9 +409,17 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = zip(*arrays)
    tuples
-   index = MultiIndex.from_tuples(tuples)
+   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    s = Series(randn(8), index=index)
    s
+
+All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
+string names for the levels themselves. If no names are provided, some
+arbitrary ones will be assigned:
+
+.. ipython:: python
+
+   index.names
 
 This index can back any axis of a pandas object, and the number of **levels**
 of the index is up to you:
@@ -376,17 +447,17 @@ can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
-Level names
-~~~~~~~~~~~
+Reconstructing the level labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
-string names for the levels themselves. This will get increasingly integrated
-in to groupby and reshaping routines. If no names are provided, some arbitrary
-ones will be assigned:
+The method ``get_level_values`` will return a vector of the labels for each
+location at a particular level:
 
 .. ipython:: python
 
-   index.names
+   index.get_level_values(0)
+   index.get_level_values(1)
+
 
 Basic indexing on axis with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -550,14 +621,15 @@ attribute. These will get automatically assigned in various places where
 Some gory internal details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Internally, the ``MultiIndex`` consists of two things: the **levels** and the
-**labels**:
+Internally, the ``MultiIndex`` consists of a few things: the **levels**, the
+integer **labels**, and the level **names**:
 
 .. ipython:: python
 
    index
    index.levels
    index.labels
+   index.names
 
 You can probably guess that the labels determine which unique element is
 identified with that location at each layer of the index. It's important to
@@ -576,6 +648,54 @@ To do this, use the ``swaplevels`` function:
    df
    df.swaplevels(0, 1)
 
+Adding an index to an existing DataFrame
+----------------------------------------
+
+Occasionally you will load or create a data set into a DataFrame and want to
+add an index after you've already done so. There are a couple of different
+ways.
+
+Add an index using DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+DataFrame has a ``set_index`` method which takes a column name (for a regular
+``Index``) or a list of column names (for a ``MultiIndex``), to create a new,
+indexed DataFrame:
+
+.. ipython:: python
+   :suppress:
+
+   data = DataFrame({'a' : ['bar', 'bar', 'foo', 'foo'],
+                     'b' : ['one', 'two', 'one', 'two'],
+                     'c' : ['z', 'y', 'x', 'w'],
+                     'd' : [1., 2., 3, 4]})
+
+.. ipython:: python
+
+   data
+   indexed1 = data.set_index('c')
+   indexed1
+   indexed2 = data.set_index(['a', 'b'])
+   indexed2
+
+Other options in ``set_index`` allow you not drop the index columns or to add
+the index in-place (without creating a new object):
+
+.. ipython:: python
+
+   data.set_index('c', drop=False)
+   df = data.set_index(['a', 'b'], inplace=True)
+   data
+
+Adding an ad hoc index
+~~~~~~~~~~~~~~~~~~~~~~
+
+If you create an index yourself, you can just assign it to the ``index`` field:
+
+.. code-block:: python
+
+   df.index = index
+
 Indexing internal details
 -------------------------
 
@@ -585,13 +705,15 @@ Indexing internal details
     codebase. And the source code is still the best place to look at the
     specifics of how things are implemented.
 
-In pandas there are 3 distinct objects which can serve as valid containers for
-the axis labels:
+In pandas there are a few objects implemented which can serve as valid
+containers for the axis labels:
 
   - ``Index``: the generic "ordered set" object, an ndarray of object dtype
     assuming nothing about its contents. The labels must be hashable (and
     likely immutable) and unique. Populates a dict of label to location in
     Cython to do :math:`O(1)` lookups.
+  - ``Int64Index``: a version of ``Index`` highly optimized for 64-bit integer
+    data, such as time stamps
   - ``MultiIndex``: the standard hierarchical index object
   - ``DateRange``: fixed frequency date range generated from a time rule or
     DateOffset. An ndarray of Python datetime objects

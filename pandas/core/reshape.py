@@ -85,12 +85,8 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = np.zeros(len(self.index), dtype=int)
-
-        for i in xrange(len(new_levels)):
-            stride = np.prod([len(x) for x in new_levels[i+1:]],
-                             dtype=int)
-            group_index += self.sorted_labels[i] * stride
+        group_index = get_group_index(self.sorted_labels,
+                                      [len(x) for x in new_levels])
 
         group_mask = np.zeros(self.full_shape[0], dtype=bool)
         group_mask.put(group_index, True)
@@ -194,6 +190,13 @@ class _Unstacker(object):
 
         return new_index
 
+def get_group_index(label_list, shape):
+    group_index = np.zeros(len(label_list[0]), dtype=int)
+    for i in xrange(len(shape)):
+        stride = np.prod([x for x in shape[i+1:]], dtype=int)
+        group_index += label_list[i] * stride
+    return group_index
+
 def pivot(self, index=None, columns=None, values=None):
     """
     See DataFrame.pivot
@@ -287,6 +290,11 @@ def stack(frame, level=-1, dropna=True):
     stacked : Series
     """
     N, K = frame.shape
+    if isinstance(level, int) and level < 0:
+        level += frame.columns.nlevels
+
+    level = frame.columns._get_level_number(level)
+
     if isinstance(frame.columns, MultiIndex):
         return _stack_multi_columns(frame, level=level, dropna=True)
     elif isinstance(frame.index, MultiIndex):
@@ -316,8 +324,6 @@ def stack(frame, level=-1, dropna=True):
 
 def _stack_multi_columns(frame, level=-1, dropna=True):
     this = frame.copy()
-    if level < 0:
-        level += frame.columns.nlevels
 
     # this makes life much simpler
     if level != frame.columns.nlevels - 1:
@@ -388,3 +394,52 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
     return result
 
+
+def melt(frame, id_vars=None, value_vars=None):
+    """
+    "Unpivots" a DataFrame from wide format to long format, optionally leaving
+    id variables set
+
+    Parameters
+    ----------
+    frame : DataFrame
+    id_vars :
+    value_vars :
+
+    Examples
+    --------
+    >>> df
+    A B C
+    a 1 2
+    b 3 4
+    c 5 6
+
+    >>> melt(df, ['A'])
+    A variable value
+    a B        1
+    b B        3
+    c B        5
+    a C        2
+    b C        4
+    c C        6
+    """
+    # TODO: what about the existing index?
+
+    N, K = frame.shape
+
+    mdata = {}
+
+    if id_vars is not None:
+        idvars = list(idvars)
+        frame = frame.copy()
+        K -= len(idvars)
+        for col in idvars:
+            mdata[col] = np.tile(frame.pop(col).values, K)
+    else:
+        idvars = []
+
+    mcolumns = idvars + ['variable', 'value']
+
+    mdata['value'] = frame.values.ravel('F')
+    mdata['variable'] = np.asarray(frame.columns).repeat(N)
+    return DataFrame(mdata, columns=mcolumns)

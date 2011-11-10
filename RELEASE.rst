@@ -8,36 +8,123 @@ see the commit logs at http://github.com/wesm/pandas
 What is it
 ----------
 
-**pandas** is a library of powerful labeled-axis data structures, statistical
-tools, and general code for working with relational data sets, including time
-series and cross-sectional data. It was designed with the practical needs of
-statistical modeling and large, inhomogeneous data sets in mind. It is
-particularly well suited for, among other things, financial data analysis
-applications.
+pandas is a Python package providing fast, flexible, and expressive data
+structures designed to make working with “relational” or “labeled” data both
+easy and intuitive. It aims to be the fundamental high-level building block for
+doing practical, real world data analysis in Python. Additionally, it has the
+broader goal of becoming the most powerful and flexible open source data
+analysis / manipulation tool available in any language.
 
 Where to get it
 ---------------
 
-Source code: http://github.com/wesm/pandas
-Binary installers on PyPI: http://pypi.python.org/pypi/pandas
-Documentation: http://pandas.sourceforge.net
+* Source code: http://github.com/wesm/pandas
+* Binary installers on PyPI: http://pypi.python.org/pypi/pandas
+* Documentation: http://pandas.sourceforge.net
+
+pandas 0.5.1
+============
+
+**Release date:** Not yet released
+
+**New features / modules**
+
+  - Add `melt` function to `pandas.core.reshape`
+  - Add `level` parameter to group by level in Series and DataFrame
+    descriptive statistics (PR #313)
+  - Add `head` and `tail` methods to Series, analogous to to DataFrame (PR
+    #296)
+  - Add `Series.isin` function which checks if each value is contained in a
+    passed sequence (GH #289)
+  - Add `float_format` option to `Series.to_string`
+  - Add `skip_footer` (GH #291) and `converters` (GH #343 ) options to
+    `read_csv` and `read_table`
+  - Add proper, tested weighted least squares to standard and panel OLS (GH
+    #303)
+  - Add `drop_duplicates` and `duplicated` functions for removing duplicate
+    DataFrame rows and checking for duplicate rows, respectively (GH #319)
+  - Implement logical (boolean) operators &, |, ^ on DataFrame (GH #347)
+  - Add `Series.mad`, mean absolute deviation, matching DataFrame
+  - Add `QuarterEnd` DateOffset (PR #321)
+  - Add matrix multiplication function `dot` to DataFrame (GH #65)
+
+**Improvements to existing features**
+
+  - Sped up `DataFrame.apply` performance in most cases
+  - Raise more helpful exception if date parsing fails in DateRange (GH #298)
+  - Vastly improved performance of GroupBy on axes with a MultiIndex (GH #299)
+  - Print level names in hierarchical index in Series repr (GH #305)
+  - Return DataFrame when performing GroupBy on selected column and
+    as_index=False (GH #308)
+  - Can pass vector to `on` argument in `DataFrame.join` (GH #312)
+  - Don't show Series name if it's None in the repr, also omit length for short
+    Series (GH #317)
+  - Show legend by default in `DataFrame.plot`, add `legend` boolean flag (GH
+    #324)
+  - Significantly improved performance of `Series.order`, which also makes
+    np.unique called in a Series faster (GH #327)
+  - Faster cythonized count by level in Series and DataFrame (GH #341)
+  - Raise exception if dateutil 2.0 installed on Python 2.x runtime (GH #346)
+  - Significant GroupBy performance enhancement with multiple keys with many
+    "empty" combinations
+
+**Bug fixes**
+
+  - Fix bug in `DataFrame.to_csv` when writing a DataFrame with an index
+    name (GH #290)
+  - DataFrame should clear its Series caches on consolidation, was causing
+    "stale" Series to be returned in some corner cases (GH #304)
+  - DataFrame constructor failed if a column had a list of tuples (GH #293)
+  - Ensure that `Series.apply` always returns a Series and implement
+    `Series.round` (GH #314)
+  - Support boolean columns in Cythonized groupby functions (GH #315)
+  - `DataFrame.describe` should not fail if there are no numeric columns,
+    instead return categorical describe (GH #323)
+  - Fixed bug which could cause columns to be printed in wrong order in
+    `DataFrame.to_string` if specific list of columns passed (GH #325)
+  - Fix legend plotting failure if DataFrame columns are integers (GH #326)
+  - Shift start date back by one month for Yahoo! Finance API in pandas.io.data
+    (GH #329)
+  - Fix `DataFrame.join` failure on unconsolidated inputs (GH #331)
+  - DataFrame.min/max will no longer fail on mixed-type DataFrame (GH #337)
+  - Fix `read_csv` / `read_table` failure when passing list to index_col that is
+    not in ascending order (GH #349)
+  - Fix failure passing Int64Index to Index.union when both are monotonic
+  - Fix error when passing SparseSeries to (dense) DataFrame constructor
+  - Added missing bang at top of setup.py (GH #352)
+  - Change `is_monotonic` on MultiIndex so it properly compares the tuples
+  - Fix MultiIndex outer join logic (GH #351)
+
+Thanks
+------
+
+- Kieran O'Mahony
+- Jeff Hammerbacher
+- Adam Klein
+- Nathan Pinger
+- Wouter Overmeire
+- carljv
+- Marius Cobzarenco
+- Jev Kuznetsov
+- Dieter Vandenbussche
+- rsamson
 
 pandas 0.5.0
 ============
 
-**Release date:** not yet released
+**Release date:** 10/24/2011
 
 This release of pandas includes a number of API changes (see below) and cleanup
-of deprecated APIs from pre-0.4.0 releases. There are also bug fixes, some new
-features, performance enhancements, and includes a new IPython completer hook to
-enable tab completion of DataFrame columns accesses as attributes (a new
-feature).
+of deprecated APIs from pre-0.4.0 releases. There are also bug fixes, new
+features, numerous significant performance enhancements, and includes a new
+IPython completer hook to enable tab completion of DataFrame columns accesses
+as attributes (a new feature).
 
 In addition to the changes listed here from 0.4.3 to 0.5.0, the minor releases
 0.4.1, 0.4.2, and 0.4.3 brought some significant new functionality and
 performance improvements that are worth taking a look at.
 
-Thanks to Thomas Kluyver and others for contributing patches and providing
+Thanks to all for bug reports, contributed patches and generally providing
 feedback on the library.
 
 **API Changes**
@@ -52,6 +139,12 @@ feedback on the library.
   - Changed `buffer` argument name in `Series.to_string` to `buf`
   - `Series.to_string` and `DataFrame.to_string` now return strings by default
     instead of printing to sys.stdout
+  - Deprecated `nanRep` argument in various `to_string` and `to_csv` functions
+    in favor of `na_rep`. Will be removed in 0.6 (GH #275)
+  - Renamed `delimiter` to `sep` in `DataFrame.from_csv` for consistency
+  - Changed order of `Series.clip` arguments to match those of `numpy.clip` and
+    added (unimplemented) `out` argument so `numpy.clip` can be called on a
+    Series (GH #272)
   - Series functions renamed (and thus deprecated) in 0.4 series have been
     removed:
 
@@ -104,6 +197,9 @@ feedback on the library.
   - Added `DataFrame.align` method with standard join options
   - Added `parse_dates` option to `read_csv` and `read_table` methods to
     optionally try to parse dates in the index columns
+  - Add `nrows`, `chunksize`, and `iterator` arguments to `read_csv` and
+    `read_table`. The last two return a new `TextParser` class capable of
+    lazily iterating through chunks of a flat file (GH #242)
   - Added ability to join on multiple columns in `DataFrame.join` (GH #214)
   - Added private `_get_duplicates` function to `Index` for identifying
     duplicate values more easily
@@ -114,6 +210,16 @@ feedback on the library.
   - Add inner join option to `DataFrame.join` when joining on key(s) (GH #248)
   - Can select set of DataFrame columns by passing a list to `__getitem__` (GH
     #253)
+  - Can use & and | to intersection / union Index objects, respectively (GH
+    #261)
+  - Added `pivot_table` convenience function to pandas namespace (GH #234)
+  - Implemented `Panel.rename_axis` function (GH #243)
+  - DataFrame will show index level names in console output
+  - Implemented `Panel.take`
+  - Add `set_eng_float_format` function for setting alternate DataFrame
+    floating point string formatting
+  - Add convenience `set_index` function for creating a DataFrame index from
+    its existing columns
 
 **Improvements to existing features**
 
@@ -135,9 +241,24 @@ feedback on the library.
   - Can pass hierarchical index level name to `groupby` instead of the level
     number if desired (GH #223)
   - Add support for different delimiters in `DataFrame.to_csv` (PR #244)
+  - Add more helpful error message when importing pandas post-installation from
+    the source directory (GH #250)
+  - Significantly speed up DataFrame `__repr__` and `count` on large mixed-type
+    DataFrame objects
+  - Better handling of pyx file dependencies in Cython module build (GH #271)
 
 **Bug fixes**
 
+  - `read_csv` / `read_table` fixes
+    - Be less aggressive about converting float->int in cases of floating point
+      representations of integers like 1.0, 2.0, etc.
+    - "True"/"False" will not get correctly converted to boolean
+    - Index name attribute will get set when specifying an index column
+    - Passing column names should force `header=None` (GH #257)
+    - Don't modify passed column names when `index_col` is not
+      None (GH #258)
+    - Can sniff CSV separator in zip file (since seek is not supported, was
+      failing before)
   - Worked around matplotlib "bug" in which series[:, np.newaxis] fails. Should
     be reported upstream to matplotlib (GH #224)
   - DataFrame.iteritems was not returning Series with the name attribute
@@ -155,14 +276,21 @@ feedback on the library.
   - `DataFrame.iteritems` and `DataFrame._series` not assigning name attribute
   - Panel.__repr__ raised exception on length-0 major/minor axes
   - `DataFrame.join` on key with empty DataFrame produced incorrect columns
-  - `read_csv` / `read_table` fixes
-    - Be less aggressive about converting float->int in cases of floating point
-      representations of integers like 1.0, 2.0, etc.
-    - "True"/"False" will not get correctly converted to boolean
-    - Index name attribute will get set when specifying an index column
-    - Passing column names should force `header=None` (GH #257)
-    - Don't modify passed column names when `index_col` is not
-      None (GH #258)
+  - Implemented `MultiIndex.diff` (GH #260)
+  - `Int64Index.take` and `MultiIndex.take` lost name field, fix downstream
+    issue GH #262
+  - Can pass list of tuples to `Series` (GH #270)
+  - Can pass level name to `DataFrame.stack`
+  - Support set operations between MultiIndex and Index
+  - Fix many corner cases in MultiIndex set operations
+    - Fix MultiIndex-handling bug with GroupBy.apply when returned groups are not
+    indexed the same
+  - Fix corner case bugs in DataFrame.apply
+  - Setting DataFrame index did not cause Series cache to get cleared
+  - Various int32 -> int64 platform-specific issues
+  - Don't be too aggressive converting to integer when parsing file with
+    MultiIndex (GH #285)
+  - Fix bug when slicing Series with negative indices before beginning
 
 Thanks
 ------
@@ -171,6 +299,7 @@ Thanks
 - Daniel Fortunov
 - Aman Thakral
 - Luca Beltrame
+- Wouter Overmeire
 
 pandas 0.4.3
 ============

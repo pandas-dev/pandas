@@ -49,9 +49,6 @@ cdef double_t *get_double_ptr(ndarray arr):
 cdef extern from "math.h":
     double sqrt(double x)
 
-#cdef extern from "cobject.h":
-#    pass # for datetime API
-
 cdef extern from "datetime.h":
 
     ctypedef class datetime.datetime [object PyDateTime_DateTime]:
@@ -167,6 +164,38 @@ def isAllDates(ndarray[object, ndim=1] arr):
 
     return True
 
+def ismember(ndarray arr, set values):
+    '''
+    Checks whether
+
+    Parameters
+    ----------
+    arr : ndarray
+    values : set
+
+    Returns
+    -------
+    ismember : ndarray (boolean dtype)
+    '''
+    cdef:
+        Py_ssize_t i, n
+        flatiter it
+        ndarray[uint8_t] result
+        object val
+
+    it = <flatiter> PyArray_IterNew(arr)
+    n = len(arr)
+    result = np.empty(n, dtype=np.uint8)
+    for i from 0 <= i < n:
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        if val in values:
+            result[i] = 1
+        else:
+            result[i] = 0
+        PyArray_ITER_NEXT(it)
+
+    return result.view(np.bool_)
+
 #----------------------------------------------------------------------
 # datetime / io related
 
@@ -223,39 +252,27 @@ def array_to_datetime(ndarray[int64_t, ndim=1] arr):
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef inline _isnan(object o):
-    return o != o
-
 cdef inline _checknull(object val):
+    return val is None or val != val
+
+cpdef checknull(object val):
     if isinstance(val, (float, np.floating)):
         return val != val or val == INF or val == NEGINF
     else:
-        return val is None
+        return _checknull(val)
 
-cpdef checknull(object val):
-    return _checknull(val)
-
-def isnullobj(ndarray input):
-    cdef int i, length
+def isnullobj(ndarray[object] arr):
+    cdef Py_ssize_t i, n
     cdef object val
-    cdef ndarray[npy_int8, ndim=1] result
-    cdef flatiter iter
+    cdef ndarray[uint8_t] result
 
-    length = PyArray_SIZE(input)
-
-    result = <ndarray> np.zeros(length, dtype=np.int8)
-
-    iter= PyArray_IterNew(input)
-
-    for i from 0 <= i < length:
-        val = PyArray_GETITEM(input, PyArray_ITER_DATA(iter))
-
+    n = len(arr)
+    result = np.zeros(n, dtype=np.uint8)
+    for i from 0 <= i < n:
+        val = arr[i]
         if _checknull(val):
             result[i] = 1
-
-        PyArray_ITER_NEXT(iter)
-
-    return result
+    return result.view(np.bool_)
 
 def list_to_object_array(list obj):
     '''

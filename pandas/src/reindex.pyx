@@ -91,7 +91,7 @@ def ordered_left_join(ndarray[object] left, ndarray[object] right):
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[int32_t] indexer
-        ndarray[uint8_t, cast=True] mask
+        ndarray[uint8_t] mask
         object val
 
     i = 0
@@ -100,7 +100,7 @@ def ordered_left_join(ndarray[object] left, ndarray[object] right):
     k = len(right)
 
     indexer = np.zeros(n, dtype=np.int32)
-    mask = np.ones(n, dtype=np.bool)
+    mask = np.ones(n, dtype=np.uint8)
 
     for i from 0 <= i < n:
         val = left[i]
@@ -115,7 +115,7 @@ def ordered_left_join(ndarray[object] left, ndarray[object] right):
             indexer[i] = j
             mask[i] = 0
 
-    return indexer, mask
+    return indexer, mask.view(np.bool_)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

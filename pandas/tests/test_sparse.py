@@ -135,6 +135,10 @@ class TestSparseSeries(TestCase,
         self.ziseries2 = SparseSeries(arr, index=index, kind='integer',
                                       fill_value=0)
 
+    def test_construct_DataFrame_with_sp_series(self):
+        # it works!
+        df = DataFrame({'col' : self.bseries})
+
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
         series = self.bseries.to_dense()
@@ -250,7 +254,7 @@ class TestSparseSeries(TestCase,
         self.assert_((self.bseries.sp_values[:5] == 5).all())
 
     def test_astype(self):
-        self.assertRaises(Exception, self.bseries.astype, np.int_)
+        self.assertRaises(Exception, self.bseries.astype, np.int64)
 
     def test_kind(self):
         self.assertEquals(self.bseries.kind, 'block')
@@ -958,7 +962,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assert_(isinstance(result, SparseDataFrame))
 
     def test_astype(self):
-        self.assertRaises(Exception, self.frame.astype, np.int_)
+        self.assertRaises(Exception, self.frame.astype, np.int64)
 
     def test_fillna(self):
         self.assertRaises(NotImplementedError, self.frame.fillna, 0)

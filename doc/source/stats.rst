@@ -200,7 +200,7 @@ Let's pull in some sample data:
    data = dict((sym, DataReader(sym, "yahoo"))
                for sym in symbols)
    panel = Panel(data).swapaxes('items', 'minor')
-   close_px = panel['close']
+   close_px = panel['Close']
 
    # convert closing prices to returns
    rets = close_px / close_px.shift(1) - 1
@@ -289,7 +289,7 @@ actually quite easy:
 .. ipython:: python
 
    # make the units somewhat comparable
-   volume = panel['volume'] / 1e8
+   volume = panel['Volume'] / 1e8
    model = ols(y=volume, x={'return' : np.abs(rets)})
    model
 

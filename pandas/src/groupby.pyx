@@ -104,6 +104,41 @@ def groupby_indices(ndarray values):
 
     return result
 
+# def get_group_index(list list_of_arrays, tuple tshape):
+#     '''
+#     Should just use NumPy, this is slower
+#     '''
+#     cdef:
+#         int32_t **vecs
+#         int32_t *strides
+#         int32_t cur, stride
+#         ndarray[int32_t] result
+#         Py_ssize_t i, j, n, nlevels, ngroups
+
+#     nlevels = len(list_of_arrays)
+#     n = len(list_of_arrays[0])
+
+#     strides = <int32_t*> malloc(nlevels * sizeof(int32_t))
+#     vecs = to_ptr_array(list_of_arrays)
+
+#     result = np.empty(n, dtype='i4')
+
+#     ngroups = 1
+#     for j from 0 <= j < nlevels:
+#         strides[j] = tshape[j]
+#         ngroups *= strides[j]
+
+#     for i from 0 <= i < n:
+#         cur = 0
+#         stride = ngroups
+#         for j from 0 <= j < nlevels:
+#             stride /= strides[j]
+#             cur += vecs[j][i] * stride
+#         result[i] = cur
+
+#     free(strides)
+#     free(vecs)
+#     return result
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -116,10 +151,9 @@ def is_lexsorted(list list_of_arrays):
     nlevels = len(list_of_arrays)
     n = len(list_of_arrays[0])
 
-    cdef int32_t **vecs = <int32_t **> malloc(nlevels * sizeof(int32_t*))
+    cdef int32_t **vecs = <int32_t**> malloc(nlevels * sizeof(int32_t*))
     for i from 0 <= i < nlevels:
         vecs[i] = <int32_t *> (<ndarray> list_of_arrays[i]).data
-
     # assume uniqueness??
 
     for i from 1 <= i < n:
@@ -267,7 +301,7 @@ def group_aggregate(ndarray[double_t] values, list label_list,
 
     func = get_agg_func(how)
 
-    values, sorted_labels = _group_reorder(values, label_list)
+    values, sorted_labels = _group_reorder(values, label_list, shape)
     result = np.empty(shape, dtype=np.float64)
     result.fill(nan)
 
@@ -284,11 +318,49 @@ def group_aggregate(ndarray[double_t] values, list label_list,
 
     return result, counts
 
-def _group_reorder(values, label_list):
+def _group_reorder(values, label_list, shape):
+    # group_index = np.zeros(len(label_list[0]), dtype='i4')
+    # for i in xrange(len(shape)):
+    #     stride = np.prod([x for x in shape[i+1:]], dtype='i4')
+    #     group_index += label_list[i] * stride
+    # na_mask = np.zeros(len(label_list[0]), dtype=bool)
+    # for arr in label_list:
+    #     na_mask |= arr == -1
+    # group_index[na_mask] = -1
+
+    # indexer = groupsort_indexer(group_index, np.prod(shape))
+
     indexer = np.lexsort(label_list[::-1])
     sorted_labels = [labels.take(indexer) for labels in label_list]
     sorted_values = values.take(indexer)
     return sorted_values, sorted_labels
+
+@cython.wraparound(False)
+def groupsort_indexer(ndarray[int32_t] index, Py_ssize_t ngroups):
+    cdef:
+        Py_ssize_t i, loc, label, n
+        ndarray[int32_t] counts, where, result
+
+    # count group sizes, location 0 for NA
+    counts = np.zeros(ngroups + 1, dtype='i4')
+    n = len(index)
+    for i from 0 <= i < n:
+        counts[index[i] + 1] += 1
+
+    # mark the start of each contiguous group of like-indexed data
+    where = np.zeros(ngroups + 1, dtype='i4')
+    for i from 1 <= i < ngroups + 1:
+        where[i] = where[i - 1] + counts[i - 1]
+
+    # this is our indexer
+    result = np.zeros(n, dtype='i4')
+    for i from 0 <= i < n:
+        label = index[i] + 1
+        result[where[label]] = i
+        where[label] += 1
+
+    return result
+
 
 cdef int _aggregate_group(double_t *out, int32_t *counts, double_t *values,
                            list labels, int start, int end, tuple shape,
@@ -452,6 +524,66 @@ def _bucket_locs(index, buckets, inclusive=False):
         locs = index.searchsorted(buckets, side='right')
 
     return locs
+
+def count_level_1d(ndarray[uint8_t, cast=True] mask,
+                   ndarray[int32_t] labels, Py_ssize_t max_bin):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[int64_t] counts
+
+    counts = np.zeros(max_bin, dtype='i8')
+
+    n = len(mask)
+
+    for i from 0 <= i < n:
+        if mask[i]:
+            counts[labels[i]] += 1
+
+    return counts
+
+def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
+                   ndarray[int32_t] labels, Py_ssize_t max_bin):
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[int64_t, ndim=2] counts
+
+    n, k = (<object> mask).shape
+    counts = np.zeros((max_bin, k), dtype='i8')
+
+    for i from 0 <= i < n:
+        for j from 0 <= j < k:
+            if mask[i, j]:
+                counts[labels[i], j] += 1
+
+    return counts
+
+def duplicated(list values, take_last=False):
+    cdef:
+        Py_ssize_t i, n
+        dict seen = {}
+        object row
+
+    n = len(values)
+    cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
+
+    if take_last:
+        for i from n > i >= 0:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = None
+                result[i] = 0
+    else:
+        for i from 0 <= i < n:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = None
+                result[i] = 0
+
+    return result.view(np.bool_)
 
 '''
 

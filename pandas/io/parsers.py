@@ -1,6 +1,10 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+from __future__ import print_function
+
+from StringIO import StringIO
+import zipfile
 
 import numpy as np
 
@@ -8,10 +12,10 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import pandas._tseries as lib
 
-
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None):
+             date_parser=None, nrows=None, iterator=False, chunksize=None,
+             skip_footer=0, converters=None):
     import csv
 
     if hasattr(filepath_or_buffer, 'read'):
@@ -31,41 +35,50 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
         dia.delimiter = sep
     # attempt to sniff the delimiter
     if sniff_sep:
-        sample = f.readline()
-        sniffed = csv.Sniffer().sniff(sample)
+        line = f.readline()
+        sniffed = csv.Sniffer().sniff(line)
         dia.delimiter = sniffed.delimiter
-        f.seek(0)
+        buf = list(csv.reader(StringIO(line), dialect=dia))
+    else:
+        buf = []
 
     reader = csv.reader(f, dialect=dia)
-
-    if skiprows is not None:
-        skiprows = set(skiprows)
-        lines = [l for i, l in enumerate(reader) if i not in skiprows]
-    else:
-        lines = [l for l in reader]
-    f.close()
 
     if date_parser is not None:
         parse_dates = True
 
-    return _simple_parser(lines,
-                          header=header,
-                          index_col=index_col,
-                          names=names,
-                          na_values=na_values,
-                          parse_dates=parse_dates,
-                          date_parser=date_parser)
+    parser = TextParser(reader, header=header, index_col=index_col,
+                        names=names, na_values=na_values,
+                        parse_dates=parse_dates,
+                        date_parser=date_parser,
+                        skiprows=skiprows,
+                        chunksize=chunksize, buf=buf,
+                        skip_footer=skip_footer,
+                        converters=converters)
+
+    if nrows is not None:
+        return parser.get_chunk(nrows)
+    elif chunksize or iterator:
+        return parser
+
+    return parser.get_chunk()
 
 
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None):
+               date_parser=None, nrows=None, iterator=False, chunksize=None,
+               skip_footer=0, converters=None):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
-                    names=names, parse_dates=parse_dates)
+                    names=names, parse_dates=parse_dates,
+                    nrows=nrows, iterator=iterator, chunksize=chunksize,
+                    skip_footer=skip_footer, converters=converters)
 
-_parser_params = """Parameters
+_parser_params = """Also supports optionally iterating or breaking of the file
+into chunks.
+
+Parameters
 ----------
 filepath_or_buffer : string or file handle / StringIO
 %s
@@ -76,6 +89,8 @@ skiprows : list-like
 index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
+names : array-like
+    List of column names
 na_values : list-like, default None
     List of additional strings to recognize as NA/NaN
 parse_dates : boolean, default False
@@ -83,8 +98,22 @@ parse_dates : boolean, default False
 date_parser : function
     Function to use for converting dates to strings. Defaults to
     dateutil.parser
-names : array-like
-    List of column names"""
+nrows : int, default None
+    Number of rows of file to read. Useful for reading pieces of large files
+iterator : boolean, default False
+    Return TextParser object
+chunksize : int, default None
+    Return TextParser object for iteration
+skip_footer : int, default 0
+    Number of line at bottom of file to skip
+converters : dict. optional
+    Dict of functions for converting values in certain columns. Keys can either
+    be integers or column labels
+
+Returns
+-------
+result : DataFrame or TextParser
+"""
 
 _csv_sep = """sep : string, default None
     Delimiter to use. By default will try to automatically determine
@@ -114,80 +143,42 @@ parsed : DataFrame
 """ % (_parser_params % _table_sep)
 
 
-def _simple_parser(lines, names=None, header=0, index_col=0,
-                   na_values=None, date_parser=None, parse_dates=True):
+class BufferedReader(object):
     """
-    Workhorse function for processing nested list into DataFrame
-
-    Should be replaced by np.genfromtxt eventually?
+    For handling different kinds of files, e.g. zip files where reading out a
+    chunk of lines is faster than reading out one line at a time.
     """
-    passed_names = names is not None
-    if passed_names:
-        names = list(names)
-        header = None
 
-    if header is not None:
-        columns = []
-        for i, c in enumerate(lines[header]):
-            if c == '':
-                columns.append('Unnamed: %d' % i)
-            else:
-                columns.append(c)
+    def __init__(self, fh, delimiter=','):
+        pass
 
-        content = lines[header+1:]
+class BufferedCSVReader(BufferedReader):
+    pass
 
-        counts = {}
-        for i, col in enumerate(columns):
-            cur_count = counts.get(col, 0)
-            if cur_count > 0:
-                columns[i] = '%s.%d' % (col, cur_count)
-            counts[col] = cur_count + 1
-    else:
-        ncols = len(lines[0])
-        if not names:
-            columns = ['X.%d' % (i + 1) for i in range(ncols)]
-        else:
-            columns = names
-        content = lines
+class TextParser(object):
+    """
+    Converts lists of lists/tuples into DataFrames with proper type inference
+    and optional (e.g. string to datetime) conversion. Also enables iterating
+    lazily over chunks of large files
 
-    # spaghetti
-
-    # implicitly index_col=0 b/c 1 fewer column names
-    index_name = None
-    implicit_first_col = (len(content) > 0 and
-                          len(content[0]) == len(columns) + 1)
-
-    if implicit_first_col:
-        if index_col is None:
-            index_col = 0
-        index_name = None
-    elif np.isscalar(index_col):
-        if passed_names:
-            index_name = None
-        else:
-            index_name = columns.pop(index_col)
-    elif index_col is not None:
-        if not passed_names:
-            cp_cols = list(columns)
-            index_name = []
-            for i in index_col:
-                name = cp_cols[i]
-                columns.remove(name)
-                index_name.append(name)
-        else:
-            index_name=None
-
-    if len(content) == 0: # pragma: no cover
-        if index_col is not None:
-            if np.isscalar(index_col):
-                index = Index([], name=index_name)
-            else:
-                index = MultiIndex.fromarrays([[]] * len(index_col),
-                                              names=index_name)
-        else:
-            index = Index([])
-
-        return DataFrame(index=index, columns=columns)
+    Parameters
+    ----------
+    data : list or csv reader-like object
+    names : sequence, default
+    header : int, default 0
+        Row to use to parse column labels. Defaults to the first row. Prior
+        rows will be discarded
+    index_col : int or list, default None
+        Column or columns to use as the (possibly hierarchical) index
+    na_values : iterable, defualt None
+        Custom NA values
+    parse_dates : boolean, default False
+    date_parser : function, default None
+    skiprows : list of integers
+        Row numbers to skip
+    skip_footer : int
+        Number of line at bottom of file to skip
+    """
 
     # common NA values
     # no longer excluding inf representations
@@ -195,59 +186,262 @@ def _simple_parser(lines, names=None, header=0, index_col=0,
     NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
                      '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
                      'nan', ''])
-    if na_values is None:
-        na_values = NA_VALUES
-    else:
-        na_values = set(list(na_values)) | NA_VALUES
 
-    zipped_content = list(lib.to_object_array(content).T)
+    def __init__(self, data, names=None, header=0, index_col=None,
+                 na_values=None, parse_dates=False, date_parser=None,
+                 chunksize=None, skiprows=None, skip_footer=0,
+                 converters=None, buf=None):
+        """
+        Workhorse function for processing nested list into DataFrame
 
-    # no index column specified, so infer that's what is wanted
-    if index_col is not None:
-        if np.isscalar(index_col):
-            index = zipped_content.pop(index_col)
-        else: # given a list of index
-            index = []
-            for idx in index_col:
-                index.append(zipped_content[idx])
-            #remove index items from content and columns, don't pop in loop
-            for i in range(len(index_col)):
-                zipped_content.remove(index[i])
+        Should be replaced by np.genfromtxt eventually?
+        """
+        self.data = data
 
-        if np.isscalar(index_col):
-            if parse_dates:
-                index = lib.try_parse_dates(index, parser=date_parser)
-            index = Index(_convert_types(index, na_values),
-                          name=index_name)
+        # can pass rows read so far
+        self.buf = [] if buf is None else buf
+        self.pos = len(self.buf)
+
+        self.names = list(names) if names is not None else names
+        self.header = header
+        self.index_col = index_col
+        self.parse_dates = parse_dates
+        self.date_parser = date_parser
+        self.chunksize = chunksize
+        self.passed_names = names is not None
+        self.skiprows = set() if skiprows is None else set(skiprows)
+        self.skip_footer = skip_footer
+
+        if converters is not None:
+            assert(isinstance(converters, dict))
+            self.converters = converters
         else:
-            arrays = _maybe_convert_int_mindex(index, parse_dates,
-                                               date_parser)
-            index = MultiIndex.from_arrays(arrays, names=index_name)
-    else:
-        index = Index(np.arange(len(content)))
+            self.converters = {}
 
-    if not index._verify_integrity():
-        dups = index._get_duplicates()
-        raise Exception('Index has duplicates: %s' % str(dups))
+        assert(self.skip_footer >= 0)
 
-    if len(columns) != len(zipped_content):
-        raise Exception('wrong number of columns')
+        if na_values is None:
+            self.na_values = self.NA_VALUES
+        else:
+            self.na_values = set(list(na_values)) | self.NA_VALUES
 
-    data = dict((k, v) for k, v in zip(columns, zipped_content))
-    data = _convert_to_ndarrays(data, na_values)
-    return DataFrame(data=data, columns=columns, index=index)
+        self.columns = self._infer_columns()
+        self.index_name = self._get_index_name()
+        self._first_chunk = True
 
+    def _infer_columns(self):
+        names = self.names
+        passed_names = self.names is not None
+        if passed_names:
+            self.header = None
 
-def _maybe_convert_int_mindex(index, parse_dates, date_parser):
-    for i in range(len(index)):
+        if self.header is not None:
+            if len(self.buf) > 0:
+                line = self.buf[0]
+            else:
+                line = self._next_line()
+
+            while self.pos <= self.header:
+                line = self._next_line()
+
+            columns = []
+            for i, c in enumerate(line):
+                if c == '':
+                    columns.append('Unnamed: %d' % i)
+                else:
+                    columns.append(c)
+
+            counts = {}
+            for i, col in enumerate(columns):
+                cur_count = counts.get(col, 0)
+                if cur_count > 0:
+                    columns[i] = '%s.%d' % (col, cur_count)
+                counts[col] = cur_count + 1
+            self._clear_buffer()
+        else:
+            line = self._next_line()
+
+            ncols = len(line)
+            if not names:
+                columns = ['X.%d' % (i + 1) for i in range(ncols)]
+            else:
+                columns = names
+
+        return columns
+
+    def _next_line(self):
+        if isinstance(self.data, list):
+            if self.pos in self.skiprows:
+                self.pos += 1
+
+            line = self.data[self.pos]
+        else:
+            if self.pos in self.skiprows:
+                self.data.next()
+                self.pos += 1
+            line = self.data.next()
+        self.pos += 1
+        self.buf.append(line)
+
+        return line
+
+    def _clear_buffer(self):
+        self.buf = []
+
+    def __iter__(self):
         try:
-            int(index[i][0])
-            index[i] = map(int, index[i])
-        except ValueError:
-            if parse_dates:
-                index[i] = lib.try_parse_dates(index[i], date_parser)
+            while True:
+                yield self.get_chunk(self.chunksize)
+        except StopIteration:
+            pass
 
-    return index
+    def _get_index_name(self):
+        columns = self.columns
+
+        try:
+            line = self._next_line()
+        except StopIteration:
+            line = None
+
+        # implicitly index_col=0 b/c 1 fewer column names
+        if line is not None:
+            implicit_first_cols = len(line) - len(columns)
+        else:
+            implicit_first_cols = 0
+
+        index_name = None
+        if implicit_first_cols > 0:
+            if self.index_col is None:
+                if implicit_first_cols == 1:
+                    self.index_col = 0
+                else:
+                    self.index_col = range(implicit_first_cols)
+            index_name = None
+        elif np.isscalar(self.index_col):
+            index_name = columns.pop(self.index_col)
+            if 'Unnamed' in index_name:
+                index_name = None
+        elif self.index_col is not None:
+            cp_cols = list(columns)
+            index_name = []
+            for i in self.index_col:
+                name = cp_cols[i]
+                columns.remove(name)
+                index_name.append(name)
+
+        return index_name
+
+    def get_chunk(self, rows=None):
+        if rows is not None and self.skip_footer:
+            print('skip_footer not supported for iteration')
+
+        try:
+            content = self._get_lines(rows)
+        except StopIteration:
+            if self._first_chunk:
+                content = []
+            else:
+                raise
+
+        # done with first read, next time raise StopIteration
+        self._first_chunk = False
+
+        if len(content) == 0: # pragma: no cover
+            if self.index_col is not None:
+                if np.isscalar(self.index_col):
+                    index = Index([], name=self.index_name)
+                else:
+                    index = MultiIndex.from_arrays([[]] * len(self.index_col),
+                                                   names=self.index_name)
+            else:
+                index = Index([])
+
+            return DataFrame(index=index, columns=self.columns)
+
+        zipped_content = list(lib.to_object_array(content).T)
+
+        # no index column specified, so infer that's what is wanted
+        if self.index_col is not None:
+            if np.isscalar(self.index_col):
+                index = zipped_content.pop(self.index_col)
+            else: # given a list of index
+                index = []
+                for idx in self.index_col:
+                    index.append(zipped_content[idx])
+                # remove index items from content and columns, don't pop in loop
+                for i in reversed(sorted(self.index_col)):
+                    zipped_content.pop(i)
+
+            if np.isscalar(self.index_col):
+                if self.parse_dates:
+                    index = lib.try_parse_dates(index, parser=self.date_parser)
+                index = Index(_convert_types(index, self.na_values),
+                              name=self.index_name)
+            else:
+                arrays = []
+                for arr in index:
+                    if self.parse_dates:
+                        arr = lib.try_parse_dates(arr, parser=self.date_parser)
+                    arrays.append(_convert_types(arr, self.na_values))
+                index = MultiIndex.from_arrays(arrays, names=self.index_name)
+        else:
+            index = Index(np.arange(len(content)))
+
+        if not index._verify_integrity():
+            dups = index._get_duplicates()
+            raise Exception('Index has duplicates: %s' % str(dups))
+
+        if len(self.columns) != len(zipped_content):
+            raise Exception('wrong number of columns')
+
+        data = dict((k, v) for k, v in zip(self.columns, zipped_content))
+
+        # apply converters
+        for col, f in self.converters.iteritems():
+            if isinstance(col, int) and col not in self.columns:
+                col = self.columns[col]
+            data[col] = np.vectorize(f)(data[col])
+
+        data = _convert_to_ndarrays(data, self.na_values)
+
+        return DataFrame(data=data, columns=self.columns, index=index)
+
+    def _get_lines(self, rows=None):
+        source = self.data
+        lines = self.buf
+
+        # already fetched some number
+        if rows is not None:
+            rows -= len(self.buf)
+
+        if isinstance(source, list):
+            if self.pos >= len(source):
+                raise StopIteration
+            if rows is None:
+                lines.extend(source[self.pos:])
+                self.pos = len(source)
+            else:
+                lines.extend(source[self.pos:self.pos+rows])
+                self.pos += rows
+        else:
+            try:
+                if rows is not None:
+                    for _ in xrange(rows):
+                        lines.append(source.next())
+                else:
+                    while True:
+                        lines.append(source.next())
+            except StopIteration:
+                if len(lines) == 0:
+                    raise
+            self.pos += len(lines)
+
+        self.buf = []
+
+        if self.skip_footer:
+            lines = lines[:-self.skip_footer]
+
+        return lines
 
 def _convert_to_ndarrays(dct, na_values):
     result = {}
@@ -259,7 +453,7 @@ def _convert_types(values, na_values):
     try:
         values = lib.maybe_convert_numeric(values, na_values)
     except Exception:
-        lib.sanitize_objects(values)
+        lib.sanitize_objects(values, na_values)
 
     if values.dtype == np.object_:
         return lib.maybe_convert_bool(values)
@@ -288,7 +482,8 @@ class ExcelFile(object):
         return object.__repr__(self)
 
     def parse(self, sheetname, header=0, skiprows=None, index_col=None,
-              parse_dates=False, date_parser=None, na_values=None):
+              parse_dates=False, date_parser=None, na_values=None,
+              chunksize=None):
         """
         Read Excel table into DataFrame
 
@@ -316,16 +511,8 @@ class ExcelFile(object):
         datemode = self.book.datemode
         sheet = self.book.sheet_by_name(sheetname)
 
-        if skiprows is None:
-            skiprows = set()
-        else:
-            skiprows = set(skiprows)
-
         data = []
         for i in range(sheet.nrows):
-            if i in skiprows:
-                continue
-
             row = []
             for value, typ in zip(sheet.row_values(i), sheet.row_types(i)):
                 if typ == XL_CELL_DATE:
@@ -337,6 +524,12 @@ class ExcelFile(object):
                         value = datetime(*dt)
                 row.append(value)
             data.append(row)
-        return _simple_parser(data, header=header, index_col=index_col,
-                              parse_dates=parse_dates, date_parser=date_parser,
-                              na_values=na_values)
+
+        parser = TextParser(data, header=header, index_col=index_col,
+                            na_values=na_values,
+                            parse_dates=parse_dates,
+                            date_parser=date_parser,
+                            skiprows=skiprows,
+                            chunksize=chunksize)
+
+        return parser.get_chunk()

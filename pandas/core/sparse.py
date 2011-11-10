@@ -1162,7 +1162,7 @@ class SparseDataFrame(DataFrame):
     T = property(transpose)
 
     def count(self, axis=0, **kwds):
-        return self.apply(SparseSeries.count, axis=axis)
+        return self.apply(lambda x: x.count(), axis=axis)
     count.__doc__ = DataFrame.count.__doc__
 
     def cumsum(self, axis=0):
@@ -1178,7 +1178,7 @@ class SparseDataFrame(DataFrame):
         -------
         y : SparseDataFrame
         """
-        return self.apply(SparseSeries.cumsum, axis=axis)
+        return self.apply(lambda x: x.cumsum(), axis=axis)
 
     def shift(self, periods, offset=None, timeRule=None):
         """

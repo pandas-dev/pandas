@@ -176,31 +176,19 @@ class FloatBlock(Block):
         # unnecessarily
         return issubclass(value.dtype.type, np.floating)
 
-    def can_store(self, value):
-        return issubclass(value.dtype.type, (np.integer, np.floating))
-
 class IntBlock(Block):
 
     def should_store(self, value):
-        return self.can_store(value)
-
-    def can_store(self, value):
         return issubclass(value.dtype.type, np.integer)
 
 class BoolBlock(Block):
 
     def should_store(self, value):
-        return self.can_store(value)
-
-    def can_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
 class ObjectBlock(Block):
 
     def should_store(self, value):
-        return self.can_store(value)
-
-    def can_store(self, value):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
@@ -211,6 +199,8 @@ def make_block(values, items, ref_items, do_integrity_check=False):
     if issubclass(vtype, np.floating):
         klass = FloatBlock
     elif issubclass(vtype, np.integer):
+        if vtype != np.int64:
+            values = values.astype('i8')
         klass = IntBlock
     elif dtype == np.bool_:
         klass = BoolBlock
@@ -676,21 +666,24 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_axes)
 
-    def take(self, indexer, axis=1, pandas_indexer=False):
+    def take(self, indexer, axis=1):
         if axis == 0:
             raise NotImplementedError
 
-        if pandas_indexer:
-            take_f = lambda arr: common.take_fast(arr, indexer,
-                                                  None, False, axis=axis)
-        else:
-            take_f = lambda arr: arr.take(indexer, axis=axis)
+        indexer = np.asarray(indexer, dtype='i4')
+
+        n = len(self.axes[axis])
+        if ((indexer == -1) | (indexer >= n)).any():
+            raise Exception('Indices must be nonzero and less than '
+                            'the axis length')
 
         new_axes = list(self.axes)
         new_axes[axis] = self.axes[axis].take(indexer)
         new_blocks = []
         for blk in self.blocks:
-            newb = make_block(take_f(blk.values), blk.items, self.items)
+            new_values = common.take_fast(blk.values, indexer,
+                                          None, False, axis=axis)
+            newb = make_block(new_values, blk.items, self.items)
             new_blocks.append(newb)
 
         return BlockManager(new_blocks, new_axes)
@@ -822,7 +815,6 @@ class BlockManager(object):
         assert((result >= 0).all())
         return result
 
-_data_types = [np.float_, np.int_]
 def form_blocks(data, axes):
     # pre-filter out items if we passed it
     items = axes[0]
@@ -854,7 +846,7 @@ def form_blocks(data, axes):
         blocks.append(float_block)
 
     if len(int_dict):
-        int_block = _simple_blockify(int_dict, items, np.int_)
+        int_block = _simple_blockify(int_dict, items, np.int64)
         blocks.append(int_block)
 
     if len(bool_dict):
@@ -886,8 +878,18 @@ def _simple_blockify(dct, ref_items, dtype):
     return make_block(values, block_items, ref_items, do_integrity_check=True)
 
 def _stack_dict(dct, ref_items):
+    from pandas.core.series import Series
+
+    # fml
+    def _asarray_compat(x):
+        # asarray shouldn't be called on SparseSeries
+        if isinstance(x, Series):
+            return x.values
+        else:
+            return np.asarray(x)
+
     items = [x for x in ref_items if x in dct]
-    stacked = np.vstack([np.asarray(dct[k]) for k in items])
+    stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):
@@ -997,13 +999,15 @@ class _JoinOperation(object):
     BlockManager data structures
     """
     def __init__(self, left, right, axis=1, how='left'):
+        if not left.is_consolidated():
+            left = left.consolidate()
+        if not right.is_consolidated():
+            right = right.consolidate()
+
         self.left = left
         self.right = right
         self.axis = axis
         self.how = how
-
-        assert(left.is_consolidated())
-        assert(right.is_consolidated())
 
         laxis = left.axes[axis]
         raxis = right.axes[axis]

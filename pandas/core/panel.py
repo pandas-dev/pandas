@@ -665,7 +665,8 @@ class Panel(NDFrame):
 
     try:
         divide = div = _panel_arith_method(operator.div, 'divide')
-    except AttributeError:   # Python 3
+    except AttributeError:  # pragma: no cover
+        # Python 3
         divide = div = _panel_arith_method(operator.truediv, 'divide')
 
     def major_xs(self, key, copy=True):
@@ -1235,7 +1236,8 @@ class LongPanel(DataFrame):
 
     try:
         divide = div = _panel_arith_method(operator.div, 'divide')
-    except AttributeError:   # Python 3
+    except AttributeError:  # pragma: no cover
+        # Python 3
         divide = div = _panel_arith_method(operator.truediv, 'divide')
 
     def to_wide(self):

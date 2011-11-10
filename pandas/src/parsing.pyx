@@ -99,7 +99,7 @@ def convert_sql_column(ndarray[object] objects):
         Py_ssize_t i, n
         ndarray[float64_t] floats
         ndarray[int64_t] ints
-        ndarray[uint8_t, cast=True] bools
+        ndarray[uint8_t] bools
         bint seen_float = 0
         bint seen_int = 0
         bint seen_bool = 0
@@ -111,7 +111,7 @@ def convert_sql_column(ndarray[object] objects):
 
     floats = np.empty(n, dtype='f8')
     ints = np.empty(n, dtype='i8')
-    bools = np.empty(n, dtype=bool)
+    bools = np.empty(n, dtype=np.uint8)
 
     onan = np.nan
     fnan = np.nan
@@ -126,7 +126,7 @@ def convert_sql_column(ndarray[object] objects):
         elif cpython.PyBool_Check(val):
             seen_bool = 1
             bools[i] = val
-        elif cpython.PyInt_Check(val):
+        elif cpython.PyInt_Check(val) or cpython.PyLong_Check(val):
             seen_int = 1
             floats[i] = <float64_t> val
             if not seen_null:
@@ -135,6 +135,7 @@ def convert_sql_column(ndarray[object] objects):
             floats[i] = val
             seen_float = 1
         elif not (cpython.PyString_Check(val) or cpython.PyUnicode_Check(val)):
+            # this will convert Decimal objects
             try:
                 floats[i] = float(val)
                 seen_float = 1
@@ -142,7 +143,7 @@ def convert_sql_column(ndarray[object] objects):
                 pass
 
     if seen_null:
-        if seen_float:
+        if seen_float or seen_int:
             return floats
         else:
             return objects
@@ -152,7 +153,7 @@ def convert_sql_column(ndarray[object] objects):
         elif seen_float:
             return floats
         elif seen_bool:
-            return bools
+            return bools.view(np.bool_)
         else:
             return objects
 
@@ -189,7 +190,7 @@ def try_parse_dates(ndarray[object] values, parser=None):
 
     return result
 
-def sanitize_objects(ndarray[object] values):
+def sanitize_objects(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
         object val, onan
@@ -199,17 +200,17 @@ def sanitize_objects(ndarray[object] values):
 
     for i from 0 <= i < n:
         val = values[i]
-        if val == '':
+        if val == '' or val in na_values:
             values[i] = onan
 
 def maybe_convert_bool(ndarray[object] arr):
     cdef:
         Py_ssize_t i, n
-        ndarray[uint8_t, cast=True] result
+        ndarray[uint8_t] result
         object val
 
     n = len(arr)
-    result = np.empty(n, dtype=bool)
+    result = np.empty(n, dtype=np.uint8)
 
     for i from 0 <= i < n:
         val = arr[i]
@@ -221,4 +222,4 @@ def maybe_convert_bool(ndarray[object] arr):
         else:
             return arr
 
-    return result
+    return result.view(np.bool_)

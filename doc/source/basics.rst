@@ -157,6 +157,29 @@ replace NaN with some other value using ``fillna`` if you wish).
    df + df2
    df.add(df2, fill_value=0)
 
+Combining overlapping data sets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A problem occasionally arising is the combination of two similar data sets
+where values in one are preferred over the other. An example would be two data
+series representing a particular economic indicator where one is considered to
+be of "higher quality". However, the lower quality series might extend further
+back in history or have more complete data coverage. As such, we would like to
+combine two DataFrame objects where missing values in one DataFrame are
+conditionally filled with like-labeled values from the other DataFrame. The
+function implementing this operation is ``combine_first``, which we illustrate:
+
+.. ipython:: python
+
+   df1 = DataFrame({'A' : [1., np.nan, 3., 5., np.nan],
+                    'B' : [np.nan, 2., 3., np.nan, 6.]})
+   df2 = DataFrame({'A' : [5., 2., 4., np.nan, 3., 7.],
+                    'B' : [np.nan, np.nan, 3., 4., 6., 8.]})
+   df1
+   df2
+   df1.combine_first(df2)
+
+
 .. _basics.stats:
 
 Descriptive statistics
@@ -242,9 +265,9 @@ will exclude NAs on Series input by default:
 Summarizing data: describe
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For floating point data, there is a convenient ``describe`` function which
-computes a variety of summary statistics about a Series or the columns of a
-DataFrame (excluding NAs of course):
+There is a convenient ``describe`` function which computes a variety of summary
+statistics about a Series or the columns of a DataFrame (excluding NAs of
+course):
 
 .. ipython:: python
 
@@ -254,6 +277,16 @@ DataFrame (excluding NAs of course):
     frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
     frame.ix[::2] = np.nan
     frame.describe()
+
+For a non-numerical Series object, `describe` will give a simple summary of the
+number of unique values and most frequently occurring values:
+
+
+.. ipython:: python
+
+   s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
+   s.describe()
+
 
 Correlations between objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -434,7 +467,7 @@ Reindexing to align with another object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may wish to take an object and reindex its axes to be labeled the same as
-another object. While the syntax for this is straightforwad albeit verbose, it
+another object. While the syntax for this is straightforward albeit verbose, it
 is a common enough operation that the ``reindex_like`` method is available to
 make this simpler:
 
@@ -450,6 +483,36 @@ make this simpler:
    df
    df2
    df.reindex_like(df2)
+
+.. _basics.align:
+
+Aligning objects with each other with ``align``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``align`` method is the fastest way to simultaneously align two objects. It
+supports a ``join`` argument (related to :ref:`joining and merging <merging>`):
+
+  - ``join='outer'``: take the union of the indexes
+  - ``join='left'``: use the calling object's index
+  - ``join='right'``: use the passed object's index
+  - ``join='inner'``: intersect the indexes
+
+It returns a tuple with both of the reindexed Series:
+
+.. ipython:: python
+
+   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s1 = s[:4]
+   s2 = s[1:]
+   s1.align(s2)
+   s1.align(s2, join='inner')
+   s1.align(s2, join='left')
+
+For DataFrames, the join method will be applied to both the
+
+.. ipython:: python
+
+   df.align(df2, join='inner')
 
 .. _basics.reindex_fill:
 
@@ -539,6 +602,9 @@ Series, it need only contain a subset of the labels as keys:
 
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
+
+The Panel class has an a related ``rename_axis`` class which can rename any of
+its three axes.
 
 Iteration
 ---------
@@ -657,15 +723,28 @@ alternately passing the ``dtype`` keyword argument to the object constructor.
 Pickling and serialization
 --------------------------
 
-All pandas objects are equipped with ``save`` and ``load`` methods which use
-Python's ``cPickle`` module to save and load data structures to disk using the
-pickle format.
+All pandas objects are equipped with ``save`` methods which use Python's
+``cPickle`` module to save data structures to disk using the pickle format.
 
 .. ipython:: python
 
    df
    df.save('foo.pickle')
-   DataFrame.load('foo.pickle')
+
+The ``load`` function in the ``pandas`` namespace can be used to load any
+pickled pandas object (or any other pickled object) from file:
+
+
+.. ipython:: python
+
+   load('foo.pickle')
+
+There is also a ``save`` function which takes any object as its first argument:
+
+.. ipython:: python
+
+   save(df, 'foo.pickle')
+   load('foo.pickle')
 
 .. ipython:: python
    :suppress:
