@@ -90,6 +90,7 @@ pandas 0.5.1
     not in ascending order (GH #349)
   - Fix failure passing Int64Index to Index.union when both are monotonic
   - Fix error when passing SparseSeries to (dense) DataFrame constructor
+  - Added missing bang at top of setup.py (GH #352)
 
 Thanks
 ------

@@ -470,7 +470,7 @@ copy : boolean, default False
     __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
     __pow__ = _arith_method(operator.pow, '__pow__')
 
-    __radd__ = _arith_method(operator.add, '__add__')
+    __radd__ = _arith_method(lambda x, y: y + x, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')

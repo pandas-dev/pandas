@@ -706,6 +706,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.array_equal(added[:-5], expected))
 
     def test_operators_reverse_object(self):
+        from pandas.util.testing import rands
+
         # GH 56
         arr = Series(np.random.randn(10), index=np.arange(10),
                      dtype=object)
@@ -720,6 +722,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         _check_op(arr, operator.mul)
         _check_op(arr, operator.truediv)
         _check_op(arr, operator.floordiv)
+
+        # GH 353
+        vals = Series([rands(5) for _ in xrange(10)])
+        result = 'foo_' + vals
+        expected = vals.map(lambda x: 'foo_' + x)
+        assert_series_equal(result, expected)
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
