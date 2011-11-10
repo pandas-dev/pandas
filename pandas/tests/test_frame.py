@@ -3349,7 +3349,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              index=['a', 'b', 'c'],
                              columns=['one', 'two'])
         assert_frame_equal(result, expected)
-        foo
 
 class TestDataFrameJoin(unittest.TestCase):
 
