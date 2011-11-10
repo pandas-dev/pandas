@@ -1353,8 +1353,8 @@ copy : boolean, default False
                 result = Series(result, index=self.index, name=self.name)
             return result
         except Exception:
-            return Series([func(x) for x in self], index=self.index,
-                          name=self.name)
+            vfunc = np.vectorize(func)
+            return Series(vfunc(self), index=self.index,name=self.name)
 
     def align(self, other, join='outer', copy=True):
         """
