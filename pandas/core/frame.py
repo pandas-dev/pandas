@@ -332,10 +332,10 @@ class DataFrame(NDFrame):
     sub = _arith_method(operator.sub, 'subtract')
     div = _arith_method(lambda x, y: x / y, 'divide')
 
-    radd = _arith_method(operator.add, 'add')
-    rmul = _arith_method(operator.mul, 'multiply')
-    rsub = _arith_method(lambda x, y: y - x, 'subtract')
-    rdiv = _arith_method(lambda x, y: y / x, 'divide')
+    radd = _arith_method(lambda x, y: y + x, 'radd')
+    rmul = _arith_method(operator.mul, 'rmultiply')
+    rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
+    rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
 
     __add__ = _arith_method(operator.add, '__add__', default_axis=None)
     __sub__ = _arith_method(operator.sub, '__sub__', default_axis=None)
@@ -346,7 +346,7 @@ class DataFrame(NDFrame):
                                default_axis=None)
     __pow__ = _arith_method(operator.pow, '__pow__', default_axis=None)
 
-    __radd__ = _arith_method(operator.add, '__radd__', default_axis=None)
+    __radd__ = _arith_method(lambda x, y: y + x, '__radd__', default_axis=None)
     __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
