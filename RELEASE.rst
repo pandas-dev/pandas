@@ -49,6 +49,7 @@ pandas 0.5.1
   - Add matrix multiplication function `dot` to DataFrame (GH #65)
   - Add `orient` option to `Panel.from_dict` to ease creation of mixed-type
     Panels (GH #359)
+  - Add `DataFrame.from_dict` with similar `orient` option
 
 **Improvements to existing features**
 

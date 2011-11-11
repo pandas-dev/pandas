@@ -397,6 +397,44 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # IO methods (to / from other formats)
 
+    @classmethod
+    def from_dict(cls, data, orient='columns', dtype=None):
+        """
+        Construct Panel from dict of DataFrame objects
+
+        Parameters
+        ----------
+        data : dict
+            {field : DataFrame}
+        intersect : boolean
+            Intersect indexes of input DataFrames
+        orient : {'columns', 'index'}, default 'items'
+            The "orientation" of the data. If the keys of the passed dict
+            should be the items of the result panel, pass 'items'
+            (default). Otherwise if the columns of the values of the passed
+            DataFrame objects should be the items (which in the case of
+            mixed-dtype data you should do), instead pass 'minor'
+
+
+        Returns
+        -------
+        Panel
+        """
+        from collections import defaultdict
+
+        orient = orient.lower()
+        if orient == 'index':
+            # TODO: this should be seriously cythonized
+            new_data = defaultdict(dict)
+            for index, s in data.iteritems():
+                for col, v in s.iteritems():
+                    new_data[col][index] = v
+            data = new_data
+        elif orient != 'columns':  # pragma: no cover
+            raise ValueError('only recognize index or columns for orient')
+
+        return DataFrame(data, dtype=dtype)
+
     def to_dict(self):
         """
         Convert DataFrame to nested dictionary

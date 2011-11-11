@@ -1124,6 +1124,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
         assert_frame_equal(result, expected)
 
+    def test_constructor_orient(self):
+        data_dict = self.mixed_frame.T._series
+        recons = DataFrame.from_dict(data_dict, orient='index')
+        expected = self.mixed_frame.sort_index()
+        assert_frame_equal(recons, expected)
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),

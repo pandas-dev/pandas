@@ -269,7 +269,7 @@ class Panel(NDFrame):
         return len(self.items), len(self.major_axis), len(self.minor_axis)
 
     @classmethod
-    def from_dict(cls, data, intersect=False, orient='items', dtype=float):
+    def from_dict(cls, data, intersect=False, orient='items', dtype=None):
         """
         Construct Panel from dict of DataFrame objects
 
