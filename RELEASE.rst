@@ -50,6 +50,8 @@ pandas 0.5.1
   - Add `orient` option to `Panel.from_dict` to ease creation of mixed-type
     Panels (GH #359)
   - Add `DataFrame.from_dict` with similar `orient` option
+  - Can pass list of tuples or list of lists to `DataFrame.from_records` for
+    fast conversion to DataFrame (GH #357)
 
 **Improvements to existing features**
 

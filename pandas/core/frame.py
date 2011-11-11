@@ -446,22 +446,43 @@ class DataFrame(NDFrame):
         return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
-    def from_records(cls, data, index=None, exclude=None):
+    def from_records(cls, data, index=None, exclude=None, names=None):
         """
         Convert structured or record ndarray to DataFrame
 
         Parameters
         ----------
-        data : NumPy structured array
+        data : ndarray (structured dtype) or list of tuples
         index : string, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
+        exclude: sequence, default None
+            Columns or fields to exclude
+        names : sequence, default None
+            Column names to use, replacing any found in passed data
 
         Returns
         -------
         df : DataFrame
         """
-        columns, sdict = _rec_to_dict(data)
+        if isinstance(data, (np.ndarray, DataFrame, dict)):
+            columns, sdict = _rec_to_dict(data)
+        else:
+            if isinstance(data[0], tuple):
+                content = list(lib.to_object_array_tuples(data).T)
+            else:
+                # list of lists
+                content = list(lib.to_object_array(data).T)
+
+            if names is None:
+                columns = range(len(content))
+            else:
+                assert(len(names) == len(content))
+                columns = names
+
+            sdict = dict((c, lib.convert_sql_column(vals))
+                         for c, vals in zip(columns, content))
+            del content
 
         if exclude is None:
             exclude = set()

@@ -1196,6 +1196,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(records.dtype.names), 2)
         self.assert_('index' not in records.dtype.names)
 
+    def test_from_records_tuples(self):
+        df = DataFrame({'A' : np.random.randn(6),
+                        'B' : np.arange(6),
+                        'C' : ['foo'] * 6,
+                        'D' : np.array([True, False] * 3, dtype=bool)})
+
+        tuples = [tuple(x) for x in df.values]
+        lists = [list(x) for x in tuples]
+
+        result = DataFrame.from_records(tuples, names=df.columns)
+        result2 = DataFrame.from_records(lists, names=df.columns)
+        assert_frame_equal(result, df)
+        assert_frame_equal(result2, df)
+
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
         self.assert_(cols is self.frame.columns)
