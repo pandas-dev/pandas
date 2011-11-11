@@ -186,7 +186,7 @@ def ismember(ndarray arr, set values):
     it = <flatiter> PyArray_IterNew(arr)
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
-    for i from 0 <= i < n:
+    for i in range(n):
         val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
         if val in values:
             result[i] = 1
@@ -195,6 +195,35 @@ def ismember(ndarray arr, set values):
         PyArray_ITER_NEXT(it)
 
     return result.view(np.bool_)
+
+def map_infer(ndarray arr, object f):
+    '''
+    Substitute for np.vectorize with pandas-friendly dtype inference
+
+    Parameters
+    ----------
+    arr : ndarray
+    f : function
+
+    Returns
+    -------
+    mapped : ndarray
+    '''
+    cdef:
+        Py_ssize_t i, n
+        flatiter it
+        ndarray[object] result
+        object val
+
+    it = <flatiter> PyArray_IterNew(arr)
+    n = len(arr)
+    result = np.empty(n, dtype=object)
+    for i in range(n):
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        result[i] = f(val)
+        PyArray_ITER_NEXT(it)
+
+    return maybe_convert_objects(result)
 
 #----------------------------------------------------------------------
 # datetime / io related

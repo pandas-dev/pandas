@@ -50,8 +50,8 @@ pandas 0.5.1
   - Add `orient` option to `Panel.from_dict` to ease creation of mixed-type
     Panels (GH #359)
   - Add `DataFrame.from_dict` with similar `orient` option
-  - Can pass list of tuples or list of lists to `DataFrame.from_records` for
-    fast conversion to DataFrame (GH #357)
+  - Can now pass list of tuples or list of lists to `DataFrame.from_records`
+    for fast conversion to DataFrame (GH #357)
 
 **Improvements to existing features**
 
@@ -72,6 +72,9 @@ pandas 0.5.1
   - Raise exception if dateutil 2.0 installed on Python 2.x runtime (GH #346)
   - Significant GroupBy performance enhancement with multiple keys with many
     "empty" combinations
+  - New Cython vectorized function `map_infer` speeds up `Series.apply` and
+    `Series.map` significantly when passed elementwise Python function,
+    motivated by PR #355
 
 **Bug fixes**
 
@@ -114,6 +117,7 @@ Thanks
 - Jev Kuznetsov
 - Dieter Vandenbussche
 - rsamson
+- Aman Thakral
 
 pandas 0.5.0
 ============

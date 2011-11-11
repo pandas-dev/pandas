@@ -1331,8 +1331,8 @@ copy : boolean, default False
             new_values = common.take_1d(np.asarray(arg), indexer)
             return Series(new_values, index=self.index, name=self.name)
         else:
-            return Series([arg(x) for x in self], index=self.index,
-                          name=self.name)
+            mapped = lib.map_infer(self.values, arg)
+            return Series(mapped, index=self.index, name=self.name)
 
     def apply(self, func):
         """
@@ -1353,8 +1353,8 @@ copy : boolean, default False
                 result = Series(result, index=self.index, name=self.name)
             return result
         except Exception:
-            return Series([func(x) for x in self], index=self.index,
-                          name=self.name)
+            mapped = lib.map_infer(self.values, func)
+            return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', copy=True):
         """
