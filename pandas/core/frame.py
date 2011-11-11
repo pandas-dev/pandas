@@ -480,7 +480,7 @@ class DataFrame(NDFrame):
                 assert(len(names) == len(content))
                 columns = names
 
-            sdict = dict((c, lib.convert_sql_column(vals))
+            sdict = dict((c, lib.maybe_convert_objects(vals))
                          for c, vals in zip(columns, content))
             del content
 
