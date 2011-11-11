@@ -269,7 +269,7 @@ class Panel(NDFrame):
         return len(self.items), len(self.major_axis), len(self.minor_axis)
 
     @classmethod
-    def from_dict(cls, data, intersect=False, dtype=float):
+    def from_dict(cls, data, intersect=False, orient='items', dtype=float):
         """
         Construct Panel from dict of DataFrame objects
 
@@ -278,11 +278,31 @@ class Panel(NDFrame):
         data : dict
             {field : DataFrame}
         intersect : boolean
+            Intersect indexes of input DataFrames
+        orient : {'items', 'minor'}, default 'items'
+            The "orientation" of the data. If the keys of the passed dict
+            should be the items of the result panel, pass 'items'
+            (default). Otherwise if the columns of the values of the passed
+            DataFrame objects should be the items (which in the case of
+            mixed-dtype data you should do), instead pass 'minor'
+
 
         Returns
         -------
         Panel
         """
+        from collections import defaultdict
+
+        orient = orient.lower()
+        if orient == 'minor':
+            new_data = defaultdict(dict)
+            for col, df in data.iteritems():
+                for item, s in df.iteritems():
+                    new_data[item][col] = s
+            data = new_data
+        elif orient != 'items':  # pragma: no cover
+            raise ValueError('only recognize items or minor for orientation')
+
         data, index, columns = _homogenize_dict(data, intersect=intersect,
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))

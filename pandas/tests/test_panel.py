@@ -21,7 +21,7 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
 import pandas.core.panel as panelm
-import pandas.util.testing as common
+import pandas.util.testing as tm
 
 class PanelTests(object):
     panel = None
@@ -42,7 +42,7 @@ class SafeForLongAndSparse(object):
         foo = repr(self.panel)
 
     def test_iter(self):
-        common.equalContents(list(self.panel), self.panel.items)
+        tm.equalContents(list(self.panel), self.panel.items)
 
     def test_count(self):
         f = lambda s: notnull(s).sum()
@@ -218,7 +218,7 @@ class SafeForSparse(object):
         assert_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_keys(self):
-        common.equalContents(self.panel.keys(), self.panel.items)
+        tm.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
         """Test panel.iteritems(), aka panel.iterkv()"""
@@ -526,8 +526,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(x, y)
 
     def setUp(self):
-        self.panel = common.makePanel()
-        common.add_nans(self.panel)
+        self.panel = tm.makePanel()
+        tm.add_nans(self.panel)
 
     def test_constructor(self):
         # with BlockManager
@@ -608,8 +608,17 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = Panel(d, dtype=int)
         expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
 
-    def test_from_dict_mixed(self):
-        pass
+    def test_from_dict_mixed_orient(self):
+        df = tm.makeDataFrame()
+        df['foo'] = 'bar'
+
+        data = {'k1' : df,
+                'k2' : df}
+
+        panel = Panel.from_dict(data, orient='minor')
+
+        self.assert_(panel['foo'].values.dtype == np.object_)
+        self.assert_(panel['A'].values.dtype == np.float64)
 
     def test_values(self):
         self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
@@ -872,8 +881,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 class TestLongPanel(unittest.TestCase):
 
     def setUp(self):
-        panel = common.makePanel()
-        common.add_nans(panel)
+        panel = tm.makePanel()
+        tm.add_nans(panel)
 
         self.panel = panel.to_long()
         self.unfiltered_panel = panel.to_long(filter_observations=False)
