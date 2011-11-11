@@ -716,7 +716,8 @@ class SeriesGroupBy(GroupBy):
             except Exception:
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
-            ret = Series(result)
+            index = Index(sorted(result), name=self.groupings[0].name)
+            ret = Series(result, index=index)
 
         if not self.as_index:  # pragma: no cover
             print 'Warning, ignoring as_index=True'
@@ -728,12 +729,8 @@ class SeriesGroupBy(GroupBy):
             # sort of a kludge
             output = output[self.name]
 
-        if len(self.groupings) > 1:
-            index = self._get_multi_index(mask)
-            return Series(output, index=index)
-        else:
-            name_list = self._get_names()
-            return Series(output, index=name_list[0][1])
+        index = self._get_multi_index(mask)
+        return Series(output, index=index)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -972,11 +969,17 @@ class DataFrameGroupBy(GroupBy):
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
 
+        index_name = (self.groupings[0].name
+                      if len(self.groupings) == 1 else None)
+        result_index = Index(sorted(result), name=index_name)
+
         if result:
             if axis == 0:
-                result = DataFrame(result, index=obj.columns).T
+                result = DataFrame(result, index=obj.columns,
+                                   columns=result_index).T
             else:
-                result = DataFrame(result, index=obj.index)
+                result = DataFrame(result, index=obj.index,
+                                   columns=result_index)
         else:
             result = DataFrame(result)
 
@@ -1022,24 +1025,15 @@ class DataFrameGroupBy(GroupBy):
         else:
             output_keys = agg_labels
 
-        if len(self.groupings) > 1:
-            if not self.as_index:
-                result = DataFrame(output, columns=output_keys)
-                group_levels = self._get_group_levels(mask)
-                for i, (name, labels) in enumerate(group_levels):
-                    result.insert(i, name, labels)
-                result = result.consolidate()
-            else:
-                index = self._get_multi_index(mask)
-                result = DataFrame(output, index=index, columns=output_keys)
+        if not self.as_index:
+            result = DataFrame(output, columns=output_keys)
+            group_levels = self._get_group_levels(mask)
+            for i, (name, labels) in enumerate(group_levels):
+                result.insert(i, name, labels)
+            result = result.consolidate()
         else:
-            name_list = self._get_names()
-            name, labels = name_list[0]
-            if not self.as_index:
-                result = DataFrame(output, columns=output_keys)
-                result.insert(0, name, labels)
-            else:
-                result = DataFrame(output, index=labels, columns=output_keys)
+            index = self._get_multi_index(mask)
+            result = DataFrame(output, index=index, columns=output_keys)
 
         if self.axis == 1:
             result = result.T

@@ -97,6 +97,7 @@ pandas 0.5.1
   - Added missing bang at top of setup.py (GH #352)
   - Change `is_monotonic` on MultiIndex so it properly compares the tuples
   - Fix MultiIndex outer join logic (GH #351)
+  - Set index name attribute with single-key groupby (GH #358)
 
 Thanks
 ------

@@ -390,17 +390,30 @@ class TestGroupBy(unittest.TestCase):
         for k, v in grouped:
             self.assertEqual(len(v.columns), 2)
 
-        # # tgroupby
-        # grouping = {
-        #     'A' : 0,
-        #     'B' : 1,
-        #     'C' : 0,
-        #     'D' : 1
-        # }
+    def test_frame_set_name_single(self):
+        grouped = self.df.groupby('A')
 
-        # grouped = self.frame.tgroupby(grouping.get, np.mean)
-        # self.assertEqual(len(grouped), len(self.frame.index))
-        # self.assertEqual(len(grouped.columns), 2)
+        result = grouped.mean()
+        self.assert_(result.index.name == 'A')
+
+        result = self.df.groupby('A', as_index=False).mean()
+        self.assert_(result.index.name != 'A')
+
+        result = grouped.agg(np.mean)
+        self.assert_(result.index.name == 'A')
+
+        result = grouped.agg({'C' : np.mean, 'D' : np.std})
+        self.assert_(result.index.name == 'A')
+
+        result = grouped['C'].mean()
+        self.assert_(result.index.name == 'A')
+        result = grouped['C'].agg(np.mean)
+        self.assert_(result.index.name == 'A')
+        result = grouped['C'].agg([np.mean, np.std])
+        self.assert_(result.index.name == 'A')
+
+        result = grouped['C'].agg({'foo' : np.mean, 'bar' : np.std})
+        self.assert_(result.index.name == 'A')
 
     def test_multi_iter(self):
         s = Series(np.arange(6))
