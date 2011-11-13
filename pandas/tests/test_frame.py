@@ -1950,6 +1950,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_almost_equal(correls['A']['C'],
                             self.frame['A'].corr(self.frame['C']))
+    
+    def test_cov(self):
+        self.frame['A'][:5] = nan
+        self.frame['B'][:10] = nan
+        cov = self.frame.cov()
+
+        assert_almost_equal(cov['A']['C'],
+                            self.frame['A'].cov(self.frame['C']))
 
     def test_corrwith(self):
         a = self.tsframe
@@ -2694,6 +2702,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.sort_index(by='A', ascending=False)
+        indexer = indexer[::-1]
+        expected = frame.ix[frame.index[indexer]]
+        assert_frame_equal(sorted_df, expected)
+
+        # by multiple columns
+        frame.values[1, 0] = frame.values[0, 0]
+        smaller, larger = min(frame.values[:1, 1]), max(frame.values[:1, 1])
+        if smaller == larger:
+            larger = smaller + 1
+        frame.values[0, 1] = larger
+        frame.values[1, 1] = smaller
+
+        sorted_df = frame.sort_index(by=['A', 'B'])
+        indexer = frame['A'].argsort().values
+        zero_mask = indexer == 0
+        one_mask = indexer == 1
+        indexer[zero_mask] = 1
+        indexer[one_mask] = 0
+        expected = frame.ix[frame.index[indexer]]
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort_index(by=['A', 'B'], ascending=False)
         indexer = indexer[::-1]
         expected = frame.ix[frame.index[indexer]]
         assert_frame_equal(sorted_df, expected)
