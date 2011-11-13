@@ -833,6 +833,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # additional checks?
 
+    def test_cov(self):
+        # full overlap
+        self.assertAlmostEqual(self.ts.cov(self.ts), self.ts.std()**2)
+
+        # partial overlap
+        self.assertAlmostEqual(self.ts[:15].cov(self.ts[5:]), self.ts[5:15].std()**2)
+
+        # No overlap
+        self.assert_(np.isnan(self.ts[::2].cov(self.ts[1::2])))
+
     def test_copy(self):
         ts = self.ts.copy()
 
