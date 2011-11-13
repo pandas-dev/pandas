@@ -298,9 +298,11 @@ engines_ext = Extension('pandas._engines',
                        sources=[srcpath('engines', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
-extensions = [tseries_ext,
-              engines_ext,
-              sparse_ext]
+sandbox_ext = Extension('pandas._sandbox',
+                        sources=[srcpath('sandbox', suffix=suffix)],
+                        include_dirs=[np.get_include()])
+
+extensions = [tseries_ext, engines_ext, sparse_ext, sandbox_ext]
 
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"

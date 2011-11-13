@@ -2587,6 +2587,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for idx in broadcasted.index:
             self.assert_((broadcasted.xs(idx) == agged[idx]).all())
 
+    def test_apply_raw(self):
+        result0 = self.frame.apply(np.mean, raw=True)
+        result1 = self.frame.apply(np.mean, axis=1, raw=True)
+
+        expected0 = self.frame.apply(lambda x: x.values.mean())
+        expected1 = self.frame.apply(lambda x: x.values.mean(), axis=1)
+
+        assert_series_equal(result0, expected0)
+        assert_series_equal(result1, expected1)
+
     def test_apply_axis1(self):
         d = self.frame.index[0]
         tapplied = self.frame.apply(np.mean, axis=1)

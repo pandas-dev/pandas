@@ -2142,7 +2142,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False):
+    def apply(self, func, axis=0, broadcast=False, raw=False):
         """
         Applies function along input axis of DataFrame. Objects passed to
         functions are Series objects having index either the DataFrame's index
@@ -2158,6 +2158,11 @@ class DataFrame(NDFrame):
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
+        raw : boolean, default False
+            If False, convert each row or column into a Series. If raw=True the
+            passed function will receive ndarray objects instead. If you are
+            just applying a NumPy reduction function this will achieve much
+            better performance
 
         Examples
         --------
@@ -2182,9 +2187,22 @@ class DataFrame(NDFrame):
                                      columns=self.columns, copy=False)
         else:
             if not broadcast:
-                return self._apply_standard(func, axis)
+                if raw:
+                    return self._apply_raw(func, axis)
+                else:
+                    return self._apply_standard(func, axis)
             else:
                 return self._apply_broadcast(func, axis)
+
+    def _apply_raw(self, func, axis):
+        result = np.apply_along_axis(func, axis, self.values)
+
+        # TODO: mixed type case
+        if result.ndim == 2:
+            return DataFrame(result, index=self.index,
+                             columns=self.columns)
+        else:
+            return Series(result, index=self._get_agg_axis(axis))
 
     def _apply_standard(self, func, axis, ignore_failures=False):
         if axis == 0:

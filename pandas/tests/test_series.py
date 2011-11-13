@@ -1100,6 +1100,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import math
         assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
+        # does not return Series
+        result = self.ts.apply(lambda x: x.values * 2)
+        assert_series_equal(result, self.ts * 2)
+
     def test_align(self):
         def _check_align(a, b, how='left'):
             aa, ab = a.align(b, join=how)
