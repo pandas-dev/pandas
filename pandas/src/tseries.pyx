@@ -473,4 +473,4 @@ include "moments.pyx"
 include "reindex.pyx"
 include "generated.pyx"
 include "parsing.pyx"
-
+include "reduce.pyx"

@@ -1520,7 +1520,6 @@ class DataFrame(NDFrame):
             else:
                 to_sort = self[by].values
 
-            # stable sort
             indexer = to_sort.argsort()
         else:
             indexer = labels.argsort()
@@ -2187,7 +2186,10 @@ class DataFrame(NDFrame):
                 return self._apply_broadcast(func, axis)
 
     def _apply_raw(self, func, axis):
-        result = np.apply_along_axis(func, axis, self.values)
+        try:
+            result = lib.reduce(self.values, func, axis=axis)
+        except Exception:
+            result = np.apply_along_axis(func, axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -2197,6 +2199,15 @@ class DataFrame(NDFrame):
             return Series(result, index=self._get_agg_axis(axis))
 
     def _apply_standard(self, func, axis, ignore_failures=False):
+        try:
+            values = self.values
+            dummy = Series(np.nan, index=self._get_axis(axis),
+                           dtype=values.dtype)
+            result = lib.reduce(values, func, axis=axis, dummy=dummy)
+            return Series(result, index=self._get_agg_axis(axis))
+        except Exception:
+            pass
+
         if axis == 0:
             series_gen = ((c, self[c]) for c in self.columns)
             res_index = self.columns

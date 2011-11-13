@@ -54,8 +54,11 @@ pandas 0.5.1
     for fast conversion to DataFrame (GH #357)
   - Can pass multiple levels to groupby, e.g. `df.groupby(level=[0, 1])` (GH
     #103)
+  - Can sort by multiple columns in `DataFrame.sort_index` (GH #92, PR #362)
   - Add fast `get_value` and `put_value` methods to DataFrame and
     micro-performance tweaks (GH #360)
+  - Add `cov` instance methods to Series and DataFrame (GH #194, PR #362)
+
 
 **Improvements to existing features**
 
