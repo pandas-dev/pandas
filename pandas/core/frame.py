@@ -1280,7 +1280,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, column=None, axis=0, ascending=True):
+    def sort(self, columns=None, axis=0, ascending=True):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         a column
@@ -1299,9 +1299,9 @@ class DataFrame(NDFrame):
         sorted : DataFrame
         """
         by = None
-        if column:
+        if columns:
             assert(axis == 0)
-            by = self[column].values
+            by = self[columns]
         return self.sort_index(by=by, axis=axis, ascending=ascending)
 
     def sort_index(self, axis=0, by=None, ascending=True):
@@ -1314,7 +1314,7 @@ class DataFrame(NDFrame):
         axis : {0, 1}
             Sort index/rows versus columns
         by : object
-            Column name in frame
+            Columns in frame
         ascending : boolean, default True
             Sort ascending vs. descending
 
@@ -1323,17 +1323,24 @@ class DataFrame(NDFrame):
         sorted : DataFrame
         """
         labels = self._get_axis(axis)
-
+        order_list = None
         if by is not None:
-            try:
+            try:                
                 if by in self.columns:
                     assert(axis == 0)
-                by = self[by].values
+                by = self[by]
             except Exception:
                 pass
 
             assert(len(by) == len(labels))
-            sort_index = Series(by, index=labels).order().index
+
+            if isinstance(by, Series):
+                by = by.values
+                sort_index = Series(by, index=labels).order().index
+            elif isinstance(by, DataFrame):
+                type_list = [(col_name, by[col_name].dtype) for col_name in by.columns]
+                sort_arr = np.array([tuple(r) for r in by.values], dtype=type_list)
+                sort_index = labels.take(sort_arr.argsort(order=by.columns))
         else:
             sort_index = labels.take(labels.argsort())
 
@@ -2269,6 +2276,20 @@ class DataFrame(NDFrame):
                         correl[j, i] = c
 
         return self._constructor(correl, index=cols, columns=cols)
+
+    def cov(self):
+        """
+        Compute pairwise covariance of columns, excluding NA/null values
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        cols = self.columns
+        mat = self.as_matrix(cols).T
+        baseCov = np.cov(mat)
+
+        return self._constructor(baseCov, index=cols, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False):
         """
