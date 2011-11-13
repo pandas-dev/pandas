@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, PandasObject
-from pandas.core.index import Index, Int64Index, MultiIndex
+from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.reshape import get_group_index
 from pandas.core.series import Series
@@ -536,6 +536,8 @@ class Grouping(object):
 
             inds = index.labels[level]
             labels = index.levels[level].take(inds)
+            if self.name is None:
+                self.name = index.names[level]
 
             if grouper is not None:
                 self.grouper = labels.map(self.grouper)
@@ -619,7 +621,7 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
             ping = Grouping(group_axis, arg, name=name, level=level)
             groupings.append(ping)
     else:
-        name = 'key'
+        name = None
         if isinstance(grouper, basestring):
             exclusions.append(grouper)
             name = grouper

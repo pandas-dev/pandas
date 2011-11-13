@@ -730,6 +730,8 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
+        self.assertEquals(result0.index.name, frame.index.names[0])
+        self.assertEquals(result1.index.name, frame.index.names[1])
 
         # groupby level name
         result0 = frame.groupby(level='first').sum()

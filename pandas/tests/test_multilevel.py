@@ -293,6 +293,7 @@ class TestMultiLevel(unittest.TestCase):
             for i in range(index.nlevels):
                 result = frame.count(axis=axis, level=i)
                 expected = frame.groupby(axis=axis, level=i).count(axis=axis)
+                assert_frame_equal(result, expected.reindex_like(result))
 
         self.frame.ix[1, [1, 2]] = np.nan
         self.frame.ix[7, [0, 1]] = np.nan
@@ -307,6 +308,10 @@ class TestMultiLevel(unittest.TestCase):
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
         self.assertRaises(Exception, df.count, level=0)
+
+        self.frame['D'] = 'foo'
+        result = self.frame.count(level=0, numeric_only=True)
+        assert_almost_equal(result.columns, ['A', 'B', 'C'])
 
     def test_count_level_series(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz'],

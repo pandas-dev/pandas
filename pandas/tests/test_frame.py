@@ -1210,6 +1210,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, df)
         assert_frame_equal(result2, df)
 
+        result = DataFrame.from_records(tuples)
+        self.assert_(np.array_equal(result.columns, range(4)))
+
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
         self.assert_(cols is self.frame.columns)
