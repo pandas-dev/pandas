@@ -903,15 +903,40 @@ copy : boolean, default False
         -------
         correlation : float
         """
+        this, that = self._get_nonna_aligned(other)
+        if this is None or that is None:
+            return nan
+        return np.corrcoef(this, that)[0, 1]
+
+    def cov(self, other):
+        """
+        Compute covariance with Series, excluding missing values
+
+        Parameters
+        ----------
+        other : Series
+
+        Returns
+        -------
+        covariance : float
+        """
+        this, that = self._get_nonna_aligned(other)
+        if this is None or that is None:
+            return nan
+        return np.cov(this, that)[0, 1]
+
+    def _get_nonna_aligned(self, other):
+        """
+        Returns two sub-Series with the same index and only non-na values
+        """
         commonIdx = self.dropna().index.intersection(other.dropna().index)
 
         if len(commonIdx) == 0:
-            return nan
+            return None, None
 
         this = self.reindex(commonIdx)
         that = other.reindex(commonIdx)
-
-        return np.corrcoef(this, that)[0, 1]
+        return this, that
 
     def diff(self, periods=1):
         """
