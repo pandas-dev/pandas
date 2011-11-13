@@ -1473,7 +1473,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, columns=None, axis=0, ascending=True):
+    def sort(self, column=None, axis=0, ascending=True):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         a column
@@ -1491,11 +1491,7 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        by = None
-        if columns:
-            assert(axis == 0)
-            by = self[columns]
-        return self.sort_index(by=by, axis=axis, ascending=ascending)
+        return self.sort_index(by=column, axis=axis, ascending=ascending)
 
     def sort_index(self, axis=0, by=None, ascending=True):
         """
@@ -1507,7 +1503,7 @@ class DataFrame(NDFrame):
         axis : {0, 1}
             Sort index/rows versus columns
         by : object
-            Columns in frame
+            Column names in frame
         ascending : boolean, default True
             Sort ascending vs. descending
 
@@ -1518,22 +1514,18 @@ class DataFrame(NDFrame):
         labels = self._get_axis(axis)
         order_list = None
         if by is not None:
-            try:                
-                if by in self.columns:
-                    assert(axis == 0)
-                by = self[by]
-            except Exception:
-                pass
-
-            assert(len(by) == len(labels))
-
+            assert(axis == 0)
+            by = self[by]
+            
             if isinstance(by, Series):
+                assert(len(by) == len(labels))
                 by = by.values
                 sort_index = Series(by, index=labels).order().index
             elif isinstance(by, DataFrame):
+                assert(len(by.index) == len(labels))
                 type_list = [(col_name, by[col_name].dtype) for col_name in by.columns]
                 sort_arr = np.array([tuple(r) for r in by.values], dtype=type_list)
-                sort_index = labels.take(sort_arr.argsort(order=by.columns))
+                sort_index = labels.take(sort_arr.argsort(order=by.columns.tolist()))
         else:
             sort_index = labels.take(labels.argsort())
 
@@ -2493,16 +2485,10 @@ class DataFrame(NDFrame):
         correl = baseCov / np.outer(sigma, sigma)
 
         # Get the covariance with items that have NaN values
-        mask = np.isfinite(mat)
-        for i, A in enumerate(mat):
-            if not mask[i].all():
-                for j, B in enumerate(mat):
-                    in_common = mask[i] & mask[j]
-                    if in_common.any():
-                        ac, bc = A[in_common], B[in_common]
-                        c = np.corrcoef(ac, bc)[0, 1]
-                        correl[i, j] = c
-                        correl[j, i] = c
+        for i, j, ac, bc in self._cov_helper(mat):
+            c = np.corrcoef(ac, bc)[0, 1]
+            correl[i, j] = c
+            correl[j, i] = c
 
         return self._constructor(correl, index=cols, columns=cols)
 
@@ -2518,7 +2504,22 @@ class DataFrame(NDFrame):
         mat = self.as_matrix(cols).T
         baseCov = np.cov(mat)
 
+        for i, j, ac, bc in self._cov_helper(mat):
+            c = np.cov(ac, bc)[0, 1]
+            baseCov[i, j] = c
+            baseCov[j, i] = c
+            
         return self._constructor(baseCov, index=cols, columns=cols)
+
+    def _cov_helper(self, mat):
+        # Get the covariance with items that have NaN values
+        mask = np.isfinite(mat)
+        for i, A in enumerate(mat):
+            if not mask[i].all():
+                for j, B in enumerate(mat):
+                    in_common = mask[i] & mask[j]
+                    if in_common.any():
+                        yield i, j, A[in_common], B[in_common]        
 
     def corrwith(self, other, axis=0, drop=False):
         """
