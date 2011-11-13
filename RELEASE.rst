@@ -59,7 +59,6 @@ pandas 0.5.1
     micro-performance tweaks (GH #360)
   - Add `cov` instance methods to Series and DataFrame (GH #194, PR #362)
 
-
 **Improvements to existing features**
 
   - Sped up `DataFrame.apply` performance in most cases
@@ -84,6 +83,10 @@ pandas 0.5.1
     motivated by PR #355
   - Cythonized `cache_readonly`, resulting in substantial micro-performance
     enhancements throughout the codebase (GH #361)
+  - Special Cython matrix iterator for applying arbitrary reduction operations
+    with 3-5x better performance than `np.apply_along_axis` (GH #309)
+  - Add `raw` option to `DataFrame.apply` for getting better performance when
+    the passed function only requires an ndarray (GH #309)
 
 **Bug fixes**
 

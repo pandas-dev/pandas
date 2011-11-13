@@ -54,18 +54,21 @@ cdef class Reducer:
         arr = self.arr
         chunk = self.dummy
 
-        result = np.empty(self.nresults, dtype=self.arr.dtype)
-        it = <flatiter> PyArray_IterNew(result)
-
-        test = self.f(self.chunk)
+        test = self.f(chunk)
         try:
+            assert(not isinstance(test, np.ndarray))
+            if hasattr(test, 'dtype'):
+                result = np.empty(self.nresults, dtype=test.dtype)
+            else:
+                result = np.empty(self.nresults, dtype='O')
             result[0] = test
         except Exception:
             raise ValueError('function does not reduce')
 
+        it = <flatiter> PyArray_IterNew(result)
+
         dummy_buf = chunk.data
         chunk.data = arr.data
-
         try:
             for i in range(self.nresults):
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it),
@@ -75,6 +78,9 @@ cdef class Reducer:
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
+
+        if result.dtype == np.object_:
+            result = maybe_convert_objects(result)
 
         return result
 

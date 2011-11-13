@@ -10,3 +10,7 @@ cdef class SeriesIterator:
 
     def next(self):
         pass
+
+def foo(object o):
+    cdef int64_t bar = o
+    return bar
