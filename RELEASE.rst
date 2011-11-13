@@ -30,10 +30,57 @@ pandas 0.5.1
 **New features / modules**
 
   - Add `melt` function to `pandas.core.reshape`
+  - Add `level` parameter to group by level in Series and DataFrame
+    descriptive statistics (PR #313)
+  - Add `head` and `tail` methods to Series, analogous to to DataFrame (PR
+    #296)
+  - Add `Series.isin` function which checks if each value is contained in a
+    passed sequence (GH #289)
+  - Add `float_format` option to `Series.to_string`
+  - Add `skip_footer` (GH #291) and `converters` (GH #343 ) options to
+    `read_csv` and `read_table`
+  - Add proper, tested weighted least squares to standard and panel OLS (GH
+    #303)
+  - Add `drop_duplicates` and `duplicated` functions for removing duplicate
+    DataFrame rows and checking for duplicate rows, respectively (GH #319)
+  - Implement logical (boolean) operators &, |, ^ on DataFrame (GH #347)
+  - Add `Series.mad`, mean absolute deviation, matching DataFrame
+  - Add `QuarterEnd` DateOffset (PR #321)
+  - Add matrix multiplication function `dot` to DataFrame (GH #65)
+  - Add `orient` option to `Panel.from_dict` to ease creation of mixed-type
+    Panels (GH #359)
+  - Add `DataFrame.from_dict` with similar `orient` option
+  - Can now pass list of tuples or list of lists to `DataFrame.from_records`
+    for fast conversion to DataFrame (GH #357)
+  - Can pass multiple levels to groupby, e.g. `df.groupby(level=[0, 1])` (GH
+    #103)
+  - Add fast `get_value` and `put_value` methods to DataFrame and
+    micro-performance tweaks (GH #360)
 
 **Improvements to existing features**
 
   - Sped up `DataFrame.apply` performance in most cases
+  - Raise more helpful exception if date parsing fails in DateRange (GH #298)
+  - Vastly improved performance of GroupBy on axes with a MultiIndex (GH #299)
+  - Print level names in hierarchical index in Series repr (GH #305)
+  - Return DataFrame when performing GroupBy on selected column and
+    as_index=False (GH #308)
+  - Can pass vector to `on` argument in `DataFrame.join` (GH #312)
+  - Don't show Series name if it's None in the repr, also omit length for short
+    Series (GH #317)
+  - Show legend by default in `DataFrame.plot`, add `legend` boolean flag (GH
+    #324)
+  - Significantly improved performance of `Series.order`, which also makes
+    np.unique called in a Series faster (GH #327)
+  - Faster cythonized count by level in Series and DataFrame (GH #341)
+  - Raise exception if dateutil 2.0 installed on Python 2.x runtime (GH #346)
+  - Significant GroupBy performance enhancement with multiple keys with many
+    "empty" combinations
+  - New Cython vectorized function `map_infer` speeds up `Series.apply` and
+    `Series.map` significantly when passed elementwise Python function,
+    motivated by PR #355
+  - Cythonized `cache_readonly`, resulting in substantial micro-performance
+    enhancements throughout the codebase (GH #361)
 
 **Bug fixes**
 
@@ -41,11 +88,42 @@ pandas 0.5.1
     name (GH #290)
   - DataFrame should clear its Series caches on consolidation, was causing
     "stale" Series to be returned in some corner cases (GH #304)
+  - DataFrame constructor failed if a column had a list of tuples (GH #293)
+  - Ensure that `Series.apply` always returns a Series and implement
+    `Series.round` (GH #314)
+  - Support boolean columns in Cythonized groupby functions (GH #315)
+  - `DataFrame.describe` should not fail if there are no numeric columns,
+    instead return categorical describe (GH #323)
+  - Fixed bug which could cause columns to be printed in wrong order in
+    `DataFrame.to_string` if specific list of columns passed (GH #325)
+  - Fix legend plotting failure if DataFrame columns are integers (GH #326)
+  - Shift start date back by one month for Yahoo! Finance API in pandas.io.data
+    (GH #329)
+  - Fix `DataFrame.join` failure on unconsolidated inputs (GH #331)
+  - DataFrame.min/max will no longer fail on mixed-type DataFrame (GH #337)
+  - Fix `read_csv` / `read_table` failure when passing list to index_col that is
+    not in ascending order (GH #349)
+  - Fix failure passing Int64Index to Index.union when both are monotonic
+  - Fix error when passing SparseSeries to (dense) DataFrame constructor
+  - Added missing bang at top of setup.py (GH #352)
+  - Change `is_monotonic` on MultiIndex so it properly compares the tuples
+  - Fix MultiIndex outer join logic (GH #351)
+  - Set index name attribute with single-key groupby (GH #358)
 
 Thanks
 ------
 
 - Kieran O'Mahony
+- Jeff Hammerbacher
+- Adam Klein
+- Nathan Pinger
+- Wouter Overmeire
+- carljv
+- Marius Cobzarenco
+- Jev Kuznetsov
+- Dieter Vandenbussche
+- rsamson
+- Aman Thakral
 
 pandas 0.5.0
 ============

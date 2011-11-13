@@ -4,7 +4,10 @@ cimport cython
 from numpy cimport *
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
-                          PyDict_Contains, PyDict_Keys)
+                      PyDict_Contains, PyDict_Keys,
+                      Py_INCREF, PyTuple_SET_ITEM,
+                      PyTuple_SetItem,
+                      PyTuple_New)
 from cpython cimport PyFloat_Check
 
 import numpy as np
@@ -163,6 +166,67 @@ def isAllDates(ndarray[object, ndim=1] arr):
             return False
 
     return True
+
+def ismember(ndarray arr, set values):
+    '''
+    Checks whether
+
+    Parameters
+    ----------
+    arr : ndarray
+    values : set
+
+    Returns
+    -------
+    ismember : ndarray (boolean dtype)
+    '''
+    cdef:
+        Py_ssize_t i, n
+        flatiter it
+        ndarray[uint8_t] result
+        object val
+
+    it = <flatiter> PyArray_IterNew(arr)
+    n = len(arr)
+    result = np.empty(n, dtype=np.uint8)
+    for i in range(n):
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        if val in values:
+            result[i] = 1
+        else:
+            result[i] = 0
+        PyArray_ITER_NEXT(it)
+
+    return result.view(np.bool_)
+
+def map_infer(ndarray arr, object f):
+    '''
+    Substitute for np.vectorize with pandas-friendly dtype inference
+
+    Parameters
+    ----------
+    arr : ndarray
+    f : function
+
+    Returns
+    -------
+    mapped : ndarray
+    '''
+    cdef:
+        Py_ssize_t i, n
+        flatiter it
+        ndarray[object] result
+        object val
+
+    it = <flatiter> PyArray_IterNew(arr)
+    n = len(arr)
+    result = np.empty(n, dtype=object)
+    for i in range(n):
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        result[i] = f(val)
+        PyArray_ITER_NEXT(it)
+
+    return maybe_convert_objects(result)
 
 #----------------------------------------------------------------------
 # datetime / io related
@@ -333,9 +397,80 @@ def fast_unique_multiple_list(list lists):
 
     return uniques
 
+def fast_zip(list ndarrays):
+    '''
+    For zipping multiple ndarrays into an ndarray of tuples
+    '''
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[object] result
+        flatiter it
+        object val, tup
+
+    k = len(ndarrays)
+    n = len(ndarrays[0])
+
+    result = np.empty(n, dtype=object)
+
+    # initialize tuples on first pass
+    arr = ndarrays[0]
+    it = <flatiter> PyArray_IterNew(arr)
+    for i in range(n):
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        tup = PyTuple_New(k)
+
+        PyTuple_SET_ITEM(tup, 0, val)
+        Py_INCREF(val)
+        result[i] = tup
+        PyArray_ITER_NEXT(it)
+
+    for j in range(1, k):
+        arr = ndarrays[j]
+        it = <flatiter> PyArray_IterNew(arr)
+        if len(arr) != n:
+            raise ValueError('all arrays but be same length')
+
+        for i in range(n):
+            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+            PyTuple_SET_ITEM(result[i], j, val)
+            Py_INCREF(val)
+            PyArray_ITER_NEXT(it)
+
+    return result
+
+cdef class cache_readonly(object):
+
+    cdef readonly:
+        object fget, name
+
+    def __init__(self, func):
+        self.fget = func
+        self.name = func.__name__
+
+    def __get__(self, obj, type):
+        if obj is None:
+            return self.fget
+
+        # Get the cache or set a default one if needed
+
+        cache = getattr(obj, '_cache', None)
+        if cache is None:
+            cache = obj._cache = {}
+
+        if PyDict_Contains(cache, self.name):
+            # not necessary to Py_INCREF
+            val = <object> PyDict_GetItem(cache, self.name)
+            return val
+        else:
+            val = self.fget(obj)
+            PyDict_SetItem(cache, self.name, val)
+            return val
+
+
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
 include "reindex.pyx"
 include "generated.pyx"
 include "parsing.pyx"
+

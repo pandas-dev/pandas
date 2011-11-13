@@ -315,8 +315,7 @@ class BlockManager(object):
         return tuple(len(ax) for ax in self.axes)
 
     def _verify_integrity(self):
-        union_items = _union_block_items(self.blocks)
-
+        _union_block_items(self.blocks)
         mgr_shape = self.shape
         for block in self.blocks:
             assert(block.values.shape[1:] == mgr_shape[1:])
@@ -519,6 +518,19 @@ class BlockManager(object):
     def get(self, item):
         _, block = self._find_block(item)
         return block.get(item)
+
+    def get_scalar(self, tup):
+        """
+        Retrieve single item
+        """
+        item = tup[0]
+        _, blk = self._find_block(item)
+
+        # this could obviously be seriously sped up in cython
+        item_loc = blk.items.get_loc(item),
+        full_loc = item_loc + tuple(ax.get_loc(x)
+                                    for ax, x in zip(self.axes[1:], tup[1:]))
+        return blk.values[full_loc]
 
     def delete(self, item):
         i, _ = self._find_block(item)
@@ -878,8 +890,18 @@ def _simple_blockify(dct, ref_items, dtype):
     return make_block(values, block_items, ref_items, do_integrity_check=True)
 
 def _stack_dict(dct, ref_items):
+    from pandas.core.series import Series
+
+    # fml
+    def _asarray_compat(x):
+        # asarray shouldn't be called on SparseSeries
+        if isinstance(x, Series):
+            return x.values
+        else:
+            return np.asarray(x)
+
     items = [x for x in ref_items if x in dct]
-    stacked = np.vstack([np.asarray(dct[k]) for k in items])
+    stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):
@@ -893,23 +915,15 @@ def _blocks_to_series_dict(blocks, index=None):
     return series_dict
 
 def _interleaved_dtype(blocks):
-    have_int = False
-    have_bool = False
-    have_object = False
-    have_float = False
+    from collections import defaultdict
+    counts = defaultdict(lambda: 0)
+    for x in blocks:
+        counts[type(x)] += 1
 
-    for block in blocks:
-        if isinstance(block, FloatBlock):
-            have_float = True
-        elif isinstance(block, IntBlock):
-            have_int = True
-        elif isinstance(block, BoolBlock):
-            have_bool = True
-        elif isinstance(block, ObjectBlock):
-            have_object = True
-        else: # pragma: no cover
-            raise Exception('Unrecognized block type')
-
+    have_int = counts[IntBlock] > 0
+    have_bool = counts[BoolBlock] > 0
+    have_object = counts[ObjectBlock] > 0
+    have_float = counts[FloatBlock] > 0
     have_numeric = have_float or have_int
 
     if have_object:
@@ -989,13 +1003,15 @@ class _JoinOperation(object):
     BlockManager data structures
     """
     def __init__(self, left, right, axis=1, how='left'):
+        if not left.is_consolidated():
+            left = left.consolidate()
+        if not right.is_consolidated():
+            right = right.consolidate()
+
         self.left = left
         self.right = right
         self.axis = axis
         self.how = how
-
-        assert(left.is_consolidated())
-        assert(right.is_consolidated())
 
         laxis = left.axes[axis]
         raxis = right.axes[axis]

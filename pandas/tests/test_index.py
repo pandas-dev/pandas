@@ -545,11 +545,14 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(np.array_equal(result, expected))
 
     def test_union(self):
-
         # corner case, non-Int64Index
-        other = Index([1, 2, 3, 4, 5])
+        other = Index(['a', 'b', 'c', 'd'])
         result = self.index.union(other)
         expected = np.unique(np.concatenate((self.index, other)))
+        self.assert_(np.array_equal(result, expected))
+
+        result = other.union(self.index)
+        expected = np.unique(np.concatenate((other, self.index)))
         self.assert_(np.array_equal(result, expected))
 
     def test_cant_or_shouldnt_cast(self):

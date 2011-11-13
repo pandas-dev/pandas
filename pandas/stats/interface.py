@@ -24,6 +24,10 @@ def ols(**kwargs):
         See above for types
     x: Series, DataFrame, dict of Series, dict of DataFrame, Panel, or
         LongPanel
+    weights : Series or ndarray
+        The weights are presumed to be (proportional to) the inverse of the
+        variance of the observations.  That is, if the variables are to be
+        transformed by 1/sqrt(W) you must supply weights = 1/W
     intercept: bool
         True if you want an intercept.  Defaults to True.
     nw_lags: None or int

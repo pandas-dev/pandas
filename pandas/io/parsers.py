@@ -1,6 +1,7 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+from __future__ import print_function
 
 from StringIO import StringIO
 import zipfile
@@ -13,7 +14,8 @@ import pandas._tseries as lib
 
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None, nrows=None, iterator=False, chunksize=None):
+             date_parser=None, nrows=None, iterator=False, chunksize=None,
+             skip_footer=0, converters=None):
     import csv
 
     if hasattr(filepath_or_buffer, 'read'):
@@ -50,7 +52,9 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
                         parse_dates=parse_dates,
                         date_parser=date_parser,
                         skiprows=skiprows,
-                        chunksize=chunksize, buf=buf)
+                        chunksize=chunksize, buf=buf,
+                        skip_footer=skip_footer,
+                        converters=converters)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -62,12 +66,14 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
 
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None, nrows=None, iterator=False, chunksize=None):
+               date_parser=None, nrows=None, iterator=False, chunksize=None,
+               skip_footer=0, converters=None):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
                     names=names, parse_dates=parse_dates,
-                    nrows=nrows, iterator=iterator, chunksize=chunksize)
+                    nrows=nrows, iterator=iterator, chunksize=chunksize,
+                    skip_footer=skip_footer, converters=converters)
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -98,6 +104,11 @@ iterator : boolean, default False
     Return TextParser object
 chunksize : int, default None
     Return TextParser object for iteration
+skip_footer : int, default 0
+    Number of line at bottom of file to skip
+converters : dict. optional
+    Dict of functions for converting values in certain columns. Keys can either
+    be integers or column labels
 
 Returns
 -------
@@ -163,7 +174,10 @@ class TextParser(object):
         Custom NA values
     parse_dates : boolean, default False
     date_parser : function, default None
-    skiprows
+    skiprows : list of integers
+        Row numbers to skip
+    skip_footer : int
+        Number of line at bottom of file to skip
     """
 
     # common NA values
@@ -175,7 +189,8 @@ class TextParser(object):
 
     def __init__(self, data, names=None, header=0, index_col=None,
                  na_values=None, parse_dates=False, date_parser=None,
-                 chunksize=None, skiprows=None, buf=None):
+                 chunksize=None, skiprows=None, skip_footer=0,
+                 converters=None, buf=None):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -195,6 +210,15 @@ class TextParser(object):
         self.chunksize = chunksize
         self.passed_names = names is not None
         self.skiprows = set() if skiprows is None else set(skiprows)
+        self.skip_footer = skip_footer
+
+        if converters is not None:
+            assert(isinstance(converters, dict))
+            self.converters = converters
+        else:
+            self.converters = {}
+
+        assert(self.skip_footer >= 0)
 
         if na_values is None:
             self.na_values = self.NA_VALUES
@@ -295,6 +319,8 @@ class TextParser(object):
             index_name = None
         elif np.isscalar(self.index_col):
             index_name = columns.pop(self.index_col)
+            if 'Unnamed' in index_name:
+                index_name = None
         elif self.index_col is not None:
             cp_cols = list(columns)
             index_name = []
@@ -306,6 +332,9 @@ class TextParser(object):
         return index_name
 
     def get_chunk(self, rows=None):
+        if rows is not None and self.skip_footer:
+            print('skip_footer not supported for iteration')
+
         try:
             content = self._get_lines(rows)
         except StopIteration:
@@ -339,9 +368,9 @@ class TextParser(object):
                 index = []
                 for idx in self.index_col:
                     index.append(zipped_content[idx])
-                #remove index items from content and columns, don't pop in loop
-                for i in range(len(self.index_col)):
-                    zipped_content.remove(index[i])
+                # remove index items from content and columns, don't pop in loop
+                for i in reversed(sorted(self.index_col)):
+                    zipped_content.pop(i)
 
             if np.isscalar(self.index_col):
                 if self.parse_dates:
@@ -366,7 +395,15 @@ class TextParser(object):
             raise Exception('wrong number of columns')
 
         data = dict((k, v) for k, v in zip(self.columns, zipped_content))
+
+        # apply converters
+        for col, f in self.converters.iteritems():
+            if isinstance(col, int) and col not in self.columns:
+                col = self.columns[col]
+            data[col] = np.vectorize(f)(data[col])
+
         data = _convert_to_ndarrays(data, self.na_values)
+
         return DataFrame(data=data, columns=self.columns, index=index)
 
     def _get_lines(self, rows=None):
@@ -401,18 +438,10 @@ class TextParser(object):
 
         self.buf = []
 
+        if self.skip_footer:
+            lines = lines[:-self.skip_footer]
+
         return lines
-
-def _maybe_convert_int_mindex(index, parse_dates, date_parser):
-    for i in range(len(index)):
-        try:
-            int(index[i][0])
-            index[i] = map(int, index[i])
-        except ValueError:
-            if parse_dates:
-                index[i] = lib.try_parse_dates(index[i], date_parser)
-
-    return index
 
 def _convert_to_ndarrays(dct, na_values):
     result = {}
@@ -424,7 +453,7 @@ def _convert_types(values, na_values):
     try:
         values = lib.maybe_convert_numeric(values, na_values)
     except Exception:
-        lib.sanitize_objects(values)
+        lib.sanitize_objects(values, na_values)
 
     if values.dtype == np.object_:
         return lib.maybe_convert_bool(values)

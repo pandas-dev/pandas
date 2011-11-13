@@ -648,6 +648,54 @@ To do this, use the ``swaplevels`` function:
    df
    df.swaplevels(0, 1)
 
+Adding an index to an existing DataFrame
+----------------------------------------
+
+Occasionally you will load or create a data set into a DataFrame and want to
+add an index after you've already done so. There are a couple of different
+ways.
+
+Add an index using DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+DataFrame has a ``set_index`` method which takes a column name (for a regular
+``Index``) or a list of column names (for a ``MultiIndex``), to create a new,
+indexed DataFrame:
+
+.. ipython:: python
+   :suppress:
+
+   data = DataFrame({'a' : ['bar', 'bar', 'foo', 'foo'],
+                     'b' : ['one', 'two', 'one', 'two'],
+                     'c' : ['z', 'y', 'x', 'w'],
+                     'd' : [1., 2., 3, 4]})
+
+.. ipython:: python
+
+   data
+   indexed1 = data.set_index('c')
+   indexed1
+   indexed2 = data.set_index(['a', 'b'])
+   indexed2
+
+Other options in ``set_index`` allow you not drop the index columns or to add
+the index in-place (without creating a new object):
+
+.. ipython:: python
+
+   data.set_index('c', drop=False)
+   df = data.set_index(['a', 'b'], inplace=True)
+   data
+
+Adding an ad hoc index
+~~~~~~~~~~~~~~~~~~~~~~
+
+If you create an index yourself, you can just assign it to the ``index`` field:
+
+.. code-block:: python
+
+   df.index = index
+
 Indexing internal details
 -------------------------
 

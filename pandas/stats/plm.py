@@ -22,51 +22,15 @@ from pandas.util.decorators import cache_readonly
 class PanelOLS(OLS):
     """Implements panel OLS.
 
-    Parameters
-    ----------
-    y : DataFrame
-    x : Dict of DataFrame or Panel
-    intercept : bool
-        True if you want an intercept.  True by default.
-    nw_lags : None or int
-        Number of Newey-West lags.  None by default.
-    nw_overlap : bool
-        Whether there are overlaps in the NW lags.  Defaults to False.
-    window_type : int
-        FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
-    window : int
-        size of window (for rolling/expanding OLS)
-    pool : bool, default True
-        Whether to run pooled panel regression
-    entity_effects : bool, deafult False
-        Whether to account for entity fixed effects
-    time_effects : bool, default False
-        Whether to account for time fixed effects
-    x_effects : list, default None
-        List of x's to account for fixed effects
-    dropped_dummies : dict
-        Key is the name of the variable for the fixed effect.
-        Value is the value of that variable for which we drop the dummy.
-
-        For entity fixed effects, key equals 'entity', e.g. {'entity' : 'US'}
-
-        By default, the first item is dropped if one is not specified.
-    cluster : int
-        ENTITY or TIME, indicating entity/time clustering
-        A cluster is a grouping within which observations are correlated.
-
-        For example, if you have a panel data with countries over time and you
-        suspect that:
-
-        1. Countries are correlated - use 'time'
-        2. There is autocorrelation - use 'entity'
-
+    See ols function docs
     """
-    def __init__(self, y, x, intercept=True, nw_lags=None, entity_effects=False,
-                 time_effects=False, x_effects=None, cluster=None,
-                 dropped_dummies=None, verbose=False, nw_overlap=False):
+    def __init__(self, y, x, weights=None, intercept=True, nw_lags=None,
+                 entity_effects=False, time_effects=False, x_effects=None,
+                 cluster=None, dropped_dummies=None, verbose=False,
+                 nw_overlap=False):
         self._x_orig = x
         self._y_orig = y
+        self._weights = weights
 
         self._intercept = intercept
         self._nw_lags = nw_lags
@@ -81,9 +45,6 @@ class PanelOLS(OLS):
         (self._x, self._x_trans,
          self._x_filtered, self._y,
          self._y_trans) = self._prepare_data()
-
-        self._x_trans_raw = self._x_trans.values
-        self._y_trans_raw = self._y_trans.values.squeeze()
 
         self._index = self._x.major_axis
 
@@ -105,7 +66,7 @@ class PanelOLS(OLS):
 
         The categorical variables will get dropped from x.
         """
-        (x, x_filtered, y, cat_mapping) = self._filter_data()
+        (x, x_filtered, y, weights, cat_mapping) = self._filter_data()
 
         self.log('Adding dummies to X variables')
         x = self._add_dummies(x, cat_mapping)
@@ -135,6 +96,14 @@ class PanelOLS(OLS):
             x_regressor = x
             y_regressor = y
 
+        if weights is not None:
+            assert(y_regressor.index is weights.index)
+            assert(x_regressor.index is weights.index)
+
+            rt_weights = np.sqrt(weights)
+            y_regressor = y_regressor * rt_weights
+            x_regressor = x_regressor.mul(rt_weights, axis=0)
+
         return x, x_regressor, x_filtered, y, y_regressor
 
     def _filter_data(self):
@@ -158,6 +127,9 @@ class PanelOLS(OLS):
 
         x_names = data.items
 
+        if self._weights is not None:
+            data['__weights__'] = self._weights
+
         # Filter x's without y (so we can make a prediction)
         filtered = data.to_long()
 
@@ -175,7 +147,12 @@ class PanelOLS(OLS):
         x = data_long.filter(x_names)
         y = data_long['__y__']
 
-        return x, x_filt, y, cat_mapping
+        if self._weights:
+            weights = data_long['__weights__']
+        else:
+            weights = None
+
+        return x, x_filt, y, weights, cat_mapping
 
     def _convert_x(self, x):
         # Converts non-numeric data in x to floats. x_converted is the
@@ -313,8 +290,8 @@ class PanelOLS(OLS):
     @cache_readonly
     def _beta_raw(self):
         """Runs the regression and returns the beta."""
-        X = self._x_trans_raw
-        Y = self._y_trans_raw
+        X = self._x_trans.values
+        Y = self._y_trans.values.squeeze()
 
         beta, _, _, _ = np.linalg.lstsq(X, Y)
 
@@ -337,7 +314,7 @@ class PanelOLS(OLS):
     @cache_readonly
     def _df_raw(self):
         """Returns the degrees of freedom."""
-        df = math.rank(self._x_trans_raw)
+        df = math.rank(self._x_trans.values)
         if self._time_effects:
             df += self._total_times
 
@@ -405,12 +382,11 @@ class PanelOLS(OLS):
     @cache_readonly
     def _y_fitted_raw(self):
         """Returns the raw fitted y values."""
-        return np.dot(self._x_filtered.values, self._beta_raw)
+        return np.dot(self._x.values, self._beta_raw)
 
     @cache_readonly
     def y_fitted(self):
-        return self._unstack_vector(self._y_fitted_raw,
-                                    index=self._x_filtered.index)
+        return self._unstack_vector(self._y_fitted_raw, index=self._x.index)
 
     def _unstack_vector(self, vec, index=None):
         if index is None:
@@ -434,7 +410,7 @@ class PanelOLS(OLS):
 
     @property
     def _nobs(self):
-        return len(self._y_trans_raw)
+        return len(self._y)
 
 def _convertDummies(dummies, mapping):
     # cleans up the names of the generated dummies
@@ -483,49 +459,9 @@ def add_intercept(panel, name='intercept'):
 class MovingPanelOLS(MovingOLS, PanelOLS):
     """Implements rolling/expanding panel OLS.
 
-    Parameters
-    ----------
-    y : DataFrame
-    x : Dict of DataFrame
-    intercept : bool
-        True if you want an intercept.
-    nw_lags : None or int
-        Number of Newey-West lags.
-    window_type : int
-        FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
-    window : int
-        size of window (for rolling/expanding OLS)
-    min_periods : int
-        Minimum number of time periods to include in the window
-    min_obs : int
-        Minimum number of total observations to require. Default is
-        rank(X matrix) + 1. In some cases we might want to be able to
-        relax this number.
-    pool : bool
-        Whether to run pooled panel regression.  Defaults to true.
-    entity_effects : bool
-        Whether to account for entity fixed effects.  Defaults to false.
-    time_effects : bool
-        Whether to account for time fixed effects.  Defaults to false.
-    x_effects : list
-        List of x's to account for fixed effects.  Defaults to none.
-    dropped_dummies : dict
-        Key is the name of the variable for the fixed effect.
-        Value is the value of that variable for which we drop the dummy.
-
-        For entity fixed effects, key equals 'entity'.
-
-        By default, the first dummy is dropped if no dummy is specified.
-    cluster : int
-        ENTITY or TIME, indicating entity/time clustering
-        A cluster is a grouping within which observations are correlated.
-
-        For example, if you have a panel data with countries over time and you suspect that:
-
-        1. Countries are correlated - use 'time'
-        2. There is autocorrelation - use 'entity'
+    See ols function docs
     """
-    def __init__(self, y, x,
+    def __init__(self, y, x, weights=None,
                  window_type='expanding', window=None,
                  min_periods=None,
                  min_obs=None,
@@ -548,7 +484,8 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
                           dropped_dummies=dropped_dummies,
                           verbose=verbose)
 
-        PanelOLS.__init__(self, y=y, x=x, **self._args)
+        PanelOLS.__init__(self, y=y, x=x, weights=weights,
+                          **self._args)
 
         self._set_window(window_type, window, min_periods)
 

@@ -8,6 +8,7 @@ from pandas.core.daterange import DateRange
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands, groupby
 from pandas.core.frame import DataFrame
+from pandas.core.groupby import GroupByError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -111,7 +112,7 @@ class TestGroupBy(unittest.TestCase):
         expected = grouped.mean()
         assert_frame_equal(result, expected)
 
-    def test_agg_must_add(self):
+    def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
         self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
@@ -389,17 +390,30 @@ class TestGroupBy(unittest.TestCase):
         for k, v in grouped:
             self.assertEqual(len(v.columns), 2)
 
-        # # tgroupby
-        # grouping = {
-        #     'A' : 0,
-        #     'B' : 1,
-        #     'C' : 0,
-        #     'D' : 1
-        # }
+    def test_frame_set_name_single(self):
+        grouped = self.df.groupby('A')
 
-        # grouped = self.frame.tgroupby(grouping.get, np.mean)
-        # self.assertEqual(len(grouped), len(self.frame.index))
-        # self.assertEqual(len(grouped.columns), 2)
+        result = grouped.mean()
+        self.assert_(result.index.name == 'A')
+
+        result = self.df.groupby('A', as_index=False).mean()
+        self.assert_(result.index.name != 'A')
+
+        result = grouped.agg(np.mean)
+        self.assert_(result.index.name == 'A')
+
+        result = grouped.agg({'C' : np.mean, 'D' : np.std})
+        self.assert_(result.index.name == 'A')
+
+        result = grouped['C'].mean()
+        self.assert_(result.index.name == 'A')
+        result = grouped['C'].agg(np.mean)
+        self.assert_(result.index.name == 'A')
+        result = grouped['C'].agg([np.mean, np.std])
+        self.assert_(result.index.name == 'A')
+
+        result = grouped['C'].agg({'foo' : np.mean, 'bar' : np.std})
+        self.assert_(result.index.name == 'A')
 
     def test_multi_iter(self):
         s = Series(np.arange(6))
@@ -550,6 +564,34 @@ class TestGroupBy(unittest.TestCase):
         expected2['D'] = grouped.sum()['D']
         assert_frame_equal(result2, expected2)
 
+    def test_as_index_series_return_frame(self):
+        grouped = self.df.groupby('A', as_index=False)
+        grouped2 = self.df.groupby(['A', 'B'], as_index=False)
+
+        result = grouped['C'].agg(np.sum)
+        expected = grouped.agg(np.sum).ix[:, ['A', 'C']]
+        self.assert_(isinstance(result, DataFrame))
+        assert_frame_equal(result, expected)
+
+        result2 = grouped2['C'].agg(np.sum)
+        expected2 = grouped2.agg(np.sum).ix[:, ['A', 'B', 'C']]
+        self.assert_(isinstance(result2, DataFrame))
+        assert_frame_equal(result2, expected2)
+
+        result = grouped['C'].sum()
+        expected = grouped.sum().ix[:, ['A', 'C']]
+        self.assert_(isinstance(result, DataFrame))
+        assert_frame_equal(result, expected)
+
+        result2 = grouped2['C'].sum()
+        expected2 = grouped2.sum().ix[:, ['A', 'B', 'C']]
+        self.assert_(isinstance(result2, DataFrame))
+        assert_frame_equal(result2, expected2)
+
+        # corner case
+        self.assertRaises(Exception, grouped['C'].__getitem__,
+                          'D')
+
     def test_groupby_as_index_cython(self):
         data = self.df
 
@@ -659,6 +701,19 @@ class TestGroupBy(unittest.TestCase):
         _testit(lambda x: x.sum())
         _testit(lambda x: x.mean())
 
+    def test_cython_agg_boolean(self):
+        frame = DataFrame({'a': np.random.randint(0, 5, 50),
+                           'b': np.random.randint(0, 2, 50).astype('bool')})
+        result = frame.groupby('a')['b'].mean()
+        expected = frame.groupby('a')['b'].agg(np.mean)
+
+        assert_series_equal(result, expected)
+
+    def test_cython_agg_nothing_to_agg(self):
+        frame = DataFrame({'a': np.random.randint(0, 5, 50),
+                           'b': ['foo', 'bar'] * 25})
+        self.assertRaises(GroupByError, frame.groupby('a')['b'].mean)
+
     def test_grouping_attrs(self):
         deleveled = self.mframe.delevel()
         grouped = deleveled.groupby(['first', 'second'])
@@ -679,6 +734,8 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
+        self.assertEquals(result0.index.name, frame.index.names[0])
+        self.assertEquals(result1.index.name, frame.index.names[1])
 
         # groupby level name
         result0 = frame.groupby(level='first').sum()

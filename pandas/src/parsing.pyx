@@ -52,6 +52,10 @@ def to_object_array_tuples(list rows):
     return result
 
 def maybe_convert_numeric(ndarray[object] values, set na_values):
+    '''
+    Type inference function-- convert strings to numeric (potentially) and
+    convert to proper dtype array
+    '''
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
@@ -94,7 +98,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     else:
         return ints
 
-def convert_sql_column(ndarray[object] objects):
+def maybe_convert_objects(ndarray[object] objects):
+    '''
+    Type inference function-- convert object array to proper dtype
+    '''
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
@@ -157,6 +164,8 @@ def convert_sql_column(ndarray[object] objects):
         else:
             return objects
 
+convert_sql_column = maybe_convert_objects
+
 def try_parse_dates(ndarray[object] values, parser=None):
     cdef:
         Py_ssize_t i, n
@@ -190,7 +199,7 @@ def try_parse_dates(ndarray[object] values, parser=None):
 
     return result
 
-def sanitize_objects(ndarray[object] values):
+def sanitize_objects(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
         object val, onan
@@ -200,7 +209,7 @@ def sanitize_objects(ndarray[object] values):
 
     for i from 0 <= i < n:
         val = values[i]
-        if val == '':
+        if val == '' or val in na_values:
             values[i] = onan
 
 def maybe_convert_bool(ndarray[object] arr):

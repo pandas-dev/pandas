@@ -122,6 +122,55 @@ def test_is_lexsorted():
 
     assert(not lib.is_lexsorted(failure))
 
+# def test_get_group_index():
+#     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype='i4')
+#     b = np.array([1, 0, 3, 2, 0, 2, 3, 0], dtype='i4')
+#     expected = np.array([1, 4, 11, 2, 8, 6, 3, 0], dtype='i4')
+
+#     result = lib.get_group_index([a, b], (3, 4))
+
+#     assert(np.array_equal(result, expected))
+
+def test_groupsort_indexer():
+    a = np.random.randint(0, 1000, 100).astype('i4')
+    b = np.random.randint(0, 1000, 100).astype('i4')
+
+    result = lib.groupsort_indexer(a, 1000)
+
+    # need to use a stable sort
+    expected = np.argsort(a, kind='mergesort')
+    assert(np.array_equal(result, expected))
+
+    # compare with lexsort
+    key = a * 1000 + b
+    result = lib.groupsort_indexer(key, 1000000)
+    expected = np.lexsort((b, a))
+    assert(np.array_equal(result, expected))
+
+
+def test_duplicated_with_nas():
+    keys = [0, 1, np.nan, 0, 2, np.nan]
+
+    result = lib.duplicated(keys)
+    expected = [False, False, False, True, False, True]
+    assert(np.array_equal(result, expected))
+
+    result = lib.duplicated(keys, take_last=True)
+    expected = [True, False, True, False, False, False]
+    assert(np.array_equal(result, expected))
+
+    keys = [(0, 0), (0, np.nan), (np.nan, 0), (np.nan, np.nan)] * 2
+
+    result = lib.duplicated(keys)
+    falses = [False] * 4
+    trues = [True] * 4
+    expected = falses + trues
+    assert(np.array_equal(result, expected))
+
+    result = lib.duplicated(keys, take_last=True)
+    expected = trues + falses
+    assert(np.array_equal(result, expected))
+
 class TestMoments(unittest.TestCase):
     pass
 

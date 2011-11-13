@@ -1,4 +1,4 @@
-# pylint: disable-msg=W0612,E1101
+# pylint: disable-msg=W0612,E1101,W0141
 from cStringIO import StringIO
 import unittest
 
@@ -14,6 +14,19 @@ from pandas.util.testing import (assert_almost_equal,
 
 import pandas.util.testing as tm
 
+try:
+    from itertools import product as cart_product
+except ImportError:  # python 2.5
+    def cart_product(*args, **kwds):
+        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+        pools = map(tuple, args) * kwds.get('repeat', 1)
+        result = [[]]
+        for pool in pools:
+            result = [x+[y] for x in result for y in pool]
+        for prod in result:
+            yield tuple(prod)
+
 class TestMultiLevel(unittest.TestCase):
 
     def setUp(self):
@@ -28,6 +41,15 @@ class TestMultiLevel(unittest.TestCase):
         self.single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                        labels=[[0, 1, 2, 3]],
                                        names=['first'])
+
+        # create test series object
+        arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        tuples = zip(*arrays)
+        index = MultiIndex.from_tuples(tuples)
+        s = Series(randn(8), index=index)
+        s[3] = np.NaN
+        self.series = s
 
         tm.N = 100
         self.tdf = tm.makeTimeDataFrame()
@@ -271,6 +293,12 @@ class TestMultiLevel(unittest.TestCase):
             for i in range(index.nlevels):
                 result = frame.count(axis=axis, level=i)
                 expected = frame.groupby(axis=axis, level=i).count(axis=axis)
+                assert_frame_equal(result, expected.reindex_like(result))
+
+        self.frame.ix[1, [1, 2]] = np.nan
+        self.frame.ix[7, [0, 1]] = np.nan
+        self.ymd.ix[1, [1, 2]] = np.nan
+        self.ymd.ix[7, [0, 1]] = np.nan
 
         _check_counts(self.frame)
         _check_counts(self.ymd)
@@ -280,6 +308,10 @@ class TestMultiLevel(unittest.TestCase):
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
         self.assertRaises(Exception, df.count, level=0)
+
+        self.frame['D'] = 'foo'
+        result = self.frame.count(level=0, numeric_only=True)
+        assert_almost_equal(result.columns, ['A', 'B', 'C'])
 
     def test_count_level_series(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz'],
@@ -530,6 +562,57 @@ class TestMultiLevel(unittest.TestCase):
         expected.index = expected.index.droplevel(0)
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
+
+    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
+                     'mad', 'std', 'var']
+
+    def test_series_group_min_max(self):
+        for op, level, skipna in cart_product(self.AGG_FUNCTIONS,
+                                              range(2),
+                                              [False, True]):
+            grouped = self.series.groupby(level=level)
+            aggf = lambda x: getattr(x, op)(skipna=skipna)
+            # skipna=True
+            leftside = grouped.agg(aggf)
+            rightside = getattr(self.series, op)(level=level, skipna=skipna)
+            assert_series_equal(leftside, rightside)
+
+    def test_frame_group_ops(self):
+        self.frame.ix[1, [1, 2]] = np.nan
+        self.frame.ix[7, [0, 1]] = np.nan
+
+        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
+                                                    range(2), range(2),
+                                                    [False, True]):
+            if axis == 0:
+                frame = self.frame
+            else:
+                frame = self.frame.T
+
+            grouped = frame.groupby(level=level, axis=axis)
+
+            aggf = lambda x: getattr(x, op)(skipna=skipna, axis=axis)
+            leftside = grouped.agg(aggf)
+            rightside = getattr(frame, op)(level=level, axis=axis,
+                                           skipna=skipna)
+            assert_frame_equal(leftside, rightside)
+
+    def test_groupby_multilevel(self):
+        result = self.ymd.groupby(level=[0, 1]).mean()
+
+        k1 = self.ymd.index.get_level_values(0)
+        k2 = self.ymd.index.get_level_values(1)
+
+        expected = self.ymd.groupby([k1, k2]).mean()
+
+        assert_frame_equal(result, expected)
+        self.assertEquals(result.index.names, self.ymd.index.names[:2])
+
+        result2 = self.ymd.groupby(level=self.ymd.index.names[:2]).mean()
+        assert_frame_equal(result, result2)
+
+    def test_groupby_multilevel_with_transform(self):
+        pass
 
 if __name__ == '__main__':
 

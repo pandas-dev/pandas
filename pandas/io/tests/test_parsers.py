@@ -51,6 +51,19 @@ ignore,this,row
                          skiprows=[1])
         assert_almost_equal(df2.values, expected)
 
+    def test_detect_string_na(self):
+        data = """A,B
+foo,bar
+NA,baz
+NaN,nan
+"""
+        expected = [['foo', 'bar'],
+                    [nan, 'baz'],
+                    [nan, nan]]
+
+        df = read_csv(StringIO(data))
+        assert_almost_equal(df.values, expected)
+
     def test_unnamed_columns(self):
         data = """A,B,C,,
 1,2,3,4,5
@@ -368,6 +381,52 @@ bar,two,12,13,14,15
 """
         df = read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
         self.assert_(isinstance(df.index.levels[0][0], datetime))
+
+        # specify columns out of order!
+        df2 = read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
+        self.assert_(isinstance(df2.index.levels[1][0], datetime))
+
+    def test_skip_footer(self):
+        data = """A,B,C
+1,2,3
+4,5,6
+7,8,9
+want to skip this
+also also skip this
+and this
+"""
+        result = read_csv(StringIO(data), skip_footer=3)
+        no_footer = '\n'.join(data.split('\n')[:-4])
+        expected = read_csv(StringIO(no_footer))
+
+        assert_frame_equal(result, expected)
+
+    def test_no_unnamed_index(self):
+        data = """ id c0 c1 c2
+0 1 0 a b
+1 2 0 c d
+2 2 2 e f
+"""
+        df = read_table(StringIO(data), sep=' ')
+        self.assert_(df.index.name is None)
+
+    def test_converters(self):
+        data = """A,B,C,D
+a,1,2,01/01/2009
+b,3,4,01/02/2009
+c,4,5,01/03/2009
+"""
+        from dateutil import parser
+
+        result = read_csv(StringIO(data), converters={'D' : parser.parse})
+        result2 = read_csv(StringIO(data), converters={3 : parser.parse})
+
+        expected = read_csv(StringIO(data))
+        expected['D'] = expected['D'].map(parser.parse)
+
+        self.assert_(isinstance(result['D'][0], datetime))
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
 
 class TestParseSQL(unittest.TestCase):
 

@@ -294,6 +294,18 @@ class TestDateRange(unittest.TestCase):
         self.assertRaises(Exception, daterange._infer_tzinfo, start, end)
         self.assertRaises(Exception, daterange._infer_tzinfo, end, start)
 
+    def test_date_parse_failure(self):
+        badly_formed_date = '2007/100/1'
+        self.assertRaises(ValueError, DateRange, start=badly_formed_date,
+                          periods=10)
+        self.assertRaises(ValueError, DateRange, end=badly_formed_date,
+                          periods=10)
+        self.assertRaises(ValueError, DateRange, badly_formed_date,
+                          badly_formed_date)
+
+    def test_equals(self):
+        self.assertFalse(self.rng.equals(list(self.rng)))
+
 def _skip_if_no_pytz():
     try:
         import pytz

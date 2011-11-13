@@ -5,8 +5,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+from itertools import izip
 import csv
-import itertools
 import operator
 
 from numpy import nan, ndarray
@@ -85,6 +85,34 @@ def _flex_method(op, name):
     f.__name__ = name
     return f
 
+_stat_doc = """
+Return %(name)s  of values
+%(na_action)s
+
+Parameters
+----------
+skipna : boolean, default True
+    Exclude NA/null values
+level : int, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a smaller Series
+%(extras)s
+Returns
+-------
+%(shortname)s : float (or Series if level specified)
+"""
+_doc_exclude_na = "NA/null values are excluded"
+_doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
+                          "interface.\n")
+
+def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
+                  extras=''):
+    doc = _stat_doc % {'name' : name,
+                       'shortname' : shortname,
+                       'na_action' : na_action,
+                       'extras' : extras}
+    f.__doc__ = doc
+
 #-------------------------------------------------------------------------------
 # Series class
 
@@ -104,48 +132,14 @@ class Series(np.ndarray, PandasObject):
                 index = Index(sorted(data.keys()))
             data = [data.get(idx, np.nan) for idx in index]
 
-        try:
-            subarr = np.array(data, dtype=dtype, copy=copy)
-        except ValueError:
-            if dtype:
-                raise
-            else:  # pragma: no cover
-                subarr = np.array(data, dtype=object)
+        subarr = _sanitize_array(data, index, dtype, copy,
+                                 raise_cast_failure=True)
 
-        if subarr.ndim == 0:
-            if isinstance(data, list):  # pragma: no cover
-                subarr = np.array(data, dtype=object)
-            elif index is not None:
-                value = data
-
-                # If we create an empty array using a string to infer
-                # the dtype, NumPy will only allocate one character per entry
-                # so this is kind of bad. Alternately we could use np.repeat
-                # instead of np.empty (but then you still don't want things
-                # coming out as np.str_!
-                if isinstance(value, basestring) and dtype is None:
-                    dtype = np.object_
-
-                if dtype is None:
-                    subarr = np.empty(len(index), dtype=type(value))
-                else:
-                    subarr = np.empty(len(index), dtype=dtype)
-                subarr.fill(value)
-            else:
-                return subarr.item()
-        elif subarr.ndim > 1:
-            if isinstance(data, np.ndarray):
-                raise Exception('Data must be 1-dimensional')
-            else:
-                subarr = _asarray_tuplesafe(data, dtype=dtype)
+        if not isinstance(subarr, np.ndarray):
+            return subarr
 
         if index is None:
             index = _default_index(len(subarr))
-
-        # This is to prevent mixed-type Series getting all casted to
-        # NumPy string type, e.g. NaN --> '-1#IND'.
-        if issubclass(subarr.dtype.type, basestring):
-            subarr = np.array(data, dtype=object, copy=copy)
 
         # Change the class of the array to be the subclass type.
         subarr = subarr.view(cls)
@@ -370,64 +364,84 @@ copy : boolean, default False
         if len(self.index) > 500:
             result = self._tidy_repr(30)
         elif len(self.index) > 0:
-            result = self._get_repr(name=True)
+            result = self._get_repr(print_header=True,
+                                    length=len(self) > 50,
+                                    name=True)
         else:
             result = '%s' % ndarray.__repr__(self)
-
-        if self.index.name is not None:
-            result = '%s\n%s' % (self.index.name, result)
 
         return result
 
     def _tidy_repr(self, max_vals=20):
         num = max_vals // 2
-        head = self[:num]._get_repr(name=False)
-        tail = self[-(max_vals - num):]._get_repr(name=False)
+        head = self[:num]._get_repr(print_header=True, length=False,
+                                    name=False)
+        tail = self[-(max_vals - num):]._get_repr(print_header=False,
+                                                  length=False,
+                                                  name=False)
         result = head + '\n...\n' + tail
-        result = '%s\nName: %s, Length: %d' % (result, self.name, len(self))
+        namestr = "Name: %s, " % self.name if self.name else ""
+        result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
-    def to_string(self, buf=None, na_rep='NaN', nanRep=None):
+    def to_string(self, buf=None, na_rep='NaN', float_format=None, nanRep=None):
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
-        the_repr = self._get_repr(na_rep=na_rep)
+        the_repr = self._get_repr(float_format=float_format, na_rep=na_rep)
         if buf is None:
             return the_repr
         else:
             print >> buf, the_repr
 
-    def _get_repr(self, name=False, na_rep='NaN'):
+    def _get_repr(self, name=False, print_header=False, length=True,
+                  na_rep='NaN', float_format=None):
         vals = self.values
         index = self.index
 
-        string_index = index.format()
+        is_multi = isinstance(index, MultiIndex)
+        if is_multi:
+            have_header = any(name for name in index.names)
+            string_index = index.format(names=True)
+            header, string_index = string_index[0], string_index[1:]
+        else:
+            have_header = index.name is not None
+            header = index.name
+            string_index = index.format()
+
         maxlen = max(len(x) for x in string_index)
         padSpace = min(maxlen, 60)
 
-        def _format_float(k, v):
-            if np.isnan(v):
+        if float_format is None:
+            float_format = str
+
+        def _format(k, v):
+            if isnull(v):
                 v = na_rep
-            else:
-                v = str(v)
+            if isinstance(v, (float, np.floating)):
+                v = float_format(v)
             return '%s    %s' % (str(k).ljust(padSpace), v)
 
-        def _format_nonfloat(k, v):
-            return '%s    %s' % (str(k).ljust(padSpace), v)
+        it = [_format(idx, v) for idx, v in izip(string_index, vals)]
 
-        if vals.dtype == np.float_:
-            _format = _format_float
-        else:
-            _format = _format_nonfloat
+        if print_header and have_header:
+            it.insert(0, header)
 
-        it = itertools.starmap(_format,
-                               itertools.izip(string_index, vals))
-        it = list(it)
+        footer = ''
         if name:
-            it.append('Name: %s, Length: %d' % (str(self.name), len(self)))
+            footer += "Name: %s" % self.name if self.name else ''
+
+        if length:
+            if footer:
+                footer += ', '
+            footer += 'Length: %d' % len(self)
+
+        if footer:
+            it.append(footer)
+
         return '\n'.join(it)
 
     def __str__(self):
@@ -440,7 +454,7 @@ copy : boolean, default False
         """
         Lazily iterate over (index, value) tuples
         """
-        return itertools.izip(iter(self.index), iter(self))
+        return izip(iter(self.index), iter(self))
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
@@ -456,7 +470,7 @@ copy : boolean, default False
     __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
     __pow__ = _arith_method(operator.pow, '__pow__')
 
-    __radd__ = _arith_method(operator.add, '__add__')
+    __radd__ = _arith_method(lambda x, y: y + x, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')
@@ -553,6 +567,16 @@ copy : boolean, default False
         else:
             return default
 
+    def head(self, n=5):
+        """Returns first n rows of Series
+        """
+        return self[:n]
+
+    def tail(self, n=5):
+        """Returns last n rows of Series
+        """
+        return self[-n:]
+
     #----------------------------------------------------------------------
     # Statistics, overridden ndarray methods
 
@@ -562,28 +586,30 @@ copy : boolean, default False
         """
         Return number of non-NA/null observations in the Series
 
+        Parameters
+        ----------
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a smaller Series
+
         Returns
         -------
-        nobs : int
+        nobs : int or Series (if level specified)
         """
         if level is not None:
-            return self._count_level(level)
+            mask = notnull(self.values)
+            level_index = self.index.levels[level]
+
+            if len(self) == 0:
+                return Series(0, index=level_index)
+
+            # call cython function
+            max_bin = len(level_index)
+            counts = lib.count_level_1d(mask.view(np.uint8),
+                                        self.index.labels[level], max_bin)
+            return Series(counts, index=level_index)
 
         return notnull(self.values).sum()
-
-    def _count_level(self, level):
-        # TODO: GENERALIZE CODE OVERLAP WITH DATAFRAME
-        mask = notnull(self.values)
-        level_index = self.index.levels[level]
-
-        if len(self) == 0:
-            return Series(0, index=level_index)
-
-        # call cython function
-        max_bin = len(level_index)
-        counts = lib.count_level_1d(mask.view(np.uint8),
-                                    self.index.labels[level], max_bin)
-        return Series(counts, index=level_index)
 
     def value_counts(self):
         """
@@ -601,19 +627,10 @@ copy : boolean, default False
             counter[value] += 1
         return Series(counter).order(ascending=False)
 
-    def sum(self, axis=0, dtype=None, out=None, skipna=True):
-        """
-        Sum of values
+    def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('sum', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-
-        Returns
-        -------
-        sum : float
-        """
         values = self.values.copy()
 
         if skipna:
@@ -623,35 +640,27 @@ copy : boolean, default False
             np.putmask(values, mask, 0)
 
         return values.sum()
+    _add_stat_doc(sum, 'sum', 'sum', extras=_doc_ndarray_interface)
 
-    def mean(self, axis=0, dtype=None, out=None, skipna=True):
-        """
-        Mean of values
+    def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('mean', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-
-        Returns
-        -------
-        mean : float
-        """
         return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
+    _add_stat_doc(mean, 'mean', 'mean', extras=_doc_ndarray_interface)
 
-    def median(self, skipna=True):
-        """
-        Compute median of values
+    def mad(self, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('mad', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
+        demeaned = self - self.mean(skipna=skipna)
+        return np.abs(demeaned).mean(skipna=skipna)
+    _add_stat_doc(mad, 'mean absolute deviation', 'mad')
 
-        Returns
-        -------
-        median : float
-        """
+    def median(self, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('median', level=level, skipna=skipna)
+
         arr = self.values
         if arr.dtype != np.float_:
             arr = arr.astype(float)
@@ -664,119 +673,73 @@ copy : boolean, default False
                 return np.nan
 
         return lib.median(arr)
+    _add_stat_doc(median, 'median', 'median')
 
-    def prod(self, axis=0, dtype=None, out=None, skipna=True):
-        """
-        Product of all values
+    def prod(self, axis=0, dtype=None, out=None, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('prod', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-
-        Returns
-        -------
-        product : float
-        """
         return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
+    _add_stat_doc(prod, 'product', 'product')
 
-    def min(self, axis=None, out=None, skipna=True):
-        """
-        Minimum of values
+    def min(self, axis=None, out=None, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('min', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-
-        Returns
-        -------
-        min : float
-        """
         arr = self.values.copy()
+
         if skipna:
             if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), np.inf)
+
         return arr.min()
+    _add_stat_doc(min, 'minimum', 'min')
 
-    def max(self, axis=None, out=None, skipna=True):
-        """
-        Maximum of values
+    def max(self, axis=None, out=None, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('max', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-
-        Returns
-        -------
-        max : float
-        """
         arr = self.values.copy()
+
         if skipna:
             if not issubclass(arr.dtype.type, np.integer):
                 np.putmask(arr, isnull(arr), -np.inf)
+
         return arr.max()
+    _add_stat_doc(max, 'maximum', 'max')
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True):
-        """
-        Unbiased standard deviation of values
+    def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
+            level=None):
+        if level is not None:
+            return self._agg_by_level('std', level=level, skipna=skipna)
 
-        Extra parameters are to preserve ndarray interface.
-
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-
-        Returns
-        -------
-        stdev : float
-        """
         if skipna:
             nona = remove_na(self.values)
             if len(nona) < 2:
                 return nan
             return ndarray.std(nona, axis, dtype, out, ddof)
-        else:
-            return self.values.std(axis, dtype, out, ddof)
 
-    def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True):
-        """
-        Unbiased variance of non-NA/null values
+        return self.values.std(axis, dtype, out, ddof)
+    _add_stat_doc(std, 'unbiased standard deviation', 'stdev')
 
-        Extra parameters are to preserve ndarray interface.
+    def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
+            level=None):
+        if level is not None:
+            return self._agg_by_level('var', level=level, skipna=skipna)
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
-
-        Returns
-        -------
-        var : float
-        """
         if skipna:
             nona = remove_na(self.values)
             if len(nona) < 2:
                 return nan
             return ndarray.var(nona, axis, dtype, out, ddof)
-        else:
-            return self.values.var(axis, dtype, out, ddof)
 
-    def skew(self, skipna=True):
-        """
-        Unbiased skewness of the non-NA/null values
+        return self.values.var(axis, dtype, out, ddof)
+    _add_stat_doc(var, 'unbiased variance', 'var')
 
-        Parameters
-        ----------
-        skipna : boolean, default True
-            Exclude NA/null values
+    def skew(self, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('skew', level=level, skipna=skipna)
 
-        Returns
-        -------
-        skew : float
-        """
         y = np.array(self.values)
         mask = notnull(y)
         count = mask.sum()
@@ -790,6 +753,24 @@ copy : boolean, default False
         C = (y**3).sum() / count - A**3 - 3*A*B
 
         return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
+    _add_stat_doc(skew, 'unbiased skewness', 'skew')
+
+    def _ndarray_statistic(self, funcname, dtype=None, skipna=True):
+        arr = self.values
+        retVal = getattr(arr, funcname)(dtype=dtype)
+
+        if skipna and isnull(retVal):
+            arr = remove_na(arr)
+            if len(arr) == 0:
+                return np.nan
+            retVal = getattr(arr, funcname)(dtype=dtype)
+
+        return retVal
+
+    def _agg_by_level(self, name, level=0, skipna=True):
+        method = getattr(type(self), name)
+        applyf = lambda x: method(x, skipna=skipna)
+        return self.groupby(level=level).aggregate(applyf)
 
     def cumsum(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -849,17 +830,16 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
-    def _ndarray_statistic(self, funcname, dtype=None, skipna=True):
-        arr = self.values
-        retVal = getattr(arr, funcname)(dtype=dtype)
+    def round(self, decimals=0, out=None):
+        """
 
-        if skipna and isnull(retVal):
-            arr = remove_na(arr)
-            if len(arr) == 0:
-                return np.nan
-            retVal = getattr(arr, funcname)(dtype=dtype)
+        """
+        result = self.values.round(decimals, out=out)
+        if out is None:
+            result = Series(result, index=self.index, name=self.name)
 
-        return retVal
+        return result
+    round.__doc__ = np.ndarray.round.__doc__
 
     def quantile(self, q=0.5):
         """
@@ -1167,6 +1147,11 @@ copy : boolean, default False
         ndarray. No return value
         """
         sortedSeries = self.order(na_last=True)
+
+        # if not self.flags.owndata:
+        #     raise Exception('This Series is a view of some other array, to '
+        #                     'sort in-place you must create a copy')
+
         self[:] = sortedSeries
         self.index = sortedSeries.index
 
@@ -1248,11 +1233,11 @@ copy : boolean, default False
             argsorted = argsorted[::-1]
 
         if na_last:
-            n = sum(good)
+            n = good.sum()
             sortedIdx[:n] = idx[good][argsorted]
             sortedIdx[n:] = idx[bad]
         else:
-            n = sum(bad)
+            n = bad.sum()
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
 
@@ -1371,8 +1356,8 @@ copy : boolean, default False
             new_values = common.take_1d(np.asarray(arg), indexer)
             return Series(new_values, index=self.index, name=self.name)
         else:
-            return Series([arg(x) for x in self], index=self.index,
-                          name=self.name)
+            mapped = lib.map_infer(self.values, arg)
+            return Series(mapped, index=self.index, name=self.name)
 
     def apply(self, func):
         """
@@ -1388,10 +1373,13 @@ copy : boolean, default False
         y : Series
         """
         try:
-            return func(self)
+            result = func(self)
+            if not isinstance(result, Series):
+                result = Series(result, index=self.index, name=self.name)
+            return result
         except Exception:
-            return Series([func(x) for x in self], index=self.index,
-                          name=self.name)
+            mapped = lib.map_infer(self.values, func)
+            return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', copy=True):
         """
@@ -1555,11 +1543,29 @@ copy : boolean, default False
             new_values = self.values.take(indexer)
             return Series(new_values, index=self.index, name=self.name)
 
+    def isin(self, values):
+        """
+        Return boolean vector showing whether each element in the Series is
+        exactly contained in the passed sequence of values
+
+        Parameters
+        ----------
+        values : sequence
+
+        Returns
+        -------
+        isin : Series (boolean dtype)
+        """
+        value_set = set(values)
+        result = lib.ismember(self, value_set)
+        # return self.map(value_set.__contains__)
+        return Series(result, self.index, name=self.name)
+
 #-------------------------------------------------------------------------------
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', grid=True, **kwds):  # pragma: no cover
+             style='-', grid=True, **kwds):
         """
         Plot the input series with the index on the x-axis using matplotlib
 
@@ -1620,12 +1626,12 @@ copy : boolean, default False
         try:
             fig = plt.gcf()
             fig.autofmt_xdate()
-        except Exception:
+        except Exception:  # pragma: no cover
             pass
 
         plt.draw_if_interactive()
 
-    def hist(self, ax=None, grid=True, **kwds):  # pragma: no cover
+    def hist(self, ax=None, grid=True, **kwds):
         """
         Draw histogram of the input series using matplotlib
 
@@ -1907,6 +1913,50 @@ def remove_na(arr):
     """
     return arr[notnull(arr)]
 
+
+def _sanitize_array(data, index, dtype=None, copy=False,
+                    raise_cast_failure=False):
+    try:
+        subarr = np.array(data, dtype=dtype, copy=copy)
+    except (ValueError, TypeError):
+        if dtype and raise_cast_failure:
+            raise
+        else:  # pragma: no cover
+            subarr = np.array(data, dtype=object)
+
+    if subarr.ndim == 0:
+        if isinstance(data, list):  # pragma: no cover
+            subarr = np.array(data, dtype=object)
+        elif index is not None:
+            value = data
+
+            # If we create an empty array using a string to infer
+            # the dtype, NumPy will only allocate one character per entry
+            # so this is kind of bad. Alternately we could use np.repeat
+            # instead of np.empty (but then you still don't want things
+            # coming out as np.str_!
+            if isinstance(value, basestring) and dtype is None:
+                dtype = np.object_
+
+            if dtype is None:
+                subarr = np.empty(len(index), dtype=type(value))
+            else:
+                subarr = np.empty(len(index), dtype=dtype)
+            subarr.fill(value)
+        else:
+            return subarr.item()
+    elif subarr.ndim > 1:
+        if isinstance(data, np.ndarray):
+            raise Exception('Data must be 1-dimensional')
+        else:
+            subarr = _asarray_tuplesafe(data, dtype=dtype)
+
+    # This is to prevent mixed-type Series getting all casted to
+    # NumPy string type, e.g. NaN --> '-1#IND'.
+    if issubclass(subarr.dtype.type, basestring):
+        subarr = np.array(data, dtype=object, copy=copy)
+
+    return subarr
 
 def _get_rename_function(mapper):
     if isinstance(mapper, (dict, Series)):
