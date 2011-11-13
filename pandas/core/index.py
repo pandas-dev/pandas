@@ -9,6 +9,7 @@ from pandas.core.common import (adjoin as _adjoin, _stringify,
                                 _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
+import pandas._engines as _engines
 
 __all__ = ['Index']
 
@@ -93,19 +94,15 @@ class Index(np.ndarray):
     def is_monotonic(self):
         return self._is_monotonic(self.values)
 
-    _indexMap = None
-    _integrity = False
-
     @property
     def indexMap(self):
         "{label -> location}"
-        if self._indexMap is None:
-            self._indexMap = self._map_indices(self)
-            self._integrity = len(self._indexMap) == len(self)
+        return self._engine.get_mapping(1)
 
-        if not self._integrity:
-            raise Exception('Index cannot contain duplicate values!')
-        return self._indexMap
+    @cache_readonly
+    def _engine(self):
+        # property, for now, slow to look up
+        return _engines.DictIndexEngine(self.values, self._map_indices)
 
     def _get_level_number(self, level):
         if not isinstance(level, int):
@@ -114,12 +111,7 @@ class Index(np.ndarray):
         return level
 
     def _verify_integrity(self):
-        if self._indexMap is None:
-            try:
-                self.indexMap
-            except Exception:
-                return False
-        return len(self.indexMap) == len(self)
+        return self._engine.has_integrity
 
     def _get_duplicates(self):
         from collections import defaultdict
@@ -139,7 +131,7 @@ class Index(np.ndarray):
         return self._allDates
 
     def __iter__(self):
-        return iter(self.view(np.ndarray))
+        return iter(self.values)
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -152,7 +144,7 @@ class Index(np.ndarray):
         return self
 
     def __contains__(self, key):
-        return key in self.indexMap
+        return key in self._engine
 
     def __hash__(self):
         return hash(self.view(np.ndarray))
@@ -238,7 +230,7 @@ class Index(np.ndarray):
         For a sorted index, return the most recent label up to and including
         the passed label. Return NaN if not found
         """
-        if label not in self.indexMap:
+        if label not in self:
             loc = self.searchsorted(label, side='left')
             if loc > 0:
                 return self[loc-1]
@@ -409,7 +401,7 @@ class Index(np.ndarray):
         -------
         loc : int
         """
-        return self.indexMap[key]
+        return self._engine.get_loc(key)
 
     def get_indexer(self, target, method=None):
         """
@@ -570,14 +562,14 @@ class Index(np.ndarray):
         if start is None:
             beg_slice = 0
         elif start in self:
-            beg_slice = self.indexMap[start]
+            beg_slice = self.get_loc(start)
         else:
             beg_slice = self.searchsorted(start, side='left')
 
         if end is None:
             end_slice = len(self)
-        elif end in self.indexMap:
-            end_slice = self.indexMap[end] + 1
+        elif end in self:
+            end_slice = self.get_loc(end) + 1
         else:
             end_slice = self.searchsorted(end, side='right')
 
@@ -893,11 +885,6 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
-    def __iter__(self):
-        values = [np.asarray(lev).take(lab)
-                  for lev, lab in zip(self.levels, self.labels)]
-        return izip(*values)
-
     def _get_level_number(self, level):
         if not isinstance(level, int):
             count = self.names.count(level)
@@ -912,9 +899,9 @@ class MultiIndex(Index):
 
     @property
     def values(self):
-        result = np.empty(len(self), dtype=object)
-        result[:] = list(self)
-        return result
+        values = [np.asarray(lev).take(lab)
+                  for lev, lab in zip(self.levels, self.labels)]
+        return lib.fast_zip(values)
 
     def get_level_values(self, level):
         """
@@ -935,8 +922,7 @@ class MultiIndex(Index):
 
     def __contains__(self, key):
         try:
-            label_key = self._get_label_key(key)
-            return label_key in self.indexMap
+            return key in self.indexMap
         except Exception:
             return False
 
@@ -1032,18 +1018,6 @@ class MultiIndex(Index):
         arrays = zip(*tuples)
         return MultiIndex.from_arrays(arrays, sortorder=sortorder,
                                       names=names)
-
-    @property
-    def indexMap(self):
-        if self._indexMap is None:
-            zipped = zip(*self.labels)
-            self._indexMap = lib.map_indices_list(zipped)
-            self._integrity = len(self._indexMap) == len(self)
-
-        if not self._integrity:
-            raise Exception('Index cannot contain duplicate values!')
-
-        return self._indexMap
 
     @property
     def nlevels(self):
@@ -1399,7 +1373,7 @@ class MultiIndex(Index):
         """
         if isinstance(key, tuple):
             if len(key) == self.nlevels:
-                return self._get_tuple_loc(key)
+                return self._engine.get_loc(key)
             else:
                 result = slice(*self.slice_locs(key, key))
                 if result.start == result.stop:
@@ -1417,13 +1391,6 @@ class MultiIndex(Index):
                 i = labels.searchsorted(loc, side='left')
                 j = labels.searchsorted(loc, side='right')
                 return slice(i, j)
-
-    def _get_tuple_loc(self, tup):
-        indexer = self._get_label_key(tup)
-        try:
-            return self.indexMap[indexer]
-        except KeyError:
-            raise KeyError(str(tup))
 
     def _get_label_key(self, tup):
         return tuple(lev.get_loc(v) for lev, v in zip(self.levels, tup))

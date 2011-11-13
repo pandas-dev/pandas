@@ -293,7 +293,13 @@ tseries_ext = Extension('pandas._tseries',
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
+
+engines_ext = Extension('pandas._engines',
+                       sources=[srcpath('engines', suffix=suffix)],
+                       include_dirs=[np.get_include()])
+
 extensions = [tseries_ext,
+              engines_ext,
               sparse_ext]
 
 # if _have_setuptools:

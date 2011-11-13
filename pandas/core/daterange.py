@@ -22,6 +22,8 @@ def _bin_op(op):
 _CACHE_START = datetime(1950, 1, 1)
 _CACHE_END   = datetime(2030, 1, 1)
 
+_daterange_cache = {}
+
 class DateRange(Index):
     """
     Fixed frequency date range according to input parameters.
@@ -43,7 +45,6 @@ class DateRange(Index):
     tzinfo : pytz.timezone
         To endow DateRange with time zone information
     """
-    _cache = {}
     def __new__(cls, start=None, end=None, periods=None,
                 offset=datetools.bday, time_rule=None,
                 tzinfo=None, name=None, **kwds):
@@ -143,7 +144,7 @@ class DateRange(Index):
         if offset is None:
             raise Exception('Must provide a DateOffset!')
 
-        if offset not in cls._cache:
+        if offset not in _daterange_cache:
             xdr = generate_range(_CACHE_START, _CACHE_END, offset=offset)
             arr = np.array(list(xdr), dtype=object, copy=False)
 
@@ -151,9 +152,9 @@ class DateRange(Index):
             cachedRange.offset = offset
             cachedRange.tzinfo = None
             cachedRange.name = None
-            cls._cache[offset] = cachedRange
+            _daterange_cache[offset] = cachedRange
         else:
-            cachedRange = cls._cache[offset]
+            cachedRange = _daterange_cache[offset]
 
         if start is None:
             if end is None:
@@ -165,13 +166,13 @@ class DateRange(Index):
 
             end = offset.rollback(end)
 
-            endLoc = cachedRange.indexMap[end] + 1
+            endLoc = cachedRange.get_loc(end) + 1
             startLoc = endLoc - periods
         elif end is None:
             assert(isinstance(start, datetime))
             start = offset.rollforward(start)
 
-            startLoc = cachedRange.indexMap[start]
+            startLoc = cachedRange.get_loc(start)
             if periods is None:
                 raise Exception('Must provide number of periods!')
 
@@ -180,8 +181,8 @@ class DateRange(Index):
             start = offset.rollforward(start)
             end = offset.rollback(end)
 
-            startLoc = cachedRange.indexMap[start]
-            endLoc = cachedRange.indexMap[end] + 1
+            startLoc = cachedRange.get_loc(start)
+            endLoc = cachedRange.get_loc(end) + 1
 
         indexSlice = cachedRange[startLoc:endLoc]
         indexSlice.name = name

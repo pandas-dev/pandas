@@ -315,8 +315,7 @@ class BlockManager(object):
         return tuple(len(ax) for ax in self.axes)
 
     def _verify_integrity(self):
-        union_items = _union_block_items(self.blocks)
-
+        _union_block_items(self.blocks)
         mgr_shape = self.shape
         for block in self.blocks:
             assert(block.values.shape[1:] == mgr_shape[1:])
@@ -520,6 +519,19 @@ class BlockManager(object):
         _, block = self._find_block(item)
         return block.get(item)
 
+    def get_scalar(self, tup):
+        """
+        Retrieve single item
+        """
+        item = tup[0]
+        _, blk = self._find_block(item)
+
+        # this could obviously be seriously sped up in cython
+        item_loc = blk.items.get_loc(item),
+        full_loc = item_loc + tuple(ax.get_loc(x)
+                                    for ax, x in zip(self.axes[1:], tup[1:]))
+        return blk.values[full_loc]
+
     def delete(self, item):
         i, _ = self._find_block(item)
         loc = self.items.get_loc(item)
@@ -547,6 +559,9 @@ class BlockManager(object):
         else:
             # insert at end
             self.insert(len(self.items), item, value)
+
+    def set_scalar(self, tup, value):
+        pass
 
     def insert(self, loc, item, value):
         if item in self.items:
@@ -903,23 +918,15 @@ def _blocks_to_series_dict(blocks, index=None):
     return series_dict
 
 def _interleaved_dtype(blocks):
-    have_int = False
-    have_bool = False
-    have_object = False
-    have_float = False
+    from collections import defaultdict
+    counts = defaultdict(lambda: 0)
+    for x in blocks:
+        counts[type(x)] += 1
 
-    for block in blocks:
-        if isinstance(block, FloatBlock):
-            have_float = True
-        elif isinstance(block, IntBlock):
-            have_int = True
-        elif isinstance(block, BoolBlock):
-            have_bool = True
-        elif isinstance(block, ObjectBlock):
-            have_object = True
-        else: # pragma: no cover
-            raise Exception('Unrecognized block type')
-
+    have_int = counts[IntBlock] > 0
+    have_bool = counts[BoolBlock] > 0
+    have_object = counts[ObjectBlock] > 0
+    have_float = counts[FloatBlock] > 0
     have_numeric = have_float or have_int
 
     if have_object:

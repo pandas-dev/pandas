@@ -865,7 +865,22 @@ class DataFrame(NDFrame):
                                  columns=self.columns, copy=False)
 
     #----------------------------------------------------------------------
-    # getitem/setitem related
+    # Getting and setting elements
+
+    def get(self, index, col):
+        """
+        Retrieve single value at passed column and index
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+
+        Returns
+        -------
+        element : scalar value
+        """
+        return self._data.get_scalar((col, index))
 
     def __getitem__(self, key):
         # slice rows

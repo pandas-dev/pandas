@@ -438,6 +438,35 @@ def fast_zip(list ndarrays):
 
     return result
 
+cdef class cache_readonly(object):
+
+    cdef readonly:
+        object fget, name
+
+    def __init__(self, func):
+        self.fget = func
+        self.name = func.__name__
+
+    def __get__(self, obj, type):
+        if obj is None:
+            return self.fget
+
+        # Get the cache or set a default one if needed
+
+        cache = getattr(obj, '_cache', None)
+        if cache is None:
+            cache = obj._cache = {}
+
+        if PyDict_Contains(cache, self.name):
+            # not necessary to Py_INCREF
+            val = <object> PyDict_GetItem(cache, self.name)
+            return val
+        else:
+            val = self.fget(obj)
+            PyDict_SetItem(cache, self.name, val)
+            return val
+
+
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
