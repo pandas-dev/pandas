@@ -1485,10 +1485,7 @@ class MultiIndex(Index):
 
         result_names = self.names if self.names == other.names else None
 
-        self_tuples = self.get_tuple_index()
-        other_tuples = other.get_tuple_index()
-
-        uniq_tuples = lib.fast_unique_multiple([self_tuples, other_tuples])
+        uniq_tuples = lib.fast_unique_multiple([self.values, other.values])
         return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
@@ -1511,8 +1508,8 @@ class MultiIndex(Index):
 
         result_names = self.names if self.names == other.names else None
 
-        self_tuples = self.get_tuple_index()
-        other_tuples = other.get_tuple_index()
+        self_tuples = self.values
+        other_tuples = other.values
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         if len(uniq_tuples) == 0:
             return MultiIndex(levels=[[]]*self.nlevels,

@@ -867,7 +867,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Getting and setting elements
 
-    def get(self, index, col):
+    def get_value(self, index, col):
         """
         Retrieve single value at passed column and index
 
@@ -880,7 +880,23 @@ class DataFrame(NDFrame):
         -------
         element : scalar value
         """
-        return self._data.get_scalar((col, index))
+        iloc = self.index.get_loc(index)
+        vals = self._getitem_single(col).values
+        return vals[iloc]
+
+    def put_value(self, index, col, value):
+        """
+        Put single value at passed column and index
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        value : scalar value
+        """
+        iloc = self.index.get_loc(index)
+        vals = self._getitem_single(col).values
+        vals[iloc] = value
 
     def __getitem__(self, key):
         # slice rows
@@ -942,14 +958,14 @@ class DataFrame(NDFrame):
             return self._getitem_single(key)
 
     def _getitem_single(self, key):
-        res = self._series_cache.get(key)
-        if res is not None:
+        cache = self._series_cache
+        try:
+            return cache[key]
+        except:
+            values = self._data.get(key)
+            res = Series(values, index=self.index, name=key)
+            cache[key] = res
             return res
-
-        values = self._data.get(key)
-        res = Series(values, index=self.index, name=key)
-        self._series_cache[key] = res
-        return res
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.

@@ -660,12 +660,18 @@ class CheckIndexing(object):
     def test_setitem_boolean_missing(self):
         pass
 
-    def test_get_scalar(self):
+    def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
-                result = self.frame.get(idx, col)
+                result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
                 self.assertEqual(result, expected)
+
+    def test_put_value(self):
+        for idx in self.frame.index:
+            for col in self.frame.columns:
+                self.frame.put_value(idx, col, 1)
+                self.assertEqual(self.frame[col][idx], 1)
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
