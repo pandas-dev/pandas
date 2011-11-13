@@ -414,7 +414,7 @@ def melt(frame, id_vars=None, value_vars=None):
     b 3 4
     c 5 6
 
-    >>> melt(df, ['A'])
+    >>> melt(df, id_vars=['A'])
     A variable value
     a B        1
     b B        3
