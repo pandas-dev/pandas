@@ -2961,8 +2961,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Plotting
 
-    def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, legend=True, ax=None, **kwds):
+    def plot(self, kind='line', subplots=False, sharex=True, sharey=False, use_index=True,
+             figsize=None, grid=True, legend=True, rot=30, ax=None, **kwds):
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -2998,22 +2998,49 @@ class DataFrame(NDFrame):
             else:
                 fig = ax.get_figure()
 
-        if use_index:
-            x = self.index
-        else:
-            x = range(len(self))
-
-        for i, col in enumerate(_try_sort(self.columns)):
-            empty = self[col].count() == 0
-            y = self[col].values if not empty else np.zeros(x.shape)
-            if subplots:
-                ax = axes[i]
-                ax.plot(x, y, 'k', label=str(col), **kwds)
-                ax.legend(loc='best')
+        if kind == 'line':
+            if use_index:
+                x = self.index
             else:
-                ax.plot(x, y, label=str(col), **kwds)
+                x = range(len(self))
 
-            ax.grid(grid)
+            for i, col in enumerate(_try_sort(self.columns)):
+                empty = self[col].count() == 0
+                y = self[col].values if not empty else np.zeros(x.shape)
+                if subplots:
+                    ax = axes[i]
+                    ax.plot(x, y, 'k', label=str(col), **kwds)
+                    ax.legend(loc='best')
+                else:
+                    ax.plot(x, y, label=str(col), **kwds)
+
+                ax.grid(grid)
+        elif kind == 'bar':
+            N = len(self)
+            M = len(self.columns)
+            xinds = np.arange(N) + 0.25
+            colors = ['red', 'green', 'blue', 'yellow', 'black']
+            rects = []
+            labels = []
+            for i, col in enumerate(_try_sort(self.columns)):
+                empty = self[col].count() == 0
+                y = self[col].values if not empty else np.zeros(x.shape)
+                if subplots:
+                    ax = axes[i]
+                    ax.bar(xinds, y, 0.5,
+                           bottom=np.zeros(N), linewidth=1, **kwds)
+                    ax.set_title(col)
+                else:
+                    rects.append(ax.bar(xinds+i*0.5/M,y,0.5/M,bottom=np.zeros(N),color=colors[i % len(colors)], **kwds))
+                    labels.append(col)
+
+            if N < 10:
+                fontsize = 12
+            else:
+                fontsize = 10
+
+            ax.set_xticks(xinds + 0.25)
+            ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
 
         # try to make things prettier
         try:
@@ -3022,7 +3049,10 @@ class DataFrame(NDFrame):
             pass
 
         if legend and not subplots:
-            ax.legend(loc='best')
+            if kind == 'line':
+                ax.legend(loc='best')
+            else:
+                ax.legend([r[0] for r in rects],labels,loc='best')
 
         plt.draw_if_interactive()
 
