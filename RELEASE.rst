@@ -54,6 +54,8 @@ pandas 0.5.1
     for fast conversion to DataFrame (GH #357)
   - Can pass multiple levels to groupby, e.g. `df.groupby(level=[0, 1])` (GH
     #103)
+  - Add fast `get_value` and `put_value` methods to DataFrame and
+    micro-performance tweaks (GH #360)
 
 **Improvements to existing features**
 
@@ -77,6 +79,8 @@ pandas 0.5.1
   - New Cython vectorized function `map_infer` speeds up `Series.apply` and
     `Series.map` significantly when passed elementwise Python function,
     motivated by PR #355
+  - Cythonized `cache_readonly`, resulting in substantial micro-performance
+    enhancements throughout the codebase (GH #361)
 
 **Bug fixes**
 

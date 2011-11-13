@@ -56,7 +56,15 @@ class TestDataFramePlots(unittest.TestCase):
             raise nose.SkipTest
 
     def test_plot(self):
-        pass
+        df = tm.makeTimeDataFrame()
+        _check_plot_works(df.plot, grid=False)
+        _check_plot_works(df.plot, subplots=True)
+        _check_plot_works(df.plot, subplots=True, use_index=False)
+
+    def test_hist(self):
+        df = tm.makeTimeDataFrame()
+        _check_plot_works(df.hist)
+        _check_plot_works(df.hist, grid=False)
 
     def test_plot_int_columns(self):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
@@ -74,8 +82,11 @@ def _check_plot_works(f, *args, **kwargs):
     f(*args, **kwargs)
 
     ax = fig.add_subplot(212)
-    kwargs['ax'] = ax
-    f(*args, **kwargs)
+    try:
+        kwargs['ax'] = ax
+        f(*args, **kwargs)
+    except Exception:
+        pass
     plt.savefig(PNG_PATH)
     os.remove(PNG_PATH)
 
