@@ -4,7 +4,10 @@ cimport cython
 from numpy cimport *
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
-                          PyDict_Contains, PyDict_Keys)
+                      PyDict_Contains, PyDict_Keys,
+                      Py_INCREF, PyTuple_SET_ITEM,
+                      PyTuple_SetItem,
+                      PyTuple_New)
 from cpython cimport PyFloat_Check
 
 import numpy as np
@@ -394,9 +397,51 @@ def fast_unique_multiple_list(list lists):
 
     return uniques
 
+def fast_zip(list ndarrays):
+    '''
+    For zipping multiple ndarrays into an ndarray of tuples
+    '''
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[object] result
+        flatiter it
+        object val, tup
+
+    k = len(ndarrays)
+    n = len(ndarrays[0])
+
+    result = np.empty(n, dtype=object)
+
+    # initialize tuples on first pass
+    arr = ndarrays[0]
+    it = <flatiter> PyArray_IterNew(arr)
+    for i in range(n):
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        tup = PyTuple_New(k)
+
+        PyTuple_SET_ITEM(tup, 0, val)
+        Py_INCREF(val)
+        result[i] = tup
+        PyArray_ITER_NEXT(it)
+
+    for j in range(1, k):
+        arr = ndarrays[j]
+        it = <flatiter> PyArray_IterNew(arr)
+        if len(arr) != n:
+            raise ValueError('all arrays but be same length')
+
+        for i in range(n):
+            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+            PyTuple_SET_ITEM(result[i], j, val)
+            Py_INCREF(val)
+            PyArray_ITER_NEXT(it)
+
+    return result
+
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
 include "reindex.pyx"
 include "generated.pyx"
 include "parsing.pyx"
+
