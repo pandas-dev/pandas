@@ -385,8 +385,6 @@ class GroupBy(object):
                 if isinstance(subgen, PandasObject):
                     size = subgen.shape[shape_axis]
                     ctchunk[i] = size
-                    if size == 0:
-                        continue
                     reschunk[i] = func(subgen, *args, **kwargs)
                 else:
                     _doit(reschunk[i], ctchunk[i], subgen,

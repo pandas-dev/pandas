@@ -430,15 +430,15 @@ def melt(frame, id_vars=None, value_vars=None):
     mdata = {}
 
     if id_vars is not None:
-        idvars = list(idvars)
+        id_vars = list(id_vars)
         frame = frame.copy()
-        K -= len(idvars)
-        for col in idvars:
+        K -= len(id_vars)
+        for col in id_vars:
             mdata[col] = np.tile(frame.pop(col).values, K)
     else:
-        idvars = []
+        id_vars = []
 
-    mcolumns = idvars + ['variable', 'value']
+    mcolumns = id_vars + ['variable', 'value']
 
     mdata['value'] = frame.values.ravel('F')
     mdata['variable'] = np.asarray(frame.columns).repeat(N)

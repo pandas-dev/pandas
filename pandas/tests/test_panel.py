@@ -358,7 +358,9 @@ class CheckIndexing(object):
 
         # scalar
         self.panel['ItemG'] = 1
-        self.panel['ItemE'] = 1
+        self.panel['ItemE'] = True
+        self.assert_(self.panel['ItemG'].values.dtype == np.int64)
+        self.assert_(self.panel['ItemE'].values.dtype == np.bool_)
 
         # object dtype
         self.panel['ItemQ'] = 'foo'

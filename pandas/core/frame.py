@@ -2974,7 +2974,7 @@ class DataFrame(NDFrame):
         # try to make things prettier
         try:
             fig.autofmt_xdate()
-        except Exception:
+        except Exception:  # pragma: no cover
             pass
 
         if legend and not subplots:

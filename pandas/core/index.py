@@ -920,12 +920,6 @@ class MultiIndex(Index):
         labels = self.labels[level]
         return unique_vals.take(labels)
 
-    def __contains__(self, key):
-        try:
-            return key in self.indexMap
-        except Exception:
-            return False
-
     def format(self, space=2, sparsify=True, adjoin=True, names=False):
         if len(self) == 0:
             return []
@@ -1391,9 +1385,6 @@ class MultiIndex(Index):
                 i = labels.searchsorted(loc, side='left')
                 j = labels.searchsorted(loc, side='right')
                 return slice(i, j)
-
-    def _get_label_key(self, tup):
-        return tuple(lev.get_loc(v) for lev, v in zip(self.levels, tup))
 
     def truncate(self, before=None, after=None):
         """

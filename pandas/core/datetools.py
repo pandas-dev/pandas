@@ -291,8 +291,8 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     def apply(self, other):
         n = self.n
-        _, nDaysInMonth = calendar.monthrange(other.year, other.month)
-        if other.day != nDaysInMonth:
+        _, days_in_month = calendar.monthrange(other.year, other.month)
+        if other.day != days_in_month:
             other = other + relativedelta(months=-1, day=31)
             if n <= 0:
                 n = n + 1
@@ -301,9 +301,9 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     @classmethod
     def onOffset(cls, someDate):
-        __junk, nDaysInMonth = calendar.monthrange(someDate.year,
+        __junk, days_in_month = calendar.monthrange(someDate.year,
                                                    someDate.month)
-        return someDate.day == nDaysInMonth
+        return someDate.day == days_in_month
 
 class BMonthEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
@@ -316,8 +316,8 @@ class BMonthEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
-        lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
@@ -476,8 +476,8 @@ class BQuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
-        lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -525,16 +525,14 @@ class QuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
             monthsToGo = 0
 
-        if n > 0 and not (other.day >= nDaysInMonth and monthsToGo == 0):
+        if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
             n = n - 1
-        elif n <= 0 and other.day > nDaysInMonth and monthsToGo == 0:
-            n = n + 1
 
         other = other + relativedelta(months=monthsToGo + 3*n, day=31)
 
@@ -563,8 +561,9 @@ class BYearEnd(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, nDaysInMonth = calendar.monthrange(other.year, self.month)
-        lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
+        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+        lastBDay = (days_in_month -
+                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
 
         years = n
         if n > 0:

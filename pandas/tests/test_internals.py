@@ -213,6 +213,13 @@ class TestBlockManager(unittest.TestCase):
     def test_get(self):
         pass
 
+    def test_get_scalar(self):
+        for item in self.mgr.items:
+            for i, index in enumerate(self.mgr.axes[1]):
+                res = self.mgr.get_scalar((item, index))
+                exp = self.mgr.get(item)[i]
+                assert_almost_equal(res, exp)
+
     def test_set(self):
         pass
 

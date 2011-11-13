@@ -588,6 +588,10 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(isinstance(result2, DataFrame))
         assert_frame_equal(result2, expected2)
 
+        # corner case
+        self.assertRaises(Exception, grouped['C'].__getitem__,
+                          'D')
+
     def test_groupby_as_index_cython(self):
         data = self.df
 

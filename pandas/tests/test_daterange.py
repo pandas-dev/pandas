@@ -303,6 +303,9 @@ class TestDateRange(unittest.TestCase):
         self.assertRaises(ValueError, DateRange, badly_formed_date,
                           badly_formed_date)
 
+    def test_equals(self):
+        self.assertFalse(self.rng.equals(list(self.rng)))
+
 def _skip_if_no_pytz():
     try:
         import pytz

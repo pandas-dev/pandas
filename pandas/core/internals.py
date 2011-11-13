@@ -560,9 +560,6 @@ class BlockManager(object):
             # insert at end
             self.insert(len(self.items), item, value)
 
-    def set_scalar(self, tup, value):
-        pass
-
     def insert(self, loc, item, value):
         if item in self.items:
             raise Exception('cannot insert %s, already exists' % item)

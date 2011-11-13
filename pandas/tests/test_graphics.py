@@ -62,7 +62,7 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, subplots=True, use_index=False)
 
     def test_hist(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.hist)
         _check_plot_works(df.hist, grid=False)
 

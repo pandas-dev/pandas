@@ -3560,7 +3560,9 @@ class TestDataFrameJoin(unittest.TestCase):
         a['c'] = c
         d = DataFrame(randn(30,1), columns=['d'])
 
+        # it works!
         a.join(d)
+        d.join(a)
 
     def test_join_multiindex(self):
         index1 = MultiIndex.from_arrays([['a','a','a','b','b','b'],

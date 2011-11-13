@@ -582,7 +582,8 @@ class TestQuarterEnd(unittest.TestCase):
                        datetime(2008, 3, 15): datetime(2008, 1, 31),
                        datetime(2008, 3, 31): datetime(2008, 1, 31),
                        datetime(2008, 4, 15): datetime(2008, 1, 31),
-                       datetime(2008, 4, 30): datetime(2008, 1, 31),}))
+                       datetime(2008, 4, 30): datetime(2008, 1, 31),
+                       datetime(2008, 7, 1): datetime(2008, 4, 30)}))
 
         tests.append((QuarterEnd(startingMonth=1, n=2),
                       {datetime(2008, 1, 31): datetime(2008, 7, 31),
@@ -825,42 +826,6 @@ class TestYearEnd(unittest.TestCase):
 
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
-
-def testOnOffset():
-
-    tests = [#(QuarterEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
-             #(QuarterEnd(1, startingMonth=1), datetime(2007, 12, 31), False),
-             #(QuarterEnd(1, startingMonth=1), datetime(2008, 2, 29), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2007, 3, 30), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2007, 3, 31), False),
-             #(QuarterEnd(1, startingMonth=1), datetime(2008, 4, 30), True),
-             #(QuarterEnd(1, startingMonth=2), datetime(2008, 5, 30), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 6, 29), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 6, 30), False),
-
-             #(QuarterEnd(1, startingMonth=2), datetime(2008, 1, 31), False),
-             #(QuarterEnd(1, startingMonth=2), datetime(2007, 12, 31), False),
-             #(QuarterEnd(1, startingMonth=2), datetime(2008, 2, 29), True),
-             #(QuarterEnd(1, startingMonth=3), datetime(2007, 3, 30), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2007, 3, 31), False),
-             #(QuarterEnd(1, startingMonth=2), datetime(2008, 4, 30), False),
-             #(QuarterEnd(1, startingMonth=2), datetime(2008, 5, 30), True),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 6, 29), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 6, 30), False),
-
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 1, 31), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2007, 12, 31), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 2, 29), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2007, 3, 30), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2007, 3, 31), True),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 4, 30), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 5, 30), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 6, 29), False),
-             #(QuarterEnd(1, startingMonth=3), datetime(2008, 6, 30), True),
-         ]
-
-    for offset, date, expected in tests:
-        assertOnOffset(offset, date, expected)
 
 def assertEq(dateOffset, baseDate, expected):
     actual = dateOffset + baseDate
