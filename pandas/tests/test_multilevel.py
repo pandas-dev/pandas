@@ -597,6 +597,23 @@ class TestMultiLevel(unittest.TestCase):
                                            skipna=skipna)
             assert_frame_equal(leftside, rightside)
 
+    def test_groupby_multilevel(self):
+        result = self.ymd.groupby(level=[0, 1]).mean()
+
+        k1 = self.ymd.index.get_level_values(0)
+        k2 = self.ymd.index.get_level_values(1)
+
+        expected = self.ymd.groupby([k1, k2]).mean()
+
+        assert_frame_equal(result, expected)
+        self.assertEquals(result.index.names, self.ymd.index.names[:2])
+
+        result2 = self.ymd.groupby(level=self.ymd.index.names[:2]).mean()
+        assert_frame_equal(result, result2)
+
+    def test_groupby_multilevel_with_transform(self):
+        pass
+
 if __name__ == '__main__':
 
     # unittest.main()

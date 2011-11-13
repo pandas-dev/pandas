@@ -608,25 +608,29 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
     if level is not None and not isinstance(group_axis, MultiIndex):
         raise ValueError('can only specify level with multi-level index')
 
+    if not isinstance(grouper, (tuple, list)):
+        groupers = [grouper]
+    else:
+        groupers = grouper
+
+    if isinstance(level, (tuple, list)):
+        if grouper is None:
+            groupers = [None] * len(level)
+        levels = level
+    else:
+        levels = [level] * len(groupers)
+
     groupings = []
     exclusions = []
-    if isinstance(grouper, (tuple, list)):
-        for i, arg in enumerate(grouper):
-            name = 'key_%d' % i
-            if isinstance(arg, basestring):
-                exclusions.append(arg)
-                name = arg
-                arg = obj[arg]
-
-            ping = Grouping(group_axis, arg, name=name, level=level)
-            groupings.append(ping)
-    else:
+    for i, (gpr, level) in enumerate(zip(groupers, levels)):
         name = None
-        if isinstance(grouper, basestring):
-            exclusions.append(grouper)
-            name = grouper
-            grouper = obj[grouper]
-        ping = Grouping(group_axis, grouper, name=name, level=level)
+        if isinstance(gpr, basestring):
+            exclusions.append(gpr)
+            name = gpr
+            gpr = obj[gpr]
+        ping = Grouping(group_axis, gpr, name=name, level=level)
+        if ping.name is None:
+            ping.name = 'key_%d' % i
         groupings.append(ping)
 
     return groupings, exclusions

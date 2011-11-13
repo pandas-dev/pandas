@@ -52,6 +52,8 @@ pandas 0.5.1
   - Add `DataFrame.from_dict` with similar `orient` option
   - Can now pass list of tuples or list of lists to `DataFrame.from_records`
     for fast conversion to DataFrame (GH #357)
+  - Can pass multiple levels to groupby, e.g. `df.groupby(level=[0, 1])` (GH
+    #103)
 
 **Improvements to existing features**
 

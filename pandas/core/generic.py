@@ -86,9 +86,9 @@ class PandasObject(Picklable):
             If a dict or Series is passed, the Series or dict VALUES will be
             used to determine the groups
         axis : int, default 0
-        level : int, default None
+        level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
-            level
+            level or levels
         as_index : boolean, default True
             For aggregated output, return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
