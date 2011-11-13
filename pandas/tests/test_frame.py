@@ -1950,7 +1950,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_almost_equal(correls['A']['C'],
                             self.frame['A'].corr(self.frame['C']))
-    
+
     def test_cov(self):
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
@@ -2706,28 +2706,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = frame.ix[frame.index[indexer]]
         assert_frame_equal(sorted_df, expected)
 
-        # by multiple columns
-        frame.values[1, 0] = frame.values[0, 0]
-        smaller, larger = min(frame.values[:1, 1]), max(frame.values[:1, 1])
-        if smaller == larger:
-            larger = smaller + 1
-        frame.values[0, 1] = larger
-        frame.values[1, 1] = smaller
-
-        sorted_df = frame.sort_index(by=['A', 'B'])
-        indexer = frame['A'].argsort().values
-        zero_mask = indexer == 0
-        one_mask = indexer == 1
-        indexer[zero_mask] = 1
-        indexer[one_mask] = 0
-        expected = frame.ix[frame.index[indexer]]
-        assert_frame_equal(sorted_df, expected)
-
-        sorted_df = frame.sort_index(by=['A', 'B'], ascending=False)
-        indexer = indexer[::-1]
-        expected = frame.ix[frame.index[indexer]]
-        assert_frame_equal(sorted_df, expected)
-
         # check for now
         sorted_df = frame.sort(column='A')
         expected = frame.sort_index(by='A')
@@ -2736,6 +2714,29 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         sorted_df = frame.sort(column='A', ascending=False)
         expected = frame.sort_index(by='A', ascending=False)
         assert_frame_equal(sorted_df, expected)
+
+    def test_sort_index_multicolumn(self):
+        import random
+        A = np.arange(5).repeat(20)
+        B = np.tile(np.arange(5), 20)
+        random.shuffle(A)
+        random.shuffle(B)
+        frame = DataFrame({'A' : A, 'B' : B,
+                           'C' : np.random.randn(100)})
+
+        result = frame.sort_index(by=['A', 'B'])
+        indexer = Index(zip(*(frame['A'], frame['B']))).argsort()
+        expected = frame.take(indexer)
+        assert_frame_equal(result, expected)
+
+        result = frame.sort_index(by=['A', 'B'], ascending=False)
+        expected = frame.take(indexer[::-1])
+        assert_frame_equal(result, expected)
+
+        result = frame.sort_index(by=['B', 'A'])
+        indexer = Index(zip(*(frame['B'], frame['A']))).argsort()
+        expected = frame.take(indexer)
+        assert_frame_equal(result, expected)
 
     # punting on trying to fix this for now
     # def test_frame_column_inplace_sort_exception(self):

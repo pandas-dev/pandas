@@ -1512,30 +1512,23 @@ class DataFrame(NDFrame):
         sorted : DataFrame
         """
         labels = self._get_axis(axis)
-        order_list = None
+
         if by is not None:
             assert(axis == 0)
-            by = self[by]
-            
-            if isinstance(by, Series):
-                assert(len(by) == len(labels))
-                by = by.values
-                sort_index = Series(by, index=labels).order().index
-            elif isinstance(by, DataFrame):
-                assert(len(by.index) == len(labels))
-                type_list = [(col_name, by[col_name].dtype) for col_name in by.columns]
-                sort_arr = np.array([tuple(r) for r in by.values], dtype=type_list)
-                sort_index = labels.take(sort_arr.argsort(order=by.columns.tolist()))
+            if isinstance(by, (tuple, list)):
+                to_sort = lib.fast_zip([self[x] for x in by])
+            else:
+                to_sort = self[by].values
+
+            # stable sort
+            indexer = to_sort.argsort()
         else:
-            sort_index = labels.take(labels.argsort())
+            indexer = labels.argsort()
 
         if not ascending:
-            sort_index = sort_index[::-1]
+            indexer = indexer[::-1]
 
-        if axis == 0:
-            return self.reindex(sort_index)
-        else:
-            return self.reindex(columns=sort_index)
+        return self.take(indexer, axis=axis)
 
     def sortlevel(self, level=0, axis=0, ascending=True):
         """
@@ -2508,7 +2501,7 @@ class DataFrame(NDFrame):
             c = np.cov(ac, bc)[0, 1]
             baseCov[i, j] = c
             baseCov[j, i] = c
-            
+
         return self._constructor(baseCov, index=cols, columns=cols)
 
     def _cov_helper(self, mat):
@@ -2519,7 +2512,7 @@ class DataFrame(NDFrame):
                 for j, B in enumerate(mat):
                     in_common = mask[i] & mask[j]
                     if in_common.any():
-                        yield i, j, A[in_common], B[in_common]        
+                        yield i, j, A[in_common], B[in_common]
 
     def corrwith(self, other, axis=0, drop=False):
         """
