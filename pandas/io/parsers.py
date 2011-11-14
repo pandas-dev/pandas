@@ -1,8 +1,6 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
-from __future__ import print_function
-
 from StringIO import StringIO
 import zipfile
 
@@ -346,7 +344,7 @@ class TextParser(object):
 
     def get_chunk(self, rows=None):
         if rows is not None and self.skip_footer:
-            print('skip_footer not supported for iteration')
+            print 'skip_footer not supported for iteration'
 
         try:
             content = self._get_lines(rows)
