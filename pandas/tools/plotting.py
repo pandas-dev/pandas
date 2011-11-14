@@ -12,7 +12,8 @@ def hist(data, column, by=None, ax=None, fontsize=None):
     ax.set_xticklabels(keys, rotation=0, fontsize=fontsize)
     return ax
 
-def boxplot(data, column, by=None, ax=None, fontsize=None, rot=0):
+def boxplot(data, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True):
     """
     Make a box plot from DataFrame column optionally grouped by some columns or
     other inputs
@@ -30,18 +31,37 @@ def boxplot(data, column, by=None, ax=None, fontsize=None, rot=0):
     -------
     ax : matplotlib.axes.AxesSubplot
     """
-    keys, values = zip(*data.groupby(by)[column])
+    def plot_group(grouped, ax):
+        keys, values = zip(*grouped)
+        keys = [_stringify(x) for x in keys]
+        ax.boxplot(values)
+        ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
 
-    if ax is None:
-        ax = plt.gca()
-    ax.boxplot(values)
-    ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+    if by is not None:
+        if not isinstance(by, (list, tuple)):
+            by = [by]
 
-    ax.set_xlabel(str(by))
-    ax.set_ylabel(str(column))
+        columns = None if column is None else [column]
+        fig, axes = _grouped_plot_by_column(plot_group, data, columns=columns,
+                                            by=by)
+        ax = axes
+    else:
+        if ax is None:
+            ax = plt.gca()
 
-    plt.subplots_adjust(bottom=0.15)
+        data = data._get_numeric_data()
+        keys = [_stringify(x) for x in data.columns]
+        ax.boxplot(list(data.values.T))
+        ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+
+    plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.1)
     return ax
+
+def _stringify(x):
+    if isinstance(x, tuple):
+        return '|'.join(str(y) for y in x)
+    else:
+        return str(x)
 
 def scatter_plot(data, x, y, by=None, ax=None):
     """
@@ -66,7 +86,7 @@ def scatter_plot(data, x, y, by=None, ax=None):
 
     return fig
 
-def _grouped_plot(plotf, data, by=None):
+def _grouped_plot(plotf, data, by=None, numeric_only=True):
     grouped = data.groupby(by)
     ngroups = len(grouped)
 
@@ -80,10 +100,40 @@ def _grouped_plot(plotf, data, by=None):
 
     for i, (key, group) in enumerate(grouped):
         ax = ravel_axes[i]
+        if numeric_only:
+            group = group._get_numeric_data()
         plotf(group, ax)
         ax.set_title(str(key))
 
-    return fig
+    return fig, axes
+
+def _grouped_plot_by_column(plotf, data, columns=None, by=None,
+                            numeric_only=True):
+    grouped = data.groupby(by)
+    if columns is None:
+        columns = data.columns - by
+    ngroups = len(columns)
+
+    nrows, ncols = _get_layout(ngroups)
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols,
+                             sharex=True, sharey=True)
+
+    if isinstance(axes, plt.Axes):
+        ravel_axes = [axes]
+    else:
+        ravel_axes = []
+        for row in axes:
+            ravel_axes.extend(row)
+
+    for i, col in enumerate(columns):
+        ax = ravel_axes[i]
+        gp_col = grouped[col]
+        plotf(gp_col, ax)
+        ax.set_title(col)
+
+    fig.suptitle('Boxplot grouped by %s' % by)
+
+    return fig, axes
 
 def _get_layout(nplots):
     if nplots == 1:

@@ -3007,6 +3007,31 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Plotting
 
+    def boxplot(self, column=None, by=None, ax=None, fontsize=None,
+                rot=0, grid=True, **kwds):
+        """
+        Make a box plot from DataFrame column/columns optionally grouped
+        (stratified) by one or more columns
+
+        Parameters
+        ----------
+        data : DataFrame
+        column : column names or list of names, or vector
+            Can be any valid input to groupby
+        by : string or sequence
+            Column in the DataFrame to group by
+        fontsize : int or string
+
+        Returns
+        -------
+        ax : matplotlib.axes.AxesSubplot
+        """
+        import pandas.tools.plotting as plots
+        import matplotlib.pyplot as plt
+        ax = plots.boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
+                           grid=grid, rot=rot)
+        plt.draw_if_interactive()
+
     def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
              figsize=None, grid=True, legend=True, rot=30, ax=None,
              kind='line', **kwds):

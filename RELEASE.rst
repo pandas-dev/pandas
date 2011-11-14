@@ -37,7 +37,7 @@ pandas 0.5.1
   - Add `Series.isin` function which checks if each value is contained in a
     passed sequence (GH #289)
   - Add `float_format` option to `Series.to_string`
-  - Add `skip_footer` (GH #291) and `converters` (GH #343 ) options to
+  - Add `skip_footer` (GH #291) and `converters` (GH #343) options to
     `read_csv` and `read_table`
   - Add proper, tested weighted least squares to standard and panel OLS (GH
     #303)
@@ -48,7 +48,7 @@ pandas 0.5.1
   - Add `QuarterEnd` DateOffset (PR #321)
   - Add matrix multiplication function `dot` to DataFrame (GH #65)
   - Add `orient` option to `Panel.from_dict` to ease creation of mixed-type
-    Panels (GH #359)
+    Panels (GH #359, #301)
   - Add `DataFrame.from_dict` with similar `orient` option
   - Can now pass list of tuples or list of lists to `DataFrame.from_records`
     for fast conversion to DataFrame (GH #357)
@@ -64,7 +64,6 @@ pandas 0.5.1
 
 **Improvements to existing features**
 
-  - Sped up `DataFrame.apply` performance in most cases
   - Raise more helpful exception if date parsing fails in DateRange (GH #298)
   - Vastly improved performance of GroupBy on axes with a MultiIndex (GH #299)
   - Print level names in hierarchical index in Series repr (GH #305)
@@ -119,6 +118,9 @@ pandas 0.5.1
   - Change `is_monotonic` on MultiIndex so it properly compares the tuples
   - Fix MultiIndex outer join logic (GH #351)
   - Set index name attribute with single-key groupby (GH #358)
+  - Bug fix in reflexive binary addition in Series and DataFrame for
+    non-commutative operations (like string concatenation) (GH #353)
+  - setupegg.py will invoke Cython (GH #192)
 
 Thanks
 ------
