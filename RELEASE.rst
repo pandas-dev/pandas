@@ -88,6 +88,7 @@ pandas 0.5.1
     with 3-5x better performance than `np.apply_along_axis` (GH #309)
   - Add `raw` option to `DataFrame.apply` for getting better performance when
     the passed function only requires an ndarray (GH #309)
+  - Improve performance of `MultiIndex.from_tuples`
 
 **Bug fixes**
 
@@ -120,17 +121,18 @@ pandas 0.5.1
 Thanks
 ------
 
-- Kieran O'Mahony
+- Marius Cobzarenco
 - Jeff Hammerbacher
 - Adam Klein
-- Nathan Pinger
-- Wouter Overmeire
-- carljv
-- Marius Cobzarenco
 - Jev Kuznetsov
-- Dieter Vandenbussche
-- rsamson
+- Kieran O'Mahony
+- Wouter Overmeire
+- Nathan Pinger
+- Chang She
 - Aman Thakral
+- Dieter Vandenbussche
+- carljv
+- rsamson
 
 pandas 0.5.0
 ============
