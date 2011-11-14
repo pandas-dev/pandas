@@ -2645,7 +2645,8 @@ class DataFrame(NDFrame):
         if axis == 1:
             frame = frame.T
 
-        mask = notnull(frame.values)
+        mask = notnull(frame.values).view(np.uint8) # python 2.5
+
         level_index = frame.index.levels[level]
         counts = lib.count_level_2d(mask, frame.index.labels[level],
                                     len(level_index))
