@@ -678,6 +678,48 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         check_comparators(5)
         check_comparators(self.ts + 1)
 
+    def test_idxmin(self):
+        # test idxmin
+        # _check_stat_op approach can not be used here because of isnull check.
+
+        # add some NaNs
+        self.series[5:15] = np.NaN
+
+        # skipna or no
+        self.assertEqual(self.series[self.series.idxmin()], self.series.min())
+        self.assert_(isnull(self.series[self.series.idxmin(skipna=False)]))
+
+        # no NaNs
+        nona = self.series.dropna()
+        self.assertEqual(nona[nona.idxmin()], nona.min())
+        self.assertEqual(nona.index.values.tolist().index(nona.idxmin()),
+                         nona.values.argmin())
+
+        # all NaNs
+        allna = self.series * nan
+        self.assertEqual(allna.idxmin(), allna.index[0])
+
+    def test_idxmax(self):
+        # test idxmax
+        # _check_stat_op approach can not be used here because of isnull check.
+
+        # add some NaNs
+        self.series[5:15] = np.NaN
+
+        # skipna or no
+        self.assertEqual(self.series[self.series.idxmax()], self.series.max())
+        self.assert_(isnull(self.series[self.series.idxmax(skipna=False)]))
+
+        # no NaNs
+        nona = self.series.dropna()
+        self.assertEqual(nona[nona.idxmax()], nona.max())
+        self.assertEqual(nona.index.values.tolist().index(nona.idxmax()),
+                         nona.values.argmax())
+
+        # all NaNs
+        allna = self.series * nan
+        self.assertEqual(allna.idxmax(), allna.index[0])
+
     def test_operators_date(self):
         result = self.objSeries + timedelta(1)
         result = self.objSeries - timedelta(1)

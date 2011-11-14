@@ -2841,6 +2841,54 @@ class DataFrame(NDFrame):
         return Series(result, index=axis_labels)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
+    def idxmin(self, axis=0, skipna=True):
+        """
+        Return index of first occurence of minimum over requested axis.
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        idxmin : Series
+        """
+        values = self.values.copy()
+        if skipna and not issubclass(values.dtype.type, np.integer):
+            np.putmask(values, -np.isfinite(values), np.inf)
+        argmin_index = self._get_axis(axis)
+        return Series([argmin_index[i] for i in values.argmin(axis)],
+                      index=self._get_agg_axis(axis))
+
+    def idxmax(self, axis=0, skipna=True):
+        """
+        Return index of first occurence of maximum over requested axis.
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be first index.
+
+        Returns
+        -------
+        idxmax : Series
+        """
+        values = self.values.copy()
+        if skipna and not issubclass(values.dtype.type, np.integer):
+            np.putmask(values, -np.isfinite(values), -np.inf)
+        argmax_index = self._get_axis(axis)
+        return Series([argmax_index[i] for i in values.argmax(axis)],
+                      index=self._get_agg_axis(axis))
+
     def _agg_by_level(self, name, axis=0, level=0, skipna=True):
         method = getattr(type(self), name)
         applyf = lambda x: method(x, axis=axis, skipna=skipna)

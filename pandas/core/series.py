@@ -755,6 +755,44 @@ copy : boolean, default False
         return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
+    def idxmin(self, axis=None, out=None, skipna=True):
+        """
+        Index of first occurence of minimum of values.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        idxmin : Index of mimimum of values
+        """
+        arr = self.values.copy()
+        if skipna:
+            if not issubclass(arr.dtype.type, np.integer):
+                np.putmask(arr, isnull(arr), np.inf)
+        return self.index[arr.argmin()]
+
+    def idxmax(self, axis=None, out=None, skipna=True):
+        """
+        Index of first occurence of maximum of values.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        idxmax : Index of mimimum of values
+        """
+        arr = self.values.copy()
+        if skipna:
+            if not issubclass(arr.dtype.type, np.integer):
+                np.putmask(arr, isnull(arr), -np.inf)
+        return self.index[arr.argmax()]
+
     def _ndarray_statistic(self, funcname, dtype=None, skipna=True):
         arr = self.values
         retVal = getattr(arr, funcname)(dtype=dtype)
