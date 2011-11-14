@@ -101,8 +101,10 @@ class Index(np.ndarray):
 
     @cache_readonly
     def _engine(self):
+        import weakref
         # property, for now, slow to look up
-        return _engines.DictIndexEngine(self.values, self._map_indices)
+        return _engines.DictIndexEngine(weakref.ref(self),
+                                        self._map_indices)
 
     def _get_level_number(self, level):
         if not isinstance(level, int):
@@ -1009,7 +1011,14 @@ class MultiIndex(Index):
         """
         if len(tuples) == 0:
             raise Exception('Cannot infer number of levels from empty list')
-        arrays = zip(*tuples)
+
+        if isinstance(tuples, np.ndarray):
+            arrays = list(lib.tuples_to_object_array(tuples).T)
+        elif isinstance(tuples, list):
+            arrays = list(lib.to_object_array_tuples(tuples).T)
+        else:
+            arrays = zip(*tuples)
+
         return MultiIndex.from_arrays(arrays, sortorder=sortorder,
                                       names=names)
 

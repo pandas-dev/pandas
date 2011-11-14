@@ -10,15 +10,15 @@ cdef class DictIndexEngine(IndexEngine):
     '''
 
     cdef readonly:
-        ndarray values
+        object index_weakref
         dict mapping
         object mapfun
 
     cdef:
         bint initialized, integrity
 
-    def __init__(self, ndarray values, object mapfun):
-        self.values = values
+    def __init__(self, index_weakref, object mapfun):
+        self.index_weakref = index_weakref
         self.initialized = 0
         self.integrity = 0
         self.mapfun = mapfun
@@ -51,8 +51,9 @@ cdef class DictIndexEngine(IndexEngine):
             return self.integrity == 1
 
     cdef initialize(self):
-        self.mapping = self.mapfun(self.values)
-        if len(self.mapping) == len(self.values):
+        values = self.index_weakref().values
+        self.mapping = self.mapfun(values)
+        if len(self.mapping) == len(values):
             self.integrity = 1
         self.initialized = 1
 

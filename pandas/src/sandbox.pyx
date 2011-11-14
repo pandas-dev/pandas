@@ -14,3 +14,4 @@ cdef class SeriesIterator:
 def foo(object o):
     cdef int64_t bar = o
     return bar
+

@@ -27,6 +27,22 @@ def to_object_array(list rows):
 
     return result
 
+def tuples_to_object_array(ndarray[object] tuples):
+    cdef:
+        Py_ssize_t i, j, n, k, tmp
+        ndarray[object, ndim=2] result
+        tuple tup
+
+    n = len(tuples)
+    k = len(tuples[0])
+    result = np.empty((n, k), dtype=object)
+    for i in range(n):
+        tup = tuples[i]
+        for j in range(k):
+            result[i, j] = tup[j]
+
+    return result
+
 def to_object_array_tuples(list rows):
     cdef:
         Py_ssize_t i, j, n, k, tmp

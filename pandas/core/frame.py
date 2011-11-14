@@ -2445,8 +2445,6 @@ class DataFrame(NDFrame):
                 join_key = self[on[0]].values
             else:
                 join_key = lib.fast_zip([self[k] for k in on])
-                join_key = common._asarray_tuplesafe(join_key,
-                                                     dtype=np.object_)
         elif isinstance(on, np.ndarray) and len(on) == len(self):
             join_key = on
         else:

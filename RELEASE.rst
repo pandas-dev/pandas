@@ -58,6 +58,7 @@ pandas 0.5.1
   - Add fast `get_value` and `put_value` methods to DataFrame and
     micro-performance tweaks (GH #360)
   - Add `cov` instance methods to Series and DataFrame (GH #194, PR #362)
+  - Add bar plot option to `DataFrame.plot` (PR #348)
 
 **Improvements to existing features**
 
