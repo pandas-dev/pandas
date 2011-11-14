@@ -61,6 +61,8 @@ pandas 0.5.1
   - Add bar plot option to `DataFrame.plot` (PR #348)
   - Add `idxmin` and `idxmax` functions to Series and DataFrame for computing
     index labels achieving maximum and minimum values (PR #286)
+  - Add `read_clipboard` function for parsing DataFrame from OS clipboard,
+    should work across platforms (GH #300)
 
 **Improvements to existing features**
 
