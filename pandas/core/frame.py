@@ -2961,8 +2961,9 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Plotting
 
-    def plot(self, kind='line', subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, legend=True, rot=30, ax=None, **kwds):
+    def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
+             figsize=None, grid=True, legend=True, rot=30, ax=None,
+             kind='line', **kwds):
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -2977,6 +2978,7 @@ class DataFrame(NDFrame):
             In case subplots=True, share y axis
         use_index : boolean, default True
             Use index as ticks for x axis
+        kind : {'line', 'bar'}
         kwds : keywords
             Options to pass to Axis.plot
 
@@ -2995,6 +2997,7 @@ class DataFrame(NDFrame):
             if ax is None:
                 fig = plt.figure(figsize=figsize)
                 ax = fig.add_subplot(111)
+                axes = [ax]
             else:
                 fig = ax.get_figure()
 
@@ -3015,32 +3018,12 @@ class DataFrame(NDFrame):
                     ax.plot(x, y, label=str(col), **kwds)
 
                 ax.grid(grid)
+
+            if legend and not subplots:
+                ax.legend(loc='best')
         elif kind == 'bar':
-            N = len(self)
-            M = len(self.columns)
-            xinds = np.arange(N) + 0.25
-            colors = ['red', 'green', 'blue', 'yellow', 'black']
-            rects = []
-            labels = []
-            for i, col in enumerate(_try_sort(self.columns)):
-                empty = self[col].count() == 0
-                y = self[col].values if not empty else np.zeros(x.shape)
-                if subplots:
-                    ax = axes[i]
-                    ax.bar(xinds, y, 0.5,
-                           bottom=np.zeros(N), linewidth=1, **kwds)
-                    ax.set_title(col)
-                else:
-                    rects.append(ax.bar(xinds+i*0.5/M,y,0.5/M,bottom=np.zeros(N),color=colors[i % len(colors)], **kwds))
-                    labels.append(col)
-
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-            ax.set_xticks(xinds + 0.25)
-            ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
+            self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
+                           legend=legend)
 
         # try to make things prettier
         try:
@@ -3048,13 +3031,48 @@ class DataFrame(NDFrame):
         except Exception:  # pragma: no cover
             pass
 
-        if legend and not subplots:
-            if kind == 'line':
-                ax.legend(loc='best')
-            else:
-                ax.legend([r[0] for r in rects],labels,loc='best')
-
         plt.draw_if_interactive()
+
+    def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
+                  rot=30, legend=True, **kwds):
+        N, K = self.shape
+        xinds = np.arange(N) + 0.25
+        colors = 'rgbyk'
+        rects = []
+        labels = []
+
+        if not subplots:
+            ax = axes[0]
+
+        for i, col in enumerate(_try_sort(self.columns)):
+            empty = self[col].count() == 0
+            y = self[col].values if not empty else np.zeros(len(self))
+            if subplots:
+                ax = axes[i]
+                ax.bar(xinds, y, 0.5,
+                       bottom=np.zeros(N), linewidth=1, **kwds)
+                ax.set_title(col)
+            else:
+                rects.append(ax.bar(xinds + i * 0.5/K, y, 0.5/K,
+                                    bottom=np.zeros(N),
+                                    color=colors[i % len(colors)], **kwds))
+                labels.append(col)
+
+        if N < 10:
+            fontsize = 12
+        else:
+            fontsize = 10
+
+        ax.set_xticks(xinds + 0.25)
+        ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
+
+        if legend and not subplots:
+            fig = ax.get_figure()
+            fig.legend([r[0] for r in rects], labels, loc='upper center',
+                       fancybox=True, ncol=6, mode='expand')
+
+        import matplotlib.pyplot as plt
+        plt.subplots_adjust(top=0.8)
 
     def hist(self, grid=True, **kwds):
         """

@@ -61,6 +61,20 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, subplots=True)
         _check_plot_works(df.plot, subplots=True, use_index=False)
 
+    def test_plot_bar(self):
+        df = DataFrame(np.random.randn(6, 4),
+                       index=['a', 'b', 'c', 'd', 'e', 'f'],
+                       columns=['one', 'two', 'three', 'four'])
+
+        _check_plot_works(df.plot, kind='bar')
+        _check_plot_works(df.plot, kind='bar', legend=False)
+        _check_plot_works(df.plot, kind='bar', subplots=True)
+
+        df = DataFrame(np.random.randn(6, 15),
+                       index=['a', 'b', 'c', 'd', 'e', 'f'],
+                       columns=range(15))
+        _check_plot_works(df.plot, kind='bar')
+
     def test_hist(self):
         df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.hist)
