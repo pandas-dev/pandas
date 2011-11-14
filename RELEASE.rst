@@ -59,6 +59,8 @@ pandas 0.5.1
     micro-performance tweaks (GH #360)
   - Add `cov` instance methods to Series and DataFrame (GH #194, PR #362)
   - Add bar plot option to `DataFrame.plot` (PR #348)
+  - Add `idxmin` and `idxmax` functions to Series and DataFrame for computing
+    index labels achieving maximum and minimum values (PR #286)
 
 **Improvements to existing features**
 
