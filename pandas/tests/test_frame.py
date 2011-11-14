@@ -2605,6 +2605,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(result0, expected0)
         assert_series_equal(result1, expected1)
 
+        # no reduction
+        result = self.frame.apply(lambda x: x * 2, raw=True)
+        expected = self.frame * 2
+        assert_frame_equal(result, expected)
+
     def test_apply_axis1(self):
         d = self.frame.index[0]
         tapplied = self.frame.apply(np.mean, axis=1)
