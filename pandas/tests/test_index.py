@@ -544,15 +544,17 @@ class TestInt64Index(unittest.TestCase):
                                                      other.values)))
         self.assert_(np.array_equal(result, expected))
 
-    def test_union(self):
+    def test_union_noncomparable(self):
+        from datetime import datetime, timedelta
         # corner case, non-Int64Index
-        other = Index(['a', 'b', 'c', 'd'])
+        now = datetime.now()
+        other = Index([now + timedelta(i) for i in xrange(4)])
         result = self.index.union(other)
-        expected = np.unique(np.concatenate((self.index, other)))
+        expected = np.concatenate((self.index, other))
         self.assert_(np.array_equal(result, expected))
 
         result = other.union(self.index)
-        expected = np.unique(np.concatenate((other, self.index)))
+        expected = np.concatenate((other, self.index))
         self.assert_(np.array_equal(result, expected))
 
     def test_cant_or_shouldnt_cast(self):

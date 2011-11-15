@@ -111,7 +111,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True):
     grouped = data.groupby(by)
     if columns is None:
-        columns = data.columns - by
+        columns = data._get_numeric_data().columns - by
     ngroups = len(columns)
 
     nrows, ncols = _get_layout(ngroups)

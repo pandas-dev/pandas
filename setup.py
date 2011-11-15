@@ -132,6 +132,7 @@ MINOR = 5
 MICRO = 1
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+QUALIFIER = ''
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -144,6 +145,8 @@ if not ISRELEASED:
         FULLVERSION += "-%s" % rev
     except:
         warnings.warn("WARNING: Couldn't get git revision")
+else:
+    FULLVERSION += QUALIFIER
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
@@ -302,7 +305,10 @@ sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext, sandbox_ext]
+extensions = [tseries_ext, engines_ext, sparse_ext]
+
+if not ISRELEASED:
+    extensions.append(sandbox_ext)
 
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"

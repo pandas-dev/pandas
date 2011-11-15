@@ -1,5 +1,6 @@
 import nose
 import os
+import string
 import unittest
 
 from pandas import Series, DataFrame
@@ -62,7 +63,6 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, subplots=True, use_index=False)
 
     def test_plot_bar(self):
-        import string
         df = DataFrame(np.random.randn(6, 4),
                        index=list(string.letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
@@ -75,6 +75,19 @@ class TestDataFramePlots(unittest.TestCase):
                        index=list(string.letters[:10]),
                        columns=range(15))
         _check_plot_works(df.plot, kind='bar')
+
+    def test_boxplot(self):
+        df = DataFrame(np.random.randn(6, 4),
+                       index=list(string.letters[:6]),
+                       columns=['one', 'two', 'three', 'four'])
+        df['indic'] = ['foo', 'bar'] * 3
+        df['indic2'] = ['foo', 'bar', 'foo'] * 2
+
+        _check_plot_works(df.boxplot)
+        _check_plot_works(df.boxplot, column='one', by='indic')
+        _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
+        _check_plot_works(df.boxplot, by='indic')
+        _check_plot_works(df.boxplot, by=['indic', 'indic2'])
 
     def test_hist(self):
         df = DataFrame(np.random.randn(100, 4))

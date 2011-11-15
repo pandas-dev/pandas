@@ -311,7 +311,16 @@ class Index(np.ndarray):
         if self.is_monotonic and other.is_monotonic:
             if other.dtype != np.object_:
                 other = Index(other, dtype=object)
-            result = lib.outer_join_indexer_object(self, other.values)[0]
+
+            try:
+                result = lib.outer_join_indexer_object(self, other.values)[0]
+            except TypeError:
+                # incomparable objects
+                result = list(self.values)
+
+                # worth making this faster? a very unusual case
+                value_set = set(self.values)
+                result.extend([x for x in other.values if x not in value_set])
         else:
             indexer = self.get_indexer(other)
             indexer = (indexer == -1).nonzero()[0]
