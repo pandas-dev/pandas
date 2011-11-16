@@ -291,11 +291,13 @@ def _conv_timerule(arg, time_rule):
 
     return arg
 
-def _two_periods(minp, window):
-    if minp is None:
-        return window
-    else:
-        return max(2, minp)
+def _require_min_periods(p):
+    def _check_func(minp, window):
+        if minp is None:
+            return window
+        else:
+            return max(p, minp)
+    return _check_func
 
 def _use_window(minp, window):
     if minp is None:
@@ -324,13 +326,13 @@ rolling_median = _rolling_func(_tseries.roll_median, 'Moving median')
 
 _ts_std = lambda *a, **kw: np.sqrt(_tseries.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
-                            check_minp=_two_periods)
+                            check_minp=_require_min_periods(2))
 rolling_var = _rolling_func(_tseries.roll_var, 'Unbiased moving variance',
-                            check_minp=_two_periods)
+                            check_minp=_require_min_periods(2))
 rolling_skew = _rolling_func(_tseries.roll_skew, 'Unbiased moving skewness',
-                             check_minp=_two_periods)
+                             check_minp=_require_min_periods(3))
 rolling_kurt = _rolling_func(_tseries.roll_kurt, 'Unbiased moving kurtosis',
-                             check_minp=_two_periods)
+                             check_minp=_require_min_periods(4))
 
 def rolling_quantile(arg, window, quantile, min_periods=None, time_rule=None):
     """Moving quantile

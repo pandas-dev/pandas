@@ -142,6 +142,11 @@ class TestMoments(unittest.TestCase):
 
             self.assert_(not np.isnan(result[-6]))
             self.assert_(np.isnan(result[-5]))
+
+            # min_periods=0
+            result0 = func(arr, 20, min_periods=0)
+            result1 = func(arr, 20, min_periods=1)
+            assert_almost_equal(result0, result1)
         else:
             result = func(arr, 50)
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))

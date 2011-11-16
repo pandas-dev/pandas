@@ -25,7 +25,7 @@
 #               Series: Prentice-Hall Series in Automatic Computation
 
 
-def kth_smallest(ndarray[double_t, ndim=1] a, Py_ssize_t k):
+def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
     cdef:
         Py_ssize_t i,j,l,m,n
         double_t x, t
@@ -82,8 +82,7 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-    if minp > N:
-        minp = N + 1
+    minp = _check_minp(minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -126,8 +125,7 @@ def roll_mean(ndarray[double_t] input,
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-    if minp > N:
-        minp = N + 1
+    minp = _check_minp(minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -213,6 +211,15 @@ def ewma(ndarray[double_t] input, double_t com):
 #-------------------------------------------------------------------------------
 # Rolling variance
 
+def _check_minp(minp, N):
+    if minp > N:
+        minp = N + 1
+    elif minp == 0:
+        minp = 1
+    elif minp < 0:
+        raise ValueError('min_periods must be >= 0')
+    return minp
+
 def roll_var(ndarray[double_t] input, int win, int minp):
     cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
     cdef Py_ssize_t i
@@ -220,8 +227,7 @@ def roll_var(ndarray[double_t] input, int win, int minp):
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-    if minp > N:
-        minp = N + 1
+    minp = _check_minp(minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -270,8 +276,7 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
     # 3 components of the skewness equation
     cdef double A, B, C, R
 
-    if minp > N:
-        minp = N + 1
+    minp = _check_minp(minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -333,8 +338,7 @@ def roll_kurt(ndarray[double_t] input,
     # 5 components of the kurtosis equation
     cdef double A, B, C, D, R, K
 
-    if minp > N:
-        minp = N + 1
+    minp = _check_minp(minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -405,8 +409,7 @@ cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
 
     skiplist = IndexableSkiplist(win)
 
-    if minp > N:
-        minp = N + 1
+    minp = _check_minp(minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -484,51 +487,50 @@ cdef double_t _get_min(object skiplist, int nobs, int minp):
 
 def roll_quantile(ndarray[float64_t, cast=True] input, int win,
                   int minp, double quantile):
-   '''
-   O(N log(window)) implementation using skip list
-   '''
-   cdef double val, prev, midpoint
-   cdef IndexableSkiplist skiplist
-   cdef Py_ssize_t nobs = 0, i
-   cdef Py_ssize_t N = len(input)
-   cdef ndarray[double_t] output = np.empty(N, dtype=float)
+    '''
+    O(N log(window)) implementation using skip list
+    '''
+    cdef double val, prev, midpoint
+    cdef IndexableSkiplist skiplist
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-   skiplist = IndexableSkiplist(win)
+    skiplist = IndexableSkiplist(win)
 
-   if minp > N:
-       minp = N + 1
+    minp = _check_minp(minp, N)
 
-   for i from 0 <= i < minp - 1:
-       val = input[i]
+    for i from 0 <= i < minp - 1:
+        val = input[i]
 
-       # Not NaN
-       if val == val:
-           nobs += 1
-           skiplist.insert(val)
+        # Not NaN
+        if val == val:
+            nobs += 1
+            skiplist.insert(val)
 
-       output[i] = NaN
+        output[i] = NaN
 
-   for i from minp - 1 <= i < N:
-       val = input[i]
+    for i from minp - 1 <= i < N:
+        val = input[i]
 
-       if i > win - 1:
-           prev = input[i - win]
+        if i > win - 1:
+            prev = input[i - win]
 
-           if prev == prev:
-               skiplist.remove(prev)
-               nobs -= 1
+            if prev == prev:
+                skiplist.remove(prev)
+                nobs -= 1
 
-       if val == val:
-           nobs += 1
-           skiplist.insert(val)
+        if val == val:
+            nobs += 1
+            skiplist.insert(val)
 
-       if nobs >= minp:
-           idx = int((quantile / 1.) * (nobs - 1))
-           output[i] = skiplist.get(idx)
-       else:
-           output[i] = NaN
+        if nobs >= minp:
+            idx = int((quantile / 1.) * (nobs - 1))
+            output[i] = skiplist.get(idx)
+        else:
+            output[i] = NaN
 
-   return output
+    return output
 
 def roll_generic(ndarray[float64_t, cast=True] input, int win,
                  int minp, object func):
@@ -542,6 +544,7 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     buf = <float64_t*> input.data
 
     n = len(input)
+    minp = _check_minp(minp, n)
     output = np.empty(n, dtype=float)
     counts = roll_sum(np.isfinite(input).astype(float), win, minp)
 
