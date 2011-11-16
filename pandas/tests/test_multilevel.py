@@ -614,6 +614,13 @@ class TestMultiLevel(unittest.TestCase):
     def test_groupby_multilevel_with_transform(self):
         pass
 
+    def test_multilevel_consolidate(self):
+        index = MultiIndex.from_tuples([('foo', 'one'), ('foo', 'two'),
+                                        ('bar', 'one'), ('bar', 'two')])
+        df = DataFrame(np.random.randn(4, 4), index=index, columns=index)
+        df['Totals', ''] = df.sum(1)
+        df = df.consolidate()
+
 if __name__ == '__main__':
 
     # unittest.main()

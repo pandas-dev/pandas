@@ -2,6 +2,7 @@
 
 from datetime import time
 from itertools import izip
+import gc
 
 import numpy as np
 
@@ -98,6 +99,9 @@ class Index(np.ndarray):
     def indexMap(self):
         "{label -> location}"
         return self._engine.get_mapping(1)
+
+    def _cleanup(self):
+        self._engine.clear_mapping()
 
     @cache_readonly
     def _engine(self):
@@ -844,6 +848,7 @@ class Factor(np.ndarray):
 def unique_with_labels(values):
     uniques = Index(lib.fast_unique(values))
     labels = lib.get_unique_labels(values, uniques.indexMap)
+    uniques._cleanup()
     return uniques, labels
 
 class MultiIndex(Index):

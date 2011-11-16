@@ -960,7 +960,7 @@ def _merge_blocks(blocks, items):
     if len(blocks) == 1:
         return blocks[0]
     new_values = np.vstack([b.values for b in blocks])
-    new_items = np.concatenate([b.items for b in blocks])
+    new_items = blocks[0].items.append([b.items for b in blocks[1:]])
     new_block = make_block(new_values, new_items, items,
                            do_integrity_check=True)
     return new_block.reindex_items_from(items)

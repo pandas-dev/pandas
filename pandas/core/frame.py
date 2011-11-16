@@ -15,6 +15,7 @@ labeling information
 from itertools import izip
 from StringIO import StringIO
 import csv
+import gc
 import operator
 import sys
 
@@ -1298,8 +1299,10 @@ class DataFrame(NDFrame):
             duplicates = index._get_duplicates()
             raise Exception('Index has duplicate keys: %s' % duplicates)
 
-        frame.index = index
+        # clear up memory usage
+        index._cleanup()
 
+        frame.index = index
         return frame
 
     def take(self, indices, axis=0):

@@ -34,6 +34,11 @@ cdef class DictIndexEngine(IndexEngine):
 
         return self.mapping
 
+    def clear_mapping(self):
+        self.mapping = None
+        self.initialized = 0
+        self.integrity = 0
+
     cdef _ensure_initialized(self):
         if not self.initialized:
             self.initialize()

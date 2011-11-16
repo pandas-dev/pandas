@@ -305,10 +305,15 @@ sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
+cppsandbox_ext = Extension('pandas._cppsandbox',
+                           language='c++',
+                           sources=[srcpath('cppsandbox', suffix=suffix)],
+                           include_dirs=[np.get_include()])
+
 extensions = [tseries_ext, engines_ext, sparse_ext]
 
 if not ISRELEASED:
-    extensions.append(sandbox_ext)
+    extensions.extend([sandbox_ext, cppsandbox_ext])
 
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"
