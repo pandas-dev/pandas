@@ -13,5 +13,3 @@ def map_indices(ndarray[i4] values):
     n = len(values)
     for i in range(n):
         mapping[i] = values[i]
-
-

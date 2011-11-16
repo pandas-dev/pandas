@@ -63,6 +63,8 @@ pandas 0.5.1
     index labels achieving maximum and minimum values (PR #286)
   - Add `read_clipboard` function for parsing DataFrame from OS clipboard,
     should work across platforms (GH #300)
+  - Add `nunique` function to Series for counting unique elements (GH #297)
+  - DataFrame constructor will use Series name if no columns passed (GH #373)
 
 **Improvements to existing features**
 
