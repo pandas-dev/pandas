@@ -900,11 +900,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertEqual(self.ts.count(), np.isfinite(self.ts).sum())
 
-    def test_value_counts(self):
+    def test_value_counts_nunique(self):
         s = Series(['a', 'b', 'b', 'b', 'b', 'a', 'c', 'd', 'd', 'a'])
         hist = s.value_counts()
         expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
         assert_series_equal(hist, expected)
+
+        self.assertEquals(s.nunique(), 4)
 
         # handle NA's properly
         s[5:7] = np.nan

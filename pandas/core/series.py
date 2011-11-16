@@ -627,6 +627,16 @@ copy : boolean, default False
             counter[value] += 1
         return Series(counter).order(ascending=False)
 
+    def nunique(self):
+        """
+        Return count of unique elements in the Series
+
+        Returns
+        -------
+        nunique : int
+        """
+        return len(self.value_counts())
+
     def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', level=level, skipna=skipna)
