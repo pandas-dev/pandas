@@ -123,17 +123,21 @@ pandas 0.5.1
   - Bug fix in reflexive binary addition in Series and DataFrame for
     non-commutative operations (like string concatenation) (GH #353)
   - setupegg.py will invoke Cython (GH #192)
+  - Fix block consolidation bug after inserting column into MultiIndex (GH #366)
+  - Fix bug in join operations between Index and Int64Index (GH #367)
 
 Thanks
 ------
 
 - Marius Cobzarenco
+- Joel Cross
 - Jeff Hammerbacher
 - Adam Klein
 - Jev Kuznetsov
 - Kieran O'Mahony
 - Wouter Overmeire
 - Nathan Pinger
+- Christian Prinoth
 - Chang She
 - Aman Thakral
 - Dieter Vandenbussche

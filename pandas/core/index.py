@@ -525,6 +525,9 @@ class Index(np.ndarray):
 
     def _join_monotonic(self, other, how='left', return_indexers=False):
         this_vals = self.values
+
+        if self.dtype != other.dtype:
+            other = Index(other, dtype=object)
         other_vals = other.values
 
         if how == 'left':

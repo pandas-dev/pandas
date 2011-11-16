@@ -519,19 +519,29 @@ class TestInt64Index(unittest.TestCase):
         other = Index([3, 6, 7, 8, 10], dtype=object)
 
         outer = self.index.join(other, how='outer')
+        outer2 = other.join(self.index, how='outer')
         expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14,
                           16, 18], dtype=object)
+        self.assert_(outer.equals(outer2))
         self.assert_(outer.equals(expected))
 
         inner = self.index.join(other, how='inner')
+        inner2 = other.join(self.index, how='inner')
         expected = Index([6, 8, 10], dtype=object)
+        self.assert_(inner.equals(inner2))
         self.assert_(inner.equals(expected))
 
         left = self.index.join(other, how='left')
         self.assert_(left.equals(self.index))
 
+        left2 = other.join(self.index, how='left')
+        self.assert_(left2.equals(other))
+
         right = self.index.join(other, how='right')
         self.assert_(right.equals(other))
+
+        right2 = other.join(self.index, how='right')
+        self.assert_(right2.equals(self.index))
 
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
