@@ -2,6 +2,7 @@ from cStringIO import StringIO
 from datetime import datetime
 import csv
 import os
+import re
 import unittest
 
 import nose
@@ -427,6 +428,18 @@ c,4,5,01/03/2009
         self.assert_(isinstance(result['D'][0], datetime))
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
+
+    def test_regex_separator(self):
+        data = """   A   B   C   D
+a   1   2   3   4
+b   1   2   3   4
+c   1   2   3   4
+"""
+        df = read_table(StringIO(data), sep='\s+')
+        expected = read_csv(StringIO(re.sub('[ ]+', ',', data)),
+                            index_col=0)
+        self.assert_(expected.index.name is None)
+        assert_frame_equal(df, expected)
 
 class TestParseSQL(unittest.TestCase):
 

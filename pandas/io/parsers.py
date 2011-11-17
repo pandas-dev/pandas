@@ -2,6 +2,7 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from StringIO import StringIO
+import re
 import zipfile
 
 import numpy as np
@@ -25,22 +26,23 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
         except Exception: # pragma: no cover
             f = open(filepath_or_buffer, 'r')
 
-    sniff_sep = True
-    # default dialect
-    dia = csv.excel
-    if sep is not None:
-        sniff_sep = False
-        dia.delimiter = sep
-    # attempt to sniff the delimiter
-    if sniff_sep:
-        line = f.readline()
-        sniffed = csv.Sniffer().sniff(line)
-        dia.delimiter = sniffed.delimiter
-        buf = list(csv.reader(StringIO(line), dialect=dia))
+    buf = []
+    if sep is None or len(sep) == 1:
+        sniff_sep = True
+        # default dialect
+        dia = csv.excel
+        if sep is not None:
+            sniff_sep = False
+            dia.delimiter = sep
+        # attempt to sniff the delimiter
+        if sniff_sep:
+            line = f.readline()
+            sniffed = csv.Sniffer().sniff(line)
+            dia.delimiter = sniffed.delimiter
+            buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
+        reader = csv.reader(f, dialect=dia)
     else:
-        buf = []
-
-    reader = csv.reader(f, dialect=dia)
+        reader = (re.split(sep, line.strip()) for line in f)
 
     if date_parser is not None:
         parse_dates = True
@@ -73,7 +75,7 @@ def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                     nrows=nrows, iterator=iterator, chunksize=chunksize,
                     skip_footer=skip_footer, converters=converters)
 
-def read_clipboard(**kwargs):  # pragma: no cover
+def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
     """
     Read text from clipboard and pass to read_table. See read_table for the full
     argument list
@@ -84,6 +86,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
     """
     from pandas.util.clipboard import clipboard_get
     text = clipboard_get()
+    kwargs['sep'] = sep
     return read_table(StringIO(text), **kwargs)
 
 _parser_params = """Also supports optionally iterating or breaking of the file

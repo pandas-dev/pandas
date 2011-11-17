@@ -65,6 +65,8 @@ pandas 0.5.1
     should work across platforms (GH #300)
   - Add `nunique` function to Series for counting unique elements (GH #297)
   - DataFrame constructor will use Series name if no columns passed (GH #373)
+  - Support regular expressions and longer delimiters in read_table/read_csv,
+    but does not handle quoted strings yet (GH #364)
 
 **Improvements to existing features**
 
