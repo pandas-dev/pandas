@@ -55,6 +55,7 @@ class TestMultiLevel(unittest.TestCase):
         self.tdf = tm.makeTimeDataFrame()
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
+        self.ymd.index.names = ['year', 'month', 'day']
 
     def test_append(self):
         a, b = self.frame[:5], self.frame[5:]
@@ -449,6 +450,26 @@ class TestMultiLevel(unittest.TestCase):
         result = self.frame.stack('exp')
         expected = self.frame.stack()
         assert_series_equal(result, expected)
+
+    def test_stack_unstack_multiple(self):
+        unstacked = self.ymd.unstack(['year', 'month'])
+        expected = self.ymd.unstack('year').unstack('month')
+        assert_frame_equal(unstacked, expected)
+        self.assertEquals(unstacked.columns.names,
+                          expected.columns.names)
+
+        # series
+        s = self.ymd['A']
+        s_unstacked = s.unstack(['year', 'month'])
+        assert_frame_equal(s_unstacked, expected['A'])
+
+        restacked = unstacked.stack(['year', 'month'])
+        restacked = restacked.swaplevel(0, 1).swaplevel(1, 2)
+        restacked = restacked.sortlevel(0)
+
+        assert_frame_equal(restacked, self.ymd)
+        self.assertEquals(restacked.index.names,
+                          self.ymd.index.names)
 
     def test_groupby_transform(self):
         s = self.frame['A']

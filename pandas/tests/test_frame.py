@@ -1147,6 +1147,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         a = Series([1,2,3], index=['a','b','c'], name='x')
         df = DataFrame(a)
         self.assert_(df.columns[0] == 'x')
+        self.assert_(df.index.equals(a.index))
 
     def test_astype(self):
         casted = self.frame.astype(int)

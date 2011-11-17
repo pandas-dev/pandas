@@ -15,7 +15,6 @@ labeling information
 from itertools import izip
 from StringIO import StringIO
 import csv
-import gc
 import operator
 import sys
 
@@ -241,6 +240,10 @@ class DataFrame(NDFrame):
         if isinstance(values, Series) and values.name is not None:
             if columns is None:
                 columns = [values.name]
+            if index is None:
+                index = values.index
+            else:
+                values = values.reindex(index)
 
         values = _prep_ndarray(values, copy=copy)
 
@@ -1958,15 +1961,22 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int or string, default last level
-            Level to stack, can pass level name
+        level : int, string, or list of these, default last level
+            Level(s) to stack, can pass level name
 
         Returns
         -------
         stacked : Series
         """
         from pandas.core.reshape import stack
-        return stack(self, level=level, dropna=dropna)
+
+        if isinstance(level, (tuple, list)):
+            result = self
+            for lev in level:
+                result = stack(result, lev, dropna=dropna)
+            return result
+        else:
+            return stack(self, level, dropna=dropna)
 
     def unstack(self, level=-1):
         """
@@ -1974,8 +1984,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int or string, default last level
-            Level to unstack, can pass level name
+        level : int, string, or list of these, default last level
+            Level(s) to unstack, can pass level name
 
         Examples
         --------
@@ -1999,10 +2009,14 @@ class DataFrame(NDFrame):
         -------
         unstacked : DataFrame
         """
-        from pandas.core.reshape import _Unstacker
-        unstacker = _Unstacker(self.values, self.index, level=level,
-                               value_columns=self.columns)
-        return unstacker.get_result()
+        from pandas.core.reshape import unstack
+        if isinstance(level, (tuple, list)):
+            result = self
+            for lev in level:
+                result = unstack(result, lev)
+            return result
+        else:
+            return unstack(self, level)
 
     def delevel(self):
         """

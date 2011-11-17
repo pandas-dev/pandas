@@ -11,6 +11,7 @@ from pandas.core.series import Series
 from pandas.core.common import notnull
 from pandas.core.index import MultiIndex
 
+
 class ReshapeError(Exception):
     pass
 
@@ -279,6 +280,15 @@ def _slow_pivot(index, columns, values):
         branch[idx] = values[i]
 
     return DataFrame(tree)
+
+def unstack(obj, level):
+    if isinstance(obj, DataFrame):
+        columns = obj.columns
+    else:
+        columns = None
+    unstacker = _Unstacker(obj.values, obj.index, level=level,
+                           value_columns=columns)
+    return unstacker.get_result()
 
 def stack(frame, level=-1, dropna=True):
     """

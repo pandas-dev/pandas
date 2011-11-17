@@ -1331,8 +1331,8 @@ copy : boolean, default False
 
         Parameters
         ----------
-        level : int, default last level
-            Level to unstack
+        level : int, string, or list of these, default last level
+            Level(s) to unstack, can pass level name
 
         Examples
         --------
@@ -1356,9 +1356,14 @@ copy : boolean, default False
         -------
         unstacked : DataFrame
         """
-        from pandas.core.reshape import _Unstacker
-        unstacker = _Unstacker(self.values, self.index, level=level)
-        return unstacker.get_result()
+        from pandas.core.reshape import unstack
+        if isinstance(level, (tuple, list)):
+            result = self
+            for lev in level:
+                result = unstack(result, lev)
+            return result
+        else:
+            return unstack(self, level)
 
     #----------------------------------------------------------------------
     # function application
