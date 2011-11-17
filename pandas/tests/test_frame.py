@@ -1815,7 +1815,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes
-        expected = self.mixed_frame.dtypes
+        expected = Series(dict((k, v.dtype)
+                               for k, v in self.mixed_frame.iteritems()),
+                          index=result.index)
         assert_series_equal(result, expected)
 
     def test_append(self):

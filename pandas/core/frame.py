@@ -2199,7 +2199,7 @@ class DataFrame(NDFrame):
                                      columns=self.columns, copy=False)
         else:
             if not broadcast:
-                if raw:
+                if raw and not self._is_mixed_type:
                     return self._apply_raw(func, axis)
                 else:
                     return self._apply_standard(func, axis)
@@ -2221,6 +2221,7 @@ class DataFrame(NDFrame):
 
     def _apply_standard(self, func, axis, ignore_failures=False):
         try:
+            assert(not self._is_mixed_type)  # maybe a hack for now
             values = self.values
             dummy = Series(np.nan, index=self._get_axis(axis),
                            dtype=values.dtype)

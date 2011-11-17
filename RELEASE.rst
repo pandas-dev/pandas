@@ -94,6 +94,7 @@ pandas 0.5.1
   - Add `raw` option to `DataFrame.apply` for getting better performance when
     the passed function only requires an ndarray (GH #309)
   - Improve performance of `MultiIndex.from_tuples`
+  - Can pass multiple levels to `stack` and `unstack` (GH #370)
 
 **Bug fixes**
 
