@@ -75,7 +75,7 @@ def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                     nrows=nrows, iterator=iterator, chunksize=chunksize,
                     skip_footer=skip_footer, converters=converters)
 
-def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
+def read_clipboard(**kwargs):  # pragma: no cover
     """
     Read text from clipboard and pass to read_table. See read_table for the full
     argument list
@@ -86,7 +86,6 @@ def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
     """
     from pandas.util.clipboard import clipboard_get
     text = clipboard_get()
-    kwargs['sep'] = sep
     return read_table(StringIO(text), **kwargs)
 
 _parser_params = """Also supports optionally iterating or breaking of the file

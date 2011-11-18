@@ -15,3 +15,5 @@ def foo(object o):
     cdef int64_t bar = o
     return bar
 
+def foo2():
+    print sizeof(PyObject*)
