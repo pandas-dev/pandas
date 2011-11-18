@@ -97,6 +97,7 @@ pandas 0.5.1
     the passed function only requires an ndarray (GH #309)
   - Improve performance of `MultiIndex.from_tuples`
   - Can pass multiple levels to `stack` and `unstack` (GH #370)
+  - Can pass multiple values columns to `pivot_table` (GH #381)
 
 **Bug fixes**
 
@@ -135,6 +136,7 @@ pandas 0.5.1
 Thanks
 ------
 
+- Craig Austin
 - Marius Cobzarenco
 - Joel Cross
 - Jeff Hammerbacher
@@ -146,6 +148,7 @@ Thanks
 - Nathan Pinger
 - Christian Prinoth
 - Chang She
+- Ted Square
 - Aman Thakral
 - Dieter Vandenbussche
 - carljv
