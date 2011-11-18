@@ -3054,6 +3054,7 @@ class DataFrame(NDFrame):
         ax = plots.boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                            grid=grid, rot=rot)
         plt.draw_if_interactive()
+        return ax
 
     def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
              figsize=None, grid=True, legend=True, rot=30, ax=None,
