@@ -1415,6 +1415,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = DataFrame(index=np.arange(1000))
         frame.to_string()
 
+    def test_to_html(self):
+        # big mixed
+        biggie = DataFrame({'A' : randn(1000),
+                             'B' : tm.makeStringIndex(1000)},
+                            index=range(1000))
+
+        biggie['A'][:20] = nan
+        biggie['B'][:20] = nan
+        s = biggie.to_html()
+
+        buf = StringIO()
+        retval = biggie.to_html(buf=buf)
+        self.assert_(retval is None)
+        self.assertEqual(buf.getvalue(), s)
+
+        self.assert_(isinstance(s, basestring))
+
+        biggie.to_html(columns=['B', 'A'], colSpace=17)
+        biggie.to_html(columns=['B', 'A'],
+                       formatters={'A' : lambda x: '%.1f' % x})
+
+        biggie.to_html(columns=['B', 'A'], float_format=str)
+        biggie.to_html(columns=['B', 'A'], colSpace=12,
+                       float_format=str)
+
+        frame = DataFrame(index=np.arange(1000))
+        frame.to_html()
+
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
                        columns=['c', 'b', 'a'])

@@ -678,8 +678,9 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, colSpace=None,
                   na_rep='NaN', formatters=None, float_format=None,
                   sparsify=True, nanRep=None, index_names=True):
-
-
+        """
+        Render a DataFrame to a console-friendly tabular output.
+        """
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -693,6 +694,24 @@ class DataFrame(NDFrame):
                                         float_format=float_format,
                                         sparsify=sparsify,
                                         index_names=index_names)
+        formatter.to_string()
+
+        if buf is None:
+            return formatter.buf.getvalue()
+
+    def to_html(self, buf=None, columns=None, colSpace=None,
+                na_rep='NaN', formatters=None, float_format=None,
+                sparsify=True, index_names=True):
+        """
+        Render a DataFrame to a html table.
+        """
+        formatter = _DataFrameFormatter(self, buf=buf, columns=columns,
+                                        col_space=colSpace, na_rep=na_rep,
+                                        formatters=formatters,
+                                        float_format=float_format,
+                                        sparsify=sparsify,
+                                        index_names=index_names)
+        formatter.to_html()
 
         if buf is None:
             return formatter.buf.getvalue()
@@ -3236,7 +3255,10 @@ class DataFrame(NDFrame):
 
 class _DataFrameFormatter(object):
     """
-    Render a console-friendly tabular output of a DataFrame
+    Render a DataFrame
+
+    self.to_string() : console-friendly tabular output
+    self.to_html() : html table
     """
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  na_rep='NaN', formatters=None, float_format=None,
@@ -3256,9 +3278,10 @@ class _DataFrameFormatter(object):
         else:
             self.columns = frame.columns
 
-        self._write_to_buffer()
-
-    def _write_to_buffer(self):
+    def to_string(self):
+        """
+        Render a DataFrame to a console-friendly tabular output.
+        """
         frame = self.frame
         format_col = self._get_column_formatter()
 
@@ -3286,6 +3309,110 @@ class _DataFrameFormatter(object):
 
         self.buf.writelines(to_write)
 
+    def to_html(self):
+        """
+        Render a DataFrame to a html table.
+        """
+        def write(buf, s, indent=0):
+            buf.write(unicode((' ' * indent) + str(s) + '\n'))
+
+        def write_th(buf, s, indent=0):
+            write(buf, '<th>%s</th>' % str(s), indent)
+
+        def write_td(buf, s, indent=0):
+            write(buf, '<td>%s</td>' % str(s), indent)
+
+        def write_tr(buf, l, indent=0, indent_delta=4, header=False):
+            write(buf, '<tr>', indent)
+            indent += indent_delta
+            if header:
+                for s in l:
+                    write_th(buf, s, indent)
+            else:
+                for s in l:
+                    write_td(buf, s, indent)
+            indent -= indent_delta
+            write(buf, '</tr>', indent)
+
+        def single_column_table(column):
+            table = '<table><tbody>'
+            for i in column:
+                table += ('<tr><td>%s</td></tr>' % str(i))
+            table += '</tbody></table>'
+            return table
+
+        def single_row_table(row):
+            table = '<table><tbody><tr>'
+            for i in row:
+                table += ('<td>%s</td>' % str(i))
+            table += '</tr></tbody></table>'
+            return table
+
+        indent = 0
+        indent_delta = 2
+        frame = self.frame
+        buf = self.buf
+        format_col = self._get_column_formatter()
+
+        write(buf, '<table border="1">', indent)
+
+        if len(frame.columns) == 0 or len(frame.index) == 0:
+            write(buf, '<tbody>', indent  + indent_delta)
+            write_tr(buf,
+                     [repr(frame.index),
+                      'Empty %s' % type(self.frame).__name__],
+                     indent + (2 * indent_delta),
+                     indent_delta)
+            write(buf, '</tbody>', indent  + indent_delta)
+        else:
+            indent += indent_delta
+            write(buf, '<thead>', indent)
+            row = []
+
+            if isinstance(frame.index, MultiIndex):
+                if self.has_index_names:
+                    row.extend(frame.index.names)
+                else:
+                    row.extend([''] * frame.index.nlevels)
+            else:
+                row.append(' ')
+
+            if isinstance(frame.columns, MultiIndex):
+                row.extend([single_column_table(c) for c in frame.columns])
+                if self.has_column_names:
+                    names = single_column_table(frame.columns.names)
+                    idx = len(frame.columns)
+                    row[-idx] = single_row_table([names, row[-idx]])
+            else:
+                row.append('')
+
+            indent += indent_delta
+            write_tr(buf,
+                     row,
+                     indent,
+                     indent_delta,
+                     header=True)
+            write(buf, '</thead>', indent)
+
+            write(buf, '<tbody>', indent)
+            for i in range(len(frame)):
+                row = []
+                try:
+                    row.extend(frame.index[i])
+                except TypeError:
+                    row.append(frame.index[i])
+                for column in frame.columns:
+                    row.append(format_col(column, i))
+                write_tr(buf,
+                         row,
+                         indent,
+                         indent_delta)
+            indent -= indent_delta
+            write(buf, '</body>', indent)
+            indent -= indent_delta
+
+        write(buf, '</table>', indent)
+
     def _get_column_formatter(self):
         from pandas.core.common import _format
 
@@ -3302,9 +3429,12 @@ class _DataFrameFormatter(object):
 
         formatters = {} if self.formatters is None else self.formatters
 
-        def _format_col(col):
+        def _format_col(col, i=None):
             formatter = formatters.get(col, _myformat)
-            return [formatter(x) for x in self.frame[col]]
+            if i == None:
+                return [formatter(x) for x in self.frame[col]]
+            else:
+                return formatter(self.frame[col][i])
 
         return _format_col
 
