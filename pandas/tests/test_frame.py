@@ -2282,6 +2282,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           'c' : [1., 2., 3., 3., 4.]})
         self.assertRaises(Exception, data.pivot, 'a', 'b', 'c')
 
+    def test_pivot_empty(self):
+        df = DataFrame({}, columns=['a', 'b', 'c'])
+        result = df.pivot('a', 'b', 'c')
+        expected = DataFrame({})
+        assert_frame_equal(result, expected)
+
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 
@@ -2631,10 +2637,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # test with hierarchical index
 
+    def test_apply_mixed_dtype_corner(self):
+        df = DataFrame({'A' : ['foo'],
+                        'B' : [1.]})
+        result = df[:0].apply(np.mean, axis=1)
+        # the result here is actually kind of ambiguous, should it be a Series
+        # or a DataFrame?
+        expected = Series(np.nan, index=[])
+        assert_series_equal(result, expected)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
-
         result = self.frame.applymap(type)
 
     def test_filter(self):

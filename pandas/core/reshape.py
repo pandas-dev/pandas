@@ -119,8 +119,9 @@ class _Unstacker(object):
         index = self.get_new_index()
 
         # filter out missing levels
-        values = values[:, mask]
-        columns = columns[mask]
+        if values.shape[1] > 0:
+            values = values[:, mask]
+            columns = columns[mask]
 
         return DataFrame(values, index=index, columns=columns)
 

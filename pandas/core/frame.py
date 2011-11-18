@@ -2256,7 +2256,7 @@ class DataFrame(NDFrame):
             for k, v in series_gen:
                 results[k] = func(v)
 
-        if hasattr(results.values()[0], '__iter__'):
+        if len(results) > 0 and hasattr(results.values()[0], '__iter__'):
             result = self._constructor(data=results, index=res_columns,
                                        columns=res_index)
 
