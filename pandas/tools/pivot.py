@@ -51,10 +51,22 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     cols = _convert_by(cols)
 
     keys = rows + cols
+
+    values_passed = values is not None
+    if values_passed:
+        if isinstance(values, (list, tuple)):
+            values_multi = True
+        else:
+            values_multi = False
+            values = [values]
+
+    if values_passed:
+        data = data[keys + values]
+
     grouped = data.groupby(keys)
 
-    if values is not None:
-        grouped = grouped[values]
+    if values_passed and not values_multi:
+        grouped = grouped[values[0]]
 
     agged = grouped.agg(aggfunc)
 

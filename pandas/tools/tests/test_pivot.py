@@ -19,7 +19,8 @@ class TestPivotTable(unittest.TestCase):
                                       'dull', 'shiny', 'shiny', 'dull',
                                       'shiny', 'shiny', 'shiny'],
                                'D' : np.random.randn(11),
-                               'E' : np.random.randn(11)})
+                               'E' : np.random.randn(11),
+                               'F' : np.random.randn(11)})
 
     def test_pivot_table(self):
         rows = ['A', 'B']
@@ -45,6 +46,13 @@ class TestPivotTable(unittest.TestCase):
         table = pivot_table(self.data, rows=rows, cols=cols)
         expected = self.data.groupby(rows + [cols]).agg(np.mean).unstack()
         assert_frame_equal(table, expected)
+
+    def test_pivot_multi_values(self):
+        result = pivot_table(self.data, values=['D', 'E'],
+                             rows='A', cols=['B', 'C'])
+        expected = pivot_table(self.data.drop(['F'], axis=1),
+                               rows='A', cols=['B', 'C'])
+        assert_frame_equal(result, expected)
 
 if __name__ == '__main__':
     import nose
