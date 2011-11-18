@@ -67,6 +67,7 @@ pandas 0.5.1
   - DataFrame constructor will use Series name if no columns passed (GH #373)
   - Support regular expressions and longer delimiters in read_table/read_csv,
     but does not handle quoted strings yet (GH #364)
+  - Add `DataFrame.to_html` (PR #387)
 
 **Improvements to existing features**
 
