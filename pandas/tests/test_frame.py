@@ -3002,12 +3002,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.ix[:, []]
         assert_frame_equal(result, expected)
 
-    def test_statistics(self):
-        # unnecessary?
-        sumFrame = self.frame.apply(np.sum)
-        for col, series in self.frame.iteritems():
-            self.assertEqual(sumFrame[col], series.sum())
-
     def test_count(self):
         f = lambda s: notnull(s).sum()
         self._check_stat_op('count', f, has_skipna=False)
@@ -3023,6 +3017,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_sum(self):
         self._check_stat_op('sum', np.sum)
+
+    def test_stat_ops_attempt_obj_array(self):
+        data = {
+            'a': [-0.00049987540199591344, -0.0016467257772919831,
+                   0.00067695870775883013],
+            'b': [-0, -0, 0.0],
+            'c': [0.00031111847529610595, 0.0014902627951905339,
+                  -0.00094099200035979691]
+        }
+        df = DataFrame(data, index=['foo', 'bar', 'baz'],
+                       dtype='O')
+        methods = ['sum', 'mean', 'var', 'std', 'skew', 'min', 'max']
+
+        for meth in methods:
+            self.assert_(df.values.dtype == np.object_)
+            result = getattr(df, meth)(1)
+            expected = getattr(df.astype('f8'), meth)(1)
+            assert_series_equal(result, expected)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)

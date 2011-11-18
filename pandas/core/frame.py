@@ -31,6 +31,7 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 from pandas.util import py3compat
+import pandas.core.nanops as nanops
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas._tseries as lib
@@ -2710,57 +2711,36 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def sum(self, axis=0, numeric_only=True, skipna=True, level=None):
+    def sum(self, axis=0, numeric_only=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', axis=axis, level=level,
                                       skipna=skipna)
-
-        y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
-
-        if len(axis_labels) == 0:
-            return Series([], index=[])
-
-        if y.dtype == np.object_:
-            the_sum = y.sum(axis)
-        else:
-            mask = np.isfinite(y)
-
-            if skipna and not issubclass(y.dtype.type, np.integer):
-                np.putmask(y, -mask, 0)
-
-            the_sum = y.sum(axis)
-            the_count = mask.sum(axis)
-
-            ct_mask = the_count == 0
-            if ct_mask.any():
-                the_sum[ct_mask] = nan
-
-        return Series(the_sum, index=axis_labels)
+        return self._reduce(nanops.nansum, axis=axis, skipna=skipna,
+                            numeric_only=numeric_only)
     _add_stat_doc(sum, 'sum', 'sum', extras=_numeric_only_doc)
+
+    def mean(self, axis=0, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('mean', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nanmean, axis=axis, skipna=skipna,
+                            numeric_only=None)
+    _add_stat_doc(mean, 'mean', 'mean')
 
     def min(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', axis=axis, level=level,
                                       skipna=skipna)
-
-        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), np.inf)
-
-        return Series(values.min(axis), index=axis_labels)
+        return self._reduce(nanops.nanmin, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(min, 'minimum', 'min')
 
     def max(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', axis=axis, level=level,
                                       skipna=skipna)
-
-        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), -np.inf)
-
-        return Series(values.max(axis), index=axis_labels)
+        return self._reduce(nanops.nanmax, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(max, 'maximum', 'max')
 
     def prod(self, axis=0, skipna=True, level=None):
@@ -2780,16 +2760,6 @@ class DataFrame(NDFrame):
     _add_stat_doc(prod, 'product', 'product',
                   na_action='NA/null values are treated as 1')
     product = prod
-
-    def mean(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('mean', axis=axis, level=level,
-                                      skipna=skipna)
-
-        summed = self.sum(axis, numeric_only=True, skipna=skipna)
-        count = self.count(axis, numeric_only=True).astype(float)
-        return summed / count
-    _add_stat_doc(mean, 'mean', 'mean')
 
     def median(self, axis=0, skipna=True, level=None):
         if level is not None:
@@ -2839,28 +2809,14 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
                                       skipna=skipna)
-
-        y, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        mask = np.isnan(y)
-        count = (y.shape[axis] - mask.sum(axis)).astype(float)
-
-        if skipna:
-            np.putmask(y, mask, 0)
-
-        X = y.sum(axis)
-        XX = (y ** 2).sum(axis)
-
-        theVar = (XX - X ** 2 / count) / (count - 1)
-
-        return Series(theVar, index=axis_labels)
+        return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(var, 'unbiased variance', 'var')
 
     def std(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
                                       skipna=skipna)
-
         return np.sqrt(self.var(axis=axis, skipna=skipna))
     _add_stat_doc(std, 'unbiased standard deviation', 'std')
 
@@ -2868,30 +2824,36 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('skew', axis=axis, level=level,
                                       skipna=skipna)
-
-        y, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        mask = np.isnan(y)
-        count = (y.shape[axis] - mask.sum(axis)).astype(float)
-
-        if skipna:
-            np.putmask(y, mask, 0)
-
-        A = y.sum(axis) / count
-        B = (y ** 2).sum(axis) / count - A ** 2
-        C = (y ** 3).sum(axis) / count - A ** 3 - 3 * A * B
-
-        # floating point error
-        B = np.where(np.abs(B) < 1e-14, 0, B)
-        C = np.where(np.abs(C) < 1e-14, 0, C)
-
-        result = ((np.sqrt((count ** 2 - count)) * C) /
-                  ((count - 2) * np.sqrt(B) ** 3))
-
-        result = np.where(B == 0, 0, result)
-
-        return Series(result, index=axis_labels)
+        return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
+
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
+
+        f = lambda x: op(x, axis=axis, skipna=skipna, copy=True)
+        labels = self._get_agg_axis(axis)
+        if numeric_only is None:
+            try:
+                values = self.values
+                if not self._is_mixed_type:
+                    values = values.copy()
+                result = f(values)
+            except Exception:
+                data = self._get_numeric_data()
+                result = f(data.values)
+                labels = data._get_agg_axis(axis)
+        else:
+            if numeric_only:
+                data = self._get_numeric_data()
+                values = data.values
+                labels = data._get_agg_axis(axis)
+            else:
+                values = self.values
+            result = f(values)
+
+        if result.dtype == np.object_:
+            result = result.astype('f8')
+        return Series(result, index=labels)
 
     def idxmin(self, axis=0, skipna=True):
         """
