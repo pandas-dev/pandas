@@ -3127,6 +3127,10 @@ class DataFrame(NDFrame):
             pass
 
         plt.draw_if_interactive()
+        if subplots:
+            return axes
+        else:
+            return ax
 
     def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
                   rot=30, legend=True, **kwds):
@@ -3192,6 +3196,7 @@ class DataFrame(NDFrame):
             ax.set_title(col)
             ax.grid(grid)
 
+        return axes
     #----------------------------------------------------------------------
     # Deprecated stuff
 

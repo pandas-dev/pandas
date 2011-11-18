@@ -107,12 +107,14 @@ def _check_plot_works(f, *args, **kwargs):
     fig = plt.gcf()
     plt.clf()
     ax = fig.add_subplot(211)
-    f(*args, **kwargs)
+    ret = f(*args, **kwargs)
+    assert(ret is not None)  # do something more intelligent
 
     ax = fig.add_subplot(212)
     try:
         kwargs['ax'] = ax
-        f(*args, **kwargs)
+        ret = f(*args, **kwargs)
+        assert(ret is not None)  # do something more intelligent
     except Exception:
         pass
     plt.savefig(PNG_PATH)

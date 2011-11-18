@@ -1684,6 +1684,8 @@ copy : boolean, default False
 
         plt.draw_if_interactive()
 
+        return ax
+
     def hist(self, ax=None, grid=True, **kwds):
         """
         Draw histogram of the input series using matplotlib
@@ -1709,6 +1711,8 @@ copy : boolean, default False
 
         ax.hist(values)
         ax.grid(grid)
+
+        return ax
 
     def to_csv(self, path):
         """
