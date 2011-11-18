@@ -21,7 +21,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     Parameters
     ----------
     data : DataFrame
-    column : column names or list of names, or vector
+    column : column name or list of names, or vector
         Can be any valid input to groupby
     by : string or sequence
         Column in the DataFrame to group by
@@ -37,22 +37,34 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         ax.boxplot(values)
         ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
 
+    if column == None:
+        columns = None
+    else:
+        if isinstance(column, (list, tuple)):
+            columns = column
+        else:
+            columns = [column]
+
     if by is not None:
         if not isinstance(by, (list, tuple)):
             by = [by]
 
-        columns = None if column is None else [column]
         fig, axes = _grouped_plot_by_column(plot_group, data, columns=columns,
-                                            by=by)
+                                            by=by, grid=grid)
         ax = axes
     else:
         if ax is None:
             ax = plt.gca()
 
         data = data._get_numeric_data()
-        keys = [_stringify(x) for x in data.columns]
-        ax.boxplot(list(data.values.T))
+        if columns:
+            cols = columns
+        else:
+            cols = data.columns
+        keys = [_stringify(x) for x in cols]
+        ax.boxplot(list(data[cols].values.T))
         ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        ax.grid(grid)
 
     plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.1)
     return ax
@@ -108,7 +120,7 @@ def _grouped_plot(plotf, data, by=None, numeric_only=True):
     return fig, axes
 
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
-                            numeric_only=True):
+                            numeric_only=True, grid=False):
     grouped = data.groupby(by)
     if columns is None:
         columns = data._get_numeric_data().columns - by
@@ -123,13 +135,17 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     else:
         ravel_axes = []
         for row in axes:
-            ravel_axes.extend(row)
+            if isinstance(row, plt.Axes):
+                ravel_axes.append(row)
+            else:
+                ravel_axes.extend(row)
 
     for i, col in enumerate(columns):
         ax = ravel_axes[i]
         gp_col = grouped[col]
         plotf(gp_col, ax)
         ax.set_title(col)
+        ax.grid(grid)
 
     fig.suptitle('Boxplot grouped by %s' % by)
 
