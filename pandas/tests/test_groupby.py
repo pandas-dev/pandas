@@ -996,6 +996,23 @@ class TestGroupBy(unittest.TestCase):
             res = f(group)
             assert_frame_equal(res, result.ix[key])
 
+    def test_groupby_wrong_multi_labels(self):
+        from pandas import read_csv
+        from cStringIO import StringIO
+        data = """index,foo,bar,baz,spam,data
+0,foo1,bar1,baz1,spam2,20
+1,foo1,bar2,baz1,spam3,30
+2,foo2,bar2,baz1,spam2,40
+3,foo1,bar1,baz2,spam1,50
+4,foo3,bar1,baz2,spam1,60"""
+        data = read_csv(StringIO(data), index_col=0)
+
+        grouped = data.groupby(['foo', 'bar', 'baz', 'spam'])
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        assert_frame_equal(result, expected)
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):

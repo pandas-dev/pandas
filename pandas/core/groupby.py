@@ -236,6 +236,9 @@ class GroupBy(object):
         def flatten(gen, level=0, shape_axis=0):
             ids = self.groupings[level].ids
             for cat, subgen in gen:
+                if subgen is None:
+                    continue
+
                 if isinstance(subgen, tipo):
                     yield (ids[cat],), subgen
                 else:
@@ -382,6 +385,10 @@ class GroupBy(object):
         # want to cythonize?
         def _doit(reschunk, ctchunk, gen, shape_axis=0):
             for i, (_, subgen) in enumerate(gen):
+                # TODO: fixme
+                if subgen is None:
+                    continue
+
                 if isinstance(subgen, PandasObject):
                     size = subgen.shape[shape_axis]
                     ctchunk[i] = size
@@ -1337,7 +1344,9 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
 
             # skip empty groups in the cartesian product
             if left == right:
+                yield i, None
                 continue
+
             yield i, slicer(data, slob)
         else:
             # yield subgenerators, yikes
