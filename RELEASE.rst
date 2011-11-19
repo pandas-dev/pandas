@@ -134,6 +134,7 @@ pandas 0.5.1
   - Fix bug in join operations between Index and Int64Index (GH #367)
   - Handle min_periods=0 case in moving window functions (GH #365)
   - Fixed corner cases in DataFrame.apply/pivot with empty DataFrame (GH #378)
+  - Fixed repr exception when Series name is a tuple
 
 Thanks
 ------

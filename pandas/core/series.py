@@ -380,7 +380,7 @@ copy : boolean, default False
                                                   length=False,
                                                   name=False)
         result = head + '\n...\n' + tail
-        namestr = "Name: %s, " % self.name if self.name else ""
+        namestr = "Name: %s, " % str(self.name) if self.name else ""
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
@@ -432,7 +432,7 @@ copy : boolean, default False
 
         footer = ''
         if name:
-            footer += "Name: %s" % self.name if self.name else ''
+            footer += "Name: %s" % str(self.name) if self.name else ''
 
         if length:
             if footer:
