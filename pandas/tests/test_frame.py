@@ -3313,14 +3313,26 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_delevel(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo' : stacked, 'bar' : stacked})
-        deleveled = stacked.delevel()
 
+        names = ['first', 'second']
+        stacked.index.names = names
+        deleveled = stacked.delevel()
         for i, (lev, lab) in enumerate(zip(stacked.index.levels,
                                            stacked.index.labels)):
             values = lev.take(lab)
-            assert_almost_equal(values, deleveled['level_%d' % i])
+            name = names[i]
+            assert_almost_equal(values, deleveled[name])
 
+        # exception if no name
         self.assertRaises(Exception, self.frame.delevel)
+
+        # but this is ok
+        self.frame.index.name = 'index'
+        deleveled = self.frame.delevel()
+        self.assert_(np.array_equal(deleveled['index'],
+                                    self.frame.index.values))
+        self.assert_(np.array_equal(deleveled.index,
+                                    np.arange(len(deleveled))))
 
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals

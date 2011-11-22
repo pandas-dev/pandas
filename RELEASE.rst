@@ -99,6 +99,7 @@ pandas 0.5.1
   - Improve performance of `MultiIndex.from_tuples`
   - Can pass multiple levels to `stack` and `unstack` (GH #370)
   - Can pass multiple values columns to `pivot_table` (GH #381)
+  - Can call `DataFrame.delevel` with standard Index with name set (GH #393)
 
 **Bug fixes**
 
@@ -137,6 +138,7 @@ pandas 0.5.1
   - Fixed repr exception when Series name is a tuple
   - Always return DateRange from `asfreq` (GH #390)
   - Pass level names to `swaplavel` (GH #379)
+  - Don't lose index names in `MultiIndex.droplevel` (GH #394)
 
 Thanks
 ------

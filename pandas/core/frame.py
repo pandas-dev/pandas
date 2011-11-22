@@ -2053,21 +2053,20 @@ class DataFrame(NDFrame):
         -------
         deleveled : DataFrame
         """
-        if not isinstance(self.index, MultiIndex):
-            raise Exception('this DataFrame does not have a multi-level index')
-
         new_obj = self.copy()
-        names = self.index.names
-
-        zipped = zip(self.index.levels, self.index.labels)
-        for i, (lev, lab) in reversed(list(enumerate(zipped))):
-            col_name = names[i]
-            if col_name is None:
-                col_name = 'level_%d' % i
-            new_obj.insert(0, col_name, np.asarray(lev).take(lab))
-
+        if isinstance(self.index, MultiIndex):
+            names = self.index.names
+            zipped = zip(self.index.levels, self.index.labels)
+            for i, (lev, lab) in reversed(list(enumerate(zipped))):
+                col_name = names[i]
+                if col_name is None:
+                    col_name = 'level_%d' % i
+                new_obj.insert(0, col_name, np.asarray(lev).take(lab))
+        else:
+            if self.index.name is None:
+                raise Exception('Must have name set')
+            new_obj.insert(0, self.index.name, self.index.values)
         new_obj.index = np.arange(len(new_obj))
-
         return new_obj
 
     #----------------------------------------------------------------------
