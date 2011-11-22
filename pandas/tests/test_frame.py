@@ -10,6 +10,7 @@ import unittest
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np
+import numpy.ma as ma
 
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -1038,6 +1039,64 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(frame.index is NULL_INDEX)
 
         frame = DataFrame(np.empty((3, 0)))
+        self.assert_(len(frame.columns) == 0)
+
+    def test_constructor_maskedarray(self):
+        mat = ma.masked_all((2, 3), dtype=float)
+
+        # 2-D input
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
+
+        self.assertEqual(len(frame.index), 2)
+        self.assertEqual(len(frame.columns), 3)
+        self.assertTrue(np.all(~np.asarray(frame == frame)))
+
+        # cast type
+        frame = DataFrame(mat, columns=['A', 'B', 'C'],
+                           index=[1, 2], dtype=int)
+        self.assert_(frame.values.dtype == np.int64)
+
+        # Check non-masked values
+        mat2 = ma.copy(mat)
+        mat2[0,0] = 1.0
+        mat2[1,2] = 2.0
+        frame = DataFrame(mat2, columns=['A', 'B', 'C'], index=[1, 2])
+        self.assertEqual(1.0, frame['A'][1])
+        self.assertEqual(2.0, frame['C'][2])
+
+        # 1-D input
+        frame = DataFrame(ma.masked_all((3,)), columns=['A'], index=[1, 2, 3])
+        self.assertEqual(len(frame.index), 3)
+        self.assertEqual(len(frame.columns), 1)
+        self.assertTrue(np.all(~np.asarray(frame == frame)))
+
+        # higher dim raise exception
+        self.assertRaises(Exception, DataFrame, ma.masked_all((3, 3, 3)),
+                          columns=['A', 'B', 'C'], index=[1])
+
+        # wrong size axis labels
+        self.assertRaises(Exception, DataFrame, mat,
+                          columns=['A', 'B', 'C'], index=[1])
+
+        self.assertRaises(Exception, DataFrame, mat,
+                          columns=['A', 'B'], index=[1, 2])
+
+        # automatic labeling
+        frame = DataFrame(mat)
+        self.assert_(np.array_equal(frame.index, range(2)))
+        self.assert_(np.array_equal(frame.columns, range(3)))
+
+        frame = DataFrame(mat, index=[1, 2])
+        self.assert_(np.array_equal(frame.columns, range(3)))
+
+        frame = DataFrame(mat, columns=['A', 'B', 'C'])
+        self.assert_(np.array_equal(frame.index, range(2)))
+
+        # 0-length axis
+        frame = DataFrame(ma.masked_all((0, 3)))
+        self.assert_(frame.index is NULL_INDEX)
+
+        frame = DataFrame(ma.masked_all((3, 0)))
         self.assert_(len(frame.columns) == 0)
 
     def test_constructor_corner(self):
