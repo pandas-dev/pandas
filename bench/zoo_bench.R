@@ -37,7 +37,7 @@ xts.bench <- function(){
 
 fts.bench <- function(){
     x <- fts(rnorm(sz), sort(sample(indices, sz)))
-    y <- fts(rnorm(sz), sort(sample(indices, sz)))
+    y <- fts(rnorm(sz), sort(sample(indices, sz))
     timeit(function() {x + y})
 }
 

@@ -1247,7 +1247,9 @@ class DataFrame(NDFrame):
     def _reindex_index(self, new_index, method, copy):
         if new_index.equals(self.index):
             if copy:
-                return self.copy()
+                result = self.copy()
+                result.index = new_index
+                return result
             else:
                 return self
         new_data = self._data.reindex_axis(new_index, method, axis=1)

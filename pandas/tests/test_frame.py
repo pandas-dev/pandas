@@ -1935,10 +1935,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = zero_length.asfreq('EOM')
         self.assert_(result is not zero_length)
 
+    def test_asfreq_DateRange(self):
+        from pandas.core.daterange import DateRange
+        df = DataFrame({'A': [1,2,3]},
+                       index=[datetime(2011,11,01), datetime(2011,11,2),
+                              datetime(2011,11,3)])
+        df = df.asfreq('WEEKDAY')
+        self.assert_(isinstance(df.index, DateRange))
+
+        ts = df['A'].asfreq('WEEKDAY')
+        self.assert_(isinstance(ts.index, DateRange))
+
     def test_as_matrix(self):
         frame = self.frame
         mat = frame.as_matrix()
-        smallerCols = ['C', 'A']
 
         frameCols = frame.columns
         for i, row in enumerate(mat):
