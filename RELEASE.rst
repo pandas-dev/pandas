@@ -140,6 +140,8 @@ pandas 0.6.0
   - Always return DateRange from `asfreq` (GH #390)
   - Pass level names to `swaplavel` (GH #379)
   - Don't lose index names in `MultiIndex.droplevel` (GH #394)
+  - Infer more proper return type in `DataFrame.apply` when no columns or rows
+    depending on whether the passed function is a reduction (GH #389)
 
 Thanks
 ------
