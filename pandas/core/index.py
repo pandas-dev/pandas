@@ -2,7 +2,6 @@
 
 from datetime import time
 from itertools import izip
-import gc
 
 import numpy as np
 
@@ -1196,6 +1195,9 @@ class MultiIndex(Index):
         new_levels = list(self.levels)
         new_labels = list(self.labels)
         new_names = list(self.names)
+
+        i = self._get_level_number(i)
+        j = self._get_level_number(j)
 
         new_levels[i], new_levels[j] = new_levels[j], new_levels[i]
         new_labels[i], new_labels[j] = new_labels[j], new_labels[i]

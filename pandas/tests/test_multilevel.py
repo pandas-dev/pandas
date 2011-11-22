@@ -495,10 +495,19 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_swaplevel(self):
         swapped = self.frame['A'].swaplevel(0, 1)
+        swapped2 = self.frame['A'].swaplevel('first', 'second')
         self.assert_(not swapped.index.equals(self.frame.index))
+        assert_series_equal(swapped, swapped2)
 
         back = swapped.swaplevel(0, 1)
+        back2 = swapped.swaplevel('second', 'first')
         self.assert_(back.index.equals(self.frame.index))
+        assert_series_equal(back, back2)
+
+        ft = self.frame.T
+        swapped = ft.swaplevel('first', 'second', axis=1)
+        exp = self.frame.swaplevel('first', 'second').T
+        assert_frame_equal(swapped, exp)
 
     def test_swaplevel_panel(self):
         panel = Panel({'ItemA' : self.frame,
@@ -507,6 +516,7 @@ class TestMultiLevel(unittest.TestCase):
         result = panel.swaplevel(0, 1, axis='major')
         expected = panel.copy()
         expected.major_axis = expected.major_axis.swaplevel(0, 1)
+        tm.assert_panel_equal(result, expected)
 
     def test_insert_index(self):
         df = self.ymd[:5].T
