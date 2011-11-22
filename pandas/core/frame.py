@@ -20,6 +20,7 @@ import sys
 
 from numpy import nan
 import numpy as np
+import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, adjoin,
                                 _try_sort, _pfixed, _default_index,
@@ -188,6 +189,12 @@ class DataFrame(NDFrame):
                 mgr = mgr.astype(dtype)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
+        elif isinstance(data, ma.MaskedArray):
+            mask = ma.getmaskarray(data)
+            datacopy = ma.copy(data)
+            datacopy[mask] = np.nan
+            mgr = self._init_ndarray(datacopy, index, columns, dtype=dtype,
+                                     copy=copy)
         elif isinstance(data, np.ndarray):
             if data.dtype.names:
                 data_columns, data = _rec_to_dict(data)
