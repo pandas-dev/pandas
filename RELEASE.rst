@@ -100,6 +100,7 @@ pandas 0.5.1
   - Can pass multiple levels to `stack` and `unstack` (GH #370)
   - Can pass multiple values columns to `pivot_table` (GH #381)
   - Can call `DataFrame.delevel` with standard Index with name set (GH #393)
+  - Use Series name in GroupBy for result index (GH #363)
 
 **Bug fixes**
 
@@ -568,8 +569,8 @@ Thanks
 - Dan Lovell
 - Nick Pentreath
 
-pandas 0.4
-==========
+pandas 0.4.0
+============
 
 Release notes
 -------------
@@ -700,7 +701,7 @@ Release notes
     `DataFrame.count` to enable this behavior in those methods if so desired
     (disabled by default)
   * `DataFrame.pivot` generalized to enable pivoting multiple columns into a
-    `DataFrame` with hierarhical columns
+    `DataFrame` with hierarchical columns
   * `DataFrame` constructor can accept structured / record arrays
   * `Panel` constructor can accept a dict of DataFrame-like objects. Do not
     need to use `from_dict` anymore (`from_dict` is there to stay, though).

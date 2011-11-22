@@ -534,6 +534,10 @@ class Grouping(object):
         self.grouper = _convert_grouper(index, grouper)
         self.index = index
 
+        # right place for this?
+        if isinstance(grouper, Series) and name is None:
+            self.name = grouper.name
+
         if level is not None:
             if not isinstance(level, int):
                 assert(level in index.names)

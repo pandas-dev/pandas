@@ -1013,6 +1013,19 @@ class TestGroupBy(unittest.TestCase):
         expected = grouped.mean()
         assert_frame_equal(result, expected)
 
+    def test_groupby_series_with_name(self):
+        result = self.df.groupby(self.df['A']).mean()
+        result2 = self.df.groupby(self.df['A'], as_index=False).mean()
+        self.assertEquals(result.index.name, 'A')
+        self.assert_('A' in result2)
+
+        result = self.df.groupby([self.df['A'], self.df['B']]).mean()
+        result2 = self.df.groupby([self.df['A'], self.df['B']],
+                                 as_index=False).mean()
+        self.assertEquals(result.index.names, ['A', 'B'])
+        self.assert_('A' in result2)
+        self.assert_('B' in result2)
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):
