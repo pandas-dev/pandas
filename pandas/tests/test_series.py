@@ -587,7 +587,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(f(nona), alternate(nona))
 
         allna = self.series * nan
-        self.assert_(isnull(f(allna)))
+        self.assert_(np.isnan(f(allna)))
 
     def _check_accum_op(self, name):
         func = getattr(np, name)

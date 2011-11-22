@@ -101,6 +101,8 @@ pandas 0.6.0
   - Can pass multiple values columns to `pivot_table` (GH #381)
   - Can call `DataFrame.delevel` with standard Index with name set (GH #393)
   - Use Series name in GroupBy for result index (GH #363)
+  - Refactor Series/DataFrame stat methods to use common set of NaN-friendly
+    function
 
 **Bug fixes**
 
@@ -142,6 +144,9 @@ pandas 0.6.0
   - Don't lose index names in `MultiIndex.droplevel` (GH #394)
   - Infer more proper return type in `DataFrame.apply` when no columns or rows
     depending on whether the passed function is a reduction (GH #389)
+  - Always return NA/NaN from Series.min/max and DataFrame.min/max when all of a
+    row/column/values are NA (GH #384)
+
 
 Thanks
 ------
@@ -157,6 +162,7 @@ Thanks
 - Wouter Overmeire
 - Nathan Pinger
 - Christian Prinoth
+- Skipper Seabold
 - Chang She
 - Ted Square
 - Aman Thakral
