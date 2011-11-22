@@ -3123,12 +3123,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         getattr(self.mixed_frame, name)(axis=1)
 
         # all NA case
-        # if has_skipna:
-        #     all_na = self.frame * np.NaN
-        #     r0 = getattr(all_na, name)(axis=0)
-        #     r1 = getattr(all_na, name)(axis=1)
-        #     self.assert_(np.isnan(r0).all())
-        #     self.assert_(np.isnan(r1).all())
+        if has_skipna:
+            all_na = self.frame * np.NaN
+            r0 = getattr(all_na, name)(axis=0)
+            r1 = getattr(all_na, name)(axis=1)
+            self.assert_(np.isnan(r0).all())
+            self.assert_(np.isnan(r1).all())
 
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)

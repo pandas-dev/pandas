@@ -100,19 +100,32 @@ def nanskew(values, axis=0, skipna=True, copy=True):
     return result
 
 def nanmin(values, axis=0, skipna=True, copy=True):
+    mask = isnull(values)
     if skipna and not issubclass(values.dtype.type, np.integer):
         if copy:
             values = values.copy()
-        np.putmask(values, isnull(values), np.inf)
-    return values.min(axis)
+        np.putmask(values, mask, np.inf)
+    result = values.min(axis)
+
+    null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
+    if null_mask.any():
+        result = result.astype('f8')
+        result[null_mask] = np.nan
+    return result
 
 def nanmax(values, axis=0, skipna=True, copy=True):
+    mask = isnull(values)
     if skipna and not issubclass(values.dtype.type, np.integer):
         if copy:
             values = values.copy()
-        np.putmask(values, isnull(values), -np.inf)
+        np.putmask(values, mask, -np.inf)
+    result = values.max(axis)
 
-    return values.max(axis)
+    null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
+    if null_mask.any():
+        result = result.astype('f8')
+        result[null_mask] = np.nan
+    return result
 
 def nanprod(values, axis=0, skipna=True, copy=True):
     mask = isnull(values)
