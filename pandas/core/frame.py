@@ -2204,7 +2204,8 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Functions should not alter the index of the Series passed to them
+        Function passed should not have side effects. If the result is a Series,
+        it should have the same index
 
         Returns
         -------
@@ -2219,6 +2220,14 @@ class DataFrame(NDFrame):
                                      columns=self.columns, copy=False)
         else:
             if not broadcast:
+                if not all(self.shape):
+                    is_reduction = not isinstance(func(_EMPTY_SERIES),
+                                                  np.ndarray)
+                    if is_reduction:
+                        return Series(np.nan, index=self._get_agg_axis(axis))
+                    else:
+                        return self.copy()
+
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(func, axis)
                 else:
@@ -2246,7 +2255,7 @@ class DataFrame(NDFrame):
             dummy = Series(np.nan, index=self._get_axis(axis),
                            dtype=values.dtype)
             result = lib.reduce(values, func, axis=axis, dummy=dummy)
-            return Series(result, index=self._get_agg_axis(axis))
+            return Series(result, index=agg_axis)
         except Exception:
             pass
 
@@ -3252,6 +3261,9 @@ class DataFrame(NDFrame):
         DataFrame
         """
         return self.mul(other, fill_value=1.)
+
+
+_EMPTY_SERIES = Series([])
 
 
 class _DataFrameFormatter(object):

@@ -22,7 +22,7 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
-pandas 0.5.1
+pandas 0.6.0
 ============
 
 **Release date:** Not yet released
