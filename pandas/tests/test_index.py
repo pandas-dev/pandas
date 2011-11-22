@@ -1074,6 +1074,16 @@ class TestMultiIndex(unittest.TestCase):
         dropped = index.droplevel(0)
         self.assertEqual(dropped.name, 'second')
 
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                           names=['one', 'two', 'three'])
+        dropped = index.droplevel(0)
+        self.assertEqual(dropped.names, ['two', 'three'])
+
     def test_insert(self):
         # key contained in all levels
         new_index = self.index.insert(0, ('bar', 'two'))

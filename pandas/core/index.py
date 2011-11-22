@@ -74,6 +74,11 @@ class Index(np.ndarray):
         return 1
 
     @property
+    def names(self):
+        # for compat with multindex code
+        return [self.name]
+
+    @property
     def _constructor(self):
         return Index
 
@@ -864,6 +869,9 @@ class MultiIndex(Index):
     labels : list or tuple of arrays
         Integers for each level designating which label at each location
     """
+    # shadow property
+    names = None
+
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
         assert(len(levels) == len(labels))
         if len(levels) == 0:
@@ -1178,11 +1186,16 @@ class MultiIndex(Index):
         new_levels.pop(level)
         new_labels = list(self.labels)
         new_labels.pop(level)
+        new_names = list(self.names)
+        new_names.pop(level)
 
         if len(new_levels) == 1:
-            return new_levels[0].take(new_labels[0])
+            result = new_levels[0].take(new_labels[0])
+            result.name = new_names[0]
+            return result
         else:
-            return MultiIndex(levels=new_levels, labels=new_labels)
+            return MultiIndex(levels=new_levels, labels=new_labels,
+                              names=new_names)
 
     def swaplevel(self, i, j):
         """

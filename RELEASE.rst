@@ -135,8 +135,8 @@ pandas 0.5.1
   - Handle min_periods=0 case in moving window functions (GH #365)
   - Fixed corner cases in DataFrame.apply/pivot with empty DataFrame (GH #378)
   - Fixed repr exception when Series name is a tuple
-  - Always return DateRange from asfreq (GH #390)
-  -
+  - Always return DateRange from `asfreq` (GH #390)
+  - Pass level names to `swaplavel` (GH #379)
 
 Thanks
 ------

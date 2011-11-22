@@ -652,6 +652,17 @@ class TestMultiLevel(unittest.TestCase):
         df['Totals', ''] = df.sum(1)
         df = df.consolidate()
 
+    def test_ix_preserve_names(self):
+        result = self.ymd.ix[2000]
+        result2 = self.ymd['A'].ix[2000]
+        self.assertEquals(result.index.names, self.ymd.index.names[1:])
+        self.assertEquals(result2.index.names, self.ymd.index.names[1:])
+
+        result = self.ymd.ix[2000, 2]
+        result2 = self.ymd['A'].ix[2000, 2]
+        self.assertEquals(result.index.name, self.ymd.index.names[2])
+        self.assertEquals(result2.index.name, self.ymd.index.names[2])
+
 if __name__ == '__main__':
 
     # unittest.main()
