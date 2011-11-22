@@ -13,9 +13,9 @@ df_small = DataFrame({'group1' : ["a","b","a","a","b","c","c","c","c",
                                   "banana","lemon","guava","blackberry",
                                   "grape"]})
 value = df_small['value'].values.repeat(3)
-df = DataFrame({'group1' : g1.repeat(40000),
-                'group2' : np.tile(g2, 400),
-                'value' : value.repeat(40000)})
+df = DataFrame({'group1' : g1.repeat(4000 * 5),
+                'group2' : np.tile(g2, 400 * 5),
+                'value' : value.repeat(4000 * 5)})
 
 
 def random_sample():
@@ -32,3 +32,18 @@ def random_sample_v2():
     indices = [choice(v) for k, v in grouped.groups.iteritems()]
     return df.reindex(indices)
 
+def do_shuffle(arr):
+   from random import shuffle
+   result = arr.copy().values
+   shuffle(result)
+   return result
+
+def shuffle_uri(df,grouped):
+    perm = np.r_[tuple([np.random.permutation(idxs) for idxs in grouped.groups.itervalues()])]
+    df['state_permuted'] = np.asarray(df.ix[perm]['value'])
+
+df2 = df.copy()
+grouped = df2.groupby('group1')
+shuffle_uri(df2, grouped)
+
+df2['state_perm'] = grouped['value'].transform(do_shuffle)

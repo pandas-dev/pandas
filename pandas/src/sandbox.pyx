@@ -17,3 +17,11 @@ def foo(object o):
 
 def foo2():
     print sizeof(PyObject*)
+
+def bench_dict():
+    cdef:
+        # Py_ssize_t i
+        dict d = {}
+
+    for i in range(1000000):
+        d[i] = i
