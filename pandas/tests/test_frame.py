@@ -3028,7 +3028,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         }
         df = DataFrame(data, index=['foo', 'bar', 'baz'],
                        dtype='O')
-        methods = ['sum', 'mean', 'var', 'std', 'skew', 'min', 'max']
+        methods = ['sum', 'mean', 'prod', 'var', 'std', 'skew', 'min', 'max']
 
         for meth in methods:
             self.assert_(df.values.dtype == np.object_)
@@ -3121,6 +3121,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # make sure works on mixed-type frame
         getattr(self.mixed_frame, name)(axis=0)
         getattr(self.mixed_frame, name)(axis=1)
+
+        # all NA case
+        # if has_skipna:
+        #     all_na = self.frame * np.NaN
+        #     r0 = getattr(all_na, name)(axis=0)
+        #     r1 = getattr(all_na, name)(axis=1)
+        #     self.assert_(np.isnan(r0).all())
+        #     self.assert_(np.isnan(r1).all())
 
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)

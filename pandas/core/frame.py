@@ -2747,16 +2747,8 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('prod', axis=axis, level=level,
                                       skipna=skipna)
-
-        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            values[np.isnan(values)] = 1
-        result = values.prod(axis)
-        count = self.count(axis, numeric_only=True)
-        result[count == 0] = nan
-
-        return Series(result, index=axis_labels)
+        return self._reduce(nanops.nanprod, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(prod, 'product', 'product',
                   na_action='NA/null values are treated as 1')
     product = prod
@@ -2765,30 +2757,8 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('median', axis=axis, level=level,
                                       skipna=skipna)
-
-        frame = self._get_numeric_data()
-
-        if axis == 0:
-            values = frame.values.T
-            result_index = frame.columns
-        elif axis == 1:
-            values = frame.values
-            result_index = self.index
-        else:
-            raise ValueError('axis must be in {0, 1}')
-
-        def get_median(x):
-            mask = notnull(x)
-            if not skipna and not mask.all():
-                return np.nan
-            return lib.median(x[mask])
-
-        if values.dtype != np.float64:
-            values = values.astype('f8')
-
-        medians = [get_median(arr) for arr in values]
-        return Series(medians, index=result_index)
-
+        return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(median, 'median', 'median')
 
     def mad(self, axis=0, skipna=True, level=None):
@@ -2852,7 +2822,11 @@ class DataFrame(NDFrame):
             result = f(values)
 
         if result.dtype == np.object_:
-            result = result.astype('f8')
+            try:
+                result = result.astype('f8')
+            except (ValueError, TypeError):
+                pass
+
         return Series(result, index=labels)
 
     def idxmin(self, axis=0, skipna=True):

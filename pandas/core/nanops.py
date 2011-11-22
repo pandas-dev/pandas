@@ -1,6 +1,7 @@
 import numpy as np
 
 from pandas.core.common import isnull, notnull
+import pandas._tseries as lib
 
 def nansum(values, axis=0, skipna=True, copy=True):
     if values.dtype == np.object_:
@@ -42,6 +43,21 @@ def nanmean(values, axis=0, skipna=True, copy=True):
             the_mean[ct_mask] = np.nan
 
     return the_mean
+
+def nanmedian(values, axis=0, skipna=True, copy=True):
+    def get_median(x):
+        mask = notnull(x)
+        if not skipna and not mask.all():
+            return np.nan
+        return lib.median(x[mask])
+
+    if values.dtype != np.float64:
+        values = values.astype('f8')
+
+    if axis == 0:
+        values = values.T
+
+    return np.asarray([get_median(arr) for arr in values])
 
 def nanvar(values, axis=0, skipna=True, copy=True):
     mask = isnull(values)
@@ -98,3 +114,11 @@ def nanmax(values, axis=0, skipna=True, copy=True):
 
     return values.max(axis)
 
+def nanprod(values, axis=0, skipna=True, copy=True):
+    mask = isnull(values)
+    if skipna and not issubclass(values.dtype.type, np.integer):
+        values[mask] = 1
+    result = values.prod(axis)
+    count = mask.shape[axis] - mask.sum(axis)
+    result[count == 0] = np.nan
+    return result
