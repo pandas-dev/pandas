@@ -114,27 +114,32 @@ class _Unstacker(object):
     def get_result(self):
         # TODO: find a better way than this masking business
 
-        values, mask = self.get_new_values()
+        values, value_mask = self.get_new_values()
         columns = self.get_new_columns()
         index = self.get_new_index()
 
         # filter out missing levels
         if values.shape[1] > 0:
+            mask = value_mask.sum(0) > 0
             values = values[:, mask]
             columns = columns[mask]
 
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
+        return self._reshape_values(self.values)
+
+    def _reshape_values(self, values):
+        values = self.values
         # place the values
         length, width = self.full_shape
-        stride = self.values.shape[1]
+        stride = values.shape[1]
         result_width = width * stride
 
-        new_values = np.empty((length, result_width), dtype=self.values.dtype)
+        new_values = np.empty((length, result_width), dtype=values.dtype)
         new_mask = np.zeros((length, result_width), dtype=bool)
 
-        if issubclass(self.values.dtype.type, np.integer):
+        if issubclass(values.dtype.type, np.integer):
             new_values = new_values.astype(float)
 
         new_values.fill(np.nan)
@@ -148,7 +153,7 @@ class _Unstacker(object):
             mask_chunk.flat[self.mask] = True
 
         new_values = new_values.take(self.unique_groups, axis=0)
-        return new_values, new_mask.sum(0) > 0
+        return new_values, new_mask
 
     def get_new_columns(self):
         if self.value_columns is None:
@@ -284,12 +289,43 @@ def _slow_pivot(index, columns, values):
 
 def unstack(obj, level):
     if isinstance(obj, DataFrame):
-        columns = obj.columns
+        return _unstack_frame(obj, level)
     else:
-        columns = None
-    unstacker = _Unstacker(obj.values, obj.index, level=level,
-                           value_columns=columns)
-    return unstacker.get_result()
+        unstacker = _Unstacker(obj.values, obj.index, level=level)
+        return unstacker.get_result()
+
+def _unstack_frame(obj, level):
+    from pandas.core.internals import BlockManager, make_block
+
+    if obj._is_mixed_type:
+        unstacker = _Unstacker(np.empty(obj.shape, dtype=bool), # dummy
+                               obj.index, level=level,
+                               value_columns=obj.columns)
+        new_columns = unstacker.get_new_columns()
+        new_index = unstacker.get_new_index()
+        new_axes = [new_columns, new_index]
+
+        new_blocks = []
+        mask_blocks = []
+        for blk in obj._data.blocks:
+            bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
+                                    value_columns=blk.items)
+            new_items = bunstacker.get_new_columns()
+            new_values, mask = bunstacker.get_new_values()
+
+            mblk = make_block(mask.T, new_items, new_columns)
+            mask_blocks.append(mblk)
+
+            newb = make_block(new_values.T, new_items, new_columns)
+            new_blocks.append(newb)
+
+        result = DataFrame(BlockManager(new_blocks, new_axes))
+        mask_frame = DataFrame(BlockManager(mask_blocks, new_axes))
+        return result.ix[:, mask_frame.sum(0) > 0]
+    else:
+        unstacker = _Unstacker(obj.values, obj.index, level=level,
+                               value_columns=obj.columns)
+        return unstacker.get_result()
 
 def stack(frame, level=-1, dropna=True):
     """

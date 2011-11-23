@@ -679,6 +679,16 @@ class TestMultiLevel(unittest.TestCase):
         exp.ix[2000].values[:] = 5
         assert_frame_equal(df, exp)
 
+    def test_unstack_preserve_types(self):
+        # GH #403
+        self.ymd['E'] = 'foo'
+        self.ymd['F'] = 2
+
+        unstacked = self.ymd.unstack('month')
+        self.assert_(unstacked['A', 1].dtype == np.float64)
+        self.assert_(unstacked['E', 1].dtype == np.object_)
+        self.assert_(unstacked['F', 1].dtype == np.float64)
+
 if __name__ == '__main__':
 
     # unittest.main()

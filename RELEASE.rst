@@ -27,6 +27,11 @@ pandas 0.6.0
 
 **Release date:** Not yet released
 
+**API Changes**
+
+  - Arithmetic methods like `sum` will attempt to sum dtype=object values by
+    default instead of excluding them (GH #382)
+
 **New features / modules**
 
   - Add `melt` function to `pandas.core.reshape`
@@ -146,7 +151,9 @@ pandas 0.6.0
     depending on whether the passed function is a reduction (GH #389)
   - Always return NA/NaN from Series.min/max and DataFrame.min/max when all of a
     row/column/values are NA (GH #384)
-
+  - Enable partial setting with .ix / advanced indexing (GH #397)
+  - Handle mixed-type DataFrames correctly in unstack, do not lose type
+    information (GH #403)
 
 Thanks
 ------

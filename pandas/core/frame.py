@@ -83,8 +83,9 @@ Returns
 
 _doc_exclude_na = "NA/null values are excluded"
 
-_numeric_only_doc = """numeric_only : boolean, default False
-    Include only float, int, boolean data
+_numeric_only_doc = """numeric_only : boolean, default None
+    Include only float, int, boolean data. If None, will attempt to use
+    everything, then use only numeric data
 """
 
 def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
@@ -2799,7 +2800,6 @@ class DataFrame(NDFrame):
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
-
         f = lambda x: op(x, axis=axis, skipna=skipna, copy=True)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
