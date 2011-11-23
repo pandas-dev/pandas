@@ -72,7 +72,9 @@ pandas 0.6.0
   - DataFrame constructor will use Series name if no columns passed (GH #373)
   - Support regular expressions and longer delimiters in read_table/read_csv,
     but does not handle quoted strings yet (GH #364)
-  - Add `DataFrame.to_html` (PR #387)
+  - Add `DataFrame.to_html` for formatting DataFrame to HTML (PR #387)
+  - MaskedArray can be passed to DataFrame constructor and masked values will be
+    converted to NaN (PR #396)
 
 **Improvements to existing features**
 

@@ -147,7 +147,8 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         ax.set_title(col)
         ax.grid(grid)
 
-    fig.suptitle('Boxplot grouped by %s' % by)
+    byline = by[0] if len(by) == 1 else by
+    fig.suptitle('Boxplot grouped by %s' % byline)
 
     return fig, axes
 
