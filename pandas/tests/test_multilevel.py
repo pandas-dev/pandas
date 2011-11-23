@@ -663,6 +663,22 @@ class TestMultiLevel(unittest.TestCase):
         self.assertEquals(result.index.name, self.ymd.index.names[2])
         self.assertEquals(result2.index.name, self.ymd.index.names[2])
 
+    def test_partial_set(self):
+        # GH #397
+        df = self.ymd.copy()
+        exp = self.ymd.copy()
+        df.ix[2000, 4] = 0
+        exp.ix[2000, 4].values[:] = 0
+        assert_frame_equal(df, exp)
+
+        df['A'].ix[2000, 4] = 1
+        exp['A'].ix[2000, 4].values[:] = 1
+        assert_frame_equal(df, exp)
+
+        df.ix[2000] = 5
+        exp.ix[2000].values[:] = 5
+        assert_frame_equal(df, exp)
+
 if __name__ == '__main__':
 
     # unittest.main()

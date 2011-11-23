@@ -36,20 +36,32 @@ class _NDFrameIndexer(object):
             return self.obj.xs(idx, axis=axis, copy=True)
 
     def __setitem__(self, key, value):
+        # kludgetastic
+        ax = self.obj._get_axis(0)
+        if isinstance(ax, MultiIndex):
+            try:
+                indexer = ax.get_loc(key)
+                self._setitem_with_indexer(indexer, value)
+                return
+            except Exception:
+                pass
+
         if isinstance(key, tuple):
             if len(key) > self.ndim:
                 raise IndexingError('only tuples of length <= %d supported',
                                     self.ndim)
-
-            keyidx = []
-            for i, k in enumerate(key):
-                idx = self._convert_to_indexer(k, axis=i)
-                keyidx.append(idx)
-            indexer = _maybe_convert_ix(*keyidx)
+            indexer = self._convert_tuple(key)
         else:
             indexer = self._convert_to_indexer(key)
 
         self._setitem_with_indexer(indexer, value)
+
+    def _convert_tuple(self, key):
+        keyidx = []
+        for i, k in enumerate(key):
+            idx = self._convert_to_indexer(k, axis=i)
+            keyidx.append(idx)
+        return _maybe_convert_ix(*keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
         # also has the side effect of consolidating in-place
@@ -274,51 +286,73 @@ class _SeriesIndexer(_NDFrameIndexer):
     """
 
     def __getitem__(self, key):
-        op = self._fancy_index(key, operation='get')
-        return op()
+        ax = self.obj.index
+        if isinstance(ax, MultiIndex):
+            try:
+                # key = ax.get_loc(key)
+                return self._get_default(key)
+            except Exception:
+                pass
+
+        if _isboolarr(key):
+            self._check_boolean_key(key)
+        elif isinstance(key, slice):
+            key = self._convert_slice(key)
+        elif _is_list_like(key):
+            return self._get_list_like(key)
+        return self._get_default(key)
 
     def __setitem__(self, key, value):
-        op = self._fancy_index(key, value, operation='set')
-        op()
+        ax = self.obj.index
+        if isinstance(ax, MultiIndex):
+            try:
+                key = ax.get_loc(key)
+                self._set_default(key, value)
+                return
+            except Exception:
+                pass
 
-    def _fancy_index(self, key, value=None, operation='get'):
-        # going to great lengths to avoid code dup
-        obj = self.obj
-
-        if operation == 'get':
-            def do_default():
-                return obj[key]
-
-            def do_list_like():
-                if isinstance(obj.index, MultiIndex):
-                    try:
-                        return obj[key]
-                    except (KeyError, TypeError, IndexError):
-                        pass
-                return obj.reindex(key)
-        else:
-            def do_default():
-                obj[key] = value
-
-            def do_list_like():
-                inds = obj.index.get_indexer(key)
-                mask = inds == -1
-                if mask.any():
-                    raise IndexingError('Indices %s not found' % key[mask])
-                obj.put(inds, value)
-        op = do_default
         if _isboolarr(key):
-            if _is_series(key):
-                if not key.index.equals(obj.index):
-                    raise IndexingError('Cannot use boolean index with '
-                                        'misaligned or unequal labels')
+            self._check_boolean_key(key)
         elif isinstance(key, slice):
-            if _is_label_slice(obj.index, key):
-                i, j = obj.index.slice_locs(key.start, key.stop)
-                key = slice(i, j)
+            key = self._convert_slice(key)
         elif _is_list_like(key):
-            op = do_list_like
-        return op
+            self._set_list_like(key, value)
+            return
+        return self._set_default(key, value)
+
+    def _check_boolean_key(self, key):
+        if _is_series(key):
+            if not key.index.equals(self.obj.index):
+                raise IndexingError('Cannot use boolean index with '
+                                    'misaligned or unequal labels')
+
+    def _convert_slice(self, key):
+        if _is_label_slice(self.obj.index, key):
+            i, j = self.obj.index.slice_locs(key.start, key.stop)
+            key = slice(i, j)
+        return key
+
+    def _get_default(self, key):
+        return self.obj[key]
+
+    def _get_list_like(self, key):
+        if isinstance(self.obj.index, MultiIndex):
+            try:
+                return self.obj[key]
+            except (KeyError, TypeError, IndexError):
+                pass
+        return self.obj.reindex(key)
+
+    def _set_default(self, key, value):
+        self.obj[key] = value
+
+    def _set_list_like(self, key, value):
+        inds = self.obj.index.get_indexer(key)
+        mask = inds == -1
+        if mask.any():
+            raise IndexingError('Indices %s not found' % key[mask])
+        self.obj.put(inds, value)
 
 def _is_series(obj):
     from pandas.core.series import Series

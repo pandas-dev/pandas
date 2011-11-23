@@ -7,6 +7,7 @@ TODO
 ----
 - _consolidate, does it always copy?
 - Series.align with fill method. Will have to generate more Cython code
+- TYPE inference in Index-- more than just datetime!
 
 TODO docs
 ---------
