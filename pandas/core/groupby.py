@@ -633,7 +633,7 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
     exclusions = []
     for i, (gpr, level) in enumerate(zip(groupers, levels)):
         name = None
-        if isinstance(gpr, basestring):
+        if _is_label_like(gpr):
             exclusions.append(gpr)
             name = gpr
             gpr = obj[gpr]
@@ -643,6 +643,9 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
         groupings.append(ping)
 
     return groupings, exclusions
+
+def _is_label_like(val):
+    return isinstance(val, basestring) or np.isscalar(val)
 
 def _convert_grouper(axis, grouper):
     if isinstance(grouper, dict):

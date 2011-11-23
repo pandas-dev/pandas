@@ -588,6 +588,14 @@ class TestInt64Index(unittest.TestCase):
         taken = index.take([3,0,1])
         self.assertEqual(index.name, taken.name)
 
+    def test_int_name_format(self):
+        from pandas import Series, DataFrame
+        index = Index(['a', 'b', 'c'], name=0)
+        s = Series(range(3), index)
+        df = DataFrame(range(3), index=index)
+        repr(s)
+        repr(df)
+
 class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):

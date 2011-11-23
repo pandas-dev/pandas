@@ -1026,6 +1026,14 @@ class TestGroupBy(unittest.TestCase):
         self.assert_('A' in result2)
         self.assert_('B' in result2)
 
+    def test_groupby_nonstring_columns(self):
+        df = DataFrame([np.arange(10) for x in range(10)])
+        grouped = df.groupby(0)
+        result = grouped.mean()
+        expected = df.groupby(df[0]).mean()
+        del expected[0]
+        assert_frame_equal(result, expected)
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):

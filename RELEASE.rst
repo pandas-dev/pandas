@@ -154,6 +154,8 @@ pandas 0.6.0
   - Enable partial setting with .ix / advanced indexing (GH #397)
   - Handle mixed-type DataFrames correctly in unstack, do not lose type
     information (GH #403)
+  - Fix integer name formatting bug in Index.format and in Series.__repr__
+  - Handle label types other than string passed to groupby (GH #405)
 
 Thanks
 ------

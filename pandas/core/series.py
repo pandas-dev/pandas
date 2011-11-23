@@ -410,7 +410,7 @@ copy : boolean, default False
             header, string_index = string_index[0], string_index[1:]
         else:
             have_header = index.name is not None
-            header = index.name
+            header = str(index.name)
             string_index = index.format()
 
         maxlen = max(len(x) for x in string_index)

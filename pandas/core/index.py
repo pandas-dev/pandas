@@ -206,7 +206,7 @@ class Index(np.ndarray):
         result = []
 
         if name:
-            result.append(self.name if self.name is not None else '')
+            result.append(str(self.name) if self.name is not None else '')
 
         if self.is_all_dates():
             zero_time = time(0, 0)
