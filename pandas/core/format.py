@@ -144,9 +144,9 @@ class DataFrameFormatter(object):
             # write values
             for i in range(len(frame)):
                 row = []
-                try:
+                if isinstance(frame.index, MultiIndex):
                     row.extend(frame.index[i])
-                except TypeError:
+                else:
                     row.append(frame.index[i])
                 for column in frame.columns:
                     row.append(format_col(column, i))
