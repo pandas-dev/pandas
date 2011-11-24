@@ -689,6 +689,24 @@ class TestMultiLevel(unittest.TestCase):
         self.assert_(unstacked['E', 1].dtype == np.object_)
         self.assert_(unstacked['F', 1].dtype == np.float64)
 
+    def test_partial_ix_missing(self):
+        result = self.ymd.ix[2000, 0]
+        expected = self.ymd.ix[2000]['A']
+        assert_series_equal(result, expected)
+
+        # need to put in some work here
+
+        # self.ymd.ix[2000, 0] = 0
+        # self.assert_((self.ymd.ix[2000]['A'] == 0).all())
+
+        self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
+        self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6), 0)
+
+    def test_to_html(self):
+        self.ymd.columns.name = 'foo'
+        self.ymd.to_html()
+        self.ymd.T.to_html()
+
 if __name__ == '__main__':
 
     # unittest.main()

@@ -84,20 +84,6 @@ class DataFrameFormatter(object):
             indent -= indent_delta
             write(buf, '</tr>', indent)
 
-        def single_column_table(column):
-            table = '<table><tbody>'
-            for i in column:
-                table += ('<tr><td>%s</td></tr>' % str(i))
-            table += '</tbody></table>'
-            return table
-
-        def single_row_table(row):
-            table = '<table><tbody><tr>'
-            for i in row:
-                table += ('<td>%s</td>' % str(i))
-            table += '</tr></tbody></table>'
-            return table
-
         indent = 0
         indent_delta = 2
         frame = self.frame
@@ -242,6 +228,21 @@ class DataFrameFormatter(object):
         else:
             names.append('' if columns.name is None else columns.name)
         return names
+
+
+def single_column_table(column):
+    table = '<table><tbody>'
+    for i in column:
+        table += ('<tr><td>%s</td></tr>' % str(i))
+    table += '</tbody></table>'
+    return table
+
+def single_row_table(row):  # pragma: no cover
+    table = '<table><tbody><tr>'
+    for i in row:
+        table += ('<td>%s</td>' % str(i))
+    table += '</tr></tbody></table>'
+    return table
 
 def _has_names(index):
     if isinstance(index, MultiIndex):

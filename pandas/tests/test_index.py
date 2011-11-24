@@ -224,10 +224,14 @@ class TestIndex(unittest.TestCase):
 
             self.assert_(isinstance(unpickled, Index))
             self.assert_(np.array_equal(unpickled, index))
+            self.assertEquals(unpickled.name, index.name)
 
             tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
         testit(self.strIndex)
+        self.strIndex.name = 'foo'
+        testit(self.strIndex)
+
         testit(self.dateIndex)
 
     # def test_always_get_null_index(self):

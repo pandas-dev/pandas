@@ -3063,10 +3063,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_count(self):
         f = lambda s: notnull(s).sum()
-        self._check_stat_op('count', f, has_skipna=False)
+        self._check_stat_op('count', f, has_skipna=False,
+                            has_numeric_only=True)
 
         # corner case
-
         frame = DataFrame()
         ct1 = frame.count(1)
         self.assert_(isinstance(ct1, Series))
@@ -3075,7 +3075,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(isinstance(ct2, Series))
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum)
+        self._check_stat_op('sum', np.sum, has_numeric_only=True)
 
     def test_stat_ops_attempt_obj_array(self):
         data = {
@@ -3139,7 +3139,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self._check_stat_op('skew', alt)
 
-    def _check_stat_op(self, name, alternative, frame=None, has_skipna=True):
+    def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
+                       has_numeric_only=False):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -3180,6 +3181,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # make sure works on mixed-type frame
         getattr(self.mixed_frame, name)(axis=0)
         getattr(self.mixed_frame, name)(axis=1)
+
+        if has_numeric_only:
+            getattr(self.mixed_frame, name)(axis=0, numeric_only=True)
+            getattr(self.mixed_frame, name)(axis=1, numeric_only=True)
+            getattr(self.frame, name)(axis=0, numeric_only=False)
+            getattr(self.frame, name)(axis=1, numeric_only=False)
 
         # all NA case
         if has_skipna:
@@ -3431,6 +3438,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             values = lev.take(lab)
             name = names[i]
             assert_almost_equal(values, deleveled[name])
+
+        stacked.index.names = [None, None]
+        deleveled2 = stacked.delevel()
+        self.assert_(np.array_equal(deleveled['first'],
+                                    deleveled2['level_0']))
+        self.assert_(np.array_equal(deleveled['second'],
+                                    deleveled2['level_1']))
 
         # exception if no name
         self.assertRaises(Exception, self.frame.delevel)

@@ -2892,23 +2892,6 @@ class DataFrame(NDFrame):
         applyf = lambda x: method(x, axis=axis, skipna=skipna)
         return self.groupby(level=level, axis=axis).aggregate(applyf)
 
-    def _get_agg_data(self, axis, numeric_only=True, copy=True):
-        num_cols = self._get_numeric_columns()
-
-        if len(num_cols) < len(self.columns) and numeric_only:
-            y = self.as_matrix(num_cols)
-            if axis == 0:
-                axis_labels = num_cols
-            else:
-                axis_labels = self.index
-        else:
-            y = self.values
-            if copy:
-                y = y.copy()
-            axis_labels = self._get_agg_axis(axis)
-
-        return y, axis_labels
-
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:
             return self.columns

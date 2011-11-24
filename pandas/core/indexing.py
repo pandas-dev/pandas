@@ -317,8 +317,7 @@ class _SeriesIndexer(_NDFrameIndexer):
         elif isinstance(key, slice):
             key = self._convert_slice(key)
         elif _is_list_like(key):
-            self._set_list_like(key, value)
-            return
+            return self._set_list_like(key, value)
         return self._set_default(key, value)
 
     def _check_boolean_key(self, key):

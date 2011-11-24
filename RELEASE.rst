@@ -158,6 +158,9 @@ pandas 0.6.0
     information (GH #403)
   - Fix integer name formatting bug in Index.format and in Series.__repr__
   - Handle label types other than string passed to groupby (GH #405)
+  - Fix bug in .ix-based indexing with partial retrieval when a label is not
+    contained in a level
+  - Index name was not being pickled (GH #408)
 
 Thanks
 ------

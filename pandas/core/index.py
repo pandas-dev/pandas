@@ -143,9 +143,21 @@ class Index(np.ndarray):
     def __iter__(self):
         return iter(self.values)
 
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = self.name,
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
-        np.ndarray.__setstate__(self, state)
+        if len(state) == 2:
+            nd_state, own_state = state
+            np.ndarray.__setstate__(self, nd_state)
+            self.name = own_state[0]
+        else:  # pragma: no cover
+            np.ndarray.__setstate__(self, state)
 
     def __deepcopy__(self, memo={}):
         """
@@ -1331,7 +1343,7 @@ class MultiIndex(Index):
         """
         return Index(list(self))
 
-    def slice_locs(self, start=None, end=None):
+    def slice_locs(self, start=None, end=None, strict=False):
         """
         For an ordered MultiIndex, compute the slice locations for input
         labels. They can tuples representing partial levels, e.g. for a
@@ -1344,6 +1356,7 @@ class MultiIndex(Index):
             If None, defaults to the beginning
         end : label or tuple
             If None, defaults to the end
+        strict : boolean,
 
         Returns
         -------
@@ -1383,7 +1396,7 @@ class MultiIndex(Index):
             if lab not in lev:
                 # short circuit
                 loc = lev.searchsorted(lab, side=side)
-                if side == 'right' and loc > 0:
+                if side == 'right' and loc >= 0:
                     loc -= 1
                 return start + section.searchsorted(loc, side=side)
 

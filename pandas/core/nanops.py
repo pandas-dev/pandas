@@ -6,7 +6,7 @@ import pandas._tseries as lib
 try:
     import bottleneck as bn
     _USE_BOTTLENECK = True
-except ImportError:
+except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
 def nansum(values, axis=None, skipna=True, copy=True):
