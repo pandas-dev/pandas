@@ -77,11 +77,6 @@ class FamaMacBeth(object):
         return self._make_result(self._t_stat_raw)
 
     @cache_readonly
-    def _result_index(self):
-        mask = self._ols_result._rolling_ols_call[1]
-        return self._index[mask]
-
-    @cache_readonly
     def _results(self):
         return {
             'mean_beta' : self._mean_beta_raw,
@@ -195,8 +190,9 @@ class MovingFamaMacBeth(FamaMacBeth):
 
     @cache_readonly
     def _result_index(self):
-        mask = self._ols_result._rolling_ols_call[1]
-        return self._index[mask]
+        mask = self._ols_result._rolling_ols_call[2]
+        # HACK XXX
+        return self._index[mask.cumsum() >= self._window]
 
     @cache_readonly
     def _results(self):
