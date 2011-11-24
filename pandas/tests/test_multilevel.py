@@ -679,6 +679,10 @@ class TestMultiLevel(unittest.TestCase):
         exp.ix[2000].values[:] = 5
         assert_frame_equal(df, exp)
 
+        # this works...for now
+        df['A'].ix[14] = 5
+        self.assertEquals(df['A'][14], 5)
+
     def test_unstack_preserve_types(self):
         # GH #403
         self.ymd['E'] = 'foo'

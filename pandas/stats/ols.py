@@ -184,7 +184,7 @@ class OLS(object):
     @cache_readonly
     def f_stat(self):
         """Returns the f-stat value."""
-        return common.f_stat_to_dict(self._f_stat_raw)
+        return f_stat_to_dict(self._f_stat_raw)
 
     def f_test(self, hypothesis):
         """Runs the F test, given a joint hypothesis.  The hypothesis is
@@ -239,7 +239,7 @@ class OLS(object):
         result = math.calc_F(R, r, self._beta_raw, self._var_beta_raw,
                              self._nobs, self.df)
 
-        return common.f_stat_to_dict(result)
+        return f_stat_to_dict(result)
 
     @cache_readonly
     def _p_value_raw(self):
@@ -584,7 +584,7 @@ class MovingOLS(OLS):
     @cache_readonly
     def f_stat(self):
         """Returns the f-stat value."""
-        f_stat_dicts = dict((date, common.f_stat_to_dict(f_stat))
+        f_stat_dicts = dict((date, f_stat_to_dict(f_stat))
                             for date, f_stat in zip(self.beta.index,
                                                     self._f_stat_raw))
 
@@ -672,7 +672,7 @@ class MovingOLS(OLS):
 
     @property
     def _is_rolling(self):
-        return self._window_type == common.ROLLING
+        return self._window_type == 'rolling'
 
     @cache_readonly
     def _beta_raw(self):
@@ -1226,3 +1226,16 @@ def _y_converter(y):
         return np.array([y])
     else:
         return y
+
+
+def f_stat_to_dict(result):
+    f_stat, shape, p_value = result
+
+    result = {}
+    result['f-stat'] = f_stat
+    result['DF X'] = shape[0]
+    result['DF Resid'] = shape[1]
+    result['p-value'] = p_value
+
+    return result
+

@@ -75,6 +75,7 @@ pandas 0.6.0
   - Add `DataFrame.to_html` for formatting DataFrame to HTML (PR #387)
   - MaskedArray can be passed to DataFrame constructor and masked values will be
     converted to NaN (PR #396)
+  - Add `DataFrame.boxplot` function (GH #368, others)
 
 **Improvements to existing features**
 

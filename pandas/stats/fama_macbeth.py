@@ -155,7 +155,7 @@ class MovingFamaMacBeth(FamaMacBeth):
 
     @property
     def _is_rolling(self):
-        return self._window_type == common.ROLLING
+        return self._window_type == 'rolling'
 
     def _calc_stats(self):
         mean_betas = []
