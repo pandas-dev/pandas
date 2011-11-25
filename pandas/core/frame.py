@@ -1080,7 +1080,7 @@ class DataFrame(NDFrame):
     def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
-        if hasattr(value, '__iter__') and not isinstance(value, basestring):
+        if _is_sequence(value):
             if isinstance(value, Series):
                 if value.index.equals(self.index):
                     # copy the values
@@ -2308,7 +2308,7 @@ class DataFrame(NDFrame):
             for k, v in series_gen:
                 results[k] = func(v)
 
-        if len(results) > 0 and hasattr(results.values()[0], '__iter__'):
+        if len(results) > 0 and _is_sequence(results.values()[0]):
             result = self._constructor(data=results, index=res_columns,
                                        columns=res_index)
 
@@ -3439,6 +3439,14 @@ def _homogenize(data, index, columns, dtype=None):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
+
+def _is_sequence(x):
+    try:
+        iter(x)
+        assert(not isinstance(x, basestring))
+        return True
+    except Exception:
+        return False
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so
