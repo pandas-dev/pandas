@@ -732,6 +732,9 @@ class TestGroupBy(unittest.TestCase):
         expected0 = frame.groupby(deleveled['first']).sum()
         expected1 = frame.groupby(deleveled['second']).sum()
 
+        self.assert_(result0.index.name == 'first')
+        self.assert_(result1.index.name == 'second')
+
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
         self.assertEquals(result0.index.name, frame.index.names[0])
@@ -752,6 +755,17 @@ class TestGroupBy(unittest.TestCase):
 
         # raise exception for non-MultiIndex
         self.assertRaises(ValueError, self.df.groupby, level=0)
+
+    def test_groupby_level_apply(self):
+        frame = self.mframe
+
+        result = frame.groupby(level=0).count()
+        self.assert_(result.index.name == 'first')
+        result = frame.groupby(level=1).count()
+        self.assert_(result.index.name == 'second')
+
+        result = frame['A'].groupby(level=0).count()
+        self.assert_(result.index.name == 'first')
 
     def test_groupby_level_mapper(self):
         frame = self.mframe

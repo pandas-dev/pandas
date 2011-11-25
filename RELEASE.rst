@@ -76,6 +76,7 @@ pandas 0.6.0
   - MaskedArray can be passed to DataFrame constructor and masked values will be
     converted to NaN (PR #396)
   - Add `DataFrame.boxplot` function (GH #368, others)
+  - Can pass extra args, kwds to DataFrame.apply (GH #376)
 
 **Improvements to existing features**
 

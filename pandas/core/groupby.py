@@ -756,12 +756,18 @@ class SeriesGroupBy(GroupBy):
 
         key_names = [ping.name for ping in self.groupings]
 
+        def _get_index():
+            if len(self.groupings) > 1:
+                index = MultiIndex.from_tuples(keys, names=key_names)
+            else:
+                index = Index(keys, name=key_names[0])
+            return index
+
         if isinstance(values[0], Series):
             if not_indexed_same:
                 data_dict = dict(zip(keys, values))
                 result = DataFrame(data_dict).T
-                if len(self.groupings) > 1:
-                    result.index = MultiIndex.from_tuples(keys, names=key_names)
+                result.index = _get_index()
                 return result
             else:
                 cat_values = np.concatenate([x.values for x in values])
@@ -774,11 +780,7 @@ class SeriesGroupBy(GroupBy):
             return self._wrap_frames(keys, values,
                                      not_indexed_same=not_indexed_same)
         else:
-            if len(self.groupings) > 1:
-                index = MultiIndex.from_tuples(keys, names=key_names)
-                return Series(values, index)
-            else:
-                return Series(values, keys)
+            return Series(values, index=_get_index())
 
     def _aggregate_multiple_funcs(self, arg):
         if not isinstance(arg, dict):
@@ -1071,6 +1073,8 @@ class DataFrameGroupBy(GroupBy):
         else:
             if len(self.groupings) > 1:
                 keys = MultiIndex.from_tuples(keys, names=key_names)
+            else:
+                keys = Index(keys, name=key_names[0])
 
             if isinstance(values[0], np.ndarray):
                 if self.axis == 0:
