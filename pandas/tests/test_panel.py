@@ -573,6 +573,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assert_(len(empty.major_axis) == 0)
         self.assert_(len(empty.minor_axis) == 0)
 
+    def test_constructor_observe_dtype(self):
+        # GH #411
+        panel = Panel(items=range(3), major_axis=range(3),
+                      minor_axis=range(3), dtype='O')
+        self.assert_(panel.values.dtype == np.object_)
+
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
 

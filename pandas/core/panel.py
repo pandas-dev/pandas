@@ -251,13 +251,21 @@ class Panel(NDFrame):
 
         reshaped_data = data.copy() # shallow
         # homogenize
-        for k, v in data.iteritems():
-            v = v.reindex(index=major, columns=minor, copy=False)
-            if dtype is not None:
-                v = v.astype(dtype)
-            values = v.values
-            shape = values.shape
-            reshaped_data[k] = values.reshape((1,) + shape)
+
+        item_shape = (1, len(major), len(minor))
+        for k in items:
+            if k not in data:
+                values = np.empty(item_shape, dtype=dtype)
+                values.fill(np.nan)
+                reshaped_data[k] = values
+            else:
+                v = data[k]
+                v = v.reindex(index=major, columns=minor, copy=False)
+                if dtype is not None:
+                    v = v.astype(dtype)
+                values = v.values
+                shape = values.shape
+                reshaped_data[k] = values.reshape((1,) + shape)
 
         # segregates dtypes and forms blocks matching to columns
         blocks = form_blocks(reshaped_data, axes)

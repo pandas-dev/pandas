@@ -2262,6 +2262,7 @@ class DataFrame(NDFrame):
 
     def _apply_standard(self, func, axis, ignore_failures=False):
         try:
+
             assert(not self._is_mixed_type)  # maybe a hack for now
             values = self.values
             dummy = Series(np.nan, index=self._get_axis(axis),
