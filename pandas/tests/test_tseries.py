@@ -176,6 +176,16 @@ def test_convert_objects():
     result = lib.maybe_convert_objects(arr)
     assert(result.dtype == np.object_)
 
+def test_convert_objects_ints():
+    # test that we can detect many kinds of integers
+    dtypes = ['i1', 'i2', 'i4', 'i8', 'u1', 'u2', 'u4', 'u8']
+
+    for dtype_str in dtypes:
+        arr = np.array(list(np.arange(20, dtype=dtype_str)), dtype='O')
+        assert(arr[0].dtype == np.dtype(dtype_str))
+        result = lib.maybe_convert_objects(arr)
+        assert(issubclass(result.dtype.type, np.integer))
+
 class TestMoments(unittest.TestCase):
     pass
 

@@ -112,6 +112,7 @@ pandas 0.6.0
   - Use Series name in GroupBy for result index (GH #363)
   - Refactor Series/DataFrame stat methods to use common set of NaN-friendly
     function
+  - Handle NumPy scalar integers at C level in Cython conversion routines
 
 **Bug fixes**
 
@@ -163,6 +164,7 @@ pandas 0.6.0
   - Fix bug in .ix-based indexing with partial retrieval when a label is not
     contained in a level
   - Index name was not being pickled (GH #408)
+  - Level name should be passed to result index in GroupBy.apply (GH #416)
 
 Thanks
 ------
@@ -182,6 +184,7 @@ Thanks
 - Chang She
 - Ted Square
 - Aman Thakral
+- Chris Uga
 - Dieter Vandenbussche
 - carljv
 - rsamson
