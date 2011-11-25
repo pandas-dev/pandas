@@ -50,29 +50,28 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i
             flatiter it
+            object res
 
         arr = self.arr
         chunk = self.dummy
-
-        test = self.f(chunk)
-        try:
-            assert(not isinstance(test, np.ndarray))
-            if hasattr(test, 'dtype'):
-                result = np.empty(self.nresults, dtype=test.dtype)
-            else:
-                result = np.empty(self.nresults, dtype='O')
-            result[0] = test
-        except Exception:
-            raise ValueError('function does not reduce')
-
         it = <flatiter> PyArray_IterNew(result)
 
         dummy_buf = chunk.data
         chunk.data = arr.data
         try:
-            for i in range(self.nresults):
-                PyArray_SETITEM(result, PyArray_ITER_DATA(it),
-                                self.f(self.dummy))
+            for i in range(1, self.nresults):
+                res = self.f(self.dummy)
+                if i == 0:
+                    try:
+                        assert(not isinstance(res, np.ndarray))
+                        if hasattr(res, 'dtype'):
+                            result = np.empty(self.nresults, dtype=res.dtype)
+                        else:
+                            result = np.empty(self.nresults, dtype='O')
+                    except Exception:
+                        raise ValueError('function does not reduce')
+
+                PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
         finally:
