@@ -118,7 +118,13 @@ def nanmin(values, axis=None, skipna=True, copy=True):
         if copy:
             values = values.copy()
         np.putmask(values, mask, np.inf)
-    result = values.min(axis)
+    # numpy 1.6.1 workaround in Python 3.x
+    if values.dtype == np.object_:  # pragma: no cover
+        import __builtin__
+        result = np.apply_along_axis(__builtin__.min, axis, values)
+    else:
+        result = values.min(axis)
+
     return _maybe_null_out(result, axis, mask)
 
 def nanmax(values, axis=None, skipna=True, copy=True):
@@ -127,7 +133,12 @@ def nanmax(values, axis=None, skipna=True, copy=True):
         if copy:
             values = values.copy()
         np.putmask(values, mask, -np.inf)
-    result = values.max(axis)
+    # numpy 1.6.1 workaround in Python 3.x
+    if values.dtype == np.object_:  # pragma: no cover
+        import __builtin__
+        result = np.apply_along_axis(__builtin__.max, axis, values)
+    else:
+        result = values.max(axis)
     return _maybe_null_out(result, axis, mask)
 
 def nanprod(values, axis=None, skipna=True, copy=True):
