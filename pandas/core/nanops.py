@@ -139,6 +139,48 @@ def nanprod(values, axis=None, skipna=True, copy=True):
     result = values.prod(axis)
     return _maybe_null_out(result, axis, mask)
 
+def nanargmax(values, axis=None, skipna=True):
+    """
+    Returns -1 in the NA case
+    """
+    mask = -np.isfinite(values)
+    if not issubclass(values.dtype.type, np.integer):
+        values = values.copy()
+        np.putmask(values, mask, -np.inf)
+    result = values.argmax(axis)
+    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    return result
+
+def nanargmin(values, axis=None, skipna=True):
+    """
+    Returns -1 in the NA case
+    """
+    mask = -np.isfinite(values)
+    if not issubclass(values.dtype.type, np.integer):
+        values = values.copy()
+        np.putmask(values, mask, np.inf)
+    result = values.argmin(axis)
+    result = _maybe_arg_null_out(result, axis, mask, skipna)
+    return result
+
+def _maybe_arg_null_out(result, axis, mask, skipna):
+    # helper function for nanargmin/nanargmax
+    if axis is None:
+        if skipna:
+            if mask.all():
+                result = -1
+        else:
+            if mask.any():
+                result = -1
+    else:
+        if skipna:
+            na_mask = mask.all(axis)
+        else:
+            na_mask = mask.any(axis)
+        if na_mask.any():
+            result[na_mask] = -1
+    return result
+
 def _get_counts(mask, axis):
     if axis is not None:
         count = (mask.shape[axis] - mask.sum(axis)).astype(float)

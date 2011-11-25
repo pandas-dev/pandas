@@ -126,6 +126,7 @@ def maybe_convert_objects(ndarray[object] objects):
         bint seen_float = 0
         bint seen_int = 0
         bint seen_bool = 0
+        bint seen_object = 0
         bint seen_null = 0
         object val, onan
         float64_t fval, fnan
@@ -164,14 +165,18 @@ def maybe_convert_objects(ndarray[object] objects):
                 seen_float = 1
             except Exception:
                 pass
+        else:
+            seen_object = 1
 
     if seen_null:
-        if seen_float or seen_int:
+        if (seen_float or seen_int) and not seen_object:
             return floats
         else:
             return objects
     else:
-        if seen_int:
+        if seen_object:
+            return objects
+        elif seen_int:
             return ints
         elif seen_float:
             return floats

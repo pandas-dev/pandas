@@ -717,11 +717,10 @@ copy : boolean, default False
         -------
         idxmin : Index of mimimum of values
         """
-        arr = self.values.copy()
-        if skipna:
-            if not issubclass(arr.dtype.type, np.integer):
-                np.putmask(arr, isnull(arr), np.inf)
-        return self.index[arr.argmin()]
+        i = nanops.nanargmin(self.values, skipna=skipna)
+        if i == -1:
+            return np.nan
+        return self.index[i]
 
     def idxmax(self, axis=None, out=None, skipna=True):
         """
@@ -736,11 +735,10 @@ copy : boolean, default False
         -------
         idxmax : Index of mimimum of values
         """
-        arr = self.values.copy()
-        if skipna:
-            if not issubclass(arr.dtype.type, np.integer):
-                np.putmask(arr, isnull(arr), -np.inf)
-        return self.index[arr.argmax()]
+        i = nanops.nanargmax(self.values, skipna=skipna)
+        if i == -1:
+            return np.nan
+        return self.index[i]
 
     def _agg_by_level(self, name, level=0, skipna=True):
         method = getattr(type(self), name)

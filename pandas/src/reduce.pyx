@@ -59,7 +59,7 @@ cdef class Reducer:
         chunk.data = arr.data
         try:
             for i in range(self.nresults):
-                res = self.f(self.dummy)
+                res = self.f(chunk)
                 if i == 0:
                     result = self._get_result_array(res)
                     it = <flatiter> PyArray_IterNew(result)
@@ -70,19 +70,18 @@ cdef class Reducer:
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
-
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
-
         return result
 
     def _get_result_array(self, object res):
         try:
             assert(not isinstance(res, np.ndarray))
-            if hasattr(res, 'dtype'):
-                result = np.empty(self.nresults, dtype=res.dtype)
-            else:
-                result = np.empty(self.nresults, dtype='O')
+            result = np.empty(self.nresults, dtype='O')
+            # if hasattr(res, 'dtype'):
+            #     result = np.empty(self.nresults, dtype=res.dtype)
+            # else:
+            #     result = np.empty(self.nresults, dtype='O')
             result[0] = res
         except Exception:
             raise ValueError('function does not reduce')

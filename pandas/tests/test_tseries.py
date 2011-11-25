@@ -171,6 +171,11 @@ def test_duplicated_with_nas():
     expected = trues + falses
     assert(np.array_equal(result, expected))
 
+def test_convert_objects():
+    arr = np.array(['a', 'b', np.nan, np.nan, 'd', 'e', 'f'], dtype='O')
+    result = lib.maybe_convert_objects(arr)
+    assert(result.dtype == np.object_)
+
 class TestMoments(unittest.TestCase):
     pass
 

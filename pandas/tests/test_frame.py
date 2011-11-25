@@ -3628,66 +3628,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_idxmin(self):
-        def validate(f, s, axis, skipna):
-            def get_result(f, i, v, axis, skipna):
-                if axis == 0:
-                    return (f[i][v], f[i].min(skipna=skipna))
-                else:
-                    return (f[v][i], f.ix[i].min(skipna=skipna))
-            for i, v in s.iteritems():
-                (r1, r2) = get_result(f, i, v, axis, skipna)
-                if np.isnan(r1) or np.isinf(r1):
-                    self.assert_(np.isnan(r2) or np.isinf(r2))
-                elif np.isnan(r2) or np.isinf(r2):
-                    self.assert_(np.isnan(r1) or np.isinf(r1))
-                else:
-                    self.assertEqual(r1, r2)
-
         frame = self.frame
         frame.ix[5:10] = np.nan
         frame.ix[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
-                validate(frame,
-                         frame.idxmin(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
-                validate(self.intframe,
-                         self.intframe.idxmin(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
+                for df in [frame, self.intframe]:
+                    result = df.idxmax(axis=axis, skipna=skipna)
+                    expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+                    assert_series_equal(result, expected)
 
-        self.assertRaises(Exception, frame.idxmin, axis=2)
+        self.assertRaises(Exception, frame.idxmax, axis=2)
 
     def test_idxmax(self):
-        def validate(f, s, axis, skipna):
-            def get_result(f, i, v, axis, skipna):
-                if axis == 0:
-                    return (f[i][v], f[i].max(skipna=skipna))
-                else:
-                    return (f[v][i], f.ix[i].max(skipna=skipna))
-            for i, v in s.iteritems():
-                (r1, r2) = get_result(f, i, v, axis, skipna)
-                if np.isnan(r1) or np.isinf(r1):
-                    self.assert_(np.isnan(r2) or np.isinf(r2))
-                elif np.isnan(r2) or np.isinf(r2):
-                    self.assert_(np.isnan(r1) or np.isinf(r1))
-                else:
-                    self.assertEqual(r1, r2)
-
         frame = self.frame
         frame.ix[5:10] = np.nan
         frame.ix[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
-                validate(frame,
-                         frame.idxmax(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
-                validate(self.intframe,
-                         self.intframe.idxmax(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
+                for df in [frame, self.intframe]:
+                    result = df.idxmax(axis=axis, skipna=skipna)
+                    expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+                    assert_series_equal(result, expected)
 
         self.assertRaises(Exception, frame.idxmax, axis=2)
 

@@ -2186,7 +2186,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False, raw=False):
+    def apply(self, func, axis=0, broadcast=False, raw=False,
+              args=(), **kwds):
         """
         Applies function along input axis of DataFrame. Objects passed to
         functions are Series objects having index either the DataFrame's index
@@ -2207,6 +2208,10 @@ class DataFrame(NDFrame):
             passed function will receive ndarray objects instead. If you are
             just applying a NumPy reduction function this will achieve much
             better performance
+        args : tuple
+            Positional arguments to pass to function in addition to the
+            array/series
+        Additional keyword arguments will be passed as keywords to the function
 
         Examples
         --------
@@ -2226,14 +2231,19 @@ class DataFrame(NDFrame):
         if len(self.columns) == 0 and len(self.index) == 0:
             return self
 
-        if isinstance(func, np.ufunc):
-            results = func(self.values)
+        if kwds or args and not isinstance(func, np.ufunc):
+            f = lambda x: func(x, *args, **kwds)
+        else:
+            f = func
+
+        if isinstance(f, np.ufunc):
+            results = f(self.values)
             return self._constructor(data=results, index=self.index,
                                      columns=self.columns, copy=False)
         else:
             if not broadcast:
                 if not all(self.shape):
-                    is_reduction = not isinstance(func(_EMPTY_SERIES),
+                    is_reduction = not isinstance(f(_EMPTY_SERIES),
                                                   np.ndarray)
                     if is_reduction:
                         return Series(np.nan, index=self._get_agg_axis(axis))
@@ -2241,11 +2251,11 @@ class DataFrame(NDFrame):
                         return self.copy()
 
                 if raw and not self._is_mixed_type:
-                    return self._apply_raw(func, axis)
+                    return self._apply_raw(f, axis)
                 else:
-                    return self._apply_standard(func, axis)
+                    return self._apply_standard(f, axis)
             else:
-                return self._apply_broadcast(func, axis)
+                return self._apply_broadcast(f, axis)
 
     def _apply_raw(self, func, axis):
         try:
@@ -2857,12 +2867,10 @@ class DataFrame(NDFrame):
         -------
         idxmin : Series
         """
-        values = self.values.copy()
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), np.inf)
-        argmin_index = self._get_axis(axis)
-        return Series([argmin_index[i] for i in values.argmin(axis)],
-                      index=self._get_agg_axis(axis))
+        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        index = self._get_axis(axis)
+        result = [index[i] if i >= 0 else np.nan for i in indices]
+        return Series(result, index=self._get_agg_axis(axis))
 
     def idxmax(self, axis=0, skipna=True):
         """
@@ -2881,12 +2889,10 @@ class DataFrame(NDFrame):
         -------
         idxmax : Series
         """
-        values = self.values.copy()
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), -np.inf)
-        argmax_index = self._get_axis(axis)
-        return Series([argmax_index[i] for i in values.argmax(axis)],
-                      index=self._get_agg_axis(axis))
+        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        index = self._get_axis(axis)
+        result = [index[i] if i >= 0 else np.nan for i in indices]
+        return Series(result, index=self._get_agg_axis(axis))
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True):
         method = getattr(type(self), name)

@@ -695,7 +695,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # skipna or no
         self.assertEqual(self.series[self.series.idxmin()], self.series.min())
-        self.assert_(isnull(self.series[self.series.idxmin(skipna=False)]))
+        self.assert_(isnull(self.series.idxmin(skipna=False)))
 
         # no NaNs
         nona = self.series.dropna()
@@ -705,7 +705,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # all NaNs
         allna = self.series * nan
-        self.assertEqual(allna.idxmin(), allna.index[0])
+        self.assert_(isnull(allna.idxmin()))
 
     def test_idxmax(self):
         # test idxmax
@@ -716,7 +716,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # skipna or no
         self.assertEqual(self.series[self.series.idxmax()], self.series.max())
-        self.assert_(isnull(self.series[self.series.idxmax(skipna=False)]))
+        self.assert_(isnull(self.series.idxmax(skipna=False)))
 
         # no NaNs
         nona = self.series.dropna()
@@ -726,7 +726,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # all NaNs
         allna = self.series * nan
-        self.assertEqual(allna.idxmax(), allna.index[0])
+        self.assert_(isnull(allna.idxmax()))
 
     def test_operators_date(self):
         result = self.objSeries + timedelta(1)

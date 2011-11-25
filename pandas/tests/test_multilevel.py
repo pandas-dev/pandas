@@ -294,7 +294,8 @@ class TestMultiLevel(unittest.TestCase):
             for i in range(index.nlevels):
                 result = frame.count(axis=axis, level=i)
                 expected = frame.groupby(axis=axis, level=i).count(axis=axis)
-                assert_frame_equal(result, expected.reindex_like(result))
+                expected = expected.reindex_like(result).astype('i8')
+                assert_frame_equal(result, expected)
 
         self.frame.ix[1, [1, 2]] = np.nan
         self.frame.ix[7, [0, 1]] = np.nan
