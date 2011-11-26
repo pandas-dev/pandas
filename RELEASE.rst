@@ -25,7 +25,7 @@ Where to get it
 pandas 0.6.0
 ============
 
-**Release date:** Not yet released
+**Release date:** 11/25/2011
 
 **API Changes**
 
@@ -91,7 +91,7 @@ pandas 0.6.0
   - Show legend by default in `DataFrame.plot`, add `legend` boolean flag (GH
     #324)
   - Significantly improved performance of `Series.order`, which also makes
-    np.unique called in a Series faster (GH #327)
+    np.unique called on a Series faster (GH #327)
   - Faster cythonized count by level in Series and DataFrame (GH #341)
   - Raise exception if dateutil 2.0 installed on Python 2.x runtime (GH #346)
   - Significant GroupBy performance enhancement with multiple keys with many
