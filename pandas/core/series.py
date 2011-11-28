@@ -417,7 +417,7 @@ copy : boolean, default False
         padSpace = min(maxlen, 60)
 
         if float_format is None:
-            float_format = str
+            float_format = common._float_format
 
         def _format(k, v):
             if isnull(v):
