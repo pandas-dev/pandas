@@ -22,6 +22,16 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
+pandas 0.6.1
+============
+
+**Release date:** Not yet released
+
+**Bug fixes**
+
+  - `DataFrame.count` should return Series with zero instead of NA with length-0
+    axis (GH #423)
+
 pandas 0.6.0
 ============
 

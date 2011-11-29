@@ -3085,7 +3085,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_count(self):
         f = lambda s: notnull(s).sum()
-        self._check_stat_op('count', f, has_skipna=False,
+        self._check_stat_op('count', f,
+                            has_skipna=False,
                             has_numeric_only=True)
 
         # corner case
@@ -3095,6 +3096,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         ct2 = frame.count(0)
         self.assert_(isinstance(ct2, Series))
+
+        # GH #423
+        df = DataFrame(index=range(10))
+        result = df.count(1)
+        expected = Series(0, index=df.index)
+        assert_series_equal(result, expected)
+
+        df = DataFrame(columns=range(10))
+        result = df.count(0)
+        expected = Series(0, index=df.columns)
+        assert_series_equal(result, expected)
 
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
