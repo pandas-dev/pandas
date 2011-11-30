@@ -2651,25 +2651,27 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
+        DataFrame of summary statistics
         """
-        cols = self._get_numeric_columns()
+        numeric_columns = self._get_numeric_columns()
 
-        if len(cols) == 0:
+        if len(numeric_columns) == 0:
             return DataFrame(dict((k, v.describe())
                                   for k, v in self.iteritems()),
-                             columns=self.columns)
+                                  columns=self.columns)
 
-        tmp = self.reindex(columns=cols)
+        destat_columns = ['count', 'mean', 'std', 'min',
+                          '25%', '50%', '75%', 'max']
 
-        cols_destat = ['count', 'mean', 'std', 'min',
-                       '25%', '50%', '75%', 'max']
+        destat = []
 
-        data = [tmp.count(), tmp.mean(), tmp.std(), tmp.min(),
-                tmp.quantile(.25), tmp.median(),
-                tmp.quantile(.75), tmp.max()]
+        for column in numeric_columns:
+            series = self._getitem_single(column)
+            destat.append([series.count(), series.mean(), series.std(),
+                           series.min(), series.quantile(.25), series.median(),
+                           series.quantile(.75), series.max()])
 
-        return self._constructor(data, index=cols_destat, columns=cols)
+        return self._constructor(map(list, zip(*destat)), index=destat_columns, columns=numeric_columns)
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods
