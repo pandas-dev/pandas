@@ -1637,7 +1637,7 @@ copy : boolean, default False
 
         values = self.dropna().values
 
-        ax.hist(values)
+        ax.hist(values, **kwds)
         ax.grid(grid)
 
         return ax
