@@ -2,7 +2,6 @@
 
 from datetime import time
 from itertools import izip
-import gc
 
 import numpy as np
 
@@ -75,6 +74,11 @@ class Index(np.ndarray):
         return 1
 
     @property
+    def names(self):
+        # for compat with multindex code
+        return [self.name]
+
+    @property
     def _constructor(self):
         return Index
 
@@ -139,9 +143,21 @@ class Index(np.ndarray):
     def __iter__(self):
         return iter(self.values)
 
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = self.name,
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
-        np.ndarray.__setstate__(self, state)
+        if len(state) == 2:
+            nd_state, own_state = state
+            np.ndarray.__setstate__(self, nd_state)
+            self.name = own_state[0]
+        else:  # pragma: no cover
+            np.ndarray.__setstate__(self, state)
 
     def __deepcopy__(self, memo={}):
         """
@@ -202,7 +218,7 @@ class Index(np.ndarray):
         result = []
 
         if name:
-            result.append(self.name if self.name is not None else '')
+            result.append(str(self.name) if self.name is not None else '')
 
         if self.is_all_dates():
             zero_time = time(0, 0)
@@ -865,6 +881,9 @@ class MultiIndex(Index):
     labels : list or tuple of arrays
         Integers for each level designating which label at each location
     """
+    # shadow property
+    names = None
+
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
         assert(len(levels) == len(labels))
         if len(levels) == 0:
@@ -1179,11 +1198,16 @@ class MultiIndex(Index):
         new_levels.pop(level)
         new_labels = list(self.labels)
         new_labels.pop(level)
+        new_names = list(self.names)
+        new_names.pop(level)
 
         if len(new_levels) == 1:
-            return new_levels[0].take(new_labels[0])
+            result = new_levels[0].take(new_labels[0])
+            result.name = new_names[0]
+            return result
         else:
-            return MultiIndex(levels=new_levels, labels=new_labels)
+            return MultiIndex(levels=new_levels, labels=new_labels,
+                              names=new_names)
 
     def swaplevel(self, i, j):
         """
@@ -1196,6 +1220,9 @@ class MultiIndex(Index):
         new_levels = list(self.levels)
         new_labels = list(self.labels)
         new_names = list(self.names)
+
+        i = self._get_level_number(i)
+        j = self._get_level_number(j)
 
         new_levels[i], new_levels[j] = new_levels[j], new_levels[i]
         new_labels[i], new_labels[j] = new_labels[j], new_labels[i]
@@ -1316,7 +1343,7 @@ class MultiIndex(Index):
         """
         return Index(list(self))
 
-    def slice_locs(self, start=None, end=None):
+    def slice_locs(self, start=None, end=None, strict=False):
         """
         For an ordered MultiIndex, compute the slice locations for input
         labels. They can tuples representing partial levels, e.g. for a
@@ -1329,6 +1356,7 @@ class MultiIndex(Index):
             If None, defaults to the beginning
         end : label or tuple
             If None, defaults to the end
+        strict : boolean,
 
         Returns
         -------
@@ -1368,7 +1396,7 @@ class MultiIndex(Index):
             if lab not in lev:
                 # short circuit
                 loc = lev.searchsorted(lab, side=side)
-                if side == 'right' and loc > 0:
+                if side == 'right' and loc >= 0:
                     loc -= 1
                 return start + section.searchsorted(loc, side=side)
 

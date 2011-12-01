@@ -27,6 +27,9 @@ class TestPivotTable(unittest.TestCase):
         cols=  'C'
         table = pivot_table(self.data, values='D', rows=rows, cols=cols)
 
+        # this works
+        pivot_table(self.data, values='D', rows=rows)
+
         if len(rows) > 1:
             self.assertEqual(table.index.names, rows)
         else:
@@ -49,9 +52,9 @@ class TestPivotTable(unittest.TestCase):
 
     def test_pivot_multi_values(self):
         result = pivot_table(self.data, values=['D', 'E'],
-                             rows='A', cols=['B', 'C'])
+                             rows='A', cols=['B', 'C'], fill_value=0)
         expected = pivot_table(self.data.drop(['F'], axis=1),
-                               rows='A', cols=['B', 'C'])
+                               rows='A', cols=['B', 'C'], fill_value=0)
         assert_frame_equal(result, expected)
 
 if __name__ == '__main__':

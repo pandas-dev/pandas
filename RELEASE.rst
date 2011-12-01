@@ -22,10 +22,25 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
-pandas 0.5.1
+pandas 0.6.1
 ============
 
 **Release date:** Not yet released
+
+**Bug fixes**
+
+  - `DataFrame.count` should return Series with zero instead of NA with length-0
+    axis (GH #423)
+
+pandas 0.6.0
+============
+
+**Release date:** 11/25/2011
+
+**API Changes**
+
+  - Arithmetic methods like `sum` will attempt to sum dtype=object values by
+    default instead of excluding them (GH #382)
 
 **New features / modules**
 
@@ -67,7 +82,11 @@ pandas 0.5.1
   - DataFrame constructor will use Series name if no columns passed (GH #373)
   - Support regular expressions and longer delimiters in read_table/read_csv,
     but does not handle quoted strings yet (GH #364)
-  - Add `DataFrame.to_html` (PR #387)
+  - Add `DataFrame.to_html` for formatting DataFrame to HTML (PR #387)
+  - MaskedArray can be passed to DataFrame constructor and masked values will be
+    converted to NaN (PR #396)
+  - Add `DataFrame.boxplot` function (GH #368, others)
+  - Can pass extra args, kwds to DataFrame.apply (GH #376)
 
 **Improvements to existing features**
 
@@ -82,7 +101,7 @@ pandas 0.5.1
   - Show legend by default in `DataFrame.plot`, add `legend` boolean flag (GH
     #324)
   - Significantly improved performance of `Series.order`, which also makes
-    np.unique called in a Series faster (GH #327)
+    np.unique called on a Series faster (GH #327)
   - Faster cythonized count by level in Series and DataFrame (GH #341)
   - Raise exception if dateutil 2.0 installed on Python 2.x runtime (GH #346)
   - Significant GroupBy performance enhancement with multiple keys with many
@@ -99,6 +118,11 @@ pandas 0.5.1
   - Improve performance of `MultiIndex.from_tuples`
   - Can pass multiple levels to `stack` and `unstack` (GH #370)
   - Can pass multiple values columns to `pivot_table` (GH #381)
+  - Can call `DataFrame.delevel` with standard Index with name set (GH #393)
+  - Use Series name in GroupBy for result index (GH #363)
+  - Refactor Series/DataFrame stat methods to use common set of NaN-friendly
+    function
+  - Handle NumPy scalar integers at C level in Cython conversion routines
 
 **Bug fixes**
 
@@ -134,6 +158,23 @@ pandas 0.5.1
   - Fix bug in join operations between Index and Int64Index (GH #367)
   - Handle min_periods=0 case in moving window functions (GH #365)
   - Fixed corner cases in DataFrame.apply/pivot with empty DataFrame (GH #378)
+  - Fixed repr exception when Series name is a tuple
+  - Always return DateRange from `asfreq` (GH #390)
+  - Pass level names to `swaplavel` (GH #379)
+  - Don't lose index names in `MultiIndex.droplevel` (GH #394)
+  - Infer more proper return type in `DataFrame.apply` when no columns or rows
+    depending on whether the passed function is a reduction (GH #389)
+  - Always return NA/NaN from Series.min/max and DataFrame.min/max when all of a
+    row/column/values are NA (GH #384)
+  - Enable partial setting with .ix / advanced indexing (GH #397)
+  - Handle mixed-type DataFrames correctly in unstack, do not lose type
+    information (GH #403)
+  - Fix integer name formatting bug in Index.format and in Series.__repr__
+  - Handle label types other than string passed to groupby (GH #405)
+  - Fix bug in .ix-based indexing with partial retrieval when a label is not
+    contained in a level
+  - Index name was not being pickled (GH #408)
+  - Level name should be passed to result index in GroupBy.apply (GH #416)
 
 Thanks
 ------
@@ -149,9 +190,11 @@ Thanks
 - Wouter Overmeire
 - Nathan Pinger
 - Christian Prinoth
+- Skipper Seabold
 - Chang She
 - Ted Square
 - Aman Thakral
+- Chris Uga
 - Dieter Vandenbussche
 - carljv
 - rsamson
@@ -563,8 +606,8 @@ Thanks
 - Dan Lovell
 - Nick Pentreath
 
-pandas 0.4
-==========
+pandas 0.4.0
+============
 
 Release notes
 -------------
@@ -695,7 +738,7 @@ Release notes
     `DataFrame.count` to enable this behavior in those methods if so desired
     (disabled by default)
   * `DataFrame.pivot` generalized to enable pivoting multiple columns into a
-    `DataFrame` with hierarhical columns
+    `DataFrame` with hierarchical columns
   * `DataFrame` constructor can accept structured / record arrays
   * `Panel` constructor can accept a dict of DataFrame-like objects. Do not
     need to use `from_dict` anymore (`from_dict` is there to stay, though).

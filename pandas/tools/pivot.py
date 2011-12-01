@@ -79,6 +79,8 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
 
     return table
 
+DataFrame.pivot_table = pivot_table
+
 def _convert_by(by):
     if by is None:
         by = []
@@ -88,8 +90,6 @@ def _convert_by(by):
         by = list(by)
     return by
 
-def pprint_table(table):
-    pass
 
 if __name__ == '__main__':
     def _sample(values, n):

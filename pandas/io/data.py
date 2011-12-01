@@ -115,7 +115,7 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
     data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True)
     return data.truncate(start, end)
 
-def get_data_famafrench(name):
+def get_data_famafrench(name, start=None, end=None):
     start, end = _sanitize_dates(start, end)
 
     # path of zip files

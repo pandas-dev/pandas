@@ -294,7 +294,8 @@ class TestMultiLevel(unittest.TestCase):
             for i in range(index.nlevels):
                 result = frame.count(axis=axis, level=i)
                 expected = frame.groupby(axis=axis, level=i).count(axis=axis)
-                assert_frame_equal(result, expected.reindex_like(result))
+                expected = expected.reindex_like(result).astype('i8')
+                assert_frame_equal(result, expected)
 
         self.frame.ix[1, [1, 2]] = np.nan
         self.frame.ix[7, [0, 1]] = np.nan
@@ -495,10 +496,19 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_swaplevel(self):
         swapped = self.frame['A'].swaplevel(0, 1)
+        swapped2 = self.frame['A'].swaplevel('first', 'second')
         self.assert_(not swapped.index.equals(self.frame.index))
+        assert_series_equal(swapped, swapped2)
 
         back = swapped.swaplevel(0, 1)
+        back2 = swapped.swaplevel('second', 'first')
         self.assert_(back.index.equals(self.frame.index))
+        assert_series_equal(back, back2)
+
+        ft = self.frame.T
+        swapped = ft.swaplevel('first', 'second', axis=1)
+        exp = self.frame.swaplevel('first', 'second').T
+        assert_frame_equal(swapped, exp)
 
     def test_swaplevel_panel(self):
         panel = Panel({'ItemA' : self.frame,
@@ -507,6 +517,7 @@ class TestMultiLevel(unittest.TestCase):
         result = panel.swaplevel(0, 1, axis='major')
         expected = panel.copy()
         expected.major_axis = expected.major_axis.swaplevel(0, 1)
+        tm.assert_panel_equal(result, expected)
 
     def test_insert_index(self):
         df = self.ymd[:5].T
@@ -641,6 +652,65 @@ class TestMultiLevel(unittest.TestCase):
         df = DataFrame(np.random.randn(4, 4), index=index, columns=index)
         df['Totals', ''] = df.sum(1)
         df = df.consolidate()
+
+    def test_ix_preserve_names(self):
+        result = self.ymd.ix[2000]
+        result2 = self.ymd['A'].ix[2000]
+        self.assertEquals(result.index.names, self.ymd.index.names[1:])
+        self.assertEquals(result2.index.names, self.ymd.index.names[1:])
+
+        result = self.ymd.ix[2000, 2]
+        result2 = self.ymd['A'].ix[2000, 2]
+        self.assertEquals(result.index.name, self.ymd.index.names[2])
+        self.assertEquals(result2.index.name, self.ymd.index.names[2])
+
+    def test_partial_set(self):
+        # GH #397
+        df = self.ymd.copy()
+        exp = self.ymd.copy()
+        df.ix[2000, 4] = 0
+        exp.ix[2000, 4].values[:] = 0
+        assert_frame_equal(df, exp)
+
+        df['A'].ix[2000, 4] = 1
+        exp['A'].ix[2000, 4].values[:] = 1
+        assert_frame_equal(df, exp)
+
+        df.ix[2000] = 5
+        exp.ix[2000].values[:] = 5
+        assert_frame_equal(df, exp)
+
+        # this works...for now
+        df['A'].ix[14] = 5
+        self.assertEquals(df['A'][14], 5)
+
+    def test_unstack_preserve_types(self):
+        # GH #403
+        self.ymd['E'] = 'foo'
+        self.ymd['F'] = 2
+
+        unstacked = self.ymd.unstack('month')
+        self.assert_(unstacked['A', 1].dtype == np.float64)
+        self.assert_(unstacked['E', 1].dtype == np.object_)
+        self.assert_(unstacked['F', 1].dtype == np.float64)
+
+    def test_partial_ix_missing(self):
+        result = self.ymd.ix[2000, 0]
+        expected = self.ymd.ix[2000]['A']
+        assert_series_equal(result, expected)
+
+        # need to put in some work here
+
+        # self.ymd.ix[2000, 0] = 0
+        # self.assert_((self.ymd.ix[2000]['A'] == 0).all())
+
+        self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
+        self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6), 0)
+
+    def test_to_html(self):
+        self.ymd.columns.name = 'foo'
+        self.ymd.to_html()
+        self.ymd.T.to_html()
 
 if __name__ == '__main__':
 

@@ -10,6 +10,7 @@ import unittest
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np
+import numpy.ma as ma
 
 import pandas.core.common as common
 import pandas.core.datetools as datetools
@@ -1040,6 +1041,64 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = DataFrame(np.empty((3, 0)))
         self.assert_(len(frame.columns) == 0)
 
+    def test_constructor_maskedarray(self):
+        mat = ma.masked_all((2, 3), dtype=float)
+
+        # 2-D input
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
+
+        self.assertEqual(len(frame.index), 2)
+        self.assertEqual(len(frame.columns), 3)
+        self.assertTrue(np.all(~np.asarray(frame == frame)))
+
+        # cast type
+        frame = DataFrame(mat, columns=['A', 'B', 'C'],
+                           index=[1, 2], dtype=int)
+        self.assert_(frame.values.dtype == np.int64)
+
+        # Check non-masked values
+        mat2 = ma.copy(mat)
+        mat2[0,0] = 1.0
+        mat2[1,2] = 2.0
+        frame = DataFrame(mat2, columns=['A', 'B', 'C'], index=[1, 2])
+        self.assertEqual(1.0, frame['A'][1])
+        self.assertEqual(2.0, frame['C'][2])
+
+        # 1-D input
+        frame = DataFrame(ma.masked_all((3,)), columns=['A'], index=[1, 2, 3])
+        self.assertEqual(len(frame.index), 3)
+        self.assertEqual(len(frame.columns), 1)
+        self.assertTrue(np.all(~np.asarray(frame == frame)))
+
+        # higher dim raise exception
+        self.assertRaises(Exception, DataFrame, ma.masked_all((3, 3, 3)),
+                          columns=['A', 'B', 'C'], index=[1])
+
+        # wrong size axis labels
+        self.assertRaises(Exception, DataFrame, mat,
+                          columns=['A', 'B', 'C'], index=[1])
+
+        self.assertRaises(Exception, DataFrame, mat,
+                          columns=['A', 'B'], index=[1, 2])
+
+        # automatic labeling
+        frame = DataFrame(mat)
+        self.assert_(np.array_equal(frame.index, range(2)))
+        self.assert_(np.array_equal(frame.columns, range(3)))
+
+        frame = DataFrame(mat, index=[1, 2])
+        self.assert_(np.array_equal(frame.columns, range(3)))
+
+        frame = DataFrame(mat, columns=['A', 'B', 'C'])
+        self.assert_(np.array_equal(frame.index, range(2)))
+
+        # 0-length axis
+        frame = DataFrame(ma.masked_all((0, 3)))
+        self.assert_(frame.index is NULL_INDEX)
+
+        frame = DataFrame(ma.masked_all((3, 0)))
+        self.assert_(len(frame.columns) == 0)
+
     def test_constructor_corner(self):
         df = DataFrame(index=[])
         self.assertEqual(df.values.shape, (0, 0))
@@ -1935,10 +1994,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = zero_length.asfreq('EOM')
         self.assert_(result is not zero_length)
 
+    def test_asfreq_DateRange(self):
+        from pandas.core.daterange import DateRange
+        df = DataFrame({'A': [1,2,3]},
+                       index=[datetime(2011,11,01), datetime(2011,11,2),
+                              datetime(2011,11,3)])
+        df = df.asfreq('WEEKDAY')
+        self.assert_(isinstance(df.index, DateRange))
+
+        ts = df['A'].asfreq('WEEKDAY')
+        self.assert_(isinstance(ts.index, DateRange))
+
     def test_as_matrix(self):
         frame = self.frame
         mat = frame.as_matrix()
-        smallerCols = ['C', 'A']
 
         frameCols = frame.columns
         for i, row in enumerate(mat):
@@ -2674,6 +2743,58 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series(np.nan, index=[])
         assert_series_equal(result, expected)
 
+    def test_apply_empty_infer_type(self):
+        no_cols = DataFrame(index=['a', 'b', 'c'])
+        no_index = DataFrame(columns=['a', 'b', 'c'])
+
+        def _check(df, f):
+            test_res = f(np.array([], dtype='f8'))
+            is_reduction = not isinstance(test_res, np.ndarray)
+
+            def _checkit(axis=0, raw=False):
+                res = df.apply(f, axis=axis, raw=raw)
+                if is_reduction:
+                    agg_axis = df._get_agg_axis(axis)
+                    self.assert_(isinstance(res, Series))
+                    self.assert_(res.index is agg_axis)
+                else:
+                    self.assert_(isinstance(res, DataFrame))
+
+            _checkit()
+            _checkit(axis=1)
+            _checkit(raw=True)
+            _checkit(axis=0, raw=True)
+
+        _check(no_cols, lambda x: x)
+        _check(no_cols, lambda x: x.mean())
+        _check(no_index, lambda x: x)
+        _check(no_index, lambda x: x.mean())
+
+        result = no_cols.apply(lambda x: x.mean(), broadcast=True)
+        self.assert_(isinstance(result, DataFrame))
+
+    def test_apply_with_args_kwds(self):
+        def add_some(x, howmuch=0):
+            return x + howmuch
+
+        def agg_and_add(x, howmuch=0):
+            return x.mean() + howmuch
+
+        def subtract_and_divide(x, sub, divide=1):
+            return (x - sub) / divide
+
+        result = self.frame.apply(add_some, howmuch=2)
+        exp = self.frame.apply(lambda x: x + 2)
+        assert_frame_equal(result, exp)
+
+        result = self.frame.apply(agg_and_add, howmuch=2)
+        exp = self.frame.apply(lambda x: x.mean() + 2)
+        assert_series_equal(result, exp)
+
+        res = self.frame.apply(subtract_and_divide, args=(2,), divide=2)
+        exp = self.frame.apply(lambda x: (x - 2.) / 2.)
+        assert_frame_equal(res, exp)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
@@ -2962,18 +3083,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.ix[:, []]
         assert_frame_equal(result, expected)
 
-    def test_statistics(self):
-        # unnecessary?
-        sumFrame = self.frame.apply(np.sum)
-        for col, series in self.frame.iteritems():
-            self.assertEqual(sumFrame[col], series.sum())
-
     def test_count(self):
         f = lambda s: notnull(s).sum()
-        self._check_stat_op('count', f, has_skipna=False)
+        self._check_stat_op('count', f,
+                            has_skipna=False,
+                            has_numeric_only=True)
 
         # corner case
-
         frame = DataFrame()
         ct1 = frame.count(1)
         self.assert_(isinstance(ct1, Series))
@@ -2981,8 +3097,37 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         ct2 = frame.count(0)
         self.assert_(isinstance(ct2, Series))
 
+        # GH #423
+        df = DataFrame(index=range(10))
+        result = df.count(1)
+        expected = Series(0, index=df.index)
+        assert_series_equal(result, expected)
+
+        df = DataFrame(columns=range(10))
+        result = df.count(0)
+        expected = Series(0, index=df.columns)
+        assert_series_equal(result, expected)
+
     def test_sum(self):
-        self._check_stat_op('sum', np.sum)
+        self._check_stat_op('sum', np.sum, has_numeric_only=True)
+
+    def test_stat_ops_attempt_obj_array(self):
+        data = {
+            'a': [-0.00049987540199591344, -0.0016467257772919831,
+                   0.00067695870775883013],
+            'b': [-0, -0, 0.0],
+            'c': [0.00031111847529610595, 0.0014902627951905339,
+                  -0.00094099200035979691]
+        }
+        df = DataFrame(data, index=['foo', 'bar', 'baz'],
+                       dtype='O')
+        methods = ['sum', 'mean', 'prod', 'var', 'std', 'skew', 'min', 'max']
+
+        for meth in methods:
+            self.assert_(df.values.dtype == np.object_)
+            result = getattr(df, meth)(1)
+            expected = getattr(df.astype('f8'), meth)(1)
+            assert_series_equal(result, expected)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
@@ -3028,7 +3173,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self._check_stat_op('skew', alt)
 
-    def _check_stat_op(self, name, alternative, frame=None, has_skipna=True):
+    def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
+                       has_numeric_only=False):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -3069,6 +3215,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # make sure works on mixed-type frame
         getattr(self.mixed_frame, name)(axis=0)
         getattr(self.mixed_frame, name)(axis=1)
+
+        if has_numeric_only:
+            getattr(self.mixed_frame, name)(axis=0, numeric_only=True)
+            getattr(self.mixed_frame, name)(axis=1, numeric_only=True)
+            getattr(self.frame, name)(axis=0, numeric_only=False)
+            getattr(self.frame, name)(axis=1, numeric_only=False)
+
+        # all NA case
+        if has_skipna:
+            all_na = self.frame * np.NaN
+            r0 = getattr(all_na, name)(axis=0)
+            r1 = getattr(all_na, name)(axis=1)
+            self.assert_(np.isnan(r0).all())
+            self.assert_(np.isnan(r1).all())
 
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)
@@ -3303,14 +3463,33 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_delevel(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo' : stacked, 'bar' : stacked})
-        deleveled = stacked.delevel()
 
+        names = ['first', 'second']
+        stacked.index.names = names
+        deleveled = stacked.delevel()
         for i, (lev, lab) in enumerate(zip(stacked.index.levels,
                                            stacked.index.labels)):
             values = lev.take(lab)
-            assert_almost_equal(values, deleveled['level_%d' % i])
+            name = names[i]
+            assert_almost_equal(values, deleveled[name])
 
+        stacked.index.names = [None, None]
+        deleveled2 = stacked.delevel()
+        self.assert_(np.array_equal(deleveled['first'],
+                                    deleveled2['level_0']))
+        self.assert_(np.array_equal(deleveled['second'],
+                                    deleveled2['level_1']))
+
+        # exception if no name
         self.assertRaises(Exception, self.frame.delevel)
+
+        # but this is ok
+        self.frame.index.name = 'index'
+        deleveled = self.frame.delevel()
+        self.assert_(np.array_equal(deleveled['index'],
+                                    self.frame.index.values))
+        self.assert_(np.array_equal(deleveled.index,
+                                    np.arange(len(deleveled))))
 
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals
@@ -3483,66 +3662,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_idxmin(self):
-        def validate(f, s, axis, skipna):
-            def get_result(f, i, v, axis, skipna):
-                if axis == 0:
-                    return (f[i][v], f[i].min(skipna=skipna))
-                else:
-                    return (f[v][i], f.ix[i].min(skipna=skipna))
-            for i, v in s.iteritems():
-                (r1, r2) = get_result(f, i, v, axis, skipna)
-                if np.isnan(r1) or np.isinf(r1):
-                    self.assert_(np.isnan(r2) or np.isinf(r2))
-                elif np.isnan(r2) or np.isinf(r2):
-                    self.assert_(np.isnan(r1) or np.isinf(r1))
-                else:
-                    self.assertEqual(r1, r2)
-
         frame = self.frame
         frame.ix[5:10] = np.nan
         frame.ix[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
-                validate(frame,
-                         frame.idxmin(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
-                validate(self.intframe,
-                         self.intframe.idxmin(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
+                for df in [frame, self.intframe]:
+                    result = df.idxmax(axis=axis, skipna=skipna)
+                    expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+                    assert_series_equal(result, expected)
 
-        self.assertRaises(Exception, frame.idxmin, axis=2)
+        self.assertRaises(Exception, frame.idxmax, axis=2)
 
     def test_idxmax(self):
-        def validate(f, s, axis, skipna):
-            def get_result(f, i, v, axis, skipna):
-                if axis == 0:
-                    return (f[i][v], f[i].max(skipna=skipna))
-                else:
-                    return (f[v][i], f.ix[i].max(skipna=skipna))
-            for i, v in s.iteritems():
-                (r1, r2) = get_result(f, i, v, axis, skipna)
-                if np.isnan(r1) or np.isinf(r1):
-                    self.assert_(np.isnan(r2) or np.isinf(r2))
-                elif np.isnan(r2) or np.isinf(r2):
-                    self.assert_(np.isnan(r1) or np.isinf(r1))
-                else:
-                    self.assertEqual(r1, r2)
-
         frame = self.frame
         frame.ix[5:10] = np.nan
         frame.ix[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
-                validate(frame,
-                         frame.idxmax(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
-                validate(self.intframe,
-                         self.intframe.idxmax(axis=axis, skipna=skipna),
-                         axis,
-                         skipna)
+                for df in [frame, self.intframe]:
+                    result = df.idxmax(axis=axis, skipna=skipna)
+                    expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+                    assert_series_equal(result, expected)
 
         self.assertRaises(Exception, frame.idxmax, axis=2)
 

@@ -20,10 +20,10 @@ import sys
 
 from numpy import nan
 import numpy as np
+import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, adjoin,
-                                _try_sort, _pfixed, _default_index,
-                                _stringify, _maybe_upcast)
+from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
+                                _default_index, _stringify, _maybe_upcast)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
@@ -31,6 +31,7 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 from pandas.util import py3compat
+import pandas.core.nanops as nanops
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas._tseries as lib
@@ -82,8 +83,9 @@ Returns
 
 _doc_exclude_na = "NA/null values are excluded"
 
-_numeric_only_doc = """numeric_only : boolean, default False
-    Include only float, int, boolean data
+_numeric_only_doc = """numeric_only : boolean, default None
+    Include only float, int, boolean data. If None, will attempt to use
+    everything, then use only numeric data
 """
 
 def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
@@ -186,6 +188,12 @@ class DataFrame(NDFrame):
                 mgr = mgr.astype(dtype)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
+        elif isinstance(data, ma.MaskedArray):
+            mask = ma.getmaskarray(data)
+            datacopy = ma.copy(data)
+            datacopy[mask] = np.nan
+            mgr = self._init_ndarray(datacopy, index, columns, dtype=dtype,
+                                     copy=copy)
         elif isinstance(data, np.ndarray):
             if data.dtype.names:
                 data_columns, data = _rec_to_dict(data)
@@ -681,6 +689,8 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
+        from pandas.core.format import DataFrameFormatter
+
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -688,12 +698,12 @@ class DataFrame(NDFrame):
             na_rep = nanRep
 
 
-        formatter = _DataFrameFormatter(self, buf=buf, columns=columns,
-                                        col_space=colSpace, na_rep=na_rep,
-                                        formatters=formatters,
-                                        float_format=float_format,
-                                        sparsify=sparsify,
-                                        index_names=index_names)
+        formatter = DataFrameFormatter(self, buf=buf, columns=columns,
+                                       col_space=colSpace, na_rep=na_rep,
+                                       formatters=formatters,
+                                       float_format=float_format,
+                                       sparsify=sparsify,
+                                       index_names=index_names)
         formatter.to_string()
 
         if buf is None:
@@ -705,12 +715,14 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame to a html table.
         """
-        formatter = _DataFrameFormatter(self, buf=buf, columns=columns,
-                                        col_space=colSpace, na_rep=na_rep,
-                                        formatters=formatters,
-                                        float_format=float_format,
-                                        sparsify=sparsify,
-                                        index_names=index_names)
+        from pandas.core.format import DataFrameFormatter
+
+        formatter = DataFrameFormatter(self, buf=buf, columns=columns,
+                                       col_space=colSpace, na_rep=na_rep,
+                                       formatters=formatters,
+                                       float_format=float_format,
+                                       sparsify=sparsify,
+                                       index_names=index_names)
         formatter.to_html()
 
         if buf is None:
@@ -1068,7 +1080,7 @@ class DataFrame(NDFrame):
     def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
-        if hasattr(value, '__iter__') and not isinstance(value, basestring):
+        if _is_sequence(value):
             if isinstance(value, Series):
                 if value.index.equals(self.index):
                     # copy the values
@@ -1247,7 +1259,9 @@ class DataFrame(NDFrame):
     def _reindex_index(self, new_index, method, copy):
         if new_index.equals(self.index):
             if copy:
-                return self.copy()
+                result = self.copy()
+                result.index = new_index
+                return result
             else:
                 return self
         new_data = self._data.reindex_axis(new_index, method, axis=1)
@@ -2051,21 +2065,20 @@ class DataFrame(NDFrame):
         -------
         deleveled : DataFrame
         """
-        if not isinstance(self.index, MultiIndex):
-            raise Exception('this DataFrame does not have a multi-level index')
-
         new_obj = self.copy()
-        names = self.index.names
-
-        zipped = zip(self.index.levels, self.index.labels)
-        for i, (lev, lab) in reversed(list(enumerate(zipped))):
-            col_name = names[i]
-            if col_name is None:
-                col_name = 'level_%d' % i
-            new_obj.insert(0, col_name, np.asarray(lev).take(lab))
-
+        if isinstance(self.index, MultiIndex):
+            names = self.index.names
+            zipped = zip(self.index.levels, self.index.labels)
+            for i, (lev, lab) in reversed(list(enumerate(zipped))):
+                col_name = names[i]
+                if col_name is None:
+                    col_name = 'level_%d' % i
+                new_obj.insert(0, col_name, np.asarray(lev).take(lab))
+        else:
+            if self.index.name is None:
+                raise Exception('Must have name set')
+            new_obj.insert(0, self.index.name, self.index.values)
         new_obj.index = np.arange(len(new_obj))
-
         return new_obj
 
     #----------------------------------------------------------------------
@@ -2173,7 +2186,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False, raw=False):
+    def apply(self, func, axis=0, broadcast=False, raw=False,
+              args=(), **kwds):
         """
         Applies function along input axis of DataFrame. Objects passed to
         functions are Series objects having index either the DataFrame's index
@@ -2194,6 +2208,10 @@ class DataFrame(NDFrame):
             passed function will receive ndarray objects instead. If you are
             just applying a NumPy reduction function this will achieve much
             better performance
+        args : tuple
+            Positional arguments to pass to function in addition to the
+            array/series
+        Additional keyword arguments will be passed as keywords to the function
 
         Examples
         --------
@@ -2203,7 +2221,8 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Functions should not alter the index of the Series passed to them
+        Function passed should not have side effects. If the result is a Series,
+        it should have the same index
 
         Returns
         -------
@@ -2212,18 +2231,31 @@ class DataFrame(NDFrame):
         if len(self.columns) == 0 and len(self.index) == 0:
             return self
 
-        if isinstance(func, np.ufunc):
-            results = func(self.values)
+        if kwds or args and not isinstance(func, np.ufunc):
+            f = lambda x: func(x, *args, **kwds)
+        else:
+            f = func
+
+        if isinstance(f, np.ufunc):
+            results = f(self.values)
             return self._constructor(data=results, index=self.index,
                                      columns=self.columns, copy=False)
         else:
             if not broadcast:
+                if not all(self.shape):
+                    is_reduction = not isinstance(f(_EMPTY_SERIES),
+                                                  np.ndarray)
+                    if is_reduction:
+                        return Series(np.nan, index=self._get_agg_axis(axis))
+                    else:
+                        return self.copy()
+
                 if raw and not self._is_mixed_type:
-                    return self._apply_raw(func, axis)
+                    return self._apply_raw(f, axis)
                 else:
-                    return self._apply_standard(func, axis)
+                    return self._apply_standard(f, axis)
             else:
-                return self._apply_broadcast(func, axis)
+                return self._apply_broadcast(f, axis)
 
     def _apply_raw(self, func, axis):
         try:
@@ -2240,6 +2272,7 @@ class DataFrame(NDFrame):
 
     def _apply_standard(self, func, axis, ignore_failures=False):
         try:
+
             assert(not self._is_mixed_type)  # maybe a hack for now
             values = self.values
             dummy = Series(np.nan, index=self._get_axis(axis),
@@ -2275,7 +2308,7 @@ class DataFrame(NDFrame):
             for k, v in series_gen:
                 results[k] = func(v)
 
-        if len(results) > 0 and hasattr(results.values()[0], '__iter__'):
+        if len(results) > 0 and _is_sequence(results.values()[0]):
             result = self._constructor(data=results, index=res_columns,
                                        columns=res_index)
 
@@ -2669,7 +2702,11 @@ class DataFrame(NDFrame):
         else:
             frame = self
 
-        result = DataFrame.apply(frame, Series.count, axis=axis)
+        # GH #423
+        if len(frame._get_axis(axis)) == 0:
+            result = Series(0, index=frame._get_agg_axis(axis))
+        else:
+            result = DataFrame.apply(frame, Series.count, axis=axis)
 
         # what happens with empty DataFrame
         if isinstance(result, DataFrame):
@@ -2700,115 +2737,54 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def sum(self, axis=0, numeric_only=True, skipna=True, level=None):
+    def sum(self, axis=0, numeric_only=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', axis=axis, level=level,
                                       skipna=skipna)
-
-        y, axis_labels = self._get_agg_data(axis, numeric_only=numeric_only)
-
-        if len(axis_labels) == 0:
-            return Series([], index=[])
-
-        if y.dtype == np.object_:
-            the_sum = y.sum(axis)
-        else:
-            mask = np.isfinite(y)
-
-            if skipna and not issubclass(y.dtype.type, np.integer):
-                np.putmask(y, -mask, 0)
-
-            the_sum = y.sum(axis)
-            the_count = mask.sum(axis)
-
-            ct_mask = the_count == 0
-            if ct_mask.any():
-                the_sum[ct_mask] = nan
-
-        return Series(the_sum, index=axis_labels)
+        return self._reduce(nanops.nansum, axis=axis, skipna=skipna,
+                            numeric_only=numeric_only)
     _add_stat_doc(sum, 'sum', 'sum', extras=_numeric_only_doc)
+
+    def mean(self, axis=0, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('mean', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nanmean, axis=axis, skipna=skipna,
+                            numeric_only=None)
+    _add_stat_doc(mean, 'mean', 'mean')
 
     def min(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', axis=axis, level=level,
                                       skipna=skipna)
-
-        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), np.inf)
-
-        return Series(values.min(axis), index=axis_labels)
+        return self._reduce(nanops.nanmin, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(min, 'minimum', 'min')
 
     def max(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', axis=axis, level=level,
                                       skipna=skipna)
-
-        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), -np.inf)
-
-        return Series(values.max(axis), index=axis_labels)
+        return self._reduce(nanops.nanmax, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(max, 'maximum', 'max')
 
     def prod(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('prod', axis=axis, level=level,
                                       skipna=skipna)
-
-        values, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            values[np.isnan(values)] = 1
-        result = values.prod(axis)
-        count = self.count(axis, numeric_only=True)
-        result[count == 0] = nan
-
-        return Series(result, index=axis_labels)
+        return self._reduce(nanops.nanprod, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(prod, 'product', 'product',
                   na_action='NA/null values are treated as 1')
     product = prod
-
-    def mean(self, axis=0, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('mean', axis=axis, level=level,
-                                      skipna=skipna)
-
-        summed = self.sum(axis, numeric_only=True, skipna=skipna)
-        count = self.count(axis, numeric_only=True).astype(float)
-        return summed / count
-    _add_stat_doc(mean, 'mean', 'mean')
 
     def median(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('median', axis=axis, level=level,
                                       skipna=skipna)
-
-        frame = self._get_numeric_data()
-
-        if axis == 0:
-            values = frame.values.T
-            result_index = frame.columns
-        elif axis == 1:
-            values = frame.values
-            result_index = self.index
-        else:
-            raise ValueError('axis must be in {0, 1}')
-
-        def get_median(x):
-            mask = notnull(x)
-            if not skipna and not mask.all():
-                return np.nan
-            return lib.median(x[mask])
-
-        if values.dtype != np.float64:
-            values = values.astype('f8')
-
-        medians = [get_median(arr) for arr in values]
-        return Series(medians, index=result_index)
-
+        return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(median, 'median', 'median')
 
     def mad(self, axis=0, skipna=True, level=None):
@@ -2829,28 +2805,14 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
                                       skipna=skipna)
-
-        y, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        mask = np.isnan(y)
-        count = (y.shape[axis] - mask.sum(axis)).astype(float)
-
-        if skipna:
-            np.putmask(y, mask, 0)
-
-        X = y.sum(axis)
-        XX = (y ** 2).sum(axis)
-
-        theVar = (XX - X ** 2 / count) / (count - 1)
-
-        return Series(theVar, index=axis_labels)
+        return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(var, 'unbiased variance', 'var')
 
     def std(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
                                       skipna=skipna)
-
         return np.sqrt(self.var(axis=axis, skipna=skipna))
     _add_stat_doc(std, 'unbiased standard deviation', 'std')
 
@@ -2858,30 +2820,39 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('skew', axis=axis, level=level,
                                       skipna=skipna)
-
-        y, axis_labels = self._get_agg_data(axis, numeric_only=True)
-
-        mask = np.isnan(y)
-        count = (y.shape[axis] - mask.sum(axis)).astype(float)
-
-        if skipna:
-            np.putmask(y, mask, 0)
-
-        A = y.sum(axis) / count
-        B = (y ** 2).sum(axis) / count - A ** 2
-        C = (y ** 3).sum(axis) / count - A ** 3 - 3 * A * B
-
-        # floating point error
-        B = np.where(np.abs(B) < 1e-14, 0, B)
-        C = np.where(np.abs(C) < 1e-14, 0, C)
-
-        result = ((np.sqrt((count ** 2 - count)) * C) /
-                  ((count - 2) * np.sqrt(B) ** 3))
-
-        result = np.where(B == 0, 0, result)
-
-        return Series(result, index=axis_labels)
+        return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
+                            numeric_only=None)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
+
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
+        f = lambda x: op(x, axis=axis, skipna=skipna, copy=True)
+        labels = self._get_agg_axis(axis)
+        if numeric_only is None:
+            try:
+                values = self.values
+                if not self._is_mixed_type:
+                    values = values.copy()
+                result = f(values)
+            except Exception:
+                data = self._get_numeric_data()
+                result = f(data.values)
+                labels = data._get_agg_axis(axis)
+        else:
+            if numeric_only:
+                data = self._get_numeric_data()
+                values = data.values
+                labels = data._get_agg_axis(axis)
+            else:
+                values = self.values
+            result = f(values)
+
+        if result.dtype == np.object_:
+            try:
+                result = result.astype('f8')
+            except (ValueError, TypeError):
+                pass
+
+        return Series(result, index=labels)
 
     def idxmin(self, axis=0, skipna=True):
         """
@@ -2900,12 +2871,10 @@ class DataFrame(NDFrame):
         -------
         idxmin : Series
         """
-        values = self.values.copy()
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), np.inf)
-        argmin_index = self._get_axis(axis)
-        return Series([argmin_index[i] for i in values.argmin(axis)],
-                      index=self._get_agg_axis(axis))
+        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        index = self._get_axis(axis)
+        result = [index[i] if i >= 0 else np.nan for i in indices]
+        return Series(result, index=self._get_agg_axis(axis))
 
     def idxmax(self, axis=0, skipna=True):
         """
@@ -2924,34 +2893,15 @@ class DataFrame(NDFrame):
         -------
         idxmax : Series
         """
-        values = self.values.copy()
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            np.putmask(values, -np.isfinite(values), -np.inf)
-        argmax_index = self._get_axis(axis)
-        return Series([argmax_index[i] for i in values.argmax(axis)],
-                      index=self._get_agg_axis(axis))
+        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        index = self._get_axis(axis)
+        result = [index[i] if i >= 0 else np.nan for i in indices]
+        return Series(result, index=self._get_agg_axis(axis))
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True):
         method = getattr(type(self), name)
         applyf = lambda x: method(x, axis=axis, skipna=skipna)
         return self.groupby(level=level, axis=axis).aggregate(applyf)
-
-    def _get_agg_data(self, axis, numeric_only=True, copy=True):
-        num_cols = self._get_numeric_columns()
-
-        if len(num_cols) < len(self.columns) and numeric_only:
-            y = self.as_matrix(num_cols)
-            if axis == 0:
-                axis_labels = num_cols
-            else:
-                axis_labels = self.index
-        else:
-            y = self.values
-            if copy:
-                y = y.copy()
-            axis_labels = self._get_agg_axis(axis)
-
-        return y, axis_labels
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:
@@ -3253,257 +3203,8 @@ class DataFrame(NDFrame):
         return self.mul(other, fill_value=1.)
 
 
-class _DataFrameFormatter(object):
-    """
-    Render a DataFrame
+_EMPTY_SERIES = Series([])
 
-    self.to_string() : console-friendly tabular output
-    self.to_html() : html table
-    """
-    def __init__(self, frame, buf=None, columns=None, col_space=None,
-                 na_rep='NaN', formatters=None, float_format=None,
-                 sparsify=True, index_names=True):
-
-        self.frame = frame
-        self.buf = buf if buf is not None else StringIO()
-        self.show_index_names = index_names
-        self.sparsify = sparsify
-        self.float_format = float_format
-        self.formatters = formatters
-        self.na_rep = na_rep
-        self.col_space = col_space
-
-        if columns is not None:
-            self.columns = _ensure_index(columns)
-        else:
-            self.columns = frame.columns
-
-    def to_string(self):
-        """
-        Render a DataFrame to a console-friendly tabular output.
-        """
-        frame = self.frame
-        format_col = self._get_column_formatter()
-
-        to_write = []
-
-        if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = 'Empty %s\nColumns: %s\nIndex: %s'
-            to_write.append(info_line % (type(self.frame).__name__,
-                                         repr(frame.columns),
-                                         repr(frame.index)))
-        else:
-            # may include levels names also
-            str_index = self._get_formatted_index()
-            str_columns = self._get_formatted_column_labels()
-
-            stringified = [str_columns[i] + format_col(c)
-                           for i, c in enumerate(self.columns)]
-
-            to_write.append(adjoin(1, str_index, *stringified))
-
-        for s in to_write:
-            if isinstance(s, unicode):
-                to_write = [unicode(s) for s in to_write]
-                break
-
-        self.buf.writelines(to_write)
-
-    def to_html(self):
-        """
-        Render a DataFrame to a html table.
-        """
-        def write(buf, s, indent=0):
-            buf.write(unicode((' ' * indent) + str(s) + '\n'))
-
-        def write_th(buf, s, indent=0):
-            write(buf, '<th>%s</th>' % str(s), indent)
-
-        def write_td(buf, s, indent=0):
-            write(buf, '<td>%s</td>' % str(s), indent)
-
-        def write_tr(buf, l, indent=0, indent_delta=4, header=False):
-            write(buf, '<tr>', indent)
-            indent += indent_delta
-            if header:
-                for s in l:
-                    write_th(buf, s, indent)
-            else:
-                for s in l:
-                    write_td(buf, s, indent)
-            indent -= indent_delta
-            write(buf, '</tr>', indent)
-
-        def single_column_table(column):
-            table = '<table><tbody>'
-            for i in column:
-                table += ('<tr><td>%s</td></tr>' % str(i))
-            table += '</tbody></table>'
-            return table
-
-        def single_row_table(row):
-            table = '<table><tbody><tr>'
-            for i in row:
-                table += ('<td>%s</td>' % str(i))
-            table += '</tr></tbody></table>'
-            return table
-
-        indent = 0
-        indent_delta = 2
-        frame = self.frame
-        buf = self.buf
-        format_col = self._get_column_formatter()
-
-        write(buf, '<table border="1">', indent)
-
-        if len(frame.columns) == 0 or len(frame.index) == 0:
-            write(buf, '<tbody>', indent  + indent_delta)
-            write_tr(buf,
-                     [repr(frame.index),
-                      'Empty %s' % type(self.frame).__name__],
-                     indent + (2 * indent_delta),
-                     indent_delta)
-            write(buf, '</tbody>', indent  + indent_delta)
-        else:
-            indent += indent_delta
-            write(buf, '<thead>', indent)
-            row = []
-
-            if isinstance(frame.index, MultiIndex):
-                if self.has_index_names:
-                    row.extend(frame.index.names)
-                else:
-                    row.extend([''] * frame.index.nlevels)
-            else:
-                row.append(' ')
-
-            if isinstance(frame.columns, MultiIndex):
-                row.extend([single_column_table(c) for c in frame.columns])
-                if self.has_column_names:
-                    names = single_column_table(frame.columns.names)
-                    idx = len(frame.columns)
-                    row[-idx] = single_row_table([names, row[-idx]])
-            else:
-                row.append('')
-
-            indent += indent_delta
-            write_tr(buf,
-                     row,
-                     indent,
-                     indent_delta,
-                     header=True)
-            write(buf, '</thead>', indent)
-
-            write(buf, '<tbody>', indent)
-            for i in range(len(frame)):
-                row = []
-                try:
-                    row.extend(frame.index[i])
-                except TypeError:
-                    row.append(frame.index[i])
-                for column in frame.columns:
-                    row.append(format_col(column, i))
-                write_tr(buf,
-                         row,
-                         indent,
-                         indent_delta)
-            indent -= indent_delta
-            write(buf, '</body>', indent)
-            indent -= indent_delta
-
-        write(buf, '</table>', indent)
-
-    def _get_column_formatter(self):
-        from pandas.core.common import _format
-
-        col_space = self.col_space
-
-        if col_space is None:
-            def _myformat(v):
-                return _format(v, na_rep=self.na_rep,
-                               float_format=self.float_format)
-        else:
-            def _myformat(v):
-                return _pfixed(v, col_space, na_rep=self.na_rep,
-                               float_format=self.float_format)
-
-        formatters = {} if self.formatters is None else self.formatters
-
-        def _format_col(col, i=None):
-            formatter = formatters.get(col, _myformat)
-            if i == None:
-                return [formatter(x) for x in self.frame[col]]
-            else:
-                return formatter(self.frame[col][i])
-
-        return _format_col
-
-    def _get_formatted_column_labels(self):
-        from pandas.core.index import _sparsify
-
-        if isinstance(self.columns, MultiIndex):
-            fmt_columns = self.columns.format(sparsify=False, adjoin=False)
-            str_columns = zip(*[[' %s' % y for y in x]
-                                for x in zip(*fmt_columns)])
-            if self.sparsify:
-                str_columns = _sparsify(str_columns)
-
-            str_columns = [list(x) for x in zip(*str_columns)]
-        else:
-            str_columns = [[' %s' % x] for x in self.columns.format()]
-
-        if self.show_index_names and self.has_index_names:
-            for x in str_columns:
-                x.append('')
-
-        return str_columns
-
-    @property
-    def has_index_names(self):
-        return _has_names(self.frame.index)
-
-    @property
-    def has_column_names(self):
-        return _has_names(self.frame.columns)
-
-    def _get_formatted_index(self):
-        index = self.frame.index
-        columns = self.frame.columns
-
-        show_index_names = self.show_index_names and self.has_index_names
-        show_col_names = self.show_index_names and self.has_column_names
-
-        if isinstance(index, MultiIndex):
-            fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
-                                     names=show_index_names)
-        else:
-            fmt_index = [index.format(name=show_index_names)]
-
-        adjoined = adjoin(1, *fmt_index).split('\n')
-
-        # empty space for columns
-        if show_col_names:
-            col_header = ['  %s' % x for x in self._get_column_name_list()]
-        else:
-            col_header = [''] * columns.nlevels
-
-        return col_header + adjoined
-
-    def _get_column_name_list(self):
-        names = []
-        columns = self.frame.columns
-        if isinstance(columns, MultiIndex):
-            names.extend('' if name is None else name
-                         for name in columns.names)
-        else:
-            names.append('' if columns.name is None else columns.name)
-        return names
-
-def _has_names(index):
-    if isinstance(index, MultiIndex):
-        return any([x is not None for x in index.names])
-    else:
-        return index.name is not None
 
 def group_agg(values, bounds, f):
     """
@@ -3742,6 +3443,14 @@ def _homogenize(data, index, columns, dtype=None):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
+
+def _is_sequence(x):
+    try:
+        iter(x)
+        assert(not isinstance(x, basestring))
+        return True
+    except Exception:
+        return False
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so

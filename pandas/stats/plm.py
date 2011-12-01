@@ -362,9 +362,9 @@ class PanelOLS(OLS):
     @cache_readonly
     def _var_beta_raw(self):
         cluster_axis = None
-        if self._cluster == common.TIME:
+        if self._cluster == 'time':
             cluster_axis = 0
-        elif self._cluster == common.ENTITY:
+        elif self._cluster == 'entity':
             cluster_axis = 1
 
         x = self._x
@@ -547,9 +547,9 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         dates = x.major_axis
 
         cluster_axis = None
-        if self._cluster == common.TIME:
+        if self._cluster == 'time':
             cluster_axis = 0
-        elif self._cluster == common.ENTITY:
+        elif self._cluster == 'entity':
             cluster_axis = 1
 
         nobs = self._nobs
@@ -663,8 +663,8 @@ class NonPooledPanelOLS(object):
         True if you want an intercept.
     nw_lags : None or int
         Number of Newey-West lags.
-    window_type : int
-        FULL_SAMPLE, ROLLING, EXPANDING.  FULL_SAMPLE by default.
+    window_type : {'full_sample', 'rolling', 'expanding'}
+        'full_sample' by default
     window : int
         size of window (for rolling/expanding OLS)
     """
@@ -690,7 +690,7 @@ class NonPooledPanelOLS(object):
         'y_predict'
     ]
 
-    def __init__(self, y, x, window_type=common.FULL_SAMPLE, window=None,
+    def __init__(self, y, x, window_type='full_sample', window=None,
                  min_periods=None, intercept=True, nw_lags=None,
                  nw_overlap=False):
 

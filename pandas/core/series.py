@@ -22,6 +22,7 @@ from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util import py3compat
 import pandas.core.common as common
 import pandas.core.datetools as datetools
+import pandas.core.nanops as nanops
 import pandas._tseries as lib
 
 __all__ = ['Series', 'TimeSeries']
@@ -380,7 +381,7 @@ copy : boolean, default False
                                                   length=False,
                                                   name=False)
         result = head + '\n...\n' + tail
-        namestr = "Name: %s, " % self.name if self.name else ""
+        namestr = "Name: %s, " % str(self.name) if self.name else ""
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
@@ -409,7 +410,7 @@ copy : boolean, default False
             header, string_index = string_index[0], string_index[1:]
         else:
             have_header = index.name is not None
-            header = index.name
+            header = str(index.name)
             string_index = index.format()
 
         maxlen = max(len(x) for x in string_index)
@@ -432,7 +433,7 @@ copy : boolean, default False
 
         footer = ''
         if name:
-            footer += "Name: %s" % self.name if self.name else ''
+            footer += "Name: %s" % str(self.name) if self.name else ''
 
         if length:
             if footer:
@@ -640,23 +641,13 @@ copy : boolean, default False
     def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', level=level, skipna=skipna)
-
-        values = self.values.copy()
-
-        if skipna:
-            mask = isnull(values)
-            if mask.all():
-                return np.nan
-            np.putmask(values, mask, 0)
-
-        return values.sum()
+        return nanops.nansum(self.values, skipna=skipna, copy=True)
     _add_stat_doc(sum, 'sum', 'sum', extras=_doc_ndarray_interface)
 
     def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('mean', level=level, skipna=skipna)
-
-        return self._ndarray_statistic('mean', dtype=dtype, skipna=skipna)
+        return nanops.nanmean(self.values, skipna=skipna)
     _add_stat_doc(mean, 'mean', 'mean', extras=_doc_ndarray_interface)
 
     def mad(self, skipna=True, level=None):
@@ -670,99 +661,47 @@ copy : boolean, default False
     def median(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('median', level=level, skipna=skipna)
-
-        arr = self.values
-        if arr.dtype != np.float_:
-            arr = arr.astype(float)
-        mask = notnull(arr)
-
-        if skipna:
-            arr = arr[mask]
-        else:
-            if not mask.all():
-                return np.nan
-
-        return lib.median(arr)
+        return nanops.nanmedian(self.values, skipna=skipna)
     _add_stat_doc(median, 'median', 'median')
 
-    def prod(self, axis=0, dtype=None, out=None, skipna=True, level=None):
+    def prod(self, axis=None, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('prod', level=level, skipna=skipna)
-
-        return self._ndarray_statistic('prod', dtype=dtype, skipna=skipna)
+        return nanops.nanprod(self.values, skipna=skipna)
     _add_stat_doc(prod, 'product', 'product')
 
     def min(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', level=level, skipna=skipna)
-
-        arr = self.values.copy()
-
-        if skipna:
-            if not issubclass(arr.dtype.type, np.integer):
-                np.putmask(arr, isnull(arr), np.inf)
-
-        return arr.min()
+        return nanops.nanmin(self.values, skipna=skipna, copy=True)
     _add_stat_doc(min, 'minimum', 'min')
 
     def max(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', level=level, skipna=skipna)
-
-        arr = self.values.copy()
-
-        if skipna:
-            if not issubclass(arr.dtype.type, np.integer):
-                np.putmask(arr, isnull(arr), -np.inf)
-
-        return arr.max()
+        return nanops.nanmax(self.values, skipna=skipna, copy=True)
     _add_stat_doc(max, 'maximum', 'max')
 
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna)
-
-        if skipna:
-            nona = remove_na(self.values)
-            if len(nona) < 2:
-                return nan
-            return ndarray.std(nona, axis, dtype, out, ddof)
-
-        return self.values.std(axis, dtype, out, ddof)
+        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, copy=True,
+                                     ddof=ddof))
     _add_stat_doc(std, 'unbiased standard deviation', 'stdev')
 
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna)
-
-        if skipna:
-            nona = remove_na(self.values)
-            if len(nona) < 2:
-                return nan
-            return ndarray.var(nona, axis, dtype, out, ddof)
-
-        return self.values.var(axis, dtype, out, ddof)
+        return nanops.nanvar(self.values, skipna=skipna, copy=True, ddof=ddof)
     _add_stat_doc(var, 'unbiased variance', 'var')
 
     def skew(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('skew', level=level, skipna=skipna)
 
-        y = np.array(self.values)
-        mask = notnull(y)
-        count = mask.sum()
-
-        if count < len(self) and not skipna:
-            return np.nan
-
-        np.putmask(y, -mask, 0)
-        A = y.sum() / count
-        B = (y**2).sum() / count  - A**2
-        C = (y**3).sum() / count - A**3 - 3*A*B
-
-        return (np.sqrt((count**2-count))*C) / ((count-2)*np.sqrt(B)**3)
+        return nanops.nanskew(self.values, skipna=skipna, copy=True)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
     def idxmin(self, axis=None, out=None, skipna=True):
@@ -778,11 +717,10 @@ copy : boolean, default False
         -------
         idxmin : Index of mimimum of values
         """
-        arr = self.values.copy()
-        if skipna:
-            if not issubclass(arr.dtype.type, np.integer):
-                np.putmask(arr, isnull(arr), np.inf)
-        return self.index[arr.argmin()]
+        i = nanops.nanargmin(self.values, skipna=skipna)
+        if i == -1:
+            return np.nan
+        return self.index[i]
 
     def idxmax(self, axis=None, out=None, skipna=True):
         """
@@ -797,23 +735,10 @@ copy : boolean, default False
         -------
         idxmax : Index of mimimum of values
         """
-        arr = self.values.copy()
-        if skipna:
-            if not issubclass(arr.dtype.type, np.integer):
-                np.putmask(arr, isnull(arr), -np.inf)
-        return self.index[arr.argmax()]
-
-    def _ndarray_statistic(self, funcname, dtype=None, skipna=True):
-        arr = self.values
-        retVal = getattr(arr, funcname)(dtype=dtype)
-
-        if skipna and isnull(retVal):
-            arr = remove_na(arr)
-            if len(arr) == 0:
-                return np.nan
-            retVal = getattr(arr, funcname)(dtype=dtype)
-
-        return retVal
+        i = nanops.nanargmax(self.values, skipna=skipna)
+        if i == -1:
+            return np.nan
+        return self.index[i]
 
     def _agg_by_level(self, name, level=0, skipna=True):
         method = getattr(type(self), name)

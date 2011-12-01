@@ -103,15 +103,15 @@ class CheckNameIntegration(object):
         # test small series
         s = Series([0, 1, 2])
         s.name = "test"
-        self.assert_("Name: test" in s.__repr__())
+        self.assert_("Name: test" in repr(s))
         s.name = None
-        self.assert_(not "Name:" in s.__repr__())
+        self.assert_(not "Name:" in repr(s))
         # test big series (diff code path)
         s = Series(range(0,1000))
         s.name = "test"
-        self.assert_("Name: test" in s.__repr__())
+        self.assert_("Name: test" in repr(s))
         s.name = None
-        self.assert_(not "Name:" in s.__repr__())
+        self.assert_(not "Name:" in repr(s))
 
     def test_pickle_preserve_name(self):
         unpickled = self._pickle_roundtrip(self.ts)
@@ -478,6 +478,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.series[5:7] = np.NaN
         str(self.series)
 
+        # tuple name, e.g. from hierarchical index
+        self.series.name = ('foo', 'bar', 'baz')
+        repr(self.series)
+
+        biggie = Series(tm.randn(1000), index=np.arange(1000),
+                        name=('foo', 'bar', 'baz'))
+        repr(biggie)
+
     def test_to_string(self):
         from cStringIO import StringIO
         buf = StringIO()
@@ -579,7 +587,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(f(nona), alternate(nona))
 
         allna = self.series * nan
-        self.assert_(isnull(f(allna)))
+        self.assert_(np.isnan(f(allna)))
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
@@ -687,7 +695,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # skipna or no
         self.assertEqual(self.series[self.series.idxmin()], self.series.min())
-        self.assert_(isnull(self.series[self.series.idxmin(skipna=False)]))
+        self.assert_(isnull(self.series.idxmin(skipna=False)))
 
         # no NaNs
         nona = self.series.dropna()
@@ -697,7 +705,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # all NaNs
         allna = self.series * nan
-        self.assertEqual(allna.idxmin(), allna.index[0])
+        self.assert_(isnull(allna.idxmin()))
 
     def test_idxmax(self):
         # test idxmax
@@ -708,7 +716,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # skipna or no
         self.assertEqual(self.series[self.series.idxmax()], self.series.max())
-        self.assert_(isnull(self.series[self.series.idxmax(skipna=False)]))
+        self.assert_(isnull(self.series.idxmax(skipna=False)))
 
         # no NaNs
         nona = self.series.dropna()
@@ -718,7 +726,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # all NaNs
         allna = self.series * nan
-        self.assertEqual(allna.idxmax(), allna.index[0])
+        self.assert_(isnull(allna.idxmax()))
 
     def test_operators_date(self):
         result = self.objSeries + timedelta(1)

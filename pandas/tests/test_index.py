@@ -224,10 +224,14 @@ class TestIndex(unittest.TestCase):
 
             self.assert_(isinstance(unpickled, Index))
             self.assert_(np.array_equal(unpickled, index))
+            self.assertEquals(unpickled.name, index.name)
 
             tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
         testit(self.strIndex)
+        self.strIndex.name = 'foo'
+        testit(self.strIndex)
+
         testit(self.dateIndex)
 
     # def test_always_get_null_index(self):
@@ -587,6 +591,14 @@ class TestInt64Index(unittest.TestCase):
         index = Int64Index([1,2,3,4], name='foo')
         taken = index.take([3,0,1])
         self.assertEqual(index.name, taken.name)
+
+    def test_int_name_format(self):
+        from pandas import Series, DataFrame
+        index = Index(['a', 'b', 'c'], name=0)
+        s = Series(range(3), index)
+        df = DataFrame(range(3), index=index)
+        repr(s)
+        repr(df)
 
 class TestMultiIndex(unittest.TestCase):
 
@@ -1073,6 +1085,16 @@ class TestMultiIndex(unittest.TestCase):
         index = self.index[self.index.get_loc('foo')]
         dropped = index.droplevel(0)
         self.assertEqual(dropped.name, 'second')
+
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                           names=['one', 'two', 'three'])
+        dropped = index.droplevel(0)
+        self.assertEqual(dropped.names, ['two', 'three'])
 
     def test_insert(self):
         # key contained in all levels

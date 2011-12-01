@@ -732,6 +732,9 @@ class TestGroupBy(unittest.TestCase):
         expected0 = frame.groupby(deleveled['first']).sum()
         expected1 = frame.groupby(deleveled['second']).sum()
 
+        self.assert_(result0.index.name == 'first')
+        self.assert_(result1.index.name == 'second')
+
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
         self.assertEquals(result0.index.name, frame.index.names[0])
@@ -752,6 +755,17 @@ class TestGroupBy(unittest.TestCase):
 
         # raise exception for non-MultiIndex
         self.assertRaises(ValueError, self.df.groupby, level=0)
+
+    def test_groupby_level_apply(self):
+        frame = self.mframe
+
+        result = frame.groupby(level=0).count()
+        self.assert_(result.index.name == 'first')
+        result = frame.groupby(level=1).count()
+        self.assert_(result.index.name == 'second')
+
+        result = frame['A'].groupby(level=0).count()
+        self.assert_(result.index.name == 'first')
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
@@ -1011,6 +1025,27 @@ class TestGroupBy(unittest.TestCase):
 
         result = grouped.agg(np.mean)
         expected = grouped.mean()
+        assert_frame_equal(result, expected)
+
+    def test_groupby_series_with_name(self):
+        result = self.df.groupby(self.df['A']).mean()
+        result2 = self.df.groupby(self.df['A'], as_index=False).mean()
+        self.assertEquals(result.index.name, 'A')
+        self.assert_('A' in result2)
+
+        result = self.df.groupby([self.df['A'], self.df['B']]).mean()
+        result2 = self.df.groupby([self.df['A'], self.df['B']],
+                                 as_index=False).mean()
+        self.assertEquals(result.index.names, ['A', 'B'])
+        self.assert_('A' in result2)
+        self.assert_('B' in result2)
+
+    def test_groupby_nonstring_columns(self):
+        df = DataFrame([np.arange(10) for x in range(10)])
+        grouped = df.groupby(0)
+        result = grouped.mean()
+        expected = df.groupby(df[0]).mean()
+        del expected[0]
         assert_frame_equal(result, expected)
 
 class TestPanelGroupBy(unittest.TestCase):

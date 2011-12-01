@@ -49,6 +49,9 @@ cdef double_t *get_double_ptr(ndarray arr):
 
     return <double_t *> arr.data
 
+cdef extern from "numpy_helper.h":
+    inline int is_integer_object(object)
+
 cdef extern from "math.h":
     double sqrt(double x)
 

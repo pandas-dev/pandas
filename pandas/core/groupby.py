@@ -534,6 +534,10 @@ class Grouping(object):
         self.grouper = _convert_grouper(index, grouper)
         self.index = index
 
+        # right place for this?
+        if isinstance(grouper, Series) and name is None:
+            self.name = grouper.name
+
         if level is not None:
             if not isinstance(level, int):
                 assert(level in index.names)
@@ -629,7 +633,7 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
     exclusions = []
     for i, (gpr, level) in enumerate(zip(groupers, levels)):
         name = None
-        if isinstance(gpr, basestring):
+        if _is_label_like(gpr):
             exclusions.append(gpr)
             name = gpr
             gpr = obj[gpr]
@@ -639,6 +643,9 @@ def _get_groupings(obj, grouper=None, axis=0, level=None):
         groupings.append(ping)
 
     return groupings, exclusions
+
+def _is_label_like(val):
+    return isinstance(val, basestring) or np.isscalar(val)
 
 def _convert_grouper(axis, grouper):
     if isinstance(grouper, dict):
@@ -749,12 +756,18 @@ class SeriesGroupBy(GroupBy):
 
         key_names = [ping.name for ping in self.groupings]
 
+        def _get_index():
+            if len(self.groupings) > 1:
+                index = MultiIndex.from_tuples(keys, names=key_names)
+            else:
+                index = Index(keys, name=key_names[0])
+            return index
+
         if isinstance(values[0], Series):
             if not_indexed_same:
                 data_dict = dict(zip(keys, values))
                 result = DataFrame(data_dict).T
-                if len(self.groupings) > 1:
-                    result.index = MultiIndex.from_tuples(keys, names=key_names)
+                result.index = _get_index()
                 return result
             else:
                 cat_values = np.concatenate([x.values for x in values])
@@ -767,11 +780,7 @@ class SeriesGroupBy(GroupBy):
             return self._wrap_frames(keys, values,
                                      not_indexed_same=not_indexed_same)
         else:
-            if len(self.groupings) > 1:
-                index = MultiIndex.from_tuples(keys, names=key_names)
-                return Series(values, index)
-            else:
-                return Series(values, keys)
+            return Series(values, index=_get_index())
 
     def _aggregate_multiple_funcs(self, arg):
         if not isinstance(arg, dict):
@@ -1064,6 +1073,8 @@ class DataFrameGroupBy(GroupBy):
         else:
             if len(self.groupings) > 1:
                 keys = MultiIndex.from_tuples(keys, names=key_names)
+            else:
+                keys = Index(keys, name=key_names[0])
 
             if isinstance(values[0], np.ndarray):
                 if self.axis == 0:
