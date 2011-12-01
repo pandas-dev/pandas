@@ -69,8 +69,6 @@ def get_data_yahoo(name=None, start=None, end=None):
 
     Returns a DataFrame.
     """
-    from dateutil.relativedelta import relativedelta
-
     start, end = _sanitize_dates(start, end)
 
     if(name is None):
@@ -79,13 +77,11 @@ def get_data_yahoo(name=None, start=None, end=None):
 
     yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
 
-    start -= relativedelta(months=1)
-
     url = yahoo_URL + 's=%s' % name + \
-      '&a=%s' % start.month + \
+      '&a=%s' % (start.month - 1) + \
       '&b=%s' % start.day + \
       '&c=%s' % start.year + \
-      '&d=%s' % end.month + \
+      '&d=%s' % (end.month - 1) + \
       '&e=%s' % end.day + \
       '&f=%s' % end.year + \
       '&g=d' + \
