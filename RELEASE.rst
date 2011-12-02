@@ -39,12 +39,15 @@ pandas 0.6.1
     axis (GH #423)
   - Fix Yahoo! Finance API usage in pandas.io.data (GH #419, PR #427)
   - Fix upstream bug causing failure in Series.align with empty Series (GH #434)
+  - Function passed to DataFrame.apply can return a list, as long as it's the
+    right length. Regression from 0.4 (GH #432)
 
 Thanks
 ------
 - Ralph Bean
 - Joon Ro
 - Wouter Overmeire
+- Chris Uga
 
 pandas 0.6.0
 ============

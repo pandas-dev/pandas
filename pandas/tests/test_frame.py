@@ -2795,6 +2795,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         exp = self.frame.apply(lambda x: (x - 2.) / 2.)
         assert_frame_equal(res, exp)
 
+    def test_apply_yield_list(self):
+        result = self.frame.apply(list)
+        assert_frame_equal(result, self.frame)
+
+    def test_apply_reduce_Series(self):
+        self.frame.ix[::2, 'A'] = np.nan
+        result = self.frame.apply(np.mean, axis=1)
+        expected = self.frame.mean(1)
+        assert_series_equal(result, expected)
+
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
