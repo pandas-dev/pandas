@@ -2055,9 +2055,8 @@ class DataFrame(NDFrame):
 
     def delevel(self):
         """
-        For DataFrame with multi-level index, return new DataFrame with
-        labeling information in the columns under names 'level_0', 'level_1',
-        etc.
+        For DataFrame with multi-level index, return new DataFrame with labeling
+        information in the columns under names 'level_0', 'level_1', etc.
 
         Notes
         -----
@@ -2075,7 +2074,11 @@ class DataFrame(NDFrame):
                 col_name = names[i]
                 if col_name is None:
                     col_name = 'level_%d' % i
-                new_obj.insert(0, col_name, np.asarray(lev).take(lab))
+
+                # to ndarray and maybe infer different dtype
+                level_values = lev.values
+                level_values = lib.maybe_convert_objects(level_values)
+                new_obj.insert(0, col_name, level_values.take(lab))
         else:
             if self.index.name is None:
                 raise Exception('Must have name set')

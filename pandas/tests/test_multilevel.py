@@ -11,7 +11,7 @@ from pandas import Panel, DataFrame, Series, notnull, isnull
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal)
-
+import pandas.core.common as com
 import pandas.util.testing as tm
 
 try:
@@ -265,6 +265,18 @@ class TestMultiLevel(unittest.TestCase):
 
         # preserve names
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
+
+    def test_delevel_infer_dtype(self):
+        import itertools
+        tuples = [tuple for tuple in itertools.product(['foo', 'bar'],
+                                                       [10, 20], [1.0, 1.1])]
+        index = MultiIndex.from_tuples(tuples,
+                                       names=['prm0', 'prm1', 'prm2'])
+        df = DataFrame(np.random.randn(8,3), columns=['A', 'B', 'C'],
+                       index=index)
+        deleveled = df.delevel()
+        self.assert_(com.is_integer_dtype(deleveled['prm1']))
+        self.assert_(com.is_float_dtype(deleveled['prm2']))
 
     def test_sortlevel_by_name(self):
         self.frame.index.names = ['first', 'second']

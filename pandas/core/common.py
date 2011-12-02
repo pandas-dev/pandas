@@ -646,6 +646,11 @@ def _asarray_tuplesafe(values, dtype=None):
 
     return result
 
+def is_integer_dtype(arr):
+    return issubclass(arr.dtype.type, np.integer)
+
+def is_float_dtype(arr):
+    return issubclass(arr.dtype.type, np.floating)
 
 def save(obj, path):
     """
