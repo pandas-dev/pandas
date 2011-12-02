@@ -46,7 +46,10 @@ pandas 0.6.1
   - Fix upstream bug causing failure in Series.align with empty Series (GH #434)
   - Function passed to DataFrame.apply can return a list, as long as it's the
     right length. Regression from 0.4 (GH #432)
-  - Don't "accidentally" upcast scalar values when indexing using .ix (GH #
+  - Don't "accidentally" upcast scalar values when indexing using .ix (GH #431)
+  - Fix groupby exception raised with as_index=False and single column selected
+    (GH #421)
+
 
 Thanks
 ------

@@ -401,13 +401,10 @@ class GroupBy(object):
 
         try:
             stride_shape = self._agg_stride_shape
-            output = np.empty(group_shape + stride_shape,
-                              dtype=float)
+            output = np.empty(group_shape + stride_shape, dtype=float)
             output.fill(np.nan)
             obj = self._obj_with_exclusions
-            _doit(output, counts, gen_factory(obj),
-                  shape_axis=self.axis)
-
+            _doit(output, counts, gen_factory(obj), shape_axis=self.axis)
             mask = counts.ravel() > 0
             output = output.reshape((np.prod(group_shape),) + stride_shape)
             output = output[mask]
@@ -862,6 +859,10 @@ class DataFrameGroupBy(GroupBy):
 
     @property
     def _agg_stride_shape(self):
+        if self._column is not None:
+            # ffffff
+            return 1
+
         if self.axis == 0:
             n = len(self.obj.columns)
         else:
@@ -1028,7 +1029,7 @@ class DataFrameGroupBy(GroupBy):
 
     def _wrap_aggregated_output(self, output, mask):
         agg_axis = 0 if self.axis == 1 else 1
-        agg_labels = self.obj._get_axis(agg_axis)
+        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
         if isinstance(output, dict):
             if len(output) == len(agg_labels):
                 output_keys = agg_labels

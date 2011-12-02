@@ -614,6 +614,15 @@ class TestGroupBy(unittest.TestCase):
         expected.index = np.arange(len(expected))
         assert_frame_equal(result, expected)
 
+    def test_groupby_as_index_series_scalar(self):
+        grouped = self.df.groupby(['A', 'B'], as_index=False)
+
+        # GH #421
+
+        result = grouped['C'].agg(len)
+        expected = grouped.agg(len).ix[:, ['A', 'B', 'C']]
+        assert_frame_equal(result, expected)
+
     def test_groupby_as_index_corner(self):
         self.assertRaises(TypeError, self.ts.groupby,
                           lambda x: x.weekday(), as_index=False)
