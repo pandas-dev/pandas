@@ -2412,6 +2412,13 @@ class DataFrame(NDFrame):
         -------
         appended : DataFrame
         """
+        if isinstance(other, Series):
+            other = other.reindex(self.columns, copy=False)
+            other = DataFrame(other.values.reshape((1, len(other))),
+                              columns=self.columns)
+            if not ignore_index:
+                raise Exception('Can only append a Series if ignore_index=True')
+
         if not other:
             return self.copy()
         if not self:
@@ -2429,7 +2436,13 @@ class DataFrame(NDFrame):
             return self._append_different_columns(other, new_index)
 
     def _append_different_columns(self, other, new_index):
-        new_columns = self.columns + other.columns
+        indexer = self.columns.get_indexer(other.columns)
+
+        if not (indexer == -1).any():
+            new_columns = self.columns
+        else:
+            new_columns = self.columns.union(other.columns)
+
         new_data = self._append_column_by_column(other)
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns)

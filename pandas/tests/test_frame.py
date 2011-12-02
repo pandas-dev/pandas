@@ -1971,6 +1971,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(np.concatenate((arr1, arr2)))
         assert_frame_equal(result, expected)
 
+    def test_append_series(self):
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        series = df.ix[4]
+        self.assertRaises(Exception, df.append, series)
+
+        result = df.append(series[::-1], ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1]}).T,
+                             ignore_index=True)
+        assert_frame_equal(result, expected)
+
+        result = df.append(series[::-1][:3], ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1][:3]}).T,
+                             ignore_index=True)
+        assert_frame_equal(result, expected)
+
     def test_append_different_columns(self):
         df = DataFrame({'bools' : np.random.randn(10) > 0,
                         'ints' : np.random.randint(0, 10, 10),

@@ -27,6 +27,11 @@ pandas 0.6.1
 
 **Release date:** Not yet released
 
+**New features / modules**
+
+  - Can pass Series to DataFrame.append with ignore_index=True for appending a
+    single row (GH #430)
+
 **Improvements to existing features**
   - Improve memory usage of `DataFrame.describe` (do not copy data
     unnecessarily) (PR #425)
@@ -41,6 +46,7 @@ pandas 0.6.1
   - Fix upstream bug causing failure in Series.align with empty Series (GH #434)
   - Function passed to DataFrame.apply can return a list, as long as it's the
     right length. Regression from 0.4 (GH #432)
+  - Don't "accidentally" upcast scalar values when indexing using .ix (GH #
 
 Thanks
 ------
