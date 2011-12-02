@@ -161,7 +161,11 @@ def take_1d(arr, indexer, out=None):
             take_f(arr, indexer, out=out)
         except ValueError:
             mask = indexer == -1
-            out = arr.take(indexer, out=out)
+            if len(arr) == 0:
+                if not out_passed:
+                    out = np.empty(n, dtype=arr.dtype)
+            else:
+                out = arr.take(indexer, out=out)
             if mask.any():
                 if out_passed:
                     raise Exception('out with dtype %s does not support NA' %
