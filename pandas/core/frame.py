@@ -2571,7 +2571,7 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
         """
-        cols = self.columns
+        cols = self._get_numeric_columns()
         mat = self.as_matrix(cols).T
         baseCov = np.cov(mat)
 

@@ -2080,6 +2080,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(correls['A']['C'],
                             self.frame['A'].corr(self.frame['C']))
 
+        # exclude non-numeric types
+        result = self.mixed_frame.corr()
+        expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].corr()
+        assert_frame_equal(result, expected)
+
     def test_cov(self):
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan

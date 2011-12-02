@@ -37,6 +37,8 @@ pandas 0.6.1
     unnecessarily) (PR #425)
   - Use same formatting function for outputting floating point Series to console
     as in DataFrame (PR #420)
+  - DataFrame.delevel will try to infer better dtype for new columns (GH #440)
+  - Exclude non-numeric types in DataFrame.corr
 
 **Bug fixes**
 
