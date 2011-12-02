@@ -1,6 +1,7 @@
 """
 Some examples playing around with yahoo finance data
 """
+# foo
 
 from datetime import datetime
 
