@@ -674,6 +674,13 @@ class CheckIndexing(object):
                 self.frame.put_value(idx, col, 1)
                 self.assertEqual(self.frame[col][idx], 1)
 
+    def test_single_element_ix_dont_upcast(self):
+        self.frame['E'] = 1
+        self.assert_(issubclass(self.frame['E'].dtype.type, np.integer))
+
+        result = self.frame.ix[self.frame.index[5], 'E']
+        self.assert_(isinstance(result, np.integer))
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
@@ -2804,7 +2811,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = self.frame.apply(np.mean, axis=1)
         expected = self.frame.mean(1)
         assert_series_equal(result, expected)
-
 
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)

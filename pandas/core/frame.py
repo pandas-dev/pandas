@@ -921,7 +921,9 @@ class DataFrame(NDFrame):
         """
         iloc = self.index.get_loc(index)
         vals = self._getitem_single(col).values
-        return vals[iloc]
+        result = vals[iloc]
+        assert(not lib.is_array(result)) # a little faster than isinstance
+        return result
 
     def put_value(self, index, col, value):
         """
