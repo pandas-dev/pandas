@@ -134,8 +134,8 @@ class SafeForLongAndSparse(object):
 
 class SafeForSparse(object):
 
-    @staticmethod
-    def assert_panel_equal(x, y):
+    @classmethod
+    def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
 
     def test_get_axis(self):
@@ -523,8 +523,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
 
-    @staticmethod
-    def assert_panel_equal(x, y):
+    @classmethod
+    def assert_panel_equal(cls,x, y):
         assert_panel_equal(x, y)
 
     def setUp(self):

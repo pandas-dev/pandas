@@ -2666,7 +2666,7 @@ class DataFrame(NDFrame):
         destat = []
 
         for column in numeric_columns:
-            series = self._getitem_single(column)
+            series = self[column]
             destat.append([series.count(), series.mean(), series.std(),
                            series.min(), series.quantile(.25), series.median(),
                            series.quantile(.75), series.max()])

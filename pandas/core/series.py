@@ -829,7 +829,10 @@ copy : boolean, default False
         quantile : float
         """
         from scipy.stats import scoreatpercentile
-        return scoreatpercentile(self.dropna().values, q * 100)
+        valid_values = self.dropna().values
+        if len(valid_values) == 0:
+            return np.nan
+        return scoreatpercentile(valid_values, q * 100)
 
     def describe(self):
         """

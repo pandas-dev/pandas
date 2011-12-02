@@ -8,6 +8,8 @@ import pandas.util.testing as tm
 
 import numpy as np
 
+from numpy.testing.decorators import slow
+
 class TestSeriesPlots(unittest.TestCase):
 
     @classmethod
@@ -29,6 +31,7 @@ class TestSeriesPlots(unittest.TestCase):
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
 
+    @slow
     def test_plot(self):
         _check_plot_works(self.ts.plot, label='foo')
         _check_plot_works(self.ts.plot, use_index=False)
@@ -37,6 +40,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts[:10].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='bar')
 
+    @slow
     def test_hist(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
@@ -56,12 +60,14 @@ class TestDataFramePlots(unittest.TestCase):
         except ImportError:
             raise nose.SkipTest
 
+    @slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
         _check_plot_works(df.plot, grid=False)
         _check_plot_works(df.plot, subplots=True)
         _check_plot_works(df.plot, subplots=True, use_index=False)
 
+    @slow
     def test_plot_bar(self):
         df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
@@ -76,6 +82,7 @@ class TestDataFramePlots(unittest.TestCase):
                        columns=range(15))
         _check_plot_works(df.plot, kind='bar')
 
+    @slow
     def test_boxplot(self):
         df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
@@ -89,11 +96,13 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
 
+    @slow
     def test_hist(self):
         df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.hist)
         _check_plot_works(df.hist, grid=False)
 
+    @slow
     def test_plot_int_columns(self):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
