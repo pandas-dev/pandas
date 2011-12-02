@@ -56,6 +56,9 @@ def DataReader(name, data_source=None, start=None, end=None):
         return get_data_famafrench(name=name)
 
 def _sanitize_dates(start, end):
+    from pandas.core.datetools import to_datetime
+    start = to_datetime(start)
+    end = to_datetime(end)
     if start is None:
         start = dt.datetime.today() - dt.timedelta(365)
     if end is None:

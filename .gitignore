@@ -4,6 +4,7 @@ build
 dist
 MANIFEST
 *.c
+*.cpp
 *.so
 *.pyd
 pandas/version.py
