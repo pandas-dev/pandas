@@ -27,10 +27,20 @@ pandas 0.6.1
 
 **Release date:** Not yet released
 
+**Improvements to existing features**
+  - Improve memory usage of `DataFrame.describe` (do not copy data
+    unnecessarily) (PR #425)
+
 **Bug fixes**
 
   - `DataFrame.count` should return Series with zero instead of NA with length-0
     axis (GH #423)
+  - Fix Yahoo! Finance API usage in pandas.io.data (GH #419, PR #427)
+
+Thanks
+------
+- Ralph Bean
+- Joon Ro
 
 pandas 0.6.0
 ============
