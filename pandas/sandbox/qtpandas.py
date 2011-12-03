@@ -14,13 +14,14 @@ class DataFrameModel(QAbstractTableModel):
     ''' data model for a DataFrame class '''
     def __init__(self):
         super(DataFrameModel,self).__init__()
+        self.df = DataFrame()
          
-    def setData(self,dataFrame):
+    def setDataFrame(self,dataFrame):
         self.df = dataFrame
     
     def signalUpdate(self):
         ''' tell viewers to update their data (this is full update, not efficient)'''
-        self.emit(SIGNAL('layoutChanged()'))   
+        self.layoutChanged.emit()
               
     #------------- table display functions -----------------     
     def headerData(self,section,orientation,role=Qt.DisplayRole):
@@ -46,8 +47,7 @@ class DataFrameModel(QAbstractTableModel):
         if not index.isValid():
             return QVariant()
         
-        col = self.df.ix[:,index.column()] # get a column slice first to get the right data type
-        return QVariant(str(col.ix[index.row()]))
+        return QVariant(str(self.df.ix[index.row(),index.column()]))
         
       
     def rowCount(self, index=QModelIndex()):
@@ -63,14 +63,17 @@ class DataFrameWidget(QWidget):
         super(DataFrameWidget,self).__init__(parent)
         
         self.dataModel = DataFrameModel()
-        self.dataModel.setData(dataFrame)
+        self.dataModel.setDataFrame(dataFrame)
         
         self.dataTable = QTableView()
         self.dataTable.setModel(self.dataModel)
+        self.dataModel.signalUpdate()
         
         layout = QVBoxLayout()
         layout.addWidget(self.dataTable)
         self.setLayout(layout)
+        
+        
     
     def resizeColumnsToContents(self):
         self.dataTable.resizeColumnsToContents()    
