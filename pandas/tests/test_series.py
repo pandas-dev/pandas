@@ -686,6 +686,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         check_comparators(5)
         check_comparators(self.ts + 1)
 
+    def test_operators_empty_int_corner(self):
+        s1 = Series([], [], dtype=np.int32)
+        s2 = Series({'x' : 0.})
+
+        # it works!
+        _ = s1 * s2
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isnull check.
@@ -1179,6 +1186,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         for kind in JOIN_TYPES:
             _check_align(self.ts[2:], self.ts[:-5])
+
+            # empty left
+            _check_align(self.ts[:0], self.ts[:-5])
+
+            # empty right
+            _check_align(self.ts[:-5], self.ts[:0])
+
+            # both empty
+            _check_align(self.ts[:0], self.ts[:0])
 
     def test_align_nocopy(self):
         b = self.ts[:5].copy()

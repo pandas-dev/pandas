@@ -1177,8 +1177,8 @@ class TestSparsePanel(TestCase,
                       test_panel.SafeForLongAndSparse,
                       test_panel.SafeForSparse):
 
-    @staticmethod
-    def assert_panel_equal(x, y):
+    @classmethod
+    def assert_panel_equal(cls, x, y):
         assert_sp_panel_equal(x, y)
 
     def setUp(self):

@@ -469,6 +469,8 @@ cdef class cache_readonly(object):
             PyDict_SetItem(cache, self.name, val)
             return val
 
+cpdef is_array(object o):
+    return np.PyArray_Check(o)
 
 include "skiplist.pyx"
 include "groupby.pyx"

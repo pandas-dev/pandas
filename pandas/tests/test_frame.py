@@ -674,6 +674,13 @@ class CheckIndexing(object):
                 self.frame.put_value(idx, col, 1)
                 self.assertEqual(self.frame[col][idx], 1)
 
+    def test_single_element_ix_dont_upcast(self):
+        self.frame['E'] = 1
+        self.assert_(issubclass(self.frame['E'].dtype.type, np.integer))
+
+        result = self.frame.ix[self.frame.index[5], 'E']
+        self.assert_(isinstance(result, np.integer))
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
@@ -1964,6 +1971,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(np.concatenate((arr1, arr2)))
         assert_frame_equal(result, expected)
 
+    def test_append_series(self):
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        series = df.ix[4]
+        self.assertRaises(Exception, df.append, series)
+
+        result = df.append(series[::-1], ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1]}).T,
+                             ignore_index=True)
+        assert_frame_equal(result, expected)
+
+        result = df.append(series[::-1][:3], ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1][:3]}).T,
+                             ignore_index=True)
+        assert_frame_equal(result, expected)
+
     def test_append_different_columns(self):
         df = DataFrame({'bools' : np.random.randn(10) > 0,
                         'ints' : np.random.randint(0, 10, 10),
@@ -2055,6 +2079,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_almost_equal(correls['A']['C'],
                             self.frame['A'].corr(self.frame['C']))
+
+        # exclude non-numeric types
+        result = self.mixed_frame.corr()
+        expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].corr()
+        assert_frame_equal(result, expected)
 
     def test_cov(self):
         self.frame['A'][:5] = nan
@@ -2794,6 +2823,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         res = self.frame.apply(subtract_and_divide, args=(2,), divide=2)
         exp = self.frame.apply(lambda x: (x - 2.) / 2.)
         assert_frame_equal(res, exp)
+
+    def test_apply_yield_list(self):
+        result = self.frame.apply(list)
+        assert_frame_equal(result, self.frame)
+
+    def test_apply_reduce_Series(self):
+        self.frame.ix[::2, 'A'] = np.nan
+        result = self.frame.apply(np.mean, axis=1)
+        expected = self.frame.mean(1)
+        assert_series_equal(result, expected)
 
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)

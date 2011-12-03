@@ -921,7 +921,9 @@ class DataFrame(NDFrame):
         """
         iloc = self.index.get_loc(index)
         vals = self._getitem_single(col).values
-        return vals[iloc]
+        result = vals[iloc]
+        assert(not lib.is_array(result)) # a little faster than isinstance
+        return result
 
     def put_value(self, index, col, value):
         """
@@ -2053,9 +2055,8 @@ class DataFrame(NDFrame):
 
     def delevel(self):
         """
-        For DataFrame with multi-level index, return new DataFrame with
-        labeling information in the columns under names 'level_0', 'level_1',
-        etc.
+        For DataFrame with multi-level index, return new DataFrame with labeling
+        information in the columns under names 'level_0', 'level_1', etc.
 
         Notes
         -----
@@ -2073,7 +2074,11 @@ class DataFrame(NDFrame):
                 col_name = names[i]
                 if col_name is None:
                     col_name = 'level_%d' % i
-                new_obj.insert(0, col_name, np.asarray(lev).take(lab))
+
+                # to ndarray and maybe infer different dtype
+                level_values = lev.values
+                level_values = lib.maybe_convert_objects(level_values)
+                new_obj.insert(0, col_name, level_values.take(lab))
         else:
             if self.index.name is None:
                 raise Exception('Must have name set')
@@ -2410,6 +2415,13 @@ class DataFrame(NDFrame):
         -------
         appended : DataFrame
         """
+        if isinstance(other, Series):
+            other = other.reindex(self.columns, copy=False)
+            other = DataFrame(other.values.reshape((1, len(other))),
+                              columns=self.columns)
+            if not ignore_index:
+                raise Exception('Can only append a Series if ignore_index=True')
+
         if not other:
             return self.copy()
         if not self:
@@ -2427,7 +2439,13 @@ class DataFrame(NDFrame):
             return self._append_different_columns(other, new_index)
 
     def _append_different_columns(self, other, new_index):
-        new_columns = self.columns + other.columns
+        indexer = self.columns.get_indexer(other.columns)
+
+        if not (indexer == -1).any():
+            new_columns = self.columns
+        else:
+            new_columns = self.columns.union(other.columns)
+
         new_data = self._append_column_by_column(other)
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns)
@@ -2553,7 +2571,7 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
         """
-        cols = self.columns
+        cols = self._get_numeric_columns()
         mat = self.as_matrix(cols).T
         baseCov = np.cov(mat)
 
@@ -2651,25 +2669,27 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
+        DataFrame of summary statistics
         """
-        cols = self._get_numeric_columns()
+        numeric_columns = self._get_numeric_columns()
 
-        if len(cols) == 0:
+        if len(numeric_columns) == 0:
             return DataFrame(dict((k, v.describe())
                                   for k, v in self.iteritems()),
-                             columns=self.columns)
+                                  columns=self.columns)
 
-        tmp = self.reindex(columns=cols)
+        destat_columns = ['count', 'mean', 'std', 'min',
+                          '25%', '50%', '75%', 'max']
 
-        cols_destat = ['count', 'mean', 'std', 'min',
-                       '25%', '50%', '75%', 'max']
+        destat = []
 
-        data = [tmp.count(), tmp.mean(), tmp.std(), tmp.min(),
-                tmp.quantile(.25), tmp.median(),
-                tmp.quantile(.75), tmp.max()]
+        for column in numeric_columns:
+            series = self[column]
+            destat.append([series.count(), series.mean(), series.std(),
+                           series.min(), series.quantile(.25), series.median(),
+                           series.quantile(.75), series.max()])
 
-        return self._constructor(data, index=cols_destat, columns=cols)
+        return self._constructor(map(list, zip(*destat)), index=destat_columns, columns=numeric_columns)
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods

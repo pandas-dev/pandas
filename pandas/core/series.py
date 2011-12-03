@@ -417,7 +417,7 @@ copy : boolean, default False
         padSpace = min(maxlen, 60)
 
         if float_format is None:
-            float_format = str
+            float_format = common._float_format
 
         def _format(k, v):
             if isnull(v):
@@ -829,7 +829,10 @@ copy : boolean, default False
         quantile : float
         """
         from scipy.stats import scoreatpercentile
-        return scoreatpercentile(self.dropna().values, q * 100)
+        valid_values = self.dropna().values
+        if len(valid_values) == 0:
+            return np.nan
+        return scoreatpercentile(valid_values, q * 100)
 
     def describe(self):
         """
@@ -1634,7 +1637,7 @@ copy : boolean, default False
 
         values = self.dropna().values
 
-        ax.hist(values)
+        ax.hist(values, **kwds)
         ax.grid(grid)
 
         return ax

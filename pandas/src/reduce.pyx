@@ -77,6 +77,8 @@ cdef class Reducer:
     def _get_result_array(self, object res):
         try:
             assert(not isinstance(res, np.ndarray))
+            assert(not (isinstance(res, list) and len(res) == len(self.dummy)))
+
             result = np.empty(self.nresults, dtype='O')
             # if hasattr(res, 'dtype'):
             #     result = np.empty(self.nresults, dtype=res.dtype)

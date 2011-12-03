@@ -27,10 +27,38 @@ pandas 0.6.1
 
 **Release date:** Not yet released
 
+**New features / modules**
+
+  - Can pass Series to DataFrame.append with ignore_index=True for appending a
+    single row (GH #430)
+
+**Improvements to existing features**
+  - Improve memory usage of `DataFrame.describe` (do not copy data
+    unnecessarily) (PR #425)
+  - Use same formatting function for outputting floating point Series to console
+    as in DataFrame (PR #420)
+  - DataFrame.delevel will try to infer better dtype for new columns (GH #440)
+  - Exclude non-numeric types in DataFrame.corr
+
 **Bug fixes**
 
   - `DataFrame.count` should return Series with zero instead of NA with length-0
     axis (GH #423)
+  - Fix Yahoo! Finance API usage in pandas.io.data (GH #419, PR #427)
+  - Fix upstream bug causing failure in Series.align with empty Series (GH #434)
+  - Function passed to DataFrame.apply can return a list, as long as it's the
+    right length. Regression from 0.4 (GH #432)
+  - Don't "accidentally" upcast scalar values when indexing using .ix (GH #431)
+  - Fix groupby exception raised with as_index=False and single column selected
+    (GH #421)
+
+
+Thanks
+------
+- Ralph Bean
+- Joon Ro
+- Wouter Overmeire
+- Chris Uga
 
 pandas 0.6.0
 ============

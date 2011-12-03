@@ -161,7 +161,11 @@ def take_1d(arr, indexer, out=None):
             take_f(arr, indexer, out=out)
         except ValueError:
             mask = indexer == -1
-            out = arr.take(indexer, out=out)
+            if len(arr) == 0:
+                if not out_passed:
+                    out = np.empty(n, dtype=arr.dtype)
+            else:
+                out = arr.take(indexer, out=out)
             if mask.any():
                 if out_passed:
                     raise Exception('out with dtype %s does not support NA' %
@@ -642,6 +646,11 @@ def _asarray_tuplesafe(values, dtype=None):
 
     return result
 
+def is_integer_dtype(arr):
+    return issubclass(arr.dtype.type, np.integer)
+
+def is_float_dtype(arr):
+    return issubclass(arr.dtype.type, np.floating)
 
 def save(obj, path):
     """

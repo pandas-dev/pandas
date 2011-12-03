@@ -56,6 +56,9 @@ def DataReader(name, data_source=None, start=None, end=None):
         return get_data_famafrench(name=name)
 
 def _sanitize_dates(start, end):
+    from pandas.core.datetools import to_datetime
+    start = to_datetime(start)
+    end = to_datetime(end)
     if start is None:
         start = dt.datetime.today() - dt.timedelta(365)
     if end is None:
@@ -69,8 +72,6 @@ def get_data_yahoo(name=None, start=None, end=None):
 
     Returns a DataFrame.
     """
-    from dateutil.relativedelta import relativedelta
-
     start, end = _sanitize_dates(start, end)
 
     if(name is None):
@@ -79,13 +80,11 @@ def get_data_yahoo(name=None, start=None, end=None):
 
     yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
 
-    start -= relativedelta(months=1)
-
     url = yahoo_URL + 's=%s' % name + \
-      '&a=%s' % start.month + \
+      '&a=%s' % (start.month - 1) + \
       '&b=%s' % start.day + \
       '&c=%s' % start.year + \
-      '&d=%s' % end.month + \
+      '&d=%s' % (end.month - 1) + \
       '&e=%s' % end.day + \
       '&f=%s' % end.year + \
       '&g=d' + \
