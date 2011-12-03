@@ -31,6 +31,8 @@ pandas 0.6.1
 
   - Can pass Series to DataFrame.append with ignore_index=True for appending a
     single row (GH #430)
+  - Add Spearman and Kendall correlation options to Series.corr and
+    DataFrame.corr (GH #428)
 
 **Improvements to existing features**
   - Improve memory usage of `DataFrame.describe` (do not copy data
@@ -38,7 +40,7 @@ pandas 0.6.1
   - Use same formatting function for outputting floating point Series to console
     as in DataFrame (PR #420)
   - DataFrame.delevel will try to infer better dtype for new columns (GH #440)
-  - Exclude non-numeric types in DataFrame.corr
+  - Exclude non-numeric types in DataFrame.{corr, cov}
 
 **Bug fixes**
 
@@ -51,7 +53,6 @@ pandas 0.6.1
   - Don't "accidentally" upcast scalar values when indexing using .ix (GH #431)
   - Fix groupby exception raised with as_index=False and single column selected
     (GH #421)
-
 
 Thanks
 ------

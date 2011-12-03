@@ -867,22 +867,24 @@ copy : boolean, default False
 
         return Series(data, index=names)
 
-    def corr(self, other):
+    def corr(self, other, method='pearson'):
         """
         Compute correlation two Series, excluding missing values
 
         Parameters
         ----------
         other : Series
+        method : {'pearson', 'kendall', 'spearman'}
+            pearson : standard correlation coefficient
+            kendall : Kendall Tau correlation coefficient
+            spearman : Spearman rank correlation
 
         Returns
         -------
         correlation : float
         """
-        this, that = self._get_nonna_aligned(other)
-        if this is None or that is None:
-            return nan
-        return np.corrcoef(this, that)[0, 1]
+        this, other = self.align(other, join='inner')
+        return nanops.nancorr(this.values, other.values, method=method)
 
     def cov(self, other):
         """
@@ -896,23 +898,10 @@ copy : boolean, default False
         -------
         covariance : float
         """
-        this, that = self._get_nonna_aligned(other)
-        if this is None or that is None:
-            return nan
-        return np.cov(this, that)[0, 1]
-
-    def _get_nonna_aligned(self, other):
-        """
-        Returns two sub-Series with the same index and only non-na values
-        """
-        commonIdx = self.dropna().index.intersection(other.dropna().index)
-
-        if len(commonIdx) == 0:
-            return None, None
-
-        this = self.reindex(commonIdx)
-        that = other.reindex(commonIdx)
-        return this, that
+        this, other = self.align(other, join='inner')
+        if len(this) == 0:
+            return np.nan
+        return nanops.nancov(this.values, other.values)
 
     def diff(self, periods=1):
         """

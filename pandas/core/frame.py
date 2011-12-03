@@ -2563,9 +2563,16 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self):
+    def corr(self, method='pearson'):
         """
         Compute pairwise correlation of columns, excluding NA/null values
+
+        Parameters
+        ----------
+        method : {'pearson', 'kendall', 'spearman'}
+            pearson : standard correlation coefficient
+            kendall : Kendall Tau correlation coefficient
+            spearman : Spearman rank correlation
 
         Returns
         -------
@@ -2573,16 +2580,19 @@ class DataFrame(NDFrame):
         """
         cols = self._get_numeric_columns()
         mat = self.as_matrix(cols).T
-        baseCov = np.cov(mat)
-
-        sigma = np.sqrt(np.diag(baseCov))
-        correl = baseCov / np.outer(sigma, sigma)
-
-        # Get the covariance with items that have NaN values
-        for i, j, ac, bc in self._cov_helper(mat):
-            c = np.corrcoef(ac, bc)[0, 1]
-            correl[i, j] = c
-            correl[j, i] = c
+        corrf = nanops.get_corr_func(method)
+        K = len(cols)
+        correl = np.empty((K, K), dtype=float)
+        mask = np.isfinite(mat)
+        for i, ac in enumerate(mat):
+            for j, bc  in enumerate(mat):
+                valid = mask[i] & mask[j]
+                if not valid.all():
+                    c = corrf(ac[valid], bc[valid])
+                else:
+                    c = corrf(ac, bc)
+                correl[i, j] = c
+                correl[j, i] = c
 
         return self._constructor(correl, index=cols, columns=cols)
 
@@ -2594,7 +2604,7 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
         """
-        cols = self.columns
+        cols = self._get_numeric_columns()
         mat = self.as_matrix(cols).T
         baseCov = np.cov(mat)
 

@@ -2075,10 +2075,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
 
-        correls = self.frame.corr()
+        def _check_method(method='pearson'):
+            correls = self.frame.corr(method=method)
+            exp = self.frame['A'].corr(self.frame['C'], method=method)
+            assert_almost_equal(correls['A']['C'], exp)
 
-        assert_almost_equal(correls['A']['C'],
-                            self.frame['A'].corr(self.frame['C']))
+        _check_method('pearson')
+        _check_method('kendall')
+        _check_method('spearman')
 
         # exclude non-numeric types
         result = self.mixed_frame.corr()
@@ -2092,6 +2096,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_almost_equal(cov['A']['C'],
                             self.frame['A'].cov(self.frame['C']))
+
+        # exclude non-numeric types
+        result = self.mixed_frame.cov()
+        expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].cov()
+        assert_frame_equal(result, expected)
 
     def test_corrwith(self):
         a = self.tsframe
