@@ -111,7 +111,8 @@ def _panel_arith_method(op, name):
         return self._combine(other, op, axis=axis)
 
     f.__name__ = name
-    f.__doc__ = f.__doc__ % str(op)
+    if __debug__:
+        f.__doc__ = f.__doc__ % str(op)
 
     return f
 
