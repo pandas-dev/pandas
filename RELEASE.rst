@@ -41,6 +41,7 @@ pandas 0.6.1
     as in DataFrame (PR #420)
   - DataFrame.delevel will try to infer better dtype for new columns (GH #440)
   - Exclude non-numeric types in DataFrame.{corr, cov}
+  - Override Index.astype to enable dtype casting (GH #412)
 
 **Bug fixes**
 
@@ -57,8 +58,9 @@ pandas 0.6.1
 Thanks
 ------
 - Ralph Bean
-- Joon Ro
 - Wouter Overmeire
+- Joon Ro
+- Chang She
 - Chris Uga
 
 pandas 0.6.0

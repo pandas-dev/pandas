@@ -65,6 +65,9 @@ class Index(np.ndarray):
     def __array_finalize__(self, obj):
         self.name = getattr(obj, 'name', None)
 
+    def astype(self, dtype):
+        return Index(self.values.astype(dtype))
+
     @property
     def dtype(self):
         return self.values.dtype

@@ -156,7 +156,7 @@ def makeStringIndex(k):
     return Index([rands(10) for _ in xrange(k)])
 
 def makeIntIndex(k):
-    return Index(np.arange(k))
+    return Index(range(k))
 
 def makeDateIndex(k):
     dates = list(DateRange(datetime(2000, 1, 1), periods=k))

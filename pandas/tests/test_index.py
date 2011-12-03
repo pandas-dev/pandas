@@ -62,6 +62,12 @@ class TestIndex(unittest.TestCase):
         # corner case
         self.assertRaises(Exception, Index, 0)
 
+    def test_astype(self):
+        casted = self.intIndex.astype('i8')
+
+        # it works!
+        casted.get_loc(5)
+
     def test_compat(self):
         self.strIndex.tolist()
 
