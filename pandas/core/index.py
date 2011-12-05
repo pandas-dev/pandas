@@ -444,12 +444,12 @@ class Index(np.ndarray):
         """
         return self._engine.get_value(arr, key)
 
-    def put_value(self, arr, key, value):
+    def set_value(self, arr, key, value):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        self._engine.put_value(arr, key, value)
+        self._engine.set_value(arr, key, value)
 
     def get_indexer(self, target, method=None):
         """

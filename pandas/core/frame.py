@@ -890,7 +890,7 @@ class DataFrame(NDFrame):
 
     def get_value(self, index, col):
         """
-        Retrieve single value at passed column and index
+        Quickly retrieve single value at passed column and index
 
         Parameters
         ----------

@@ -380,7 +380,8 @@ to sparse
         y : scalar
         """
         if label in self.index:
-            return self._get_val_at(label)
+            loc = self.index.get_loc(label)
+            return self._get_val_at(loc)
         else:
             return default
 
@@ -397,6 +398,13 @@ to sparse
             return self.fill_value
         else:
             return ndarray.__getitem__(self, sp_loc)
+
+    def get_value(self, label):
+        loc = self.index.get_loc(label)
+        return self._get_val_at(loc)
+
+    def set_value(self, label, value):
+        raise Exception('SparseSeries is immutable')
 
     def take(self, indices):
         """
@@ -931,6 +939,17 @@ class SparseDataFrame(DataFrame):
                 return self.reindex(newIndex)
             else: # pragma: no cover
                 raise
+
+    def get_value(self, index, col):
+        s = self._series[col]
+        return s.get_value(index)
+    if __debug__: get_value.__doc__ = DataFrame.get_value.__doc__
+
+    def set_value(self, index, col, value):
+        """
+        Not implemented for SparseDataFrame
+        """
+        raise Exception('Values in SparseDataFrame are immutable')
 
     def _slice(self, slobj, axis=0):
         if axis == 0:

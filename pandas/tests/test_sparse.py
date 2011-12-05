@@ -304,9 +304,19 @@ class TestSparseSeries(TestCase,
         self.assertRaises(Exception, self.btseries.__getitem__,
                           self.btseries.index[-1] + BDay())
 
-    def test_get(self):
+    def test_get_get_value(self):
         assert_almost_equal(self.bseries.get(10), self.bseries[10])
         self.assert_(self.bseries.get(len(self.bseries) + 1) is None)
+
+        dt = self.btseries.index[10]
+        result = self.btseries.get(dt)
+        expected = self.btseries.to_dense()[dt]
+        assert_almost_equal(result, expected)
+
+        assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
+
+    def test_set_value(self):
+        self.assertRaises(Exception, self.bseries.set_value, 10, 0)
 
     def test_getitem_fancy_index(self):
         idx = self.bseries.index
@@ -818,6 +828,9 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_getitem(self):
         pass
+
+    def test_set_value(self):
+        self.assertRaises(Exception, self.frame.set_value, 10, 0)
 
     def test_fancy_index_misc(self):
         # axis = 0
