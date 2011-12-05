@@ -289,7 +289,7 @@ else:
     tseries_depends = None
 
 tseries_ext = Extension('pandas._tseries',
-                        depends=tseries_depends,
+                        depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                         sources=[srcpath('tseries', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
@@ -298,8 +298,9 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 
 engines_ext = Extension('pandas._engines',
-                       sources=[srcpath('engines', suffix=suffix)],
-                       include_dirs=[np.get_include()])
+                        depends=['pandas/src/numpy_helper.h'],
+                        sources=[srcpath('engines', suffix=suffix)],
+                        include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],

@@ -447,6 +447,40 @@ class Panel(NDFrame):
 
     values = property(fget=_get_values)
 
+    #----------------------------------------------------------------------
+    # Getting and setting elements
+
+    def get_value(self, item, major, minor):
+        """
+        Quickly retrieve single value at (item, major, minor) location
+
+        Parameters
+        ----------
+        item : item label (panel item)
+        major : major axis label (panel item row)
+        minor : minor axis label (panel item column)
+
+        Returns
+        -------
+        element : scalar value
+        """
+        # hm, two layers to the onion
+        frame = self._get_item_cache(item)
+        return frame.get_value(major, minor)
+
+    def set_value(self, item, major, minor, value):
+        """
+        Quickly set single value at (item, major, minor) location
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        value : scalar value
+        """
+        frame = self._get_item_cache(item)
+        return frame.set_value(major, minor, value)
+
     def _box_item_values(self, key, values):
         return DataFrame(values, index=self.major_axis, columns=self.minor_axis)
 

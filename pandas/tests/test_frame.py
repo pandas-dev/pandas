@@ -666,16 +666,20 @@ class CheckIndexing(object):
             for col in self.frame.columns:
                 result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
-                self.assertEqual(result, expected)
-
-        # partial w/ MultiIndex raise exception
-        index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
+                assert_almost_equal(result, expected)
 
     def test_set_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
                 self.frame.set_value(idx, col, 1)
-                self.assertEqual(self.frame[col][idx], 1)
+                assert_almost_equal(self.frame[col][idx], 1)
+
+    def test_get_set_value_no_partial_indexing(self):
+        # partial w/ MultiIndex raise exception
+        index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
+        df = DataFrame(index=index, columns=range(4))
+        self.assertRaises(KeyError, df.get_value, 0, 1)
+        self.assertRaises(KeyError, df.set_value, 0, 1, 0)
 
     def test_single_element_ix_dont_upcast(self):
         self.frame['E'] = 1

@@ -528,6 +528,21 @@ class CheckIndexing(object):
         self.assert_((obj.values == 0).all())
         comp(cp.ix[indexer].reindex_like(obj), obj)
 
+    def test_get_value(self):
+        for item in self.panel.items:
+            for mjr in self.panel.major_axis[::2]:
+                for mnr in self.panel.minor_axis:
+                    result = self.panel.get_value(item, mjr, mnr)
+                    expected = self.panel[item][mnr][mjr]
+                    assert_almost_equal(result, expected)
+
+    def test_set_value(self):
+        for item in self.panel.items:
+            for mjr in self.panel.major_axis[::2]:
+                for mnr in self.panel.minor_axis:
+                    self.panel.set_value(item, mjr, mnr, 1.)
+                    assert_almost_equal(self.panel[item][mnr][mjr], 1.)
+
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):

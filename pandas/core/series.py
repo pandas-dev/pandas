@@ -24,6 +24,7 @@ import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
+import pandas._engines as _gin
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -253,12 +254,11 @@ copy : boolean, default False
                 return self._multilevel_index(key)
             else:
                 hash(key)
-                values = self.values
                 try:
-                    return values[self.index.get_loc(key)]
+                    return self.get_value(key)
                 except KeyError, e1:
                     try:
-                        return values[key]
+                        return _gin.get_value_at(self, key)
                     except Exception, _:
                         pass
                     raise e1
@@ -305,12 +305,25 @@ copy : boolean, default False
         y : scalar
         """
         try:
-            return self.index._engine.get_value(self, label)
+            return self.get_value(label)
         except KeyError:
             return default
-    get_value = get
 
-    def put_value(self, label, value):
+    def get_value(self, label):
+        """
+        Quickly retrieve single value at passed index label
+
+        Parameters
+        ----------
+        index : label
+
+        Returns
+        -------
+        value : scalar value
+        """
+        return self.index._engine.get_value(self, label)
+
+    def set_value(self, label, value):
         """
         Quickly set single value at passed label
 
@@ -323,7 +336,7 @@ copy : boolean, default False
         -------
         element : scalar value
         """
-        self.index._engine.put_value(self, label, value)
+        self.index._engine.set_value(self, label, value)
 
     def _multilevel_index(self, key):
         values = self.values
