@@ -1362,10 +1362,11 @@ def homogenize(series_dict):
 
     return output
 
-class PanelAxis(object):
+class SparsePanelAxis(object):
 
-    def __init__(self, cache_field):
+    def __init__(self, cache_field, frame_attr):
         self.cache_field = cache_field
+        self.frame_attr = frame_attr
 
     def __get__(self, obj, type=None):
         return getattr(obj, self.cache_field, None)
@@ -1375,6 +1376,9 @@ class PanelAxis(object):
 
         if isinstance(value, MultiIndex):
             raise NotImplementedError
+
+        for v in obj._frames.itervalues():
+            setattr(v, self.frame_attr, value)
 
         setattr(obj, self.cache_field, value)
 
@@ -1398,10 +1402,6 @@ class SparsePanel(Panel):
     Notes
     -----
     """
-    items = PanelAxis('_items')
-    major_axis = PanelAxis('_major_axis')
-    minor_axis = PanelAxis('_minor_axis')
-
     ndim = 3
 
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
@@ -1429,7 +1429,7 @@ class SparsePanel(Panel):
             if item not in clean_frames:
                 raise Exception('column %s not found in data' % item)
 
-        self.items = items
+        self._items = items
         self.major_axis = major_axis
         self.minor_axis = minor_axis
 
@@ -1461,6 +1461,32 @@ class SparsePanel(Panel):
         return np.array([self._frames[item].values
                          for item in self.items])
 
+    # need a special property for items to make the field assignable
+
+    _items = None
+    def _get_items(self):
+        return self._items
+
+    def _set_items(self, new_items):
+        new_items = _ensure_index(new_items)
+        if isinstance(new_items, MultiIndex):
+            raise NotImplementedError
+
+        # need to create new frames dict
+
+        old_frame_dict = self._frames
+        old_items = self._items
+        self._frames = dict((new_k, old_frame_dict[old_k])
+                            for new_k, old_k in zip(new_items, old_items))
+        self._items = new_items
+    items = property(fget=_get_items, fset=_set_items)
+
+    # DataFrame's index
+    major_axis = SparsePanelAxis('_major_axis', 'index')
+
+    # DataFrame's columns / "items"
+    minor_axis = SparsePanelAxis('_minor_axis', 'columns')
+
     def __getitem__(self, key):
         """
         """
@@ -1479,13 +1505,13 @@ class SparsePanel(Panel):
         self._frames[key] = value
 
         if key not in self.items:
-            self.items = Index(list(self.items) + [key])
+            self._items = Index(list(self.items) + [key])
 
     def __delitem__(self, key):
         loc = self.items.get_loc(key)
         indices = range(loc) + range(loc + 1, len(self.items))
-        self.items = self.items[indices]
         del self._frames[key]
+        self._items = self._items.take(indices)
 
     def __getstate__(self):
         # pickling
@@ -1498,9 +1524,9 @@ class SparsePanel(Panel):
 
         self.default_fill_value = fv
         self.default_kind = kind
-        self.items = _unpickle_array(items)
-        self.major_axis = _unpickle_array(major)
-        self.minor_axis = _unpickle_array(minor)
+        self._items = _unpickle_array(items)
+        self._major_axis = _unpickle_array(major)
+        self._minor_axis = _unpickle_array(minor)
         self._frames = frames
 
     def copy(self):

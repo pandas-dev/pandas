@@ -151,7 +151,9 @@ class SafeForSparse(object):
         # ensure propagate to potentially prior-cached items too
         item = self.panel['ItemA']
         self.panel.items = new_items
-        self.assert_(self.panel[0] is not item)
+
+        if hasattr(self.panel, '_item_cache'):
+            self.assert_('ItemA' not in self.panel._item_cache)
         self.assert_(self.panel.items is new_items)
 
         item = self.panel[0]
