@@ -668,18 +668,22 @@ class CheckIndexing(object):
                 expected = self.frame[col][idx]
                 self.assertEqual(result, expected)
 
-    def test_put_value(self):
+        # partial w/ MultiIndex raise exception
+        index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
+
+    def test_set_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
-                self.frame.put_value(idx, col, 1)
+                self.frame.set_value(idx, col, 1)
                 self.assertEqual(self.frame[col][idx], 1)
 
     def test_single_element_ix_dont_upcast(self):
         self.frame['E'] = 1
-        self.assert_(issubclass(self.frame['E'].dtype.type, np.integer))
+        self.assert_(issubclass(self.frame['E'].dtype.type,
+                                (int, np.integer)))
 
         result = self.frame.ix[self.frame.index[5], 'E']
-        self.assert_(isinstance(result, np.integer))
+        self.assert_(isinstance(result, (int, np.integer)))
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -859,6 +863,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
+
+        # cache it
+        _ = self.mixed_frame['foo']
         self.mixed_frame.index = idx
         self.assert_(self.mixed_frame['foo'].index  is idx)
         self.assertRaises(Exception, setattr, self.mixed_frame, 'index',

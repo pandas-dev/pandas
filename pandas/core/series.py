@@ -288,6 +288,43 @@ copy : boolean, default False
         except Exception:
             return self.values[key]
 
+    def get(self, label, default=None):
+        """
+        Returns value occupying requested label, default to specified
+        missing value if not present. Analogous to dict.get
+
+        Parameters
+        ----------
+        label : object
+            Label value looking for
+        default : object, optional
+            Value to return if label not in index
+
+        Returns
+        -------
+        y : scalar
+        """
+        try:
+            return self.index._engine.get_value(self, label)
+        except KeyError:
+            return default
+    get_value = get
+
+    def put_value(self, label, value):
+        """
+        Quickly set single value at passed label
+
+        Parameters
+        ----------
+        label : object
+            Partial indexing with MultiIndex not allowed
+
+        Returns
+        -------
+        element : scalar value
+        """
+        self.index._engine.put_value(self, label, value)
+
     def _multilevel_index(self, key):
         values = self.values
         try:
@@ -546,27 +583,6 @@ copy : boolean, default False
         from pandas.core.sparse import SparseSeries
         return SparseSeries(self, kind=kind, fill_value=fill_value,
                             name=self.name)
-
-    def get(self, key, default=None):
-        """
-        Returns value occupying requested index, default to specified
-        missing value if not present. Analogous to dict.get
-
-        Parameters
-        ----------
-        key : object
-            Index value looking for
-        default : object, optional
-            Value to return if key not in index
-
-        Returns
-        -------
-        y : scalar
-        """
-        if key in self.index:
-            return self._get_val_at(self.index.get_loc(key))
-        else:
-            return default
 
     def head(self, n=5):
         """Returns first n rows of Series
@@ -1075,8 +1091,15 @@ copy : boolean, default False
             new_name = _maybe_match_name(self, other)
             new_values = np.empty(len(new_index), dtype=self.dtype)
             for i, idx in enumerate(new_index):
-                new_values[i] = func(self.get(idx, fill_value),
-                                     other.get(idx, fill_value))
+                lv = self.get(idx, fill_value)
+                rv = other.get(idx, fill_value)
+
+                # not thrilled about this but...
+                try:
+                    res = func(lv, rv)
+                except Exception:
+                    res = np.nan
+                new_values[i] = res
         else:
             new_index = self.index
             new_values = func(self.values, other)

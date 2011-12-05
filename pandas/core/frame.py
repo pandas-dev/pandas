@@ -25,7 +25,7 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify, _maybe_upcast)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import NDFrame
+from pandas.core.generic import NDFrame, AxisProperty
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
@@ -209,8 +209,7 @@ class DataFrame(NDFrame):
         else:
             raise PandasError('DataFrame constructor not properly called!')
 
-        self._data = mgr
-        self._series_cache = {}
+        NDFrame.__init__(self, mgr)
 
     def _init_dict(self, data, index, columns, dtype=None):
         """
@@ -790,28 +789,9 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # properties for index and columns
 
-    def _get_columns(self):
-        return self._data.axes[0]
 
-    def _set_columns(self, value):
-        self._data.set_axis(0, value)
-        self._clear_caches()
-    columns = property(fset=_set_columns, fget=_get_columns)
-
-    def _get_index(self):
-        return self._data.axes[1]
-
-    def _set_index(self, value):
-        self._data.set_axis(1, value)
-        self._clear_caches()
-    index = property(fset=_set_index, fget=_get_index)
-
-    def _clear_caches(self):
-        self._series_cache.clear()
-
-    def _consolidate_inplace(self):
-        self._clear_caches()
-        NDFrame._consolidate_inplace(self)
+    columns = AxisProperty(0)
+    index = AxisProperty(1)
 
     def as_matrix(self, columns=None):
         """
@@ -859,7 +839,9 @@ class DataFrame(NDFrame):
         else:  # pragma: no cover
             # old pickling format, for compatibility
             self._unpickle_matrix_compat(state)
-        self._series_cache = {}
+
+        # ordinarily created in NDFrame
+        self._item_cache = {}
 
     # legacy pickle formats
     def _unpickle_frame_compat(self, state):  # pragma: no cover
@@ -919,13 +901,11 @@ class DataFrame(NDFrame):
         -------
         element : scalar value
         """
-        iloc = self.index.get_loc(index)
-        vals = self._getitem_single(col).values
-        result = vals[iloc]
-        assert(not lib.is_array(result)) # a little faster than isinstance
-        return result
+        series = self._get_item_cache(col)
+        engine = self.index._engine
+        return engine.get_value(series, index)
 
-    def put_value(self, index, col, value):
+    def set_value(self, index, col, value):
         """
         Put single value at passed column and index
 
@@ -935,9 +915,9 @@ class DataFrame(NDFrame):
         col : column label
         value : scalar value
         """
-        iloc = self.index.get_loc(index)
-        vals = self._getitem_single(col).values
-        vals[iloc] = value
+        series = self._get_item_cache(col)
+        engine = self.index._engine
+        return engine.set_value(series, index, value)
 
     def __getitem__(self, key):
         # slice rows
@@ -956,7 +936,7 @@ class DataFrame(NDFrame):
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
         else:
-            return self._getitem_single(key)
+            return self._get_item_cache(key)
 
     def _getitem_array(self, key):
         if key.dtype == np.bool_:
@@ -996,17 +976,10 @@ class DataFrame(NDFrame):
                                    columns=result_columns)
             return result
         else:
-            return self._getitem_single(key)
+            return self._get_item_cache(key)
 
-    def _getitem_single(self, key):
-        cache = self._series_cache
-        try:
-            return cache[key]
-        except:
-            values = self._data.get(key)
-            res = Series(values, index=self.index, name=key)
-            cache[key] = res
-            return res
+    def _box_item_values(self, key, values):
+        return Series(values, index=self.index, name=key)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.
@@ -1072,12 +1045,7 @@ class DataFrame(NDFrame):
         """
         value = self._sanitize_column(value)
         value = np.atleast_2d(value)
-        self._data.set(key, value)
-
-        try:
-            del self._series_cache[key]
-        except KeyError:
-            pass
+        NDFrame._set_item(self, key, value)
 
     def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new
@@ -1103,17 +1071,6 @@ class DataFrame(NDFrame):
 
         return value
 
-    def __delitem__(self, key):
-        """
-        Delete column from DataFrame
-        """
-        self._data.delete(key)
-
-        try:
-            del self._series_cache[key]
-        except KeyError:
-            pass
-
     def pop(self, item):
         """
         Return column and drop from frame. Raise KeyError if not found.
@@ -1122,9 +1079,7 @@ class DataFrame(NDFrame):
         -------
         column : Series
         """
-        result = self[item]
-        del self[item]
-        return result
+        return NDFrame.pop(self, item)
 
     # to support old APIs
     @property
@@ -1716,11 +1671,11 @@ class DataFrame(NDFrame):
 
     def _rename_index_inplace(self, mapper):
         self._data = self._data.rename_axis(mapper, axis=1)
-        self._clear_caches()
+        self._clear_item_cache()
 
     def _rename_columns_inplace(self, mapper):
         self._data = self._data.rename_items(mapper, copydata=False)
-        self._clear_caches()
+        self._clear_item_cache()
 
     #----------------------------------------------------------------------
     # Arithmetic / combination related

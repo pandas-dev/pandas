@@ -654,7 +654,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         def _check_op(other, op):
             cython_or_numpy = op(series, other)
             python = series.combine(other, op)
-
             tm.assert_almost_equal(cython_or_numpy, python)
 
         def check(other):

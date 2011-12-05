@@ -223,7 +223,7 @@ class Panel(NDFrame):
         else: # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
-        self._data = mgr
+        NDFrame.__init__(self, mgr)
 
     def _init_dict(self, data, axes, dtype=None):
         items, major, minor = axes
@@ -447,9 +447,8 @@ class Panel(NDFrame):
 
     values = property(fget=_get_values)
 
-    def __getitem__(self, key):
-        mat = self._data.get(key)
-        return DataFrame(mat, index=self.major_axis, columns=self.minor_axis)
+    def _box_item_values(self, key, values):
+        return DataFrame(values, index=self.major_axis, columns=self.minor_axis)
 
     def _slice(self, slobj, axis=0):
         new_data = self._data.get_slice(slobj, axis=axis)
@@ -476,12 +475,9 @@ class Panel(NDFrame):
             mat.fill(value)
 
         mat = mat.reshape((1, N, K))
-        self._data.set(key, mat)
+        NDFrame._set_item(self, key, mat)
 
-    def __delitem__(self, key):
-        self._data.delete(key)
-
-    def pop(self, key):
+    def pop(self, item):
         """
         Return item slice from panel and delete from panel
 
@@ -494,9 +490,7 @@ class Panel(NDFrame):
         -------
         y : DataFrame
         """
-        result = self[key]
-        del self[key]
-        return result
+        return NDFrame.pop(self, item)
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
@@ -510,6 +504,7 @@ class Panel(NDFrame):
             self._unpickle_panel_compat(state)
         else: # pragma: no cover
             raise ValueError('unrecognized pickle')
+        self._item_cache = {}
 
     def _unpickle_panel_compat(self, state): # pragma: no cover
         "Unpickle the panel"
