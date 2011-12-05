@@ -33,6 +33,9 @@ pandas 0.6.1
     single row (GH #430)
   - Add Spearman and Kendall correlation options to Series.corr and
     DataFrame.corr (GH #428)
+  - Add new `get_value` and `set_value` methods to Series, DataFrame, and Panel
+    to very low-overhead access to scalar elements. df.get_value(row, column)
+    is about 3x faster than df[column][row] by handling fewer cases (GH #437)
 
 **Improvements to existing features**
   - Improve memory usage of `DataFrame.describe` (do not copy data
