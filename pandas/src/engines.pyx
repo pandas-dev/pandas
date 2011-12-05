@@ -1,8 +1,47 @@
 from numpy cimport ndarray
+cimport numpy as cnp
+
+cdef extern from "numpy_helper.h":
+    inline int is_integer_object(object)
 
 cdef class IndexEngine:
 
-    pass
+    cpdef get_value(self, ndarray arr, object key):
+        '''
+        arr : 1-dimensional ndarray
+        '''
+        cdef:
+            Py_ssize_t loc
+            void* data_ptr
+
+        loc = self.get_loc(key)
+        assert(is_integer_object(loc))
+        data_ptr = cnp.PyArray_GETPTR1(arr, loc)
+        return cnp.PyArray_GETITEM(arr, data_ptr)
+
+    cpdef set_value(self, ndarray arr, object key, object value):
+        '''
+        arr : 1-dimensional ndarray
+        '''
+        cdef:
+            Py_ssize_t loc
+            void* data_ptr
+
+        loc = self.get_loc(key)
+        assert(is_integer_object(loc))
+        data_ptr = cnp.PyArray_GETPTR1(arr, loc)
+        cnp.PyArray_SETITEM(arr, data_ptr, value)
+
+cpdef get_value_at(ndarray arr, object loc):
+    assert(is_integer_object(loc))
+    data_ptr = cnp.PyArray_GETPTR1(arr, loc)
+    return cnp.PyArray_GETITEM(arr, data_ptr)
+
+cpdef set_value_at(ndarray arr, object loc, object value):
+    assert(is_integer_object(loc))
+    data_ptr = cnp.PyArray_GETPTR1(arr, loc)
+    cnp.PyArray_SETITEM(arr, data_ptr, value)
+
 
 cdef class DictIndexEngine(IndexEngine):
     '''
@@ -65,4 +104,5 @@ cdef class DictIndexEngine(IndexEngine):
     cpdef get_loc(self, object val):
         self._ensure_initialized()
         return self.mapping[val]
+
 

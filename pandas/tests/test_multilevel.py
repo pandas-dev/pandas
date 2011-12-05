@@ -13,19 +13,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 import pandas.core.common as com
 import pandas.util.testing as tm
-
-try:
-    from itertools import product as cart_product
-except ImportError:  # python 2.5
-    def cart_product(*args, **kwds):
-        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
-        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-        pools = map(tuple, args) * kwds.get('repeat', 1)
-        result = [[]]
-        for pool in pools:
-            result = [x+[y] for x in result for y in pool]
-        for prod in result:
-            yield tuple(prod)
+from pandas.util.compat import product as cart_product
 
 class TestMultiLevel(unittest.TestCase):
 

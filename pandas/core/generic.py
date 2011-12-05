@@ -30,8 +30,7 @@ class AxisProperty(object):
         return data.axes[self.axis]
 
     def __set__(self, obj, value):
-        data = getattr(obj, '_data')
-        data.set_axis(self.axis, value)
+        obj._set_axis(self.axis, value)
 
 class PandasObject(Picklable):
 
@@ -226,6 +225,7 @@ class NDFrame(PandasObject):
             data = data.astype(dtype)
 
         self._data = data
+        self._item_cache = {}
 
     def astype(self, dtype):
         """
@@ -260,10 +260,61 @@ class NDFrame(PandasObject):
     def ndim(self):
         return self._data.ndim
 
+    def _set_axis(self, axis, labels):
+        self._data.set_axis(axis, labels)
+        self._clear_item_cache()
+
+    def __getitem__(self, item):
+        return self._get_item_cache(item)
+
+    def _get_item_cache(self, item):
+        cache = self._item_cache
+        try:
+            return cache[item]
+        except Exception:
+            values = self._data.get(item)
+            res = self._box_item_values(item, values)
+            cache[item] = res
+            return res
+
+    def _box_item_values(self, key, values):
+        raise NotImplementedError
+
+    def _clear_item_cache(self):
+        self._item_cache.clear()
+
+    def _set_item(self, key, value):
+        self._data.set(key, value)
+
+        try:
+            del self._item_cache[key]
+        except KeyError:
+            pass
+
+    def __delitem__(self, key):
+        """
+        Delete item
+        """
+        self._data.delete(key)
+
+        try:
+            del self._item_cache[key]
+        except KeyError:
+            pass
+
+    def pop(self, item):
+        """
+        Return item and drop from frame. Raise KeyError if not found.
+        """
+        result = self[item]
+        del self[item]
+        return result
+
     #----------------------------------------------------------------------
     # Consolidation of internals
 
     def _consolidate_inplace(self):
+        self._clear_item_cache()
         self._data = self._data.consolidate()
 
     def consolidate(self):

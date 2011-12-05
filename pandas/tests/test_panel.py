@@ -148,13 +148,20 @@ class SafeForSparse(object):
         new_major = Index(np.arange(len(self.panel.major_axis)))
         new_minor = Index(np.arange(len(self.panel.minor_axis)))
 
+        # ensure propagate to potentially prior-cached items too
+        item = self.panel['ItemA']
         self.panel.items = new_items
+        self.assert_(self.panel[0] is not item)
         self.assert_(self.panel.items is new_items)
 
+        item = self.panel[0]
         self.panel.major_axis = new_major
+        self.assert_(self.panel[0].index is new_major)
         self.assert_(self.panel.major_axis is new_major)
 
+        item = self.panel[0]
         self.panel.minor_axis = new_minor
+        self.assert_(self.panel[0].columns is new_minor)
         self.assert_(self.panel.minor_axis is new_minor)
 
     def test_get_axis_number(self):

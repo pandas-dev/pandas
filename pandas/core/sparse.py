@@ -363,6 +363,27 @@ to sparse
         new_index = Index(self.index.view(ndarray)[key])
         return self._constructor(dataSlice, index=new_index, name=self.name)
 
+    def get(self, label, default=None):
+        """
+        Returns value occupying requested label, default to specified
+        missing value if not present. Analogous to dict.get
+
+        Parameters
+        ----------
+        label : object
+            Label value looking for
+        default : object, optional
+            Value to return if label not in index
+
+        Returns
+        -------
+        y : scalar
+        """
+        if label in self.index:
+            return self._get_val_at(label)
+        else:
+            return default
+
     def _get_val_at(self, loc):
         n = len(self)
         if loc < 0:

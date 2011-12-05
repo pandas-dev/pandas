@@ -65,6 +65,9 @@ class Index(np.ndarray):
     def __array_finalize__(self, obj):
         self.name = getattr(obj, 'name', None)
 
+    def astype(self, dtype):
+        return Index(self.values.astype(dtype))
+
     @property
     def dtype(self):
         return self.values.dtype
@@ -433,6 +436,20 @@ class Index(np.ndarray):
         loc : int
         """
         return self._engine.get_loc(key)
+
+    def get_value(self, arr, key):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing
+        """
+        return self._engine.get_value(arr, key)
+
+    def put_value(self, arr, key, value):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing
+        """
+        self._engine.put_value(arr, key, value)
 
     def get_indexer(self, target, method=None):
         """

@@ -218,3 +218,48 @@ def _zero_out_fperr(arg):
         return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
         return 0 if np.abs(arg) < 1e-14 else arg
+
+def nancorr(a, b, method='pearson'):
+    """
+    a, b: ndarrays
+    """
+    assert(len(a) == len(b))
+    if len(a) == 0:
+        return np.nan
+
+    valid = notnull(a) & notnull(b)
+    if not valid.all():
+        a = a[valid]
+        b = b[valid]
+
+    f = get_corr_func(method)
+    return f(a, b)
+
+def get_corr_func(method):
+    if method in ['kendall', 'spearman']:
+        from scipy.stats import kendalltau, spearmanr
+
+    def _pearson(a, b):
+        return np.corrcoef(a, b)[0, 1]
+    def _kendall(a, b):
+        return kendalltau(a, b)[0]
+    def _spearman(a, b):
+        return spearmanr(a, b)[0]
+
+    _cor_methods = {
+        'pearson' : _pearson,
+        'kendall' : _kendall,
+        'spearman' : _spearman
+    }
+    return _cor_methods[method]
+
+def nancov(a, b):
+    assert(len(a) == len(b))
+    if len(a) == 0:
+        return np.nan
+
+    valid = notnull(a) & notnull(b)
+    if not valid.all():
+        a = a[valid]
+        b = b[valid]
+    return np.cov(a, b)[0, 1]
