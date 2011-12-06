@@ -305,6 +305,14 @@ class SafeForSparse(object):
         result = p.select(lambda x: x in ('foo',), axis='items')
         self.assert_panel_equal(result, p.reindex(items=[]))
 
+    def test_get_value(self):
+        for item in self.panel.items:
+            for mjr in self.panel.major_axis[::2]:
+                for mnr in self.panel.minor_axis:
+                    result = self.panel.get_value(item, mjr, mnr)
+                    expected = self.panel[item][mnr][mjr]
+                    assert_almost_equal(result, expected)
+
 class CheckIndexing(object):
 
 

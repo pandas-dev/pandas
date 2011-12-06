@@ -940,6 +940,9 @@ class SparseDataFrame(DataFrame):
             else: # pragma: no cover
                 raise
 
+    def _get_item_cache(self, key):
+        return self[key]
+
     def get_value(self, index, col):
         s = self._series[col]
         return s.get_value(index)
@@ -1506,9 +1509,7 @@ class SparsePanel(Panel):
     # DataFrame's columns / "items"
     minor_axis = SparsePanelAxis('_minor_axis', 'columns')
 
-    def __getitem__(self, key):
-        """
-        """
+    def _get_item_cache(self, key):
         return self._frames[key]
 
     def __setitem__(self, key, value):
@@ -1525,6 +1526,9 @@ class SparsePanel(Panel):
 
         if key not in self.items:
             self._items = Index(list(self.items) + [key])
+
+    def set_value(self, item, row, column, value):
+        raise Exception('Sparse object scalar values are immutable')
 
     def __delitem__(self, key):
         loc = self.items.get_loc(key)
