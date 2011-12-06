@@ -346,7 +346,8 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
-def set_printoptions(precision=None, column_space=None):
+def set_printoptions(precision=None, column_space=None, max_rows=None,
+        max_columns=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -354,13 +355,21 @@ def set_printoptions(precision=None, column_space=None):
         Floating point output precision
     column_space : int
         Default space for DataFrame columns, defaults to 12
+    max_rows : int
+    max_columns : int
+        max_rows and max_columns are used in __repr__() methods to decide if
+        to_string() or info() is used to render an object to a string.
     """
-    global _float_format, _column_space
+    global _float_format, _column_space, _max_rows, _max_columns
     if precision is not None:
         float_format = '%.' + '%d' % precision + 'g'
         _float_format = lambda x: float_format % x
     if column_space is not None:
         _column_space = column_space
+    if max_rows is not None:
+        _max_rows = max_rows
+    if max_columns is not None:
+        _max_columns = max_columns
 
 class EngFormatter(object):
     """
@@ -467,6 +476,8 @@ def set_eng_float_format(precision=3, use_eng_prefix=False):
 
 _float_format = lambda x: '%.4g' % x
 _column_space = 12
+_max_rows = 500
+_max_columns = 10
 
 def _pfixed(s, space, na_rep=None, float_format=None):
     if isinstance(s, float):

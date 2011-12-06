@@ -23,7 +23,8 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify, _maybe_upcast)
+                                _default_index, _stringify, _maybe_upcast,
+                                _max_rows, _max_columns)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame, AxisProperty
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
@@ -317,7 +318,8 @@ class DataFrame(NDFrame):
         Return a string representation for a particular DataFrame
         """
         buf = StringIO()
-        if len(self.index) < 500 and len(self.columns) <= 10:
+        if len(self.index) < com._max_rows and \
+                len(self.columns) <= com._max_columns:
             self.to_string(buf=buf)
         else:
             self.info(buf=buf, verbose=self._verbose_info)

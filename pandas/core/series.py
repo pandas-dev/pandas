@@ -419,8 +419,8 @@ copy : boolean, default False
 
     def __repr__(self):
         """Clean string representation of a Series"""
-        if len(self.index) > 500:
-            result = self._tidy_repr(30)
+        if len(self.index) > common._max_rows:
+            result = self._tidy_repr(min(30, common._max_rows))
         elif len(self.index) > 0:
             result = self._get_repr(print_header=True,
                                     length=len(self) > 50,
