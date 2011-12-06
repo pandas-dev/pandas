@@ -193,7 +193,7 @@ class Panel(NDFrame):
 
         Parameters
         ----------
-        values : ndarray (items x major x minor)
+        data : ndarray (items x major x minor), or dict of DataFrames
         items : Index or array-like
             axis=1
         major_axis : Index or array-like
