@@ -135,6 +135,9 @@ class CheckNameIntegration(object):
         result = self.ts.to_sparse()
         self.assertEquals(result.name, self.ts.name)
 
+class SafeForSparse(object):
+    pass
+
 class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def setUp(self):
@@ -392,6 +395,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # set item that's not contained
         self.assertRaises(Exception, self.series.__setitem__,
                           'foobar', 1)
+
+    def test_set_value(self):
+        idx = self.ts.index[10]
+        res = self.ts.set_value(idx, 0)
+        self.assert_(res is self.ts)
+        self.assertEqual(self.ts[idx], 0)
+
+        res = self.series.set_value('foobar', 0)
+        self.assert_(res is not self.series)
+        self.assert_(res.index[-1] == 'foobar')
+        self.assertEqual(res['foobar'], 0)
 
     def test_setslice(self):
         sl = self.ts[5:20]

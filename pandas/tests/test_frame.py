@@ -12,7 +12,7 @@ from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
 
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas.core.datetools as datetools
 from pandas.core.index import NULL_INDEX
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
@@ -674,12 +674,34 @@ class CheckIndexing(object):
                 self.frame.set_value(idx, col, 1)
                 assert_almost_equal(self.frame[col][idx], 1)
 
+    def test_set_value_resize(self):
+        res = self.frame.set_value('foobar', 'B', 0)
+        self.assert_(res is not self.frame)
+        self.assert_(res.index[-1] == 'foobar')
+        self.assertEqual(res.get_value('foobar', 'B'), 0)
+
+        res2 = res.set_value('foobar', 'qux', 0)
+        self.assert_(res2 is not res)
+        self.assert_(np.array_equal(res2.columns,
+                                    list(self.frame.columns) + ['qux']))
+        self.assertEqual(res2.get_value('foobar', 'qux'), 0)
+
+        res3 = res.set_value('foobar', 'baz', 'sam')
+        self.assert_(res3['baz'].dtype == np.object_)
+
+        res3 = res.set_value('foobar', 'baz', True)
+        self.assert_(res3['baz'].dtype == np.bool_)
+
+        res3 = res.set_value('foobar', 'baz', 5)
+        self.assert_(com.is_integer_dtype(res3['baz']))
+        self.assertRaises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
+
     def test_get_set_value_no_partial_indexing(self):
         # partial w/ MultiIndex raise exception
         index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
         df = DataFrame(index=index, columns=range(4))
         self.assertRaises(KeyError, df.get_value, 0, 1)
-        self.assertRaises(KeyError, df.set_value, 0, 1, 0)
+        # self.assertRaises(KeyError, df.set_value, 0, 1, 0)
 
     def test_single_element_ix_dont_upcast(self):
         self.frame['E'] = 1
@@ -1233,6 +1255,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df.columns[0] == 'x')
         self.assert_(df.index.equals(a.index))
 
+    def test_constructor_manager_resize(self):
+        index = list(self.frame.index[:5])
+        columns = list(self.frame.columns[:3])
+
+        result = DataFrame(self.frame._data, index=index,
+                           columns=columns)
+        self.assert_(np.array_equal(result.index, index))
+        self.assert_(np.array_equal(result.columns, columns))
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),
@@ -1392,25 +1423,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                index=np.arange(50))
         foo = repr(unsortable)
 
-        common.set_printoptions(precision=3, column_space=10)
+        com.set_printoptions(precision=3, column_space=10)
         repr(self.frame)
 
     def test_eng_float_formatter(self):
         self.frame.ix[5] = 0
 
-        common.set_eng_float_format()
+        com.set_eng_float_format()
 
         repr(self.frame)
 
-        common.set_eng_float_format(use_eng_prefix=True)
+        com.set_eng_float_format(use_eng_prefix=True)
 
         repr(self.frame)
 
-        common.set_eng_float_format(precision=0)
+        com.set_eng_float_format(precision=0)
 
         repr(self.frame)
 
-        common.set_printoptions(precision=4)
+        com.set_printoptions(precision=4)
 
     def test_repr_tuples(self):
         buf = StringIO()

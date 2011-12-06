@@ -1272,6 +1272,13 @@ class TestSparsePanel(TestCase,
 
         self.assertRaises(Exception, self.panel.__setitem__, 'item6', 1)
 
+    def test_set_value(self):
+        mjr = self.panel.major_axis[4]
+        mnr = self.panel.minor_axis[3]
+
+        self.assertRaises(Exception, self.panel.set_value, 'ItemA',
+                          )
+
     def test_delitem_pop(self):
         del self.panel['ItemB']
         assert_almost_equal(self.panel.items, ['ItemA', 'ItemC', 'ItemD'])

@@ -331,12 +331,14 @@ copy : boolean, default False
         ----------
         label : object
             Partial indexing with MultiIndex not allowed
-
-        Returns
-        -------
-        element : scalar value
         """
-        self.index._engine.set_value(self, label, value)
+        try:
+            self.index._engine.set_value(self, label, value)
+            return self
+        except KeyError:
+            new_index = np.concatenate([self.index.values, [label]])
+            new_values = np.concatenate([self.values, [value]])
+            return Series(new_values, index=new_index, name=self.name)
 
     def _multilevel_index(self, key):
         values = self.values
@@ -368,8 +370,7 @@ copy : boolean, default False
     def __setitem__(self, key, value):
         values = self.values
         try:
-            loc = self.index.get_loc(key)
-            values[loc] = value
+            values[self.index.get_loc(key)] = value
             return
         except KeyError:
             if isinstance(key, (int, np.integer)):

@@ -32,7 +32,7 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 from pandas.util import py3compat
 import pandas.core.nanops as nanops
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas._tseries as lib
 
@@ -179,13 +179,7 @@ class DataFrame(NDFrame):
             data = data._data
 
         if isinstance(data, BlockManager):
-            # do not copy BlockManager unless explicitly done
-            mgr = data
-            if copy and dtype is None:
-                mgr = mgr.copy()
-            elif dtype is not None:
-                # no choice but to copy
-                mgr = mgr.astype(dtype)
+            mgr = self._init_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
@@ -210,6 +204,19 @@ class DataFrame(NDFrame):
             raise PandasError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr)
+
+    def _init_mgr(self, mgr, index, columns, dtype=None, copy=False):
+        if columns is not None:
+            mgr = mgr.reindex_axis(columns, axis=0)
+        if index is not None:
+            mgr = mgr.reindex_axis(index, axis=1)
+        # do not copy BlockManager unless explicitly done
+        if copy and dtype is None:
+            mgr = mgr.copy()
+        elif dtype is not None:
+            # no choice but to copy
+            mgr = mgr.astype(dtype)
+        return mgr
 
     def _init_dict(self, data, index, columns, dtype=None):
         """
@@ -915,9 +922,28 @@ class DataFrame(NDFrame):
         col : column label
         value : scalar value
         """
-        series = self._get_item_cache(col)
-        engine = self.index._engine
-        return engine.set_value(series, index, value)
+        try:
+            series = self._get_item_cache(col)
+            engine = self.index._engine
+            engine.set_value(series, index, value)
+            return self
+        except KeyError:
+            if index not in self.index:
+                new_index = np.concatenate([self.index, [index]])
+            else:
+                new_index = self.index
+            if col not in self.columns:
+                new_columns = np.concatenate([self.columns, [col]])
+            else:
+                new_columns = self.columns
+            result = DataFrame(self._data, index=new_index,
+                               columns=new_columns)
+
+            likely_dtype = com._infer_dtype(value)
+            if result[col].dtype != likely_dtype:
+                result[col] = result[col].astype(likely_dtype)
+            result.set_value(index, col, value)
+            return result
 
     def __getitem__(self, key):
         # slice rows
@@ -1618,10 +1644,8 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-
             new_data = self._data.fillna(value)
-            return self._constructor(new_data, index=self.index,
-                                     columns=self.columns)
+            return self._constructor(new_data)
 
     #----------------------------------------------------------------------
     # Rename
@@ -1832,7 +1856,7 @@ class DataFrame(NDFrame):
                 arr = func(series, otherSeries)
 
                 if do_fill:
-                    arr = common.ensure_float(arr)
+                    arr = com.ensure_float(arr)
                     arr[this_mask & other_mask] = nan
 
                 result[col] = arr
@@ -2114,7 +2138,7 @@ class DataFrame(NDFrame):
             new_values = blk.values.take(indexer, axis=1)
             # convert integer to float if necessary. need to do a lot more than
             # that, handle boolean etc also
-            new_values = common.ensure_float(new_values)
+            new_values = com.ensure_float(new_values)
             if periods > 0:
                 new_values[:, :periods] = nan
             else:

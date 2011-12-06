@@ -1,5 +1,6 @@
 from numpy cimport ndarray
 cimport numpy as cnp
+cimport cpython
 
 cnp.import_array()
 
@@ -32,6 +33,7 @@ cdef class IndexEngine:
 cpdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i
+        void* data_ptr
     if util.is_float_object(loc):
         casted = int(loc)
         if casted == loc:
@@ -52,8 +54,8 @@ cpdef inline set_value_at(ndarray arr, object loc, object value):
     i = <Py_ssize_t> loc
     if i < 0:
         i += cnp.PyArray_SIZE(arr)
-    data_ptr = cnp.PyArray_GETPTR1(arr, loc)
-    cnp.PyArray_SETITEM(arr, data_ptr, value)
+
+    util.assign_value_1d(arr, i, value)
 
 cdef class DictIndexEngine(IndexEngine):
     '''
