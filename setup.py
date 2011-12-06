@@ -314,7 +314,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
 extensions = [tseries_ext, engines_ext, sparse_ext]
 
 if not ISRELEASED:
-    extensions.extend([sandbox_ext, cppsandbox_ext])
+    extensions.extend([sandbox_ext])
 
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"
