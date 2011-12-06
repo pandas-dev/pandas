@@ -325,12 +325,18 @@ copy : boolean, default False
 
     def set_value(self, label, value):
         """
-        Quickly set single value at passed label
+        Quickly set single value at passed label. If label is not contained, a
 
         Parameters
         ----------
         label : object
             Partial indexing with MultiIndex not allowed
+
+        Returns
+        -------
+        series : Series
+            If label is contained, will be reference to calling Series,
+            otherwise a new object
         """
         try:
             self.index._engine.set_value(self, label, value)

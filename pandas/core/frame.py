@@ -906,7 +906,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        element : scalar value
+        value : scalar value
         """
         series = self._get_item_cache(col)
         engine = self.index._engine
@@ -921,6 +921,12 @@ class DataFrame(NDFrame):
         index : row label
         col : column label
         value : scalar value
+
+        Returns
+        -------
+        frame : DataFrame
+            If label pair is contained, will be reference to calling DataFrame,
+            otherwise a new object
         """
         try:
             series = self._get_item_cache(col)

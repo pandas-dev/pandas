@@ -209,21 +209,24 @@ class Panel(NDFrame):
             data = {}
 
         passed_axes = [items, major_axis, minor_axis]
+        axes = None
         if isinstance(data, BlockManager):
+            if any(x is not None for x in passed_axes):
+                axes = [x if x is not None else y
+                        for x, y in zip(passed_axes, data.axes)]
             mgr = data
-            if copy and dtype is None:
-                mgr = mgr.copy()
-            elif dtype is not None:
-                # no choice but to copy
-                mgr = mgr.astype(dtype)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, passed_axes, dtype=dtype)
+            copy = False
+            dtype = None
         elif isinstance(data, (np.ndarray, list)):
             mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
+            copy = False
+            dtype = None
         else: # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
-        NDFrame.__init__(self, mgr)
+        NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
     def _init_dict(self, data, axes, dtype=None):
         items, major, minor = axes
@@ -462,7 +465,7 @@ class Panel(NDFrame):
 
         Returns
         -------
-        element : scalar value
+        value : scalar value
         """
         # hm, two layers to the onion
         frame = self._get_item_cache(item)
@@ -474,9 +477,16 @@ class Panel(NDFrame):
 
         Parameters
         ----------
-        index : row label
-        col : column label
-        value : scalar value
+        item : item label (panel item)
+        major : major axis label (panel item row)
+        minor : minor axis label (panel item column)
+        value : scalar
+
+        Returns
+        -------
+        panel : Panel
+            If label combo is contained, will be reference to calling Panel,
+            otherwise a new object
         """
         frame = self._get_item_cache(item)
         return frame.set_value(major, minor, value)

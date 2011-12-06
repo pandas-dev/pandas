@@ -30,6 +30,19 @@ def put2():
         for row in df.index:
             df.set_value(row, col, 0)
 
-for col in df.columns:
-    for row in df.index:
-        value = df.get_value(row, col)
+def resize1():
+    buf = DataFrame()
+    for col in df.columns:
+        for row in df.index:
+            buf = buf.set_value(row, col, 5.)
+    return buf
+
+def resize2():
+    from collections import defaultdict
+
+    buf = defaultdict(dict)
+    for col in df.columns:
+        for row in df.index:
+            buf[col][row] = 5.
+
+    return DataFrame(buf)

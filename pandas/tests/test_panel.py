@@ -648,6 +648,29 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = Panel(d, dtype=int)
         expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
 
+    def test_constructor_resize(self):
+        data = self.panel._data
+        items = self.panel.items[:-1]
+        major = self.panel.major_axis[:-1]
+        minor = self.panel.minor_axis[:-1]
+
+        result = Panel(data, items=items, major_axis=major,
+                       minor_axis=minor)
+        expected = self.panel.reindex(items=items, major=major, minor=minor)
+        assert_panel_equal(result, expected)
+
+        result = Panel(data, items=items, major_axis=major)
+        expected = self.panel.reindex(items=items, major=major)
+        assert_panel_equal(result, expected)
+
+        result = Panel(data, items=items)
+        expected = self.panel.reindex(items=items)
+        assert_panel_equal(result, expected)
+
+        result = Panel(data, minor_axis=minor)
+        expected = self.panel.reindex(minor=minor)
+        assert_panel_equal(result, expected)
+
     def test_from_dict_mixed_orient(self):
         df = tm.makeDataFrame()
         df['foo'] = 'bar'
