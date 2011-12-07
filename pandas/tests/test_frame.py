@@ -2038,6 +2038,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              ignore_index=True)
         assert_frame_equal(result, expected)
 
+        # can append when name set
+
+
     def test_append_different_columns(self):
         df = DataFrame({'bools' : np.random.randn(10) > 0,
                         'ints' : np.random.randint(0, 10, 10),
