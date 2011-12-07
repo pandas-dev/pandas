@@ -359,6 +359,9 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     max_columns : int
         max_rows and max_columns are used in __repr__() methods to decide if
         to_string() or info() is used to render an object to a string.
+        Either one, or both can be set to 0 (experimental). Pandas will figure
+        out how big the terminal is and will not display more rows or/and
+        columns that can fit on it.
     """
     global _float_format, _column_space, _max_rows, _max_columns
     if precision is not None:

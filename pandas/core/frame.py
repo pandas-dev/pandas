@@ -32,6 +32,7 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 from pandas.util import py3compat
+from pandas.util.terminal import get_terminal_size
 import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.datetools as datetools
@@ -317,14 +318,33 @@ class DataFrame(NDFrame):
         """
         Return a string representation for a particular DataFrame
         """
-        buf = StringIO()
-        if len(self.index) < com._max_rows and \
-                len(self.columns) <= com._max_columns:
-            self.to_string(buf=buf)
-        else:
-            self.info(buf=buf, verbose=self._verbose_info)
+        terminal_width, terminal_height = get_terminal_size()
+        max_rows = terminal_height if com._max_rows == 0 else com._max_rows
+        max_columns = com._max_columns
 
-        return buf.getvalue()
+        if max_columns > 0:
+            buf = StringIO()
+            if len(self.index) < max_rows and \
+                    len(self.columns) <= max_columns:
+                self.to_string(buf=buf)
+            else:
+                self.info(buf=buf, verbose=self._verbose_info)
+            return buf.getvalue()
+        else:
+            if len(self.index) > max_rows:
+                buf = StringIO()
+                self.info(buf=buf, verbose=self._verbose_info)
+                return buf.getvalue()
+            else:
+                buf = StringIO()
+                self.to_string(buf=buf)
+                value = buf.getvalue()
+                if max([len(l) for l in value.split('\n')]) <= terminal_width:
+                    return value
+                else:
+                    buf = StringIO()
+                    self.info(buf=buf, verbose=self._verbose_info)
+                    return buf.getvalue()
 
     def __iter__(self):
         """
