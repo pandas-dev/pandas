@@ -20,6 +20,7 @@ from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util import py3compat
+from pandas.util.terminal import get_terminal_size
 import pandas.core.common as common
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
@@ -419,8 +420,10 @@ copy : boolean, default False
 
     def __repr__(self):
         """Clean string representation of a Series"""
-        if len(self.index) > common._max_rows:
-            result = self._tidy_repr(min(30, common._max_rows))
+        width, height = get_terminal_size()
+        max_rows = height if common._max_rows == 0 else common._max_rows
+        if len(self.index) > max_rows:
+            result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
             result = self._get_repr(print_header=True,
                                     length=len(self) > 50,
