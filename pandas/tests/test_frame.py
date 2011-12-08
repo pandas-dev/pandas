@@ -941,6 +941,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.array_equal(df2.columns, rec.dtype.names))
         self.assert_(df2.index.equals(index))
 
+        rng = np.arange(len(rec))[::-1]
+        df3 = DataFrame(rec, index=rng, columns=['C', 'B'])
+        expected = DataFrame(rec, index=rng).reindex(columns=['C', 'B'])
+        assert_frame_equal(df3, expected)
+
     def test_constructor_bool(self):
         df = DataFrame({0 : np.ones(10, dtype=bool),
                         1 : np.zeros(10, dtype=bool)})
