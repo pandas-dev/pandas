@@ -306,6 +306,15 @@ class TestDateRange(unittest.TestCase):
     def test_equals(self):
         self.assertFalse(self.rng.equals(list(self.rng)))
 
+    def test_daterange_bug_456(self):
+        # GH #456
+        rng1 = DateRange('12/5/2011', '12/5/2011')
+        rng2 = DateRange('12/2/2011', '12/5/2011')
+        rng2.offset = datetools.BDay()
+
+        result = rng1.union(rng2)
+        self.assert_(type(result) == DateRange)
+
 def _skip_if_no_pytz():
     try:
         import pytz

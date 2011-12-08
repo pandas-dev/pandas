@@ -57,6 +57,7 @@ pandas 0.6.1
   - Don't "accidentally" upcast scalar values when indexing using .ix (GH #431)
   - Fix groupby exception raised with as_index=False and single column selected
     (GH #421)
+  - Implement DateOffset.__ne__ causing downstream bug (GH #456)
 
 Thanks
 ------

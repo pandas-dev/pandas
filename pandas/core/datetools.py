@@ -159,6 +159,9 @@ class DateOffset(object):
     def __eq__(self, other):
         return self._params() == other._params()
 
+    def __ne__(self, other):
+        return not self == other
+
     def __hash__(self):
         return hash(self._params())
 

@@ -192,6 +192,12 @@ class TestBusinessDay(unittest.TestCase):
     def test_apply_corner(self):
         self.assertRaises(Exception, BDay().apply, BMonthEnd())
 
+    def test_offsets_compare_equal(self):
+        # root cause of #456
+        offset1 = BDay()
+        offset2 = BDay()
+        self.assertFalse(offset1 != offset2)
+
 def assertOnOffset(offset, date, expected):
     actual = offset.onOffset(date)
     assert actual == expected
@@ -253,6 +259,11 @@ class TestWeek(unittest.TestCase):
                     expected = False
             assertOnOffset(offset, date, expected)
 
+    def test_offsets_compare_equal(self):
+        # root cause of #456
+        offset1 = Week()
+        offset2 = Week()
+        self.assertFalse(offset1 != offset2)
 
 class TestWeekOfMonth(unittest.TestCase):
 
@@ -376,6 +387,12 @@ class TestBMonthEnd(unittest.TestCase):
 
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
+
+    def test_offsets_compare_equal(self):
+        # root cause of #456
+        offset1 = BMonthEnd()
+        offset2 = BMonthEnd()
+        self.assertFalse(offset1 != offset2)
 
 class TestMonthEnd(unittest.TestCase):
 
