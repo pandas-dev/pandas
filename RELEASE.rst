@@ -38,7 +38,6 @@ pandas 0.6.1
     is about 3x faster than df[column][row] by handling fewer cases (GH #437)
   - Add Qt table widget to sandbox (PR #435)
 
-
 **Improvements to existing features**
 
   - Improve memory usage of `DataFrame.describe` (do not copy data
@@ -49,6 +48,7 @@ pandas 0.6.1
   - Exclude non-numeric types in DataFrame.{corr, cov}
   - Override Index.astype to enable dtype casting (GH #412)
   - Use same float formatting function for Series.__repr__ (PR #420)
+  - Use available console width to output DataFrame columns (PR #453)
 
 **Bug fixes**
 
@@ -62,6 +62,7 @@ pandas 0.6.1
   - Fix groupby exception raised with as_index=False and single column selected
     (GH #421)
   - Implement DateOffset.__ne__ causing downstream bug (GH #456)
+  - Fix __doc__-related issue when converting py -> pyo with py2exe
 
 Thanks
 ------
