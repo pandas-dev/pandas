@@ -480,7 +480,7 @@ def set_eng_float_format(precision=3, use_eng_prefix=False):
 _float_format = lambda x: '%.4g' % x
 _column_space = 12
 _max_rows = 500
-_max_columns = 10
+_max_columns = 0
 
 def _pfixed(s, space, na_rep=None, float_format=None):
     if isinstance(s, float):
