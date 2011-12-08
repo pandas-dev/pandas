@@ -513,7 +513,9 @@ class Panel(NDFrame):
             value = value.reindex(index=self.major_axis,
                                   columns=self.minor_axis)
             mat = value.values
-
+        elif isinstance(value, np.ndarray):
+            assert(value.shape == (N, K))
+            mat = np.asarray(value)
         elif np.isscalar(value):
             dtype = _infer_dtype(value)
             mat = np.empty((N, K), dtype=dtype)
