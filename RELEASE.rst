@@ -36,8 +36,11 @@ pandas 0.6.1
   - Add new `get_value` and `set_value` methods to Series, DataFrame, and Panel
     to very low-overhead access to scalar elements. df.get_value(row, column)
     is about 3x faster than df[column][row] by handling fewer cases (GH #437)
+  - Add Qt table widget to sandbox (PR #435)
+
 
 **Improvements to existing features**
+
   - Improve memory usage of `DataFrame.describe` (do not copy data
     unnecessarily) (PR #425)
   - Use same formatting function for outputting floating point Series to console
@@ -45,6 +48,7 @@ pandas 0.6.1
   - DataFrame.delevel will try to infer better dtype for new columns (GH #440)
   - Exclude non-numeric types in DataFrame.{corr, cov}
   - Override Index.astype to enable dtype casting (GH #412)
+  - Use same float formatting function for Series.__repr__ (PR #420)
 
 **Bug fixes**
 
@@ -62,7 +66,10 @@ pandas 0.6.1
 Thanks
 ------
 - Ralph Bean
+- Luca Betrame
+- Jev Kuznetsov
 - Wouter Overmeire
+- Fernando Perez
 - Joon Ro
 - Chang She
 - Chris Uga
