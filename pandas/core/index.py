@@ -40,10 +40,17 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
+    # Cython methods
     _map_indices = lib.map_indices_object
     _is_monotonic = lib.is_monotonic_object
     _groupby = lib.groupby_object
     _arrmap = lib.arrmap_object
+    _left_indexer = lib.left_join_indexer_object
+    _inner_indexer = lib.inner_join_indexer_object
+    _outer_indexer = lib.outer_join_indexer_object
+    _merge_indexer = lib.merge_indexer_object
+    _pad = lib.pad_object
+    _backfill = lib.backfill_object
 
     name = None
     def __new__(cls, data, dtype=None, copy=False, name=None):
@@ -100,7 +107,11 @@ class Index(np.ndarray):
 
     @cache_readonly
     def is_monotonic(self):
-        return self._is_monotonic(self.values)
+        try:
+            # wrong buffer type raises ValueError
+            return self._is_monotonic(self.values)
+        except TypeError:
+            return False
 
     @property
     def indexMap(self):
@@ -331,12 +342,14 @@ class Index(np.ndarray):
         if len(self) == 0:
             return _ensure_index(other)
 
-        if self.is_monotonic and other.is_monotonic:
-            if other.dtype != np.object_:
-                other = Index(other, dtype=object)
+        if self.dtype != other.dtype:
+            this = self.astype('O')
+            other = other.astype('O')
+            return this.union(other)
 
+        if self.is_monotonic and other.is_monotonic:
             try:
-                result = lib.outer_join_indexer_object(self, other.values)[0]
+                result = self._outer_indexer(self, other.values)[0]
             except TypeError:
                 # incomparable objects
                 result = list(self.values)
@@ -385,17 +398,19 @@ class Index(np.ndarray):
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
 
+        other = _ensure_index(other)
+
         if self.equals(other):
             return self
 
-        other = _ensure_index(other)
-
-        if other.dtype != np.object_:
-            other = other.astype(object)
+        if self.dtype != other.dtype:
+            this = self.astype('O')
+            other = other.astype('O')
+            return this.intersection(other)
 
         if self.is_monotonic and other.is_monotonic:
-            return Index(lib.inner_join_indexer_object(self,
-                                                       other.values)[0])
+            result = self._inner_indexer(self, other.values)[0]
+            return self._wrap_union_result(other, result)
         else:
             indexer = self.get_indexer(other.values)
             indexer = indexer.take((indexer != -1).nonzero()[0])
@@ -484,19 +499,27 @@ class Index(np.ndarray):
         target = _ensure_index(target)
 
         if self.dtype != target.dtype:
+            this = Index(self, dtype=object)
             target = Index(target, dtype=object)
+            return this.get_indexer(target, method=method)
+        # if self.dtype != target.dtype:
+        #     target = Index(target, dtype=object)
 
         if method == 'pad':
-            indexer = lib.pad_object(self, target, self.indexMap,
-                                     target.indexMap)
+            indexer = self._pad(self, target, self.indexMap, target.indexMap)
         elif method == 'backfill':
-            indexer = lib.backfill_object(self, target, self.indexMap,
-                                          target.indexMap)
+            indexer = self._backfill(self, target, self.indexMap, target.indexMap)
         elif method is None:
-            indexer = lib.merge_indexer_object(target, self.indexMap)
+            indexer = self._get_indexer_standard(target)
         else:
             raise ValueError('unrecognized method: %s' % method)
         return indexer
+
+    def _get_indexer_standard(self, other):
+        if self.is_monotonic and other.is_monotonic:
+            return self._left_indexer(other, self)
+        else:
+            return self._merge_indexer(other, self.indexMap)
 
     def groupby(self, to_groupby):
         return self._groupby(self.values, to_groupby)
@@ -528,6 +551,11 @@ class Index(np.ndarray):
         return target, indexer
 
     def join(self, other, how='left', return_indexers=False):
+        if self.dtype != other.dtype:
+            this = self.astype('O')
+            other = other.astype('O')
+            return this.join(other, how=how, return_indexers=return_indexers)
+
         if self.is_monotonic and other.is_monotonic:
             return self._join_monotonic(other, how=how,
                                         return_indexers=return_indexers)
@@ -559,25 +587,23 @@ class Index(np.ndarray):
     def _join_monotonic(self, other, how='left', return_indexers=False):
         this_vals = self.values
 
-        if self.dtype != other.dtype:
-            other = Index(other, dtype=object)
+        # if self.dtype != other.dtype:
+        #     other = Index(other, dtype=object)
         other_vals = other.values
 
         if how == 'left':
             join_index = self
             lidx = None
-            ridx = lib.left_join_indexer_object(self, other)
+            ridx = self._left_indexer(self, other)
         elif how == 'right':
             join_index = other
-            lidx = lib.left_join_indexer_object(other, self)
+            lidx = self._left_indexer(other, self)
             ridx = None
         elif how == 'inner':
-            join_index, lidx, ridx = lib.inner_join_indexer_object(this_vals,
-                                                                   other_vals)
+            join_index, lidx, ridx = self._inner_indexer(this_vals, other_vals)
             join_index = self._wrap_joined_index(join_index, other)
         elif how == 'outer':
-            join_index, lidx, ridx = lib.outer_join_indexer_object(this_vals,
-                                                                   other_vals)
+            join_index, lidx, ridx = self._outer_indexer(this_vals, other_vals)
             join_index = self._wrap_joined_index(join_index, other)
         else:  # pragma: no cover
             raise Exception('do not recognize join method %s' % how)
@@ -690,6 +716,12 @@ class Int64Index(Index):
     _is_monotonic = lib.is_monotonic_int64
     _groupby = lib.groupby_int64
     _arrmap = lib.arrmap_int64
+    _left_indexer = lib.left_join_indexer_int64
+    _inner_indexer = lib.inner_join_indexer_int64
+    _outer_indexer = lib.outer_join_indexer_int64
+    _merge_indexer = lib.merge_indexer_int64
+    _pad = lib.pad_int64
+    _backfill = lib.backfill_int64
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):
@@ -747,87 +779,9 @@ class Int64Index(Index):
 
         return np.array_equal(self, other)
 
-    def get_indexer(self, target, method=None):
-        target = _ensure_index(target)
-
-        if self.dtype != target.dtype:
-            this = Index(self, dtype=object)
-            target = Index(target, dtype=object)
-            return this.get_indexer(target, method=method)
-
-        method = self._get_method(method)
-
-        if method == 'pad':
-            indexer = lib.pad_int64(self, target, self.indexMap,
-                                    target.indexMap)
-        elif method == 'backfill':
-            indexer = lib.backfill_int64(self, target, self.indexMap,
-                                         target.indexMap)
-        elif method is None:
-            indexer = lib.merge_indexer_int64(target, self.indexMap)
-        else:  # pragma: no cover
-            raise ValueError('unrecognized method: %s' % method)
-        return indexer
-    get_indexer.__doc__ = Index.get_indexer.__doc__
-
-    def join(self, other, how='left', return_indexers=False):
-        if not isinstance(other, Int64Index):
-            return Index.join(self.astype(object), other, how=how,
-                              return_indexers=return_indexers)
-
-        if self.is_monotonic and other.is_monotonic:
-            return self._join_monotonic(other, how=how,
-                                        return_indexers=return_indexers)
-        else:
-            return Index.join(self, other, how=how,
-                              return_indexers=return_indexers)
-
-    def _join_monotonic(self, other, how='left', return_indexers=False):
-        if how == 'left':
-            join_index = self
-            lidx = None
-            ridx = lib.left_join_indexer_int64(self, other)
-        elif how == 'right':
-            join_index = other
-            lidx = lib.left_join_indexer_int64(other, self)
-            ridx = None
-        elif how == 'inner':
-            join_index, lidx, ridx = lib.inner_join_indexer_int64(self, other)
-            join_index = Int64Index(join_index)
-        elif how == 'outer':
-            join_index, lidx, ridx = lib.outer_join_indexer_int64(self, other)
-            join_index = Int64Index(join_index)
-        else:  # pragma: no cover
-            raise Exception('do not recognize join method %s' % how)
-
-        if return_indexers:
-            return join_index, lidx, ridx
-        else:
-            return join_index
-
-    def intersection(self, other):
-        if not isinstance(other, Int64Index):
-            return Index.intersection(self.astype(object), other)
-
-        if self.is_monotonic and other.is_monotonic:
-            result = lib.inner_join_indexer_int64(self, other)[0]
-        else:
-            indexer = self.get_indexer(other)
-            indexer = indexer.take((indexer != -1).nonzero()[0])
-            return self.take(indexer)
-        return Int64Index(result)
-    intersection.__doc__ = Index.intersection.__doc__
-
-    def union(self, other):
-        if not isinstance(other, Int64Index):
-            return Index.union(self.astype(object), other)
-
-        if self.is_monotonic and other.is_monotonic:
-            result = lib.outer_join_indexer_int64(self, other)[0]
-        else:
-            result = np.unique(np.concatenate((self, other)))
-        return Int64Index(result)
-    union.__doc__ = Index.union.__doc__
+    def _wrap_joined_index(self, joined, other):
+        name = self.name if self.name == other.name else None
+        return Int64Index(joined, name=name)
 
 class DateIndex(Index):
     pass
@@ -1321,14 +1275,13 @@ class MultiIndex(Index):
         self_index = self.get_tuple_index()
 
         if method == 'pad':
-            indexer = lib.pad_object(self_index, target_index,
-                                     self_index.indexMap, target.indexMap)
+            indexer = self._pad(self_index, target_index, self_index.indexMap,
+                                target.indexMap)
         elif method == 'backfill':
-            indexer = lib.backfill_object(self_index, target_index,
-                                          self_index.indexMap, target.indexMap)
+            indexer = self._backfill(self_index, target_index, self_index.indexMap,
+                                     target.indexMap)
         else:
-            indexer = lib.merge_indexer_object(target_index,
-                                               self_index.indexMap)
+            indexer = self._merge_indexer(target_index, self_index.indexMap)
 
         return indexer
 

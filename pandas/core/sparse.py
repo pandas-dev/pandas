@@ -871,7 +871,7 @@ class SparseDataFrame(DataFrame):
         """
         Make a copy of this SparseDataFrame
         """
-        series = self._series.copy()
+        series = dict((k, v.copy()) for k, v in self.iteritems())
         return SparseDataFrame(series, index=self.index, columns=self.columns,
                                default_fill_value=self.default_fill_value,
                                default_kind=self.default_kind)

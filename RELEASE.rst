@@ -38,6 +38,7 @@ pandas 0.6.1
     is about 3x faster than df[column][row] by handling fewer cases (GH #437,
     #438). Add similar methods to sparse data structures for compatibility
   - Add Qt table widget to sandbox (PR #435)
+  - DataFrame.align can accept Series arguments, add axis keyword (GH #461)
 
 **Improvements to existing features**
 

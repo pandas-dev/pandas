@@ -1430,9 +1430,12 @@ def left_join_indexer_float64(ndarray[float64_t] left,
         lval = left[i]
         rval = right[j]
 
-        if lval == right[j]:
+        if lval == rval:
             indexer[i] = j
             i += 1
+            while i < nleft - 1 and left[i] == rval:
+                indexer[i] = j
+                i += 1
             j += 1
         elif lval > rval:
             indexer[i] = -1
@@ -1469,9 +1472,12 @@ def left_join_indexer_object(ndarray[object] left,
         lval = left[i]
         rval = right[j]
 
-        if lval == right[j]:
+        if lval == rval:
             indexer[i] = j
             i += 1
+            while i < nleft - 1 and left[i] == rval:
+                indexer[i] = j
+                i += 1
             j += 1
         elif lval > rval:
             indexer[i] = -1
@@ -1508,9 +1514,12 @@ def left_join_indexer_int32(ndarray[int32_t] left,
         lval = left[i]
         rval = right[j]
 
-        if lval == right[j]:
+        if lval == rval:
             indexer[i] = j
             i += 1
+            while i < nleft - 1 and left[i] == rval:
+                indexer[i] = j
+                i += 1
             j += 1
         elif lval > rval:
             indexer[i] = -1
@@ -1547,9 +1556,12 @@ def left_join_indexer_int64(ndarray[int64_t] left,
         lval = left[i]
         rval = right[j]
 
-        if lval == right[j]:
+        if lval == rval:
             indexer[i] = j
             i += 1
+            while i < nleft - 1 and left[i] == rval:
+                indexer[i] = j
+                i += 1
             j += 1
         elif lval > rval:
             indexer[i] = -1
