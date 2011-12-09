@@ -565,6 +565,12 @@ class CheckIndexing(object):
                     self.panel.set_value(item, mjr, mnr, 1.)
                     assert_almost_equal(self.panel[item][mnr][mjr], 1.)
 
+        # resize
+        res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
+        self.assert_(isinstance(res, Panel))
+        self.assert_(res is not self.panel)
+        self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
+
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):

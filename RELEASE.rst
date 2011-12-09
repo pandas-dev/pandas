@@ -35,7 +35,8 @@ pandas 0.6.1
     DataFrame.corr (GH #428)
   - Add new `get_value` and `set_value` methods to Series, DataFrame, and Panel
     to very low-overhead access to scalar elements. df.get_value(row, column)
-    is about 3x faster than df[column][row] by handling fewer cases (GH #437)
+    is about 3x faster than df[column][row] by handling fewer cases (GH #437,
+    #438). Add similar methods to sparse data structures for compatibility
   - Add Qt table widget to sandbox (PR #435)
 
 **Improvements to existing features**
@@ -49,6 +50,7 @@ pandas 0.6.1
   - Override Index.astype to enable dtype casting (GH #412)
   - Use same float formatting function for Series.__repr__ (PR #420)
   - Use available console width to output DataFrame columns (PR #453)
+  - Accept ndarrays when setting items in Panel (GH #452)
 
 **Bug fixes**
 

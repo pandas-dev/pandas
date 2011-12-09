@@ -489,8 +489,15 @@ class Panel(NDFrame):
             If label combo is contained, will be reference to calling Panel,
             otherwise a new object
         """
-        frame = self._get_item_cache(item)
-        return frame.set_value(major, minor, value)
+        try:
+            frame = self._get_item_cache(item)
+            frame.set_value(major, minor, value)
+            return self
+        except KeyError:
+            ax1, ax2, ax3 = self._expand_axes((item, major, minor))
+            result = self.reindex(items=ax1, major=ax2, minor=ax3, copy=False)
+            result = result.set_value(item, major, minor, value)
+            return result
 
     def _box_item_values(self, key, values):
         return DataFrame(values, index=self.major_axis, columns=self.minor_axis)

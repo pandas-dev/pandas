@@ -400,11 +400,44 @@ to sparse
             return ndarray.__getitem__(self, sp_loc)
 
     def get_value(self, label):
+        """
+        Retrieve single value at passed index label
+
+        Parameters
+        ----------
+        index : label
+
+        Returns
+        -------
+        value : scalar value
+        """
         loc = self.index.get_loc(label)
         return self._get_val_at(loc)
 
     def set_value(self, label, value):
-        raise Exception('SparseSeries is immutable')
+        """
+        Quickly set single value at passed label. If label is not contained, a
+        new object is created with the label placed at the end of the result
+        index
+
+        Parameters
+        ----------
+        label : object
+            Partial indexing with MultiIndex not allowed
+        value : object
+            Scalar value
+
+        Notes
+        -----
+        This method *always* returns a new object. It is not particularly
+        efficient but is provided for API compatibility with Series
+
+        Returns
+        -------
+        series : SparseSeries
+        """
+        dense = self.to_dense().set_value(label, value)
+        return dense.to_sparse(kind=self.kind, fill_value=self.fill_value)
 
     def take(self, indices):
         """
@@ -946,13 +979,32 @@ class SparseDataFrame(DataFrame):
     def get_value(self, index, col):
         s = self._series[col]
         return s.get_value(index)
-    if __debug__: get_value.__doc__ = DataFrame.get_value.__doc__
+    if __debug__:
+        get_value.__doc__ = DataFrame.get_value.__doc__
 
     def set_value(self, index, col, value):
         """
-        Not implemented for SparseDataFrame
+        Put single value at passed column and index
+
+        Parameters
+        ----------
+        index : row label
+        col : column label
+        value : scalar value
+
+        Notes
+        -----
+        This method *always* returns a new object. It is currently not
+        particularly efficient (and potentially very expensive) but is provided
+        for API compatibility with DataFrame
+
+        Returns
+        -------
+        frame : DataFrame
         """
-        raise Exception('Values in SparseDataFrame are immutable')
+        dense = self.to_dense().set_value(index, col, value)
+        return dense.to_sparse(kind=self.default_kind,
+                               fill_value=self.default_fill_value)
 
     def _slice(self, slobj, axis=0):
         if axis == 0:
@@ -1527,8 +1579,29 @@ class SparsePanel(Panel):
         if key not in self.items:
             self._items = Index(list(self.items) + [key])
 
-    def set_value(self, item, row, column, value):
-        raise Exception('Sparse object scalar values are immutable')
+    def set_value(self, item, major, minor, value):
+        """
+        Quickly set single value at (item, major, minor) location
+
+        Parameters
+        ----------
+        item : item label (panel item)
+        major : major axis label (panel item row)
+        minor : minor axis label (panel item column)
+        value : scalar
+
+        Notes
+        -----
+        This method *always* returns a new object. It is not particularly
+        efficient but is provided for API compatibility with Panel
+
+        Returns
+        -------
+        panel : SparsePanel
+        """
+        dense = self.to_dense().set_value(item, major, minor, value)
+        return dense.to_sparse(kind=self.default_kind,
+                               fill_value=self.default_fill_value)
 
     def __delitem__(self, key):
         loc = self.items.get_loc(key)

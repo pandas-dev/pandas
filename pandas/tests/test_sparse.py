@@ -316,7 +316,15 @@ class TestSparseSeries(TestCase,
         assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
 
     def test_set_value(self):
-        self.assertRaises(Exception, self.bseries.set_value, 10, 0)
+        idx = self.btseries.index[7]
+        res = self.btseries.set_value(idx, 0)
+        self.assert_(res is not self.btseries)
+        self.assertEqual(res[idx], 0)
+
+        res = self.iseries.set_value('foobar', 0)
+        self.assert_(res is not self.iseries)
+        self.assert_(res.index[-1] == 'foobar')
+        self.assertEqual(res['foobar'], 0)
 
     def test_getitem_fancy_index(self):
         idx = self.bseries.index
@@ -830,7 +838,16 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         pass
 
     def test_set_value(self):
-        self.assertRaises(Exception, self.frame.set_value, 10, 0)
+        res = self.frame.set_value('foobar', 'B', 1.5)
+        self.assert_(res is not self.frame)
+        self.assert_(res.index[-1] == 'foobar')
+        self.assertEqual(res.get_value('foobar', 'B'), 1.5)
+
+        res2 = res.set_value('foobar', 'qux', 1.5)
+        self.assert_(res2 is not res)
+        self.assert_(np.array_equal(res2.columns,
+                                    list(self.frame.columns) + ['qux']))
+        self.assertEqual(res2.get_value('foobar', 'qux'), 1.5)
 
     def test_fancy_index_misc(self):
         # axis = 0
@@ -1273,11 +1290,15 @@ class TestSparsePanel(TestCase,
         self.assertRaises(Exception, self.panel.__setitem__, 'item6', 1)
 
     def test_set_value(self):
-        mjr = self.panel.major_axis[4]
-        mnr = self.panel.minor_axis[3]
+        def _check_loc(item, major, minor, val=1.5):
+            res = self.panel.set_value(item, major, minor, val)
+            self.assert_(res is not self.panel)
+            self.assertEquals(res.get_value(item, major, minor), val)
 
-        self.assertRaises(Exception, self.panel.set_value, 'ItemA',
-                          )
+        _check_loc('ItemA', self.panel.major_axis[4], self.panel.minor_axis[3])
+        _check_loc('ItemF', self.panel.major_axis[4], self.panel.minor_axis[3])
+        _check_loc('ItemF', 'foo', self.panel.minor_axis[3])
+        _check_loc('ItemE', 'foo', 'bar')
 
     def test_delitem_pop(self):
         del self.panel['ItemB']

@@ -327,11 +327,15 @@ copy : boolean, default False
     def set_value(self, label, value):
         """
         Quickly set single value at passed label. If label is not contained, a
+        new object is created with the label placed at the end of the result
+        index
 
         Parameters
         ----------
         label : object
             Partial indexing with MultiIndex not allowed
+        value : object
+            Scalar value
 
         Returns
         -------

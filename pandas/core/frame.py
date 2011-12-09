@@ -956,17 +956,9 @@ class DataFrame(NDFrame):
             engine.set_value(series, index, value)
             return self
         except KeyError:
-            if index not in self.index:
-                new_index = np.concatenate([self.index, [index]])
-            else:
-                new_index = self.index
-            if col not in self.columns:
-                new_columns = np.concatenate([self.columns, [col]])
-            else:
-                new_columns = self.columns
-            result = DataFrame(self._data, index=new_index,
-                               columns=new_columns)
-
+            new_index, new_columns = self._expand_axes((index, col))
+            result = self.reindex(index=new_index, columns=new_columns,
+                                  copy=False)
             likely_dtype = com._infer_dtype(value)
             if result[col].dtype != likely_dtype:
                 result[col] = result[col].astype(likely_dtype)
