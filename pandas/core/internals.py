@@ -586,7 +586,8 @@ class BlockManager(object):
 
         # hm, elaborate hack?
         loc = self.items.get_loc(item)
-        new_block = make_block(value, self.items[loc:loc+1], self.items)
+        new_block = make_block(value, self.items[loc:loc+1].copy(),
+                               self.items)
         self.blocks.append(new_block)
 
     def _find_block(self, item):
