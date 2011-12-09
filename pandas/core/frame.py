@@ -1170,37 +1170,49 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def align(self, other, join='outer', copy=True):
+    def align(self, other, join='outer', axis=None, copy=True):
         """
         Align two DataFrame object on their index and columns with the specified
         join method for each axis Index
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame or Series
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+        axis : {0, 1, None}, default None
+            Align on index (0), columns (1), or both (None)
 
         Returns
         -------
         (left, right) : (Series, Series)
             Aligned Series
         """
-        if self.index.equals(other.index):
-            join_index = self.index
-            ilidx, iridx = None, None
-        else:
-            join_index, ilidx, iridx = self.index.join(other.index, how=join,
-                                                       return_indexers=True)
+        if isinstance(other, DataFrame):
+            return self._align_frame(other, join=join, axis=axis, copy=copy)
+        elif isinstance(other, Series):
+            return self._align_series(other, join=join, axis=axis, copy=copy)
+        else:  # pragma: no cover
+            raise TypeError('unsupported type: %s' % type(other))
 
-        if self.columns.equals(other.columns):
-            join_columns = self.columns
-            clidx, cridx = None, None
-        else:
-            join_columns, clidx, cridx = self.columns.join(other.columns,
-                                                           how=join,
+    def _align_frame(self, other, join='outer', axis=None, copy=True):
+        # defaults
+        join_index = self.index
+        join_columns = self.columns
+        ilidx, iridx = None, None
+        clidx, cridx = None, None
+
+        if axis is None or axis == 0:
+            if not self.index.equals(other.index):
+                join_index, ilidx, iridx = self.index.join(other.index, how=join,
                                                            return_indexers=True)
 
-        def _align_frame(frame, row_idx, col_idx):
+        if axis is None or axis == 1:
+            if not self.columns.equals(other.columns):
+                join_columns, clidx, cridx = self.columns.join(other.columns,
+                                                               how=join,
+                                                               return_indexers=True)
+
+        def _align(frame, row_idx, col_idx):
             new_data = frame._data
             if row_idx is not None:
                 new_data = new_data.reindex_indexer(join_index, row_idx, axis=1)
@@ -1214,9 +1226,39 @@ class DataFrame(NDFrame):
 
             return DataFrame(new_data)
 
-        left = _align_frame(self, ilidx, clidx)
-        right = _align_frame(other, iridx, cridx)
+        left = _align(self, ilidx, clidx)
+        right = _align(other, iridx, cridx)
         return left, right
+
+    def _align_series(self, other, join='outer', axis=None, copy=True):
+        fdata = self._data
+        if axis == 0:
+            join_index = self.index
+            lidx, ridx = None, None
+            if not self.index.equals(other.index):
+                join_index, lidx, ridx = self.index.join(other.index, how=join,
+                                                         return_indexers=True)
+
+            if lidx is not None:
+                fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
+        elif axis == 1:
+            join_index = self.columns
+            lidx, ridx = None, None
+            if not self.columns.equals(other.index):
+                join_index, lidx, ridx = self.columns.join(other.index, how=join,
+                                                           return_indexers=True)
+
+            if lidx is not None:
+                fdata = fdata.reindex_items(join_index)
+        else:
+            raise ValueError('Must specify axis=0 or 1')
+
+        if copy and fdata is self._data:
+            fdata = fdata.copy()
+
+        left_result = DataFrame(fdata)
+        right_result = other if ridx is None else other.reindex(join_index)
+        return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, copy=True):
         """Conform Series to new index with optional filling logic, placing
@@ -1776,35 +1818,21 @@ class DataFrame(NDFrame):
             return self._combine_match_columns(other, func, fill_value)
 
     def _combine_match_index(self, other, func, fill_value=None):
-        new_index = self.index.union(other.index)
-        values = self.values
-        other_vals = other.values
-
-        # Operate row-wise
-        if not other.index.equals(new_index):
-            other_vals = other.reindex(new_index).values
-
-        if not self.index.equals(new_index):
-            values = self.reindex(new_index).values
-
+        left, right = self.align(other, join='outer', axis=0, copy=False)
         if fill_value is not None:
             raise NotImplementedError
-
-        return self._constructor(func(values.T, other_vals).T, index=new_index,
+        return self._constructor(func(left.values.T, right.values).T,
+                                 index=left.index,
                                  columns=self.columns, copy=False)
 
     def _combine_match_columns(self, other, func, fill_value=None):
-        newCols = self.columns.union(other.index)
-
-        # Operate column-wise
-        this = self.reindex(columns=newCols)
-        other = other.reindex(newCols).values
-
+        left, right = self.align(other, join='outer', axis=1, copy=False)
         if fill_value is not None:
             raise NotImplementedError
 
-        return self._constructor(func(this.values, other), index=self.index,
-                                 columns=newCols, copy=False)
+        return self._constructor(func(left.values, right.values),
+                                 index=self.index,
+                                 columns=left.columns, copy=False)
 
     def _combine_const(self, other, func):
         if not self:
@@ -1847,13 +1875,8 @@ class DataFrame(NDFrame):
         if not self:
             return other.copy()
 
-        new_index = self.index
-        this = self
-
-        if not self.index.equals(other.index):
-            new_index = self.index + other.index
-            this = self.reindex(new_index)
-            other = other.reindex(new_index)
+        this, other = self.align(other, axis=0, copy=False)
+        new_index = this.index
 
         # sorts if possible
         new_columns = this.columns.union(other.columns)

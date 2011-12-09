@@ -2626,12 +2626,29 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, df.set_index, 'A')
 
     def test_align(self):
-
         af, bf = self.frame.align(self.frame)
         self.assert_(af._data is not self.frame._data)
 
         af, bf = self.frame.align(self.frame, copy=False)
         self.assert_(af._data is self.frame._data)
+
+        # axis = 0
+        other = self.frame.ix[:-5, :3]
+        af, bf = self.frame.align(other, axis=0)
+        self.assert_(bf.columns.equals(other.columns))
+
+        af, bf = self.frame.align(other, join='right', axis=0)
+        self.assert_(bf.columns.equals(other.columns))
+        self.assert_(bf.index.equals(other.index))
+        self.assert_(af.index.equals(other.index))
+
+        # axis = 1
+        af, bf = self.frame.align(other, axis=1)
+        self.assert_(bf.columns.equals(self.frame.columns))
+        self.assert_(bf.index.equals(other.index))
+
+        af, bf = self.frame.align(other, join='inner', axis=1)
+        self.assert_(bf.columns.equals(other.columns))
 
     #----------------------------------------------------------------------
     # Transposing
