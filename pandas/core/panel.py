@@ -1010,9 +1010,6 @@ class Panel(NDFrame):
 
     _add_docs(std, 'unbiased standard deviation', 'stdev')
 
-    def skew(self, axis='major', skipna=True):
-        raise NotImplementedError
-
     def prod(self, axis='major', skipna=True):
         return self._array_method(np.prod, axis=axis, fill_value=1,
                                   skipna=skipna)

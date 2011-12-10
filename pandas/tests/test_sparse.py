@@ -19,14 +19,15 @@ from pandas.core.datetools import BDay
 import pandas.core.datetools as datetools
 import pandas.util.testing as testing
 
-import pandas.core.sparse as spm
-from pandas.core.sparse import (IntIndex, BlockIndex,
-                                SparseSeries, SparseDataFrame,
-                                SparsePanel)
+import pandas.sparse.frame as spf
 
-import test_frame
-import test_panel
-import test_series
+from pandas._sparse import BlockIndex, IntIndex
+from pandas.core.sparse import (SparseSeries, SparseTimeSeries,
+                                SparseDataFrame, SparsePanel)
+
+import pandas.tests.test_frame as test_frame
+import pandas.tests.test_panel as test_panel
+import pandas.tests.test_series as test_series
 
 def _test_data1():
     # nan-based
@@ -197,7 +198,7 @@ class TestSparseSeries(TestCase,
         # Sparse time series works
         date_index = DateRange('1/1/2000', periods=len(self.bseries))
         s5 = SparseSeries(self.bseries, index=date_index)
-        self.assert_(isinstance(s5, spm.SparseTimeSeries))
+        self.assert_(isinstance(s5, SparseTimeSeries))
 
         # pass Series
         bseries2 = SparseSeries(self.bseries.to_dense())
@@ -559,7 +560,7 @@ class TestSparseSeries(TestCase,
             for i, idx in enumerate(indices):
                 data[i] = SparseSeries(idx.to_int_index().indices,
                                        sparse_index=idx)
-            homogenized = spm.homogenize(data)
+            homogenized = spf.homogenize(data)
 
             for k, v in homogenized.iteritems():
                 assert(v.sp_index.equals(expected))
@@ -578,7 +579,7 @@ class TestSparseSeries(TestCase,
         # must have NaN fill value
         data = {'a' : SparseSeries(np.arange(7), sparse_index=expected2,
                                    fill_value=0)}
-        nose.tools.assert_raises(Exception, spm.homogenize, data)
+        nose.tools.assert_raises(Exception, spf.homogenize, data)
 
     def test_fill_value_corner(self):
         cop = self.zbseries.copy()
@@ -1098,7 +1099,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             wp = Panel.from_dict({'foo' : frame})
             from_dense_lp = wp.to_long()
 
-            from_sparse_lp = spm.stack_sparse_frame(frame)
+            from_sparse_lp = spf.stack_sparse_frame(frame)
 
             self.assert_(np.array_equal(from_dense_lp.values,
                                         from_sparse_lp.values))
