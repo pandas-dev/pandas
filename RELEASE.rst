@@ -55,6 +55,8 @@ pandas 0.6.1
 
 **Bug fixes**
 
+  - Fix O(K^2) memory leak caused by inserting many columns without
+    consolidating, had been present since 0.4.0 (GH #467)
   - `DataFrame.count` should return Series with zero instead of NA with length-0
     axis (GH #423)
   - Fix Yahoo! Finance API usage in pandas.io.data (GH #419, PR #427)
