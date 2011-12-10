@@ -28,3 +28,6 @@ from pandas.stats.api import *
 from pandas.util.testing import debug
 
 from pandas.tools.pivot import pivot_table
+
+from pandas.sparse.api import (SparseArray, SparseSeries, SparseDataFrame,
+                               SparsePanel)

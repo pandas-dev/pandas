@@ -619,6 +619,7 @@ class TestSparseSeries(TestCase,
         result = self.bseries.cumsum()
         expected = self.bseries.to_dense().cumsum()
         self.assert_(isinstance(result, SparseSeries))
+        self.assertEquals(result.name, self.bseries.name)
         assert_series_equal(result.to_dense(), expected)
 
         result = self.zbseries.cumsum()

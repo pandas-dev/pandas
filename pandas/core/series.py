@@ -1433,8 +1433,9 @@ copy : boolean, default False
                     new_values = series.values.copy()
                 else:
                     new_values = series.values
-            result = Series(new_values, join_index, name=series.name)
-            return result
+
+            # be subclass-friendly
+            return series._constructor(new_values, join_index, name=series.name)
 
         left = _align_series(self, lidx)
         right = _align_series(other, ridx)

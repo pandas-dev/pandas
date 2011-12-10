@@ -660,6 +660,9 @@ def _asarray_tuplesafe(values, dtype=None):
 
     return result
 
+def is_integer(obj):
+    return isinstance(obj, (int, np.integer))
+
 def is_integer_dtype(arr):
     return issubclass(arr.dtype.type, np.integer)
 
