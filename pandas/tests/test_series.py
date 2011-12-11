@@ -603,6 +603,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         allna = self.series * nan
         self.assert_(np.isnan(f(allna)))
 
+        # dtype=object with None, it works!
+        s = Series([1, 2, 3, None, 5])
+        f(s)
+
     def _check_accum_op(self, name):
         func = getattr(np, name)
         self.assert_(np.array_equal(func(self.ts), func(np.array(self.ts))))

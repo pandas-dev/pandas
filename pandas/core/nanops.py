@@ -10,43 +10,36 @@ except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
 def nansum(values, axis=None, skipna=True, copy=True):
-    if values.dtype == np.object_:
-        the_sum = values.sum(axis)
-    else:
-        mask = isnull(values)
+    mask = isnull(values)
 
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            if copy:
-                values = values.copy()
-            np.putmask(values, mask, 0)
+    if skipna and not issubclass(values.dtype.type, np.integer):
+        if copy:
+            values = values.copy()
+        np.putmask(values, mask, 0)
 
-        the_sum = values.sum(axis)
-        the_sum = _maybe_null_out(the_sum, axis, mask)
+    the_sum = values.sum(axis)
+    the_sum = _maybe_null_out(the_sum, axis, mask)
 
     return the_sum
 
 def nanmean(values, axis=None, skipna=True, copy=True):
-    if values.dtype == np.object_:
-        the_mean = values.sum(axis) / float(values.shape[axis])
+    mask = isnull(values)
+
+    if skipna and not issubclass(values.dtype.type, np.integer):
+        if copy:
+            values = values.copy()
+        np.putmask(values, mask, 0)
+
+    the_sum = values.sum(axis)
+    count = _get_counts(mask, axis)
+
+    if axis is not None:
+        the_mean = the_sum / count
+        ct_mask = count == 0
+        if ct_mask.any():
+            the_mean[ct_mask] = np.nan
     else:
-        mask = isnull(values)
-
-        if skipna and not issubclass(values.dtype.type, np.integer):
-            if copy:
-                values = values.copy()
-            np.putmask(values, mask, 0)
-
-        the_sum = values.sum(axis)
-        count = _get_counts(mask, axis)
-
-        if axis is not None:
-            the_mean = the_sum / count
-            ct_mask = count == 0
-            if ct_mask.any():
-                the_mean[ct_mask] = np.nan
-        else:
-            the_mean = the_sum / count if count > 0 else np.nan
-
+        the_mean = the_sum / count if count > 0 else np.nan
     return the_mean
 
 def nanmedian(values, axis=None, skipna=True, copy=True):
@@ -121,7 +114,8 @@ def nanmin(values, axis=None, skipna=True, copy=True):
     # numpy 1.6.1 workaround in Python 3.x
     if values.dtype == np.object_:  # pragma: no cover
         import __builtin__
-        result = np.apply_along_axis(__builtin__.min, axis, values)
+        apply_ax = axis if axis is not None else 0
+        result = np.apply_along_axis(__builtin__.min, apply_ax, values)
     else:
         result = values.min(axis)
 
@@ -136,7 +130,8 @@ def nanmax(values, axis=None, skipna=True, copy=True):
     # numpy 1.6.1 workaround in Python 3.x
     if values.dtype == np.object_:  # pragma: no cover
         import __builtin__
-        result = np.apply_along_axis(__builtin__.max, axis, values)
+        apply_ax = axis if axis is not None else 0
+        result = np.apply_along_axis(__builtin__.max, apply_ax, values)
     else:
         result = values.max(axis)
     return _maybe_null_out(result, axis, mask)

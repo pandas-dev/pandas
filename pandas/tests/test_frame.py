@@ -3234,7 +3234,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
 
-    def test_stat_ops_attempt_obj_array(self):
+    def test_stat_operators_attempt_obj_array(self):
         data = {
             'a': [-0.00049987540199591344, -0.0016467257772919831,
                    0.00067695870775883013],

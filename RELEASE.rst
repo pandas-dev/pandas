@@ -85,6 +85,7 @@ Thanks
 - Jev Kuznetsov
 - Wouter Overmeire
 - Fernando Perez
+- Nathan Pinger
 - Christian Prinoth
 - Joon Ro
 - Chang She
