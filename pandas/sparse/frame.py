@@ -218,13 +218,13 @@ class SparseDataFrame(DataFrame):
                                           kind=self.default_kind)
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
-                cleanSeries = value.reindex(self.index)
+                clean_series = value.reindex(self.index)
                 if not isinstance(value, SparseSeries):
-                    cleanSeries = sp_maker(cleanSeries)
+                    clean_series = sp_maker(clean_series)
             else:
-                cleanSeries = sp_maker(value)
+                clean_series = sp_maker(value)
 
-            self._series[key] = cleanSeries
+            self._series[key] = clean_series
         # Scalar
         else:
             self._series[key] = sp_maker(value)

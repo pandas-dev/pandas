@@ -200,19 +200,21 @@ to sparse
     __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'floordiv')
     __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
 
+    def disable(self, other):
+        raise NotImplementedError('inplace binary ops not supported')
     # Inplace operators
-    __iadd__ = __add__
-    __isub__ = __sub__
-    __imul__ = __mul__
-    __itruediv__ = __truediv__
-    __ifloordiv__ = __floordiv__
-    __ipow__ = __pow__
+    __iadd__ = disable
+    __isub__ = disable
+    __imul__ = disable
+    __itruediv__ = disable
+    __ifloordiv__ = disable
+    __ipow__ = disable
 
     # Python 2 division operators
     if not py3compat.PY3:
         __div__ = _sparse_op_wrap(operator.div, 'div')
         __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
-        __idiv__ = __div__
+        __idiv__ = disable
 
     @property
     def values(self):
@@ -239,6 +241,14 @@ to sparse
         else:
             data_slice = self.values[key]
             return self._constructor(data_slice)
+
+    def __getslice__(self, i, j):
+        if i < 0:
+            i -= len(self)
+        if j < 0:
+            j -= len(self)
+        slobj = slice(i, j)
+        return self.__getitem__(slobj)
 
     def _get_val_at(self, loc):
         n = len(self)

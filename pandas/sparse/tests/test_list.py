@@ -76,6 +76,7 @@ class TestSparseList(unittest.TestCase):
         for i in range(len(arr)):
             assert_almost_equal(splist[i], arr[i])
 
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

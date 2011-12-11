@@ -75,17 +75,17 @@ class SparseSeries(SparseArray, Series):
     def __new__(cls, data, index=None, sparse_index=None, kind='block',
                 fill_value=None, name=None, copy=False):
 
-        is_sparse_series = isinstance(data, SparseSeries)
+        is_sparse_array = isinstance(data, SparseArray)
         if fill_value is None:
-            if is_sparse_series:
+            if is_sparse_array:
                 fill_value = data.fill_value
             else:
                 fill_value = nan
 
-        if is_sparse_series:
-            if index is None:
+        if is_sparse_array:
+            if isinstance(data, SparseSeries) and index is None:
                 index = data.index
-            else:
+            elif index is not None:
                 assert(len(index) == len(data))
 
             sparse_index = data.sp_index
@@ -236,19 +236,10 @@ to sparse
     __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'floordiv')
     __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
 
-    # Inplace operators
-    __iadd__ = __add__
-    __isub__ = __sub__
-    __imul__ = __mul__
-    __itruediv__ = __truediv__
-    __ifloordiv__ = __floordiv__
-    __ipow__ = __pow__
-
     # Python 2 division operators
     if not py3compat.PY3:
         __div__ = _sparse_op_wrap(operator.div, 'div')
         __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
-        __idiv__ = __div__
 
     def __getitem__(self, key):
         """

@@ -22,12 +22,15 @@ import pandas.util.testing as testing
 import pandas.sparse.frame as spf
 
 from pandas._sparse import BlockIndex, IntIndex
-from pandas.core.sparse import (SparseSeries, SparseTimeSeries,
-                                SparseDataFrame, SparsePanel)
+from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
+                               SparseDataFrame, SparsePanel,
+                               SparseArray)
 
 import pandas.tests.test_frame as test_frame
 import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
+
+from test_array import assert_sp_array_equal
 
 def _test_data1():
     # nan-based
@@ -62,14 +65,6 @@ def _test_data2_zero():
 def assert_sp_series_equal(a, b):
     assert(a.index.equals(b.index))
     assert_sp_array_equal(a, b)
-
-def assert_sp_array_equal(left, right):
-    assert_almost_equal(left.sp_values, right.sp_values)
-    assert(left.sp_index.equals(right.sp_index))
-    if np.isnan(left.fill_value):
-        assert(np.isnan(right.fill_value))
-    else:
-        assert(left.fill_value == right.fill_value)
 
 
 def assert_sp_frame_equal(left, right, exact_indices=True):
@@ -332,7 +327,7 @@ class TestSparseSeries(TestCase,
         self.assert_(res.index[-1] == 'foobar')
         self.assertEqual(res['foobar'], 0)
 
-    def test_getitem_fancy_index(self):
+    def test_getitem_slice(self):
         idx = self.bseries.index
         res = self.bseries[::2]
         self.assert_(isinstance(res, SparseSeries))
@@ -344,6 +339,10 @@ class TestSparseSeries(TestCase,
 
         res = self.bseries[5:]
         assert_sp_series_equal(res, self.bseries.reindex(idx[5:]))
+
+        # negative indices
+        res = self.bseries[:-3]
+        assert_sp_series_equal(res, self.bseries.reindex(idx[:-3]))
 
     def test_take(self):
         def _compare_with_dense(sp):
@@ -367,9 +366,6 @@ class TestSparseSeries(TestCase,
         # Corner case
         sp = SparseSeries(np.ones(10.) * nan)
         assert_almost_equal(sp.take([0, 1, 2, 3, 4]), np.repeat(nan, 5))
-
-    def test_getslice(self):
-        pass
 
     def test_setitem(self):
         self.assertRaises(Exception, self.bseries.__setitem__, 5, 7.)
@@ -431,6 +427,15 @@ class TestSparseSeries(TestCase,
         val = np.float64(3.0)
         result = val - self.zbseries
         assert_sp_series_equal(result, 3 - self.zbseries)
+
+
+    def test_binary_operators(self):
+        def _check_inplace_op(op):
+            tmp = self.bseries.copy()
+            self.assertRaises(NotImplementedError, op, tmp, self.bseries)
+        inplace_ops = ['iadd', 'isub', 'imul', 'itruediv', 'ifloordiv', 'ipow']
+        for op in inplace_ops:
+            _check_inplace_op(getattr(operator, op))
 
     def test_reindex(self):
         def _compare_with_series(sps, new_index):
@@ -935,6 +940,13 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
     def test_setitem_corner(self):
         self.frame['a'] = self.frame['B']
         assert_sp_series_equal(self.frame['a'], self.frame['B'])
+
+    def test_setitem_array(self):
+        arr = self.frame['B'].view(SparseArray)
+
+        self.frame['E'] = arr
+        assert_sp_series_equal(self.frame['E'], self.frame['B'])
+        self.assertRaises(Exception, self.frame.__setitem__, 'F', arr[:-1])
 
     def test_delitem(self):
         A = self.frame['A']

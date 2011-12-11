@@ -7,8 +7,12 @@ class SparseList(object):
     """
     Data structure for accumulating data to be converted into a
     SparseArray. Has similar API to the standard Python list
-    """
 
+    Parameters
+    ----------
+    data : scalar or array-like
+    fill_value : scalar, default NaN
+    """
     def __init__(self, data=None, fill_value=np.nan):
         self.fill_value = fill_value
         self._chunks = []
@@ -104,6 +108,13 @@ class SparseList(object):
         return self._chunks[0]
 
     def append(self, value):
+        """
+        Append element or array-like chunk of data to the SparseList
+
+        Parameters
+        ----------
+        value: scalar or array-like
+        """
         if np.isscalar(value):
             value = [value]
 
