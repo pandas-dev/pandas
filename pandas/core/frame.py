@@ -2480,7 +2480,7 @@ class DataFrame(NDFrame):
         if self._is_mixed_type:
             new_data = self._append_column_by_column(other)
         else:
-            new_data= np.concatenate((self.values, other.values), axis=0)
+            new_data = np.concatenate((self.values, other.values), axis=0)
         return self._constructor(new_data, index=new_index,
                                  columns=self.columns)
 

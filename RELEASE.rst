@@ -41,6 +41,7 @@ pandas 0.6.1
   - DataFrame.align can accept Series arguments, add axis keyword (GH #461)
   - Implement new SparseList and SparseArray data structures. SparseSeries now
     derives from SparseArray (GH #463)
+  - max_columns / max_rows options in set_printoptions (PR #453)
 
 **Improvements to existing features**
 
@@ -54,6 +55,10 @@ pandas 0.6.1
   - Use same float formatting function for Series.__repr__ (PR #420)
   - Use available console width to output DataFrame columns (PR #453)
   - Accept ndarrays when setting items in Panel (GH #452)
+  - Infer console width when printing __repr__ of DataFrame to console (PR
+    #453)
+  - Optimize scalar value lookups in the general case by 25% or more in Series
+    and DataFrame
 
 **Bug fixes**
 
@@ -70,6 +75,8 @@ pandas 0.6.1
     (GH #421)
   - Implement DateOffset.__ne__ causing downstream bug (GH #456)
   - Fix __doc__-related issue when converting py -> pyo with py2exe
+  - Bug fix in left join Cython code with duplicate monotonic labels
+  - Fix bug when unstacking multiple levels described in #451
 
 Thanks
 ------
@@ -78,6 +85,7 @@ Thanks
 - Jev Kuznetsov
 - Wouter Overmeire
 - Fernando Perez
+- Christian Prinoth
 - Joon Ro
 - Chang She
 - Chris Uga
