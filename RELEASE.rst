@@ -39,6 +39,8 @@ pandas 0.6.1
     #438). Add similar methods to sparse data structures for compatibility
   - Add Qt table widget to sandbox (PR #435)
   - DataFrame.align can accept Series arguments, add axis keyword (GH #461)
+  - Implement new SparseList and SparseArray data structures. SparseSeries now
+    derives from SparseArray (GH #463)
 
 **Improvements to existing features**
 

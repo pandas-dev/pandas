@@ -9,11 +9,30 @@ from pandas.util.testing import assert_almost_equal
 from test_sparse import assert_sp_array_equal
 
 
+def assert_sp_list_equal(left, right):
+    assert_sp_array_equal(left.to_array(), right.to_array())
+
 class TestSparseList(unittest.TestCase):
 
     def setUp(self):
         self.na_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.zero_data = np.array([0, 0, 1, 2, 3, 0, 4, 5, 0, 6])
+
+    def test_constructor(self):
+        lst1 = SparseList(self.na_data[:5])
+        exp = SparseList()
+        exp.append(self.na_data[:5])
+        assert_sp_list_equal(lst1, exp)
+
+    def test_len(self):
+        arr = self.na_data
+        splist = SparseList()
+        splist.append(arr[:5])
+        self.assertEquals(len(splist), 5)
+        splist.append(arr[5])
+        self.assertEquals(len(splist), 6)
+        splist.append(arr[6:])
+        self.assertEquals(len(splist), 10)
 
     def test_append_na(self):
         arr = self.na_data
@@ -75,6 +94,7 @@ class TestSparseList(unittest.TestCase):
 
         for i in range(len(arr)):
             assert_almost_equal(splist[i], arr[i])
+            assert_almost_equal(splist[-i], arr[-i])
 
 
 if __name__ == '__main__':

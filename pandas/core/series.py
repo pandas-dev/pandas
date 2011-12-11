@@ -372,9 +372,9 @@ copy : boolean, default False
 
     def __getslice__(self, i, j):
         if i < 0:
-            i -= len(self)
+            i = 0
         if j < 0:
-            j -= len(self)
+            j = 0
         slobj = slice(i, j)
         return self.__getitem__(slobj)
 

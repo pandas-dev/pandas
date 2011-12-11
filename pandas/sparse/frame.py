@@ -295,9 +295,6 @@ class SparseDataFrame(DataFrame):
             else: # pragma: no cover
                 raise
 
-    def _get_item_cache(self, key):
-        return self[key]
-
     def get_value(self, index, col):
         s = self._series[col]
         return s.get_value(index)

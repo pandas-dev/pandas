@@ -244,9 +244,9 @@ to sparse
 
     def __getslice__(self, i, j):
         if i < 0:
-            i -= len(self)
+            i = 0
         if j < 0:
-            j -= len(self)
+            j = 0
         slobj = slice(i, j)
         return self.__getitem__(slobj)
 
@@ -304,8 +304,9 @@ to sparse
         """
 
         """
+        dtype = np.dtype(dtype)
         if dtype is not None and dtype not in (np.float_, float):
-            raise Exception('Can only support floating point data')
+            raise Exception('Can only support floating point data for now')
         return self.copy()
 
     def copy(self, deep=True):
@@ -373,10 +374,6 @@ to sparse
         -------
         cumsum : Series
         """
-
-
-
-
         if com.notnull(self.fill_value):
             return self.to_dense().cumsum()
         # TODO: what if sp_values contains NaN??
@@ -401,14 +398,6 @@ to sparse
         else:
             nsparse = self.sp_index.npoints
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
-
-    def valid(self):
-        """
-        Analogous to Series.valid
-        """
-        # TODO: make more efficient
-        dense_valid = self.to_dense().valid()
-        return dense_valid.to_sparse(fill_value=self.fill_value)
 
 
 

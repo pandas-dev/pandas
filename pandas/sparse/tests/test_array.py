@@ -2,6 +2,7 @@ from numpy import nan, ndarray
 import numpy as np
 
 import operator
+import pickle
 import unittest
 
 from pandas.sparse.api import SparseArray
@@ -23,16 +24,48 @@ class TestSparseArray(unittest.TestCase):
         self.arr = SparseArray(self.arr_data)
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
-    def test_constructor(self):
-        pass
+    def test_constructor_from_sparse(self):
+        res = SparseArray(self.zarr)
+        self.assertEquals(res.fill_value, 0)
+        assert_almost_equal(res.sp_values, self.zarr.sp_values)
+
+    def test_constructor_copy(self):
+        cp = SparseArray(self.arr, copy=True)
+        cp.sp_values[:3] = 0
+        self.assert_(not (self.arr.sp_values[:3] == 0).any())
+
+        not_copy = SparseArray(self.arr)
+        not_copy.sp_values[:3] = 0
+        self.assert_((self.arr.sp_values[:3] == 0).all())
+
+    def test_astype(self):
+        res = self.arr.astype('f8')
+        res.sp_values[:3] = 27
+        self.assert_(not (self.arr.sp_values[:3] == 27).any())
+
+        self.assertRaises(Exception, self.arr.astype, 'i8')
 
     def test_values_asarray(self):
         assert_almost_equal(self.arr.values, self.arr_data)
+        assert_almost_equal(self.arr.to_dense(), self.arr_data)
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
 
     def test_getslice(self):
         result = self.arr[:-3]
         exp = SparseArray(self.arr.values[:-3])
+        assert_sp_array_equal(result, exp)
+
+        result = self.arr[-4:]
+        exp = SparseArray(self.arr.values[-4:])
+        assert_sp_array_equal(result, exp)
+
+        # two corner cases from Series
+        result = self.arr[-12:]
+        exp = SparseArray(self.arr)
+        assert_sp_array_equal(result, exp)
+
+        result = self.arr[:-12]
+        exp = SparseArray(self.arr.values[:0])
         assert_sp_array_equal(result, exp)
 
     def test_binary_operators(self):
@@ -84,6 +117,15 @@ class TestSparseArray(unittest.TestCase):
         inplace_ops = ['iadd', 'isub', 'imul', 'itruediv', 'ifloordiv', 'ipow']
         for op in inplace_ops:
             _check_inplace_op(getattr(operator, op))
+
+    def test_pickle(self):
+        def _check_roundtrip(obj):
+            pickled = pickle.dumps(obj)
+            unpickled = pickle.loads(pickled)
+            assert_sp_array_equal(unpickled, obj)
+
+        _check_roundtrip(self.arr)
+        _check_roundtrip(self.zarr)
 
 if __name__ == '__main__':
     import nose

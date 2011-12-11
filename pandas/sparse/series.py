@@ -410,12 +410,6 @@ to sparse
                             sparse_index=new_index,
                             fill_value=self.fill_value)
 
-    @property
-    def _valid_sp_values(self):
-        sp_vals = self.sp_values
-        mask = np.isfinite(sp_vals)
-        return sp_vals[mask]
-
     def cumsum(self, axis=0, dtype=None, out=None):
         """
         Cumulative sum of values. Preserves locations of NaN values
@@ -424,13 +418,18 @@ to sparse
 
         Returns
         -------
-        cumsum : Series
+        cumsum : Series or SparseSeries
         """
-        if not np.isnan(self.fill_value):
-            return self.to_dense().cumsum()
-        return SparseSeries(self.sp_values.cumsum(), index=self.index,
-                            sparse_index=self.sp_index, name=self.name,
-                            fill_value=self.fill_value)
+        result = SparseArray.cumsum(self)
+        if isinstance(result, SparseArray):
+            result = self._attach_meta(result)
+        return result
+
+    def _attach_meta(self, sparse_arr):
+        sparse_series = sparse_arr.view(SparseSeries)
+        sparse_series.index = self.index
+        sparse_series.name = self.name
+        return sparse_series
 
     def valid(self):
         """
