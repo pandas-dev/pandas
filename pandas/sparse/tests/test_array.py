@@ -23,6 +23,9 @@ class TestSparseArray(unittest.TestCase):
         self.arr = SparseArray(self.arr_data)
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
+    def test_constructor(self):
+        pass
+
     def test_values_asarray(self):
         assert_almost_equal(self.arr.values, self.arr_data)
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
@@ -41,11 +44,32 @@ class TestSparseArray(unittest.TestCase):
         arr1 = SparseArray(data1)
         arr2 = SparseArray(data2)
 
-        def _check_op(op):
-            res = op(arr1, arr2)
-            exp = SparseArray(op(arr1.values, arr2.values))
+        data1[::2] = 3
+        data2[::3] = 3
+        farr1 = SparseArray(data1, fill_value=3)
+        farr2 = SparseArray(data2, fill_value=3)
+
+        def _check_op(op, first, second):
+            res = op(first, second)
+            exp = SparseArray(op(first.values, second.values),
+                              fill_value=first.fill_value)
             self.assert_(isinstance(res, SparseArray))
             assert_almost_equal(res.values, exp.values)
+
+            res2 = op(first, second.values)
+            self.assert_(isinstance(res2, SparseArray))
+            assert_sp_array_equal(res, res2)
+
+            res3 = op(first.values, second)
+            self.assert_(isinstance(res3, SparseArray))
+            assert_sp_array_equal(res, res3)
+
+            res4 = op(first, 4)
+            self.assert_(isinstance(res4, SparseArray))
+            exp = op(first.values, 4)
+            exp_fv = op(first.fill_value, 4)
+            assert_almost_equal(res4.fill_value, exp_fv)
+            assert_almost_equal(res4.values, exp)
 
         def _check_inplace_op(op):
             tmp = arr1.copy()
@@ -54,7 +78,8 @@ class TestSparseArray(unittest.TestCase):
         bin_ops = [operator.add, operator.sub, operator.mul, operator.truediv,
                    operator.floordiv, operator.pow]
         for op in bin_ops:
-            _check_op(op)
+            _check_op(op, arr1, arr2)
+            _check_op(op, farr1, farr2)
 
         inplace_ops = ['iadd', 'isub', 'imul', 'itruediv', 'ifloordiv', 'ipow']
         for op in inplace_ops:

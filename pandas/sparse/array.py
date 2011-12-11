@@ -193,12 +193,12 @@ to sparse
     __pow__ = _sparse_op_wrap(operator.pow, 'pow')
 
     # reverse operators
-    __radd__ = _sparse_op_wrap(operator.add, '__radd__')
-    __rsub__ = _sparse_op_wrap(lambda x, y: y - x, '__rsub__')
-    __rmul__ = _sparse_op_wrap(operator.mul, '__rmul__')
-    __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, '__rtruediv__')
-    __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'floordiv')
-    __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, '__rpow__')
+    __radd__ = _sparse_op_wrap(operator.add, 'add')
+    __rsub__ = _sparse_op_wrap(lambda x, y: y - x, 'rsub')
+    __rmul__ = _sparse_op_wrap(operator.mul, 'mul')
+    __rtruediv__ = _sparse_op_wrap(lambda x, y: y / x, 'rtruediv')
+    __rfloordiv__ = _sparse_op_wrap(lambda x, y: y // x, 'rfloordiv')
+    __rpow__ = _sparse_op_wrap(lambda x, y: y ** x, 'rpow')
 
     def disable(self, other):
         raise NotImplementedError('inplace binary ops not supported')
