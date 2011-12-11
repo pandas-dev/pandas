@@ -60,12 +60,17 @@ def _test_data2_zero():
     return arr, index
 
 def assert_sp_series_equal(a, b):
-    assert_equal(a.sp_values, b.sp_values)
-    assert(a.sp_index.equals(b.sp_index))
-    if np.isnan(a.fill_value):
-        assert(np.isnan(b.fill_value))
+    assert(a.index.equals(b.index))
+    assert_sp_array_equal(a, b)
+
+def assert_sp_array_equal(left, right):
+    assert_almost_equal(left.sp_values, right.sp_values)
+    assert(left.sp_index.equals(right.sp_index))
+    if np.isnan(left.fill_value):
+        assert(np.isnan(right.fill_value))
     else:
-        assert(a.fill_value == b.fill_value)
+        assert(left.fill_value == right.fill_value)
+
 
 def assert_sp_frame_equal(left, right, exact_indices=True):
     """

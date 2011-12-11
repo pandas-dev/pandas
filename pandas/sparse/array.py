@@ -105,7 +105,7 @@ to sparse
     sp_index = None
     fill_value = None
 
-    def __new__(cls, data, sparse_index=None, kind='block', fill_value=None,
+    def __new__(cls, data, sparse_index=None, kind='integer', fill_value=None,
                 copy=False):
 
         is_sparse_array = isinstance(data, SparseArray)

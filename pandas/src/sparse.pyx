@@ -7,8 +7,6 @@ import numpy as np
 import operator
 import sys
 
-ctypedef Py_ssize_t pyst
-
 #-------------------------------------------------------------------------------
 # Preamble stuff
 
@@ -61,12 +59,14 @@ ctypedef float64_t (* double_func)(float64_t a, float64_t b)
 
 #-------------------------------------------------------------------------------
 
+
 cdef class SparseIndex:
     '''
     Abstract superclass for sparse index types
     '''
     def __init__(self):
         raise NotImplementedError
+
 
 cdef class IntIndex(SparseIndex):
     '''
@@ -79,10 +79,10 @@ cdef class IntIndex(SparseIndex):
         Contains integers corresponding to
     '''
     cdef readonly:
-        pyst length, npoints
+        Py_ssize_t length, npoints
         ndarray indices
 
-    def __init__(self, pyst length, indices):
+    def __init__(self, Py_ssize_t length, indices):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
@@ -123,7 +123,7 @@ cdef class IntIndex(SparseIndex):
 
     cpdef IntIndex intersect(self, SparseIndex y_):
         cdef:
-            pyst out_length, xi, yi = 0
+            Py_ssize_t out_length, xi, yi = 0
             int32_t xind
             ndarray[int32_t, ndim=1] xindices, yindices
             list new_list = []
@@ -155,7 +155,7 @@ cdef class IntIndex(SparseIndex):
 
     cpdef IntIndex make_union(self, SparseIndex y_):
         cdef:
-            pyst out_length, i, xi, yi
+            Py_ssize_t out_length, i, xi, yi
             int32_t xind
             ndarray[int32_t, ndim=1] xindices, yindices
             list new_list = []
@@ -202,9 +202,9 @@ cdef class IntIndex(SparseIndex):
         return IntIndex(x.length, new_list)
 
     @cython.wraparound(False)
-    cpdef lookup(self, pyst index):
+    cpdef lookup(self, Py_ssize_t index):
         cdef:
-            pyst res, n, cum_len = 0
+            Py_ssize_t res, n, cum_len = 0
             ndarray[int32_t, ndim=1] inds
 
         inds = self.indices
@@ -219,7 +219,7 @@ cdef class IntIndex(SparseIndex):
     cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
                           float64_t fill_value, SparseIndex other_):
         cdef:
-            pyst i = 0, j = 0
+            Py_ssize_t i = 0, j = 0
             IntIndex other
             ndarray[float64_t, ndim=1] result
             ndarray[int32_t, ndim=1] sinds, oinds
@@ -257,7 +257,7 @@ cdef class IntIndex(SparseIndex):
 
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
-        pyst i, npoints
+        Py_ssize_t i, npoints
         int32_t block, length = 1, cur, prev
         list locs = [], lens = []
 
@@ -298,7 +298,7 @@ cdef class BlockIndex(SparseIndex):
     ----------
     '''
     cdef readonly:
-        pyst nblocks, npoints, length
+        Py_ssize_t nblocks, npoints, length
         ndarray blocs, blengths
 
     cdef:
@@ -342,7 +342,7 @@ cdef class BlockIndex(SparseIndex):
         - Blocks to not start after end of index, nor extend beyond end
         '''
         cdef:
-            pyst i
+            Py_ssize_t i
             ndarray[int32_t, ndim=1] blocs, blengths
 
         blocs = self.blocs
@@ -384,7 +384,7 @@ cdef class BlockIndex(SparseIndex):
 
     def to_int_index(self):
         cdef:
-            pyst i = 0, j, b
+            Py_ssize_t i = 0, j, b
             int32_t offset
             ndarray[int32_t, ndim=1] indices
 
@@ -417,7 +417,7 @@ cdef class BlockIndex(SparseIndex):
             list out_blocs = []
             list out_blengths = []
 
-            pyst xi = 0, yi = 0
+            Py_ssize_t xi = 0, yi = 0
             int32_t cur_loc, cur_length, diff
 
         y = other.to_block_index()
@@ -496,13 +496,13 @@ cdef class BlockIndex(SparseIndex):
         '''
         return BlockUnion(self, y.to_block_index()).result
 
-    cpdef lookup(self, pyst index):
+    cpdef lookup(self, Py_ssize_t index):
         '''
 
         Returns -1 if not found
         '''
         cdef:
-            pyst i, cum_len
+            Py_ssize_t i, cum_len
             ndarray[int32_t, ndim=1] locs, lens
 
         locs = self.blocs
@@ -524,7 +524,7 @@ cdef class BlockIndex(SparseIndex):
     cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
                           float64_t fill_value, SparseIndex other_):
         cdef:
-            pyst i = 0, j = 0, ocur, ocurlen
+            Py_ssize_t i = 0, j = 0, ocur, ocurlen
             BlockIndex other
             ndarray[float64_t, ndim=1] result
             ndarray[int32_t, ndim=1] slocs, slens, olocs, olens
@@ -810,7 +810,7 @@ cdef inline tuple block_nanop(ndarray x_, BlockIndex xindex,
         BlockIndex out_index
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
         int xbp = 0, ybp = 0, obp = 0 # block positions
-        pyst xblock = 0, yblock = 0, outblock = 0 # block numbers
+        Py_ssize_t xblock = 0, yblock = 0, outblock = 0 # block numbers
 
         ndarray[float64_t, ndim=1] x, y
         ndarray[float64_t, ndim=1] out
@@ -922,7 +922,7 @@ cdef inline tuple block_op(ndarray x_, BlockIndex xindex, float64_t xfill,
         int xi = 0, yi = 0, out_i = 0 # fp buf indices
         int xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
-        pyst xblock = 0, yblock = 0 # block numbers
+        Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
         ndarray[float64_t, ndim=1] x, y
         ndarray[float64_t, ndim=1] out
@@ -1087,7 +1087,7 @@ def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
 #                   BlockIndex sparse_index,
 #                   ndarray[int32_t, ndim=1] indexer):
 #     cdef:
-#         pyst i, length
+#         Py_ssize_t i, length
 #         ndarray[float64_t, ndim=1] out
 
 #     out = np.empty(length, dtype=np.float64)
