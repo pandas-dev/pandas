@@ -53,6 +53,7 @@ from util cimport is_integer_object
 
 cdef extern from "math.h":
     double sqrt(double x)
+    double fabs(double)
 
 cdef extern from "datetime.h":
 
@@ -471,6 +472,7 @@ cdef class cache_readonly(object):
 cpdef is_array(object o):
     return np.PyArray_Check(o)
 
+
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
@@ -478,4 +480,4 @@ include "reindex.pyx"
 include "generated.pyx"
 include "parsing.pyx"
 include "reduce.pyx"
-
+include "stats.pyx"

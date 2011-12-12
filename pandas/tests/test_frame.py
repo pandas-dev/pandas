@@ -3465,6 +3465,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.cumprod(0)
         df.cumprod(1)
 
+    def test_rank(self):
+        from scipy.stats import rankdata
+
+        self.frame['A'][::2] = np.nan
+        self.frame['B'][::3] = np.nan
+        self.frame['C'][::4] = np.nan
+        self.frame['D'][::5] = np.nan
+
+
+        ranks0 = self.frame.rank()
+        ranks1 = self.frame.rank(1)
+        mask =  np.isnan(self.frame.values)
+
+        fvals = self.frame.fillna(np.inf).values
+
+        exp0 = np.apply_along_axis(rankdata, 0, fvals)
+        exp0[mask] = np.nan
+
+        exp1 = np.apply_along_axis(rankdata, 1, fvals)
+        exp1[mask] = np.nan
+
+        assert_almost_equal(ranks0.values, exp0)
+        assert_almost_equal(ranks1.values, exp1)
+
     def test_describe(self):
         desc = self.tsframe.describe()
         desc = self.mixed_frame.describe()

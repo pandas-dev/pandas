@@ -1211,6 +1211,21 @@ copy : boolean, default False
         else:
             return Series(np.argsort(values), index=self.index, name=self.name)
 
+    def rank(self):
+        """
+        Compute data ranks (1 through n). Equal values are assigned a rank that
+        is the average of the ranks of those values
+
+        Returns
+        -------
+        ranks : Series
+        """
+        try:
+            ranks = lib.rank_1d_float64(self.values)
+        except Exception:
+            ranks = lib.rank_1d_generic(self.values)
+        return Series(ranks, index=self.index, name=self.name)
+
     def order(self, na_last=True, ascending=True):
         """
         Sorts Series object, by value, maintaining index-value link

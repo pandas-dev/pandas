@@ -1,8 +1,5 @@
 cimport cpython
 
-cdef extern from "math.h":
-    double fabs(double)
-
 def to_object_array(list rows):
     cdef:
         Py_ssize_t i, j, n, k, tmp

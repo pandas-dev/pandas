@@ -3052,6 +3052,24 @@ class DataFrame(NDFrame):
         """
         return self.apply(lambda x: x.clip_lower(threshold))
 
+    def rank(self, axis=0):
+        """
+        Compute numericaldata ranks (1 through n) along axis. Equal values are
+        assigned a rank that is the average of the ranks of those values
+
+        Parameters
+        ----------
+        axis : {0, 1}, default 0
+            Ranks over columns (0) or rows (1)
+
+        Returns
+        -------
+        ranks : DataFrame
+        """
+        data = self._get_numeric_data()
+        ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
+        return DataFrame(ranks, index=data.index, columns=data.columns)
+
     #----------------------------------------------------------------------
     # Plotting
 

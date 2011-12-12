@@ -6,30 +6,6 @@ cnp.import_array()
 
 cimport util
 
-cdef class IndexEngine:
-
-    cpdef get_value(self, ndarray arr, object key):
-        '''
-        arr : 1-dimensional ndarray
-        '''
-        cdef:
-            Py_ssize_t loc
-            void* data_ptr
-
-        loc = self.get_loc(key)
-        return get_value_at(arr, loc)
-
-    cpdef set_value(self, ndarray arr, object key, object value):
-        '''
-        arr : 1-dimensional ndarray
-        '''
-        cdef:
-            Py_ssize_t loc
-            void* data_ptr
-
-        loc = self.get_loc(key)
-        set_value_at(arr, loc, value)
-
 cpdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i
@@ -56,6 +32,31 @@ cpdef inline set_value_at(ndarray arr, object loc, object value):
         i += cnp.PyArray_SIZE(arr)
 
     util.assign_value_1d(arr, i, value)
+
+
+cdef class IndexEngine:
+
+    cpdef get_value(self, ndarray arr, object key):
+        '''
+        arr : 1-dimensional ndarray
+        '''
+        cdef:
+            Py_ssize_t loc
+            void* data_ptr
+
+        loc = self.get_loc(key)
+        return get_value_at(arr, loc)
+
+    cpdef set_value(self, ndarray arr, object key, object value):
+        '''
+        arr : 1-dimensional ndarray
+        '''
+        cdef:
+            Py_ssize_t loc
+            void* data_ptr
+
+        loc = self.get_loc(key)
+        set_value_at(arr, loc, value)
 
 cdef class DictIndexEngine(IndexEngine):
     '''

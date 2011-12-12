@@ -186,6 +186,22 @@ def test_convert_objects_ints():
         result = lib.maybe_convert_objects(arr)
         assert(issubclass(result.dtype.type, np.integer))
 
+def test_rank():
+    from scipy.stats import rankdata
+    from numpy import nan
+    def _check(arr):
+        mask = -np.isfinite(arr)
+        arr = arr.copy()
+        result = lib.rank_1d_float64(arr)
+        arr[mask] = np.inf
+        exp = rankdata(arr)
+        exp[mask] = np.nan
+        assert_almost_equal(result, exp)
+
+    _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
+    _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
+
+
 class TestMoments(unittest.TestCase):
     pass
 

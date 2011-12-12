@@ -77,6 +77,7 @@ pandas 0.6.1
   - Fix __doc__-related issue when converting py -> pyo with py2exe
   - Bug fix in left join Cython code with duplicate monotonic labels
   - Fix bug when unstacking multiple levels described in #451
+  - Exclude NA values in dtype=object arrays, regression from 0.5.0 (GH #469)
 
 Thanks
 ------

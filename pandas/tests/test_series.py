@@ -1032,6 +1032,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ordered = ts.order(ascending=False, na_last=False)
         assert_almost_equal(expected, ordered.valid().values)
 
+    def test_rank(self):
+        from scipy.stats import rankdata
+
+        self.ts[::2] = np.nan
+        self.ts[:10][::3] = 4.
+
+        ranks = self.ts.rank()
+
+        mask =  np.isnan(self.ts)
+        filled = self.ts.fillna(np.inf)
+
+        exp = rankdata(filled)
+        exp[mask] = np.nan
+
+        assert_almost_equal(ranks, exp)
+
     def test_to_csv(self):
         self.ts.to_csv('_foo')
 
