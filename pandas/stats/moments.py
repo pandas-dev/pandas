@@ -46,18 +46,47 @@ def rolling_count(arg, window, time_rule=None):
     return return_hook(result)
 
 def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
-    X, Y = _prep_binary(arg1, arg2)
-    mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
-    count = rolling_count(X + Y, window, time_rule)
-    bias_adj = count / (count - 1)
-    return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
+    def _get_cov(X, Y):
+        mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
+        count = rolling_count(X + Y, window, time_rule)
+        bias_adj = count / (count - 1)
+        return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
+    return _flex_binary_moment(arg1, arg2, _get_cov)
 
 def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
-    X, Y = _prep_binary(arg1, arg2)
-    num = rolling_cov(X, Y, window, min_periods, time_rule)
-    den  = (rolling_std(X, window, min_periods, time_rule) *
-            rolling_std(Y, window, min_periods, time_rule))
-    return num / den
+    def _get_corr(a, b):
+        num = rolling_cov(a, b, window, min_periods, time_rule)
+        den  = (rolling_std(a, window, min_periods, time_rule) *
+                rolling_std(b, window, min_periods, time_rule))
+        return num / den
+    return _flex_binary_moment(arg1, arg2, _get_corr)
+
+def _flex_binary_moment(arg1, arg2, f):
+    if isinstance(arg1, np.ndarray) and isinstance(arg2, np.ndarray):
+        X, Y = _prep_binary(arg1, arg2)
+        return f(X, Y)
+    elif isinstance(arg1, DataFrame):
+        results = {}
+        if isinstance(arg2, DataFrame):
+            X, Y = arg1.align(arg2, join='outer')
+            X = X + 0 * Y
+            Y = Y + 0 * X
+            res_columns = arg1.columns.union(arg2.columns)
+            for col in res_columns:
+                if col in X and col in Y:
+                    results[col] = f(X[col], Y[col])
+        else:
+            res_columns = arg1.columns
+            X, Y = arg1.align(arg2, axis=0, join='outer')
+            results = {}
+
+            for col in res_columns:
+                results[col] = f(X[col], Y)
+
+        return DataFrame(results, index=X.index, columns=res_columns)
+    else:
+        return _flex_binary_moment(arg2, arg1, f)
+
 
 def _rolling_moment(arg, window, func, minp, axis=0, time_rule=None):
     """
@@ -219,7 +248,7 @@ time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
 
 Returns
 -------
-y : type of input argument
+%s
 """
 
 
@@ -256,18 +285,29 @@ Returns
 y : type of input argument
 """
 
+_type_of_input = "y : type of input argument"
+
+_flex_retval = """y : type depends on inputs
+    DataFrame / DataFrame -> DataFrame (matches on columns)
+    DataFrame / Series -> Computes result for each column
+    Series / Series -> Series"""
+
 _unary_arg = "arg : Series, DataFrame"
+
+_binary_arg_flex = """arg1 : Series, DataFrame, or ndarray
+arg2 : Series, DataFrame, or ndarray"""
+
 _binary_arg = """arg1 : Series, DataFrame, or ndarray
-arg2 : type of arg1"""
+arg2 : Series, DataFrame, or ndarray"""
 
 _bias_doc = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
 
 rolling_cov.__doc__ = _doc_template % ("Unbiased moving covariance",
-                                       _binary_arg)
+                                       _binary_arg_flex, _flex_retval)
 rolling_corr.__doc__ = _doc_template % ("Moving sample correlation",
-                                        _binary_arg)
+                                        _binary_arg_flex, _flex_retval)
 
 ewma.__doc__ = _ewm_doc % ("Exponentially-weighted moving average",
                            _unary_arg, "")
@@ -314,7 +354,7 @@ def _rolling_func(func, desc, check_minp=_use_window):
         return _rolling_moment(arg, window, call_cython, min_periods,
                                time_rule=time_rule)
 
-    f.__doc__ = _doc_template % (desc, _unary_arg)
+    f.__doc__ = _doc_template % (desc, _unary_arg, _type_of_input)
 
     return f
 

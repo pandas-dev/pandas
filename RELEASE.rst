@@ -61,6 +61,8 @@ pandas 0.6.1
     #453)
   - Optimize scalar value lookups in the general case by 25% or more in Series
     and DataFrame
+  - Can pass DataFrame/DataFrame and DataFrame/Series to
+    rolling_corr/rolling_cov (GH #462)
 
 **Bug fixes**
 
@@ -80,6 +82,9 @@ pandas 0.6.1
   - Bug fix in left join Cython code with duplicate monotonic labels
   - Fix bug when unstacking multiple levels described in #451
   - Exclude NA values in dtype=object arrays, regression from 0.5.0 (GH #469)
+  - Use Cython map_infer function in DataFrame.applymap to properly infer
+    output type, handle tuple return values and other things that were breaking
+    (GH #465)
 
 Thanks
 ------

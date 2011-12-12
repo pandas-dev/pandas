@@ -8,7 +8,7 @@ import numpy as np
 from pandas.core.api import Series, DataFrame, DateRange
 from pandas.util.testing import assert_almost_equal
 import pandas.core.datetools as datetools
-import pandas.stats.moments as moments
+import pandas.stats.moments as mom
 import pandas.util.testing as tm
 
 N, K = 100, 10
@@ -31,25 +31,25 @@ class TestMoments(unittest.TestCase):
                                columns=np.arange(K))
 
     def test_rolling_sum(self):
-        self._check_moment_func(moments.rolling_sum, np.sum)
+        self._check_moment_func(mom.rolling_sum, np.sum)
 
     def test_rolling_count(self):
         counter = lambda x: np.isfinite(x).astype(float).sum()
-        self._check_moment_func(moments.rolling_count, counter,
+        self._check_moment_func(mom.rolling_count, counter,
                                 has_min_periods=False,
                                 preserve_nan=False)
 
     def test_rolling_mean(self):
-        self._check_moment_func(moments.rolling_mean, np.mean)
+        self._check_moment_func(mom.rolling_mean, np.mean)
 
     def test_rolling_median(self):
-        self._check_moment_func(moments.rolling_median, np.median)
+        self._check_moment_func(mom.rolling_median, np.median)
 
     def test_rolling_min(self):
-        self._check_moment_func(moments.rolling_min, np.min)
+        self._check_moment_func(mom.rolling_min, np.min)
 
     def test_rolling_max(self):
-        self._check_moment_func(moments.rolling_max, np.max)
+        self._check_moment_func(mom.rolling_max, np.max)
 
     def test_rolling_quantile(self):
         qs = [.1, .5, .9]
@@ -62,7 +62,7 @@ class TestMoments(unittest.TestCase):
 
         for q in qs:
             def f(x, window, min_periods=None, time_rule=None):
-                return moments.rolling_quantile(x, window, q,
+                return mom.rolling_quantile(x, window, q,
                                                 min_periods=min_periods,
                                                 time_rule=time_rule)
             def alt(x):
@@ -72,18 +72,18 @@ class TestMoments(unittest.TestCase):
 
     def test_rolling_apply(self):
         def roll_mean(x, window, min_periods=None, time_rule=None):
-            return moments.rolling_apply(x, window,
+            return mom.rolling_apply(x, window,
                                          lambda x: x[np.isfinite(x)].mean(),
                                          min_periods=min_periods,
                                          time_rule=time_rule)
         self._check_moment_func(roll_mean, np.mean)
 
     def test_rolling_std(self):
-        self._check_moment_func(moments.rolling_std,
+        self._check_moment_func(mom.rolling_std,
                                 lambda x: np.std(x, ddof=1))
 
     def test_rolling_var(self):
-        self._check_moment_func(moments.rolling_var,
+        self._check_moment_func(mom.rolling_var,
                                 lambda x: np.var(x, ddof=1))
 
     def test_rolling_skew(self):
@@ -91,7 +91,7 @@ class TestMoments(unittest.TestCase):
             from scipy.stats import skew
         except ImportError:
             raise nose.SkipTest('no scipy')
-        self._check_moment_func(moments.rolling_skew,
+        self._check_moment_func(mom.rolling_skew,
                                 lambda x: skew(x, bias=False))
 
     def test_rolling_kurt(self):
@@ -99,7 +99,7 @@ class TestMoments(unittest.TestCase):
             from scipy.stats import kurtosis
         except ImportError:
             raise nose.SkipTest('no scipy')
-        self._check_moment_func(moments.rolling_kurt,
+        self._check_moment_func(mom.rolling_kurt,
                                 lambda x: kurtosis(x, bias=False))
 
     def _check_moment_func(self, func, static_comp, window=50,
@@ -186,21 +186,21 @@ class TestMoments(unittest.TestCase):
                                 trunc_frame.apply(static_comp))
 
     def test_ewma(self):
-        self._check_ew(moments.ewma)
+        self._check_ew(mom.ewma)
 
     def test_ewmvar(self):
-        self._check_ew(moments.ewmvar)
+        self._check_ew(mom.ewmvar)
 
     def test_ewmvol(self):
-        self._check_ew(moments.ewmvol)
+        self._check_ew(mom.ewmvol)
 
     def test_ewma_span_com_args(self):
-        A = moments.ewma(self.arr, com=9.5)
-        B = moments.ewma(self.arr, span=20)
+        A = mom.ewma(self.arr, com=9.5)
+        B = mom.ewma(self.arr, span=20)
         assert_almost_equal(A, B)
 
-        self.assertRaises(Exception, moments.ewma, self.arr, com=9.5, span=20)
-        self.assertRaises(Exception, moments.ewma, self.arr)
+        self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20)
+        self.assertRaises(Exception, mom.ewma, self.arr)
 
     def _check_ew(self, func):
         self._check_ew_ndarray(func)
@@ -233,14 +233,14 @@ class TestMoments(unittest.TestCase):
         A = self.series
         B = A + randn(len(A))
 
-        result = moments.rolling_cov(A, B, 50, min_periods=25)
+        result = mom.rolling_cov(A, B, 50, min_periods=25)
         assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
 
     def test_rolling_corr(self):
         A = self.series
         B = A + randn(len(A))
 
-        result = moments.rolling_corr(A, B, 50, min_periods=25)
+        result = mom.rolling_corr(A, B, 50, min_periods=25)
         assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
 
         # test for correct bias correction
@@ -249,14 +249,37 @@ class TestMoments(unittest.TestCase):
         a[:5] = np.nan
         b[:10] = np.nan
 
-        result = moments.rolling_corr(a, b, len(a), min_periods=1)
+        result = mom.rolling_corr(a, b, len(a), min_periods=1)
         assert_almost_equal(result[-1], a.corr(b))
 
+    def test_flex_binary_frame(self):
+        def _check(method):
+            series = self.frame[1]
+
+            res = method(series, self.frame, 10)
+            res2 = method(self.frame, series, 10)
+            exp = self.frame.apply(lambda x: method(series, x, 10))
+
+            tm.assert_frame_equal(res, exp)
+            tm.assert_frame_equal(res2, exp)
+
+            frame2 = self.frame.copy()
+            frame2.values[:] = np.random.randn(*frame2.shape)
+
+            res3 = method(self.frame, frame2, 10)
+            exp = DataFrame(dict((k, method(self.frame[k], frame2[k], 10))
+                                 for k in self.frame))
+            tm.assert_frame_equal(res3, exp)
+
+        methods = [mom.rolling_corr, mom.rolling_cov]
+        for meth in methods:
+            _check(meth)
+
     def test_ewmcov(self):
-        self._check_binary_ew(moments.ewmcov)
+        self._check_binary_ew(mom.ewmcov)
 
     def test_ewmcorr(self):
-        self._check_binary_ew(moments.ewmcorr)
+        self._check_binary_ew(mom.ewmcorr)
 
     def _check_binary_ew(self, func):
         A = Series(randn(50), index=np.arange(50))
