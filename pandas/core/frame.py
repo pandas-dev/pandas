@@ -2827,7 +2827,11 @@ class DataFrame(NDFrame):
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            result = DataFrame.apply(frame, Series.count, axis=axis)
+            if axis == 1:
+                counts = notnull(frame.values).sum(1)
+                result = Series(counts, index=frame._get_agg_axis(axis))
+            else:
+                result = DataFrame.apply(frame, Series.count, axis=axis)
 
         # what happens with empty DataFrame
         if isinstance(result, DataFrame):
