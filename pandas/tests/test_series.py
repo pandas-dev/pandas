@@ -477,6 +477,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, self.series.ix.__setitem__,
                           inds + ['foo'], 5)
 
+    def test_get_set_boolean_different_order(self):
+        ordered = self.series.order()
+
+        # setting
+        copy = self.series.copy()
+        copy[ordered > 0] = 0
+
+        expected = self.series.copy()
+        expected[expected > 0] = 0
+
+        assert_series_equal(copy, expected)
+
+        # getting
+        sel = self.series[ordered > 0]
+        exp = self.series[self.series > 0]
+        assert_series_equal(sel, exp)
+
     def test_repr(self):
         str(self.ts)
         str(self.series)

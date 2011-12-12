@@ -275,7 +275,7 @@ copy : boolean, default False
         # special handling of boolean data with NAs stored in object
         # arrays. Since we can't represent NA with dtype=bool
         if _is_bool_indexer(key):
-            self._check_bool_indexer(key)
+            key = self._check_bool_indexer(key)
             key = np.asarray(key, dtype=bool)
             return _index_with(key)
 
@@ -392,17 +392,12 @@ copy : boolean, default False
             # Could not hash item
             pass
 
-        self._check_bool_indexer(key)
+        key = self._check_bool_indexer(key)
 
         # special handling of boolean data with NAs stored in object
         # arrays. Sort of an elaborate hack since we can't represent boolean
         # NA. Hmm
         if isinstance(key, np.ndarray) and key.dtype == np.object_:
-            mask = isnull(key)
-            if mask.any():
-                raise ValueError('cannot index with vector containing '
-                                 'NA / NaN values')
-
             if set([True, False]).issubset(set(key)):
                 key = np.asarray(key, dtype=bool)
                 values[key] = value
@@ -413,10 +408,18 @@ copy : boolean, default False
     def _check_bool_indexer(self, key):
         # boolean indexing, need to check that the data are aligned, otherwise
         # disallowed
+        result = key
         if isinstance(key, Series) and key.dtype == np.bool_:
             if not key.index.equals(self.index):
-                raise Exception('can only boolean index with like-indexed '
-                                'Series or raw ndarrays')
+                result = key.reindex(self.index)
+
+        if isinstance(result, np.ndarray) and result.dtype == np.object_:
+            mask = isnull(result)
+            if mask.any():
+                raise ValueError('cannot index with vector containing '
+                                 'NA / NaN values')
+
+        return result
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""

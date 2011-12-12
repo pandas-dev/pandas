@@ -31,6 +31,8 @@ pandas 0.6.1
 
   - Rename `names` argument in DataFrame.from_records to `columns`. Add
     deprecation warning
+  - Boolean get/set operations on Series with boolean Series will reindex
+    instead of requiring that the indexes be exactly equal (GH #429)
 
 **New features / modules**
 
