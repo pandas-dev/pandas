@@ -2004,6 +2004,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           index=result.index)
         assert_series_equal(result, expected)
 
+    def test_convert_objects(self):
+        oops = self.mixed_frame.T.T
+        converted = oops.convert_objects()
+        assert_frame_equal(converted, self.mixed_frame)
+        self.assert_(converted['A'].dtype == np.float64)
+
     def test_append(self):
         begin_index = self.frame.index[:5]
         end_index = self.frame.index[5:]

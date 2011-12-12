@@ -50,6 +50,8 @@ pandas 0.6.1
   - Implement Series.rank and DataFrame.rank, fast versions of
     scipy.stats.rankdata (GH #428)
   - Implement DataFrame.from_items alternate constructor (GH #444)
+  - DataFrame.convert_objects method for inferring better dtypes for object
+    columns (GH #302)
 
 **Improvements to existing features**
 
