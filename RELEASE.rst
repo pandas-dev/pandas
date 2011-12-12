@@ -75,6 +75,8 @@ pandas 0.6.1
     and DataFrame
   - Can pass DataFrame/DataFrame and DataFrame/Series to
     rolling_corr/rolling_cov (GH #462)
+  - Fix performance regressionm in cross-sectional count in DataFrame,
+    affecting DataFrame.dropna speed
 
 **Bug fixes**
 
