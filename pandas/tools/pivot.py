@@ -2,7 +2,7 @@ from pandas import DataFrame
 import numpy as np
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
-                fill_value=None):
+                fill_value=None, margins=False):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
@@ -19,6 +19,8 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     aggfunc : function, default numpy.mean
     fill_value : scalar, default None
         Value to replace missing values with
+    margins : boolean, default False
+        Add all row / columns (e.g. for subtotal / grand totals)
 
     Examples
     --------
@@ -59,14 +61,13 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
         else:
             values_multi = False
             values = [values]
+    else:
+        values = list(data.columns.drop(keys))
 
     if values_passed:
         data = data[keys + values]
 
     grouped = data.groupby(keys)
-
-    if values_passed and not values_multi:
-        grouped = grouped[values[0]]
 
     agged = grouped.agg(aggfunc)
 
@@ -77,9 +78,60 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     if fill_value is not None:
         table = table.fillna(value=fill_value)
 
+    if margins:
+        table = _add_margins(table, data, values, rows=rows,
+                             cols=cols, aggfunc=aggfunc)
+
+    # discard the top level
+    if values_passed and not values_multi:
+        table = table[values[0]]
+
     return table
 
 DataFrame.pivot_table = pivot_table
+
+def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
+    if rows is not None:
+        col_margin = data[rows + values].groupby(rows).agg(aggfunc)
+
+        # need to "interleave" the margins
+
+        table_pieces = []
+        margin_keys = []
+        for key, piece in table.groupby(level=0, axis=1):
+            all_key = (key, 'All') + ('',) * (len(cols) - 1)
+            piece[all_key] = col_margin[key]
+            table_pieces.append(piece)
+            margin_keys.append(all_key)
+
+        result = table_pieces[0]
+        for piece in table_pieces[1:]:
+            result = result.join(piece)
+    else:
+        result = table
+        margin_keys = []
+
+    grand_margin = data[values].apply(aggfunc)
+
+    if cols is not None:
+        row_margin = data[cols + values].groupby(cols).agg(aggfunc)
+        row_margin = row_margin.stack()
+
+        # slight hack
+        new_order = [len(cols)] + range(len(cols))
+        row_margin.index = row_margin.index.reorder_levels(new_order)
+
+        key = ('All',) + ('',) * (len(rows) - 1)
+
+        row_margin = row_margin.reindex(result.columns)
+        # populate grand margin
+        for k in margin_keys:
+            row_margin[k] = grand_margin[k[0]]
+
+        margin_dummy = DataFrame(row_margin, columns=[key]).T
+        result = result.append(margin_dummy)
+
+    return result
 
 def _convert_by(by):
     if by is None:

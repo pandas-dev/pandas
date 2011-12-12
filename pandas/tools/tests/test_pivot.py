@@ -27,6 +27,9 @@ class TestPivotTable(unittest.TestCase):
         cols=  'C'
         table = pivot_table(self.data, values='D', rows=rows, cols=cols)
 
+        table2 = self.data.pivot_table(values='D', rows=rows, cols=cols)
+        assert_frame_equal(table, table2)
+
         # this works
         pivot_table(self.data, values='D', rows=rows)
 
@@ -56,6 +59,9 @@ class TestPivotTable(unittest.TestCase):
         expected = pivot_table(self.data.drop(['F'], axis=1),
                                rows='A', cols=['B', 'C'], fill_value=0)
         assert_frame_equal(result, expected)
+
+    def test_margins(self):
+        pass
 
 if __name__ == '__main__':
     import nose

@@ -1202,6 +1202,26 @@ class MultiIndex(Index):
         return MultiIndex(levels=new_levels, labels=new_labels,
                           names=new_names)
 
+    def reorder_levels(self, order):
+        """
+        Rearrange levels using input order. May not drop or duplicate levels
+
+        Parameters
+        ----------
+        """
+        try:
+            assert(set(order) == set(range(self.nlevels)))
+        except AssertionError:
+            raise Exception('New order must be permutation of range(%d)' %
+                            self.nlevels)
+
+        new_levels = [self.levels[i] for i in order]
+        new_labels = [self.labels[i] for i in order]
+        new_names = [self.names[i] for i in order]
+
+        return MultiIndex(levels=new_levels, labels=new_labels,
+                          names=new_names)
+
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
 
