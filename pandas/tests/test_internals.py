@@ -138,6 +138,24 @@ class TestBlock(unittest.TestCase):
 
         self.assertRaises(Exception, self.fblock.delete, 'b')
 
+    def test_split_block_at(self):
+        left, right = self.fblock.split_block_at('a')
+        self.assert_(left is None)
+        self.assert_(np.array_equal(right.items, ['c', 'e']))
+
+        left, right = self.fblock.split_block_at('c')
+        self.assert_(np.array_equal(left.items, ['a']))
+        self.assert_(np.array_equal(right.items, ['e']))
+
+        left, right = self.fblock.split_block_at('e')
+        self.assert_(np.array_equal(left.items, ['a', 'c']))
+        self.assert_(right is None)
+
+        bblock = get_bool_ex(['f'])
+        left, right = bblock.split_block_at('f')
+        self.assert_(left is None)
+        self.assert_(right is None)
+
     def test_get(self):
         pass
 

@@ -77,6 +77,8 @@ pandas 0.6.1
     rolling_corr/rolling_cov (GH #462)
   - Fix performance regressionm in cross-sectional count in DataFrame,
     affecting DataFrame.dropna speed
+  - Column deletion in DataFrame copies no data (computes views on blocks) (GH
+    #158)
 
 **Bug fixes**
 
@@ -100,6 +102,9 @@ pandas 0.6.1
     output type, handle tuple return values and other things that were breaking
     (GH #465)
   - Handle floating point index values in HDFStore (GH #454)
+  - Fixed stale column reference bug (cached Series object) caused by type
+    change / item deletion in DataFrame (GH #473)
+
 
 Thanks
 ------

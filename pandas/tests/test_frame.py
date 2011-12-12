@@ -3879,6 +3879,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertRaises(Exception, frame.idxmax, axis=2)
 
+    def test_stale_cached_series_bug_473(self):
+        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
+                      columns=('e','f','g','h'))
+        repr(Y)
+        Y['e'] = Y['e'].astype('object')
+        Y['g']['c'] = np.NaN
+        repr(Y)
+        result = Y.sum()
+        exp = Y['g'].sum()
+        self.assert_(isnull(Y['g']['c']))
+
 class TestDataFrameJoin(unittest.TestCase):
 
     def setUp(self):

@@ -160,6 +160,40 @@ class Block(object):
         new_values = np.delete(self.values, loc, 0)
         return make_block(new_values, new_items, self.ref_items)
 
+    def split_block_at(self, item):
+        """
+        Split block around given column, for "deleting" a column without
+        having to copy data by returning views on the original array
+
+        Returns
+        -------
+        leftb, rightb : (Block or None, Block or None)
+        """
+        loc = self.items.get_loc(item)
+
+        if len(self.items) == 1:
+            # no blocks left
+            return None, None
+
+        if loc == 0:
+            # at front
+            left_block = None
+            right_block = make_block(self.values[1:], self.items[1:].copy(),
+                                      self.ref_items)
+        elif loc == len(self.values) - 1:
+            # at back
+            left_block = make_block(self.values[:-1], self.items[:-1].copy(),
+                                    self.ref_items)
+            right_block = None
+        else:
+            # in the middle
+            left_block = make_block(self.values[:loc],
+                                    self.items[:loc].copy(), self.ref_items)
+            right_block = make_block(self.values[loc + 1:],
+                                     self.items[loc + 1:].copy(), self.ref_items)
+
+        return left_block, right_block
+
     def fillna(self, value):
         new_values = self.values.copy()
         mask = common.isnull(new_values.ravel())
@@ -573,13 +607,14 @@ class BlockManager(object):
         """
         Delete and maybe remove the whole block
         """
-        block = self.blocks[i]
-        newb = block.delete(item)
+        block = self.blocks.pop(i)
+        new_left, new_right = block.split_block_at(item)
 
-        if len(newb.ref_locs) == 0:
-            self.blocks.pop(i)
-        else:
-            self.blocks[i] = newb
+        if new_left is not None:
+            self.blocks.append(new_left)
+
+        if new_right is not None:
+            self.blocks.append(new_right)
 
     def _add_new_block(self, item, value):
         # Do we care about dtype at the moment?
