@@ -1262,6 +1262,26 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df.columns[0] == 'x')
         self.assert_(df.index.equals(a.index))
 
+    def test_constructor_Series_differently_indexed(self):
+        # name
+        s1 = Series([1, 2, 3], index=['a','b','c'], name='x')
+
+        # no name
+        s2 = Series([1, 2, 3], index=['a','b','c'])
+
+        other_index = Index(['a', 'b'])
+
+        df1 = DataFrame(s1, index=other_index)
+        exp1 = DataFrame(s1.reindex(other_index))
+        self.assert_(df1.columns[0] == 'x')
+        assert_frame_equal(df1, exp1)
+
+        df2 = DataFrame(s2, index=other_index)
+        exp2 = DataFrame(s2.reindex(other_index))
+        self.assert_(df2.columns[0] == 0)
+        self.assert_(df2.index.equals(other_index))
+        assert_frame_equal(df2, exp2)
+
     def test_constructor_manager_resize(self):
         index = list(self.frame.index[:5])
         columns = list(self.frame.columns[:3])

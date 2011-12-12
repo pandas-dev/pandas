@@ -117,6 +117,7 @@ Thanks
 - Christian Prinoth
 - Joon Ro
 - Chang She
+- Ted Square
 - Chris Uga
 
 pandas 0.6.0

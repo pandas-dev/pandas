@@ -260,8 +260,8 @@ class DataFrame(NDFrame):
 
     def _init_ndarray(self, values, index, columns, dtype=None,
                       copy=False):
-        if isinstance(values, Series) and values.name is not None:
-            if columns is None:
+        if isinstance(values, Series):
+            if columns is None and values.name is not None:
                 columns = [values.name]
             if index is None:
                 index = values.index
