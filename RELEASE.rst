@@ -104,7 +104,7 @@ pandas 0.6.1
   - Handle floating point index values in HDFStore (GH #454)
   - Fixed stale column reference bug (cached Series object) caused by type
     change / item deletion in DataFrame (GH #473)
-
+  - Index.get_loc should always raise Exception when there are duplicates
 
 Thanks
 ------

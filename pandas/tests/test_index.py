@@ -722,6 +722,10 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(KeyError, index.get_loc, (1, 1))
         self.assert_(index.get_loc((2, 0)) == slice(3, 5))
 
+    def test_get_loc_duplicates(self):
+        index = Index([2, 2, 2, 2])
+        self.assertRaises(Exception, index.get_loc, 2)
+
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
         stacked = df.stack()
