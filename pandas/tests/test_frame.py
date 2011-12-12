@@ -3739,6 +3739,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(recons is not consolidated)
         assert_frame_equal(recons, consolidated)
 
+        self.frame['F'] = 8.
+        self.assert_(len(self.frame._data.blocks) == 3)
+        self.frame.consolidate(inplace=True)
+        self.assert_(len(self.frame._data.blocks) == 1)
+
     def test_as_matrix_consolidate(self):
         self.frame['E'] = 7.
         self.assert_(not self.frame._data.is_consolidated())
