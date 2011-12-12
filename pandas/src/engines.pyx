@@ -119,7 +119,7 @@ cdef class DictIndexEngine(IndexEngine):
     cpdef get_loc(self, object val):
         self._ensure_initialized()
         if not self.integrity:
-            raise Exception('Index cannot contain duplicate values!')
+            raise Exception('Index values are not unique')
         return self.mapping[val]
 
 
