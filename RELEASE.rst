@@ -42,6 +42,8 @@ pandas 0.6.1
   - Implement new SparseList and SparseArray data structures. SparseSeries now
     derives from SparseArray (GH #463)
   - max_columns / max_rows options in set_printoptions (PR #453)
+  - Implement Series.rank and DataFrame.rank, fast versions of
+    scipy.stats.rankdata (GH #428)
 
 **Improvements to existing features**
 

@@ -2923,6 +2923,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(applied, self.frame * 2)
         result = self.frame.applymap(type)
 
+        # GH #465, function returning tuples
+        result = self.frame.applymap(lambda x: (x, x))
+        self.assert_(isinstance(result['A'][0], tuple))
+
     def test_filter(self):
         # items
 

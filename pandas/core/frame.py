@@ -2410,17 +2410,7 @@ class DataFrame(NDFrame):
         -------
         applied : DataFrame
         """
-        npfunc = np.frompyfunc(func, 1, 1)
-
-        def f(x):
-            result = npfunc(x)
-            try:
-                result = result.astype(x.dtype)
-            except Exception:
-                pass
-            return result
-
-        return self.apply(f)
+        return self.apply(lambda x: lib.map_infer(x, func))
 
     #----------------------------------------------------------------------
     # Merging / joining methods
