@@ -106,6 +106,7 @@ pandas 0.6.1
     change / item deletion in DataFrame (GH #473)
   - Index.get_loc should always raise Exception when there are duplicates
   - Handle differently-indexed Series input to DataFrame constructor (GH #475)
+  - Omit nuisance columns in multi-groupby with Python function
 
 Thanks
 ------

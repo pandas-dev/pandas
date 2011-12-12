@@ -666,6 +666,10 @@ class TestGroupBy(unittest.TestCase):
         expected = self.df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
         assert_frame_equal(result, expected)
 
+        agged = grouped.agg(np.mean)
+        exp = grouped.mean()
+        assert_frame_equal(agged, exp)
+
         df = self.df.ix[:, ['A', 'C', 'D']]
         df['E'] = datetime.now()
         grouped = df.groupby('A')
@@ -676,6 +680,26 @@ class TestGroupBy(unittest.TestCase):
         # won't work with axis = 1
         grouped = df.groupby({'A' : 0, 'C' : 0, 'D' : 1, 'E' : 1}, axis=1)
         result = self.assertRaises(TypeError, grouped.agg, np.sum)
+
+    def test_omit_nuisance_python_multiple(self):
+        data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                                 'bar', 'bar', 'bar', 'bar',
+                                 'foo', 'foo', 'foo'],
+                          'B' : ['one', 'one', 'one', 'two',
+                                 'one', 'one', 'one', 'two',
+                                 'two', 'two', 'one'],
+                          'C' : ['dull', 'dull', 'shiny', 'dull',
+                                 'dull', 'shiny', 'shiny', 'dull',
+                                 'shiny', 'shiny', 'shiny'],
+                          'D' : np.random.randn(11),
+                          'E' : np.random.randn(11),
+                          'F' : np.random.randn(11)})
+
+        grouped = data.groupby(['A', 'B'])
+
+        agged = grouped.agg(np.mean)
+        exp = grouped.mean()
+        assert_frame_equal(agged, exp)
 
     def test_nonsense_func(self):
         df = DataFrame([0])

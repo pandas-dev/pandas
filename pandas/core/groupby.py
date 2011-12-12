@@ -349,13 +349,11 @@ class GroupBy(object):
         # aggregate all the columns at once?)
 
         output = {}
-        cannot_agg = []
         for name, obj in self._iterate_slices():
             if issubclass(obj.dtype.type, (np.number, np.bool_)):
                 if obj.dtype != np.float64:
                     obj = obj.astype('f8')
             else:
-                cannot_agg.append(name)
                 continue
 
             result, counts =  lib.group_aggregate(obj, label_list,
@@ -416,10 +414,13 @@ class GroupBy(object):
             # iterate through "columns" ex exclusions to populate output dict
             output = {}
             for name, obj in self._iterate_slices():
-                _doit(result, counts, gen_factory(obj))
-                # TODO: same mask for every column...
-                output[name] = result.ravel().copy()
-                result.fill(np.nan)
+                try:
+                    _doit(result, counts, gen_factory(obj))
+                    # TODO: same mask for every column...
+                    output[name] = result.ravel().copy()
+                    result.fill(np.nan)
+                except TypeError:
+                    continue
 
             mask = counts.ravel() > 0
             for name, result in output.iteritems():
