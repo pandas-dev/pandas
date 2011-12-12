@@ -172,8 +172,15 @@ class DataFrame(NDFrame):
         >>> df2 = DataFrame(np.random.randn(10, 5))
         >>> df3 = DataFrame(np.random.randn(10, 5),
         ...                 columns=['a', 'b', 'c', 'd', 'e'])
-        """
 
+        See also
+        --------
+        DataFrame.from_records: constructor from tuples, also record arrays
+        DataFrame.from_dict: from dicts of Series, arrays, or dicts
+        DataFrame.from_csv: from CSV files
+        DataFrame.from_items: from sequence of (key, value) pairs
+        read_csv / read_table / read_clipboard
+        """
         if data is None:
             data = {}
 
@@ -579,6 +586,47 @@ class DataFrame(NDFrame):
             names = list(self.columns)
 
         return np.rec.fromarrays(arrays, names=names)
+
+    @classmethod
+    def from_items(cls, items, columns=None, orient='columns'):
+        """
+        Convert (key, value) pairs to DataFrame. The keys will be the axis
+        index (usually the columns, but depends on the specified
+        orientation). The values should be arrays or Series
+
+        Parameters
+        ----------
+        items : sequence of (key, value) pairs
+            Values should be arrays or Series
+        columns : sequence, optional
+            Must be passed in the
+        orient : {'columns', 'index'}, default 'items'
+            The "orientation" of the data. If the keys of the passed dict
+            should be the items of the result panel, pass 'items'
+            (default). Otherwise if the columns of the values of the passed
+            DataFrame objects should be the items (which in the case of
+            mixed-dtype data you should do), instead pass 'minor'
+
+        Returns
+        -------
+        frame : DataFrame
+        """
+        keys, values = zip(*items)
+
+        if orient == 'columns':
+            cols_to_use = columns if columns is not None else keys
+            # iterable may have been consumed
+            return DataFrame(dict(zip(keys, values)), columns=cols_to_use)
+        elif orient == 'index':
+            if columns is None:
+                raise ValueError("Must pass columns with orient='index'")
+
+            arr = np.array(values, dtype=object).T
+            new_data = dict((k, lib.maybe_convert_objects(v))
+                            for k, v in zip(columns, arr))
+            return DataFrame(new_data, index=keys, columns=columns)
+        elif orient != 'columns':  # pragma: no cover
+            raise ValueError('only recognize index or columns for orient')
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0,

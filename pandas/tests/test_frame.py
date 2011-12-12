@@ -24,6 +24,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
+import pandas._tseries as lib
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases
@@ -1269,6 +1270,41 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                            columns=columns)
         self.assert_(np.array_equal(result.index, index))
         self.assert_(np.array_equal(result.columns, columns))
+
+    def test_constructor_from_items(self):
+        items = [(c, self.frame[c]) for c in self.frame.columns]
+        recons = DataFrame.from_items(items)
+        assert_frame_equal(recons, self.frame)
+
+        # pass some columns
+        recons = DataFrame.from_items(items, columns=['C', 'B', 'A'])
+        assert_frame_equal(recons, self.frame.ix[:, ['C', 'B', 'A']])
+
+        # orient='index'
+
+        row_items = [(idx, self.mixed_frame.xs(idx))
+                     for idx in self.mixed_frame.index]
+
+        recons = DataFrame.from_items(row_items,
+                                      columns=self.mixed_frame.columns,
+                                      orient='index')
+        assert_frame_equal(recons, self.mixed_frame)
+        self.assert_(recons['A'].dtype == np.float64)
+
+        self.assertRaises(ValueError, DataFrame.from_items, row_items,
+                          orient='index')
+
+        # orient='index', but thar be tuples
+        arr = lib.list_to_object_array([('bar', 'baz')] * len(self.mixed_frame))
+        self.mixed_frame['foo'] = arr
+        row_items = [(idx, list(self.mixed_frame.xs(idx)))
+                     for idx in self.mixed_frame.index]
+        recons = DataFrame.from_items(row_items,
+                                      columns=self.mixed_frame.columns,
+                                      orient='index')
+        foo
+        assert_frame_equal(recons, self.mixed_frame)
+        self.assert_(isinstance(recons['foo'][0], tuple))
 
     def test_astype(self):
         casted = self.frame.astype(int)

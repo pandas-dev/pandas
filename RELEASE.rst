@@ -85,6 +85,7 @@ pandas 0.6.1
   - Use Cython map_infer function in DataFrame.applymap to properly infer
     output type, handle tuple return values and other things that were breaking
     (GH #465)
+  - Handle floating point index values in HDFStore (GH #454)
 
 Thanks
 ------
