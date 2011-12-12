@@ -16,6 +16,7 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
            'rolling_quantile', 'rolling_median', 'rolling_apply',
+           'rolling_corr_pairwise',
            'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov']
 
 def rolling_count(arg, window, time_rule=None):
@@ -87,6 +88,34 @@ def _flex_binary_moment(arg1, arg2, f):
     else:
         return _flex_binary_moment(arg2, arg1, f)
 
+def rolling_corr_pairwise(df, window, min_periods=None):
+    """
+    Computes pairwise rolling correlation matrices as Panel whose items are
+    dates
+
+    Parameters
+    ----------
+    df : DataFrame
+    window : int
+    min_periods : int, default None
+
+    Returns
+    -------
+    correls : Panel
+    """
+    from pandas import Panel
+    from collections import defaultdict
+
+    all_results = defaultdict(dict)
+
+    for i, k1 in enumerate(df.columns):
+        for k2 in df.columns[i:]:
+            corr = rolling_corr(df[k1], df[k2], window,
+                                min_periods=min_periods)
+            all_results[k1][k2] = corr
+            all_results[k2][k1] = corr
+
+    return Panel.from_dict(all_results).swapaxes('items', 'major')
 
 def _rolling_moment(arg, window, func, minp, axis=0, time_rule=None):
     """

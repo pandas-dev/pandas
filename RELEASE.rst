@@ -54,6 +54,8 @@ pandas 0.6.1
   - Implement DataFrame.from_items alternate constructor (GH #444)
   - DataFrame.convert_objects method for inferring better dtypes for object
     columns (GH #302)
+  - Add rolling_corr_pairwise function for computing Panel of correlation
+    matrices (GH #189)
 
 **Improvements to existing features**
 

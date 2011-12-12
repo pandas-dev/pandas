@@ -252,6 +252,14 @@ class TestMoments(unittest.TestCase):
         result = mom.rolling_corr(a, b, len(a), min_periods=1)
         assert_almost_equal(result[-1], a.corr(b))
 
+    def test_rolling_corr_pairwise(self):
+        panel = mom.rolling_corr_pairwise(self.frame, 10, min_periods=5)
+
+        correl = panel.ix[:, 1, 5]
+        exp = mom.rolling_corr(self.frame[1], self.frame[5],
+                               10, min_periods=5)
+        tm.assert_series_equal(correl, exp)
+
     def test_flex_binary_frame(self):
         def _check(method):
             series = self.frame[1]
