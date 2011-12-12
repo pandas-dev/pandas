@@ -105,6 +105,7 @@ pandas 0.6.1
   - Fixed stale column reference bug (cached Series object) caused by type
     change / item deletion in DataFrame (GH #473)
   - Index.get_loc should always raise Exception when there are duplicates
+  - Handle differently-indexed Series input to DataFrame constructor (GH #475)
 
 Thanks
 ------
@@ -115,6 +116,7 @@ Thanks
 - Fernando Perez
 - Nathan Pinger
 - Christian Prinoth
+- Alex Reyfman
 - Joon Ro
 - Chang She
 - Ted Square
