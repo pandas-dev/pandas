@@ -1302,7 +1302,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = DataFrame.from_items(row_items,
                                       columns=self.mixed_frame.columns,
                                       orient='index')
-        foo
         assert_frame_equal(recons, self.mixed_frame)
         self.assert_(isinstance(recons['foo'][0], tuple))
 
@@ -1381,8 +1380,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         tuples = [tuple(x) for x in df.values]
         lists = [list(x) for x in tuples]
 
-        result = DataFrame.from_records(tuples, names=df.columns)
-        result2 = DataFrame.from_records(lists, names=df.columns)
+        result = DataFrame.from_records(tuples, columns=df.columns)
+        result2 = DataFrame.from_records(lists, columns=df.columns)
         assert_frame_equal(result, df)
         assert_frame_equal(result2, df)
 

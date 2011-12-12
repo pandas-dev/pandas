@@ -27,6 +27,11 @@ pandas 0.6.1
 
 **Release date:** Not yet released
 
+**API Changes**
+
+  - Rename `names` argument in DataFrame.from_records to `columns`. Add
+    deprecation warning
+
 **New features / modules**
 
   - Can pass Series to DataFrame.append with ignore_index=True for appending a
@@ -44,6 +49,7 @@ pandas 0.6.1
   - max_columns / max_rows options in set_printoptions (PR #453)
   - Implement Series.rank and DataFrame.rank, fast versions of
     scipy.stats.rankdata (GH #428)
+  - Implement DataFrame.from_items alternate constructor (GH #444)
 
 **Improvements to existing features**
 

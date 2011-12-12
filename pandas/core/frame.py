@@ -497,7 +497,8 @@ class DataFrame(NDFrame):
         return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
-    def from_records(cls, data, index=None, exclude=None, names=None):
+    def from_records(cls, data, index=None, exclude=None, columns=None,
+                     names=None):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -509,13 +510,21 @@ class DataFrame(NDFrame):
             input labels to use
         exclude: sequence, default None
             Columns or fields to exclude
-        names : sequence, default None
+        columns : sequence, default None
             Column names to use, replacing any found in passed data
 
         Returns
         -------
         df : DataFrame
         """
+        import warnings
+
+        if names is not None:  # pragma: no cover
+            columns = names
+            warnings.warn("'names' parameter to DataFrame.from_records is "
+                          "being renamed to 'columns', 'names' will be "
+                          "removed in 0.8.0", FutureWarning)
+
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
         else:
@@ -525,11 +534,10 @@ class DataFrame(NDFrame):
                 # list of lists
                 content = list(lib.to_object_array(data).T)
 
-            if names is None:
+            if columns is None:
                 columns = range(len(content))
             else:
-                assert(len(names) == len(content))
-                columns = names
+                assert(len(columns) == len(content))
 
             sdict = dict((c, lib.maybe_convert_objects(vals))
                          for c, vals in zip(columns, content))
