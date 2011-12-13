@@ -1,4 +1,4 @@
-from pandas import DataFrame
+from pandas import Series, DataFrame
 import numpy as np
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
@@ -91,14 +91,20 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
 DataFrame.pivot_table = pivot_table
 
 def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
-    if rows is not None:
+    if len(cols) > 0:
         col_margin = data[rows + values].groupby(rows).agg(aggfunc)
 
         # need to "interleave" the margins
 
         table_pieces = []
         margin_keys = []
-        for key, piece in table.groupby(level=0, axis=1):
+
+        if len(cols) > 0:
+            grouper = table.groupby(level=0, axis=1)
+        else:
+            grouper = ((k, table[[k]]) for k in table.columns)
+
+        for key, piece in grouper:
             all_key = (key, 'All') + ('',) * (len(cols) - 1)
             piece[all_key] = col_margin[key]
             table_pieces.append(piece)
@@ -109,27 +115,34 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
             result = result.join(piece)
     else:
         result = table
-        margin_keys = []
+        margin_keys = table.columns
 
-    grand_margin = data[values].apply(aggfunc)
+    grand_margin = {}
+    for k, v in data[values].iteritems():
+        try:
+            grand_margin[k] = aggfunc(v)
+        except TypeError:
+            pass
 
-    if cols is not None:
+    if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols).agg(aggfunc)
         row_margin = row_margin.stack()
 
         # slight hack
         new_order = [len(cols)] + range(len(cols))
         row_margin.index = row_margin.index.reorder_levels(new_order)
+    else:
+        row_margin = Series(np.nan, index=result.columns)
 
-        key = ('All',) + ('',) * (len(rows) - 1)
+    key = ('All',) + ('',) * (len(rows) - 1)
 
-        row_margin = row_margin.reindex(result.columns)
-        # populate grand margin
-        for k in margin_keys:
-            row_margin[k] = grand_margin[k[0]]
+    row_margin = row_margin.reindex(result.columns)
+    # populate grand margin
+    for k in margin_keys:
+        row_margin[k] = grand_margin[k[0]]
 
-        margin_dummy = DataFrame(row_margin, columns=[key]).T
-        result = result.append(margin_dummy)
+    margin_dummy = DataFrame(row_margin, columns=[key]).T
+    result = result.append(margin_dummy)
 
     return result
 
@@ -141,28 +154,4 @@ def _convert_by(by):
     else:
         by = list(by)
     return by
-
-
-if __name__ == '__main__':
-    def _sample(values, n):
-        indexer = np.random.randint(0, len(values), n)
-        return np.asarray(values).take(indexer)
-
-    levels = [['a', 'b', 'c', 'd'],
-              ['foo', 'bar', 'baz'],
-              ['one', 'two'],
-              ['US', 'JP', 'UK']]
-    names = ['k1', 'k2', 'k3', 'k4']
-
-    n = 100000
-
-    data = {}
-    for name, level in zip(names, levels):
-        data[name] = _sample(level, n)
-
-    data['values'] = np.random.randn(n)
-    data = DataFrame(data)
-
-    table = pivot_table(data, values='values',
-                        rows=['k1', 'k2'], cols=['k3', 'k4'])
 
