@@ -708,7 +708,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             _check_op(other, lambda x, y: operator.truediv(y, x))
             _check_op(other, lambda x, y: operator.floordiv(y, x))
             _check_op(other, lambda x, y: operator.mul(y, x))
-            _check_op(other, lambda x, y: operator.pow(y, x))
+            _check_op(other, lambda x, y: operator.pow(y, x),
+                      pos_only=True)
 
         check(self.ts * 2)
         check(self.ts[::2])
