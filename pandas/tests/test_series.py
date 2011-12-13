@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import os
 import operator
 import unittest
+import cStringIO as StringIO
 
 import nose
 
@@ -1064,6 +1065,28 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         exp[mask] = np.nan
 
         assert_almost_equal(ranks, exp)
+
+    def test_from_csv(self):
+        self.ts.to_csv('_foo')
+        ts = Series.from_csv('_foo')
+        assert_series_equal(self.ts, ts)
+
+        self.series.to_csv('_foo')
+        series = Series.from_csv('_foo')
+        assert_series_equal(self.series, series)
+
+        outfile = open('_foo', 'w')
+        outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
+        outfile.close()
+        series = Series.from_csv('_foo',sep='|')
+        checkseries = Series({datetime(1998,1,1): 1.0, datetime(1999,1,1): 2.0})
+        assert_series_equal(checkseries, series)
+
+        series = Series.from_csv('_foo',sep='|',parse_dates=False)
+        checkseries = Series({'1998-01-01': 1.0, '1999-01-01': 2.0})
+        assert_series_equal(checkseries, series)
+
+        os.remove('_foo')
 
     def test_to_csv(self):
         self.ts.to_csv('_foo')
