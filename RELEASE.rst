@@ -81,6 +81,7 @@ pandas 0.6.1
     affecting DataFrame.dropna speed
   - Column deletion in DataFrame copies no data (computes views on blocks) (GH
     #158)
+  - MultiIndex.get_level_values can take the level name
 
 **Bug fixes**
 

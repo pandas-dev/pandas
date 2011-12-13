@@ -7,8 +7,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.index import (Index, Int64Index, Factor,
-                               MultiIndex)
+from pandas.core.index import Index, Int64Index, Factor, MultiIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 import pandas._tseries as tseries
@@ -661,6 +660,10 @@ class TestMultiIndex(unittest.TestCase):
     def test_get_level_values(self):
         result = self.index.get_level_values(0)
         expected = ['foo', 'foo', 'bar', 'baz', 'qux', 'qux']
+        self.assert_(np.array_equal(result, expected))
+
+        result = self.index.get_level_values('first')
+        expected = self.index.get_level_values(0)
         self.assert_(np.array_equal(result, expected))
 
     def test_nlevels(self):

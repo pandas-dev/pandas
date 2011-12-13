@@ -925,8 +925,9 @@ class MultiIndex(Index):
         -------
         values : ndarray
         """
-        unique_vals = self.levels[level].values
-        labels = self.labels[level]
+        num = self._get_level_number(level)
+        unique_vals = self.levels[num].values
+        labels = self.labels[num]
         return unique_vals.take(labels)
 
     def format(self, space=2, sparsify=True, adjoin=True, names=False):
