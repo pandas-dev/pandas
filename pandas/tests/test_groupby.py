@@ -62,6 +62,19 @@ class TestGroupBy(unittest.TestCase):
         self.mframe = DataFrame(np.random.randn(10, 3), index=index,
                                 columns=['A', 'B', 'C'])
 
+        self.three_group = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                                             'bar', 'bar', 'bar', 'bar',
+                                             'foo', 'foo', 'foo'],
+                                      'B' : ['one', 'one', 'one', 'two',
+                                             'one', 'one', 'one', 'two',
+                                             'two', 'two', 'one'],
+                                      'C' : ['dull', 'dull', 'shiny', 'dull',
+                                             'dull', 'shiny', 'shiny', 'dull',
+                                             'shiny', 'shiny', 'shiny'],
+                                      'D' : np.random.randn(11),
+                                      'E' : np.random.randn(11),
+                                      'F' : np.random.randn(11)})
+
     def test_basic(self):
         data = Series(np.arange(9) // 3, index=np.arange(9))
 
@@ -686,24 +699,45 @@ class TestGroupBy(unittest.TestCase):
         result = self.assertRaises(TypeError, grouped.agg, np.sum)
 
     def test_omit_nuisance_python_multiple(self):
-        data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
-                                 'bar', 'bar', 'bar', 'bar',
-                                 'foo', 'foo', 'foo'],
-                          'B' : ['one', 'one', 'one', 'two',
-                                 'one', 'one', 'one', 'two',
-                                 'two', 'two', 'one'],
-                          'C' : ['dull', 'dull', 'shiny', 'dull',
-                                 'dull', 'shiny', 'shiny', 'dull',
-                                 'shiny', 'shiny', 'shiny'],
-                          'D' : np.random.randn(11),
-                          'E' : np.random.randn(11),
-                          'F' : np.random.randn(11)})
-
-        grouped = data.groupby(['A', 'B'])
+        grouped = self.three_group.groupby(['A', 'B'])
 
         agged = grouped.agg(np.mean)
         exp = grouped.mean()
         assert_frame_equal(agged, exp)
+
+    def test_apply_concat_preserve_names(self):
+        grouped = self.three_group.groupby(['A', 'B'])
+
+        def desc(group):
+            result = group.describe()
+            result.index.name = 'stat'
+            return result
+
+        def desc2(group):
+            result = group.describe()
+            result.index.name = 'stat'
+            result = result[:len(group)]
+            # weirdo
+            return result
+
+        def desc3(group):
+            result = group.describe()
+
+            # names are different
+            result.index.name = 'stat_%d' % len(group)
+
+            result = result[:len(group)]
+            # weirdo
+            return result
+
+        result = grouped.apply(desc)
+        self.assertEquals(result.index.names, ['A', 'B', 'stat'])
+
+        result2 = grouped.apply(desc2)
+        self.assertEquals(result2.index.names, ['A', 'B', 'stat'])
+
+        result3 = grouped.apply(desc3)
+        self.assertEquals(result3.index.names, ['A', 'B', None])
 
     def test_nonsense_func(self):
         df = DataFrame([0])

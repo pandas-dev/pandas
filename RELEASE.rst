@@ -112,6 +112,10 @@ pandas 0.6.1
   - Handle differently-indexed Series input to DataFrame constructor (GH #475)
   - Omit nuisance columns in multi-groupby with Python function
   - Buglet in handling of single grouping in general apply
+  - Handle type inference properly when passing list of lists or tuples to
+    DataFrame constructor (GH #484)
+  - Preserve Index / MultiIndex names in GroupBy.apply concatenation step (GH
+    #481)
 
 Thanks
 ------

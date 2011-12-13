@@ -1188,6 +1188,8 @@ def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
         return DataFrame(new_values, index=new_index, columns=new_columns)
 
 def _make_concat_multiindex(indexes, keys, groupings):
+    names = [ping.name for ping in groupings]
+
     if not _all_indexes_same(indexes):
         label_list = []
 
@@ -1213,13 +1215,22 @@ def _make_concat_multiindex(indexes, keys, groupings):
         else:
             label_list.append(concat_index.values)
 
-        return MultiIndex.from_arrays(label_list)
+        consensus_name = indexes[0].names
+        for index in indexes[1:]:
+            if index.names != consensus_name:
+                consensus_name = [None] * index.nlevels
+                break
+        names.extend(consensus_name)
+
+        return MultiIndex.from_arrays(label_list, names=names)
 
     new_index = indexes[0]
     n = len(new_index)
 
+    names.append(indexes[0].name)
+
     # do something a bit more speedy
-    levels = [ping.group_index for ping in  groupings]
+    levels = [ping.group_index for ping in groupings]
     levels.append(new_index)
 
     # construct labels
@@ -1237,7 +1248,7 @@ def _make_concat_multiindex(indexes, keys, groupings):
 
     # last labels for the new level
     labels.append(np.tile(np.arange(n), len(indexes)))
-    return MultiIndex(levels=levels, labels=labels)
+    return MultiIndex(levels=levels, labels=labels, names=names)
 
 def _all_indexes_same(indexes):
     first = indexes[0]
