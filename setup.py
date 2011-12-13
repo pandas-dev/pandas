@@ -141,7 +141,12 @@ if not ISRELEASED:
         import subprocess
         pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
                                 stdout=subprocess.PIPE).stdout
-        rev = pipe.read().strip().decode('ascii')
+        rev = pipe.read().strip()
+
+        # makes distutils blow up on Python 2.7
+        if sys.version_info[0] >= 3:
+            rev = rev.decode('ascii')
+
         FULLVERSION += "-%s" % rev
     except:
         warnings.warn("WARNING: Couldn't get git revision")
