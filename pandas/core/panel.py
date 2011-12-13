@@ -111,7 +111,8 @@ def _panel_arith_method(op, name):
         return self._combine(other, op, axis=axis)
 
     f.__name__ = name
-    f.__doc__ = f.__doc__ % str(op)
+    if __debug__:
+        f.__doc__ = f.__doc__ % str(op)
 
     return f
 
@@ -193,7 +194,7 @@ class Panel(NDFrame):
 
         Parameters
         ----------
-        values : ndarray (items x major x minor)
+        data : ndarray (items x major x minor), or dict of DataFrames
         items : Index or array-like
             axis=1
         major_axis : Index or array-like
@@ -209,21 +210,24 @@ class Panel(NDFrame):
             data = {}
 
         passed_axes = [items, major_axis, minor_axis]
+        axes = None
         if isinstance(data, BlockManager):
+            if any(x is not None for x in passed_axes):
+                axes = [x if x is not None else y
+                        for x, y in zip(passed_axes, data.axes)]
             mgr = data
-            if copy and dtype is None:
-                mgr = mgr.copy()
-            elif dtype is not None:
-                # no choice but to copy
-                mgr = mgr.astype(dtype)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, passed_axes, dtype=dtype)
+            copy = False
+            dtype = None
         elif isinstance(data, (np.ndarray, list)):
             mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
+            copy = False
+            dtype = None
         else: # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
-        self._data = mgr
+        NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
     def _init_dict(self, data, axes, dtype=None):
         items, major, minor = axes
@@ -251,13 +255,21 @@ class Panel(NDFrame):
 
         reshaped_data = data.copy() # shallow
         # homogenize
-        for k, v in data.iteritems():
-            v = v.reindex(index=major, columns=minor, copy=False)
-            if dtype is not None:
-                v = v.astype(dtype)
-            values = v.values
-            shape = values.shape
-            reshaped_data[k] = values.reshape((1,) + shape)
+
+        item_shape = (1, len(major), len(minor))
+        for k in items:
+            if k not in data:
+                values = np.empty(item_shape, dtype=dtype)
+                values.fill(np.nan)
+                reshaped_data[k] = values
+            else:
+                v = data[k]
+                v = v.reindex(index=major, columns=minor, copy=False)
+                if dtype is not None:
+                    v = v.astype(dtype)
+                values = v.values
+                shape = values.shape
+                reshaped_data[k] = values.reshape((1,) + shape)
 
         # segregates dtypes and forms blocks matching to columns
         blocks = form_blocks(reshaped_data, axes)
@@ -269,7 +281,7 @@ class Panel(NDFrame):
         return len(self.items), len(self.major_axis), len(self.minor_axis)
 
     @classmethod
-    def from_dict(cls, data, intersect=False, dtype=float):
+    def from_dict(cls, data, intersect=False, orient='items', dtype=None):
         """
         Construct Panel from dict of DataFrame objects
 
@@ -278,11 +290,31 @@ class Panel(NDFrame):
         data : dict
             {field : DataFrame}
         intersect : boolean
+            Intersect indexes of input DataFrames
+        orient : {'items', 'minor'}, default 'items'
+            The "orientation" of the data. If the keys of the passed dict
+            should be the items of the result panel, pass 'items'
+            (default). Otherwise if the columns of the values of the passed
+            DataFrame objects should be the items (which in the case of
+            mixed-dtype data you should do), instead pass 'minor'
+
 
         Returns
         -------
         Panel
         """
+        from collections import defaultdict
+
+        orient = orient.lower()
+        if orient == 'minor':
+            new_data = defaultdict(dict)
+            for col, df in data.iteritems():
+                for item, s in df.iteritems():
+                    new_data[item][col] = s
+            data = new_data
+        elif orient != 'items':  # pragma: no cover
+            raise ValueError('only recognize items or minor for orientation')
+
         data, index, columns = _homogenize_dict(data, intersect=intersect,
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
@@ -419,9 +451,56 @@ class Panel(NDFrame):
 
     values = property(fget=_get_values)
 
-    def __getitem__(self, key):
-        mat = self._data.get(key)
-        return DataFrame(mat, index=self.major_axis, columns=self.minor_axis)
+    #----------------------------------------------------------------------
+    # Getting and setting elements
+
+    def get_value(self, item, major, minor):
+        """
+        Quickly retrieve single value at (item, major, minor) location
+
+        Parameters
+        ----------
+        item : item label (panel item)
+        major : major axis label (panel item row)
+        minor : minor axis label (panel item column)
+
+        Returns
+        -------
+        value : scalar value
+        """
+        # hm, two layers to the onion
+        frame = self._get_item_cache(item)
+        return frame.get_value(major, minor)
+
+    def set_value(self, item, major, minor, value):
+        """
+        Quickly set single value at (item, major, minor) location
+
+        Parameters
+        ----------
+        item : item label (panel item)
+        major : major axis label (panel item row)
+        minor : minor axis label (panel item column)
+        value : scalar
+
+        Returns
+        -------
+        panel : Panel
+            If label combo is contained, will be reference to calling Panel,
+            otherwise a new object
+        """
+        try:
+            frame = self._get_item_cache(item)
+            frame.set_value(major, minor, value)
+            return self
+        except KeyError:
+            ax1, ax2, ax3 = self._expand_axes((item, major, minor))
+            result = self.reindex(items=ax1, major=ax2, minor=ax3, copy=False)
+            result = result.set_value(item, major, minor, value)
+            return result
+
+    def _box_item_values(self, key, values):
+        return DataFrame(values, index=self.major_axis, columns=self.minor_axis)
 
     def _slice(self, slobj, axis=0):
         new_data = self._data.get_slice(slobj, axis=axis)
@@ -441,19 +520,18 @@ class Panel(NDFrame):
             value = value.reindex(index=self.major_axis,
                                   columns=self.minor_axis)
             mat = value.values
-
+        elif isinstance(value, np.ndarray):
+            assert(value.shape == (N, K))
+            mat = np.asarray(value)
         elif np.isscalar(value):
             dtype = _infer_dtype(value)
             mat = np.empty((N, K), dtype=dtype)
             mat.fill(value)
 
         mat = mat.reshape((1, N, K))
-        self._data.set(key, mat)
+        NDFrame._set_item(self, key, mat)
 
-    def __delitem__(self, key):
-        self._data.delete(key)
-
-    def pop(self, key):
+    def pop(self, item):
         """
         Return item slice from panel and delete from panel
 
@@ -466,9 +544,7 @@ class Panel(NDFrame):
         -------
         y : DataFrame
         """
-        result = self[key]
-        del self[key]
-        return result
+        return NDFrame.pop(self, item)
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
@@ -482,6 +558,7 @@ class Panel(NDFrame):
             self._unpickle_panel_compat(state)
         else: # pragma: no cover
             raise ValueError('unrecognized pickle')
+        self._item_cache = {}
 
     def _unpickle_panel_compat(self, state): # pragma: no cover
         "Unpickle the panel"
@@ -932,9 +1009,6 @@ class Panel(NDFrame):
         return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
 
     _add_docs(std, 'unbiased standard deviation', 'stdev')
-
-    def skew(self, axis='major', skipna=True):
-        raise NotImplementedError
 
     def prod(self, axis='major', skipna=True):
         return self._array_method(np.prod, axis=axis, fill_value=1,

@@ -12,6 +12,7 @@ import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
                     Index, MultiIndex)
 from pandas.core.common import adjoin
+import pandas.core.common as com
 import pandas._tseries as lib
 
 # reading and writing the full object in one go
@@ -724,10 +725,13 @@ def _convert_index(index):
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
         return converted, 'string', _tables().StringCol(itemsize)
-    elif isinstance(values[0], (long, int, np.integer)):
+    elif com.is_integer(values[0]):
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
         return np.asarray(values, dtype=np.int64), 'integer', atom
+    elif com.is_float(values[0]):
+        atom = _tables().Float64Col()
+        return np.asarray(values, dtype=np.float64), 'float', atom
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % type(values[0]))
 
@@ -749,8 +753,8 @@ def _unconvert_index(data, kind):
         index = np.array([date.fromtimestamp(v) for v in data],
                          dtype=object)
 
-    elif kind in ('string', 'integer'):
-        index = np.array(data, dtype=object)
+    elif kind in ('string', 'integer', 'float'):
+        index = np.array(data)
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index

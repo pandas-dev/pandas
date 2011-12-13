@@ -1,46 +1,41 @@
-TIME = 0
-ENTITY = 1
-
 def _get_cluster_type(cluster_type):
-    if cluster_type in (TIME, ENTITY, None):
+    cluster_type = _WINDOW_TYPES.get(cluster_type, cluster_type)
+    if cluster_type is None:
         return cluster_type
 
-    elif isinstance(cluster_type, basestring):
-        cluster_type_up = cluster_type.upper()
+    cluster_type_up = cluster_type.upper()
 
-        if cluster_type_up == 'ENTITY':
-            return ENTITY
-        elif cluster_type_up == 'TIME':
-            return TIME
+    if cluster_type_up == 'ENTITY':
+        return 'entity'
+    elif cluster_type_up == 'TIME':
+        return 'time'
+    else:  # pragma: no cover
+        raise Exception('Unrecognized cluster type: %s' % cluster_type)
 
-    raise Exception('Unrecognized clustering type: %s' % cluster_type)
+_CLUSTER_TYPES = {
+    0 : 'time',
+    1 : 'entity'
+}
 
-FULL_SAMPLE = 0
-ROLLING = 1
-EXPANDING = 2
+_WINDOW_TYPES = {
+    0 : 'full_sample',
+    1 : 'rolling',
+    2 : 'expanding'
+}
+
 
 def _get_window_type(window_type):
-    if window_type in (FULL_SAMPLE, ROLLING, EXPANDING):
-        return window_type
-    elif isinstance(window_type, basestring):
-        window_type_up = window_type.upper()
+    window_type = _WINDOW_TYPES.get(window_type, window_type)
+    window_type_up = window_type.upper()
 
-        if window_type_up in ('FULL SAMPLE', 'FULL_SAMPLE'):
-            return FULL_SAMPLE
-        elif window_type_up == 'ROLLING':
-            return ROLLING
-        elif window_type_up == 'EXPANDING':
-            return EXPANDING
-
-    raise Exception('Unrecognized window type: %s' % window_type)
-
-def _get_window_type_name(window_type):
-    names = {
-        0 : 'full sample',
-        1 : 'rolling',
-        2 : 'expanding'
-    }
-    return names[window_type]
+    if window_type_up in ('FULL SAMPLE', 'FULL_SAMPLE'):
+        return 'full_sample'
+    elif window_type_up == 'ROLLING':
+        return 'rolling'
+    elif window_type_up == 'EXPANDING':
+        return 'expanding'
+    else:  # pragma: no cover
+        raise Exception('Unrecognized window type: %s' % window_type)
 
 def banner(text, width=80):
     """
@@ -52,14 +47,3 @@ def banner(text, width=80):
     right = toFill - left
 
     return '%s%s%s' % ('-' * left, text, '-' * right)
-
-def f_stat_to_dict(result):
-    f_stat, shape, p_value = result
-
-    result = {}
-    result['f-stat'] = f_stat
-    result['DF X'] = shape[0]
-    result['DF Resid'] = shape[1]
-    result['p-value'] = p_value
-
-    return result

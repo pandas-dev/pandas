@@ -21,7 +21,7 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
 import pandas.core.panel as panelm
-import pandas.util.testing as common
+import pandas.util.testing as tm
 
 class PanelTests(object):
     panel = None
@@ -42,7 +42,7 @@ class SafeForLongAndSparse(object):
         foo = repr(self.panel)
 
     def test_iter(self):
-        common.equalContents(list(self.panel), self.panel.items)
+        tm.equalContents(list(self.panel), self.panel.items)
 
     def test_count(self):
         f = lambda s: notnull(s).sum()
@@ -134,8 +134,8 @@ class SafeForLongAndSparse(object):
 
 class SafeForSparse(object):
 
-    @staticmethod
-    def assert_panel_equal(x, y):
+    @classmethod
+    def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
 
     def test_get_axis(self):
@@ -148,13 +148,22 @@ class SafeForSparse(object):
         new_major = Index(np.arange(len(self.panel.major_axis)))
         new_minor = Index(np.arange(len(self.panel.minor_axis)))
 
+        # ensure propagate to potentially prior-cached items too
+        item = self.panel['ItemA']
         self.panel.items = new_items
+
+        if hasattr(self.panel, '_item_cache'):
+            self.assert_('ItemA' not in self.panel._item_cache)
         self.assert_(self.panel.items is new_items)
 
+        item = self.panel[0]
         self.panel.major_axis = new_major
+        self.assert_(self.panel[0].index is new_major)
         self.assert_(self.panel.major_axis is new_major)
 
+        item = self.panel[0]
         self.panel.minor_axis = new_minor
+        self.assert_(self.panel[0].columns is new_minor)
         self.assert_(self.panel.minor_axis is new_minor)
 
     def test_get_axis_number(self):
@@ -218,7 +227,7 @@ class SafeForSparse(object):
         assert_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_keys(self):
-        common.equalContents(self.panel.keys(), self.panel.items)
+        tm.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
         """Test panel.iteritems(), aka panel.iterkv()"""
@@ -296,6 +305,14 @@ class SafeForSparse(object):
         result = p.select(lambda x: x in ('foo',), axis='items')
         self.assert_panel_equal(result, p.reindex(items=[]))
 
+    def test_get_value(self):
+        for item in self.panel.items:
+            for mjr in self.panel.major_axis[::2]:
+                for mnr in self.panel.minor_axis:
+                    result = self.panel.get_value(item, mjr, mnr)
+                    expected = self.panel[item][mnr][mjr]
+                    assert_almost_equal(result, expected)
+
 class CheckIndexing(object):
 
 
@@ -358,7 +375,9 @@ class CheckIndexing(object):
 
         # scalar
         self.panel['ItemG'] = 1
-        self.panel['ItemE'] = 1
+        self.panel['ItemE'] = True
+        self.assert_(self.panel['ItemG'].values.dtype == np.int64)
+        self.assert_(self.panel['ItemE'].values.dtype == np.bool_)
 
         # object dtype
         self.panel['ItemQ'] = 'foo'
@@ -368,6 +387,20 @@ class CheckIndexing(object):
         self.panel['ItemP'] = self.panel['ItemA'] > 0
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
+    def test_setitem_ndarray(self):
+        from pandas import DateRange, datetools
+
+        timeidx = DateRange(start=datetime(2009,1,1),
+                            end=datetime(2009,12,31),
+                            offset=datetools.MonthEnd())
+        lons_coarse = np.linspace(-177.5, 177.5, 72)
+        lats_coarse = np.linspace(-87.5, 87.5, 36)
+        P = Panel(items=timeidx, major_axis=lons_coarse, minor_axis=lats_coarse)
+        data = np.random.randn(72*36).reshape((72,36))
+        key = datetime(2009,2,28)
+        P[key] = data
+
+        assert_almost_equal(P[key].values, data)
 
     def test_major_xs(self):
         ref = self.panel['ItemA']
@@ -517,17 +550,38 @@ class CheckIndexing(object):
         self.assert_((obj.values == 0).all())
         comp(cp.ix[indexer].reindex_like(obj), obj)
 
+    def test_get_value(self):
+        for item in self.panel.items:
+            for mjr in self.panel.major_axis[::2]:
+                for mnr in self.panel.minor_axis:
+                    result = self.panel.get_value(item, mjr, mnr)
+                    expected = self.panel[item][mnr][mjr]
+                    assert_almost_equal(result, expected)
+
+    def test_set_value(self):
+        for item in self.panel.items:
+            for mjr in self.panel.major_axis[::2]:
+                for mnr in self.panel.minor_axis:
+                    self.panel.set_value(item, mjr, mnr, 1.)
+                    assert_almost_equal(self.panel[item][mnr][mjr], 1.)
+
+        # resize
+        res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
+        self.assert_(isinstance(res, Panel))
+        self.assert_(res is not self.panel)
+        self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
+
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
 
-    @staticmethod
-    def assert_panel_equal(x, y):
+    @classmethod
+    def assert_panel_equal(cls,x, y):
         assert_panel_equal(x, y)
 
     def setUp(self):
-        self.panel = common.makePanel()
-        common.add_nans(self.panel)
+        self.panel = tm.makePanel()
+        tm.add_nans(self.panel)
 
     def test_constructor(self):
         # with BlockManager
@@ -571,6 +625,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assert_(len(empty.major_axis) == 0)
         self.assert_(len(empty.minor_axis) == 0)
 
+    def test_constructor_observe_dtype(self):
+        # GH #411
+        panel = Panel(items=range(3), major_axis=range(3),
+                      minor_axis=range(3), dtype='O')
+        self.assert_(panel.values.dtype == np.object_)
+
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
 
@@ -608,8 +668,40 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = Panel(d, dtype=int)
         expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
 
-    def test_from_dict_mixed(self):
-        pass
+    def test_constructor_resize(self):
+        data = self.panel._data
+        items = self.panel.items[:-1]
+        major = self.panel.major_axis[:-1]
+        minor = self.panel.minor_axis[:-1]
+
+        result = Panel(data, items=items, major_axis=major,
+                       minor_axis=minor)
+        expected = self.panel.reindex(items=items, major=major, minor=minor)
+        assert_panel_equal(result, expected)
+
+        result = Panel(data, items=items, major_axis=major)
+        expected = self.panel.reindex(items=items, major=major)
+        assert_panel_equal(result, expected)
+
+        result = Panel(data, items=items)
+        expected = self.panel.reindex(items=items)
+        assert_panel_equal(result, expected)
+
+        result = Panel(data, minor_axis=minor)
+        expected = self.panel.reindex(minor=minor)
+        assert_panel_equal(result, expected)
+
+    def test_from_dict_mixed_orient(self):
+        df = tm.makeDataFrame()
+        df['foo'] = 'bar'
+
+        data = {'k1' : df,
+                'k2' : df}
+
+        panel = Panel.from_dict(data, orient='minor')
+
+        self.assert_(panel['foo'].values.dtype == np.object_)
+        self.assert_(panel['A'].values.dtype == np.float64)
 
     def test_values(self):
         self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
@@ -872,8 +964,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 class TestLongPanel(unittest.TestCase):
 
     def setUp(self):
-        panel = common.makePanel()
-        common.add_nans(panel)
+        panel = tm.makePanel()
+        tm.add_nans(panel)
 
         self.panel = panel.to_long()
         self.unfiltered_panel = panel.to_long(filter_observations=False)

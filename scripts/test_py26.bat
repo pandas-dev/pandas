@@ -1,4 +1,4 @@
-SET PATH=C:\MinGW\bin;C:\Python26;C:\Python26\Scripts;%PATH%
+SET PATH=C:\MinGW\bin;E:\Python26;E:\Python26\Scripts;%PATH%
 del pandas\_tseries.pyd
 del pandas\_sparse.pyd
 del pandas\src\tseries.c

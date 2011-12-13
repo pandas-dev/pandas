@@ -28,27 +28,3 @@ data = DataFrame({'A' : np.random.randn(500000),
                   'key2' : np.repeat(key2, 5)})
 
 # data.join(to_join, on=['key1', 'key2'])
-
-"""
-Cython function for list_to_object_array
-
-def list_to_object_array(list obj):
-    '''
-    Convert list to object ndarray. Seriously can't believe I had to write this
-    function
-    '''
-    cdef:
-        Py_ssize_t i, n
-        ndarray[object] arr
-
-    n = len(obj)
-    arr = np.empty(n, dtype=object)
-
-    for i from 0 <= i < n:
-        arr[i] = obj[i]
-
-    return arr
-"""
-
-
-

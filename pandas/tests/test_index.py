@@ -7,8 +7,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.index import (Index, Int64Index, Factor,
-                               MultiIndex)
+from pandas.core.index import Index, Int64Index, Factor, MultiIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 import pandas._tseries as tseries
@@ -61,6 +60,12 @@ class TestIndex(unittest.TestCase):
     def test_constructor_corner(self):
         # corner case
         self.assertRaises(Exception, Index, 0)
+
+    def test_astype(self):
+        casted = self.intIndex.astype('i8')
+
+        # it works!
+        casted.get_loc(5)
 
     def test_compat(self):
         self.strIndex.tolist()
@@ -224,10 +229,14 @@ class TestIndex(unittest.TestCase):
 
             self.assert_(isinstance(unpickled, Index))
             self.assert_(np.array_equal(unpickled, index))
+            self.assertEquals(unpickled.name, index.name)
 
             tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
         testit(self.strIndex)
+        self.strIndex.name = 'foo'
+        testit(self.strIndex)
+
         testit(self.dateIndex)
 
     # def test_always_get_null_index(self):
@@ -519,19 +528,29 @@ class TestInt64Index(unittest.TestCase):
         other = Index([3, 6, 7, 8, 10], dtype=object)
 
         outer = self.index.join(other, how='outer')
+        outer2 = other.join(self.index, how='outer')
         expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14,
                           16, 18], dtype=object)
+        self.assert_(outer.equals(outer2))
         self.assert_(outer.equals(expected))
 
         inner = self.index.join(other, how='inner')
+        inner2 = other.join(self.index, how='inner')
         expected = Index([6, 8, 10], dtype=object)
+        self.assert_(inner.equals(inner2))
         self.assert_(inner.equals(expected))
 
         left = self.index.join(other, how='left')
         self.assert_(left.equals(self.index))
 
+        left2 = other.join(self.index, how='left')
+        self.assert_(left2.equals(other))
+
         right = self.index.join(other, how='right')
         self.assert_(right.equals(other))
+
+        right2 = other.join(self.index, how='right')
+        self.assert_(right2.equals(self.index))
 
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
@@ -544,12 +563,17 @@ class TestInt64Index(unittest.TestCase):
                                                      other.values)))
         self.assert_(np.array_equal(result, expected))
 
-    def test_union(self):
-
+    def test_union_noncomparable(self):
+        from datetime import datetime, timedelta
         # corner case, non-Int64Index
-        other = Index([1, 2, 3, 4, 5])
+        now = datetime.now()
+        other = Index([now + timedelta(i) for i in xrange(4)])
         result = self.index.union(other)
-        expected = np.unique(np.concatenate((self.index, other)))
+        expected = np.concatenate((self.index, other))
+        self.assert_(np.array_equal(result, expected))
+
+        result = other.union(self.index)
+        expected = np.concatenate((other, self.index))
         self.assert_(np.array_equal(result, expected))
 
     def test_cant_or_shouldnt_cast(self):
@@ -572,6 +596,14 @@ class TestInt64Index(unittest.TestCase):
         index = Int64Index([1,2,3,4], name='foo')
         taken = index.take([3,0,1])
         self.assertEqual(index.name, taken.name)
+
+    def test_int_name_format(self):
+        from pandas import Series, DataFrame
+        index = Index(['a', 'b', 'c'], name=0)
+        s = Series(range(3), index)
+        df = DataFrame(range(3), index=index)
+        repr(s)
+        repr(df)
 
 class TestMultiIndex(unittest.TestCase):
 
@@ -628,6 +660,10 @@ class TestMultiIndex(unittest.TestCase):
     def test_get_level_values(self):
         result = self.index.get_level_values(0)
         expected = ['foo', 'foo', 'bar', 'baz', 'qux', 'qux']
+        self.assert_(np.array_equal(result, expected))
+
+        result = self.index.get_level_values('first')
+        expected = self.index.get_level_values(0)
         self.assert_(np.array_equal(result, expected))
 
     def test_nlevels(self):
@@ -688,6 +724,10 @@ class TestMultiIndex(unittest.TestCase):
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
         self.assertRaises(KeyError, index.get_loc, (1, 1))
         self.assert_(index.get_loc((2, 0)) == slice(3, 5))
+
+    def test_get_loc_duplicates(self):
+        index = Index([2, 2, 2, 2])
+        self.assertRaises(Exception, index.get_loc, 2)
 
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
@@ -1058,6 +1098,16 @@ class TestMultiIndex(unittest.TestCase):
         index = self.index[self.index.get_loc('foo')]
         dropped = index.droplevel(0)
         self.assertEqual(dropped.name, 'second')
+
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                           names=['one', 'two', 'three'])
+        dropped = index.droplevel(0)
+        self.assertEqual(dropped.names, ['two', 'three'])
 
     def test_insert(self):
         # key contained in all levels

@@ -24,6 +24,10 @@ def ols(**kwargs):
         See above for types
     x: Series, DataFrame, dict of Series, dict of DataFrame, Panel, or
         LongPanel
+    weights : Series or ndarray
+        The weights are presumed to be (proportional to) the inverse of the
+        variance of the observations.  That is, if the variables are to be
+        transformed by 1/sqrt(W) you must supply weights = 1/W
     intercept: bool
         True if you want an intercept.  Defaults to True.
     nw_lags: None or int
@@ -90,14 +94,14 @@ def ols(**kwargs):
 
     if window_type is None:
         if window is None:
-            window_type = common.FULL_SAMPLE
+            window_type = 'full_sample'
         else:
-            window_type = common.ROLLING
+            window_type = 'rolling'
     else:
         window_type = common._get_window_type(window_type)
 
-    if window_type != common.FULL_SAMPLE:
-        kwargs['window_type'] = common._get_window_type_name(window_type)
+    if window_type != 'full_sample':
+        kwargs['window_type'] = common._get_window_type(window_type)
 
     y = kwargs.get('y')
     x = kwargs.get('x')
@@ -109,7 +113,7 @@ def ols(**kwargs):
     if isinstance(x, (Panel, LongPanel)):
         panel = True
 
-    if window_type == common.FULL_SAMPLE:
+    if window_type == 'full_sample':
         for rolling_field in ('window_type', 'window', 'min_periods'):
             if rolling_field in kwargs:
                 del kwargs[rolling_field]

@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#!/usr/bin/env python
 
 """
 Parts of this file were taken from the pyzmq project
@@ -128,10 +128,11 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 5
+MINOR = 6
 MICRO = 1
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+QUALIFIER = ''
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -140,10 +141,17 @@ if not ISRELEASED:
         import subprocess
         pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
                                 stdout=subprocess.PIPE).stdout
-        rev = pipe.read().strip().decode('ascii')
+        rev = pipe.read().strip()
+
+        # makes distutils blow up on Python 2.7
+        if sys.version_info[0] >= 3:
+            rev = rev.decode('ascii')
+
         FULLVERSION += "-%s" % rev
     except:
         warnings.warn("WARNING: Couldn't get git revision")
+else:
+    FULLVERSION += QUALIFIER
 
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
@@ -275,7 +283,7 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'parsing']
+                   'generated', 'parsing', 'reduce', 'stats']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -283,18 +291,35 @@ if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
 else:
-    tseries_depends = None
+    tseries_depends = []
 
 tseries_ext = Extension('pandas._tseries',
-                        depends=tseries_depends,
+                        depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                         sources=[srcpath('tseries', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
-extensions = [tseries_ext,
-              sparse_ext]
+
+engines_ext = Extension('pandas._engines',
+                        depends=['pandas/src/numpy_helper.h'],
+                        sources=[srcpath('engines', suffix=suffix)],
+                        include_dirs=[np.get_include()])
+
+sandbox_ext = Extension('pandas._sandbox',
+                        sources=[srcpath('sandbox', suffix=suffix)],
+                        include_dirs=[np.get_include()])
+
+cppsandbox_ext = Extension('pandas._cppsandbox',
+                           language='c++',
+                           sources=[srcpath('cppsandbox', suffix=suffix)],
+                           include_dirs=[np.get_include()])
+
+extensions = [tseries_ext, engines_ext, sparse_ext]
+
+if not ISRELEASED:
+    extensions.extend([sandbox_ext])
 
 # if _have_setuptools:
 #     setuptools_args["test_suite"] = "nose.collector"
@@ -308,6 +333,8 @@ setup(name=DISTNAME,
                 'pandas.io',
                 'pandas.rpy',
                 'pandas.sandbox',
+                'pandas.sparse',
+                'pandas.sparse.tests',
                 'pandas.stats',
                 'pandas.util',
                 'pandas.tests',

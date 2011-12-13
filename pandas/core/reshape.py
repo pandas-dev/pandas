@@ -11,6 +11,7 @@ from pandas.core.series import Series
 from pandas.core.common import notnull
 from pandas.core.index import MultiIndex
 
+
 class ReshapeError(Exception):
     pass
 
@@ -85,12 +86,8 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = np.zeros(len(self.index), dtype=int)
-
-        for i in xrange(len(new_levels)):
-            stride = np.prod([len(x) for x in new_levels[i+1:]],
-                             dtype=int)
-            group_index += self.sorted_labels[i] * stride
+        group_index = get_group_index(self.sorted_labels,
+                                      [len(x) for x in new_levels])
 
         group_mask = np.zeros(self.full_shape[0], dtype=bool)
         group_mask.put(group_index, True)
@@ -117,26 +114,32 @@ class _Unstacker(object):
     def get_result(self):
         # TODO: find a better way than this masking business
 
-        values, mask = self.get_new_values()
+        values, value_mask = self.get_new_values()
         columns = self.get_new_columns()
         index = self.get_new_index()
 
         # filter out missing levels
-        values = values[:, mask]
-        columns = columns[mask]
+        if values.shape[1] > 0:
+            mask = value_mask.sum(0) > 0
+            values = values[:, mask]
+            columns = columns[mask]
 
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
+        return self._reshape_values(self.values)
+
+    def _reshape_values(self, values):
+        values = self.values
         # place the values
         length, width = self.full_shape
-        stride = self.values.shape[1]
+        stride = values.shape[1]
         result_width = width * stride
 
-        new_values = np.empty((length, result_width), dtype=self.values.dtype)
+        new_values = np.empty((length, result_width), dtype=values.dtype)
         new_mask = np.zeros((length, result_width), dtype=bool)
 
-        if issubclass(self.values.dtype.type, np.integer):
+        if issubclass(values.dtype.type, np.integer):
             new_values = new_values.astype(float)
 
         new_values.fill(np.nan)
@@ -150,7 +153,7 @@ class _Unstacker(object):
             mask_chunk.flat[self.mask] = True
 
         new_values = new_values.take(self.unique_groups, axis=0)
-        return new_values, new_mask.sum(0) > 0
+        return new_values, new_mask
 
     def get_new_columns(self):
         if self.value_columns is None:
@@ -193,6 +196,13 @@ class _Unstacker(object):
                                    names=self.new_index_names)
 
         return new_index
+
+def get_group_index(label_list, shape):
+    group_index = np.zeros(len(label_list[0]), dtype=int)
+    for i in xrange(len(shape)):
+        stride = np.prod([x for x in shape[i+1:]], dtype=int)
+        group_index += label_list[i] * stride
+    return group_index
 
 def pivot(self, index=None, columns=None, values=None):
     """
@@ -276,6 +286,46 @@ def _slow_pivot(index, columns, values):
         branch[idx] = values[i]
 
     return DataFrame(tree)
+
+def unstack(obj, level):
+    if isinstance(obj, DataFrame):
+        return _unstack_frame(obj, level)
+    else:
+        unstacker = _Unstacker(obj.values, obj.index, level=level)
+        return unstacker.get_result()
+
+def _unstack_frame(obj, level):
+    from pandas.core.internals import BlockManager, make_block
+
+    if obj._is_mixed_type:
+        unstacker = _Unstacker(np.empty(obj.shape, dtype=bool), # dummy
+                               obj.index, level=level,
+                               value_columns=obj.columns)
+        new_columns = unstacker.get_new_columns()
+        new_index = unstacker.get_new_index()
+        new_axes = [new_columns, new_index]
+
+        new_blocks = []
+        mask_blocks = []
+        for blk in obj._data.blocks:
+            bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
+                                    value_columns=blk.items)
+            new_items = bunstacker.get_new_columns()
+            new_values, mask = bunstacker.get_new_values()
+
+            mblk = make_block(mask.T, new_items, new_columns)
+            mask_blocks.append(mblk)
+
+            newb = make_block(new_values.T, new_items, new_columns)
+            new_blocks.append(newb)
+
+        result = DataFrame(BlockManager(new_blocks, new_axes))
+        mask_frame = DataFrame(BlockManager(mask_blocks, new_axes))
+        return result.ix[:, mask_frame.sum(0) > 0]
+    else:
+        unstacker = _Unstacker(obj.values, obj.index, level=level,
+                               value_columns=obj.columns)
+        return unstacker.get_result()
 
 def stack(frame, level=-1, dropna=True):
     """
@@ -411,7 +461,7 @@ def melt(frame, id_vars=None, value_vars=None):
     b 3 4
     c 5 6
 
-    >>> melt(df, ['A'])
+    >>> melt(df, id_vars=['A'])
     A variable value
     a B        1
     b B        3
@@ -427,15 +477,15 @@ def melt(frame, id_vars=None, value_vars=None):
     mdata = {}
 
     if id_vars is not None:
-        idvars = list(idvars)
+        id_vars = list(id_vars)
         frame = frame.copy()
-        K -= len(idvars)
-        for col in idvars:
+        K -= len(id_vars)
+        for col in id_vars:
             mdata[col] = np.tile(frame.pop(col).values, K)
     else:
-        idvars = []
+        id_vars = []
 
-    mcolumns = idvars + ['variable', 'value']
+    mcolumns = id_vars + ['variable', 'value']
 
     mdata['value'] = frame.values.ravel('F')
     mdata['variable'] = np.asarray(frame.columns).repeat(N)

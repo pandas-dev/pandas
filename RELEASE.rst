@@ -22,18 +22,213 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
-pandas 0.5.1
+pandas 0.6.1
 ============
 
-**Release date:** Not yet released
+**Release date:** 12/13/2011
+
+**API Changes**
+
+  - Rename `names` argument in DataFrame.from_records to `columns`. Add
+    deprecation warning
+  - Boolean get/set operations on Series with boolean Series will reindex
+    instead of requiring that the indexes be exactly equal (GH #429)
+
+**New features / modules**
+
+  - Can pass Series to DataFrame.append with ignore_index=True for appending a
+    single row (GH #430)
+  - Add Spearman and Kendall correlation options to Series.corr and
+    DataFrame.corr (GH #428)
+  - Add new `get_value` and `set_value` methods to Series, DataFrame, and Panel
+    to very low-overhead access to scalar elements. df.get_value(row, column)
+    is about 3x faster than df[column][row] by handling fewer cases (GH #437,
+    #438). Add similar methods to sparse data structures for compatibility
+  - Add Qt table widget to sandbox (PR #435)
+  - DataFrame.align can accept Series arguments, add axis keyword (GH #461)
+  - Implement new SparseList and SparseArray data structures. SparseSeries now
+    derives from SparseArray (GH #463)
+  - max_columns / max_rows options in set_printoptions (PR #453)
+  - Implement Series.rank and DataFrame.rank, fast versions of
+    scipy.stats.rankdata (GH #428)
+  - Implement DataFrame.from_items alternate constructor (GH #444)
+  - DataFrame.convert_objects method for inferring better dtypes for object
+    columns (GH #302)
+  - Add rolling_corr_pairwise function for computing Panel of correlation
+    matrices (GH #189)
+  - Add `margins` option to `pivot_table` for computing subgroup aggregates (GH
+    #114)
+  - Add `Series.from_csv` function (PR #482)
+
+**Improvements to existing features**
+
+  - Improve memory usage of `DataFrame.describe` (do not copy data
+    unnecessarily) (PR #425)
+  - Use same formatting function for outputting floating point Series to console
+    as in DataFrame (PR #420)
+  - DataFrame.delevel will try to infer better dtype for new columns (GH #440)
+  - Exclude non-numeric types in DataFrame.{corr, cov}
+  - Override Index.astype to enable dtype casting (GH #412)
+  - Use same float formatting function for Series.__repr__ (PR #420)
+  - Use available console width to output DataFrame columns (PR #453)
+  - Accept ndarrays when setting items in Panel (GH #452)
+  - Infer console width when printing __repr__ of DataFrame to console (PR
+    #453)
+  - Optimize scalar value lookups in the general case by 25% or more in Series
+    and DataFrame
+  - Can pass DataFrame/DataFrame and DataFrame/Series to
+    rolling_corr/rolling_cov (GH #462)
+  - Fix performance regression in cross-sectional count in DataFrame, affecting
+    DataFrame.dropna speed
+  - Column deletion in DataFrame copies no data (computes views on blocks) (GH
+    #158)
+  - MultiIndex.get_level_values can take the level name
+  - More helpful error message when DataFrame.plot fails on one of the columns
+    (GH #478)
+
+**Bug fixes**
+
+  - Fix O(K^2) memory leak caused by inserting many columns without
+    consolidating, had been present since 0.4.0 (GH #467)
+  - `DataFrame.count` should return Series with zero instead of NA with length-0
+    axis (GH #423)
+  - Fix Yahoo! Finance API usage in pandas.io.data (GH #419, PR #427)
+  - Fix upstream bug causing failure in Series.align with empty Series (GH #434)
+  - Function passed to DataFrame.apply can return a list, as long as it's the
+    right length. Regression from 0.4 (GH #432)
+  - Don't "accidentally" upcast scalar values when indexing using .ix (GH #431)
+  - Fix groupby exception raised with as_index=False and single column selected
+    (GH #421)
+  - Implement DateOffset.__ne__ causing downstream bug (GH #456)
+  - Fix __doc__-related issue when converting py -> pyo with py2exe
+  - Bug fix in left join Cython code with duplicate monotonic labels
+  - Fix bug when unstacking multiple levels described in #451
+  - Exclude NA values in dtype=object arrays, regression from 0.5.0 (GH #469)
+  - Use Cython map_infer function in DataFrame.applymap to properly infer
+    output type, handle tuple return values and other things that were breaking
+    (GH #465)
+  - Handle floating point index values in HDFStore (GH #454)
+  - Fixed stale column reference bug (cached Series object) caused by type
+    change / item deletion in DataFrame (GH #473)
+  - Index.get_loc should always raise Exception when there are duplicates
+  - Handle differently-indexed Series input to DataFrame constructor (GH #475)
+  - Omit nuisance columns in multi-groupby with Python function
+  - Buglet in handling of single grouping in general apply
+  - Handle type inference properly when passing list of lists or tuples to
+    DataFrame constructor (GH #484)
+  - Preserve Index / MultiIndex names in GroupBy.apply concatenation step (GH
+    #481)
+
+Thanks
+------
+- Ralph Bean
+- Luca Beltrame
+- Marius Cobzarenco
+- Andreas Hilboll
+- Jev Kuznetsov
+- Adam Lichtenstein
+- Wouter Overmeire
+- Fernando Perez
+- Nathan Pinger
+- Christian Prinoth
+- Alex Reyfman
+- Joon Ro
+- Chang She
+- Ted Square
+- Chris Uga
+- Dieter Vandenbussche
+
+pandas 0.6.0
+============
+
+**Release date:** 11/25/2011
+
+**API Changes**
+
+  - Arithmetic methods like `sum` will attempt to sum dtype=object values by
+    default instead of excluding them (GH #382)
 
 **New features / modules**
 
   - Add `melt` function to `pandas.core.reshape`
+  - Add `level` parameter to group by level in Series and DataFrame
+    descriptive statistics (PR #313)
+  - Add `head` and `tail` methods to Series, analogous to to DataFrame (PR
+    #296)
+  - Add `Series.isin` function which checks if each value is contained in a
+    passed sequence (GH #289)
+  - Add `float_format` option to `Series.to_string`
+  - Add `skip_footer` (GH #291) and `converters` (GH #343) options to
+    `read_csv` and `read_table`
+  - Add proper, tested weighted least squares to standard and panel OLS (GH
+    #303)
+  - Add `drop_duplicates` and `duplicated` functions for removing duplicate
+    DataFrame rows and checking for duplicate rows, respectively (GH #319)
+  - Implement logical (boolean) operators &, |, ^ on DataFrame (GH #347)
+  - Add `Series.mad`, mean absolute deviation, matching DataFrame
+  - Add `QuarterEnd` DateOffset (PR #321)
+  - Add matrix multiplication function `dot` to DataFrame (GH #65)
+  - Add `orient` option to `Panel.from_dict` to ease creation of mixed-type
+    Panels (GH #359, #301)
+  - Add `DataFrame.from_dict` with similar `orient` option
+  - Can now pass list of tuples or list of lists to `DataFrame.from_records`
+    for fast conversion to DataFrame (GH #357)
+  - Can pass multiple levels to groupby, e.g. `df.groupby(level=[0, 1])` (GH
+    #103)
+  - Can sort by multiple columns in `DataFrame.sort_index` (GH #92, PR #362)
+  - Add fast `get_value` and `put_value` methods to DataFrame and
+    micro-performance tweaks (GH #360)
+  - Add `cov` instance methods to Series and DataFrame (GH #194, PR #362)
+  - Add bar plot option to `DataFrame.plot` (PR #348)
+  - Add `idxmin` and `idxmax` functions to Series and DataFrame for computing
+    index labels achieving maximum and minimum values (PR #286)
+  - Add `read_clipboard` function for parsing DataFrame from OS clipboard,
+    should work across platforms (GH #300)
+  - Add `nunique` function to Series for counting unique elements (GH #297)
+  - DataFrame constructor will use Series name if no columns passed (GH #373)
+  - Support regular expressions and longer delimiters in read_table/read_csv,
+    but does not handle quoted strings yet (GH #364)
+  - Add `DataFrame.to_html` for formatting DataFrame to HTML (PR #387)
+  - MaskedArray can be passed to DataFrame constructor and masked values will be
+    converted to NaN (PR #396)
+  - Add `DataFrame.boxplot` function (GH #368, others)
+  - Can pass extra args, kwds to DataFrame.apply (GH #376)
 
 **Improvements to existing features**
 
-  - Sped up `DataFrame.apply` performance in most cases
+  - Raise more helpful exception if date parsing fails in DateRange (GH #298)
+  - Vastly improved performance of GroupBy on axes with a MultiIndex (GH #299)
+  - Print level names in hierarchical index in Series repr (GH #305)
+  - Return DataFrame when performing GroupBy on selected column and
+    as_index=False (GH #308)
+  - Can pass vector to `on` argument in `DataFrame.join` (GH #312)
+  - Don't show Series name if it's None in the repr, also omit length for short
+    Series (GH #317)
+  - Show legend by default in `DataFrame.plot`, add `legend` boolean flag (GH
+    #324)
+  - Significantly improved performance of `Series.order`, which also makes
+    np.unique called on a Series faster (GH #327)
+  - Faster cythonized count by level in Series and DataFrame (GH #341)
+  - Raise exception if dateutil 2.0 installed on Python 2.x runtime (GH #346)
+  - Significant GroupBy performance enhancement with multiple keys with many
+    "empty" combinations
+  - New Cython vectorized function `map_infer` speeds up `Series.apply` and
+    `Series.map` significantly when passed elementwise Python function,
+    motivated by PR #355
+  - Cythonized `cache_readonly`, resulting in substantial micro-performance
+    enhancements throughout the codebase (GH #361)
+  - Special Cython matrix iterator for applying arbitrary reduction operations
+    with 3-5x better performance than `np.apply_along_axis` (GH #309)
+  - Add `raw` option to `DataFrame.apply` for getting better performance when
+    the passed function only requires an ndarray (GH #309)
+  - Improve performance of `MultiIndex.from_tuples`
+  - Can pass multiple levels to `stack` and `unstack` (GH #370)
+  - Can pass multiple values columns to `pivot_table` (GH #381)
+  - Can call `DataFrame.delevel` with standard Index with name set (GH #393)
+  - Use Series name in GroupBy for result index (GH #363)
+  - Refactor Series/DataFrame stat methods to use common set of NaN-friendly
+    function
+  - Handle NumPy scalar integers at C level in Cython conversion routines
 
 **Bug fixes**
 
@@ -41,11 +236,74 @@ pandas 0.5.1
     name (GH #290)
   - DataFrame should clear its Series caches on consolidation, was causing
     "stale" Series to be returned in some corner cases (GH #304)
+  - DataFrame constructor failed if a column had a list of tuples (GH #293)
+  - Ensure that `Series.apply` always returns a Series and implement
+    `Series.round` (GH #314)
+  - Support boolean columns in Cythonized groupby functions (GH #315)
+  - `DataFrame.describe` should not fail if there are no numeric columns,
+    instead return categorical describe (GH #323)
+  - Fixed bug which could cause columns to be printed in wrong order in
+    `DataFrame.to_string` if specific list of columns passed (GH #325)
+  - Fix legend plotting failure if DataFrame columns are integers (GH #326)
+  - Shift start date back by one month for Yahoo! Finance API in pandas.io.data
+    (GH #329)
+  - Fix `DataFrame.join` failure on unconsolidated inputs (GH #331)
+  - DataFrame.min/max will no longer fail on mixed-type DataFrame (GH #337)
+  - Fix `read_csv` / `read_table` failure when passing list to index_col that is
+    not in ascending order (GH #349)
+  - Fix failure passing Int64Index to Index.union when both are monotonic
+  - Fix error when passing SparseSeries to (dense) DataFrame constructor
+  - Added missing bang at top of setup.py (GH #352)
+  - Change `is_monotonic` on MultiIndex so it properly compares the tuples
+  - Fix MultiIndex outer join logic (GH #351)
+  - Set index name attribute with single-key groupby (GH #358)
+  - Bug fix in reflexive binary addition in Series and DataFrame for
+    non-commutative operations (like string concatenation) (GH #353)
+  - setupegg.py will invoke Cython (GH #192)
+  - Fix block consolidation bug after inserting column into MultiIndex (GH #366)
+  - Fix bug in join operations between Index and Int64Index (GH #367)
+  - Handle min_periods=0 case in moving window functions (GH #365)
+  - Fixed corner cases in DataFrame.apply/pivot with empty DataFrame (GH #378)
+  - Fixed repr exception when Series name is a tuple
+  - Always return DateRange from `asfreq` (GH #390)
+  - Pass level names to `swaplavel` (GH #379)
+  - Don't lose index names in `MultiIndex.droplevel` (GH #394)
+  - Infer more proper return type in `DataFrame.apply` when no columns or rows
+    depending on whether the passed function is a reduction (GH #389)
+  - Always return NA/NaN from Series.min/max and DataFrame.min/max when all of a
+    row/column/values are NA (GH #384)
+  - Enable partial setting with .ix / advanced indexing (GH #397)
+  - Handle mixed-type DataFrames correctly in unstack, do not lose type
+    information (GH #403)
+  - Fix integer name formatting bug in Index.format and in Series.__repr__
+  - Handle label types other than string passed to groupby (GH #405)
+  - Fix bug in .ix-based indexing with partial retrieval when a label is not
+    contained in a level
+  - Index name was not being pickled (GH #408)
+  - Level name should be passed to result index in GroupBy.apply (GH #416)
 
 Thanks
 ------
 
+- Craig Austin
+- Marius Cobzarenco
+- Joel Cross
+- Jeff Hammerbacher
+- Adam Klein
+- Thomas Kluyver
+- Jev Kuznetsov
 - Kieran O'Mahony
+- Wouter Overmeire
+- Nathan Pinger
+- Christian Prinoth
+- Skipper Seabold
+- Chang She
+- Ted Square
+- Aman Thakral
+- Chris Uga
+- Dieter Vandenbussche
+- carljv
+- rsamson
 
 pandas 0.5.0
 ============
@@ -454,8 +712,8 @@ Thanks
 - Dan Lovell
 - Nick Pentreath
 
-pandas 0.4
-==========
+pandas 0.4.0
+============
 
 Release notes
 -------------
@@ -586,7 +844,7 @@ Release notes
     `DataFrame.count` to enable this behavior in those methods if so desired
     (disabled by default)
   * `DataFrame.pivot` generalized to enable pivoting multiple columns into a
-    `DataFrame` with hierarhical columns
+    `DataFrame` with hierarchical columns
   * `DataFrame` constructor can accept structured / record arrays
   * `Panel` constructor can accept a dict of DataFrame-like objects. Do not
     need to use `from_dict` anymore (`from_dict` is there to stay, though).

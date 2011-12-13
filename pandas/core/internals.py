@@ -160,6 +160,40 @@ class Block(object):
         new_values = np.delete(self.values, loc, 0)
         return make_block(new_values, new_items, self.ref_items)
 
+    def split_block_at(self, item):
+        """
+        Split block around given column, for "deleting" a column without
+        having to copy data by returning views on the original array
+
+        Returns
+        -------
+        leftb, rightb : (Block or None, Block or None)
+        """
+        loc = self.items.get_loc(item)
+
+        if len(self.items) == 1:
+            # no blocks left
+            return None, None
+
+        if loc == 0:
+            # at front
+            left_block = None
+            right_block = make_block(self.values[1:], self.items[1:].copy(),
+                                      self.ref_items)
+        elif loc == len(self.values) - 1:
+            # at back
+            left_block = make_block(self.values[:-1], self.items[:-1].copy(),
+                                    self.ref_items)
+            right_block = None
+        else:
+            # in the middle
+            left_block = make_block(self.values[:loc],
+                                    self.items[:loc].copy(), self.ref_items)
+            right_block = make_block(self.values[loc + 1:],
+                                     self.items[loc + 1:].copy(), self.ref_items)
+
+        return left_block, right_block
+
     def fillna(self, value):
         new_values = self.values.copy()
         mask = common.isnull(new_values.ravel())
@@ -315,8 +349,7 @@ class BlockManager(object):
         return tuple(len(ax) for ax in self.axes)
 
     def _verify_integrity(self):
-        union_items = _union_block_items(self.blocks)
-
+        _union_block_items(self.blocks)
         mgr_shape = self.shape
         for block in self.blocks:
             assert(block.values.shape[1:] == mgr_shape[1:])
@@ -520,6 +553,19 @@ class BlockManager(object):
         _, block = self._find_block(item)
         return block.get(item)
 
+    def get_scalar(self, tup):
+        """
+        Retrieve single item
+        """
+        item = tup[0]
+        _, blk = self._find_block(item)
+
+        # this could obviously be seriously sped up in cython
+        item_loc = blk.items.get_loc(item),
+        full_loc = item_loc + tuple(ax.get_loc(x)
+                                    for ax, x in zip(self.axes[1:], tup[1:]))
+        return blk.values[full_loc]
+
     def delete(self, item):
         i, _ = self._find_block(item)
         loc = self.items.get_loc(item)
@@ -561,20 +607,22 @@ class BlockManager(object):
         """
         Delete and maybe remove the whole block
         """
-        block = self.blocks[i]
-        newb = block.delete(item)
+        block = self.blocks.pop(i)
+        new_left, new_right = block.split_block_at(item)
 
-        if len(newb.ref_locs) == 0:
-            self.blocks.pop(i)
-        else:
-            self.blocks[i] = newb
+        if new_left is not None:
+            self.blocks.append(new_left)
+
+        if new_right is not None:
+            self.blocks.append(new_right)
 
     def _add_new_block(self, item, value):
         # Do we care about dtype at the moment?
 
         # hm, elaborate hack?
         loc = self.items.get_loc(item)
-        new_block = make_block(value, self.items[loc:loc+1], self.items)
+        new_block = make_block(value, self.items[loc:loc+1].copy(),
+                               self.items)
         self.blocks.append(new_block)
 
     def _find_block(self, item):
@@ -878,8 +926,18 @@ def _simple_blockify(dct, ref_items, dtype):
     return make_block(values, block_items, ref_items, do_integrity_check=True)
 
 def _stack_dict(dct, ref_items):
+    from pandas.core.series import Series
+
+    # fml
+    def _asarray_compat(x):
+        # asarray shouldn't be called on SparseSeries
+        if isinstance(x, Series):
+            return x.values
+        else:
+            return np.asarray(x)
+
     items = [x for x in ref_items if x in dct]
-    stacked = np.vstack([np.asarray(dct[k]) for k in items])
+    stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):
@@ -893,23 +951,15 @@ def _blocks_to_series_dict(blocks, index=None):
     return series_dict
 
 def _interleaved_dtype(blocks):
-    have_int = False
-    have_bool = False
-    have_object = False
-    have_float = False
+    from collections import defaultdict
+    counts = defaultdict(lambda: 0)
+    for x in blocks:
+        counts[type(x)] += 1
 
-    for block in blocks:
-        if isinstance(block, FloatBlock):
-            have_float = True
-        elif isinstance(block, IntBlock):
-            have_int = True
-        elif isinstance(block, BoolBlock):
-            have_bool = True
-        elif isinstance(block, ObjectBlock):
-            have_object = True
-        else: # pragma: no cover
-            raise Exception('Unrecognized block type')
-
+    have_int = counts[IntBlock] > 0
+    have_bool = counts[BoolBlock] > 0
+    have_object = counts[ObjectBlock] > 0
+    have_float = counts[FloatBlock] > 0
     have_numeric = have_float or have_int
 
     if have_object:
@@ -946,7 +996,7 @@ def _merge_blocks(blocks, items):
     if len(blocks) == 1:
         return blocks[0]
     new_values = np.vstack([b.values for b in blocks])
-    new_items = np.concatenate([b.items for b in blocks])
+    new_items = blocks[0].items.append([b.items for b in blocks[1:]])
     new_block = make_block(new_values, new_items, items,
                            do_integrity_check=True)
     return new_block.reindex_items_from(items)
@@ -989,13 +1039,15 @@ class _JoinOperation(object):
     BlockManager data structures
     """
     def __init__(self, left, right, axis=1, how='left'):
+        if not left.is_consolidated():
+            left = left.consolidate()
+        if not right.is_consolidated():
+            right = right.consolidate()
+
         self.left = left
         self.right = right
         self.axis = axis
         self.how = how
-
-        assert(left.is_consolidated())
-        assert(right.is_consolidated())
 
         laxis = left.axes[axis]
         raxis = right.axes[axis]

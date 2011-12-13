@@ -1,12 +1,13 @@
 *.pyc
+*.pyo
 *.swp
 build
 dist
 MANIFEST
+*.c
+*.cpp
 *.so
 *.pyd
-pandas/src/tseries.c
-pandas/src/sparse.c
 pandas/version.py
 doc/source/generated
 doc/source/_static

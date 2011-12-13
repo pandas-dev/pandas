@@ -1,8 +1,9 @@
+# pylint: disable=W0231
+
 import numpy as np
-import cPickle
 
 from pandas.core.common import save, load
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import _ensure_index
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------
@@ -30,8 +31,7 @@ class AxisProperty(object):
         return data.axes[self.axis]
 
     def __set__(self, obj, value):
-        data = getattr(obj, '_data')
-        data.set_axis(self.axis, value)
+        obj._set_axis(self.axis, value)
 
 class PandasObject(Picklable):
 
@@ -86,9 +86,9 @@ class PandasObject(Picklable):
             If a dict or Series is passed, the Series or dict VALUES will be
             used to determine the groups
         axis : int, default 0
-        level : int, default None
+        level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
-            level
+            level or levels
         as_index : boolean, default True
             For aggregated output, return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
@@ -224,8 +224,15 @@ class NDFrame(PandasObject):
     def __init__(self, data, axes=None, copy=False, dtype=None):
         if dtype is not None:
             data = data.astype(dtype)
+        elif copy:
+            data = data.copy()
+
+        if axes is not None:
+            for i, ax in enumerate(axes):
+                data = data.reindex_axis(ax, axis=i)
 
         self._data = data
+        self._item_cache = {}
 
     def astype(self, dtype):
         """
@@ -260,26 +267,96 @@ class NDFrame(PandasObject):
     def ndim(self):
         return self._data.ndim
 
+    def _set_axis(self, axis, labels):
+        self._data.set_axis(axis, labels)
+        self._clear_item_cache()
+
+    def __getitem__(self, item):
+        return self._get_item_cache(item)
+
+    def _get_item_cache(self, item):
+        cache = self._item_cache
+        try:
+            return cache[item]
+        except Exception:
+            values = self._data.get(item)
+            res = self._box_item_values(item, values)
+            cache[item] = res
+            return res
+
+    def _box_item_values(self, key, values):
+        raise NotImplementedError
+
+    def _clear_item_cache(self):
+        self._item_cache.clear()
+
+    def _set_item(self, key, value):
+        self._data.set(key, value)
+
+        try:
+            del self._item_cache[key]
+        except KeyError:
+            pass
+
+    def __delitem__(self, key):
+        """
+        Delete item
+        """
+        self._data.delete(key)
+
+        try:
+            del self._item_cache[key]
+        except KeyError:
+            pass
+
+    def pop(self, item):
+        """
+        Return item and drop from frame. Raise KeyError if not found.
+        """
+        result = self[item]
+        del self[item]
+        return result
+
+    def _expand_axes(self, key):
+        new_axes = []
+        for k, ax in zip(key, self.axes):
+            if k not in ax:
+                new_axes.append(np.concatenate([ax, [k]]))
+            else:
+                new_axes.append(ax)
+
+        return new_axes
+
     #----------------------------------------------------------------------
     # Consolidation of internals
 
     def _consolidate_inplace(self):
+        self._clear_item_cache()
         self._data = self._data.consolidate()
 
-    def consolidate(self):
+    def consolidate(self, inplace=False):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
         grouped together in a single ndarray). Mainly an internal API function,
         but available here to the savvy user
 
+        Parameters
+        ----------
+        inplace : boolean, default False
+            If False return new object, otherwise modify existing object
+
         Returns
         -------
         consolidated : type of caller
         """
-        cons_data = self._data.consolidate()
-        if cons_data is self._data:
-            cons_data = cons_data.copy()
-        return self._constructor(cons_data)
+        if inplace:
+            self._consolidate_inplace()
+            return self
+        else:
+            cons_data = self._data.consolidate()
+            if cons_data is self._data:
+                cons_data = cons_data.copy()
+            return self._constructor(cons_data)
 
     @property
     def _is_mixed_type(self):

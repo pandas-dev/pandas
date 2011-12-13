@@ -1,10 +1,18 @@
 """A collection of random tools for dealing with dates in Python"""
 
 from datetime import datetime, timedelta
+import sys
 
 try:
+    import dateutil
     from dateutil import parser
     from dateutil.relativedelta import relativedelta
+
+    # raise exception if dateutil 2.0 install on 2.x platform
+    if (sys.version_info[0] == 2 and
+        dateutil.__version__ == '2.0'):  # pragma: no cover
+        raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
+                        'install version 1.5!')
 except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
 
@@ -151,6 +159,9 @@ class DateOffset(object):
     def __eq__(self, other):
         return self._params() == other._params()
 
+    def __ne__(self, other):
+        return not self == other
+
     def __hash__(self):
         return hash(self._params())
 
@@ -283,8 +294,8 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     def apply(self, other):
         n = self.n
-        _, nDaysInMonth = calendar.monthrange(other.year, other.month)
-        if other.day != nDaysInMonth:
+        _, days_in_month = calendar.monthrange(other.year, other.month)
+        if other.day != days_in_month:
             other = other + relativedelta(months=-1, day=31)
             if n <= 0:
                 n = n + 1
@@ -293,9 +304,9 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     @classmethod
     def onOffset(cls, someDate):
-        __junk, nDaysInMonth = calendar.monthrange(someDate.year,
+        __junk, days_in_month = calendar.monthrange(someDate.year,
                                                    someDate.month)
-        return someDate.day == nDaysInMonth
+        return someDate.day == days_in_month
 
 class BMonthEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
@@ -308,8 +319,8 @@ class BMonthEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
-        lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
@@ -468,8 +479,8 @@ class BQuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, nDaysInMonth = calendar.monthrange(other.year, other.month)
-        lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -491,6 +502,49 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         modMonth = (someDate.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(someDate) and modMonth == 0
 
+class QuarterEnd(DateOffset, CacheableOffset):
+    """DateOffset increments between business Quarter dates
+    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
+    """
+    _outputName = 'QuarterEnd'
+    _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.n = n
+        self.startingMonth = kwds.get('startingMonth', 3)
+
+        if self.startingMonth < 1 or self.startingMonth > 3:
+            raise Exception('Start month must be 1<=day<=3, got %d'
+                            % self.startingMonth)
+
+        self.offset = MonthEnd(3)
+        self.kwds = kwds
+
+    def isAnchored(self):
+        return (self.n == 1 and self.startingMonth is not None)
+
+    def apply(self, other):
+        n = self.n
+
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+
+        monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
+        if monthsToGo == 3:
+            monthsToGo = 0
+
+        if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
+            n = n - 1
+
+        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
+
+        return other
+
+    def onOffset(self, someDate):
+        modMonth = (someDate.month - self.startingMonth) % 3
+        return MonthEnd().onOffset(someDate) and modMonth == 0
+
 class BYearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessYearEnd'
@@ -510,8 +564,9 @@ class BYearEnd(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, nDaysInMonth = calendar.monthrange(other.year, self.month)
-        lastBDay = nDaysInMonth - max(((wkday + nDaysInMonth - 1) % 7) - 4, 0)
+        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+        lastBDay = (days_in_month -
+                    max(((wkday + days_in_month - 1) % 7) - 4, 0))
 
         years = n
         if n > 0:
@@ -607,8 +662,10 @@ yearBegin = YearBegin()
 bmonthEnd = BMonthEnd()
 businessMonthEnd = bmonthEnd
 bquarterEnd = BQuarterEnd()
+quarterEnd = QuarterEnd()
 byearEnd = BYearEnd()
 week = Week()
+
 
 # Functions/offsets to roll dates forward
 thisMonthEnd = MonthEnd(0)
@@ -616,6 +673,7 @@ thisBMonthEnd = BMonthEnd(0)
 thisYearEnd = YearEnd(0)
 thisYearBegin = YearBegin(0)
 thisBQuarterEnd = BQuarterEnd(0)
+thisQuarterEnd = QuarterEnd(0)
 
 # Functions to check where a date lies
 isBusinessDay = BDay().onOffset

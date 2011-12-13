@@ -1,8 +1,8 @@
-from pandas import DataFrame
+from pandas import Series, DataFrame
 import numpy as np
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
-                fill_value=None):
+                fill_value=None, margins=False):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
@@ -19,6 +19,8 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     aggfunc : function, default numpy.mean
     fill_value : scalar, default None
         Value to replace missing values with
+    margins : boolean, default False
+        Add all row / columns (e.g. for subtotal / grand totals)
 
     Examples
     --------
@@ -51,10 +53,21 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     cols = _convert_by(cols)
 
     keys = rows + cols
-    grouped = data.groupby(keys)
 
-    if values is not None:
-        grouped = grouped[values]
+    values_passed = values is not None
+    if values_passed:
+        if isinstance(values, (list, tuple)):
+            values_multi = True
+        else:
+            values_multi = False
+            values = [values]
+    else:
+        values = list(data.columns.drop(keys))
+
+    if values_passed:
+        data = data[keys + values]
+
+    grouped = data.groupby(keys)
 
     agged = grouped.agg(aggfunc)
 
@@ -65,7 +78,76 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     if fill_value is not None:
         table = table.fillna(value=fill_value)
 
+    if margins:
+        table = _add_margins(table, data, values, rows=rows,
+                             cols=cols, aggfunc=aggfunc)
+
+    # discard the top level
+    if values_passed and not values_multi:
+        table = table[values[0]]
+
     return table
+
+DataFrame.pivot_table = pivot_table
+
+def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
+    if len(cols) > 0:
+        col_margin = data[rows + values].groupby(rows).agg(aggfunc)
+
+        # need to "interleave" the margins
+
+        table_pieces = []
+        margin_keys = []
+
+        if len(cols) > 0:
+            grouper = table.groupby(level=0, axis=1)
+        else:
+            grouper = ((k, table[[k]]) for k in table.columns)
+
+        for key, piece in grouper:
+            all_key = (key, 'All') + ('',) * (len(cols) - 1)
+            piece[all_key] = col_margin[key]
+            table_pieces.append(piece)
+            margin_keys.append(all_key)
+
+        result = table_pieces[0]
+        for piece in table_pieces[1:]:
+            result = result.join(piece)
+    else:
+        result = table
+        margin_keys = table.columns
+
+    grand_margin = {}
+    for k, v in data[values].iteritems():
+        try:
+            grand_margin[k] = aggfunc(v)
+        except TypeError:
+            pass
+
+    if len(cols) > 0:
+        row_margin = data[cols + values].groupby(cols).agg(aggfunc)
+        row_margin = row_margin.stack()
+
+        # slight hack
+        new_order = [len(cols)] + range(len(cols))
+        row_margin.index = row_margin.index.reorder_levels(new_order)
+    else:
+        row_margin = Series(np.nan, index=result.columns)
+
+    key = ('All',) + ('',) * (len(rows) - 1)
+
+    row_margin = row_margin.reindex(result.columns)
+    # populate grand margin
+    for k in margin_keys:
+        if len(cols) > 0:
+            row_margin[k] = grand_margin[k[0]]
+        else:
+            row_margin[k] = grand_margin[k]
+
+    margin_dummy = DataFrame(row_margin, columns=[key]).T
+    result = result.append(margin_dummy)
+
+    return result
 
 def _convert_by(by):
     if by is None:
@@ -75,30 +157,4 @@ def _convert_by(by):
     else:
         by = list(by)
     return by
-
-def pprint_table(table):
-    pass
-
-if __name__ == '__main__':
-    def _sample(values, n):
-        indexer = np.random.randint(0, len(values), n)
-        return np.asarray(values).take(indexer)
-
-    levels = [['a', 'b', 'c', 'd'],
-              ['foo', 'bar', 'baz'],
-              ['one', 'two'],
-              ['US', 'JP', 'UK']]
-    names = ['k1', 'k2', 'k3', 'k4']
-
-    n = 100000
-
-    data = {}
-    for name, level in zip(names, levels):
-        data[name] = _sample(level, n)
-
-    data['values'] = np.random.randn(n)
-    data = DataFrame(data)
-
-    table = pivot_table(data, values='values',
-                        rows=['k1', 'k2'], cols=['k3', 'k4'])
 

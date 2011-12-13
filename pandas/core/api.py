@@ -13,7 +13,6 @@ from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel, LongPanel
 from pandas.core.groupby import groupby
 from pandas.core.reshape import pivot_simple as pivot
-from pandas.core.sparse import SparseSeries, SparseDataFrame, SparsePanel
 
 DataMatrix = DataFrame
 WidePanel = Panel

@@ -1,15 +1,13 @@
 from pandas import *
 from pandas.util.testing import rands
 
-from la import larry
+# from la import larry
 
-n = 100000
-indices = Index([rands(10) for _ in xrange(n)])
+n = 1000000
+# indices = Index([rands(10) for _ in xrange(n)])
 
 def sample(values, k):
-    from random import shuffle
-    sampler = np.arange(len(values))
-    shuffle(sampler)
+    sampler = np.random.permutation(len(values))
     return values.take(sampler[:k])
 
 subsample_size = 90000
@@ -22,19 +20,24 @@ subsample_size = 90000
 # lx = larry(np.random.randn(100000), [list(indices)])
 # ly = larry(np.random.randn(subsample_size), [list(y.index)])
 
-stamps = np.random.randint(1000000000, 1000000000000, 2000000)
+sz = 500000
 
-idx1 = np.sort(sample(stamps, 1000000))
-idx2 = np.sort(sample(stamps, 1000000))
+rng = np.arange(0, 10000000000000, 10000000)
+stamps = np.datetime64(datetime.now()).view('i8') + rng
 
-ts1 = Series(np.random.randn(1000000), idx1)
-ts2 = Series(np.random.randn(1000000), idx2)
+# stamps = np.random.randint(1000000000, 1000000000000, 2000000)
+
+idx1 = np.sort(sample(stamps, sz))
+idx2 = np.sort(sample(stamps, sz))
+
+ts1 = Series(np.random.randn(sz), idx1)
+ts2 = Series(np.random.randn(sz), idx2)
 
 # Benchmark 1: Two 1-million length time series (int64-based index) with
 # randomly chosen timestamps
 
 # Benchmark 2: Join two 5-variate time series DataFrames (outer and inner join)
 
-df1 = DataFrame(np.random.randn(1000000, 5), idx1, columns=range(5))
-df2 = DataFrame(np.random.randn(1000000, 5), idx2, columns=range(5, 10))
+# df1 = DataFrame(np.random.randn(1000000, 5), idx1, columns=range(5))
+# df2 = DataFrame(np.random.randn(1000000, 5), idx2, columns=range(5, 10))
 

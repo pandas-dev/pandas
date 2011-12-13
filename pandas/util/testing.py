@@ -117,9 +117,10 @@ def assert_dict_equal(a, b, compare_keys=True):
     for k in a_keys:
         assert_almost_equal(a[k], b[k])
 
-def assert_series_equal(left, right):
+def assert_series_equal(left, right, check_dtype=True):
     assert_almost_equal(left.values, right.values)
-    assert(left.dtype == right.dtype)
+    if check_dtype:
+        assert(left.dtype == right.dtype)
     assert(left.index.equals(right.index))
 
 def assert_frame_equal(left, right):
@@ -156,7 +157,7 @@ def makeStringIndex(k):
     return Index([rands(10) for _ in xrange(k)])
 
 def makeIntIndex(k):
-    return Index(np.arange(k))
+    return Index(range(k))
 
 def makeDateIndex(k):
     dates = list(DateRange(datetime(2000, 1, 1), periods=k))

@@ -294,6 +294,27 @@ class TestDateRange(unittest.TestCase):
         self.assertRaises(Exception, daterange._infer_tzinfo, start, end)
         self.assertRaises(Exception, daterange._infer_tzinfo, end, start)
 
+    def test_date_parse_failure(self):
+        badly_formed_date = '2007/100/1'
+        self.assertRaises(ValueError, DateRange, start=badly_formed_date,
+                          periods=10)
+        self.assertRaises(ValueError, DateRange, end=badly_formed_date,
+                          periods=10)
+        self.assertRaises(ValueError, DateRange, badly_formed_date,
+                          badly_formed_date)
+
+    def test_equals(self):
+        self.assertFalse(self.rng.equals(list(self.rng)))
+
+    def test_daterange_bug_456(self):
+        # GH #456
+        rng1 = DateRange('12/5/2011', '12/5/2011')
+        rng2 = DateRange('12/2/2011', '12/5/2011')
+        rng2.offset = datetools.BDay()
+
+        result = rng1.union(rng2)
+        self.assert_(type(result) == DateRange)
+
 def _skip_if_no_pytz():
     try:
         import pytz
@@ -305,4 +326,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
