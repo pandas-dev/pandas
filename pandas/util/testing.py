@@ -117,9 +117,10 @@ def assert_dict_equal(a, b, compare_keys=True):
     for k in a_keys:
         assert_almost_equal(a[k], b[k])
 
-def assert_series_equal(left, right):
+def assert_series_equal(left, right, check_dtype=True):
     assert_almost_equal(left.values, right.values)
-    assert(left.dtype == right.dtype)
+    if check_dtype:
+        assert(left.dtype == right.dtype)
     assert(left.index.equals(right.index))
 
 def assert_frame_equal(left, right):

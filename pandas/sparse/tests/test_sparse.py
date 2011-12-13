@@ -1164,7 +1164,9 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         result = self.frame.count(1)
         dense_result = self.frame.to_dense().count(1)
-        assert_series_equal(result, dense_result)
+
+        # win32 don't check dtype
+        assert_series_equal(result, dense_result, check_dtype=False)
 
     def test_cumsum(self):
         result = self.frame.cumsum()
