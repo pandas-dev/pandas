@@ -86,7 +86,10 @@ class TestPivotTable(unittest.TestCase):
             _check_output(table[valcol], valcol)
 
         # no col
-        table = self.data.pivot_table(rows=['A', 'B'], margins=True,
+
+        # to help with a buglet
+        self.data.columns = [k * 2 for k in self.data.columns]
+        table = self.data.pivot_table(rows=['AA', 'BB'], margins=True,
                                       aggfunc=np.mean)
         for valcol in table.columns:
             gmarg = table[valcol]['All', '']

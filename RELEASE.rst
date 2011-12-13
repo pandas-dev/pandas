@@ -56,6 +56,8 @@ pandas 0.6.1
     columns (GH #302)
   - Add rolling_corr_pairwise function for computing Panel of correlation
     matrices (GH #189)
+  - Add `margins` option to `pivot_table` for computing subgroup aggregates (GH
+    #114)
 
 **Improvements to existing features**
 
