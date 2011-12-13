@@ -3391,7 +3391,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)
             assert_series_equal(result0, frame.apply(wrapper))
-            assert_series_equal(result1, frame.apply(wrapper, axis=1))
+            assert_series_equal(result1, frame.apply(wrapper, axis=1),
+                                check_dtype=False) # HACK: win32
         else:
             skipna_wrapper = alternative
             wrapper = alternative

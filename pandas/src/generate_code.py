@@ -15,7 +15,7 @@ def take_1d_%(name)s(ndarray[%(c_type)s] values, ndarray[int32_t] indexer,
     else:
         outbuf = out
 
-    for i from 0 <= i < n:
+    for i in range(n):
         idx = indexer[i]
         if idx == -1:
             %(na_action)s
@@ -41,7 +41,7 @@ def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
     else:
         outbuf = out
 
-    for i from 0 <= i < n:
+    for i in range(n):
         idx = indexer[i]
 
         if idx == -1:
@@ -70,14 +70,14 @@ def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
     else:
         outbuf = out
 
-    for j from 0 <= j < k:
+    for j in range(k):
         idx = indexer[j]
 
         if idx == -1:
-            for i from 0 <= i < n:
+            for i in range(n):
                 %(na_action)s
         else:
-            for i from 0 <= i < n:
+            for i in range(n):
                 outbuf[i, j] = values[i, idx]
 
 """
@@ -89,13 +89,13 @@ raise_on_na = "raise ValueError('No NA values allowed')"
 merge_indexer_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def merge_indexer_%(name)s(ndarray[%(c_type)s] values, dict oldMap):
-    cdef int i, j, length, newLength
+    cdef Py_ssize_t i, j, length, newLength
     cdef %(c_type)s idx
     cdef ndarray[int32_t] fill_vec
 
     newLength = len(values)
     fill_vec = np.empty(newLength, dtype=np.int32)
-    for i from 0 <= i < newLength:
+    for i in range(newLength):
         idx = values[i]
         if idx in oldMap:
             fill_vec[i] = oldMap[idx]
@@ -136,9 +136,9 @@ backfill_template = """@cython.boundscheck(False)
 def backfill_%(name)s(ndarray[%(c_type)s] oldIndex,
                       ndarray[%(c_type)s] newIndex,
                       dict oldMap, dict newMap):
-    cdef int i, j, oldLength, newLength, curLoc
+    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef int newPos, oldPos
+    cdef Py_ssize_t newPos, oldPos
     cdef %(c_type)s prevOld, curOld
 
     oldLength = len(oldIndex)
@@ -210,9 +210,9 @@ pad_template = """@cython.boundscheck(False)
 def pad_%(name)s(ndarray[%(c_type)s] oldIndex,
                  ndarray[%(c_type)s] newIndex,
                  dict oldMap, dict newMap):
-    cdef int i, j, oldLength, newLength, curLoc
+    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
     cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef int newPos, oldPos
+    cdef Py_ssize_t newPos, oldPos
     cdef %(c_type)s prevOld, curOld
 
     oldLength = len(oldIndex)
@@ -275,7 +275,7 @@ def is_monotonic_%(name)s(ndarray[%(c_type)s] arr):
         return True
 
     prev = arr[0]
-    for i from 1 <= i < n:
+    for i in range(1, n):
         cur = arr[i]
         if cur < prev:
             return False
@@ -301,7 +301,7 @@ cpdef map_indices_%(name)s(ndarray[%(c_type)s] index):
 
     length = len(index)
 
-    for i from 0 <= i < length:
+    for i in range(length):
         result[index[i]] = i
 
     return result
@@ -313,14 +313,14 @@ groupby_template = """@cython.wraparound(False)
 def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray[object] labels):
     cdef dict result = {}
     cdef ndarray[uint8_t] mask
-    cdef int i, length
+    cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
     mask = isnullobj(labels).view(np.uint8)
 
-    for i from 0 <= i < length:
+    for i in range(length):
         if mask[i]:
             continue
 
@@ -339,12 +339,12 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray[object] labels):
 arrmap_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
+    cdef Py_ssize_t length = index.shape[0]
+    cdef Py_ssize_t i = 0
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
-    for i from 0 <= i < length:
+    for i in range(length):
         result[i] = func(index[i])
 
     return result

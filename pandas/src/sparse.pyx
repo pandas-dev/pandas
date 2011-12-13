@@ -710,8 +710,8 @@ cdef inline tuple block_nanop(ndarray x_, BlockIndex xindex,
                               double_func op):
     cdef:
         BlockIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
-        int xbp = 0, ybp = 0, obp = 0 # block positions
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xbp = 0, ybp = 0, obp = 0 # block positions
         Py_ssize_t xblock = 0, yblock = 0, outblock = 0 # block numbers
 
         ndarray[float64_t, ndim=1] x, y
@@ -774,7 +774,7 @@ cdef inline tuple int_nanop(ndarray x_, IntIndex xindex,
                             double_func op):
     cdef:
         IntIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
         ndarray[int32_t, ndim=1] xindices, yindices, out_indices
         ndarray[float64_t, ndim=1] x, y
         ndarray[float64_t, ndim=1] out
@@ -821,8 +821,8 @@ cdef inline tuple block_op(ndarray x_, BlockIndex xindex, float64_t xfill,
 
     cdef:
         BlockIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
-        int xbp = 0, ybp = 0 # block positions
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xbp = 0, ybp = 0 # block positions
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
@@ -914,7 +914,7 @@ cdef inline tuple int_op(ndarray x_, IntIndex xindex, float64_t xfill,
                          double_func op):
     cdef:
         IntIndex out_index
-        int xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
         int32_t xloc, yloc
         ndarray[int32_t, ndim=1] xindices, yindices, out_indices
         ndarray[float64_t, ndim=1] x, y
@@ -1125,12 +1125,12 @@ cpdef sparse_rpow(ndarray x, SparseIndex xindex, float64_t xfill,
 def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
     cdef object idx
     cdef Py_ssize_t i
-    cdef int new_length = len(values)
+    cdef Py_ssize_t new_length = len(values)
     cdef ndarray[int32_t, ndim=1] indexer
 
     indexer = np.empty(new_length, dtype=np.int32)
 
-    for i from 0 <= i < new_length:
+    for i in range(new_length):
         idx = values[i]
         if idx in index_map:
             indexer[i] = index_map[idx]
