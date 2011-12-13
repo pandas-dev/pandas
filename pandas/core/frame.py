@@ -3208,12 +3208,18 @@ class DataFrame(NDFrame):
             for i, col in enumerate(_try_sort(self.columns)):
                 empty = self[col].count() == 0
                 y = self[col].values if not empty else np.zeros(x.shape)
-                if subplots:
-                    ax = axes[i]
-                    ax.plot(x, y, 'k', label=str(col), **kwds)
-                    ax.legend(loc='best')
-                else:
-                    ax.plot(x, y, label=str(col), **kwds)
+
+                try:
+                    if subplots:
+                        ax = axes[i]
+                        ax.plot(x, y, 'k', label=str(col), **kwds)
+                        ax.legend(loc='best')
+                    else:
+                        ax.plot(x, y, label=str(col), **kwds)
+                except Exception, e:
+                    msg = ('Unable to plot data %s vs index %s,\n'
+                           'error was: %s' % (str(y), str(x), str(e)))
+                    raise Exception(msg)
 
                 ax.grid(grid)
 
