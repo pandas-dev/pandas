@@ -25,7 +25,7 @@ Where to get it
 pandas 0.6.1
 ============
 
-**Release date:** Not yet released
+**Release date:** 12/13/2011
 
 **API Changes**
 
@@ -83,6 +83,8 @@ pandas 0.6.1
   - Column deletion in DataFrame copies no data (computes views on blocks) (GH
     #158)
   - MultiIndex.get_level_values can take the level name
+  - More helpful error message when DataFrame.plot fails on one of the columns
+    (GH #478)
 
 **Bug fixes**
 
