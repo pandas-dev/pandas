@@ -139,6 +139,10 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
+    def test_apply_describe_bug(self):
+        grouped = self.mframe.groupby(level='first')
+        result = grouped.describe() # it works!
+
     def test_len(self):
         df = tm.makeTimeDataFrame()
         grouped = df.groupby([lambda x: x.year,

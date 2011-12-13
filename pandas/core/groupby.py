@@ -1225,7 +1225,12 @@ def _make_concat_multiindex(indexes, keys, groupings):
     # construct labels
     labels = []
 
-    for hlevel, ping in zip(zip(*keys), groupings):
+    if len(groupings) == 1:
+        zipped = [keys]
+    else:
+        zipped = zip(*keys)
+
+    for hlevel, ping in zip(zipped, groupings):
         get_id = ping.reverse_ids.__getitem__
         mapped = [get_id(x) for x in hlevel]
         labels.append(np.repeat(mapped, n))
