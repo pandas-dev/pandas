@@ -534,7 +534,22 @@ class TestMultiLevel(unittest.TestCase):
         self.assert_((df[2000, 1, 10] == df[2000, 1, 7]).all())
 
     def test_alignment(self):
-        pass
+        x = Series(data=[1,2,3],
+                   index=MultiIndex.from_tuples([("A", 1), ("A", 2), ("B",3)]))
+
+        y = Series(data=[4,5,6],
+                   index=MultiIndex.from_tuples([("Z", 1), ("Z", 2), ("B",3)]))
+
+        res = x - y
+        exp_index = x.index.union(y.index)
+        exp = x.reindex(exp_index) - y.reindex(exp_index)
+        assert_series_equal(res, exp)
+
+        # hit non-monotonic code path
+        res = x[::-1] - y[::-1]
+        exp_index = x.index.union(y.index)
+        exp = x.reindex(exp_index) - y.reindex(exp_index)
+        assert_series_equal(res, exp)
 
     def test_is_lexsorted(self):
         levels = [[0, 1], [0, 1, 2]]
