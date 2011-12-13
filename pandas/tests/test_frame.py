@@ -3400,7 +3400,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result0 = f(axis=0)
         result1 = f(axis=1)
         assert_series_equal(result0, frame.apply(skipna_wrapper))
-        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1))
+        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
+                            check_dtype=False)
 
         # result = f(axis=1)
         # comp = frame.apply(alternative, axis=1).reindex(result.index)
