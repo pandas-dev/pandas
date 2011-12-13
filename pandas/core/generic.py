@@ -1,10 +1,9 @@
 # pylint: disable=W0231
 
 import numpy as np
-import cPickle
 
 from pandas.core.common import save, load
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import _ensure_index
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------

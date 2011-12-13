@@ -77,8 +77,8 @@ pandas 0.6.1
     and DataFrame
   - Can pass DataFrame/DataFrame and DataFrame/Series to
     rolling_corr/rolling_cov (GH #462)
-  - Fix performance regressionm in cross-sectional count in DataFrame,
-    affecting DataFrame.dropna speed
+  - Fix performance regression in cross-sectional count in DataFrame, affecting
+    DataFrame.dropna speed
   - Column deletion in DataFrame copies no data (computes views on blocks) (GH
     #158)
   - MultiIndex.get_level_values can take the level name
@@ -110,12 +110,16 @@ pandas 0.6.1
   - Index.get_loc should always raise Exception when there are duplicates
   - Handle differently-indexed Series input to DataFrame constructor (GH #475)
   - Omit nuisance columns in multi-groupby with Python function
+  - Buglet in handling of single grouping in general apply
 
 Thanks
 ------
 - Ralph Bean
-- Luca Betrame
+- Luca Beltrame
+- Marius Cobzarenco
+- Andreas Hilboll
 - Jev Kuznetsov
+- Adam Lichtenstein
 - Wouter Overmeire
 - Fernando Perez
 - Nathan Pinger
