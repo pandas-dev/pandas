@@ -23,8 +23,12 @@ def rank_1d_float64(object in_arr):
 
     n = len(values)
     ranks = np.empty(n, dtype='f8')
-    argsorted = values.argsort().astype('i8')
-    sorted_data = values.take(argsorted)
+
+    # py2.5/win32 hack, can't pass i8
+    _as = values.argsort()
+    sorted_data = values.take(_as)
+
+    argsorted = _as.astype('i8')
 
     for i in range(n):
         sum_ranks += i + 1
@@ -111,8 +115,10 @@ def rank_1d_generic(object in_arr):
     n = len(values)
     ranks = np.empty(n, dtype='f8')
 
-    argsorted = values.argsort().astype('i8')
-    sorted_data = values.take(argsorted)
+    # py2.5/win32 hack, can't pass i8
+    _as = values.argsort()
+    sorted_data = values.take(_as)
+    argsorted = _as.astype('i8')
 
     for i in range(n):
         sum_ranks += i + 1
