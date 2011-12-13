@@ -255,9 +255,8 @@ class TestMultiLevel(unittest.TestCase):
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
 
     def test_delevel_infer_dtype(self):
-        import itertools
-        tuples = [tuple for tuple in itertools.product(['foo', 'bar'],
-                                                       [10, 20], [1.0, 1.1])]
+        tuples = [tuple for tuple in cart_product(['foo', 'bar'],
+                                                  [10, 20], [1.0, 1.1])]
         index = MultiIndex.from_tuples(tuples,
                                        names=['prm0', 'prm1', 'prm2'])
         df = DataFrame(np.random.randn(8,3), columns=['A', 'B', 'C'],
