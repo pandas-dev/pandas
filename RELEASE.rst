@@ -58,6 +58,7 @@ pandas 0.6.1
     matrices (GH #189)
   - Add `margins` option to `pivot_table` for computing subgroup aggregates (GH
     #114)
+  - Add `Series.from_csv` function (PR #482)
 
 **Improvements to existing features**
 
@@ -129,6 +130,7 @@ Thanks
 - Chang She
 - Ted Square
 - Chris Uga
+- Dieter Vandenbussche
 
 pandas 0.6.0
 ============

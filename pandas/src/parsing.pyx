@@ -85,7 +85,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     for i from 0 <= i < n:
         val = values[i]
 
-        if cpython.PyFloat_Check(val):
+        if util.is_float_object(val):
             floats[i] = val
             seen_float = 1
         elif val in na_values:
@@ -144,18 +144,18 @@ def maybe_convert_objects(ndarray[object] objects):
             seen_null = 1
             objects[i] = onan
             floats[i] = fnan
-        elif cpython.PyBool_Check(val):
+        elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
-        elif is_integer_object(val):
+        elif util.is_integer_object(val):
             seen_int = 1
             floats[i] = <float64_t> val
             if not seen_null:
                 ints[i] = val
-        elif cpython.PyFloat_Check(val):
+        elif util.is_float_object(val):
             floats[i] = val
             seen_float = 1
-        elif not (cpython.PyString_Check(val) or cpython.PyUnicode_Check(val)):
+        elif not util.is_string_object(val):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)
@@ -173,14 +173,16 @@ def maybe_convert_objects(ndarray[object] objects):
     else:
         if seen_object:
             return objects
-        elif seen_int:
-            return ints
-        elif seen_float:
-            return floats
-        elif seen_bool:
-            return bools.view(np.bool_)
+        elif not seen_bool:
+            if seen_float:
+                return floats
+            elif seen_int:
+                return ints
         else:
-            return objects
+            if not seen_float and not seen_int:
+                return bools.view(np.bool_)
+
+        return objects
 
 convert_sql_column = maybe_convert_objects
 

@@ -49,7 +49,7 @@ cdef double_t *get_double_ptr(ndarray arr):
 
     return <double_t *> arr.data
 
-from util cimport is_integer_object
+cimport util
 
 cdef extern from "math.h":
     double sqrt(double x)

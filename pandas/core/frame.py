@@ -207,8 +207,12 @@ class DataFrame(NDFrame):
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
         elif isinstance(data, list):
-            mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                     copy=copy)
+            if isinstance(data[0], (list, tuple)):
+                data, columns = _list_to_sdict(data, columns)
+                mgr = self._init_dict(data, index, columns, dtype=dtype)
+            else:
+                mgr = self._init_ndarray(data, index, columns, dtype=dtype,
+                                         copy=copy)
         else:
             raise PandasError('DataFrame constructor not properly called!')
 
@@ -528,20 +532,7 @@ class DataFrame(NDFrame):
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
         else:
-            if isinstance(data[0], tuple):
-                content = list(lib.to_object_array_tuples(data).T)
-            else:
-                # list of lists
-                content = list(lib.to_object_array(data).T)
-
-            if columns is None:
-                columns = range(len(content))
-            else:
-                assert(len(columns) == len(content))
-
-            sdict = dict((c, lib.maybe_convert_objects(vals))
-                         for c, vals in zip(columns, content))
-            del content
+            sdict, columns = _list_to_sdict(data, columns)
 
         if exclude is None:
             exclude = set()
@@ -3546,6 +3537,22 @@ def _rec_to_dict(arr):
         raise TypeError('%s' % type(arr))
 
     return columns, sdict
+
+def _list_to_sdict(data, columns):
+    if isinstance(data[0], tuple):
+        content = list(lib.to_object_array_tuples(data).T)
+    else:
+        # list of lists
+        content = list(lib.to_object_array(data).T)
+
+    if columns is None:
+        columns = range(len(content))
+    else:
+        assert(len(columns) == len(content))
+
+    sdict = dict((c, lib.maybe_convert_objects(vals))
+                 for c, vals in zip(columns, content))
+    return sdict, columns
 
 def _homogenize(data, index, columns, dtype=None):
     from pandas.core.series import _sanitize_array

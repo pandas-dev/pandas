@@ -4,6 +4,8 @@ cimport numpy as cnp
 cdef extern from "numpy_helper.h":
     inline int is_integer_object(object)
     inline int is_float_object(object)
+    inline int is_bool_object(object)
+    inline int is_string_object(object)
     inline int assign_value_1d (ndarray, Py_ssize_t, object) except -1
 
 cpdef inline object get_value_at(ndarray arr, object loc):

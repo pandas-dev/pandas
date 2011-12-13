@@ -1222,6 +1222,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(dm.columns), 2)
         self.assert_(dm.values.dtype == np.float64)
 
+    def test_constructor_list_of_lists(self):
+        # GH #484
+        l = [[1, 'a'], [2, 'b']]
+        df = DataFrame(data=l, columns=["num", "str"])
+        self.assert_(com.is_integer_dtype(df['num']))
+        self.assert_(df['str'].dtype == np.object_)
+
     def test_constructor_ragged(self):
         data = {'A' : randn(10),
                 'B' : randn(8)}

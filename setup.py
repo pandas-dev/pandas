@@ -286,7 +286,7 @@ if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
 else:
-    tseries_depends = None
+    tseries_depends = []
 
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
