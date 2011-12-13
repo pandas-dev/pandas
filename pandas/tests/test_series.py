@@ -687,9 +687,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         series = self.ts
         other = self.ts[::2]
 
-        def _check_op(other, op):
-            cython_or_numpy = op(series, other)
-            python = series.combine(other, op)
+        def _check_op(other, op, pos_only=False):
+            left = np.abs(series) if pos_only else series
+            right = np.abs(other) if pos_only else other
+
+            cython_or_numpy = op(left, right)
+            python = left.combine(right, op)
             tm.assert_almost_equal(cython_or_numpy, python)
 
         def check(other):
@@ -698,7 +701,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             _check_op(other, operator.truediv)
             _check_op(other, operator.floordiv)
             _check_op(other, operator.mul)
-            _check_op(other, operator.pow)
+            _check_op(other, operator.pow, pos_only=True)
 
             _check_op(other, lambda x, y: operator.add(y, x))
             _check_op(other, lambda x, y: operator.sub(y, x))
