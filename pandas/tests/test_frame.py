@@ -711,7 +711,7 @@ class CheckIndexing(object):
                                 (int, np.integer)))
 
         result = self.frame.ix[self.frame.index[5], 'E']
-        self.assert_(isinstance(result, (int, np.integer)))
+        self.assert_(com.is_integer(result))
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
