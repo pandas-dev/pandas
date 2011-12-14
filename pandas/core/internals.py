@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas.core.index import Index, _ensure_index
 from pandas.util.decorators import cache_readonly
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas._tseries as lib
 
 class Block(object):
@@ -107,8 +107,8 @@ class Block(object):
         Reindex using pre-computed indexer information
         """
         if self.values.size > 0:
-            new_values = common.take_fast(self.values, indexer, mask,
-                                          needs_masking, axis=axis)
+            new_values = com.take_fast(self.values, indexer, mask,
+                                       needs_masking, axis=axis)
         else:
             shape = list(self.shape)
             shape[axis] = len(indexer)
@@ -130,7 +130,12 @@ class Block(object):
         new_ref_items, indexer = self.items.reindex(new_ref_items)
         mask = indexer != -1
         masked_idx = indexer[mask]
-        new_values = self.values.take(masked_idx, axis=0)
+
+        if self.values.ndim == 2:
+            new_values = com.take_2d(self.values, masked_idx, axis=0)
+        else:
+            new_values = self.values.take(masked_idx, axis=0)
+
         new_items = self.items.take(masked_idx)
         return make_block(new_values, new_items, new_ref_items)
 
@@ -196,7 +201,7 @@ class Block(object):
 
     def fillna(self, value):
         new_values = self.values.copy()
-        mask = common.isnull(new_values.ravel())
+        mask = com.isnull(new_values.ravel())
         new_values.flat[mask] = value
         return make_block(new_values, self.items, self.ref_items)
 
@@ -670,8 +675,8 @@ class BlockManager(object):
         new_axes[axis] = new_axis
         new_blocks = []
         for blk in self.blocks:
-            new_values = common.take_fast(blk.values, indexer, None,
-                                          False, axis=axis)
+            new_values = com.take_fast(blk.values, indexer, None,
+                                       False, axis=axis)
             newb = make_block(new_values, blk.items, self.items)
             new_blocks.append(newb)
 
@@ -729,8 +734,8 @@ class BlockManager(object):
         new_axes[axis] = self.axes[axis].take(indexer)
         new_blocks = []
         for blk in self.blocks:
-            new_values = common.take_fast(blk.values, indexer,
-                                          None, False, axis=axis)
+            new_values = com.take_fast(blk.values, indexer,
+                                       None, False, axis=axis)
             newb = make_block(new_values, blk.items, self.items)
             new_blocks.append(newb)
 
@@ -1191,21 +1196,21 @@ class _JoinOperation(object):
         # is this really faster than assigning to arr.flat?
         if lidx is None:
             # out[:lk] = lblk.values
-            common.take_fast(lblk.values, np.arange(n, dtype='i4'),
-                             None, False,
-                             axis=self.axis, out=out[:lk])
+            com.take_fast(lblk.values, np.arange(n, dtype='i4'),
+                          None, False,
+                          axis=self.axis, out=out[:lk])
         else:
             # write out the values to the result array
-            common.take_fast(lblk.values, lidx, None, False,
+            com.take_fast(lblk.values, lidx, None, False,
                              axis=self.axis, out=out[:lk])
         if ridx is None:
             # out[lk:] = lblk.values
-            common.take_fast(rblk.values, np.arange(n, dtype='i4'),
-                             None, False,
-                             axis=self.axis, out=out[lk:])
+            com.take_fast(rblk.values, np.arange(n, dtype='i4'),
+                          None, False,
+                          axis=self.axis, out=out[lk:])
         else:
-            common.take_fast(rblk.values, ridx, None, False,
-                             axis=self.axis, out=out[lk:])
+            com.take_fast(rblk.values, ridx, None, False,
+                          axis=self.axis, out=out[lk:])
 
         # does not sort
         new_items = lblk.items.append(rblk.items)
