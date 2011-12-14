@@ -14,6 +14,7 @@ Build-Depends: debhelper (>= 7.0.50),
                python-sphinx (>= 1.0~),
                python-nose,
                python-matplotlib,
+               python-tk
 Standards-Version: 3.9.2
 Homepage: http://pandas.sourceforge.net
 Vcs-Browser: http://github.com/neurodebian/pandas

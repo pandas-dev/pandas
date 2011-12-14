@@ -27,6 +27,7 @@ python-install%:
 
 python-test%: python-install%
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	echo "backend : Agg" >| $(CURDIR)/build/matplotlibrc
 	: # Run unittests here against installed pandas
 	export PYTHONPATH=`/bin/ls -d $$PWD/$(PACKAGE_ROOT_DIR)/usr/lib/python$*/*/`; \
 	export MPLCONFIGDIR=$(CURDIR)/build HOME=$(CURDIR)/build; \
