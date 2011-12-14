@@ -490,3 +490,21 @@ def melt(frame, id_vars=None, value_vars=None):
     mdata['value'] = frame.values.ravel('F')
     mdata['variable'] = np.asarray(frame.columns).repeat(N)
     return DataFrame(mdata, columns=mcolumns)
+
+def make_dummies(data, cat_variables):
+    result = data.drop(cat_variables, axis=1)
+
+    for variable in cat_variables:
+        dummies = _get_dummy_frame(data, variable)
+        result = result.join(dummies)
+    return result
+
+def _get_dummy_frame(data, column):
+    from pandas import Factor
+    factor = Factor(data[column])
+    dummy_mat = np.eye(len(factor.levels)).take(factor.labels)
+    dummy_cols = ['%s.%s' % (column, v) for v in factor.levels]
+    dummies = DataFrame(dummy_mat, index=data.index,
+                        columns=dummy_cols)
+
+    return dummies
