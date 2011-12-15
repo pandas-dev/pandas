@@ -531,7 +531,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # pass float_format
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split('\n')[:-1]]
+        result = [x.split()[1] for x in result.split('\n')]
         expected = [format(x) for x in self.ts]
         self.assertEqual(result, expected)
 
