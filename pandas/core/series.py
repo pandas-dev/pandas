@@ -452,14 +452,16 @@ copy : boolean, default False
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
-    def to_string(self, buf=None, na_rep='NaN', float_format=None, nanRep=None):
+    def to_string(self, buf=None, na_rep='NaN', float_format=None, nanRep=None,
+                  length=False):
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
-        the_repr = self._get_repr(float_format=float_format, na_rep=na_rep)
+        the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
+                                  length=length)
         if buf is None:
             return the_repr
         else:
