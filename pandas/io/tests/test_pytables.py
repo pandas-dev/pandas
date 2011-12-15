@@ -179,6 +179,14 @@ class TesttHDFStore(unittest.TestCase):
         s = Series(np.random.randn(10), index=index)
         self._check_roundtrip(s, tm.assert_series_equal)
 
+    def test_tuple_index(self):
+        # GH #492
+        col = np.arange(10)
+        idx = [(0.,1.), (2., 3.), (4., 5.)]
+        data = np.random.randn(30).reshape((3, 10))
+        DF = DataFrame(data, index=idx, columns=col)
+        self._check_roundtrip(DF, tm.assert_frame_equal)
+
     def test_timeseries_preepoch(self):
         if sys.version_info[0] == 2 and sys.version_info[1] < 7:
             raise nose.SkipTest

@@ -733,7 +733,8 @@ def _convert_index(index):
         atom = _tables().Float64Col()
         return np.asarray(values, dtype=np.float64), 'float', atom
     else: # pragma: no cover
-        raise ValueError('unrecognized index type %s' % type(values[0]))
+        atom = _tables().ObjectAtom()
+        return np.asarray(values, dtype='O'), 'object', atom
 
 def _read_array(group, key):
     import tables
@@ -755,6 +756,8 @@ def _unconvert_index(data, kind):
 
     elif kind in ('string', 'integer', 'float'):
         index = np.array(data)
+    elif kind == 'object':
+        index = np.array(data[0])
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index
