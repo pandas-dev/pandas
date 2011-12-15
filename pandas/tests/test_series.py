@@ -575,10 +575,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self._check_stat_op('prod', np.prod)
 
     def test_min(self):
-        self._check_stat_op('min', np.min)
+        self._check_stat_op('min', np.min, check_objects=True)
 
     def test_max(self):
-        self._check_stat_op('max', np.max)
+        self._check_stat_op('max', np.max, check_objects=True)
 
     def test_std(self):
         alt = lambda x: np.std(x, ddof=1)
@@ -604,7 +604,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_cumprod(self):
         self._check_accum_op('cumprod')
 
-    def _check_stat_op(self, name, alternate):
+    def _check_stat_op(self, name, alternate, check_objects=False):
+        from pandas import DateRange
+
         f = getattr(Series, name)
 
         # add some NaNs
@@ -624,6 +626,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # dtype=object with None, it works!
         s = Series([1, 2, 3, None, 5])
         f(s)
+
+        # check DateRange
+        if check_objects:
+            s = Series(DateRange('1/1/2000', periods=10))
+            res = f(s)
+            exp = alternate(s)
+            self.assertEqual(res, exp)
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
