@@ -1222,6 +1222,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(dm.columns), 2)
         self.assert_(dm.values.dtype == np.float64)
 
+    def test_constructor_empty_list(self):
+        df = DataFrame([], index=[])
+        expected = DataFrame(index=[])
+        assert_frame_equal(df, expected)
+
     def test_constructor_list_of_lists(self):
         # GH #484
         l = [[1, 'a'], [2, 'b']]

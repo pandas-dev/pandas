@@ -207,7 +207,7 @@ class DataFrame(NDFrame):
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
         elif isinstance(data, list):
-            if isinstance(data[0], (list, tuple)):
+            if len(data) > 0 and isinstance(data[0], (list, tuple)):
                 data, columns = _list_to_sdict(data, columns)
                 mgr = self._init_dict(data, index, columns, dtype=dtype)
             else:
