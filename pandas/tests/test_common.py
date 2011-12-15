@@ -253,6 +253,10 @@ class TestTake(unittest.TestCase):
         expected[[2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
 
+        # test with float64 out buffer
+        out = np.empty((len(indexer), arr.shape[1]), dtype='f8')
+        common.take_2d(arr, indexer, out=out) # it works!
+
         # axis=1
         result = common.take_2d(arr, indexer, axis=1)
         result2 = np.empty_like(result)

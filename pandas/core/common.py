@@ -231,6 +231,10 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
             mask = indexer == -1
             needs_masking = mask.any()
 
+        # GH #486
+        if out is not None and arr.dtype != out.dtype:
+            arr = arr.astype(out.dtype)
+
         result = arr.take(indexer, axis=axis, out=out)
         result = _maybe_mask(result, mask, needs_masking, axis=axis,
                              out_passed=out is not None)

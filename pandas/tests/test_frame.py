@@ -4139,6 +4139,12 @@ class TestDataFrameJoin(unittest.TestCase):
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
 
+    def test_join_float64_float32(self):
+        a = DataFrame(randn(10,2), columns=['a','b'])
+        b = DataFrame(randn(10,1), columns=['c']).astype(np.float32)
+        joined = a.join(b)
+        expected = a.join(b.astype('f8'))
+        assert_frame_equal(joined, expected)
 
 def _join_by_hand(a, b, how='left'):
     join_index = a.index.join(b.index, how=how)

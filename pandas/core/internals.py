@@ -132,7 +132,8 @@ class Block(object):
         masked_idx = indexer[mask]
 
         if self.values.ndim == 2:
-            new_values = com.take_2d(self.values, masked_idx, axis=0)
+            new_values = com.take_2d(self.values, masked_idx, axis=0,
+                                     needs_masking=False)
         else:
             new_values = self.values.take(masked_idx, axis=0)
 
