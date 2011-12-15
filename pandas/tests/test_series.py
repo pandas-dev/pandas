@@ -531,7 +531,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # pass float_format
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split('\n')[:-1]]
+        result = [x.split()[1] for x in result.split('\n')]
         expected = [format(x) for x in self.ts]
         self.assertEqual(result, expected)
 
@@ -575,10 +575,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self._check_stat_op('prod', np.prod)
 
     def test_min(self):
-        self._check_stat_op('min', np.min, check_objects=True)
+        self._check_stat_op('min', np.min)
 
     def test_max(self):
-        self._check_stat_op('max', np.max, check_objects=True)
+        self._check_stat_op('max', np.max)
 
     def test_std(self):
         alt = lambda x: np.std(x, ddof=1)
@@ -604,9 +604,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_cumprod(self):
         self._check_accum_op('cumprod')
 
-    def _check_stat_op(self, name, alternate, check_objects=False):
-        from pandas import DateRange
-
+    def _check_stat_op(self, name, alternate):
         f = getattr(Series, name)
 
         # add some NaNs
@@ -626,13 +624,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # dtype=object with None, it works!
         s = Series([1, 2, 3, None, 5])
         f(s)
-
-        # check DateRange
-        if check_objects:
-            s = Series(DateRange('1/1/2000', periods=10))
-            res = f(s)
-            exp = alternate(s)
-            self.assertEqual(res, exp)
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
@@ -827,6 +818,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         _check_op(arr, operator.floordiv)
 
     def test_series_frame_radd_bug(self):
+        print "numpy version: %s" % np.__version__
+        print "numpy path: %s" % np.__path__
         from pandas.util.testing import rands
 
         # GH 353
