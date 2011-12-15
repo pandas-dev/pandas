@@ -290,9 +290,11 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
 if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
-    tseries_depends.append('util.pxd')
+    tseries_depends.append('pandas/src/util.pxd')
 else:
     tseries_depends = []
+
+print tseries_depends
 
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
