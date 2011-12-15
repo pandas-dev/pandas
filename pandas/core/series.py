@@ -471,6 +471,9 @@ copy : boolean, default False
 
     def _get_repr(self, name=False, print_header=False, length=True,
                   na_rep='NaN', float_format=None):
+        if len(self) == 0:
+            return ''
+
         vals = self.values
         index = self.index
 

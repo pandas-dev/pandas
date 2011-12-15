@@ -539,6 +539,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = [format(x) for x in self.ts]
         self.assertEqual(result, expected)
 
+        # empty string
+        result = self.ts[:0].to_string()
+        self.assertEqual(result, '')
+
+        result = self.ts[:0].to_string(length=0)
+        self.assertEqual(result, '')
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])

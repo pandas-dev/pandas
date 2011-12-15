@@ -43,3 +43,6 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
         raise IndexError('index out of bounds')
 
     assign_value_1d(arr, i, value)
+
+cdef inline int is_contiguous(ndarray arr):
+    return cnp.PyArray_CHKFLAGS(arr, cnp.NPY_C_CONTIGUOUS)

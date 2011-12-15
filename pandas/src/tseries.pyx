@@ -22,33 +22,6 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 ctypedef unsigned char UChar
 
-cdef int is_contiguous(ndarray arr):
-    return np.PyArray_CHKFLAGS(arr, np.NPY_C_CONTIGUOUS)
-
-cdef int _contiguous_check(ndarray arr):
-    if not is_contiguous(arr):
-        raise ValueError('Tried to use data field on non-contiguous array!')
-
-cdef int16_t *get_int16_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <int16_t *> arr.data
-
-cdef int32_t *get_int32_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <int32_t *> arr.data
-
-cdef int64_t *get_int64_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <int64_t *> arr.data
-
-cdef double_t *get_double_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <double_t *> arr.data
-
 cimport util
 
 cdef extern from "math.h":
