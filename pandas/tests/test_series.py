@@ -355,6 +355,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, ts.ix.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.ix.__setitem__, mask_shifted, 1)
 
+    def test_getitem_out_of_bounds(self):
+        # don't segfault, GH #495
+        self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))
+
     def test_slice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]
@@ -531,7 +535,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # pass float_format
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split('\n')[:-1]]
+        result = [x.split()[1] for x in result.split('\n')]
         expected = [format(x) for x in self.ts]
         self.assertEqual(result, expected)
 

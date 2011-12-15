@@ -290,6 +290,7 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
 if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
+    tseries_depends.append('util.pxd')
 else:
     tseries_depends = []
 

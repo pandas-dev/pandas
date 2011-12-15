@@ -8,29 +8,38 @@ cdef extern from "numpy_helper.h":
     inline int is_string_object(object)
     inline int assign_value_1d (ndarray, Py_ssize_t, object) except -1
 
-cpdef inline object get_value_at(ndarray arr, object loc):
+
+cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
-        Py_ssize_t i
+        Py_ssize_t i, sz
         void* data_ptr
     if is_float_object(loc):
         casted = int(loc)
         if casted == loc:
             loc = casted
     i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
     if i < 0:
-        i += cnp.PyArray_SIZE(arr)
+        i += sz
+    elif i >= sz:
+        raise IndexError('index out of bounds')
     data_ptr = cnp.PyArray_GETPTR1(arr, i)
     return cnp.PyArray_GETITEM(arr, data_ptr)
 
-cpdef inline set_value_at(ndarray arr, object loc, object value):
+cdef inline set_value_at(ndarray arr, object loc, object value):
     cdef:
-        Py_ssize_t i
+        Py_ssize_t i, sz
     if is_float_object(loc):
         casted = int(loc)
         if casted == loc:
             loc = casted
     i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
     if i < 0:
-        i += cnp.PyArray_SIZE(arr)
+        i += sz
+    elif i >= sz:
+        raise IndexError('index out of bounds')
 
     assign_value_1d(arr, i, value)

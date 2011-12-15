@@ -260,6 +260,8 @@ copy : boolean, default False
                 except KeyError, e1:
                     try:
                         return _gin.get_value_at(self, key)
+                    except IndexError:
+                        raise
                     except Exception, _:
                         pass
                     raise e1
