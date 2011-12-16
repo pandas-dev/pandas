@@ -8,6 +8,7 @@ import numpy as np
 from pandas.core.common import (adjoin as _adjoin, _stringify,
                                 _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import cache_readonly
+import pandas.core.common as com
 import pandas._tseries as lib
 import pandas._engines as _engines
 
@@ -868,27 +869,32 @@ class MultiIndex(Index):
 
             return Index(levels[0], name=name).take(labels[0])
 
-        return np.arange(len(labels[0]), dtype=object).view(cls)
+        levels = [_ensure_index(lev) for lev in levels]
+        labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
 
-    def __init__(self, levels, labels, sortorder=None, names=None,
-                 consistent=None):
-        self.levels = [_ensure_index(lev) for lev in levels]
-        self.labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+        values = [np.asarray(lev).take(lab)
+                  for lev, lab in zip(levels, labels)]
+        subarr = lib.fast_zip(values).view(cls)
+
+        subarr.levels = levels
+        subarr.labels = labels
 
         if names is None:
-            self.names = [None] * self.nlevels
+            subarr.names = [None] * subarr.nlevels
         else:
-            assert(len(names) == self.nlevels)
-            self.names = list(names)
+            assert(len(names) == subarr.nlevels)
+            subarr.names = list(names)
 
         # set the name
-        for i, name in enumerate(self.names):
-            self.levels[i].name = name
+        for i, name in enumerate(subarr.names):
+            subarr.levels[i].name = name
 
         if sortorder is not None:
-            self.sortorder = int(sortorder)
+            subarr.sortorder = int(sortorder)
         else:
-            self.sortorder = sortorder
+            subarr.sortorder = sortorder
+
+        return subarr
 
     @property
     def dtype(self):
@@ -908,9 +914,18 @@ class MultiIndex(Index):
 
     @property
     def values(self):
-        values = [np.asarray(lev).take(lab)
-                  for lev, lab in zip(self.levels, self.labels)]
-        return lib.fast_zip(values)
+        if self._is_legacy_format:
+            # for legacy MultiIndex
+            values = [np.asarray(lev).take(lab)
+                      for lev, lab in zip(self.levels, self.labels)]
+            return lib.fast_zip(values)
+        else:
+            return self.view(np.ndarray)
+
+    @property
+    def _is_legacy_format(self):
+        contents = self.view(np.ndarray)
+        return len(contents) > 0 and not isinstance(contents[0], tuple)
 
     def get_level_values(self, level):
         """
@@ -1112,7 +1127,7 @@ class MultiIndex(Index):
         return MultiIndex.from_tuples(new_tuples, names=self.names)
 
     def argsort(self, *args, **kwargs):
-        return self.get_tuple_index().argsort()
+        return self.values.argsort()
 
     def drop(self, labels):
         """
@@ -1290,10 +1305,12 @@ class MultiIndex(Index):
         method = self._get_method(method)
 
         target_index = target
-        if isinstance(target, MultiIndex):
+        if isinstance(target, MultiIndex) and target._is_legacy_format:
             target_index = target.get_tuple_index()
 
-        self_index = self.get_tuple_index()
+        self_index = self
+        if self._is_legacy_format:
+            self_index = self.get_tuple_index()
 
         if method == 'pad':
             indexer = self._pad(self_index, target_index, self_index.indexMap,
@@ -1332,7 +1349,7 @@ class MultiIndex(Index):
         -------
         index : Index
         """
-        return Index(list(self))
+        return Index(self.values)
 
     def slice_locs(self, start=None, end=None, strict=False):
         """

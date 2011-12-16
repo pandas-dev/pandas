@@ -89,18 +89,18 @@ cdef class Reducer:
             raise ValueError('function does not reduce')
         return result
 
-cdef class Grouper:
+cdef class SeriesGrouper:
     '''
     Performs generic grouping operation while avoiding ndarray construction
     overhead
     '''
     cdef:
-        Py_ssize_t nresults, ngroups
+        Py_ssize_t nresults, ngroup
         object arr, dummy, f, labels, counts
         bint passed_dummy
 
-    def __init__(self, object arr, object index, object f,
-                 object labels, ngroups, dummy=None):
+    def __init__(self, object arr, object f, object labels, ngroups,
+                 dummy=None):
         n = len(arr)
 
         assert(arr.ndim == 1)
@@ -111,6 +111,7 @@ cdef class Grouper:
         self.labels = labels
         self.f = f
         self.arr = arr
+
         self.dummy = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
 

@@ -800,8 +800,8 @@ class TestGroupBy(unittest.TestCase):
         result0 = frame.groupby(level=0).sum()
         result1 = frame.groupby(level=1).sum()
 
-        expected0 = frame.groupby(deleveled['first']).sum()
-        expected1 = frame.groupby(deleveled['second']).sum()
+        expected0 = frame.groupby(deleveled['first'].values).sum()
+        expected1 = frame.groupby(deleveled['second'].values).sum()
 
         self.assert_(result0.index.name == 'first')
         self.assert_(result1.index.name == 'second')

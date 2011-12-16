@@ -680,6 +680,26 @@ class TestMultiIndex(unittest.TestCase):
         unpickled = pickle.loads(pickled)
         self.assert_(self.index.equals(unpickled))
 
+    def test_legacy_pickle(self):
+        import os
+        def curpath():
+            pth, _ = os.path.split(os.path.abspath(__file__))
+            return pth
+
+        ppath = os.path.join(curpath(), 'data/multiindex_v1.pickle')
+        obj = pickle.load(open(ppath, 'r'))
+
+        self.assert_(obj._is_legacy_format)
+
+        obj2 = MultiIndex.from_tuples(obj.values)
+        self.assert_(obj.equals(obj2))
+
+        res = obj.get_indexer(obj2[::-1])
+        exp = obj.get_indexer(obj[::-1])
+        exp2 = obj2.get_indexer(obj2[::-1])
+        assert_almost_equal(res, exp)
+        assert_almost_equal(exp, exp2)
+
     def test_contains(self):
         self.assert_(('foo', 'two') in self.index)
         self.assert_(('bar', 'two') not in self.index)
