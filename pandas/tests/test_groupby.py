@@ -989,13 +989,13 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(agg_result, expected)
         assert_frame_equal(apply_result, expected)
 
-    def test_cython_na_bug(self):
-        values = np.random.randn(10)
-        shape = (5, 5)
-        label_list = [np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2], dtype=np.int32),
-                      np.array([1, 2, 3, 4, 0, 1, 2, 3, 3, 4], dtype=np.int32)]
+    # def test_cython_na_bug(self):
+    #     values = np.random.randn(10)
+    #     shape = (5, 5)
+    #     label_list = [np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2], dtype=np.int32),
+    #                   np.array([1, 2, 3, 4, 0, 1, 2, 3, 3, 4], dtype=np.int32)]
 
-        lib.group_aggregate(values, label_list, shape)
+    #     lib.group_aggregate(values, label_list, shape)
 
     def test_size(self):
         grouped = self.df.groupby(['A', 'B'])

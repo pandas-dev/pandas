@@ -9,6 +9,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
 from pandas.core.common import notnull
+from pandas.core.groupby import get_group_index
 from pandas.core.index import MultiIndex
 
 
@@ -196,13 +197,6 @@ class _Unstacker(object):
                                    names=self.new_index_names)
 
         return new_index
-
-def get_group_index(label_list, shape):
-    group_index = np.zeros(len(label_list[0]), dtype=int)
-    for i in xrange(len(shape)):
-        stride = np.prod([x for x in shape[i+1:]], dtype=int)
-        group_index += label_list[i] * stride
-    return group_index
 
 def pivot(self, index=None, columns=None, values=None):
     """

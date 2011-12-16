@@ -7,7 +7,6 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, PandasObject
 from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager
-from pandas.core.reshape import get_group_index
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
@@ -316,6 +315,14 @@ class GroupBy(object):
         """
         return self._cython_agg_general('mean')
 
+    def std(self):
+        """
+        Compute mean of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self._cython_agg_general('std')
+
     def size(self):
         """
         Compute group sizes
@@ -356,8 +363,8 @@ class GroupBy(object):
             else:
                 continue
 
-            result, counts =  lib.group_aggregate(obj, label_list,
-                                                  shape, how=how)
+            result, counts =  cython_aggregate(obj, label_list,
+                                               shape, how=how)
             result = result.ravel()
             mask = counts.ravel() > 0
             output[name] = result[mask]
@@ -1315,15 +1322,7 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
     -------
     generator
     """
-    # indexer = np.lexsort(label_list[::-1])
-    group_index = get_group_index(label_list, shape)
-    na_mask = np.zeros(len(label_list[0]), dtype=bool)
-    for arr in label_list:
-        na_mask |= arr == -1
-    group_index[na_mask] = -1
-    indexer = lib.groupsort_indexer(group_index.astype('i4'),
-                                    np.prod(shape))
-
+    indexer = _get_group_sorter(label_list, shape)
     sorted_labels = [labels.take(indexer) for labels in label_list]
 
     if isinstance(data, BlockManager):
@@ -1341,6 +1340,17 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
                            factory=factory)
     for key, group in gen:
         yield key, group
+
+def _get_group_sorter(label_list, shape):
+    group_index = get_group_index(label_list, shape)
+    na_mask = np.zeros(len(label_list[0]), dtype=bool)
+    for arr in label_list:
+        na_mask |= arr == -1
+    group_index[na_mask] = -1
+    indexer = lib.groupsort_indexer(group_index.astype('i4'),
+                                    np.prod(shape))
+
+    return indexer
 
 def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
                      factory=lambda x: x):
@@ -1384,6 +1394,50 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
                                       which=which + 1, factory=factory)
 
         left = right
+
+def get_group_index(label_list, shape):
+    n = len(label_list[0])
+    group_index = np.zeros(n, dtype=int)
+    mask = np.zeros(n, dtype=bool)
+    for i in xrange(len(shape)):
+        stride = np.prod([x for x in shape[i+1:]], dtype=int)
+        group_index += label_list[i] * stride
+        mask |= label_list[i] < 0
+
+    np.putmask(group_index, mask, -1)
+    return group_index
+
+#----------------------------------------------------------------------
+# Group aggregations in Cython
+
+
+def cython_aggregate(values, label_list, shape, how='add'):
+    agg_func = _cython_functions[how]
+    trans_func = _cython_transforms.get(how, lambda x: x)
+
+    group_index = get_group_index(label_list, shape).astype('i4')
+
+    result = np.empty(shape, dtype=np.float64)
+    result.fill(np.nan)
+
+    counts = np.zeros(shape, dtype=np.int32)
+    agg_func(result.ravel(), counts.ravel(), values,
+             group_index)
+
+    result = trans_func(result)
+
+    return result, counts
+
+_cython_functions = {
+    'add' : lib.group_add,
+    'mean' : lib.group_mean,
+    'var' : lib.group_var,
+    'std' : lib.group_var
+}
+
+_cython_transforms = {
+    'std' : np.sqrt
+}
 
 #----------------------------------------------------------------------
 # sorting levels...cleverly?
