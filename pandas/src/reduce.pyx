@@ -99,7 +99,8 @@ cdef class Grouper:
         object arr, dummy, f, labels, counts
         bint passed_dummy
 
-    def __init__(self, object arr, object f, object labels, ngroups, dummy=None):
+    def __init__(self, object arr, object index, object f,
+                 object labels, ngroups, dummy=None):
         n = len(arr)
 
         assert(arr.ndim == 1)

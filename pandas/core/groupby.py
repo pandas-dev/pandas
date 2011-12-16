@@ -232,20 +232,15 @@ class GroupBy(object):
         elif isinstance(self.obj, Series):
             tipo = Series
 
-        def flatten(gen, level=0, shape_axis=0):
-            ids = self.groupings[level].ids
-            for cat, subgen in gen:
-                if subgen is None:
-                    continue
+        id_list = [ping.ids for ping in self.groupings]
+        shape = tuple(len(ids) for ids in id_list)
 
-                if isinstance(subgen, tipo):
-                    yield (ids[cat],), subgen
-                else:
-                    for subcat, data in flatten(subgen, level=level+1,
-                                                shape_axis=shape_axis):
-                        yield (ids[cat],) + subcat, data
-
-        return flatten(self._generator_factory(data), shape_axis=self.axis)
+        for label, group in self._generator_factory(data):
+            if group is None:
+                continue
+            unraveled = np.unravel_index(label, shape)
+            key = tuple(id_list[i][j] for i, j in enumerate(unraveled))
+            yield key, group
 
     def apply(self, func, *args, **kwargs):
         """
@@ -387,51 +382,31 @@ class GroupBy(object):
         group_shape = self._group_shape
         counts = np.zeros(group_shape, dtype=int)
 
-        # want to cythonize?
-        def _doit(reschunk, ctchunk, gen, shape_axis=0):
-            for i, (_, subgen) in enumerate(gen):
-                # TODO: fixme
-                if subgen is None:
+        # todo: cythonize?
+        def _aggregate(output, counts, generator, shape_axis=0):
+            for label, group in generator:
+                if group is None:
                     continue
+                counts[label] = group.shape[shape_axis]
+                output[label] = func(group, *args, **kwargs)
 
-                if isinstance(subgen, PandasObject):
-                    size = subgen.shape[shape_axis]
-                    ctchunk[i] = size
-                    reschunk[i] = func(subgen, *args, **kwargs)
-                else:
-                    _doit(reschunk[i], ctchunk[i], subgen,
-                          shape_axis=shape_axis)
+        result = np.empty(group_shape, dtype=float)
+        result.fill(np.nan)
+        # iterate through "columns" ex exclusions to populate output dict
+        output = {}
+        for name, obj in self._iterate_slices():
+            try:
+                _aggregate(result.ravel(), counts.ravel(),
+                           self._generator_factory(obj))
+                # TODO: same mask for every column...
+                output[name] = result.ravel().copy()
+                result.fill(np.nan)
+            except TypeError:
+                continue
 
-        gen_factory = self._generator_factory
-
-        try:
-            stride_shape = self._agg_stride_shape
-            output = np.empty(group_shape + stride_shape, dtype=float)
-            output.fill(np.nan)
-            obj = self._obj_with_exclusions
-            _doit(output, counts, gen_factory(obj), shape_axis=self.axis)
-            mask = counts.ravel() > 0
-            output = output.reshape((np.prod(group_shape),) + stride_shape)
-            output = output[mask]
-        except Exception:
-            # we failed, try to go slice-by-slice / column-by-column
-
-            result = np.empty(group_shape, dtype=float)
-            result.fill(np.nan)
-            # iterate through "columns" ex exclusions to populate output dict
-            output = {}
-            for name, obj in self._iterate_slices():
-                try:
-                    _doit(result, counts, gen_factory(obj))
-                    # TODO: same mask for every column...
-                    output[name] = result.ravel().copy()
-                    result.fill(np.nan)
-                except TypeError:
-                    continue
-
-            mask = counts.ravel() > 0
-            for name, result in output.iteritems():
-                output[name] = result[mask]
+        mask = counts.ravel() > 0
+        for name, result in output.iteritems():
+            output[name] = result[mask]
 
         return self._wrap_aggregated_output(output, mask)
 
@@ -869,7 +844,7 @@ class DataFrameGroupBy(GroupBy):
     def _agg_stride_shape(self):
         if self._column is not None:
             # ffffff
-            return 1
+            return 1,
 
         if self.axis == 0:
             n = len(self.obj.columns)
@@ -1322,8 +1297,14 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
     -------
     generator
     """
-    indexer = _get_group_sorter(label_list, shape)
-    sorted_labels = [labels.take(indexer) for labels in label_list]
+    group_index = get_group_index(label_list, shape)
+    na_mask = np.zeros(len(label_list[0]), dtype=bool)
+    for arr in label_list:
+        na_mask |= arr == -1
+    group_index[na_mask] = -1
+    indexer = lib.groupsort_indexer(group_index.astype('i4'),
+                                    np.prod(shape))
+    group_index = group_index.take(indexer)
 
     if isinstance(data, BlockManager):
         # this is sort of wasteful but...
@@ -1334,29 +1315,6 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
         sorted_data = data.reindex(sorted_axis)
     elif isinstance(data, DataFrame):
         sorted_data = data.take(indexer, axis=axis)
-
-    gen = _generate_groups(sorted_data, sorted_labels, shape,
-                           0, len(label_list[0]), axis=axis, which=0,
-                           factory=factory)
-    for key, group in gen:
-        yield key, group
-
-def _get_group_sorter(label_list, shape):
-    group_index = get_group_index(label_list, shape)
-    na_mask = np.zeros(len(label_list[0]), dtype=bool)
-    for arr in label_list:
-        na_mask |= arr == -1
-    group_index[na_mask] = -1
-    indexer = lib.groupsort_indexer(group_index.astype('i4'),
-                                    np.prod(shape))
-
-    return indexer
-
-def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
-                     factory=lambda x: x):
-    axis_labels = labels[which][start:end]
-    edges = axis_labels.searchsorted(np.arange(1, shape[which] + 1),
-                                     side='left')
 
     if isinstance(data, DataFrame):
         def slicer(data, slob):
@@ -1371,29 +1329,13 @@ def _generate_groups(data, labels, shape, start, end, axis=0, which=0,
         def slicer(data, slob):
             return data[slob]
 
-    do_slice = which == len(labels) - 1
+    starts, ends = lib.generate_slices(group_index, np.prod(shape))
 
-    # omit -1 values at beginning-- NA values
-    left = axis_labels.searchsorted(0)
-
-    # time to actually aggregate
-    for i, right in enumerate(edges):
-        if do_slice:
-            slob = slice(start + left, start + right)
-
-            # skip empty groups in the cartesian product
-            if left == right:
-                yield i, None
-                continue
-
-            yield i, slicer(data, slob)
+    for i, (start, end) in enumerate(zip(starts, ends)):
+        if start == end:
+            yield i, None
         else:
-            # yield subgenerators, yikes
-            yield i, _generate_groups(data, labels, shape, start + left,
-                                      start + right, axis=axis,
-                                      which=which + 1, factory=factory)
-
-        left = right
+            yield i, slicer(sorted_data, slice(start, end))
 
 def get_group_index(label_list, shape):
     n = len(label_list[0])
