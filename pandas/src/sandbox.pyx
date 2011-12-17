@@ -51,3 +51,23 @@ def bench_typecheck2(ndarray[object] arr):
     for i in range(n):
         PyArray_Check(buf[i])
 
+
+def foo(object _chunk, object _arr):
+    cdef:
+        char* dummy_buf
+        ndarray arr, result, chunk
+
+    arr = _arr
+    chunk = _chunk
+
+    dummy_buf = chunk.data
+    chunk.data = arr.data
+
+    shape = chunk.shape
+    group_size = 0
+    n = len(arr)
+
+    inc = arr.dtype.itemsize
+
+    # chunk.shape[0] = 100
+    return chunk

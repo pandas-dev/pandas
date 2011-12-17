@@ -193,6 +193,12 @@ class GroupBy(object):
     def primary(self):
         return self.groupings[0]
 
+    @property
+    def _group_index(self):
+        result = get_group_index([ping.labels for ping in self.groupings],
+                                 self._group_shape)
+        return result.astype('i4')
+
     def get_group(self, name, obj=None):
         if obj is None:
             obj = self.obj
@@ -379,28 +385,18 @@ class GroupBy(object):
         return [(name, raveled[mask]) for name, raveled in name_list]
 
     def _python_agg_general(self, func, *args, **kwargs):
-        group_shape = self._group_shape
-        counts = np.zeros(group_shape, dtype=int)
+        agg_func = lambda x: func(x, *args, **kwargs)
 
-        # todo: cythonize?
-        def _aggregate(output, counts, generator, shape_axis=0):
-            for label, group in generator:
-                if group is None:
-                    continue
-                counts[label] = group.shape[shape_axis]
-                output[label] = func(group, *args, **kwargs)
+        ngroups = np.prod(self._group_shape)
+        group_index = self._group_index
 
-        result = np.empty(group_shape, dtype=float)
-        result.fill(np.nan)
         # iterate through "columns" ex exclusions to populate output dict
         output = {}
         for name, obj in self._iterate_slices():
             try:
-                _aggregate(result.ravel(), counts.ravel(),
-                           self._generator_factory(obj))
-                # TODO: same mask for every column...
-                output[name] = result.ravel().copy()
-                result.fill(np.nan)
+                result, counts = self._aggregate_series(obj, agg_func,
+                                                        group_index, ngroups)
+                output[name] = result
             except TypeError:
                 continue
 
@@ -409,6 +405,39 @@ class GroupBy(object):
             output[name] = result[mask]
 
         return self._wrap_aggregated_output(output, mask)
+
+    def _aggregate_series(self, obj, func, group_index, ngroups):
+        try:
+            return self._aggregate_series_fast(obj, func, group_index, ngroups)
+        except Exception:
+            return self._aggregate_series_pure_python(obj, func, ngroups)
+
+    def _aggregate_series_fast(self, obj, func, group_index, ngroups):
+        if obj.index._has_complex_internals:
+            raise TypeError('Incompatible index for Cython grouper')
+
+        # avoids object / Series creation overhead
+        dummy = obj[:0]
+        indexer = lib.groupsort_indexer(group_index, ngroups)
+        obj = obj.take(indexer)
+        group_index = group_index.take(indexer)
+        grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
+                                    dummy)
+        result, counts = grouper.get_result()
+        return result, counts
+
+    def _aggregate_series_pure_python(self, obj, func, ngroups):
+        counts = np.zeros(ngroups, dtype=int)
+        result = np.empty(ngroups, dtype=float)
+        result.fill(np.nan)
+
+        for label, group in self._generator_factory(obj):
+            if group is None:
+                continue
+            counts[label] = group.shape[0]
+            result[label] = func(group)
+
+        return result, counts
 
     def _python_apply_general(self, func, *args, **kwargs):
         result_keys = []

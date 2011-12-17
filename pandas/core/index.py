@@ -93,6 +93,11 @@ class Index(np.ndarray):
     def _constructor(self):
         return Index
 
+    @property
+    def _has_complex_internals(self):
+        # to disable groupby tricks in MultiIndex
+        return False
+
     def summary(self):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
@@ -923,6 +928,11 @@ class MultiIndex(Index):
     def _is_legacy_format(self):
         contents = self.view(np.ndarray)
         return len(contents) > 0 and not isinstance(contents[0], tuple)
+
+    @property
+    def _has_complex_internals(self):
+        # to disable groupby tricks
+        return True
 
     def get_level_values(self, level):
         """

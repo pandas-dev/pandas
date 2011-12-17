@@ -95,28 +95,23 @@ cdef class SeriesGrouper:
     overhead
     '''
     cdef:
-        Py_ssize_t nresults, ngroup
-        object arr, dummy, f, labels, counts
+        Py_ssize_t nresults, ngroups
         bint passed_dummy
 
-    def __init__(self, object arr, object f, object labels, ngroups,
-                 dummy=None):
-        n = len(arr)
+    cdef public:
+        object arr, index, dummy, f, labels
 
-        assert(arr.ndim == 1)
-
-        if not arr.flags.contiguous:
-            arr = arr.copy()
+    def __init__(self, object series, object f, object labels,
+                 Py_ssize_t ngroups, object dummy):
+        n = len(series)
 
         self.labels = labels
         self.f = f
-        self.arr = arr
+        self.arr = series
+        self.index = series.index
 
         self.dummy = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
-
-        self.counts = np.zeros(ngroups, dtype='i4')
-
         self.ngroups = ngroups
 
     def _check_dummy(self, dummy=None):
@@ -125,42 +120,25 @@ cdef class SeriesGrouper:
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
-            if len(dummy) != self.chunksize:
-                raise ValueError('Dummy array must be length %d' %
-                                 self.chunksize)
-
         return dummy
 
     def get_result(self):
         cdef:
-            char* dummy_buf
-            ndarray arr, result, chunk
+            ndarray arr, result
             ndarray[int32_t] labels, counts
-            Py_ssize_t i, group_size, n, lab
-            flatiter it
-            npy_intp *shape
-            object res
+            Py_ssize_t i, n, group_size, lab
+            object res, chunk
             bint initialized = 0
-            tuple args
-            object kwds
+            Slider vslider, islider
 
         labels = self.labels
-        counts = self.counts
-
-        arr = self.arr
+        counts = np.zeros(self.ngroups, dtype='i4')
         chunk = self.dummy
-
-        dummy_buf = chunk.data
-        chunk.data = arr.data
-
-        shape = chunk.shape
         group_size = 0
-        n = len(arr)
+        n = len(self.arr)
 
-        args = cpython.PyTuple_New(1)
-        kwds = {}
-        cpython.PyTuple_SET_ITEM(args, 0, chunk)
-        cpython.Py_INCREF(chunk)
+        vslider = Slider(self.arr, self.dummy)
+        islider = Slider(self.index, self.dummy.index)
 
         try:
             for i in range(n):
@@ -169,33 +147,32 @@ cdef class SeriesGrouper:
                 lab = labels[i]
 
                 if i == n - 1 or lab != labels[i + 1]:
-                    chunk.shape[0] = group_size
+                    islider.set_length(group_size)
+                    vslider.set_length(group_size)
 
-                    res = cpython.PyObject_Call(self.f, args, kwds)
+                    res = self.f(chunk)
 
-                    # res = self.f(chunk)
                     if not initialized:
                         result = self._get_result_array(res)
-                        it = <flatiter> PyArray_IterNew(result)
                         initialized = 1
 
-                    PyArray_ITER_GOTO1D(it, lab)
-                    PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
+                    util.assign_value_1d(result, lab, res)
                     counts[lab] = group_size
+                    islider.advance(group_size)
+                    vslider.advance(group_size)
 
-                    chunk.data = chunk.data + group_size
                     group_size = 0
         except:
             raise
         finally:
             # so we don't free the wrong memory
-            chunk.shape[0] = 0
-            chunk.data = dummy_buf
+            islider.cleanup()
+            vslider.cleanup()
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
 
-        return result
+        return result, counts
 
     def _get_result_array(self, object res):
         try:
@@ -206,6 +183,40 @@ cdef class SeriesGrouper:
         except Exception:
             raise ValueError('function does not reduce')
         return result
+
+cdef class Slider:
+    '''
+    Only handles contiguous data for now
+    '''
+    cdef:
+        ndarray values, buf
+        Py_ssize_t stride, orig_len
+        char *orig_data
+
+    def __init__(self, object values, object buf):
+        assert(values.ndim == 1)
+        if not values.flags.contiguous:
+            values = values.copy()
+
+        assert(values.dtype == buf.dtype)
+        self.values = values
+        self.buf = buf
+        self.stride = values.dtype.itemsize
+
+        self.orig_data = self.buf.data
+        self.orig_len = self.buf.shape[0]
+
+        self.buf.data = self.values.data
+
+    cdef inline advance(self, Py_ssize_t k):
+        self.buf.data = <char*> self.buf.data + self.stride * k
+
+    cdef inline set_length(self, Py_ssize_t length):
+        self.buf.shape[0] = length
+
+    cdef inline cleanup(self):
+        self.buf.shape[0] = self.orig_len
+        self.buf.data = self.orig_data
 
 def reduce(arr, f, axis=0, dummy=None):
     reducer = Reducer(arr, f, axis=axis, dummy=dummy)
