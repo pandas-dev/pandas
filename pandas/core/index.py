@@ -378,10 +378,11 @@ class Index(np.ndarray):
         return self._wrap_union_result(other, result)
 
     def _wrap_union_result(self, other, result):
+        name = self.name if self.name == other.name else None
         if type(self) == type(other):
-            return type(self)(result)
+            return type(self)(result, name=name)
         else:
-            return Index(result)
+            return Index(result, name=name)
 
     def intersection(self, other):
         """
@@ -586,12 +587,6 @@ class Index(np.ndarray):
             return join_index
 
     def _join_monotonic(self, other, how='left', return_indexers=False):
-        this_vals = self.values
-
-        # if self.dtype != other.dtype:
-        #     other = Index(other, dtype=object)
-        other_vals = other.values
-
         if how == 'left':
             join_index = self
             lidx = None
@@ -601,10 +596,12 @@ class Index(np.ndarray):
             lidx = self._left_indexer(other, self)
             ridx = None
         elif how == 'inner':
-            join_index, lidx, ridx = self._inner_indexer(this_vals, other_vals)
+            join_index, lidx, ridx = self._inner_indexer(self.values,
+                                                         other.values)
             join_index = self._wrap_joined_index(join_index, other)
         elif how == 'outer':
-            join_index, lidx, ridx = self._outer_indexer(this_vals, other_vals)
+            join_index, lidx, ridx = self._outer_indexer(self.values,
+                                                         other.values)
             join_index = self._wrap_joined_index(join_index, other)
         else:  # pragma: no cover
             raise Exception('do not recognize join method %s' % how)

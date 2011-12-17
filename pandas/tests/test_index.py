@@ -175,6 +175,16 @@ class TestIndex(unittest.TestCase):
         # non-iterable input
         self.assertRaises(Exception, first.union, 0.5)
 
+        # preserve names
+        first.name = 'A'
+        second.name = 'A'
+        union = first.union(second)
+        self.assert_(union.name == 'A')
+
+        second.name = 'B'
+        union = first.union(second)
+        self.assert_(union.name is None)
+
     def test_add(self):
         firstCat = self.strIndex + self.dateIndex
         secondCat = self.strIndex + self.strIndex

@@ -286,6 +286,30 @@ class DateRange(Index):
         if not isinstance(other, DateRange) or other.offset != self.offset:
             return Index.union(self.view(Index), other)
 
+        if self._can_fast_union(other):
+            return self._fast_union(other)
+        else:
+            return Index.union(self, other)
+
+    def _wrap_union_result(self, other, result):
+        name = self.name if self.name == other.name else None
+        if isinstance(other, DateRange) and self._can_fast_union(other):
+            result = self._view_like(result)
+            result.name = name
+            return result
+        else:
+            return Index(result, name=name)
+
+    def _wrap_joined_index(self, joined, other):
+        name = self.name if self.name == other.name else None
+        if isinstance(other, DateRange) and self._can_fast_union(other):
+            joined = self._view_like(joined)
+            joined.name = name
+            return joined
+        else:
+            return Index(joined, name=name)
+
+    def _can_fast_union(self, other):
         offset = self.offset
 
         # to make our life easier, "sort" the two ranges
@@ -298,10 +322,30 @@ class DateRange(Index):
         right_start = right[0]
 
         # Only need to "adjoin", not overlap
-        if (left_end + offset) >= right_start:
-            return left._fast_union(right)
+        return (left_end + offset) >= right_start
+
+    def _fast_union(self, other):
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
         else:
-            return Index.union(self, other)
+            left, right = other, self
+
+        left_start, left_end = left[0], left[-1]
+        right_end = right[-1]
+
+        if not _will_use_cache(self.offset):
+            # concatenate dates
+            if left_end < right_end:
+                loc = right.searchsorted(left_end, side='right')
+                right_chunk = right.values[loc:]
+                dates = np.concatenate((left.values, right_chunk))
+                return self._view_like(dates)
+            else:
+                return left
+        else:
+            return DateRange(left_start, max(left_end, right_end),
+                             offset=left.offset)
 
     def intersection(self, other):
         """
@@ -335,34 +379,12 @@ class DateRange(Index):
             left_chunk = left.values[lslice]
             return self._view_like(left_chunk)
 
-    def _fast_union(self, other):
-        left, right = self, other
-
-        left_start, left_end = left[0], left[-1]
-        right_end = right[-1]
-
-        if not _will_use_cache(self.offset):
-            # concatenate dates
-            if left_end < right_end:
-                loc = right.searchsorted(left_end, side='right')
-                right_chunk = right.values[loc:]
-                dates = np.concatenate((left.values, right_chunk))
-                return self._view_like(dates)
-            else:
-                return left
-        else:
-            return DateRange(left_start, max(left_end, right_end),
-                             offset=left.offset)
-
     def _view_like(self, ndarray):
         result = ndarray.view(DateRange)
         result.offset = self.offset
         result.tzinfo = self.tzinfo
         result.name = self.name
         return result
-
-    def _wrap_union_result(self, other, result):
-        return Index(result)
 
     def tz_normalize(self, tz):
         """
