@@ -3554,7 +3554,9 @@ def _list_to_sdict(data, columns):
     if columns is None:
         columns = range(len(content))
     else:
-        assert(len(columns) == len(content))
+        if len(columns) != len(content):
+            raise AssertionError('%d columns passed, passed data had %s '
+                                 'columns' % (len(columns), len(content)))
 
     sdict = dict((c, lib.maybe_convert_objects(vals))
                  for c, vals in zip(columns, content))
