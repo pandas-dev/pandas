@@ -515,7 +515,8 @@ class Index(np.ndarray):
         if method == 'pad':
             indexer = self._pad(self, target, self.indexMap, target.indexMap)
         elif method == 'backfill':
-            indexer = self._backfill(self, target, self.indexMap, target.indexMap)
+            indexer = self._backfill(self, target, self.indexMap,
+                                     target.indexMap)
         elif method is None:
             indexer = self._get_indexer_standard(target)
         else:
@@ -523,7 +524,8 @@ class Index(np.ndarray):
         return indexer
 
     def _get_indexer_standard(self, other):
-        if self.is_monotonic and other.is_monotonic:
+        if (self.dtype != np.object_ and
+            self.is_monotonic and other.is_monotonic):
             return self._left_indexer(other, self)
         else:
             return self._merge_indexer(other, self.indexMap)
