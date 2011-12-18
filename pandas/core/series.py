@@ -251,20 +251,18 @@ copy : boolean, default False
     def __getitem__(self, key):
         # Label-based
         try:
+            return self.index._engine.get_value(self, key)
+        except KeyError, e1:
             if isinstance(self.index, MultiIndex):
                 return self._multilevel_index(key)
-            else:
-                hash(key)
-                try:
-                    return self.get_value(key)
-                except KeyError, e1:
-                    try:
-                        return _gin.get_value_at(self, key)
-                    except IndexError:
-                        raise
-                    except Exception, _:
-                        pass
-                    raise e1
+
+            try:
+                return _gin.get_value_at(self, key)
+            except IndexError:
+                raise
+            except Exception, _:
+                pass
+            raise e1
         except TypeError:
             pass
 
