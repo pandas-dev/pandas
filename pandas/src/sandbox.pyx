@@ -198,9 +198,36 @@ def obj_unique(ndarray[object] arr):
     kh_destroy_pyset(table)
 
     return None
-    # try:
-    #     uniques.sort()
-    # except Exception:
-    #     pass
 
-    # return uniques
+def int64_unique(ndarray[int64_t] arr):
+    cdef:
+        kh_int64_t *table
+        # PyObject *obj
+        int64_t obj
+        PyObject **data
+        int ret
+        khiter_t k
+        Py_ssize_t i, j, n
+        ndarray[int64_t] uniques
+
+    n = len(arr)
+    uniques = np.empty(n, dtype='i8')
+
+    table = kh_init_int64()
+    kh_resize_int64(table, n)
+
+    j = 0
+
+    for i in range(n):
+        obj = arr[i]
+
+        k = kh_get_int64(table, obj)
+        if not kh_exist_int64(table, k):
+            k = kh_put_int64(table, obj, &ret)
+            uniques[j] = obj
+            j += 1
+            # Py_INCREF(<object> obj)
+
+    kh_destroy_int64(table)
+
+    return np.sort(uniques[:j])

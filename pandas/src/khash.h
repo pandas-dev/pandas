@@ -313,11 +313,17 @@ static CYTHON_INLINE khint_t __ac_X31_hash_string(const char *s)
 #define KHASH_MAP_INIT_INT(name, khval_t)								\
 	KHASH_INIT(name, uint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
-#define KHASH_SET_INIT_INT64(name)										\
+#define KHASH_SET_INIT_UINT64(name)										\
 	KHASH_INIT(name, uint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
 
-#define KHASH_MAP_INIT_INT64(name, khval_t)								\
+#define KHASH_MAP_INIT_UINT64(name, khval_t)								\
 	KHASH_INIT(name, uint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+
+#define KHASH_SET_INIT_INT64(name)										\
+	KHASH_INIT(name, int64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
+
+#define KHASH_MAP_INIT_INT64(name, khval_t)								\
+	KHASH_INIT(name, int64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
 typedef const char *kh_cstr_t;
 #define KHASH_SET_INIT_STR(name)										\
@@ -349,7 +355,10 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 #define kh_exist_pymap(h, k) (kh_exist(h, k))
 #define kh_exist_pyset(h, k) (kh_exist(h, k))
 #define kh_exist_str(h, k) (kh_exist(h, k))
+#define kh_exist_int64(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, Py_ssize_t)
+
+KHASH_MAP_INIT_INT64(int64, Py_ssize_t)
 
 #endif /* __AC_KHASH_H */
