@@ -2406,8 +2406,12 @@ class DataFrame(NDFrame):
                 results[k] = func(v)
 
         if len(results) > 0 and _is_sequence(results.values()[0]):
-            result = self._constructor(data=results, index=res_columns,
-                                       columns=res_index)
+            if not isinstance(results.values()[0], Series):
+                index = res_columns
+            else:
+                index = None
+
+            result = self._constructor(data=results, index=index)
 
             if axis == 1:
                 result = result.T

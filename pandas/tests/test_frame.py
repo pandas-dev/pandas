@@ -3001,6 +3001,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame.mean(1)
         assert_series_equal(result, expected)
 
+    def test_apply_differently_indexed(self):
+        df = DataFrame(np.random.randn(20, 10))
+
+        result0 = df.apply(Series.describe, axis=0)
+        expected0 = DataFrame(dict((i, v.describe())
+                                   for i, v in df.iteritems()),
+                              columns=df.columns)
+        assert_frame_equal(result0, expected0)
+
+        result1 = df.apply(Series.describe, axis=1)
+        expected1 = DataFrame(dict((i, v.describe())
+                                   for i, v in df.T.iteritems()),
+                              columns=df.index).T
+        assert_frame_equal(result1, expected1)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
