@@ -84,6 +84,19 @@ int main() {
 #include <stdlib.h>
 #include <string.h>
 
+
+#ifndef CYTHON_INLINE
+  #if defined(__GNUC__)
+    #define CYTHON_INLINE __inline__
+  #elif defined(_MSC_VER)
+    #define CYTHON_INLINE __inline
+  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+    #define CYTHON_INLINE inline
+  #else
+    #define CYTHON_INLINE
+  #endif
+#endif
+
 typedef uint32_t khint_t;
 typedef khint_t khiter_t;
 
@@ -116,10 +129,10 @@ static const double __ac_HASH_UPPER = 0.77;
 		khkey_t *keys;													\
 		khval_t *vals;													\
 	} kh_##name##_t;													\
-	static inline kh_##name##_t *kh_init_##name() {						\
+	static CYTHON_INLINE kh_##name##_t *kh_init_##name() {						\
 		return (kh_##name##_t*)calloc(1, sizeof(kh_##name##_t));		\
 	}																	\
-	static inline void kh_destroy_##name(kh_##name##_t *h)				\
+	static CYTHON_INLINE void kh_destroy_##name(kh_##name##_t *h)				\
 	{																	\
 		if (h) {														\
 			free(h->keys); free(h->flags);								\
@@ -127,14 +140,14 @@ static const double __ac_HASH_UPPER = 0.77;
 			free(h);													\
 		}																\
 	}																	\
-	static inline void kh_clear_##name(kh_##name##_t *h)				\
+	static CYTHON_INLINE void kh_clear_##name(kh_##name##_t *h)				\
 	{																	\
 		if (h && h->flags) { \
 			memset(h->flags, 0xaa, ((h->n_buckets>>4) + 1) * sizeof(uint32_t)); \
 			h->size = h->n_occupied = 0;								\
 		}																\
 	}																	\
-	static inline khint_t kh_get_##name(kh_##name##_t *h, khkey_t key)	\
+	static CYTHON_INLINE khint_t kh_get_##name(kh_##name##_t *h, khkey_t key)	\
 	{																	\
 		if (h->n_buckets) {												\
 			khint_t inc, k, i, last;									\
@@ -148,7 +161,7 @@ static const double __ac_HASH_UPPER = 0.77;
 			return __ac_iseither(h->flags, i)? h->n_buckets : i;			\
 		} else return 0;												\
 	}																	\
-	static inline void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets) \
+	static CYTHON_INLINE void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets) \
 	{																	\
 		uint32_t *new_flags = 0;										\
 		khint_t j = 1;													\
@@ -208,7 +221,7 @@ static const double __ac_HASH_UPPER = 0.77;
 			h->upper_bound = (khint_t)(h->n_buckets * __ac_HASH_UPPER + 0.5); \
 		}																\
 	}																	\
-	static inline khint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret) \
+	static CYTHON_INLINE khint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret) \
 	{																	\
 		khint_t x;														\
 		if (h->n_occupied >= h->upper_bound) {							\
@@ -246,7 +259,7 @@ static const double __ac_HASH_UPPER = 0.77;
 		} else *ret = 0;												\
 		return x;														\
 	}																	\
-	static inline void kh_del_##name(kh_##name##_t *h, khint_t x)		\
+	static CYTHON_INLINE void kh_del_##name(kh_##name##_t *h, khint_t x)		\
 	{																	\
 		if (x != h->n_buckets && !__ac_iseither(h->flags, x)) {			\
 			__ac_set_isdel_true(h->flags, x);							\
@@ -260,7 +273,7 @@ static const double __ac_HASH_UPPER = 0.77;
 #define kh_int_hash_equal(a, b) (a == b)
 #define kh_int64_hash_func(key) (uint32_t)((key)>>33^(key)^(key)<<11)
 #define kh_int64_hash_equal(a, b) (a == b)
-static inline khint_t __ac_X31_hash_string(const char *s)
+static CYTHON_INLINE khint_t __ac_X31_hash_string(const char *s)
 {
 	khint_t h = *s;
 	if (h) for (++s ; *s; ++s) h = (h << 5) - h + *s;
@@ -315,12 +328,28 @@ typedef const char *kh_cstr_t;
 
 #include <Python.h>
 
-#define kh_python_hash_func(key) PyObject_Hash(key)
-#define kh_python_hash_equal(a, b) PyObject_RichCompareBool(a, b, Py_EQ)
+#define kh_python_hash_func(key) (PyObject_Hash(key))
+#define kh_python_hash_equal(a, b) (PyObject_RichCompareBool(a, b, Py_EQ))
 
-#define KHASH_SET_INIT_PYOBJECT(name, khval_t)                                  \
-	KHASH_INIT(name, PyObject*, khval_t, 0, kh_python_hash_func, kh_python_hash_equal)
 
-KHASH_MAP_INIT_PYOBJECT(python, uint32_t)
+// Python object
+
+typedef PyObject* kh_pyobject_t;
+
+#define KHASH_MAP_INIT_PYOBJECT(name, khval_t)                                  \
+	KHASH_INIT(name, kh_pyobject_t, khval_t, 1, kh_python_hash_func, kh_python_hash_equal)
+
+KHASH_MAP_INIT_PYOBJECT(pymap, Py_ssize_t)
+
+#define KHASH_SET_INIT_PYOBJECT(name)                                  \
+	KHASH_INIT(name, kh_pyobject_t, char, 0, kh_python_hash_func, kh_python_hash_equal)
+
+KHASH_SET_INIT_PYOBJECT(pyset)
+
+#define kh_exist_pymap(h, k) (kh_exist(h, k))
+#define kh_exist_pyset(h, k) (kh_exist(h, k))
+#define kh_exist_str(h, k) (kh_exist(h, k))
+
+KHASH_MAP_INIT_STR(str, Py_ssize_t)
 
 #endif /* __AC_KHASH_H */
