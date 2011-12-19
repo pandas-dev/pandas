@@ -1111,6 +1111,8 @@ class DataFrame(NDFrame):
                                   'DataFrame objects')
 
             self._boolean_set(key, value)
+        elif isinstance(key, (np.ndarray, list)):
+            return self._set_item_multiple(key, value)
         else:
             # set column
             self._set_item(key, value)
@@ -1129,6 +1131,28 @@ class DataFrame(NDFrame):
         else:
             self.values[mask] = value
 
+    def _set_item_multiple(self, keys, value):
+        if isinstance(value, DataFrame):
+            assert(len(value.columns) == len(keys))
+            for k1, k2 in zip(keys, value.columns):
+                self[k1] = value[k2]
+        else:
+            self.ix[:, keys] = value
+
+    def _set_item(self, key, value):
+        """
+        Add series to DataFrame in specified column.
+
+        If series is a numpy-array (not a Series/TimeSeries), it must be the
+        same length as the DataFrame's index or an error will be thrown.
+
+        Series/TimeSeries will be conformed to the DataFrame's index to
+        ensure homogeneity.
+        """
+        value = self._sanitize_column(value)
+        value = np.atleast_2d(value)
+        NDFrame._set_item(self, key, value)
+
     def insert(self, loc, column, value):
         """
         Insert column into DataFrame at specified location. Raises Exception if
@@ -1144,20 +1168,6 @@ class DataFrame(NDFrame):
         value = self._sanitize_column(value)
         value = np.atleast_2d(value)
         self._data.insert(loc, column, value)
-
-    def _set_item(self, key, value):
-        """
-        Add series to DataFrame in specified column.
-
-        If series is a numpy-array (not a Series/TimeSeries), it must be the
-        same length as the DataFrame's index or an error will be thrown.
-
-        Series/TimeSeries will be conformed to the DataFrame's index to
-        ensure homogeneity.
-        """
-        value = self._sanitize_column(value)
-        value = np.atleast_2d(value)
-        NDFrame._set_item(self, key, value)
 
     def _sanitize_column(self, value):
         # Need to make sure new columns (which go into the BlockManager as new

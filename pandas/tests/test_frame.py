@@ -70,6 +70,14 @@ class CheckIndexing(object):
         self.assertRaises(Exception, self.frame.__getitem__,
                           Index(['B', 'A', 'foo']))
 
+    def test_setitem_list(self):
+        self.frame['E'] = 'foo'
+        data = self.frame[['A', 'B']]
+        self.frame[['B', 'A']] = data
+
+        assert_series_equal(self.frame['B'], data['A'])
+        assert_series_equal(self.frame['A'], data['B'])
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]
