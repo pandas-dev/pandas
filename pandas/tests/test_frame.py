@@ -1537,9 +1537,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_repr_tuples(self):
         buf = StringIO()
 
-        arr = np.empty(10, dtype=object)
-        arr[:] = zip(range(10), range(10))
-        df = DataFrame({'tups' : arr})
+        df = DataFrame({'tups' : zip(range(10), range(10))})
         repr(df)
         df.to_string(colSpace=10, buf=buf)
 
