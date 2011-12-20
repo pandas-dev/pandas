@@ -659,8 +659,12 @@ def _asarray_tuplesafe(values, dtype=None):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
-        result = np.empty(len(values), dtype=object)
-        result[:] = values
+        if isinstance(values, list):
+            return lib.list_to_object_array(values)
+        else:
+            # give it our best shot
+            result = np.empty(len(values), dtype=object)
+            result[:] = values
 
     return result
 
