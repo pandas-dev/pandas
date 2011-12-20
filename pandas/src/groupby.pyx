@@ -513,7 +513,7 @@ def duplicated(list values, take_last=False):
     return result.view(np.bool_)
 
 
-def generate_slices(ndarray[Py_ssize_t] labels, Py_ssize_t ngroups):
+def generate_slices(ndarray[int32_t] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, lab, start
         object slobj

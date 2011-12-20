@@ -1358,7 +1358,8 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
         def slicer(data, slob):
             return data[slob]
 
-    starts, ends = lib.generate_slices(group_index, np.prod(shape))
+    starts, ends = lib.generate_slices(group_index.astype('i4'),
+                                       np.prod(shape))
 
     for i, (start, end) in enumerate(zip(starts, ends)):
         if start == end:
