@@ -3559,11 +3559,15 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 def _list_to_sdict(data, columns):
-    if isinstance(data[0], tuple):
+    if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
-    else:
+    elif len(data) > 0:
         # list of lists
         content = list(lib.to_object_array(data).T)
+    else:
+        if columns is None:
+            columns = []
+        return {}, columns
 
     if columns is None:
         columns = range(len(content))

@@ -1428,6 +1428,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame.from_records(tuples)
         self.assert_(np.array_equal(result.columns, range(4)))
 
+        # empty case
+        result = DataFrame.from_records([], columns=['foo', 'bar', 'baz'])
+        self.assertEqual(len(result), 0)
+        self.assert_(np.array_equal(result.columns, ['foo', 'bar', 'baz']))
+
+        result = DataFrame.from_records([])
+        self.assertEqual(len(result), 0)
+        self.assertEqual(len(result.columns), 0)
+
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
         self.assert_(cols is self.frame.columns)

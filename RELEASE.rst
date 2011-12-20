@@ -65,6 +65,7 @@ pandas 0.6.2
     array (GH #490)
   - Return empty string from Series.to_string when called on empty Series (GH
     #488)
+  - Fix exception passing empty list to DataFrame.from_records
 
 Thanks
 ------

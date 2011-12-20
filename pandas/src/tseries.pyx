@@ -9,6 +9,7 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyTuple_SetItem,
                       PyTuple_New)
 from cpython cimport PyFloat_Check
+cimport cpython
 
 import numpy as np
 isnan = np.isnan
@@ -447,6 +448,23 @@ cdef class cache_readonly(object):
 cpdef is_array(object o):
     return np.PyArray_Check(o)
 
+
+# cdef class TypeConverter:
+#     cdef:
+#         cpython.PyTypeObject* klass_type
+
+#     cdef readonly:
+#         object factory
+#         object klass
+
+#     def __init__(self, object klass, factory):
+#         self.klass_type = (<PyObject*> klass).ob_type
+#         self.factory = factory
+
+#     def convert(self, object obj):
+#         if cpython.PyObject_TypeCheck(obj, self.klass_type):
+#             return obj
+#         return self.factory(obj)
 
 include "skiplist.pyx"
 include "groupby.pyx"

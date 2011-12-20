@@ -25,5 +25,5 @@ for i in range(1, K + 1):
 """
 stmt = "SparseDataFrame(series)"
 
-bm_sparse1 = Benchmark(stmt, setup, name="SparseSeries to SparseDataFrame",
+bm_sparse1 = Benchmark(stmt, setup, name="sparse_series_to_frame",
                       start_date=datetime(2011, 6, 1))

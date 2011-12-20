@@ -2,7 +2,7 @@ from vbench.api import Benchmark, GitRepo, BenchmarkRunner
 from datetime import datetime
 
 modules = ['groupby', 'indexing', 'reindex', 'binary_ops',
-           'sparse']
+           'sparse', 'index_object']
 
 all_benchmarks = []
 for modname in modules:
