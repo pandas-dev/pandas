@@ -1,5 +1,5 @@
 from cpython cimport PyObject
-from numpy cimport int64_t
+from numpy cimport int64_t, uint32_t
 
 cdef extern from "khash.h":
     ctypedef uint32_t khint_t
