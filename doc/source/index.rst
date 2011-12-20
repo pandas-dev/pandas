@@ -123,4 +123,5 @@ See the package overview for more detail about what's in the library.
     r_interface
     related
     comparison_with_r
+    benchmarks
     api

@@ -27,6 +27,47 @@ pandas 0.6.2
 
 **Release date:** NOT YET RELEASED
 
+**New features / modules**
+
+  - Handle differently-indexed output values in ``DataFrame.apply`` (GH #498)
+
+**Improvements to existing features**
+
+  - Better error message in DataFrame constructor when passed column labels
+    don't match data (GH #497)
+  - Substantially improve performance of multi-GroupBy aggregation when a
+    Python function is passed, reuse ndarray object in Cython (GH #496)
+  - Can store objects indexed by tuples and floats in HDFStore (GH #492)
+  - Don't print length by default in Series.to_string, add `length` option (GH
+    #489)
+  - Improve Cython code for multi-groupby to aggregate without having to sort
+    the data (GH #93)
+  - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,
+    test for backwards unpickling compatibility
+  - Improve column reindexing performance by using specialized Cython take
+    function
+  - Further performance tweaking of Series.__getitem__ for standard use cases
+
+**Bug fixes**
+
+  - Raise exception in out-of-bounds indexing of Series instead of
+    seg-faulting, regression from earlier releases (GH #495)
+  - Fix error when joining DataFrames of different dtypes within the same
+    typeclass (e.g. float32 and float64) (GH #486)
+  - Fix bug in Series.min/Series.max on objects like datetime.datetime (GH
+    #487)
+  - Preserve index names in Index.union (GH #501)
+  - Fix bug in Index joining causing subclass information (like DateRange type)
+    to be lost in some cases (GH #500)
+  - Accept empty list as input to DataFrame constructor, regression from 0.6.0
+    (GH #491)
+  - Can output DataFrame and Series with ndarray objects in a dtype=object
+    array (GH #490)
+  - Return empty string from Series.to_string when called on empty Series (GH
+    #488)
+
+Thanks
+------
 
 pandas 0.6.1
 ============

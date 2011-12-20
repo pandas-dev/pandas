@@ -187,8 +187,10 @@ As we will see later on, the same operation could be accomplished by
 reindexing. However, the syntax would be more verbose; hence, the inclusion of
 this indexing method.
 
-Selecting DataFrame columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _indexing.columns.multiple:
+
+Getting and setting multiple DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can pass a list of columns to ``[]`` to select columns in that order:
 
@@ -196,7 +198,17 @@ You can pass a list of columns to ``[]`` to select columns in that order:
 
    df[['C', 'A', 'B']]
 
-If a column is not contained in the DataFrame, an exception will be raised:
+If a column is not contained in the DataFrame, an exception will be
+raised. Multiple columns can also be set in this manner:
+
+.. ipython:: python
+
+   df
+   df[['B', 'A']] = df[['A', 'B']]
+   df
+
+You may find this useful for applying a transform (in-place) to a subset of the
+columns.
 
 .. _indexing.advanced:
 

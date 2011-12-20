@@ -3,3 +3,94 @@
 
 v.0.6.2 (Not Yet Released)
 --------------------------
+
+These are new features and improvements of note in this release.
+
+New functions or features
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Can set multiple columns in a DataFrame, useful for transformation (Issue342_)
+
+.. ipython:: python
+
+   DataFrame(randn(10, 3), columns=['A', 'B', 'C'])
+
+Improvements to existing features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Handle differently-indexed output values in ``DataFrame.apply`` (Issue498_)
+
+.. ipython:: python
+
+   df = DataFrame(randn(10, 4))
+   df.apply(lambda x: x.describe())
+
+- You can now :ref:`set multiple columns <indexing.columns.multiple>` in a
+  DataFrame via ``__getitem__``.
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Cythonized GroupBy aggregations no longer presort the data, thus achieving a
+significant speedup (Issue93_)
+
+.. code-block:: ipython
+
+    In [5]: df
+    Out[5]:
+    <class 'pandas.core.frame.DataFrame'>
+    Int64Index: 100000 entries, 0 to 99999
+    Data columns:
+    data    100000  non-null values
+    key1    100000  non-null values
+    key2    100000  non-null values
+    dtypes: float64(1), object(2)
+
+    In [6]: df[:10]
+    Out[6]:
+       data     key1  key2
+    0  2.708    4     1
+    1 -1.945    2     4
+    2 -1.123    2     0
+    3  0.09592  0     0
+    4  2.328    0     3
+    5 -0.6481   0     0
+    6  0.2957   3     2
+    7  0.7336   2     1
+    8  0.371    2     4
+    9  1.009    2     4
+
+    In [6]: df.groupby(['key1', 'key2']).sum()
+    Out[6]:
+               data
+    key1 key2
+    0    0     114
+         1    -14.69
+         2     89.06
+         3    -61.31
+         4    -32.24
+    1    0     57.91
+         1    -16.08
+         2    -46.51
+         3     15.46
+         4     18.96
+    ...
+
+Here's a graph of the performance of this operation over time on a dataset with
+100,000 rows and 10,000 unique groups:
+
+.. .. include:: vbench/groupby_multi_cython.rst
+
+On this similar vein,
+
+GroupBy aggregations with Python functions significantly sped up by clever
+manipulation of the ndarray data type in Cython (Issue496_). Benchmark of a
+similar operation to the above but using a Python function:
+
+.. .. include:: vbench/groupby_multi_python.rst
+
+.. _Issue93: https://github.com/wesm/pandas/issues/93
+.. _Issue342: https://github.com/wesm/pandas/issues/342
+.. _Issue439: https://github.com/wesm/pandas/issues/439
+.. _Issue496: https://github.com/wesm/pandas/issues/496
+.. _Issue498: https://github.com/wesm/pandas/issues/498
