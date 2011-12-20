@@ -328,13 +328,13 @@ class TestIndex(unittest.TestCase):
         import pandas
         import numpy as np
 
-        idx1 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B')], dtype=[('num',
+        aidx1 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B')], dtype=[('num',
         int),('let', 'a1')])
-        idx2 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B'),(1,'C'),(2,
+        aidx2 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B'),(1,'C'),(2,
         'C')], dtype=[('num', int),('let', 'a1')])
 
-        idx1 = pandas.Index(idx1)
-        idx2 = pandas.Index(idx2)
+        idx1 = pandas.Index(aidx1)
+        idx2 = pandas.Index(aidx2)
 
         # intersection broken?
         int_idx = idx1.intersection(idx2)
