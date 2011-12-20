@@ -14,3 +14,4 @@ doc/source/_static
 *flymake*
 scikits
 .coverage
+pandas.egg-info

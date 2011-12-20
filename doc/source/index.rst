@@ -104,6 +104,7 @@ See the package overview for more detail about what's in the library.
     :hidden:
     :maxdepth: 3
 
+    whatsnew
     install
     faq
     overview

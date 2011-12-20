@@ -22,6 +22,12 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
+pandas 0.6.2
+============
+
+**Release date:** NOT YET RELEASED
+
+
 pandas 0.6.1
 ============
 
