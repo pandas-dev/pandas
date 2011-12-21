@@ -347,6 +347,7 @@ setup(name=DISTNAME,
       package_data={'pandas.io' : ['tests/*.h5',
                                    'tests/*.csv',
                                    'tests/*.xls'],
+                    'pandas.tests' : ['data/*.pickle']
                     },
       ext_modules=extensions,
       maintainer_email=MAINTAINER_EMAIL,
