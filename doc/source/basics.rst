@@ -777,3 +777,21 @@ There is also a ``save`` function which takes any object as its first argument:
 
    import os
    os.remove('foo.pickle')
+
+Console Output Formatting
+-------------------------
+
+.. _basics.console_output:
+
+Use the ``set_eng_float_format`` function in the ``pandas.core.common`` module
+to alter the floating-point formatting of pandas objects to produce a particular
+format.
+
+For instance:
+
+.. ipython:: python
+
+  set_eng_float_format(precision=3, use_eng_prefix=True)
+  df[0]/1.e3
+  df[0]/1.e6
+
