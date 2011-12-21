@@ -359,6 +359,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # don't segfault, GH #495
         self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))
 
+    def test_getitem_box_float64(self):
+        value = self.ts[5]
+        self.assert_(isinstance(value, np.float64))
+
     def test_slice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]

@@ -39,3 +39,9 @@ assign_value_1d(PyArrayObject* ap, Py_ssize_t _i, PyObject* v) {
   char *item = (char *) PyArray_DATA(ap) + i * PyArray_STRIDE(ap, 0);
   return PyArray_DESCR(ap)->f->setitem(v, item, ap);
 }
+
+PANDAS_INLINE PyObject*
+get_value_1d(PyArrayObject* ap, Py_ssize_t i) {
+  char *item = (char *) PyArray_DATA(ap) + i * PyArray_STRIDE(ap, 0);
+  return PyArray_Scalar(item, PyArray_DESCR(ap), (PyObject*) ap);
+}
