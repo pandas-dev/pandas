@@ -72,12 +72,15 @@ pandas 0.6.2
   - Fix scalar value access in Series to always return NumPy scalars,
     regression from prior versions (GH #510)
   - Handle rows skipped at beginning of file in read_* functions (GH #505)
+  - Handle improper dtype casting in ``set_value`` methods
 
 Thanks
 ------
 - Craig Austin
 - Andreas Hilboll
 - Adam Klein
+- Matt Harrison
+- Gregg Lind
 - Solomon Negusse
 - Wouter Overmeire
 - Christian Prinoth

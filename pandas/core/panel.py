@@ -15,7 +15,7 @@ from pandas.core.frame import DataFrame, _union_indexes
 from pandas.core.generic import AxisProperty, NDFrame
 from pandas.core.series import Series
 from pandas.util import py3compat
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas._tseries as _tseries
 
 
@@ -496,8 +496,14 @@ class Panel(NDFrame):
         except KeyError:
             ax1, ax2, ax3 = self._expand_axes((item, major, minor))
             result = self.reindex(items=ax1, major=ax2, minor=ax3, copy=False)
-            result = result.set_value(item, major, minor, value)
-            return result
+
+            likely_dtype = com._infer_dtype(value)
+            made_bigger = not np.array_equal(ax1, self.items)
+            # how to make this logic simpler?
+            if made_bigger:
+                com._possibly_cast_item(result, item, likely_dtype)
+
+            return result.set_value(item, major, minor, value)
 
     def _box_item_values(self, key, values):
         return DataFrame(values, index=self.major_axis, columns=self.minor_axis)
@@ -562,7 +568,7 @@ class Panel(NDFrame):
 
     def _unpickle_panel_compat(self, state): # pragma: no cover
         "Unpickle the panel"
-        _unpickle = common._unpickle_array
+        _unpickle = com._unpickle_array
         vals, items, major, minor = state
 
         items = _unpickle(items)
@@ -864,7 +870,7 @@ class Panel(NDFrame):
         I, N, K = self.shape
 
         if filter_observations:
-            mask = common.notnull(self.values).all(axis=0)
+            mask = com.notnull(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
         else:
@@ -1023,7 +1029,7 @@ class Panel(NDFrame):
 
     def median(self, axis='major', skipna=True):
         def f(arr):
-            mask = common.notnull(arr)
+            mask = com.notnull(arr)
             if skipna:
                 return _tseries.median(arr[mask])
             else:

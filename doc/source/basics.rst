@@ -513,11 +513,26 @@ It returns a tuple with both of the reindexed Series:
 .. _basics.df_join:
 
 For DataFrames, the join method will be applied to both the index and the
-columns.
+columns by default:
 
 .. ipython:: python
 
    df.align(df2, join='inner')
+
+You can also pass an ``axis`` option to only align on the specified axis:
+
+.. ipython:: python
+
+   df.align(df2, join='inner', axis=0)
+
+.. _basics.align.frame.series:
+
+If you pass a Series to ``DataFrame.align``, you can choose to align both
+objects either on the DataFrame's index or columns using the ``axis`` argument:
+
+.. ipython:: python
+
+   df.align(df2.ix[0], axis=1)
 
 .. _basics.reindex_fill:
 

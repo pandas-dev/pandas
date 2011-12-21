@@ -285,13 +285,22 @@ def _need_upcast(values):
 
 def _infer_dtype(value):
     if isinstance(value, (float, np.floating)):
-        return float
+        return np.float_
     elif isinstance(value, (bool, np.bool_)):
-        return bool
+        return np.bool_
     elif isinstance(value, (int, np.integer)):
-        return int
+        return np.int_
     else:
-        return object
+        return np.object_
+
+def _possibly_cast_item(obj, item, dtype):
+    chunk = obj[item]
+
+    if chunk.values.dtype != dtype:
+        if dtype in (np.object_, np.bool_):
+            obj[item] = chunk.astype(np.object_)
+        elif not issubclass(dtype, (np.integer, np.bool_)):
+            obj[item] = chunk.astype(np.object_)
 
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:

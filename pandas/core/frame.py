@@ -1026,10 +1026,14 @@ class DataFrame(NDFrame):
             result = self.reindex(index=new_index, columns=new_columns,
                                   copy=False)
             likely_dtype = com._infer_dtype(value)
-            if result[col].dtype != likely_dtype:
-                result[col] = result[col].astype(likely_dtype)
-            result.set_value(index, col, value)
-            return result
+
+            made_bigger = not np.array_equal(new_columns, self.columns)
+
+            # how to make this logic simpler?
+            if made_bigger:
+                com._possibly_cast_item(result, col, likely_dtype)
+
+            return result.set_value(index, col, value)
 
     def __getitem__(self, key):
         # slice rows

@@ -14,6 +14,8 @@
 Merging / Joining data sets
 ***************************
 
+.. _merging.append:
+
 Appending DataFrame objects
 ---------------------------
 
@@ -61,6 +63,22 @@ To do this, use the ``ignore_index`` argument:
 .. ipython:: python
 
    df1.append(df2, ignore_index=True)
+
+.. _merging.append.row:
+
+Appending single rows to a DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While not especially efficient (since a new object must be created), you can
+append a row to a DataFrame by passing a Series to ``append``, which returns a
+new DataFrame as above:
+
+.. ipython:: python
+
+   df = DataFrame(np.random.randn(8, 4))
+   df
+   s = df.xs(5)
+   df.append(s, ignore_index=True)
 
 
 Joining / merging DataFrames

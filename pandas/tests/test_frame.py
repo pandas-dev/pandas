@@ -700,10 +700,11 @@ class CheckIndexing(object):
         self.assert_(res3['baz'].dtype == np.object_)
 
         res3 = res.set_value('foobar', 'baz', True)
-        self.assert_(res3['baz'].dtype == np.bool_)
+        self.assert_(res3['baz'].dtype == np.object_)
 
         res3 = res.set_value('foobar', 'baz', 5)
-        self.assert_(com.is_integer_dtype(res3['baz']))
+        self.assert_(com.is_float_dtype(res3['baz']))
+        self.assert_(isnull(res3['baz'].drop(['foobar'])).values.all())
         self.assertRaises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
     def test_get_set_value_no_partial_indexing(self):

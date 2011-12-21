@@ -13,6 +13,7 @@ from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
 from pandas.core.panel import Panel, LongPanel
 from pandas.core.series import remove_na
+import pandas.core.common as com
 import pandas.core.panel as panelmod
 from pandas.util import py3compat
 
@@ -570,6 +571,9 @@ class CheckIndexing(object):
         self.assert_(isinstance(res, Panel))
         self.assert_(res is not self.panel)
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
+
+        res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
+        self.assert_(com.is_float_dtype(res3['ItemE'].values))
 
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,

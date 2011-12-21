@@ -3,3 +3,39 @@
 
 v.0.6.1 (December 13, 2011)
 ---------------------------
+
+New features
+~~~~~~~~~~~~
+- Can :ref:`append single rows <merging.append.row>` (as Series) to a DataFrame
+- Add Spearman and Kendall rank correlation options to Series.corr and
+  DataFrame.corr (GH428_)
+- :ref:`Added <indexing.basics.get_value>` ``get_value`` and ``set_value`` methods to
+  Series, DataFrame, and Panel for very low-overhead access (>2x faster in many
+  cases) to scalar elements (GH437_, GH438_). ``set_value`` is capable of
+  producing an enlarged object.
+- Add PyQt table widget to sandbox (PR435_)
+- DataFrame.align can :ref:`accept Series arguments <basics.align.frame.series>`
+  and an :ref:`axis option <basics.df_join>` (GH461_)
+- Implement new SparseList and SparseArray data structures. SparseSeries now
+  derives from SparseArray (GH463_)
+- max_columns / max_rows options in set_printoptions (PR #453)
+- Implement Series.rank and DataFrame.rank, fast versions of
+  scipy.stats.rankdata (GH #428)
+- Implement DataFrame.from_items alternate constructor (GH #444)
+- DataFrame.convert_objects method for inferring better dtypes for object
+  columns (GH #302)
+- Add rolling_corr_pairwise function for computing Panel of correlation
+  matrices (GH #189)
+- Add `margins` option to `pivot_table` for computing subgroup aggregates (GH
+  #114)
+- Add `Series.from_csv` function (PR #482)
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _GH428: https://github.com/wesm/pandas/issues/428
+.. _GH437: https://github.com/wesm/pandas/issues/437
+.. _GH438: https://github.com/wesm/pandas/issues/438
+.. _GH461: https://github.com/wesm/pandas/issues/461
+.. _GH463: https://github.com/wesm/pandas/issues/463
+.. _PR435: https://github.com/wesm/pandas/pull/435

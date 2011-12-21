@@ -69,6 +69,30 @@ Thus, as per above, we have the most basic indexing using ``[]``:
    s[dates[5]]
    panel['two']
 
+.. _indexing.basics.get_value:
+
+Fast scalar value getting and setting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since indexing with ``[]`` must handle a lot of cases (single-label access,
+slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
+out what you're asking for. If you only want to access a scalar value, the
+fastest way is to use the ``get_value`` method, which is implemented on all of
+the data structures:
+
+.. ipython:: python
+
+   s.get_value(dates[5])
+   df.get_value(dates[5], 'A')
+
+There is an analogous ``set_value`` method which has the additional capability
+of enlarging an object. This method *always* returns a reference to the object
+it modified, which in the fast of enlargement, will be a **new object**:
+
+.. ipython:: python
+
+   df.set_value(dates[5], 'E', 7)
+
 Data slices on other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -316,7 +340,7 @@ than integer locations. Therefore, advanced indexing with ``.ix`` will always
 attempt label-based indexing, before falling back on integer-based indexing.
 
 Setting values in mixed-type DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _indexing.mixed_type_setting:
 
