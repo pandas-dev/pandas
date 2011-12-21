@@ -1074,7 +1074,7 @@ class DataFrame(NDFrame):
             indexer = self.columns.get_indexer(key)
             mask = indexer == -1
             if mask.any():
-                raise Exception("No column(s) named: %s" % str(key[mask]))
+                raise KeyError("No column(s) named: %s" % str(key[mask]))
             return self.reindex(columns=key)
 
     def _slice(self, slobj, axis=0):
@@ -1214,6 +1214,13 @@ class DataFrame(NDFrame):
         column : Series
         """
         return NDFrame.pop(self, item)
+
+    def get(self, column, default=None):
+        try:
+            return self[column]
+        except KeyError:
+            return default
+        
 
     # to support old APIs
     @property
