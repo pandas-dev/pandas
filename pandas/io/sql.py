@@ -318,25 +318,6 @@ def array_query(sql, con):
     return dict([(c[0], result[i] if len(result) > 0 else [])
                  for i, c in enumerate(cur.description)])
 
-# def col_query(sql, con):
-#     """Returns results of query as a dict of python lists.
-
-#     Parameters
-#     ----------
-#     sql: string
-#         SQL query to be executed
-#     con: DB connection object, optional
-#     """
-#     cur = execute(sql, con)
-#     rows = _safe_fetch(cur)
-
-#     result = [list(x) for x in zip(*rows)]
-#     con.commit()
-#     if len(result) > 0:
-#         return dict([(c[0], result[i]) for i, c in enumerate(cur.description)])
-#     else:
-#         return dict([(c[0], []) for c in cur.description])
-
 def tquery(sql, con=None, cur=None, retry=True):
     """
     Returns list of tuples corresponding to each row in given sql
@@ -398,12 +379,12 @@ def uquery(sql, con=None, cur=None, retry=True, params=()):
             return uquery(sql, con, retry=False)
     return result
 
-def frame_query(sql, con, indexField='Time'):
+def frame_query(sql, con, index_col=None):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
 
-    Optionally provide an indexField parameter to use one of the
+    Optionally provide an index_col parameter to use one of the
     columns as the index. Otherwise will be 0 to len(results) - 1.
 
     Parameters
@@ -411,19 +392,20 @@ def frame_query(sql, con, indexField='Time'):
     sql: string
         SQL query to be executed
     con: DB connection object, optional
-    indexField: string, optional
+    index_col: string, optional
         column name to use for the returned DataFrame object.
     """
-    data = array_query(sql, con)
-    if indexField is not None:
-        try:
-            idx = Index(data.pop(indexField))
-        except KeyError:
-            raise KeyError('indexField %s not found! %s' % (indexField, sql))
-    else:
-        idx = Index(np.arange(len(data.values()[0])))
+    cur = execute(sql, con)
+    rows = _safe_fetch(cur)
+    con.commit()
 
-    return DataFrame(data=data, index=idx)
+    columns = [col_desc[0] for col_desc in cur.description]
+    result = DataFrame.from_records(rows, columns=columns)
+
+    if index_col is not None:
+        result = result.set_index(index_col)
+
+    return result
 
 def pivot_query(sql, rows, columns, values, con):
     """
