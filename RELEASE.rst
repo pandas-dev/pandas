@@ -67,9 +67,20 @@ pandas 0.6.2
     #488)
   - Fix exception passing empty list to DataFrame.from_records
   - Fix Index.format bug (excluding name field) with datetimes with time info
+  - Fix scalar value access in Series to always return NumPy scalars,
+    regression from prior versions (GH #510)
 
 Thanks
 ------
+- Craig Austin
+- Andreas Hilboll
+- Adam Klein
+- Wouter Overmeire
+- Christian Prinoth
+- Sam Reckoner
+- Craig Reeson
+- Jan Schulz
+- Dieter Vandenbussche
 
 pandas 0.6.1
 ============

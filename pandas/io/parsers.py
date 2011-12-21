@@ -15,8 +15,6 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
              date_parser=None, nrows=None, iterator=False, chunksize=None,
              skip_footer=0, converters=None):
-    import csv
-
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
@@ -26,33 +24,16 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
         except Exception: # pragma: no cover
             f = open(filepath_or_buffer, 'r')
 
-    buf = []
-    if sep is None or len(sep) == 1:
-        sniff_sep = True
-        # default dialect
-        dia = csv.excel
-        if sep is not None:
-            sniff_sep = False
-            dia.delimiter = sep
-        # attempt to sniff the delimiter
-        if sniff_sep:
-            line = f.readline()
-            sniffed = csv.Sniffer().sniff(line)
-            dia.delimiter = sniffed.delimiter
-            buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
-        reader = csv.reader(f, dialect=dia)
-    else:
-        reader = (re.split(sep, line.strip()) for line in f)
-
     if date_parser is not None:
         parse_dates = True
 
-    parser = TextParser(reader, header=header, index_col=index_col,
+    parser = TextParser(f, header=header, index_col=index_col,
                         names=names, na_values=na_values,
                         parse_dates=parse_dates,
                         date_parser=date_parser,
                         skiprows=skiprows,
-                        chunksize=chunksize, buf=buf,
+                        delimiter=sep,
+                        chunksize=chunksize,
                         skip_footer=skip_footer,
                         converters=converters)
 
@@ -176,7 +157,7 @@ class TextParser(object):
 
     Parameters
     ----------
-    data : list or csv reader-like object
+    data : file-like object or list
     names : sequence, default
     header : int, default 0
         Row to use to parse column labels. Defaults to the first row. Prior
@@ -200,21 +181,18 @@ class TextParser(object):
                      '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
                      'nan', ''])
 
-    def __init__(self, data, names=None, header=0, index_col=None,
-                 na_values=None, parse_dates=False, date_parser=None,
-                 chunksize=None, skiprows=None, skip_footer=0,
-                 converters=None, buf=None):
+    def __init__(self, f, delimiter=None, names=None, header=0,
+                 index_col=None, na_values=None, parse_dates=False,
+                 date_parser=None, chunksize=None, skiprows=None,
+                 skip_footer=0, converters=None):
         """
         Workhorse function for processing nested list into DataFrame
 
         Should be replaced by np.genfromtxt eventually?
         """
-        self.data = data
-
-        # can pass rows read so far
-        self.buf = [] if buf is None else buf
-        self.pos = len(self.buf)
-
+        self.data = None
+        self.buf = []
+        self.pos = 0
         self.names = list(names) if names is not None else names
         self.header = header
         self.index_col = index_col
@@ -224,6 +202,7 @@ class TextParser(object):
         self.passed_names = names is not None
         self.skiprows = set() if skiprows is None else set(skiprows)
         self.skip_footer = skip_footer
+        self.delimiter = delimiter
 
         if converters is not None:
             assert(isinstance(converters, dict))
@@ -238,9 +217,42 @@ class TextParser(object):
         else:
             self.na_values = set(list(na_values)) | self.NA_VALUES
 
+        if hasattr(f, 'readline'):
+            self._make_reader(f)
+        else:
+            self.data = f
         self.columns = self._infer_columns()
         self.index_name = self._get_index_name()
         self._first_chunk = True
+
+    def _make_reader(self, f):
+        import csv
+
+        sep = self.delimiter
+
+        if sep is None or len(sep) == 1:
+            sniff_sep = True
+            # default dialect
+            dia = csv.excel
+            if sep is not None:
+                sniff_sep = False
+                dia.delimiter = sep
+            # attempt to sniff the delimiter
+            if sniff_sep:
+                line = f.readline()
+                while self.pos in self.skiprows:
+                    self.pos += 1
+                    line = f.readline()
+
+                self.pos += 1
+                sniffed = csv.Sniffer().sniff(line)
+                dia.delimiter = sniffed.delimiter
+                self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
+            reader = csv.reader(f, dialect=dia)
+        else:
+            reader = (re.split(sep, line.strip()) for line in f)
+
+        self.data = reader
 
     def _infer_columns(self):
         names = self.names
@@ -284,12 +296,12 @@ class TextParser(object):
 
     def _next_line(self):
         if isinstance(self.data, list):
-            if self.pos in self.skiprows:
+            while self.pos in self.skiprows:
                 self.pos += 1
 
             line = self.data[self.pos]
         else:
-            if self.pos in self.skiprows:
+            while self.pos in self.skiprows:
                 self.data.next()
                 self.pos += 1
             line = self.data.next()
