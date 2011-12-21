@@ -244,7 +244,7 @@ class Index(np.ndarray):
             zero_time = time(0, 0)
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
-                    return ['%s' % x for x in self]
+                    return result + ['%s' % x for x in self]
                 result.append(dt.strftime("%Y-%m-%d"))
             return result
 

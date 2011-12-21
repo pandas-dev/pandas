@@ -272,6 +272,14 @@ class TestIndex(unittest.TestCase):
 
         self.strIndex[:0].format()
 
+    def test_format_with_name_time_info(self):
+        # bug I fixed 12/20/2011
+        inc = timedelta(hours=4)
+        dates = Index([dt + inc for dt in self.dateIndex], name='something')
+
+        formatted = dates.format(name=True)
+        self.assert_(formatted[0] == 'something')
+
     def test_take(self):
         indexer = [4, 3, 0, 2]
         result = self.dateIndex.take(indexer)

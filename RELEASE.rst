@@ -66,6 +66,7 @@ pandas 0.6.2
   - Return empty string from Series.to_string when called on empty Series (GH
     #488)
   - Fix exception passing empty list to DataFrame.from_records
+  - Fix Index.format bug (excluding name field) with datetimes with time info
 
 Thanks
 ------

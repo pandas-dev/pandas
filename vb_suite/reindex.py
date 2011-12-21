@@ -46,4 +46,5 @@ s2 = s1[::2]
 """
 statement = "s1.reindex(s2.index)"
 reindex_multi = Benchmark(statement, setup,
-                          name='reindex_multiindex')
+                          name='reindex_multiindex',
+                          start_date=datetime(2011, 8, 1))
