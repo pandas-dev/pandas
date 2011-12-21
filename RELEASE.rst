@@ -69,12 +69,14 @@ pandas 0.6.2
   - Fix Index.format bug (excluding name field) with datetimes with time info
   - Fix scalar value access in Series to always return NumPy scalars,
     regression from prior versions (GH #510)
+  - Handle rows skipped at beginning of file in read_* functions (GH #505)
 
 Thanks
 ------
 - Craig Austin
 - Andreas Hilboll
 - Adam Klein
+- Solomon Negusse
 - Wouter Overmeire
 - Christian Prinoth
 - Sam Reckoner
