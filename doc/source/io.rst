@@ -214,6 +214,26 @@ Specifying ``iterator=True`` will also return the ``TextParser`` object:
    reader = read_table('tmp.sv', sep='|', iterator=True)
    reader.get_chunk(5)
 
+Writing to CSV format
+~~~~~~~~~~~~~~~~~~~~~
+
+.. _io.store_in_csv:
+
+The Series and DataFrame objects have an instance method ``to_csv`` which
+allows storing the contents of the object as a comma-separated-values file. The
+function takes a number of arguments. Only the first is required.
+
+  - ``path``: A string path to the file to write
+    ``nanRep``: A string representation of a missing value (default '')
+  - ``cols``: Columns to write (default None)
+  - ``header``: Whether to write out the column names (default True)
+  - ``index``: whether to write row (index) names (default True)
+  - ``index_label``: Column label(s) for index column(s) if desired. If None
+    (default), and `header` and `index` are True, then the index names are
+    used. (A sequence should be given if the DataFrame uses MultiIndex).
+  - ``mode`` : Python write mode, default 'w'
+  - ``sep`` : Field delimiter for the output file (default "'")
+
 Excel 2003 files
 ----------------
 

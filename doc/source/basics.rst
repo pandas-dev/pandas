@@ -278,6 +278,8 @@ course):
     frame.ix[::2] = np.nan
     frame.describe()
 
+.. _basics.describe:
+
 For a non-numerical Series object, `describe` will give a simple summary of the
 number of unique values and most frequently occurring values:
 
@@ -609,6 +611,8 @@ Series, it need only contain a subset of the labels as keys:
 The ``rename`` method also provides a ``copy`` named parameter that is by
 default ``True`` and copies the underlying data. Pass ``copy=False`` to rename
 the data in place.
+
+.. _basics.rename_axis:
 
 The Panel class has an a related ``rename_axis`` class which can rename any of
 its three axes.

@@ -104,6 +104,8 @@ passed DataFrame's index. This is best illustrated by example:
    to_join
    df.join(to_join, on='key')
 
+.. _merging.multikey_join:
+
 To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
 
 .. ipython:: python
@@ -132,6 +134,8 @@ To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
 .. ipython:: python
 
    data.join(to_join, on=['key1', 'key2'])
+
+.. _merging.df_inner_join:
 
 This is by default a "many-to-one" or "VLOOKUP"-style left join operation. An
 inner join is also supported:

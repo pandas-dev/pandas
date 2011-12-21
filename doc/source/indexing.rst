@@ -189,15 +189,18 @@ this indexing method.
 
 .. _indexing.columns.multiple:
 
-Getting and setting multiple DataFrame columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _indexing.df_cols:
 
-You can pass a list of columns to ``[]`` to select columns in that order:
+You may access a column on a dataframe directly as an attribute:
 
 .. ipython:: python
 
-   df[['C', 'A', 'B']]
+   df.A
 
+If you are using the IPython environment, you may also use tab-completion to
+see the accessible columns of a DataFrame.
+
+You can pass a list of columns to ``[]`` to select columns in that order:
 If a column is not contained in the DataFrame, an exception will be
 raised. Multiple columns can also be set in this manner:
 
@@ -367,6 +370,8 @@ display:
 
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_ops:
 
 The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
 (-)``. These can be directly called as instance methods or used via overloaded

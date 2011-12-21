@@ -8,23 +8,23 @@ New Features
 ============
 - :ref:`Added <basics.df_join>` ``DataFrame.align`` method with standard join options
 - :ref:`Added <io.parse_dates>` ``parse_dates`` option to ``read_csv`` and ``read_table`` methods to optionally try to parse dates in the index columns
-- MAYBE DONE? Add ``nrows``, ``chunksize``, and ``iterator`` arguments to ``read_csv`` and ``read_table``. The last two return a new ``TextParser`` class capable of lazily iterating through chunks of a flat file (GH242_)
-- I THINK DONE? Added ability to join on multiple columns in ``DataFrame.join`` (GH214_)
-- SHOULD BE PUBLIC? Added private ``_get_duplicates`` function to ``Index`` for identifying duplicate values more easily
-- Added column attribute access to DataFrame, e.g. df.A equivalent to df['A'] if 'A' is a column in the DataFrame (PR213_)
-- Added IPython tab completion hook for DataFrame columns. (PR233_, GH230_)
-- Implement ``Series.describe`` for Series containing objects (PR241_)
-- I THINK DONE Add inner join option to ``DataFrame.join`` when joining on key(s) (GH248_)
-- I THINK DONE Can select set of DataFrame columns by passing a list to ``__getitem__`` (GH253_)
-- I THINK DONE Can use & and | to intersection / union Index objects, respectively (GH261_)
+- :ref:`Added <io.parse_dates>` ``nrows``, ``chunksize``, and ``iterator`` arguments to ``read_csv`` and ``read_table``. The last two return a new ``TextParser`` class capable of lazily iterating through chunks of a flat file (GH242_)
+- :ref:`Added <merging.multikey_join>` ability to join on multiple columns in ``DataFrame.join`` (GH214_)
+- (Added private ``_get_duplicates`` function to ``Index`` for identifying duplicate values more easily)
+- :ref:`Added <indexing.df_cols>` column attribute access to DataFrame.
+- :ref:`Added <indexing.df_cols>` Python tab completion hook for DataFrame columns. (PR233_, GH230_)
+- :ref:`Implemented <basics.describe>` ``Series.describe`` for Series containing objects (PR241_)
+- :ref:`Added <merging.df_inner_join>` inner join option to ``DataFrame.join`` when joining on key(s) (GH248_)
+- :ref:`Implemented <indexing.df_cols>` selecting DataFrame columns by passing a list to ``__getitem__`` (GH253_)
+- :ref:`Implemented <indexing.set_ops>` & and | to intersect / union Index objects, respectively (GH261_)
 - MORE ON PIVOT TABLES Added ``pivot_table`` convenience function to pandas namespace (GH234_)
-- Implemented ``Panel.rename_axis`` function (GH243_)
-- DataFrame will show index level names in console output
+- :ref:`Implemented <basics.rename_axis>` ``Panel.rename_axis`` function (GH243_)
+- (DataFrame will show index level names in console output)
 - DOCS ABOUT TAKE METHODS Implemented ``Panel.take``
-- SORT OF WANT? Add ``set_eng_float_format`` function for setting alternate DataFrame floating point string formatting
+- SORT OF WANT? Add ``set_eng_float_format`` for alternate DataFrame floating point string formatting
 - DONE? Add convenience ``set_index`` function for creating a DataFrame index from its existing columns
 - Can pass hierarchical index level name to ``groupby`` instead of the level number if desired (GH223_)
-- Add support for different delimiters in ``DataFrame.to_csv`` (PR244_)
+- :ref:`Added <io.store_in_csv>` support for different delimiters in ``DataFrame.to_csv`` (PR244_)
 
 Performance Enhancements
 ========================
