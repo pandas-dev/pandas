@@ -5,7 +5,8 @@ v.0.5.0 (October 24, 2011)
 --------------------------
 
 New Features
-============
+~~~~~~~~~~~~
+
 - :ref:`Added <basics.df_join>` ``DataFrame.align`` method with standard join options
 - :ref:`Added <io.parse_dates>` ``parse_dates`` option to ``read_csv`` and ``read_table`` methods to optionally try to parse dates in the index columns
 - :ref:`Added <io.parse_dates>` ``nrows``, ``chunksize``, and ``iterator`` arguments to ``read_csv`` and ``read_table``. The last two return a new ``TextParser`` class capable of lazily iterating through chunks of a flat file (GH242_)
@@ -27,7 +28,8 @@ New Features
 - :ref:`Added <io.store_in_csv>` support for different delimiters in ``DataFrame.to_csv`` (PR244_)
 
 Performance Enhancements
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~
+
 - VBENCH Major performance improvements in file parsing functions ``read_csv`` and ``read_table``
 - VBENCH Added Cython function for converting tuples to ndarray very fast. Speeds up many MultiIndex-related operations
 - VBENCH Refactored merging / joining code into a tidy class and disabled unnecessary computations in the float/object case, thus getting about 10% better performance (GH211_)

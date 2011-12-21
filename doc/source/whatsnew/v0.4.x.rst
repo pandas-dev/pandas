@@ -4,7 +4,8 @@ v.0.4.3 through v0.4.1 (September 25 - October 9, 2011)
 -------------------------------------------------------
 
 New Features
-============
+~~~~~~~~~~~~
+
 - Added Python 3 support using 2to3 (PR200_)
 - :ref:`Added <dsintro.name_attribute>` ``name`` attribute to ``Series``, now
   prints as part of ``Series.__repr__``
@@ -31,7 +32,8 @@ New Features
 - :ref:`Enable <indexing.sortlevel_byname>` ``sortlevel`` to work by level (PR141_)
 
 Performance Enhancements
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Altered binary operations on differently-indexed SparseSeries objects
   to use the integer-based (dense) alignment logic which is faster with a
   larger number of blocks (GH205_)
