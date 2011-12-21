@@ -15,6 +15,7 @@ try:
                         'install version 1.5!')
 except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
+    raise # otherwise a 2nd import won't show the message
 
 import calendar
 

@@ -24,10 +24,13 @@ if sys.version_info[0] >= 3:
     except ImportError:
         raise ImportError('require setuptools/distribute for Py3k')
     setuptools_args = {'use_2to3': True,
-                       'zip_safe': False,}
+                       'zip_safe': False,
+                       'install_requires': ['python-dateutil > 2','numpy'],
+                        }
 else:
-    setuptools_args = {}
-
+    setuptools_args = {
+        'install_requires': ['python-dateutil < 2','numpy'],
+    }
 
 import numpy as np
 
