@@ -237,7 +237,7 @@ class HDFStore(object):
             return self._read_group(group, where)
 
     def put(self, key, value, table=False, append=False,
-            compression=None):
+            compression=None, itemsize=255):
         """
         Store object in HDFStore
 
@@ -258,7 +258,7 @@ class HDFStore(object):
             be used.
         """
         self._write_to_group(key, value, table=table, append=append,
-                             comp=compression)
+                             comp=compression, itemsize=itemsize)
 
     def _get_handler(self, op, kind):
         return getattr(self,'_%s_%s' % (op, kind))
@@ -286,7 +286,7 @@ class HDFStore(object):
             if group is not None:
                 self._delete_from_table(group, where)
 
-    def append(self, key, value):
+    def append(self, key, value, itemsize=255):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -301,10 +301,10 @@ class HDFStore(object):
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
         """
-        self._write_to_group(key, value, table=True, append=True)
+        self._write_to_group(key, value, table=True, append=True, itemsize=itemsize)
 
     def _write_to_group(self, key, value, table=False, append=False,
-                        comp=None):
+                        comp=None, itemsize=255):
         root = self.handle.root
         if key not in root._v_children:
             group = self.handle.createGroup(root, key)
@@ -316,7 +316,7 @@ class HDFStore(object):
             kind = '%s_table' % kind
             handler = self._get_handler(op='write', kind=kind)
             wrapper = lambda value: handler(group, value, append=append,
-                                            comp=comp)
+                                            comp=comp, itemsize=itemsize)
         else:
             if append:
                 raise ValueError('Can only append to Tables')
@@ -324,8 +324,8 @@ class HDFStore(object):
                 raise ValueError('Compression only supported on Tables')
 
             handler = self._get_handler(op='write', kind=kind)
-            wrapper = lambda value: handler(group, value)
-
+            wrapper = lambda value: handler(group, value, itemsize=itemsize)
+                                    # bayle: not sure if my addition to the previous line is correct
         wrapper(value)
         group._v_attrs.pandas_type = kind
 
@@ -377,7 +377,7 @@ class HDFStore(object):
 
         return BlockManager(blocks, axes)
 
-    def _write_frame_table(self, group, df, append=False, comp=None):
+    def _write_frame_table(self, group, df, append=False, comp=None, itemsize=255):
         mat = df.values
         values = mat.reshape((1,) + mat.shape)
 
@@ -387,7 +387,7 @@ class HDFStore(object):
 
         self._write_table(group, items=['value'],
                           index=df.index, columns=df.columns,
-                          values=values, append=append, compression=comp)
+                          values=values, append=append, compression=comp, itemsize=itemsize)
 
     def _write_wide(self, group, panel):
         panel._consolidate_inplace()
@@ -539,12 +539,12 @@ class HDFStore(object):
             self.handle.createArray(group, key, value)
 
     def _write_table(self, group, items=None, index=None, columns=None,
-                     values=None, append=False, compression=None):
+                     values=None, append=False, compression=None, itemsize=255):
         """ need to check for conform to the existing table:
             e.g. columns should match """
         # create dict of types
-        index_converted, index_kind, index_t = _convert_index(index)
-        columns_converted, cols_kind, col_t = _convert_index(columns)
+        index_converted, index_kind, index_t = _convert_index(index, itemsize=itemsize)
+        columns_converted, cols_kind, col_t = _convert_index(columns, itemsize=itemsize)
 
         # create the table if it doesn't exist (or get it if it does)
         if not append:
@@ -709,7 +709,7 @@ class HDFStore(object):
         self.handle.flush()
         return len(s.values)
 
-def _convert_index(index):
+def _convert_index(index, itemsize=255):
     # Let's assume the index is homogeneous
     values = np.asarray(index)
 
@@ -723,7 +723,8 @@ def _convert_index(index):
         return converted, kind, _tables().Time64Col()
     elif isinstance(values[0], basestring):
         converted = np.array(list(values), dtype=np.str_)
-        itemsize = converted.dtype.itemsize
+        if not itemsize:
+          itemsize = converted.dtype.itemsize
         return converted, 'string', _tables().StringCol(itemsize)
     elif com.is_integer(values[0]):
         # take a guess for now, hope the values fit
