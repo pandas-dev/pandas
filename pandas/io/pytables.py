@@ -324,8 +324,7 @@ class HDFStore(object):
                 raise ValueError('Compression only supported on Tables')
 
             handler = self._get_handler(op='write', kind=kind)
-            wrapper = lambda value: handler(group, value, itemsize=itemsize)
-                                    # bayle: not sure if my addition to the previous line is correct
+            wrapper = lambda value: handler(group, value)
         wrapper(value)
         group._v_attrs.pandas_type = kind
 
@@ -594,16 +593,24 @@ class HDFStore(object):
                 for c, col in enumerate(columns_converted):
                     v = values[:, i, c]
 
-                    # don't store the row if all values are np.nan
-                    if np.isnan(v).all():
-                        continue
+                    
+                    try:
+                        # don't store the row if all values are np.nan
+                        if np.isnan(v).all():
+                            continue
+                    except TypeError:
+                        raise TypeError("At this time, Pandas HDFStore tables only support floating point values.")
 
+                    
                     row = table.row
                     row['index'] = index
                     row['column'] = col
 
                     # create the values array
-                    row['values'] = v
+                    try:
+                        row['values'] = v
+                    except ValueError:
+                        raise TypeError("At this time, Pandas HDFStore tables only support floating point values.")
                     row.append()
             self.handle.flush()
         except (ValueError), detail: # pragma: no cover
