@@ -508,7 +508,10 @@ It returns a tuple with both of the reindexed Series:
    s1.align(s2, join='inner')
    s1.align(s2, join='left')
 
-For DataFrames, the join method will be applied to both the
+.. _basics.df_join:
+
+For DataFrames, the join method will be applied to both the index and the
+columns.
 
 .. ipython:: python
 

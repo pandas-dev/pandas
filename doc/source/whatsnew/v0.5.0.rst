@@ -3,3 +3,52 @@
 
 v.0.5.0 (October 24, 2011)
 --------------------------
+
+New Features
+============
+- :ref:`Added <basics.df_join>` ``DataFrame.align`` method with standard join options
+- :ref:`Added <io.parse_dates>` ``parse_dates`` option to ``read_csv`` and ``read_table`` methods to optionally try to parse dates in the index columns
+- MAYBE DONE? Add ``nrows``, ``chunksize``, and ``iterator`` arguments to ``read_csv`` and ``read_table``. The last two return a new ``TextParser`` class capable of lazily iterating through chunks of a flat file (GH242_)
+- I THINK DONE? Added ability to join on multiple columns in ``DataFrame.join`` (GH214_)
+- SHOULD BE PUBLIC? Added private ``_get_duplicates`` function to ``Index`` for identifying duplicate values more easily
+- Added column attribute access to DataFrame, e.g. df.A equivalent to df['A'] if 'A' is a column in the DataFrame (PR213_)
+- Added IPython tab completion hook for DataFrame columns. (PR233_, GH230_)
+- Implement ``Series.describe`` for Series containing objects (PR241_)
+- I THINK DONE Add inner join option to ``DataFrame.join`` when joining on key(s) (GH248_)
+- I THINK DONE Can select set of DataFrame columns by passing a list to ``__getitem__`` (GH253_)
+- I THINK DONE Can use & and | to intersection / union Index objects, respectively (GH261_)
+- MORE ON PIVOT TABLES Added ``pivot_table`` convenience function to pandas namespace (GH234_)
+- Implemented ``Panel.rename_axis`` function (GH243_)
+- DataFrame will show index level names in console output
+- DOCS ABOUT TAKE METHODS Implemented ``Panel.take``
+- SORT OF WANT? Add ``set_eng_float_format`` function for setting alternate DataFrame floating point string formatting
+- DONE? Add convenience ``set_index`` function for creating a DataFrame index from its existing columns
+- Can pass hierarchical index level name to ``groupby`` instead of the level number if desired (GH223_)
+- Add support for different delimiters in ``DataFrame.to_csv`` (PR244_)
+
+Performance Enhancements
+========================
+- VBENCH Major performance improvements in file parsing functions ``read_csv`` and ``read_table``
+- VBENCH Added Cython function for converting tuples to ndarray very fast. Speeds up many MultiIndex-related operations
+- VBENCH Refactored merging / joining code into a tidy class and disabled unnecessary computations in the float/object case, thus getting about 10% better performance (GH211_)
+- VBENCH Improved speed of ``DataFrame.xs`` on mixed-type DataFrame objects by about 5x, regression from 0.3.0 (GH215_)
+- VBENCH With new ``DataFrame.align`` method, speeding up binary operations between differently-indexed DataFrame objects by 10-25%.
+- VBENCH Significantly sped up conversion of nested dict into DataFrame (GH212_)
+- VBENCH Significantly speed up DataFrame ``__repr__`` and ``count`` on large mixed-type DataFrame objects
+
+.. _GH214: https://github.com/wesm/pandas/issues/214
+.. _GH248: https://github.com/wesm/pandas/issues/248
+.. _GH253: https://github.com/wesm/pandas/issues/253
+.. _GH261: https://github.com/wesm/pandas/issues/261
+.. _GH234: https://github.com/wesm/pandas/issues/234
+.. _GH243: https://github.com/wesm/pandas/issues/243
+.. _GH223: https://github.com/wesm/pandas/issues/223
+.. _PR244: https://github.com/wesm/pandas/pull/244
+.. _PR233: https://github.com/wesm/pandas/pull/233
+.. _GH230: https://github.com/wesm/pandas/issues/230
+.. _PR241: https://github.com/wesm/pandas/pull/241
+.. _GH242: https://github.com/wesm/pandas/issues/242
+.. _GH212: https://github.com/wesm/pandas/issues/212
+.. _GH211: https://github.com/wesm/pandas/issues/211
+.. _GH215: https://github.com/wesm/pandas/issues/215
+.. _GH213: https://github.com/wesm/pandas/issues/213

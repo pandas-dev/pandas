@@ -23,6 +23,8 @@ IO Tools (Text, CSV, HDF5, ...)
 CSV & Text files
 ----------------
 
+.. _io.parse_dates:
+
 The two workhorse functions for reading text files (a.k.a. flat files) are
 :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
 They both use the same parsing code to intelligently convert tabular
