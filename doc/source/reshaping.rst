@@ -142,6 +142,8 @@ unstacks the **last level**:
    stacked.unstack(1)
    stacked.unstack(0)
 
+.. _reshaping.unstack_by_name:
+
 If the indexes have names, you can use the level names instead of specifying
 the level numbers:
 

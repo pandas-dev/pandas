@@ -603,6 +603,10 @@ Series, it need only contain a subset of the labels as keys:
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
 
+The ``rename`` method also provides a ``copy`` named parameter that is by
+default ``True`` and copies the underlying data. Pass ``copy=False`` to rename
+the data in place.
+
 The Panel class has an a related ``rename_axis`` class which can rename any of
 its three axes.
 

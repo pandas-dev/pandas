@@ -31,7 +31,7 @@ data into a DataFrame object. They can take a number of arguments:
   - ``path_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
   - ``sep``: A delimiter / separator to split fields on. `read_csv` is capable
-    of inferring automatically "sniffing" the delimiter in some cases
+    of inferring the delimiter automatically in some cases by "sniffing"
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
   - ``names``: List of column names to use. If passed, header will be
@@ -134,6 +134,8 @@ to do as before:
 Reading DataFrame objects with ``MultiIndex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _io.csv_multiindex:
+
 Suppose you have data indexed by two columns:
 
 .. ipython:: python
@@ -149,22 +151,23 @@ column numbers to turn multiple columns into a ``MultiIndex``:
    df
    df.ix[1978]
 
-.. .. _io.sniff:
+.. _io.sniff:
 
-.. Automatically "sniffing" the delimiter
-.. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Automatically "sniffing" the delimiter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. ``read_csv`` is capable of inferring delimited, but not necessarily
-.. comma-separated, files in some cases:
+``read_csv`` is capable of inferring delimited (not necessarily
+comma-separated) files. YMMV, as pandas uses the Sniffer_ class of the csv
+module.
 
-.. .. ipython:: python
+.. ipython:: python
 
-..    print open('tmp.csv').read()
-..    read_csv('tmp.csv')
-
-
+    print open('tmp2.sv').read()
+    read_csv('tmp2.sv')
 
 .. _io.chunking:
+
+.. _Sniffer: http://docs.python.org/library/csv.html#csv.Sniffer
 
 Iterating through files chunk by chunk
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,6 +179,7 @@ rather than reading the entire file into memory, such as the following:
    :suppress:
 
    df[:7].to_csv('tmp.sv', sep='|')
+   df[:7].to_csv('tmp2.sv', sep=':')
 
 .. ipython:: python
 

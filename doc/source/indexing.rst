@@ -310,9 +310,12 @@ Label-based indexing with integer axis labels is a thorny topic. It has been
 discussed heavily on mailing lists and among various members of the scientific
 Python community. In pandas, our general viewpoint is that labels matter more
 than integer locations. Therefore, advanced indexing with ``.ix`` will always
+attempt label-based indexing, before falling back on integer-based indexing.
 
-Setting values in mixed-type objects
+Setting values in mixed-type DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.mixed_type_setting:
 
 Setting values on a mixed-type DataFrame or Panel is supported when using scalar
 values, though setting arbitrary vectors is not yet supported:
@@ -321,9 +324,10 @@ values, though setting arbitrary vectors is not yet supported:
 
    df2 = df[:4]
    df2['foo'] = 'bar'
-   df2.ix[3]
-   df2.ix[3] = np.nan
-   df2
+   print df2
+   df2.ix[2] = np.nan
+   print df2
+   print df2.dtypes
 
 .. _indexing.class:
 
@@ -462,6 +466,8 @@ may wish to generate your own ``MultiIndex`` when preparing the data set.
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _indexing.get_level_values:
+
 The method ``get_level_values`` will return a vector of the labels for each
 location at a particular level:
 
@@ -564,6 +570,17 @@ which will lexicographically sort an axis with a ``MultiIndex``:
    s
    s.sortlevel(0)
    s.sortlevel(1)
+
+.. _indexing.sortlevel_byname:
+
+Note, you may also pass a level name to ``sortlevel`` if the MultiIndex levels
+are named.
+
+.. ipython:: python
+
+   s.index.names = ['L1', 'L2']
+   s.sortlevel(level='L1')
+   s.sortlevel(level='L2')
 
 Some indexing will work even if the data are not sorted, but will be rather
 inefficient and will also return a copy of the data rather than a view:

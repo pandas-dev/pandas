@@ -63,6 +63,8 @@ computations. Since in NumPy divide-by-zero generates ``inf`` or ``-inf`` and
 not ``NaN``, I think you will find this is a worthwhile trade-off (Zen of
 Python: "practicality beats purity").
 
+.. _missing.isnull:
+
 To make detecting missing values easier (and across different array dtypes),
 pandas provides the :func:`~pandas.core.common.isnull` and
 :func:`~pandas.core.common.notnull` functions, which are also methods on

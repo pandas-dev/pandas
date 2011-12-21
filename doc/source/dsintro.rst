@@ -184,6 +184,8 @@ tools for working with labeled data.
 Name attribute
 ~~~~~~~~~~~~~~
 
+.. _dsintro.name_attribute:
+
 Series can also have a ``name`` attribute:
 
 .. ipython:: python
@@ -462,6 +464,8 @@ DataFrame in tabular form, though it won't always fit the console width:
 
 DataFrame column types
 ~~~~~~~~~~~~~~~~~~~~~~
+
+.. _dsintro.column_types:
 
 The four main types stored in pandas objects are float, int, boolean, and
 object. A convenient ``dtypes`` attribute return a Series with the data type of

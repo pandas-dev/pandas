@@ -54,6 +54,8 @@ and ignore the fact that they may have overlapping indexes:
    df1
    df2
 
+.. _merging.ignore_index:
+
 To do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
