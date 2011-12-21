@@ -385,6 +385,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         sl[:] = 0
         self.assert_((self.series[10:20] == 0).all())
 
+    def test_slice_can_reorder_not_uniquely_indexed(self):
+        s = Series(1, index=['a', 'a', 'b', 'b', 'c'])
+        result = s[::-1] # it works!
+
     def test_setitem(self):
         self.ts[self.ts.index[5]] = np.NaN
         self.ts[[1,2,17]] = np.NaN
