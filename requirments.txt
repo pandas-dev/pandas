@@ -1,4 +1,0 @@
-# so python-dateutil2 is for py3!
-python-dateutil < 2  
-numpy
-
