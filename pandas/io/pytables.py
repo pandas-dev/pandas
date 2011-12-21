@@ -308,18 +308,22 @@ class HDFStore(object):
         root = self.handle.root
         if key not in root._v_children:
             group = self.handle.createGroup(root, key)
+            created = True
         else:
             group = getattr(root, key)
-
+            created = False
+            
         kind = _TYPE_MAP[type(value)]
+        if append:
+            if not (_is_table_type(group) or created):
+                raise ValueError('Can only append to Tables')
+                
         if table or (append and _is_table_type(group)):
             kind = '%s_table' % kind
             handler = self._get_handler(op='write', kind=kind)
             wrapper = lambda value: handler(group, value, append=append,
                                             comp=comp, itemsize=itemsize)
         else:
-            if append:
-                raise ValueError('Can only append to Tables')
             if comp:
                 raise ValueError('Compression only supported on Tables')
 
