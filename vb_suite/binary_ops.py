@@ -1,11 +1,7 @@
 from vbench.benchmark import Benchmark
 from datetime import datetime
 
-common_setup = """
-from pandas import *
-import pandas.util.testing as tm
-import random
-import numpy as np
+common_setup = """from pandas_db_common import *
 """
 
 #----------------------------------------------------------------------

@@ -6,12 +6,14 @@ import os
 modules = ['groupby', 'indexing', 'reindex', 'binary_ops',
            'sparse', 'index_object']
 
+by_module = {}
 benchmarks = []
+
 for modname in modules:
     ref = __import__(modname)
-    for k, v in ref.__dict__.iteritems():
-        if isinstance(v, Benchmark):
-            benchmarks.append(v)
+    by_module[modname] = [v for v in ref.__dict__.values()
+                          if isinstance(v, Benchmark)]
+    benchmarks.extend(by_module[modname])
 
 REPO_PATH = '/home/wesm/code/pandas'
 REPO_URL = 'git@github.com:wesm/pandas.git'
@@ -25,7 +27,7 @@ python setup.py build_ext --inplace
 """
 dependencies = ['pandas_vb_common.py']
 
-START_DATE = datetime(2011, 3, 1)
+START_DATE = datetime(2010, 6, 1)
 
 repo = GitRepo(REPO_PATH)
 
@@ -53,7 +55,7 @@ def generate_rst_files(benchmarks):
 
     for bmk in benchmarks:
         print 'Generating rst file for %s' % bmk.name
-        rst_path = os.path.join(RST_BASE, 'vbench/%s.rst' % bmk.name)
+        rst_path = os.path.join(RST_BASE, 'vbench/%s.txt' % bmk.name)
 
         fig_full_path = os.path.join(fig_base_path, '%s.png' % bmk.name)
 
@@ -61,7 +63,10 @@ def generate_rst_files(benchmarks):
         plt.figure(figsize=(10, 6))
         ax = plt.gca()
         bmk.plot(DB_PATH, ax=ax)
-        plt.xlim(timespan)
+
+        start, end = ax.get_xlim()
+
+        plt.xlim([start - 30, end + 30])
         plt.savefig(fig_full_path, bbox_inches='tight')
         plt.close('all')
 
@@ -72,8 +77,26 @@ def generate_rst_files(benchmarks):
 
     with open(os.path.join(RST_BASE, 'vbench.rst'), 'w') as f:
         print >> f, """
-VBENCH
-------
+Performance Benchmarks
+======================
+
+These historical benchmark graphs were produced with `vbench
+<http://github.com/wesm/vbench>`__.
+
+The ``pandas_vb_common`` setup script can be found here_
+
+.. _here: https://github.com/wesm/pandas/tree/master/vb_suite
+
+Produced on a machine with
+
+  - Intel Core i7 950 processor
+  - (K)ubuntu Linux 12.10
+  - Python 2.7.2 64-bit (Enthought Python Distribution 7.1-2)
+  - NumPy 1.6.1
 """
-        for bmk in benchmarks:
-            print >> f, '.. include:: vbench/%s.rst' % bmk.name
+        for modname, mod_bmks in sorted(by_module.items()):
+            print >> f, '%s\n%s\n' % (modname, '-' * len(modname))
+            for bmk in mod_bmks:
+                print >> f, bmk.name
+                print >> f, '~' * len(bmk.name)
+                print >> f, '.. include:: vbench/%s.txt\n' % bmk.name

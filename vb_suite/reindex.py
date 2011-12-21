@@ -48,3 +48,22 @@ statement = "s1.reindex(s2.index)"
 reindex_multi = Benchmark(statement, setup,
                           name='reindex_multiindex',
                           start_date=datetime(2011, 8, 1))
+
+#----------------------------------------------------------------------
+# Pad / backfill
+
+setup = common_setup + """
+rng = DateRange('1/1/2000', periods=10000, offset=datetools.Minute())
+
+ts = Series(np.random.randn(len(rng)), index=rng)
+ts2 = ts[::2]
+"""
+
+statement = "ts2.reindex(ts.index, method='pad')"
+reindex_daterange_pad = Benchmark(statement, setup,
+                                  name="reindex_daterange_pad")
+
+statement = "ts2.reindex(ts.index, method='backfill')"
+reindex_daterange_backfill = Benchmark(statement, setup,
+                                       name="reindex_daterange_backfill")
+
