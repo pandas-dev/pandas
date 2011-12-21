@@ -11,21 +11,22 @@ New Features
 - :ref:`Added <io.parse_dates>` ``parse_dates`` option to ``read_csv`` and ``read_table`` methods to optionally try to parse dates in the index columns
 - :ref:`Added <io.parse_dates>` ``nrows``, ``chunksize``, and ``iterator`` arguments to ``read_csv`` and ``read_table``. The last two return a new ``TextParser`` class capable of lazily iterating through chunks of a flat file (GH242_)
 - :ref:`Added <merging.multikey_join>` ability to join on multiple columns in ``DataFrame.join`` (GH214_)
-- (Added private ``_get_duplicates`` function to ``Index`` for identifying duplicate values more easily)
+- Added private ``_get_duplicates`` function to ``Index`` for identifying duplicate values more easily (ENH5c_)
 - :ref:`Added <indexing.df_cols>` column attribute access to DataFrame.
 - :ref:`Added <indexing.df_cols>` Python tab completion hook for DataFrame columns. (PR233_, GH230_)
 - :ref:`Implemented <basics.describe>` ``Series.describe`` for Series containing objects (PR241_)
 - :ref:`Added <merging.df_inner_join>` inner join option to ``DataFrame.join`` when joining on key(s) (GH248_)
 - :ref:`Implemented <indexing.df_cols>` selecting DataFrame columns by passing a list to ``__getitem__`` (GH253_)
 - :ref:`Implemented <indexing.set_ops>` & and | to intersect / union Index objects, respectively (GH261_)
-- MORE ON PIVOT TABLES Added ``pivot_table`` convenience function to pandas namespace (GH234_)
+- :ref:`Added<reshaping.pivot>` ``pivot_table`` convenience function to pandas namespace (GH234_)
 - :ref:`Implemented <basics.rename_axis>` ``Panel.rename_axis`` function (GH243_)
-- (DataFrame will show index level names in console output)
-- DOCS ABOUT TAKE METHODS Implemented ``Panel.take``
-- SORT OF WANT? Add ``set_eng_float_format`` for alternate DataFrame floating point string formatting
-- DONE? Add convenience ``set_index`` function for creating a DataFrame index from its existing columns
-- Can pass hierarchical index level name to ``groupby`` instead of the level number if desired (GH223_)
+- DataFrame will show index level names in console output (PR334_)
+- :ref:`Implemented <indexing.take>` ``Panel.take``
+- :ref:`Added<basics.console_output>` ``set_eng_float_format`` for alternate DataFrame floating point string formatting (ENH61_)
+- :ref:`Added <indexing.set_index>` convenience ``set_index`` function for creating a DataFrame index from its existing columns
+- :ref:`Implemented <groupby.multiindex>` ``groupby`` hierarchical index level name  (GH223_)
 - :ref:`Added <io.store_in_csv>` support for different delimiters in ``DataFrame.to_csv`` (PR244_)
+- TODO: DOCS ABOUT TAKE METHODS, MORE ON PIVOT TABLES
 
 Performance Enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,3 +55,6 @@ Performance Enhancements
 .. _GH211: https://github.com/wesm/pandas/issues/211
 .. _GH215: https://github.com/wesm/pandas/issues/215
 .. _GH213: https://github.com/wesm/pandas/issues/213
+.. _ENH61: https://github.com/wesm/pandas/commit/6141961
+.. _PR334: https://github.com/wesm/pandas/pull/334
+.. _ENH5c: https://github.com/wesm/pandas/commit/5ca6ff5d822ee4ddef1ec0d87b6d83d8b4bbd3eb

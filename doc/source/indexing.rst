@@ -69,29 +69,34 @@ Thus, as per above, we have the most basic indexing using ``[]``:
    s[dates[5]]
    panel['two']
 
-.. _indexing.basics.get_value:
+Additional Column Access
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-Fast scalar value getting and setting
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _indexing.columns.multiple:
 
-Since indexing with ``[]`` must handle a lot of cases (single-label access,
-slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
-out what you're asking for. If you only want to access a scalar value, the
-fastest way is to use the ``get_value`` method, which is implemented on all of
-the data structures:
+.. _indexing.df_cols:
+
+You may access a column on a dataframe directly as an attribute:
 
 .. ipython:: python
 
-   s.get_value(dates[5])
-   df.get_value(dates[5], 'A')
+   df.A
 
-There is an analogous ``set_value`` method which has the additional capability
-of enlarging an object. This method *always* returns a reference to the object
-it modified, which in the fast of enlargement, will be a **new object**:
+If you are using the IPython environment, you may also use tab-completion to
+see the accessible columns of a DataFrame.
+
+You can pass a list of columns to ``[]`` to select columns in that order:
+If a column is not contained in the DataFrame, an exception will be
+raised. Multiple columns can also be set in this manner:
 
 .. ipython:: python
 
-   df.set_value(dates[5], 'E', 7)
+   df
+   df[['B', 'A']] = df[['A', 'B']]
+   df
+
+You may find this useful for applying a transform (in-place) to a subset of the
+columns.
 
 Data slices on other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -164,6 +169,10 @@ one of the columns of the DataFrame) is supported:
 
    df[df['A'] > 0]
 
+As we will see later on, the same operation could be accomplished by
+reindexing. However, the syntax would be more verbose; hence, the inclusion of
+this indexing method.
+
 With the advanced indexing capabilities discussed later, you are able to do
 boolean indexing in any of axes or combine a boolean vector with an indexing
 expression on one of the other axes
@@ -185,6 +194,15 @@ intuitively like so:
 Note that such an operation requires that the boolean DataFrame is indexed
 exactly the same.
 
+
+Take Methods
+~~~~~~~~~~~~
+
+.. _indexing.take:
+
+TODO: Fill Me In
+
+
 Slicing ranges
 ~~~~~~~~~~~~~~
 
@@ -197,45 +215,6 @@ supports slicing:
     df[::-1]
     df[-3:].T
 
-Boolean indexing
-~~~~~~~~~~~~~~~~
-
-As another indexing convenience, it is possible to use boolean
-indexing to select rows of a DataFrame:
-
-.. ipython:: python
-
-    df[df['A'] > 0.5]
-
-As we will see later on, the same operation could be accomplished by
-reindexing. However, the syntax would be more verbose; hence, the inclusion of
-this indexing method.
-
-.. _indexing.columns.multiple:
-
-.. _indexing.df_cols:
-
-You may access a column on a dataframe directly as an attribute:
-
-.. ipython:: python
-
-   df.A
-
-If you are using the IPython environment, you may also use tab-completion to
-see the accessible columns of a DataFrame.
-
-You can pass a list of columns to ``[]`` to select columns in that order:
-If a column is not contained in the DataFrame, an exception will be
-raised. Multiple columns can also be set in this manner:
-
-.. ipython:: python
-
-   df
-   df[['B', 'A']] = df[['A', 'B']]
-   df
-
-You may find this useful for applying a transform (in-place) to a subset of the
-columns.
 
 .. _indexing.advanced:
 
@@ -715,6 +694,8 @@ ways.
 
 Add an index using DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_index:
 
 DataFrame has a ``set_index`` method which takes a column name (for a regular
 ``Index``) or a list of column names (for a ``MultiIndex``), to create a new,
