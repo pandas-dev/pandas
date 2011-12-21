@@ -125,3 +125,4 @@ See the package overview for more detail about what's in the library.
     comparison_with_r
     benchmarks
     api
+    vbench

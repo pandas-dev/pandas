@@ -7,7 +7,7 @@ common_setup = """from pandas_vb_common import *
 setup = common_setup + """
 
 N = 100000
-ngroups = 5
+ngroups = 100
 
 def get_test_data(ngroups=100, n=N):
     unique_groups = range(ngroups)
@@ -28,12 +28,12 @@ def f():
 """
 
 stmt1 = "df.groupby(['key1', 'key2'])['data'].agg(lambda x: x.values.sum())"
-bm_groupby1 = Benchmark(stmt1, setup,
-                        name="groupby_multi_python",
-                        start_date=datetime(2011, 7, 1))
+groupby_multi_python = Benchmark(stmt1, setup,
+                                 name="groupby_multi_python",
+                                 start_date=datetime(2011, 7, 1))
 
 stmt3 = "df.groupby(['key1', 'key2']).sum()"
-bm_groupby3 = Benchmark(stmt3, setup,
-                        name="groupby_multi_cython",
-                        start_date=datetime(2011, 7, 1))
+groupby_multi_cython = Benchmark(stmt3, setup,
+                                 name="groupby_multi_cython",
+                                 start_date=datetime(2011, 7, 1))
 
