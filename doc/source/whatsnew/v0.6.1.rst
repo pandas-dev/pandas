@@ -7,8 +7,8 @@ v.0.6.1 (December 13, 2011)
 New features
 ~~~~~~~~~~~~
 - Can :ref:`append single rows <merging.append.row>` (as Series) to a DataFrame
-- Add Spearman and Kendall rank correlation options to Series.corr and
-  DataFrame.corr (GH428_)
+- Add Spearman and Kendall rank :ref:`correlation <computation.correlation>`
+  options to Series.corr and DataFrame.corr (GH428_)
 - :ref:`Added <indexing.basics.get_value>` ``get_value`` and ``set_value`` methods to
   Series, DataFrame, and Panel for very low-overhead access (>2x faster in many
   cases) to scalar elements (GH437_, GH438_). ``set_value`` is capable of
@@ -18,24 +18,51 @@ New features
   and an :ref:`axis option <basics.df_join>` (GH461_)
 - Implement new :ref:`SparseArray <sparse.array>` and :ref:`SparseList <sparse.list>`
   data structures. SparseSeries now derives from SparseArray (GH463_)
-- max_columns / max_rows options in set_printoptions (PR #453)
-- Implement Series.rank and DataFrame.rank, fast versions of
-  scipy.stats.rankdata (GH #428)
-- Implement DataFrame.from_items alternate constructor (GH #444)
-- DataFrame.convert_objects method for inferring better dtypes for object
-  columns (GH #302)
-- Add rolling_corr_pairwise function for computing Panel of correlation
-  matrices (GH #189)
-- Add `margins` option to `pivot_table` for computing subgroup aggregates (GH
-  #114)
+- :ref:`Better console printing options <basics.console_output>` (PR453_)
+- Implement fast :ref:`data ranking <computation.ranking>` for Series and
+  DataFrame, fast versions of scipy.stats.rankdata (GH428_)
+- Implement :ref:`DataFrame.from_items <basics.dataframe.from_items>` alternate
+  constructor (GH444_)
+- DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast.infer>`
+  for object columns (GH302_)
+- Add :ref:`rolling_corr_pairwise <stats.moments.corr_pairwise>` function for
+  computing Panel of correlation matrices (GH189_)
+- Add :ref:`margins <reshaping.pivot.margins>` option to :ref:`pivot_table
+  <reshaping.pivot>` for computing subgroup aggregates (GH114_)
 - Add `Series.from_csv` function (PR #482)
+- Improve memory usage of `DataFrame.describe` (do not copy data
+  unnecessarily) (PR #425)
+- Use same formatting function for outputting floating point Series to console
+  as in DataFrame (PR #420)
+- DataFrame.delevel will try to infer better dtype for new columns (GH #440)
+- Exclude non-numeric types in DataFrame.{corr, cov}
+- Override Index.astype to enable dtype casting (GH #412)
+- Use same float formatting function for Series.__repr__ (PR #420)
+- Use available console width to output DataFrame columns (PR #453)
+- Accept ndarrays when setting items in Panel (GH #452)
+- Optimize scalar value lookups in the general case by 25% or more in Series
+  and DataFrame
+- Can pass DataFrame/DataFrame and DataFrame/Series to
+  rolling_corr/rolling_cov (GH #462)
+- Fix performance regression in cross-sectional count in DataFrame, affecting
+  DataFrame.dropna speed
+- Column deletion in DataFrame copies no data (computes views on blocks) (GH
+  #158)
+- MultiIndex.get_level_values can take the level name
+- More helpful error message when DataFrame.plot fails on one of the columns
+  (GH #478)
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _GH114: https://github.com/wesm/pandas/issues/114
+.. _GH189: https://github.com/wesm/pandas/issues/302
+.. _GH302: https://github.com/wesm/pandas/issues/302
 .. _GH428: https://github.com/wesm/pandas/issues/428
 .. _GH437: https://github.com/wesm/pandas/issues/437
 .. _GH438: https://github.com/wesm/pandas/issues/438
+.. _GH444: https://github.com/wesm/pandas/issues/444
 .. _GH461: https://github.com/wesm/pandas/issues/461
 .. _GH463: https://github.com/wesm/pandas/issues/463
 .. _PR435: https://github.com/wesm/pandas/pull/435
+.. _PR453: https://github.com/wesm/pandas/pull/453

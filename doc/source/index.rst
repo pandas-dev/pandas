@@ -111,13 +111,13 @@ See the package overview for more detail about what's in the library.
     dsintro
     basics
     indexing
+    computation
     missing_data
     groupby
     merging
     reshaping
     timeseries
     visualization
-    stats
     io
     sparse
     r_interface

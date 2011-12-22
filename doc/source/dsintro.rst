@@ -222,6 +222,9 @@ not matching up to the passed index.
 If axis labels are not passed, they will be constructed from the input data
 based on common sense rules.
 
+Main constructor
+~~~~~~~~~~~~~~~~
+
 **From dict of Series or dicts**
 
 the result **index** will be the **union** of the indexes of the various
@@ -282,6 +285,40 @@ This case is handled identically to a dict of arrays.
 
     DataFrame is not intended to work exactly like a 2-dimensional NumPy
     ndarray.
+
+Alternate Constructors
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. _basics.dataframe.from_dict:
+
+**DataFrame.from_dict**
+
+.. _basics.dataframe.from_records:
+
+**DataFrame.from_records**
+
+.. _basics.dataframe.from_items:
+
+**DataFrame.from_items**
+
+``DataFrame.from_items`` works analogously to the form of the ``dict``
+constructor that takes a sequence of ``(key, value)`` pairs, where the keys are
+column (or row, in the case of ``orient='index'``) names, and the value are the
+column values (or row values). This can be useful for constructing a DataFrame
+with the columns in a particular order without having to pass an explicit list
+of columns:
+
+.. ipython:: python
+
+   DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])])
+
+If you pass ``orient='index'``, the keys will be the row labels. But in this
+case you must also pass the desired column names:
+
+.. ipython:: python
+
+   DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
+                        orient='index', columns=['one', 'two', 'three'])
 
 Column selection, addition, deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,6 +1,5 @@
-.. currentmodule:: pandas.stats.api
-
-.. _stats:
+.. currentmodule:: pandas
+.. _computation:
 
 .. ipython:: python
    :suppress:
@@ -14,9 +13,85 @@
    import matplotlib.pyplot as plt
    plt.close('all')
 
-**********************************
-Moving window stats and regression
-**********************************
+Computational tools
+===================
+
+Statistical functions
+---------------------
+
+.. _computation.correlation:
+
+Correlation
+~~~~~~~~~~~
+
+Several methods for computing correlations are provided. Several kinds of
+correlation methods are provided:
+
+.. csv-table::
+    :header: "Method name", "Description"
+    :widths: 20, 80
+
+    ``pearson (default)``, Standard correlation coefficient
+    ``kendall``, Kendall Tau correlation coefficient
+    ``spearman``, Spearman rank correlation coefficient
+
+.. \rho = \cov(x, y) / \sigma_x \sigma_y
+
+All of these are currently computed using pariwise complete observations.
+
+.. ipython:: python
+
+   frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame.ix[::2] = np.nan
+
+   # Series with Series
+   frame['a'].corr(frame['b'])
+   frame['a'].corr(frame['b'], method='spearman')
+
+   # Pairwise correlation of DataFrame columns
+   frame.corr()
+
+A related method ``corrwith`` is implemented on DataFrame to compute the
+correlation between like-labeled Series contained in different DataFrame
+objects.
+
+.. ipython:: python
+
+   index = ['a', 'b', 'c', 'd', 'e']
+   columns = ['one', 'two', 'three', 'four']
+   df1 = DataFrame(randn(5, 4), index=index, columns=columns)
+   df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
+   df1.corrwith(df2)
+   df2.corrwith(df1, axis=1)
+
+.. _computation.ranking:
+
+Data ranking
+~~~~~~~~~~~~
+
+The ``rank`` method produces a data ranking with ties being assigned the mean
+of the ranks for the group:
+
+.. ipython:: python
+
+   s = Series(np.random.randn(5), index=list('abcde'))
+   s['d'] = s['b'] # so there's a tie
+   s.rank()
+
+``rank`` is also a DataFrame method and can rank either the rows (``axis=0``)
+or the columns (``axis=1``). ``NaN`` values are excluded from the ranking.
+
+.. ipython:: python
+
+   df = DataFrame(np.random.randn(10, 6))
+   df[4] = df[2][:5] # some ties
+   df
+   df.rank(1)
+
+.. note::
+
+    These methods are significantly faster (around 10-20x) than
+    ``scipy.stats.rankdata``.
 
 .. currentmodule:: pandas
 
@@ -51,6 +126,7 @@ otherwise they can be found in :mod:`pandas.stats.moments`.
     ``rolling_apply``, Generic apply
     ``rolling_cov``, Unbiased covariance (binary)
     ``rolling_corr``, Correlation (binary)
+    ``rolling_corr_pairwise``, Pairwise correlation of DataFrame columns
 
 Generally these methods all have the same interface. The binary operators
 (e.g. ``rolling_corr``) take two Series or DataFrames. Otherwise, they all
@@ -90,6 +166,35 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
    @savefig rolling_mean_frame.png width=4.5in
    rolling_sum(df, 60).plot(subplots=True)
+
+.. _stats.moments.corr_pairwise:
+
+Computing rolling pairwise correlations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In financial data analysis and other fields it's common to compute correlation
+matrices for a collection of time series. More difficult is to compute a
+moving-window correlation matrix. This can be done using the
+``rolling_corr_pairwise`` function, which yields a ``Panel`` whose ``items``
+are the dates in question:
+
+.. ipython:: python
+
+   correls = rolling_corr_pairwise(df, 50)
+   correls[df.index[-50]]
+
+You can efficiently retrieve the time series of correlations between two
+columns using ``ix`` indexing:
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+.. ipython:: python
+
+   @savefig rolling_corr_pairwise_ex.png width=4.5in
+   correls.ix[:, 'A', 'C'].plot()
 
 Exponentially weighted moment functions
 ---------------------------------------
@@ -332,3 +437,4 @@ Result fields and tests
 
 We'll leave it to the user to explore the docstrings and source, especially as
 we'll be moving this code into statsmodels in the near future.
+

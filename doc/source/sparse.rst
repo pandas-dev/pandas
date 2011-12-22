@@ -69,7 +69,7 @@ SparseArray
 -----------
 
 ``SparseArray`` is the base layer for all of the sparse indexed data
-structured. It is a 1-dimensional ndarray-like object storing only values
+structures. It is a 1-dimensional ndarray-like object storing only values
 distinct from the ``fill_value``:
 
 .. ipython:: python

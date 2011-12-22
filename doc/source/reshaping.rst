@@ -201,9 +201,8 @@ some very expressive and fast data manipulations.
    df.mean().unstack(0)
 
 
-**********************************
 Pivot tables and cross-tabulations
-**********************************
+----------------------------------
 
 .. _reshaping.pivot:
 
@@ -220,11 +219,11 @@ Consider a data set like this:
 
 .. ipython:: python
 
-   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
-                   'B' : ['A', 'B', 'C'] * 4,
-                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
-                   'D' : np.random.randn(12),
-                   'E' : np.random.randn(12)})
+   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 6,
+                   'B' : ['A', 'B', 'C'] * 8,
+                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
+                   'D' : np.random.randn(24),
+                   'E' : np.random.randn(24)})
    df
 
 We can produce pivot tables from this data very easily:
@@ -250,3 +249,19 @@ calling ``to_string`` if you wish:
 
    table = pivot_table(df, rows=['A', 'B'], cols=['C'])
    print table.to_string(na_rep='')
+
+Note that ``pivot_table`` is also available as an instance method on DataFrame.
+
+.. _reshaping.pivot.margins:
+
+Adding margins (partial aggregates)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you pass ``margins=True`` to ``pivot_table``, special ``All`` columns and
+rows will be added with partial group aggregates across the categories on the
+rows and columns:
+
+.. ipython:: python
+
+   df.pivot_table(rows=['A', 'B'], cols='C', margins=True, aggfunc=np.std)
+

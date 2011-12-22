@@ -289,37 +289,6 @@ number of unique values and most frequently occurring values:
    s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
 
-
-Correlations between objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Several handy methods for computing correlations are provided. The only
-behavior available at the moment is to compute "pairwise complete
-observations". In computing correlations in the presence of missing data, one
-must be careful internally to compute the standard deviation of each Series
-over the labels with valid data in both objects.
-
-.. ipython:: python
-
-   # Series with Series
-   frame['a'].corr(frame['b'])
-
-   # Pairwise correlation of DataFrame columns
-   frame.corr()
-
-A related method ``corrwith`` is implemented on DataFrame to compute the
-correlation between like-labeled Series contained in different DataFrame
-objects.
-
-.. ipython:: python
-
-   index = ['a', 'b', 'c', 'd', 'e']
-   columns = ['one', 'two', 'three', 'four']
-   df1 = DataFrame(randn(5, 4), index=index, columns=columns)
-   df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
-   df1.corrwith(df2)
-   df2.corrwith(df1, axis=1)
-
 .. _basics.apply:
 
 Function application
@@ -744,6 +713,26 @@ alternately passing the ``dtype`` keyword argument to the object constructor.
    df = DataFrame(np.arange(12).reshape((4, 3)), dtype=float)
    df[0].dtype
 
+.. _basics.cast.infer:
+
+Inferring better types for object columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``convert_objects`` DataFrame method will attempt to convert
+``dtype=object`` columns to a better NumPy dtype. Occasionally (after
+transposing multiple times, for example), a mixed-type DataFrame will end up
+with everything as ``dtype=object``. This method attempts to fix that:
+
+.. ipython:: python
+
+   df = DataFrame(randn(6, 3), columns=['a', 'b', 'c'])
+   df['d'] = 'foo'
+   df
+   df = df.T.T
+   df.dtypes
+   converted = df.convert_objects()
+   converted.dtypes
+
 .. _basics.serialize:
 
 Pickling and serialization
@@ -791,7 +780,20 @@ For instance:
 
 .. ipython:: python
 
-  set_eng_float_format(precision=3, use_eng_prefix=True)
-  df[0]/1.e3
-  df[0]/1.e6
+   set_eng_float_format(precision=3, use_eng_prefix=True)
+   df[0]/1.e3
+   df[0]/1.e6
 
+.. ipython:: python
+   :suppress:
+
+   set_printoptions(precision=4)
+
+
+The ``set_printoptions`` function has a number of options for controlling how
+floating point numbers are formatted (using hte ``precision`` argument) in the
+console and . The ``max_rows`` and ``max_columns`` control how many rows and
+columns of DataFrame objects are shown by default. If ``max_columns`` is set to
+0 (the default, in fact), the library will attempt to fit the DataFrame's
+string representation into the current terminal width, and defaulting to the
+summary view otherwise.
