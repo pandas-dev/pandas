@@ -22,12 +22,12 @@ The axis labeling information in pandas objects serves many purposes:
   - Enables automatic and explicit data alignment
   - Allows intuitive getting and setting of subsets of the data set
 
-In this section / chapter, we will focus on the latter set of functionality,
-namely how to slice, dice, and generally get and set subsets of pandas
-objects. The primary focus will be on Series and DataFrame as they have
-received more development attention in this area. More work will be invested in
-Panel and future higher-dimensional data structures in the future, especially
-in label-based advanced indexing.
+In this section / chapter, we will focus on the final point: namely, how to
+slice, dice, and generally get and set subsets of pandas objects. The primary
+focus will be on Series and DataFrame as they have received more development
+attention in this area. Expect more work to be invested higher-dimensional data
+structures (including Panel) in the future, especially in label-based advanced
+indexing.
 
 .. _indexing.basics:
 
@@ -115,19 +115,16 @@ label, respectively.
    panel.major_xs(date)
    panel.minor_xs('A')
 
-.. note::
-
-   See :ref:`advanced indexing <indexing.advanced>` below for an alternate and
-   more concise way of doing the same thing.
-
 Slicing ranges
 ~~~~~~~~~~~~~~
 
-:ref:`Advanced indexing <indexing.advanced>` detailed below is the most robust
-and consistent way of slicing ranges, e.g. ``obj[5:10]``, across all of the data
-structures and their axes (except in the case of integer labels, more on that
-later). On Series, this syntax works exactly as expected as with an ndarray,
-returning a slice of the values and the corresponding labels:
+The most robust and consistent way of slicing ranges along arbitrary axes is
+described in the :ref:`Advanced indexing <indexing.advanced>` section detailing
+the ``.ix`` method. For now, we explain the semantics of slicing using the
+``[]`` operator.
+
+With Series, the syntax works exactly as with an ndarray, returning a slice of
+the values and the corresponding labels:
 
 .. ipython:: python
 
@@ -154,28 +151,37 @@ largely as a convenience since it is such a common operation.
 Boolean indexing
 ~~~~~~~~~~~~~~~~
 
-Using a boolean vector to index a Series works exactly like an ndarray:
+.. _indexing.boolean:
+
+Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
 .. ipython:: python
 
    s[s > 0]
    s[(s < 0) & (s > -0.5)]
 
-Again as a convenience, selecting rows from a DataFrame using a boolean vector
-the same length as the DataFrame's index (for example, something derived from
-one of the columns of the DataFrame) is supported:
+You may select rows from a DataFrame using a boolean vector the same length as
+the DataFrame's index (for example, something derived from one of the columns
+of the DataFrame):
 
 .. ipython:: python
 
    df[df['A'] > 0]
 
-As we will see later on, the same operation could be accomplished by
-reindexing. However, the syntax would be more verbose; hence, the inclusion of
-this indexing method.
+Consider the ``isin`` method of Series, which returns a boolean vector that is
+true wherever the Series elements exist in the passed list. This allows you to
+select out rows where one or more columns have values you want:
 
-With the advanced indexing capabilities discussed later, you are able to do
-boolean indexing in any of axes or combine a boolean vector with an indexing
-expression on one of the other axes
+.. ipython:: python
+
+   df2 = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+                    'c' : np.random.randn(7)})
+   df2[df2['a'].isin(['one', 'two'])]
+
+Note, with the :ref:`advanced indexing <indexing.advanced>` ``ix`` method, you
+may select along more than one axis using boolean vectors combined with other
+indexing expressions.
 
 Indexing a DataFrame with a boolean DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -202,19 +208,32 @@ Take Methods
 
 TODO: Fill Me In
 
-
-Slicing ranges
+Duplicate Data
 ~~~~~~~~~~~~~~
 
-Similar to Python lists and ndarrays, for convenience DataFrame
-supports slicing:
+.. _indexing.duplicate:
+
+If you want to indentify and remove duplicate rows in a DataFrame,  there are
+two methods that will help: ``duplicated`` and ``drop_duplicates``. Each
+takes as an argument the columns to use to identify duplicated rows.
+
+``duplicated`` returns a boolean vector whose length is the number of rows, and
+which indicates whether a row is duplicated.
+
+``drop_duplicates`` removes duplicate rows.
+
+By default, the first observed row of a duplicate set is considered unique, but
+each method has a ``take_last`` parameter that indicates the last observed row
+should be taken instead.
 
 .. ipython:: python
 
-    df[:2]
-    df[::-1]
-    df[-3:].T
-
+   df2 = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+                    'c' : np.random.randn(7)})
+   df2.duplicated(['a','b'])
+   df2.drop_duplicates(['a','b'])
+   df2.drop_duplicates(['a','b'], take_last=True)
 
 .. _indexing.advanced:
 

@@ -16,7 +16,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    import numpy as np
    from pandas import *
    randn = np.random.randn
-   np.set_printoptions(precision=4, suppress=True)
+   np.set_printoptions(precision=4, suppress=True, max_columns=10)
 
 .. ipython:: python
 
@@ -454,6 +454,19 @@ Operations with scalars are just as you would expect:
    df * 5 + 2
    1 / df
    df ** 4
+
+.. _dsintro.boolean:
+
+As of 0.6, boolean operators work:
+
+.. ipython:: python
+
+   df1 = DataFrame({'a' : [1, 0, 1], 'b' : [0, 1, 1] }, dtype=bool)
+   df2 = DataFrame({'a' : [0, 1, 1], 'b' : [1, 1, 0] }, dtype=bool)
+   df1 & df2
+   df1 | df2
+   df1 ^ df2
+   -df1
 
 Transposing
 ~~~~~~~~~~~

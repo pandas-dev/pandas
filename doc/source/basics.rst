@@ -27,6 +27,21 @@ the previous section:
               major_axis=DateRange('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
+.. _basics.head_tail:
+
+Head and Tail
+-------------
+
+To view a small sample of a Series or DataFrame object, use the ``head`` and
+``tail`` methods. The default number of elements to display is five, but you
+may pass a custom number.
+
+.. ipython:: python
+
+   long_series = Series(randn(1000))
+   long_series.head()
+   long_series.tail(3)
+
 .. _basics.attrs:
 
 Attributes and the raw ndarray(s)
@@ -76,15 +91,15 @@ unlike the axis labels, cannot be assigned to.
 Flexible binary operations
 --------------------------
 
-With binary operations between pandas data structures, we have a couple items
+With binary operations between pandas data structures, there are two key points
 of interest:
 
-  * How to describe broadcasting behavior between higher- (e.g. DataFrame) and
+  * Broadcasting behavior between higher- (e.g. DataFrame) and
     lower-dimensional (e.g. Series) objects.
-  * Behavior of missing data in computations
+  * Missing data in computations
 
-We will demonstrate the currently-available functions to illustrate these
-issues independently, though they can be performed simultaneously.
+We will demonstrate how to manage these issues independently, though they can
+be handled simultaneously.
 
 Matching / broadcasting behavior
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -179,6 +194,20 @@ function implementing this operation is ``combine_first``, which we illustrate:
    df2
    df1.combine_first(df2)
 
+General DataFrame Combine
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``combine_first`` method above calls the more general DataFrame method
+``combine``. This method takes another DataFrame and a combiner function,
+aligns the input DataFrame and then passes the combiner function pairs of
+Series (ie, columns whose names are the same).
+
+So, for instance, to reproduce ``combine_first`` as above:
+
+.. ipython:: python
+
+   combiner = lambda x, y: np.where(isnull(x), y, x)
+   df1.combine(df2, combiner)
 
 .. _basics.stats:
 

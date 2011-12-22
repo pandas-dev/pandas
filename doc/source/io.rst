@@ -57,6 +57,9 @@ data into a DataFrame object. They can take a number of arguments:
     below in the section on :ref:`iterating and chunking <io.chunking>`
   - ``iterator``: If True, return a ``TextParser`` to enable reading a file
     into memory piece by piece
+  - ``skip_footer``: number of lines to skip at bottom of file (default 0)
+  - ``converters``: a dictionary of functions for converting values in certain
+    columns, where keys are either integers or column labels
 
 .. ipython:: python
    :suppress:
