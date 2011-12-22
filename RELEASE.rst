@@ -78,6 +78,7 @@ pandas 0.6.2
     regression from prior versions (GH #510)
   - Handle rows skipped at beginning of file in read_* functions (GH #505)
   - Handle improper dtype casting in ``set_value`` methods
+  - Unary '-' / __neg__ operator on DataFrame was returning integer values
 
 Thanks
 ------

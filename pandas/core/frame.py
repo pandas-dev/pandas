@@ -424,7 +424,8 @@ class DataFrame(NDFrame):
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
 
     def __neg__(self):
-        return self * -1
+        arr = operator.neg(self.values)
+        return self._wrap_array(arr, self.axes, copy=False)
 
     # Comparison methods
     __eq__ = comp_method(operator.eq, '__eq__')

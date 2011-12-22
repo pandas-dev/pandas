@@ -20,10 +20,10 @@ New features
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Cythonized GroupBy aggregations (sum, mean, std) no longer presort the data,
-thus achieving a significant speedup (Issue93_). Here's a graph of the
-performance of this operation over time on a dataset with 100,000 rows and
-10,000 unique groups:
+:ref:`Cythonized GroupBy aggregations <groupby.aggregate.cython>` no longer
+presort the data, thus achieving a significant speedup (Issue93_). Here's a
+graph of the performance of this operation over time on a dataset with 100,000
+rows and 10,000 unique groups:
 
 
 .. .. code-block:: ipython

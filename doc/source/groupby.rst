@@ -309,11 +309,13 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 
    grouped.agg({'C' : 'sum', 'D' : 'std'})
 
+.. _groupby.aggregate.cython:
+
 Cython-optimized aggregation functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some common aggregations, currently only ``sum`` and ``mean``, have optimized
-Cython implementations:
+Some common aggregations, currently only ``sum``, ``mean``, and ``std``, have
+optimized Cython implementations:
 
 .. ipython:: python
 

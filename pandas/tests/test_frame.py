@@ -1724,12 +1724,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             result = op(df1, df2)
             expected = DataFrame(op(df1.values, df2.values), index=df1.index,
                                  columns=df1.columns)
+            self.assert_(result.values.dtype == np.bool_)
             assert_frame_equal(result, expected)
 
         def _check_unary_op(op):
             result = op(df1)
             expected = DataFrame(op(df1.values), index=df1.index,
                                  columns=df1.columns)
+            self.assert_(result.values.dtype == np.bool_)
             assert_frame_equal(result, expected)
 
         df1 = {'a': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
@@ -1750,6 +1752,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         _check_bin_op(operator.and_)
         _check_bin_op(operator.or_)
         _check_bin_op(operator.xor)
+
+        _check_unary_op(operator.neg)
 
     def test_neg(self):
         # what to do?
