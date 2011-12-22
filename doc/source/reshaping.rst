@@ -205,6 +205,8 @@ some very expressive and fast data manipulations.
 Pivot tables and cross-tabulations
 **********************************
 
+.. _reshaping.pivot:
+
 The function ``pandas.pivot_table`` can be used to create spreadsheet-style pivot
 tables. It takes a number of arguments
 

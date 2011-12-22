@@ -149,6 +149,8 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 GroupBy with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _groupby.multiindex:
+
 With :ref:`hierarchically-indexed data <indexing.hierarchical>`, it's quite
 natural to group by one of the levels of the hierarchy.
 
