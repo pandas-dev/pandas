@@ -16,13 +16,13 @@ What's New
 
 These are new features and improvements of note in each release.
 
-.. include:: whatsnew/v0.6.2.rst
+.. include:: whatsnew/v0.6.2.txt
 
-.. include:: whatsnew/v0.6.1.rst
+.. include:: whatsnew/v0.6.1.txt
 
-.. include:: whatsnew/v0.6.0.rst
+.. include:: whatsnew/v0.6.0.txt
 
-.. include:: whatsnew/v0.5.0.rst
+.. include:: whatsnew/v0.5.0.txt
 
-.. include:: whatsnew/v0.4.x.rst
+.. include:: whatsnew/v0.4.x.txt
 

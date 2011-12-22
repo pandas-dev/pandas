@@ -96,6 +96,7 @@ Performance Enhancements
 .. _GH381: https://github.com/wesm/pandas/issues/381
 .. _GH382: https://github.com/wesm/pandas/issues/382
 .. _GH393: https://github.com/wesm/pandas/issues/393
+.. _PR286: https://github.com/wesm/pandas/pull/286
 .. _PR296: https://github.com/wesm/pandas/pull/296
 .. _PR313: https://github.com/wesm/pandas/pull/313
 .. _PR321: https://github.com/wesm/pandas/pull/321

@@ -69,6 +69,31 @@ Thus, as per above, we have the most basic indexing using ``[]``:
    s[dates[5]]
    panel['two']
 
+
+.. _indexing.basics.get_value:
+
+Fast scalar value getting and setting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since indexing with ``[]`` must handle a lot of cases (single-label access,
+slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
+out what you're asking for. If you only want to access a scalar value, the
+fastest way is to use the ``get_value`` method, which is implemented on all of
+the data structures:
+
+.. ipython:: python
+
+   s.get_value(dates[5])
+   df.get_value(dates[5], 'A')
+
+There is an analogous ``set_value`` method which has the additional capability
+of enlarging an object. This method *always* returns a reference to the object
+it modified, which in the fast of enlargement, will be a **new object**:
+
+.. ipython:: python
+
+   df.set_value(dates[5], 'E', 7)
+
 Additional Column Access
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -657,23 +682,6 @@ The ``swaplevel`` function can switch the order of two levels:
    df[:5]
    df[:5].swaplevel(0, 1, axis=0)
 
-The ``delevel`` DataFrame function
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-As a convenience, there is a new function on DataFrame called ``delevel`` which
-takes a ``MultiIndex`` on the rows and turns the levels into columns of the
-DataFrame:
-
-.. ipython:: python
-
-   df
-   df.delevel()
-
-The output is more similar to a SQL table or a record array. The names for the
-columns derived from the ``MultiIndex`` are the ones stored in the ``names``
-attribute. These will get automatically assigned in various places where
-``MultiIndex`` is created, for example :ref:`GroupBy <groupby>`.
-
 Some gory internal details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -744,6 +752,22 @@ the index in-place (without creating a new object):
    data.set_index('c', drop=False)
    df = data.set_index(['a', 'b'], inplace=True)
    data
+
+Remove / reset the index,  ``reset_index``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As a convenience, there is a new function on DataFrame called ``reset_index``
+which transfers the index values into the DataFrame's columns and sets a simple
+integer index. This is the inverse operation to ``set_index``
+
+.. ipython:: python
+
+   df
+   df.reset_index()
+
+The output is more similar to a SQL table or a record array. The names for the
+columns derived from the index are the ones stored in the ``names``
+attribute.
 
 Adding an ad hoc index
 ~~~~~~~~~~~~~~~~~~~~~~

@@ -146,10 +146,10 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    grouped.groups
    len(grouped)
 
+.. _groupby.multiindex:
+
 GroupBy with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _groupby.multiindex:
 
 With :ref:`hierarchically-indexed data <indexing.hierarchical>`, it's quite
 natural to group by one of the levels of the hierarchy.
@@ -268,12 +268,12 @@ changed by using the ``as_index`` option:
 
    df.groupby('A', as_index=False).sum()
 
-Note that you could use the ``delevel`` DataFrame function to achieve the same
-result as the column names are stored in the resulting ``MultiIndex``:
+Note that you could use the ``reset_index`` DataFrame function to achieve the
+same result as the column names are stored in the resulting ``MultiIndex``:
 
 .. ipython:: python
 
-   df.groupby(['A', 'B']).sum().delevel()
+   df.groupby(['A', 'B']).sum().reset_index()
 
 Applying multiple functions at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

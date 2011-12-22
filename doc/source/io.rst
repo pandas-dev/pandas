@@ -170,9 +170,9 @@ module.
     print open('tmp2.sv').read()
     read_csv('tmp2.sv')
 
-.. _io.chunking:
-
 .. _Sniffer: http://docs.python.org/library/csv.html#csv.Sniffer
+
+.. _io.chunking:
 
 Iterating through files chunk by chunk
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
