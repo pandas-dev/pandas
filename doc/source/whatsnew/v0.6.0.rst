@@ -1,5 +1,107 @@
-
 .. _whatsnew_060:
 
 v.0.6.0 (November 25, 2011)
 ---------------------------
+
+New Features
+~~~~~~~~~~~~
+- Add ``melt`` function to ``pandas.core.reshape``
+- Add ``level`` parameter to group by level in Series and DataFrame descriptive statistics (PR313_)
+- Add ``head`` and ``tail`` methods to Series, analogous to to DataFrame (PR296_)
+- Add ``Series.isin`` function which checks if each value is contained in a passed sequence (GH289_)
+- Add ``float_format`` option to ``Series.to_string``
+- MAYBE DOCUMENTED? Add ``skip_footer`` (GH291_) and ``converters`` (GH343_) options to ``read_csv`` and ``read_table``
+- Add proper, tested weighted least squares to standard and panel OLS (GH303_)
+- Add ``drop_duplicates`` and ``duplicated`` functions for removing duplicate DataFrame rows and checking for duplicate rows, respectively (GH319_)
+- Implement logical (boolean) operators '&', '|', '^', '~' on DataFrame (GH347_)
+- MAYBE ? Add ``Series.mad``, mean absolute deviation, matching DataFrame
+- MAYBE? Add ``QuarterEnd`` DateOffset (PR321_)
+- Add matrix multiplication function ``dot`` to DataFrame (GH65_)
+- Add ``orient``5 option to ``Panel.from_dict`` to ease creation of mixed-type Panels (GH359_, GH301_)
+- Add ``DataFrame.from_dict`` with similar ``orient`` option
+- Can now pass list of tuples or list of lists to ``DataFrame.from_records`` for fast conversion to DataFrame (GH357_)
+- Can pass multiple levels to groupby, e.g. ``df.groupby(level=[0, 1])`` (GH103_)
+- Can sort by multiple columns in ``DataFrame.sort_index`` (GH92_, PR362_)
+- Add fast ``get_value`` and ``put_value`` methods to DataFrame and micro-performance tweaks (GH360_)
+- Add ``cov`` instance methods to Series and DataFrame (GH194_, PR362_)
+- Add bar plot option to ``DataFrame.plot`` (PR348_)
+- Add ``idxmin`` and ``idxmax`` functions to Series and DataFrame for computing index labels achieving maximum and minimum values (PR286_)
+- Add ``read_clipboard`` function for parsing DataFrame from OS clipboard, should work across platforms (GH300_)
+- Add ``nunique`` function to Series for counting unique elements (GH297_)
+- DataFrame constructor will use Series name if no columns passed (GH373_)
+- Support regular expressions and longer delimiters in read_table/read_csv, but does not handle quoted strings yet (GH364_)
+- Add ``DataFrame.to_html`` for formatting DataFrame to HTML (PR387_)
+- MaskedArray can be passed to DataFrame constructor and masked values will be converted to NaN (PR396_)
+- Add ``DataFrame.boxplot`` function (GH368_, others)
+- Can pass extra args, kwds to DataFrame.apply (GH376_)
+- Arithmetic methods like ``sum`` will attempt to sum dtype=object values by default instead of excluding them (GH382_)
+- Print level names in hierarchical index in Series repr (GH305_)
+- Return DataFrame when performing GroupBy on selected column and as_index=False (GH308_)
+- Can pass vector to ``on`` argument in ``DataFrame.join`` (GH312_)
+- Show legend by default in ``DataFrame.plot``, add ``legend`` boolean flag
+  (GH324_) np.unique called on a Series faster (GH327_) "empty" combinations
+  ``Series.map`` significantly when passed elementwise Python function,
+  motivated by PR355_ enhancements throughout the codebase (GH361_) with 3-5x
+  better performance than ``np.apply_along_axis`` (GH309_) the passed function
+  only requires an ndarray (GH309_)
+- Can pass multiple levels to ``stack`` and ``unstack`` (GH370_)
+- Can pass multiple values columns to ``pivot_table`` (GH381_)
+- Can call ``DataFrame.delevel`` with standard Index with name set (GH393_)
+- Use Series name in GroupBy for result index (GH363_)
+- MAYBE? Refactor Series/DataFrame stat methods to use common set of NaN-friendly function
+
+Performance Enhancements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance
+- VBENCH Improve performance of ``MultiIndex.from_tuples``
+- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations
+- VBENCH + DOCUMENT Add ``raw`` option to ``DataFrame.apply`` for getting better performance when
+- VBENCH Faster cythonized count by level in Series and DataFrame (GH341_)
+- VBENCH? Significant GroupBy performance enhancement with multiple keys with many
+- VBENCH New Cython vectorized function ``map_infer`` speeds up ``Series.apply`` and
+- VBENCH Significantly improved performance of ``Series.order``, which also makes
+- VBENCH Vastly improved performance of GroupBy on axes with a MultiIndex (GH299_)
+
+.. _GH65: https://github.com/wesm/pandas/issues/65
+.. _GH92: https://github.com/wesm/pandas/issues/92
+.. _GH103: https://github.com/wesm/pandas/issues/103
+.. _GH194: https://github.com/wesm/pandas/issues/194
+.. _GH289: https://github.com/wesm/pandas/issues/289
+.. _GH291: https://github.com/wesm/pandas/issues/291
+.. _GH297: https://github.com/wesm/pandas/issues/297
+.. _GH299: https://github.com/wesm/pandas/issues/299
+.. _GH300: https://github.com/wesm/pandas/issues/300
+.. _GH301: https://github.com/wesm/pandas/issues/301
+.. _GH303: https://github.com/wesm/pandas/issues/303
+.. _GH305: https://github.com/wesm/pandas/issues/305
+.. _GH308: https://github.com/wesm/pandas/issues/308
+.. _GH309: https://github.com/wesm/pandas/issues/309
+.. _GH312: https://github.com/wesm/pandas/issues/312
+.. _GH319: https://github.com/wesm/pandas/issues/319
+.. _GH324: https://github.com/wesm/pandas/issues/324
+.. _GH327: https://github.com/wesm/pandas/issues/327
+.. _GH341: https://github.com/wesm/pandas/issues/341
+.. _GH343: https://github.com/wesm/pandas/issues/343
+.. _GH347: https://github.com/wesm/pandas/issues/347
+.. _GH357: https://github.com/wesm/pandas/issues/357
+.. _GH359: https://github.com/wesm/pandas/issues/359
+.. _GH360: https://github.com/wesm/pandas/issues/360
+.. _GH361: https://github.com/wesm/pandas/issues/361
+.. _GH363: https://github.com/wesm/pandas/issues/363
+.. _GH364: https://github.com/wesm/pandas/issues/364
+.. _GH368: https://github.com/wesm/pandas/issues/368
+.. _GH370: https://github.com/wesm/pandas/issues/370
+.. _GH373: https://github.com/wesm/pandas/issues/373
+.. _GH376: https://github.com/wesm/pandas/issues/376
+.. _GH381: https://github.com/wesm/pandas/issues/381
+.. _GH382: https://github.com/wesm/pandas/issues/382
+.. _GH393: https://github.com/wesm/pandas/issues/393
+.. _PR296: https://github.com/wesm/pandas/pull/296
+.. _PR313: https://github.com/wesm/pandas/pull/313
+.. _PR321: https://github.com/wesm/pandas/pull/321
+.. _PR348: https://github.com/wesm/pandas/pull/348
+.. _PR355: https://github.com/wesm/pandas/pull/355
+.. _PR362: https://github.com/wesm/pandas/pull/362
+.. _PR386: https://github.com/wesm/pandas/pull/386
+.. _PR387: https://github.com/wesm/pandas/pull/387
+.. _PR396: https://github.com/wesm/pandas/pull/396
