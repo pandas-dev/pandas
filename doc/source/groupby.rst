@@ -177,6 +177,13 @@ number:
 
    s.groupby(level='second').sum()
 
+As of v0.6, the aggregation functions such as ``sum`` will take the level
+parameter directly:
+
+.. ipython:: python
+
+   s.sum(level='second')
+
 More on the ``sum`` function and aggregation later. Grouping with multiple
 levels (as opposed to a single level) is not yet supported, though implementing
 it is not difficult.

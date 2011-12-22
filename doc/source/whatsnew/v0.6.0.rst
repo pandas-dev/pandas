@@ -6,18 +6,18 @@ v.0.6.0 (November 25, 2011)
 New Features
 ~~~~~~~~~~~~
 - Add ``melt`` function to ``pandas.core.reshape``
-- Add ``level`` parameter to group by level in Series and DataFrame descriptive statistics (PR313_)
-- Add ``head`` and ``tail`` methods to Series, analogous to to DataFrame (PR296_)
-- Add ``Series.isin`` function which checks if each value is contained in a passed sequence (GH289_)
+  :ref:`Added <groupby.multindex>` ``level`` parameter to group by level in Series and DataFrame descriptive statistics (PR313_)
+- :ref:`Added <basics.head_tail>` ``head`` and ``tail`` methods to Series, analogous to to DataFrame (PR296_)
+- :ref:`Added <indexing.boolean>` ``Series.isin`` function which checks if each value is contained in a passed sequence (GH289_)
 - Add ``float_format`` option to ``Series.to_string``
-- MAYBE DOCUMENTED? Add ``skip_footer`` (GH291_) and ``converters`` (GH343_) options to ``read_csv`` and ``read_table``
-- Add proper, tested weighted least squares to standard and panel OLS (GH303_)
-- Add ``drop_duplicates`` and ``duplicated`` functions for removing duplicate DataFrame rows and checking for duplicate rows, respectively (GH319_)
-- Implement logical (boolean) operators '&', '|', '^', '~' on DataFrame (GH347_)
+- :ref:`Added <io.parse_dates>` ``skip_footer`` (GH291_) and ``converters`` (GH343_) options to ``read_csv`` and ``read_table``
+- Added proper, tested weighted least squares to standard and panel OLS (GH303_)
+- :ref:`Added <indexing.duplicate>` ``drop_duplicates`` and ``duplicated`` functions for removing duplicate DataFrame rows and checking for duplicate rows, respectively (GH319_)
+- :ref:`Implemented <dsintro.boolean>` operators '&', '|', '^', '-' on DataFrame (GH347_)
 - MAYBE ? Add ``Series.mad``, mean absolute deviation, matching DataFrame
 - MAYBE? Add ``QuarterEnd`` DateOffset (PR321_)
 - Add matrix multiplication function ``dot`` to DataFrame (GH65_)
-- Add ``orient``5 option to ``Panel.from_dict`` to ease creation of mixed-type Panels (GH359_, GH301_)
+- Add ``orient`` option to ``Panel.from_dict`` to ease creation of mixed-type Panels (GH359_, GH301_)
 - Add ``DataFrame.from_dict`` with similar ``orient`` option
 - Can now pass list of tuples or list of lists to ``DataFrame.from_records`` for fast conversion to DataFrame (GH357_)
 - Can pass multiple levels to groupby, e.g. ``df.groupby(level=[0, 1])`` (GH103_)
