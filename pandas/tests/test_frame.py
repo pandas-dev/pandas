@@ -3727,13 +3727,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(unstacked_cols.T, self.frame)
         assert_frame_equal(unstacked_cols_df['bar'].T, self.frame)
 
-    def test_delevel(self):
+    def test_reset_index(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo' : stacked, 'bar' : stacked})
 
         names = ['first', 'second']
         stacked.index.names = names
-        deleveled = stacked.delevel()
+        deleveled = stacked.reset_index()
         for i, (lev, lab) in enumerate(zip(stacked.index.levels,
                                            stacked.index.labels)):
             values = lev.take(lab)
@@ -3741,7 +3741,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_almost_equal(values, deleveled[name])
 
         stacked.index.names = [None, None]
-        deleveled2 = stacked.delevel()
+        deleveled2 = stacked.reset_index()
         self.assert_(np.array_equal(deleveled['first'],
                                     deleveled2['level_0']))
         self.assert_(np.array_equal(deleveled['second'],
@@ -3752,7 +3752,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # but this is ok
         self.frame.index.name = 'index'
-        deleveled = self.frame.delevel()
+        deleveled = self.frame.reset_index()
         self.assert_(np.array_equal(deleveled['index'],
                                     self.frame.index.values))
         self.assert_(np.array_equal(deleveled.index,

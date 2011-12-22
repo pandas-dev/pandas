@@ -27,6 +27,11 @@ pandas 0.6.2
 
 **Release date:** NOT YET RELEASED
 
+**API Changes**
+
+  - Rename ``DataFrame.delevel`` to ``DataFrame.reset_index`` and add
+    deprecation warning
+
 **New features / modules**
 
   - Handle differently-indexed output values in ``DataFrame.apply`` (GH #498)

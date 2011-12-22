@@ -33,6 +33,8 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _is_bool_indexer
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
+from pandas.util.decorators import deprecate
+
 import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.datetools as datetools
@@ -884,7 +886,6 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # properties for index and columns
 
-
     columns = AxisProperty(0)
     index = AxisProperty(1)
 
@@ -1469,6 +1470,42 @@ class DataFrame(NDFrame):
 
         frame.index = index
         return frame
+
+    def reset_index(self):
+        """
+        For DataFrame with multi-level index, return new DataFrame with
+        labeling information in the columns under the index names, defaulting
+        to 'level_0', 'level_1', etc. if any are None
+
+        Notes
+        -----
+        Experimental, subject to API change
+
+        Returns
+        -------
+        deleveled : DataFrame
+        """
+        new_obj = self.copy()
+        if isinstance(self.index, MultiIndex):
+            names = self.index.names
+            zipped = zip(self.index.levels, self.index.labels)
+            for i, (lev, lab) in reversed(list(enumerate(zipped))):
+                col_name = names[i]
+                if col_name is None:
+                    col_name = 'level_%d' % i
+
+                # to ndarray and maybe infer different dtype
+                level_values = lev.values
+                level_values = lib.maybe_convert_objects(level_values)
+                new_obj.insert(0, col_name, level_values.take(lab))
+        else:
+            if self.index.name is None:
+                raise Exception('Must have name set')
+            new_obj.insert(0, self.index.name, self.index.values)
+        new_obj.index = np.arange(len(new_obj))
+        return new_obj
+
+    delevel = deprecate('delevel', reset_index)
 
     def take(self, indices, axis=0):
         """
@@ -2158,39 +2195,6 @@ class DataFrame(NDFrame):
             return result
         else:
             return unstack(self, level)
-
-    def delevel(self):
-        """
-        For DataFrame with multi-level index, return new DataFrame with labeling
-        information in the columns under names 'level_0', 'level_1', etc.
-
-        Notes
-        -----
-        Experimental, subject to API change
-
-        Returns
-        -------
-        deleveled : DataFrame
-        """
-        new_obj = self.copy()
-        if isinstance(self.index, MultiIndex):
-            names = self.index.names
-            zipped = zip(self.index.levels, self.index.labels)
-            for i, (lev, lab) in reversed(list(enumerate(zipped))):
-                col_name = names[i]
-                if col_name is None:
-                    col_name = 'level_%d' % i
-
-                # to ndarray and maybe infer different dtype
-                level_values = lev.values
-                level_values = lib.maybe_convert_objects(level_values)
-                new_obj.insert(0, col_name, level_values.take(lab))
-        else:
-            if self.index.name is None:
-                raise Exception('Must have name set')
-            new_obj.insert(0, self.index.name, self.index.values)
-        new_obj.index = np.arange(len(new_obj))
-        return new_obj
 
     #----------------------------------------------------------------------
     # Time series-related

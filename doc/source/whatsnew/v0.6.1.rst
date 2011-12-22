@@ -30,8 +30,6 @@ New features
 - Add :ref:`margins <reshaping.pivot.margins>` option to :ref:`pivot_table
   <reshaping.pivot>` for computing subgroup aggregates (GH114_)
 - Add `Series.from_csv` function (PR #482)
-- Improve memory usage of `DataFrame.describe` (do not copy data
-  unnecessarily) (PR #425)
 - Use same formatting function for outputting floating point Series to console
   as in DataFrame (PR #420)
 - DataFrame.delevel will try to infer better dtype for new columns (GH #440)
@@ -54,6 +52,10 @@ New features
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improve memory usage of `DataFrame.describe` (do not copy data
+  unnecessarily) (PR #425)
+
 
 .. _GH114: https://github.com/wesm/pandas/issues/114
 .. _GH189: https://github.com/wesm/pandas/issues/302

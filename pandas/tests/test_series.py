@@ -760,6 +760,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # it works!
         _ = s1 * s2
 
+    # NumPy limitiation =(
+
+    # def test_logical_range_select(self):
+    #     np.random.seed(12345)
+    #     selector = -0.5 <= self.ts <= 0.5
+    #     expected = (self.ts >= -0.5) & (self.ts <= 0.5)
+    #     assert_series_equal(selector, expected)
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isnull check.
