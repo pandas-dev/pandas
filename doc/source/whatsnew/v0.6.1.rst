@@ -29,26 +29,10 @@ New features
   computing Panel of correlation matrices (GH189_)
 - Add :ref:`margins <reshaping.pivot.margins>` option to :ref:`pivot_table
   <reshaping.pivot>` for computing subgroup aggregates (GH114_)
-- Add `Series.from_csv` function (PR #482)
-- Use same formatting function for outputting floating point Series to console
-  as in DataFrame (PR #420)
-- DataFrame.delevel will try to infer better dtype for new columns (GH #440)
-- Exclude non-numeric types in DataFrame.{corr, cov}
-- Override Index.astype to enable dtype casting (GH #412)
-- Use same float formatting function for Series.__repr__ (PR #420)
-- Use available console width to output DataFrame columns (PR #453)
-- Accept ndarrays when setting items in Panel (GH #452)
-- Optimize scalar value lookups in the general case by 25% or more in Series
-  and DataFrame
-- Can pass DataFrame/DataFrame and DataFrame/Series to
-  rolling_corr/rolling_cov (GH #462)
-- Fix performance regression in cross-sectional count in DataFrame, affecting
-  DataFrame.dropna speed
-- Column deletion in DataFrame copies no data (computes views on blocks) (GH
-  #158)
-- MultiIndex.get_level_values can take the level name
-- More helpful error message when DataFrame.plot fails on one of the columns
-  (GH #478)
+- Add ``Series.from_csv`` function (PR482_)
+- :ref:`Can pass <stats.moments.binary>` DataFrame/DataFrame and
+  DataFrame/Series to rolling_corr/rolling_cov (GH #462)
+- MultiIndex.get_level_values can :ref:`accept the level name <indexing.get_level_values>`
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -56,6 +40,19 @@ Performance improvements
 - Improve memory usage of `DataFrame.describe` (do not copy data
   unnecessarily) (PR #425)
 
+- Optimize scalar value lookups in the general case by 25% or more in Series
+  and DataFrame
+
+.. image:: vbench/figures/series_getitem_scalar.png
+   :width: 6in
+
+.. image:: vbench/figures/datamatrix_getitem_scalar.png
+   :width: 6in
+
+- Fix performance regression in cross-sectional count in DataFrame, affecting
+  DataFrame.dropna speed
+- Column deletion in DataFrame copies no data (computes views on blocks) (GH
+  #158)
 
 .. _GH114: https://github.com/wesm/pandas/issues/114
 .. _GH189: https://github.com/wesm/pandas/issues/302
@@ -68,3 +65,4 @@ Performance improvements
 .. _GH463: https://github.com/wesm/pandas/issues/463
 .. _PR435: https://github.com/wesm/pandas/pull/435
 .. _PR453: https://github.com/wesm/pandas/pull/453
+.. _PR482: https://github.com/wesm/pandas/pull/482

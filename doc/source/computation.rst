@@ -51,6 +51,9 @@ All of these are currently computed using pariwise complete observations.
    # Pairwise correlation of DataFrame columns
    frame.corr()
 
+Note that non-numeric columns will be automatically excluded from the
+correlation calculation.
+
 A related method ``corrwith`` is implemented on DataFrame to compute the
 correlation between like-labeled Series contained in different DataFrame
 objects.
@@ -166,6 +169,28 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
    @savefig rolling_mean_frame.png width=4.5in
    rolling_sum(df, 60).plot(subplots=True)
+
+.. _stats.moments.binary:
+
+Binary rolling moments
+~~~~~~~~~~~~~~~~~~~~~~
+
+``rolling_cov`` and ``rolling_corr`` can compute moving window statistics about
+two ``Series`` or any combination of ``DataFrame/Series`` or
+``DataFrame/DataFrame``. Here is the behavior in each case:
+
+- two ``Series``: compute the statistic for the pairing
+- ``DataFrame/Series``: compute the statistics for each column of the DataFrame
+  with the passed Series, thus returning a DataFrame
+- ``DataFrame/DataFrame``: compute statistic for matching column names,
+  returning a DataFrame
+
+For example:
+
+.. ipython:: python
+
+   df2 = df[:20]
+   rolling_corr(df2, df2['B'], window=5)
 
 .. _stats.moments.corr_pairwise:
 

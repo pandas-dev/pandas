@@ -482,7 +482,7 @@ location at a particular level:
 .. ipython:: python
 
    index.get_level_values(0)
-   index.get_level_values(1)
+   index.get_level_values('second')
 
 
 Basic indexing on axis with MultiIndex

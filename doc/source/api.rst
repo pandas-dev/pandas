@@ -242,6 +242,7 @@ Serialization / IO / Conversion
 .. autosummary::
    :toctree: generated/
 
+   Series.from_csv
    Series.load
    Series.save
    Series.to_csv

@@ -4,8 +4,6 @@
 v.0.6.2 (Not Yet Released)
 --------------------------
 
-These are new features and improvements of note in this release.
-
 New features
 ~~~~~~~~~~~~
 

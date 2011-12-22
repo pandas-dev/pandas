@@ -26,7 +26,7 @@ New Features
 - :ref:`Added <indexing.set_index>` convenience ``set_index`` function for creating a DataFrame index from its existing columns
 - :ref:`Implemented <groupby.multiindex>` ``groupby`` hierarchical index level name  (GH223_)
 - :ref:`Added <io.store_in_csv>` support for different delimiters in ``DataFrame.to_csv`` (PR244_)
-- TODO: DOCS ABOUT TAKE METHODS, MORE ON PIVOT TABLES
+- TODO: DOCS ABOUT TAKE METHODS
 
 Performance Enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
