@@ -16,8 +16,8 @@ New features
 - Add PyQt table widget to sandbox (PR435_)
 - DataFrame.align can :ref:`accept Series arguments <basics.align.frame.series>`
   and an :ref:`axis option <basics.df_join>` (GH461_)
-- Implement new SparseList and SparseArray data structures. SparseSeries now
-  derives from SparseArray (GH463_)
+- Implement new :ref:`SparseArray <sparse.array>` and :ref:`SparseList <sparse.list>` data structure.
+  SparseSeries now derives from SparseArray (GH463_)
 - max_columns / max_rows options in set_printoptions (PR #453)
 - Implement Series.rank and DataFrame.rank, fast versions of
   scipy.stats.rankdata (GH #428)

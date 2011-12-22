@@ -54,11 +54,79 @@ large, mostly NA DataFrame:
 As you can see, the density (% of values that have not been "compressed") is
 extremely low. This sparse object takes up much less memory on disk (pickled)
 and in the Python interpreter. Functionally, their behavior should be nearly
-identical to their dense counterparts. If not, you should report any
-inconsistencies as bugs on GitHub.
+identical to their dense counterparts.
 
-Kinds of ``SparseIndex`` objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Any sparse object can be converted back to the standard dense form by calling
+``to_dense``:
+
+.. ipython:: python
+
+   sts.to_dense()
+
+.. _sparse.array:
+
+SparseArray
+-----------
+
+``SparseArray`` is the base layer for all of the sparse indexed data
+structured. It is a 1-dimensional ndarray-like object storing only values
+distinct from the ``fill_value``:
+
+.. ipython:: python
+
+   arr = np.random.randn(10)
+   arr[2:5] = np.nan; arr[7:8] = np.nan
+   sparr = SparseArray(arr)
+   sparr
+
+Like the indexed objects (SparseSeries, SparseDataFrame, SparsePanel), a
+``SparseArray`` can be converted back to a regular ndarray by calling
+``to_dense``:
+
+.. ipython:: python
+
+   sparr.to_dense()
+
+.. _sparse.list:
+
+SparseList
+----------
+
+``SparseList`` is a list-like data structure for managing a dynamic collection
+of SparseArrays. To create one, simply call the ``SparseList`` constructor with
+a ``fill_value`` (defaulting to ``NaN``):
+
+.. ipython:: python
+
+   spl = SparseList()
+   spl
+
+The two important methods are ``append`` and ``to_array``. ``append`` can
+accept scalar values or any 1-dimensional sequence:
+
+.. ipython:: python
+   :suppress:
+
+   from numpy import nan
+
+.. ipython:: python
+
+   spl.append(np.array([1., nan, nan, 2., 3.]))
+   spl.append(5)
+   spl.append(sparr)
+   spl
+
+As you can see, all of the contents are stored internally as a list of
+memory-efficient ``SparseArray`` objects. Once you've accumulated all of the
+data, you can call ``to_array`` to get a single ``SparseArray`` with all the
+data:
+
+.. ipython:: python
+
+   spl.to_array()
+
+SparseIndex objects
+-------------------
 
 Two kinds of ``SparseIndex`` are implemented, ``block`` and ``integer``. We
 recommend using ``block`` as it's more memory efficient. The ``integer`` format
