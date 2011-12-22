@@ -6,7 +6,7 @@ v.0.6.0 (November 25, 2011)
 New Features
 ~~~~~~~~~~~~
 - Add ``melt`` function to ``pandas.core.reshape``
-  :ref:`Added <groupby.multindex>` ``level`` parameter to group by level in Series and DataFrame descriptive statistics (PR313_)
+- :ref:`Added <groupby.multiindex>` ``level`` parameter to group by level in Series and DataFrame descriptive statistics (PR313_)
 - :ref:`Added <basics.head_tail>` ``head`` and ``tail`` methods to Series, analogous to to DataFrame (PR296_)
 - :ref:`Added <indexing.boolean>` ``Series.isin`` function which checks if each value is contained in a passed sequence (GH289_)
 - Add ``float_format`` option to ``Series.to_string``
