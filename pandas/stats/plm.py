@@ -97,8 +97,8 @@ class PanelOLS(OLS):
             y_regressor = y
 
         if weights is not None:
-            assert(y_regressor.index is weights.index)
-            assert(x_regressor.index is weights.index)
+            assert(y_regressor.index.equals(weights.index))
+            assert(x_regressor.index.equals(weights.index))
 
             rt_weights = np.sqrt(weights)
             y_regressor = y_regressor * rt_weights

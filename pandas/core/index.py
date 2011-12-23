@@ -685,7 +685,7 @@ class Index(np.ndarray):
         # because numpy is fussy with tuples
         item_idx = Index([item])
         new_index = np.concatenate((index[:loc], item_idx, index[loc:]))
-        return Index(new_index)
+        return Index(new_index, name=self.name)
 
     def drop(self, labels):
         """
@@ -1648,7 +1648,7 @@ class MultiIndex(Index):
             new_levels.append(level)
             new_labels.append(np.insert(labels, loc, lev_loc))
 
-        return MultiIndex(levels=new_levels, labels=new_labels)
+        return MultiIndex(levels=new_levels, labels=new_labels, names=self.names)
 
     def delete(self, loc):
         """

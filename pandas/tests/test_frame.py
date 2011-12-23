@@ -1689,6 +1689,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, df.insert, 1, 'a', df['b'])
         self.assertRaises(Exception, df.insert, 1, 'c', df['b'])
 
+        df.columns.name = 'some_name'
+        # preserve columns name field
+        df.insert(0, 'baz', df['c'])
+        self.assertEqual(df.columns.name, 'some_name')
+
     def test_delitem(self):
         del self.frame['A']
         self.assert_('A' not in self.frame)
@@ -3794,6 +3799,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                     self.frame.index.values))
         self.assert_(np.array_equal(deleveled.index,
                                     np.arange(len(deleveled))))
+
+        # preserve column names
+        self.frame.columns.name = 'columns'
+        resetted = self.frame.reset_index()
+        self.assertEqual(resetted.columns.name, 'columns')
 
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals

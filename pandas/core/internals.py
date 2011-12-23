@@ -441,7 +441,8 @@ class BlockManager(object):
         copy : BlockManager
         """
         copy_blocks = [block.copy(deep=deep) for block in self.blocks]
-        return BlockManager(copy_blocks, self.axes)
+        copy_axes = [ax.copy() for ax in self.axes]
+        return BlockManager(copy_blocks, copy_axes)
 
     def as_matrix(self, items=None):
         if len(self.blocks) == 0:

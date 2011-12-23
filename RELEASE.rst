@@ -82,6 +82,8 @@ pandas 0.6.2
   - Handle improper dtype casting in ``set_value`` methods
   - Unary '-' / __neg__ operator on DataFrame was returning integer values
   - Unbox 0-dim ndarrays from certain operators like all, any in Series
+  - Fix handling of missing columns (was combine_first-specific) in
+    DataFrame.combine for general case (GH #529)
 
 Thanks
 ------
