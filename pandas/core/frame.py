@@ -1794,6 +1794,32 @@ class DataFrame(NDFrame):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
+    def reorder_levels(self, order, axis=0):
+        """
+        Rearrange index levels using input order.
+        May not drop or duplicate levels
+
+        Parameters
+        ----------
+        order: list of int representing new level order.
+               (reference level by number not by key)
+        axis: where to reorder levels
+
+        Returns
+        -------
+        type of caller (new object)
+        """
+        if not isinstance(self._get_axis(axis), MultiIndex):
+            raise Exception('Can only reorder levels on a hierarchical axis.')
+
+        result = self.copy()
+
+        if axis == 0:
+            result.index = result.index.reorder_levels(order)
+        else:
+            result.columns = result.columns.reorder_levels(order)
+        return result
+
     #----------------------------------------------------------------------
     # Filling NA's
 
