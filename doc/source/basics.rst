@@ -810,8 +810,8 @@ For instance:
 .. ipython:: python
 
    set_eng_float_format(precision=3, use_eng_prefix=True)
-   df[0]/1.e3
-   df[0]/1.e6
+   df['a']/1.e3
+   df['a']/1.e6
 
 .. ipython:: python
    :suppress:
