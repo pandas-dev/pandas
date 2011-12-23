@@ -376,6 +376,57 @@ def fast_unique_multiple_list(list lists):
 
     return uniques
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_unique_multiple_list_gen(object gen):
+    cdef:
+        list buf
+        Py_ssize_t j, n
+        list uniques = []
+        dict table = {}
+        object val, stub = 0
+
+    for buf in gen:
+        n = len(buf)
+        for j from 0 <= j < n:
+            val = buf[j]
+            if val not in table:
+                table[val] = stub
+                uniques.append(val)
+
+    try:
+        uniques.sort()
+    except Exception:
+        pass
+
+    return uniques
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def dicts_to_array(list dicts, list columns):
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[object, ndim=2] result
+        dict row
+        object col, onan = np.nan
+
+    k = len(columns)
+    n = len(dicts)
+
+    result = np.empty((n, k), dtype='O')
+
+    for i in range(n):
+        row = dicts[i]
+        for j in range(k):
+            col = columns[j]
+            if col in row:
+                result[i, j] = row[col]
+            else:
+                result[i, j] = onan
+
+    return result
+
+
 def fast_zip(list ndarrays):
     '''
     For zipping multiple ndarrays into an ndarray of tuples

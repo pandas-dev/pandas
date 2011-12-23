@@ -786,7 +786,7 @@ class TestGroupBy(unittest.TestCase):
         self.assertRaises(GroupByError, frame.groupby('a')['b'].mean)
 
     def test_grouping_attrs(self):
-        deleveled = self.mframe.delevel()
+        deleveled = self.mframe.reset_index()
         grouped = deleveled.groupby(['first', 'second'])
 
         for i, ping in enumerate(grouped.groupings):
@@ -795,7 +795,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_level(self):
         frame = self.mframe
-        deleveled = frame.delevel()
+        deleveled = frame.reset_index()
 
         result0 = frame.groupby(level=0).sum()
         result1 = frame.groupby(level=1).sum()
@@ -840,7 +840,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
-        deleveled = frame.delevel()
+        deleveled = frame.reset_index()
 
         mapper0 = {'foo' : 0, 'bar' : 0,
                    'baz' : 1, 'qux' : 1}

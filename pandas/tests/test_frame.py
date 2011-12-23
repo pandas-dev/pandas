@@ -1243,6 +1243,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(com.is_integer_dtype(df['num']))
         self.assert_(df['str'].dtype == np.object_)
 
+    def test_constructor_list_of_dicts(self):
+        data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
+                {'a': 1.5, 'b': 3, 'd':6},
+                {'a': 1.5, 'd':6},
+                {},
+                {'a': 1.5, 'b': 3, 'c':4},
+                {'b': 3, 'c':4, 'd':6}]
+
+        result = DataFrame(data)
+        expected = DataFrame.from_dict(dict(zip(range(len(data)), data)),
+                                       orient='index')
+        assert_frame_equal(result, expected.reindex(result.index))
+
+        result = DataFrame([{}])
+        expected = DataFrame([])
+        assert_frame_equal(result, expected)
+
     def test_constructor_ragged(self):
         data = {'A' : randn(10),
                 'B' : randn(8)}
@@ -3752,7 +3769,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                     deleveled2['level_1']))
 
         # exception if no name
-        self.assertRaises(Exception, self.frame.delevel)
+        self.assertRaises(Exception, self.frame.reset_index)
 
         # but this is ok
         self.frame.index.name = 'index'

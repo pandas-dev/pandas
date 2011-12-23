@@ -161,7 +161,7 @@ natural to group by one of the levels of the hierarchy.
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = zip(*arrays)
    tuples
-   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
+g  index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
    s = Series(randn(8), index=index)
 
 .. ipython:: python

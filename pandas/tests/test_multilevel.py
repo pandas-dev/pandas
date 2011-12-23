@@ -249,7 +249,7 @@ class TestMultiLevel(unittest.TestCase):
         # series
         a_sorted = self.frame['A'].sortlevel(0)
         self.assertRaises(Exception,
-                          self.frame.delevel()['A'].sortlevel)
+                          self.frame.reset_index()['A'].sortlevel)
 
         # preserve names
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
@@ -261,7 +261,7 @@ class TestMultiLevel(unittest.TestCase):
                                        names=['prm0', 'prm1', 'prm2'])
         df = DataFrame(np.random.randn(8,3), columns=['A', 'B', 'C'],
                        index=index)
-        deleveled = df.delevel()
+        deleveled = df.reset_index()
         self.assert_(com.is_integer_dtype(deleveled['prm1']))
         self.assert_(com.is_float_dtype(deleveled['prm2']))
 

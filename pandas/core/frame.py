@@ -209,9 +209,16 @@ class DataFrame(NDFrame):
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
         elif isinstance(data, list):
-            if len(data) > 0 and isinstance(data[0], (list, tuple)):
-                data, columns = _list_to_sdict(data, columns)
-                mgr = self._init_dict(data, index, columns, dtype=dtype)
+            if len(data) > 0:
+                if isinstance(data[0], (list, tuple)):
+                    data, columns = _list_to_sdict(data, columns)
+                    mgr = self._init_dict(data, index, columns, dtype=dtype)
+                elif isinstance(data[0], dict):
+                    data, columns = _list_of_dict_to_sdict(data, columns)
+                    mgr = self._init_dict(data, index, columns, dtype=dtype)
+                else:
+                    mgr = self._init_ndarray(data, index, columns, dtype=dtype,
+                                             copy=copy)
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
@@ -3577,7 +3584,17 @@ def _list_to_sdict(data, columns):
         if columns is None:
             columns = []
         return {}, columns
+    return _convert_object_array(content, columns)
 
+def _list_of_dict_to_sdict(data, columns):
+    if columns is None:
+        gen = (x.keys() for x in data)
+        columns = lib.fast_unique_multiple_list_gen(gen)
+
+    content = list(lib.dicts_to_array(data, list(columns)).T)
+    return _convert_object_array(content, columns)
+
+def _convert_object_array(content, columns):
     if columns is None:
         columns = range(len(content))
     else:
