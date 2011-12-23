@@ -711,6 +711,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(Exception, self.ts.append, self.ts)
 
+    def test_all_any(self):
+        np.random.seed(12345)
+        ts = tm.makeTimeSeries()
+        bool_series = ts > 0
+        self.assert_(not bool_series.all())
+        self.assert_(bool_series.any())
+
     def test_operators(self):
         series = self.ts
         other = self.ts[::2]

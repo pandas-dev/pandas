@@ -88,6 +88,16 @@ def _flex_method(op, name):
     f.__name__ = name
     return f
 
+def _unbox(func):
+    def f(self, *args, **kwargs):
+        result = func(self, *args, **kwargs)
+        if isinstance(result, np.ndarray) and result.ndim == 0:
+            return result.item()
+        return result
+    f.__doc__ = func.__doc__
+    f.__name__ = func.__name__
+    return f
+
 _stat_doc = """
 Return %(name)s  of values
 %(na_action)s
@@ -565,6 +575,12 @@ copy : boolean, default False
         __div__ = _arith_method(operator.div, '__div__')
         __rdiv__ = _arith_method(lambda x, y: y / x, '__div__')
         __idiv__ = __div__
+
+    #----------------------------------------------------------------------
+    # unbox reductions
+
+    all = _unbox(np.ndarray.all)
+    any = _unbox(np.ndarray.any)
 
     #----------------------------------------------------------------------
     # Misc public methods

@@ -3307,6 +3307,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         comb = self.empty.combineMult(self.frame)
         assert_frame_equal(comb, self.frame)
 
+    def test_combine_generic(self):
+        df1 = self.frame
+        df2 = self.frame.ix[:-5, ['A', 'B', 'C']]
+
+        combined = df1.combine(df2, np.add)
+        combined2 = df2.combine(df1, np.add)
+        self.assert_(combined['D'].isnull().all())
+        self.assert_(combined2['D'].isnull().all())
+
+        chunk = combined.ix[:-5, ['A', 'B', 'C']]
+        chunk2 = combined2.ix[:-5, ['A', 'B', 'C']]
+
+        exp = self.frame.ix[:-5, ['A', 'B', 'C']].reindex_like(chunk) * 2
+        assert_frame_equal(chunk, exp)
+        assert_frame_equal(chunk2, exp)
+
     def test_clip(self):
         median = self.frame.median().median()
 

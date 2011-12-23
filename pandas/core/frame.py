@@ -1999,7 +1999,7 @@ class DataFrame(NDFrame):
         if not self:
             return other.copy()
 
-        this, other = self.align(other, axis=0, copy=False)
+        this, other = self.align(other, copy=False)
         new_index = this.index
 
         # sorts if possible
@@ -2008,30 +2008,24 @@ class DataFrame(NDFrame):
 
         result = {}
         for col in new_columns:
-            if col in this and col in other:
-                series = this[col].values
-                otherSeries = other[col].values
+            series = this[col].values
+            otherSeries = other[col].values
 
-                if do_fill:
-                    this_mask = isnull(series)
-                    other_mask = isnull(otherSeries)
-                    series = series.copy()
-                    otherSeries = otherSeries.copy()
-                    series[this_mask] = fill_value
-                    otherSeries[other_mask] = fill_value
+            if do_fill:
+                this_mask = isnull(series)
+                other_mask = isnull(otherSeries)
+                series = series.copy()
+                otherSeries = otherSeries.copy()
+                series[this_mask] = fill_value
+                otherSeries[other_mask] = fill_value
 
-                arr = func(series, otherSeries)
+            arr = func(series, otherSeries)
 
-                if do_fill:
-                    arr = com.ensure_float(arr)
-                    arr[this_mask & other_mask] = nan
+            if do_fill:
+                arr = com.ensure_float(arr)
+                arr[this_mask & other_mask] = nan
 
-                result[col] = arr
-
-            elif col in this:
-                result[col] = this[col]
-            elif col in other:
-                result[col] = other[col]
+            result[col] = arr
 
         return self._constructor(result, index=new_index, columns=new_columns)
 

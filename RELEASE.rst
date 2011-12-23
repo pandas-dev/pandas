@@ -81,6 +81,7 @@ pandas 0.6.2
   - Handle rows skipped at beginning of file in read_* functions (GH #505)
   - Handle improper dtype casting in ``set_value`` methods
   - Unary '-' / __neg__ operator on DataFrame was returning integer values
+  - Unbox 0-dim ndarrays from certain operators like all, any in Series
 
 Thanks
 ------
