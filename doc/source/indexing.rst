@@ -705,12 +705,12 @@ if you compute the levels and labels yourself, please be careful.
 Swapping levels
 ~~~~~~~~~~~~~~~
 
-To do this, use the ``swaplevels`` function:
+To do this, use the ``swaplevel`` function:
 
 .. ipython:: python
 
    df
-   df.swaplevels(0, 1)
+   df.swaplevel(0, 1)
 
 Adding an index to an existing DataFrame
 ----------------------------------------
