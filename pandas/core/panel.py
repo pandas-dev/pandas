@@ -12,11 +12,11 @@ from pandas.core.index import Factor, Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame, _union_indexes
-from pandas.core.generic import AxisProperty, NDFrame
+from pandas.core.generic import NDFrame
 from pandas.core.series import Series
 from pandas.util import py3compat
 import pandas.core.common as com
-import pandas._tseries as _tseries
+import pandas._tseries as lib
 
 
 def _ensure_like_indices(time, panels):
@@ -165,9 +165,9 @@ class Panel(NDFrame):
     _default_stat_axis = 1
     _het_axis = 0
 
-    items = AxisProperty(0)
-    major_axis = AxisProperty(1)
-    minor_axis = AxisProperty(2)
+    items = lib.AxisProperty(0)
+    major_axis = lib.AxisProperty(1)
+    minor_axis = lib.AxisProperty(2)
 
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
@@ -1031,11 +1031,11 @@ class Panel(NDFrame):
         def f(arr):
             mask = com.notnull(arr)
             if skipna:
-                return _tseries.median(arr[mask])
+                return lib.median(arr[mask])
             else:
                 if not mask.all():
                     return np.nan
-                return _tseries.median(arr)
+                return lib.median(arr)
         return self.apply(f, axis=axis)
 
     _add_docs(median, 'median', 'median')

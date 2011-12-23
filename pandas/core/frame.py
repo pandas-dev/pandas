@@ -23,10 +23,9 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify, _maybe_upcast,
-                                _max_rows, _max_columns)
+                                _default_index, _stringify, _maybe_upcast)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import NDFrame, AxisProperty
+from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
@@ -894,8 +893,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # properties for index and columns
 
-    columns = AxisProperty(0)
-    index = AxisProperty(1)
+    columns = lib.AxisProperty(0)
+    index = lib.AxisProperty(1)
 
     def as_matrix(self, columns=None):
         """
@@ -3144,7 +3143,7 @@ class DataFrame(NDFrame):
 
     def rank(self, axis=0):
         """
-        Compute numericaldata ranks (1 through n) along axis. Equal values are
+        Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
 
         Parameters
