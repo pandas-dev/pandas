@@ -2254,6 +2254,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         copy = self.mixed_frame.copy()
         self.assert_(copy._data is not self.mixed_frame._data)
 
+    # def test_copy_index_name_checking(self):
+    #     # don't want to be able to modify the index stored elsewhere after
+    #     # making a copy
+
+    #     self.frame.columns.name = None
+    #     cp = self.frame.copy()
+    #     cp.columns.name = 'foo'
+
+    #     self.assert_(self.frame.columns.name is None)
+
     def test_corr(self):
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan

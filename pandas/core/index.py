@@ -709,8 +709,13 @@ class Index(np.ndarray):
     def copy(self, order='C'):
         """
         Overridden ndarray.copy to copy over attributes
+
+        Returns
+        -------
+        cp : Index
+            Returns view on same base ndarray
         """
-        cp = self.view(np.ndarray).copy(order).view(type(self))
+        cp = self.view(np.ndarray).view(type(self))
         cp.__dict__.update(self.__dict__)
         return cp
 
