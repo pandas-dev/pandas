@@ -1,7 +1,11 @@
+# cython: wraparound=False
+# cython: boundscheck=False
+
 from numpy cimport *
 cimport numpy as cnp
 import numpy as np
 
+from cpython cimport *
 cimport cpython
 
 cnp.import_array()
@@ -317,20 +321,24 @@ cdef class StringHashTable:
         # return None
         return reverse, labels, counts[:count].copy()
 
+from libc.stdlib cimport free
+
 cdef class PyObjectHashTable:
 
     cdef:
         kh_pymap_t *table
 
     def __init__(self, size_hint=1):
-        if size_hint is not None:
-            kh_resize_pymap(self.table, size_hint)
-
-    def __cinit__(self):
         self.table = kh_init_pymap()
+        kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
+        if self.table is not NULL:
+            self.destroy()
+
+    cpdef destroy(self):
         kh_destroy_pymap(self.table)
+        self.table = NULL
 
     cpdef get_item(self, object val):
         cdef khiter_t k
@@ -360,6 +368,74 @@ cdef class PyObjectHashTable:
         else:
             raise KeyError(key)
 
+    def map_locations(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret
+            object val
+            khiter_t k
+
+        for i in range(n):
+            val = values[i]
+            k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+            # print 'putting %s, %s' % (val, count)
+            self.table.vals[k] = i
+
+    def lookup_locations(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret
+            object val
+            khiter_t k
+            ndarray[int32_t] locs = np.empty(n, dtype='i4')
+
+        for i in range(n):
+            val = values[i]
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k != self.table.n_buckets:
+                locs[i] = self.table.vals[k]
+            else:
+                locs[i] = -1
+
+        return locs
+
+    def lookup_locations2(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret
+            object val
+            khiter_t k
+            long hval
+            ndarray[int32_t] locs = np.empty(n, dtype='i4')
+
+        # for i in range(n):
+        #     val = values[i]
+            # hval = PyObject_Hash(val)
+            # k = kh_get_pymap(self.table, <PyObject*>val)
+
+        return locs
+
+    def unique(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
+            ndarray[int32_t] counts = np.empty(n, dtype=np.int32)
+            dict reverse = {}
+            Py_ssize_t idx, count = 0
+            int ret
+            object val
+            khiter_t k
+            list uniques = []
+
+        for i in range(n):
+            val = values[i]
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k == self.table.n_buckets:
+                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                uniques.append(val)
+
+        return uniques
+
     def factorize(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -381,8 +457,8 @@ cdef class PyObjectHashTable:
             else:
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
                 # print 'putting %s, %s' % (val, count)
-                if not ret:
-                    kh_del_pymap(self.table, k)
+                # if not ret:
+                #     kh_del_pymap(self.table, k)
 
                 self.table.vals[k] = count
                 reverse[count] = val
@@ -390,6 +466,21 @@ cdef class PyObjectHashTable:
                 counts[count] = 1
                 count += 1
 
-        # return None
         return reverse, labels, counts[:count].copy()
+
+def lookup_locations2(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        int ret
+        object val
+        khiter_t k
+        long hval
+        ndarray[int32_t] locs = np.empty(n, dtype='i4')
+
+    # for i in range(n):
+    #     val = values[i]
+        # hval = PyObject_Hash(val)
+        # k = kh_get_pymap(self.table, <PyObject*>val)
+
+    return locs
 

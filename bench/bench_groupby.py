@@ -4,8 +4,8 @@ from pandas.util.testing import rands
 import string
 import random
 
-k = 200
-n = 1000
+k = 20000
+n = 10
 
 foo = np.tile(np.array([rands(10) for _ in xrange(k)], dtype='O'), n)
 foo2 = list(foo)
@@ -20,8 +20,13 @@ import pandas._sandbox as sbx
 
 def f():
     table = sbx.StringHashTable(len(df))
-    ret = table.factorize(['A'])
+    ret = table.factorize(df['A'])
     return ret
+def g():
+    table = sbx.PyObjectHashTable(len(df))
+    ret = table.factorize(df['A'])
+    return ret
+
 ret = f()
 
 """
