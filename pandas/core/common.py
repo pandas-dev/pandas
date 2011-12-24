@@ -304,11 +304,12 @@ def _possibly_cast_item(obj, item, dtype):
 
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
-        mask = isnull(key)
-        if mask.any():
-            raise ValueError('cannot index with vector containing '
-                             'NA / NaN values')
-        return set([True, False]).issubset(set(key))
+        if not lib.is_bool_array(key):
+            if isnull(key).any():
+                raise ValueError('cannot index with vector containing '
+                                 'NA / NaN values')
+            return False
+        return True
     elif isinstance(key, np.ndarray) and key.dtype == np.bool_:
         return True
     elif isinstance(key, list):

@@ -29,7 +29,7 @@ from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series, _is_bool_indexer
+from pandas.core.series import Series
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate
@@ -1054,7 +1054,7 @@ class DataFrame(NDFrame):
                 key = np.array(key, dtype=object)
 
             # also raises Exception if object array with NA values
-            if _is_bool_indexer(key):
+            if com._is_bool_indexer(key):
                 key = np.asarray(key, dtype=bool)
             return self._getitem_array(key)
         elif isinstance(self.columns, MultiIndex):

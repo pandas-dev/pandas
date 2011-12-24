@@ -419,7 +419,7 @@ static PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
  */
 #define kh_resize(name, h, s) kh_resize_##name(h, s)
 
-/*! @function
+x/*! @function
   @abstract     Insert a key to the hash table.
   @param  name  Name of the hash table [symbol]
   @param  h     Pointer to the hash table [khash_t(name)*]

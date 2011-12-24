@@ -93,6 +93,17 @@ class CheckIndexing(object):
         subframe_obj = self.tsframe[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
 
+    def test_getitem_boolean_list(self):
+        df = DataFrame(np.arange(12).reshape(3,4))
+        def _checkit(lst):
+            result = df[lst]
+            expected = df.ix[df.index[lst]]
+            assert_frame_equal(result, expected)
+
+        _checkit([True, False, True])
+        _checkit([True, True, True])
+        _checkit([False, False, False])
+
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
         self.assertRaises(AttributeError, getattr, self.frame,

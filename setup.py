@@ -283,7 +283,8 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'parsing', 'reduce', 'stats']
+                   'generated', 'parsing', 'reduce', 'stats',
+                   'inference', 'properties']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 

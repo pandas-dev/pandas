@@ -84,6 +84,7 @@ pandas 0.6.2
   - Unbox 0-dim ndarrays from certain operators like all, any in Series
   - Fix handling of missing columns (was combine_first-specific) in
     DataFrame.combine for general case (GH #529)
+  - Fix type inference logic with boolean lists and arrays in DataFrame indexing
 
 Thanks
 ------
