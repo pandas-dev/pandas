@@ -31,6 +31,9 @@ pandas 0.6.2
 
   - Rename ``DataFrame.delevel`` to ``DataFrame.reset_index`` and add
     deprecation warning
+  - `Series.sort` (an in-place operation) called on a Series which is a view on
+    a larger array (e.g. a column in a DataFrame) will generate an Exception to
+    prevent accidentally modifying the data source (GH #316)
 
 **New features / modules**
 
@@ -92,6 +95,7 @@ Thanks
 - Andreas Hilboll
 - Adam Klein
 - Matt Harrison
+- Arthur Gerigk
 - Gregg Lind
 - Solomon Negusse
 - Wouter Overmeire

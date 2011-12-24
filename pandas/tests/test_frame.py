@@ -3202,11 +3202,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = frame.take(indexer)
         assert_frame_equal(result, expected)
 
-    # punting on trying to fix this for now
-    # def test_frame_column_inplace_sort_exception(self):
-    #     s = self.frame['A']
-    #     self.assert_(not s.flags.owndata)
-    #     self.assertRaises(Exception, s.sort)
+    def test_frame_column_inplace_sort_exception(self):
+        s = self.frame['A']
+        self.assertRaises(Exception, s.sort)
+
+        cp = s.copy()
+        cp.sort() # it works!
 
     def test_combine_first(self):
         # disjoint

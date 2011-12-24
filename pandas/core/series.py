@@ -1189,9 +1189,14 @@ copy : boolean, default False
         """
         sortedSeries = self.order(na_last=True)
 
-        # if not self.flags.owndata:
-        #     raise Exception('This Series is a view of some other array, to '
-        #                     'sort in-place you must create a copy')
+        true_base = self
+        while true_base.base is not None:
+            true_base = true_base.base
+
+        if (true_base is not None and
+            (true_base.ndim != 1 or true_base.shape != self.shape)):
+            raise Exception('This Series is a view of some other array, to '
+                            'sort in-place you must create a copy')
 
         self[:] = sortedSeries
         self.index = sortedSeries.index
