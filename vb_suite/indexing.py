@@ -78,3 +78,18 @@ statement = "df.get_value(idx, col)"
 bm_df_getitem3 = Benchmark(statement, setup,
                            name='dataframe_get_value',
                            start_date=datetime(2011, 11, 12))
+
+#----------------------------------------------------------------------
+# Boolean DataFrame row selection
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(10000, 4), columns=['A', 'B', 'C', 'D'])
+indexer = df['B'] > 0
+obj_indexer = indexer.astype('O')
+"""
+indexing_dataframe_boolean_rows = \
+    Benchmark("df[indexer]", setup, name='indexing_dataframe_boolean_rows')
+
+indexing_dataframe_boolean_rows_object = \
+    Benchmark("df[obj_indexer]", setup,
+              name='indexing_dataframe_boolean_rows_object')
