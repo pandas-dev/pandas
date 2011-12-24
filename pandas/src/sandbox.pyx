@@ -1,4 +1,4 @@
-from numpy cimport ndarray, int64_t
+from numpy cimport *
 cimport numpy as cnp
 import numpy as np
 
@@ -231,3 +231,165 @@ def int64_unique(ndarray[int64_t] arr):
     kh_destroy_int64(table)
 
     return np.sort(uniques[:j])
+
+from cpython cimport PyString_Check, PyString_AsString
+
+cdef class StringHashTable:
+
+    cdef:
+        kh_str_t *table
+
+    def __init__(self, size_hint=1):
+        if size_hint is not None:
+            kh_resize_str(self.table, size_hint)
+
+    def __cinit__(self):
+        self.table = kh_init_str()
+
+    def __dealloc__(self):
+        kh_destroy_str(self.table)
+
+    cdef inline int check_type(self, object val):
+        return PyString_Check(val)
+
+    cpdef get_item(self, object val):
+        cdef khiter_t k
+        k = kh_get_str(self.table, PyString_AsString(val))
+        if k != self.table.n_buckets:
+            return self.table.vals[k]
+        else:
+            raise KeyError(val)
+
+    def get_iter_test(self, object key, Py_ssize_t iterations):
+        cdef Py_ssize_t i, val
+        for i in range(iterations):
+            k = kh_get_str(self.table, PyString_AsString(key))
+            if k != self.table.n_buckets:
+                val = self.table.vals[k]
+
+    cpdef set_item(self, object key, Py_ssize_t val):
+        cdef:
+            khiter_t k
+            int ret
+            char* buf
+
+        buf = PyString_AsString(key)
+
+        k = kh_put_str(self.table, buf, &ret)
+        self.table.keys[k] = key
+        if kh_exist_str(self.table, k):
+            self.table.vals[k] = val
+        else:
+            raise KeyError(key)
+
+    def factorize(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
+            ndarray[int32_t] counts = np.empty(n, dtype=np.int32)
+            dict reverse = {}
+            Py_ssize_t idx, count = 0
+            int ret
+            object val
+            char *buf
+            khiter_t k
+
+        for i in range(n):
+            val = values[i]
+            buf = PyString_AsString(val)
+            k = kh_get_str(self.table, buf)
+            if k != self.table.n_buckets:
+                idx = self.table.vals[k]
+                labels[i] = idx
+                counts[idx] = counts[idx] + 1
+            else:
+                k = kh_put_str(self.table, buf, &ret)
+                # print 'putting %s, %s' % (val, count)
+                if not ret:
+                    kh_del_str(self.table, k)
+
+                self.table.vals[k] = count
+                reverse[count] = val
+                labels[i] = count
+                counts[count] = 1
+                count += 1
+
+        # return None
+        return reverse, labels, counts[:count].copy()
+
+cdef class PyObjectHashTable:
+
+    cdef:
+        kh_pymap_t *table
+
+    def __init__(self, size_hint=1):
+        if size_hint is not None:
+            kh_resize_pymap(self.table, size_hint)
+
+    def __cinit__(self):
+        self.table = kh_init_pymap()
+
+    def __dealloc__(self):
+        kh_destroy_pymap(self.table)
+
+    cpdef get_item(self, object val):
+        cdef khiter_t k
+        k = kh_get_pymap(self.table, <PyObject*>val)
+        if k != self.table.n_buckets:
+            return self.table.vals[k]
+        else:
+            raise KeyError(val)
+
+    def get_iter_test(self, object key, Py_ssize_t iterations):
+        cdef Py_ssize_t i, val
+        for i in range(iterations):
+            k = kh_get_pymap(self.table, <PyObject*>key)
+            if k != self.table.n_buckets:
+                val = self.table.vals[k]
+
+    cpdef set_item(self, object key, Py_ssize_t val):
+        cdef:
+            khiter_t k
+            int ret
+            char* buf
+
+        k = kh_put_pymap(self.table, <PyObject*>key, &ret)
+        # self.table.keys[k] = key
+        if kh_exist_pymap(self.table, k):
+            self.table.vals[k] = val
+        else:
+            raise KeyError(key)
+
+    def factorize(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
+            ndarray[int32_t] counts = np.empty(n, dtype=np.int32)
+            dict reverse = {}
+            Py_ssize_t idx, count = 0
+            int ret
+            object val
+            khiter_t k
+
+        for i in range(n):
+            val = values[i]
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k != self.table.n_buckets:
+                idx = self.table.vals[k]
+                labels[i] = idx
+                counts[idx] = counts[idx] + 1
+            else:
+                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                # print 'putting %s, %s' % (val, count)
+                if not ret:
+                    kh_del_pymap(self.table, k)
+
+                self.table.vals[k] = count
+                reverse[count] = val
+                labels[i] = count
+                counts[count] = 1
+                count += 1
+
+        # return None
+        return reverse, labels, counts[:count].copy()
+

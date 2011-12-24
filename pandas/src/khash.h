@@ -564,7 +564,7 @@ typedef const char *kh_cstr_t;
 #include <Python.h>
 
 #define kh_python_hash_func(key) (PyObject_Hash(key))
-#define kh_python_hash_equal(a, b) (PyObject_RichCompareBool(a, b, Py_EQ))
+#define kh_python_hash_equal(a, b) ((a == b) || PyObject_RichCompareBool(a, b, Py_EQ))
 
 
 // Python object

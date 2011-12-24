@@ -1,4 +1,5 @@
 from pandas import *
+from pandas.util.testing import rands
 
 import string
 import random
@@ -6,8 +7,7 @@ import random
 k = 200
 n = 1000
 
-
-foo = np.tile(list(range(k)), n)
+foo = np.tile(np.array([rands(10) for _ in xrange(k)], dtype='O'), n)
 foo2 = list(foo)
 random.shuffle(foo)
 random.shuffle(foo2)
@@ -16,7 +16,15 @@ df = DataFrame({'A' : foo,
                 'B' : foo2,
                 'C' : np.random.randn(n * k)})
 
+import pandas._sandbox as sbx
 
+def f():
+    table = sbx.StringHashTable(len(df))
+    ret = table.factorize(['A'])
+    return ret
+ret = f()
+
+"""
 import pandas._tseries as lib
 
 f = np.std
@@ -45,3 +53,4 @@ grouper = lib.Grouper(df['C'], np.ndarray.std, group_index, ngroups)
 result = grouper.get_result()
 
 expected = grouped.std()
+"""
