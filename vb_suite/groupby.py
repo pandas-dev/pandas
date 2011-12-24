@@ -20,9 +20,11 @@ def get_test_data(ngroups=100, n=N):
     random.shuffle(arr)
     return arr
 
+# aggregate multiple columns
 df = DataFrame({'key1' : get_test_data(ngroups=ngroups),
                 'key2' : get_test_data(ngroups=ngroups),
-                'data' : np.random.randn(N)})
+                'data1' : np.random.randn(N),
+                'data2' : np.random.randn(N)})
 def f():
     df.groupby(['key1', 'key2']).agg(lambda x: x.values.sum())
 """

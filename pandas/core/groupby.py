@@ -350,11 +350,12 @@ class GroupBy(object):
             return self.aggregate(lambda x: np.sum(x, axis=self.axis))
 
     def _cython_agg_general(self, how):
-        label_list = [ping.labels for ping in self.groupings]
         shape = self._group_shape
 
         # TODO: address inefficiencies, like duplicating effort (should
         # aggregate all the columns at once?)
+
+        group_index = self._group_index
 
         output = {}
         for name, obj in self._iterate_slices():
@@ -364,8 +365,8 @@ class GroupBy(object):
             else:
                 continue
 
-            result, counts =  cython_aggregate(obj, label_list,
-                                               shape, how=how)
+            result, counts =  cython_aggregate(obj, group_index, shape,
+                                               how=how)
             result = result.ravel()
             mask = counts.ravel() > 0
             output[name] = result[mask]
@@ -1383,11 +1384,9 @@ def get_group_index(label_list, shape):
 # Group aggregations in Cython
 
 
-def cython_aggregate(values, label_list, shape, how='add'):
+def cython_aggregate(values, group_index, shape, how='add'):
     agg_func = _cython_functions[how]
     trans_func = _cython_transforms.get(how, lambda x: x)
-
-    group_index = get_group_index(label_list, shape).astype('i4')
 
     result = np.empty(shape, dtype=np.float64)
     result.fill(np.nan)
