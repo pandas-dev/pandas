@@ -215,7 +215,7 @@ pandas object. Like Series, DataFrame accepts many different kinds of input:
 
 Along with the data, you can optionally pass **index** (row labels) and
 **columns** (column labels) arguments. If you pass an index and / or columns,
-pyou are guaranteeing the index and / or columns of the resulting
+you are guaranteeing the index and / or columns of the resulting
 DataFrame. Thus, a dict of Series plus a specific index will discard all data
 not matching up to the passed index.
 
