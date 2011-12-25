@@ -59,6 +59,7 @@ pandas 0.6.2
   - Further performance tweaking of Series.__getitem__ for standard use cases
   - Avoid Index dict creation in some cases (i.e. when getting slices, etc.),
     regression from prior versions
+  - Friendlier error message in setup.py if NumPy not installed
 
 **Bug fixes**
 
