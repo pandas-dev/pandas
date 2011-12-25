@@ -702,16 +702,6 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
-Swapping levels
-~~~~~~~~~~~~~~~
-
-To do this, use the ``swaplevel`` function:
-
-.. ipython:: python
-
-   df
-   df.swaplevel(0, 1)
-
 Adding an index to an existing DataFrame
 ----------------------------------------
 
