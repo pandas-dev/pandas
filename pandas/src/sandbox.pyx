@@ -397,7 +397,7 @@ cdef class Int64HashTable:
 
         return locs
 
-    def factorize(self, ndarray[object] values):
+    def factorize(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
