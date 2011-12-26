@@ -1215,13 +1215,6 @@ class DataFrame(NDFrame):
         """
         return NDFrame.pop(self, item)
 
-    def get(self, column, default=None):
-        try:
-            return self[column]
-        except KeyError:
-            return default
-        
-
     # to support old APIs
     @property
     def _series(self):

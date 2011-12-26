@@ -40,7 +40,8 @@ pandas 0.6.2
   - Handle differently-indexed output values in ``DataFrame.apply`` (GH #498)
   - Can pass list of dicts (e.g., a list of shallow JSON objects) to DataFrame
     constructor (GH #526)
-  - Add `reorder_levels` method to Series and DataFrame (PR #534)
+  - Add ``reorder_levels`` method to Series and DataFrame (PR #534)
+  - Add dict-like ``get`` function to DataFrame and Panel (PR #521)
 
 **Improvements to existing features**
 

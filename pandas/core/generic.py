@@ -61,6 +61,24 @@ class PandasObject(Picklable):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
+    def get(self, key, default=None):
+        """
+        Get item from object for given key (DataFrame column, Panel slice,
+        etc.). Returns default value if not found
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        value : type of items contained in object
+        """
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def groupby(self, by=None, axis=0, level=None, as_index=True):
         """
         Group series using mapper (dict or key function, apply given function

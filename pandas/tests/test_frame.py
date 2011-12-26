@@ -51,6 +51,14 @@ class CheckIndexing(object):
         self.assert_('random' not in self.frame)
         self.assertRaises(Exception, self.frame.__getitem__, 'random')
 
+    def test_get(self):
+        b = self.frame.get('B')
+        assert_series_equal(b, self.frame['B'])
+
+        self.assert_(self.frame.get('foo') is None)
+        assert_series_equal(self.frame.get('foo', self.frame['B']),
+                            self.frame['B'])
+
     def test_getitem_iterator(self):
         idx = iter(['A', 'B', 'C'])
         result = self.frame.ix[:, idx]
