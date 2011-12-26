@@ -100,11 +100,11 @@ def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
     f.__doc__ = doc
 
 def _arith_method(func, name, default_axis='columns'):
-    def f(self, other, axis=default_axis, fill_value=None):
+    def f(self, other, axis=default_axis, level=None, fill_value=None):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, func, fill_value)
+            return self._combine_frame(other, func, fill_value, level)
         elif isinstance(other, Series):
-            return self._combine_series(other, func, fill_value, axis)
+            return self._combine_series(other, func, fill_value, axis, level)
         else:
             return self._combine_const(other, func)
 
@@ -1258,7 +1258,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def align(self, other, join='outer', axis=None, copy=True):
+    def align(self, other, join='outer', axis=None, level=None, copy=True):
         """
         Align two DataFrame object on their index and columns with the specified
         join method for each axis Index
@@ -1276,13 +1276,16 @@ class DataFrame(NDFrame):
             Aligned Series
         """
         if isinstance(other, DataFrame):
-            return self._align_frame(other, join=join, axis=axis, copy=copy)
+            return self._align_frame(other, join=join, axis=axis, level=level,
+                                     copy=copy)
         elif isinstance(other, Series):
-            return self._align_series(other, join=join, axis=axis, copy=copy)
+            return self._align_series(other, join=join, axis=axis, level=level,
+                                      copy=copy)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
-    def _align_frame(self, other, join='outer', axis=None, copy=True):
+    def _align_frame(self, other, join='outer', axis=None, level=None,
+                     copy=True):
         # defaults
         join_index = self.index
         join_columns = self.columns
@@ -1291,14 +1294,14 @@ class DataFrame(NDFrame):
 
         if axis is None or axis == 0:
             if not self.index.equals(other.index):
-                join_index, ilidx, iridx = self.index.join(other.index, how=join,
-                                                           return_indexers=True)
+                join_index, ilidx, iridx = \
+                    self.index.join(other.index, how=join, return_indexers=True)
 
         if axis is None or axis == 1:
             if not self.columns.equals(other.columns):
-                join_columns, clidx, cridx = self.columns.join(other.columns,
-                                                               how=join,
-                                                               return_indexers=True)
+                join_columns, clidx, cridx = \
+                    self.columns.join(other.columns, how=join,
+                                      return_indexers=True)
 
         def _align(frame, row_idx, col_idx):
             new_data = frame._data
@@ -1318,7 +1321,8 @@ class DataFrame(NDFrame):
         right = _align(other, iridx, cridx)
         return left, right
 
-    def _align_series(self, other, join='outer', axis=None, copy=True):
+    def _align_series(self, other, join='outer', axis=None, level=None,
+                      copy=True):
         fdata = self._data
         if axis == 0:
             join_index = self.index
@@ -1348,7 +1352,8 @@ class DataFrame(NDFrame):
         right_result = other if ridx is None else other.reindex(join_index)
         return left_result, right_result
 
-    def reindex(self, index=None, columns=None, method=None, copy=True):
+    def reindex(self, index=None, columns=None, method=None, level=None,
+                copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1381,15 +1386,15 @@ class DataFrame(NDFrame):
 
         if index is not None:
             index = _ensure_index(index)
-            frame = frame._reindex_index(index, method, copy)
+            frame = frame._reindex_index(index, method, copy, level)
 
         if columns is not None:
             columns = _ensure_index(columns)
-            frame = frame._reindex_columns(columns, copy)
+            frame = frame._reindex_columns(columns, copy, level)
 
         return frame
 
-    def _reindex_index(self, new_index, method, copy):
+    def _reindex_index(self, new_index, method, copy, level):
         if new_index.equals(self.index):
             if copy:
                 result = self.copy()
@@ -1916,8 +1921,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func, fill_value=None):
-        this, other = self.align(other, join='outer', copy=False)
+    def _combine_frame(self, other, func, fill_value=None, level=None):
+        this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
         this_vals = this.values
@@ -3653,6 +3658,16 @@ def _is_sequence(x):
         return True
     except Exception:
         return False
+
+def _align_level(frame, multi_index, level, axis=0):
+    levnum = multi_index._get_level_number(level)
+
+    data = frame.reindex(multi_index.levels[levnum], copy=False)._data
+
+    mgr_axis = 0 if axis == 1 else 1
+    new_data = data.reindex_indexer(multi_index, multi_index.labels[levnum],
+                                    axis=mgr_axis)
+    return DataFrame(new_data)
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so
