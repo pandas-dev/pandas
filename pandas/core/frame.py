@@ -2484,31 +2484,12 @@ class DataFrame(NDFrame):
 
         return result
 
-    def _apply_level(self, f, axis='major', broadcast=False):
-        from pandas.core.panel import LongPanel
-
-        if axis == 'major':
-            panel = self.swapaxes()
-            result = panel._apply_level(f, axis='minor', broadcast=broadcast)
-            if broadcast:
-                result = result.swapaxes()
-
-            return result
-
-        bounds = self.index._bounds
-        values = self.values
-        N, _ = values.shape
-        result = group_agg(values, bounds, f)
-
+    def _apply_level(self, f, level=0, broadcast=False):
+        grouped = self.groupby(level=level)
         if broadcast:
-            repeater = np.concatenate((np.diff(bounds), [N - bounds[-1]]))
-            panel = LongPanel(result.repeat(repeater, axis=0),
-                              columns=self.items, index=self.index)
+            return grouped.transform(f)
         else:
-            panel = DataFrame(result, index=self.major_axis,
-                              columns=self.items)
-
-        return panel
+            return grouped.agg(f)
 
     def applymap(self, func):
         """

@@ -98,10 +98,10 @@ Thanks
 ------
 - Craig Austin
 - Andreas Hilboll
-- Adam Klein
 - Matt Harrison
 - Mario Gamboa-Cavazos
 - Arthur Gerigk
+- Adam Klein
 - Gregg Lind
 - Solomon Negusse
 - Wouter Overmeire
