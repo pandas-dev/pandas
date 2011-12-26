@@ -58,7 +58,7 @@ cdef extern from "khash.h":
     ctypedef struct kh_int64_t:
         khint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags
-        kh_cstr_t *keys
+        int64_t *keys
         Py_ssize_t *vals
 
     inline kh_int64_t* kh_init_int64()
