@@ -1809,7 +1809,7 @@ class DataFrame(NDFrame):
         -------
         type of caller (new object)
         """
-        if not isinstance(self._get_axis(axis), MultiIndex):
+        if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise Exception('Can only reorder levels on a hierarchical axis.')
 
         result = self.copy()

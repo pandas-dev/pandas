@@ -1239,6 +1239,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         """
+        order = [self._get_level_number(i) for i in order]
         try:
             assert(set(order) == set(range(self.nlevels)))
         except AssertionError:

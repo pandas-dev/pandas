@@ -1338,6 +1338,28 @@ copy : boolean, default False
         new_index = self.index.swaplevel(i, j)
         return Series(self.values, index=new_index, copy=copy, name=self.name)
 
+    def reorder_levels(self, order):
+        """
+        Rearrange index levels using input order. May not drop or duplicate
+        levels
+
+        Parameters
+        ----------
+        order: list of int representing new level order.
+               (reference level by number not by key)
+        axis: where to reorder levels
+
+        Returns
+        -------
+        type of caller (new object)
+        """
+        if not isinstance(self.index, MultiIndex):  # pragma: no cover
+            raise Exception('Can only reorder levels on a hierarchical axis.')
+
+        result = self.copy()
+        result.index = result.index.reorder_levels(order)
+        return result
+
     def unstack(self, level=-1):
         """
         Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame
