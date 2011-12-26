@@ -57,6 +57,7 @@ rng = DateRange('1/1/2000', periods=10000, offset=datetools.Minute())
 
 ts = Series(np.random.randn(len(rng)), index=rng)
 ts2 = ts[::2]
+ts3 = ts2.reindex(ts.index)
 
 def pad():
     try:
@@ -78,3 +79,8 @@ statement = "backfill()"
 reindex_daterange_backfill = Benchmark(statement, setup,
                                        name="reindex_daterange_backfill")
 
+reindex_fillna_pad = Benchmark("ts3.fillna(method='pad')", setup,
+                               name="reindex_fillna_pad")
+
+reindex_fillna_backfill = Benchmark("ts3.fillna(method='backfill')", setup,
+                                    name="reindex_fillna_backfill")
