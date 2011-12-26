@@ -983,62 +983,6 @@ class TestLongPanel(unittest.TestCase):
         assert_almost_equal(unpickled['ItemA'].values,
                             self.panel['ItemA'].values)
 
-    def test_len(self):
-        len(self.unfiltered_panel)
-
-    def test_constructor(self):
-        pass
-
-    def test_fromRecords_toRecords(self):
-        # structured array
-        K = 10
-
-        recs = np.zeros(K, dtype='O,O,f8,f8')
-        recs['f0'] = range(K // 2) * 2
-        recs['f1'] = np.arange(K) / (K // 2)
-        recs['f2'] = np.arange(K) * 2
-        recs['f3'] = np.arange(K)
-
-        lp = LongPanel.fromRecords(recs, 'f0', 'f1')
-        self.assertEqual(len(lp.items), 2)
-
-        lp = LongPanel.fromRecords(recs, 'f0', 'f1', exclude=['f2'])
-        self.assertEqual(len(lp.items), 1)
-
-        torecs = lp.toRecords()
-        self.assertEqual(len(torecs.dtype.names), len(lp.items) + 2)
-
-        # DataFrame
-        df = DataFrame.from_records(recs)
-        lp = LongPanel.fromRecords(df, 'f0', 'f1', exclude=['f2'])
-        self.assertEqual(len(lp.items), 1)
-
-        # dict of arrays
-        series = DataFrame.from_records(recs)._series
-        lp = LongPanel.fromRecords(series, 'f0', 'f1', exclude=['f2'])
-        self.assertEqual(len(lp.items), 1)
-        self.assert_('f2' in series)
-
-        self.assertRaises(Exception, LongPanel.fromRecords, np.zeros((3, 3)),
-                          0, 1)
-
-    def test_factors(self):
-        # structured array
-        K = 10
-
-        recs = np.zeros(K, dtype='O,O,f8,f8,O,O')
-        recs['f0'] = ['one'] * 5 + ['two'] * 5
-        recs['f1'] = ['A', 'B', 'C', 'D', 'E'] * 2
-        recs['f2'] = np.arange(K) * 2
-        recs['f3'] = np.arange(K)
-        recs['f4'] = ['A', 'B', 'C', 'D', 'E'] * 2
-        recs['f5'] = ['foo', 'bar'] * 5
-
-        lp = LongPanel.fromRecords(recs, 'f0', 'f1')
-
-    def test_columns(self):
-        self.assert_(np.array_equal(self.panel.items, self.panel.columns))
-
     def test_copy(self):
         thecopy = self.panel.copy()
         self.assert_(np.array_equal(thecopy.values, self.panel.values))
@@ -1126,22 +1070,11 @@ class TestLongPanel(unittest.TestCase):
         sorted_major = sorted_minor.sortlevel(level=0)
         self.assert_(is_sorted(sorted_major.major_labels))
 
-    def test_toCSV(self):
-        self.panel.toCSV('__tmp__')
-        os.remove('__tmp__')
-
     def test_to_string(self):
         from cStringIO import StringIO
 
         buf = StringIO()
         self.panel.to_string(buf)
-
-    def test_swapaxes(self):
-        swapped = self.panel.swapaxes()
-
-        self.assert_(swapped.major_axis is self.panel.minor_axis)
-
-        # what else to test here?
 
     def test_truncate(self):
         dates = self.panel.major_axis
@@ -1178,10 +1111,6 @@ class TestLongPanel(unittest.TestCase):
         # throw proper exception
         self.assertRaises(Exception, lp2.truncate, wp.major_axis[-2],
                           wp.major_axis[2])
-
-
-    def test_filter(self):
-        pass
 
     def test_axis_dummies(self):
         minor_dummies = self.panel.get_axis_dummies('minor')

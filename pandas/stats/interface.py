@@ -1,6 +1,4 @@
-from pandas.core.api import (Series, DataFrame, Panel, LongPanel,
-                             MultiIndex)
-
+from pandas.core.api import Series, DataFrame, Panel, MultiIndex
 from pandas.stats.ols import OLS, MovingOLS
 from pandas.stats.plm import PanelOLS, MovingPanelOLS, NonPooledPanelOLS
 import pandas.stats.common as common
@@ -110,7 +108,7 @@ def ols(**kwargs):
     if isinstance(y, DataFrame) or (isinstance(y, Series) and
                                     isinstance(y.index, MultiIndex)):
         panel = True
-    if isinstance(x, (Panel, LongPanel)):
+    if isinstance(x, Panel):
         panel = True
 
     if window_type == 'full_sample':
