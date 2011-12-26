@@ -1,3 +1,4 @@
+from collections import defaultdict
 import itertools
 
 from numpy import nan
@@ -685,6 +686,17 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, new_axes)
 
+    def _reindex_indexer_items(new_axis, indexer):
+        from collections import defaultdict
+
+        dtypes = self.item_dtypes
+        result_dtypes = dtypes.take(indexer)
+        counts = defaultdict(int)
+        for t in result_dtypes:
+            counts[t] += 1
+
+
+
     def reindex_items(self, new_items):
         """
 
@@ -869,6 +881,17 @@ class BlockManager(object):
             result.put(indexer, i)
 
         assert((result >= 0).all())
+        return result
+
+    @property
+    def item_dtypes(self):
+        result = np.empty(len(self.items), dtype='O')
+        mask = np.zeros(len(self.items), dtype=bool)
+        for i, blk in enumerate(self.blocks):
+            indexer = self.items.get_indexer(blk.items)
+            result.put(indexer, blk.values.dtype.name)
+            mask.put(indexer, 1)
+        assert(mask.all())
         return result
 
 def form_blocks(data, axes):
@@ -1242,3 +1265,16 @@ class _JoinOperation(object):
         # use any ref_items
         return _consolidate(new_blocks, newb.ref_items)
 
+def _make_block_indexers(blocks, indexer, block_ids, block_locs, block_dtypes,
+                         ref_items):
+    counts = defaultdict(int)
+    for dtype_name in block_dtypes.take(indexer):
+        counts[dtype_name] += 1
+
+    findexer = np.empty(counts['float64'], dtype='i4')
+    bindexer = np.empty(counts['bool'], dtype='i4')
+    oindexer = np.empty(counts['object'], dtype='i4')
+    iindexer = np.empty(counts['int64'], dtype='i4')
+
+    for idx in indexer:
+        pass

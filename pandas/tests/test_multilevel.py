@@ -54,6 +54,9 @@ class TestMultiLevel(unittest.TestCase):
         result = a['A'].append(b['A'])
         tm.assert_series_equal(result, self.frame['A'])
 
+    def test_align_level(self):
+        pass
+
     def test_pickle(self):
         import cPickle
         def _test_roundtrip(frame):

@@ -9,8 +9,7 @@ from datetime import datetime, date
 import time
 
 import numpy as np
-from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
-                    Index, MultiIndex)
+from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
 from pandas.core.common import adjoin
 import pandas.core.common as com
 import pandas._tseries as lib
@@ -20,8 +19,7 @@ _TYPE_MAP = {
     Series     : 'series',
     TimeSeries : 'series',
     DataFrame  : 'frame',
-    Panel  : 'wide',
-    LongPanel  : 'long'
+    Panel  : 'wide'
 }
 
 _NAME_MAP = {
@@ -32,7 +30,6 @@ _NAME_MAP = {
     'wide' : 'Panel',
     'wide_table' : 'Panel (Table)',
     'long' : 'LongPanel',
-
     # legacy h5 files
     'Series' : 'Series',
     'TimeSeries' : 'TimeSeries',
@@ -244,7 +241,7 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel, LongPanel}
+        value : {Series, DataFrame, Panel}
         table : boolean, default False
             Write as a PyTables Table structure which may perform worse but
             allow more flexible operations like searching / selecting subsets of
@@ -294,7 +291,7 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel, LongPanel}
+        value : {Series, DataFrame, Panel}
 
         Notes
         -----
@@ -339,6 +336,22 @@ class HDFStore(object):
 
     def _read_frame(self, group, where=None):
         return DataFrame(self._read_block_manager(group))
+
+    def _write_long(self, group, panel):
+        if len(panel.values) == 0:
+            raise ValueError('Can not write empty structure, data length was 0')
+        self._write_block_manager(group, panel._data)
+
+    def _read_long(self, group, where=None):
+        items = self._read_index(group, 'items')
+        major_axis = self._read_index(group, 'major_axis')
+        minor_axis = self._read_index(group, 'minor_axis')
+        major_labels = _read_array(group, 'major_labels')
+        minor_labels = _read_array(group, 'minor_labels')
+        values = _read_array(group, 'values')
+        index = MultiIndex(levels=[major_axis, minor_axis],
+                           labels=[major_labels, minor_labels])
+        return DataFrame(values, index=index, columns=items)
 
     def _write_block_manager(self, group, data):
         if not data.is_consolidated():
@@ -403,31 +416,6 @@ class HDFStore(object):
 
     def _read_wide_table(self, group, where=None):
         return self._read_panel_table(group, where)
-
-    def _write_long(self, group, panel, append=False):
-        if len(panel.values) == 0:
-            raise ValueError('Can not write empty structure, data length was 0')
-
-        self._write_index(group, 'major_axis', panel.major_axis)
-        self._write_index(group, 'minor_axis', panel.minor_axis)
-        self._write_index(group, 'items', panel.items)
-        self._write_array(group, 'major_labels', panel.major_labels)
-        self._write_array(group, 'minor_labels', panel.minor_labels)
-        self._write_array(group, 'values', panel.values)
-
-    def _read_long(self, group, where=None):
-        from pandas.core.index import MultiIndex
-
-        items = self._read_index(group, 'items')
-        major_axis = self._read_index(group, 'major_axis')
-        minor_axis = self._read_index(group, 'minor_axis')
-        major_labels = _read_array(group, 'major_labels')
-        minor_labels = _read_array(group, 'minor_labels')
-        values = _read_array(group, 'values')
-
-        index = MultiIndex(levels=[major_axis, minor_axis],
-                           labels=[major_labels, minor_labels])
-        return LongPanel(values, index=index, columns=items)
 
     def _write_index(self, group, key, index):
         if len(index) == 0:
