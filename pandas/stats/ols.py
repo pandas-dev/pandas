@@ -257,11 +257,15 @@ class OLS(object):
     @cache_readonly
     def _r2_raw(self):
         """Returns the raw r-squared values."""
-        has_intercept = np.abs(self._resid_raw.sum()) < _FP_ERR
-        if self._intercept:
+        if self._use_centered_tss:
             return 1 - self.sm_ols.ssr / self.sm_ols.centered_tss
         else:
             return 1 - self.sm_ols.ssr / self.sm_ols.uncentered_tss
+
+    @property
+    def _use_centered_tss(self):
+        # has_intercept = np.abs(self._resid_raw.sum()) < _FP_ERR
+        return self._intercept
 
     @cache_readonly
     def r2(self):
@@ -934,7 +938,7 @@ class MovingOLS(OLS):
     def _r2_raw(self):
         rs = self._resid_stats
 
-        if self._intercept:
+        if self._use_centered_tss:
             return 1 - rs['sse'] / rs['centered_tss']
         else:
             return 1 - rs['sse'] / rs['uncentered_tss']

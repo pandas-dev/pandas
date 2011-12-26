@@ -91,6 +91,8 @@ pandas 0.6.2
   - Fix handling of missing columns (was combine_first-specific) in
     DataFrame.combine for general case (GH #529)
   - Fix type inference logic with boolean lists and arrays in DataFrame indexing
+  - Use centered sum of squares in R-square computation if entity_effects=True
+    in panel regression
 
 Thanks
 ------
@@ -98,6 +100,7 @@ Thanks
 - Andreas Hilboll
 - Adam Klein
 - Matt Harrison
+- Mario Gamboa-Cavazos
 - Arthur Gerigk
 - Gregg Lind
 - Solomon Negusse

@@ -562,6 +562,8 @@ class TestPanelOLS(BaseTest):
     def testRollingWithFixedEffects(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             entity_effects=True)
+        self.checkMovingOLS(self.panel_x, self.panel_y, intercept=False,
+                            entity_effects=True)
 
     def testRollingWithTimeEffects(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,

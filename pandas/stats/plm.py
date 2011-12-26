@@ -328,9 +328,18 @@ class PanelOLS(OLS):
         resid = Y - np.dot(X, self._beta_raw)
 
         SSE = (resid ** 2).sum()
-        SST = ((Y - np.mean(Y)) ** 2).sum()
+
+        if self._use_centered_tss:
+            SST = ((Y - np.mean(Y)) ** 2).sum()
+        else:
+            SST = (Y**2).sum()
 
         return 1 - SSE / SST
+
+    @property
+    def _use_centered_tss(self):
+        # has_intercept = np.abs(self._resid_raw.sum()) < _FP_ERR
+        return self._intercept or self._entity_effects or self._time_effects
 
     @cache_readonly
     def _r2_adj_raw(self):
