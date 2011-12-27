@@ -13,7 +13,6 @@ from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
-from pandas.core.panel import LongPanel
 import pandas.core.datetools as datetools
 
 from pandas.sparse.series import SparseSeries
@@ -682,7 +681,7 @@ def stack_sparse_frame(frame):
     index = MultiIndex(levels=[frame.index, frame.columns],
                        labels=[major_labels, minor_labels])
 
-    lp = LongPanel(stacked_values.reshape((nobs, 1)), index=index,
+    lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,
                    columns=['foo'])
     return lp.sortlevel(level=0)
 

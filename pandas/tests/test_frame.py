@@ -2620,7 +2620,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # pivot multiple columns
         wp = tm.makePanel()
         lp = wp.to_long()
-        df = DataFrame.from_records(lp.toRecords())
+        df = lp.reset_index()
         assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
     def test_pivot_duplicates(self):

@@ -370,17 +370,13 @@ class NDFrame(PandasObject):
         return len(self._data.blocks) > 1
 
     def _reindex_axis(self, new_index, fill_method, axis, copy):
-        new_index = _ensure_index(new_index)
-        cur_axis = self._data.axes[axis]
-        if cur_axis.equals(new_index) and not copy:
-            return self
+        new_data = self._data.reindex_axis(new_index, axis=axis,
+                                           method=fill_method, copy=copy)
 
-        if axis == 0:
-            new_data = self._data.reindex_items(new_index)
+        if new_data is self._data and not copy:
+            return self
         else:
-            new_data = self._data.reindex_axis(new_index, axis=axis,
-                                               method=fill_method)
-        return self._constructor(new_data)
+            return self._constructor(new_data)
 
     def cumsum(self, axis=None, skipna=True):
         """
@@ -586,7 +582,7 @@ class NDFrame(PandasObject):
         if axis == 0:
             labels = self._get_axis(axis)
             new_items = labels.take(indices)
-            new_data = self._data.reindex_items(new_items)
+            new_data = self._data.reindex_axis(new_items, axis=0)
         else:
             new_data = self._data.take(indices, axis=axis)
         return self._constructor(new_data)

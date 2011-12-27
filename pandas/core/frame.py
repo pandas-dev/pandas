@@ -1295,12 +1295,13 @@ class DataFrame(NDFrame):
         if axis is None or axis == 0:
             if not self.index.equals(other.index):
                 join_index, ilidx, iridx = \
-                    self.index.join(other.index, how=join, return_indexers=True)
+                    self.index.join(other.index, how=join, level=level,
+                                    return_indexers=True)
 
         if axis is None or axis == 1:
             if not self.columns.equals(other.columns):
                 join_columns, clidx, cridx = \
-                    self.columns.join(other.columns, how=join,
+                    self.columns.join(other.columns, how=join, level=level,
                                       return_indexers=True)
 
         def _align(frame, row_idx, col_idx):
@@ -1310,7 +1311,8 @@ class DataFrame(NDFrame):
 
             if col_idx is not None:
                 # TODO: speed up on homogeneous DataFrame objects
-                new_data = new_data.reindex_items(join_columns)
+                new_data = new_data.reindex_indexer(join_columns, col_idx,
+                                                    axis=0)
 
             if copy and new_data is frame._data:
                 new_data = new_data.copy()
@@ -1320,6 +1322,15 @@ class DataFrame(NDFrame):
         left = _align(self, ilidx, clidx)
         right = _align(other, iridx, cridx)
         return left, right
+
+    def _align_level(self, multi_index, level, axis=0, copy=True):
+        levnum = multi_index._get_level_number(level)
+        data = self.reindex_axis(multi_index.levels[levnum], axis=axis,
+                                 copy=False)._data
+        mgr_axis = 0 if axis == 1 else 1
+        new_data = data.reindex_indexer(multi_index, multi_index.labels[levnum],
+                                        axis=mgr_axis)
+        return DataFrame(new_data)
 
     def _align_series(self, other, join='outer', axis=None, level=None,
                       copy=True):
@@ -1337,11 +1348,12 @@ class DataFrame(NDFrame):
             join_index = self.columns
             lidx, ridx = None, None
             if not self.columns.equals(other.index):
-                join_index, lidx, ridx = self.columns.join(other.index, how=join,
-                                                           return_indexers=True)
+                join_index, lidx, ridx = \
+                    self.columns.join(other.index, how=join,
+                                      return_indexers=True)
 
             if lidx is not None:
-                fdata = fdata.reindex_items(join_index)
+                fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
         else:
             raise ValueError('Must specify axis=0 or 1')
 
@@ -1354,7 +1366,7 @@ class DataFrame(NDFrame):
 
     def reindex(self, index=None, columns=None, method=None, level=None,
                 copy=True):
-        """Conform Series to new index with optional filling logic, placing
+        """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
         copy=False
@@ -1385,33 +1397,65 @@ class DataFrame(NDFrame):
         frame = self
 
         if index is not None:
-            index = _ensure_index(index)
             frame = frame._reindex_index(index, method, copy, level)
 
         if columns is not None:
-            columns = _ensure_index(columns)
             frame = frame._reindex_columns(columns, copy, level)
 
         return frame
 
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
+        """Conform DataFrame to new index with optional filling logic, placing
+        NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        copy=False
+
+        Parameters
+        ----------
+        index : array-like, optional
+            New labels / index to conform to. Preferably an Index object to
+            avoid duplicating data
+        axis : {0, 1}
+            0 -> index (rows)
+            1 -> columns
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed DataFrame
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
+
+        Examples
+        --------
+        >>> df.reindex(['A', 'B', 'C'], axis=1)
+
+        See also
+        --------
+        DataFrame.reindex, DataFrame.reindex_like
+
+        Returns
+        -------
+        reindexed : same type as calling instance
+        """
+        self._consolidate_inplace()
+        if axis == 0:
+            return self._reindex_index(labels, method, copy, level)
+        elif axis == 1:
+            return self._reindex_columns(labels, copy, level)
+        else:  # pragma: no cover
+            raise ValueError('Must specify axis=0 or 1')
+
     def _reindex_index(self, new_index, method, copy, level):
-        if new_index.equals(self.index):
-            if copy:
-                result = self.copy()
-                result.index = new_index
-                return result
-            else:
-                return self
-        new_data = self._data.reindex_axis(new_index, method, axis=1)
+        if level is not None:
+            return self._align_level(new_index, level, axis=0, copy=copy)
+        new_data = self._data.reindex_axis(new_index, method, axis=1,
+                                           copy=copy)
         return self._constructor(new_data)
 
-    def _reindex_columns(self, new_columns, copy):
-        if new_columns.equals(self.columns):
-            if copy:
-                return self.copy()
-            else:
-                return self
-        new_data = self._data.reindex_axis(new_columns, axis=0)
+    def _reindex_columns(self, new_columns, copy, level):
+        if level is not None:
+            return self._align_level(new_columns, level, axis=1, copy=copy)
+        new_data = self._data.reindex_axis(new_columns, axis=0, copy=copy)
         return self._constructor(new_data)
 
     def reindex_like(self, other, method=None, copy=True):
@@ -1948,7 +1992,8 @@ class DataFrame(NDFrame):
         same_columns = self.columns.equals(other.columns)
         return same_index and same_columns
 
-    def _combine_series(self, other, func, fill_value=None, axis=None):
+    def _combine_series(self, other, func, fill_value=None, axis=None,
+                        level=None):
         if axis is not None:
             axis = self._get_axis_name(axis)
             if axis == 'index':
@@ -3658,16 +3703,6 @@ def _is_sequence(x):
         return True
     except Exception:
         return False
-
-def _align_level(frame, multi_index, level, axis=0):
-    levnum = multi_index._get_level_number(level)
-
-    data = frame.reindex(multi_index.levels[levnum], copy=False)._data
-
-    mgr_axis = 0 if axis == 1 else 1
-    new_data = data.reindex_indexer(multi_index, multi_index.labels[levnum],
-                                    axis=mgr_axis)
-    return DataFrame(new_data)
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so

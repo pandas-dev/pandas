@@ -1158,22 +1158,12 @@ class Panel(NDFrame):
         return join_major, join_minor
 
 WidePanel = Panel
-
-#-------------------------------------------------------------------------------
-# LongPanel and friends
-
+LongPanel = DataFrame
 
 def panel_is_consistent(panel):
     offset = max(len(panel.major_axis), len(panel.minor_axis))
-
-    major_labels = panel.major_labels
-    minor_labels = panel.minor_labels
-
-    # overflow risk
-    if (offset + 1) ** 2 > 2**32:  # pragma: no cover
-        major_labels = major_labels.astype(np.int64)
-        minor_labels = minor_labels.astype(np.int64)
-
+    major_labels = panel.major_labels.astype('i8')
+    minor_labels = panel.minor_labels.astype('i8')
     keys = major_labels * offset + minor_labels
     unique_keys = np.unique(keys)
 
@@ -1226,27 +1216,6 @@ def _to_wide_mixed(lp, mask):
 
 def _wide_shape(lp):
     return (len(lp.columns), len(lp.index.levels[0]), len(lp.index.levels[1]))
-
-def panel_from_records(data, major_field, minor_field, exclude=None):
-    """
-    Create LongPanel from DataFrame or record / structured ndarray
-    object
-
-    Parameters
-    ----------
-    data : DataFrame, structured or record array, or dict
-    major_field : string
-    minor_field : string
-        Name of field
-    exclude : list-like, default None
-
-    Returns
-    -------
-    LongPanel
-    """
-    return DataFrame.from_records(data, [major_field, minor_field],
-                                  exclude=exclude)
-
 
 def long_swapaxes(frame):
     """
@@ -1356,29 +1325,6 @@ def make_axis_dummies(frame, axis='minor'):
     values = values.take(labels, axis=0)
 
     return DataFrame(values, columns=items, index=frame.index)
-
-
-class LongPanel(DataFrame):
-    """
-    Represents long or "stacked" format panel data
-
-    Parameters
-    ----------
-    values : ndarray (N x K)
-    items : sequence
-    index : MultiIndex
-
-    Note
-    ----
-    LongPanel will likely disappear in a future release in favor of just using
-    DataFrame objects with hierarchical indexes. You should be careful about
-    writing production code depending on LongPanel
-    """
-
-    @property
-    def items(self):
-        return self.columns
-
 
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
