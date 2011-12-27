@@ -201,6 +201,11 @@ def test_rank():
     _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
     _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
 
+def test_get_reverse_indexer():
+    indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype='i4')
+    result = lib.get_reverse_indexer(indexer, 5)
+    expected = np.array([4, 2, 3, 6, 7], dtype='i4')
+    assert(np.array_equal(result, expected))
 
 class TestMoments(unittest.TestCase):
     pass

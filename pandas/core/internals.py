@@ -392,7 +392,7 @@ class BlockManager(object):
                                   new_items)
                 new_blocks = [newb]
             else:
-                return self.reindex_items(new_items)
+                return self._reindex_items(new_items)
         else:
             new_blocks = self._slice_blocks(slobj, axis)
 
@@ -443,7 +443,7 @@ class BlockManager(object):
         """
         copy_blocks = [block.copy(deep=deep) for block in self.blocks]
         # copy_axes = [ax.copy() for ax in self.axes]
-        copy_axes = self.axes
+        copy_axes = list(self.axes)
         return BlockManager(copy_blocks, copy_axes)
 
     def as_matrix(self, items=None):
@@ -455,12 +455,12 @@ class BlockManager(object):
                 # if not, then just call interleave per below
                 mat = blk.values
             else:
-                mat = self.reindex_items(items).as_matrix()
+                mat = self._reindex_items(items).as_matrix()
         else:
             if items is None:
                 mat = self._interleave(self.items)
             else:
-                mat = self.reindex_items(items).as_matrix()
+                mat = self._reindex_items(items).as_matrix()
 
         return mat
 
@@ -644,15 +644,32 @@ class BlockManager(object):
         if item not in self.items:
             raise KeyError('no item named %s' % str(item))
 
-    def reindex_axis(self, new_axis, method=None, axis=0):
-        if axis == 0:
-            assert(method is None)
-            return self.reindex_items(new_axis)
-
+    def reindex_axis(self, new_axis, method=None, axis=0, copy=True):
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 
+        if new_axis.equals(cur_axis):
+            if copy:
+                result = self.copy(deep=True)
+                result.axes[axis] = new_axis
+                return result
+            else:
+                return self
+
+        if axis == 0:
+            assert(method is None)
+            return self._reindex_items(new_axis)
+
         new_axis, indexer = cur_axis.reindex(new_axis, method)
+        return self.reindex_indexer(new_axis, indexer, axis=axis)
+
+    def reindex_indexer(self, new_axis, indexer, axis=1):
+        """
+        pandas-indexer with -1's only
+        """
+        if axis == 0:
+            return self._reindex_indexer_items(new_axis, indexer)
+
         mask = indexer == -1
 
         # TODO: deal with length-0 case? or does it fall out?
@@ -668,36 +685,36 @@ class BlockManager(object):
         new_axes[axis] = new_axis
         return BlockManager(new_blocks, new_axes)
 
-    def reindex_indexer(self, new_axis, indexer, axis=1):
-        """
-        pandas-indexer with -1's only
-        """
-        if axis == 0:
-            raise NotImplementedError
+    def _reindex_indexer_items(self, new_items, indexer):
+        # TODO: less efficient than I'd like
 
-        new_axes = list(self.axes)
-        new_axes[axis] = new_axis
+        item_order = com.take_1d(self.items.values, indexer)
+
+        # keep track of what items aren't found anywhere
+        mask = np.zeros(len(item_order), dtype=bool)
+
         new_blocks = []
         for blk in self.blocks:
-            new_values = com.take_fast(blk.values, indexer, None,
-                                       False, axis=axis)
-            newb = make_block(new_values, blk.items, self.items)
-            new_blocks.append(newb)
+            blk_indexer = blk.items.get_indexer(item_order)
+            selector = blk_indexer != -1
+            # update with observed items
+            mask |= selector
 
-        return BlockManager(new_blocks, new_axes)
+            new_block_items = new_items.take(selector.nonzero()[0])
+            new_values = com.take_fast(blk.values, blk_indexer[selector],
+                                       None, False, axis=0)
+            new_blocks.append(make_block(new_values, new_block_items,
+                                         new_items))
 
-    def _reindex_indexer_items(new_axis, indexer):
-        from collections import defaultdict
+        if not mask.all():
+            na_items = new_items[-mask]
+            na_block = self._make_na_block(na_items, new_items)
+            new_blocks.append(na_block)
+            new_blocks = _consolidate(new_blocks, new_items)
 
-        dtypes = self.item_dtypes
-        result_dtypes = dtypes.take(indexer)
-        counts = defaultdict(int)
-        for t in result_dtypes:
-            counts[t] += 1
+        return BlockManager(new_blocks, [new_items] + self.axes[1:])
 
-
-
-    def reindex_items(self, new_items):
+    def _reindex_items(self, new_items):
         """
 
         """
@@ -705,7 +722,7 @@ class BlockManager(object):
         data = self
         if not data.is_consolidated():
             data = data.consolidate()
-            return data.reindex_items(new_items)
+            return data._reindex_items(new_items)
 
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)
@@ -719,20 +736,20 @@ class BlockManager(object):
 
         if mask.any():
             extra_items = new_items[mask]
-
-            block_shape = list(self.shape)
-            block_shape[0] = len(extra_items)
-            block_values = np.empty(block_shape, dtype=np.float64)
-            block_values.fill(nan)
-            na_block = make_block(block_values, extra_items, new_items,
-                                  do_integrity_check=True)
+            na_block = self._make_na_block(extra_items, new_items)
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
-        new_axes = list(self.axes)
-        new_axes[0] = new_items
+        return BlockManager(new_blocks, [new_items] + self.axes[1:])
 
-        return BlockManager(new_blocks, new_axes)
+    def _make_na_block(self, items, ref_items):
+        block_shape = list(self.shape)
+        block_shape[0] = len(items)
+        block_values = np.empty(block_shape, dtype=np.float64)
+        block_values.fill(nan)
+        na_block = make_block(block_values, items, ref_items,
+                              do_integrity_check=True)
+        return na_block
 
     def take(self, indexer, axis=1):
         if axis == 0:

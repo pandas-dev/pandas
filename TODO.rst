@@ -1,3 +1,11 @@
+LongPanel removal
+=================
+
+- level to flex methods
+- level to reindex
+- fast take for items
+
+
 DONE
 ----
 - SparseSeries name integration + tests

@@ -79,7 +79,7 @@ class PanelOLS(OLS):
             x_filtered = x_filtered.filter(x_filtered.items - self._x_effects)
 
         if self._time_effects:
-            x_regressor = x.subtract(x.mean('minor', broadcast=True))
+            x_regressor = x.sub(x.mean(level=1), level=1)
 
             unstacked_y = y.unstack()
             y_regressor = unstacked_y.sub(unstacked_y.mean(1), axis=0).stack()

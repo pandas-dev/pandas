@@ -559,11 +559,32 @@ class Index(np.ndarray):
         indexer = self.get_indexer(target, method=method)
         return target, indexer
 
-    def join(self, other, how='left', return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False):
+        """
+        Internal API method. Compute join_index and indexers to conform data
+        structures to the new index.
+
+        Parameters
+        ----------
+        other : Index
+        how : {'left', 'right', 'inner', 'outer'}
+        level :
+        return_indexers : boolean, default False
+
+        Returns
+        -------
+        join_index, (left_indexer, right_indexer)
+        """
+        if (level is not None and (isinstance(self, MultiIndex) or
+                                   isinstance(other, MultiIndex))):
+            return self._join_level(other, level, how=how,
+                                    return_indexers=return_indexers)
+
         if self.dtype != other.dtype:
             this = self.astype('O')
             other = other.astype('O')
-            return this.join(other, how=how, return_indexers=return_indexers)
+            return this.join(other, how=how,
+                             return_indexers=return_indexers)
 
         if self.is_monotonic and other.is_monotonic:
             return self._join_monotonic(other, how=how,
@@ -590,6 +611,61 @@ class Index(np.ndarray):
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
+        else:
+            return join_index
+
+    def _join_level(self, other, level, how='left', return_indexers=False):
+        """
+        The join method *only* affects the level of the resulting
+        MultiIndex. Otherwise it just exactly aligns the Index data to the
+        labels of the level in the MultiIndex. The order of the data indexed by
+        the MultiIndex will not be changed (currently)
+        """
+
+        if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
+            raise Exception('Join on level between two MultiIndex objects '
+                            'is ambiguous')
+
+        left, right = self, other
+
+        flip_order = not isinstance(self, MultiIndex)
+        if flip_order:
+            left, right = right, left
+
+        level = left._get_level_number(level)
+
+        old_level = left.levels[level]
+
+        new_level, left_lev_indexer, right_lev_indexer = \
+            old_level.join(right, how=how, return_indexers=True)
+
+        if left_lev_indexer is not None:
+            rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
+                                                  len(old_level))
+
+            new_labels = list(left.labels)
+            new_labels[level] = rev_indexer.take(left.labels[level])
+
+            new_levels = list(left.levels)
+            new_levels[level] = new_level
+
+            join_index = MultiIndex(levels=new_levels, labels=new_labels,
+                                    names=left.names)
+        else:
+            join_index = left
+
+        left_indexer = None
+
+        if right_lev_indexer is not None:
+            right_indexer = right_lev_indexer.take(join_index.labels[level])
+        else:
+            right_indexer = join_index.labels[level]
+
+        if flip_order:
+            left_indexer, right_indexer = right_indexer, left_indexer
+
+        if return_indexers:
+            return join_index, left_indexer, right_indexer
         else:
             return join_index
 

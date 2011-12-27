@@ -1168,6 +1168,31 @@ class TestMultiIndex(unittest.TestCase):
         taken = self.index.take([3,0,1])
         self.assertEqual(taken.names, self.index.names)
 
+    def test_join_level(self):
+        other = Index(['three', 'one', 'two'])
+
+        def _check_how(how):
+            join_index, lidx, ridx = other.join(self.index, how=how,
+                                                level='second',
+                                                return_indexers=True)
+
+            join_index2, ridx2, lidx2 = self.index.join(other, how=how,
+                                                        level='second',
+                                                        return_indexers=True)
+
+            self.assert_(join_index.equals(join_index2))
+            self.assert_(np.array_equal(lidx, lidx2))
+            self.assert_(np.array_equal(ridx, ridx2))
+
+            exp_level = self.index.levels[1].join(other, how=how)
+            self.assert_(join_index.levels[0].equals(self.index.levels[0]))
+            self.assert_(join_index.levels[1].equals(exp_level))
+
+        _check_how('outer')
+        _check_how('inner')
+        _check_how('left')
+        _check_how('right')
+
 class TestFactor(unittest.TestCase):
 
     def setUp(self):

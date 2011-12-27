@@ -55,7 +55,31 @@ class TestMultiLevel(unittest.TestCase):
         tm.assert_series_equal(result, self.frame['A'])
 
     def test_align_level(self):
-        pass
+        # axis=0
+        month_sums = self.ymd.sum(level='month')
+        result = month_sums.reindex(self.ymd.index, level=1)
+        expected = self.ymd.groupby(level='month').transform(np.sum)
+
+        assert_frame_equal(result, expected)
+
+        # axis=1
+        month_sums = self.ymd.T.sum(axis=1, level='month')
+        result = month_sums.reindex(columns=self.ymd.index, level=1)
+        expected = self.ymd.groupby(level='month').transform(np.sum).T
+        assert_frame_equal(result, expected)
+
+    def test_binops_level(self):
+        def _check_op(opname):
+            op = getattr(DataFrame, opname)
+            result = op(self.ymd, self.ymd.sum(level='month'), level='month')
+            broadcasted = self.ymd.groupby(level='month').transform(np.sum)
+            expected = op(self.ymd, broadcasted)
+            assert_frame_equal(result, expected)
+
+        _check_op('sub')
+        _check_op('add')
+        _check_op('mul')
+        _check_op('div')
 
     def test_pickle(self):
         import cPickle
