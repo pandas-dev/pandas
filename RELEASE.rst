@@ -34,6 +34,9 @@ pandas 0.6.2
   - `Series.sort` (an in-place operation) called on a Series which is a view on
     a larger array (e.g. a column in a DataFrame) will generate an Exception to
     prevent accidentally modifying the data source (GH #316)
+  - Refactor to remove deprecated ``LongPanel`` class (PR #552)
+  - Deprecated ``Panel.to_long``, renamed to ``to_frame``
+  - Added ``DataFrame.to_panel`` with code adapted from ``LongPanel.to_long``
 
 **New features / modules**
 
@@ -42,6 +45,9 @@ pandas 0.6.2
     constructor (GH #526)
   - Add ``reorder_levels`` method to Series and DataFrame (PR #534)
   - Add dict-like ``get`` function to DataFrame and Panel (PR #521)
+  - DataFrame.iterrows method for efficiently iterating through the rows of a
+    DataFrame
+  - A
 
 **Improvements to existing features**
 

@@ -591,3 +591,101 @@ def lookup_locations2(ndarray[object] values):
 
     return locs
 
+
+from skiplist cimport *
+
+def sl_test():
+    cdef int ret
+
+    np.random.seed(12345)
+    n = 100
+
+    cdef skiplist_t* skp = skiplist_init(n)
+
+    arr = np.random.randn(n)
+
+    for i in range(n):
+        print i
+        skiplist_insert(skp, arr[i])
+        # val = skiplist_get(skp, 0, &ret)
+        # if ret == 0:
+        #     raise ValueError('%d out of bounds' % i)
+
+        if i >= 20:
+            skiplist_remove(skp, arr[i-20])
+
+        # skiplist_remove(skp, arr[i])
+        # print 'Skiplist begin: %s' % skiplist_get(skp, 0)
+        # print 'Actual begin: %s' % sorted(arr[:i+1])[0]
+        data = arr[max(i-19, 0):i+1]
+        print 'Skiplist middle: %s' % skiplist_get(skp, len(data) // 2, &ret)
+        print 'Actual middle: %s' % sorted(data)[len(data) // 2]
+
+    skiplist_destroy(skp)
+
+cdef double NaN = np.NaN
+
+def _check_minp(minp, N):
+    if minp > N:
+        minp = N + 1
+    elif minp == 0:
+        minp = 1
+    elif minp < 0:
+        raise ValueError('min_periods must be >= 0')
+    return minp
+
+def roll_median(ndarray[float64_t] arg, int win, int minp):
+    cdef double val, res, prev
+    cdef:
+        int ret
+        skiplist_t *sl
+        Py_ssize_t midpoint, nobs = 0, i
+
+
+    cdef Py_ssize_t N = len(arg)
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    sl = skiplist_init(win)
+
+    minp = _check_minp(minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = arg[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            skiplist_insert(sl, val)
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = arg[i]
+
+        if i > win - 1:
+            prev = arg[i - win]
+
+            if prev == prev:
+                skiplist_remove(sl, prev)
+                nobs -= 1
+
+        if val == val:
+            nobs += 1
+            skiplist_insert(sl, val)
+
+        if nobs >= minp:
+            midpoint = nobs / 2
+            if nobs % 2:
+                res = skiplist_get(sl, midpoint, &ret)
+            else:
+                res = (skiplist_get(sl, midpoint, &ret) +
+                       skiplist_get(sl, (midpoint - 1), &ret)) / 2
+        else:
+            res = NaN
+
+        output[i] = res
+
+    skiplist_destroy(sl)
+
+    return output
+
