@@ -16,6 +16,7 @@ from pandas.core.generic import NDFrame
 from pandas.util import py3compat
 from pandas.util.decorators import deprecate
 import pandas.core.common as com
+import pandas.core.nanops as nanops
 import pandas._tseries as lib
 
 
@@ -939,6 +940,19 @@ class Panel(NDFrame):
         result = self._values_aggregate(func, axis, fill_value, skipna=skipna)
         return self._wrap_result(result, axis=axis)
 
+    def _reduce(self, op, axis=0, skipna=True):
+        axis_name = self._get_axis_name(axis)
+        axis_number = self._get_axis_number(axis_name)
+        f = lambda x: op(x, axis=axis_number, skipna=skipna, copy=True)
+
+        result = f(self.values)
+
+        index, columns = self._get_plane_axes(axis_name)
+        if axis_name != 'items':
+            result = result.T
+
+        return DataFrame(result, index=index, columns=columns)
+
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
         index, columns = self._get_plane_axes(axis)
@@ -969,90 +983,43 @@ class Panel(NDFrame):
         return self._wrap_result(result, axis)
 
     def sum(self, axis='major', skipna=True):
-        return self._array_method(np.sum, axis=axis, fill_value=0,
-                                  skipna=skipna)
-
+        return self._reduce(nanops.nansum, axis=axis, skipna=skipna)
     _add_docs(sum, 'sum', 'sum')
 
     def mean(self, axis='major', skipna=True):
-        the_sum = self.sum(axis=axis, skipna=skipna)
-        the_count = self.count(axis=axis)
-        return the_sum / the_count
-
+        return self._reduce(nanops.nanmean, axis=axis, skipna=skipna)
     _add_docs(mean, 'mean', 'mean')
 
     def var(self, axis='major', skipna=True):
-        i = self._get_axis_number(axis)
-        y = np.array(self.values)
-        mask = np.isnan(y)
-
-        count = (-mask).sum(axis=i).astype(float)
-
-        if skipna:
-            y[mask] = 0
-
-        X = y.sum(axis=i)
-        XX = (y ** 2).sum(axis=i)
-
-        theVar = (XX - X**2 / count) / (count - 1)
-
-        return self._wrap_result(theVar, axis)
-
+        return self._reduce(nanops.nanvar, axis=axis, skipna=skipna)
     _add_docs(var, 'unbiased variance', 'variance')
 
     def std(self, axis='major', skipna=True):
         return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
-
     _add_docs(std, 'unbiased standard deviation', 'stdev')
 
-    def prod(self, axis='major', skipna=True):
-        return self._array_method(np.prod, axis=axis, fill_value=1,
-                                  skipna=skipna)
+    def skew(self, axis='major', skipna=True):
+        return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
+    _add_docs(std, 'unbiased skewness', 'skew')
 
+    def prod(self, axis='major', skipna=True):
+        return self._reduce(nanops.nanprod, axis=axis, skipna=skipna)
     _add_docs(prod, 'product', 'prod')
 
     def compound(self, axis='major', skipna=True):
         return (1 + self).prod(axis=axis, skipna=skipna) - 1
-
     _add_docs(compound, 'compounded percentage', 'compounded')
 
     def median(self, axis='major', skipna=True):
-        def f(arr):
-            mask = com.notnull(arr)
-            if skipna:
-                return lib.median(arr[mask])
-            else:
-                if not mask.all():
-                    return np.nan
-                return lib.median(arr)
-        return self.apply(f, axis=axis)
-
+        return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna)
     _add_docs(median, 'median', 'median')
 
     def max(self, axis='major', skipna=True):
-        i = self._get_axis_number(axis)
-
-        y = np.array(self.values)
-        if skipna:
-            np.putmask(y, np.isnan(y), -np.inf)
-
-        result = y.max(axis=i)
-        result = np.where(np.isneginf(result), np.nan, result)
-        return self._wrap_result(result, axis)
-
+        return self._reduce(nanops.nanmax, axis=axis, skipna=skipna)
     _add_docs(max, 'maximum', 'maximum')
 
     def min(self, axis='major', skipna=True):
-        i = self._get_axis_number(axis)
-
-        y = np.array(self.values)
-        if skipna:
-            np.putmask(y, np.isnan(y), np.inf)
-
-        result = y.min(axis=i)
-        result = np.where(np.isinf(result), np.nan, result)
-        return self._wrap_result(result, axis)
-
+        return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
     _add_docs(min, 'minimum', 'minimum')
 
     def shift(self, lags, axis='major'):

@@ -3105,8 +3105,6 @@ class DataFrame(NDFrame):
         if numeric_only is None:
             try:
                 values = self.values
-                if not self._is_mixed_type:
-                    values = values.copy()
                 result = f(values)
             except Exception:
                 data = self._get_numeric_data()

@@ -54,11 +54,8 @@ def nanmedian(values, axis=None, skipna=True, copy=True):
     if values.dtype != np.float64:
         values = values.astype('f8')
 
-    if axis == 0:
-        values = values.T
-
     if values.ndim > 1:
-        return np.asarray([get_median(arr) for arr in values])
+        return np.apply_along_axis(get_median, axis, values)
     else:
         return get_median(values)
 
