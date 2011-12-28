@@ -840,9 +840,9 @@ class Panel(NDFrame):
 
         return Panel(new_values, *new_axes)
 
-    def to_long(self, filter_observations=True):
+    def to_frame(self, filter_observations=True):
         """
-        Transform wide format into long (stacked) format
+        Transform wide format into long (stacked) format as DataFrame
 
         Parameters
         ----------
@@ -881,7 +881,8 @@ class Panel(NDFrame):
 
         return DataFrame(data, index=index, columns=self.items)
 
-    toLong = deprecate('toLong', to_long)
+    to_long = deprecate('to_long', to_frame)
+    toLong = deprecate('toLong', to_frame)
 
     def filter(self, items):
         """

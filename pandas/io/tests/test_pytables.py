@@ -344,14 +344,13 @@ class TesttHDFStore(unittest.TestCase):
 
     def test_long(self):
         def _check(left, right):
-            tm.assert_panel_equal(left.to_wide(),
-                                  right.to_wide())
+            tm.assert_panel_equal(left.to_panel(), right.to_panel())
 
         wp = tm.makePanel()
-        self._check_roundtrip(wp.to_long(), _check)
+        self._check_roundtrip(wp.to_frame(), _check)
 
         # empty
-        self.assertRaises(ValueError, self._check_roundtrip, wp.to_long()[:0],
+        self.assertRaises(ValueError, self._check_roundtrip, wp.to_frame()[:0],
                           _check)
 
     def test_longpanel(self):
