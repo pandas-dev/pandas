@@ -440,9 +440,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(self.series.ix[5::2], self.series[5::2])
 
         # slice with indices
-        d1, d2 = self.series.index[[5, 15]]
-        result = self.series.ix[d1:d2]
-        expected = self.series.truncate(d1, d2)
+        d1, d2 = self.ts.index[[5, 15]]
+        result = self.ts.ix[d1:d2]
+        expected = self.ts.truncate(d1, d2)
         assert_series_equal(result, expected)
 
         # boolean
@@ -450,8 +450,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(self.series.ix[mask], self.series[mask])
 
         # ask for index value
-        self.assertEquals(self.series.ix[d1], self.series[d1])
-        self.assertEquals(self.series.ix[d2], self.series[d2])
+        self.assertEquals(self.ts.ix[d1], self.ts[d1])
+        self.assertEquals(self.ts.ix[d2], self.ts[d2])
 
     def test_ix_getitem_iterator(self):
         idx = iter(self.series.index[:10])
