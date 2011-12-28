@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Series
 from pandas.core.index import MultiIndex
-from pandas.core.panel import Panel, LongPanel
+from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
 import pandas.stats.common as common
 import pandas.stats.math as math
@@ -32,6 +32,8 @@ class OLS(object):
     nw_lags: None or int
         Number of Newey-West lags.
     """
+    _panel_model = False
+
     def __init__(self, y, x, intercept=True, weights=None, nw_lags=None,
                  nw_overlap=False):
         import scikits.statsmodels.api as sm
@@ -757,7 +759,7 @@ class MovingOLS(OLS):
         cum_xx = []
 
         slicer = lambda df, dt: df.truncate(dt, dt).values
-        if isinstance(x, DataFrame) and not isinstance(x, LongPanel):
+        if not self._panel_model:
             _get_index = x.index.get_loc
             def slicer(df, dt):
                 i = _get_index(dt)
@@ -782,7 +784,7 @@ class MovingOLS(OLS):
         cum_xy = []
 
         x_slicer = lambda df, dt: df.truncate(dt, dt).values
-        if isinstance(x, DataFrame) and not isinstance(x, LongPanel):
+        if not self._panel_model:
             _get_index = x.index.get_loc
             def x_slicer(df, dt):
                 i = _get_index(dt)

@@ -398,10 +398,12 @@ def _is_list_like(obj):
 
 def _is_label_slice(labels, obj):
     def crit(x):
-        if x in labels:
+        try:
+            _ = labels.get_loc(x)
             return False
-        else:
+        except KeyError:
             return isinstance(x, int) or x is None
+
     return not crit(obj.start) or not crit(obj.stop)
 
 def _need_slice(obj):

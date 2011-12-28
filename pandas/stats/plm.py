@@ -15,7 +15,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.sparse import SparsePanel
 from pandas.stats.ols import OLS, MovingOLS
-import pandas.stats.common as common
+import pandas.stats.common as com
 import pandas.stats.math as math
 from pandas.util.decorators import cache_readonly
 
@@ -24,6 +24,8 @@ class PanelOLS(OLS):
 
     See ols function docs
     """
+    _panel_model = True
+
     def __init__(self, y, x, weights=None, intercept=True, nw_lags=None,
                  entity_effects=False, time_effects=False, x_effects=None,
                  cluster=None, dropped_dummies=None, verbose=False,
@@ -39,14 +41,14 @@ class PanelOLS(OLS):
         self._time_effects = time_effects
         self._x_effects = x_effects
         self._dropped_dummies = dropped_dummies or {}
-        self._cluster = common._get_cluster_type(cluster)
+        self._cluster = com._get_cluster_type(cluster)
         self._verbose = verbose
 
         (self._x, self._x_trans,
          self._x_filtered, self._y,
          self._y_trans) = self._prepare_data()
 
-        self._index = self._x.major_axis
+        self._index = self._x.index.levels[0]
 
         self._T = len(self._index)
 
@@ -470,6 +472,8 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
 
     See ols function docs
     """
+    _panel_model = True
+
     def __init__(self, y, x, weights=None,
                  window_type='expanding', window=None,
                  min_periods=None,
@@ -499,7 +503,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         self._set_window(window_type, window, min_periods)
 
         if min_obs is None:
-            min_obs = len(self._x.items) + 1
+            min_obs = len(self._x.columns) + 1
 
         self._min_obs = min_obs
 
@@ -553,7 +557,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         x = self._x
         y = self._y
 
-        dates = x.major_axis
+        dates = x.index.levels[0]
 
         cluster_axis = None
         if self._cluster == 'time':
@@ -639,7 +643,7 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         # XXX: what's the best way to determine where to start?
         # TODO: write unit tests for this
 
-        rank_threshold = len(self._x.items) + 1
+        rank_threshold = len(self._x.columns) + 1
         if self._min_obs < rank_threshold: # pragma: no cover
             warnings.warn('min_obs is smaller than rank of X matrix')
 
@@ -763,7 +767,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
             nw_lags = 0
 
         xox = 0
-        for i in range(len(x.major_axis)):
+        for i in range(len(x.index.levels[0])):
             xox += math.newey_west(m[i : i + 1], nw_lags,
                                    nobs, df, nw_overlap)
 
