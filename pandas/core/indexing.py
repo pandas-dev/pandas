@@ -292,6 +292,10 @@ class _SeriesIndexer(_NDFrameIndexer):
 
     def __getitem__(self, key):
         ax = self.obj.index
+
+        if isinstance(key, slice):
+            key = self._convert_slice(key)
+
         if isinstance(ax, MultiIndex):
             try:
                 # key = ax.get_loc(key)
@@ -302,7 +306,7 @@ class _SeriesIndexer(_NDFrameIndexer):
         if _isboolarr(key):
             self._check_boolean_key(key)
         elif isinstance(key, slice):
-            key = self._convert_slice(key)
+            pass
         elif _is_list_like(key):
             return self._get_list_like(key)
         return self._get_default(key)

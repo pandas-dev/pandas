@@ -1160,18 +1160,6 @@ class Panel(NDFrame):
 WidePanel = Panel
 LongPanel = DataFrame
 
-def long_swapaxes(frame):
-    """
-    Swap major and minor axes and reorder values to be grouped by
-    minor axis values
-
-    Returns
-    -------
-    DataFrame (new object)
-    """
-    return frame.swaplevel(0, 1, axis=0)
-
-
 def long_truncate(lp, before=None, after=None):
     """
     Slice panel between two major axis values, return complete DataFrame

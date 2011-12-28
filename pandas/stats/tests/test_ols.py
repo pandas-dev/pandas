@@ -392,18 +392,18 @@ class TestPanelOLS(BaseTest):
         result = ols(y=self.panel_y2, x=self.panel_x2)
 
         x = result._x
-        index = [x.major_axis[i] for i in x.major_labels]
+        index = x.index.get_level_values(0)
         index = Index(sorted(set(index)))
         exp_index = Index([datetime(2000, 1, 1), datetime(2000, 1, 3)])
-        self.assertTrue(exp_index.equals(index))
+        self.assertTrue;(exp_index.equals(index))
 
-        index = [x.minor_axis[i] for i in x.minor_labels]
+        index = x.index.get_level_values(1)
         index = Index(sorted(set(index)))
         exp_index = Index(['A', 'B'])
         self.assertTrue(exp_index.equals(index))
 
         x = result._x_filtered
-        index = [x.major_axis[i] for i in x.major_labels]
+        index = x.index.get_level_values(0)
         index = Index(sorted(set(index)))
         exp_index = Index([datetime(2000, 1, 1),
                            datetime(2000, 1, 3),
@@ -424,7 +424,7 @@ class TestPanelOLS(BaseTest):
                           [12, 21, 1]]
         assert_almost_equal(exp_x_filtered, result._x_filtered.values)
 
-        self.assertTrue(result._x_filtered.major_axis.equals(
+        self.assertTrue(result._x_filtered.index.levels[0].equals(
             result.y_fitted.index))
 
     def test_wls_panel(self):
@@ -500,7 +500,7 @@ class TestPanelOLS(BaseTest):
         assert_almost_equal(result._x.values, exp_x)
 
         exp_index = Index(['x1_30', 'x1_9', 'x2', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.items))
+        self.assertTrue(exp_index.equals(result._x.columns))
 
         # _check_non_raw_results(result)
 
@@ -513,7 +513,7 @@ class TestPanelOLS(BaseTest):
         assert_almost_equal(result._x.values, exp_x)
 
         exp_index = Index(['x1_6', 'x1_9', 'x2', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.items))
+        self.assertTrue(exp_index.equals(result._x.columns))
 
         # _check_non_raw_results(result)
 
@@ -526,7 +526,7 @@ class TestPanelOLS(BaseTest):
         assert_almost_equal(result._x.values, exp_x)
 
         exp_index = Index(['x1_B', 'x1_C', 'x2_baz', 'x2_foo', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.items))
+        self.assertTrue(exp_index.equals(result._x.columns))
 
         # _check_non_raw_results(result)
 
@@ -540,7 +540,7 @@ class TestPanelOLS(BaseTest):
         assert_almost_equal(result._x.values, exp_x)
 
         exp_index = Index(['x1_B', 'x1_C', 'x2_bar', 'x2_baz', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.items))
+        self.assertTrue(exp_index.equals(result._x.columns))
 
         # _check_non_raw_results(result)
 
