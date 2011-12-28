@@ -496,26 +496,24 @@ class TestPanelOLS(BaseTest):
         result = ols(y=self.panel_y2, x=self.panel_x2, x_effects=['x1'])
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
-        exp_x = [[0, 0, 14, 1], [0, 1, 17, 1], [1, 0, 48, 1]]
-        assert_almost_equal(result._x.values, exp_x)
 
-        exp_index = Index(['x1_30', 'x1_9', 'x2', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.columns))
-
-        # _check_non_raw_results(result)
+        res = result._x
+        exp_x = DataFrame([[0, 0, 14, 1], [0, 1, 17, 1], [1, 0, 48, 1]],
+                          columns=['x1_30', 'x1_9', 'x2', 'intercept'],
+                          index=res.index, dtype=float)
+        assert_frame_equal(res, exp_x.reindex(columns=res.columns))
 
     def testWithXEffectsAndDroppedDummies(self):
         result = ols(y=self.panel_y2, x=self.panel_x2, x_effects=['x1'],
                      dropped_dummies={'x1' : 30})
 
+        res = result._x
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
-        exp_x = [[1, 0, 14, 1], [0, 1, 17, 1], [0, 0, 48, 1]]
-        assert_almost_equal(result._x.values, exp_x)
+        exp_x = DataFrame([[1, 0, 14, 1], [0, 1, 17, 1], [0, 0, 48, 1]],
+                          columns=['x1_6', 'x1_9', 'x2', 'intercept'],
+                          index=res.index, dtype=float)
 
-        exp_index = Index(['x1_6', 'x1_9', 'x2', 'intercept'])
-        self.assertTrue(exp_index.equals(result._x.columns))
-
-        # _check_non_raw_results(result)
+        assert_frame_equal(res, exp_x.reindex(columns=res.columns))
 
     def testWithXEffectsAndConversion(self):
         result = ols(y=self.panel_y3, x=self.panel_x3, x_effects=['x1', 'x2'])

@@ -81,7 +81,7 @@ class PanelOLS(OLS):
             x_filtered = x_filtered.drop(self._x_effects, axis=1)
 
         if self._time_effects:
-            x_regressor = x.sub(x.mean(level=1), level=1)
+            x_regressor = x.sub(x.mean(level=0), level=0)
 
             unstacked_y = y.unstack()
             y_regressor = unstacked_y.sub(unstacked_y.mean(1), axis=0).stack()
@@ -781,7 +781,7 @@ def _xx_time_effects(x, y):
     """
     # X'X
     xx = np.dot(x.values.T, x.values)
-    xt = x.sum('minor').values
+    xt = x.sum(level=0).values
 
     count = y.unstack().count(1).values
     selector = count > 0
