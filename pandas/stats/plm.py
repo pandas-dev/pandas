@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas.core.panel import Panel, LongPanel
+from pandas.core.panel import Panel
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.sparse import SparsePanel
@@ -57,7 +57,7 @@ class PanelOLS(OLS):
             print msg
 
     def _prepare_data(self):
-        """Cleans and converts input data into LongPanel classes.
+        """Cleans and stacks input data into DataFrame objects
 
         If time effects is True, then we turn off intercepts and omit an item
         from every (entity and x) fixed effect.
@@ -77,8 +77,8 @@ class PanelOLS(OLS):
         x_filtered = self._add_dummies(x_filtered, cat_mapping)
 
         if self._x_effects:
-            x = x.filter(x.items - self._x_effects)
-            x_filtered = x_filtered.filter(x_filtered.items - self._x_effects)
+            x = x.drop(self._x_effects, axis=1)
+            x_filtered = x_filtered.drop(self._x_effects, axis=1)
 
         if self._time_effects:
             x_regressor = x.sub(x.mean(level=1), level=1)
@@ -115,7 +115,7 @@ class PanelOLS(OLS):
         data = self._x_orig
         cat_mapping = {}
 
-        if isinstance(data, LongPanel):
+        if isinstance(data, DataFrame):
             data = data.to_panel()
         else:
             if isinstance(data, Panel):
@@ -208,26 +208,28 @@ class PanelOLS(OLS):
         -------
         LongPanel
         """
+        from pandas.core.panel import make_axis_dummies
+
         if not self._entity_effects:
             return panel
 
         self.log('-- Adding entity fixed effect dummies')
 
-        dummies = panel.get_axis_dummies(axis='minor')
+        dummies = make_axis_dummies(panel, 'minor')
 
         if not self._use_all_dummies:
             if 'entity' in self._dropped_dummies:
                 to_exclude = str(self._dropped_dummies.get('entity'))
             else:
-                to_exclude = dummies.items[0]
+                to_exclude = dummies.columns[0]
 
-            if to_exclude not in dummies.items:
+            if to_exclude not in dummies.columns:
                 raise Exception('%s not in %s' % (to_exclude,
-                                                  dummies.items))
+                                                  dummies.columns))
 
             self.log('-- Excluding dummy for entity: %s' % to_exclude)
 
-            dummies = dummies.filter(dummies.items - [to_exclude])
+            dummies = dummies.filter(dummies.columns - [to_exclude])
 
         dummies = dummies.add_prefix('FE_')
         panel = panel.join(dummies)
@@ -242,6 +244,8 @@ class PanelOLS(OLS):
         -------
         LongPanel
         """
+        from pandas.core.panel import make_dummies
+
         if not self._x_effects:
             return panel
 
@@ -250,7 +254,7 @@ class PanelOLS(OLS):
         for effect in self._x_effects:
             self.log('-- Adding fixed effect dummies for %s' % effect)
 
-            dummies = panel.get_dummies(effect)
+            dummies = make_dummies(panel, effect)
 
             val_map = cat_mappings.get(effect)
             if val_map:
@@ -263,15 +267,15 @@ class PanelOLS(OLS):
                     if val_map:
                         mapped_name = val_map[to_exclude]
                 else:
-                    to_exclude = mapped_name = dummies.items[0]
+                    to_exclude = mapped_name = dummies.columns[0]
 
-                if mapped_name not in dummies.items: # pragma: no cover
+                if mapped_name not in dummies.columns: # pragma: no cover
                     raise Exception('%s not in %s' % (to_exclude,
-                                                      dummies.items))
+                                                      dummies.columns))
 
                 self.log('-- Excluding dummy for %s: %s' % (effect, to_exclude))
 
-                dummies = dummies.filter(dummies.items - [mapped_name])
+                dummies = dummies.filter(dummies.columns - [mapped_name])
                 dropped_dummy = True
 
             dummies = _convertDummies(dummies, cat_mappings.get(effect))
@@ -301,7 +305,7 @@ class PanelOLS(OLS):
 
     @cache_readonly
     def beta(self):
-        return Series(self._beta_raw, index=self._x.items)
+        return Series(self._beta_raw, index=self._x.columns)
 
     @cache_readonly
     def _df_model_raw(self):
@@ -402,9 +406,7 @@ class PanelOLS(OLS):
     def _unstack_vector(self, vec, index=None):
         if index is None:
             index = self._y_trans.index
-        panel = LongPanel(vec.reshape((len(vec), 1)), index=index,
-                          columns=['dummy'])
-
+        panel = DataFrame(vec, index=index, columns=['dummy'])
         return panel.to_panel()['dummy']
 
     def _unstack_y(self, vec):
@@ -426,7 +428,7 @@ class PanelOLS(OLS):
 def _convertDummies(dummies, mapping):
     # cleans up the names of the generated dummies
     new_items = []
-    for item in dummies.items:
+    for item in dummies.columns:
         if not mapping:
             var = str(item)
             if isinstance(item, float):
@@ -437,7 +439,7 @@ def _convertDummies(dummies, mapping):
             # renames the dummies if a conversion dict is provided
             new_items.append(mapping[int(item)])
 
-    dummies = LongPanel(dummies.values, index=dummies.index,
+    dummies = DataFrame(dummies.values, index=dummies.index,
                         columns=new_items)
 
     return dummies
@@ -757,8 +759,8 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
                           columns=['resid'])
 
         if cluster_axis == 1:
-            x = x.swapaxes()
-            resid = resid.swapaxes()
+            x = x.swaplevel(0, 1).sortlevel(0)
+            resid = resid.swaplevel(0, 1).sortlevel(0)
 
         m = group_agg(x.values * resid.values, x.index._bounds,
                       lambda x: np.sum(x, axis=0))

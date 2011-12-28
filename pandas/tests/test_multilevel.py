@@ -218,6 +218,23 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
+    def test_getitem_slice_integers(self):
+        index = MultiIndex(levels=[[0, 1, 2], [0, 2]],
+                           labels=[[0, 0, 1, 1, 2, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+
+        frame =  DataFrame(np.random.randn(len(index), 4), index=index,
+                           columns=['a', 'b', 'c', 'd'])
+        res = frame.ix[1:2]
+        exp = frame[2:]
+        assert_frame_equal(res, exp)
+
+        series =  Series(np.random.randn(len(index)), index=index)
+
+        res = series.ix[1:2]
+        exp = series[2:]
+        assert_series_equal(res, exp)
+
     def test_getitem_int(self):
         levels = [[0, 1], [0, 1, 2]]
         labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
