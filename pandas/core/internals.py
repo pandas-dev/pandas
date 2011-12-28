@@ -392,7 +392,7 @@ class BlockManager(object):
                                   new_items)
                 new_blocks = [newb]
             else:
-                return self._reindex_items(new_items)
+                return self.reindex_items(new_items)
         else:
             new_blocks = self._slice_blocks(slobj, axis)
 
@@ -455,12 +455,12 @@ class BlockManager(object):
                 # if not, then just call interleave per below
                 mat = blk.values
             else:
-                mat = self._reindex_items(items).as_matrix()
+                mat = self.reindex_items(items).as_matrix()
         else:
             if items is None:
                 mat = self._interleave(self.items)
             else:
-                mat = self._reindex_items(items).as_matrix()
+                mat = self.reindex_items(items).as_matrix()
 
         return mat
 
@@ -658,7 +658,7 @@ class BlockManager(object):
 
         if axis == 0:
             assert(method is None)
-            return self._reindex_items(new_axis)
+            return self.reindex_items(new_axis)
 
         new_axis, indexer = cur_axis.reindex(new_axis, method)
         return self.reindex_indexer(new_axis, indexer, axis=axis)
@@ -714,7 +714,7 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, [new_items] + self.axes[1:])
 
-    def _reindex_items(self, new_items):
+    def reindex_items(self, new_items):
         """
 
         """
@@ -722,7 +722,7 @@ class BlockManager(object):
         data = self
         if not data.is_consolidated():
             data = data.consolidate()
-            return data._reindex_items(new_items)
+            return data.reindex_items(new_items)
 
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)
