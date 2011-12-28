@@ -14,6 +14,7 @@ from pandas.core.panel import Panel
 
 from pandas.sparse.frame import SparseDataFrame
 
+from pandas.util.decorators import deprecate
 
 class SparsePanelAxis(object):
 
@@ -219,7 +220,7 @@ class SparsePanel(Panel):
                            default_fill_value=self.default_fill_value,
                            default_kind=self.default_kind)
 
-    def to_long(self, filter_observations=True):
+    def to_frame(self, filter_observations=True):
         """
         Convert SparsePanel to (dense) DataFrame
 
@@ -268,6 +269,9 @@ class SparsePanel(Panel):
 
         df = DataFrame(values, index=index, columns=self.items)
         return df.sortlevel(level=0)
+
+    to_long = deprecate('to_long', to_frame)
+    toLong = deprecate('toLong', to_frame)
 
     def reindex(self, major=None, items=None, minor=None, major_axis=None,
                 minor_axis=None, copy=False):
