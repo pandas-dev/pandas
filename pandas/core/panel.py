@@ -1161,51 +1161,6 @@ class Panel(NDFrame):
 WidePanel = Panel
 LongPanel = DataFrame
 
-def long_truncate(lp, before=None, after=None):
-    """
-    Slice panel between two major axis values, return complete DataFrame
-
-    Parameters
-    ----------
-    before : type of major_axis values or None, default None
-        None defaults to start of panel
-    after : type of major_axis values or None, default None
-        None defaults to end of panel
-
-    Returns
-    -------
-    DataFrame
-    """
-    left, right = lp.index.slice_locs(before, after)
-    new_index = lp.index.truncate(before, after)
-
-    return DataFrame(lp.values[left:right], columns=lp.columns,
-                     index=new_index)
-
-
-def long_apply(lp, f, axis='major', broadcast=False):
-    """
-    Aggregate over a particular axis
-
-    Parameters
-    ----------
-    f : function
-        NumPy function to apply to each group
-    axis : {'major', 'minor'}
-    broadcast : boolean
-
-    Returns
-    -------
-    applied : DataFrame
-    """
-    try:
-        return lp._apply_level(f, axis=axis, broadcast=broadcast)
-    except Exception:
-        # ufunc
-        new_values = f(lp.values)
-        return DataFrame(new_values, columns=lp.items, index=lp.index)
-
-
 def make_dummies(frame, item):
     """
     Use unique values in column of panel to construct DataFrame containing

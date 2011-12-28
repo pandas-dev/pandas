@@ -118,47 +118,6 @@ class PandasObject(Picklable):
         from pandas.core.groupby import groupby
         return groupby(self, by, axis=axis, level=level, as_index=as_index)
 
-    index = None
-
-    def truncate(self, before=None, after=None):
-        """Function truncate a sorted DataFrame / Series before and/or after
-        some particular dates.
-
-        Parameters
-        ----------
-        before : date
-            Truncate before date
-        after : date
-            Truncate after date
-
-        Returns
-        -------
-        truncated : type of caller
-        """
-        before = datetools.to_datetime(before)
-        after = datetools.to_datetime(after)
-
-        if before is not None and after is not None:
-            assert(before <= after)
-
-        # returns view, want to copy
-        truncated = self.ix[before:after].copy()
-
-        # slice off chunks of level, adjust labels, a bit of an ugly hack to
-        # get the unit tests to pass
-        index = truncated.index
-        if isinstance(index, MultiIndex):
-            if index is self.index:
-                index = self.index.copy()
-            level = index.levels[0]
-            start, end = level.slice_locs(before, after)
-            index.levels[0] = level[start:end]
-            index.labels[0] = index.labels[0] - start
-
-            truncated.index = index
-
-        return truncated
-
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
@@ -607,4 +566,38 @@ class NDFrame(PandasObject):
         else:
             new_data = self._data.take(indices, axis=axis)
         return self._constructor(new_data)
+
+# Good for either Series or DataFrame
+
+def truncate(self, before=None, after=None, copy=True):
+    """Function truncate a sorted DataFrame / Series before and/or after
+    some particular dates.
+
+    Parameters
+    ----------
+    before : date
+        Truncate before date
+    after : date
+        Truncate after date
+
+    Returns
+    -------
+    truncated : type of caller
+    """
+    before = datetools.to_datetime(before)
+    after = datetools.to_datetime(after)
+
+    if before is not None and after is not None:
+        assert(before <= after)
+
+    left, right = self.index.slice_locs(before, after)
+    result = self[left:right]
+
+    if isinstance(self.index, MultiIndex):
+        result.index = self.index.truncate(before, after)
+
+    if copy:
+        result = result.copy()
+
+    return result
 

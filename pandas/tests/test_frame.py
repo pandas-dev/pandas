@@ -2628,7 +2628,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # pivot multiple columns
         wp = tm.makePanel()
-        lp = wp.to_long()
+        lp = wp.to_frame()
         df = lp.reset_index()
         assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 

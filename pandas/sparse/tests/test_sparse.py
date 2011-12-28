@@ -1115,7 +1115,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             dense_frame = frame.to_dense()
 
             wp = Panel.from_dict({'foo' : frame})
-            from_dense_lp = wp.to_long()
+            from_dense_lp = wp.to_frame()
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
 
@@ -1273,10 +1273,10 @@ class TestSparsePanel(TestCase,
         dwp2 = Panel.from_dict(self.data_dict)
         assert_panel_equal(dwp, dwp2)
 
-    def test_to_long(self):
+    def test_to_frame(self):
         def _compare_with_dense(panel):
-            slp = panel.to_long()
-            dlp = panel.to_dense().to_long()
+            slp = panel.to_frame()
+            dlp = panel.to_dense().to_frame()
 
             self.assert_(np.array_equal(slp.values, dlp.values))
             self.assert_(slp.index.equals(dlp.index))
@@ -1285,9 +1285,9 @@ class TestSparsePanel(TestCase,
         _compare_with_dense(self.panel.reindex(items=['ItemA']))
 
         zero_panel = SparsePanel(self.data_dict, default_fill_value=0)
-        self.assertRaises(Exception, zero_panel.to_long)
+        self.assertRaises(Exception, zero_panel.to_frame)
 
-        self.assertRaises(Exception, self.panel.to_long,
+        self.assertRaises(Exception, self.panel.to_frame,
                           filter_observations=False)
 
     def test_long_to_wide_sparse(self):
@@ -1379,7 +1379,7 @@ class TestSparsePanel(TestCase,
             _dense_comp(op5)
 
             # TODO: this case not yet supported!
-            # op6 = lambda x: x.add(x.to_long())
+            # op6 = lambda x: x.add(x.to_frame())
             # _dense_comp(op6)
 
         _check_ops(self.panel)

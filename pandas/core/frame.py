@@ -36,6 +36,7 @@ from pandas.util.decorators import deprecate
 
 import pandas.core.nanops as nanops
 import pandas.core.common as com
+import pandas.core.generic as generic
 import pandas.core.datetools as datetools
 import pandas._tseries as lib
 
@@ -1556,6 +1557,8 @@ class DataFrame(NDFrame):
         """
         return self.reindex(index=other.index, columns=other.columns,
                             method=method, copy=copy)
+
+    truncate = generic.truncate
 
     def set_index(self, col_or_cols, drop=True, inplace=False):
         """

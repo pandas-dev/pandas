@@ -16,13 +16,13 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
 import pandas.core.datetools as datetools
+import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
 import pandas._engines as _gin
@@ -129,7 +129,7 @@ def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
 #-------------------------------------------------------------------------------
 # Series class
 
-class Series(np.ndarray, PandasObject):
+class Series(np.ndarray, generic.PandasObject):
     _AXIS_NUMBERS = {
         'index' : 0
     }
@@ -1582,6 +1582,8 @@ copy : boolean, default False
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
         return Series(new_values, index=new_index, name=self.name)
+
+    truncate = generic.truncate
 
     def fillna(self, value=None, method='pad'):
         """

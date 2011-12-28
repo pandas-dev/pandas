@@ -133,9 +133,9 @@ class PanelOLS(OLS):
             data['__weights__'] = self._weights
 
         # Filter x's without y (so we can make a prediction)
-        filtered = data.to_long()
+        filtered = data.to_frame()
 
-        # Filter all data together using to_long
+        # Filter all data together using to_frame
 
         # convert to DataFrame
         y = self._y_orig
@@ -143,7 +143,7 @@ class PanelOLS(OLS):
             y = y.unstack()
 
         data['__y__'] = y
-        data_long = data.to_long()
+        data_long = data.to_frame()
 
         x_filt = filtered.filter(x_names)
         x = data_long.filter(x_names)
@@ -189,11 +189,11 @@ class PanelOLS(OLS):
 
     def _add_dummies(self, panel, mapping):
         """
-        Add entity and / or categorical dummies to input X LongPanel
+        Add entity and / or categorical dummies to input X DataFrame
 
         Returns
         -------
-        LongPanel
+        DataFrame
         """
         panel = self._add_entity_effects(panel)
         panel = self._add_categorical_dummies(panel, mapping)
@@ -206,7 +206,7 @@ class PanelOLS(OLS):
 
         Returns
         -------
-        LongPanel
+        DataFrame
         """
         from pandas.core.panel import make_axis_dummies
 
@@ -242,7 +242,7 @@ class PanelOLS(OLS):
 
         Returns
         -------
-        LongPanel
+        DataFrame
         """
         from pandas.core.panel import make_dummies
 
@@ -457,7 +457,7 @@ def add_intercept(panel, name='intercept'):
 
     Parameters
     ----------
-    panel: Panel (Long or Wide)
+    panel: Panel / DataFrame
     name: string, default 'intercept']
 
     Returns
@@ -737,8 +737,6 @@ class NonPooledPanelOLS(object):
 def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
                    nw_lags, nobs, df, nw_overlap):
     from pandas.core.frame import group_agg
-    from pandas.core.panel import LongPanel
-
     xx_inv = math.inv(xx)
 
     yv = y.values
@@ -755,8 +753,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
             return np.dot(xx_inv, np.dot(xeps, xx_inv))
     else:
         Xb = np.dot(x.values, beta).reshape((len(x.values), 1))
-        resid = LongPanel(yv[:, None] - Xb, index=y.index,
-                          columns=['resid'])
+        resid = DataFrame(yv[:, None] - Xb, index=y.index, columns=['resid'])
 
         if cluster_axis == 1:
             x = x.swaplevel(0, 1).sortlevel(0)

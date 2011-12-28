@@ -286,7 +286,7 @@ class TestOLSMisc(unittest.TestCase):
 
     def test_longpanel_series_combo(self):
         wp = tm.makePanel()
-        lp = wp.to_long()
+        lp = wp.to_frame()
 
         y = lp.pop('ItemA')
         model = ols(y=y, x=lp, entity_effects=True, window=20)
