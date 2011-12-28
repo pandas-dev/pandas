@@ -226,7 +226,7 @@ class SparsePanel(Panel):
 
         Returns
         -------
-        lp : LongPanel
+        frame : DataFrame
         """
         if not filter_observations:
             raise Exception('filter_observations=False not supported for '
