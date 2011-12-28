@@ -39,7 +39,7 @@ class FamaMacBeth(object):
             time_effects=time_effects, x_effects=x_effects, cluster=cluster,
             dropped_dummies=dropped_dummies, verbose=verbose)
 
-        self._cols = self._ols_result._x.items
+        self._cols = self._ols_result._x.columns
 
     @cache_readonly
     def _beta_raw(self):
