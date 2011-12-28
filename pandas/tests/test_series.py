@@ -1266,9 +1266,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         truncated = ts.truncate(before=self.ts.index[-1] + offset)
         assert(len(truncated) == 0)
 
-        truncated = ts.truncate(before=self.ts.index[-1] + offset,
-                                after=self.ts.index[0] - offset)
-        assert(len(truncated) == 0)
+        self.assertRaises(Exception, ts.truncate,
+                          before=self.ts.index[-1] + offset,
+                          after=self.ts.index[0] - offset)
 
     def test_asof(self):
         self.ts[5:10] = np.NaN

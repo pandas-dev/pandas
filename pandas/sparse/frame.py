@@ -376,11 +376,11 @@ class SparseDataFrame(DataFrame):
     #----------------------------------------------------------------------
     # Arithmetic-related methods
 
-    def _combine_frame(self, other, func, fill_value=None):
+    def _combine_frame(self, other, func, fill_value=None, level=None):
         new_index = self.index.union(other.index)
         new_columns = self.columns.union(other.columns)
 
-        if fill_value is not None:
+        if fill_value is not None or level is not None:
             raise NotImplementedError
 
         this = self
@@ -456,7 +456,10 @@ class SparseDataFrame(DataFrame):
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns)
 
-    def _reindex_index(self, index, method, copy):
+    def _reindex_index(self, index, method, copy, level):
+        if level is not None:
+            raise Exception('Reindex by level not supported for sparse')
+
         if self.index.equals(index):
             if copy:
                 return self.copy()
@@ -483,7 +486,10 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(new_series, index=index, columns=self.columns,
                                default_fill_value=self.default_fill_value)
 
-    def _reindex_columns(self, columns, copy):
+    def _reindex_columns(self, columns, copy, level):
+        if level is not None:
+            raise Exception('Reindex by level not supported for sparse')
+
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
         return SparseDataFrame(sdict, index=self.index, columns=columns,
