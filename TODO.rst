@@ -1,9 +1,9 @@
 LongPanel removal
 =================
 
-- level to flex methods
-- level to reindex
-- fast take for items
+- DONE level to flex methods
+- DONE level to reindex
+- ?? fast take for items
 
 
 DONE

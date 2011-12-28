@@ -375,6 +375,18 @@ class DataFrame(NDFrame):
         """Iterator over (column, series) pairs"""
         return ((k, self[k]) for k in self.columns)
 
+    def iterrows(self):
+        """
+        Iterate over rows of DataFrame as (index, Series) pairs
+        """
+        from itertools import izip
+        columns = self.columns
+        for k, v in izip(self.index, self.values):
+            s = v.view(Series)
+            s.index = columns
+            s.name = k
+            yield k, s
+
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
         items = iteritems
@@ -686,6 +698,70 @@ class DataFrame(NDFrame):
         return SparseDataFrame(self._series, index=self.index,
                                default_kind=kind,
                                default_fill_value=fill_value)
+
+    def to_panel(self):
+        """
+        Transform long (stacked) format (DataFrame) into wide (3D, Panel)
+        format.
+
+        Currently the index of the DataFrame must be a 2-level MultiIndex. This
+        may be generalized later
+
+        Returns
+        -------
+        panel : Panel
+        """
+        from pandas.core.panel import Panel
+
+        wide_shape = (len(self.columns), len(self.index.levels[0]),
+                      len(self.index.levels[1]))
+
+        # only support this kind for now
+        assert(isinstance(self.index, MultiIndex) and
+               len(self.index.levels) == 2)
+
+        major_axis, minor_axis = self.index.levels
+
+        def make_mask(index):
+            """
+            Create observation selection vector using major and minor
+            labels, for converting to wide format.
+            """
+            N, K = index.levshape
+            selector = index.labels[1] + K * index.labels[0]
+            mask = np.zeros(N * K, dtype=bool)
+            mask.put(selector, True)
+            return mask
+
+        def _to_wide_homogeneous():
+            values = np.empty(wide_shape, dtype=self.values.dtype)
+            if not issubclass(values.dtype.type, np.integer):
+                values.fill(np.nan)
+
+            frame_values = self.values
+            for i in xrange(len(self.columns)):
+                values[i].flat[mask] = frame_values[:, i]
+            return Panel(values, self.columns, major_axis, minor_axis)
+
+        def _to_wide_mixed():
+            _, N, K = wide_shape
+            # TODO: make much more efficient
+            data = {}
+            for item in self.columns:
+                item_vals = self[item].values
+                values = np.empty((N, K), dtype=item_vals.dtype)
+                values.flat[mask] = item_vals
+                data[item] = DataFrame(values, index=major_axis,
+                                       columns=minor_axis)
+            return Panel(data, self.columns, major_axis, minor_axis)
+
+        mask = make_mask(self.index)
+        if self._is_mixed_type:
+            return _to_wide_mixed()
+        else:
+            return _to_wide_homogeneous()
+
+    to_wide = deprecate('to_wide', to_panel)
 
     def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
               index=True, index_label=None, mode='w', nanRep=None):

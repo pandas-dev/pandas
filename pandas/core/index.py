@@ -981,6 +981,22 @@ class MultiIndex(Index):
 
         return subarr
 
+    def copy(self, order='C'):
+        """
+        Overridden ndarray.copy to copy over attributes
+
+        Returns
+        -------
+        cp : Index
+            Returns view on same base ndarray
+        """
+        cp = self.view(np.ndarray).view(type(self))
+        cp.levels = list(self.levels)
+        cp.labels = list(self.labels)
+        cp.names = list(self.names)
+        cp.sortorder = self.sortorder
+        return cp
+
     @property
     def dtype(self):
         return np.dtype('O')
@@ -1016,6 +1032,23 @@ class MultiIndex(Index):
     def _has_complex_internals(self):
         # to disable groupby tricks
         return True
+
+    @property
+    def has_duplicates(self):
+        """
+        Return True if there are no unique groups
+        """
+        # has duplicates
+        shape = [len(lev) for lev in self.levels]
+        group_index = np.zeros(len(self), dtype='i8')
+        for i in xrange(len(shape)):
+            stride = np.prod([x for x in shape[i+1:]], dtype='i8')
+            group_index += self.labels[i] * stride
+
+        if len(np.unique(group_index)) < len(group_index):
+            return True
+
+        return False
 
     def get_level_values(self, level):
         """
@@ -1179,7 +1212,7 @@ class MultiIndex(Index):
 
             # an optimization
             result = new_tuples.view(MultiIndex)
-            result.levels = self.levels
+            result.levels = list(self.levels)
             result.labels = new_labels
             result.sortorder = sortorder
             result.names = self.names

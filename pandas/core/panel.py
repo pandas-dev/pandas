@@ -90,7 +90,7 @@ def _arith_method(func, name):
                             'done with scalar values')
 
         return self._combine(other, func)
-
+    f.__name__ = name
     return f
 
 def _panel_arith_method(op, name):
@@ -1160,63 +1160,6 @@ class Panel(NDFrame):
 WidePanel = Panel
 LongPanel = DataFrame
 
-def panel_is_consistent(panel):
-    offset = max(len(panel.major_axis), len(panel.minor_axis))
-    major_labels = panel.major_labels.astype('i8')
-    minor_labels = panel.minor_labels.astype('i8')
-    keys = major_labels * offset + minor_labels
-    unique_keys = np.unique(keys)
-
-    if len(unique_keys) < len(keys):
-        return False
-
-    return True
-
-def long_to_wide(lp):
-    """
-    Transform long (stacked) format into wide format
-
-    Returns
-    -------
-    Panel
-    """
-    assert(lp.consistent)
-    mask = make_mask(lp.index)
-    if lp._data.is_mixed_dtype():
-        return _to_wide_mixed(lp, mask)
-    else:
-        return _to_wide_homogeneous(lp, mask)
-
-def _to_wide_homogeneous(lp, mask):
-    shape = _wide_shape(lp)
-    values = np.empty(shape, dtype=lp.values.dtype)
-
-    if not issubclass(lp.values.dtype.type, np.integer):
-        values.fill(np.nan)
-
-    for i in xrange(len(lp.items)):
-        values[i].flat[mask] = lp.values[:, i]
-
-    return Panel(values, lp.items, lp.major_axis, lp.minor_axis)
-
-def _to_wide_mixed(lp, mask):
-    _, N, K = _wide_shape(lp)
-
-    # TODO: make much more efficient
-
-    data = {}
-    for i, item in enumerate(lp.items):
-        item_vals = lp[item].values
-
-        values = np.empty((N, K), dtype=item_vals.dtype)
-        values.ravel()[mask] = item_vals
-        data[item] = DataFrame(values, index=lp.major_axis,
-                               columns=lp.minor_axis)
-    return Panel.from_dict(data)
-
-def _wide_shape(lp):
-    return (len(lp.columns), len(lp.index.levels[0]), len(lp.index.levels[1]))
-
 def long_swapaxes(frame):
     """
     Swap major and minor axes and reorder values to be grouped by
@@ -1224,14 +1167,14 @@ def long_swapaxes(frame):
 
     Returns
     -------
-    LongPanel (new object)
+    DataFrame (new object)
     """
     return frame.swaplevel(0, 1, axis=0)
 
 
 def long_truncate(lp, before=None, after=None):
     """
-    Slice panel between two major axis values, return complete LongPanel
+    Slice panel between two major axis values, return complete DataFrame
 
     Parameters
     ----------
@@ -1242,7 +1185,7 @@ def long_truncate(lp, before=None, after=None):
 
     Returns
     -------
-    LongPanel
+    DataFrame
     """
     left, right = lp.index.slice_locs(before, after)
     new_index = lp.index.truncate(before, after)
@@ -1260,13 +1203,11 @@ def long_apply(lp, f, axis='major', broadcast=False):
     f : function
         NumPy function to apply to each group
     axis : {'major', 'minor'}
-
     broadcast : boolean
 
     Returns
     -------
-    broadcast=True  -> LongPanel
-    broadcast=False -> DataFrame
+    applied : DataFrame
     """
     try:
         return lp._apply_level(f, axis=axis, broadcast=broadcast)
@@ -1278,8 +1219,8 @@ def long_apply(lp, f, axis='major', broadcast=False):
 
 def make_dummies(frame, item):
     """
-    Use unique values in column of panel to construct LongPanel
-    containing dummy
+    Use unique values in column of panel to construct DataFrame containing
+    dummy variables in the columns (constructed from the unique values)
 
     Parameters
     ----------
@@ -1288,7 +1229,7 @@ def make_dummies(frame, item):
 
     Returns
     -------
-    LongPanel
+    dummies : DataFrame
     """
     from pandas import Factor
     factor = Factor(frame[item].values)
@@ -1296,7 +1237,7 @@ def make_dummies(frame, item):
     dummy_mat = values.take(factor.labels, axis=0)
     return DataFrame(dummy_mat, columns=factor.levels, index=frame.index)
 
-def make_axis_dummies(frame, axis='minor'):
+def make_axis_dummies(frame, axis='minor', transform=None):
     """
     Construct 1-0 dummy variables corresponding to designated axis
     labels
@@ -1308,19 +1249,27 @@ def make_axis_dummies(frame, axis='minor'):
         Function to apply to axis labels first. For example, to
         get "day of week" dummies in a time series regression you might
         call:
-            panel.get_axis_dummies(axis='major',
-                                   transform=lambda d: d.weekday())
+            make_axis_dummies(panel, axis='major',
+                              transform=lambda d: d.weekday())
     Returns
     -------
-    LongPanel, item names taken from chosen axis
+    dummies : DataFrame
+        Column names taken from chosen axis
     """
     numbers = {
         'major' : 0,
         'minor' : 1
     }
     num = numbers.get(axis, axis)
+
     items = frame.index.levels[num]
     labels = frame.index.labels[num]
+    if transform is not None:
+        mapped_items = items.map(transform)
+        factor = Factor(mapped_items.take(labels))
+        labels = factor.labels
+        items = factor.levels
+
     values = np.eye(len(items), dtype=float)
     values = values.take(labels, axis=0)
 
@@ -1406,17 +1355,6 @@ def _get_distinct_indexes(indexes):
     from itertools import groupby
     indexes = sorted(indexes, key=id)
     return [gp.next() for _, gp in groupby(indexes, id)]
-
-def make_mask(index):
-    """
-    Create observation selection vector using major and minor
-    labels, for converting to wide format.
-    """
-    N, K = index.levshape
-    selector = index.labels[1] + K * index.labels[0]
-    mask = np.zeros(N * K, dtype=bool)
-    mask.put(selector, True)
-    return mask
 
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()

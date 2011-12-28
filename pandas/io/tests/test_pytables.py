@@ -5,8 +5,7 @@ import sys
 
 import numpy as np
 
-from pandas import (Series, DataFrame, Panel, LongPanel, DateRange,
-                    MultiIndex)
+from pandas import Series, DataFrame, Panel, DateRange, MultiIndex
 from pandas.io.pytables import HDFStore
 import pandas.util.testing as tm
 

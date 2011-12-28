@@ -10,7 +10,7 @@ import numpy as np
 from pandas.core.common import _pickle_array, _unpickle_array, _mut_exclusive
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel, LongPanel
+from pandas.core.panel import Panel
 
 from pandas.sparse.frame import SparseDataFrame
 
@@ -221,7 +221,7 @@ class SparsePanel(Panel):
 
     def to_long(self, filter_observations=True):
         """
-        Convert SparsePanel to (dense) LongPanel
+        Convert SparsePanel to (dense) DataFrame
 
         Returns
         -------
@@ -266,8 +266,8 @@ class SparsePanel(Panel):
         index = MultiIndex(levels=[self.major_axis, self.minor_axis],
                            labels=[major_labels, minor_labels])
 
-        lp = LongPanel(values, index=index, columns=self.items)
-        return lp.sortlevel(level=0)
+        df = DataFrame(values, index=index, columns=self.items)
+        return df.sortlevel(level=0)
 
     def reindex(self, major=None, items=None, minor=None, major_axis=None,
                 minor_axis=None, copy=False):
@@ -361,8 +361,6 @@ class SparsePanel(Panel):
                            default_kind=self.default_kind)
 
     def _combinePanel(self, other, func):
-        # if isinstance(other, LongPanel):
-        #     other = other.to_wide()
         items = self.items + other.items
         major = self.major_axis + other.major_axis
         minor = self.minor_axis + other.minor_axis
