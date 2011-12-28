@@ -54,7 +54,7 @@ class TestMultiLevel(unittest.TestCase):
         result = a['A'].append(b['A'])
         tm.assert_series_equal(result, self.frame['A'])
 
-    def test_align_level(self):
+    def test_reindex_level(self):
         # axis=0
         month_sums = self.ymd.sum(level='month')
         result = month_sums.reindex(self.ymd.index, level=1)

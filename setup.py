@@ -36,7 +36,7 @@ try:
     import numpy as np
 except ImportError:
     nonumpy_msg = ("# numpy needed to finish setup.  run:\n\n"
-    "pip install numpy  \n# or easy_install numpy\n") 
+    "pip install numpy  \n# or easy_install numpy\n")
     print nonumpy_msg
     import sys
     sys.exit()
@@ -294,7 +294,7 @@ else:
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'generated', 'parsing', 'reduce', 'stats',
-                   'inference', 'properties']
+                   'inference', 'properties', 'internals']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 

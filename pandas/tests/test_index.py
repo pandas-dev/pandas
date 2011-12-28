@@ -1159,9 +1159,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(taken.names, self.index.names)
 
     def test_join_level(self):
-        other = Index(['three', 'one', 'two'])
-
-        def _check_how(how):
+        def _check_how(other, how):
             join_index, lidx, ridx = other.join(self.index, how=how,
                                                 level='second',
                                                 return_indexers=True)
@@ -1178,10 +1176,21 @@ class TestMultiIndex(unittest.TestCase):
             self.assert_(join_index.levels[0].equals(self.index.levels[0]))
             self.assert_(join_index.levels[1].equals(exp_level))
 
-        _check_how('outer')
-        _check_how('inner')
-        _check_how('left')
-        _check_how('right')
+            # pare down levels
+            mask = np.array([x[1] in exp_level for x in self.index], dtype=bool)
+            exp_values = self.index.values[mask]
+            self.assert_(np.array_equal(join_index.values, exp_values))
+            self.assert_(np.array_equal(join_index2.values, exp_values))
+
+        def _check_all(other):
+            _check_how(other, 'outer')
+            _check_how(other, 'inner')
+            _check_how(other, 'left')
+            _check_how(other, 'right')
+
+        _check_all(Index(['three', 'one', 'two']))
+        _check_all(Index(['one']))
+        _check_all(Index(['one', 'three']))
 
     def test_has_duplicates(self):
         self.assert_(not self.index.has_duplicates)

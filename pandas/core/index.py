@@ -643,8 +643,14 @@ class Index(np.ndarray):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
+            new_lev_labels = rev_indexer.take(left.labels[level])
+            omit_mask = new_lev_labels != -1
+
             new_labels = list(left.labels)
-            new_labels[level] = rev_indexer.take(left.labels[level])
+            new_labels[level] = new_lev_labels
+
+            if not omit_mask.all():
+                new_labels = [lab[omit_mask] for lab in new_labels]
 
             new_levels = list(left.levels)
             new_levels[level] = new_level
