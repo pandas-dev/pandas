@@ -230,13 +230,14 @@ def nancorr(a, b, method='pearson'):
     a, b: ndarrays
     """
     assert(len(a) == len(b))
-    if len(a) == 0:
-        return np.nan
 
     valid = notnull(a) & notnull(b)
     if not valid.all():
         a = a[valid]
         b = b[valid]
+
+    if len(a) == 0:
+        return np.nan
 
     f = get_corr_func(method)
     return f(a, b)

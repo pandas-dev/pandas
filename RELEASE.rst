@@ -36,7 +36,6 @@ pandas 0.6.2
     prevent accidentally modifying the data source (GH #316)
   - Refactor to remove deprecated ``LongPanel`` class (PR #552)
   - Deprecated ``Panel.to_long``, renamed to ``to_frame``
-  - Added ``DataFrame.to_panel`` with code adapted from ``LongPanel.to_long``
 
 **New features / modules**
 
@@ -47,7 +46,8 @@ pandas 0.6.2
   - Add dict-like ``get`` function to DataFrame and Panel (PR #521)
   - DataFrame.iterrows method for efficiently iterating through the rows of a
     DataFrame
-  - A
+  - Added ``DataFrame.to_panel`` with code adapted from ``LongPanel.to_long``
+  - ``reindex_axis`` method added to DataFrame
 
 **Improvements to existing features**
 
@@ -99,14 +99,15 @@ pandas 0.6.2
   - Fix type inference logic with boolean lists and arrays in DataFrame indexing
   - Use centered sum of squares in R-square computation if entity_effects=True
     in panel regression
+  - Handle all NA case in Series.corr, was raising exception (GH #548)
 
 Thanks
 ------
 - Craig Austin
-- Andreas Hilboll
-- Matt Harrison
 - Mario Gamboa-Cavazos
 - Arthur Gerigk
+- Matt Harrison
+- Andreas Hilboll
 - Adam Klein
 - Gregg Lind
 - Solomon Negusse
@@ -115,6 +116,7 @@ Thanks
 - Sam Reckoner
 - Craig Reeson
 - Jan Schulz
+- Ted Square
 - Dieter Vandenbussche
 
 pandas 0.6.1

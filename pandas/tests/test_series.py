@@ -981,6 +981,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # No overlap
         self.assert_(np.isnan(self.ts[::2].corr(self.ts[1::2])))
 
+        # all NA
+        cp = self.ts[:10].copy()
+        cp[:] = np.nan
+        self.assert_(isnull(cp.corr(cp)))
+
         A = tm.makeTimeSeries()
         B = tm.makeTimeSeries()
         result = A.corr(B)
