@@ -957,6 +957,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assert_((self.panel['ItemA'].values == 3).all())
 
 class TestLongPanel(unittest.TestCase):
+    """
+    LongPanel no longer exists, but...
+    """
 
     def setUp(self):
         panel = tm.makePanel()
@@ -964,20 +967,6 @@ class TestLongPanel(unittest.TestCase):
 
         self.panel = panel.to_frame()
         self.unfiltered_panel = panel.to_frame(filter_observations=False)
-
-    def test_pickle(self):
-        import cPickle
-
-        pickled = cPickle.dumps(self.panel)
-        unpickled = cPickle.loads(pickled)
-
-        assert_almost_equal(unpickled['ItemA'].values,
-                            self.panel['ItemA'].values)
-
-    def test_copy(self):
-        thecopy = self.panel.copy()
-        self.assert_(np.array_equal(thecopy.values, self.panel.values))
-        self.assert_(thecopy.values is not self.panel.values)
 
     def test_ops_differently_indexed(self):
         # trying to set non-identically indexed panel

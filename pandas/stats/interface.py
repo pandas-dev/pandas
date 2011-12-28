@@ -20,8 +20,7 @@ def ols(**kwargs):
     ----------
     y: Series or DataFrame
         See above for types
-    x: Series, DataFrame, dict of Series, dict of DataFrame, Panel, or
-        LongPanel
+    x: Series, DataFrame, dict of Series, dict of DataFrame, Panel
     weights : Series or ndarray
         The weights are presumed to be (proportional to) the inverse of the
         variance of the observations.  That is, if the variables are to be
