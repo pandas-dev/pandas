@@ -12,7 +12,20 @@
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
 
-static inline double Log2(double val) {
+
+#ifndef PANDAS_INLINE
+  #if defined(__GNUC__)
+    #define PANDAS_INLINE __inline__
+  #elif defined(_MSC_VER)
+    #define PANDAS_INLINE __inline
+  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+    #define PANDAS_INLINE inline
+  #else
+    #define PANDAS_INLINE
+  #endif
+#endif
+
+static PANDAS_INLINE double Log2(double val) {
   return log(val) / log(2.);
 }
 
@@ -34,15 +47,15 @@ typedef struct {
   int *tmp_steps;
 } skiplist_t;
 
-static inline double urand() {
+static PANDAS_INLINE double urand() {
   return rand() / ((double) RAND_MAX + 1);
 }
 
-static inline int int_min(int a, int b) {
+static PANDAS_INLINE int int_min(int a, int b) {
   return a < b ? a : b;
 }
 
-static inline node_t *node_init(double value, int levels) {
+static PANDAS_INLINE node_t *node_init(double value, int levels) {
   node_t *result;
   result = (node_t*) calloc(1, sizeof(node_t));
 
@@ -59,11 +72,11 @@ static inline node_t *node_init(double value, int levels) {
 
 // do this ourselves
 
-static inline void node_incref(node_t *node) {
+static PANDAS_INLINE void node_incref(node_t *node) {
   node->ref_count += 1;
 }
 
-static inline void node_decref(node_t *node) {
+static PANDAS_INLINE void node_decref(node_t *node) {
   node->ref_count -= 1;
 }
 
@@ -86,7 +99,7 @@ static void node_destroy(node_t *node) {
   }
 }
 
-static inline skiplist_t *skiplist_init(int expected_size) {
+static PANDAS_INLINE skiplist_t *skiplist_init(int expected_size) {
   skiplist_t *result;
   node_t *NIL, *head;
   int maxlevels, i;
@@ -113,7 +126,7 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   return result;
 }
 
-static inline void skiplist_destroy(skiplist_t *skp) {
+static PANDAS_INLINE void skiplist_destroy(skiplist_t *skp) {
   if (skp) {
     node_destroy(skp->head);
     free(skp->tmp_steps);
@@ -125,7 +138,7 @@ static inline void skiplist_destroy(skiplist_t *skp) {
 
 // 1 if left < right, 0 if left == right, -1 if left > right
 
-static inline int _node_cmp(node_t* node, double value){
+static PANDAS_INLINE int _node_cmp(node_t* node, double value){
   if (node->is_nil || node->value > value) {
     return -1;
   }
@@ -137,7 +150,7 @@ static inline int _node_cmp(node_t* node, double value){
   }
 }
 
-static inline double skiplist_get(skiplist_t *skp, int i, int *ret) {
+static PANDAS_INLINE double skiplist_get(skiplist_t *skp, int i, int *ret) {
   node_t *node;
   int level;
 
@@ -161,7 +174,7 @@ static inline double skiplist_get(skiplist_t *skp, int i, int *ret) {
   return node->value;
 }
 
-static inline int skiplist_insert(skiplist_t *skp, double value) {
+static PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
   node_t *node, *prevnode, *newnode, *next_at_level, *tmp;
   int *steps_at_level;
   int size, steps, level;
@@ -212,7 +225,7 @@ static inline int skiplist_insert(skiplist_t *skp, double value) {
   return 1;
 }
 
-static inline int skiplist_remove(skiplist_t *skp, double value) {
+static PANDAS_INLINE int skiplist_remove(skiplist_t *skp, double value) {
   int level, size;
   node_t *node, *prevnode, *tmpnode, *next_at_level;
   node_t **chain;
