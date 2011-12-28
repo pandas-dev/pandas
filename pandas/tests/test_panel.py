@@ -11,7 +11,7 @@ import numpy as np
 from pandas import DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
-from pandas.core.panel import Panel, LongPanel
+from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
 import pandas.core.panel as panelmod
@@ -356,7 +356,7 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         # LongPanel with one item
-        lp = self.panel.filter(['ItemA', 'ItemB']).to_long()
+        lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
         self.assertRaises(Exception, self.panel.__setitem__,
                           'ItemE', lp)
 
@@ -838,21 +838,21 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # this should also work
         self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
 
-    def test_to_long(self):
+    def test_to_frame(self):
         # filtered
-        filtered = self.panel.to_long()
+        filtered = self.panel.to_frame()
 
         # unfiltered
-        unfiltered = self.panel.to_long(filter_observations=False)
+        unfiltered = self.panel.to_frame(filter_observations=False)
 
         assert_panel_equal(unfiltered.to_panel(), self.panel)
 
-    def test_to_long_mixed(self):
+    def test_to_frame_mixed(self):
         panel = self.panel.fillna(0)
         panel['str'] = 'foo'
         panel['bool'] = panel['ItemA'] > 0
 
-        lp = panel.to_long()
+        lp = panel.to_frame()
         wp = lp.to_panel()
         self.assertEqual(wp['bool'].values.dtype, np.bool_)
         assert_frame_equal(wp['bool'], panel['bool'])
@@ -962,8 +962,8 @@ class TestLongPanel(unittest.TestCase):
         panel = tm.makePanel()
         tm.add_nans(panel)
 
-        self.panel = panel.to_long()
-        self.unfiltered_panel = panel.to_long(filter_observations=False)
+        self.panel = panel.to_frame()
+        self.unfiltered_panel = panel.to_frame(filter_observations=False)
 
     def test_pickle(self):
         import cPickle
@@ -983,7 +983,7 @@ class TestLongPanel(unittest.TestCase):
         # trying to set non-identically indexed panel
         wp = self.panel.to_panel()
         wp2 = wp.reindex(major=wp.major_axis[:-1])
-        lp2 = wp2.to_long()
+        lp2 = wp2.to_frame()
 
         result = self.panel + lp2
         assert_frame_equal(result.reindex(lp2.index), lp2 * 2)
@@ -1074,7 +1074,7 @@ class TestLongPanel(unittest.TestCase):
 
         wp2 = wp.reindex(major=new_index)
 
-        lp2 = wp2.to_long()
+        lp2 = wp2.to_frame()
         lp_trunc = lp2.truncate(wp.major_axis[2], wp.major_axis[-2])
 
         wp_trunc = wp2.truncate(wp.major_axis[2], wp.major_axis[-2])

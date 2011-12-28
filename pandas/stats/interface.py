@@ -13,8 +13,8 @@ def ols(**kwargs):
     y : Series, x : DataFrame -> OLS
     y : Series, x : dict of DataFrame -> OLS
     y : DataFrame, x : DataFrame -> PanelOLS
-    y : DataFrame, x : dict of DataFrame/Panel/LongPanel -> PanelOLS
-    y : Series with MultiIndex, x : Panel/LongPanel -> PanelOLS
+    y : DataFrame, x : dict of DataFrame/Panel -> PanelOLS
+    y : Series with MultiIndex, x : Panel/DataFrame + MultiIndex -> PanelOLS
 
     Parameters
     ----------
