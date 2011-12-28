@@ -3,7 +3,7 @@
 import numpy as np
 
 from pandas.core.common import save, load
-from pandas.core.index import _ensure_index
+from pandas.core.index import MultiIndex
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------
@@ -118,6 +118,8 @@ class PandasObject(Picklable):
         from pandas.core.groupby import groupby
         return groupby(self, by, axis=axis, level=level, as_index=as_index)
 
+    index = None
+
     def truncate(self, before=None, after=None):
         """Function truncate a sorted DataFrame / Series before and/or after
         some particular dates.
@@ -135,8 +137,27 @@ class PandasObject(Picklable):
         """
         before = datetools.to_datetime(before)
         after = datetools.to_datetime(after)
+
+        if before is not None and after is not None:
+            assert(before <= after)
+
         # returns view, want to copy
-        return self.ix[before:after].copy()
+        truncated = self.ix[before:after].copy()
+
+        # slice off chunks of level, adjust labels, a bit of an ugly hack to
+        # get the unit tests to pass
+        index = truncated.index
+        if isinstance(index, MultiIndex):
+            if index is self.index:
+                index = self.index.copy()
+            level = index.levels[0]
+            start, end = level.slice_locs(before, after)
+            index.levels[0] = level[start:end]
+            index.labels[0] = index.labels[0] - start
+
+            truncated.index = index
+
+        return truncated
 
     def select(self, crit, axis=0):
         """

@@ -114,7 +114,7 @@ class PanelOLS(OLS):
         cat_mapping = {}
 
         if isinstance(data, LongPanel):
-            data = data.to_wide()
+            data = data.to_panel()
         else:
             if isinstance(data, Panel):
                 data = data.copy()
@@ -403,7 +403,7 @@ class PanelOLS(OLS):
         panel = LongPanel(vec.reshape((len(vec), 1)), index=index,
                           columns=['dummy'])
 
-        return panel.to_wide()['dummy']
+        return panel.to_panel()['dummy']
 
     def _unstack_y(self, vec):
         unstacked = self._unstack_vector(vec)

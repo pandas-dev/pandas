@@ -651,12 +651,12 @@ class HDFStore(object):
                                table._v_attrs.index_kind)
         # reconstruct
         long_index = MultiIndex.from_arrays([index, columns])
-        lp = LongPanel(sel.values['values'], index=long_index,
+        lp = DataFrame(sel.values['values'], index=long_index,
                        columns=fields)
 
-        if lp.consistent:
+        if not long_index.has_duplicates:
             lp = lp.sortlevel(level=0)
-            wp = lp.to_wide()
+            wp = lp.to_panel()
         else:
             if not self._quiet:  # pragma: no cover
                 print ('Duplicate entries in table, taking most recently '
@@ -674,8 +674,8 @@ class HDFStore(object):
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
 
-            lp = LongPanel(new_values, index=new_index, columns=lp.columns)
-            wp = lp.to_wide()
+            lp = DataFrame(new_values, index=new_index, columns=lp.columns)
+            wp = lp.to_panel()
 
         if sel.column_filter:
             new_minor = sorted(set(wp.minor_axis) & sel.column_filter)

@@ -1728,6 +1728,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_iter(self):
         self.assert_(tm.equalContents(list(self.frame), self.frame.columns))
 
+    def test_iterrows(self):
+        for i, (k, v) in enumerate(self.frame.iterrows()):
+            exp = self.frame.xs(self.frame.index[i])
+            assert_series_equal(v, exp)
+
+        for i, (k, v) in enumerate(self.mixed_frame.iterrows()):
+            exp = self.mixed_frame.xs(self.mixed_frame.index[i])
+            assert_series_equal(v, exp)
+
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
 

@@ -923,16 +923,6 @@ class TestMultiIndex(unittest.TestCase):
     def test_bounds(self):
         self.index._bounds
 
-    def test_makeMask(self):
-        from pandas.core.panel import make_mask
-
-        mask =  make_mask(self.index)
-        expected = np.array([True, True,
-                             True, False,
-                             False, True,
-                             True, True], dtype=bool)
-        self.assert_(np.array_equal(mask, expected))
-
     def test_equals(self):
         self.assert_(self.index.equals(self.index))
         self.assert_(self.index.equal_levels(self.index))
@@ -1192,6 +1182,15 @@ class TestMultiIndex(unittest.TestCase):
         _check_how('inner')
         _check_how('left')
         _check_how('right')
+
+    def test_has_duplicates(self):
+        self.assert_(not self.index.has_duplicates)
+        self.assert_(self.index.append(self.index).has_duplicates)
+
+        index = MultiIndex(levels=[[0, 1], [0, 1, 2]],
+                           labels=[[0, 0, 0, 0, 1, 1, 1],
+                                   [0, 1, 2, 0, 0, 1, 2]])
+        self.assert_(index.has_duplicates)
 
 class TestFactor(unittest.TestCase):
 
