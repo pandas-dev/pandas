@@ -5,7 +5,6 @@ common_setup = """from pandas_vb_common import *
 """
 
 setup = common_setup + """
-
 N = 100000
 ngroups = 100
 
@@ -39,3 +38,7 @@ groupby_multi_cython = Benchmark(stmt3, setup,
                                  name="groupby_multi_cython",
                                  start_date=datetime(2011, 7, 1))
 
+stmt = "df.groupby(['key1', 'key2'])['data1'].agg(Series.skew)"
+groupby_multi_series_op = Benchmark(stmt, setup,
+                                    name="groupby_multi_series_op",
+                                    start_date=datetime(2011, 8, 1))

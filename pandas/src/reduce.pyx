@@ -147,6 +147,10 @@ cdef class SeriesGrouper:
                 lab = labels[i]
 
                 if i == n - 1 or lab != labels[i + 1]:
+                    if lab == -1:
+                        group_size = 0
+                        continue
+
                     islider.set_length(group_size)
                     vslider.set_length(group_size)
 

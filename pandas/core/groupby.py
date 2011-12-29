@@ -155,13 +155,11 @@ class GroupBy(object):
     def _agg_stride_shape(self):
         raise NotImplementedError
 
-    def __getattribute__(self, attr):
-        try:
-            return object.__getattribute__(self, attr)
-        except AttributeError:
-            if hasattr(self.obj, attr):
-                return self._make_wrapper(attr)
-            raise
+    def __getattr__(self, attr):
+        if hasattr(self.obj, attr):
+            return self._make_wrapper(attr)
+        raise AttributeError("'%s' object has no attribute '%s'" %
+                             (type(self).__name__, attr))
 
     def _make_wrapper(self, name):
         f = getattr(self.obj, name)
@@ -412,23 +410,9 @@ class GroupBy(object):
 
     def _aggregate_series(self, obj, func, group_index, ngroups):
         try:
-            return self._aggregate_series_fast(obj, func, group_index, ngroups)
+            return _aggregate_series_fast(obj, func, group_index, ngroups)
         except Exception:
             return self._aggregate_series_pure_python(obj, func, ngroups)
-
-    def _aggregate_series_fast(self, obj, func, group_index, ngroups):
-        if obj.index._has_complex_internals:
-            raise TypeError('Incompatible index for Cython grouper')
-
-        # avoids object / Series creation overhead
-        dummy = obj[:0]
-        indexer = lib.groupsort_indexer(group_index, ngroups)
-        obj = obj.take(indexer)
-        group_index = group_index.take(indexer)
-        grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
-                                    dummy)
-        result, counts = grouper.get_result()
-        return result, counts
 
     def _aggregate_series_pure_python(self, obj, func, ngroups):
         counts = np.zeros(ngroups, dtype=int)
@@ -743,7 +727,7 @@ class SeriesGroupBy(GroupBy):
                 return self._python_agg_general(func_or_funcs, *args, **kwargs)
 
             try:
-                result = self._aggregate_simple(func_or_funcs, *args, **kwargs)
+                return self._python_agg_general(func_or_funcs, *args, **kwargs)
             except Exception:
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
@@ -754,6 +738,17 @@ class SeriesGroupBy(GroupBy):
             print 'Warning, ignoring as_index=True'
 
         return ret
+
+    def _aggregate_multiple_funcs(self, arg):
+        if not isinstance(arg, dict):
+            arg = dict((func.__name__, func) for func in arg)
+
+        results = {}
+
+        for name, func in arg.iteritems():
+            results[name] = self.aggregate(func)
+
+        return DataFrame(results)
 
     def _wrap_aggregated_output(self, output, mask):
         if isinstance(output, dict):
@@ -794,28 +789,6 @@ class SeriesGroupBy(GroupBy):
                                      not_indexed_same=not_indexed_same)
         else:
             return Series(values, index=_get_index())
-
-    def _aggregate_multiple_funcs(self, arg):
-        if not isinstance(arg, dict):
-            arg = dict((func.__name__, func) for func in arg)
-
-        results = {}
-
-        for name, func in arg.iteritems():
-            results[name] = self.aggregate(func)
-
-        return DataFrame(results)
-
-    def _aggregate_simple(self, func, *args, **kwargs):
-        values = self.obj.values
-        result = {}
-        for k, v in self.primary.indices.iteritems():
-            agged = func(values.take(v), *args, **kwargs)
-            if isinstance(agged, np.ndarray):
-                raise Exception('Must produce aggregated value')
-            result[k] = agged
-
-        return result
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
@@ -1382,6 +1355,22 @@ def get_group_index(label_list, shape):
 
     np.putmask(group_index, mask, -1)
     return group_index
+
+
+def _aggregate_series_fast(obj, func, group_index, ngroups):
+    if obj.index._has_complex_internals:
+        raise TypeError('Incompatible index for Cython grouper')
+
+    # avoids object / Series creation overhead
+    dummy = obj[:0]
+    indexer = lib.groupsort_indexer(group_index, ngroups)
+    obj = obj.take(indexer)
+    group_index = group_index.take(indexer)
+    grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
+                                dummy)
+    result, counts = grouper.get_result()
+    return result, counts
+
 
 #----------------------------------------------------------------------
 # Group aggregations in Cython
