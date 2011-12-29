@@ -211,7 +211,8 @@ pandas object. Like Series, DataFrame accepts many different kinds of input:
  - 2-D numpy.ndarray
  - `Structured or record
    <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
- - Another DataFrame
+ - A ``Series``
+ - Another ``DataFrame``
 
 Along with the data, you can optionally pass **index** (row labels) and
 **columns** (column labels) arguments. If you pass an index and / or columns,
@@ -225,9 +226,15 @@ based on common sense rules.
 Main constructor
 ~~~~~~~~~~~~~~~~
 
+**From a Series**
+
+The result will be a DataFrame with the same index as the input Series, and
+with one column whose name is the original name of the Series (only if no other
+column name provided).
+
 **From dict of Series or dicts**
 
-the result **index** will be the **union** of the indexes of the various
+The result **index** will be the **union** of the indexes of the various
 Series. If there are any nested dicts, these will be first converted to
 Series. If no columns are passed, the columns will be the sorted list of dict
 keys.
@@ -285,6 +292,14 @@ This case is handled identically to a dict of arrays.
 
     DataFrame is not intended to work exactly like a 2-dimensional NumPy
     ndarray.
+
+**Missing Data**
+
+Much more will be said on this topic in the :ref:`Missing data <missing_data>`
+section. To construct a DataFrame with missing data, use ``np.nan`` for those
+values which are missing. Alternatively, you may pass a ``numpy.MaskedArray``
+as the data argument to the DataFrame constructor, and its masked entries will
+be considered missing.
 
 Alternate Constructors
 ~~~~~~~~~~~~~~~~~~~~~~
