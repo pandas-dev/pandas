@@ -401,6 +401,9 @@ class GroupBy(object):
             except TypeError:
                 continue
 
+        if len(output) == 0:
+            return self._python_apply_general(func, *args, **kwargs)
+
         mask = counts.ravel() > 0
         for name, result in output.iteritems():
             output[name] = result[mask]
@@ -579,7 +582,7 @@ class Grouping(object):
 
     @cache_readonly
     def indices(self):
-        return lib.groupby_indices(self.grouper)
+        return _groupby_indices(self.grouper)
 
     @property
     def labels(self):
@@ -608,7 +611,7 @@ class Grouping(object):
         return Index([self.ids[i] for i in range(len(self.ids))])
 
     def _make_labels(self):
-        ids, labels, counts  = lib.group_labels(self.grouper)
+        ids, labels, counts  = _group_labels(self.grouper)
         sids, slabels, scounts = sort_group_labels(ids, labels, counts)
         self._labels = slabels
         self._ids = sids
@@ -1412,6 +1415,16 @@ _cython_transforms = {
 
 #----------------------------------------------------------------------
 # sorting levels...cleverly?
+
+def _groupby_indices(values):
+    if values.dtype != np.object_:
+        values = values.astype('O')
+    return lib.groupby_indices(values)
+
+def _group_labels(values):
+    if values.dtype != np.object_:
+        values = values.astype('O')
+    return lib.group_labels(values)
 
 def sort_group_labels(ids, labels, counts):
     n = len(ids)

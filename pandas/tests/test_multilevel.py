@@ -43,6 +43,10 @@ class TestMultiLevel(unittest.TestCase):
         self.tdf = tm.makeTimeDataFrame()
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
+
+        # use Int64Index, to make sure things work
+        self.ymd.index.levels = [lev.astype('i8')
+                                 for lev in self.ymd.index.levels]
         self.ymd.index.names = ['year', 'month', 'day']
 
     def test_append(self):
@@ -720,6 +724,11 @@ class TestMultiLevel(unittest.TestCase):
             rightside = getattr(frame, op)(level=level, axis=axis,
                                            skipna=skipna)
             assert_frame_equal(leftside, rightside)
+
+    def test_frame_series_agg_multiple_levels(self):
+        result = self.ymd.sum(level=['year', 'month'])
+        expected = self.ymd.groupby(level=['year', 'month']).sum()
+        assert_frame_equal(result, expected)
 
     def test_groupby_multilevel(self):
         result = self.ymd.groupby(level=[0, 1]).mean()

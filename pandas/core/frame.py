@@ -3108,6 +3108,14 @@ class DataFrame(NDFrame):
                             numeric_only=None)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
+    def _agg_by_level(self, name, axis=0, level=0, skipna=True):
+        grouped = self.groupby(level=level, axis=axis)
+        if hasattr(grouped, name) and skipna:
+            return getattr(grouped, name)()
+        method = getattr(type(self), name)
+        applyf = lambda x: method(x, axis=axis, skipna=skipna)
+        return grouped.aggregate(applyf)
+
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
         f = lambda x: op(x, axis=axis, skipna=skipna, copy=True)
         labels = self._get_agg_axis(axis)
@@ -3179,11 +3187,6 @@ class DataFrame(NDFrame):
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
-
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True):
-        method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna)
-        return self.groupby(level=level, axis=axis).aggregate(applyf)
 
     def _get_agg_axis(self, axis_num):
         if axis_num == 0:

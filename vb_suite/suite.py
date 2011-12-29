@@ -4,7 +4,8 @@ from datetime import datetime
 import os
 
 modules = ['groupby', 'indexing', 'reindex', 'binary_ops',
-           'sparse', 'index_object', 'miscellaneous']
+           'sparse', 'index_object', 'miscellaneous',
+           'stat_ops']
 
 by_module = {}
 benchmarks = []

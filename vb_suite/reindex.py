@@ -89,19 +89,20 @@ reindex_fillna_backfill = Benchmark("ts3.fillna(method='backfill')", setup,
 # align on level
 
 setup = common_setup + """
-index = MultiIndex(levels=[np.arange(100), np.arange(100)],
-                   labels=[np.arange(100).repeat(100),
-                           np.tile(np.arange(100), 100)])
+index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)],
+                   labels=[np.arange(10).repeat(10000),
+                           np.tile(np.arange(100).repeat(100), 10),
+                           np.tile(np.tile(np.arange(100), 100), 10)])
 random.shuffle(index.values)
 df = DataFrame(np.random.randn(len(index), 4), index=index)
-df_level = DataFrame(np.random.randn(100, 4), index=index.levels[0])
+df_level = DataFrame(np.random.randn(100, 4), index=index.levels[1])
 """
 
 reindex_frame_level_align = \
-    Benchmark("df.align(df_level, level=0, copy=False)", setup,
+    Benchmark("df.align(df_level, level=1, copy=False)", setup,
               start_date=datetime(2011, 12, 27))
 
 reindex_frame_level_reindex = \
-    Benchmark("df_level.reindex(df.index, level=0)", setup,
+    Benchmark("df_level.reindex(df.index, level=1)", setup,
               start_date=datetime(2011, 12, 27))
 
