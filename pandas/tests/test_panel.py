@@ -841,11 +841,15 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
     def test_to_frame(self):
         # filtered
         filtered = self.panel.to_frame()
+        expected = self.panel.to_frame().dropna(how='any')
+        assert_frame_equal(filtered, expected)
 
         # unfiltered
         unfiltered = self.panel.to_frame(filter_observations=False)
-
         assert_panel_equal(unfiltered.to_panel(), self.panel)
+
+        # names
+        self.assertEqual(unfiltered.index.names, ['major', 'minor'])
 
     def test_to_frame_mixed(self):
         panel = self.panel.fillna(0)

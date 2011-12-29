@@ -855,7 +855,7 @@ class Panel(NDFrame):
         -------
         y : DataFrame
         """
-        I, N, K = self.shape
+        _, N, K = self.shape
 
         if filter_observations:
             mask = com.notnull(self.values).all(axis=0)
