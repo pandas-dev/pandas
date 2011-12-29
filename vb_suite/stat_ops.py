@@ -25,3 +25,11 @@ stat_ops_level_frame_sum_multiple = \
     Benchmark("df.sum(level=[0, 1])", setup, repeat=1,
               start_date=datetime(2011, 11, 15))
 
+stat_ops_level_series_sum = \
+    Benchmark("df[1].sum(level=1)", setup,
+              start_date=datetime(2011, 11, 15))
+
+stat_ops_level_series_sum_multiple = \
+    Benchmark("df[1].sum(level=[0, 1])", setup, repeat=1,
+              start_date=datetime(2011, 11, 15))
+

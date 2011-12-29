@@ -776,6 +776,14 @@ copy : boolean, default False
         return nanops.nanskew(self.values, skipna=skipna, copy=True)
     _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
+    def _agg_by_level(self, name, level=0, skipna=True):
+        grouped = self.groupby(level=level)
+        if hasattr(grouped, name) and skipna:
+            return getattr(grouped, name)()
+        method = getattr(type(self), name)
+        applyf = lambda x: method(x, skipna=skipna)
+        return grouped.aggregate(applyf)
+
     def idxmin(self, axis=None, out=None, skipna=True):
         """
         Index of first occurence of minimum of values.
@@ -811,11 +819,6 @@ copy : boolean, default False
         if i == -1:
             return np.nan
         return self.index[i]
-
-    def _agg_by_level(self, name, level=0, skipna=True):
-        method = getattr(type(self), name)
-        applyf = lambda x: method(x, skipna=skipna)
-        return self.groupby(level=level).aggregate(applyf)
 
     def cumsum(self, axis=0, dtype=None, out=None, skipna=True):
         """

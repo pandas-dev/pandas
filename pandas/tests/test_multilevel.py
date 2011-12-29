@@ -730,6 +730,10 @@ class TestMultiLevel(unittest.TestCase):
         expected = self.ymd.groupby(level=['year', 'month']).sum()
         assert_frame_equal(result, expected)
 
+        result = self.ymd['A'].sum(level=['year', 'month'])
+        expected = self.ymd['A'].groupby(level=['year', 'month']).sum()
+        assert_series_equal(result, expected)
+
     def test_groupby_multilevel(self):
         result = self.ymd.groupby(level=[0, 1]).mean()
 

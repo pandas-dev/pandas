@@ -108,6 +108,8 @@ pandas 0.6.2
   - Use centered sum of squares in R-square computation if entity_effects=True
     in panel regression
   - Handle all NA case in Series.corr, was raising exception (GH #548)
+  - Aggregating by multiple levels with ``level`` argument to DataFrame, Series
+    stat method, was broken (GH #545)
 
 Thanks
 ------
