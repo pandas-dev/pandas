@@ -4,6 +4,7 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 
 import operator
+import sys
 import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive,
@@ -508,6 +509,14 @@ class Panel(NDFrame):
 
     def _box_item_values(self, key, values):
         return DataFrame(values, index=self.major_axis, columns=self.minor_axis)
+
+    def __getattr__(self, name):
+        """After regular attribute access, try looking up the name of an item.
+        This allows simpler access to items for interactive use."""
+        if name in self.items:
+            return self[name]
+        raise AttributeError("'%s' object has no attribute '%s'" %
+                             (type(self).__name__, name))
 
     def _slice(self, slobj, axis=0):
         new_data = self._data.get_slice(slobj, axis=axis)
@@ -1191,3 +1200,22 @@ def _get_distinct_indexes(indexes):
 
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
+
+def install_ipython_completers():  # pragma: no cover
+    """Register the Panel type with IPython's tab completion machinery, so
+    that it knows about accessing column names as attributes."""
+    from IPython.utils.generics import complete_object
+
+    @complete_object.when_type(Panel)
+    def complete_dataframe(obj, prev_completions):
+        return prev_completions + [c for c in obj.items \
+                    if isinstance(c, basestring) and py3compat.isidentifier(c)]
+
+# Importing IPython brings in about 200 modules, so we want to avoid it unless
+# we're in IPython (when those modules are loaded anyway).
+if "IPython" in sys.modules:  # pragma: no cover
+    try:
+        install_ipython_completers()
+    except Exception:
+        pass
+
