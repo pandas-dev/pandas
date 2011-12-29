@@ -1164,15 +1164,7 @@ class TestMultiIndex(unittest.TestCase):
                                                 level='second',
                                                 return_indexers=True)
 
-            join_index2, ridx2, lidx2 = self.index.join(other, how=how,
-                                                        level='second',
-                                                        return_indexers=True)
-
-            self.assert_(join_index.equals(join_index2))
-            self.assert_(np.array_equal(lidx, lidx2))
-            self.assert_(np.array_equal(ridx, ridx2))
-
-            exp_level = self.index.levels[1].join(other, how=how)
+            exp_level = other.join(self.index.levels[1], how=how)
             self.assert_(join_index.levels[0].equals(self.index.levels[0]))
             self.assert_(join_index.levels[1].equals(exp_level))
 
@@ -1180,7 +1172,16 @@ class TestMultiIndex(unittest.TestCase):
             mask = np.array([x[1] in exp_level for x in self.index], dtype=bool)
             exp_values = self.index.values[mask]
             self.assert_(np.array_equal(join_index.values, exp_values))
-            self.assert_(np.array_equal(join_index2.values, exp_values))
+
+            if how in ('outer', 'inner'):
+                join_index2, ridx2, lidx2 = \
+                    self.index.join(other, how=how, level='second',
+                                    return_indexers=True)
+
+                self.assert_(join_index.equals(join_index2))
+                self.assert_(np.array_equal(lidx, lidx2))
+                self.assert_(np.array_equal(ridx, ridx2))
+                self.assert_(np.array_equal(join_index2.values, exp_values))
 
         def _check_all(other):
             _check_how(other, 'outer')

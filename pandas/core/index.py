@@ -637,6 +637,7 @@ class Index(np.ndarray):
         flip_order = not isinstance(self, MultiIndex)
         if flip_order:
             left, right = right, left
+            how = {'right': 'left', 'left': 'right'}.get(how, how)
 
         level = left._get_level_number(level)
 
@@ -1860,4 +1861,4 @@ def _ensure_index(index_like):
 
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
-        raise Exception('do not recognize join method %s' % how)
+        raise Exception('do not recognize join method %s' % method)
