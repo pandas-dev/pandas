@@ -74,6 +74,8 @@ pandas 0.6.2
   - Friendlier error message in setup.py if NumPy not installed
   - Use common set of NA-handling operations (sum, mean, etc.) in Panel class
     also (GH #536)
+  - Default name assignment when calling ``reset_index`` on DataFrame with a
+    regular (non-hierarchical) index (GH #476)
 
 **Bug fixes**
 

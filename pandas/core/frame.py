@@ -1644,9 +1644,10 @@ class DataFrame(NDFrame):
                 level_values = lib.maybe_convert_objects(level_values)
                 new_obj.insert(0, col_name, level_values.take(lab))
         else:
-            if self.index.name is None:
-                raise Exception('Must have name set')
-            new_obj.insert(0, self.index.name, self.index.values)
+            name = self.index.name
+            if name is None:
+                name = 'index' if 'index' not in self else 'level_0'
+            new_obj.insert(0, name, self.index.values)
         new_obj.index = np.arange(len(new_obj))
         return new_obj
 

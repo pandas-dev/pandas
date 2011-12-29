@@ -3828,8 +3828,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.array_equal(deleveled['second'],
                                     deleveled2['level_1']))
 
-        # exception if no name
-        self.assertRaises(Exception, self.frame.reset_index)
+        # default name assigned
+        rdf = self.frame.reset_index()
+        self.assert_(np.array_equal(rdf['index'], self.frame.index.values))
+
+        # default name assigned, corner case
+        df = self.frame.copy()
+        df['index'] = 'foo'
+        rdf = df.reset_index()
+        self.assert_(np.array_equal(rdf['level_0'], self.frame.index.values))
 
         # but this is ok
         self.frame.index.name = 'index'
