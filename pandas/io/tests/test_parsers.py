@@ -451,6 +451,13 @@ c,4,5,01/03/2009
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
+        # produce integer
+        converter = lambda x: int(x.split('/')[2])
+        result = read_csv(StringIO(data), converters={'D' : converter})
+        expected = read_csv(StringIO(data))
+        expected['D'] = expected['D'].map(converter)
+        assert_frame_equal(result, expected)
+
     def test_regex_separator(self):
         data = """   A   B   C   D
 a   1   2   3   4

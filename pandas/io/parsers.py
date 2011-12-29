@@ -475,6 +475,9 @@ def _convert_to_ndarrays(dct, na_values):
     return result
 
 def _convert_types(values, na_values):
+    if issubclass(values.dtype.type, (np.number, np.bool_)):
+        return values
+
     try:
         values = lib.maybe_convert_numeric(values, na_values)
     except Exception:
