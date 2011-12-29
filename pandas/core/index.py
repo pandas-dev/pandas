@@ -546,7 +546,7 @@ class Index(np.ndarray):
         }
         return aliases.get(method, method)
 
-    def reindex(self, target, method=None):
+    def reindex(self, target, method=None, level=None):
         """
         For Index, simply returns the new index and the results of
         get_indexer. Provided here to enable an interface that is amenable for
@@ -556,7 +556,12 @@ class Index(np.ndarray):
         -------
         (new_index, indexer, mask) : tuple
         """
-        indexer = self.get_indexer(target, method=method)
+        target = _ensure_index(target)
+        if level is not None:
+            _, indexer, _ = self._join_level(target, level, how='left',
+                                                  return_indexers=True)
+        else:
+            indexer = self.get_indexer(target, method=method)
         return target, indexer
 
     def join(self, other, how='left', level=None, return_indexers=False):
@@ -580,6 +585,8 @@ class Index(np.ndarray):
             return self._join_level(other, level, how=how,
                                     return_indexers=return_indexers)
 
+        other = _ensure_index(other)
+
         if self.dtype != other.dtype:
             this = self.astype('O')
             other = other.astype('O')
@@ -587,12 +594,6 @@ class Index(np.ndarray):
                              return_indexers=return_indexers)
 
         _validate_join_method(how)
-
-        if self.equals(other):
-            if return_indexers:
-                return self, None, None
-            else:
-                return self
 
         if self.is_monotonic and other.is_monotonic:
             return self._join_monotonic(other, how=how,
@@ -681,6 +682,13 @@ class Index(np.ndarray):
             return join_index
 
     def _join_monotonic(self, other, how='left', return_indexers=False):
+        if self.equals(other):
+            ret_index = other if how == 'right' else self
+            if return_indexers:
+                return ret_index, None, None
+            else:
+                return ret_index
+
         if how == 'left':
             join_index = self
             lidx = None
@@ -1437,6 +1445,8 @@ class MultiIndex(Index):
         """
         method = self._get_method(method)
 
+        target = _ensure_index(target)
+
         target_index = target
         if isinstance(target, MultiIndex) and target._is_legacy_format:
             target_index = target.get_tuple_index()
@@ -1449,14 +1459,14 @@ class MultiIndex(Index):
             indexer = self._pad(self_index, target_index, self_index.indexMap,
                                 target.indexMap)
         elif method == 'backfill':
-            indexer = self._backfill(self_index, target_index, self_index.indexMap,
-                                     target.indexMap)
+            indexer = self._backfill(self_index, target_index,
+                                     self_index.indexMap, target.indexMap)
         else:
             indexer = self._merge_indexer(target_index, self_index.indexMap)
 
         return indexer
 
-    def reindex(self, target, method=None):
+    def reindex(self, target, method=None, level=None):
         """
         Performs any necessary conversion on the input index and calls
         get_indexer. This method is here so MultiIndex and an Index of
@@ -1466,11 +1476,18 @@ class MultiIndex(Index):
         -------
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
-        indexer = self.get_indexer(target, method=method)
+        if level is not None:
+            target, _, indexer = self._join_level(target, level, how='left',
+                                                  return_indexers=True)
+        else:
+            indexer = self.get_indexer(target, method=method)
 
-        # hopefully?
         if not isinstance(target, MultiIndex):
-            target = MultiIndex.from_tuples(target)
+            if (indexer >= 0).all():
+                target = self.take(indexer)
+            else:
+                # hopefully?
+                target = MultiIndex.from_tuples(target)
 
         return target, indexer
 

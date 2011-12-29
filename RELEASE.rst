@@ -50,8 +50,8 @@ pandas 0.6.2
   - ``reindex_axis`` method added to DataFrame
   - Add ``level`` option to binary arithmetic functions on ``DataFrame`` and
     ``Series``
-  - Add ``level`` option to the ``reindex`` and ``align`` methods for
-    broadcasting values across a level (GH #542, PR #552, others)
+  - Add ``level`` option to the ``reindex`` and ``align`` methods on Series and
+    DataFrame for broadcasting values across a level (GH #542, PR #552, others)
 
 **Improvements to existing features**
 

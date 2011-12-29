@@ -62,6 +62,11 @@ class TestMultiLevel(unittest.TestCase):
 
         assert_frame_equal(result, expected)
 
+        # Series
+        result = month_sums['A'].reindex(self.ymd.index, level=1)
+        expected = self.ymd['A'].groupby(level='month').transform(np.sum)
+        assert_series_equal(result, expected)
+
         # axis=1
         month_sums = self.ymd.T.sum(axis=1, level='month')
         result = month_sums.reindex(columns=self.ymd.index, level=1)
@@ -71,10 +76,18 @@ class TestMultiLevel(unittest.TestCase):
     def test_binops_level(self):
         def _check_op(opname):
             op = getattr(DataFrame, opname)
-            result = op(self.ymd, self.ymd.sum(level='month'), level='month')
+            month_sums = self.ymd.sum(level='month')
+            result = op(self.ymd, month_sums, level='month')
             broadcasted = self.ymd.groupby(level='month').transform(np.sum)
             expected = op(self.ymd, broadcasted)
             assert_frame_equal(result, expected)
+
+            # Series
+            op = getattr(Series, opname)
+            result = op(self.ymd['A'], month_sums['A'], level='month')
+            broadcasted = self.ymd['A'].groupby(level='month').transform(np.sum)
+            expected = op(self.ymd['A'], broadcasted)
+            assert_series_equal(result, expected)
 
         _check_op('sub')
         _check_op('add')

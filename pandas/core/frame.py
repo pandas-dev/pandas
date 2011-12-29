@@ -1370,8 +1370,7 @@ class DataFrame(NDFrame):
     def _align_frame(self, other, join='outer', axis=None, level=None,
                      copy=True):
         # defaults
-        join_index = self.index
-        join_columns = self.columns
+        join_index, join_columns = None, None
         ilidx, iridx = None, None
         clidx, cridx = None, None
 
@@ -1387,34 +1386,11 @@ class DataFrame(NDFrame):
                     self.columns.join(other.columns, how=join, level=level,
                                       return_indexers=True)
 
-        def _align(frame, row_idx, col_idx):
-            new_data = frame._data
-            if row_idx is not None:
-                new_data = new_data.reindex_indexer(join_index, row_idx, axis=1)
-
-            if col_idx is not None:
-                # TODO: speed up on homogeneous DataFrame objects
-                new_data = new_data.reindex_indexer(join_columns, col_idx,
-                                                    axis=0)
-
-            if copy and new_data is frame._data:
-                new_data = new_data.copy()
-
-            return DataFrame(new_data)
-
-        left = _align(self, ilidx, clidx)
-        right = _align(other, iridx, cridx)
+        left = self._reindex_with_indexers(join_index, ilidx,
+                                           join_columns, clidx, copy)
+        right = other._reindex_with_indexers(join_index, iridx,
+                                             join_columns, cridx, copy)
         return left, right
-
-    def _align_level(self, multi_index, level, axis=0, copy=True):
-        assert(isinstance(multi_index, MultiIndex))
-        levnum = multi_index._get_level_number(level)
-        data = self.reindex_axis(multi_index.levels[levnum], axis=axis,
-                                 copy=False)._data
-        mgr_axis = 0 if axis == 1 else 1
-        new_data = data.reindex_indexer(multi_index, multi_index.labels[levnum],
-                                        axis=mgr_axis)
-        return DataFrame(new_data)
 
     def _align_series(self, other, join='outer', axis=None, level=None,
                       copy=True):
@@ -1537,16 +1513,37 @@ class DataFrame(NDFrame):
 
     def _reindex_index(self, new_index, method, copy, level):
         if level is not None:
-            return self._align_level(new_index, level, axis=0, copy=copy)
-        new_data = self._data.reindex_axis(new_index, method, axis=1,
-                                           copy=copy)
-        return self._constructor(new_data)
+            assert(isinstance(new_index, MultiIndex))
+        new_index, indexer = self.index.reindex(new_index, method, level)
+        return self._reindex_with_indexers(new_index, indexer, None, None,
+                                           copy)
 
     def _reindex_columns(self, new_columns, copy, level):
         if level is not None:
-            return self._align_level(new_columns, level, axis=1, copy=copy)
-        new_data = self._data.reindex_axis(new_columns, axis=0, copy=copy)
-        return self._constructor(new_data)
+            assert(isinstance(new_columns, MultiIndex))
+        new_columns, indexer = self.columns.reindex(new_columns, level=level)
+        return self._reindex_with_indexers(None, None, new_columns, indexer,
+                                           copy)
+
+    def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
+                               copy):
+        new_data = self._data
+        if row_indexer is not None:
+            new_data = new_data.reindex_indexer(index, row_indexer, axis=1)
+        elif index is not None and index is not new_data.axes[1]:
+            new_data = new_data.copy(deep=copy)
+            new_data.axes[1] = index
+
+        if col_indexer is not None:
+            # TODO: speed up on homogeneous DataFrame objects
+            new_data = new_data.reindex_indexer(columns, col_indexer, axis=0)
+        elif columns is not None and columns is not new_data.axes[0]:
+            new_data = new_data.reindex_items(columns)
+
+        if copy and new_data is self._data:
+            new_data = new_data.copy()
+
+        return DataFrame(new_data)
 
     def reindex_like(self, other, method=None, copy=True):
         """
@@ -3782,6 +3779,18 @@ def _homogenize(data, index, columns, dtype=None):
         homogenized[k] = v
 
     return homogenized
+
+def _get_join_data(left_index, right_index, how, level):
+    # defaults
+    join_index = left_index
+    lidx, ridx = None, None
+
+    if not left_index.equals(right_index):
+        join_index, lidx, ridx = \
+            left_index.join(right_index, how=how, level=level,
+                            return_indexers=True)
+
+    return join_index, lidx, ridx
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)

@@ -68,7 +68,7 @@ def _maybe_match_name(a, b):
 
 def _flex_method(op, name):
     def f(self, other, level=None, fill_value=None):
-        return self._binop(other, op, fill_value=fill_value)
+        return self._binop(other, op, level=level, fill_value=fill_value)
 
     f.__doc__ = """
     Binary operator %s with support to substitute a fill_value for missing data
@@ -955,7 +955,7 @@ copy : boolean, default False
         -------
         correlation : float
         """
-        this, other = self.align(other, join='inner')
+        this, other = self.align(other, join='inner', copy=False)
         return nanops.nancorr(this.values, other.values, method=method)
 
     def cov(self, other):
@@ -1099,7 +1099,7 @@ copy : boolean, default False
         this = self
 
         if not self.index.equals(other.index):
-            this, other = self.align(other, join='outer')
+            this, other = self.align(other, level=level, join='outer')
             new_index = this.index
 
         this_vals = this.values
@@ -1495,33 +1495,27 @@ copy : boolean, default False
         (left, right) : (Series, Series)
             Aligned Series
         """
-        if self.index.equals(other.index):
-            left, right = self, other
-            if copy:
-                left = left.copy()
-                right = right.copy()
-            return left, right
-
         join_index, lidx, ridx = self.index.join(other.index, how=join,
+                                                 level=level,
                                                  return_indexers=True)
 
-        def _align_series(series, indexer):
-            if indexer is not None:
-                new_values = com.take_1d(series.values, indexer)
-            else:
-                if copy:
-                    new_values = series.values.copy()
-                else:
-                    new_values = series.values
-
-            # be subclass-friendly
-            return series._constructor(new_values, join_index, name=series.name)
-
-        left = _align_series(self, lidx)
-        right = _align_series(other, ridx)
+        left = self._reindex_indexer(join_index, lidx, copy)
+        right = other._reindex_indexer(join_index, ridx, copy)
         return left, right
 
-    def reindex(self, index=None, method=None, copy=True):
+    def _reindex_indexer(self, new_index, indexer, copy):
+        if indexer is not None:
+            new_values = com.take_1d(self.values, indexer)
+        else:
+            if copy:
+                return self.copy()
+            else:
+                return self
+
+        # be subclass-friendly
+        return self._constructor(new_values, new_index, name=self.name)
+
+    def reindex(self, index=None, method=None, level=None, copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1538,6 +1532,9 @@ copy : boolean, default False
             backfill / bfill: use NEXT valid observation to fill gap
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
 
         Returns
         -------
@@ -1553,7 +1550,8 @@ copy : boolean, default False
         if len(self.index) == 0:
             return Series(nan, index=index, name=self.name)
 
-        new_index, fill_vec = self.index.reindex(index, method=method)
+        new_index, fill_vec = self.index.reindex(index, method=method,
+                                                 level=level)
         new_values = com.take_1d(self.values, fill_vec)
         return Series(new_values, index=new_index, name=self.name)
 

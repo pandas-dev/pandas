@@ -665,7 +665,7 @@ class BlockManager(object):
 
     def reindex_indexer(self, new_axis, indexer, axis=1):
         """
-        pandas-indexer with -1's only
+        pandas-indexer with -1's only.
         """
         if axis == 0:
             return self._reindex_indexer_items(new_axis, indexer)
@@ -699,6 +699,9 @@ class BlockManager(object):
             selector = blk_indexer != -1
             # update with observed items
             mask |= selector
+
+            if not selector.any():
+                continue
 
             new_block_items = new_items.take(selector.nonzero()[0])
             new_values = com.take_fast(blk.values, blk_indexer[selector],
