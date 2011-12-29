@@ -271,6 +271,7 @@ Here is a quick reference summary table of common functions
     ``count``, Number of non-null observations
     ``sum``, Sum of values
     ``mean``, Mean of values
+    ``mad``, Mean absolute deviation
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum

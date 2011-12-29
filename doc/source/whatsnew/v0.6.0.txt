@@ -14,10 +14,10 @@ New Features
 - Added proper, tested weighted least squares to standard and panel OLS (GH303_)
 - :ref:`Added <indexing.duplicate>` ``drop_duplicates`` and ``duplicated`` functions for removing duplicate DataFrame rows and checking for duplicate rows, respectively (GH319_)
 - :ref:`Implemented <dsintro.boolean>` operators '&', '|', '^', '-' on DataFrame (GH347_)
-- MAYBE ? Add ``Series.mad``, mean absolute deviation, matching DataFrame
-- MAYBE? Add ``QuarterEnd`` DateOffset (PR321_)
-- Add matrix multiplication function ``dot`` to DataFrame (GH65_)
-- Add ``orient`` option to ``Panel.from_dict`` to ease creation of mixed-type Panels (GH359_, GH301_)
+- :ref:`Added <basics.stats>` ``Series.mad``, mean absolute deviation
+- :ref:`Added <timeseries.offsets>` ``QuarterEnd`` DateOffset (PR321_)
+- :ref:`Added <dsintro.numpy_interop>` ``dot`` to DataFrame (GH65_)
+- :ref:`Added <basics.panel>` ``orient`` option to ``Panel.from_dict`` (GH359_, GH301_)
 - Add ``DataFrame.from_dict`` with similar ``orient`` option
 - Can now pass list of tuples or list of lists to ``DataFrame.from_records`` for fast conversion to DataFrame (GH357_)
 - Can pass multiple levels to groupby, e.g. ``df.groupby(level=[0, 1])`` (GH103_)

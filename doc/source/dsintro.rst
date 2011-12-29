@@ -482,6 +482,8 @@ similar to an ndarray:
 DataFrame interoperability with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _dsintro.numpy_interop:
+
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
 can be used with no issues on DataFrame, assuming the data within are numeric:
 
@@ -489,6 +491,19 @@ can be used with no issues on DataFrame, assuming the data within are numeric:
 
    np.exp(df)
    np.asarray(df)
+
+The dot method on DataFrame implements matrix multiplication:
+
+.. ipython:: python
+
+   df.T.dot(df)
+
+Similarly, the dot method on Series implements dot product:
+
+.. ipython:: python
+
+   s1 = Series(np.arange(5,10))
+   s1.dot(s1)
 
 DataFrame is not intended to be a drop-in replacement for ndarray as its
 indexing semantics are quite different in places from a matrix.
@@ -595,6 +610,24 @@ Construction of Panels works about like you would expect:
 Note that the values in the dict need only be **convertible to
 DataFrame**. Thus, they can be any of the other valid inputs to DataFrame as
 per above.
+
+One helpful factory method is ``Panel.from_dict``, which takes a
+dictionary of DataFrames as above, and the following named parameters:
+
+.. csv-table::
+   :header: "Parameter", "Default", "Description"
+   :widths: 10, 10, 40
+
+   intersect, ``False``, drops elements whose indices do not align
+   orient, ``items``, use ``minor`` to use DataFrames' columns as panel items
+
+For example, compare to the construction above:
+
+.. ipython:: python
+
+   Panel.from_dict(data, orient='minor')
+
+Orient is especially useful for mixed-type DataFrames.
 
 .. note::
 
