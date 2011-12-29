@@ -18,12 +18,12 @@ New Features
 - :ref:`Added <timeseries.offsets>` ``QuarterEnd`` DateOffset (PR321_)
 - :ref:`Added <dsintro.numpy_interop>` ``dot`` to DataFrame (GH65_)
 - :ref:`Added <basics.panel>` ``orient`` option to ``Panel.from_dict`` (GH359_, GH301_)
-- Add ``DataFrame.from_dict`` with similar ``orient`` option
-- Can now pass list of tuples or list of lists to ``DataFrame.from_records`` for fast conversion to DataFrame (GH357_)
-- Can pass multiple levels to groupby, e.g. ``df.groupby(level=[0, 1])`` (GH103_)
-- Can sort by multiple columns in ``DataFrame.sort_index`` (GH92_, PR362_)
-- Add fast ``get_value`` and ``put_value`` methods to DataFrame and micro-performance tweaks (GH360_)
-- Add ``cov`` instance methods to Series and DataFrame (GH194_, PR362_)
+- :ref:`Added <basics.dataframe.from_dict>` ``orient`` option to ``DataFrame.from_dict``
+- :ref:`Added <basics.dataframe.from_records>` passing list of tuples or list of lists to ``DataFrame.from_records`` (GH357_)
+- :ref:`Added <groupby.multiindex>` multiple levels to groupby (GH103_)
+- :ref:`Allow <basics.sorting>` multiple columns in ``by`` argument of ``DataFrame.sort_index`` (GH92_, PR362_)
+- :ref:`Added <indexing.basics.get_value>` fast ``get_value`` and ``put_value`` methods to DataFrame (GH360_)
+- :ref:`Added <computation.covariance>` ``cov`` instance methods to Series and DataFrame (GH194_, PR362_)
 - Add bar plot option to ``DataFrame.plot`` (PR348_)
 - Add ``idxmin`` and ``idxmax`` functions to Series and DataFrame for computing index labels achieving maximum and minimum values (PR286_)
 - Add ``read_clipboard`` function for parsing DataFrame from OS clipboard, should work across platforms (GH300_)

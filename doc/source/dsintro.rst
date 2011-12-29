@@ -293,9 +293,24 @@ Alternate Constructors
 
 **DataFrame.from_dict**
 
+``DataFrame.from_dict`` takes a dict of dicts or a dict of array-like sequences
+and returns a DataFrame. It operates like the ``DataFrame`` constructor except
+for the ``orient`` parameter which is ``'columns'`` by default, but which can be
+set to ``'index'`` in order to use the dict keys as row labels.
+
 .. _basics.dataframe.from_records:
 
 **DataFrame.from_records**
+
+``DataFrame.from_records`` takes a list of tuples or an ndarray with structured
+dtype. Works analogously to the normal ``DataFrame`` constructor, except that
+index maybe be a specific field of the structured dtype to use as the index.
+For example:
+
+.. ipython:: python
+
+   data
+   DataFrame.from_records(data, index='C')
 
 .. _basics.dataframe.from_items:
 

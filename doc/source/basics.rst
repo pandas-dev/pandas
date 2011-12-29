@@ -693,6 +693,13 @@ determine the sort order:
 
    df.sort_index(by='two')
 
+As of v0.6, the ``by`` argument can take a list of column names, e.g.:
+
+.. ipython:: python
+
+   df = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df[['one', 'two', 'three']].sort_index(by=['one','two'])
+
 Series has the method ``order`` (analogous to `R's order function
 <http://stat.ethz.ch/R-manual/R-patched/library/base/html/order.html>`__) which
 sorts by value, with special treatment of NA values via the ``na_last``

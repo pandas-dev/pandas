@@ -19,6 +19,28 @@ Computational tools
 Statistical functions
 ---------------------
 
+.. _computation.covariance:
+
+Covariance
+~~~~~~~~~~
+
+The ``Series`` object has a method ``cov`` to compute covariance between series
+(excluding NA/null values).
+
+.. ipython:: python
+
+   s1 = Series(randn(1000))
+   s2 = Series(randn(1000))
+   s1.cov(s2)
+
+Analogously, ``DataFrame`` has a method ``cov`` to compute pairwise covariances
+among the series in the DataFrame, also excluding NA/null values.
+
+.. ipython:: python
+
+   frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+   frame.cov()
+
 .. _computation.correlation:
 
 Correlation
@@ -37,7 +59,7 @@ correlation methods are provided:
 
 .. \rho = \cov(x, y) / \sigma_x \sigma_y
 
-All of these are currently computed using pariwise complete observations.
+All of these are currently computed using pairwise complete observations.
 
 .. ipython:: python
 

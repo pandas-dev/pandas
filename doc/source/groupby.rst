@@ -184,9 +184,24 @@ parameter directly:
 
    s.sum(level='second')
 
-More on the ``sum`` function and aggregation later. Grouping with multiple
-levels (as opposed to a single level) is not yet supported, though implementing
-it is not difficult.
+Also as of v0.6, grouping with multiple levels is supported.
+
+.. ipython:: python
+   :suppress:
+
+   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+             ['doo', 'doo', 'bee', 'bee', 'bop', 'bop', 'bop', 'bop'],
+             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+   tuples = zip(*arrays)
+   index = MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
+   s = Series(randn(8), index=index)
+
+.. ipython:: python
+
+   s
+   s.groupby(level=['first','second']).sum()
+
+More on the ``sum`` function and aggregation later.
 
 DataFrame column selection in GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
