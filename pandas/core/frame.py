@@ -480,25 +480,20 @@ class DataFrame(NDFrame):
     @classmethod
     def from_dict(cls, data, orient='columns', dtype=None):
         """
-        Construct Panel from dict of DataFrame objects
+        Construct DataFrame from dict of array-like or dicts
 
         Parameters
         ----------
         data : dict
-            {field : DataFrame}
-        intersect : boolean
-            Intersect indexes of input DataFrames
-        orient : {'columns', 'index'}, default 'items'
+            {field : array-like} or {field : dict}
+        orient : {'columns', 'index'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict
-            should be the items of the result panel, pass 'items'
-            (default). Otherwise if the columns of the values of the passed
-            DataFrame objects should be the items (which in the case of
-            mixed-dtype data you should do), instead pass 'minor'
-
+            should be the columns of the resulting DataFrame, pass 'columns'
+            (default). Otherwise if the keys should be rows, pass 'index'.
 
         Returns
         -------
-        Panel
+        DataFrame
         """
         from collections import defaultdict
 
