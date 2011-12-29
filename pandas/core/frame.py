@@ -1620,15 +1620,13 @@ class DataFrame(NDFrame):
         """
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
-        to 'level_0', 'level_1', etc. if any are None
-
-        Notes
-        -----
-        Experimental, subject to API change
+        to 'level_0', 'level_1', etc. if any are None. For a standard index,
+        the index name will be used (if set), otherwise a default 'index' or
+        'level_0' (if 'index' is already taken) will be used.
 
         Returns
         -------
-        deleveled : DataFrame
+        resetted : DataFrame
         """
         new_obj = self.copy()
         if isinstance(self.index, MultiIndex):
