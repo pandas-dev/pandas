@@ -319,6 +319,23 @@ number of unique values and most frequently occurring values:
    s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
 
+Index of Min/Max Values
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``idxmin`` and ``idxmax`` functions on Series and DataFrame compute the
+index labels with the minimum and maximum corresponding values:
+
+.. ipython:: python
+
+   s1 = Series(randn(5))
+   s1
+   s1.idxmin(), s1.idxmax()
+
+   df1 = DataFrame(randn(5,3), columns=['A','B','C'])
+   df1
+   df1.idxmin(axis=0)
+   df1.idxmax(axis=1)
+
 .. _basics.apply:
 
 Function application

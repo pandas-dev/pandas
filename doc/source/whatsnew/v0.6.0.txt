@@ -24,7 +24,7 @@ New Features
 - :ref:`Allow <basics.sorting>` multiple columns in ``by`` argument of ``DataFrame.sort_index`` (GH92_, PR362_)
 - :ref:`Added <indexing.basics.get_value>` fast ``get_value`` and ``put_value`` methods to DataFrame (GH360_)
 - :ref:`Added <computation.covariance>` ``cov`` instance methods to Series and DataFrame (GH194_, PR362_)
-- Add bar plot option to ``DataFrame.plot`` (PR348_)
+- :ref:`Added <visualization.barplot>` ``kind='bar'`` option to ``DataFrame.plot`` (PR348_)
 - Add ``idxmin`` and ``idxmax`` functions to Series and DataFrame for computing index labels achieving maximum and minimum values (PR286_)
 - Add ``read_clipboard`` function for parsing DataFrame from OS clipboard, should work across platforms (GH300_)
 - Add ``nunique`` function to Series for counting unique elements (GH297_)
