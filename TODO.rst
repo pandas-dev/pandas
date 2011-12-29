@@ -1,10 +1,7 @@
-LongPanel removal
-=================
-
-- DONE level to flex methods
-- DONE level to reindex
-- ?? fast take for items
-
+Join methods todo
+-----------------
+- Joint factorizer
+- NA group handling
 
 DONE
 ----

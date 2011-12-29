@@ -1081,7 +1081,10 @@ def _union_items_slow(all_items):
     return seen
 
 def join_managers(left, right, axis=1, how='left', copy=True):
-    op = _JoinOperation(left, right, axis=axis, how=how)
+    join_index, left_indexer, right_indexer = \
+        left.axes[axis].join(right.axes[axis], how=how, return_indexers=True)
+    op = _JoinOperation(left, right, join_index, left_indexer,
+                        right_indexer, axis=axis)
     return op.get_result(copy=copy)
 
 class _JoinOperation(object):
@@ -1089,7 +1092,10 @@ class _JoinOperation(object):
     Object responsible for orchestrating efficient join operation between two
     BlockManager data structures
     """
-    def __init__(self, left, right, axis=1, how='left'):
+    def __init__(self, left, right, join_index, left_indexer, right_indexer,
+                 axis=1):
+        assert(axis > 0)
+
         if not left.is_consolidated():
             left = left.consolidate()
         if not right.is_consolidated():
@@ -1098,14 +1104,10 @@ class _JoinOperation(object):
         self.left = left
         self.right = right
         self.axis = axis
-        self.how = how
 
-        laxis = left.axes[axis]
-        raxis = right.axes[axis]
-
-        (self.join_index,
-         self.lindexer,
-         self.rindexer) = laxis.join(raxis, how=how, return_indexers=True)
+        self.join_index = join_index
+        self.lindexer = left_indexer
+        self.rindexer = right_indexer
 
         # do NOT sort
         self.result_items = left.items.append(right.items)
@@ -1284,17 +1286,3 @@ class _JoinOperation(object):
 
         # use any ref_items
         return _consolidate(new_blocks, newb.ref_items)
-
-def _make_block_indexers(blocks, indexer, block_ids, block_locs, block_dtypes,
-                         ref_items):
-    counts = defaultdict(int)
-    for dtype_name in block_dtypes.take(indexer):
-        counts[dtype_name] += 1
-
-    findexer = np.empty(counts['float64'], dtype='i4')
-    bindexer = np.empty(counts['bool'], dtype='i4')
-    oindexer = np.empty(counts['object'], dtype='i4')
-    iindexer = np.empty(counts['int64'], dtype='i4')
-
-    for idx in indexer:
-        pass

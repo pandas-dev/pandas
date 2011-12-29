@@ -1790,7 +1790,8 @@ class MultiIndex(Index):
             new_levels.append(level)
             new_labels.append(np.insert(labels, loc, lev_loc))
 
-        return MultiIndex(levels=new_levels, labels=new_labels, names=self.names)
+        return MultiIndex(levels=new_levels, labels=new_labels,
+                          names=self.names)
 
     def delete(self, loc):
         """
