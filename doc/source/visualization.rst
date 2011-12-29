@@ -87,6 +87,8 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
 Other plotting features
 -----------------------
 
+.. _visualization.barplot:
+
 Plotting non-time series data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
