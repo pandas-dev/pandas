@@ -15,10 +15,39 @@
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
+   clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']}, 
+                      index=['x','y','z'])
 
 *******************************
 IO Tools (Text, CSV, HDF5, ...)
 *******************************
+
+Clipboard
+---------
+
+.. _io.clipboard:
+
+As of version 0.6, a handy way to grab data is to use the ``read_clipboard``
+method, which takes the contents of the clipboard buffer and passes them to the
+``read_table`` method described in the next section. For instance, you can copy
+the following text to the clipboard (CTRL-C on many operating systems):
+
+.. code-block:: python
+
+     A B C
+   x 1 4 p
+   y 2 5 q
+   z 3 6 r
+
+And then import the data directly to a DataFrame by calling:
+
+.. code-block:: python
+
+   clipdf = read_clipboard(sep='\s*')
+
+.. ipython:: python
+
+   clipdf
 
 CSV & Text files
 ----------------
@@ -33,7 +62,9 @@ data into a DataFrame object. They can take a number of arguments:
   - ``path_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
   - ``sep``: A delimiter / separator to split fields on. `read_csv` is capable
-    of inferring the delimiter automatically in some cases by "sniffing"
+    of inferring the delimiter automatically in some cases by "sniffing." The
+    separator may be specified as a regular expression; for instance you may
+    use '\s*' to indicate arbitrary whitespace.
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
   - ``names``: List of column names to use. If passed, header will be
@@ -236,6 +267,42 @@ function takes a number of arguments. Only the first is required.
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
   - ``sep`` : Field delimiter for the output file (default "'")
+
+Writing a formatted string
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _io.formatting:
+
+The DataFrame object has an instance method ``to_string`` which allows control
+over the string representation of the object. All arguments are optional:
+
+  - ``buf`` default None, for example a StringIO object
+  - ``columns`` default None, which columns to write
+  - ``colSpace`` default None, number of spaces to write between columns
+  - ``na_rep`` default ``NaN``, representation of NA value
+  - ``formatters`` default None, a dictionary (by column) of functions each of
+    which takes a single argument and returns a formatted string
+  - ``float_format`` default None, a function which takes a single (float)
+    argument and returns a formatted string; to be applied to floats in the
+    DataFrame.
+  - ``sparsify`` default True, set to False for a DataFrame with a hierarchical
+    index to print every multiindex key at each row.
+  - ``index_names`` default True, will print the names of the indices
+
+The Series object also has a ``to_string`` method, but with only the ``buf``,
+``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
+which, if set to ``True``, will additionally output the length of the Series.
+
+
+Writing to HTML format
+~~~~~~~~~~~~~~~~~~~~~
+
+.. _io.html:
+
+DataFrame object has an instance method ``to_html`` which renders the contents
+of the DataFrame as an html table. The function arguments are as in the method
+``to_string`` described above.
+
 
 Excel 2003 files
 ----------------

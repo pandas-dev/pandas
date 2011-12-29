@@ -292,6 +292,17 @@ will exclude NAs on Series input by default:
    np.mean(df['one'])
    np.mean(df['one'].values)
 
+``Series`` also has a method ``nunique`` which will return the number of unique
+non-null values:
+
+.. ipython:: python
+
+   series = Series(randn(500))
+   series[20:500] = np.nan
+   series[10:20]  = 5
+   series.nunique()
+
+
 Summarizing data: describe
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -318,6 +329,8 @@ number of unique values and most frequently occurring values:
 
    s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
+
+.. _basics.idxmin:
 
 Index of Min/Max Values
 ~~~~~~~~~~~~~~~~~~~~~~~

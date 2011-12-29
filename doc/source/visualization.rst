@@ -119,3 +119,23 @@ subplots:
 
    @savefig frame_hist_ex.png width=4.5in
    df.diff().hist(color='k', alpha=0.5, bins=50)
+
+.. _visualization.box:
+
+Box-Plotting
+~~~~~~~~~~~~
+
+As of version 0.6.0, DataFrame has a ``boxplot`` method which allows you to
+visualize the distribution of values within each column.
+
+For instance, here is a boxplot representing five trials of 10 observations of
+a uniform random variable on [0,1).
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(10,5))
+   plt.figure();
+
+   @savefig box_blot_ex.png width=4.5in
+   df.boxplot()
+
