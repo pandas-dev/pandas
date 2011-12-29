@@ -110,6 +110,11 @@ pandas 0.6.2
   - Handle all NA case in Series.corr, was raising exception (GH #548)
   - Aggregating by multiple levels with ``level`` argument to DataFrame, Series
     stat method, was broken (GH #545)
+  - Fix Cython buf when converter passed to read_csv produced a numeric array
+    (buffer dtype mismatch when passed to Cython type inference function) (GH
+    #546)
+  - Fix exception when setting scalar value using .ix on a DataFrame with a
+    MultiIndex (GH #551)
 
 Thanks
 ------

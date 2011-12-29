@@ -211,6 +211,12 @@ class _NDFrameIndexer(object):
         - No, prefer label-based indexing
         """
         index = self.obj._get_axis(axis)
+
+        try:
+            return index.get_loc(obj)
+        except (KeyError, TypeError):
+            pass
+
         is_int_index = _is_integer_index(index)
         if isinstance(obj, slice):
             if _is_label_slice(index, obj):

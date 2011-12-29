@@ -290,6 +290,16 @@ class TestMultiLevel(unittest.TestCase):
         reindexed = dft.reindex(columns=[('foo', 'two')])
         assert_series_equal(reindexed['foo', 'two'], s > s.median())
 
+    def test_frame_setitem_ix(self):
+        self.frame.ix[('bar', 'two'), 'B'] = 5
+        self.assertEquals(self.frame.ix[('bar', 'two'), 'B'], 5)
+
+        # with integer labels
+        df = self.frame.copy()
+        df.columns = range(3)
+        df.ix[('bar', 'two'), 1] = 7
+        self.assertEquals(df.ix[('bar', 'two'), 1], 7)
+
     def test_fancy_slice_partial(self):
         result = self.frame.ix['bar':'baz']
         expected = self.frame[3:7]
