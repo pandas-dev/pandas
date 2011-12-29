@@ -67,7 +67,7 @@ def _maybe_match_name(a, b):
     return name
 
 def _flex_method(op, name):
-    def f(self, other, fill_value=None):
+    def f(self, other, level=None, fill_value=None):
         return self._binop(other, op, fill_value=fill_value)
 
     f.__doc__ = """
@@ -80,6 +80,9 @@ def _flex_method(op, name):
     fill_value : None or float value, default None (NaN)
         Fill missing (NaN) values with this value. If both Series are
         missing, the result will be missing
+    level : int or name
+        Broadcast across a level, matching Index values on the
+        passed MultiIndex level
 
     Returns
     -------
@@ -1071,7 +1074,7 @@ copy : boolean, default False
         name = _maybe_match_name(self, other)
         return self._constructor(new_values, index=new_index, name=name)
 
-    def _binop(self, other, func, fill_value=None):
+    def _binop(self, other, func, level=None, fill_value=None):
         """
         Perform generic binary operation with optional fill value
 
@@ -1082,6 +1085,9 @@ copy : boolean, default False
         fill_value : float or object
             Value to substitute for NA/null values. If both Series are NA in a
             location, the result will be NA regardless of the passed fill value
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
 
         Returns
         -------
@@ -1469,7 +1475,7 @@ copy : boolean, default False
             mapped = lib.map_infer(self.values, func)
             return Series(mapped, index=self.index, name=self.name)
 
-    def align(self, other, join='outer', copy=True):
+    def align(self, other, join='outer', level=None, copy=True):
         """
         Align two Series object with the specified join method
 
@@ -1477,6 +1483,12 @@ copy : boolean, default False
         ----------
         other : Series
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+        copy : boolean, default True
+            Always return new objects. If copy=False and no reindexing is
+            required, the same object will be returned (for better performance)
 
         Returns
         -------

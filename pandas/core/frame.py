@@ -55,6 +55,9 @@ axis : {0, 1, 'index', 'columns'}
 fill_value : None or float value, default None
     Fill missing (NaN) values with this value. If both DataFrame locations are
     missing, the result will be missing
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
 
 Notes
 -----
@@ -1346,6 +1349,9 @@ class DataFrame(NDFrame):
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
         axis : {0, 1, None}, default None
             Align on index (0), columns (1), or both (None)
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
 
         Returns
         -------
@@ -1401,6 +1407,7 @@ class DataFrame(NDFrame):
         return left, right
 
     def _align_level(self, multi_index, level, axis=0, copy=True):
+        assert(isinstance(multi_index, MultiIndex))
         levnum = multi_index._get_level_number(level)
         data = self.reindex_axis(multi_index.levels[levnum], axis=axis,
                                  copy=False)._data
@@ -1461,6 +1468,9 @@ class DataFrame(NDFrame):
             backfill / bfill: use NEXT valid observation to fill gap
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
 
         Examples
         --------
@@ -1501,6 +1511,9 @@ class DataFrame(NDFrame):
             backfill / bfill: use NEXT valid observation to fill gap
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
 
         Examples
         --------

@@ -84,3 +84,24 @@ reindex_fillna_pad = Benchmark("ts3.fillna(method='pad')", setup,
 
 reindex_fillna_backfill = Benchmark("ts3.fillna(method='backfill')", setup,
                                     name="reindex_fillna_backfill")
+
+#----------------------------------------------------------------------
+# align on level
+
+setup = common_setup + """
+index = MultiIndex(levels=[np.arange(100), np.arange(100)],
+                   labels=[np.arange(100).repeat(100),
+                           np.tile(np.arange(100), 100)])
+random.shuffle(index.values)
+df = DataFrame(np.random.randn(len(index), 4), index=index)
+df_level = DataFrame(np.random.randn(100, 4), index=index.levels[0])
+"""
+
+reindex_frame_level_align = \
+    Benchmark("df.align(df_level, level=0, copy=False)", setup,
+              start_date=datetime(2011, 12, 27))
+
+reindex_frame_level_reindex = \
+    Benchmark("df_level.reindex(df.index, level=0)", setup,
+              start_date=datetime(2011, 12, 27))
+

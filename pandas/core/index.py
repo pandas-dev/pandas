@@ -586,6 +586,14 @@ class Index(np.ndarray):
             return this.join(other, how=how,
                              return_indexers=return_indexers)
 
+        _validate_join_method(how)
+
+        if self.equals(other):
+            if return_indexers:
+                return self, None, None
+            else:
+                return self
+
         if self.is_monotonic and other.is_monotonic:
             return self._join_monotonic(other, how=how,
                                         return_indexers=return_indexers)
@@ -598,8 +606,6 @@ class Index(np.ndarray):
             join_index = self.intersection(other)
         elif how == 'outer':
             join_index = self.union(other)
-        else:
-            raise Exception('do not recognize join method %s' % how)
 
         if return_indexers:
             if join_index is self:
@@ -621,7 +627,6 @@ class Index(np.ndarray):
         labels of the level in the MultiIndex. The order of the data indexed by
         the MultiIndex will not be changed (currently)
         """
-
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise Exception('Join on level between two MultiIndex objects '
                             'is ambiguous')
@@ -692,8 +697,6 @@ class Index(np.ndarray):
             join_index, lidx, ridx = self._outer_indexer(self.values,
                                                          other.values)
             join_index = self._wrap_joined_index(join_index, other)
-        else:  # pragma: no cover
-            raise Exception('do not recognize join method %s' % how)
 
         if return_indexers:
             return join_index, lidx, ridx
@@ -1836,3 +1839,8 @@ def _ensure_index(index_like):
     if isinstance(index_like, Index):
         return index_like
     return Index(index_like)
+
+
+def _validate_join_method(method):
+    if method not in ['left', 'right', 'inner', 'outer']:
+        raise Exception('do not recognize join method %s' % how)
