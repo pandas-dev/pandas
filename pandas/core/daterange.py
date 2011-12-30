@@ -292,17 +292,16 @@ class DateRange(Index):
             return Index.union(self, other)
 
     def _wrap_union_result(self, other, result):
+        # If we are here, _can_fast_union is false or other is not a
+        # DateRange, so their union has to be an Index.
         name = self.name if self.name == other.name else None
-        if isinstance(other, DateRange) and self._can_fast_union(other):
-            result = self._view_like(result)
-            result.name = name
-            return result
-        else:
-            return Index(result, name=name)
+        return Index(result, name=name)
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
-        if isinstance(other, DateRange) and self._can_fast_union(other):
+        if (isinstance(other, DateRange)
+            and self.offset == other.offset
+            and self._can_fast_union(other)):
             joined = self._view_like(joined)
             joined.name = name
             return joined

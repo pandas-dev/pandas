@@ -1553,6 +1553,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         com.set_printoptions(precision=3, column_space=10)
         repr(self.frame)
 
+        com.set_printoptions(max_rows=10, max_columns=2)
+        repr(self.frame)
+
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[('err', object)])
         for i in range(len(arr)):
