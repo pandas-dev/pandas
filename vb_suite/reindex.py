@@ -100,9 +100,11 @@ df_level = DataFrame(np.random.randn(100, 4), index=index.levels[1])
 
 reindex_frame_level_align = \
     Benchmark("df.align(df_level, level=1, copy=False)", setup,
+              name='reindex_frame_level_align',
               start_date=datetime(2011, 12, 27))
 
 reindex_frame_level_reindex = \
     Benchmark("df_level.reindex(df.index, level=1)", setup,
+              name='reindex_frame_level_reindex',
               start_date=datetime(2011, 12, 27))
 

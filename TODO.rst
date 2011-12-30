@@ -1,8 +1,3 @@
-Join methods todo
------------------
-- Joint factorizer
-- NA group handling
-
 DONE
 ----
 - SparseSeries name integration + tests

@@ -58,7 +58,13 @@ def left_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
             right_pos += rc
             position += lc * rc
 
-    return left_sorter, left_indexer, right_sorter, right_indexer
+    res_left = left_sorter.take(left_indexer)
+    np.putmask(res_left, left_indexer == -1, -1)
+
+    res_right = right_sorter.take(right_indexer)
+    np.putmask(res_right, right_indexer == -1, -1)
+
+    return res_left, res_right
 
 
 def full_outer_join(ndarray[int32_t] left, ndarray[int32_t] right):

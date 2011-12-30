@@ -11,7 +11,7 @@ from pandas.core.internals import _JoinOperation
 import pandas._tseries as lib
 from pandas._sandbox import Factorizer
 
-def merge(left, right, how='inner', cols=None, left_cols=None, right_cols=None,
+def merge(left, right, how='left', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
           suffixes=('.x', '.y'), copy=True):
     """
@@ -25,17 +25,25 @@ def merge(left, right, how='inner', cols=None, left_cols=None, right_cols=None,
     how : {'left', 'right', 'outer', 'inner'}
         How to handle indexes of the two objects. Default: 'left'
         for joining on index, None otherwise
-        * left: use only keys from left frame
-        * right: use only keys from right frame
-        * outer: use union of keys from both frames
-        * inner: use intersection of keys from both frames
-    cols
-    left_cols
-    right_cols
-    left_index
-    right_index
-    sort
-    suffixes
+        * left: use only keys from left frame (SQL: left outer join)
+        * right: use only keys from right frame (SQL: right outer join)
+        * outer: use union of keys from both frames (SQL: full outer join)
+        * inner: use intersection of keys from both frames (SQL: inner join)
+    on : label or list
+
+    left_on : label or list
+
+    right_on : label or list
+
+    left_index : boolean, default True
+
+    right_index : boolean, default True
+
+    sort : boolean, default True
+
+    suffixes : 2-length sequence (tuple, list, ...)
+        Suffix to apply to overlapping column names in the left and right
+        side, respectively
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
@@ -46,48 +54,153 @@ def merge(left, right, how='inner', cols=None, left_cols=None, right_cols=None,
     -------
     merged : DataFrame
     """
-    left_join_keys, right_join_keys = _get_merge_keys(left, right, cols,
-                                                      left_cols, right_cols,
-                                                      left_index, right_index)
+    op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
+                         right_on=right_on, left_index=left_index,
+                         right_index=right_index, sort=sort, suffixes=suffixes,
+                         copy=copy)
+    return op.get_result()
 
-    # max groups = largest possible number of distinct groups
-    left_key, right_key, max_groups = _get_group_keys(left_join_keys,
-                                                      right_join_keys)
 
-    join_func = _join_functions[how]
-    left_indexer, right_indexer = join_func(left_key, right_key, max_groups)
-    new_axis = Index(np.arange(len(left_indexer)))
-
-    join_op = _JoinOperation(left, right, new_axis, left_indexer,
-                             right_indexer, axis=1)
-    result_data = join_op.get_result(copy=copy)
-    return DataFrame(result_data)
+# TODO: shortcuts with MultiIndex labels already computed
+# TODO: NA group handling
+# TODO: DONE group column names in result
+# TODO: transformations??
+# TODO: only copy DataFrames when modification necessary
 
 class _MergeOperation(object):
 
-    def __init__(self, left, right, how='inner', cols=None,
-                 left_cols=None, right_cols=None,
+    def __init__(self, left, right, how='inner', on=None,
+                 left_on=None, right_on=None,
                  left_index=False, right_index=False, sort=True,
                  suffixes=('.x', '.y'), copy=True):
-        pass
+        self.left = left
+        self.right = right
+        self.how = how
 
-def _get_merge_keys(left, right, cols, left_cols, right_cols,
-                    left_index=False, right_index=False):
-    """
+        self.on = _maybe_make_list(on)
+        self.left_on = _maybe_make_list(left_on)
+        self.right_on = _maybe_make_list(right_on)
 
-    Parameters
-    ----------
+        self.copy = copy
 
-    Returns
-    -------
+        self.suffixes = suffixes
 
-    """
-    if on is None:
-        pass
-    else:
-        pass
+        self.sort = sort
 
-def _get_group_keys(left_keys, right_keys):
+        self.left_index = left_index
+        self.right_index = right_index
+
+    def get_result(self):
+        # note this function has side effects
+        left_join_keys, right_join_keys, join_names = self._get_merge_keys()
+
+        # this is a bit kludgy
+        ldata, rdata = self._get_merge_data(join_names)
+
+        # max groups = largest possible number of distinct groups
+        left_key, right_key, max_groups = \
+            _get_group_keys(left_join_keys, right_join_keys, sort=self.sort)
+
+        join_func = _join_functions[self.how]
+        left_indexer, right_indexer = join_func(left_key.astype('i4'),
+                                                right_key.astype('i4'),
+                                                max_groups)
+
+        new_axis = Index(np.arange(len(left_indexer)))
+
+        join_op = _JoinOperation(ldata, rdata, new_axis,
+                                 left_indexer, right_indexer, axis=1)
+
+        result_data = join_op.get_result(copy=self.copy)
+        return DataFrame(result_data)
+
+    def _get_merge_data(self, join_names):
+        """
+        Handles overlapping column names etc.
+        """
+        ldata, rdata = self.left._data, self.right._data
+        lsuf, rsuf = self.suffixes
+
+        # basically by construction the column names are stored in
+        # left_on...for now
+        ldata, rdata = ldata._maybe_rename_join(rdata, lsuf, rsuf,
+                                                exclude=join_names,
+                                                copydata=False)
+
+        return ldata, rdata
+
+    def _get_merge_keys(self):
+        """
+        Note: has side effects (copy/delete key columns)
+
+        Parameters
+        ----------
+        left
+        right
+        on
+
+        Returns
+        -------
+        left_keys, right_keys
+        """
+        # Hm, any way to make this logic less complicated??
+        left_keys = []
+        right_keys = []
+        join_names = []
+
+        need_set_names = False
+        pop_right = False
+
+        if (self.on is None and self.left_on is None
+            and self.right_on is None):
+
+            if self.left_index and self.right_index:
+                left_keys.append(self.left.index.values)
+                right_keys.append(self.right.index.values)
+
+                need_set_names = True
+                # XXX something better than this
+                join_names.append('join_key')
+            elif self.left_index:
+                left_keys.append(self.left.index.values)
+                if self.right_on is None:
+                    raise Exception('Must pass right_on or right_index=True')
+            elif self.right_index:
+                right_keys.append(self.right.index.values)
+                if self.left_on is None:
+                    raise Exception('Must pass left_on or left_index=True')
+            else:
+                # use the common columns
+                common_cols = self.left.columns.intersection(self.right.columns)
+                self.left_on = self.right_on = common_cols
+                pop_right = True
+        elif self.on is not None:
+            if self.left_on is not None or self.right_on is not None:
+                raise Exception('Can only pass on OR left_on and '
+                                'right_on')
+            self.left_on = self.right_on = self.on
+            pop_right = True
+
+        if self.right_on is not None:
+            # this is a touch kludgy, but accomplishes the goal
+            if pop_right:
+                right = self.right.copy()
+                right_keys.extend([right.pop(k) for k in self.right_on])
+                self.right = right
+            else:
+                right_keys.extend([right[k] for k in self.right_on])
+
+        if need_set_names:
+            self.left = self.left.copy()
+            for i, (lkey, name) in enumerate(zip(left_keys, join_names)):
+                self.left.insert(i, name, lkey)
+
+        if self.left_on is not None:
+            left_keys.extend([self.left[k] for k in self.left_on])
+
+        return left_keys, right_keys, join_names
+
+def _get_group_keys(left_keys, right_keys, sort=True):
     """
 
     Parameters
@@ -111,9 +224,21 @@ def _get_group_keys(left_keys, right_keys):
         llab, _ = rizer.factorize(lk.astype('O'))
         rlab, _ = rizer.factorize(rk.astype('O'))
 
+        count = rizer.get_count()
+
+        if sort:
+            sorter = Index(rizer.uniques).argsort()
+            reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+            reverse_indexer.put(sorter, np.arange(len(sorter)))
+
+            llab = reverse_indexer.take(llab)
+            rlab = reverse_indexer.take(rlab)
+
+            # TODO: na handling
+
         left_labels.append(llab)
         right_labels.append(rlab)
-        group_sizes.append(rizer.get_count())
+        group_sizes.append(count)
 
     left_group_key = get_group_index(left_labels, group_sizes)
     right_group_key = get_group_index(right_labels, group_sizes)
@@ -122,6 +247,11 @@ def _get_group_keys(left_keys, right_keys):
     return left_group_key, right_group_key, max_groups
 
 import pandas._sandbox as sbx
+
+def _maybe_make_list(obj):
+    if obj is not None and not isinstance(obj, (tuple, list)):
+        return [obj]
+    return obj
 
 def _right_outer_join(x, y):
     right_indexer, left_indexer = sbx.left_outer_join(y, x)

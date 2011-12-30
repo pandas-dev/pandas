@@ -789,20 +789,23 @@ class BlockManager(object):
 
         return BlockManager(consolidated, new_axes)
 
-    def _maybe_rename_join(self, other, lsuffix, rsuffix, copydata=True):
-        intersection = self.items.intersection(other.items)
+    def _maybe_rename_join(self, other, lsuffix, rsuffix, exclude=None,
+                           copydata=True):
+        to_rename = self.items.intersection(other.items)
+        if exclude is not None:
+            to_rename = to_rename - exclude
 
-        if len(intersection) > 0:
+        if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
-                raise Exception('columns overlap: %s' % intersection)
+                raise Exception('columns overlap: %s' % to_rename)
 
             def lrenamer(x):
-                if x in intersection:
+                if x in to_rename:
                     return '%s%s' % (x, lsuffix)
                 return x
 
             def rrenamer(x):
-                if x in intersection:
+                if x in to_rename:
                     return '%s%s' % (x, rsuffix)
                 return x
 

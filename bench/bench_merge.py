@@ -2,7 +2,7 @@ from pandas import *
 import random
 
 N = 10000
-ngroups = 3
+ngroups = 10
 
 def get_test_data(ngroups=100, n=N):
     unique_groups = range(ngroups)
@@ -21,16 +21,12 @@ df = DataFrame({'key1' : get_test_data(ngroups=ngroups),
                 'data1' : np.random.randn(N),
                 'data2' : np.random.randn(N)})
 
-df2 = DataFrame({'key1'  : [0, 1, 2, 0, 1, 2],
-                 'key2'  : [0, 1, 2, 0, 1, 2],
-                 'value' : list('abcdef')})
+df2 = DataFrame({'key1'  : get_test_data(ngroups=ngroups, n=N//10),
+                 'key2'  : get_test_data(ngroups=ngroups//2, n=N//10),
+                 'value' : np.random.randn(N // 10)})
 
 
 import pandas.tools.merge as merge
 reload(merge)
 
-left, right = merge._get_group_keys([df['key1'], df['key2']],
-                                        [df2['key1'], df2['key2']])
-
-left, right = merge._get_group_keys([df['key1']], [df2['key1']])
-
+result = merge.merge(df, df2, on='key2')

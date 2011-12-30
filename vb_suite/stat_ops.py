@@ -19,17 +19,21 @@ df_level = DataFrame(np.random.randn(100, 4), index=index.levels[1])
 
 stat_ops_level_frame_sum = \
     Benchmark("df.sum(level=1)", setup,
+              name='stat_ops_level_frame_sum',
               start_date=datetime(2011, 11, 15))
 
 stat_ops_level_frame_sum_multiple = \
     Benchmark("df.sum(level=[0, 1])", setup, repeat=1,
+              name='stat_ops_level_frame_sum_multiple',
               start_date=datetime(2011, 11, 15))
 
 stat_ops_level_series_sum = \
     Benchmark("df[1].sum(level=1)", setup,
+              name='stat_ops_level_series_sum',
               start_date=datetime(2011, 11, 15))
 
 stat_ops_level_series_sum_multiple = \
     Benchmark("df[1].sum(level=[0, 1])", setup, repeat=1,
+              name='stat_ops_level_series_sum_multiple',
               start_date=datetime(2011, 11, 15))
 

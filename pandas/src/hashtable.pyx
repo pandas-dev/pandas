@@ -464,7 +464,7 @@ cdef class PyObjectHashTable:
         labels, counts = self.get_labels(values, reverse, 0)
         return reverse, labels, counts
 
-    cpdef get_labels(self, ndarray[object] values, dict reverse,
+    cpdef get_labels(self, ndarray[object] values, list uniques,
                      Py_ssize_t count_prior):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -488,7 +488,7 @@ cdef class PyObjectHashTable:
             else:
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
                 self.table.vals[k] = count
-                reverse[count] = val
+                uniques.append(val)
                 labels[i] = count
                 counts[count] = 1
                 count += 1
@@ -499,19 +499,19 @@ cdef class Factorizer:
 
     cdef public:
         PyObjectHashTable table
-        dict id_table
+        list uniques
         Py_ssize_t count
 
     def __init__(self, size_hint):
         self.table = PyObjectHashTable(size_hint)
-        self.id_table = {}
+        self.uniques = []
         self.count = 0
 
     def get_count(self):
         return self.count
 
     def factorize(self, ndarray[object] values):
-        labels, counts = self.table.get_labels(values, self.id_table,
+        labels, counts = self.table.get_labels(values, self.uniques,
                                                self.count)
         self.count = len(counts)
         return labels, counts
