@@ -135,7 +135,7 @@ def test_groupsort_indexer():
     a = np.random.randint(0, 1000, 100).astype('i4')
     b = np.random.randint(0, 1000, 100).astype('i4')
 
-    result = lib.groupsort_indexer(a, 1000)
+    result = lib.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
     expected = np.argsort(a, kind='mergesort')
@@ -143,7 +143,7 @@ def test_groupsort_indexer():
 
     # compare with lexsort
     key = a * 1000 + b
-    result = lib.groupsort_indexer(key, 1000000)
+    result = lib.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
     assert(np.array_equal(result, expected))
 

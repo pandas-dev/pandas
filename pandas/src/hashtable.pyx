@@ -510,9 +510,19 @@ cdef class Factorizer:
     def get_count(self):
         return self.count
 
-    def factorize(self, ndarray[object] values):
+    def factorize(self, ndarray[object] values, sort=False):
         labels, counts = self.table.get_labels(values, self.uniques,
                                                self.count)
+
+        # sort on
+        if sort:
+            sorter = list_to_object_array(self.uniques).argsort()
+            reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+            reverse_indexer.put(sorter, np.arange(len(sorter)))
+
+            labels = reverse_indexer.take(labels)
+            counts = counts.take(sorter)
+
         self.count = len(counts)
         return labels, counts
 

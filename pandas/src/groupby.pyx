@@ -261,6 +261,7 @@ def get_unique_labels(ndarray[object] values, dict idMap):
 
     return fillVec
 
+@cython.boundscheck(False)
 @cython.wraparound(False)
 def groupsort_indexer(ndarray[int32_t] index, Py_ssize_t ngroups):
     cdef:
@@ -285,8 +286,7 @@ def groupsort_indexer(ndarray[int32_t] index, Py_ssize_t ngroups):
         result[where[label]] = i
         where[label] += 1
 
-    return result
-
+    return result, counts
 
 
 # TODO: aggregate multiple columns in single pass

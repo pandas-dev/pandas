@@ -1309,7 +1309,7 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
         na_mask |= arr == -1
     group_index[na_mask] = -1
     indexer = lib.groupsort_indexer(group_index.astype('i4'),
-                                    np.prod(shape))
+                                    np.prod(shape))[0]
     group_index = group_index.take(indexer)
 
     if isinstance(data, BlockManager):
@@ -1363,7 +1363,7 @@ def _aggregate_series_fast(obj, func, group_index, ngroups):
 
     # avoids object / Series creation overhead
     dummy = obj[:0]
-    indexer = lib.groupsort_indexer(group_index, ngroups)
+    indexer = lib.groupsort_indexer(group_index, ngroups)[0]
     obj = obj.take(indexer)
     group_index = group_index.take(indexer)
     grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,

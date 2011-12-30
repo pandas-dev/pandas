@@ -294,7 +294,8 @@ else:
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'generated', 'parsing', 'reduce', 'stats',
-                   'inference', 'properties', 'internals']
+                   'inference', 'properties', 'internals',
+                   'hashtable', 'join']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 

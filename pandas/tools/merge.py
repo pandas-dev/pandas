@@ -10,7 +10,6 @@ from pandas.core.internals import _JoinOperation
 import pandas.core.common as com
 
 import pandas._tseries as lib
-from pandas._sandbox import Factorizer
 
 def merge(left, right, how='left', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
@@ -31,25 +30,22 @@ def merge(left, right, how='left', on=None, left_on=None, right_on=None,
         * outer: use union of keys from both frames (SQL: full outer join)
         * inner: use intersection of keys from both frames (SQL: inner join)
     on : label or list
-
+        Field names to join on. Must be found in both DataFrames
     left_on : label or list
-
+        Field names to join on in left DataFrame
     right_on : label or list
-
+        Field names to join on in right DataFrame
     left_index : boolean, default True
-
+        Use the index from the left DataFrame as the join key
     right_index : boolean, default True
-
+        Use the index from the right DataFrame as the join key
     sort : boolean, default True
-
+        Sort the join keys lexicographically in the result DataFrame
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
         side, respectively
     copy : boolean, default True
         If False, do not copy data unnecessarily
-
-    Examples
-    --------
 
     Returns
     -------
@@ -235,7 +231,7 @@ def _get_group_keys(left_keys, right_keys, sort=True):
     group_sizes = []
 
     for lk, rk in zip(left_keys, right_keys):
-        rizer = Factorizer(max(len(lk), len(rk)))
+        rizer = lib.Factorizer(max(len(lk), len(rk)))
 
         llab, _ = rizer.factorize(lk.astype('O'))
         rlab, _ = rizer.factorize(rk.astype('O'))
@@ -262,20 +258,18 @@ def _get_group_keys(left_keys, right_keys, sort=True):
 
     return left_group_key, right_group_key, max_groups
 
-import pandas._sandbox as sbx
-
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
     return obj
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = sbx.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner' : sbx.inner_join,
-    'left' : sbx.left_outer_join,
+    'inner' : lib.inner_join,
+    'left' : lib.left_outer_join,
     'right' : _right_outer_join,
-    'outer' : sbx.full_outer_join,
+    'outer' : lib.full_outer_join,
 }
