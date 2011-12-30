@@ -432,23 +432,6 @@ class NDFrame(PandasObject):
             result = y.cumprod(axis)
         return self._wrap_array(result, self.axes, copy=False)
 
-    def _values_aggregate(self, func, axis, fill_value, skipna=True):
-        axis = self._get_axis_number(axis)
-
-        values = self.values
-        mask = np.isfinite(values)
-
-        if skipna and fill_value is not None:
-            values = values.copy()
-            values[-mask] = fill_value
-
-        result = func(values, axis=axis)
-        count = mask.sum(axis=axis)
-
-        result[count == 0] = np.NaN
-
-        return result
-
     def copy(self, deep=True):
         """
         Make a copy of this object

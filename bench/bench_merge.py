@@ -1,4 +1,5 @@
 from pandas import *
+from pandas.util.testing import rands
 import random
 
 N = 10000
@@ -30,3 +31,19 @@ import pandas.tools.merge as merge
 reload(merge)
 
 result = merge.merge(df, df2, on='key2')
+
+from pandas.util.testing import rands
+N = 10000
+indices = np.array([rands(10) for _ in xrange(N)], dtype='O')
+
+key = np.tile(indices, 10)
+key2 = key.copy()
+random.shuffle(key2)
+indices2 = indices.copy()
+random.shuffle(indices2)
+
+
+left = DataFrame({'key' : key, 'key2':key2,
+                  'value' : np.random.randn(100000)})
+right = DataFrame({'key': indices, 'key2':indices2,
+                   'value2' : np.random.randn(10000)})

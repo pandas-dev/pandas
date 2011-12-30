@@ -231,22 +231,7 @@ def _get_group_keys(left_keys, right_keys, sort=True):
     group_sizes = []
 
     for lk, rk in zip(left_keys, right_keys):
-        rizer = lib.Factorizer(max(len(lk), len(rk)))
-
-        llab, _ = rizer.factorize(lk.astype('O'))
-        rlab, _ = rizer.factorize(rk.astype('O'))
-
-        count = rizer.get_count()
-
-        if sort:
-            sorter = Index(rizer.uniques).argsort()
-            reverse_indexer = np.empty(len(sorter), dtype=np.int32)
-            reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-            llab = reverse_indexer.take(llab)
-            rlab = reverse_indexer.take(rlab)
-
-            # TODO: na handling
+        llab, rlab, count = _factorize_objects(lk, rk, sort=sort)
 
         left_labels.append(llab)
         right_labels.append(rlab)
@@ -255,6 +240,12 @@ def _get_group_keys(left_keys, right_keys, sort=True):
     left_group_key = get_group_index(left_labels, group_sizes)
     right_group_key = get_group_index(right_labels, group_sizes)
     max_groups = np.prod(group_sizes)
+
+    if max_groups > 1000000:
+        # compress
+        left_group_key, right_group_key, max_groups = \
+            _factorize_int64(left_group_key, right_group_key,
+                             sort=sort)
 
     return left_group_key, right_group_key, max_groups
 
@@ -273,3 +264,40 @@ _join_functions = {
     'right' : _right_outer_join,
     'outer' : lib.full_outer_join,
 }
+
+def _factorize_int64(left_index, right_index, sort=True):
+    rizer = lib.Int64Factorizer(max(len(left_index), len(right_index)))
+
+    llab, _ = rizer.factorize(left_index)
+    rlab, _ = rizer.factorize(right_index)
+
+    if sort:
+        llab, rlab = _sort_labels(np.array(rizer.uniques), llab, rlab)
+
+    return llab, rlab, rizer.get_count()
+
+def _factorize_objects(left_index, right_index, sort=True):
+    rizer = lib.Factorizer(max(len(left_index), len(right_index)))
+
+    llab, _ = rizer.factorize(left_index.astype('O'))
+    rlab, _ = rizer.factorize(right_index.astype('O'))
+
+    count = rizer.get_count()
+
+    if sort:
+        llab, rlab = _sort_labels(rizer.uniques, llab, rlab)
+
+        # TODO: na handling
+
+    return llab, rlab, count
+
+def _sort_labels(uniques, left, right):
+    if not isinstance(uniques, np.ndarray):
+        # tuplesafe
+        uniques = Index(uniques).values
+
+    sorter = uniques.argsort()
+
+    reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+    reverse_indexer.put(sorter, np.arange(len(sorter)))
+    return reverse_indexer.take(left), reverse_indexer.take(right)
