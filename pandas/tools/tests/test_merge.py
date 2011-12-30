@@ -10,7 +10,7 @@ import pandas._sandbox as sbx
 
 a_ = np.array
 
-N = 100
+N = 50
 NGROUPS = 8
 
 def get_test_data(ngroups=NGROUPS, n=N):
@@ -136,13 +136,21 @@ class TestMerge(unittest.TestCase):
         _check_join(self.df, self.df2, joined_both, ['key1', 'key2'],
                     how='right')
 
-    # def test_full_outer_join(self):
-    #     joined_key2 = merge(self.df, self.df2, on='key2', how='outer')
-    #     _check_join(self.df, self.df2, joined_key2, ['key2'], how='outer')
+    def test_full_outer_join(self):
+        joined_key2 = merge(self.df, self.df2, on='key2', how='outer')
+        _check_join(self.df, self.df2, joined_key2, ['key2'], how='outer')
 
-    #     joined_both = merge(self.df, self.df2, how='outer')
-    #     _check_join(self.df, self.df2, joined_both, ['key1', 'key2'],
-    #                 how='outer')
+        joined_both = merge(self.df, self.df2, how='outer')
+        _check_join(self.df, self.df2, joined_both, ['key1', 'key2'],
+                    how='outer')
+
+    def test_inner_join(self):
+        joined_key2 = merge(self.df, self.df2, on='key2', how='inner')
+        _check_join(self.df, self.df2, joined_key2, ['key2'], how='inner')
+
+        joined_both = merge(self.df, self.df2, how='inner')
+        _check_join(self.df, self.df2, joined_both, ['key1', 'key2'],
+                    how='inner')
 
     def test_handle_overlap(self):
         pass
@@ -170,7 +178,7 @@ def _check_join(left, right, result, join_col, how='left',
         try:
             lgroup = left_grouped.get_group(group_key)
         except KeyError:
-            if how == 'left':
+            if how in ('left', 'inner'):
                 raise AssertionError('key %s should not have been in the join'
                                      % str(group_key))
 
@@ -181,7 +189,7 @@ def _check_join(left, right, result, join_col, how='left',
         try:
             rgroup = right_grouped.get_group(group_key)
         except KeyError:
-            if how == 'right':
+            if how in ('right', 'inner'):
                 raise AssertionError('key %s should not have been in the join'
                                      % str(group_key))
 

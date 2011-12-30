@@ -74,8 +74,8 @@ class _MergeOperation(object):
                  left_on=None, right_on=None,
                  left_index=False, right_index=False, sort=True,
                  suffixes=('.x', '.y'), copy=True):
-        self.left = left
-        self.right = right
+        self.left = self.orig_left = left
+        self.right = self.orig_right = right
         self.how = how
 
         self.on = _maybe_make_list(on)

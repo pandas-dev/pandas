@@ -175,5 +175,4 @@ def roll_median(ndarray[float64_t] arg, int win, int minp):
     return output
 
 include "hashtable.pyx"
-
 include "join.pyx"
