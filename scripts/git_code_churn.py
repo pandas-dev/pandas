@@ -91,8 +91,12 @@ def get_code_churn(commits):
     #                   'deletions' : deletions}, index=shas)
 
 if __name__ == '__main__':
-    commits, hists = get_commit_history()
-    churn = get_code_churn(commits)
+    # commits, hists = get_commit_history()
+    # churn = get_code_churn(commits)
+
+    from vbench.git import GitRepo
+    repo = GitRepo('/home/wesm/code/pandas')
+    churn = repo.get_churn_by_file()
 
     file_include = []
     for path in churn.major_axis:
