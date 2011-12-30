@@ -790,7 +790,7 @@ class BlockManager(object):
     def _maybe_rename_join(self, other, lsuffix, rsuffix, exclude=None,
                            copydata=True):
         to_rename = self.items.intersection(other.items)
-        if exclude is not None:
+        if exclude is not None and len(exclude) > 0:
             to_rename = to_rename - exclude
 
         if len(to_rename) > 0:

@@ -64,22 +64,26 @@ def merge(left, right, how='left', on=None, left_on=None, right_on=None,
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
 
-def join_managers(left, right, axis=1, how='left', copy=True):
-    join_index, left_indexer, right_indexer = \
-        left.axes[axis].join(right.axes[axis], how=how, return_indexers=True)
-    op = _JoinOperation(left, right, join_index, left_indexer,
-                        right_indexer, axis=axis)
-    return op.get_result(copy=copy)
+# def join_managers(left, right, axis=1, how='left', copy=True):
+#     join_index, left_indexer, right_indexer = \
+#         left.axes[axis].join(right.axes[axis], how=how, return_indexers=True)
+#     op = _BlockJoinOperation(left, right, join_index, left_indexer,
+#                              right_indexer, axis=axis)
+#     return op.get_result(copy=copy)
 
 class _MergeOperation(object):
+    """
+
+    """
 
     def __init__(self, left, right, how='inner', on=None,
-                 left_on=None, right_on=None,
+                 left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
                  suffixes=('.x', '.y'), copy=True):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
+        self.axis = axis
 
         self.on = _maybe_make_list(on)
         self.left_on = _maybe_make_list(left_on)
@@ -100,15 +104,14 @@ class _MergeOperation(object):
          self.join_names) = self._get_merge_keys()
 
     def get_result(self):
-        left_indexer, right_indexer = self._get_join_indexers()
-        new_axis = self._get_new_axis(left_indexer)
+        join_index, left_indexer, right_indexer = self._get_join_info()
 
         # this is a bit kludgy
         ldata, rdata = self._get_merge_data(self.join_names)
 
         # TODO: more efficiently handle group keys to avoid extra consolidation!
-        join_op = _JoinOperation(ldata, rdata, new_axis,
-                                 left_indexer, right_indexer, axis=1)
+        join_op = _BlockJoinOperation(ldata, rdata, join_index,
+                                      left_indexer, right_indexer, axis=1)
 
         result_data = join_op.get_result(copy=self.copy)
         result = DataFrame(result_data)
@@ -118,6 +121,10 @@ class _MergeOperation(object):
         return result
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
+        if self.left_index or self.right_index:
+            # do nothing, already found in one of the DataFrames
+            return
+
         # insert group keys
         for i, name in enumerate(self.join_names):
             # a faster way?
@@ -128,25 +135,53 @@ class _MergeOperation(object):
                                                 right_na_indexer))
             result.insert(i, name, key_col)
 
-    def _get_join_indexers(self):
-        # max groups = largest possible number of distinct groups
-        left_key, right_key, max_groups = \
-            _get_group_keys(self.left_join_keys, self.right_join_keys,
-                            sort=self.sort)
+    def _get_join_info(self):
+        left_ax = self.left._data.axes[self.axis]
+        right_ax = self.right._data.axes[self.axis]
+        if self.left_index and self.right_index:
+            join_index, left_indexer, right_indexer = \
+                left_ax.join(right_ax, how=self.how, return_indexers=True)
+        elif self.right_index and self.how == 'left':
+            join_index = left_ax
+            left_indexer = None
 
-        join_func = _join_functions[self.how]
-        left_indexer, right_indexer = join_func(left_key.astype('i4'),
-                                                right_key.astype('i4'),
-                                                max_groups)
+            # oh this is odious
+            if len(self.left_join_keys) > 1:
+                join_key = lib.fast_zip(self.left_join_keys)
+            else:
+                join_key = self.left_join_keys[0]
 
-        return left_indexer, right_indexer
+            right_indexer = right_ax.get_indexer(join_key)
+        elif self.left_index and self.how == 'right':
+            join_index = right_ax
+            right_indexer = None
 
-    def _get_new_axis(self, left_indexer):
-        if left_indexer is None:
-            new_axis = self.left.index
+            # oh this is odious
+            if len(self.right_join_keys) > 1:
+                join_key = lib.fast_zip(self.right_join_keys)
+            else:
+                join_key = self.right_join_keys[0]
+
+            left_indexer = left_ax.get_indexer(join_key)
         else:
-            new_axis = Index(np.arange(len(left_indexer)))
-        return new_axis
+            # max groups = largest possible number of distinct groups
+            left_key, right_key, max_groups = \
+                _get_group_keys(self.left_join_keys, self.right_join_keys,
+                                sort=self.sort)
+
+            join_func = _join_functions[self.how]
+            left_indexer, right_indexer = join_func(left_key.astype('i4'),
+                                                    right_key.astype('i4'),
+                                                    max_groups)
+
+            if self.right_index:
+                join_index = self.left.index.take(left_indexer)
+            elif self.left_index:
+                join_index = self.right.index.take(right_indexer)
+            else:
+                join_index = Index(np.arange(len(left_indexer)))
+
+        return join_index, left_indexer, right_indexer
 
     def _get_merge_data(self, join_names):
         """
@@ -154,11 +189,9 @@ class _MergeOperation(object):
         """
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
-
-        # basically by construction the column names are stored in
-        # left_on...for now
+        exclude_names = [x for x in join_names if x is not None]
         ldata, rdata = ldata._maybe_rename_join(rdata, lsuf, rsuf,
-                                                exclude=join_names,
+                                                exclude=exclude_names,
                                                 copydata=False)
 
         return ldata, rdata
@@ -178,62 +211,68 @@ class _MergeOperation(object):
         left_keys, right_keys
         """
         # Hm, any way to make this logic less complicated??
-        left_keys = []
-        right_keys = []
         join_names = []
 
-        # need_set_names = False
-        # pop_right = False
+        drop = False
 
         if (self.on is None and self.left_on is None
             and self.right_on is None):
 
             if self.left_index and self.right_index:
-                left_keys.append(self.left.index.values)
-                right_keys.append(self.right.index.values)
-
-                # need_set_names = True
-
-                # XXX something better than this
-                join_names.append('join_key')
+                pass
             elif self.left_index:
-                left_keys.append(self.left.index.values)
                 if self.right_on is None:
                     raise Exception('Must pass right_on or right_index=True')
             elif self.right_index:
-                right_keys.append(self.right.index.values)
                 if self.left_on is None:
                     raise Exception('Must pass left_on or left_index=True')
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
                 self.left_on = self.right_on = common_cols
-
-                # pop_right = True
+                drop = True
 
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
                 raise Exception('Can only pass on OR left_on and '
                                 'right_on')
             self.left_on = self.right_on = self.on
-
-            # pop_right = True
+            drop = True
 
         # this is a touch kludgy, but accomplishes the goal
         if self.right_on is not None:
-            right = self.right.copy()
-            right_keys.extend([right.pop(k) for k in self.right_on])
-            self.right = right
+            self.right, right_keys, right_names = \
+                _get_keys(self.right, self.right_on, drop=drop)
+            join_names = right_names
+        else:
+            right_keys = [self.right.index.values]
 
         if self.left_on is not None:
-            left = self.left.copy()
-            left_keys.extend([left.pop(k) for k in self.left_on])
-            self.left = left
-
-            # TODO: something else?
-            join_names = self.left_on
+            self.left, left_keys, left_names = \
+                _get_keys(self.left, self.left_on, drop=drop)
+            join_names = left_names
+        else:
+            left_keys = [self.left.index.values]
 
         return left_keys, right_keys, join_names
+
+def _get_keys(frame, on, drop=False):
+    to_drop = []
+    keys = []
+    names = []
+    for k in on:
+        if isinstance(k, np.ndarray) and len(k) == len(frame):
+            keys.append(k)
+            names.append(None) # super kludge-tastic
+        else:
+            to_drop.append(k)
+            keys.append(frame[k].values)
+            names.append(k)
+
+    if drop:
+        frame = frame.drop(to_drop, axis=1)
+
+    return frame, keys, names
 
 def _get_group_keys(left_keys, right_keys, sort=True):
     """
@@ -326,7 +365,7 @@ def _sort_labels(uniques, left, right):
     return reverse_indexer.take(left), reverse_indexer.take(right)
 
 
-class _JoinOperation(object):
+class _BlockJoinOperation(object):
     """
     Object responsible for orchestrating efficient join operation between two
     BlockManager data structures

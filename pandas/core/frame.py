@@ -2767,51 +2767,43 @@ class DataFrame(NDFrame):
                                  rsuffix=rsuffix)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix=''):
-        # from pandas.tools.merge import merge
-
-        # if isinstance(other, Series):
-        #     assert(other.name is not None)
-        #     other = DataFrame({other.name : other})
-
-        # return merge(self, other, left_on=on, left_index=on is None,
-        #              right_index=True, suffixes=(lsuffix, rsuffix))
+        from pandas.tools.merge import merge
 
         if isinstance(other, Series):
             assert(other.name is not None)
             other = DataFrame({other.name : other})
 
-        if on is not None:
-            return self._join_on(other, on, how, lsuffix, rsuffix)
-        else:
-            return self._join_index(other, how, lsuffix, rsuffix)
+        return merge(self, other, left_on=on, how=how,
+                     left_index=on is None, right_index=True,
+                     suffixes=(lsuffix, rsuffix))
 
-    def _join_on(self, other, on, how, lsuffix, rsuffix):
-        if how not in ('left', 'inner'):  # pragma: no cover
-            raise Exception('Only inner / left joins currently supported')
+    # def _join_on(self, other, on, how, lsuffix, rsuffix):
+    #     if how not in ('left', 'inner'):  # pragma: no cover
+    #         raise Exception('Only inner / left joins currently supported')
 
-        if isinstance(on, (list, tuple)):
-            if len(on) == 1:
-                join_key = self[on[0]].values
-            else:
-                join_key = lib.fast_zip([self[k] for k in on])
-        elif isinstance(on, np.ndarray) and len(on) == len(self):
-            join_key = on
-        else:
-            join_key = self[on].values
+    #     if isinstance(on, (list, tuple)):
+    #         if len(on) == 1:
+    #             join_key = self[on[0]].values
+    #         else:
+    #             join_key = lib.fast_zip([self[k] for k in on])
+    #     elif isinstance(on, np.ndarray) and len(on) == len(self):
+    #         join_key = on
+    #     else:
+    #         join_key = self[on].values
 
-        new_data = self._data.join_on(other._data, join_key, how=how, axis=1,
-                                      lsuffix=lsuffix, rsuffix=rsuffix)
-        return self._constructor(new_data)
+    #     new_data = self._data.join_on(other._data, join_key, how=how, axis=1,
+    #                                   lsuffix=lsuffix, rsuffix=rsuffix)
+    #     return self._constructor(new_data)
 
-    def _join_index(self, other, how, lsuffix, rsuffix):
-        from pandas.tools.merge import join_managers
+    # def _join_index(self, other, how, lsuffix, rsuffix):
+    #     from pandas.tools.merge import join_managers
 
-        thisdata, otherdata = self._data._maybe_rename_join(
-            other._data, lsuffix, rsuffix, copydata=False)
+    #     thisdata, otherdata = self._data._maybe_rename_join(
+    #         other._data, lsuffix, rsuffix, copydata=False)
 
-        # this will always ensure copied data
-        merged_data = join_managers(thisdata, otherdata, axis=1, how=how)
-        return self._constructor(merged_data)
+    #     # this will always ensure copied data
+    #     merged_data = join_managers(thisdata, otherdata, axis=1, how=how)
+    #     return self._constructor(merged_data)
 
     #----------------------------------------------------------------------
     # Statistical methods, etc.
