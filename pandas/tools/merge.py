@@ -30,15 +30,21 @@ def merge(left, right, how='left', on=None, left_on=None, right_on=None,
         * outer: use union of keys from both frames (SQL: full outer join)
         * inner: use intersection of keys from both frames (SQL: inner join)
     on : label or list
-        Field names to join on. Must be found in both DataFrames
-    left_on : label or list
-        Field names to join on in left DataFrame
-    right_on : label or list
-        Field names to join on in right DataFrame
+        Field names to join on. Must be found in both DataFrames.
+    left_on : label or list, or array-like
+        Field names to join on in left DataFrame. Can be a vector or list of
+        vectors of the length of the DataFrame to use a particular vector as
+        the join key instead of columns
+    right_on : label or list, or array-like
+        Field names to join on in right DataFrame or vector/list of vectors per
+        left_on docs
     left_index : boolean, default True
-        Use the index from the left DataFrame as the join key
+        Use the index from the left DataFrame as the join key(s). If it is a
+        MultiIndex, the number of keys in the other DataFrame (either the index
+        or a number of columns) must match the number of levels
     right_index : boolean, default True
-        Use the index from the right DataFrame as the join key
+        Use the index from the right DataFrame as the join key. Same caveats as
+        left_index
     sort : boolean, default True
         Sort the join keys lexicographically in the result DataFrame
     suffixes : 2-length sequence (tuple, list, ...)
@@ -63,13 +69,6 @@ def merge(left, right, how='left', on=None, left_on=None, right_on=None,
 # TODO: DONE group column names in result
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
-
-# def join_managers(left, right, axis=1, how='left', copy=True):
-#     join_index, left_indexer, right_indexer = \
-#         left.axes[axis].join(right.axes[axis], how=how, return_indexers=True)
-#     op = _BlockJoinOperation(left, right, join_index, left_indexer,
-#                              right_indexer, axis=axis)
-#     return op.get_result(copy=copy)
 
 class _MergeOperation(object):
     """
