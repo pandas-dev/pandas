@@ -115,6 +115,8 @@ pandas 0.6.2
     #546)
   - Fix exception when setting scalar value using .ix on a DataFrame with a
     MultiIndex (GH #551)
+  - Fix outer join between two DateRanges with different offsets that returned
+    an invalid DateRange
 
 Thanks
 ------
