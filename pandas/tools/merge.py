@@ -7,6 +7,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index
 from pandas.core.internals import _JoinOperation
+import pandas.core.common as com
 
 import pandas._tseries as lib
 from pandas._sandbox import Factorizer
@@ -108,11 +109,25 @@ class _MergeOperation(object):
 
         new_axis = Index(np.arange(len(left_indexer)))
 
+        # TODO: more efficiently handle group keys to avoid extra consolidation!
+
         join_op = _JoinOperation(ldata, rdata, new_axis,
                                  left_indexer, right_indexer, axis=1)
 
         result_data = join_op.get_result(copy=self.copy)
-        return DataFrame(result_data)
+        result = DataFrame(result_data)
+
+        # insert group keys
+        for i, name in enumerate(join_names):
+            # a faster way?
+            key_col = com.take_1d(left_join_keys[i], left_indexer)
+            na_indexer = (left_indexer == -1).nonzero()[0]
+            right_na_indexer = right_indexer.take(na_indexer)
+            key_col.put(na_indexer, com.take_1d(right_join_keys[i],
+                                                right_na_indexer))
+            result.insert(i, name, key_col)
+
+        return result
 
     def _get_merge_data(self, join_names):
         """
@@ -148,8 +163,8 @@ class _MergeOperation(object):
         right_keys = []
         join_names = []
 
-        need_set_names = False
-        pop_right = False
+        # need_set_names = False
+        # pop_right = False
 
         if (self.on is None and self.left_on is None
             and self.right_on is None):
@@ -158,7 +173,8 @@ class _MergeOperation(object):
                 left_keys.append(self.left.index.values)
                 right_keys.append(self.right.index.values)
 
-                need_set_names = True
+                # need_set_names = True
+
                 # XXX something better than this
                 join_names.append('join_key')
             elif self.left_index:
@@ -173,30 +189,30 @@ class _MergeOperation(object):
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
                 self.left_on = self.right_on = common_cols
-                pop_right = True
+
+                # pop_right = True
+
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
                 raise Exception('Can only pass on OR left_on and '
                                 'right_on')
             self.left_on = self.right_on = self.on
-            pop_right = True
 
+            # pop_right = True
+
+        # this is a touch kludgy, but accomplishes the goal
         if self.right_on is not None:
-            # this is a touch kludgy, but accomplishes the goal
-            if pop_right:
-                right = self.right.copy()
-                right_keys.extend([right.pop(k) for k in self.right_on])
-                self.right = right
-            else:
-                right_keys.extend([right[k] for k in self.right_on])
-
-        if need_set_names:
-            self.left = self.left.copy()
-            for i, (lkey, name) in enumerate(zip(left_keys, join_names)):
-                self.left.insert(i, name, lkey)
+            right = self.right.copy()
+            right_keys.extend([right.pop(k) for k in self.right_on])
+            self.right = right
 
         if self.left_on is not None:
-            left_keys.extend([self.left[k] for k in self.left_on])
+            left = self.left.copy()
+            left_keys.extend([left.pop(k) for k in self.left_on])
+            self.left = left
+
+            # TODO: something else?
+            join_names = self.left_on
 
         return left_keys, right_keys, join_names
 
@@ -253,8 +269,8 @@ def _maybe_make_list(obj):
         return [obj]
     return obj
 
-def _right_outer_join(x, y):
-    right_indexer, left_indexer = sbx.left_outer_join(y, x)
+def _right_outer_join(x, y, max_groups):
+    right_indexer, left_indexer = sbx.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
