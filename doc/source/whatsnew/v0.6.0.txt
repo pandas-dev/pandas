@@ -5,13 +5,12 @@ v.0.6.0 (November 25, 2011)
 
 New Features
 ~~~~~~~~~~~~
-- Add ``melt`` function to ``pandas.core.reshape``
+- :ref:`Added <reshaping.melt>` ``melt`` function to ``pandas.core.reshape``
 - :ref:`Added <groupby.multiindex>` ``level`` parameter to group by level in Series and DataFrame descriptive statistics (PR313_)
 - :ref:`Added <basics.head_tail>` ``head`` and ``tail`` methods to Series, analogous to to DataFrame (PR296_)
 - :ref:`Added <indexing.boolean>` ``Series.isin`` function which checks if each value is contained in a passed sequence (GH289_)
 - :ref:`Added <io.formatting>` ``float_format`` option to ``Series.to_string``
 - :ref:`Added <io.parse_dates>` ``skip_footer`` (GH291_) and ``converters`` (GH343_) options to ``read_csv`` and ``read_table``
-- Added proper, tested weighted least squares to standard and panel OLS (GH303_)
 - :ref:`Added <indexing.duplicate>` ``drop_duplicates`` and ``duplicated`` functions for removing duplicate DataFrame rows and checking for duplicate rows, respectively (GH319_)
 - :ref:`Implemented <dsintro.boolean>` operators '&', '|', '^', '-' on DataFrame (GH347_)
 - :ref:`Added <basics.stats>` ``Series.mad``, mean absolute deviation
@@ -33,33 +32,26 @@ New Features
 - :ref:`Added <io.html>` ``DataFrame.to_html`` for writing DataFrame to HTML (PR387_)
 - :ref:`Added <basics.dataframe>` support for MaskedArray data in DataFrame, masked values converted to NaN (PR396_)
 - :ref:`Added <visualization.box>` ``DataFrame.boxplot`` function (GH368_)
-- Can pass extra args, kwds to DataFrame.apply (GH376_)
-- Arithmetic methods like ``sum`` will attempt to sum dtype=object values by default instead of excluding them (GH382_)
-- Print level names in hierarchical index in Series repr (GH305_)
-- Return DataFrame when performing GroupBy on selected column and as_index=False (GH308_)
-- Can pass vector to ``on`` argument in ``DataFrame.join`` (GH312_)
-- Show legend by default in ``DataFrame.plot``, add ``legend`` boolean flag
-  (GH324_) np.unique called on a Series faster (GH327_) "empty" combinations
-  ``Series.map`` significantly when passed elementwise Python function,
-  motivated by PR355_ enhancements throughout the codebase (GH361_) with 3-5x
-  better performance than ``np.apply_along_axis`` (GH309_) the passed function
-  only requires an ndarray (GH309_)
-- Can pass multiple levels to ``stack`` and ``unstack`` (GH370_)
-- Can pass multiple values columns to ``pivot_table`` (GH381_)
-- Can call ``DataFrame.delevel`` with standard Index with name set (GH393_)
-- Use Series name in GroupBy for result index (GH363_)
-- MAYBE? Refactor Series/DataFrame stat methods to use common set of NaN-friendly function
+- :ref:`Can <basics.apply>` pass extra args, kwds to DataFrame.apply (GH376_)
+- :ref:`Implement <merging.multikey_join>` ``DataFrame.join`` with vector ``on`` argument (GH312_)
+- :ref:`Added <visualization.basic>` ``legend`` boolean flag to ``DataFrame.plot`` (GH324_)
+- :ref:`Can <reshaping.stacking>` pass multiple levels to ``stack`` and ``unstack`` (GH370_)
+- :ref:`Can <reshaping.pivot>` pass multiple values columns to ``pivot_table`` (GH381_)
+- :ref:`Use <groupby.multiindex>` Series name in GroupBy for result index (GH363_)
+- :ref:`Added <basics.apply>` ``raw`` option to ``DataFrame.apply`` for performance if only need ndarray (GH309_)
+- Added proper, tested weighted least squares to standard and panel OLS (GH303_)
 
 Performance Enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance
-- VBENCH Improve performance of ``MultiIndex.from_tuples``
+- VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance enhancements throughout the codebase (GH361_)
+- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than `np.apply_along_axis` (GH309_)
+- VBENCH Improved performance of ``MultiIndex.from_tuples``
 - VBENCH Special Cython matrix iterator for applying arbitrary reduction operations
 - VBENCH + DOCUMENT Add ``raw`` option to ``DataFrame.apply`` for getting better performance when
 - VBENCH Faster cythonized count by level in Series and DataFrame (GH341_)
-- VBENCH? Significant GroupBy performance enhancement with multiple keys with many
-- VBENCH New Cython vectorized function ``map_infer`` speeds up ``Series.apply`` and
-- VBENCH Significantly improved performance of ``Series.order``, which also makes
+- VBENCH? Significant GroupBy performance enhancement with multiple keys with many "empty" combinations
+- VBENCH New Cython vectorized function ``map_infer`` speeds up ``Series.apply`` and ``Series.map`` significantly when passed elementwise Python function, motivated by (PR355_)
+- VBENCH Significantly improved performance of ``Series.order``, which also makes np.unique called on a Series faster (GH327_)
 - VBENCH Vastly improved performance of GroupBy on axes with a MultiIndex (GH299_)
 
 .. _GH65: https://github.com/wesm/pandas/issues/65

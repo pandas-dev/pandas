@@ -28,6 +28,8 @@ We use the standard convention for referencing the matplotlib API:
 
    import matplotlib.pyplot as plt
 
+.. _visualization.basic:
+
 Basic plotting: ``plot``
 ------------------------
 
@@ -43,7 +45,7 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
    ts.plot()
 
 If the index consists of dates, it calls ``gca().autofmt_xdate()`` to try to
-format the x-axis nicely as per above. THe method takes a number of arguments
+format the x-axis nicely as per above. The method takes a number of arguments
 for controlling the look of the plot:
 
 .. ipython:: python
@@ -61,6 +63,14 @@ On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
 
    @savefig frame_plot_basic.png width=4.5in
    plt.figure(); df.plot(); plt.legend(loc='best')
+
+You may set the ``legend`` argument to ``False`` to hide the legend, which is
+shown by default.
+
+.. ipython:: python
+
+   @savefig frame_plot_basic_noleg.png width=4.5in
+   df.plot(legend=False)
 
 Some other options are available, like plotting each Series on a different axis:
 

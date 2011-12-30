@@ -178,7 +178,8 @@ number:
    s.groupby(level='second').sum()
 
 As of v0.6, the aggregation functions such as ``sum`` will take the level
-parameter directly:
+parameter directly. Additionally, the resulting index will be named according
+to the chosen level:
 
 .. ipython:: python
 
@@ -424,8 +425,8 @@ Flexible ``apply``
 
 Some operations on the grouped data might not fit into either the aggregate or
 transform categories. Or, you may simply want GroupBy to infer how to combine
-the results. For these, use the ``apply`` function, which can be substitute for
-both ``aggregate`` and ``transform`` in many standard use cases. However,
+the results. For these, use the ``apply`` function, which can be substituted
+for both ``aggregate`` and ``transform`` in many standard use cases. However,
 ``apply`` can handle some exceptional use cases, for example:
 
 .. ipython:: python

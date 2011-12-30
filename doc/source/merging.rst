@@ -75,9 +75,9 @@ new DataFrame as above:
 
 .. ipython:: python
 
-   df = DataFrame(np.random.randn(8, 4))
+   df = DataFrame(np.random.randn(8, 4), columns=['A','B','C','D'])
    df
-   s = df.xs(5)
+   s = df.xs(3)
    df.append(s, ignore_index=True)
 
 
@@ -115,7 +115,7 @@ passed DataFrame's index. This is best illustrated by example:
 
 .. ipython:: python
 
-   df['key'] = ['foo', 'bar'] * 3
+   df['key'] = ['foo', 'bar'] * 4
    to_join = DataFrame(randn(2, 2), index=['bar', 'foo'],
                        columns=['j1', 'j2'])
    df

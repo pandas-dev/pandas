@@ -380,6 +380,19 @@ maximum value for each column occurred:
                     index=DateRange('1/1/2000', periods=1000))
    tsdf.apply(lambda x: x.index[x.dropna().argmax()])
 
+You may also pass additional arguments and keyword arguments to the ``apply``
+method. For instance, consider the following function you would like to apply:
+
+.. code-block:: python
+
+   def subtract_and_divide(x, sub, divide=1):
+       return (x - sub) / divide
+
+You may then apply this function as follows:
+
+.. code-block:: python
+
+   df.apply(subtract_and_divide, args=(5,), divide=3)
 
 Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
@@ -395,6 +408,12 @@ Series operation on each column or row:
 
    tsdf
    tsdf.apply(Series.interpolate)
+
+Finally, ``apply`` takes an argument ``raw`` which is False by default, which
+converts each row or column into a Series before applying the function. When
+set to True, the passed function will instead receive an ndarray object, which
+has positive performance implications if you do not need the indexing
+functionality.
 
 .. seealso::
 
@@ -673,11 +692,10 @@ produces the "keys" of the objects, namely:
 
 Thus, for example:
 
-.. ipython::
+.. ipython:: python
 
-   In [0]: for col in df:
-      ...:     print col
-      ...:
+   for col in df:
+       print col
 
 iteritems
 ~~~~~~~~~
@@ -691,12 +709,11 @@ key-value pairs:
 
 For example:
 
-.. ipython::
+.. ipython:: python
 
-   In [0]: for item, frame in wp.iteritems():
-      ...:     print item
-      ...:     print frame
-      ...:
+   for item, frame in wp.iteritems():
+       print item
+       print frame
 
 .. _basics.sorting:
 

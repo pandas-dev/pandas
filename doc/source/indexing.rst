@@ -756,8 +756,11 @@ integer index. This is the inverse operation to ``set_index``
    df.reset_index()
 
 The output is more similar to a SQL table or a record array. The names for the
-columns derived from the index are the ones stored in the ``names``
-attribute.
+columns derived from the index are the ones stored in the ``names`` attribute.
+
+.. note::
+
+   The ``reset_index`` method used to be called ``delevel`` which is now deprecated.
 
 Adding an ad hoc index
 ~~~~~~~~~~~~~~~~~~~~~~
