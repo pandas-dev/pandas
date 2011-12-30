@@ -733,6 +733,13 @@ class TestMultiLevel(unittest.TestCase):
             leftside = grouped.agg(aggf)
             rightside = getattr(frame, op)(level=level, axis=axis,
                                            skipna=skipna)
+
+            # for good measure, groupby detail
+            level_index = frame._get_axis(axis).levels[level]
+
+            self.assert_(leftside._get_axis(axis).equals(level_index))
+            self.assert_(rightside._get_axis(axis).equals(level_index))
+
             assert_frame_equal(leftside, rightside)
 
     def test_frame_series_agg_multiple_levels(self):

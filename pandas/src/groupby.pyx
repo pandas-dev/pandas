@@ -395,6 +395,25 @@ def group_var(ndarray[float64_t] out,
             out[i] = ((ct * sumxx[i] - sumx[i] * sumx[i]) /
                       (ct * ct - ct))
 
+def group_count(ndarray[int32_t] values, Py_ssize_t size):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int32_t] counts
+
+    counts = np.zeros(size, dtype='i4')
+    for i in range(n):
+        counts[values[i]] += 1
+    return counts
+
+def lookup_values(ndarray[object] values, dict mapping):
+    cdef:
+        Py_ssize_t i, n = len(values)
+
+    result = np.empty(n, dtype='O')
+    for i in range(n):
+        result[i] = mapping[values[i]]
+    return maybe_convert_objects(result)
+
 def reduce_mean(ndarray[object] indices,
                 ndarray[object] buckets,
                 ndarray[float64_t] values,

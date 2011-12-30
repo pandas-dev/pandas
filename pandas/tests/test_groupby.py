@@ -148,7 +148,7 @@ class TestGroupBy(unittest.TestCase):
 
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
-        assert_frame_equal(grouped.sum(), DataFrame({}))
+        assert_frame_equal(grouped.sum(), DataFrame(columns=self.tsframe.columns))
         assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
@@ -791,7 +791,9 @@ class TestGroupBy(unittest.TestCase):
 
         for i, ping in enumerate(grouped.groupings):
             the_counts = self.mframe.groupby(level=i).count()['A']
-            assert_almost_equal(ping.counts, the_counts)
+            other_counts = Series(ping.counts, ping.group_index)
+            assert_almost_equal(the_counts,
+                                other_counts.reindex(the_counts.index))
 
     def test_groupby_level(self):
         frame = self.mframe
@@ -802,6 +804,9 @@ class TestGroupBy(unittest.TestCase):
 
         expected0 = frame.groupby(deleveled['first'].values).sum()
         expected1 = frame.groupby(deleveled['second'].values).sum()
+
+        expected0 = expected0.reindex(frame.index.levels[0])
+        expected1 = expected1.reindex(frame.index.levels[1])
 
         self.assert_(result0.index.name == 'first')
         self.assert_(result1.index.name == 'second')

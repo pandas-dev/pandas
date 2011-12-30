@@ -15,7 +15,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
-   clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']}, 
+   clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
                       index=['x','y','z'])
 
 *******************************
@@ -295,7 +295,7 @@ which, if set to ``True``, will additionally output the length of the Series.
 
 
 Writing to HTML format
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. _io.html:
 

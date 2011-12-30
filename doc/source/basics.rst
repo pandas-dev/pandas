@@ -692,10 +692,11 @@ produces the "keys" of the objects, namely:
 
 Thus, for example:
 
-.. ipython:: python
+.. ipython::
 
-   for col in df:
-       print col
+   In [0]: for col in df:
+      ...:     print col
+      ...:
 
 iteritems
 ~~~~~~~~~
@@ -709,13 +710,12 @@ key-value pairs:
 
 For example:
 
-.. ipython:: python
+.. ipython::
 
-   for item, frame in wp.iteritems():
-       print item
-       print frame
-
-.. _basics.sorting:
+   In [0]: for item, frame in wp.iteritems():
+      ...:     print item
+      ...:     print frame
+      ...:
 
 Sorting by index and value
 --------------------------

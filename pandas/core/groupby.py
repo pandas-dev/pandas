@@ -149,7 +149,7 @@ class GroupBy(object):
 
     @property
     def _group_shape(self):
-        return tuple(len(ping.ids) for ping in self.groupings)
+        return tuple(len(ping.counts) for ping in self.groupings)
 
     @property
     def _agg_stride_shape(self):
@@ -535,24 +535,35 @@ class Grouping(object):
         if isinstance(grouper, Series) and name is None:
             self.name = grouper.name
 
+        # pre-computed
+        self._was_factor = False
+
         if level is not None:
             if not isinstance(level, int):
                 assert(level in index.names)
                 level = index.names.index(level)
 
             inds = index.labels[level]
-            labels = index.levels[level].take(inds)
+            level_index = index.levels[level]
+
             if self.name is None:
                 self.name = index.names[level]
 
-            if grouper is not None:
-                self.grouper = labels.map(self.grouper)
-            else:
-                self.grouper = labels
+            # XXX complete hack
 
-        # no level passed
-        if not isinstance(self.grouper, np.ndarray):
-            self.grouper = self.index.map(self.grouper)
+            level_values = index.levels[level].take(inds)
+            if grouper is not None:
+                self.grouper = level_values.map(self.grouper)
+            else:
+                self._was_factor = True
+                self._labels = inds
+                self._group_index = level_index
+                self._counts = lib.group_count(inds, len(level_index))
+                self.grouper = level_values
+        else:
+            # no level passed
+            if not isinstance(self.grouper, np.ndarray):
+                self.grouper = self.index.map(self.grouper)
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name
@@ -563,6 +574,7 @@ class Grouping(object):
     _labels = None
     _ids = None
     _counts = None
+    _group_index = None
 
     @cache_readonly
     def indices(self):
@@ -577,7 +589,11 @@ class Grouping(object):
     @property
     def ids(self):
         if self._ids is None:
-            self._make_labels()
+            if self._was_factor:
+                index = self._group_index
+                self._ids = dict(zip(range(len(index)), index))
+            else:
+                self._make_labels()
         return self._ids
 
     @cache_readonly
@@ -590,13 +606,21 @@ class Grouping(object):
             self._make_labels()
         return self._counts
 
-    @cache_readonly
+    @property
     def group_index(self):
-        return Index([self.ids[i] for i in range(len(self.ids))])
+        if self._group_index is None:
+            ids = self.ids
+            values = np.arange(len(self.ids), dtype='O')
+            self._group_index = Index(lib.lookup_values(values, ids))
+        return self._group_index
 
     def _make_labels(self):
-        ids, labels, counts  = _group_labels(self.grouper)
-        sids, slabels, scounts = sort_group_labels(ids, labels, counts)
+        if self._was_factor:  # pragma: no cover
+            raise Exception('Should not call this method grouping by level')
+        else:
+            ids, labels, counts  = _group_labels(self.grouper)
+            sids, slabels, scounts = sort_group_labels(ids, labels, counts)
+
         self._labels = slabels
         self._ids = sids
         self._counts = scounts
@@ -768,7 +792,12 @@ class SeriesGroupBy(GroupBy):
             if len(self.groupings) > 1:
                 index = MultiIndex.from_tuples(keys, names=key_names)
             else:
-                index = Index(keys, name=key_names[0])
+                ping = self.groupings[0]
+                if len(keys) == len(ping.counts):
+                    index = ping.group_index
+                    index.name = key_names[0]
+                else:
+                    index = Index(keys, name=key_names[0])
             return index
 
         if isinstance(values[0], Series):
@@ -981,7 +1010,10 @@ class DataFrameGroupBy(GroupBy):
 
         index_name = (self.groupings[0].name
                       if len(self.groupings) == 1 else None)
-        result_index = Index(sorted(result), name=index_name)
+
+        result_index = self.groupings[0].group_index
+
+        # result_index = Index(sorted(result), name=index_name)
 
         if result:
             if axis == 0:
@@ -1062,25 +1094,36 @@ class DataFrameGroupBy(GroupBy):
                                      not_indexed_same=not_indexed_same)
         else:
             if len(self.groupings) > 1:
-                keys = MultiIndex.from_tuples(keys, names=key_names)
+                key_index = MultiIndex.from_tuples(keys, names=key_names)
             else:
-                keys = Index(keys, name=key_names[0])
+                ping = self.groupings[0]
+                if len(keys) == len(ping.counts):
+                    key_index = ping.group_index
+                    key_index.name = key_names[0]
+
+                    key_lookup = Index(keys)
+                    indexer = key_lookup.get_indexer(key_index)
+
+                    # reorder the values
+                    values = [values[i] for i in indexer]
+                else:
+                    key_index = Index(keys, name=key_names[0])
 
             if isinstance(values[0], np.ndarray):
                 if self.axis == 0:
                     stacked_values = np.vstack([np.asarray(x)
                                                 for x in values])
                     columns = values[0].index
-                    index = keys
+                    index = key_index
                 else:
                     stacked_values = np.vstack([np.asarray(x)
                                                 for x in values]).T
                     index = values[0].index
-                    columns = keys
+                    columns = key_index
                 return DataFrame(stacked_values, index=index,
                                  columns=columns)
             else:
-                return Series(values, index=keys)
+                return Series(values, index=key_index)
 
     def transform(self, func, *args, **kwargs):
         """
@@ -1417,6 +1460,11 @@ def _group_labels(values):
 
 def sort_group_labels(ids, labels, counts):
     n = len(ids)
+
+    # corner all NA case
+    if n == 0:
+        return ids, labels, counts
+
     rng = np.arange(n)
     values = Series(ids, index=rng, dtype=object).values
     indexer = values.argsort()

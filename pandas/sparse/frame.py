@@ -523,6 +523,12 @@ class SparseDataFrame(DataFrame):
         f = ('%s' + ('%s' % suffix)).__mod__
         return self.rename(columns=f)
 
+    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix=''):
+        if on is not None:
+            return self._join_on(other, on, how, lsuffix, rsuffix)
+        else:
+            return self._join_index(other, how, lsuffix, rsuffix)
+
     def _join_on(self, other, on, how, lsuffix, rsuffix):
         # need to implement?
         raise NotImplementedError

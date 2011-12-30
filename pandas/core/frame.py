@@ -2730,7 +2730,7 @@ class DataFrame(NDFrame):
     def _get_raw_column(self, col):
         return self._data.get(col)
 
-    def join(self, other, on=None, how=None, lsuffix='', rsuffix=''):
+    def join(self, other, on=None, how='left', lsuffix='', rsuffix=''):
         """
         Join columns with other DataFrame either on index or on a key
         column.
@@ -2762,8 +2762,24 @@ class DataFrame(NDFrame):
         -------
         joined : DataFrame
         """
-        if how is None:
-            how = 'left'
+        # For SparseDataFrame's benefit
+        return self._join_compat(other, on=on, how=how, lsuffix=lsuffix,
+                                 rsuffix=rsuffix)
+
+    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix=''):
+        # from pandas.tools.merge import merge
+
+        # if isinstance(other, Series):
+        #     assert(other.name is not None)
+        #     other = DataFrame({other.name : other})
+
+        # return merge(self, other, left_on=on, left_index=on is None,
+        #              right_index=True, suffixes=(lsuffix, rsuffix))
+
+        if isinstance(other, Series):
+            assert(other.name is not None)
+            other = DataFrame({other.name : other})
+
         if on is not None:
             return self._join_on(other, on, how, lsuffix, rsuffix)
         else:
@@ -2772,10 +2788,6 @@ class DataFrame(NDFrame):
     def _join_on(self, other, on, how, lsuffix, rsuffix):
         if how not in ('left', 'inner'):  # pragma: no cover
             raise Exception('Only inner / left joins currently supported')
-
-        if isinstance(other, Series):
-            assert(other.name is not None)
-            other = DataFrame({other.name : other})
 
         if isinstance(on, (list, tuple)):
             if len(on) == 1:
@@ -2792,11 +2804,7 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
-        from pandas.core.internals import join_managers
-
-        if isinstance(other, Series):
-            assert(other.name is not None)
-            other = DataFrame({other.name : other})
+        from pandas.tools.merge import join_managers
 
         thisdata, otherdata = self._data._maybe_rename_join(
             other._data, lsuffix, rsuffix, copydata=False)

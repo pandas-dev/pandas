@@ -28,7 +28,7 @@ def f():
     df.groupby(['key1', 'key2']).agg(lambda x: x.values.sum())
 """
 
-stmt1 = "df.groupby(['key1', 'key2'])['data'].agg(lambda x: x.values.sum())"
+stmt1 = "df.groupby(['key1', 'key2'])['data1'].agg(lambda x: x.values.sum())"
 groupby_multi_python = Benchmark(stmt1, setup,
                                  name="groupby_multi_python",
                                  start_date=datetime(2011, 7, 1))
