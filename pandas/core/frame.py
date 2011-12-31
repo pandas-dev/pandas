@@ -528,7 +528,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        data : ndarray (structured dtype) or list of tuples
+        data : ndarray (structured dtype), list of tuples, or DataFrame
         index : string, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
@@ -564,7 +564,8 @@ class DataFrame(NDFrame):
             columns.remove(col)
 
         if index is not None:
-            if isinstance(index, basestring):
+            if (isinstance(index, basestring) or
+                not hasattr(index, "__iter__")):
                 result_index = sdict.pop(index)
                 columns.remove(index)
             else:
@@ -3699,7 +3700,7 @@ def _rec_to_dict(arr):
         sdict = dict((k, arr[k]) for k in columns)
     elif isinstance(arr, DataFrame):
         columns = list(arr.columns)
-        sdict = arr._series
+        sdict = dict((k, v.values) for k, v in arr.iteritems())
     elif isinstance(arr, dict):
         columns = sorted(arr)
         sdict = arr.copy()
