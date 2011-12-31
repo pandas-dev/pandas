@@ -5,7 +5,8 @@ SQL-style merge routines
 import numpy as np
 
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index
+from pandas.core.groupby import get_group_index
+from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly
@@ -146,22 +147,26 @@ class _MergeOperation(object):
 
             # oh this is odious
             if len(self.left_join_keys) > 1:
-                join_key = lib.fast_zip(self.left_join_keys)
-            else:
-                join_key = self.left_join_keys[0]
+                assert(isinstance(right_ax, MultiIndex) and
+                       len(self.left_join_keys) == right_ax.nlevels)
 
-            right_indexer = right_ax.get_indexer(join_key)
+                right_indexer = _get_multiindex_indexer(self.left_join_keys,
+                                                        right_ax)
+            else:
+                right_indexer = right_ax.get_indexer(self.left_join_keys[0])
+
         elif self.left_index and self.how == 'right':
             join_index = right_ax
             right_indexer = None
 
             # oh this is odious
             if len(self.right_join_keys) > 1:
-                join_key = lib.fast_zip(self.right_join_keys)
+                assert(isinstance(left_ax, MultiIndex) and
+                       len(self.right_join_keys) == left_ax.nlevels)
+                left_indexer = _get_multiindex_indexer(self.right_join_keys,
+                                                       left_ax)
             else:
-                join_key = self.right_join_keys[0]
-
-            left_indexer = left_ax.get_indexer(join_key)
+                left_indexer = left_ax.get_indexer(self.right_join_keys[0])
         else:
             # max groups = largest possible number of distinct groups
             left_key, right_key, max_groups = \
@@ -283,8 +288,6 @@ def _get_group_keys(left_keys, right_keys, sort=True):
     -------
 
     """
-    from pandas.core.groupby import get_group_index
-
     assert(len(left_keys) == len(right_keys))
 
     left_labels = []
@@ -309,6 +312,25 @@ def _get_group_keys(left_keys, right_keys, sort=True):
                              sort=sort)
 
     return left_group_key, right_group_key, max_groups
+
+
+def _get_multiindex_indexer(join_keys, index):
+    shape = []
+    labels = []
+    for level, key in zip(index.levels, join_keys):
+        rizer = lib.DictFactorizer(level.indexMap, list(level))
+        lab, _ = rizer.factorize(key)
+        labels.append(lab)
+        shape.append(len(rizer.uniques))
+
+    left_group_key = get_group_index(labels, shape).astype('i4')
+    right_group_key = get_group_index(index.labels, shape).astype('i4')
+    left_indexer, right_indexer = \
+        lib.left_outer_join(left_group_key, right_group_key,
+                            np.prod(shape))
+
+    # NOW! reorder
+    return right_indexer.take(left_indexer.argsort())
 
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):

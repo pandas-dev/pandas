@@ -669,6 +669,74 @@ cdef class Int64Factorizer:
         self.count = len(counts)
         return labels, counts
 
+cdef class DictFactorizer:
+
+    cdef public:
+        dict table
+        list uniques
+        Py_ssize_t count
+
+    def __init__(self, table=None, uniques=None):
+        if table is None:
+            self.table = {}
+        else:
+            self.table = table
+
+        if uniques is None:
+            self.uniques = []
+            self.count = 0
+        else:
+            self.uniques = uniques
+            self.count = len(uniques)
+
+    def get_count(self):
+        return self.count
+
+    def get_labels(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int32_t] labels
+            ndarray[int32_t] counts
+            Py_ssize_t idx, count = self.count
+            int ret
+            object val
+            khiter_t k
+
+        labels = np.empty(n, dtype=np.int32)
+        counts = np.empty(count + n, dtype=np.int32)
+
+        for i in range(n):
+            val = values[i]
+
+            if val in self.table:
+                idx = self.table[val]
+                labels[i] = idx
+                counts[idx] = counts[idx] + 1
+            else:
+                self.table[val] = count
+                self.uniques.append(val)
+                labels[i] = count
+                counts[count] = 1
+                count += 1
+
+        return labels, counts[:count].copy()
+
+    def factorize(self, ndarray[object] values, sort=False):
+        labels, counts = self.get_labels(values)
+
+        # sort on
+        if sort:
+            sorter = list_to_object_array(self.uniques).argsort()
+            reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+            reverse_indexer.put(sorter, np.arange(len(sorter)))
+
+            labels = reverse_indexer.take(labels)
+            counts = counts.take(sorter)
+
+        self.count = len(counts)
+        return labels, counts
+
+
 def lookup_locations2(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
