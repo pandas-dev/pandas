@@ -127,16 +127,20 @@ class Block(object):
         reindexed : Block
         """
         new_ref_items, indexer = self.items.reindex(new_ref_items)
-        mask = indexer != -1
-        masked_idx = indexer[mask]
-
-        if self.values.ndim == 2:
-            new_values = com.take_2d(self.values, masked_idx, axis=0,
-                                     needs_masking=False)
+        if indexer is None:
+            new_items = new_ref_items
+            new_values = self.values.copy()
         else:
-            new_values = self.values.take(masked_idx, axis=0)
+            mask = indexer != -1
+            masked_idx = indexer[mask]
 
-        new_items = self.items.take(masked_idx)
+            if self.values.ndim == 2:
+                new_values = com.take_2d(self.values, masked_idx, axis=0,
+                                         needs_masking=False)
+            else:
+                new_values = self.values.take(masked_idx, axis=0)
+
+            new_items = self.items.take(masked_idx)
         return make_block(new_values, new_items, new_ref_items)
 
     def get(self, item):
@@ -727,7 +731,6 @@ class BlockManager(object):
 
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)
-        mask = indexer == -1
 
         new_blocks = []
         for block in self.blocks:
@@ -735,11 +738,13 @@ class BlockManager(object):
             if len(newb.items) > 0:
                 new_blocks.append(newb)
 
-        if mask.any():
-            extra_items = new_items[mask]
-            na_block = self._make_na_block(extra_items, new_items)
-            new_blocks.append(na_block)
-            new_blocks = _consolidate(new_blocks, new_items)
+        if indexer is not None:
+            mask = indexer == -1
+            if mask.any():
+                extra_items = new_items[mask]
+                na_block = self._make_na_block(extra_items, new_items)
+                new_blocks.append(na_block)
+                new_blocks = _consolidate(new_blocks, new_items)
 
         return BlockManager(new_blocks, [new_items] + self.axes[1:])
 

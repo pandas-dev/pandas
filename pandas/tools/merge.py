@@ -4,7 +4,7 @@ SQL-style merge routines
 
 import numpy as np
 
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.groupby import get_group_index
 from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
@@ -17,53 +17,12 @@ import pandas._tseries as lib
 def merge(left, right, how='left', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
           suffixes=('.x', '.y'), copy=True):
-    """
-    Merge DataFrame objects by performing a database-style join operation by
-    columns or indexes
-
-    Parameters
-    ----------
-    left : DataFrame
-    right : DataFrame
-    how : {'left', 'right', 'outer', 'inner'}, default 'left'
-        * left: use only keys from left frame (SQL: left outer join)
-        * right: use only keys from right frame (SQL: right outer join)
-        * outer: use union of keys from both frames (SQL: full outer join)
-        * inner: use intersection of keys from both frames (SQL: inner join)
-    on : label or list
-        Field names to join on. Must be found in both DataFrames.
-    left_on : label or list, or array-like
-        Field names to join on in left DataFrame. Can be a vector or list of
-        vectors of the length of the DataFrame to use a particular vector as
-        the join key instead of columns
-    right_on : label or list, or array-like
-        Field names to join on in right DataFrame or vector/list of vectors per
-        left_on docs
-    left_index : boolean, default True
-        Use the index from the left DataFrame as the join key(s). If it is a
-        MultiIndex, the number of keys in the other DataFrame (either the index
-        or a number of columns) must match the number of levels
-    right_index : boolean, default True
-        Use the index from the right DataFrame as the join key. Same caveats as
-        left_index
-    sort : boolean, default True
-        Sort the join keys lexicographically in the result DataFrame
-    suffixes : 2-length sequence (tuple, list, ...)
-        Suffix to apply to overlapping column names in the left and right
-        side, respectively
-    copy : boolean, default True
-        If False, do not copy data unnecessarily
-
-    Returns
-    -------
-    merged : DataFrame
-    """
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
                          copy=copy)
     return op.get_result()
-
+if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 # TODO: NA group handling
 # TODO: transformations??
@@ -86,6 +45,8 @@ class _MergeOperation(object):
         self.on = _maybe_make_list(on)
         self.left_on = _maybe_make_list(left_on)
         self.right_on = _maybe_make_list(right_on)
+
+        self.drop_keys = False # set this later...kludge
 
         self.copy = copy
 
@@ -119,7 +80,7 @@ class _MergeOperation(object):
         return result
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
-        if self.left_index or self.right_index:
+        if not self.drop_keys:
             # do nothing, already found in one of the DataFrames
             return
 
@@ -143,7 +104,6 @@ class _MergeOperation(object):
             join_index = left_ax
             left_indexer = None
 
-            # oh this is odious
             if len(self.left_join_keys) > 1:
                 assert(isinstance(right_ax, MultiIndex) and
                        len(self.left_join_keys) == right_ax.nlevels)
@@ -157,7 +117,6 @@ class _MergeOperation(object):
             join_index = right_ax
             right_indexer = None
 
-            # oh this is odious
             if len(self.right_join_keys) > 1:
                 assert(isinstance(left_ax, MultiIndex) and
                        len(self.right_join_keys) == left_ax.nlevels)
@@ -215,8 +174,6 @@ class _MergeOperation(object):
         # Hm, any way to make this logic less complicated??
         join_names = []
 
-        drop = False
-
         if (self.on is None and self.left_on is None
             and self.right_on is None):
 
@@ -232,26 +189,26 @@ class _MergeOperation(object):
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
                 self.left_on = self.right_on = common_cols
-                drop = True
+                self.drop_keys = True
 
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
                 raise Exception('Can only pass on OR left_on and '
                                 'right_on')
             self.left_on = self.right_on = self.on
-            drop = True
+            self.drop_keys = True
 
         # this is a touch kludgy, but accomplishes the goal
         if self.right_on is not None:
             self.right, right_keys, right_names = \
-                _get_keys(self.right, self.right_on, drop=drop)
+                _get_keys(self.right, self.right_on, drop=self.drop_keys)
             join_names = right_names
         else:
             right_keys = [self.right.index.values]
 
         if self.left_on is not None:
             self.left, left_keys, left_names = \
-                _get_keys(self.left, self.left_on, drop=drop)
+                _get_keys(self.left, self.left_on, drop=self.drop_keys)
             join_names = left_names
         else:
             left_keys = [self.left.index.values]
@@ -316,7 +273,7 @@ def _get_multiindex_indexer(join_keys, index):
     shape = []
     labels = []
     for level, key in zip(index.levels, join_keys):
-        rizer = lib.DictFactorizer(level.indexMap, list(level))
+        rizer = lib.DictFactorizer(level.indexMap.copy(), list(level))
         lab, _ = rizer.factorize(key)
         labels.append(lab)
         shape.append(len(rizer.uniques))

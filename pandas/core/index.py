@@ -561,7 +561,10 @@ class Index(np.ndarray):
             _, indexer, _ = self._join_level(target, level, how='left',
                                                   return_indexers=True)
         else:
-            indexer = self.get_indexer(target, method=method)
+            if self.equals(target):
+                indexer = None
+            else:
+                indexer = self.get_indexer(target, method=method)
         return target, indexer
 
     def join(self, other, how='left', level=None, return_indexers=False):
@@ -1481,10 +1484,15 @@ class MultiIndex(Index):
             target, _, indexer = self._join_level(target, level, how='left',
                                                   return_indexers=True)
         else:
-            indexer = self.get_indexer(target, method=method)
+            if self.equals(target):
+                indexer = None
+            else:
+                indexer = self.get_indexer(target, method=method)
 
         if not isinstance(target, MultiIndex):
-            if (indexer >= 0).all():
+            if indexer is None:
+                target = self
+            elif (indexer >= 0).all():
                 target = self.take(indexer)
             else:
                 # hopefully?

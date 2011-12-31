@@ -22,20 +22,10 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
-pandas 0.6.2
+pandas 0.7.0
 ============
 
 **Release date:** NOT YET RELEASED
-
-**API Changes**
-
-  - Rename ``DataFrame.delevel`` to ``DataFrame.reset_index`` and add
-    deprecation warning
-  - `Series.sort` (an in-place operation) called on a Series which is a view on
-    a larger array (e.g. a column in a DataFrame) will generate an Exception to
-    prevent accidentally modifying the data source (GH #316)
-  - Refactor to remove deprecated ``LongPanel`` class (PR #552)
-  - Deprecated ``Panel.to_long``, renamed to ``to_frame``
 
 **New features / modules**
 
@@ -56,6 +46,16 @@ pandas 0.6.2
     ``Series``
   - Add ``level`` option to the ``reindex`` and ``align`` methods on Series and
     DataFrame for broadcasting values across a level (GH #542, PR #552, others)
+
+**API Changes**
+
+  - Rename ``DataFrame.delevel`` to ``DataFrame.reset_index`` and add
+    deprecation warning
+  - `Series.sort` (an in-place operation) called on a Series which is a view on
+    a larger array (e.g. a column in a DataFrame) will generate an Exception to
+    prevent accidentally modifying the data source (GH #316)
+  - Refactor to remove deprecated ``LongPanel`` class (PR #552)
+  - Deprecated ``Panel.to_long``, renamed to ``to_frame``
 
 **Improvements to existing features**
 

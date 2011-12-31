@@ -7,7 +7,8 @@ import random
 
 from pandas import *
 from pandas.tools.merge import merge
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import (assert_frame_equal, assert_series_equal,
+                                 assert_almost_equal)
 import pandas._tseries as lib
 import pandas.util.testing as tm
 
@@ -45,6 +46,18 @@ class TestMerge(unittest.TestCase):
                               'key2'  : get_test_data(ngroups=NGROUPS//2,
                                                       n=N//5),
                               'value' : np.random.randn(N // 5)})
+
+        index, data = tm.getMixedTypeDict()
+        self.target = DataFrame(data, index=index)
+
+        # Join on string value
+        self.source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
+                                index=data['C'])
+
+        self.left = DataFrame({'key' : ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
+                          'v1' : np.random.randn(7)})
+        self.right = DataFrame({'v2' : np.random.randn(4)},
+                           index=['d', 'b', 'c', 'a'])
 
     def test_cython_left_outer_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype='i4')
@@ -167,88 +180,6 @@ class TestMerge(unittest.TestCase):
         exp = merge(self.df, self.df2, on=['key1', 'key2'])
         tm.assert_frame_equal(joined, exp)
 
-    def test_merge_index(self):
-        pass
-
-def _check_join(left, right, result, join_col, how='left',
-                lsuffix='.x', rsuffix='.y'):
-
-    # some smoke tests
-    for c in join_col:
-        assert(result[c].notnull().all())
-
-    left_grouped = left.groupby(join_col)
-    right_grouped = right.groupby(join_col)
-
-    for group_key, group in result.groupby(join_col):
-        l_joined = _restrict_to_columns(group, left.columns, lsuffix)
-        r_joined = _restrict_to_columns(group, right.columns, rsuffix)
-
-        try:
-            lgroup = left_grouped.get_group(group_key)
-        except KeyError:
-            if how in ('left', 'inner'):
-                raise AssertionError('key %s should not have been in the join'
-                                     % str(group_key))
-
-            _assert_all_na(l_joined, left.columns, join_col)
-        else:
-            _assert_same_contents(l_joined, lgroup)
-
-        try:
-            rgroup = right_grouped.get_group(group_key)
-        except KeyError:
-            if how in ('right', 'inner'):
-                raise AssertionError('key %s should not have been in the join'
-                                     % str(group_key))
-
-            _assert_all_na(r_joined, right.columns, join_col)
-        else:
-            _assert_same_contents(r_joined, rgroup)
-
-
-def _restrict_to_columns(group, columns, suffix):
-    found = [c for c in group.columns
-             if c in columns or c.replace(suffix, '') in columns]
-
-     # filter
-    group = group.ix[:, found]
-
-    # get rid of suffixes, if any
-    group = group.rename(columns=lambda x: x.replace(suffix, ''))
-
-    # put in the right order...
-    group = group.ix[:, columns]
-
-    return group
-
-def _assert_same_contents(join_chunk, source):
-    NA_SENTINEL = -1234567 # drop_duplicates not so NA-friendly...
-
-    jvalues = join_chunk.fillna(NA_SENTINEL).drop_duplicates().values
-    svalues = source.fillna(NA_SENTINEL).drop_duplicates().values
-
-    rows = set(tuple(row) for row in jvalues)
-    assert(len(rows) == len(source))
-    assert(all(tuple(row) in rows for row in svalues))
-
-def _assert_all_na(join_chunk, source_columns, join_col):
-    for c in source_columns:
-        if c in join_col:
-            continue
-        assert(join_chunk[c].isnull().all())
-
-
-class TestDataFrameJoin(unittest.TestCase):
-
-    def setUp(self):
-        index, data = tm.getMixedTypeDict()
-        self.target = DataFrame(data, index=index)
-
-        # Join on string value
-        self.source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
-                                index=data['C'])
-
     def test_join_on(self):
         target = self.target
         source = self.source
@@ -326,36 +257,6 @@ class TestDataFrameJoin(unittest.TestCase):
         expected = df.join(df2, on='key')
 
         assert_frame_equal(joined, expected)
-
-    def test_join_on_multikey(self):
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                                   ['one', 'two', 'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['first', 'second'])
-        to_join = DataFrame(np.random.randn(10, 3), index=index,
-                            columns=['j_one', 'j_two', 'j_three'])
-
-        # a little relevant example with NAs
-        key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
-                'qux', 'snap']
-        key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
-                'three', 'one']
-
-        data = np.random.randn(len(key1))
-        data = DataFrame({'key1' : key1, 'key2' : key2,
-                          'data' : data})
-
-        joined = data.join(to_join, on=['key1', 'key2'])
-
-        join_key = Index(zip(key1, key2))
-        indexer = to_join.index.get_indexer(join_key)
-        ex_values = to_join.values.take(indexer, axis=0)
-        ex_values[indexer == -1] = np.nan
-        expected = data.join(DataFrame(ex_values, columns=to_join.columns))
-
-        # TODO: columns aren't in the same order yet
-        assert_frame_equal(joined, expected.ix[:, joined.columns])
 
     def test_join_on_series(self):
         result = self.target.join(self.source['MergedA'], on='C')
@@ -455,6 +356,176 @@ class TestDataFrameJoin(unittest.TestCase):
         joined = a.join(b)
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
+
+    def test_merge_index_singlekey_right_vs_left(self):
+        left = DataFrame({'key' : ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
+                          'v1' : np.random.randn(7)})
+        right = DataFrame({'v2' : np.random.randn(4)},
+                           index=['d', 'b', 'c', 'a'])
+
+        merged1 = merge(left, right, left_on='key',
+                        right_index=True, how='left')
+        merged2 = merge(right, left, right_on='key',
+                        left_index=True, how='right')
+        assert_frame_equal(merged1, merged2.ix[:, merged1.columns])
+
+    def test_merge_index_singlekey_inner(self):
+        left = DataFrame({'key' : ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
+                          'v1' : np.random.randn(7)})
+        right = DataFrame({'v2' : np.random.randn(4)},
+                           index=['d', 'b', 'c', 'a'])
+
+        # inner join
+        result = merge(left, right, left_on='key', right_index=True,
+                       how='inner')
+        expected = left.join(right, on='key').ix[result.index]
+        assert_frame_equal(result, expected)
+
+        result = merge(right, left, right_on='key', left_index=True,
+                       how='inner')
+        expected = left.join(right, on='key').ix[result.index]
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+    def test_merge_misspecified(self):
+        self.assertRaises(Exception, merge, self.left,
+                          self.right, left_index=True)
+        self.assertRaises(Exception, merge, self.left,
+                          self.right, right_index=True)
+
+    def test_merge_overlap(self):
+        merged = merge(self.left, self.left, on='key')
+        exp_len = (self.left['key'].value_counts() ** 2).sum()
+        self.assertEqual(len(merged), exp_len)
+        self.assert_('v1.x' in merged)
+        self.assert_('v1.y' in merged)
+
+    def test_merge_different_column_key_names(self):
+        left = DataFrame({'lkey' : ['foo', 'bar', 'baz', 'foo'],
+                          'value' : [1, 2, 3, 4]})
+        right = DataFrame({'rkey' : ['foo', 'bar', 'qux', 'foo'],
+                           'value' : [5, 6, 7, 8]})
+
+        merged = left.merge(right, left_on='lkey', right_on='rkey',
+                            how='outer')
+
+        assert_almost_equal(merged['lkey'],
+                            ['bar', 'baz', 'foo', 'foo', 'foo', 'foo', np.nan])
+        assert_almost_equal(merged['rkey'],
+                            ['bar', np.nan, 'foo', 'foo', 'foo', 'foo', 'qux'])
+        assert_almost_equal(merged['value.x'], [2, 3, 1, 1, 4, 4, np.nan])
+        assert_almost_equal(merged['value.y'], [6, np.nan, 5, 8, 5, 8, 7])
+
+class TestMergeMulti(unittest.TestCase):
+
+    def setUp(self):
+        self.index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                        ['one', 'two', 'three']],
+                                labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                        [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                                names=['first', 'second'])
+        self.to_join = DataFrame(np.random.randn(10, 3), index=self.index,
+                                 columns=['j_one', 'j_two', 'j_three'])
+
+        # a little relevant example with NAs
+        key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
+                'qux', 'snap']
+        key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
+                'three', 'one']
+
+        data = np.random.randn(len(key1))
+        self.data = DataFrame({'key1' : key1, 'key2' : key2,
+                               'data' : data})
+
+    def test_merge_on_multikey(self):
+        joined = self.data.join(self.to_join, on=['key1', 'key2'])
+
+        join_key = Index(zip(self.data['key1'], self.data['key2']))
+        indexer = self.to_join.index.get_indexer(join_key)
+        ex_values = self.to_join.values.take(indexer, axis=0)
+        ex_values[indexer == -1] = np.nan
+        expected = self.data.join(DataFrame(ex_values,
+                                            columns=self.to_join.columns))
+
+        # TODO: columns aren't in the same order yet
+        assert_frame_equal(joined, expected.ix[:, joined.columns])
+
+    def test_merge_right_vs_left(self):
+        # compare left vs right merge with multikey
+        merged1 = self.data.merge(self.to_join, left_on=['key1', 'key2'],
+                                  right_index=True, how='left')
+        merged2 = self.to_join.merge(self.data, right_on=['key1', 'key2'],
+                                     left_index=True, how='right')
+        merged2 = merged2.ix[:, merged1.columns]
+        assert_frame_equal(merged1, merged2)
+
+def _check_join(left, right, result, join_col, how='left',
+                lsuffix='.x', rsuffix='.y'):
+
+    # some smoke tests
+    for c in join_col:
+        assert(result[c].notnull().all())
+
+    left_grouped = left.groupby(join_col)
+    right_grouped = right.groupby(join_col)
+
+    for group_key, group in result.groupby(join_col):
+        l_joined = _restrict_to_columns(group, left.columns, lsuffix)
+        r_joined = _restrict_to_columns(group, right.columns, rsuffix)
+
+        try:
+            lgroup = left_grouped.get_group(group_key)
+        except KeyError:
+            if how in ('left', 'inner'):
+                raise AssertionError('key %s should not have been in the join'
+                                     % str(group_key))
+
+            _assert_all_na(l_joined, left.columns, join_col)
+        else:
+            _assert_same_contents(l_joined, lgroup)
+
+        try:
+            rgroup = right_grouped.get_group(group_key)
+        except KeyError:
+            if how in ('right', 'inner'):
+                raise AssertionError('key %s should not have been in the join'
+                                     % str(group_key))
+
+            _assert_all_na(r_joined, right.columns, join_col)
+        else:
+            _assert_same_contents(r_joined, rgroup)
+
+
+def _restrict_to_columns(group, columns, suffix):
+    found = [c for c in group.columns
+             if c in columns or c.replace(suffix, '') in columns]
+
+     # filter
+    group = group.ix[:, found]
+
+    # get rid of suffixes, if any
+    group = group.rename(columns=lambda x: x.replace(suffix, ''))
+
+    # put in the right order...
+    group = group.ix[:, columns]
+
+    return group
+
+def _assert_same_contents(join_chunk, source):
+    NA_SENTINEL = -1234567 # drop_duplicates not so NA-friendly...
+
+    jvalues = join_chunk.fillna(NA_SENTINEL).drop_duplicates().values
+    svalues = source.fillna(NA_SENTINEL).drop_duplicates().values
+
+    rows = set(tuple(row) for row in jvalues)
+    assert(len(rows) == len(source))
+    assert(all(tuple(row) in rows for row in svalues))
+
+def _assert_all_na(join_chunk, source_columns, join_col):
+    for c in source_columns:
+        if c in join_col:
+            continue
+        assert(join_chunk[c].isnull().all())
+
 
 def _join_by_hand(a, b, how='left'):
     join_index = a.index.join(b.index, how=how)

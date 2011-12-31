@@ -41,7 +41,7 @@ import pandas.core.datetools as datetools
 import pandas._tseries as lib
 
 #----------------------------------------------------------------------
-# Factory helper methods
+# Docstring templates
 
 _arith_doc = """
 Binary operator %s with support to substitute a fill_value for missing data in
@@ -95,6 +95,65 @@ _numeric_only_doc = """numeric_only : boolean, default None
     everything, then use only numeric data
 """
 
+_merge_doc = """
+Merge DataFrame objects by performing a database-style join operation by
+columns or indexes.
+
+If joining columns on columns, the DataFrame indexes *will be
+ignored*. Otherwise if joining indexes on indexes or indexes on a column or
+columns, the index will be passed on.
+
+Parameters
+----------%s
+right : DataFrame
+how : {'left', 'right', 'outer', 'inner'}, default 'left'
+    * left: use only keys from left frame (SQL: left outer join)
+    * right: use only keys from right frame (SQL: right outer join)
+    * outer: use union of keys from both frames (SQL: full outer join)
+    * inner: use intersection of keys from both frames (SQL: inner join)
+on : label or list
+    Field names to join on. Must be found in both DataFrames.
+left_on : label or list, or array-like
+    Field names to join on in left DataFrame. Can be a vector or list of
+    vectors of the length of the DataFrame to use a particular vector as
+    the join key instead of columns
+right_on : label or list, or array-like
+    Field names to join on in right DataFrame or vector/list of vectors per
+    left_on docs
+left_index : boolean, default True
+    Use the index from the left DataFrame as the join key(s). If it is a
+    MultiIndex, the number of keys in the other DataFrame (either the index
+    or a number of columns) must match the number of levels
+right_index : boolean, default True
+    Use the index from the right DataFrame as the join key. Same caveats as
+    left_index
+sort : boolean, default True
+    Sort the join keys lexicographically in the result DataFrame
+suffixes : 2-length sequence (tuple, list, ...)
+    Suffix to apply to overlapping column names in the left and right
+    side, respectively
+copy : boolean, default True
+    If False, do not copy data unnecessarily
+
+Examples
+--------
+
+A                  B
+
+    lkey value         rkey value
+0   foo  1         0   foo  5
+1   bar  2         1   bar  6
+2   baz  3         2   qux  7
+3   foo  4
+
+merge(A, B, left_on='lkey', right_on='rkey', how='outer')
+
+
+Returns
+-------
+merged : DataFrame
+"""
+
 def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
                   extras=''):
     doc = _stat_doc % {'name' : name,
@@ -102,6 +161,10 @@ def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
                        'na_action' : na_action,
                        'extras' : extras}
     f.__doc__ = doc
+
+
+#----------------------------------------------------------------------
+# Factory helper methods
 
 def _arith_method(func, name, default_axis='columns'):
     def f(self, other, axis=default_axis, level=None, fill_value=None):
@@ -1350,8 +1413,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        (left, right) : (Series, Series)
-            Aligned Series
+        (left, right) : (DataFrame, type of other)
+            Aligned objects
         """
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
@@ -2777,33 +2840,15 @@ class DataFrame(NDFrame):
                      left_index=on is None, right_index=True,
                      suffixes=(lsuffix, rsuffix))
 
-    # def _join_on(self, other, on, how, lsuffix, rsuffix):
-    #     if how not in ('left', 'inner'):  # pragma: no cover
-    #         raise Exception('Only inner / left joins currently supported')
-
-    #     if isinstance(on, (list, tuple)):
-    #         if len(on) == 1:
-    #             join_key = self[on[0]].values
-    #         else:
-    #             join_key = lib.fast_zip([self[k] for k in on])
-    #     elif isinstance(on, np.ndarray) and len(on) == len(self):
-    #         join_key = on
-    #     else:
-    #         join_key = self[on].values
-
-    #     new_data = self._data.join_on(other._data, join_key, how=how, axis=1,
-    #                                   lsuffix=lsuffix, rsuffix=rsuffix)
-    #     return self._constructor(new_data)
-
-    # def _join_index(self, other, how, lsuffix, rsuffix):
-    #     from pandas.tools.merge import join_managers
-
-    #     thisdata, otherdata = self._data._maybe_rename_join(
-    #         other._data, lsuffix, rsuffix, copydata=False)
-
-    #     # this will always ensure copied data
-    #     merged_data = join_managers(thisdata, otherdata, axis=1, how=how)
-    #     return self._constructor(merged_data)
+    def merge(self, right, how='left', on=None, left_on=None, right_on=None,
+              left_index=False, right_index=False, sort=True,
+              suffixes=('.x', '.y'), copy=True):
+        from pandas.tools.merge import merge
+        return merge(self, right, how=how, on=on,
+                     left_on=left_on, right_on=right_on,
+                     left_index=left_index, right_index=right_index, sort=sort,
+                     suffixes=suffixes, copy=copy)
+    if __debug__: merge.__doc__ = _merge_doc % ''
 
     #----------------------------------------------------------------------
     # Statistical methods, etc.

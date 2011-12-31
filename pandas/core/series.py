@@ -1555,7 +1555,10 @@ copy : boolean, default False
 
         new_index, fill_vec = self.index.reindex(index, method=method,
                                                  level=level)
-        new_values = com.take_1d(self.values, fill_vec)
+        if fill_vec is None:
+            new_values = self.values.copy() if copy else self.values
+        else:
+            new_values = com.take_1d(self.values, fill_vec)
         return Series(new_values, index=new_index, name=self.name)
 
     def reindex_like(self, other, method=None):
