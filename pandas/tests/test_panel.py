@@ -960,6 +960,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         renamed_nocopy['foo'] = 3.
         self.assert_((self.panel['ItemA'].values == 3).all())
 
+    def test_get_attr(self):
+        assert_frame_equal(self.panel['ItemA'], self.panel.ItemA)
+
 class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...
