@@ -39,6 +39,10 @@ pandas 0.6.2
 
 **New features / modules**
 
+  - New ``merge`` function for efficiently performing full gamut of database /
+    relational-algebra operations. Refactored existing join methods to use the
+    new infrastructure, resulting in substantial performance gains (GH #220,
+    #249, #267)
   - Handle differently-indexed output values in ``DataFrame.apply`` (GH #498)
   - Can pass list of dicts (e.g., a list of shallow JSON objects) to DataFrame
     constructor (GH #526)

@@ -65,9 +65,7 @@ def merge(left, right, how='left', on=None, left_on=None, right_on=None,
     return op.get_result()
 
 
-# TODO: shortcuts with MultiIndex labels already computed
 # TODO: NA group handling
-# TODO: DONE group column names in result
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
 
