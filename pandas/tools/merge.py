@@ -228,8 +228,14 @@ def _get_keys(frame, on, drop=False):
             keys.append(frame[k].values)
             names.append(k)
 
+
     if drop:
-        frame = frame.drop(to_drop, axis=1)
+        frame = frame.copy()
+        for k in to_drop:
+            del frame[k]
+
+        # this is a bit too expensive...
+        # frame = frame.drop(to_drop, axis=1)
 
     return frame, keys, names
 
@@ -258,14 +264,17 @@ def _get_group_keys(left_keys, right_keys, sort=True):
 
     left_group_key = get_group_index(left_labels, group_sizes)
     right_group_key = get_group_index(right_labels, group_sizes)
-    max_groups = np.prod(group_sizes)
 
-    if max_groups > 1000000:
-        # compress
-        left_group_key, right_group_key, max_groups = \
-            _factorize_int64(left_group_key, right_group_key,
-                             sort=sort)
+    max_groups = 1L
+    for x in group_sizes:
+        max_groups *= long(x)
 
+    if max_groups > 2**63:  # pragma: no cover
+        raise Exception('Combinatorial explosion! (boom)')
+
+    left_group_key, right_group_key, max_groups = \
+        _factorize_int64(left_group_key, right_group_key,
+                         sort=sort)
     return left_group_key, right_group_key, max_groups
 
 

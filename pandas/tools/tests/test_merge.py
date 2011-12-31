@@ -8,7 +8,7 @@ import random
 from pandas import *
 from pandas.tools.merge import merge
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 assert_almost_equal)
+                                 assert_almost_equal, rands)
 import pandas._tseries as lib
 import pandas.util.testing as tm
 
@@ -387,10 +387,13 @@ class TestMerge(unittest.TestCase):
         assert_frame_equal(result, expected.ix[:, result.columns])
 
     def test_merge_misspecified(self):
-        self.assertRaises(Exception, merge, self.left,
-                          self.right, left_index=True)
-        self.assertRaises(Exception, merge, self.left,
-                          self.right, right_index=True)
+        self.assertRaises(Exception, merge, self.left, self.right,
+                          left_index=True)
+        self.assertRaises(Exception, merge, self.left, self.right,
+                          right_index=True)
+
+        self.assertRaises(Exception, merge, self.left, self.left,
+                          left_on='key', on='key')
 
     def test_merge_overlap(self):
         merged = merge(self.left, self.left, on='key')
@@ -457,6 +460,22 @@ class TestMergeMulti(unittest.TestCase):
                                      left_index=True, how='right')
         merged2 = merged2.ix[:, merged1.columns]
         assert_frame_equal(merged1, merged2)
+
+    def test_compress_group_combinations(self):
+
+        # ~ 40000000 possible unique groups
+        key1 = np.array([rands(10) for _ in xrange(10000)], dtype='O')
+        key1 = np.tile(key1, 2)
+        key2 = key1[::-1]
+
+        df = DataFrame({'key1' : key1, 'key2' : key2,
+                        'value1' : np.random.randn(20000)})
+
+        df2 = DataFrame({'key1' : key1[::2], 'key2' : key2[::2],
+                         'value2' : np.random.randn(10000)})
+
+        # just to hit the label compression code path
+        merged = merge(df, df2, how='outer')
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='.x', rsuffix='.y'):
