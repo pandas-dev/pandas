@@ -1597,6 +1597,7 @@ class DataFrame(NDFrame):
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(columns, col_indexer, axis=0)
         elif columns is not None and columns is not new_data.axes[0]:
+            assert(False)
             new_data = new_data.reindex_items(columns)
 
         if copy and new_data is self._data:

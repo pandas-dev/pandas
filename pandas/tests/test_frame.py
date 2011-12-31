@@ -86,6 +86,11 @@ class CheckIndexing(object):
         assert_series_equal(self.frame['B'], data['A'])
         assert_series_equal(self.frame['A'], data['B'])
 
+    def test_setitem_list_not_dataframe(self):
+        data = np.random.randn(len(self.frame), 2)
+        self.frame[['A', 'B']] = data
+        assert_almost_equal(self.frame[['A', 'B']].values, data)
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]
@@ -2151,6 +2156,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(converted, self.mixed_frame)
         self.assert_(converted['A'].dtype == np.float64)
 
+    def test_convert_objects_no_conversion(self):
+        mixed1 = DataFrame({'a': [1,2,3], 'b': [4.0, 5, 6], 'c': ['x','y','z']})
+        mixed2 = mixed1.convert_objects()
+        assert_frame_equal(mixed1, mixed2)
+
     def test_append(self):
         begin_index = self.frame.index[:5]
         end_index = self.frame.index[5:]
@@ -2835,12 +2845,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(af.index.equals(other.index))
 
         # axis = 1
+        other = self.frame.ix[:-5, :3].copy()
         af, bf = self.frame.align(other, axis=1)
         self.assert_(bf.columns.equals(self.frame.columns))
         self.assert_(bf.index.equals(other.index))
 
         af, bf = self.frame.align(other, join='inner', axis=1)
         self.assert_(bf.columns.equals(other.columns))
+
+        # try to align dataframe to series along bad axis
+        self.assertRaises(ValueError, self.frame.align, af.ix[0,:3],
+                          join='inner', axis=2)
 
     #----------------------------------------------------------------------
     # Transposing
@@ -3790,6 +3805,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
         self.assert_(smaller['E'].dtype == np.float64)
+
+    def test_reindex_axis(self):
+        cols = ['A', 'B', 'E']
+        reindexed1 = self.intframe.reindex_axis(cols, axis=1)
+        reindexed2 = self.intframe.reindex(columns=cols)
+        assert_frame_equal(reindexed1, reindexed2)
+
+        rows = self.intframe.index[0:5]
+        reindexed1 = self.intframe.reindex_axis(rows, axis=0)
+        reindexed2 = self.intframe.reindex(index=rows)
+        assert_frame_equal(reindexed1, reindexed2)
+
+        self.assertRaises(ValueError, self.intframe.reindex_axis, rows, axis=2)
+
+        # no-op case
+        cols = self.frame.columns.copy()
+        newFrame = self.frame.reindex_axis(cols, axis=1)
+        assert_frame_equal(newFrame, self.frame)
 
     def test_rename_objects(self):
         renamed = self.mixed_frame.rename(columns=str.upper)
