@@ -122,6 +122,7 @@ pandas 0.7.0
   - Fix outer join between two DateRanges with different offsets that returned
     an invalid DateRange
   - Cleanup DataFrame.from_records failure where index argument is an integer
+  - Fix Data.from_records failure when passed a dictionary
 
 Thanks
 ------

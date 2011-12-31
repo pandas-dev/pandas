@@ -1453,7 +1453,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(records.dtype.names), 2)
         self.assert_('index' not in records.dtype.names)
 
-    def test_from_records_tuples(self):
+    def test_from_records_sequencelike(self):
         df = DataFrame({'A' : np.random.randn(6),
                         'B' : np.arange(6),
                         'C' : ['foo'] * 6,
@@ -1461,11 +1461,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         tuples = [tuple(x) for x in df.values]
         lists = [list(x) for x in tuples]
+        asdict = dict((x,y) for x, y in df.iteritems())
 
         result = DataFrame.from_records(tuples, columns=df.columns)
         result2 = DataFrame.from_records(lists, columns=df.columns)
+        result3 = DataFrame.from_records(asdict, columns=df.columns)
+
         assert_frame_equal(result, df)
         assert_frame_equal(result2, df)
+        assert_frame_equal(result3, df)
 
         result = DataFrame.from_records(tuples)
         self.assert_(np.array_equal(result.columns, range(4)))
@@ -3474,6 +3478,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series(0, index=df.columns)
         assert_series_equal(result, expected)
 
+        df = DataFrame()
+        result = df.count()
+        expected = Series(0, index=[])
+        assert_series_equal(result, expected)
+
     def test_sum(self):
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
 
@@ -3662,6 +3671,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         q = self.tsframe.quantile(0.9, axis=1)
         q = self.intframe.quantile(0.1)
         self.assertEqual(q['A'], scoreatpercentile(self.intframe['A'], 10))
+
+        # test degenerate case
+        q = DataFrame({'x':[],'y':[]}).quantile(0.1, axis=0)
+        assert(np.isnan(q['x']) and np.isnan(q['y']))
 
     def test_cumsum(self):
         self.tsframe.ix[5:10, 0] = nan
@@ -4095,11 +4108,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for skipna in [True, False]:
             for axis in [0, 1]:
                 for df in [frame, self.intframe]:
-                    result = df.idxmax(axis=axis, skipna=skipna)
-                    expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+                    result = df.idxmin(axis=axis, skipna=skipna)
+                    expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
                     assert_series_equal(result, expected)
 
-        self.assertRaises(Exception, frame.idxmax, axis=2)
+        self.assertRaises(Exception, frame.idxmin, axis=2)
 
     def test_idxmax(self):
         frame = self.frame
