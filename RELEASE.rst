@@ -117,6 +117,7 @@ pandas 0.6.2
     MultiIndex (GH #551)
   - Fix outer join between two DateRanges with different offsets that returned
     an invalid DateRange
+  - Cleanup DataFrame.from_records failure where index argument is an integer
 
 Thanks
 ------
