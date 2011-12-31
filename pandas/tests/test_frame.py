@@ -1465,6 +1465,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame.from_records(tuples)
         self.assert_(np.array_equal(result.columns, range(4)))
 
+        # test exclude parameter
+        result = DataFrame.from_records(tuples, exclude=[0,1,3])
+        result.columns = ['C']
+        assert_frame_equal(result, df[['C']])
+
         # empty case
         result = DataFrame.from_records([], columns=['foo', 'bar', 'baz'])
         self.assertEqual(len(result), 0)
@@ -1473,6 +1478,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame.from_records([])
         self.assertEqual(len(result), 0)
         self.assertEqual(len(result.columns), 0)
+
+    def test_from_records_with_index_data(self):
+        df = DataFrame(np.random.randn(10,3), columns=['A', 'B', 'C'])
+
+        data = np.random.randn(10)
+        df1 = DataFrame.from_records(df, index=data)
+        assert(df1.index.equals(Index(data)))
+
+    def test_from_records_bad_index_column(self):
+        df = DataFrame(np.random.randn(10,3), columns=['A', 'B', 'C'])
+
+        # should pass
+        df1 = DataFrame.from_records(df, index=['C'])
+        assert(df1.index.equals(Index(df.C)))
+
+        df1 = DataFrame.from_records(df, index='C')
+        assert(df1.index.equals(Index(df.C)))
+
+        # should fail
+        self.assertRaises(Exception, DataFrame.from_records, df, index=[2])
+        self.assertRaises(KeyError, DataFrame.from_records, df, index=2)
 
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
