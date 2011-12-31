@@ -960,6 +960,20 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         renamed_nocopy['foo'] = 3.
         self.assert_((self.panel['ItemA'].values == 3).all())
 
+    def test_group_agg(self):
+        values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
+        bounds = np.arange(5) * 2
+        f = lambda x: x.mean(axis=0)
+
+        agged = group_agg(values, bounds, f)
+
+        assert(agged[1][0] == 2.5)
+        assert(agged[2][0] == 4.5)
+
+        # test a function that doesn't aggregate
+        f2 = lambda x: np.zeros((2,2))
+        self.assertRaises(Exception, group_agg, values, bounds, f2)
+
 class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...
@@ -1171,17 +1185,6 @@ class TestLongPanel(unittest.TestCase):
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
-
-
-def test_group_agg():
-    values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
-    bounds = np.arange(5) * 2
-    f = lambda x: x.mean(axis=0)
-
-    agged = group_agg(values, bounds, f)
-
-    assert(agged[1][0] == 2.5)
-    assert(agged[2][0] == 4.5)
 
 def test_monotonic():
     pos = np.array([1, 2, 3, 5])

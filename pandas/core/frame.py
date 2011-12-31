@@ -591,7 +591,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        data : ndarray (structured dtype) or list of tuples
+        data : ndarray (structured dtype), list of tuples, or DataFrame
         index : string, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
@@ -627,7 +627,8 @@ class DataFrame(NDFrame):
             columns.remove(col)
 
         if index is not None:
-            if isinstance(index, basestring):
+            if (isinstance(index, basestring) or
+                not hasattr(index, "__iter__")):
                 result_index = sdict.pop(index)
                 columns.remove(index)
             else:
@@ -641,6 +642,9 @@ class DataFrame(NDFrame):
                     result_index = MultiIndex.from_arrays(arrays)
                 except Exception:
                     result_index = index
+        elif isinstance(data, dict) and len(data) > 0:
+            # utilize first element of sdict to get length
+            result_index = np.arange(len(data.values()[0]))
         else:
             result_index = np.arange(len(data))
 
@@ -2680,13 +2684,6 @@ class DataFrame(NDFrame):
 
         return result
 
-    def _apply_level(self, f, level=0, broadcast=False):
-        grouped = self.groupby(level=level)
-        if broadcast:
-            return grouped.transform(f)
-        else:
-            return grouped.agg(f)
-
     def applymap(self, func):
         """
         Apply a function to a DataFrame that is intended to operate
@@ -3031,10 +3028,6 @@ class DataFrame(NDFrame):
                 result = Series(counts, index=frame._get_agg_axis(axis))
             else:
                 result = DataFrame.apply(frame, Series.count, axis=axis)
-
-        # what happens with empty DataFrame
-        if isinstance(result, DataFrame):
-            result = Series({})
 
         return result
 
@@ -3744,7 +3737,7 @@ def _rec_to_dict(arr):
         sdict = dict((k, arr[k]) for k in columns)
     elif isinstance(arr, DataFrame):
         columns = list(arr.columns)
-        sdict = arr._series
+        sdict = dict((k, v.values) for k, v in arr.iteritems())
     elif isinstance(arr, dict):
         columns = sorted(arr)
         sdict = arr.copy()
@@ -3821,18 +3814,6 @@ def _homogenize(data, index, columns, dtype=None):
         homogenized[k] = v
 
     return homogenized
-
-def _get_join_data(left_index, right_index, how, level):
-    # defaults
-    join_index = left_index
-    lidx, ridx = None, None
-
-    if not left_index.equals(right_index):
-        join_index, lidx, ridx = \
-            left_index.join(right_index, how=how, level=level,
-                            return_indexers=True)
-
-    return join_index, lidx, ridx
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)

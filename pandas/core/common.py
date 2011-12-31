@@ -299,8 +299,8 @@ def _possibly_cast_item(obj, item, dtype):
     if chunk.values.dtype != dtype:
         if dtype in (np.object_, np.bool_):
             obj[item] = chunk.astype(np.object_)
-        elif not issubclass(dtype, (np.integer, np.bool_)):
-            obj[item] = chunk.astype(np.object_)
+        elif not issubclass(dtype, (np.integer, np.bool_)): # pragma: no cover
+            raise ValueError("Unexpected dtype encountered: %s" % dtype)
 
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
@@ -672,7 +672,8 @@ def _asarray_tuplesafe(values, dtype=None):
         if isinstance(values, list):
             return lib.list_to_object_array(values)
         else:
-            # give it our best shot
+            # Making a 1D array that safely contains tuples is a bit tricky
+            # in numpy, leading to the following
             result = np.empty(len(values), dtype=object)
             result[:] = values
 

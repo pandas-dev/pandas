@@ -162,6 +162,36 @@ class TestDateRange(unittest.TestCase):
         the_union = self.rng.union(rng)
         self.assert_(not isinstance(the_union, DateRange))
 
+    def test_outer_join(self):
+        """ should behave just as union test"""
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        self.assert_(isinstance(the_join, DateRange))
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_join = left.join(right, how='outer')
+        self.assert_(isinstance(the_join, Index))
+        self.assert_(not isinstance(the_join, DateRange))
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        self.assert_(isinstance(the_join, DateRange))
+
+        # overlapping, but different offset
+        rng = DateRange(START, END, offset=datetools.bmonthEnd)
+
+        the_join = self.rng.join(rng, how='outer')
+        self.assert_(not isinstance(the_join, DateRange))
+
     def test_union_not_cacheable(self):
         rng = DateRange('1/1/2000', periods=50, offset=datetools.Minute())
         rng1 = rng[10:]
