@@ -11,6 +11,7 @@ import operator
 
 from numpy import nan, ndarray
 import numpy as np
+import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
@@ -2036,6 +2037,11 @@ def remove_na(arr):
 
 def _sanitize_array(data, index, dtype=None, copy=False,
                     raise_cast_failure=False):
+    if isinstance(data, ma.MaskedArray):
+        mask = ma.getmaskarray(data)
+        data = ma.copy(data)
+        data[mask] = np.nan
+
     try:
         subarr = np.array(data, dtype=dtype, copy=copy)
     except (ValueError, TypeError):

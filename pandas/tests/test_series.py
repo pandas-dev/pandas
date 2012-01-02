@@ -10,6 +10,7 @@ import nose
 
 from numpy import nan
 import numpy as np
+import numpy.ma as ma
 
 from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
 from pandas.core.index import MultiIndex
@@ -188,6 +189,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
+
+    def test_constructor_maskedarray(self):
+        data = ma.masked_all((3,), dtype=float)
+        result = Series(data)
+        expected = Series([nan, nan, nan])
+        assert_series_equal(result, expected)
+        
+        data[0] = 0.0
+        data[2] = 2.0
+        index = ['a', 'b', 'c']
+        result = Series(data, index=index)
+        expected = Series([0.0, nan, 2.0], index=index)
+        assert_series_equal(result, expected)
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
