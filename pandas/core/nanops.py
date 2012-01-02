@@ -259,11 +259,13 @@ def get_corr_func(method):
 
 def nancov(a, b):
     assert(len(a) == len(b))
-    if len(a) == 0:
-        return np.nan
 
     valid = notnull(a) & notnull(b)
     if not valid.all():
         a = a[valid]
         b = b[valid]
+
+    if len(a) == 0:
+        return np.nan
+
     return np.cov(a, b)[0, 1]
