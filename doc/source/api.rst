@@ -399,6 +399,7 @@ Combining / joining / merging
    :toctree: generated/
 
    DataFrame.join
+   DataFrame.merge
    DataFrame.append
 
 Time series-related

@@ -106,7 +106,7 @@ columns, the index will be passed on.
 Parameters
 ----------%s
 right : DataFrame
-how : {'left', 'right', 'outer', 'inner'}, default 'left'
+how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     * left: use only keys from left frame (SQL: left outer join)
     * right: use only keys from right frame (SQL: right outer join)
     * outer: use union of keys from both frames (SQL: full outer join)
@@ -138,16 +138,21 @@ copy : boolean, default True
 Examples
 --------
 
-A                  B
-
+>>> A              >>> B
     lkey value         rkey value
 0   foo  1         0   foo  5
 1   bar  2         1   bar  6
 2   baz  3         2   qux  7
-3   foo  4
+3   foo  4         3   bar  8
 
-merge(A, B, left_on='lkey', right_on='rkey', how='outer')
-
+>>> merge(A, B, left_on='lkey', right_on='rkey', how='outer')
+   lkey  value.x  rkey  value.y
+0  bar   2        bar   6
+1  bar   2        bar   8
+2  baz   3        NaN   NaN
+3  foo   1        foo   5
+4  foo   4        foo   5
+5  NaN   NaN      qux   7
 
 Returns
 -------
@@ -2837,7 +2842,7 @@ class DataFrame(NDFrame):
                      left_index=on is None, right_index=True,
                      suffixes=(lsuffix, rsuffix))
 
-    def merge(self, right, how='left', on=None, left_on=None, right_on=None,
+    def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=True,
               suffixes=('.x', '.y'), copy=True):
         from pandas.tools.merge import merge

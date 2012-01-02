@@ -57,7 +57,7 @@ join_dataframe_index_single_key_bigger = \
 join_dataframe_index_multi = \
     Benchmark("df.join(df_multi, on=['key1', 'key2'])", setup,
               name='join_dataframe_index_multi',
-              start_date=datetime(2011, 9, 1))
+              start_date=datetime(2011, 10, 20))
 
 #----------------------------------------------------------------------
 # DataFrame joins on index

@@ -14,7 +14,7 @@ import pandas.core.common as com
 
 import pandas._tseries as lib
 
-def merge(left, right, how='left', on=None, left_on=None, right_on=None,
+def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
           suffixes=('.x', '.y'), copy=True):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,

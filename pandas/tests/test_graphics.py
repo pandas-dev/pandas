@@ -36,7 +36,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.plot, label='foo')
         _check_plot_works(self.ts.plot, use_index=False)
         _check_plot_works(self.ts.plot, rot=0)
-        _check_plot_works(self.ts.plot, style='.')
+        _check_plot_works(self.ts.plot, style='.', logy=True)
         _check_plot_works(self.ts[:10].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='bar')
 
