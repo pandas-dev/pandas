@@ -492,6 +492,9 @@ class TestSparseSeries(TestCase,
             expected = expected.reindex(int_indices2).fillna(fill_value)
             assert_almost_equal(expected.values, reindexed.sp_values)
 
+            # make sure level argument asserts
+            expected = expected.reindex(int_indices2).fillna(fill_value)
+
         def _check_with_fill_value(values, first, second, fill_value=nan):
             i_index1 = IntIndex(length, first)
             i_index2 = IntIndex(length, second)
@@ -718,6 +721,9 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         reindexed = self.frame.reindex(idx)
         assert_sp_frame_equal(cons, reindexed)
 
+        # assert level parameter breaks reindex
+        self.assertRaises(Exception, self.frame.reindex, idx, level=0)
+
     def test_constructor_ndarray(self):
         # no index or columns
         sp = SparseDataFrame(self.frame.values)
@@ -726,6 +732,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sp = SparseDataFrame(self.data['A'], index=self.dates,
                              columns=['A'])
         assert_sp_frame_equal(sp, self.frame.reindex(columns=['A']))
+
+        # raise on level argument
+        self.assertRaises(Exception, self.frame.reindex, columns=['A'],
+                          level=1)
 
         # wrong length index / columns
         self.assertRaises(Exception, SparseDataFrame, self.frame.values,
