@@ -23,4 +23,4 @@ ts2 = Series(np.random.randn(sz), idx2)
 stmt = "ts1 + ts2"
 bm_align1 = Benchmark(stmt, setup,
                       name="series_align_int64_index",
-                      start_date=datetime(2010, 6, 1))
+                      start_date=datetime(2010, 6, 1), logy=True)

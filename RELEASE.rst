@@ -38,14 +38,18 @@ pandas 0.7.0
     constructor (GH #526)
   - Add ``reorder_levels`` method to Series and DataFrame (PR #534)
   - Add dict-like ``get`` function to DataFrame and Panel (PR #521)
-  - DataFrame.iterrows method for efficiently iterating through the rows of a
-    DataFrame
+  - ``DataFrame.iterrows`` method for efficiently iterating through the rows of
+    a DataFrame
   - Added ``DataFrame.to_panel`` with code adapted from ``LongPanel.to_long``
   - ``reindex_axis`` method added to DataFrame
   - Add ``level`` option to binary arithmetic functions on ``DataFrame`` and
     ``Series``
   - Add ``level`` option to the ``reindex`` and ``align`` methods on Series and
     DataFrame for broadcasting values across a level (GH #542, PR #552, others)
+  - Add attribute-based item access to ``Panel`` and add IPython completion (PR
+    #563)
+  - Can pass list of dicts to DataFrame constructor (GH #526)
+  - Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
 
 **API Changes**
 
@@ -80,6 +84,8 @@ pandas 0.7.0
     also (GH #536)
   - Default name assignment when calling ``reset_index`` on DataFrame with a
     regular (non-hierarchical) index (GH #476)
+  - Use Cythonized groupers when possible in Series/DataFrame stat ops with
+    ``level`` parameter passed (GH #545)
 
 **Bug fixes**
 
@@ -111,7 +117,7 @@ pandas 0.7.0
   - Fix type inference logic with boolean lists and arrays in DataFrame indexing
   - Use centered sum of squares in R-square computation if entity_effects=True
     in panel regression
-  - Handle all NA case in Series.corr, was raising exception (GH #548)
+  - Handle all NA case in Series.{corr, cov}, was raising exception (GH #548)
   - Aggregating by multiple levels with ``level`` argument to DataFrame, Series
     stat method, was broken (GH #545)
   - Fix Cython buf when converter passed to read_csv produced a numeric array
@@ -123,6 +129,11 @@ pandas 0.7.0
     an invalid DateRange
   - Cleanup DataFrame.from_records failure where index argument is an integer
   - Fix Data.from_records failure when passed a dictionary
+  - Fix NA handling in {Series, DataFrame}.rank with non-floating point dtypes
+  - Fix bug related to integer type-checking in .ix-based indexing
+  - Handle non-string index name passed to DataFrame.from_records
+  - DataFrame.insert caused the columns name(s) field to be discarded (GH #527)
+
 
 Thanks
 ------
@@ -205,6 +216,7 @@ pandas 0.6.1
   - MultiIndex.get_level_values can take the level name
   - More helpful error message when DataFrame.plot fails on one of the columns
     (GH #478)
+  - Improve performance of DataFrame.{index, columns} attribute lookup
 
 **Bug fixes**
 

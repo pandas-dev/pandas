@@ -1657,7 +1657,7 @@ copy : boolean, default False
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', grid=True, **kwds):
+             style='-', grid=True, logy=False, **kwds):
         """
         Plot the input series with the index on the x-axis using matplotlib
 
@@ -1698,7 +1698,10 @@ copy : boolean, default False
             else:
                 x = range(len(self))
 
-            ax.plot(x, self.values.astype(float), style, **kwds)
+            if logy:
+                ax.semilogy(x, self.values.astype(float), style, **kwds)
+            else:
+                ax.plot(x, self.values.astype(float), style, **kwds)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             ax.bar(xinds, self.values.astype(float), 0.5,
