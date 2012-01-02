@@ -486,6 +486,15 @@ def melt(frame, id_vars=None, value_vars=None):
     return DataFrame(mdata, columns=mcolumns)
 
 def make_dummies(data, cat_variables):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    dummies : DataFrame
+    """
     result = data.drop(cat_variables, axis=1)
 
     for variable in cat_variables:

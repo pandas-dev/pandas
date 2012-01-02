@@ -96,7 +96,8 @@ def _unbox(func):
         result = func(self, *args, **kwargs)
         if isinstance(result, np.ndarray) and result.ndim == 0:
             return result.item()
-        return result
+        else:  # pragma: no cover
+            return result
     f.__doc__ = func.__doc__
     f.__name__ = func.__name__
     return f
@@ -267,7 +268,16 @@ copy : boolean, default False
             return self.index._engine.get_value(self, key)
         except KeyError, e1:
             if isinstance(self.index, MultiIndex):
-                return self._multilevel_index(key)
+                values = self.values
+                try:
+                    loc = self.index.get_loc(key)
+                    # TODO: what if a level contains tuples??
+                    new_index = self.index[loc]
+                    new_index = _maybe_droplevels(new_index, key)
+                    return Series(values[loc], index=new_index,
+                                  name=self.name)
+                except KeyError:
+                    pass
 
             try:
                 return _gin.get_value_at(self, key)
@@ -363,22 +373,6 @@ copy : boolean, default False
             new_index = np.concatenate([self.index.values, [label]])
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
-
-    def _multilevel_index(self, key):
-        values = self.values
-        try:
-            loc = self.index.get_loc(key)
-            if isinstance(loc, (slice, np.ndarray)):
-                # TODO: what if a level contains tuples??
-                new_index = self.index[loc]
-                new_index = _maybe_droplevels(new_index, key)
-                return Series(values[loc], index=new_index, name=self.name)
-            else:
-                return values[loc]
-        except KeyError:
-            if isinstance(key, (int, np.integer)):
-                return values[key]
-            raise KeyError('%s not in this series!' % str(key))
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__

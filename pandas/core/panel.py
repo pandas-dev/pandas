@@ -920,26 +920,6 @@ class Panel(NDFrame):
         result = np.apply_along_axis(func, i, self.values)
         return self._wrap_result(result, axis=axis)
 
-    def _array_method(self, func, axis='major', fill_value=None, skipna=True):
-        """
-        Parameters
-        ----------
-        func : numpy function
-            Signature should match numpy.{sum, mean, var, std} etc.
-        axis : {'major', 'minor', 'items'}
-        fill_value : boolean, default True
-            Replace NaN values with specified first
-        skipna : boolean, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        result = self._values_aggregate(func, axis, fill_value, skipna=skipna)
-        return self._wrap_result(result, axis=axis)
-
     def _reduce(self, op, axis=0, skipna=True):
         axis_name = self._get_axis_name(axis)
         axis_number = self._get_axis_number(axis_name)

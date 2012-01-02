@@ -761,6 +761,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                       pos_only=True)
 
         check(self.ts * 2)
+        check(self.ts * 0)
         check(self.ts[::2])
         check(5)
 
@@ -1128,6 +1129,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.ts[:10][::3] = 4.
 
         ranks = self.ts.rank()
+        oranks = self.ts.astype('O').rank()
+
+        assert_series_equal(ranks, oranks)
 
         mask =  np.isnan(self.ts)
         filled = self.ts.fillna(np.inf)

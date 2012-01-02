@@ -100,9 +100,14 @@ def nanskew(values, axis=None, skipna=True, copy=True):
               ((count - 2) * np.sqrt(B) ** 3))
 
     if isinstance(result, np.ndarray):
-        return np.where(B == 0, 0, result)
+        result = np.where(B == 0, 0, result)
+        result[count < 3] = np.nan
+        return result
     else:
-        return 0 if B == 0 else result
+        result = 0 if B == 0 else result
+        if count < 3:
+            return np.nan
+        return result
 
 def nanmin(values, axis=None, skipna=True, copy=True):
     mask = isnull(values)

@@ -72,6 +72,14 @@ class SafeForLongAndSparse(object):
     def test_max(self):
         self._check_stat_op('max', np.max)
 
+    def test_skew(self):
+        from scipy.stats import skew
+        def this_skew(x):
+            if len(x) < 3:
+                return np.nan
+            return skew(x, bias=False)
+        self._check_stat_op('skew', this_skew)
+
     # def test_mad(self):
     #     f = lambda x: np.abs(x - x.mean()).mean()
     #     self._check_stat_op('mad', f)
