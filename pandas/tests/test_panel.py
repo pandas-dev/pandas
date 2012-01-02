@@ -970,6 +970,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_get_attr(self):
         assert_frame_equal(self.panel['ItemA'], self.panel.ItemA)
+
     def test_group_agg(self):
         values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
         bounds = np.arange(5) * 2
