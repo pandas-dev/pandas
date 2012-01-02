@@ -71,7 +71,7 @@ class HDFStore(object):
 
         ``'r'``
             Read-only; no data can be modified.
-        ``'w``'
+        ``'w'``
             Write; a new file is created (an existing file with the same
             name would be deleted).
         ``'a'``
@@ -337,22 +337,6 @@ class HDFStore(object):
     def _read_frame(self, group, where=None):
         return DataFrame(self._read_block_manager(group))
 
-    def _write_long(self, group, panel):
-        if len(panel.values) == 0:
-            raise ValueError('Can not write empty structure, data length was 0')
-        self._write_block_manager(group, panel._data)
-
-    def _read_long(self, group, where=None):
-        items = self._read_index(group, 'items')
-        major_axis = self._read_index(group, 'major_axis')
-        minor_axis = self._read_index(group, 'minor_axis')
-        major_labels = _read_array(group, 'major_labels')
-        minor_labels = _read_array(group, 'minor_labels')
-        values = _read_array(group, 'values')
-        index = MultiIndex(levels=[major_axis, minor_axis],
-                           labels=[major_labels, minor_labels])
-        return DataFrame(values, index=index, columns=items)
-
     def _write_block_manager(self, group, data):
         if not data.is_consolidated():
             data = data.consolidate()
@@ -433,10 +417,7 @@ class HDFStore(object):
             node._v_attrs.name = index.name
 
     def _read_index(self, group, key):
-        try:
-            variety = getattr(group._v_attrs, '%s_variety' % key)
-        except Exception:
-            variety = 'regular'
+        variety = getattr(group._v_attrs, '%s_variety' % key)
 
         if variety == 'multi':
             return self._read_multi_index(group, key)
@@ -488,11 +469,10 @@ class HDFStore(object):
     def _read_index_node(self, node):
         data = node[:]
         kind = node._v_attrs.kind
+        name = None
 
-        try:
+        if 'name' in node._v_attrs:
             name = node._v_attrs.name
-        except Exception:
-            name = None
 
         index = Index(_unconvert_index(data, kind))
         index.name = name
