@@ -67,6 +67,9 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, subplots=True)
         _check_plot_works(df.plot, subplots=True, use_index=False)
 
+        df = DataFrame({'x':[1,2], 'y':[3,4]})
+        self._check_plot_fails(df.plot, kind='line', blarg=True)
+
     @slow
     def test_plot_bar(self):
         df = DataFrame(np.random.randn(6, 4),
@@ -107,6 +110,8 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
 
+    def _check_plot_fails(self, f, *args, **kwargs):
+        self.assertRaises(Exception, f, *args, **kwargs)
 
 PNG_PATH = 'tmp.png'
 
