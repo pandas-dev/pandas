@@ -144,7 +144,7 @@ class BufferedReader(object):
     """
 
     def __init__(self, fh, delimiter=','):
-        pass
+        pass # pragma: no coverage
 
 class BufferedCSVReader(BufferedReader):
     pass
@@ -358,7 +358,7 @@ class TextParser(object):
 
     def get_chunk(self, rows=None):
         if rows is not None and self.skip_footer:
-            print 'skip_footer not supported for iteration'
+            raise ValueError('skip_footer not supported for iteration')
 
         try:
             content = self._get_lines(rows)

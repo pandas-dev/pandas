@@ -52,6 +52,7 @@ ignore,this,row
                          skiprows=[1])
         assert_almost_equal(df2.values, expected)
 
+
     def test_skiprows_bug(self):
         # GH #505
         text = """#foo,a,b,c
@@ -293,9 +294,18 @@ baz|7|8|9
         assert_frame_equal(chunks[1], df[2:4])
         assert_frame_equal(chunks[2], df[4:])
 
+    def test_read_text_list(self):
+        data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
+        as_list = [['A','B','C'],['foo','1','2','3'],['bar','4','5','6']]
+        df = read_csv(StringIO(data), index_col=0)
+
+        parser = TextParser(as_list, index_col=0, chunksize=2)
+        chunk  = parser.get_chunk(None)
+
+        assert_frame_equal(chunk, df)
+
     def test_iterator(self):
         reader = read_csv(StringIO(self.data1), index_col=0, iterator=True)
-
         df = read_csv(StringIO(self.data1), index_col=0)
 
         chunk = reader.get_chunk(3)
@@ -314,6 +324,16 @@ baz|7|8|9
         assert_frame_equal(chunks[0], df[:2])
         assert_frame_equal(chunks[1], df[2:4])
         assert_frame_equal(chunks[2], df[4:])
+
+        # pass skiprows
+        parser = TextParser(lines, index_col=0, chunksize=2, skiprows=[1])
+        chunks = list(parser)
+        assert_frame_equal(chunks[0], df[1:3])
+
+        # test bad parameter (skip_footer)
+        reader = read_csv(StringIO(self.data1), index_col=0, iterator=True,
+                          skip_footer=True)
+        self.assertRaises(ValueError, reader.get_chunk, 3)
 
         treader = read_table(StringIO(self.data1), sep=',', index_col=0,
                              iterator=True)
