@@ -568,6 +568,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = self.ts[:0].to_string(length=0)
         self.assertEqual(result, '')
 
+        # name and length
+        cp = self.ts.copy()
+        cp.name = 'foo'
+        result = cp.to_string(length=True, name=True)
+        last_line = result.split('\n')[-1].strip()
+        self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])

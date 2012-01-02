@@ -1101,11 +1101,13 @@ class TestLongPanel(unittest.TestCase):
                           wp.major_axis[2])
 
     def test_axis_dummies(self):
-        minor_dummies = panelmod.make_axis_dummies(self.panel, 'minor')
+        from pandas.core.reshape import make_axis_dummies
+
+        minor_dummies = make_axis_dummies(self.panel, 'minor')
         self.assertEqual(len(minor_dummies.columns),
                          len(self.panel.index.levels[1]))
 
-        major_dummies = panelmod.make_axis_dummies(self.panel, 'major')
+        major_dummies = make_axis_dummies(self.panel, 'major')
         self.assertEqual(len(major_dummies.columns),
                          len(self.panel.index.levels[0]))
 
@@ -1114,7 +1116,7 @@ class TestLongPanel(unittest.TestCase):
                    'C' : 'two',
                    'D' : 'two'}
 
-        transformed = panelmod.make_axis_dummies(self.panel, 'minor',
+        transformed = make_axis_dummies(self.panel, 'minor',
                                                   transform=mapping.get)
         self.assertEqual(len(transformed.columns), 2)
         self.assert_(np.array_equal(transformed.columns, ['one', 'two']))
@@ -1122,9 +1124,11 @@ class TestLongPanel(unittest.TestCase):
         # TODO: test correctness
 
     def test_get_dummies(self):
+        from pandas.core.reshape import make_column_dummies, make_axis_dummies
+
         self.panel['Label'] = self.panel.index.labels[1]
-        minor_dummies = panelmod.make_axis_dummies(self.panel, 'minor')
-        dummies = panelmod.make_dummies(self.panel, 'Label')
+        minor_dummies = make_axis_dummies(self.panel, 'minor')
+        dummies = make_column_dummies(self.panel, 'Label')
         self.assert_(np.array_equal(dummies.values, minor_dummies.values))
 
     def test_apply(self):

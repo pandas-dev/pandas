@@ -1108,64 +1108,6 @@ class Panel(NDFrame):
 WidePanel = Panel
 LongPanel = DataFrame
 
-def make_dummies(frame, item):
-    """
-    Use unique values in column of panel to construct DataFrame containing
-    dummy variables in the columns (constructed from the unique values)
-
-    Parameters
-    ----------
-    item : object
-        Value in panel items Index
-
-    Returns
-    -------
-    dummies : DataFrame
-    """
-    from pandas import Factor
-    factor = Factor(frame[item].values)
-    values = np.eye(len(factor.levels))
-    dummy_mat = values.take(factor.labels, axis=0)
-    return DataFrame(dummy_mat, columns=factor.levels, index=frame.index)
-
-def make_axis_dummies(frame, axis='minor', transform=None):
-    """
-    Construct 1-0 dummy variables corresponding to designated axis
-    labels
-
-    Parameters
-    ----------
-    axis : {'major', 'minor'}, default 'minor'
-    transform : function, default None
-        Function to apply to axis labels first. For example, to
-        get "day of week" dummies in a time series regression you might
-        call:
-            make_axis_dummies(panel, axis='major',
-                              transform=lambda d: d.weekday())
-    Returns
-    -------
-    dummies : DataFrame
-        Column names taken from chosen axis
-    """
-    numbers = {
-        'major' : 0,
-        'minor' : 1
-    }
-    num = numbers.get(axis, axis)
-
-    items = frame.index.levels[num]
-    labels = frame.index.labels[num]
-    if transform is not None:
-        mapped_items = items.map(transform)
-        factor = Factor(mapped_items.take(labels))
-        labels = factor.labels
-        items = factor.levels
-
-    values = np.eye(len(items), dtype=float)
-    values = values.take(labels, axis=0)
-
-    return DataFrame(values, columns=items, index=frame.index)
-
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
         values = np.asarray(values)

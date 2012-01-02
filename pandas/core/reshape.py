@@ -485,29 +485,80 @@ def melt(frame, id_vars=None, value_vars=None):
     mdata['variable'] = np.asarray(frame.columns).repeat(N)
     return DataFrame(mdata, columns=mcolumns)
 
-def make_dummies(data, cat_variables):
+def convert_dummies(data, cat_variables, prefix_sep='_'):
     """
+    Compute DataFrame with specified columns converted to dummy variables (0 /
+    1). Result columns will be prefixed with the column name, then the level
+    name, e.g. 'A_foo' for column A and level foo
 
     Parameters
     ----------
+    data : DataFrame
+    cat_variables : list-like
+        Must be column names in the DataFrame
+    prefix_sep : string, default '_'
+        String to use to separate column name from dummy level
 
     Returns
     -------
     dummies : DataFrame
     """
     result = data.drop(cat_variables, axis=1)
-
     for variable in cat_variables:
-        dummies = _get_dummy_frame(data, variable)
+        dummies = make_column_dummies(data, variable, prefix=True,
+                                      prefix_sep=prefix_sep)
         result = result.join(dummies)
     return result
 
-def _get_dummy_frame(data, column):
+def make_column_dummies(data, column, prefix=False, prefix_sep='_'):
     from pandas import Factor
-    factor = Factor(data[column])
-    dummy_mat = np.eye(len(factor.levels)).take(factor.labels)
-    dummy_cols = ['%s.%s' % (column, v) for v in factor.levels]
-    dummies = DataFrame(dummy_mat, index=data.index,
-                        columns=dummy_cols)
+    factor = Factor(data[column].values)
+    dummy_mat = np.eye(len(factor.levels)).take(factor.labels, axis=0)
 
+    if prefix:
+        dummy_cols = ['%s%s%s' % (column, prefix_sep, str(v))
+                      for v in factor.levels]
+    else:
+        dummy_cols = factor.levels
+    dummies = DataFrame(dummy_mat, index=data.index, columns=dummy_cols)
     return dummies
+
+def make_axis_dummies(frame, axis='minor', transform=None):
+    """
+    Construct 1-0 dummy variables corresponding to designated axis
+    labels
+
+    Parameters
+    ----------
+    axis : {'major', 'minor'}, default 'minor'
+    transform : function, default None
+        Function to apply to axis labels first. For example, to
+        get "day of week" dummies in a time series regression you might
+        call:
+            make_axis_dummies(panel, axis='major',
+                              transform=lambda d: d.weekday())
+    Returns
+    -------
+    dummies : DataFrame
+        Column names taken from chosen axis
+    """
+    from pandas import Factor
+
+    numbers = {
+        'major' : 0,
+        'minor' : 1
+    }
+    num = numbers.get(axis, axis)
+
+    items = frame.index.levels[num]
+    labels = frame.index.labels[num]
+    if transform is not None:
+        mapped_items = items.map(transform)
+        factor = Factor(mapped_items.take(labels))
+        labels = factor.labels
+        items = factor.levels
+
+    values = np.eye(len(items), dtype=float)
+    values = values.take(labels, axis=0)
+
+    return DataFrame(values, columns=items, index=frame.index)

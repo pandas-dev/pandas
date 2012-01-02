@@ -208,7 +208,7 @@ class PanelOLS(OLS):
         -------
         DataFrame
         """
-        from pandas.core.panel import make_axis_dummies
+        from pandas.core.reshape import make_axis_dummies
 
         if not self._entity_effects:
             return panel
@@ -244,7 +244,7 @@ class PanelOLS(OLS):
         -------
         DataFrame
         """
-        from pandas.core.panel import make_dummies
+        from pandas.core.reshape import make_column_dummies
 
         if not self._x_effects:
             return panel
@@ -254,7 +254,7 @@ class PanelOLS(OLS):
         for effect in self._x_effects:
             self.log('-- Adding fixed effect dummies for %s' % effect)
 
-            dummies = make_dummies(panel, effect)
+            dummies = make_column_dummies(panel, effect, prefix=False)
 
             val_map = cat_mappings.get(effect)
             if val_map:

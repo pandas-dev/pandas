@@ -460,7 +460,7 @@ copy : boolean, default False
         return result
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None, nanRep=None,
-                  length=False):
+                  length=False, name=False):
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -468,7 +468,7 @@ copy : boolean, default False
             na_rep = nanRep
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
-                                  length=length)
+                                  length=length, name=name)
         if buf is None:
             return the_repr
         else:
@@ -1149,13 +1149,7 @@ copy : boolean, default False
             for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
-
-                # not thrilled about this but...
-                try:
-                    res = func(lv, rv)
-                except Exception:
-                    res = np.nan
-                new_values[i] = res
+                new_values[i] = func(lv, rv)
         else:
             new_index = self.index
             new_values = func(self.values, other)
