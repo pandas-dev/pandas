@@ -357,6 +357,19 @@ class TestIndex(unittest.TestCase):
         self.assert_(union_idx.ndim == 1)
         self.assert_(union_idx.equals(expected))
 
+    def test_is_monotonic_incomparable(self):
+        index = Index([5, datetime.now(), 7])
+        self.assert_(not index.is_monotonic)
+
+    def test_get_set_value(self):
+        values = np.random.randn(100)
+        date = self.dateIndex[67]
+
+        assert_almost_equal(self.dateIndex.get_value(values, date),
+                            values[67])
+
+        self.dateIndex.set_value(values, date, 10)
+        self.assertEquals(values[67], 10)
 
 class TestInt64Index(unittest.TestCase):
 
@@ -881,6 +894,9 @@ class TestMultiIndex(unittest.TestCase):
         result = index.truncate(before=1, after=2)
         self.assertEqual(len(result.levels[0]), 2)
 
+        # after < before
+        self.assertRaises(ValueError, index.truncate, 3, 1)
+
     def test_get_indexer(self):
         major_axis = Index(range(4))
         minor_axis = Index(range(2))
@@ -928,7 +944,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(self.index.equal_levels(self.index))
 
         self.assert_(not self.index.equals(self.index[:-1]))
-        self.assert_(not self.index.equals(self.index.get_tuple_index()))
+
+        self.assert_(self.index.equals(self.index.get_tuple_index()))
 
         # different number of levels
         index = MultiIndex(levels=[Index(range(4)),
@@ -1192,6 +1209,31 @@ class TestMultiIndex(unittest.TestCase):
         _check_all(Index(['three', 'one', 'two']))
         _check_all(Index(['one']))
         _check_all(Index(['one', 'three']))
+
+        # some corner cases
+        idx = Index(['three', 'one', 'two'])
+        result = idx.join(self.index, level='second')
+        self.assert_(isinstance(result, MultiIndex))
+
+        self.assertRaises(Exception, self.index.join, self.index, level=1)
+
+    def test_reindex(self):
+        result, indexer = self.index.reindex(list(self.index[:4]))
+        self.assert_(isinstance(result, MultiIndex))
+
+        result, indexer = self.index.reindex(list(self.index))
+        self.assert_(isinstance(result, MultiIndex))
+        self.assert_(indexer is None)
+
+    def test_reindex_level(self):
+        idx = Index(['one'])
+
+        target, indexer = self.index.reindex(idx, level='second')
+        target2, indexer2 = idx.reindex(self.index, idx, level='second')
+
+        exp_index = self.index.join(idx, level='second', how='left')
+        self.assert_(target.equals(exp_index))
+        self.assert_(target2.equals(exp_index))
 
     def test_has_duplicates(self):
         self.assert_(not self.index.has_duplicates)

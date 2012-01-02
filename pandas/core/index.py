@@ -1649,7 +1649,7 @@ class MultiIndex(Index):
             return True
 
         if not isinstance(other, MultiIndex):
-            return False
+            return np.array_equal(self.values, _ensure_index(other))
 
         if self.nlevels != other.nlevels:
             return False

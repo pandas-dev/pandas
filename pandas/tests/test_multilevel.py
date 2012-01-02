@@ -618,6 +618,9 @@ class TestMultiLevel(unittest.TestCase):
         expected = self.ymd.T.swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
         assert_frame_equal(result, expected)
 
+        self.assertRaises(Exception, self.ymd.index.reorder_levels,
+                          [1, 2, 3])
+
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
