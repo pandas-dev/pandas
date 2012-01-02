@@ -2,6 +2,7 @@
 
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex
+import pandas.core.common as com
 
 import numpy as np
 
@@ -153,7 +154,7 @@ class _NDFrameIndexer(object):
             is_int_index = _is_integer_index(labels)
 
             idx = key
-            if _is_int_like(key):
+            if com.is_integer(key):
                 if isinstance(labels, MultiIndex):
                     try:
                         return self._getitem_xs(key, axis=0)
@@ -168,7 +169,7 @@ class _NDFrameIndexer(object):
         else:
             labels = self.obj._get_axis(axis)
             lab = key
-            if _is_int_like(key) and not _is_integer_index(labels):
+            if com.is_integer(key) and not _is_integer_index(labels):
                 lab = labels[key]
             return self._getitem_xs(lab, axis=axis)
 
@@ -248,7 +249,7 @@ class _NDFrameIndexer(object):
 
                 return indexer
         else:
-            if _is_int_like(obj) and not is_int_index:
+            if com.is_integer(obj) and not is_int_index:
                 return obj
             return index.get_loc(obj)
 
@@ -394,10 +395,7 @@ def _is_integer_index(index):
     if len(index) == 0: # pragma: no cover
         return False
     else:
-        return _is_int_like(index[0])
-
-def _is_int_like(val):
-    return isinstance(val, (int, np.integer))
+        return com.is_integer(index[0])
 
 def _is_label_like(key):
     # select a label or row
@@ -412,7 +410,7 @@ def _is_label_slice(labels, obj):
             _ = labels.get_loc(x)
             return False
         except KeyError:
-            return isinstance(x, int) or x is None
+            return com.is_integer(x) or x is None
 
     return not crit(obj.start) or not crit(obj.stop)
 

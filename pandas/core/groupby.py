@@ -151,10 +151,6 @@ class GroupBy(object):
     def _group_shape(self):
         return tuple(len(ping.counts) for ping in self.groupings)
 
-    @property
-    def _agg_stride_shape(self):
-        raise NotImplementedError
-
     def __getattr__(self, attr):
         if hasattr(self.obj, attr):
             return self._make_wrapper(attr)
@@ -228,13 +224,10 @@ class GroupBy(object):
                 yield it
 
     def _multi_iter(self):
-        tipo = type(self.obj)
         data = self.obj
         if (isinstance(self.obj, NDFrame) and
             not isinstance(self.obj, DataFrame)):
             data = self.obj._data
-        elif isinstance(self.obj, Series):
-            tipo = Series
 
         id_list = [ping.ids for ping in self.groupings]
         shape = tuple(len(ids) for ids in id_list)
@@ -357,11 +350,11 @@ class GroupBy(object):
 
         output = {}
         for name, obj in self._iterate_slices():
-            if issubclass(obj.dtype.type, (np.number, np.bool_)):
-                if obj.dtype != np.float64:
-                    obj = obj.astype('f8')
-            else:
+            if not issubclass(obj.dtype.type, (np.number, np.bool_)):
                 continue
+
+            if obj.dtype != np.float64:
+                obj = obj.astype('f8')
 
             result, counts =  cython_aggregate(obj, group_index, shape,
                                                how=how)
@@ -611,7 +604,8 @@ class Grouping(object):
         if self._group_index is None:
             ids = self.ids
             values = np.arange(len(self.ids), dtype='O')
-            self._group_index = Index(lib.lookup_values(values, ids))
+            self._group_index = Index(lib.lookup_values(values, ids),
+                                      name=self.name)
         return self._group_index
 
     def _make_labels(self):
@@ -685,10 +679,6 @@ def _convert_grouper(axis, grouper):
 class SeriesGroupBy(GroupBy):
 
     _cythonized_methods = set(['add', 'mean'])
-
-    @property
-    def _agg_stride_shape(self):
-        return ()
 
     def aggregate(self, func_or_funcs, *args, **kwargs):
         """
@@ -775,10 +765,8 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results)
 
     def _wrap_aggregated_output(self, output, mask):
-        if isinstance(output, dict):
-            # sort of a kludge
-            output = output[self.name]
-
+        # sort of a kludge
+        output = output[self.name]
         index = self._get_multi_index(mask)
         return Series(output, index=index)
 
@@ -874,21 +862,6 @@ def _ravel_names(axes, shape):
     return unrolled
 
 class DataFrameGroupBy(GroupBy):
-
-    @property
-    def _agg_stride_shape(self):
-        if self._column is not None:
-            # ffffff
-            return 1,
-
-        if self.axis == 0:
-            n = len(self.obj.columns)
-        else:
-            n = len(self.obj.index)
-
-        n -= len(self.exclusions)
-
-        return n,
 
     def __getitem__(self, key):
         if self._column is not None:
@@ -988,6 +961,8 @@ class DataFrameGroupBy(GroupBy):
         return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
+        assert(len(self.groupings) == 1)
+
         axis = self.axis
         obj = self._obj_with_exclusions
 
@@ -1008,12 +983,7 @@ class DataFrameGroupBy(GroupBy):
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
 
-        index_name = (self.groupings[0].name
-                      if len(self.groupings) == 1 else None)
-
         result_index = self.groupings[0].group_index
-
-        # result_index = Index(sorted(result), name=index_name)
 
         if result:
             if axis == 0:
@@ -1051,21 +1021,19 @@ class DataFrameGroupBy(GroupBy):
     def _wrap_aggregated_output(self, output, mask):
         agg_axis = 0 if self.axis == 1 else 1
         agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
-        if isinstance(output, dict):
-            if len(output) == len(agg_labels):
-                output_keys = agg_labels
-            else:
-                output_keys = sorted(output)
-                try:
-                    output_keys.sort()
-                except Exception:  # pragma: no cover
-                    pass
 
-                if isinstance(agg_labels, MultiIndex):
-                    output_keys = MultiIndex.from_tuples(output_keys,
-                                                         names=agg_labels.names)
-        else:
+        if len(output) == len(agg_labels):
             output_keys = agg_labels
+        else:
+            output_keys = sorted(output)
+            try:
+                output_keys.sort()
+            except Exception:  # pragma: no cover
+                pass
+
+            if isinstance(agg_labels, MultiIndex):
+                output_keys = MultiIndex.from_tuples(output_keys,
+                                                     names=agg_labels.names)
 
         if not self.as_index:
             result = DataFrame(output, columns=output_keys)

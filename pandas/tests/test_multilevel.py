@@ -280,6 +280,14 @@ class TestMultiLevel(unittest.TestCase):
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         assert_frame_equal(result, expected)
 
+    def test_getitem_slice_not_sorted(self):
+        df = self.frame.sortlevel(1).T
+
+        # buglet with int typechecking
+        result = df.ix[:, :np.int32(3)]
+        expected = df.reindex(columns=df.columns[:3])
+        assert_frame_equal(result, expected)
+
     def test_setitem_change_dtype(self):
         dft = self.frame.T
         s = dft['foo', 'two']
