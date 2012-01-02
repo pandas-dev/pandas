@@ -672,7 +672,8 @@ def _convert_grouper(axis, grouper):
             return grouper.reindex(axis).astype(object)
     elif isinstance(grouper, (list, np.ndarray)):
         assert(len(grouper) == len(axis))
-        return np.asarray(grouper, dtype=object)
+        return grouper
+        # return np.asarray(grouper, dtype=object)
     else:
         return grouper
 

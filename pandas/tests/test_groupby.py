@@ -119,6 +119,14 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+    def test_groupby_nonobject_dtype(self):
+        key = self.mframe.index.labels[0]
+        grouped = self.mframe.groupby(key)
+        result = grouped.sum()
+
+        expected = self.mframe.groupby(key.astype('O')).sum()
+        assert_frame_equal(result, expected)
+
     def test_agg_regression1(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.agg(np.mean)
