@@ -45,6 +45,17 @@ class TestSparseArray(unittest.TestCase):
 
         self.assertRaises(Exception, self.arr.astype, 'i8')
 
+    def test_copy_shallow(self):
+        arr2 = self.arr.copy(deep=False)
+
+        def _get_base(values):
+            base = values.base
+            while base.base is not None:
+                base = base.base
+            return base
+
+        assert(_get_base(arr2) is _get_base(self.arr))
+
     def test_values_asarray(self):
         assert_almost_equal(self.arr.values, self.arr_data)
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
