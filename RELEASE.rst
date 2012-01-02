@@ -86,6 +86,8 @@ pandas 0.7.0
     regular (non-hierarchical) index (GH #476)
   - Use Cythonized groupers when possible in Series/DataFrame stat ops with
     ``level`` parameter passed (GH #545)
+  - Ported skiplist data structure to C to speed up ``rolling_median`` by about
+    5-10x in most typical use cases (GH #374)
 
 **Bug fixes**
 

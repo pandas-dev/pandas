@@ -90,12 +90,12 @@ static void node_destroy(node_t *node) {
       free(node->next);
       free(node->width);
       // printf("Reference count was 1, freeing\n");
+      free(node);
     }
     else {
       node_decref(node);
     }
     // pretty sure that freeing the struct above will be enough
-    // free(node);
   }
 }
 
