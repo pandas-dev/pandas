@@ -9,6 +9,11 @@ New features
 - You can now :ref:`set multiple columns <indexing.columns.multiple>` in a
   DataFrame via ``__getitem__``, useful for transformation (GH342_)
 
+- New ``merge`` :ref:`function <merging.join>` for efficiently performing full
+  gamut of database / relational-algebra operations. Refactored existing join
+  methods to use the new infrastructure, resulting in substantial performance
+  gains (GH220_, GH249_, GH267_)
+
 - Handle differently-indexed output values in ``DataFrame.apply`` (GH498_)
 
 .. ipython:: python
@@ -16,19 +21,13 @@ New features
    df = DataFrame(randn(10, 4))
    df.apply(lambda x: x.describe())
 
-- New ``merge`` function for efficiently performing full gamut of database /
-  relational-algebra operations. Refactored existing join methods to use the
-  new infrastructure, resulting in substantial performance gains (GH220_,
-  GH249_, GH267_)
+- :ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a
+  list of shallow JSON objects) to DataFrame constructor (GH526_)
 
-- Handle differently-indexed output values in ``DataFrame.apply`` (GH498_)
+- :ref:`Add<indexing.reorderlevels>` ``reorder_levels`` method to Series and
+  DataFrame (PR534_)
 
-- Can pass list of dicts (e.g., a list of shallow JSON objects) to DataFrame
-  constructor (GH526_)
-
-- Add ``reorder_levels`` method to Series and DataFrame (PR534_)
-
-- Add dict-like ``get`` function to DataFrame and Panel (PR521_)
+- :ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame and Panel (PR521_)
 
 - ``DataFrame.iterrows`` method for efficiently iterating through the rows of
   a DataFrame
