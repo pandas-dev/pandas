@@ -743,6 +743,7 @@ For instance, a contrived way to transpose the dataframe would be:
    df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
    print df2_t
 
+.. _basics.sorting:
 
 Sorting by index and value
 --------------------------

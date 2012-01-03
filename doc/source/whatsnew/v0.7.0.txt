@@ -146,6 +146,7 @@ similar operation to the above but using a Python function:
 .. _GH439: https://github.com/wesm/pandas/issues/439
 .. _GH476: https://github.com/wesm/pandas/issues/476
 .. _GH489: https://github.com/wesm/pandas/issues/489
+.. _GH492: https://github.com/wesm/pandas/issues/492
 .. _GH496: https://github.com/wesm/pandas/issues/496
 .. _GH497: https://github.com/wesm/pandas/issues/497
 .. _GH498: https://github.com/wesm/pandas/issues/498
