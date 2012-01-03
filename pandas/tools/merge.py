@@ -224,8 +224,8 @@ class _MergeOperation(object):
         if self.left_index:
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [lev.values.take(lab)
-                              for lev, lab in zip(self.left.index.levels,
-                                                  self.left.index.labels)]
+                             for lev, lab in zip(self.left.index.levels,
+                                                 self.left.index.labels)]
             else:
                 left_keys = [self.left.index.values]
         else:

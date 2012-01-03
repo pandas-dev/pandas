@@ -1,13 +1,22 @@
 N <- 10000
 indices = rep(NA, N)
-for (i in 1:N)
+indices2 = rep(NA, N)
+for (i in 1:N) {
   indices[i] <- paste(sample(letters, 10), collapse="")
-
+  indices2[i] <- paste(sample(letters, 10), collapse="")
+}
 left <- data.frame(key=rep(indices, 10),
-                   key2=sample(rep(indices, 10)),
+                   key2=rep(indices2, 10),
                    value=rnorm(100000))
 right <- data.frame(key=indices,
-                    key2=sample(indices),
+                    key2=indices2,
+                    value2=rnorm(10000))
+
+left <- data.frame(key=rep(indices[1:1000], 10),
+                   key2=rep(indices2[1:1000], 10),
+                   value=rnorm(100000))
+right <- data.frame(key=indices[1:1000],
+                    key2=indices2[1:1000],
                     value2=rnorm(10000))
 
 timeit <- function(func, niter=10) {

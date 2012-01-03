@@ -375,11 +375,21 @@ class TestMerge(unittest.TestCase):
                          right_on=['first', 'second'], how='inner',
                          sort=False)
 
+        expected2 = merge(to_join, data,
+                          right_on=['key1', 'key2'], left_index=True,
+                          how='inner', sort=False)
+        assert_frame_equal(joined, expected2.reindex_like(joined))
+
+        expected2 = merge(to_join, data, right_on=['key1', 'key2'],
+                          left_index=True, how='inner', sort=False)
+
         expected = expected.drop(['first', 'second'], axis=1)
         expected.index = joined.index
 
         self.assert_(joined.index.is_monotonic)
         assert_frame_equal(joined, expected)
+
+        # _assert_same_contents(expected, expected2.ix[:, expected.columns])
 
     def test_join_float64_float32(self):
         a = DataFrame(randn(10,2), columns=['a','b'])

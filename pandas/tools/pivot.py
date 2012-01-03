@@ -98,13 +98,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
 
         table_pieces = []
         margin_keys = []
-
-        if len(cols) > 0:
-            grouper = table.groupby(level=0, axis=1)
-        else:
-            grouper = ((k, table[[k]]) for k in table.columns)
-
-        for key, piece in grouper:
+        for key, piece in table.groupby(level=0, axis=1):
             all_key = (key, 'All') + ('',) * (len(cols) - 1)
             piece[all_key] = col_margin[key]
             table_pieces.append(piece)

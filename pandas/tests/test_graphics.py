@@ -94,7 +94,9 @@ class TestDataFramePlots(unittest.TestCase):
         df['indic2'] = ['foo', 'bar', 'foo'] * 2
 
         _check_plot_works(df.boxplot)
-        _check_plot_works(df.boxplot, column='one', by='indic')
+        _check_plot_works(df.boxplot, column=['one', 'two'])
+        _check_plot_works(df.boxplot, column=['one', 'two'],
+                          by='indic')
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
