@@ -266,8 +266,8 @@ This has not been implemented yet, but is due to be implemented soon.
 
 .. _merging.append:
 
-Appending DataFrame objects
----------------------------
+Appending DataFrame objects (row-wise)
+--------------------------------------
 
 Series and DataFrame have an ``append`` method which will glue together objects
 each of whose ``index`` (Series labels or DataFrame rows) is mutually
