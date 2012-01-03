@@ -146,6 +146,32 @@ a uniform random variable on [0,1).
    df = DataFrame(np.random.rand(10,5))
    plt.figure();
 
-   @savefig box_blot_ex.png width=4.5in
+   @savefig box_plot_ex.png width=4.5in
    df.boxplot()
 
+You can create a stratified boxplot using the ``by`` keyword argument to create
+groupings.  For instance,
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+   df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+
+   plot.figure();
+
+   @savefig box_plot_ex2.png width=4.5in
+   df.boxplot(by='X')
+
+You can also pass a subset of columns to plot, as well as group by multiple
+columns:
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(10,3), columns=['Col1', 'Col2', 'Col3'])
+   df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+   df['Y'] = Series(['A','B','A','B','A','B','A','B','A','B'])
+
+   plot.figure();
+
+   @savefig box_plot_ex3.png width=4.5in
+   df.boxplot(column=['Col1','Col2'], by=['X','Y'])

@@ -66,7 +66,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
-    plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.1)
+    plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     return ax
 
 def _stringify(x):
@@ -145,6 +145,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         gp_col = grouped[col]
         plotf(gp_col, ax)
         ax.set_title(col)
+        ax.set_xlabel(str(by))
         ax.grid(grid)
 
     byline = by[0] if len(by) == 1 else by
