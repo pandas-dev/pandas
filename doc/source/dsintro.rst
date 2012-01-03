@@ -500,7 +500,7 @@ Operations with scalars are just as you would expect:
 
 .. _dsintro.boolean:
 
-As of 0.6, boolean operators work:
+Boolean operators work as well:
 
 .. ipython:: python
 

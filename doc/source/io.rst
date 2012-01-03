@@ -27,10 +27,10 @@ Clipboard
 
 .. _io.clipboard:
 
-As of version 0.6, a handy way to grab data is to use the ``read_clipboard``
-method, which takes the contents of the clipboard buffer and passes them to the
-``read_table`` method described in the next section. For instance, you can copy
-the following text to the clipboard (CTRL-C on many operating systems):
+A handy way to grab data is to use the ``read_clipboard`` method, which takes
+the contents of the clipboard buffer and passes them to the ``read_table``
+method described in the next section. For instance, you can copy the following
+text to the clipboard (CTRL-C on many operating systems):
 
 .. code-block:: python
 

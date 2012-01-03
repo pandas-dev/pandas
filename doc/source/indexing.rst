@@ -265,8 +265,8 @@ should be taken instead.
 Dictionary-like ``get`` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As of v0.7, each of Series, DataFrame, and Panel have a ``get`` method which
-can return a default value.
+Each of Series, DataFrame, and Panel have a ``get`` method which can return a
+default value.
 
 .. ipython:: python
 
@@ -623,9 +623,9 @@ mailing list.
 Advanced reindexing and alignment with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As of v0.7, the parameter ``level`` has been added to the ``reindex`` and
-``align`` methods of pandas objects. This is useful to broadcast values across
-a level. For instance:
+The parameter ``level`` has been added to the ``reindex`` and ``align`` methods
+of pandas objects. This is useful to broadcast values across a level. For
+instance:
 
 .. ipython:: python
 

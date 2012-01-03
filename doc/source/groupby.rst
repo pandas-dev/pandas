@@ -177,9 +177,9 @@ number:
 
    s.groupby(level='second').sum()
 
-As of v0.6, the aggregation functions such as ``sum`` will take the level
-parameter directly. Additionally, the resulting index will be named according
-to the chosen level:
+The aggregation functions such as ``sum`` will take the level parameter
+directly. Additionally, the resulting index will be named according to the
+chosen level:
 
 .. ipython:: python
 
