@@ -294,10 +294,10 @@ From a list of dicts
 
 .. ipython:: python
 
-   data = [{'a': 1, 'b': 2}, {'a': 5, 'b': 10, 'c': 20}]
-   DataFrame(data)
-   DataFrame(data, index=['first', 'second'])
-   DataFrame(data, columns=['a', 'b'])
+   data2 = [{'a': 1, 'b': 2}, {'a': 5, 'b': 10, 'c': 20}]
+   DataFrame(data2)
+   DataFrame(data2, index=['first', 'second'])
+   DataFrame(data2, columns=['a', 'b'])
 
 From a Series
 ~~~~~~~~~~~~~
@@ -633,7 +633,7 @@ slightly arbitrary:
 Construction of Panels works about like you would expect:
 
 From 3D ndarray with optional axis labels
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -644,7 +644,7 @@ From 3D ndarray with optional axis labels
 
 
 From dict of DataFrame objects
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -685,7 +685,7 @@ Orient is especially useful for mixed-type DataFrames.
 .. _dsintro.to_panel:
 
 From DataFrame using ``to_panel`` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This method was introduced in v0.7 to replace ``LongPanel.to_long``, and converts
 a DataFrame with a two-level index to a Panel.
