@@ -298,10 +298,9 @@ def _get_multiindex_indexer(join_keys, index, sort=True):
     shape = []
     labels = []
     for level, key in zip(index.levels, join_keys):
-        rizer = lib.DictFactorizer(level.indexMap.copy(), list(level))
-        lab, _ = rizer.factorize(key)
-        labels.append(lab)
-        shape.append(len(rizer.uniques))
+        llab, rlab, count = _factorize_objects(level, key, sort=False)
+        labels.append(rlab)
+        shape.append(count)
 
     left_group_key = get_group_index(labels, shape) #.astype('i4')
     right_group_key = get_group_index(index.labels, shape) #.astype('i4')
