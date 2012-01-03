@@ -260,6 +260,21 @@ should be taken instead.
    df2.drop_duplicates(['a','b'])
    df2.drop_duplicates(['a','b'], take_last=True)
 
+.. _indexing.dictionarylike:
+
+Dictionary-like ``get`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As of v0.7, each of Series, DataFrame, and Panel have a ``get`` method which
+can return a default value.
+
+.. ipython:: python
+
+   s = Series([1,2,3], index=['a','b','c'])
+   s.get('a')               # equivalent to s['a']
+   s.get('x', default=-1)
+
+
 .. _indexing.advanced:
 
 Advanced indexing with labels
@@ -681,6 +696,19 @@ The ``swaplevel`` function can switch the order of two levels:
 
    df[:5]
    df[:5].swaplevel(0, 1, axis=0)
+
+.. _indexing.reorderlevels:
+
+Reordering levels with ``reorder_levels``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``reorder_levels`` function generalizes the ``swaplevel`` function,
+allowing you to permute the hierarchical index levels in one step:
+
+.. ipython:: python
+
+   df[:5].reorder_levels([1,0], axis=0)
+
 
 Some gory internal details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

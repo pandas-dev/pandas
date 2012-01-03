@@ -226,13 +226,8 @@ based on common sense rules.
 Main constructor
 ~~~~~~~~~~~~~~~~
 
-**From a Series**
-
-The result will be a DataFrame with the same index as the input Series, and
-with one column whose name is the original name of the Series (only if no other
-column name provided).
-
-**From dict of Series or dicts**
+From dict of Series or dicts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The result **index** will be the **union** of the indexes of the various
 Series. If there are any nested dicts, these will be first converted to
@@ -262,7 +257,8 @@ The row and column labels can be accessed respectively by accessing the
    df.index
    df.columns
 
-**From dict of ndarrays / lists**
+From dict of ndarrays / lists
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ndarrays must all be the same length. If an index is passed, it must
 clearly also be the same length as the arrays. If no index is passed, the
@@ -275,7 +271,8 @@ result will be ``range(n)``, where ``n`` is the array length.
    DataFrame(d)
    DataFrame(d, index=['a', 'b', 'c', 'd'])
 
-**From structured or record array**
+From structured or record array
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This case is handled identically to a dict of arrays.
 
@@ -292,6 +289,25 @@ This case is handled identically to a dict of arrays.
 
     DataFrame is not intended to work exactly like a 2-dimensional NumPy
     ndarray.
+
+.. _basics.dataframe.from_list_of_dicts:
+
+From a list of dicts
+~~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+
+   data = [{'a': 1, 'b': 2}, {'a': 5, 'b': 10, 'c': 20}]
+   DataFrame(data)
+   DataFrame(data, index=['first', 'second'])
+   DataFrame(data, columns=['a', 'b'])
+
+From a Series
+~~~~~~~~~~~~~
+
+The result will be a DataFrame with the same index as the input Series, and
+with one column whose name is the original name of the Series (only if no other
+column name provided).
 
 **Missing Data**
 
