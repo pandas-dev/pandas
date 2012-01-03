@@ -618,6 +618,29 @@ but as you use it you may uncover corner cases or unintuitive behavior. If you
 do find something like this, do not hesitate to report the issue or ask on the
 mailing list.
 
+.. _indexing.advanced_reindex:
+
+Advanced reindexing and alignment with hierarchical index
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As of v0.7, the parameter ``level`` has been added to the ``reindex`` and
+``align`` methods of pandas objects. This is useful to broadcast values across
+a level. For instance:
+
+.. ipython:: python
+
+   midx = MultiIndex(levels=[['one', 'two'], ['x','y']],
+                     labels=[[1,1,0,0],[1,0,1,0]])
+   df = DataFrame(randn(4,2), index=midx)
+   print df
+   df2 = df.mean(level=0)
+   print df2
+   print df2.reindex(df.index, level=0)
+   df_aligned, df2_aligned = df.align(df2, level=0)
+   print df_aligned
+   print df2_aligned
+
+
 The need for sortedness
 ~~~~~~~~~~~~~~~~~~~~~~~
 

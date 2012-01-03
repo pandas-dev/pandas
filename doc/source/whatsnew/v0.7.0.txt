@@ -29,25 +29,26 @@ New features
 
 - :ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame and Panel (PR521_)
 
-- ``DataFrame.iterrows`` method for efficiently iterating through the rows of
-  a DataFrame
+- :ref:`Add<basics.iterrows>` ``DataFrame.iterrows`` method for efficiently
+  iterating through the rows of a DataFrame
 
-- Added ``DataFrame.to_panel`` with code adapted from ``LongPanel.to_long``
+- :ref:`Add<dsintro.to_panel>` ``DataFrame.to_panel`` with code adapted from
+  ``LongPanel.to_long``
 
-- ``reindex_axis`` method added to DataFrame
+- :ref:`Add <basics.reindexing>` ``reindex_axis`` method added to DataFrame
 
-- Add ``level`` option to binary arithmetic functions on ``DataFrame`` and
-  ``Series``
+- :ref:`Add <basics.stats>` ``level`` option to binary arithmetic functions on
+  ``DataFrame`` and ``Series``
 
-- Add ``level`` option to the ``reindex`` and ``align`` methods on Series and
-  DataFrame for broadcasting values across a level (GH542_, PR552_, others)
+- :ref:`Add <indexing.advanced_reindex>` ``level`` option to the ``reindex``
+  and ``align`` methods on Series and DataFrame for broadcasting values across
+  a level (GH542_, PR552_, others)
 
-- Add attribute-based item access to ``Panel`` and add IPython completion
-  (PR563_)
+- :ref:`Add <dsintro.panel_item_selection>` attribute-based item access to
+  ``Panel`` and add IPython completion (PR563_)
 
-- Can pass list of dicts to DataFrame constructor (GH526_)
-
-- Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
+- :ref:`Add <visualization.basic>` ``logy`` option to ``Series.plot`` for
+  log-scaling on the Y axis
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -113,14 +114,13 @@ similar operation to the above but using a Python function:
    :width: 6in
 
 - Better error message in DataFrame constructor when passed column labels
-  don't match data (GH #497)
+  don't match data (GH497_)
 - Substantially improve performance of multi-GroupBy aggregation when a
-  Python function is passed, reuse ndarray object in Cython (GH #496)
-- Can store objects indexed by tuples and floats in HDFStore (GH #492)
-- Don't print length by default in Series.to_string, add `length` option (GH
-  #489)
+  Python function is passed, reuse ndarray object in Cython (GH496_)
+- Can store objects indexed by tuples and floats in HDFStore (GH492_)
+- Don't print length by default in Series.to_string, add `length` option (GH489_)
 - Improve Cython code for multi-groupby to aggregate without having to sort
-  the data (GH #93)
+  the data (GH93_)
 - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,
   test for backwards unpickling compatibility
 - Improve column reindexing performance by using specialized Cython take
@@ -130,25 +130,33 @@ similar operation to the above but using a Python function:
   regression from prior versions
 - Friendlier error message in setup.py if NumPy not installed
 - Use common set of NA-handling operations (sum, mean, etc.) in Panel class
-  also (GH #536)
+  also (GH536_)
 - Default name assignment when calling ``reset_index`` on DataFrame with a
-  regular (non-hierarchical) index (GH #476)
+  regular (non-hierarchical) index (GH476_)
 - Use Cythonized groupers when possible in Series/DataFrame stat ops with
-  ``level`` parameter passed (GH #545)
+  ``level`` parameter passed (GH545_)
 - Ported skiplist data structure to C to speed up ``rolling_median`` by about
-  5-10x in most typical use cases (GH #374)
+  5-10x in most typical use cases (GH374_)
 
 .. _GH220: https://github.com/wesm/pandas/issues/220
 .. _GH249: https://github.com/wesm/pandas/issues/249
 .. _GH267: https://github.com/wesm/pandas/issues/267
 .. _GH342: https://github.com/wesm/pandas/issues/342
+.. _GH374: https://github.com/wesm/pandas/issues/374
 .. _GH439: https://github.com/wesm/pandas/issues/439
+.. _GH476: https://github.com/wesm/pandas/issues/476
+.. _GH489: https://github.com/wesm/pandas/issues/489
 .. _GH496: https://github.com/wesm/pandas/issues/496
+.. _GH497: https://github.com/wesm/pandas/issues/497
 .. _GH498: https://github.com/wesm/pandas/issues/498
 .. _GH526: https://github.com/wesm/pandas/issues/526
+.. _GH536: https://github.com/wesm/pandas/issues/536
 .. _GH542: https://github.com/wesm/pandas/issues/542
+.. _GH545: https://github.com/wesm/pandas/issues/545
+.. _GH93: https://github.com/wesm/pandas/issues/93
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _PR521: https://github.com/wesm/pandas/pull/521
 .. _PR534: https://github.com/wesm/pandas/pull/534
 .. _PR552: https://github.com/wesm/pandas/pull/552
+.. _PR554: https://github.com/wesm/pandas/pull/554
 .. _PR563: https://github.com/wesm/pandas/pull/563
