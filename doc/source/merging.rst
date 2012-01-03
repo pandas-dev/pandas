@@ -69,7 +69,7 @@ Here's a description of what each argument is for:
 DataFrame instance method, with the calling DataFrame being implicitly
 considered the left object in the join.
 
-The related ``DataFrame.join``, uses ``merge`` internally for the
+The related ``DataFrame.join`` method, uses ``merge`` internally for the
 index-on-index and index-on-column(s) joins, but *joins on indexes* by default
 rather than trying to join on common columns (the default behavior for
 ``merge``). If you are joining on index, you may wish to use ``DataFrame.join``
@@ -172,10 +172,20 @@ indexes:
 Joining key columns on an index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``join`` takes an optional ``on`` argument which should be a column name in the
-calling DataFrame which will be used to "align" the passed DataFrame. The
-joining currently aligns the calling DataFrame's column (or columns) on the
-passed DataFrame's index. This is best illustrated by example:
+``join`` takes an optional ``on`` argument which may be a column or multiple
+column names, which specifies that the passed DataFrame is to be aligned on
+that column in the DataFrame. These two function calls are completely
+equivalent:
+
+::
+
+    left.join(right, on=key_or_keys)
+    merge(left, right, left_on=key_or_keys, right_index=True,
+          how='left', sort=False)
+
+Obviously you can choose whichever form you find more convenient. For
+many-to-one joins (where one of the DataFrame's is already indexed by the join
+key), using ``join`` may be more convenient. Here is a simple example:
 
 .. ipython:: python
 
@@ -185,6 +195,8 @@ passed DataFrame's index. This is best illustrated by example:
    df
    to_join
    df.join(to_join, on='key')
+   merge(df, to_join, left_on='key', right_index=True,
+         how='left', sort=False)
 
 .. _merging.multikey_join:
 
@@ -212,6 +224,7 @@ To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
    data
    to_join
 
+Now this can be joined by passing the two key column names:
 
 .. ipython:: python
 
@@ -219,14 +232,16 @@ To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
 
 .. _merging.df_inner_join:
 
-This is by default a "many-to-one" or "VLOOKUP"-style left join operation. An
-inner join is also supported:
+The default for ``DataFrame.join`` is to perform a left join (essentially a
+"VLOOKUP" operation, for Excel users), which uses only the keys found in the
+calling DataFrame. Other join types, for example inner join, can be just as
+easily performed:
 
 .. ipython:: python
 
    data.join(to_join, on=['key1', 'key2'], how='inner')
 
-This drops any rows where there was no match.
+As you can see, this drops any rows where there was no match.
 
 Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -235,11 +250,14 @@ The merge ``suffixes`` argument takes a tuple of list of strings to append to
 overlapping column names in the input DataFrames to disambiguate the result
 columns:
 
+.. ipython:: python
+
    left = DataFrame({'key': ['foo', 'foo'], 'value': [1, 2]})
    right = DataFrame({'key': ['foo', 'foo'], 'value': [4, 5]})
    merge(left, right, on='key', suffixes=['_left', '_right'])
 
-``DataFrame.join`` has ``lsuffix`` and ``rsuffix`` arguments
+``DataFrame.join`` has ``lsuffix`` and ``rsuffix`` arguments which behave
+similarly.
 
 Joining multiple DataFrame objects at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

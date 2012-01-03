@@ -700,7 +700,6 @@ cdef class DictFactorizer:
             Py_ssize_t idx, count = self.count
             int ret
             object val
-            khiter_t k
 
         labels = np.empty(n, dtype=np.int32)
         counts = np.empty(count + n, dtype=np.int32)

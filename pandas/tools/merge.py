@@ -109,7 +109,7 @@ class _MergeOperation(object):
                        len(self.left_join_keys) == right_ax.nlevels)
 
                 right_indexer = _get_multiindex_indexer(self.left_join_keys,
-                                                        right_ax)
+                                                        right_ax, sort=False)
             else:
                 right_indexer = right_ax.get_indexer(self.left_join_keys[0])
 
@@ -121,14 +121,12 @@ class _MergeOperation(object):
                 assert(isinstance(left_ax, MultiIndex) and
                        len(self.right_join_keys) == left_ax.nlevels)
                 left_indexer = _get_multiindex_indexer(self.right_join_keys,
-                                                       left_ax)
+                                                       left_ax, sort=False)
             else:
                 left_indexer = left_ax.get_indexer(self.right_join_keys[0])
         else:
             # max groups = largest possible number of distinct groups
-            left_key, right_key, max_groups = \
-                _get_group_keys(self.left_join_keys, self.right_join_keys,
-                                sort=self.sort)
+            left_key, right_key, max_groups = self._get_group_keys()
 
             join_func = _join_functions[self.how]
             left_indexer, right_indexer = join_func(left_key.astype('i4'),
@@ -199,21 +197,77 @@ class _MergeOperation(object):
             self.drop_keys = True
 
         # this is a touch kludgy, but accomplishes the goal
-        if self.right_on is not None:
-            self.right, right_keys, right_names = \
-                _get_keys(self.right, self.right_on, drop=self.drop_keys)
-            join_names = right_names
-        else:
-            right_keys = [self.right.index.values]
-
+        left_keys = None
         if self.left_on is not None:
             self.left, left_keys, left_names = \
                 _get_keys(self.left, self.left_on, drop=self.drop_keys)
             join_names = left_names
-        else:
-            left_keys = [self.left.index.values]
+
+        right_keys = None
+        if self.right_on is not None:
+            self.right, right_keys, right_names = \
+                _get_keys(self.right, self.right_on, drop=self.drop_keys)
+            join_names = right_names
 
         return left_keys, right_keys, join_names
+
+    def _get_group_keys(self):
+        """
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
+        if self.left_index:
+            if isinstance(self.left.index, MultiIndex):
+                left_keys = [lev.values.take(lab)
+                              for lev, lab in zip(self.left.index.levels,
+                                                  self.left.index.labels)]
+            else:
+                left_keys = [self.left.index.values]
+        else:
+            left_keys = self.left_join_keys
+
+        if self.right_index:
+            if isinstance(self.right.index, MultiIndex):
+                right_keys = [lev.values.take(lab)
+                              for lev, lab in zip(self.right.index.levels,
+                                                  self.right.index.labels)]
+            else:
+                right_keys = [self.right.index.values]
+        else:
+            right_keys = self.right_join_keys
+
+        assert(len(left_keys) == len(right_keys))
+
+        left_labels = []
+        right_labels = []
+        group_sizes = []
+
+        for lk, rk in zip(left_keys, right_keys):
+            llab, rlab, count = _factorize_objects(lk, rk, sort=self.sort)
+
+            left_labels.append(llab)
+            right_labels.append(rlab)
+            group_sizes.append(count)
+
+        left_group_key = get_group_index(left_labels, group_sizes)
+        right_group_key = get_group_index(right_labels, group_sizes)
+
+        max_groups = 1L
+        for x in group_sizes:
+            max_groups *= long(x)
+
+        if max_groups > 2**63:  # pragma: no cover
+            raise Exception('Combinatorial explosion! (boom)')
+
+        left_group_key, right_group_key, max_groups = \
+            _factorize_int64(left_group_key, right_group_key,
+                             sort=self.sort)
+        return left_group_key, right_group_key, max_groups
 
 def _get_keys(frame, on, drop=False):
     to_drop = []
@@ -239,46 +293,8 @@ def _get_keys(frame, on, drop=False):
 
     return frame, keys, names
 
-def _get_group_keys(left_keys, right_keys, sort=True):
-    """
 
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    assert(len(left_keys) == len(right_keys))
-
-    left_labels = []
-    right_labels = []
-    group_sizes = []
-
-    for lk, rk in zip(left_keys, right_keys):
-        llab, rlab, count = _factorize_objects(lk, rk, sort=sort)
-
-        left_labels.append(llab)
-        right_labels.append(rlab)
-        group_sizes.append(count)
-
-    left_group_key = get_group_index(left_labels, group_sizes)
-    right_group_key = get_group_index(right_labels, group_sizes)
-
-    max_groups = 1L
-    for x in group_sizes:
-        max_groups *= long(x)
-
-    if max_groups > 2**63:  # pragma: no cover
-        raise Exception('Combinatorial explosion! (boom)')
-
-    left_group_key, right_group_key, max_groups = \
-        _factorize_int64(left_group_key, right_group_key,
-                         sort=sort)
-    return left_group_key, right_group_key, max_groups
-
-
-def _get_multiindex_indexer(join_keys, index):
+def _get_multiindex_indexer(join_keys, index, sort=True):
     shape = []
     labels = []
     for level, key in zip(index.levels, join_keys):
@@ -287,14 +303,24 @@ def _get_multiindex_indexer(join_keys, index):
         labels.append(lab)
         shape.append(len(rizer.uniques))
 
-    left_group_key = get_group_index(labels, shape).astype('i4')
-    right_group_key = get_group_index(index.labels, shape).astype('i4')
+    left_group_key = get_group_index(labels, shape) #.astype('i4')
+    right_group_key = get_group_index(index.labels, shape) #.astype('i4')
+
+    left_group_key, right_group_key, max_groups = \
+        _factorize_int64(left_group_key, right_group_key,
+                         sort=sort)
+
     left_indexer, right_indexer = \
-        lib.left_outer_join(left_group_key, right_group_key,
-                            np.prod(shape))
+        lib.left_outer_join(left_group_key.astype('i4'),
+                            right_group_key.astype('i4'),
+                            max_groups)
+
+    return right_indexer
+
+    # after refactorizing, I don't think reordering is necessary
 
     # NOW! reorder
-    return right_indexer.take(left_indexer.argsort())
+    #right_indexer.take(left_indexer.argsort())
 
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):

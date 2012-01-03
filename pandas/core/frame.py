@@ -2840,7 +2840,7 @@ class DataFrame(NDFrame):
 
         return merge(self, other, left_on=on, how=how,
                      left_index=on is None, right_index=True,
-                     suffixes=(lsuffix, rsuffix))
+                     suffixes=(lsuffix, rsuffix), sort=False)
 
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=True,

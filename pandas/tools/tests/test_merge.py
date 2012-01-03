@@ -347,8 +347,39 @@ class TestMerge(unittest.TestCase):
         joined = df1.join(df2, how='outer').sortlevel(0)
         ex_index = index1.get_tuple_index() + index2.get_tuple_index()
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
+
+    def test_join_inner_multiindex(self):
+        key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
+               'qux', 'snap']
+        key2 = ['two', 'one', 'three', 'one', 'two', 'one', 'two', 'two',
+               'three', 'one']
+
+        data = np.random.randn(len(key1))
+        data = DataFrame({'key1' : key1, 'key2' : key2,
+                         'data' : data})
+
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        to_join = DataFrame(np.random.randn(10, 3), index=index,
+                            columns=['j_one', 'j_two', 'j_three'])
+
+        joined = data.join(to_join, on=['key1', 'key2'], how='inner')
+        expected = merge(data, to_join.reset_index(),
+                         left_on=['key1', 'key2'],
+                         right_on=['first', 'second'], how='inner',
+                         sort=False)
+
+        expected = expected.drop(['first', 'second'], axis=1)
+        expected.index = joined.index
+
+        self.assert_(joined.index.is_monotonic)
+        assert_frame_equal(joined, expected)
 
     def test_join_float64_float32(self):
         a = DataFrame(randn(10,2), columns=['a','b'])
