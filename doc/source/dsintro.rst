@@ -16,7 +16,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    import numpy as np
    from pandas import *
    randn = np.random.randn
-   np.set_printoptions(precision=4, suppress=True, max_columns=10)
+   np.set_printoptions(precision=4, suppress=True, max_columns=8)
 
 .. ipython:: python
 
@@ -222,9 +222,6 @@ not matching up to the passed index.
 
 If axis labels are not passed, they will be constructed from the input data
 based on common sense rules.
-
-Main constructor
-~~~~~~~~~~~~~~~~
 
 From dict of Series or dicts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -564,7 +561,7 @@ R package):
 .. ipython:: python
 
    baseball = read_csv('data/baseball.csv')
-   baseball
+   print baseball
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:
@@ -635,7 +632,8 @@ slightly arbitrary:
 
 Construction of Panels works about like you would expect:
 
-**3D ndarray with optional axis labels**
+From 3D ndarray with optional axis labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -645,7 +643,8 @@ Construction of Panels works about like you would expect:
    wp
 
 
-**dict of DataFrame objects**
+From dict of DataFrame objects
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -683,6 +682,22 @@ Orient is especially useful for mixed-type DataFrames.
    on, of course, in future releases. And faster if you join me in working on
    the codebase.
 
+.. _dsintro.to_panel:
+
+From DataFrame using ``to_panel`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This method was introduced in v0.7 to replace ``LongPanel.to_long``, and converts
+a DataFrame with a two-level index to a Panel.
+
+.. ipython:: python
+
+   midx = MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
+   df = DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
+   df.to_panel()
+
+.. _dsintro.panel_item_selection:
+
 Item selection / addition / deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -694,7 +709,9 @@ of DataFrames:
    wp['Item1']
    wp['Item3'] = wp['Item1'] / wp['Item2']
 
-The API for insertion and deletion is the same as for DataFrame.
+The API for insertion and deletion is the same as for DataFrame. And as with
+DataFrame, if the item is a valid python identifier, you can access it as an
+attribute and tab-complete it in IPython.
 
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~

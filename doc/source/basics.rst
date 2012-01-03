@@ -262,7 +262,9 @@ values:
 
    df.cumsum()
 
-Here is a quick reference summary table of common functions
+Here is a quick reference summary table of common functions. Each also takes an
+optional ``level`` parameter which applies only if the object has a
+:ref:`hierarchical index<indexing.hierarchical>`.
 
 .. csv-table::
     :header: "Function", "Description"
@@ -482,6 +484,9 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df
    df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
 
+For convenience, you may utilize the ``reindex_axis`` method, which takes the
+labels and a keyword ``axis`` paramater.
+
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
 following can be done:
@@ -533,6 +538,9 @@ make this simpler:
    df
    df2
    df.reindex_like(df2)
+
+Reindexing with ``reindex_axis``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _basics.align:
 
@@ -716,6 +724,25 @@ For example:
       ...:     print item
       ...:     print frame
       ...:
+
+
+.. _basics.iterrows:
+
+iterrows
+~~~~~~~~
+
+New in v0.7 is the ability to iterate efficiently through rows of a DataFrame.
+For instance, a contrived way to transpose the dataframe would be:
+
+.. ipython:: python
+
+   df2 = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+   print df2
+   print df2.T
+
+   df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
+   print df2_t
+
 
 Sorting by index and value
 --------------------------

@@ -47,8 +47,7 @@ pandas 0.7.0
   - Add ``level`` option to the ``reindex`` and ``align`` methods on Series and
     DataFrame for broadcasting values across a level (GH #542, PR #552, others)
   - Add attribute-based item access to ``Panel`` and add IPython completion (PR
-    #563)
-  - Can pass list of dicts to DataFrame constructor (GH #526)
+    #554)
   - Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
 
 **API Changes**

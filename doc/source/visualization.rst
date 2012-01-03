@@ -79,6 +79,19 @@ Some other options are available, like plotting each Series on a different axis:
    @savefig frame_plot_subplots.png width=4.5in
    df.plot(subplots=True, figsize=(8, 8)); plt.legend(loc='best')
 
+You may pass ``logy`` to get a log-scale Y axis.
+
+.. ipython:: python
+
+   plt.figure();
+
+   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = np.exp(ts.cumsum())
+
+   @savefig series_plot_logy.png width=4.5in
+   ts.plot(logy=True)
+
+
 Targeting different subplots
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

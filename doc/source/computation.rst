@@ -331,14 +331,12 @@ Generally speaking, the ``ols`` works by being given a ``y`` (response) object
 and an ``x`` (predictors) object. These can take many forms:
 
   - ``y``: a Series, ndarray, or DataFrame (panel model)
-  - ``x``: Series, DataFrame, dict of Series, dict of DataFrame, Panel,
-    LongPanel
+  - ``x``: Series, DataFrame, dict of Series, dict of DataFrame or Panel
 
 Based on the types of ``y`` and ``x``, the model will be inferred to either a
 panel model or a regular linear model. If the ``y`` variable is a DataFrame,
 the result will be a panel model. In this case, the ``x`` variable must either
-be a Panel, LongPanel, or a dict of DataFrame (which will be coerced into a
-Panel).
+be a Panel, or a dict of DataFrame (which will be coerced into a Panel).
 
 Standard OLS regression
 ~~~~~~~~~~~~~~~~~~~~~~~

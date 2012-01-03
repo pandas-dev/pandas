@@ -1560,7 +1560,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df.reindex(['A', 'B', 'C'], axis=1)
+        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
 
         See also
         --------
