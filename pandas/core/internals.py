@@ -115,7 +115,7 @@ class Block(object):
             new_values.fill(np.nan)
         return make_block(new_values, self.items, self.ref_items)
 
-    def reindex_items_from(self, new_ref_items):
+    def reindex_items_from(self, new_ref_items, copy=True):
         """
         Reindex to only those items contained in the input set of items
 
@@ -129,7 +129,7 @@ class Block(object):
         new_ref_items, indexer = self.items.reindex(new_ref_items)
         if indexer is None:
             new_items = new_ref_items
-            new_values = self.values.copy()
+            new_values = self.values.copy() if copy else self.values
         else:
             mask = indexer != -1
             masked_idx = indexer[mask]
@@ -719,7 +719,7 @@ class BlockManager(object):
 
         return BlockManager(new_blocks, [new_items] + self.axes[1:])
 
-    def reindex_items(self, new_items):
+    def reindex_items(self, new_items, copy=True):
         """
 
         """
@@ -732,13 +732,20 @@ class BlockManager(object):
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)
 
+        # could have some pathological (MultiIndex) issues here
         new_blocks = []
-        for block in self.blocks:
-            newb = block.reindex_items_from(new_items)
-            if len(newb.items) > 0:
-                new_blocks.append(newb)
+        if indexer is None:
+            for blk in self.blocks:
+                if copy:
+                    new_blocks.append(blk.reindex_items_from(new_items))
+                else:
+                    new_blocks.append(blk)
+        else:
+            for block in self.blocks:
+                newb = block.reindex_items_from(new_items, copy=copy)
+                if len(newb.items) > 0:
+                    new_blocks.append(newb)
 
-        if indexer is not None:
             mask = indexer == -1
             if mask.any():
                 extra_items = new_items[mask]

@@ -88,6 +88,8 @@ pandas 0.7.0
     ``level`` parameter passed (GH #545)
   - Ported skiplist data structure to C to speed up ``rolling_median`` by about
     5-10x in most typical use cases (GH #374)
+  - Some performance enhancements in constructing a Panel from a dict of
+    DataFrame objects
 
 **Bug fixes**
 
