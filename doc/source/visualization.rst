@@ -148,8 +148,8 @@ subplots:
 Box-Plotting
 ~~~~~~~~~~~~
 
-As of version 0.6.0, DataFrame has a ``boxplot`` method which allows you to
-visualize the distribution of values within each column.
+DataFrame has a ``boxplot`` method which allows you to visualize the
+distribution of values within each column.
 
 For instance, here is a boxplot representing five trials of 10 observations of
 a uniform random variable on [0,1).

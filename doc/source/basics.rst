@@ -768,7 +768,7 @@ determine the sort order:
 
    df.sort_index(by='two')
 
-As of v0.6, the ``by`` argument can take a list of column names, e.g.:
+The ``by`` argument can take a list of column names, e.g.:
 
 .. ipython:: python
 
