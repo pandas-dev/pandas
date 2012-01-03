@@ -1,3 +1,4 @@
+library(plyr)
 N <- 10000
 indices = rep(NA, N)
 indices2 = rep(NA, N)

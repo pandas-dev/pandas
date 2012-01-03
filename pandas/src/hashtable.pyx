@@ -204,6 +204,24 @@ cdef class StringHashTable:
         else:
             raise KeyError(key)
 
+    def get_indexer(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
+            char *buf
+            int32_t *resbuf = <int32_t*> labels.data
+            khiter_t k
+            kh_str_t *table = self.table
+
+        for i in range(n):
+            buf = PyString_AsString(values[i])
+            k = kh_get_str(table, buf)
+            if k != table.n_buckets:
+                resbuf[i] = table.vals[k]
+            else:
+                resbuf[i] = -1
+        return labels
+
     def factorize(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)

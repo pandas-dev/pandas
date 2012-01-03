@@ -118,3 +118,29 @@ def _check_minp(minp, N):
     elif minp < 0:
         raise ValueError('min_periods must be >= 0')
     return minp
+
+cdef extern from "Python.h":
+    bint PyDict_Contains(object, PyObject*)
+    PyObject* PyDict_GetItem(object, PyObject*)
+    long PyInt_AS_LONG(PyObject*)
+
+def get_indexer(ndarray values, dict mapping):
+    cdef:
+        Py_ssize_t i, length
+        ndarray fill_vec
+        PyObject **buf
+        int32_t *resbuf
+        PyObject* val
+
+    length = len(values)
+    buf = <PyObject**> values.data
+    fill_vec = np.empty(length, dtype='i4')
+    resbuf = <int32_t*> fill_vec.data
+
+    for i in range(length):
+        val = buf[i]
+        if PyDict_Contains(mapping, val):
+            resbuf[i] = PyInt_AS_LONG(PyDict_GetItem(mapping, val))
+        else:
+            resbuf[i] = -1
+    return fill_vec

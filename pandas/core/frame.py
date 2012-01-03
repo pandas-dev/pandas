@@ -40,6 +40,7 @@ import pandas.core.generic as generic
 import pandas.core.datetools as datetools
 import pandas._tseries as lib
 
+
 #----------------------------------------------------------------------
 # Docstring templates
 
@@ -3617,31 +3618,44 @@ def factor_agg(factor, vec, func):
 
 
 def extract_index(data):
-    def _get_index(v):
-        if isinstance(v, Series):
-            return v.index
-        elif isinstance(v, dict):
-            return v.keys()
-
     index = None
     if len(data) == 0:
         index = NULL_INDEX
     elif len(data) > 0 and index is None:
-        have_raw_arrays = _check_data_types(data)
-
+        raw_lengths = []
         indexes = []
 
-        # this is still kludgier than I'd like
+        have_raw_arrays = False
+        have_series = False
+        have_dicts = False
+
+        for v in data.values():
+            if isinstance(v, Series):
+                have_series = True
+                indexes.append(v.index)
+            elif isinstance(v, dict):
+                have_dicts = True
+                indexes.append(v.keys())
+            else:
+                have_raw_arrays = True
+                raw_lengths.append(len(v))
+
+        if have_series or have_dicts:
+            index = _union_indexes(indexes)
+
         if have_raw_arrays:
             lengths = list(set(len(x) for x in data.values()))
             if len(lengths) > 1:
                 raise ValueError('arrays must all be same length')
-            indexes.append(Index(np.arange(lengths[0])))
-        else:
-            for v in data.values():
-                indexes.append(_get_index(v))
 
-        index = _union_indexes(indexes)
+            if have_dicts:
+                raise ValueError('Mixing dicts with non-Series may lead to '
+                                 'ambiguous ordering.')
+
+            if have_series:
+                assert(lengths[0] == len(index))
+            else:
+                index = Index(np.arange(lengths[0]))
 
     if len(index) == 0:
         index = NULL_INDEX
@@ -3704,11 +3718,8 @@ def _check_data_types(data):
         else:
             have_series = True
 
-    if have_series and have_raw_arrays:
-        raise Exception('Cannot mix Series / dict objects'
-                        ' with ndarray / sequence input')
-
-    return have_raw_arrays
+    is_mixed = have_series and have_raw_arrays
+    return have_raw_arrays, is_mixed
 
 
 def _prep_ndarray(values, copy=True):

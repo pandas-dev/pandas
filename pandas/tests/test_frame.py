@@ -1008,18 +1008,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(DataFrame({})), 0)
         self.assertRaises(Exception, lambda x: DataFrame([self.ts1, self.ts2]))
 
-        # pass dict and array, nicht nicht
+        # mix dict and array, wrong size
         self.assertRaises(Exception, DataFrame,
                           {'A' : {'a' : 'a', 'b' : 'b'},
-                           'B' : ['a', 'b']})
+                           'B' : ['a', 'b', 'c']})
 
-        # can I rely on the order?
-        self.assertRaises(Exception, DataFrame,
-                          {'A' : ['a', 'b'],
-                           'B' : {'a' : 'a', 'b' : 'b'}})
-        self.assertRaises(Exception, DataFrame,
-                          {'A' : ['a', 'b'],
-                           'B' : Series(['a', 'b'], index=['a', 'b'])})
 
         # Length-one dict micro-optimization
         frame = DataFrame({'A' : {'1' : 1, '2' : 2}})
@@ -1307,6 +1300,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame(data)
         self.assert_(result.index.is_monotonic)
 
+        # ordering ambiguous, raise exception
+        self.assertRaises(Exception, DataFrame,
+                          {'A' : ['a', 'b'], 'B' : {'a' : 'a', 'b' : 'b'}})
+
+        # this is OK though
+        result = DataFrame({'A' : ['a', 'b'],
+                            'B' : Series(['a', 'b'], index=['a', 'b'])})
+        expected = DataFrame({'A' : ['a', 'b'], 'B' : ['a', 'b']},
+                             index=['a', 'b'])
+        assert_frame_equal(result, expected)
+
     def test_constructor_tuples(self):
         result = DataFrame({'A': [(1, 2), (3, 4)]})
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
@@ -1386,6 +1390,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                       orient='index')
         assert_frame_equal(recons, self.mixed_frame)
         self.assert_(isinstance(recons['foo'][0], tuple))
+
+    def test_constructor_mix_series_nonseries(self):
+        df = DataFrame({'A' : self.frame['A'],
+                        'B' : list(self.frame['B'])}, columns=['A', 'B'])
+        assert_frame_equal(df, self.frame.ix[:, ['A', 'B']])
+
+        self.assertRaises(Exception, DataFrame,
+                          {'A' : self.frame['A'],
+                           'B' : list(self.frame['B'])[:-2]})
 
     def test_astype(self):
         casted = self.frame.astype(int)
