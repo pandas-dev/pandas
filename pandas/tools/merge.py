@@ -574,3 +574,145 @@ class _BlockJoinOperation(object):
 
         # use any ref_items
         return _consolidate(new_blocks, newb.ref_items)
+
+
+#----------------------------------------------------------------------
+# Concatenate DataFrame objects
+
+def concat(frames, axis=0, join='outer', join_index=None):
+    """
+    Concatenate DataFrame objects row or column wise
+
+    Parameters
+    ----------
+    frames : list
+    axis : {0, 1}, default 0
+    join : {'inner', 'outer'}, default 'outer'
+        How to handle indexes on other axis
+    join_index : index-like
+
+    Returns
+    -------
+    concatenated : DataFrame
+    """
+    return _concat_frames(frames, join_index=join_index, axis=axis)
+
+def _concat_frames(frames, join_index=None, axis=0):
+    if len(frames) == 1:
+        return frames[0]
+
+    if axis == 0:
+        new_index = _concat_indexes([x.index for x in frames])
+        if join_index is None:
+            new_columns = frames[0].columns
+        else:
+            new_columns = join_index
+    else:
+        new_columns = _concat_indexes([x.columns for x in frames])
+        new_index = join_index
+
+    if frames[0]._is_mixed_type:
+        new_data = {}
+        for col in new_columns:
+            new_data[col] = np.concatenate([x[col].values for x in frames])
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+    else:
+        new_values = np.concatenate([x.values for x in frames], axis=axis)
+        return DataFrame(new_values, index=new_index, columns=new_columns)
+
+def _concat_indexes(indexes):
+    return indexes[0].append(indexes[1:])
+
+def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
+    names = [ping.name for ping in groupings]
+    levels = [ping.group_index for ping in groupings]
+
+    if axis == 0:
+        indexes = [x.index for x in frames]
+        new_index = _make_concat_multiindex(indexes, keys, levels, names)
+        new_columns = frames[0].columns
+    else:
+        all_columns = [x.columns for x in frames]
+        new_columns = _make_concat_multiindex(all_columns, keys,
+                                              levels, names)
+        new_index = frames[0].index
+
+    if frames[0]._is_mixed_type:
+        new_data = {}
+        for col in new_columns:
+            new_data[col] = np.concatenate([x[col].values for x in frames])
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+    else:
+        new_values = np.concatenate([x.values for x in frames], axis=axis)
+        return DataFrame(new_values, index=new_index, columns=new_columns)
+
+def _make_concat_multiindex(indexes, keys, levels, names):
+    single_level = len(levels) == 1
+
+    if not _all_indexes_same(indexes):
+        label_list = []
+
+        # things are potentially different sizes, so compute the exact labels
+        # for each level and pass those to MultiIndex.from_arrays
+        if single_level:
+            zipped = [keys]
+        else:
+            zipped = zip(*keys)
+
+        for hlevel in zipped:
+            to_concat = []
+            for k, index in zip(hlevel, indexes):
+                to_concat.append(np.repeat(k, len(index)))
+            label_list.append(np.concatenate(to_concat))
+
+        concat_index = _concat_indexes(indexes)
+
+        # these go at the end
+        if isinstance(concat_index, MultiIndex):
+            for level in range(concat_index.nlevels):
+                label_list.append(concat_index.get_level_values(level))
+        else:
+            label_list.append(concat_index.values)
+
+        consensus_name = indexes[0].names
+        for index in indexes[1:]:
+            if index.names != consensus_name:
+                consensus_name = [None] * index.nlevels
+                break
+        names.extend(consensus_name)
+
+        return MultiIndex.from_arrays(label_list, names=names)
+
+    new_index = indexes[0]
+    n = len(new_index)
+
+    names.append(indexes[0].name)
+
+    new_levels = list(levels)
+
+    # do something a bit more speedy
+    new_levels.append(new_index)
+
+    # construct labels
+    labels = []
+
+    if single_level:
+        zipped = [keys]
+    else:
+        zipped = zip(*keys)
+
+    for hlevel, level in zip(zipped, levels):
+        mapped = level.get_indexer(hlevel)
+        labels.append(np.repeat(mapped, n))
+
+    # last labels for the new level
+    labels.append(np.tile(np.arange(n), len(indexes)))
+    return MultiIndex(levels=new_levels, labels=labels, names=names)
+
+def _all_indexes_same(indexes):
+    first = indexes[0]
+    for index in indexes[1:]:
+        if not first.equals(index):
+            return False
+    return True
+

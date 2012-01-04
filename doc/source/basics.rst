@@ -731,7 +731,17 @@ For example:
 iterrows
 ~~~~~~~~
 
-New in v0.7 is the ability to iterate efficiently through rows of a DataFrame.
+New in v0.7 is the ability to iterate efficiently through rows of a
+DataFrame. It returns an iterator yielding each index value along with a Series
+containing the data in each row:
+
+.. ipython::
+
+   In [0]: for row_index, row in df2.iterrows():
+      ...:     print '%s\n%s' % (row_index, row)
+      ...:
+
+
 For instance, a contrived way to transpose the dataframe would be:
 
 .. ipython:: python

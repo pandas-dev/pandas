@@ -205,14 +205,12 @@ For instance,
 
 .. ipython:: python
 
-   df = DataFrame({'first' : ['John', 'Mary'],
-                   'last' : ['Doe', 'Bo'],
-                   'height' : [5.5, 6.0],
-                   'weight' : [130, 150]})
-
-   df
-
-   melt(df, id_vars=['first', 'last'])
+   cheese = DataFrame({'first' : ['John', 'Mary'],
+                       'last' : ['Doe', 'Bo'],
+                       'height' : [5.5, 6.0],
+                       'weight' : [130, 150]})
+   cheese
+   melt(cheese, id_vars=['first', 'last'])
 
 Combining with stats and GroupBy
 --------------------------------
