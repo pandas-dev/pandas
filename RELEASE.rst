@@ -136,7 +136,7 @@ pandas 0.7.0
   - Fix bug related to integer type-checking in .ix-based indexing
   - Handle non-string index name passed to DataFrame.from_records
   - DataFrame.insert caused the columns name(s) field to be discarded (GH #527)
-
+  - Fix erroneous in monotonic many-to-one left joins
 
 Thanks
 ------
@@ -155,6 +155,7 @@ Thanks
 - Jan Schulz
 - Ted Square
 - Dieter Vandenbussche
+- Texas P.
 
 pandas 0.6.1
 ============
