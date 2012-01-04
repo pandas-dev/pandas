@@ -6,9 +6,6 @@ Parts of this file were taken from the pyzmq project
 Lesser GNU General Public License.
 """
 
-from distutils.core import setup, Command
-# use setuptools if available
-
 from datetime import datetime
 from glob import glob
 import os
@@ -16,32 +13,45 @@ import sys
 import shutil
 import warnings
 
+try:
+    from setuptools import setup, Command
+    _have_setuptools = True
+except:
+    from distutils.core import setup, Command
+    _have_setuptools = False
 
+
+setuptools_kwargs = {}
 if sys.version_info[0] >= 3:
-    try:
-        from setuptools import setup
-        _have_setuptools = True
-    except ImportError:
-        raise ImportError('require setuptools/distribute for Py3k')
-    setuptools_args = {'use_2to3': True,
+
+    setuptools_kwargs = {'use_2to3': True,
                        'zip_safe': False,
                        'install_requires': ['python-dateutil > 2','numpy'],
                         }
+    if not _have_setuptools:
+        sys.exit("need setuptools/distribute for Py3k"
+            "\n$ pip install distribute")
+
 else:
-    setuptools_args = {
+    setuptools_kwargs = {
         'install_requires': ['python-dateutil < 2','numpy'],
     }
+    if not _have_setuptools:
+        try:
+            import numpy
+            import dateutil
+            setuptools_kwargs = {}
+        except ImportError:
+            sys.exit("install requires: 'python-dateutil < 2','numpy'.  use pip or easy_install."
+                "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
 try:
     import numpy as np
 except ImportError:
     nonumpy_msg = ("# numpy needed to finish setup.  run:\n\n"
-    "pip install numpy  \n# or easy_install numpy\n")
-    print nonumpy_msg
-    import sys
-    sys.exit()
+    "    $ pip install numpy  # or easy_install numpy\n")
+    sys.exit(nonumpy_msg)
 
-# from numpy.distutils.core import setup
 
 from distutils.extension import Extension
 from distutils.command.build import build
@@ -335,7 +345,7 @@ if not ISRELEASED:
     extensions.extend([sandbox_ext])
 
 # if _have_setuptools:
-#     setuptools_args["test_suite"] = "nose.collector"
+#     setuptools_kwargs["test_suite"] = "nose.collector"
 
 write_version_py()
 setup(name=DISTNAME,
@@ -371,4 +381,4 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
-      **setuptools_args)
+      **setuptools_kwargs)
