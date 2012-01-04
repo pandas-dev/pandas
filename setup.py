@@ -4,6 +4,7 @@
 Parts of this file were taken from the pyzmq project
 (https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
 Lesser GNU General Public License.
+Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 from datetime import datetime
@@ -13,20 +14,34 @@ import sys
 import shutil
 import warnings
 
+# may need to work around setuptools bug by providing a fake Pyrex
 try:
+    import Cython
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "fake_pyrex"))
+except ImportError:
+    pass
+
+# try bootstrapping setuptools if it doesn't exist
+try:
+    import pkg_resources
+    try:
+        pkg_resources.require("setuptools>=0.6c5")
+    except pkg_resources.VersionConflict:
+        from ez_setup import use_setuptools
+        use_setuptools(version="0.6c5")
     from setuptools import setup, Command
     _have_setuptools = True
-except:
+except ImportError:
+    # no setuptools installed
     from distutils.core import setup, Command
     _have_setuptools = False
-
 
 setuptools_kwargs = {}
 if sys.version_info[0] >= 3:
 
     setuptools_kwargs = {'use_2to3': True,
-                       'zip_safe': False,
-                       'install_requires': ['python-dateutil > 2','numpy'],
+                         'zip_safe': False,
+                         'install_requires': ['python-dateutil > 2','numpy'],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
@@ -42,8 +57,9 @@ else:
             import dateutil
             setuptools_kwargs = {}
         except ImportError:
-            sys.exit("install requires: 'python-dateutil < 2','numpy'.  use pip or easy_install."
-                "\n   $ pip install 'python-dateutil < 2' 'numpy'")
+            sys.exit("install requires: 'python-dateutil < 2','numpy'."
+                     "  use pip or easy_install."
+                     "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
 try:
     import numpy as np
@@ -120,8 +136,8 @@ Many of these principles are here to address the shortcomings frequently
 experienced using other languages / scientific research environments. For data
 scientists, working with data is typically divided into multiple stages:
 munging and cleaning data, analyzing / modeling it, then organizing the results
-of the analysis into a form suitable for plotting or tabular display. pandas
-is the ideal tool for all of these tasks.
+of the analysis into a form suitable for plotting or tabular display. pandas is
+the ideal tool for all of these tasks.
 
 Note
 ----
