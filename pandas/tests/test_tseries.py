@@ -72,6 +72,14 @@ class TestTseriesUtil(unittest.TestCase):
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
+def test_left_join_indexer():
+    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
+
+    result = lib.left_join_indexer_int64(b, a)
+    expected = np.array([1, 1, 2, 3, 3], dtype='i4')
+    assert(np.array_equal(result, expected))
+
 def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)

@@ -1427,17 +1427,20 @@ def left_join_indexer_float64(ndarray[float64_t] left,
             i += 1
             continue
 
-        lval = left[i]
         rval = right[j]
 
-        if lval == rval:
+        while i < nleft - 1 and left[i] == rval:
+            indexer[i] = j
+            i += 1
+
+        if left[i] == right[j]:
             indexer[i] = j
             i += 1
             while i < nleft - 1 and left[i] == rval:
                 indexer[i] = j
                 i += 1
             j += 1
-        elif lval > rval:
+        elif left[i] > rval:
             indexer[i] = -1
             j += 1
         else:
@@ -1469,17 +1472,20 @@ def left_join_indexer_object(ndarray[object] left,
             i += 1
             continue
 
-        lval = left[i]
         rval = right[j]
 
-        if lval == rval:
+        while i < nleft - 1 and left[i] == rval:
+            indexer[i] = j
+            i += 1
+
+        if left[i] == right[j]:
             indexer[i] = j
             i += 1
             while i < nleft - 1 and left[i] == rval:
                 indexer[i] = j
                 i += 1
             j += 1
-        elif lval > rval:
+        elif left[i] > rval:
             indexer[i] = -1
             j += 1
         else:
@@ -1511,17 +1517,20 @@ def left_join_indexer_int32(ndarray[int32_t] left,
             i += 1
             continue
 
-        lval = left[i]
         rval = right[j]
 
-        if lval == rval:
+        while i < nleft - 1 and left[i] == rval:
+            indexer[i] = j
+            i += 1
+
+        if left[i] == right[j]:
             indexer[i] = j
             i += 1
             while i < nleft - 1 and left[i] == rval:
                 indexer[i] = j
                 i += 1
             j += 1
-        elif lval > rval:
+        elif left[i] > rval:
             indexer[i] = -1
             j += 1
         else:
@@ -1553,17 +1562,20 @@ def left_join_indexer_int64(ndarray[int64_t] left,
             i += 1
             continue
 
-        lval = left[i]
         rval = right[j]
 
-        if lval == rval:
+        while i < nleft - 1 and left[i] == rval:
+            indexer[i] = j
+            i += 1
+
+        if left[i] == right[j]:
             indexer[i] = j
             i += 1
             while i < nleft - 1 and left[i] == rval:
                 indexer[i] = j
                 i += 1
             j += 1
-        elif lval > rval:
+        elif left[i] > rval:
             indexer[i] = -1
             j += 1
         else:

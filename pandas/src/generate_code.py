@@ -354,6 +354,8 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
 #----------------------------------------------------------------------
 # Joins on ordered, unique indices
 
+# right might contain non-unique values
+
 left_join_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
@@ -378,17 +380,20 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
             i += 1
             continue
 
-        lval = left[i]
         rval = right[j]
 
-        if lval == rval:
+        while i < nleft - 1 and left[i] == rval:
+            indexer[i] = j
+            i += 1
+
+        if left[i] == right[j]:
             indexer[i] = j
             i += 1
             while i < nleft - 1 and left[i] == rval:
                 indexer[i] = j
                 i += 1
             j += 1
-        elif lval > rval:
+        elif left[i] > rval:
             indexer[i] = -1
             j += 1
         else:
