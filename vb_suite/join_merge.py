@@ -67,3 +67,30 @@ join_dataframe_index_multi = \
 #----------------------------------------------------------------------
 # Merges
 
+#----------------------------------------------------------------------
+# data alignment
+
+setup = common_setup + """n = 1000000
+# indices = Index([rands(10) for _ in xrange(n)])
+def sample(values, k):
+    sampler = np.random.permutation(len(values))
+    return values.take(sampler[:k])
+sz = 500000
+rng = np.arange(0, 10000000000000, 10000000)
+stamps = np.datetime64(datetime.now()).view('i8') + rng
+idx1 = np.sort(sample(stamps, sz))
+idx2 = np.sort(sample(stamps, sz))
+ts1 = Series(np.random.randn(sz), idx1)
+ts2 = Series(np.random.randn(sz), idx2)
+"""
+stmt = "ts1 + ts2"
+series_align_int64_index = \
+    Benchmark(stmt, setup,
+              name="series_align_int64_index",
+              start_date=datetime(2010, 6, 1), logy=True)
+
+stmt = "ts1.align(ts2, join='left')"
+series_align_left_monotonic = \
+    Benchmark(stmt, setup,
+              name="series_align_left_monotonic",
+              start_date=datetime(2011, 3, 1), logy=True)

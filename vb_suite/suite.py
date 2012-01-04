@@ -3,7 +3,7 @@ from datetime import datetime
 
 import os
 
-modules = ['groupby', 'indexing', 'reindex', 'binary_ops',
+modules = ['groupby', 'indexing', 'reindex',
            'sparse', 'index_object', 'miscellaneous',
            'stat_ops', 'join_merge', 'panel_ctor']
 
