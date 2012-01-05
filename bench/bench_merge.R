@@ -7,16 +7,23 @@ for (i in 1:N) {
   indices[i] <- paste(sample(letters, 10), collapse="")
   indices2[i] <- paste(sample(letters, 10), collapse="")
 }
-left <- data.frame(key=rep(indices, 10),
-                   key2=rep(indices2, 10),
-                   value=rnorm(100000))
-right <- data.frame(key=indices,
-                    key2=indices2,
-                    value2=rnorm(10000))
+left <- data.frame(key=rep(indices[1:8000], 10),
+                   key2=rep(indices2[1:8000], 10),
+                   value=rnorm(80000))
+right <- data.frame(key=indices[2001:10000],
+                    key2=indices2[2001:10000],
+                    value2=rnorm(8000))
 
-right2 <- data.frame(key=rep(indices, 2),
-                     key2=rep(indices2, 2),
-                     value2=rnorm(20000))
+right2 <- data.frame(key=rep(right$key, 2),
+                     key2=rep(right$key2, 2),
+                     value2=rnorm(16000))
+
+left.dt <- data.table(left, key=c("key", "key2"))
+right.dt <- data.table(right, key=c("key", "key2"))
+right2.dt <- data.table(right2, key=c("key", "key2"))
+
+# left.dt2 <- data.table(left)
+# right.dt2 <- data.table(right)
 
 ## left <- data.frame(key=rep(indices[1:1000], 10),
 ##                    key2=rep(indices2[1:1000], 10),
@@ -47,7 +54,23 @@ outer.join <- function(sort=FALSE) {
 }
 
 inner.join <- function(sort=FALSE) {
-  result <- base::merge(left, right, sort=sort)
+  result <- base::merge(left, right, all=FALSE, sort=sort)
+}
+
+left.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right.dt, all.x=TRUE, sort=sort)
+}
+
+right.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right.dt, all.y=TRUE, sort=sort)
+}
+
+outer.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right.dt, all=TRUE, sort=sort)
+}
+
+inner.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right.dt, all=FALSE, sort=sort)
 }
 
 plyr.join <- function(type) {
@@ -57,6 +80,8 @@ plyr.join <- function(type) {
 
 sort.options <- c(FALSE, TRUE)
 
+# many-to-one
+
 results <- matrix(nrow=3, ncol=3)
 colnames(results) <- c("base::merge", "plyr", "data.table")
 rownames(results) <- c("inner", "outer", "left")
@@ -65,25 +90,68 @@ base.functions <- c(inner.join, outer.join, left.join)
 plyr.functions <- c(function() plyr.join("inner"),
                     function() plyr.join("full"),
                     function() plyr.join("left"))
-dt.functions <- c(inner.join, outer.join, left.join)
+dt.functions <- c(inner.join.dt, outer.join.dt, left.join.dt)
 for (i in 1:3) {
   base.func <- base.functions[[i]]
   plyr.func <- plyr.functions[[i]]
-  ## dt.func <- dt.functions[[i]]
+  dt.func <- dt.functions[[i]]
   results[i, 1] <- timeit(base.func)
   results[i, 2] <- timeit(plyr.func)
+  results[i, 3] <- timeit(dt.func)
 }
 
-## do.something <- function(df, f) {
-##   f(df)
-## }
-## df <- matrix(nrow=4, ncol=2)
-## functions <- c(colSums, rowSums)
-## g <- functions[1]
-## do.something(df, function(df) g(df))
 
-##       dont_sort   sort
-## inner    0.2297 0.2286
-## outer    1.1811 1.2843
-## left     0.6706 0.7766
-## right    0.2995 0.3371
+# many-to-many
+
+left.join <- function(sort=FALSE) {
+  result <- base::merge(left, right2, all.x=TRUE, sort=sort)
+}
+
+right.join <- function(sort=FALSE) {
+  result <- base::merge(left, right2, all.y=TRUE, sort=sort)
+}
+
+outer.join <- function(sort=FALSE) {
+  result <- base::merge(left, right2, all=TRUE, sort=sort)
+}
+
+inner.join <- function(sort=FALSE) {
+  result <- base::merge(left, right2, all=FALSE, sort=sort)
+}
+
+left.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right2.dt, all.x=TRUE, sort=sort)
+}
+
+right.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right2.dt, all.y=TRUE, sort=sort)
+}
+
+outer.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right2.dt, all=TRUE, sort=sort)
+}
+
+inner.join.dt <- function(sort=FALSE) {
+  result <- merge(left.dt, right2.dt, all=FALSE, sort=sort)
+}
+
+sort.options <- c(FALSE, TRUE)
+
+# many-to-one
+
+results <- matrix(nrow=3, ncol=2)
+colnames(results) <- c("base::merge", "data.table")
+rownames(results) <- c("inner", "outer", "left")
+
+base.functions <- c(inner.join, outer.join, left.join)
+plyr.functions <- c(function() plyr.join("inner"),
+                    function() plyr.join("full"),
+                    function() plyr.join("left"))
+dt.functions <- c(inner.join.dt, outer.join.dt, left.join.dt)
+for (i in 1:3) {
+  base.func <- base.functions[[i]]
+  plyr.func <- plyr.functions[[i]]
+  dt.func <- dt.functions[[i]]
+  results[i, 1] <- timeit(base.func)
+  results[i, 2] <- timeit(dt.func)
+}
