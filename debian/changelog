@@ -3,6 +3,8 @@ pandas (0.6.1-1) unstable; urgency=low
   * New upstream release
   * python-tk into Build-Depends
   * Create matplotlibrc with backend: Agg to allow tests run without $DISPLAY
+  * Carry pre-cythonized .c files for systems with older Cython
+  * Skip few tests known to fail
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Tue, 13 Dec 2011 18:36:11 -0500
 
