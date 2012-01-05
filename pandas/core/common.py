@@ -491,10 +491,7 @@ def set_eng_float_format(precision=3, use_eng_prefix=False):
     _float_format = EngFormatter(precision, use_eng_prefix)
     _column_space = max(12, precision + 9)
 
-def _float_format(x):
-    str_repr = '% .4g' % x
-    return str_repr
-
+_float_format = lambda x: '% .4g' % x
 _column_space = 12
 _max_rows = 500
 _max_columns = 0
@@ -523,7 +520,7 @@ def _format(s, space=None, na_rep=None, float_format=None, col_width=None):
         else:
             formatted = _float_format(s)
 
-        # if we pass max_width, pad-zero the floats so all are same in column
+        # if we pass col_width, pad-zero the floats so all are same in column
         if col_width is not None and formatted != ' 0':
             padzeros = col_width - len(formatted)
             if padzeros > 0:
