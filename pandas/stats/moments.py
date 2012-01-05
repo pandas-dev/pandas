@@ -391,7 +391,7 @@ rolling_max = _rolling_func(_tseries.roll_max, 'Moving maximum')
 rolling_min = _rolling_func(_tseries.roll_min, 'Moving minimum')
 rolling_sum = _rolling_func(_tseries.roll_sum, 'Moving sum')
 rolling_mean = _rolling_func(_tseries.roll_mean, 'Moving mean')
-rolling_median = _rolling_func(_tseries.roll_median_c, 'Moving median')
+rolling_median = _rolling_func(_tseries.roll_median_cython, 'Moving median')
 
 _ts_std = lambda *a, **kw: np.sqrt(_tseries.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
