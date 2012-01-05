@@ -294,7 +294,9 @@ class TestGroupBy(unittest.TestCase):
         grouped = values.groupby(labels)
         agged = grouped.agg(len)
         expected = Series([4, 2], index=['bar', 'foo'])
-        assert_series_equal(agged, expected)
+
+        assert_series_equal(agged, expected, check_dtype=False)
+        self.assert_(issubclass(agged.dtype.type, np.integer))
 
     def test_attr_wrapper(self):
         grouped = self.ts.groupby(lambda x: x.weekday())
