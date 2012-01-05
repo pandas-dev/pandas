@@ -194,14 +194,24 @@ class DataFrameFormatter(object):
 
         col_space = self.col_space
 
-        def _myformat(v):
-            return _format(v, space=col_space, na_rep=self.na_rep,
-                           float_format=self.float_format)
+        def _myformat(col):
+            formatter = lambda v: _format(v, space=col_space,
+                                          na_rep=self.na_rep,
+                                          float_format=self.float_format)
+            # one pass through when float to stringify column, to pad with
+            # zeros
+            if issubclass(col.dtype.type, np.floating):
+                col_width = max(map(len, map(formatter, col)))
+                formatter = lambda v: _format(v, space=col_space,
+                                            na_rep=self.na_rep,
+                                            float_format=self.float_format,
+                                            col_width=col_width)
+            return formatter
 
         formatters = {} if self.formatters is None else self.formatters
 
         def _format_col(col, i=None):
-            formatter = formatters.get(col, _myformat)
+            formatter = formatters.get(col, _myformat(self.frame[col]))
             if i == None:
                 return [formatter(x) for x in self.frame[col]]
             else:
@@ -217,8 +227,7 @@ class DataFrameFormatter(object):
             formatters = {}
 
         def is_numeric_dtype(dtype):
-            return (issubclass(dtype.type, np.integer) or
-                    issubclass(dtype.type, np.floating))
+            return issubclass(dtype.type, np.number)
 
         if isinstance(self.columns, MultiIndex):
             fmt_columns = self.columns.format(sparsify=False, adjoin=False)
