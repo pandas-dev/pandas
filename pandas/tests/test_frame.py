@@ -1672,7 +1672,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # big mixed
         biggie = DataFrame({'A' : randn(1000),
-                             'B' : tm.makeStringIndex(1000)},
+                            'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
 
         biggie['A'][:20] = nan
@@ -1715,6 +1715,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         frame = DataFrame(index=np.arange(1000))
         frame.to_string()
+
+    def test_to_string_no_header(self):
+        df = DataFrame({'x' : [1, 2, 3],
+                        'y' : [4, 5, 6]})
+
+        df_s = df.to_string(header=False)
+        expected = "0  1  4\n1  2  5\n2  3  6"
+
+        assert(df_s == expected)
 
     def test_to_html(self):
         # big mixed
