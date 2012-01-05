@@ -50,6 +50,9 @@ New features
 - :ref:`Add <visualization.basic>` ``logy`` option to ``Series.plot`` for
   log-scaling on the Y axis
 
+- :ref:`Add <io.formatting>` ``index`` and ``header`` options to
+  ``DataFrame.to_string``
+
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

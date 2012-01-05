@@ -51,6 +51,7 @@ pandas 0.7.0
   - Add attribute-based item access to ``Panel`` and add IPython completion (PR
     #554)
   - Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
+  - Add ``index`` and ``header`` options to ``DataFrame.to_string`` (GH #570)
   - Can pass multiple DataFrames to ``DataFrame.join`` to join on index (GH #115)
   - Can pass multiple Panels to ``Panel.join`` (GH #115)
   - Can pass multiple DataFrames to `DataFrame.append` to concatenate (stack)
@@ -64,6 +65,8 @@ pandas 0.7.0
     prevent accidentally modifying the data source (GH #316)
   - Refactor to remove deprecated ``LongPanel`` class (PR #552)
   - Deprecated ``Panel.to_long``, renamed to ``to_frame``
+  - Deprecated ``colSpace`` argument in ``DataFrame.to_string``, renamed to
+    ``col_space``
 
 **Improvements to existing features**
 
@@ -142,6 +145,10 @@ pandas 0.7.0
   - Fix bug related to integer type-checking in .ix-based indexing
   - Handle non-string index name passed to DataFrame.from_records
   - DataFrame.insert caused the columns name(s) field to be discarded (GH #527)
+  - Fix erroneous in monotonic many-to-one left joins
+  - Fix DataFrame.to_string to remove extra column white space (GH #571)
+  - Format floats to default to same number of digits (GH #395)
+  - Added decorator to copy docstring from one function to another (GH #449)
   - Fix error in monotonic many-to-one left joins
   - Fix __eq__ comparison between DateOffsets with different relativedelta
     keywords passed
