@@ -1636,7 +1636,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df = DataFrame({'tups' : zip(range(10), range(10))})
         repr(df)
-        df.to_string(colSpace=10, buf=buf)
+        df.to_string(col_space=10, buf=buf)
 
     def test_to_string_unicode(self):
         buf = StringIO()
@@ -1644,7 +1644,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         unicode_values = [u'\u03c3'] * 10
         unicode_values = np.array(unicode_values, dtype=object)
         df = DataFrame({'unicode' : unicode_values})
-        df.to_string(colSpace=10, buf=buf)
+        df.to_string(col_space=10, buf=buf)
 
     def test_to_string_unicode_columns(self):
         df = DataFrame({u'\u03c3' : np.arange(10.)})
@@ -1687,7 +1687,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(isinstance(s, basestring))
 
         # print in right order
-        result = biggie.to_string(columns=['B', 'A'], colSpace=17,
+        result = biggie.to_string(columns=['B', 'A'], col_space=17,
                                   float_format='%.6f'.__mod__)
         lines = result.split('\n')
         header = lines[0].strip().split()
@@ -1701,7 +1701,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # expected = ['B', 'A']
         # self.assertEqual(header, expected)
 
-        result = biggie.to_string(columns=['A'], colSpace=17)
+        result = biggie.to_string(columns=['A'], col_space=17)
         header = result.split('\n')[0].strip().split()
         expected = ['A']
         self.assertEqual(header, expected)
@@ -1710,7 +1710,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                          formatters={'A' : lambda x: '%.1f' % x})
 
         biggie.to_string(columns=['B', 'A'], float_format=str)
-        biggie.to_string(columns=['B', 'A'], colSpace=12,
+        biggie.to_string(columns=['B', 'A'], col_space=12,
                          float_format=str)
 
         frame = DataFrame(index=np.arange(1000))
@@ -1724,6 +1724,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = "0  1  4\n1  2  5\n2  3  6"
 
         assert(df_s == expected)
+
+    def test_to_string_no_index(self):
+        df = DataFrame({'x' : [1, 2, 3],
+                        'y' : [4, 5, 6]})
+
+        df_s = df.to_string(index=False)
+        expected = " x  y\n 1  4\n 2  5\n 3  6"
+
+        assert(df_s == expected)
+
 
     def test_to_html(self):
         # big mixed
@@ -1742,12 +1752,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assert_(isinstance(s, basestring))
 
-        biggie.to_html(columns=['B', 'A'], colSpace=17)
+        biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],
                        formatters={'A' : lambda x: '%.1f' % x})
 
         biggie.to_html(columns=['B', 'A'], float_format=str)
-        biggie.to_html(columns=['B', 'A'], colSpace=12,
+        biggie.to_html(columns=['B', 'A'], col_space=12,
                        float_format=str)
 
         frame = DataFrame(index=np.arange(1000))

@@ -361,7 +361,7 @@ def _try_sort(iterable):
         return listed
 
 def set_printoptions(precision=None, column_space=None, max_rows=None, 
-                     max_columns=None, justify='right'):
+                     max_columns=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -376,11 +376,8 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         Either one, or both can be set to 0 (experimental). Pandas will figure
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
-    justify : string
-        'right' or 'left' to justify the values of the dataframe using this
-        alignment
     """
-    global _float_format, _column_space, _max_rows, _max_columns, _justify
+    global _float_format, _column_space, _max_rows, _max_columns
     if precision is not None:
         float_format = '%.' + '%d' % precision + 'g'
         _float_format = lambda x: float_format % x
@@ -390,8 +387,6 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         _max_rows = max_rows
     if max_columns is not None:
         _max_columns = max_columns
-    if justify is not None and justify in ('right', 'left'):
-        _justify = justify
 
 class EngFormatter(object):
     """
@@ -500,7 +495,6 @@ _float_format = lambda x: '% .4f' % x
 _column_space = 12
 _max_rows = 500
 _max_columns = 0
-_justify = 'right'
 
 def _stringify(col):
     # unicode workaround
@@ -513,10 +507,7 @@ def _format(s, space=None, na_rep=None, float_format=None):
     def _just_help(x):
         if space is None:
             return x
-        if _justify == 'right':
-            return x[:space].rjust(space)
-        else:
-            return x[:space].ljust(space)
+        return x[:space].ljust(space)
 
     if isinstance(s, float):
         if na_rep is not None and isnull(s):
@@ -530,6 +521,8 @@ def _format(s, space=None, na_rep=None, float_format=None):
             formatted = _float_format(s)
 
         return _just_help(formatted)
+    elif isinstance(s, int):
+        return _just_help('% d' % s)
     else:
         return _just_help('%s' % _stringify(s))
 
@@ -549,22 +542,14 @@ def adjoin(space, *lists):
     """
     outLines = []
     newLists = []
+    lengths = [max(map(len, x)) + space for x in lists[:-1]]
 
-    if _justify == 'right':
-        # everyone but the first one, add space (right-aligned)
-        lengths = [max(map(len, x)) + space for x in lists[1:]]
-        lengths.insert(0, max(map(len, lists[0])))
-    else:
-        # everyone but the last one, add space (left-aligned)
-        lengths = [max(map(len, x)) + space for x in lists[:-1]]
-        lengths.append(max(map(len, lists[-1])))
+    # not the last one
+    lengths.append(max(map(len, lists[-1])))
 
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
-        if _justify == 'right':
-            nl = [x.rjust(lengths[i]) for x in lst]
-        else:
-            nl = [x.ljust(lengths[i]) for x in lst]
+        nl = [x.ljust(lengths[i]) for x in lst]
         nl.extend([' ' * lengths[i]] * (maxLen - len(lst)))
         newLists.append(nl)
     toJoin = zip(*newLists)
@@ -683,9 +668,6 @@ def is_integer_dtype(arr):
 
 def is_float_dtype(arr):
     return issubclass(arr.dtype.type, np.floating)
-
-def is_numeric_dtype(arr):
-    return is_integer_dtype(arr) or is_float_dtype(arr)
 
 def save(obj, path):
     """
