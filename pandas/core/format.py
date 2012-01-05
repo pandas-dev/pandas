@@ -1,6 +1,8 @@
 from StringIO import StringIO
-from pandas.core.common import adjoin, is_numeric_dtype
+from pandas.core.common import adjoin
 from pandas.core.index import MultiIndex, _ensure_index
+
+import numpy as np
 
 docstring_to_string = """
     Parameters
@@ -85,6 +87,7 @@ class DataFrameFormatter(object):
                                for i, c in enumerate(self.columns)]
             else:
                 stringified = [format_col(c) for c in self.columns]
+
 
             if self.index:
                 to_write.append(adjoin(1, str_index, *stringified))
@@ -213,20 +216,31 @@ class DataFrameFormatter(object):
         if formatters is None:
             formatters = {}
 
+        def is_numeric_dtype(dtype):
+            return (issubclass(dtype.type, np.integer) or
+                    issubclass(dtype.type, np.floating))
+
         if isinstance(self.columns, MultiIndex):
             fmt_columns = self.columns.format(sparsify=False, adjoin=False)
-            str_columns = zip(*[[' %s' % y if y not in formatters and is_numeric_dtype(self.frame[x])
-                                else str(y)
-                                for y in x]
-                                for x in zip(*fmt_columns)])
+            fmt_columns = zip(*fmt_columns)
+            dtypes = self.frame.dtypes.values
+            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
+            str_columns = zip(*[[' %s' % y
+                                if y not in formatters and need_leadsp[x]
+                                else str(y) for y in x]
+                               for x in fmt_columns])
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            str_columns = [[' %s' % x if x not in formatters and is_numeric_dtype(self.frame[x])
-                           else str(x)]
-                           for x in self.columns.format()]
+            fmt_columns = self.columns.format()
+            dtypes = self.frame.dtypes
+            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
+            str_columns = [[' %s' % x
+                            if x not in formatters and need_leadsp[x]
+                            else str(x)]
+                           for x in fmt_columns]
 
         if self.show_index_names and self.has_index_names:
             for x in str_columns:

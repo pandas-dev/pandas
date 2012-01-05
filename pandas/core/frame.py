@@ -3724,20 +3724,6 @@ def _sanitize_and_check(indexes):
     else:
         return indexes, 'array'
 
-
-def _check_data_types(data):
-    have_raw_arrays = False
-    have_series = False
-    for v in data.values():
-        if not isinstance(v, (dict, Series)):
-            have_raw_arrays = True
-        else:
-            have_series = True
-
-    is_mixed = have_series and have_raw_arrays
-    return have_raw_arrays, is_mixed
-
-
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
         arr = np.asarray(values)
