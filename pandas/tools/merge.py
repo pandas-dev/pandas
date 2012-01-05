@@ -342,6 +342,13 @@ _join_functions = {
 def _factorize_int64(left_index, right_index, sort=True):
     rizer = lib.Int64Factorizer(max(len(left_index), len(right_index)))
 
+    # 32-bit compatibility
+    if left_index.dtype != np.int64:  # pragma: no cover
+        left_index = left_index.astype('i8')
+
+    if right_index.dtype != np.int64:  # pragma: no cover
+        right_index = right_index.astype('i8')
+
     llab, _ = rizer.factorize(left_index)
     rlab, _ = rizer.factorize(right_index)
 
