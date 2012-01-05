@@ -655,7 +655,7 @@ class Concatenator(object):
         except Exception:  # EAFP
             # should not be possible to fail here for the expected reason with
             # axis=1
-            if self.axis == 1:
+            if self.axis == 1:  # pragma: no cover
                 raise
 
             new_data = {}

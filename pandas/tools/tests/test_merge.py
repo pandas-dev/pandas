@@ -459,6 +459,19 @@ class TestMerge(unittest.TestCase):
         assert_almost_equal(merged['value.x'], [2, 3, 1, 1, 4, 4, np.nan])
         assert_almost_equal(merged['value.y'], [6, np.nan, 5, 8, 5, 8, 7])
 
+    def test_merge_nocopy(self):
+        left = DataFrame({'a' : 0, 'b' : 1}, index=range(10))
+        right = DataFrame({'c' : 'foo', 'd' : 'bar'}, index=range(10))
+
+        merged = merge(left, right, left_index=True,
+                       right_index=True, copy=False)
+
+        merged['a'] = 6
+        self.assert_((left['a'] == 6).all())
+
+        merged['d'] = 'peekaboo'
+        self.assert_((right['d'] == 'peekaboo').all())
+
 class TestMergeMulti(unittest.TestCase):
 
     def setUp(self):
