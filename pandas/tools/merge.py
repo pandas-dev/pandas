@@ -385,7 +385,7 @@ class _BlockJoinOperation(object):
     BlockManager data structures
     """
     def __init__(self, data_list, join_index, indexers, axis=1, copy=True):
-        if axis <= 0:
+        if axis <= 0:  # pragma: no cover
             raise Exception('Only axis >= 1 supported for this operation')
 
         assert(len(data_list) == len(indexers))
@@ -587,24 +587,33 @@ def concat(frames, axis=0, join='outer', join_index=None,
         How to handle indexes on other axis
     join_index : index-like
     verify_integrity : boolean, default False
+        Check whether the new concatenated axis contains duplicates. This can
+        be very expensive relative to the actual data concatenation
 
     Returns
     -------
     concatenated : DataFrame
     """
     op = Concatenator(frames, axis=axis, join_index=join_index,
-                      ignore_index=ignore_index,
+                      ignore_index=ignore_index, join=join,
                       verify_integrity=verify_integrity)
     return op.get_result()
 
 
 class Concatenator(object):
     """
-
+    Orchestrates a concatenation operation with a list of DataFrame objects
     """
 
     def __init__(self, frames, axis=0, join='outer', join_index=None,
                  ignore_index=False, verify_integrity=False):
+        if join == 'outer':
+            self.intersect = False
+        elif join == 'inner':
+            self.intersect = True
+        else:  # pragma: no cover
+            raise ValueError('Only can inner (intersect) or outer (union) join '
+                             'the other axis')
 
         # consolidate data
         for frame in frames:
@@ -612,13 +621,10 @@ class Concatenator(object):
 
         self.frames = frames
         self.axis = axis
-        self.join = join
         self.join_index = join_index
 
         self.ignore_index = ignore_index
-
         self.verify_integrity = verify_integrity
-
         self.new_index, self.new_columns = self._get_new_axes()
 
     def get_result(self):
@@ -626,10 +632,10 @@ class Concatenator(object):
             return self.frames[0]
 
         new_data = self._get_concatenated_data()
-        new_index, new_columns = self._get_new_axes()
         constructor = self._get_frame_constructor()
 
-        return constructor(new_data, index=new_index, columns=new_columns)
+        return constructor(new_data, index=self.new_index,
+                           columns=self.new_columns)
 
     def _get_concatenated_data(self):
         try:
@@ -717,9 +723,13 @@ class Concatenator(object):
 
             if self.join_index is None:
                 all_cols = [df.columns for df in self.frames]
-                new_columns = _get_combined_index(all_cols, intersect=False)
+                new_columns = _get_combined_index(all_cols,
+                                                  intersect=self.intersect)
             else:
                 new_columns = self.join_index
+
+            self.frames = [df.reindex(columns=new_columns, copy=False)
+                           for df in self.frames]
         else:
             new_columns = _concat_indexes([df.columns for df in self.frames])
             self._maybe_check_integrity(new_columns)
@@ -730,9 +740,13 @@ class Concatenator(object):
 
             if self.join_index is None:
                 all_indexes = [df.index for df in self.frames]
-                new_index = _get_combined_index(all_indexes, intersect=False)
+                new_index = _get_combined_index(all_indexes,
+                                                intersect=self.intersect)
             else:
                 new_index = self.join_index
+
+            self.frames = [df.reindex(new_index, copy=False)
+                           for df in self.frames]
 
         return new_index, new_columns
 

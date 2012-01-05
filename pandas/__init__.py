@@ -30,4 +30,4 @@ from pandas.io.pytables import HDFStore
 from pandas.util.testing import debug
 
 from pandas.tools.pivot import pivot_table
-from pandas.tools.merge import merge
+from pandas.tools.merge import merge, concat

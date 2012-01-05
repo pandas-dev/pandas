@@ -678,6 +678,47 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(isnull(appended['strings'][:5]).all())
         self.assert_(isnull(appended['bools'][5:]).all())
 
+    def test_append_many(self):
+        chunks = [self.frame[:5], self.frame[5:10],
+                  self.frame[10:15], self.frame[15:]]
+
+        result = chunks[0].append(chunks[1:])
+        tm.assert_frame_equal(result, self.frame)
+
+        chunks[-1]['foo'] = 'bar'
+        result = chunks[0].append(chunks[1:])
+        tm.assert_frame_equal(result.ix[:, self.frame.columns], self.frame)
+        self.assert_((result['foo'][15:] == 'bar').all())
+        self.assert_(result['foo'][:15].isnull().all())
+
+    def test_join_many(self):
+        df = DataFrame(np.random.randn(10, 6), columns=list('abcdef'))
+        df_list = [df[['a', 'b']], df[['c', 'd']], df[['e', 'f']]]
+
+        joined = df_list[0].join(df_list[1:])
+        tm.assert_frame_equal(joined, df)
+
+        df_list = [df[['a', 'b']][:-2],
+                   df[['c', 'd']][2:], df[['e', 'f']][1:9]]
+
+        def _check_diff_index(df_list, result, exp_index):
+            reindexed = [x.reindex(exp_index) for x in df_list]
+            expected = reindexed[0].join(reindexed[1:])
+            tm.assert_frame_equal(result, expected)
+
+
+        # different join types
+        joined = df_list[0].join(df_list[1:], how='outer')
+        _check_diff_index(df_list, joined, df.index)
+
+        joined = df_list[0].join(df_list[1:])
+        _check_diff_index(df_list, joined, df_list[0].index)
+
+        joined = df_list[0].join(df_list[1:], how='inner')
+        _check_diff_index(df_list, joined, df.index[2:8])
+
+        self.assertRaises(ValueError, df_list[0].join, df_list[1:], on='a')
+
     def test_append_missing_column_proper_upcast(self):
         pass
 

@@ -453,7 +453,8 @@ class GroupBy(object):
                                                  self.groupings,
                                                  axis=self.axis)
         else:
-            result = concat(values, axis=0).reindex(self.obj.index)
+            result = concat(values, axis=0, verify_integrity=False)
+            result = result.reindex(self.obj.index)
 
         return result
 
@@ -1117,7 +1118,7 @@ class DataFrameGroupBy(GroupBy):
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
         """
-        import pandas.tools.merge as merge
+        from pandas.tools.merge import concat
 
         applied = []
 
@@ -1143,8 +1144,8 @@ class DataFrameGroupBy(GroupBy):
                 applied.append(res)
 
         concat_index = obj.columns if self.axis == 0 else obj.index
-        concatenated = merge.concat(applied, join_index=concat_index,
-                                    axis=self.axis)
+        concatenated = concat(applied, join_index=concat_index,
+                              axis=self.axis, verify_integrity=False)
         return concatenated.reindex_like(obj)
 
 class PanelGroupBy(GroupBy):

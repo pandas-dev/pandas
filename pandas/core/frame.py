@@ -301,9 +301,9 @@ class DataFrame(NDFrame):
 
     def _init_mgr(self, mgr, index, columns, dtype=None, copy=False):
         if columns is not None:
-            mgr = mgr.reindex_axis(columns, axis=0)
+            mgr = mgr.reindex_axis(columns, axis=0, copy=False)
         if index is not None:
-            mgr = mgr.reindex_axis(index, axis=1)
+            mgr = mgr.reindex_axis(index, axis=1, copy=False)
         # do not copy BlockManager unless explicitly done
         if copy and dtype is None:
             mgr = mgr.copy()
@@ -2715,7 +2715,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False):
+    def append(self, other, ignore_index=False, verify_integrity=True):
         """
         Append columns of other to end of this frame's columns and index.
         Columns not in this frame are added as new columns.
@@ -2749,7 +2749,7 @@ class DataFrame(NDFrame):
         else:
             to_concat = [self, other]
         return concat(to_concat, ignore_index=ignore_index,
-                      verify_integrity=True)
+                      verify_integrity=verify_integrity)
 
     def _get_raw_column(self, col):
         return self._data.get(col)
@@ -2757,11 +2757,12 @@ class DataFrame(NDFrame):
     def join(self, other, on=None, how='left', lsuffix='', rsuffix=''):
         """
         Join columns with other DataFrame either on index or on a key
-        column.
+        column. Efficiently Join multiple DataFrame objects by index at once by
+        passing a list.
 
         Parameters
         ----------
-        other : DataFrame, or Series with name field set
+        other : DataFrame, Series with name field set, or list of DataFrame
             Index should be similar to one of the columns in this one. If a
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame
@@ -2782,6 +2783,11 @@ class DataFrame(NDFrame):
         rsuffix : string
             Suffix to use from right frame's overlapping columns
 
+        Notes
+        -----
+        on, lsuffix, and rsuffix options are not supported when passing a list
+        of DataFrame objects
+
         Returns
         -------
         joined : DataFrame
@@ -2791,15 +2797,30 @@ class DataFrame(NDFrame):
                                  rsuffix=rsuffix)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix=''):
-        from pandas.tools.merge import merge
+        from pandas.tools.merge import merge, concat
 
         if isinstance(other, Series):
             assert(other.name is not None)
             other = DataFrame({other.name : other})
 
-        return merge(self, other, left_on=on, how=how,
-                     left_index=on is None, right_index=True,
-                     suffixes=(lsuffix, rsuffix), sort=False)
+        if isinstance(other, DataFrame):
+            return merge(self, other, left_on=on, how=how,
+                         left_index=on is None, right_index=True,
+                         suffixes=(lsuffix, rsuffix), sort=False)
+        else:
+            if on is not None:
+                raise ValueError('Joining multiple DataFrames only supported'
+                                 ' for joining on index')
+
+            # join indexes only using concat
+            if how == 'left':
+                how = 'outer'
+                join_index = self.index
+            else:
+                join_index = None
+
+            return concat([self] + list(other), axis=1, join=how,
+                          join_index=join_index, verify_integrity=True)
 
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=True,
@@ -3621,20 +3642,6 @@ def extract_index(data):
         index = NULL_INDEX
 
     return _ensure_index(index)
-
-
-
-def _check_data_types(data):
-    have_raw_arrays = False
-    have_series = False
-    for v in data.values():
-        if not isinstance(v, (dict, Series)):
-            have_raw_arrays = True
-        else:
-            have_series = True
-
-    is_mixed = have_series and have_raw_arrays
-    return have_raw_arrays, is_mixed
 
 
 def _prep_ndarray(values, copy=True):
