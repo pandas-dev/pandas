@@ -278,7 +278,7 @@ over the string representation of the object. All arguments are optional:
 
   - ``buf`` default None, for example a StringIO object
   - ``columns`` default None, which columns to write
-  - ``colSpace`` default None, number of spaces to write between columns
+  - ``col_space`` default None, number of spaces to write between columns
   - ``na_rep`` default ``NaN``, representation of NA value
   - ``formatters`` default None, a dictionary (by column) of functions each of
     which takes a single argument and returns a formatted string
@@ -288,6 +288,8 @@ over the string representation of the object. All arguments are optional:
   - ``sparsify`` default True, set to False for a DataFrame with a hierarchical
     index to print every multiindex key at each row.
   - ``index_names`` default True, will print the names of the indices
+  - ``index`` default True, will print the index (ie, row labels)
+  - ``header`` default True, will print the column labels
 
 The Series object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument

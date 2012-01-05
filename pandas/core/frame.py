@@ -32,7 +32,9 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
-from pandas.util.decorators import deprecate
+from pandas.util.decorators import deprecate, Appender
+
+from pandas.core.format import DataFrameFormatter, docstring_to_string
 
 import pandas.core.nanops as nanops
 import pandas.core.common as com
@@ -924,13 +926,14 @@ class DataFrame(NDFrame):
 
         f.close()
 
-    def to_string(self, buf=None, columns=None, colSpace=None,
-                  na_rep='NaN', formatters=None, float_format=None,
-                  sparsify=True, nanRep=None, index_names=True):
+    @Appender(docstring_to_string, indents=1)
+    def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
+                  header=True, index=True, na_rep='NaN', formatters=None,
+                  float_format=None, sparsify=True, nanRep=None,
+                  index_names=True):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-        from pandas.core.format import DataFrameFormatter
 
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -938,28 +941,41 @@ class DataFrame(NDFrame):
                           FutureWarning)
             na_rep = nanRep
 
+        if colSpace is not None:  # pragma: no cover
+            import warnings
+            warnings.warn("colSpace is deprecated, use col_space",
+                          FutureWarning)
+            col_space = colSpace
 
         formatter = DataFrameFormatter(self, buf=buf, columns=columns,
-                                       col_space=colSpace, na_rep=na_rep,
+                                       col_space=col_space, na_rep=na_rep,
                                        formatters=formatters,
                                        float_format=float_format,
                                        sparsify=sparsify,
-                                       index_names=index_names)
+                                       index_names=index_names,
+                                       header=header, index=index)
         formatter.to_string()
 
         if buf is None:
             return formatter.buf.getvalue()
 
-    def to_html(self, buf=None, columns=None, colSpace=None,
-                na_rep='NaN', formatters=None, float_format=None,
-                sparsify=True, index_names=True):
+    @Appender(docstring_to_string, indents=1)
+    def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
+                header=True, index=True, na_rep='NaN', formatters=None,
+                float_format=None, sparsify=True, index_names=True):
         """
-        Render a DataFrame to a html table.
+        Render a DataFrame to an html table.
         """
-        from pandas.core.format import DataFrameFormatter
+
+        if colSpace is not None:  # pragma: no cover
+            import warnings
+            warnings.warn("colSpace is deprecated, use col_space",
+                          FutureWarning)
+            col_space = colSpace
 
         formatter = DataFrameFormatter(self, buf=buf, columns=columns,
-                                       col_space=colSpace, na_rep=na_rep,
+                                       col_space=col_space, na_rep=na_rep,
+                                       header=header, index=index,
                                        formatters=formatters,
                                        float_format=float_format,
                                        sparsify=sparsify,

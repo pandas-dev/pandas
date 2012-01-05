@@ -1,19 +1,50 @@
 from StringIO import StringIO
-from pandas.core.common import adjoin, _pfixed
+from pandas.core.common import adjoin, is_numeric_dtype
 from pandas.core.index import MultiIndex, _ensure_index
 
+docstring_to_string = """
+    Parameters
+    ----------
+    frame : DataFrame
+        object to render
+    buf : StringIO-like, optional
+        buffer to write to
+    columns : sequence, optional
+        the subset of columns to write; default None writes all columns
+    col_space : int, optional
+        the width of each columns
+    header : bool, optional
+        whether to print column labels, default True
+    index : bool, optional
+        whether to print index (row) labels, default True
+    na_rep : string, optional
+        string representation of NAN to use, default 'NaN'
+    formatters : list or dict of one-parameter functions, optional
+        formatter functions to apply to columns' elements by position or name,
+        default None
+    float_format : one-parameter function, optional
+        formatter function to apply to columns' elements if they are floats
+        default None
+    sparsify : bool, optional
+        Set to False for a DataFrame with a hierarchical index to print every
+        multiindex key at each row, default True
+    index_names : bool, optional
+        Prints the names of the indexes, default True """
 
 class DataFrameFormatter(object):
     """
     Render a DataFrame
 
     self.to_string() : console-friendly tabular output
-    self.to_html() : html table
-    """
-    def __init__(self, frame, buf=None, columns=None, col_space=None,
-                 na_rep='NaN', formatters=None, float_format=None,
-                 sparsify=True, index_names=True):
+    self.to_html()   : html table
 
+    """
+
+    __doc__ += docstring_to_string
+
+    def __init__(self, frame, buf=None, columns=None, col_space=None,
+                 header=True, index=True, na_rep='NaN', formatters=None,
+                 float_format=None, sparsify=True, index_names=True):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -22,6 +53,8 @@ class DataFrameFormatter(object):
         self.formatters = formatters
         self.na_rep = na_rep
         self.col_space = col_space
+        self.header = header
+        self.index = index
 
         if columns is not None:
             self.columns = _ensure_index(columns)
@@ -47,10 +80,16 @@ class DataFrameFormatter(object):
             str_index = self._get_formatted_index()
             str_columns = self._get_formatted_column_labels()
 
-            stringified = [str_columns[i] + format_col(c)
-                           for i, c in enumerate(self.columns)]
+            if self.header:
+                stringified = [str_columns[i] + format_col(c)
+                               for i, c in enumerate(self.columns)]
+            else:
+                stringified = [format_col(c) for c in self.columns]
 
-            to_write.append(adjoin(1, str_index, *stringified))
+            if self.index:
+                to_write.append(adjoin(1, str_index, *stringified))
+            else:
+                to_write.append(adjoin(1, *stringified))
 
         for s in to_write:
             if isinstance(s, unicode):
@@ -114,17 +153,21 @@ class DataFrameFormatter(object):
             write(buf, '</tbody>', indent  + indent_delta)
         else:
             indent += indent_delta
-            write(buf, '<thead>', indent)
-            row = []
 
             # header row
-            col_row = _column_header()
-            indent += indent_delta
-            write_tr(buf, col_row, indent, indent_delta, header=True)
-            if self.has_index_names:
-                row = frame.index.names + [''] * len(frame.columns)
-                write_tr(buf, row, indent, indent_delta, header=True)
-            write(buf, '</thead>', indent)
+            if self.header:
+                write(buf, '<thead>', indent)
+                row = []
+
+                col_row = _column_header()
+                indent += indent_delta
+                write_tr(buf, col_row, indent, indent_delta, header=True)
+                if self.has_index_names:
+                    row = frame.index.names + [''] * len(frame.columns)
+                    write_tr(buf, row, indent, indent_delta, header=True)
+
+                write(buf, '</thead>', indent)
+
             write(buf, '<tbody>', indent)
 
             # write values
@@ -148,14 +191,9 @@ class DataFrameFormatter(object):
 
         col_space = self.col_space
 
-        if col_space is None:
-            def _myformat(v):
-                return _format(v, na_rep=self.na_rep,
-                               float_format=self.float_format)
-        else:
-            def _myformat(v):
-                return _pfixed(v, col_space, na_rep=self.na_rep,
-                               float_format=self.float_format)
+        def _myformat(v):
+            return _format(v, space=col_space, na_rep=self.na_rep,
+                           float_format=self.float_format)
 
         formatters = {} if self.formatters is None else self.formatters
 
@@ -171,16 +209,24 @@ class DataFrameFormatter(object):
     def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
 
+        formatters = self.formatters
+        if formatters is None:
+            formatters = {}
+
         if isinstance(self.columns, MultiIndex):
             fmt_columns = self.columns.format(sparsify=False, adjoin=False)
-            str_columns = zip(*[[' %s' % y for y in x]
+            str_columns = zip(*[[' %s' % y if y not in formatters and is_numeric_dtype(self.frame[x])
+                                else str(y)
+                                for y in x]
                                 for x in zip(*fmt_columns)])
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            str_columns = [[' %s' % x] for x in self.columns.format()]
+            str_columns = [[' %s' % x if x not in formatters and is_numeric_dtype(self.frame[x])
+                           else str(x)]
+                           for x in self.columns.format()]
 
         if self.show_index_names and self.has_index_names:
             for x in str_columns:
@@ -201,7 +247,7 @@ class DataFrameFormatter(object):
         columns = self.frame.columns
 
         show_index_names = self.show_index_names and self.has_index_names
-        show_col_names = self.show_index_names and self.has_column_names
+        show_col_names = (self.show_index_names and self.has_column_names)
 
         if isinstance(index, MultiIndex):
             fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
@@ -213,11 +259,14 @@ class DataFrameFormatter(object):
 
         # empty space for columns
         if show_col_names:
-            col_header = ['  %s' % x for x in self._get_column_name_list()]
+            col_header = ['%s' % x for x in self._get_column_name_list()]
         else:
             col_header = [''] * columns.nlevels
 
-        return col_header + adjoined
+        if self.header:
+            return col_header + adjoined
+        else:
+            return adjoined
 
     def _get_column_name_list(self):
         names = []
@@ -228,7 +277,6 @@ class DataFrameFormatter(object):
         else:
             names.append('' if columns.name is None else columns.name)
         return names
-
 
 def single_column_table(column):
     table = '<table><tbody>'
