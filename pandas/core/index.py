@@ -5,7 +5,7 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import (adjoin as _adjoin, _stringify,
+from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
                                 _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
@@ -119,6 +119,15 @@ class Index(np.ndarray):
         except TypeError:
             return False
 
+    def get_duplicates(self):
+        from collections import defaultdict
+        counter = defaultdict(lambda: 0)
+        for k in self.values:
+            counter[k] += 1
+        return sorted(k for k, v in counter.iteritems() if v > 1)
+
+    _get_duplicates = get_duplicates
+
     @property
     def indexMap(self):
         "{label -> location}"
@@ -142,13 +151,6 @@ class Index(np.ndarray):
 
     def _verify_integrity(self):
         return self._engine.has_integrity
-
-    def _get_duplicates(self):
-        from collections import defaultdict
-        counter = defaultdict(lambda: 0)
-        for k in self.values:
-            counter[k] += 1
-        return sorted(k for k, v in counter.iteritems() if v > 1)
 
     _allDates = None
     def is_all_dates(self):
@@ -1261,9 +1263,6 @@ class MultiIndex(Index):
         appended : Index
         """
         if isinstance(other, (list, tuple)):
-            for k in other:
-                assert(isinstance(k, MultiIndex))
-
             to_concat = (self.values,) + tuple(k.values for k in other)
         else:
             to_concat = self.values, other.values
@@ -1871,3 +1870,66 @@ def _ensure_index(index_like):
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise Exception('do not recognize join method %s' % method)
+
+# TODO: handle index names!
+
+def _get_combined_index(indexes, intersect=False):
+    indexes = _get_distinct_indexes(indexes)
+    if len(indexes) == 1:
+        return indexes[0]
+    if intersect:
+        index = indexes[0]
+        for other in indexes[1:]:
+            index = index.intersection(other)
+        return index
+    union =  _union_indexes(indexes)
+    return Index(union)
+
+def _get_distinct_indexes(indexes):
+    return dict((id(x), x) for x in indexes).values()
+
+
+def _union_indexes(indexes):
+    if len(indexes) == 0:
+        return Index([])
+
+    if len(indexes) == 1:
+        result = indexes[0]
+        if isinstance(result, list):
+            result = Index(sorted(result))
+        return result
+
+    indexes, kind = _sanitize_and_check(indexes)
+
+    if kind == 'special':
+        result = indexes[0]
+        for other in indexes[1:]:
+            result = result.union(other)
+        return result
+    elif kind == 'array':
+        index = indexes[0]
+        for other in indexes[1:]:
+            if not index.equals(other):
+                return Index(lib.fast_unique_multiple(indexes))
+
+        return index
+    else:
+        return Index(lib.fast_unique_multiple_list(indexes))
+
+
+def _sanitize_and_check(indexes):
+    kinds = list(set([type(index) for index in indexes]))
+
+    if list in kinds:
+        if len(kinds) > 1:
+            indexes = [Index(_try_sort(x)) if not isinstance(x, Index) else x
+                       for x in indexes]
+            kinds.remove(list)
+        else:
+            return indexes, 'list'
+
+
+    if len(kinds) > 1 or Index not in kinds:
+        return indexes, 'special'
+    else:
+        return indexes, 'array'

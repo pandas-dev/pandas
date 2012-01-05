@@ -89,6 +89,7 @@ pandas 0.7.0
     5-10x in most typical use cases (GH #374)
   - Some performance enhancements in constructing a Panel from a dict of
     DataFrame objects
+  - Made ``Index._get_duplicates`` a public method by removing the underscore
 
 **Bug fixes**
 

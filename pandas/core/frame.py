@@ -23,7 +23,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify, _maybe_upcast)
+                                _default_index, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
@@ -1638,7 +1638,8 @@ class DataFrame(NDFrame):
 
     truncate = generic.truncate
 
-    def set_index(self, col_or_cols, drop=True, inplace=False):
+    def set_index(self, col_or_cols, drop=True, inplace=False,
+                  verify_integrity=True):
         """
         Set the DataFrame index (row labels) using one or more existing
         columns. By default yields a new object.
@@ -1650,6 +1651,10 @@ class DataFrame(NDFrame):
             Delete columns to be used as the new index
         inplace : boolean, default False
             Modify the DataFrame in place (do not create a new object)
+        verify_integrity : boolean, default True
+            Check the new index for duplicates. Otherwise defer the check until
+            necessary. Setting to False will improve the performance of this
+            method
 
         Returns
         -------
@@ -1674,8 +1679,8 @@ class DataFrame(NDFrame):
 
         index = MultiIndex.from_arrays(arrays, names=cols)
 
-        if not index._verify_integrity():
-            duplicates = index._get_duplicates()
+        if verify_integrity and not index._verify_integrity():
+            duplicates = index.get_duplicates()
             raise Exception('Index has duplicate keys: %s' % duplicates)
 
         # clear up memory usage
@@ -2738,60 +2743,13 @@ class DataFrame(NDFrame):
         if not self:
             return other.copy()
 
-        if ignore_index:
-            new_index = None
+        from pandas.tools.merge import concat
+        if isinstance(other, list):
+            to_concat = [self] + other
         else:
-            new_index = self.index.append(other.index)
-            assert(new_index._verify_integrity())
-
-        if self.columns.equals(other.columns):
-            return self._append_same_columns(other, new_index)
-        else:
-            return self._append_different_columns(other, new_index)
-
-    def _append_different_columns(self, other, new_index):
-        indexer = self.columns.get_indexer(other.columns)
-
-        if not (indexer == -1).any():
-            new_columns = self.columns
-        else:
-            new_columns = self.columns.union(other.columns)
-
-        new_data = self._append_column_by_column(other)
-        return self._constructor(data=new_data, index=new_index,
-                                 columns=new_columns)
-
-    def _append_same_columns(self, other, new_index):
-        if self._is_mixed_type:
-            new_data = self._append_column_by_column(other)
-        else:
-            new_data = np.concatenate((self.values, other.values), axis=0)
-        return self._constructor(new_data, index=new_index,
-                                 columns=self.columns)
-
-    def _append_column_by_column(self, other):
-        def _concat_missing(values, n):
-            values = _maybe_upcast(values)
-            missing_values = np.empty(n, dtype=values.dtype)
-            missing_values.fill(np.nan)
-            return values, missing_values
-
-        new_data = {}
-        for col in self:
-            values = self._get_raw_column(col)
-            if col in other:
-                other_values = other._get_raw_column(col)
-            else:
-                values, other_values = _concat_missing(values, len(other))
-            new_data[col] = np.concatenate((values, other_values))
-
-        for col in other:
-            values = other._get_raw_column(col)
-            if col not in self:
-                values, missing_values = _concat_missing(values, len(self))
-                new_data[col] = np.concatenate((missing_values, values))
-
-        return new_data
+            to_concat = [self, other]
+        return concat(to_concat, ignore_index=ignore_index,
+                      verify_integrity=True)
 
     def _get_raw_column(self, col):
         return self._data.get(col)
@@ -3618,6 +3576,8 @@ def factor_agg(factor, vec, func):
 
 
 def extract_index(data):
+    from pandas.core.index import _union_indexes
+
     index = None
     if len(data) == 0:
         index = NULL_INDEX
@@ -3662,51 +3622,6 @@ def extract_index(data):
 
     return _ensure_index(index)
 
-
-def _union_indexes(indexes):
-    if len(indexes) == 0:
-        return Index([])
-
-    if len(indexes) == 1:
-        result = indexes[0]
-        if isinstance(result, list):
-            result = Index(sorted(result))
-        return result
-
-    indexes, kind = _sanitize_and_check(indexes)
-
-    if kind == 'special':
-        result = indexes[0]
-        for other in indexes[1:]:
-            result = result.union(other)
-        return result
-    elif kind == 'array':
-        index = indexes[0]
-        for other in indexes[1:]:
-            if not index.equals(other):
-                return Index(lib.fast_unique_multiple(indexes))
-
-        return index
-    else:
-        return Index(lib.fast_unique_multiple_list(indexes))
-
-
-def _sanitize_and_check(indexes):
-    kinds = list(set([type(index) for index in indexes]))
-
-    if list in kinds:
-        if len(kinds) > 1:
-            indexes = [Index(_try_sort(x)) if not isinstance(x, Index) else x
-                       for x in indexes]
-            kinds.remove(list)
-        else:
-            return indexes, 'list'
-
-
-    if len(kinds) > 1 or Index not in kinds:
-        return indexes, 'special'
-    else:
-        return indexes, 'array'
 
 
 def _check_data_types(data):

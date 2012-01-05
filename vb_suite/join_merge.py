@@ -68,6 +68,35 @@ join_dataframe_index_multi = \
 # Merges
 
 #----------------------------------------------------------------------
+# Appending DataFrames
+
+setup = common_setup + """
+df1 = DataFrame(np.random.randn(10000, 4), columns=['A', 'B', 'C', 'D'])
+df2 = df1.copy()
+df2.index = np.arange(10000, 20000)
+mdf1 = df1.copy()
+mdf1['obj1'] = 'bar'
+mdf1['obj2'] = 'bar'
+mdf1['int1'] = 5
+try:
+    mdf1.consolidate(inplace=True)
+except:
+    pass
+mdf2 = mdf1.copy()
+mdf2.index = df2.index
+"""
+
+stmt = "df1.append(df2)"
+append_frame_single_homogenous = \
+    Benchmark(stmt, setup, name='append_frame_single_homogenous',
+              ncalls=500, repeat=1)
+
+stmt = "mdf1.append(mdf2)"
+append_frame_single_mixed = Benchmark(stmt, setup,
+                                      name='append_frame_single_mixed',
+                                      ncalls=500, repeat=1)
+
+#----------------------------------------------------------------------
 # data alignment
 
 setup = common_setup + """n = 1000000
@@ -94,3 +123,4 @@ series_align_left_monotonic = \
     Benchmark(stmt, setup,
               name="series_align_left_monotonic",
               start_date=datetime(2011, 3, 1), logy=True)
+

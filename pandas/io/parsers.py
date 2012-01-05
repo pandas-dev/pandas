@@ -413,7 +413,7 @@ class TextParser(object):
             index = Index(np.arange(len(content)))
 
         if not index._verify_integrity():
-            dups = index._get_duplicates()
+            dups = index.get_duplicates()
             raise Exception('Index has duplicates: %s' % str(dups))
 
         if len(self.columns) != len(zipped_content):

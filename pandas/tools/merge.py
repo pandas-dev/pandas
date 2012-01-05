@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.groupby import get_group_index
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, _get_combined_index
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly
@@ -30,7 +30,8 @@ if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 class _MergeOperation(object):
     """
-
+    Perform a database (SQL) merge operation between two DataFrame objects
+    using either columns as keys or their row indexes
     """
 
     def __init__(self, left, right, how='inner', on=None,
@@ -69,10 +70,11 @@ class _MergeOperation(object):
         ldata, rdata = self._get_merge_data(self.join_names)
 
         # TODO: more efficiently handle group keys to avoid extra consolidation!
-        join_op = _BlockJoinOperation(ldata, rdata, join_index,
-                                      left_indexer, right_indexer, axis=1)
+        join_op = _BlockJoinOperation([ldata, rdata], join_index,
+                                      [left_indexer, right_indexer], axis=1,
+                                      copy=self.copy)
 
-        result_data = join_op.get_result(copy=self.copy)
+        result_data = join_op.get_result()
         result = DataFrame(result_data)
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
@@ -377,251 +379,384 @@ def _sort_labels(uniques, left, right):
 
 class _BlockJoinOperation(object):
     """
+    BlockJoinOperation made generic for N DataFrames
+
     Object responsible for orchestrating efficient join operation between two
     BlockManager data structures
     """
-    def __init__(self, left, right, join_index, left_indexer, right_indexer,
-                 axis=1):
-        assert(axis > 0)
+    def __init__(self, data_list, join_index, indexers, axis=1, copy=True):
+        if axis <= 0:
+            raise Exception('Only axis >= 1 supported for this operation')
 
-        if not left.is_consolidated():
-            left = left.consolidate()
-        if not right.is_consolidated():
-            right = right.consolidate()
+        assert(len(data_list) == len(indexers))
 
-        self.left = left
-        self.right = right
-        self.axis = axis
+        self.units = []
+        for data, indexer in zip(data_list, indexers):
+            if not data.is_consolidated():
+                data = data.consolidate()
+            self.units.append(_JoinUnit(data.blocks, indexer))
 
         self.join_index = join_index
-        self.lindexer = left_indexer
-        self.rindexer = right_indexer
+        self.axis = axis
+        self.copy = copy
 
         # do NOT sort
-        self.result_items = left.items.append(right.items)
-        self.result_axes = list(left.axes)
+        self.result_items = _concat_indexes([d.items for d in data_list])
+        self.result_axes = list(data_list[0].axes)
         self.result_axes[0] = self.result_items
         self.result_axes[axis] = self.join_index
 
-    def get_result(self, copy=False):
-        """
-        Parameters
-        ----------
-        other
-        lindexer
-        lmask
-        rindexer
-        rmask
+    def _prepare_blocks(self):
+        blockmaps = []
 
+        for unit in self.units:
+            join_blocks = unit.get_upcasted_blocks()
+            type_map = dict((type(blk), blk) for blk in join_blocks)
+            blockmaps.append(type_map)
+
+        return blockmaps
+
+    def get_result(self):
+        """
         Returns
         -------
         merged : BlockManager
         """
-        left_blockmap, right_blockmap = self._prepare_blocks()
+        blockmaps = self._prepare_blocks()
+        kinds = _get_all_block_kinds(blockmaps)
 
         result_blocks = []
 
-        # maybe want to enable flexible copying
-
-        kinds = set(left_blockmap) | set(right_blockmap)
+        # maybe want to enable flexible copying <-- what did I mean?
         for klass in kinds:
-            lblk = left_blockmap.get(klass)
-            rblk = right_blockmap.get(klass)
-
-            if lblk and rblk:
-                # true merge, do not produce intermediate copy
-                res_blk = self._merge_blocks(lblk, rblk)
-            elif lblk:
-                res_blk = self._reindex_block(lblk, side='left')
-            else:
-                res_blk = self._reindex_block(rblk, side='right')
-
+            klass_blocks = [mapping.get(klass) for mapping in blockmaps]
+            res_blk = self._get_merged_block(klass_blocks)
             result_blocks.append(res_blk)
 
         return BlockManager(result_blocks, self.result_axes)
 
-    def _prepare_blocks(self):
-        lblocks = self.left.blocks
-        rblocks = self.right.blocks
+    def _get_merged_block(self, blocks):
 
-        # will short-circuit and not compute lneed_masking
-        if self.lneed_masking:
-            lblocks = self._upcast_blocks(lblocks)
+        to_merge = []
 
-        if self.rneed_masking:
-            rblocks = self._upcast_blocks(rblocks)
+        for unit, block in zip(self.units, blocks):
+            if block is not None:
+                to_merge.append((unit, block))
 
-        left_blockmap = dict((type(blk), blk) for blk in lblocks)
-        right_blockmap = dict((type(blk), blk) for blk in rblocks)
-
-        return left_blockmap, right_blockmap
-
-    def _reindex_block(self, block, side='left', copy=True):
-        if side == 'left':
-            indexer = self.lindexer
-            mask, need_masking = self.lmask_info
+        if len(to_merge) > 1:
+            return self._merge_blocks(to_merge)
         else:
-            indexer = self.rindexer
-            mask, need_masking = self.rmask_info
+            unit, block = to_merge[0]
+            return unit.reindex_block(block, self.axis,
+                                      self.result_items, copy=self.copy)
 
+    def _merge_blocks(self, merge_chunks):
+        """
+        merge_chunks -> [(_JoinUnit, Block)]
+        """
+        funit, fblock = merge_chunks[0]
+        fidx = funit.indexer
+
+        out_shape = list(fblock.values.shape)
+
+        n = len(fidx) if fidx is not None else out_shape[self.axis]
+
+        out_shape[0] = sum(len(blk) for unit, blk in merge_chunks)
+        out_shape[self.axis] = n
+
+        # Should use Fortran order??
+        out = np.empty(out_shape, dtype=fblock.values.dtype)
+
+        sofar = 0
+        for unit, blk in merge_chunks:
+            out_chunk = out[sofar : sofar + len(blk)]
+
+            if unit.indexer is None:
+            # is this really faster than assigning to arr.flat?
+                com.take_fast(blk.values, np.arange(n, dtype='i4'),
+                              None, False,
+                              axis=self.axis, out=out_chunk)
+            else:
+                # write out the values to the result array
+                com.take_fast(blk.values, unit.indexer,
+                              None, False,
+                              axis=self.axis, out=out_chunk)
+
+            sofar += len(blk)
+
+        # does not sort
+        new_block_items = _concat_indexes([b.items for _, b in merge_chunks])
+        return make_block(out, new_block_items, self.result_items)
+
+
+
+class _JoinUnit(object):
+    """
+    Blocks plus indexer
+    """
+
+    def __init__(self, blocks, indexer):
+        self.blocks = blocks
+        self.indexer = indexer
+
+    @cache_readonly
+    def mask_info(self):
+        if self.indexer is None or not _may_need_upcasting(self.blocks):
+            mask = None
+            need_masking = False
+        else:
+            mask = self.indexer == -1
+            need_masking = mask.any()
+
+        return mask, need_masking
+
+    @property
+    def need_masking(self):
+        return self.mask_info[1]
+
+    def get_upcasted_blocks(self):
+        # will short-circuit and not compute lneed_masking if indexer is None
+        if self.need_masking:
+            return _upcast_blocks(self.blocks)
+        return self.blocks
+
+    def reindex_block(self, block, axis, ref_items, copy=True):
         # still some inefficiency here for bool/int64 because in the case where
         # no masking is needed, take_fast will recompute the mask
 
-        if indexer is None and copy:
-            result = block.copy()
-        else:
-            result = block.reindex_axis(indexer, mask, need_masking,
-                                        axis=self.axis)
+        mask, need_masking = self.mask_info
 
-        result.ref_items = self.result_items
+        if self.indexer is None:
+            if copy:
+                result = block.copy()
+            else:
+                result = block
+        else:
+            result = block.reindex_axis(self.indexer, mask, need_masking,
+                                        axis=axis)
+
+        result.ref_items = ref_items
         return result
 
-    @cache_readonly
-    def lmask_info(self):
-        if (self.lindexer is None or
-            not self._may_need_upcasting(self.left.blocks)):
-            lmask = None
-            lneed_masking = False
+def _may_need_upcasting(blocks):
+    for block in blocks:
+        if isinstance(block, (IntBlock, BoolBlock)):
+            return True
+    return False
+
+
+def _upcast_blocks(blocks):
+    """
+    Upcast and consolidate if necessary
+    """
+    new_blocks = []
+    for block in blocks:
+        if isinstance(block, IntBlock):
+            newb = make_block(block.values.astype(float), block.items,
+                              block.ref_items)
+        elif isinstance(block, BoolBlock):
+            newb = make_block(block.values.astype(object), block.items,
+                              block.ref_items)
         else:
-            lmask = self.lindexer == -1
-            lneed_masking = lmask.any()
+            newb = block
+        new_blocks.append(newb)
 
-        return lmask, lneed_masking
+    # use any ref_items
+    return _consolidate(new_blocks, newb.ref_items)
 
-    @cache_readonly
-    def rmask_info(self):
-        if (self.rindexer is None or
-            not self._may_need_upcasting(self.right.blocks)):
-            rmask = None
-            rneed_masking = False
-        else:
-            rmask = self.rindexer == -1
-            rneed_masking = rmask.any()
-
-        return rmask, rneed_masking
-
-    @property
-    def lneed_masking(self):
-        return self.lmask_info[1]
-
-    @property
-    def rneed_masking(self):
-        return self.rmask_info[1]
-
-    @staticmethod
-    def _may_need_upcasting(blocks):
-        for block in blocks:
-            if isinstance(block, (IntBlock, BoolBlock)):
-                return True
-        return False
-
-    def _merge_blocks(self, lblk, rblk):
-        lidx = self.lindexer
-        ridx = self.rindexer
-
-        n = lblk.values.shape[self.axis] if lidx is None else len(lidx)
-        lk = len(lblk.items)
-        rk = len(rblk.items)
-
-        out_shape = list(lblk.shape)
-        out_shape[0] = lk + rk
-        out_shape[self.axis] = n
-
-        out = np.empty(out_shape, dtype=lblk.values.dtype)
-
-        # is this really faster than assigning to arr.flat?
-        if lidx is None:
-            # out[:lk] = lblk.values
-            com.take_fast(lblk.values, np.arange(n, dtype='i4'),
-                          None, False,
-                          axis=self.axis, out=out[:lk])
-        else:
-            # write out the values to the result array
-            com.take_fast(lblk.values, lidx, None, False,
-                             axis=self.axis, out=out[:lk])
-        if ridx is None:
-            # out[lk:] = lblk.values
-            com.take_fast(rblk.values, np.arange(n, dtype='i4'),
-                          None, False,
-                          axis=self.axis, out=out[lk:])
-        else:
-            com.take_fast(rblk.values, ridx, None, False,
-                          axis=self.axis, out=out[lk:])
-
-        # does not sort
-        new_items = lblk.items.append(rblk.items)
-        return make_block(out, new_items, self.result_items)
-
-    @staticmethod
-    def _upcast_blocks(blocks):
-        """
-        Upcast and consolidate if necessary
-        """
-        # if not need_masking:
-        #     return blocks
-
-        new_blocks = []
-        for block in blocks:
-            if isinstance(block, IntBlock):
-                newb = make_block(block.values.astype(float), block.items,
-                                  block.ref_items)
-            elif isinstance(block, BoolBlock):
-                newb = make_block(block.values.astype(object), block.items,
-                                  block.ref_items)
-            else:
-                newb = block
-            new_blocks.append(newb)
-
-        # use any ref_items
-        return _consolidate(new_blocks, newb.ref_items)
-
+def _get_all_block_kinds(blockmaps):
+    kinds = set()
+    for mapping in blockmaps:
+        kinds |= set(mapping)
+    return kinds
 
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects
 
-def concat(frames, axis=0, join='outer', join_index=None):
+def concat(frames, axis=0, join='outer', join_index=None,
+           ignore_index=False, verify_integrity=False):
     """
     Concatenate DataFrame objects row or column wise
 
     Parameters
     ----------
-    frames : list
+    frames : list of DataFrame objects
     axis : {0, 1}, default 0
+        The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis
     join_index : index-like
+    verify_integrity : boolean, default False
 
     Returns
     -------
     concatenated : DataFrame
     """
-    return _concat_frames(frames, join_index=join_index, axis=axis)
+    op = Concatenator(frames, axis=axis, join_index=join_index,
+                      ignore_index=ignore_index,
+                      verify_integrity=verify_integrity)
+    return op.get_result()
 
-def _concat_frames(frames, join_index=None, axis=0):
-    if len(frames) == 1:
-        return frames[0]
 
-    if axis == 0:
-        new_index = _concat_indexes([x.index for x in frames])
-        if join_index is None:
-            new_columns = frames[0].columns
+class Concatenator(object):
+    """
+
+    """
+
+    def __init__(self, frames, axis=0, join='outer', join_index=None,
+                 ignore_index=False, verify_integrity=False):
+
+        # consolidate data
+        for frame in frames:
+            frame.consolidate(inplace=True)
+
+        self.frames = frames
+        self.axis = axis
+        self.join = join
+        self.join_index = join_index
+
+        self.ignore_index = ignore_index
+
+        self.verify_integrity = verify_integrity
+
+        self.new_index, self.new_columns = self._get_new_axes()
+
+    def get_result(self):
+        if len(self.frames) == 1:
+            return self.frames[0]
+
+        new_data = self._get_concatenated_data()
+        new_index, new_columns = self._get_new_axes()
+        constructor = self._get_frame_constructor()
+
+        return constructor(new_data, index=new_index, columns=new_columns)
+
+    def _get_concatenated_data(self):
+        try:
+            blockmaps = []
+            for frame in self.frames:
+                type_map = dict((type(blk), blk) for blk in frame._data.blocks)
+                blockmaps.append(type_map)
+            kinds = _get_all_block_kinds(blockmaps)
+
+            new_blocks = []
+            for kind in kinds:
+                klass_blocks = [mapping.get(kind) for mapping in blockmaps]
+                stacked_block = self._concat_blocks(klass_blocks)
+                new_blocks.append(stacked_block)
+            new_axes = [self.new_columns, self.new_index]
+            new_data = BlockManager(new_blocks, new_axes)
+        except Exception:  # EAFP
+            # should not be possible to fail here for the expected reason with
+            # axis=1
+            if self.axis == 1:
+                raise
+
+            new_data = {}
+            for column in self.new_columns:
+                new_data[column] = self._concat_single_column(column)
+
+        return new_data
+
+    def _concat_blocks(self, blocks):
+        cat_axis = 0 if self.axis == 1 else 1
+        concat_values = np.concatenate([b.values for b in blocks],
+                                       axis=cat_axis)
+        if self.axis == 0:
+            # Not safe to remove this check, need to profile
+            if not _all_indexes_same([b.items for b in blocks]):
+                raise Exception('dtypes are not consistent throughout '
+                                'DataFrames')
+            return make_block(concat_values, blocks[0].items, self.new_columns)
         else:
-            new_columns = join_index
-    else:
-        new_columns = _concat_indexes([x.columns for x in frames])
-        new_index = join_index
+            concat_items = _concat_indexes([b.items for b in blocks])
+            # TODO: maybe want to "take" from the new columns?
+            return make_block(concat_values, concat_items, self.new_columns)
 
-    if frames[0]._is_mixed_type:
-        new_data = {}
-        for col in new_columns:
-            new_data[col] = np.concatenate([x[col].values for x in frames])
-        return DataFrame(new_data, index=new_index, columns=new_columns)
-    else:
-        new_values = np.concatenate([x.values for x in frames], axis=axis)
-        return DataFrame(new_values, index=new_index, columns=new_columns)
+    def _concat_single_column(self, col):
+        all_values = []
+        dtypes = set()
+        for frame in self.frames:
+            if len(frame) == 0:
+                continue
+            try:
+                values = frame._get_raw_column(col)
+                dtypes.add(values.dtype)
+                all_values.append(values)
+            except KeyError:
+                all_values.append(None)
 
-def _concat_indexes(indexes):
-    return indexes[0].append(indexes[1:])
+        # this stinks
+        have_object = False
+        for dtype in dtypes:
+            if issubclass(dtype.type, (np.object_, np.bool_)):
+                have_object = True
+        if have_object:
+            empty_dtype = np.object_
+        else:
+            empty_dtype = np.float64
+
+        to_concat = []
+        for df, col_values in zip(self.frames, all_values):
+            if col_values is None:
+                missing_arr = np.empty(len(df), dtype=empty_dtype)
+                missing_arr.fill(np.nan)
+                to_concat.append(missing_arr)
+            else:
+                to_concat.append(col_values)
+
+        return np.concatenate(to_concat)
+
+    def _get_new_axes(self):
+        if self.axis == 0:
+            if self.ignore_index:
+                new_index = None
+            else:
+                new_index = _concat_indexes([x.index for x in self.frames])
+                self._maybe_check_integrity(new_index)
+
+            if self.join_index is None:
+                all_cols = [df.columns for df in self.frames]
+                new_columns = _get_combined_index(all_cols, intersect=False)
+            else:
+                new_columns = self.join_index
+        else:
+            new_columns = _concat_indexes([df.columns for df in self.frames])
+            self._maybe_check_integrity(new_columns)
+
+            if self.verify_integrity:
+                if not new_columns._verify_integrity():
+                    raise Exception('Indexes overlap!')
+
+            if self.join_index is None:
+                all_indexes = [df.index for df in self.frames]
+                new_index = _get_combined_index(all_indexes, intersect=False)
+            else:
+                new_index = self.join_index
+
+        return new_index, new_columns
+
+    def _get_frame_constructor(self):
+        # SparseDataFrame causes us some headache here
+
+        # check that there's only one type present
+        frame_types = set(type(df) for df in self.frames)
+        if len(frame_types) > 1:
+            raise Exception('Can only concatenate like-typed objects, found %s'
+                            % frame_types)
+
+        return self.frames[0]._constructor
+
+    def _maybe_check_integrity(self, concat_index):
+        if self.verify_integrity:
+            if not concat_index._verify_integrity():
+                overlap = concat_index.get_duplicates()
+                raise Exception('Indexes have overlapping values: %s'
+                                % str(overlap))
+
+    @cache_readonly
+    def _all_indexes_same(self):
+        return _all_indexes_same([df.columns for df in self.frames])
 
 def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
     names = [ping.name for ping in groupings]
@@ -645,6 +780,9 @@ def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
     else:
         new_values = np.concatenate([x.values for x in frames], axis=axis)
         return DataFrame(new_values, index=new_index, columns=new_columns)
+
+def _concat_indexes(indexes):
+    return indexes[0].append(indexes[1:])
 
 def _make_concat_multiindex(indexes, keys, levels, names):
     single_level = len(levels) == 1
@@ -716,3 +854,11 @@ def _all_indexes_same(indexes):
             return False
     return True
 
+
+class _SparseMockBlockManager(object):
+
+    def __init__(self, sp_frame):
+        self.sp_frame = sp_frame
+
+    def get(self, item):
+        return self.sp_frame[item].values

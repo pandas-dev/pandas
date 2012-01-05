@@ -599,6 +599,87 @@ def _join_by_hand(a, b, how='left'):
         a_re[col] = s
     return a_re.reindex(columns=result_columns)
 
+class TestConcatenate(unittest.TestCase):
+
+    def setUp(self):
+        self.frame = DataFrame(tm.getSeriesData())
+        self.mixed_frame = self.frame.copy()
+        self.mixed_frame['foo'] = 'bar'
+
+    def test_append(self):
+        begin_index = self.frame.index[:5]
+        end_index = self.frame.index[5:]
+
+        begin_frame = self.frame.reindex(begin_index)
+        end_frame = self.frame.reindex(end_index)
+
+        appended = begin_frame.append(end_frame)
+        assert_almost_equal(appended['A'], self.frame['A'])
+
+        del end_frame['A']
+        partial_appended = begin_frame.append(end_frame)
+        self.assert_('A' in partial_appended)
+
+        partial_appended = end_frame.append(begin_frame)
+        self.assert_('A' in partial_appended)
+
+        # mixed type handling
+        appended = self.mixed_frame[:5].append(self.mixed_frame[5:])
+        assert_frame_equal(appended, self.mixed_frame)
+
+        # what to test here
+        mixed_appended = self.mixed_frame[:5].append(self.frame[5:])
+        mixed_appended2 = self.frame[:5].append(self.mixed_frame[5:])
+
+        # all equal except 'foo' column
+        assert_frame_equal(mixed_appended.reindex(columns=['A', 'B', 'C', 'D']),
+                           mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
+
+        # append empty
+        empty = DataFrame({})
+
+        appended = self.frame.append(empty)
+        assert_frame_equal(self.frame, appended)
+        self.assert_(appended is not self.frame)
+
+        appended = empty.append(self.frame)
+        assert_frame_equal(self.frame, appended)
+        self.assert_(appended is not self.frame)
+
+        # overlap
+        self.assertRaises(Exception, self.frame.append, self.frame)
+
+    def test_append_records(self):
+        arr1 = np.zeros((2,),dtype=('i4,f4,a10'))
+        arr1[:] = [(1,2.,'Hello'),(2,3.,"World")]
+
+        arr2 = np.zeros((3,),dtype=('i4,f4,a10'))
+        arr2[:] = [(3, 4.,'foo'),
+                   (5, 6.,"bar"),
+                   (7., 8., 'baz')]
+
+        df1 = DataFrame(arr1)
+        df2 = DataFrame(arr2)
+
+        result = df1.append(df2, ignore_index=True)
+        expected = DataFrame(np.concatenate((arr1, arr2)))
+        assert_frame_equal(result, expected)
+
+    def test_append_different_columns(self):
+        df = DataFrame({'bools' : np.random.randn(10) > 0,
+                        'ints' : np.random.randint(0, 10, 10),
+                        'floats' : np.random.randn(10),
+                        'strings' : ['foo', 'bar'] * 5})
+
+        a = df[:5].ix[:, ['bools', 'ints', 'floats']]
+        b = df[5:].ix[:, ['strings', 'ints', 'floats']]
+
+        appended = a.append(b)
+        self.assert_(isnull(appended['strings'][:5]).all())
+        self.assert_(isnull(appended['bools'][5:]).all())
+
+    def test_append_missing_column_proper_upcast(self):
+        pass
 
 if __name__ == '__main__':
     import nose

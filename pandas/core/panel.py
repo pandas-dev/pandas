@@ -9,10 +9,11 @@ import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
-from pandas.core.index import Factor, Index, MultiIndex, _ensure_index
+from pandas.core.index import (Factor, Index, MultiIndex, _ensure_index,
+                               _get_combined_index, _union_indexes)
 from pandas.core.indexing import _NDFrameIndexer
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.frame import DataFrame, _union_indexes
+from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.util import py3compat
 from pandas.util.decorators import deprecate
@@ -1152,51 +1153,17 @@ def _homogenize_dict(frames, intersect=True, dtype=None):
         else:
             adj_frames[k] = v
 
-    index = _get_combined_index(adj_frames, intersect=intersect)
-    columns = _get_combined_columns(adj_frames, intersect=intersect)
+    all_indexes = [df.index for df in adj_frames.values()]
+    all_columns = [df.columns for df in adj_frames.values()]
+
+    index = _get_combined_index(all_indexes, intersect=intersect)
+    columns = _get_combined_index(all_columns, intersect=intersect)
 
     for key, frame in adj_frames.iteritems():
         result[key] = frame.reindex(index=index, columns=columns,
                                     copy=False)
 
     return result, index, columns
-
-def _get_combined_columns(frames, intersect=False):
-    columns = None
-
-    if intersect:
-        combine = set.intersection
-    else:
-        combine = set.union
-
-    for _, frame in frames.iteritems():
-        this_cols = set(frame.columns)
-
-        if columns is None:
-            columns = this_cols
-        else:
-            columns = combine(columns, this_cols)
-
-    return Index(sorted(columns))
-
-def _get_combined_index(frames, intersect=False):
-    from pandas.core.frame import _union_indexes
-
-    indexes = _get_distinct_indexes([df.index for df in frames.values()])
-    if len(indexes) == 1:
-        return indexes[0]
-    if intersect:
-        index = indexes[0]
-        for other in indexes[1:]:
-            index = index.intersection(other)
-        return index
-    union =  _union_indexes(indexes)
-    return Index(union)
-
-def _get_distinct_indexes(indexes):
-    from itertools import groupby
-    indexes = sorted(indexes, key=id)
-    return [gp.next() for _, gp in groupby(indexes, id)]
 
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
