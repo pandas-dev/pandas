@@ -6,7 +6,7 @@ import numpy as np
 import random
 
 from pandas import *
-from pandas.tools.merge import merge
+from pandas.tools.merge import merge, concat
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
 import pandas._tseries as lib
@@ -741,6 +741,40 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(appended['A'].dtype == 'f8')
         self.assert_(appended['B'].dtype == 'O')
 
+    def test_crossed_dtypes_weird_corner(self):
+        columns = ['A', 'B', 'C', 'D']
+        df1 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='f8'),
+                         'B' : np.array([1, 2, 3, 4], dtype='i8'),
+                         'C' : np.array([1, 2, 3, 4], dtype='f8'),
+                         'D' : np.array([1, 2, 3, 4], dtype='i8')},
+                        columns=columns)
+
+        df2 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='i8'),
+                         'B' : np.array([1, 2, 3, 4], dtype='f8'),
+                         'C' : np.array([1, 2, 3, 4], dtype='i8'),
+                         'D' : np.array([1, 2, 3, 4], dtype='f8')},
+                        columns=columns)
+
+        appended = df1.append(df2, ignore_index=True)
+        expected = DataFrame(np.concatenate([df1.values, df2.values], axis=0),
+                             columns=columns)
+        tm.assert_frame_equal(appended, expected)
+
+    def test_handle_empty_objects(self):
+        df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
+
+        baz = df[:5]
+        baz['foo'] = 'bar'
+        empty = df[5:5]
+
+        frames = [baz, empty, empty, df[5:]]
+        concatted = concat(frames, axis=0)
+
+        expected = df.ix[:, ['a', 'b', 'c', 'd', 'foo']]
+        expected['foo'] = expected['foo'].astype('O')
+        expected['foo'][:5] = 'bar'
+
+        tm.assert_frame_equal(concatted, expected)
 
     def test_panel_join(self):
         panel = tm.makePanel()
@@ -800,10 +834,23 @@ class TestConcatenate(unittest.TestCase):
         joined = panels[0].join(panels[1:])
         tm.assert_panel_equal(joined, panel)
 
+        panels = [panel.ix[:2, :-5], panel.ix[2:6, 2:], panel.ix[6:, 5:-7]]
+
+        data_dict = {}
+        for p in panels:
+            data_dict.update(p.iterkv())
+
+        joined = panels[0].join(panels[1:], how='inner')
+        expected = Panel.from_dict(data_dict, intersect=True)
+        tm.assert_panel_equal(joined, expected)
+
+        joined = panels[0].join(panels[1:], how='outer')
+        expected = Panel.from_dict(data_dict, intersect=False)
+        tm.assert_panel_equal(joined, expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
 
 

@@ -721,8 +721,6 @@ class Concatenator(object):
         all_values = []
         dtypes = set()
         for obj in self.objs:
-            if len(obj) == 0:
-                continue
             try:
                 values = obj._data.get(item)
                 dtypes.add(values.dtype)
@@ -785,17 +783,6 @@ class Concatenator(object):
 
         return new_axes
 
-    def _get_obj_constructor(self):
-        # SparseDataFrame causes us some headache here
-
-        # check that there's only one type present
-        obj_types = set(type(df) for df in self.objs)
-        if len(obj_types) > 1:
-            raise Exception('Can only concatenate like-typed objects, found %s'
-                            % obj_types)
-
-        return self.objs[0]._constructor
-
     def _maybe_check_integrity(self, concat_index):
         if self.verify_integrity:
             if not concat_index._verify_integrity():
@@ -803,9 +790,6 @@ class Concatenator(object):
                 raise Exception('Indexes have overlapping values: %s'
                                 % str(overlap))
 
-    @cache_readonly
-    def _all_indexes_same(self):
-        return _all_indexes_same([df.columns for df in self.objs])
 
 def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
     names = [ping.name for ping in groupings]

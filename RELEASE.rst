@@ -33,6 +33,8 @@ pandas 0.7.0
     relational-algebra operations. Refactored existing join methods to use the
     new infrastructure, resulting in substantial performance gains (GH #220,
     #249, #267)
+  - New ``concatenate`` function for concatenating DataFrame or Panel objects
+    along an axis. Can form union or intersection of the other axes
   - Handle differently-indexed output values in ``DataFrame.apply`` (GH #498)
   - Can pass list of dicts (e.g., a list of shallow JSON objects) to DataFrame
     constructor (GH #526)
@@ -49,6 +51,9 @@ pandas 0.7.0
   - Add attribute-based item access to ``Panel`` and add IPython completion (PR
     #554)
   - Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
+  - Can pass multiple DataFrames to ``DataFrame.join`` to join on index (GH #115)
+  - Can pass multiple Panels to ``Panel.join`` (GH #115)
+  - Can pass multiple DataFrames to `DataFrame.append` to concatenate (stack)
 
 **API Changes**
 
