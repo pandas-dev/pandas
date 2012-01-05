@@ -16,7 +16,7 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.util import py3compat
-from pandas.util.decorators import deprecate
+from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
@@ -97,6 +97,7 @@ def _arith_method(func, name):
     return f
 
 def _panel_arith_method(op, name):
+    @Substitution(op)
     def f(self, other, axis='items'):
         """
         Wrapper method for %s
@@ -114,9 +115,6 @@ def _panel_arith_method(op, name):
         return self._combine(other, op, axis=axis)
 
     f.__name__ = name
-    if __debug__:
-        f.__doc__ = f.__doc__ % str(op)
-
     return f
 
 
@@ -140,11 +138,6 @@ _na_info = """
 NA/null values are %s.
 If all values are NA, result will be NA"""
 
-
-def _add_docs(method, desc, outname):
-    doc = _agg_doc % {'desc' : desc,
-                      'outname' : outname}
-    method.__doc__ = doc
 
 class Panel(NDFrame):
     _AXIS_NUMBERS = {
@@ -982,45 +975,55 @@ class Panel(NDFrame):
 
         return self._wrap_result(result, axis)
 
+    @Substitution(desc='sum', outname='sum')
+    @Appender(_agg_doc)
     def sum(self, axis='major', skipna=True):
         return self._reduce(nanops.nansum, axis=axis, skipna=skipna)
-    _add_docs(sum, 'sum', 'sum')
 
+    @Substitution(desc='mean', outname='mean')
+    @Appender(_agg_doc)
     def mean(self, axis='major', skipna=True):
         return self._reduce(nanops.nanmean, axis=axis, skipna=skipna)
-    _add_docs(mean, 'mean', 'mean')
 
+    @Substitution(desc='unbiased variance', outname='variance')
+    @Appender(_agg_doc)
     def var(self, axis='major', skipna=True):
         return self._reduce(nanops.nanvar, axis=axis, skipna=skipna)
-    _add_docs(var, 'unbiased variance', 'variance')
 
+    @Substitution(desc='unbiased standard deviation', outname='stdev')
+    @Appender(_agg_doc)
     def std(self, axis='major', skipna=True):
         return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
-    _add_docs(std, 'unbiased standard deviation', 'stdev')
 
+    @Substitution(desc='unbiased skewness', outname='skew')
+    @Appender(_agg_doc)
     def skew(self, axis='major', skipna=True):
         return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
-    _add_docs(std, 'unbiased skewness', 'skew')
 
+    @Substitution(desc='product', outname='prod')
+    @Appender(_agg_doc)
     def prod(self, axis='major', skipna=True):
         return self._reduce(nanops.nanprod, axis=axis, skipna=skipna)
-    _add_docs(prod, 'product', 'prod')
 
+    @Substitution(desc='compounded percentage', outname='compounded')
+    @Appender(_agg_doc)
     def compound(self, axis='major', skipna=True):
         return (1 + self).prod(axis=axis, skipna=skipna) - 1
-    _add_docs(compound, 'compounded percentage', 'compounded')
 
+    @Substitution(desc='median', outname='median')
+    @Appender(_agg_doc)
     def median(self, axis='major', skipna=True):
         return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna)
-    _add_docs(median, 'median', 'median')
 
+    @Substitution(desc='maximum', outname='maximum')
+    @Appender(_agg_doc)
     def max(self, axis='major', skipna=True):
         return self._reduce(nanops.nanmax, axis=axis, skipna=skipna)
-    _add_docs(max, 'maximum', 'maximum')
 
+    @Substitution(desc='minimum', outname='minimum')
+    @Appender(_agg_doc)
     def min(self, axis='major', skipna=True):
         return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
-    _add_docs(min, 'minimum', 'minimum')
 
     def shift(self, lags, axis='major'):
         """

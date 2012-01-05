@@ -3,7 +3,6 @@ Module contains tools for processing files into DataFrames or other objects
 """
 from StringIO import StringIO
 import re
-import zipfile
 
 import numpy as np
 
@@ -11,63 +10,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import pandas._tseries as lib
 
-def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
-             skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None):
-    if hasattr(filepath_or_buffer, 'read'):
-        f = filepath_or_buffer
-    else:
-        try:
-            # universal newline mode
-            f = open(filepath_or_buffer, 'U')
-        except Exception: # pragma: no cover
-            f = open(filepath_or_buffer, 'r')
-
-    if date_parser is not None:
-        parse_dates = True
-
-    parser = TextParser(f, header=header, index_col=index_col,
-                        names=names, na_values=na_values,
-                        parse_dates=parse_dates,
-                        date_parser=date_parser,
-                        skiprows=skiprows,
-                        delimiter=sep,
-                        chunksize=chunksize,
-                        skip_footer=skip_footer,
-                        converters=converters)
-
-    if nrows is not None:
-        return parser.get_chunk(nrows)
-    elif chunksize or iterator:
-        return parser
-
-    return parser.get_chunk()
-
-
-def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
-               names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0, converters=None):
-    return read_csv(filepath_or_buffer, sep=sep, header=header,
-                    skiprows=skiprows, index_col=index_col,
-                    na_values=na_values, date_parser=date_parser,
-                    names=names, parse_dates=parse_dates,
-                    nrows=nrows, iterator=iterator, chunksize=chunksize,
-                    skip_footer=skip_footer, converters=converters)
-
-def read_clipboard(**kwargs):  # pragma: no cover
-    """
-    Read text from clipboard and pass to read_table. See read_table for the full
-    argument list
-
-    Returns
-    -------
-    parsed : DataFrame
-    """
-    from pandas.util.clipboard import clipboard_get
-    text = clipboard_get()
-    return read_table(StringIO(text), **kwargs)
+from pandas.util.decorators import Appender
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -116,7 +59,7 @@ _csv_sep = """sep : string, default None
 _table_sep = """sep : string, default \\t (tab-stop)
     Delimiter to use"""
 
-read_csv.__doc__ = """
+_read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
 
 %s
@@ -126,7 +69,17 @@ Returns
 parsed : DataFrame
 """ % (_parser_params % _csv_sep)
 
-read_table.__doc__ = """
+_read_csv_doc = """
+Read CSV (comma-separated) file into DataFrame
+
+%s
+
+Returns
+-------
+parsed : DataFrame
+""" % (_parser_params % _csv_sep)
+
+_read_table_doc = """
 Read delimited file into DataFrame
 
 %s
@@ -135,6 +88,65 @@ Returns
 -------
 parsed : DataFrame
 """ % (_parser_params % _table_sep)
+
+@Appender(_read_csv_doc)
+def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
+             skiprows=None, na_values=None, parse_dates=False,
+             date_parser=None, nrows=None, iterator=False, chunksize=None,
+             skip_footer=0, converters=None):
+    if hasattr(filepath_or_buffer, 'read'):
+        f = filepath_or_buffer
+    else:
+        try:
+            # universal newline mode
+            f = open(filepath_or_buffer, 'U')
+        except Exception: # pragma: no cover
+            f = open(filepath_or_buffer, 'r')
+
+    if date_parser is not None:
+        parse_dates = True
+
+    parser = TextParser(f, header=header, index_col=index_col,
+                        names=names, na_values=na_values,
+                        parse_dates=parse_dates,
+                        date_parser=date_parser,
+                        skiprows=skiprows,
+                        delimiter=sep,
+                        chunksize=chunksize,
+                        skip_footer=skip_footer,
+                        converters=converters)
+
+    if nrows is not None:
+        return parser.get_chunk(nrows)
+    elif chunksize or iterator:
+        return parser
+
+    return parser.get_chunk()
+
+@Appender(_read_table_doc)
+def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
+               names=None, skiprows=None, na_values=None, parse_dates=False,
+               date_parser=None, nrows=None, iterator=False, chunksize=None,
+               skip_footer=0, converters=None):
+    return read_csv(filepath_or_buffer, sep=sep, header=header,
+                    skiprows=skiprows, index_col=index_col,
+                    na_values=na_values, date_parser=date_parser,
+                    names=names, parse_dates=parse_dates,
+                    nrows=nrows, iterator=iterator, chunksize=chunksize,
+                    skip_footer=skip_footer, converters=converters)
+
+def read_clipboard(**kwargs):  # pragma: no cover
+    """
+    Read text from clipboard and pass to read_table. See read_table for the full
+    argument list
+
+    Returns
+    -------
+    parsed : DataFrame
+    """
+    from pandas.util.clipboard import clipboard_get
+    text = clipboard_get()
+    return read_table(StringIO(text), **kwargs)
 
 
 class BufferedReader(object):

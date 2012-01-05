@@ -9,7 +9,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import Panel
-from pandas.util.decorators import cache_readonly
+from pandas.util.decorators import cache_readonly, Appender
 import pandas._tseries as lib
 
 
@@ -472,6 +472,7 @@ class GroupBy(object):
                                            axis=self.axis,
                                            factory=factory)
 
+@Appender(GroupBy.__doc__)
 def groupby(obj, by, **kwds):
     if isinstance(obj, Series):
         klass = SeriesGroupBy
@@ -481,7 +482,6 @@ def groupby(obj, by, **kwds):
         raise TypeError('invalid type: %s' % type(obj))
 
     return klass(obj, by, **kwds)
-groupby.__doc__ = GroupBy.__doc__
 
 def _get_axes(group):
     if isinstance(group, Series):

@@ -17,6 +17,7 @@ from pandas.util.decorators import cache_readonly
 import pandas.core.datetools as datetools
 
 from pandas.sparse.series import SparseSeries
+from pandas.util.decorators import Appender
 
 
 class _SparseMockBlockManager(object):
@@ -316,11 +317,10 @@ class SparseDataFrame(DataFrame):
             else: # pragma: no cover
                 raise
 
+    @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col):
         s = self._series[col]
         return s.get_value(index)
-    if __debug__:
-        get_value.__doc__ = DataFrame.get_value.__doc__
 
     def set_value(self, index, col, value):
         """
@@ -601,9 +601,9 @@ class SparseDataFrame(DataFrame):
                                default_kind=self.default_kind)
     T = property(transpose)
 
+    @Appender(DataFrame.count.__doc__)
     def count(self, axis=0, **kwds):
         return self.apply(lambda x: x.count(), axis=axis)
-    count.__doc__ = DataFrame.count.__doc__
 
     def cumsum(self, axis=0):
         """

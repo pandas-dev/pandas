@@ -28,6 +28,8 @@ import pandas.core.nanops as nanops
 import pandas._tseries as lib
 import pandas._engines as _gin
 
+from pandas.util.decorators import Appender, Substitution
+
 __all__ = ['Series', 'TimeSeries']
 
 #-------------------------------------------------------------------------------
@@ -68,10 +70,7 @@ def _maybe_match_name(a, b):
     return name
 
 def _flex_method(op, name):
-    def f(self, other, level=None, fill_value=None):
-        return self._binop(other, op, level=level, fill_value=fill_value)
-
-    f.__doc__ = """
+    doc = """
     Binary operator %s with support to substitute a fill_value for missing data
     in one of the inputs
 
@@ -89,17 +88,22 @@ def _flex_method(op, name):
     -------
     result : Series
     """ % name
+
+    @Appender(doc)
+    def f(self, other, level=None, fill_value=None):
+        return self._binop(other, op, level=level, fill_value=fill_value)
+
     f.__name__ = name
     return f
 
 def _unbox(func):
+    @Appender(func.__doc__)
     def f(self, *args, **kwargs):
         result = func(self, *args, **kwargs)
         if isinstance(result, np.ndarray) and result.ndim == 0:
             return result.item()
         else:  # pragma: no cover
             return result
-    f.__doc__ = func.__doc__
     f.__name__ = func.__name__
     return f
 
@@ -122,14 +126,6 @@ Returns
 _doc_exclude_na = "NA/null values are excluded"
 _doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
                           "interface.\n")
-
-def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
-                  extras=''):
-    doc = _stat_doc % {'name' : name,
-                       'shortname' : shortname,
-                       'na_action' : na_action,
-                       'extras' : extras}
-    f.__doc__ = doc
 
 #-------------------------------------------------------------------------------
 # Series class
@@ -705,71 +701,91 @@ copy : boolean, default False
         """
         return len(self.value_counts())
 
+    @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
+                  extras=_doc_ndarray_interface)
+    @Appender(_stat_doc)
     def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', level=level, skipna=skipna)
         return nanops.nansum(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(sum, 'sum', 'sum', extras=_doc_ndarray_interface)
 
+    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
+                  extras=_doc_ndarray_interface)
+    @Appender(_stat_doc)
     def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('mean', level=level, skipna=skipna)
         return nanops.nanmean(self.values, skipna=skipna)
-    _add_stat_doc(mean, 'mean', 'mean', extras=_doc_ndarray_interface)
 
+    @Substitution(name='mean absolute deviation', shortname='mad', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def mad(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('mad', level=level, skipna=skipna)
 
         demeaned = self - self.mean(skipna=skipna)
         return np.abs(demeaned).mean(skipna=skipna)
-    _add_stat_doc(mad, 'mean absolute deviation', 'mad')
 
+    @Substitution(name='median', shortname='median', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def median(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('median', level=level, skipna=skipna)
         return nanops.nanmedian(self.values, skipna=skipna)
-    _add_stat_doc(median, 'median', 'median')
 
+    @Substitution(name='product', shortname='product', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def prod(self, axis=None, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('prod', level=level, skipna=skipna)
         return nanops.nanprod(self.values, skipna=skipna)
-    _add_stat_doc(prod, 'product', 'product')
 
+    @Substitution(name='minimum', shortname='min', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def min(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', level=level, skipna=skipna)
         return nanops.nanmin(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(min, 'minimum', 'min')
 
+    @Substitution(name='maximum', shortname='max', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def max(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', level=level, skipna=skipna)
         return nanops.nanmax(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(max, 'maximum', 'max')
 
+    @Substitution(name='unbiased standard deviation', shortname='stdev', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna)
         return np.sqrt(nanops.nanvar(self.values, skipna=skipna, copy=True,
                                      ddof=ddof))
-    _add_stat_doc(std, 'unbiased standard deviation', 'stdev')
 
+    @Substitution(name='unbiased variance', shortname='var', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna)
         return nanops.nanvar(self.values, skipna=skipna, copy=True, ddof=ddof)
-    _add_stat_doc(var, 'unbiased variance', 'var')
 
+    @Substitution(name='unbiased skewness', shortname='skew', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def skew(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('skew', level=level, skipna=skipna)
 
         return nanops.nanskew(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
     def _agg_by_level(self, name, level=0, skipna=True):
         grouped = self.groupby(level=level)
@@ -873,6 +889,7 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
+    @Appender(np.ndarray.round.__doc__)
     def round(self, decimals=0, out=None):
         """
 
@@ -882,7 +899,6 @@ copy : boolean, default False
             result = Series(result, index=self.index, name=self.name)
 
         return result
-    round.__doc__ = np.ndarray.round.__doc__
 
     def quantile(self, q=0.5):
         """

@@ -32,7 +32,7 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
-from pandas.util.decorators import deprecate, Appender
+from pandas.util.decorators import deprecate, Appender, Substitution
 
 from pandas.core.format import DataFrameFormatter, docstring_to_string
 
@@ -162,19 +162,12 @@ Returns
 merged : DataFrame
 """
 
-def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
-                  extras=''):
-    doc = _stat_doc % {'name' : name,
-                       'shortname' : shortname,
-                       'na_action' : na_action,
-                       'extras' : extras}
-    f.__doc__ = doc
-
 
 #----------------------------------------------------------------------
 # Factory helper methods
 
 def _arith_method(func, name, default_axis='columns'):
+    @Appender(_arith_doc % name)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._combine_frame(other, func, fill_value, level)
@@ -184,12 +177,12 @@ def _arith_method(func, name, default_axis='columns'):
             return self._combine_const(other, func)
 
     f.__name__ = name
-    f.__doc__ = _arith_doc % name
 
     return f
 
 
 def comp_method(func, name):
+    @Appender('Wrapper for comparison method %s' % name)
     def f(self, other):
         if isinstance(other, DataFrame):    # Another DataFrame
             return self._compare_frame(other, func)
@@ -199,7 +192,6 @@ def comp_method(func, name):
             return self._combine_const(other, func)
 
     f.__name__ = name
-    f.__doc__ = 'Wrapper for comparison method %s' % name
 
     return f
 
@@ -2844,6 +2836,8 @@ class DataFrame(NDFrame):
             return concat([self] + list(other), axis=1, join=how,
                           join_axes=join_axes, verify_integrity=True)
 
+    @Substitution('')
+    @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=True,
               suffixes=('.x', '.y'), copy=True):
@@ -2852,7 +2846,6 @@ class DataFrame(NDFrame):
                      left_on=left_on, right_on=right_on,
                      left_index=left_index, right_index=right_index, sort=sort,
                      suffixes=suffixes, copy=copy)
-    if __debug__: merge.__doc__ = _merge_doc % ''
 
     #----------------------------------------------------------------------
     # Statistical methods, etc.
@@ -3061,56 +3054,71 @@ class DataFrame(NDFrame):
         else:
             return result
 
+    @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
+                  extras=_numeric_only_doc)
+    @Appender(_stat_doc)
     def sum(self, axis=0, numeric_only=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nansum, axis=axis, skipna=skipna,
                             numeric_only=numeric_only)
-    _add_stat_doc(sum, 'sum', 'sum', extras=_numeric_only_doc)
 
+    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
+                  extras='')
+    @Appender(_stat_doc)
     def mean(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('mean', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanmean, axis=axis, skipna=skipna,
                             numeric_only=None)
-    _add_stat_doc(mean, 'mean', 'mean')
 
+    @Substitution(name='minimum', shortname='min', na_action=_doc_exclude_na,
+                  extras='')
+    @Appender(_stat_doc)
     def min(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanmin, axis=axis, skipna=skipna,
                             numeric_only=None)
-    _add_stat_doc(min, 'minimum', 'min')
 
+    @Substitution(name='maximum', shortname='max', na_action=_doc_exclude_na,
+                  extras='')
+    @Appender(_stat_doc)
     def max(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanmax, axis=axis, skipna=skipna,
                             numeric_only=None)
-    _add_stat_doc(max, 'maximum', 'max')
 
+    @Substitution(name='product', shortname='product',
+                  na_action='NA/null values are treated as 1', extras='')
+    @Appender(_stat_doc)
     def prod(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('prod', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanprod, axis=axis, skipna=skipna,
                             numeric_only=None)
-    _add_stat_doc(prod, 'product', 'product',
-                  na_action='NA/null values are treated as 1')
+
     product = prod
 
+    @Substitution(name='median', shortname='median', na_action=_doc_exclude_na,
+                  extras='')
+    @Appender(_stat_doc)
     def median(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('median', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna,
                             numeric_only=None)
-    _add_stat_doc(median, 'median', 'median')
 
+    @Substitution(name='median absolute deviation', shortname='mad', 
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def mad(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('mad', axis=axis, level=level,
@@ -3123,30 +3131,35 @@ class DataFrame(NDFrame):
         else:
             demeaned = frame.sub(frame.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
-    _add_stat_doc(mad, 'mean absolute deviation', 'mad')
 
+    @Substitution(name='unbiased variance', shortname='var',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def var(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
                             numeric_only=None)
-    _add_stat_doc(var, 'unbiased variance', 'var')
 
+    @Substitution(name='unbiased standard deviation', shortname='std',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def std(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
                                       skipna=skipna)
         return np.sqrt(self.var(axis=axis, skipna=skipna))
-    _add_stat_doc(std, 'unbiased standard deviation', 'std')
 
+    @Substitution(name='unbiased skewness', shortname='skew',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def skew(self, axis=0, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('skew', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
                             numeric_only=None)
-    _add_stat_doc(skew, 'unbiased skewness', 'skew')
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True):
         grouped = self.groupby(level=level, axis=axis)

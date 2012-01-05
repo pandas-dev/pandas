@@ -12,6 +12,8 @@ import numpy as np
 from pandas.core.api import DataFrame, Series, notnull
 import pandas._tseries as _tseries
 
+from pandas.util.decorators import Substitution, Appender
+
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
@@ -19,6 +21,78 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_corr_pairwise',
            'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov']
 
+#-------------------------------------------------------------------------------
+# Docs
+
+_doc_template = """
+%s
+
+Parameters
+----------
+%s
+window : Number of observations used for calculating statistic
+min_periods : int
+    Minimum number of observations in window required to have a value
+time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
+    Name of time rule to conform to before computing statistic
+
+Returns
+-------
+%s
+"""
+
+
+_ewm_doc = r"""%s
+
+Parameters
+----------
+%s
+com : float. optional
+    Center of mass: \alpha = com / (1 + com),
+span : float, optional
+    Specify decay in terms of span, \alpha = 2 / (span + 1)
+min_periods : int, default 0
+    Number of observations in sample to require (only affects
+    beginning)
+time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default None
+    Name of time rule to conform to before computing statistic
+%s
+Notes
+-----
+Either center of mass or span must be specified
+
+EWMA is sometimes specified using a "span" parameter s, we have have that the
+decay parameter \alpha is related to the span as :math:`\alpha = 1 - 2 / (s + 1)
+= c / (1 + c)`
+
+where c is the center of mass. Given a span, the associated center of mass is
+:math:`c = (s - 1) / 2`
+
+So a "20-day EWMA" would have center 9.5.
+
+Returns
+-------
+y : type of input argument
+"""
+
+_type_of_input = "y : type of input argument"
+
+_flex_retval = """y : type depends on inputs
+    DataFrame / DataFrame -> DataFrame (matches on columns)
+    DataFrame / Series -> Computes result for each column
+    Series / Series -> Series"""
+
+_unary_arg = "arg : Series, DataFrame"
+
+_binary_arg_flex = """arg1 : Series, DataFrame, or ndarray
+arg2 : Series, DataFrame, or ndarray"""
+
+_binary_arg = """arg1 : Series, DataFrame, or ndarray
+arg2 : Series, DataFrame, or ndarray"""
+
+_bias_doc = r"""bias : boolean, default False
+    Use a standard estimation bias correction
+"""
 def rolling_count(arg, window, time_rule=None):
     """
     Rolling count of number of non-NaN observations inside provided window.
@@ -46,6 +120,8 @@ def rolling_count(arg, window, time_rule=None):
 
     return return_hook(result)
 
+@Substitution("Unbiased moving covariance", _binary_arg_flex, _flex_retval)
+@Appender(_doc_template)
 def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
     def _get_cov(X, Y):
         mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
@@ -54,6 +130,8 @@ def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
     return _flex_binary_moment(arg1, arg2, _get_cov)
 
+@Substitution("Moving sample correlation", _binary_arg_flex, _flex_retval)
+@Appender(_doc_template)
 def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
     def _get_corr(a, b):
         num = rolling_cov(a, b, window, min_periods, time_rule)
@@ -182,7 +260,8 @@ def _get_center_of_mass(com, span):
 
     return float(com)
 
-
+@Substitution("Exponentially-weighted moving average", _unary_arg, "")
+@Appender(_ewm_doc)
 def ewma(arg, com=None, span=None, min_periods=0, time_rule=None):
     com = _get_center_of_mass(com, span)
     arg = _conv_timerule(arg, time_rule)
@@ -201,6 +280,8 @@ def _first_valid_index(arr):
     # argmax scans from left
     return notnull(arr).argmax()
 
+@Substitution("Exponentially-weighted moving variance", _unary_arg, _bias_doc)
+@Appender(_ewm_doc)
 def ewmvar(arg, com=None, span=None, min_periods=0, bias=False,
            time_rule=None):
     com = _get_center_of_mass(com, span)
@@ -214,6 +295,8 @@ def ewmvar(arg, com=None, span=None, min_periods=0, bias=False,
 
     return result
 
+@Substitution("Exponentially-weighted moving std", _unary_arg, _bias_doc)
+@Appender(_ewm_doc)
 def ewmstd(arg, com=None, span=None, min_periods=0, bias=False,
            time_rule=None):
     result = ewmvar(arg, com=com, span=span, time_rule=time_rule,
@@ -222,6 +305,8 @@ def ewmstd(arg, com=None, span=None, min_periods=0, bias=False,
 
 ewmvol = ewmstd
 
+@Substitution("Exponentially-weighted moving covariance", _binary_arg, "")
+@Appender(_ewm_doc)
 def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False,
            time_rule=None):
     X, Y = _prep_binary(arg1, arg2)
@@ -238,6 +323,8 @@ def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False,
 
     return result
 
+@Substitution("Exponentially-weighted moving " "correlation", _binary_arg, "")
+@Appender(_ewm_doc)
 def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0,
             time_rule=None):
     X, Y = _prep_binary(arg1, arg2)
@@ -259,95 +346,6 @@ def _prep_binary(arg1, arg2):
     Y = arg2 + 0 * arg1
 
     return X, Y
-
-#-------------------------------------------------------------------------------
-# Docs
-
-_doc_template = """
-%s
-
-Parameters
-----------
-%s
-window : Number of observations used for calculating statistic
-min_periods : int
-    Minimum number of observations in window required to have a value
-time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
-    Name of time rule to conform to before computing statistic
-
-Returns
--------
-%s
-"""
-
-
-_ewm_doc = r"""%s
-
-Parameters
-----------
-%s
-com : float. optional
-    Center of mass: \alpha = com / (1 + com),
-span : float, optional
-    Specify decay in terms of span, \alpha = 2 / (span + 1)
-min_periods : int, default 0
-    Number of observations in sample to require (only affects
-    beginning)
-time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default None
-    Name of time rule to conform to before computing statistic
-%s
-Notes
------
-Either center of mass or span must be specified
-
-EWMA is sometimes specified using a "span" parameter s, we have have that the
-decay parameter \alpha is related to the span as :math:`\alpha = 1 - 2 / (s + 1)
-= c / (1 + c)`
-
-where c is the center of mass. Given a span, the associated center of mass is
-:math:`c = (s - 1) / 2`
-
-So a "20-day EWMA" would have center 9.5.
-
-Returns
--------
-y : type of input argument
-"""
-
-_type_of_input = "y : type of input argument"
-
-_flex_retval = """y : type depends on inputs
-    DataFrame / DataFrame -> DataFrame (matches on columns)
-    DataFrame / Series -> Computes result for each column
-    Series / Series -> Series"""
-
-_unary_arg = "arg : Series, DataFrame"
-
-_binary_arg_flex = """arg1 : Series, DataFrame, or ndarray
-arg2 : Series, DataFrame, or ndarray"""
-
-_binary_arg = """arg1 : Series, DataFrame, or ndarray
-arg2 : Series, DataFrame, or ndarray"""
-
-_bias_doc = r"""bias : boolean, default False
-    Use a standard estimation bias correction
-"""
-
-rolling_cov.__doc__ = _doc_template % ("Unbiased moving covariance",
-                                       _binary_arg_flex, _flex_retval)
-rolling_corr.__doc__ = _doc_template % ("Moving sample correlation",
-                                        _binary_arg_flex, _flex_retval)
-
-ewma.__doc__ = _ewm_doc % ("Exponentially-weighted moving average",
-                           _unary_arg, "")
-ewmstd.__doc__ = _ewm_doc % ("Exponentially-weighted moving std",
-                             _unary_arg, _bias_doc)
-ewmvar.__doc__ = _ewm_doc % ("Exponentially-weighted moving variance",
-                             _unary_arg, _bias_doc)
-ewmcorr.__doc__ = _ewm_doc % ("Exponentially-weighted moving "
-                              "correlation", _binary_arg, "")
-ewmcov.__doc__ = _ewm_doc % ("Exponentially-weighted moving covariance",
-                             _binary_arg, "")
 
 #-------------------------------------------------------------------------------
 # Python interface to Cython functions
@@ -375,6 +373,8 @@ def _use_window(minp, window):
         return minp
 
 def _rolling_func(func, desc, check_minp=_use_window):
+    @Substitution(desc, _unary_arg, _type_of_input)
+    @Appender(_doc_template)
     @wraps(func)
     def f(arg, window, min_periods=None, time_rule=None):
         def call_cython(arg, window, minp):
@@ -382,8 +382,6 @@ def _rolling_func(func, desc, check_minp=_use_window):
             return func(arg, window, minp)
         return _rolling_moment(arg, window, call_cython, min_periods,
                                time_rule=time_rule)
-
-    f.__doc__ = _doc_template % (desc, _unary_arg, _type_of_input)
 
     return f
 

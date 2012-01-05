@@ -9,12 +9,16 @@ from pandas.core.groupby import get_group_index
 from pandas.core.index import Index, MultiIndex, _get_combined_index
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
+from pandas.util.decorators import cache_readonly, Appender, Substitution
+
 from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
 import pandas._tseries as lib
 
+@Substitution('\nleft : DataFrame')
+@Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
           suffixes=('.x', '.y'), copy=True):
