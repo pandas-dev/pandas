@@ -137,7 +137,11 @@ class Series(np.ndarray, generic.PandasObject):
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
-    def __new__(cls, data, index=None, dtype=None, name=None, copy=False):
+    def __new__(cls, data=None, index=None, dtype=None, name=None, 
+                copy=False):
+        if data is None:
+            data = {}
+
         if isinstance(data, Series):
             if index is None:
                 index = data.index
@@ -165,7 +169,8 @@ class Series(np.ndarray, generic.PandasObject):
 
         return subarr
 
-    def __init__(self, data, index=None, dtype=None, name=None, copy=False):
+    def __init__(self, data=None, index=None, dtype=None, name=None, 
+                 copy=False):
         """One-dimensional ndarray with axis labels (including time
 series). Labels must be unique and can any hashable type. The object supports
 both integer- and label-based indexing and provides a host of methods for
@@ -456,8 +461,8 @@ copy : boolean, default False
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
-    def to_string(self, buf=None, na_rep='NaN', float_format=None, nanRep=None,
-                  length=False, name=False):
+    def to_string(self, buf=None, na_rep='NaN', float_format=None,
+                  nanRep=None, length=False, name=False):
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
