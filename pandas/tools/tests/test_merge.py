@@ -733,7 +733,72 @@ class TestConcatenate(unittest.TestCase):
         self.assertRaises(ValueError, df_list[0].join, df_list[1:], on='a')
 
     def test_append_missing_column_proper_upcast(self):
-        pass
+        df1 = DataFrame({'A' : np.array([1,2, 3, 4], dtype='i8')})
+        df2 = DataFrame({'B' : np.array([True,False, True, False],
+                                        dtype=bool)})
+
+        appended = df1.append(df2, ignore_index=True)
+        self.assert_(appended['A'].dtype == 'f8')
+        self.assert_(appended['B'].dtype == 'O')
+
+
+    def test_panel_join(self):
+        panel = tm.makePanel()
+        tm.add_nans(panel)
+
+        p1 = panel.ix[:2, :10, :3]
+        p2 = panel.ix[2:, 5:, 2:]
+
+        # left join
+        result = p1.join(p2)
+        expected = p1.copy()
+        expected['ItemC'] = p2['ItemC']
+        tm.assert_panel_equal(result, expected)
+
+        # right join
+        result = p1.join(p2, how='right')
+        expected = p2.copy()
+        expected['ItemA'] = p1['ItemA']
+        expected['ItemB'] = p1['ItemB']
+        expected = expected.reindex(items=['ItemA', 'ItemB', 'ItemC'])
+        tm.assert_panel_equal(result, expected)
+
+        # inner join
+        result = p1.join(p2, how='inner')
+        expected = panel.ix[:, 5:10, 2:3]
+        tm.assert_panel_equal(result, expected)
+
+        # outer join
+        result = p1.join(p2, how='outer')
+        expected = p1.reindex(major=panel.major_axis,
+                              minor=panel.minor_axis)
+        expected = expected.join(p2.reindex(major=panel.major_axis,
+                                            minor=panel.minor_axis))
+        tm.assert_panel_equal(result, expected)
+
+    def test_panel_join_overlap(self):
+        panel = tm.makePanel()
+        tm.add_nans(panel)
+
+        p1 = panel.ix[['ItemA', 'ItemB', 'ItemC']]
+        p2 = panel.ix[['ItemB', 'ItemC']]
+
+        joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
+        p1_suf = p1.ix[['ItemB', 'ItemC']].add_suffix('_p1')
+        p2_suf = p2.ix[['ItemB', 'ItemC']].add_suffix('_p2')
+        no_overlap = panel.ix[['ItemA']]
+        expected = p1_suf.join(p2_suf).join(no_overlap)
+        tm.assert_panel_equal(joined, expected)
+
+    def test_panel_join_many(self):
+        tm.K = 10
+        panel = tm.makePanel()
+        tm.K = 4
+
+        panels = [panel.ix[:2], panel.ix[2:6], panel.ix[6:]]
+
+        joined = panels[0].join(panels[1:])
+        tm.assert_panel_equal(joined, panel)
 
 if __name__ == '__main__':
     import nose

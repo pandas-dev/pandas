@@ -299,6 +299,15 @@ class DataFrame(NDFrame):
 
         NDFrame.__init__(self, mgr)
 
+    @classmethod
+    def _from_axes(cls, data, axes):
+        # for construction from BlockManager
+        if isinstance(data, BlockManager):
+            return cls(data)
+        else:
+            columns, index = axes
+            return cls(data, index=index, columns=columns, copy=False)
+
     def _init_mgr(self, mgr, index, columns, dtype=None, copy=False):
         if columns is not None:
             mgr = mgr.reindex_axis(columns, axis=0, copy=False)
@@ -2751,9 +2760,6 @@ class DataFrame(NDFrame):
         return concat(to_concat, ignore_index=ignore_index,
                       verify_integrity=verify_integrity)
 
-    def _get_raw_column(self, col):
-        return self._data.get(col)
-
     def join(self, other, on=None, how='left', lsuffix='', rsuffix=''):
         """
         Join columns with other DataFrame either on index or on a key
@@ -2815,12 +2821,12 @@ class DataFrame(NDFrame):
             # join indexes only using concat
             if how == 'left':
                 how = 'outer'
-                join_index = self.index
+                join_axes = [self.index]
             else:
-                join_index = None
+                join_axes = None
 
             return concat([self] + list(other), axis=1, join=how,
-                          join_index=join_index, verify_integrity=True)
+                          join_axes=join_axes, verify_integrity=True)
 
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=True,

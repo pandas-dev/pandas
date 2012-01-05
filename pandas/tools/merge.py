@@ -9,6 +9,7 @@ from pandas.core.groupby import get_group_index
 from pandas.core.index import Index, MultiIndex, _get_combined_index
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
+from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
@@ -23,6 +24,35 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
                          copy=copy)
     return op.get_result()
 if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
+
+
+def concat(objs, axis=0, join='outer', join_axes=None,
+           ignore_index=False, verify_integrity=False):
+    """
+    Concatenate DataFrame objects row or column wise
+
+    Parameters
+    ----------
+    objs : list of DataFrame objects
+    axis : {0, 1}, default 0
+        The axis to concatenate along
+    join : {'inner', 'outer'}, default 'outer'
+        How to handle indexes on other axis(es)
+    join_index : index-like
+    verify_integrity : boolean, default False
+        Check whether the new concatenated axis contains duplicates. This can
+        be very expensive relative to the actual data concatenation
+
+    Returns
+    -------
+    concatenated : DataFrame
+    """
+    op = Concatenator(objs, axis=axis, join_axes=join_axes,
+                      ignore_index=ignore_index, join=join,
+                      verify_integrity=verify_integrity)
+    return op.get_result()
+
+
 
 # TODO: NA group handling
 # TODO: transformations??
@@ -580,39 +610,14 @@ def _get_all_block_kinds(blockmaps):
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects
 
-def concat(frames, axis=0, join='outer', join_index=None,
-           ignore_index=False, verify_integrity=False):
-    """
-    Concatenate DataFrame objects row or column wise
-
-    Parameters
-    ----------
-    frames : list of DataFrame objects
-    axis : {0, 1}, default 0
-        The axis to concatenate along
-    join : {'inner', 'outer'}, default 'outer'
-        How to handle indexes on other axis
-    join_index : index-like
-    verify_integrity : boolean, default False
-        Check whether the new concatenated axis contains duplicates. This can
-        be very expensive relative to the actual data concatenation
-
-    Returns
-    -------
-    concatenated : DataFrame
-    """
-    op = Concatenator(frames, axis=axis, join_index=join_index,
-                      ignore_index=ignore_index, join=join,
-                      verify_integrity=verify_integrity)
-    return op.get_result()
-
 
 class Concatenator(object):
     """
-    Orchestrates a concatenation operation with a list of DataFrame objects
+    Orchestrates a concatenation operation for BlockManagers, with little hacks
+    to support sparse data structures, etc.
     """
 
-    def __init__(self, frames, axis=0, join='outer', join_index=None,
+    def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  ignore_index=False, verify_integrity=False):
         if join == 'outer':
             self.intersect = False
@@ -623,32 +628,41 @@ class Concatenator(object):
                              'the other axis')
 
         # consolidate data
-        for frame in frames:
-            frame.consolidate(inplace=True)
+        for obj in objs:
+            obj.consolidate(inplace=True)
+        self.objs = objs
 
-        self.frames = frames
+        # Need to flip BlockManager axis in the DataFrame special case
+        if isinstance(objs[0], DataFrame):
+            axis = 1 if axis == 0 else 0
+
+        # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
-        self.join_index = join_index
+
+        self.join_axes = join_axes
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
-        self.new_index, self.new_columns = self._get_new_axes()
+
+        self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        if len(self.frames) == 1:
-            return self.frames[0]
+        first = self.objs[0]
+
+        if len(self.objs) == 1:
+            return first
 
         new_data = self._get_concatenated_data()
-        constructor = self._get_frame_constructor()
-
-        return constructor(new_data, index=self.new_index,
-                           columns=self.new_columns)
+        return first._from_axes(new_data, self.new_axes)
 
     def _get_concatenated_data(self):
         try:
+            # need to conform to same other (joined) axes for block join
+            reindexed_data = self._get_reindexed_data()
+
             blockmaps = []
-            for frame in self.frames:
-                type_map = dict((type(blk), blk) for blk in frame._data.blocks)
+            for data in reindexed_data:
+                type_map = dict((type(blk), blk) for blk in data.blocks)
                 blockmaps.append(type_map)
             kinds = _get_all_block_kinds(blockmaps)
 
@@ -657,43 +671,60 @@ class Concatenator(object):
                 klass_blocks = [mapping.get(kind) for mapping in blockmaps]
                 stacked_block = self._concat_blocks(klass_blocks)
                 new_blocks.append(stacked_block)
-            new_axes = [self.new_columns, self.new_index]
-            new_data = BlockManager(new_blocks, new_axes)
+            new_data = BlockManager(new_blocks, self.new_axes)
         except Exception:  # EAFP
             # should not be possible to fail here for the expected reason with
-            # axis=1
-            if self.axis == 1:  # pragma: no cover
+            # axis = 0
+            if self.axis == 0:  # pragma: no cover
                 raise
 
             new_data = {}
-            for column in self.new_columns:
-                new_data[column] = self._concat_single_column(column)
+            for item in self.new_axes[0]:
+                new_data[item] = self._concat_single_item(item)
 
         return new_data
 
+    def _get_reindexed_data(self):
+        # HACK: ugh
+
+        reindexed_data = []
+        if isinstance(self.objs[0], SparseDataFrame):
+            pass
+        else:
+            axes_to_reindex = list(enumerate(self.new_axes))
+            axes_to_reindex.pop(self.axis)
+
+            for obj in self.objs:
+                data = obj._data
+                for i, ax in axes_to_reindex:
+                    data = data.reindex_axis(ax, axis=i, copy=False)
+                reindexed_data.append(data)
+
+        return reindexed_data
+
     def _concat_blocks(self, blocks):
-        cat_axis = 0 if self.axis == 1 else 1
         concat_values = np.concatenate([b.values for b in blocks],
-                                       axis=cat_axis)
-        if self.axis == 0:
+                                       axis=self.axis)
+
+        if self.axis > 0:
             # Not safe to remove this check, need to profile
             if not _all_indexes_same([b.items for b in blocks]):
                 raise Exception('dtypes are not consistent throughout '
                                 'DataFrames')
-            return make_block(concat_values, blocks[0].items, self.new_columns)
+            return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
             concat_items = _concat_indexes([b.items for b in blocks])
             # TODO: maybe want to "take" from the new columns?
-            return make_block(concat_values, concat_items, self.new_columns)
+            return make_block(concat_values, concat_items, self.new_axes[0])
 
-    def _concat_single_column(self, col):
+    def _concat_single_item(self, item):
         all_values = []
         dtypes = set()
-        for frame in self.frames:
-            if len(frame) == 0:
+        for obj in self.objs:
+            if len(obj) == 0:
                 continue
             try:
-                values = frame._get_raw_column(col)
+                values = obj._data.get(item)
                 dtypes.add(values.dtype)
                 all_values.append(values)
             except KeyError:
@@ -710,7 +741,7 @@ class Concatenator(object):
             empty_dtype = np.float64
 
         to_concat = []
-        for df, col_values in zip(self.frames, all_values):
+        for df, col_values in zip(self.objs, all_values):
             if col_values is None:
                 missing_arr = np.empty(len(df), dtype=empty_dtype)
                 missing_arr.fill(np.nan)
@@ -721,52 +752,49 @@ class Concatenator(object):
         return np.concatenate(to_concat)
 
     def _get_new_axes(self):
-        if self.axis == 0:
-            if self.ignore_index:
-                new_index = None
-            else:
-                new_index = _concat_indexes([x.index for x in self.frames])
-                self._maybe_check_integrity(new_index)
+        ndim = self.objs[0].ndim
+        new_axes = [None] * ndim
 
-            if self.join_index is None:
-                all_cols = [df.columns for df in self.frames]
-                new_columns = _get_combined_index(all_cols,
-                                                  intersect=self.intersect)
-            else:
-                new_columns = self.join_index
-
-            self.frames = [df.reindex(columns=new_columns, copy=False)
-                           for df in self.frames]
+        if self.ignore_index:
+            concat_axis = None
         else:
-            new_columns = _concat_indexes([df.columns for df in self.frames])
-            self._maybe_check_integrity(new_columns)
+            concat_axis = _concat_indexes([x._data.axes[self.axis]
+                                           for x in self.objs])
+            self._maybe_check_integrity(concat_axis)
 
-            if self.verify_integrity:
-                if not new_columns._verify_integrity():
-                    raise Exception('Indexes overlap!')
+        new_axes[self.axis] = concat_axis
 
-            if self.join_index is None:
-                all_indexes = [df.index for df in self.frames]
-                new_index = _get_combined_index(all_indexes,
+        if self.join_axes is None:
+            for i in range(ndim):
+                if i == self.axis:
+                    continue
+                all_indexes = [x._data.axes[i] for x in self.objs]
+                comb_axis = _get_combined_index(all_indexes,
                                                 intersect=self.intersect)
-            else:
-                new_index = self.join_index
+                new_axes[i] = comb_axis
 
-            self.frames = [df.reindex(new_index, copy=False)
-                           for df in self.frames]
+        else:
+            assert(len(self.join_axes) == ndim - 1)
 
-        return new_index, new_columns
+            # ufff...
+            indices = range(ndim)
+            indices.remove(self.axis)
 
-    def _get_frame_constructor(self):
+            for i, ax in zip(indices, self.join_axes):
+                new_axes[i] = ax
+
+        return new_axes
+
+    def _get_obj_constructor(self):
         # SparseDataFrame causes us some headache here
 
         # check that there's only one type present
-        frame_types = set(type(df) for df in self.frames)
-        if len(frame_types) > 1:
+        obj_types = set(type(df) for df in self.objs)
+        if len(obj_types) > 1:
             raise Exception('Can only concatenate like-typed objects, found %s'
-                            % frame_types)
+                            % obj_types)
 
-        return self.frames[0]._constructor
+        return self.objs[0]._constructor
 
     def _maybe_check_integrity(self, concat_index):
         if self.verify_integrity:
@@ -777,7 +805,7 @@ class Concatenator(object):
 
     @cache_readonly
     def _all_indexes_same(self):
-        return _all_indexes_same([df.columns for df in self.frames])
+        return _all_indexes_same([df.columns for df in self.objs])
 
 def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
     names = [ping.name for ping in groupings]
@@ -875,11 +903,3 @@ def _all_indexes_same(indexes):
             return False
     return True
 
-
-class _SparseMockBlockManager(object):
-
-    def __init__(self, sp_frame):
-        self.sp_frame = sp_frame
-
-    def get(self, item):
-        return self.sp_frame[item].values

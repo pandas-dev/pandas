@@ -3,7 +3,7 @@ Data structures for sparse float data. Life is made simpler by dealing only with
 float64 data
 """
 
-# pylint: disable=E1101,E1103,W0231
+# pylint: disable=E1101,E1103,W0231,E0202
 
 from numpy import nan
 import numpy as np
@@ -13,9 +13,23 @@ from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
+from pandas.util.decorators import cache_readonly
 import pandas.core.datetools as datetools
 
 from pandas.sparse.series import SparseSeries
+
+
+class _SparseMockBlockManager(object):
+
+    def __init__(self, sp_frame):
+        self.sp_frame = sp_frame
+
+    def get(self, item):
+        return self.sp_frame[item].values
+
+    @property
+    def axes(self):
+        return [self.sp_frame.columns, self.sp_frame.index]
 
 class SparseDataFrame(DataFrame):
     """
@@ -70,6 +84,14 @@ class SparseDataFrame(DataFrame):
         self._series = sdict
         self.columns = columns
         self.index = index
+
+    def _from_axes(self, data, axes):
+        columns, index = axes
+        return self._constructor(data, index=index, columns=columns)
+
+    @cache_readonly
+    def _data(self):
+        return _SparseMockBlockManager(self)
 
     def _get_numeric_columns(self):
         # everything is necessarily float64
@@ -511,9 +533,6 @@ class SparseDataFrame(DataFrame):
 
         self.columns = new_columns
         self._series = new_series
-
-    def _get_raw_column(self, col):
-        return self._series[col].values
 
     def add_prefix(self, prefix):
         f = (('%s' % prefix) + '%s').__mod__

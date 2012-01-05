@@ -1144,7 +1144,7 @@ class DataFrameGroupBy(GroupBy):
                 applied.append(res)
 
         concat_index = obj.columns if self.axis == 0 else obj.index
-        concatenated = concat(applied, join_index=concat_index,
+        concatenated = concat(applied, join_axes=[concat_index],
                               axis=self.axis, verify_integrity=False)
         return concatenated.reindex_like(obj)
 

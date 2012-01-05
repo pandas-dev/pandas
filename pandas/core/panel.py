@@ -232,6 +232,16 @@ class Panel(NDFrame):
 
         NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
+    @classmethod
+    def _from_axes(cls, data, axes):
+        # for construction from BlockManager
+        if isinstance(data, BlockManager):
+            return cls(data)
+        else:
+            items, major, minor = axes
+            return cls(data, items=items, major_axis=major,
+                       minor_axis=minor, copy=False)
+
     def _init_dict(self, data, axes, dtype=None):
         items, major, minor = axes
 
@@ -1067,13 +1077,13 @@ class Panel(NDFrame):
 
         return self.reindex(**{axis : new_index})
 
-    def join(self, other, how=None, lsuffix='', rsuffix=''):
+    def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
         Join items with other Panel either on major and minor axes column
 
         Parameters
         ----------
-        other : Panel
+        other : Panel or list of Panels
             Index should be similar to one of the columns in this one
         how : {'left', 'right', 'outer', 'inner'}
             How to handle indexes of the two objects. Default: 'left'
@@ -1091,16 +1101,30 @@ class Panel(NDFrame):
         -------
         joined : Panel
         """
-        if how is None:
-            how = 'left'
-        return self._join_index(other, how, lsuffix, rsuffix)
+        from pandas.tools.merge import concat
 
-    def _join_index(self, other, how, lsuffix, rsuffix):
-        join_major, join_minor = self._get_join_index(other, how)
-        this = self.reindex(major=join_major, minor=join_minor)
-        other = other.reindex(major=join_major, minor=join_minor)
-        merged_data = this._data.merge(other._data, lsuffix, rsuffix)
-        return self._constructor(merged_data)
+        if isinstance(other, Panel):
+            join_major, join_minor = self._get_join_index(other, how)
+            this = self.reindex(major=join_major, minor=join_minor)
+            other = other.reindex(major=join_major, minor=join_minor)
+            merged_data = this._data.merge(other._data, lsuffix, rsuffix)
+            return self._constructor(merged_data)
+        else:
+            if lsuffix or rsuffix:
+                raise ValueError('Suffixes not supported when passing multiple '
+                                 'panels')
+
+            if how == 'left':
+                how = 'outer'
+                join_axes = [self.major_axis, self.minor_axis]
+            elif how == 'right':
+                raise ValueError('Right join not supported with multiple '
+                                 'panels')
+            else:
+                join_axes = None
+
+            return concat([self] + list(other), axis=0, join=how,
+                          join_axes=join_axes, verify_integrity=True)
 
     def _get_join_index(self, other, how):
         if how == 'left':
