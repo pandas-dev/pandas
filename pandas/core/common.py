@@ -380,16 +380,21 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
     """
-    global _float_format, _column_space, _max_rows, _max_columns
+    global _float_format, _column_space, _max_rows, _max_columns, _precision
     if precision is not None:
-        float_format = '% .' + '%d' % precision + 'g'
-        _float_format = lambda x: float_format % x
+        _precision = precision
     if column_space is not None:
         _column_space = column_space
     if max_rows is not None:
         _max_rows = max_rows
     if max_columns is not None:
         _max_columns = max_columns
+
+def reset_printoptions():
+    global _float_format, _column_space, _precision
+    _float_format = None
+    _column_space = 12
+    _precision = 4
 
 class EngFormatter(object):
     """
@@ -494,8 +499,9 @@ def set_eng_float_format(precision=3, use_eng_prefix=False):
     _float_format = EngFormatter(precision, use_eng_prefix)
     _column_space = max(12, precision + 9)
 
-_float_format = lambda x: '% .4g' % x
+_float_format = None
 _column_space = 12
+_precision = 4
 _max_rows = 500
 _max_columns = 0
 
@@ -505,6 +511,59 @@ def _stringify(col):
         return str(col)
     else:
         return '%s' % col
+
+def _float_format_default(v, width = None):
+    """
+    Take a float and its formatted representation and if it needs extra space
+    to fit the width, reformat it to that width.
+    """
+
+    fmt_str   = '%% .%dg' % _precision
+    formatted = fmt_str % v
+
+    if width is None:
+        return formatted
+
+    extra_spc = width - len(formatted)
+
+    if extra_spc <= 0:
+        return formatted
+
+    if 'e' in formatted:
+        # we have something like 1e13 or 1.23e13
+        base, exp = formatted.split('e')
+
+        if '.' in base:
+            # expand fraction by extra space
+            whole, frac = base.split('.')
+            fmt_str = '%%.%df' % (len(frac) + extra_spc)
+            frac = fmt_str % float("0.%s" % frac)
+            base = whole + frac[1:]
+        else:
+            if extra_spc > 1:
+                # enough room for fraction
+                fmt_str = '%% .%df' % (extra_spc - 1)
+                base = fmt_str % float(base)
+            else:
+                # enough room for decimal point only
+                base += '.'
+
+        return base + 'e' + exp
+    else:
+        # we have something like 123 or 123.456
+        if '.' in formatted:
+            # expand fraction by extra space
+            wholel, fracl = map(len, formatted.split("."))
+            fmt_str = '%% .%df' % (fracl + extra_spc)
+        else:
+            if extra_spc > 1:
+                # enough room for fraction
+                fmt_str = '%% .%df' % (extra_spc - 1)
+            else:
+                # enough room for decimal point only
+                fmt_str = '% d.'
+
+        return fmt_str % v
 
 def _format(s, space=None, na_rep=None, float_format=None, col_width=None):
     def _just_help(x):
@@ -520,18 +579,10 @@ def _format(s, space=None, na_rep=None, float_format=None, col_width=None):
 
         if float_format:
             formatted = float_format(s)
-        else:
+        elif _float_format:
             formatted = _float_format(s)
-
-        # TODO: fix this float behavior!
-        # if we pass col_width, pad-zero the floats so all are same in column
-        #if col_width is not None and '.' in formatted:
-        #    padzeros = col_width - len(formatted)
-        #    if padzeros > 0 and 'e' in formatted:
-        #        num, exp = formatted.split('e')
-        #        formatted = "%s%se%s" % (num, ('0' * padzeros), exp)
-        #    elif padzeros > 0:
-        #        formatted = formatted + ('0' * padzeros)
+        else:
+            formatted = _float_format_default(s, col_width)
 
         return _just_help(formatted)
     elif isinstance(s, int):

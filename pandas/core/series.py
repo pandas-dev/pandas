@@ -512,7 +512,7 @@ copy : boolean, default False
         padSpace = min(maxlen, 60)
 
         if float_format is None:
-            float_format = com._float_format
+            float_format = com._float_format_default
 
         def _format(k, v):
             # GH #490

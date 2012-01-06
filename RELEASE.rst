@@ -104,6 +104,7 @@ pandas 0.7.0
   - Some performance enhancements in constructing a Panel from a dict of
     DataFrame objects
   - Made ``Index._get_duplicates`` a public method by removing the underscore
+  - Prettier printing of floats, and column spacing fix (GH #395, GH #571)
 
 **Bug fixes**
 

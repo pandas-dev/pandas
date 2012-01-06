@@ -1738,6 +1738,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert(df_s == expected)
 
+    def test_to_string_float_formatting(self):
+        com.reset_printoptions()
+        com.set_printoptions(precision=6, column_space=12)
+
+        df = DataFrame({'x' : [0, 0.25, 3456.000, 12e+45, 1.64e+6,
+                               1.7e+8, 1.253456, np.pi, -1e6]})
+
+        df_s = df.to_string()
+
+        expected = '   x       \n0  0.000000\n1  0.250000\n' \
+                   '2  3456.000\n3  1.20e+46\n4  1.64e+06\n' \
+                   '5  1.70e+08\n6  1.253456\n7  3.141593\n' \
+                   '8 -1.00e+06'
+        assert(df_s == expected)
+
+        df = DataFrame({'x' : [3234, 0.253]})
+        df_s = df.to_string()
+
+        expected = '   x    \n0  3234.\n1  0.253'
+        assert(df_s == expected)
+
+        com.reset_printoptions()
+
+        df = DataFrame({'x': [1e9, 0.2512]})
+        df_s = df.to_string()
+        expected = '   x     \n0  1.e+09\n1  0.2512'
+        assert(df_s == expected)
+
     def test_to_html(self):
         # big mixed
         biggie = DataFrame({'A' : randn(1000),
