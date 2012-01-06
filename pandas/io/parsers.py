@@ -437,7 +437,10 @@ class TextParser(object):
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.columns:
                 col = self.columns[col]
-            data[col] = np.vectorize(f)(data[col])
+            result = np.vectorize(f)(data[col])
+            if issubclass(result.dtype.type, (basestring, unicode)):
+                result = result.astype('O')
+            data[col] = result
 
         data = _convert_to_ndarrays(data, self.na_values)
 
