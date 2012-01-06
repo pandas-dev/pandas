@@ -67,6 +67,11 @@ class TestIndex(unittest.TestCase):
         # it works!
         casted.get_loc(5)
 
+        # pass on name
+        self.intIndex.name = 'foobar'
+        casted = self.intIndex.astype('i8')
+        self.assertEqual(casted.name, 'foobar')
+
     def test_compat(self):
         self.strIndex.tolist()
 
@@ -255,9 +260,9 @@ class TestIndex(unittest.TestCase):
     #     self.assert_(self.dateIndex[15:15] is NULL_INDEX)
 
     def test_is_all_dates(self):
-        self.assert_(self.dateIndex.is_all_dates())
-        self.assert_(not self.strIndex.is_all_dates())
-        self.assert_(not self.intIndex.is_all_dates())
+        self.assert_(self.dateIndex.is_all_dates)
+        self.assert_(not self.strIndex.is_all_dates)
+        self.assert_(not self.intIndex.is_all_dates)
 
     def test_summary(self):
         self._check_method_works(Index.summary)
@@ -737,7 +742,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(None not in self.index)
 
     def test_is_all_dates(self):
-        self.assert_(not self.index.is_all_dates())
+        self.assert_(not self.index.is_all_dates)
 
     def test_getitem(self):
         # scalar

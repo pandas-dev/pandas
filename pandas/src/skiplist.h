@@ -28,12 +28,12 @@
   #endif
 #endif
 
-PANDAS_INLINE static float __npy_nanf(void)
+PANDAS_INLINE static float __skiplist_nanf(void)
 {
     const union { int __i; float __f;} __bint = {0x7fc00000UL};
     return __bint.__f;
 }
-#define PANDAS_NAN ((double) __npy_nanf())
+#define PANDAS_NAN ((double) __skiplist_nanf())
 
 
 static PANDAS_INLINE double Log2(double val) {

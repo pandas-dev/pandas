@@ -319,7 +319,7 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'parsing', 'reduce', 'stats',
+                   'generated', 'reduce', 'stats',
                    'inference', 'properties', 'internals',
                    'hashtable', 'join']
 def srcpath(name=None, suffix='.pyx', subdir='src'):

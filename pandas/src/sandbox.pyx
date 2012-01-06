@@ -144,3 +144,8 @@ def get_indexer(ndarray values, dict mapping):
         else:
             resbuf[i] = -1
     return fill_vec
+
+cimport util
+
+def foo2(o):
+    return util.is_integer_object(o)

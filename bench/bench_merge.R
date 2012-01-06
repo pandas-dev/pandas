@@ -58,11 +58,11 @@ inner.join <- function(sort=FALSE) {
 }
 
 left.join.dt <- function(sort=FALSE) {
-  result <- merge(left.dt, right.dt, all.x=TRUE, sort=sort)
+  result <- right.dt[left.dt]
 }
 
 right.join.dt <- function(sort=FALSE) {
-  result <- merge(left.dt, right.dt, all.y=TRUE, sort=sort)
+  result <- left.dt[right.dt]
 }
 
 outer.join.dt <- function(sort=FALSE) {
@@ -84,14 +84,15 @@ sort.options <- c(FALSE, TRUE)
 
 results <- matrix(nrow=3, ncol=3)
 colnames(results) <- c("base::merge", "plyr", "data.table")
-rownames(results) <- c("inner", "outer", "left")
+rownames(results) <- c("inner", "outer", "left", "right")
 
-base.functions <- c(inner.join, outer.join, left.join)
+base.functions <- c(inner.join, outer.join, left.join, right.join)
 plyr.functions <- c(function() plyr.join("inner"),
                     function() plyr.join("full"),
-                    function() plyr.join("left"))
-dt.functions <- c(inner.join.dt, outer.join.dt, left.join.dt)
-for (i in 1:3) {
+                    function() plyr.join("left"),
+					function() plyr.join("right"))
+dt.functions <- c(inner.join.dt, outer.join.dt, left.join.dt, right.join.dt)
+for (i in 1:4) {
   base.func <- base.functions[[i]]
   plyr.func <- plyr.functions[[i]]
   dt.func <- dt.functions[[i]]

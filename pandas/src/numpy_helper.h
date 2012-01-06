@@ -13,9 +13,35 @@
   #endif
 #endif
 
+#define PANDAS_FLOAT 0
+#define PANDAS_INT 1
+#define PANDAS_BOOL 2
+#define PANDAS_STRING 3
+#define PANDAS_OBJECT 4
+
+PANDAS_INLINE int
+infer_type(PyObject* obj) {
+  if (PyBool_Check(obj)) {
+    return PANDAS_BOOL;
+  }
+  else if (PyArray_IsIntegerScalar(obj)) {
+    return PANDAS_INT;
+  }
+  else if (PyFloat_Check(obj) || PyArray_IsScalar(obj, Floating)) {
+    return PANDAS_FLOAT;
+  }
+  else if (PyString_Check(obj) || PyUnicode_Check(obj)) {
+    return PANDAS_STRING;
+  }
+  else {
+    return PANDAS_OBJECT;
+  }
+}
+
 PANDAS_INLINE int
 is_integer_object(PyObject* obj) {
-  return PyArray_IsIntegerScalar(obj);
+  return (!PyBool_Check(obj)) && PyArray_IsIntegerScalar(obj);
+//  return PyArray_IsIntegerScalar(obj);
 }
 
 PANDAS_INLINE int

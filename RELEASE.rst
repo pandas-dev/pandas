@@ -153,6 +153,7 @@ pandas 0.7.0
   - Fix error in monotonic many-to-one left joins
   - Fix __eq__ comparison between DateOffsets with different relativedelta
     keywords passed
+  - Fix exception caused by parser converter returning strings (GH #583)
 
 Thanks
 ------
@@ -161,6 +162,7 @@ Thanks
 - Arthur Gerigk
 - Matt Harrison
 - Andreas Hilboll
+- Luc Kesters
 - Adam Klein
 - Gregg Lind
 - Solomon Negusse

@@ -46,7 +46,7 @@ right = DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
 right2 = right.append(right, ignore_index=True)
 
 
-join_methods = ['inner', 'outer', 'left'] #, 'right']
+join_methods = ['inner', 'outer', 'left', 'right']
 results = DataFrame(index=join_methods, columns=[False])
 niter = 10
 for sort in [False]:
@@ -66,15 +66,18 @@ results.columns = ['pandas']
 # R results
 from StringIO import StringIO
 # many to one
-r_results = read_table(StringIO("""base::merge   plyr data.table
-inner      0.2172 0.1197     0.1035
-outer      0.3362 0.1658     0.1930
-left       0.2559 0.1217     0.1559
+r_results = read_table(StringIO("""      base::merge   plyr data.table
+inner      0.2475 0.1183     0.1100
+outer      0.4213 0.1916     0.2090
+left       0.2998 0.1188     0.0572
+right      0.3102 0.0536     0.0376
 """), sep='\s+')
 
 all_results = results.join(r_results)
 
 all_results = all_results.div(all_results['pandas'], axis=0)
+
+all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr', 'base::merge']]
 
 sort_results = DataFrame.from_items([('pandas', results['sort']),
                                      ('R', r_results['sort'])])
@@ -89,11 +92,13 @@ nosort_results['Ratio'] = sort_results['R'] / sort_results['pandas']
 
 from StringIO import StringIO
 # many to one
-r_results = read_table(StringIO("""base::merge data.table
-inner      0.4503     0.1278
-outer      0.7973     0.2347
-left       0.5433     0.1877
+r_results = read_table(StringIO("""base::merge   plyr data.table
+inner      0.4610 0.1276     0.1269
+outer      0.9195 0.1881     0.2725
+left       0.6559 0.1257     0.0678
+right      0.6425 0.0522     0.0428
 """), sep='\s+')
 
 all_results = results.join(r_results)
 all_results = all_results.div(all_results['pandas'], axis=0)
+all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr', 'base::merge']]

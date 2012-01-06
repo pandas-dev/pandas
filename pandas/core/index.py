@@ -74,7 +74,7 @@ class Index(np.ndarray):
         self.name = getattr(obj, 'name', None)
 
     def astype(self, dtype):
-        return Index(self.values.astype(dtype))
+        return Index(self.values.astype(dtype), name=self.name)
 
     @property
     def dtype(self):
@@ -152,15 +152,13 @@ class Index(np.ndarray):
     def _verify_integrity(self):
         return self._engine.has_integrity
 
-    _allDates = None
-    def is_all_dates(self):
-        """
-        Checks that all the labels are datetime objects
-        """
-        if self._allDates is None:
-            self._allDates = lib.isAllDates(self)
+    @cache_readonly
+    def inferred_type(self):
+        return lib.infer_dtype(self)
 
-        return self._allDates
+    @cache_readonly
+    def is_all_dates(self):
+        return self.inferred_type == 'datetime'
 
     def __iter__(self):
         return iter(self.values)
@@ -242,7 +240,7 @@ class Index(np.ndarray):
         if name:
             result.append(str(self.name) if self.name is not None else '')
 
-        if self.is_all_dates():
+        if self.is_all_dates:
             zero_time = time(0, 0)
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
@@ -870,6 +868,7 @@ class Int64Index(Index):
     def dtype(self):
         return np.dtype('int64')
 
+    @property
     def is_all_dates(self):
         """
         Checks that all the labels are datetime objects
@@ -1115,6 +1114,7 @@ class MultiIndex(Index):
         else:
             return result_levels
 
+    @property
     def is_all_dates(self):
         return False
 

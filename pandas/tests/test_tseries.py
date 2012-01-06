@@ -215,6 +215,67 @@ def test_get_reverse_indexer():
     expected = np.array([4, 2, 3, 6, 7], dtype='i4')
     assert(np.array_equal(result, expected))
 
+class TestTypeInference(unittest.TestCase):
+
+    def test_integers(self):
+        arr = np.array([1, 2, 3, np.int64(4), np.int32(5)], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'integer')
+
+        arr = np.array([1, 2, 3, np.int64(4), np.int32(5), 'foo'],
+                       dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'mixed')
+
+        arr = np.array([1, 2, 3, 4, 5], dtype='i4')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'integer')
+
+    def test_bools(self):
+        arr = np.array([True, False, True, True, True], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'boolean')
+
+        arr = np.array([np.bool_(True), np.bool_(False)], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'boolean')
+
+        arr = np.array([True, False, True, 'foo'], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'mixed')
+
+        arr = np.array([True, False, True], dtype=bool)
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'boolean')
+
+    def test_floats(self):
+        arr = np.array([1., 2., 3., np.float64(4), np.float32(5)], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'floating')
+
+        arr = np.array([1, 2, 3, np.float64(4), np.float32(5), 'foo'],
+                       dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'mixed')
+
+        arr = np.array([1, 2, 3, 4, 5], dtype='f4')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'floating')
+
+        arr = np.array([1, 2, 3, 4, 5], dtype='f8')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'floating')
+
+    def test_string(self):
+        pass
+
+    def test_unicode(self):
+        pass
+
+    def test_datetime(self):
+        pass
+
+
 class TestMoments(unittest.TestCase):
     pass
 

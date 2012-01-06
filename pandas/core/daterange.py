@@ -130,6 +130,7 @@ class DateRange(Index):
 
         return Index.equals(self.view(Index), other)
 
+    @property
     def is_all_dates(self):
         return True
 

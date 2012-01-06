@@ -164,7 +164,7 @@ class Series(np.ndarray, generic.PandasObject):
         subarr.index = index
         subarr.name = name
 
-        if subarr.index.is_all_dates():
+        if subarr.index.is_all_dates:
             subarr = subarr.view(TimeSeries)
 
         return subarr

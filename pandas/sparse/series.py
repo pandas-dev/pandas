@@ -128,7 +128,7 @@ class SparseSeries(SparseArray, Series):
         else:
             subarr = np.asarray(values, dtype=np.float64)
 
-        if index.is_all_dates():
+        if index.is_all_dates:
             cls = SparseTimeSeries
 
         # Change the class of the array to be the subclass type.
