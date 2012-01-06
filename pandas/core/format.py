@@ -184,7 +184,7 @@ class DataFrameFormatter(object):
                     row.append(format_col(column, i))
                 write_tr(buf, row, indent, indent_delta)
             indent -= indent_delta
-            write(buf, '</body>', indent)
+            write(buf, '</tbody>', indent)
             indent -= indent_delta
 
         write(buf, '</table>', indent)
