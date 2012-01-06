@@ -491,7 +491,7 @@ def set_eng_float_format(precision=3, use_eng_prefix=False):
     _float_format = EngFormatter(precision, use_eng_prefix)
     _column_space = max(12, precision + 9)
 
-_float_format = lambda x: '% .6g' % x
+_float_format = lambda x: '% .4g' % x
 _column_space = 12
 _max_rows = 500
 _max_columns = 0
