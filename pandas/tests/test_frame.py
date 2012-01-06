@@ -1734,11 +1734,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert(df_s == expected)
 
-
     def test_to_html(self):
         # big mixed
         biggie = DataFrame({'A' : randn(1000),
-                             'B' : tm.makeStringIndex(1000)},
+                            'B' : tm.makeStringIndex(1000)},
                             index=range(1000))
 
         biggie['A'][:20] = nan
