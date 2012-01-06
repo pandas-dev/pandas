@@ -33,7 +33,7 @@ pandas 0.7.0
     relational-algebra operations. Refactored existing join methods to use the
     new infrastructure, resulting in substantial performance gains (GH #220,
     #249, #267)
-  - New ``concatenate`` function for concatenating DataFrame or Panel objects
+  - New ``concat`` function for concatenating DataFrame or Panel objects
     along an axis. Can form union or intersection of the other axes
   - Handle differently-indexed output values in ``DataFrame.apply`` (GH #498)
   - Can pass list of dicts (e.g., a list of shallow JSON objects) to DataFrame
