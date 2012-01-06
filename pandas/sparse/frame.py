@@ -29,6 +29,11 @@ class _SparseMockBlockManager(object):
         return self.sp_frame[item].values
 
     @property
+    def shape(self):
+        x, y = self.sp_frame.shape
+        return y, x
+
+    @property
     def axes(self):
         return [self.sp_frame.columns, self.sp_frame.index]
 

@@ -676,6 +676,28 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = Panel(d, dtype=int)
         expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
 
+    def test_constructor_dict_mixed(self):
+        data = dict((k, v.values) for k, v in self.panel.iteritems())
+        result = Panel(data)
+        exp_major = Index(np.arange(len(self.panel.major_axis)))
+        self.assert_(result.major_axis.equals(exp_major))
+
+        result = Panel(data, items=self.panel.items,
+                       major_axis=self.panel.major_axis,
+                       minor_axis=self.panel.minor_axis)
+        assert_panel_equal(result, self.panel)
+
+        data['ItemC'] = self.panel['ItemC']
+        result = Panel(data)
+        assert_panel_equal(result, self.panel)
+
+        # corner, blow up
+        data['ItemB'] = data['ItemB'][:-1]
+        self.assertRaises(Exception, Panel, data)
+
+        data['ItemB'] = self.panel['ItemB'].values[:, :-1]
+        self.assertRaises(Exception, Panel, data)
+
     def test_constructor_resize(self):
         data = self.panel._data
         items = self.panel.items[:-1]

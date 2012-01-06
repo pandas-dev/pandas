@@ -516,7 +516,6 @@ class Grouping(object):
       * indices : dict of {group -> index_list}
       * labels : ndarray, group labels
       * ids : mapping of label -> group
-      * reverse_ids : mapping of group -> label
       * counts : array of group counts
       * group_index : unique groups
       * groups : dict of {group -> label_list}
@@ -591,10 +590,6 @@ class Grouping(object):
             else:
                 self._make_labels()
         return self._ids
-
-    @cache_readonly
-    def reverse_ids(self):
-        return dict((v, k) for k, v in self.ids.iteritems())
 
     @property
     def counts(self):

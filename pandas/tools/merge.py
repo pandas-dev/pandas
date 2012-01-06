@@ -743,15 +743,18 @@ class Concatenator(object):
             empty_dtype = np.float64
 
         to_concat = []
-        for df, col_values in zip(self.objs, all_values):
-            if col_values is None:
-                missing_arr = np.empty(len(df), dtype=empty_dtype)
+        for obj, item_values in zip(self.objs, all_values):
+            if item_values is None:
+                shape = obj._data.shape[1:]
+                missing_arr = np.empty(shape, dtype=empty_dtype)
                 missing_arr.fill(np.nan)
                 to_concat.append(missing_arr)
             else:
-                to_concat.append(col_values)
+                to_concat.append(item_values)
 
-        return np.concatenate(to_concat)
+        # this method only gets called with axis >= 1
+        assert(self.axis >= 1)
+        return np.concatenate(to_concat, axis=self.axis - 1)
 
     def _get_new_axes(self):
         ndim = self.objs[0].ndim

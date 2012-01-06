@@ -1271,6 +1271,12 @@ class TestFactor(unittest.TestCase):
             self.assertEqual(f(arr[labels == i]), agged[i])
 
 
+def test_get_combined_index():
+    from pandas.core.index import _get_combined_index, NULL_INDEX
+
+    result = _get_combined_index([])
+    assert(result is NULL_INDEX)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

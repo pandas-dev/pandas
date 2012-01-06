@@ -1875,6 +1875,8 @@ def _validate_join_method(method):
 
 def _get_combined_index(indexes, intersect=False):
     indexes = _get_distinct_indexes(indexes)
+    if len(indexes) == 0:
+        return NULL_INDEX
     if len(indexes) == 1:
         return indexes[0]
     if intersect:
@@ -1890,9 +1892,7 @@ def _get_distinct_indexes(indexes):
 
 
 def _union_indexes(indexes):
-    if len(indexes) == 0:
-        return Index([])
-
+    assert(len(indexes) > 0)
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):

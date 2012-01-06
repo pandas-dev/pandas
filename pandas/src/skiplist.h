@@ -7,11 +7,14 @@
   Python recipe (http://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
  */
 
+// #include <numpy/arrayobject.h>
+// #include <numpy/npy_math.h>
+
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <numpy/arrayobject.h>
-#include <numpy/npy_math.h>
-
+#include <string.h>
+#include <math.h>
 
 #ifndef PANDAS_INLINE
   #if defined(__GNUC__)
@@ -24,6 +27,14 @@
     #define PANDAS_INLINE
   #endif
 #endif
+
+PANDAS_INLINE static float __npy_nanf(void)
+{
+    const union { int __i; float __f;} __bint = {0x7fc00000UL};
+    return __bint.__f;
+}
+#define PANDAS_NAN ((double) __npy_nanf())
+
 
 static PANDAS_INLINE double Log2(double val) {
   return log(val) / log(2.);
@@ -110,7 +121,7 @@ static PANDAS_INLINE skiplist_t *skiplist_init(int expected_size) {
   result->tmp_steps = (int*) malloc(maxlevels * sizeof(int));
   result->maxlevels = maxlevels;
 
-  head = result->head = node_init(NPY_NAN, maxlevels);
+  head = result->head = node_init(PANDAS_NAN, maxlevels);
   node_incref(head);
 
   NIL = node_init(0, 0);

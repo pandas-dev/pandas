@@ -10,7 +10,7 @@ import numpy as np
 from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
 from pandas.core.index import (Factor, Index, MultiIndex, _ensure_index,
-                               _get_combined_index, _union_indexes)
+                               _get_combined_index, NULL_INDEX)
 from pandas.core.indexing import _NDFrameIndexer
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame
@@ -246,36 +246,34 @@ class Panel(NDFrame):
             items = Index(_try_sort(data.keys()))
 
         for k, v in data.iteritems():
-            if not isinstance(v, DataFrame):
+            if isinstance(v, dict):
                 data[k] = DataFrame(v)
 
         if major is None:
-            indexes = [v.index for v in data.values()]
-            major = _union_indexes(indexes)
+            major = _extract_axis(data, axis=0)
 
         if minor is None:
-            indexes = [v.columns for v in data.values()]
-            minor = _union_indexes(indexes)
+            minor = _extract_axis(data, axis=1)
 
         axes = [items, major, minor]
-
         reshaped_data = data.copy() # shallow
-        # homogenize
 
         item_shape = (1, len(major), len(minor))
-        for k in items:
-            if k not in data:
+        for item in items:
+            v = values = data.get(item)
+            if v is None:
                 values = np.empty(item_shape, dtype=dtype)
                 values.fill(np.nan)
-                reshaped_data[k] = values
-            else:
-                v = data[k]
+            elif isinstance(v, DataFrame):
                 v = v.reindex(index=major, columns=minor, copy=False)
                 if dtype is not None:
                     v = v.astype(dtype)
                 values = v.values
-                shape = values.shape
-                reshaped_data[k] = values.reshape((1,) + shape)
+
+            if values.ndim == 2:
+                values = values[None, :, :]
+
+            reshaped_data[item] = values
 
         # segregates dtypes and forms blocks matching to columns
         blocks = form_blocks(reshaped_data, axes)
@@ -1180,17 +1178,54 @@ def _homogenize_dict(frames, intersect=True, dtype=None):
         else:
             adj_frames[k] = v
 
-    all_indexes = [df.index for df in adj_frames.values()]
-    all_columns = [df.columns for df in adj_frames.values()]
-
-    index = _get_combined_index(all_indexes, intersect=intersect)
-    columns = _get_combined_index(all_columns, intersect=intersect)
+    index = _extract_axis(adj_frames, axis=0, intersect=intersect)
+    columns = _extract_axis(adj_frames, axis=1, intersect=intersect)
 
     for key, frame in adj_frames.iteritems():
         result[key] = frame.reindex(index=index, columns=columns,
                                     copy=False)
 
     return result, index, columns
+
+
+def _extract_axis(data, axis=0, intersect=False):
+    from pandas.core.index import _union_indexes
+
+    if len(data) == 0:
+        index = NULL_INDEX
+    elif len(data) > 0:
+        raw_lengths = []
+        indexes = []
+
+        have_raw_arrays = False
+        have_frames = False
+
+        for v in data.values():
+            if isinstance(v, DataFrame):
+                have_frames = True
+                indexes.append(v._get_axis(axis))
+            else:
+                have_raw_arrays = True
+                raw_lengths.append(v.shape[axis])
+
+        if have_frames:
+            index = _get_combined_index(indexes, intersect=intersect)
+
+        if have_raw_arrays:
+            lengths = list(set(raw_lengths))
+            if len(lengths) > 1:
+                raise ValueError('ndarrays must match shape on axis %d' % axis)
+
+            if have_frames:
+                assert(lengths[0] == len(index))
+            else:
+                index = Index(np.arange(lengths[0]))
+
+    if len(index) == 0:
+        index = NULL_INDEX
+
+    return _ensure_index(index)
+
 
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()

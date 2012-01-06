@@ -17,6 +17,6 @@ proc = psutil.Process(pid)
 
 s = Series(np.random.randn(10000))
 
-for _ in xrange(1000):
+for _ in xrange(5):
     # print proc.get_memory_info()
     result = rolling_median(s, 1000)

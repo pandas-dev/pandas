@@ -848,6 +848,39 @@ class TestConcatenate(unittest.TestCase):
         expected = Panel.from_dict(data_dict, intersect=False)
         tm.assert_panel_equal(joined, expected)
 
+        # edge cases
+        self.assertRaises(ValueError, panels[0].join, panels[1:],
+                          how='outer', lsuffix='foo', rsuffix='bar')
+        self.assertRaises(ValueError, panels[0].join, panels[1:],
+                          how='right')
+
+    def test_panel_concat_other_axes(self):
+        panel = tm.makePanel()
+
+        p1 = panel.ix[:, :5, :]
+        p2 = panel.ix[:, 5:, :]
+
+        result = concat([p1, p2], axis=1)
+        tm.assert_panel_equal(result, panel)
+
+        p1 = panel.ix[:, :, :2]
+        p2 = panel.ix[:, :, 2:]
+
+        result = concat([p1, p2], axis=2)
+        tm.assert_panel_equal(result, panel)
+
+        # if things are a bit misbehaved
+        p1 = panel.ix[:2, :, :2]
+        p2 = panel.ix[:, :, 2:]
+        p1['ItemC'] = 'baz'
+
+        result = concat([p1, p2], axis=2)
+
+        expected = panel.copy()
+        expected['ItemC'] = expected['ItemC'].astype('O')
+        expected.ix['ItemC', :, :2] = 'baz'
+        tm.assert_panel_equal(result, expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

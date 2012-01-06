@@ -1030,6 +1030,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(frame.columns is idx)
         self.assertEqual(len(frame._series), 3)
 
+        # with dict of empty list and Series
+        frame = DataFrame({'A' : [], 'B' : []}, columns=['A', 'B'])
+        self.assert_(frame.index is NULL_INDEX)
+
     def test_constructor_dict_block(self):
         expected = [[4., 3., 2., 1.]]
         df = DataFrame({'d' : [4.],'c' : [3.],'b' : [2.],'a' : [1.]},
