@@ -379,7 +379,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     """
     global _float_format, _column_space, _max_rows, _max_columns
     if precision is not None:
-        float_format = '%.' + '%d' % precision + 'g'
+        float_format = '% .' + '%d' % precision + 'g'
         _float_format = lambda x: float_format % x
     if column_space is not None:
         _column_space = column_space
@@ -491,7 +491,7 @@ def set_eng_float_format(precision=3, use_eng_prefix=False):
     _float_format = EngFormatter(precision, use_eng_prefix)
     _column_space = max(12, precision + 9)
 
-_float_format = lambda x: '% .4g' % x
+_float_format = lambda x: '% .6g' % x
 _column_space = 12
 _max_rows = 500
 _max_columns = 0
@@ -521,7 +521,7 @@ def _format(s, space=None, na_rep=None, float_format=None, col_width=None):
             formatted = _float_format(s)
 
         # if we pass col_width, pad-zero the floats so all are same in column
-        if col_width is not None and formatted != ' 0':
+        if col_width is not None and '.' in formatted:
             padzeros = col_width - len(formatted)
             if padzeros > 0 and 'e' in formatted:
                 num, exp = formatted.split('e')
