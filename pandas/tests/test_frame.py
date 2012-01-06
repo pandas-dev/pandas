@@ -1734,15 +1734,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert(df_s == expected)
 
-    def test_to_string_float_formatting(self):
-        com.set_printoptions(precision=6, column_space=12)
+    #def test_to_string_float_formatting(self):
+    #    com.set_printoptions(precision=6, column_space=12)
 
-        df = DataFrame({'x' : [0, 0.25, 3456.000, 1.64e+6, 1.7e+8, 1.253456]})
-        df_s = df.to_string()
+    #    df = DataFrame({'x' : [0, 0.25, 3456.000, 1.64e+6, 1.7e+8, 1.253456]})
+    #    df_s = df.to_string()
 
-        expected = '   x       \n0  0       \n1  0.250000\n' \
-                   '2  3456    \n3  1.64e+06\n4  1.70e+08\n5  1.253460'
-        assert(df_s == expected)
+    #    expected = '   x       \n0  0       \n1  0.250000\n' \
+    #               '2  3456    \n3  1.64e+06\n4  1.70e+08\n5  1.253460'
+    #    assert(df_s == expected)
 
 
     def test_to_html(self):
