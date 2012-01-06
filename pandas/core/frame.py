@@ -2395,17 +2395,35 @@ class DataFrame(NDFrame):
 
     def stack(self, level=-1, dropna=True):
         """
-        Convert DataFrame to Series with multi-level Index. Columns become the
-        second level of the resulting hierarchical index
+        Pivot a level of the (possibly hierarchical) column labels, returning a
+        DataFrame (or Series in the case of an object with a single level of
+        column labels) having a hierarchical index with a new inner-most level
+        of row labels.
 
         Parameters
         ----------
         level : int, string, or list of these, default last level
             Level(s) to stack, can pass level name
+        dropna : boolean, default True
+            Whether to drop rows in the resulting Frame/Series with no valid
+            values
+
+        Examples
+        ----------
+        >>> s
+             a   b
+        one  1.  2.
+        two  3.  4.
+
+        >>> s.stack()
+        one a    1
+            b    2
+        two a    3
+            b    4
 
         Returns
         -------
-        stacked : Series
+        stacked : DataFrame or Series
         """
         from pandas.core.reshape import stack
 
@@ -2419,6 +2437,9 @@ class DataFrame(NDFrame):
 
     def unstack(self, level=-1):
         """
+        Pivot a level of the (necessarily hierarchical) index labels, returning
+        a DataFrame having a new level of column labels whose inner-most level
+        consists of the pivoted index labels.
         "Unstack" level from MultiLevel index to produce reshaped DataFrame. If
         the index is not a MultiIndex, the output will be a Series (the
         analogue of stack when the columns are not a MultiIndex)
@@ -2426,7 +2447,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         level : int, string, or list of these, default last level
-            Level(s) to unstack, can pass level name
+            Level(s) of index to unstack, can pass level name
 
         Examples
         --------
