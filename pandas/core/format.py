@@ -203,9 +203,9 @@ class DataFrameFormatter(object):
             if issubclass(col.dtype.type, np.floating):
                 col_width = max(map(len, map(formatter, col)))
                 formatter = lambda v: _format(v, space=col_space,
-                                            na_rep=self.na_rep,
-                                            float_format=self.float_format,
-                                            col_width=col_width)
+                                              na_rep=self.na_rep,
+                                              float_format=self.float_format,
+                                              col_width=col_width)
             return formatter
 
         formatters = {} if self.formatters is None else self.formatters

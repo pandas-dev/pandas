@@ -360,7 +360,7 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
-def set_printoptions(precision=None, column_space=None, max_rows=None, 
+def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None):
     """
     Alter default behavior of DataFrame.toString
@@ -523,7 +523,10 @@ def _format(s, space=None, na_rep=None, float_format=None, col_width=None):
         # if we pass col_width, pad-zero the floats so all are same in column
         if col_width is not None and formatted != ' 0':
             padzeros = col_width - len(formatted)
-            if padzeros > 0:
+            if padzeros > 0 and 'e' in formatted:
+                num, exp = formatted.split('e')
+                formatted = "%s%se%s" % (num, ('0' * padzeros), exp)
+            elif padzeros > 0:
                 formatted = formatted + ('0' * padzeros)
 
         return _just_help(formatted)
