@@ -137,7 +137,7 @@ class Series(np.ndarray, generic.PandasObject):
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
-    def __new__(cls, data=None, index=None, dtype=None, name=None, 
+    def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
         if data is None:
             data = {}
@@ -169,7 +169,7 @@ class Series(np.ndarray, generic.PandasObject):
 
         return subarr
 
-    def __init__(self, data=None, index=None, dtype=None, name=None, 
+    def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False):
         """One-dimensional ndarray with axis labels (including time
 series). Labels must be unique and can any hashable type. The object supports
@@ -212,10 +212,9 @@ copy : boolean, default False
         return self._index
 
     def _set_index(self, index):
-        indexTypes = ndarray, Index, list, tuple
-        if not isinstance(index, indexTypes):
+        if not isinstance(index, _INDEX_TYPES):
             raise TypeError("Expected index to be in %s; was %s."
-                            % (indexTypes, type(index)))
+                            % (_INDEX_TYPES, type(index)))
 
         if len(self) != len(index):
             raise AssertionError('Lengths of index and values did not match!')
@@ -722,7 +721,7 @@ copy : boolean, default False
             return self._agg_by_level('mean', level=level, skipna=skipna)
         return nanops.nanmean(self.values, skipna=skipna)
 
-    @Substitution(name='mean absolute deviation', shortname='mad', 
+    @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def mad(self, skipna=True, level=None):
@@ -732,7 +731,7 @@ copy : boolean, default False
         demeaned = self - self.mean(skipna=skipna)
         return np.abs(demeaned).mean(skipna=skipna)
 
-    @Substitution(name='median', shortname='median', 
+    @Substitution(name='median', shortname='median',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def median(self, skipna=True, level=None):
@@ -740,7 +739,7 @@ copy : boolean, default False
             return self._agg_by_level('median', level=level, skipna=skipna)
         return nanops.nanmedian(self.values, skipna=skipna)
 
-    @Substitution(name='product', shortname='product', 
+    @Substitution(name='product', shortname='product',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def prod(self, axis=None, dtype=None, out=None, skipna=True, level=None):
@@ -748,7 +747,7 @@ copy : boolean, default False
             return self._agg_by_level('prod', level=level, skipna=skipna)
         return nanops.nanprod(self.values, skipna=skipna)
 
-    @Substitution(name='minimum', shortname='min', 
+    @Substitution(name='minimum', shortname='min',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def min(self, axis=None, out=None, skipna=True, level=None):
@@ -756,7 +755,7 @@ copy : boolean, default False
             return self._agg_by_level('min', level=level, skipna=skipna)
         return nanops.nanmin(self.values, skipna=skipna, copy=True)
 
-    @Substitution(name='maximum', shortname='max', 
+    @Substitution(name='maximum', shortname='max',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def max(self, axis=None, out=None, skipna=True, level=None):
@@ -764,7 +763,7 @@ copy : boolean, default False
             return self._agg_by_level('max', level=level, skipna=skipna)
         return nanops.nanmax(self.values, skipna=skipna, copy=True)
 
-    @Substitution(name='unbiased standard deviation', shortname='stdev', 
+    @Substitution(name='unbiased standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
@@ -774,7 +773,7 @@ copy : boolean, default False
         return np.sqrt(nanops.nanvar(self.values, skipna=skipna, copy=True,
                                      ddof=ddof))
 
-    @Substitution(name='unbiased variance', shortname='var', 
+    @Substitution(name='unbiased variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
@@ -783,7 +782,7 @@ copy : boolean, default False
             return self._agg_by_level('var', level=level, skipna=skipna)
         return nanops.nanvar(self.values, skipna=skipna, copy=True, ddof=ddof)
 
-    @Substitution(name='unbiased skewness', shortname='skew', 
+    @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def skew(self, skipna=True, level=None):
@@ -2045,6 +2044,8 @@ copy : boolean, default False
 
 class TimeSeries(Series):
     pass
+
+_INDEX_TYPES = ndarray, Index, list, tuple
 
 #-------------------------------------------------------------------------------
 # Supplementary functions

@@ -190,6 +190,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
+    def test_constructor_empty(self):
+        empty = Series()
+        empty2 = Series([])
+        assert_series_equal(empty, empty2)
+
+        empty = Series(index=range(10))
+        empty2 = Series(np.nan, index=range(10))
+        assert_series_equal(empty, empty2)
+
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3,), dtype=float)
         result = Series(data)
