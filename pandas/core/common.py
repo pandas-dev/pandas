@@ -520,14 +520,15 @@ def _format(s, space=None, na_rep=None, float_format=None, col_width=None):
         else:
             formatted = _float_format(s)
 
+        # TODO: fix this float behavior!
         # if we pass col_width, pad-zero the floats so all are same in column
-        if col_width is not None and '.' in formatted:
-            padzeros = col_width - len(formatted)
-            if padzeros > 0 and 'e' in formatted:
-                num, exp = formatted.split('e')
-                formatted = "%s%se%s" % (num, ('0' * padzeros), exp)
-            elif padzeros > 0:
-                formatted = formatted + ('0' * padzeros)
+        #if col_width is not None and '.' in formatted:
+        #    padzeros = col_width - len(formatted)
+        #    if padzeros > 0 and 'e' in formatted:
+        #        num, exp = formatted.split('e')
+        #        formatted = "%s%se%s" % (num, ('0' * padzeros), exp)
+        #    elif padzeros > 0:
+        #        formatted = formatted + ('0' * padzeros)
 
         return _just_help(formatted)
     elif isinstance(s, int):
