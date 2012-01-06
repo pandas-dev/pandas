@@ -27,7 +27,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.merge_indexer_object(new, old.indexMap)
+        filler = lib.merge_indexer_int64(new, old.indexMap)
 
         expect_filler = [-1, 0, -1, -1, -1, 1, -1, -1, -1, -1, 2, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -35,7 +35,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler = lib.merge_indexer_object(new, old.indexMap)
+        filler = lib.merge_indexer_int64(new, old.indexMap)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
@@ -43,7 +43,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.backfill_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -51,7 +51,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler = lib.backfill_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -60,7 +60,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.pad_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -68,7 +68,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([5, 10])
         new = Index(range(5))
-        filler = lib.pad_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 

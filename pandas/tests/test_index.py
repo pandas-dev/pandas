@@ -404,6 +404,15 @@ class TestInt64Index(unittest.TestCase):
         arr = np.array([1, '2', 3, '4'], dtype=object)
         self.assertRaises(TypeError, Int64Index, arr)
 
+    def test_coerce_list(self):
+        # coerce things
+        arr = Index([1, 2, 3, 4])
+        self.assert_(type(arr) == Int64Index)
+
+        # but not if explicit dtype passed
+        arr = Index([1, 2, 3, 4], dtype=object)
+        self.assert_(type(arr) == Index)
+
     def test_dtype(self):
         self.assert_(self.index.dtype == np.int64)
 

@@ -66,6 +66,9 @@ class Index(np.ndarray):
             # other iterable of some kind
             subarr = _asarray_tuplesafe(data, dtype=object)
 
+        if lib.is_integer_array(subarr) and dtype is None:
+            return Int64Index(subarr.astype('i8'), name=name)
+
         subarr = subarr.view(cls)
         subarr.name = name
         return subarr
@@ -74,7 +77,8 @@ class Index(np.ndarray):
         self.name = getattr(obj, 'name', None)
 
     def astype(self, dtype):
-        return Index(self.values.astype(dtype), name=self.name)
+        return Index(self.values.astype(dtype), name=self.name,
+                     dtype=dtype)
 
     @property
     def dtype(self):
@@ -858,11 +862,12 @@ class Int64Index(Index):
         return subarr
 
     @property
+    def inferred_type(self):
+        return 'integer'
+
+    @property
     def _constructor(self):
         return Int64Index
-
-    def astype(self, dtype):
-        return Index(self.values.astype(dtype))
 
     @property
     def dtype(self):

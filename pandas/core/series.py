@@ -15,7 +15,8 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
-                                _asarray_tuplesafe)
+                                _asarray_tuplesafe,
+                                AmbiguousIndexError)
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
@@ -137,6 +138,8 @@ class Series(np.ndarray, generic.PandasObject):
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
+    __slots__ = ['_index', 'name']
+
     def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
         if data is None:
@@ -208,20 +211,22 @@ copy : boolean, default False
         raise TypeError('unhashable type')
 
     _index = None
-    def _get_index(self):
-        return self._index
+    index = lib.SeriesIndex()
 
-    def _set_index(self, index):
-        if not isinstance(index, _INDEX_TYPES):
-            raise TypeError("Expected index to be in %s; was %s."
-                            % (_INDEX_TYPES, type(index)))
+    # def _get_index(self):
+    #     return self._index
 
-        if len(self) != len(index):
-            raise AssertionError('Lengths of index and values did not match!')
+    # def _set_index(self, index):
+    #     if not isinstance(index, _INDEX_TYPES):
+    #         raise TypeError("Expected index to be in %s; was %s."
+    #                         % (_INDEX_TYPES, type(index)))
 
-        self._index = _ensure_index(index)
+    #     if len(self) != len(index):
+    #         raise AssertionError('Lengths of index and values did not match!')
 
-    index = property(fget=_get_index, fset=_set_index)
+    #     self._index = _ensure_index(index)
+
+    # index = property(fget=_get_index, fset=_set_index)
 
     def __array_finalize__(self, obj):
         """
@@ -264,21 +269,26 @@ copy : boolean, default False
         return self._ix
 
     def __getitem__(self, key):
+        index = self.index
+
         # Label-based
         try:
-            return self.index._engine.get_value(self, key)
+            return index._engine.get_value(self, key)
         except KeyError, e1:
-            if isinstance(self.index, MultiIndex):
+            if isinstance(index, MultiIndex):
                 values = self.values
                 try:
-                    loc = self.index.get_loc(key)
+                    loc = index.get_loc(key)
                     # TODO: what if a level contains tuples??
-                    new_index = self.index[loc]
+                    new_index = index[loc]
                     new_index = _maybe_droplevels(new_index, key)
                     return Series(values[loc], index=new_index,
                                   name=self.name)
                 except KeyError:
                     pass
+
+            if index.inferred_type == 'integer':
+                raise AmbiguousIndexError(key)
 
             try:
                 return _gin.get_value_at(self, key)

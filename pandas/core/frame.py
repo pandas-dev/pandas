@@ -1368,7 +1368,7 @@ class DataFrame(NDFrame):
         else:
             value = np.repeat(value, len(self.index))
 
-        return value
+        return np.asarray(value)
 
     def pop(self, item):
         """
@@ -1729,7 +1729,9 @@ class DataFrame(NDFrame):
 
                 # to ndarray and maybe infer different dtype
                 level_values = lev.values
-                level_values = lib.maybe_convert_objects(level_values)
+                if level_values.dtype == np.object_:
+                    level_values = lib.maybe_convert_objects(level_values)
+
                 new_obj.insert(0, col_name, level_values.take(lab))
         else:
             name = self.index.name

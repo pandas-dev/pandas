@@ -286,9 +286,10 @@ class TestSparseSeries(TestCase,
                 # j = np.float64(i)
                 # assert_almost_equal(sp[j], dense[j])
 
+            # API change 1/6/2012
             # negative getitem works
-            for i in xrange(len(dense)):
-                assert_almost_equal(sp[-i], dense[-i])
+            # for i in xrange(len(dense)):
+            #     assert_almost_equal(sp[-i], dense[-i])
 
         _check_getitem(self.bseries, self.bseries.to_dense())
         _check_getitem(self.btseries, self.btseries.to_dense())
@@ -563,7 +564,8 @@ class TestSparseSeries(TestCase,
                           fill_value=0)
 
         sp_valid = sp.valid()
-        assert_almost_equal(sp_valid, sp.to_dense().valid())
+        assert_almost_equal(sp_valid.values,
+                            sp.to_dense().valid().values)
         self.assert_(sp_valid.index.equals(sp.to_dense().valid().index))
         self.assertEquals(len(sp_valid.sp_values), 2)
 

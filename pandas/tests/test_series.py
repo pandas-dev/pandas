@@ -262,11 +262,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_setindex(self):
         # wrong type
         series = self.series.copy()
-        self.assertRaises(TypeError, series._set_index, None)
+        self.assertRaises(TypeError, setattr, series, 'index', None)
 
         # wrong length
         series = self.series.copy()
-        self.assertRaises(AssertionError, series._set_index,
+        self.assertRaises(AssertionError, setattr, series, 'index',
                           np.arange(len(series) - 1))
 
         # works
@@ -399,6 +399,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_getitem_box_float64(self):
         value = self.ts[5]
         self.assert_(isinstance(value, np.float64))
+
+    def test_getitem_ambiguous_keyerror(self):
+        s = Series(range(10), index=range(0, 20, 2))
+        self.assertRaises(KeyError, s.__getitem__, 1)
+        self.assertRaises(KeyError, s.ix.__getitem__, 1)
 
     def test_slice(self):
         numSlice = self.series[10:20]

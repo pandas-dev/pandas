@@ -27,6 +27,9 @@ except Exception: # pragma: no cover
 class PandasError(Exception):
     pass
 
+class AmbiguousIndexError(PandasError, KeyError):
+    pass
+
 def isnull(obj):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable
