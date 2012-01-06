@@ -27,7 +27,7 @@ right = right2
 
 # Prepare Database
 import sqlite3
-create_sql_indexes = False
+create_sql_indexes = True
 
 conn = sqlite3.connect(':memory:')
 conn.execute('create table left( key varchar(10), key2 varchar(10), value int);')
@@ -48,21 +48,25 @@ sql_results = DataFrame(index=join_methods, columns=[False])
 niter = 5
 for sort in [False]:
     for join_method in join_methods:
-        sql = """select *
+        sql = """CREATE TABLE test as select *
         from left
            %s join right
              on left.key=right.key
-               and left.key2 = right.key2""" % join_method
+               and left.key2 = right.key2;""" % join_method
         if sort:
             sql = '%s order by key, key2' % sql
         f = lambda: list(conn.execute(sql)) # list fetches results
         g = lambda: conn.execute(sql) # list fetches results
         gc.disable()
         start = time.time()
-        for _ in xrange(niter):
-            f()
+        # for _ in xrange(niter):
+        g()
         elapsed = (time.time() - start) / niter
         gc.enable()
+
+        cur = conn.execute("DROP TABLE test")
+        conn.commit()
+
         sql_results[sort][join_method] = elapsed
 sql_results.columns = ['sqlite3'] # ['dont_sort', 'sort']
 sql_results.index = ['inner', 'outer', 'left']

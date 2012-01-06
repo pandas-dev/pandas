@@ -130,8 +130,11 @@ class DateOffset(object):
         return self.__class__(self.n, **self.kwds)
 
     def _params(self):
-        attrs = sorted((item for item in self.__dict__.iteritems()
-                        if item[0] not in ('kwds', '_offset')))
+        attrs = [(k, v) for k, v in vars(self).iteritems()
+                 if k not in ['kwds', '_offset']]
+        attrs.extend(self.kwds.items())
+        attrs = sorted(set(attrs))
+
         params = tuple([str(self.__class__)] + attrs)
         return params
 
