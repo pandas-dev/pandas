@@ -68,7 +68,6 @@ class DataFrameFormatter(object):
         Render a DataFrame to a console-friendly tabular output.
         """
         frame = self.frame
-        format_col = self._get_column_formatter()
 
         to_write = []
 
@@ -83,11 +82,10 @@ class DataFrameFormatter(object):
             str_columns = self._get_formatted_column_labels()
 
             if self.header:
-                stringified = [str_columns[i] + format_col(c)
+                stringified = [str_columns[i] + self._format_col(c)
                                for i, c in enumerate(self.columns)]
             else:
-                stringified = [format_col(c) for c in self.columns]
-
+                stringified = [self._format_col(c) for c in self.columns]
 
             if self.index:
                 to_write.append(adjoin(1, str_index, *stringified))
@@ -100,6 +98,34 @@ class DataFrameFormatter(object):
                 break
 
         self.buf.writelines(to_write)
+
+    def _default_col_formatter(self, v, col_width=None):
+        from pandas.core.common import _format
+
+        return _format(v, space=self.col_space, na_rep=self.na_rep,
+                       float_format=self.float_format, col_width=col_width)
+
+    def _format_col(self, col, i=None):
+        if self.formatters is None:
+            self.formatters = {}
+
+        if col in self.formatters:
+            formatter = self.formatters[col]
+
+            if i is None:
+                return [formatter(x) for x in self.frame[col]]
+            else:
+                return formatter(self.frame[col][i])
+        else:
+            formatter = self._default_col_formatter
+
+            if i is not None:
+                return formatter(self.frame[col][i])
+            else:
+                formatted = [formatter(x) for x in self.frame[col]]
+                max_len = max(map(len, formatted))
+                return [formatter(x, col_width=max_len)
+                        for x in self.frame[col]]
 
     def to_html(self):
         """
@@ -130,7 +156,6 @@ class DataFrameFormatter(object):
         indent_delta = 2
         frame = self.frame
         buf = self.buf
-        format_col = self._get_column_formatter()
 
         write(buf, '<table border="1">', indent)
 
@@ -181,43 +206,13 @@ class DataFrameFormatter(object):
                 else:
                     row.append(frame.index[i])
                 for column in frame.columns:
-                    row.append(format_col(column, i))
+                    row.append(self._format_col(column, i))
                 write_tr(buf, row, indent, indent_delta)
             indent -= indent_delta
             write(buf, '</tbody>', indent)
             indent -= indent_delta
 
         write(buf, '</table>', indent)
-
-    def _get_column_formatter(self):
-        from pandas.core.common import _format
-
-        col_space = self.col_space
-
-        def _myformat(col):
-            formatter = lambda v: _format(v, space=col_space,
-                                          na_rep=self.na_rep,
-                                          float_format=self.float_format)
-            # one pass through when float to stringify column, to pad with
-            # zeros
-            if issubclass(col.dtype.type, np.floating):
-                col_width = max(map(len, map(formatter, col)))
-                formatter = lambda v: _format(v, space=col_space,
-                                              na_rep=self.na_rep,
-                                              float_format=self.float_format,
-                                              col_width=col_width)
-            return formatter
-
-        formatters = {} if self.formatters is None else self.formatters
-
-        def _format_col(col, i=None):
-            formatter = formatters.get(col, _myformat(self.frame[col]))
-            if i == None:
-                return [formatter(x) for x in self.frame[col]]
-            else:
-                return formatter(self.frame[col][i])
-
-        return _format_col
 
     def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
