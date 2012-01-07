@@ -597,6 +597,8 @@ copy : boolean, default False
         "Alias for index"
         return self.index
 
+    # values = lib.ValuesProperty()
+
     @property
     def values(self):
         """

@@ -35,8 +35,8 @@ def bench_dict():
 
 from cpython cimport PyObject
 
-cdef extern from "numpy/arrayobject.h":
-    bint PyArray_Check(PyObject*)
+# cdef extern from "numpy/arrayobject.h":
+#     bint PyArray_Check(PyObject*)
 
 cimport cython
 
@@ -48,12 +48,12 @@ def bench_typecheck1(ndarray[object] arr):
     for i in range(n):
         cpython.PyFloat_Check(arr[i])
 
-def bench_typecheck2(ndarray[object] arr):
-    cdef Py_ssize_t i, n
-    cdef PyObject** buf = <PyObject**> arr.data
-    n = cnp.PyArray_SIZE(arr)
-    for i in range(n):
-        PyArray_Check(buf[i])
+# def bench_typecheck2(ndarray[object] arr):
+#     cdef Py_ssize_t i, n
+#     cdef PyObject** buf = <PyObject**> arr.data
+#     n = cnp.PyArray_SIZE(arr)
+#     for i in range(n):
+#         PyArray_Check(buf[i])
 
 
 def foo(object _chunk, object _arr):
@@ -149,3 +149,6 @@ cimport util
 
 def foo2(o):
     return util.is_integer_object(o)
+
+def foo3(o):
+    return util.get_base_ndarray(o)

@@ -71,3 +71,20 @@ get_value_1d(PyArrayObject* ap, Py_ssize_t i) {
   char *item = (char *) PyArray_DATA(ap) + i * PyArray_STRIDE(ap, 0);
   return PyArray_Scalar(item, PyArray_DESCR(ap), (PyObject*) ap);
 }
+
+PANDAS_INLINE PyObject*
+get_base_ndarray(PyObject* ap) {
+  // if (!ap || (NULL == ap)) {
+  //   Py_RETURN_NONE;
+  // }
+
+  while (!PyArray_CheckExact(ap)) {
+    ap = PyArray_BASE((PyArrayObject*) ap);
+    if (ap == Py_None) Py_RETURN_NONE;
+  }
+  // PyArray_BASE is a borrowed reference
+  if(ap) {
+    Py_INCREF(ap);
+  }
+  return ap;
+}

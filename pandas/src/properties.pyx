@@ -44,7 +44,6 @@ cdef class AxisProperty(object):
 
 cdef class SeriesIndex(object):
     cdef:
-        Py_ssize_t axis
         object _check_type
 
     def __init__(self):
@@ -58,3 +57,22 @@ cdef class SeriesIndex(object):
         if len(obj) != len(value):
             raise AssertionError('Index length did not match values')
         obj._index = self._check_type(value)
+
+cdef class ValuesProperty(object):
+
+    def __get__(self, obj, type):
+        cdef:
+            ndarray arr = obj
+            object base
+
+        base = np.get_array_base(arr)
+        if base is None:
+            arr = arr.view(np.ndarray)
+        else:
+            arr = base
+            while arr is not None and not np.PyArray_CheckExact(arr):
+                base = np.get_array_base(arr)
+                if base is None:
+                    break
+                arr = base
+        return arr

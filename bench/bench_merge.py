@@ -51,7 +51,7 @@ results = DataFrame(index=join_methods, columns=[False])
 niter = 10
 for sort in [False]:
     for join_method in join_methods:
-        f = lambda: merge(left, right2, how=join_method, sort=sort)
+        f = lambda: merge(left, right, how=join_method, sort=sort)
         gc.disable()
         start = time.time()
         for _ in xrange(niter):
