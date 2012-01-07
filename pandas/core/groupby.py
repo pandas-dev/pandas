@@ -449,12 +449,15 @@ class GroupBy(object):
         from pandas.tools.merge import concat, _concat_frames_hierarchical
 
         if not_indexed_same:
-            result = _concat_frames_hierarchical(values, keys,
-                                                 self.groupings,
-                                                 axis=self.axis)
+            group_keys = keys
+            group_levels = [ping.group_index for ping in self.groupings]
+            group_names = [ping.name for ping in self.groupings]
+            result = concat(values, axis=self.axis, keys=group_keys,
+                            levels=group_levels, names=group_names)
         else:
-            result = concat(values, axis=0, verify_integrity=False)
-            result = result.reindex(self.obj.index)
+            result = concat(values, axis=self.axis)
+            ax = self.obj._get_axis(self.axis)
+            result = result.reindex_axis(ax, axis=self.axis)
 
         return result
 

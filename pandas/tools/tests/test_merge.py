@@ -741,6 +741,9 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(appended['A'].dtype == 'f8')
         self.assert_(appended['B'].dtype == 'O')
 
+    def test_concat_with_group_keys(self):
+        pass
+
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
         df1 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='f8'),

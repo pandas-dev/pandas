@@ -30,33 +30,6 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
 if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 
-def concat(objs, axis=0, join='outer', join_axes=None,
-           ignore_index=False, verify_integrity=False):
-    """
-    Concatenate DataFrame objects row or column wise
-
-    Parameters
-    ----------
-    objs : list of DataFrame objects
-    axis : {0, 1}, default 0
-        The axis to concatenate along
-    join : {'inner', 'outer'}, default 'outer'
-        How to handle indexes on other axis(es)
-    join_index : index-like
-    verify_integrity : boolean, default False
-        Check whether the new concatenated axis contains duplicates. This can
-        be very expensive relative to the actual data concatenation
-
-    Returns
-    -------
-    concatenated : DataFrame
-    """
-    op = Concatenator(objs, axis=axis, join_axes=join_axes,
-                      ignore_index=ignore_index, join=join,
-                      verify_integrity=verify_integrity)
-    return op.get_result()
-
-
 
 # TODO: NA group handling
 # TODO: transformations??
@@ -614,14 +587,42 @@ def _get_all_block_kinds(blockmaps):
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects
 
+def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
+           keys=None, names=None, levels=None, verify_integrity=False):
+    """
+    Concatenate DataFrame objects row or column wise
 
-class Concatenator(object):
+    Parameters
+    ----------
+    objs : list of DataFrame objects
+    axis : {0, 1}, default 0
+        The axis to concatenate along
+    join : {'inner', 'outer'}, default 'outer'
+        How to handle indexes on other axis(es)
+    join_index : index-like
+    verify_integrity : boolean, default False
+        Check whether the new concatenated axis contains duplicates. This can
+        be very expensive relative to the actual data concatenation
+
+    Returns
+    -------
+    concatenated : DataFrame
+    """
+    op = _Concatenator(objs, axis=axis, join_axes=join_axes,
+                       ignore_index=ignore_index, join=join,
+                       keys=keys, levels=levels, names=names,
+                       verify_integrity=verify_integrity)
+    return op.get_result()
+
+
+class _Concatenator(object):
     """
     Orchestrates a concatenation operation for BlockManagers, with little hacks
     to support sparse data structures, etc.
     """
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
+                 keys=None, levels=None, names=None,
                  ignore_index=False, verify_integrity=False):
         if join == 'outer':
             self.intersect = False
@@ -644,6 +645,10 @@ class Concatenator(object):
         self.axis = axis
 
         self.join_axes = join_axes
+
+        self.keys = keys
+        self.names = names
+        self.levels = levels
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
@@ -763,9 +768,7 @@ class Concatenator(object):
         if self.ignore_index:
             concat_axis = None
         else:
-            concat_axis = _concat_indexes([x._data.axes[self.axis]
-                                           for x in self.objs])
-            self._maybe_check_integrity(concat_axis)
+            concat_axis = self._get_concat_axis()
 
         new_axes[self.axis] = concat_axis
 
@@ -790,6 +793,19 @@ class Concatenator(object):
 
         return new_axes
 
+    def _get_concat_axis(self):
+        indexes = [x._data.axes[self.axis] for x in self.objs]
+
+        if self.keys is None:
+            concat_axis = _concat_indexes(indexes)
+        else:
+            concat_axis = _make_concat_multiindex(indexes, self.keys,
+                                                  self.levels, self.names)
+
+        self._maybe_check_integrity(concat_axis)
+
+        return concat_axis
+
     def _maybe_check_integrity(self, concat_index):
         if self.verify_integrity:
             if not concat_index._verify_integrity():
@@ -798,10 +814,7 @@ class Concatenator(object):
                                 % str(overlap))
 
 
-def _concat_frames_hierarchical(frames, keys, groupings, axis=0):
-    names = [ping.name for ping in groupings]
-    levels = [ping.group_index for ping in groupings]
-
+def _concat_frames_hierarchical(frames, keys, names, levels, axis=0):
     if axis == 0:
         indexes = [x.index for x in frames]
         new_index = _make_concat_multiindex(indexes, keys, levels, names)
@@ -852,12 +865,7 @@ def _make_concat_multiindex(indexes, keys, levels, names):
         else:
             label_list.append(concat_index.values)
 
-        consensus_name = indexes[0].names
-        for index in indexes[1:]:
-            if index.names != consensus_name:
-                consensus_name = [None] * index.nlevels
-                break
-        names.extend(consensus_name)
+        names.extend(_get_consensus_names(indexes))
 
         return MultiIndex.from_arrays(label_list, names=names)
 
@@ -886,6 +894,14 @@ def _make_concat_multiindex(indexes, keys, levels, names):
     # last labels for the new level
     labels.append(np.tile(np.arange(n), len(indexes)))
     return MultiIndex(levels=new_levels, labels=labels, names=names)
+
+def _get_consensus_names(indexes):
+    consensus_name = indexes[0].names
+    for index in indexes[1:]:
+        if index.names != consensus_name:
+            consensus_name = [None] * index.nlevels
+            break
+    return consensus_name
 
 def _all_indexes_same(indexes):
     first = indexes[0]
