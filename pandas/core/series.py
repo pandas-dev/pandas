@@ -161,14 +161,16 @@ class Series(np.ndarray, generic.PandasObject):
 
         if index is None:
             index = _default_index(len(subarr))
+        else:
+            index = _ensure_index(index)
 
         # Change the class of the array to be the subclass type.
-        subarr = subarr.view(cls)
+        if index.is_all_dates:
+            subarr = subarr.view(TimeSeries)
+        else:
+            subarr = subarr.view(Series)
         subarr.index = index
         subarr.name = name
-
-        if subarr.index.is_all_dates:
-            subarr = subarr.view(TimeSeries)
 
         return subarr
 
@@ -288,7 +290,7 @@ copy : boolean, default False
                     pass
 
             if index.inferred_type == 'integer':
-                raise AmbiguousIndexError(key)
+                raise # AmbiguousIndexError(key)
 
             try:
                 return _gin.get_value_at(self, key)
@@ -402,9 +404,12 @@ copy : boolean, default False
             values[self.index.get_loc(key)] = value
             return
         except KeyError:
-            if isinstance(key, (int, np.integer)):
+            if (com.is_integer(key)
+                and not self.index.inferred_type == 'integer'):
+
                 values[key] = value
                 return
+
             raise KeyError('%s not in this series!' % str(key))
         except TypeError:
             # Could not hash item
@@ -597,6 +602,7 @@ copy : boolean, default False
         "Alias for index"
         return self.index
 
+    # alas, I wish this worked
     # values = lib.ValuesProperty()
 
     @property

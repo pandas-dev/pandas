@@ -96,6 +96,9 @@ def is_bool_array(ndarray values):
     else:
         return False
 
+def is_integer(object o):
+    return util.is_integer_object(o)
+
 def is_integer_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)

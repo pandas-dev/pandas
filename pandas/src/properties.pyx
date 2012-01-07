@@ -66,13 +66,8 @@ cdef class ValuesProperty(object):
             object base
 
         base = np.get_array_base(arr)
-        if base is None:
+        if base is None or not np.PyArray_CheckExact(base):
             arr = arr.view(np.ndarray)
         else:
             arr = base
-            while arr is not None and not np.PyArray_CheckExact(arr):
-                base = np.get_array_base(arr)
-                if base is None:
-                    break
-                arr = base
         return arr

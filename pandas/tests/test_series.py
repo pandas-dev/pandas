@@ -405,6 +405,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(KeyError, s.__getitem__, 1)
         self.assertRaises(KeyError, s.ix.__getitem__, 1)
 
+    def test_setitem_ambiguous_keyerror(self):
+        s = Series(range(10), index=range(0, 20, 2))
+        self.assertRaises(KeyError, s.__setitem__, 1, 5)
+        self.assertRaises(KeyError, s.ix.__setitem__, 1, 5)
+
     def test_slice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]

@@ -14,10 +14,6 @@ class IndexingError(Exception):
     pass
 
 
-class AmbiguousIndexError(Exception):
-    pass
-
-
 class _NDFrameIndexer(object):
 
     def __init__(self, obj):
@@ -391,11 +387,7 @@ def _is_integer_dtype(arr):
     return issubclass(arr.dtype.type, np.integer)
 
 def _is_integer_index(index):
-    # make an educated and not too intelligent guess
-    if len(index) == 0: # pragma: no cover
-        return False
-    else:
-        return com.is_integer(index[0])
+    return index.inferred_type == 'integer'
 
 def _is_label_like(key):
     # select a label or row
