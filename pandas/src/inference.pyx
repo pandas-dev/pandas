@@ -9,7 +9,6 @@ _TYPE_MAP = {
     np.uint16: 'integer',
     np.uint32: 'integer',
     np.uint64: 'integer',
-    np.float16: 'floating',
     np.float32: 'floating',
     np.float64: 'floating',
     np.float128: 'floating',
@@ -22,6 +21,7 @@ _TYPE_MAP = {
 }
 
 try:
+    _TYPE_MAP[np.float16] = 'floating'
     _TYPE_MAP[np.datetime64] = 'datetime64'
 except AttributeError:
     pass
