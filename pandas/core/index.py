@@ -54,6 +54,7 @@ class Index(np.ndarray):
     _backfill = lib.backfill_object
 
     name = None
+
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
             if dtype is None and issubclass(data.dtype.type, np.integer):

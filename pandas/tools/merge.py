@@ -6,7 +6,8 @@ import numpy as np
 
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.groupby import get_group_index
-from pandas.core.index import Index, MultiIndex, _get_combined_index
+from pandas.core.index import (Index, MultiIndex, _get_combined_index,
+                               _ensure_index)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
@@ -588,14 +589,17 @@ def _get_all_block_kinds(blockmaps):
 # Concatenate DataFrame objects
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
-           keys=None, names=None, levels=None, verify_integrity=False):
+           keys=None, levels=None, names=None, verify_integrity=False):
     """
-    Concatenate DataFrame objects row or column wise
+    Concatenate pandas objects along a particular axis with optional set logic
+    along the other axes. Can also add a layer of hierarchical indexing on the
+    concatenation axis, which may be useful if the labels are the same (or
+    overlapping) on the passed axis number
 
     Parameters
     ----------
-    objs : list of DataFrame objects
-    axis : {0, 1}, default 0
+    objs : list of DataFrame (or other pandas) objects
+    axis : {0, 1, ...}, default 0
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis(es)
@@ -603,10 +607,13 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     verify_integrity : boolean, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
+    keys : sequence-like or list of sequences
+    levels :
+    names :
 
     Returns
     -------
-    concatenated : DataFrame
+    concatenated : type of objects
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
@@ -722,8 +729,16 @@ class _Concatenator(object):
                                 'DataFrames')
             return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
-            concat_items = _concat_indexes([b.items for b in blocks])
-            # TODO: maybe want to "take" from the new columns?
+            all_items = [b.items for b in blocks]
+            if self.axis == 0 and self.keys is not None:
+                offsets = np.r_[0, [len(x._data.axes[self.axis]) for
+                                    x in self.objs]]
+                indexer = np.concatenate([offsets[i] + b.ref_locs
+                                          for i, b in enumerate(blocks)])
+                concat_items = self.new_axes[0].take(indexer)
+            else:
+                concat_items = _concat_indexes(all_items)
+
             return make_block(concat_values, concat_items, self.new_axes[0])
 
     def _concat_single_item(self, item):
@@ -837,18 +852,23 @@ def _concat_frames_hierarchical(frames, keys, names, levels, axis=0):
 def _concat_indexes(indexes):
     return indexes[0].append(indexes[1:])
 
-def _make_concat_multiindex(indexes, keys, levels, names):
-    single_level = len(levels) == 1
+def _make_concat_multiindex(indexes, keys, levels=None, names=None):
+    single_level = levels is None or len(levels) == 1
+
+    if single_level:
+        zipped = [keys]
+        if names is None:
+            names = [None]
+    else:
+        zipped = zip(*keys)
+        if names is None:
+            names = [None] * len(keys)
 
     if not _all_indexes_same(indexes):
         label_list = []
 
         # things are potentially different sizes, so compute the exact labels
         # for each level and pass those to MultiIndex.from_arrays
-        if single_level:
-            zipped = [keys]
-        else:
-            zipped = zip(*keys)
 
         for hlevel in zipped:
             to_concat = []
@@ -874,7 +894,13 @@ def _make_concat_multiindex(indexes, keys, levels, names):
 
     names.append(indexes[0].name)
 
-    new_levels = list(levels)
+    if levels is None:
+        if single_level:
+            new_levels = [_ensure_index(keys)]
+        else:
+            new_levels = [_ensure_index(k) for k in keys]
+    else:
+        new_levels = list(levels)
 
     # do something a bit more speedy
     new_levels.append(new_index)
@@ -882,12 +908,7 @@ def _make_concat_multiindex(indexes, keys, levels, names):
     # construct labels
     labels = []
 
-    if single_level:
-        zipped = [keys]
-    else:
-        zipped = zip(*keys)
-
-    for hlevel, level in zip(zipped, levels):
+    for hlevel, level in zip(zipped, new_levels[:-1]):
         mapped = level.get_indexer(hlevel)
         labels.append(np.repeat(mapped, n))
 
