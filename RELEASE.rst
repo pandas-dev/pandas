@@ -59,6 +59,11 @@ pandas 0.7.0
 
 **API Changes**
 
+  - `[]` operator (``__getitem__`` and ``__setitem__``) will raise KeyError
+    with integer indexes when an index is not contained in the index. The prior
+    behavior would fall back on position-based indexing if a key was not found
+    in the index which would lead to subtle bugs. This is now consistent with
+    the behavior of ``.ix`` on DataFrame and friends (GH #328)
   - Rename ``DataFrame.delevel`` to ``DataFrame.reset_index`` and add
     deprecation warning
   - `Series.sort` (an in-place operation) called on a Series which is a view on
@@ -158,6 +163,7 @@ pandas 0.7.0
 Thanks
 ------
 - Craig Austin
+- Marius Cobzarenco
 - Mario Gamboa-Cavazos
 - Arthur Gerigk
 - Matt Harrison
@@ -172,6 +178,7 @@ Thanks
 - Craig Reeson
 - Jan Schulz
 - Ted Square
+- Chris Uga
 - Dieter Vandenbussche
 - Texas P.
 - Pinxing Ye
