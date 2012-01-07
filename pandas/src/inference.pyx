@@ -11,16 +11,16 @@ _TYPE_MAP = {
     np.uint64: 'integer',
     np.float32: 'floating',
     np.float64: 'floating',
-    np.float128: 'floating',
     np.complex64: 'complex',
     np.complex128: 'complex',
-    np.complex256: 'complex',
     np.string_: 'string',
     np.unicode_: 'unicode',
     np.bool_: 'boolean'
 }
 
 try:
+    _TYPE_MAP[np.float128] = 'floating'
+    _TYPE_MAP[np.complex256] = 'complex'
     _TYPE_MAP[np.float16] = 'floating'
     _TYPE_MAP[np.datetime64] = 'datetime64'
 except AttributeError:
