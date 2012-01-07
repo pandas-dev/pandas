@@ -607,9 +607,17 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     verify_integrity : boolean, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
-    keys : sequence-like or list of sequences
-    levels :
-    names :
+    keys : sequence, default None
+        If multiple levels passed, should contain tuples
+    levels : list of sequences, default None
+        Specific levels (unique values) to use for constructing a
+        MultiIndex. Otherwise they will be inferred from the keys
+    names : list, default None
+        Names for the levels in the resulting hierarchical index
+
+    Notes
+    -----
+    The keys, levels, and names arguments are all optional
 
     Returns
     -------
@@ -885,22 +893,24 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         else:
             label_list.append(concat_index.values)
 
-        names.extend(_get_consensus_names(indexes))
+        # also copies
+        names = names + _get_consensus_names(indexes)
 
         return MultiIndex.from_arrays(label_list, names=names)
 
     new_index = indexes[0]
     n = len(new_index)
 
-    names.append(indexes[0].name)
+    # also copies
+    names = names + [indexes[0].name]
 
     if levels is None:
         if single_level:
             new_levels = [_ensure_index(keys)]
         else:
-            new_levels = [_ensure_index(k) for k in keys]
+            new_levels = [Factor(zp).level for zp in zipped]
     else:
-        new_levels = list(levels)
+        new_levels = [_ensure_index(x) for x in levels]
 
     # do something a bit more speedy
     new_levels.append(new_index)

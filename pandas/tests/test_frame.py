@@ -1567,8 +1567,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.reindex(columns=['A', 'B']).info(verbose=False, buf=buf)
 
         # big one
-        biggie = DataFrame(np.zeros((1000, 4)), columns=range(4),
-                            index=range(1000))
+        biggie = DataFrame(np.zeros((200, 4)), columns=range(4),
+                            index=range(200))
         foo = repr(biggie)
 
         # mixed
@@ -1576,9 +1576,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.mixed_frame.info(verbose=False, buf=buf)
 
         # big mixed
-        biggie = DataFrame({'A' : randn(1000),
-                             'B' : tm.makeStringIndex(1000)},
-                            index=range(1000))
+        biggie = DataFrame({'A' : randn(200),
+                             'B' : tm.makeStringIndex(200)},
+                            index=range(200))
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
 
@@ -1675,9 +1675,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         import re
 
         # big mixed
-        biggie = DataFrame({'A' : randn(1000),
-                            'B' : tm.makeStringIndex(1000)},
-                            index=range(1000))
+        biggie = DataFrame({'A' : randn(200),
+                            'B' : tm.makeStringIndex(200)},
+                            index=range(200))
 
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
@@ -1717,7 +1717,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         biggie.to_string(columns=['B', 'A'], col_space=12,
                          float_format=str)
 
-        frame = DataFrame(index=np.arange(1000))
+        frame = DataFrame(index=np.arange(200))
         frame.to_string()
 
     def test_to_string_no_header(self):
@@ -1747,10 +1747,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df_s = df.to_string()
 
-        expected = '   x       \n0  0.000000\n1  0.250000\n' \
-                   '2  3456.000\n3  1.20e+46\n4  1.64e+06\n' \
-                   '5  1.70e+08\n6  1.253456\n7  3.141593\n' \
-                   '8 -1.00e+06'
+        expected = ('   x       \n0  0.000000\n1  0.250000\n'
+                    '2  3456.000\n3  1.20e+46\n4  1.64e+06\n'
+                    '5  1.70e+08\n6  1.253456\n7  3.141593\n'
+                    '8 -1.00e+06')
         assert(df_s == expected)
 
         df = DataFrame({'x' : [3234, 0.253]})
@@ -1766,11 +1766,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = '   x     \n0  1.e+09\n1  0.2512'
         assert(df_s == expected)
 
+    def test_to_string_format_na(self):
+        df = DataFrame({'A' : [np.nan, -1, -2.1234, 3, 4],
+                        'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
+        result = df.to_string()
+
+        expected = ('   A     B     \n'
+                    '0  NaN   NaN   \n'
+                    '1 -1.000 foo   \n'
+                    '2 -2.123 foooo \n'
+                    '3  3.000 fooooo\n'
+                    '4  4.000 bar   ')
+        self.assertEqual(result, expected)
+
     def test_to_html(self):
         # big mixed
-        biggie = DataFrame({'A' : randn(1000),
-                            'B' : tm.makeStringIndex(1000)},
-                            index=range(1000))
+        biggie = DataFrame({'A' : randn(200),
+                            'B' : tm.makeStringIndex(200)},
+                            index=range(200))
 
         biggie['A'][:20] = nan
         biggie['B'][:20] = nan
@@ -1791,7 +1804,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         biggie.to_html(columns=['B', 'A'], col_space=12,
                        float_format=str)
 
-        frame = DataFrame(index=np.arange(1000))
+        frame = DataFrame(index=np.arange(200))
         frame.to_html()
 
     def test_insert(self):

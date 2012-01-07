@@ -512,7 +512,7 @@ def _stringify(col):
     else:
         return '%s' % col
 
-def _float_format_default(v, width = None):
+def _float_format_default(v, width=None):
     """
     Take a float and its formatted representation and if it needs extra space
     to fit the width, reformat it to that width.
@@ -565,30 +565,41 @@ def _float_format_default(v, width = None):
 
         return fmt_str % v
 
-def _format(s, space=None, na_rep=None, float_format=None, col_width=None):
+def _format(s, dtype, space=None, na_rep=None, float_format=None,
+            col_width=None):
     def _just_help(x):
         if space is None:
             return x
         return x[:space].ljust(space)
 
-    if isinstance(s, float):
-        if na_rep is not None and isnull(s):
-            if np.isnan(s):
-                s = na_rep
-            return _just_help('%s' % s)
+    def _make_float_format(x):
+        if na_rep is not None and isnull(x):
+            if np.isnan(x):
+                x = ' ' + na_rep
+            return _just_help('%s' % x)
 
         if float_format:
-            formatted = float_format(s)
+            formatted = float_format(x)
         elif _float_format:
-            formatted = _float_format(s)
+            formatted = _float_format(x)
         else:
-            formatted = _float_format_default(s, col_width)
+            formatted = _float_format_default(x, col_width)
 
         return _just_help(formatted)
-    elif isinstance(s, int):
-        return _just_help('% d' % s)
+
+    def _make_int_format(x):
+        return _just_help('% d' % x)
+
+    if is_float_dtype(dtype):
+        return _make_float_format(s)
+    elif is_integer_dtype(dtype):
+        return _make_int_format(s)
     else:
-        return _just_help('%s' % _stringify(s))
+        if na_rep is not None and lib.checknull(s):
+            return na_rep
+        else:
+            # object dtype
+            return _just_help('%s' % _stringify(s))
 
 #------------------------------------------------------------------------------
 # miscellaneous python tools
@@ -727,11 +738,19 @@ def is_integer(obj):
 def is_float(obj):
     return isinstance(obj, (float, np.floating))
 
-def is_integer_dtype(arr):
-    return issubclass(arr.dtype.type, np.integer)
+def is_integer_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.integer)
 
-def is_float_dtype(arr):
-    return issubclass(arr.dtype.type, np.floating)
+def is_float_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.floating)
 
 def save(obj, path):
     """

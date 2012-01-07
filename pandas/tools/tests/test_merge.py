@@ -778,7 +778,24 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_and_levels(self):
-        pass
+        df = DataFrame(np.random.randn(1, 3))
+        df2 = DataFrame(np.random.randn(1, 4))
+
+        levels = [['foo', 'baz'], ['one', 'two']]
+        names = ['first', 'second']
+        result = concat([df, df2, df, df2],
+                        keys=[('foo', 'one'), ('foo', 'two'),
+                              ('baz', 'one'), ('baz', 'two')],
+                        levels=levels,
+                        names=names)
+        expected = concat([df, df2, df, df2])
+        exp_index = MultiIndex(levels=levels + [[0]],
+                               labels=[[0, 0, 1, 1], [0, 1, 0, 1],
+                                       [0, 0, 0, 0]],
+                               names=names + [None])
+        expected.index = exp_index
+
+        assert_frame_equal(result, expected)
 
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']

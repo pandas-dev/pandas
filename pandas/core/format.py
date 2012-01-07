@@ -99,11 +99,15 @@ class DataFrameFormatter(object):
 
         self.buf.writelines(to_write)
 
-    def _default_col_formatter(self, v, col_width=None):
+    def _get_col_formatter(self, dtype):
         from pandas.core.common import _format
 
-        return _format(v, space=self.col_space, na_rep=self.na_rep,
-                       float_format=self.float_format, col_width=col_width)
+        def formatter(x, col_width=None):
+            return _format(x, dtype, space=self.col_space,
+                           na_rep=self.na_rep,
+                           float_format=self.float_format,
+                           col_width=col_width)
+        return formatter
 
     def _format_col(self, col, i=None):
         if self.formatters is None:
@@ -117,7 +121,8 @@ class DataFrameFormatter(object):
             else:
                 return formatter(self.frame[col][i])
         else:
-            formatter = self._default_col_formatter
+            dtype = self.frame[col].dtype
+            formatter = self._get_col_formatter(dtype)
 
             if i is not None:
                 return formatter(self.frame[col][i])
