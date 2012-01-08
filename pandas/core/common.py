@@ -482,11 +482,11 @@ class EngFormatter(object):
         elif self.precision == 0:
             format_str = u"%i%s"
         elif self.precision > 0:
-            format_str = (u"%%.%if%%s" % self.precision)
+            format_str = (u"%% .%if%%s" % self.precision)
 
         formatted = format_str % (mant, prefix)
 
-        return formatted.strip()
+        return formatted #.strip()
 
 def set_eng_float_format(precision=3, use_eng_prefix=False):
     """
