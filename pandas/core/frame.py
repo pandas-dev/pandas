@@ -922,7 +922,7 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=True, nanRep=None,
-                  index_names=True):
+                  index_names=True, justify='left'):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -944,6 +944,7 @@ class DataFrame(NDFrame):
                                        formatters=formatters,
                                        float_format=float_format,
                                        sparsify=sparsify,
+                                       justify=justify,
                                        index_names=index_names,
                                        header=header, index=index)
         formatter.to_string()

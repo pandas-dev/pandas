@@ -30,6 +30,8 @@ docstring_to_string = """
     sparsify : bool, optional
         Set to False for a DataFrame with a hierarchical index to print every
         multiindex key at each row, default True
+    justify : {'left', 'right'}, default 'left'
+        Left or right-justify the column labels
     index_names : bool, optional
         Prints the names of the indexes, default True """
 
@@ -46,7 +48,8 @@ class DataFrameFormatter(object):
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
-                 float_format=None, sparsify=True, index_names=True):
+                 justify='left', float_format=None, sparsify=True,
+                 index_names=True):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -57,6 +60,7 @@ class DataFrameFormatter(object):
         self.col_space = col_space
         self.header = header
         self.index = index
+        self.justify = justify
 
         if columns is not None:
             self.columns = _ensure_index(columns)
@@ -81,11 +85,21 @@ class DataFrameFormatter(object):
             str_index = self._get_formatted_index()
             str_columns = self._get_formatted_column_labels()
 
-            if self.header:
-                stringified = [str_columns[i] + self._format_col(c)
-                               for i, c in enumerate(self.columns)]
-            else:
-                stringified = [self._format_col(c) for c in self.columns]
+            stringified = []
+
+            for i, c in enumerate(self.columns):
+                if self.header:
+                    fmt_values = self._format_col(c)
+                    cheader = str_columns[i]
+                    max_len = max(max(len(x) for x in fmt_values),
+                                  max(len(x) for x in cheader))
+                    if self.justify == 'left':
+                        cheader = [x.ljust(max_len) for x in cheader]
+                    else:
+                        cheader = [x.rjust(max_len) for x in cheader]
+                    stringified.append(cheader + fmt_values)
+                else:
+                    stringified = [self._format_col(c) for c in self.columns]
 
             if self.index:
                 to_write.append(adjoin(1, str_index, *stringified))
