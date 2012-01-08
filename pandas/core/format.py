@@ -49,7 +49,7 @@ class DataFrameFormatter(object):
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify='left', float_format=None, sparsify=True,
-                 index_names=True):
+                 index_names=True, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -61,6 +61,8 @@ class DataFrameFormatter(object):
         self.header = header
         self.index = index
         self.justify = justify
+
+        self.kwds = kwds
 
         if columns is not None:
             self.columns = _ensure_index(columns)
@@ -217,13 +219,22 @@ class DataFrameFormatter(object):
 
             write(buf, '<tbody>', indent)
 
+            _bold_row = self.kwds.get('bold_rows', False)
+            def _maybe_bold_row(x):
+                temp = '<strong>%s</strong>'
+                if _bold_row:
+                    return ([temp % y for y in x] if isinstance(x, tuple)
+                            else temp % x)
+                else:
+                    return x
+
             # write values
             for i in range(len(frame)):
                 row = []
                 if isinstance(frame.index, MultiIndex):
-                    row.extend(frame.index[i])
+                    row.extend(_maybe_bold_row(frame.index[i]))
                 else:
-                    row.append(frame.index[i])
+                    row.append(_maybe_bold_row(frame.index[i]))
                 for column in frame.columns:
                     row.append(self._format_col(column, i))
                 write_tr(buf, row, indent, indent_delta)

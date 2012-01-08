@@ -52,7 +52,8 @@ pandas 0.7.0
   - Add attribute-based item access to ``Panel`` and add IPython completion (PR
     #554)
   - Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
-  - Add ``index`` and ``header`` options to ``DataFrame.to_string`` (GH #570)
+  - Add ``index``, ``header``, and ``justify`` options to
+    ``DataFrame.to_string`` (GH #570, GH #571)
   - Can pass multiple DataFrames to ``DataFrame.join`` to join on index (GH #115)
   - Can pass multiple Panels to ``Panel.join`` (GH #115)
   - Can pass multiple DataFrames to `DataFrame.append` to concatenate (stack)
@@ -105,6 +106,7 @@ pandas 0.7.0
     DataFrame objects
   - Made ``Index._get_duplicates`` a public method by removing the underscore
   - Prettier printing of floats, and column spacing fix (GH #395, GH #571)
+  - Add ``bold_rows`` option to DataFrame.to_html (GH #586)
 
 **Bug fixes**
 
