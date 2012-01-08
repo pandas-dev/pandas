@@ -59,6 +59,7 @@ class Index(np.ndarray):
         if isinstance(data, np.ndarray):
             if dtype is None and issubclass(data.dtype.type, np.integer):
                 return Int64Index(data, copy=copy, name=name)
+
             subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
@@ -209,7 +210,11 @@ class Index(np.ndarray):
             if _is_bool_indexer(key):
                 key = np.asarray(key)
 
-            return Index(arr_idx[key], name=self.name)
+            result = arr_idx[key]
+            if result.ndim > 1:
+                return result
+
+            return Index(result, name=self.name)
 
     def append(self, other):
         """

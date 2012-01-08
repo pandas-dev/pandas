@@ -24,6 +24,11 @@ class TestIndex(unittest.TestCase):
     def test_hash_error(self):
         self.assertRaises(TypeError, hash, self.strIndex)
 
+    def test_new_axis(self):
+        new_index = self.dateIndex[None, :]
+        self.assert_(new_index.ndim == 2)
+        self.assert_(type(new_index) == np.ndarray)
+
     def test_deepcopy(self):
         from copy import deepcopy
 
