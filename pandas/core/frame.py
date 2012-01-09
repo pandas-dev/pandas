@@ -2419,7 +2419,9 @@ class DataFrame(NDFrame):
 
     def unstack(self, level=-1):
         """
-        "Unstack" level from MultiLevel index to produce reshaped DataFrame
+        "Unstack" level from MultiLevel index to produce reshaped DataFrame. If
+        the index is not a MultiIndex, the output will be a Series (the
+        analogue of stack when the columns are not a MultiIndex)
 
         Parameters
         ----------
@@ -2439,14 +2441,21 @@ class DataFrame(NDFrame):
         one  1.  2.
         two  3.  4.
 
-        >>> s.unstack(level=0)
+        >>> df = s.unstack(level=0)
+        >>> df
            one  two
         a  1.   2.
         b  3.   4.
 
+        >>> df.unstack()
+        one  a  1.
+             b  3.
+        two  a  2.
+             b  4.
+
         Returns
         -------
-        unstacked : DataFrame
+        unstacked : DataFrame or Series
         """
         from pandas.core.reshape import unstack
         if isinstance(level, (tuple, list)):

@@ -3904,8 +3904,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_unstack_to_series(self):
         # check reversibility
         data = self.frame.unstack()
+
         self.assertTrue(isinstance(data, Series))
-        undo = data.unstack().transpose()
+        undo = data.unstack().T
         assert_frame_equal(undo, self.frame)
 
         # check NA handling

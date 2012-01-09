@@ -502,6 +502,7 @@ class TestMultiLevel(unittest.TestCase):
                         'extra': np.arange(6.)})
 
         result = df.groupby(['state','exp','barcode','v']).apply(len)
+
         unstacked = result.unstack()
         restacked = unstacked.stack()
         assert_series_equal(restacked,
