@@ -5,7 +5,9 @@ SQL-style merge routines
 import numpy as np
 
 from pandas.core.frame import DataFrame, _merge_doc
+from pandas.core.generic import NDFrame
 from pandas.core.groupby import get_group_index
+from pandas.core.series import Series
 from pandas.core.index import (Factor, Index, MultiIndex, _get_combined_index,
                                _ensure_index)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
@@ -658,12 +660,18 @@ class _Concatenator(object):
 
         # consolidate data
         for obj in objs:
-            obj.consolidate(inplace=True)
+            if isinstance(obj, NDFrame):
+                obj.consolidate(inplace=True)
         self.objs = objs
 
+        sample = objs[0]
+
         # Need to flip BlockManager axis in the DataFrame special case
-        if isinstance(objs[0], DataFrame):
+        if isinstance(sample, DataFrame):
             axis = 1 if axis == 0 else 0
+
+        self._is_series = isinstance(sample, Series)
+        assert(0 <= axis <= sample.ndim)
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
@@ -680,13 +688,12 @@ class _Concatenator(object):
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        first = self.objs[0]
-
-        if len(self.objs) == 1:
-            return first
-
-        new_data = self._get_concatenated_data()
-        return first._from_axes(new_data, self.new_axes)
+        if self._is_series:
+            new_data = np.concatenate([x.values for x in self.objs])
+            return Series(new_data, index=self.new_axes[0])
+        else:
+            new_data = self._get_concatenated_data()
+            return self.objs[0]._from_axes(new_data, self.new_axes)
 
     def _get_concatenated_data(self):
         try:
@@ -826,7 +833,10 @@ class _Concatenator(object):
         return new_axes
 
     def _get_concat_axis(self):
-        indexes = [x._data.axes[self.axis] for x in self.objs]
+        if self._is_series:
+            indexes = [x.index for x in self.objs]
+        else:
+            indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.keys is None:
             concat_axis = _concat_indexes(indexes)

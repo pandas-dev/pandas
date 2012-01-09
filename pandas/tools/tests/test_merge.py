@@ -959,6 +959,33 @@ class TestConcatenate(unittest.TestCase):
         expected.ix['ItemC', :, :2] = 'baz'
         tm.assert_panel_equal(result, expected)
 
+    def test_concat_series(self):
+        ts = tm.makeTimeSeries()
+
+        pieces = [ts[:5], ts[5:15], ts[15:]]
+
+        result = concat(pieces)
+        tm.assert_series_equal(result, ts)
+
+        result = concat(pieces, keys=[0, 1, 2])
+        expected = ts.copy()
+
+        exp_labels = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
+                      np.arange(len(ts))]
+        exp_index = MultiIndex(levels=[[0, 1, 2], ts.index],
+                               labels=exp_labels)
+        expected.index = exp_index
+        tm.assert_series_equal(result, expected)
+
+        self.assertRaises(Exception, concat, pieces, axis=1)
+
+    def test_concat_single_with_key(self):
+        df = DataFrame(np.random.randn(10, 4))
+
+        result = concat([df], keys=['foo'])
+        expected = concat([df, df], keys=['foo', 'bar'])
+        tm.assert_frame_equal(result, expected[:10])
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
