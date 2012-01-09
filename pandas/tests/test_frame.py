@@ -1629,7 +1629,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         repr(self.frame)
 
-        com.set_eng_float_format(precision=0)
+        com.set_eng_float_format(accuracy=0)
 
         repr(self.frame)
 

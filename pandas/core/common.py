@@ -372,7 +372,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     Alter default behavior of DataFrame.toString
 
     precision : int
-        Floating point output precision
+        Floating point output precision (number of significant digits)
     column_space : int
         Default space for DataFrame columns, defaults to 12
     max_rows : int
@@ -427,22 +427,22 @@ class EngFormatter(object):
          24: "Y"
       }
 
-    def __init__(self, precision=None, use_eng_prefix=False):
-        self.precision = precision
+    def __init__(self, accuracy=None, use_eng_prefix=False):
+        self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
     def __call__(self, num):
         """ Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
 
-        >>> format_eng(0)      # for self.precision = 0
+        >>> format_eng(0)       # for self.accuracy = 0
         '0'
 
-        >>> format_eng(1000000) # for self.precision = 1,
+        >>> format_eng(1000000) # for self.accuracy = 1,
                                 #     self.use_eng_prefix = True
         '1.0M'
 
-        >>> format_eng("-1e-6") # for self.precision = 2
+        >>> format_eng("-1e-6") # for self.accuracy = 2
                                 #     self.use_eng_prefix = False
         '-1.00E-06'
 
@@ -480,27 +480,40 @@ class EngFormatter(object):
 
         mant = sign*dnum/(10**pow10)
 
-        if self.precision is None:  # pragma: no cover
+        if self.accuracy is None:  # pragma: no cover
             format_str = u"%g%s"
-        elif self.precision == 0:
+        elif self.accuracy == 0:
             format_str = u"%i%s"
-        elif self.precision > 0:
-            format_str = (u"%% .%if%%s" % self.precision)
+        elif self.accuracy > 0:
+            format_str = (u"%% .%if%%s" % self.accuracy )
 
         formatted = format_str % (mant, prefix)
 
         return formatted #.strip()
 
-def set_eng_float_format(precision=3, use_eng_prefix=False):
+def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
     """
     Alter default behavior on how float is formatted in DataFrame.
-    Format float in engineering format.
+    Format float in engineering format. By accuracy, we mean the number of
+    decimal digits after the floating point.
 
     See also EngFormatter.
     """
-    global GlobalPrintConfig
-    GlobalPrintConfig.float_format = EngFormatter(precision, use_eng_prefix)
-    GlobalPrintConfig.column_space = max(12, precision + 9)
+    if precision is not None: # pragma: no cover
+        import warnings
+        warnings.warn("'precision' parameter in set_eng_float_format is "
+                      "being renamed to 'accuracy'" , FutureWarning)
+        accuracy = precision
+
+    global _float_format, _column_space
+    _float_format = EngFormatter(accuracy, use_eng_prefix)
+    _column_space = max(12, accuracy + 9)
+
+_float_format = None
+_column_space = 12
+_precision = 4
+_max_rows = 500
+_max_columns = 0
 
 def _stringify(col):
     # unicode workaround
