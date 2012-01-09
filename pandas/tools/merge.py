@@ -598,7 +598,10 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     Parameters
     ----------
-    objs : list of DataFrame (or other pandas) objects
+    objs : list or dict of Series, DataFrame, or Panel objects
+        If a dict is passed, the sorted keys will be used as the `keys`
+        argument, unless it is passed, in which case the values will be
+        selected (see below)
     axis : {0, 1, ...}, default 0
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
@@ -608,7 +611,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
     keys : sequence, default None
-        If multiple levels passed, should contain tuples
+        If multiple levels passed, should contain tuples. Construct
+        hierarchical index using the passed keys as the outermost level
     levels : list of sequences, default None
         Specific levels (unique values) to use for constructing a
         MultiIndex. Otherwise they will be inferred from the keys
@@ -646,6 +650,11 @@ class _Concatenator(object):
         else:  # pragma: no cover
             raise ValueError('Only can inner (intersect) or outer (union) join '
                              'the other axis')
+
+        if isinstance(objs, dict):
+            if keys is None:
+                keys = sorted(objs)
+            objs = [objs[k] for k in keys]
 
         # consolidate data
         for obj in objs:
@@ -739,8 +748,8 @@ class _Concatenator(object):
         else:
             all_items = [b.items for b in blocks]
             if self.axis == 0 and self.keys is not None:
-                offsets = np.r_[0, [len(x._data.axes[self.axis]) for
-                                    x in self.objs]]
+                offsets = np.r_[0, np.cumsum([len(x._data.axes[self.axis]) for
+                                              x in self.objs])]
                 indexer = np.concatenate([offsets[i] + b.ref_locs
                                           for i, b in enumerate(blocks)])
                 concat_items = self.new_axes[0].take(indexer)
