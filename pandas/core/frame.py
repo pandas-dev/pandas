@@ -414,8 +414,9 @@ class DataFrame(NDFrame):
         Return a string representation for a particular DataFrame
         """
         terminal_width, terminal_height = get_terminal_size()
-        max_rows = terminal_height if com._max_rows == 0 else com._max_rows
-        max_columns = com._max_columns
+        max_rows = (terminal_height if com.GlobalPrintConfig.max_rows == 0
+                    else com.GlobalPrintConfig.max_rows)
+        max_columns = com.GlobalPrintConfig.max_columns
 
         if max_columns > 0:
             buf = StringIO()

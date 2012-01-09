@@ -451,7 +451,8 @@ copy : boolean, default False
     def __repr__(self):
         """Clean string representation of a Series"""
         width, height = get_terminal_size()
-        max_rows = height if com._max_rows == 0 else com._max_rows
+        max_rows = (height if com.GlobalPrintConfig.max_rows == 0
+                    else com.GlobalPrintConfig.max_rows)
         if len(self.index) > max_rows:
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:

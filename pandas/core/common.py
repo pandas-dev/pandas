@@ -30,6 +30,17 @@ class PandasError(Exception):
 class AmbiguousIndexError(PandasError, KeyError):
     pass
 
+class _GlobalPrintConfig(object):
+    def __init__(self):
+        self.float_format = None
+        self.column_space = 12
+        self.precision = 4
+        self.max_rows = 500
+        self.max_columns = 0
+        self.column_justify = 'right'
+
+GlobalPrintConfig = _GlobalPrintConfig()
+
 def isnull(obj):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable
@@ -364,7 +375,7 @@ def _try_sort(iterable):
         return listed
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
-                     max_columns=None):
+                     max_columns=None, column_justify='right'):
     """
     Alter default behavior of DataFrame.toString
 
@@ -380,21 +391,21 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
     """
-    global _float_format, _column_space, _max_rows, _max_columns, _precision
+    global GlobalPrintConfig
     if precision is not None:
-        _precision = precision
+        GlobalPrintConfig.precision = precision
     if column_space is not None:
-        _column_space = column_space
+        GlobalPrintConfig.column_space = column_space
     if max_rows is not None:
-        _max_rows = max_rows
+        GlobalPrintConfig.max_rows = max_rows
     if max_columns is not None:
-        _max_columns = max_columns
+        GlobalPrintConfig.max_columns = max_columns
+    if column_justify is not None:
+        GlobalPrintConfig.column_justify = column_justify
 
 def reset_printoptions():
-    global _float_format, _column_space, _precision
-    _float_format = None
-    _column_space = 12
-    _precision = 4
+    global GlobalPrintConfig
+    GlobalPrintConfig = _GlobalPrintConfig()
 
 class EngFormatter(object):
     """
@@ -495,15 +506,9 @@ def set_eng_float_format(precision=3, use_eng_prefix=False):
 
     See also EngFormatter.
     """
-    global _float_format, _column_space
-    _float_format = EngFormatter(precision, use_eng_prefix)
-    _column_space = max(12, precision + 9)
-
-_float_format = None
-_column_space = 12
-_precision = 4
-_max_rows = 500
-_max_columns = 0
+    global GlobalPrintConfig
+    GlobalPrintConfig.float_format = EngFormatter(precision, use_eng_prefix)
+    GlobalPrintConfig.column_space = max(12, precision + 9)
 
 def _stringify(col):
     # unicode workaround
@@ -518,7 +523,7 @@ def _float_format_default(v, width=None):
     to fit the width, reformat it to that width.
     """
 
-    fmt_str   = '%% .%dg' % _precision
+    fmt_str   = '%% .%dg' % GlobalPrintConfig.precision
     formatted = fmt_str % v
 
     if width is None:
@@ -580,8 +585,8 @@ def _format(s, dtype, space=None, na_rep=None, float_format=None,
 
         if float_format:
             formatted = float_format(x)
-        elif _float_format:
-            formatted = _float_format(x)
+        elif GlobalPrintConfig.float_format:
+            formatted = GlobalPrintConfig.float_format(x)
         else:
             formatted = _float_format_default(x, col_width)
 
