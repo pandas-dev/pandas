@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.groupby import get_group_index
-from pandas.core.index import (Index, MultiIndex, _get_combined_index,
+from pandas.core.index import (Factor, Index, MultiIndex, _get_combined_index,
                                _ensure_index)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)

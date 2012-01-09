@@ -3483,7 +3483,7 @@ class DataFrame(NDFrame):
         if not subplots:
             ax = axes[0]
 
-        for i, col in enumerate(_try_sort(self.columns)):
+        for i, col in enumerate(self.columns):
             empty = self[col].count() == 0
             y = self[col].values if not empty else np.zeros(len(self))
             if subplots:
@@ -3493,7 +3493,7 @@ class DataFrame(NDFrame):
                 ax.set_title(col)
             else:
                 rects.append(ax.bar(xinds + i * 0.5/K, y, 0.5/K,
-                                    bottom=np.zeros(N),
+                                    bottom=np.zeros(N), label=col,
                                     color=colors[i % len(colors)], **kwds))
                 labels.append(col)
 

@@ -222,6 +222,31 @@ cdef class StringHashTable:
                 resbuf[i] = -1
         return labels
 
+    def unique(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            Py_ssize_t idx, count = 0
+            int ret
+            object val
+            char *buf
+            khiter_t k
+            list uniques = []
+
+        for i in range(n):
+            val = values[i]
+            buf = PyString_AsString(val)
+            k = kh_get_str(self.table, buf)
+            if k == self.table.n_buckets:
+                k = kh_put_str(self.table, buf, &ret)
+                # print 'putting %s, %s' % (val, count)
+                if not ret:
+                    kh_del_str(self.table, k)
+                count += 1
+                uniques.append(val)
+
+        # return None
+        return uniques
+
     def factorize(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -476,6 +501,25 @@ cdef class Int64HashTable:
 
         return labels, counts[:count].copy()
 
+    def unique(self, ndarray[int64_t] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            Py_ssize_t idx, count = 0
+            int ret
+            int64_t val
+            khiter_t k
+            list uniques = []
+
+        for i in range(n):
+            val = values[i]
+            k = kh_get_int64(self.table, val)
+            if k == self.table.n_buckets:
+                k = kh_put_int64(self.table, val, &ret)
+                uniques.append(val)
+                count += 1
+
+        return uniques
+
 cdef class PyObjectHashTable:
 
     cdef:
@@ -571,9 +615,6 @@ cdef class PyObjectHashTable:
     def unique(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
-            ndarray[int32_t] counts = np.empty(n, dtype=np.int32)
-            dict reverse = {}
             Py_ssize_t idx, count = 0
             int ret
             object val
@@ -625,6 +666,22 @@ cdef class PyObjectHashTable:
 
         return labels, counts[:count].copy()
 
+    # def unique(self, ndarray[object] values, list uniques):
+    #     cdef:
+    #         Py_ssize_t i, n = len(values)
+    #         Py_ssize_t idx, count = 0
+    #         int ret
+    #         object val
+    #         khiter_t k
+
+    #     for i in range(n):
+    #         val = values[i]
+    #         k = kh_get_pymap(self.table, <PyObject*>val)
+    #         if k == self.table.n_buckets:
+    #             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+    #             uniques.append(val)
+    #             count += 1
+
 cdef class Factorizer:
 
     cdef public:
@@ -655,6 +712,10 @@ cdef class Factorizer:
 
         self.count = len(counts)
         return labels, counts
+
+    def unique(self, ndarray[object] values):
+        # just for fun
+        return self.table.unique(values)
 
 cdef class Int64Factorizer:
 
@@ -753,6 +814,34 @@ cdef class DictFactorizer:
         self.count = len(counts)
         return labels, counts
 
+    def unique(self, ndarray[object] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            Py_ssize_t idx, count = self.count
+            object val
+
+        for i in range(n):
+            val = values[i]
+            if val not in self.table:
+                self.table[val] = count
+                self.uniques.append(val)
+                count += 1
+        return self.uniques
+
+
+    def unique_int64(self, ndarray[int64_t] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            Py_ssize_t idx, count = self.count
+            int64_t val
+
+        for i in range(n):
+            val = values[i]
+            if val not in self.table:
+                self.table[val] = count
+                self.uniques.append(val)
+                count += 1
+        return self.uniques
 
 def lookup_locations2(ndarray[object] values):
     cdef:
