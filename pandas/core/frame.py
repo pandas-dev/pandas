@@ -2439,10 +2439,9 @@ class DataFrame(NDFrame):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
         a DataFrame having a new level of column labels whose inner-most level
-        consists of the pivoted index labels.
-        "Unstack" level from MultiLevel index to produce reshaped DataFrame. If
-        the index is not a MultiIndex, the output will be a Series (the
-        analogue of stack when the columns are not a MultiIndex)
+        consists of the pivoted index labels. If the index is not a MultiIndex,
+        the output will be a Series (the analogue of stack when the columns are
+        not a MultiIndex)
 
         Parameters
         ----------
