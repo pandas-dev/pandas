@@ -8,7 +8,6 @@ cdef extern from "numpy_helper.h":
     inline int is_string_object(object)
     inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     inline object get_value_1d(ndarray, Py_ssize_t)
-    inline object get_base_ndarray(object)
 
 
 cdef inline object get_value_at(ndarray arr, object loc):
