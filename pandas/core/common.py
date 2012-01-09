@@ -30,17 +30,6 @@ class PandasError(Exception):
 class AmbiguousIndexError(PandasError, KeyError):
     pass
 
-class _GlobalPrintConfig(object):
-    def __init__(self):
-        self.float_format = None
-        self.column_space = 12
-        self.precision = 4
-        self.max_rows = 500
-        self.max_columns = 0
-        self.column_justify = 'right'
-
-GlobalPrintConfig = _GlobalPrintConfig()
-
 def isnull(obj):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable
@@ -374,8 +363,11 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
+#-------------------------------------------------------------------------------
+# Global formatting options
+
 def set_printoptions(precision=None, column_space=None, max_rows=None,
-                     max_columns=None, column_justify='right'):
+                     max_columns=None, colheader_justify='right'):
     """
     Alter default behavior of DataFrame.toString
 
@@ -400,12 +392,12 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         GlobalPrintConfig.max_rows = max_rows
     if max_columns is not None:
         GlobalPrintConfig.max_columns = max_columns
-    if column_justify is not None:
-        GlobalPrintConfig.column_justify = column_justify
+    if colheader_justify is not None:
+        GlobalPrintConfig.colheader_justify = colheader_justify
 
 def reset_printoptions():
     global GlobalPrintConfig
-    GlobalPrintConfig = _GlobalPrintConfig()
+    GlobalPrintConfig.reset()
 
 class EngFormatter(object):
     """
@@ -605,6 +597,20 @@ def _format(s, dtype, space=None, na_rep=None, float_format=None,
         else:
             # object dtype
             return _just_help('%s' % _stringify(s))
+
+class _GlobalPrintConfig(object):
+    def __init__(self):
+        self.precision = 4
+        self.float_format = None
+        self.column_space = 12
+        self.max_rows = 500
+        self.max_columns = 0
+        self.colheader_justify = 'right'
+
+    def reset(self):
+        self.__init__()
+
+GlobalPrintConfig = _GlobalPrintConfig()
 
 #------------------------------------------------------------------------------
 # miscellaneous python tools

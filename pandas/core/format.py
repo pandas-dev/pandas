@@ -2,6 +2,7 @@ from StringIO import StringIO
 from pandas.core.common import adjoin
 from pandas.core.index import MultiIndex, _ensure_index
 
+import pandas.core.common as com
 import numpy as np
 
 docstring_to_string = """
@@ -48,7 +49,7 @@ class DataFrameFormatter(object):
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
-                 justify='left', float_format=None, sparsify=True,
+                 justify=None, float_format=None, sparsify=True,
                  index_names=True, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
@@ -60,7 +61,11 @@ class DataFrameFormatter(object):
         self.col_space = col_space
         self.header = header
         self.index = index
-        self.justify = justify
+
+        if justify is None:
+            self.justify = com.GlobalPrintConfig.colheader_justify
+        else:
+            self.justify = justify
 
         self.kwds = kwds
 

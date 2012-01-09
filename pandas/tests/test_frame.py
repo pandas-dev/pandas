@@ -1766,6 +1766,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = '   x     \n0  1.e+09\n1  0.2512'
         assert(df_s == expected)
 
+    def test_to_string_right_justify_cols(self):
+        com.reset_printoptions()
+        df = DataFrame({'x' : [3234, 0.253]})
+        df_s = df.to_string(justify='right')
+        expected = '       x\n0  3234.\n1  0.253'
+        assert(df_s == expected)
+
     def test_to_string_format_na(self):
         df = DataFrame({'A' : [np.nan, -1, -2.1234, 3, 4],
                         'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
@@ -1806,6 +1813,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         frame = DataFrame(index=np.arange(200))
         frame.to_html()
+
+    def test_to_html_with_no_bold(self):
+        x = DataFrame({'x': randn(5)})
+        ashtml = x.to_html(bold_rows=False)
+        assert('<strong>' not in ashtml)
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
