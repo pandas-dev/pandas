@@ -434,6 +434,18 @@ cdef class Int64HashTable:
         else:
             raise KeyError(key)
 
+    def map(self, ndarray[int64_t] keys, ndarray[int64_t] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret
+            int64_t key
+            khiter_t k
+
+        for i in range(n):
+            key = keys[i]
+            k = kh_put_int64(self.table, key, &ret)
+            self.table.vals[k] = <Py_ssize_t> values[i]
+
     def map_locations(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -447,7 +459,25 @@ cdef class Int64HashTable:
             # print 'putting %s, %s' % (val, count)
             self.table.vals[k] = i
 
-    def lookup_locations(self, ndarray[int64_t] values):
+    def lookup(self, ndarray[int64_t] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret
+            int64_t val
+            khiter_t k
+            ndarray[int64_t] locs = np.empty(n, dtype='i8')
+
+        for i in range(n):
+            val = values[i]
+            k = kh_get_int64(self.table, val)
+            if k != self.table.n_buckets:
+                locs[i] = self.table.vals[k]
+            else:
+                locs[i] = -1
+
+        return locs
+
+    def lookup_i4(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret
@@ -500,6 +530,38 @@ cdef class Int64HashTable:
                 count += 1
 
         return labels, counts[:count].copy()
+
+    def get_labels_groupby(self, ndarray[int64_t] values, list uniques):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int32_t] labels
+            Py_ssize_t idx, count = 0
+            int ret
+            int64_t val
+            khiter_t k
+
+        labels = np.empty(n, dtype=np.int32)
+
+        for i in range(n):
+            val = values[i]
+
+            # specific for groupby
+            if val < 0:
+                labels[i] = -1
+                continue
+
+            k = kh_get_int64(self.table, val)
+            if k != self.table.n_buckets:
+                idx = self.table.vals[k]
+                labels[i] = idx
+            else:
+                k = kh_put_int64(self.table, val, &ret)
+                self.table.vals[k] = count
+                uniques.append(val)
+                labels[i] = count
+                count += 1
+
+        return labels
 
     def unique(self, ndarray[int64_t] values):
         cdef:

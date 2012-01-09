@@ -1,20 +1,30 @@
-from pandas import DataFrame
-from pandas.util.testing import set_trace
 import os
+import sys
+
 import numpy as np
 import matplotlib.pyplot as plt
+
+from pandas import DataFrame
+from pandas.util.testing import set_trace
 
 dirs = []
 names = []
 lengths = []
 
-walked = os.walk('pandas')
+# if len(sys.argv) > 1:
+#     loc = sys.argv[1]
+# else:
+#     loc = '.'
+
+loc = 'pandas'
+walked = os.walk(loc)
 
 def _should_count_file(path):
     return path.endswith('.py') or path.endswith('.pyx')
 
 def _is_def_line(line):
-    return (line.endswith(':') and
+    """def/cdef/cpdef, but not `cdef class`"""
+    return (line.endswith(':') and not 'class' in line.split() and
             (line.startswith('def ') or
              line.startswith('cdef ') or
              line.startswith('cpdef ') or
@@ -182,9 +192,9 @@ ax = fig.add_subplot(111)
 ax.hist(all_counts, bins=100)
 n = len(all_counts)
 nmore = (all_counts > 50).sum()
-ax.set_title('pandas function lengths, n=%d' % n)
+ax.set_title('%s function lengths, n=%d' % (loc, n))
 ax.set_ylabel('N functions')
 ax.set_xlabel('Function length')
-ax.text(100, 300, '%.3f%% with > 50 lines' % (100 * nmore / float(n)),
+ax.text(60, 200, '%.3f%% with > 50 lines' % ((n - nmore) / float(n)),
         fontsize=18)
 plt.show()
