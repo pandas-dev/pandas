@@ -3901,6 +3901,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(unstacked_cols.T, self.frame)
         assert_frame_equal(unstacked_cols_df['bar'].T, self.frame)
 
+    def test_unstack_to_series(self):
+        # check reversibility
+        data = self.frame.unstack()
+        self.assertTrue(isinstance(data, Series))
+        undo = data.unstack().transpose()
+        assert_frame_equal(undo, self.frame)
+
+        # check NA handling
+        data = DataFrame({'x': [1, 2, np.NaN], 'y': [3.0, 4, np.NaN]})
+        data.index = Index(['a','b','c'])
+        result = data.unstack()
+
+        midx = MultiIndex(levels=[['x','y'],['a','b','c']],
+                          labels=[[0,0,0,1,1,1],[0,1,2,0,1,2]])
+        expected = Series([1,2,np.NaN,3,4,np.NaN], index=midx)
+
+        assert_series_equal(result, expected)
+
+        # check composability of unstack
+        old_data = data.copy()
+        for _ in xrange(4):
+            data = data.unstack()
+        assert_frame_equal(old_data, data)
+
     def test_reset_index(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo' : stacked, 'bar' : stacked})

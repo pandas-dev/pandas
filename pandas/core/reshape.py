@@ -283,7 +283,10 @@ def _slow_pivot(index, columns, values):
 
 def unstack(obj, level):
     if isinstance(obj, DataFrame):
-        return _unstack_frame(obj, level)
+        if isinstance(obj.index, MultiIndex):
+            return _unstack_frame(obj, level)
+        else:
+            return obj.transpose().stack(dropna=False)
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level)
         return unstacker.get_result()
