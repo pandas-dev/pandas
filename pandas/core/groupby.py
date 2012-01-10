@@ -373,6 +373,7 @@ class GroupBy(object):
 
         name_list = []
         for ping, labels in zip(self.groupings, recons_labels):
+            labels = _check_platform_int(labels)
             name_list.append((ping.name, ping.group_index.take(labels)))
 
         return name_list
@@ -1354,6 +1355,11 @@ def _group_labels(values):
     if values.dtype != np.object_:
         values = values.astype('O')
     return lib.group_labels(values)
+
+def _check_platform_int(labels):
+    if labels.dtype != np.int_:
+        labels = labels.astype(np.int_)
+    return labels
 
 def sort_group_labels(ids, labels, counts):
     n = len(ids)
