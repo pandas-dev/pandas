@@ -1112,7 +1112,7 @@ class MultiIndex(Index):
             level = []
 
             if names:
-                level.append(name if name is not None else '')
+                level.append(str(name) if name is not None else '')
 
             level.extend(np.array(lev, dtype=object).take(lab))
             result_levels.append(level)

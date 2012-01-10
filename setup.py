@@ -49,7 +49,7 @@ if sys.version_info[0] >= 3:
 
 else:
     setuptools_kwargs = {
-        'install_requires': ['python-dateutil < 2','numpy'],
+        'install_requires': ['python-dateutil < 2', 'numpy'],
     }
     if not _have_setuptools:
         try:

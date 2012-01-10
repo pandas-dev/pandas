@@ -955,6 +955,12 @@ class TestMultiIndex(unittest.TestCase):
         self.index.format()
         self.index[:0].format()
 
+    def test_format_integer_names(self):
+        index = MultiIndex(levels=[[0, 1], [0, 1]],
+                           labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                           names=[0, 1])
+        index.format(names=True)
+
     def test_bounds(self):
         self.index._bounds
 

@@ -112,6 +112,8 @@ pandas 0.7.0
     when sorting by multiple columns
   - Substantially improve performance of DataFrame and Series constructors when
     passed a nested dict or dict, respectively (GH #540)
+  - Modified setup.py so that pip / setuptools will install dependencies (GH
+    #507, various pull requests)
 
 **Bug fixes**
 
