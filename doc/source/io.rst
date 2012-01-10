@@ -166,6 +166,11 @@ to do as before:
    df = read_csv('foo.csv', parse_dates=True)
    df.index
 
+.. ipython:: python
+   :suppress:
+
+   os.remove('foo.csv')
+
 
 Reading DataFrame objects with ``MultiIndex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
