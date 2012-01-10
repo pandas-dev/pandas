@@ -559,9 +559,22 @@ For very large DataFrame objects, only a summary will be printed to the console
 R package):
 
 .. ipython:: python
+   :suppress:
+
+   # force a summary to be printed
+   print_config = core.common.GlobalPrintConfig
+   core.common.GlobalPrintConfig.max_rows = 5
+
+.. ipython:: python
 
    baseball = read_csv('data/baseball.csv')
    print baseball
+
+.. ipython:: python
+   :suppress:
+
+   # restore GlobalPrintConfig
+   core.common.GlobalPrintConfig = print_config
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:
