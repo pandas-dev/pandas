@@ -711,7 +711,8 @@ class _Concatenator(object):
 
             new_blocks = []
             for kind in kinds:
-                klass_blocks = [mapping.get(kind) for mapping in blockmaps]
+                klass_blocks = [mapping.get(kind) for mapping in blockmaps
+                                if kind in mapping]
                 stacked_block = self._concat_blocks(klass_blocks)
                 new_blocks.append(stacked_block)
             new_data = BlockManager(new_blocks, self.new_axes)

@@ -734,6 +734,16 @@ class TestConcatenate(unittest.TestCase):
 
         self.assertRaises(ValueError, df_list[0].join, df_list[1:], on='a')
 
+    def test_join_many_mixed(self):
+        df = DataFrame(np.random.randn(8, 4), columns=['A','B','C','D'])
+        df['key'] = ['foo', 'bar'] * 4
+        df1 = df.ix[:, ['A', 'B']]
+        df2 = df.ix[:, ['C', 'D']]
+        df3 = df.ix[:, ['key']]
+
+        result = df1.join([df2, df3])
+        assert_frame_equal(result, df)
+
     def test_append_missing_column_proper_upcast(self):
         df1 = DataFrame({'A' : np.array([1,2, 3, 4], dtype='i8')})
         df2 = DataFrame({'B' : np.array([True,False, True, False],
