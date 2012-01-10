@@ -902,14 +902,14 @@ For instance:
 
 .. ipython:: python
 
-   set_eng_float_format(precision=3, use_eng_prefix=True)
+   set_eng_float_format(accuracy=3, use_eng_prefix=True)
    df['a']/1.e3
    df['a']/1.e6
 
 .. ipython:: python
    :suppress:
 
-   set_printoptions(precision=4)
+   reset_printoptions()
 
 
 The ``set_printoptions`` function has a number of options for controlling how
