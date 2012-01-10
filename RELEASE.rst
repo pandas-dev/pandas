@@ -58,6 +58,8 @@ pandas 0.7.0
   - Can pass multiple Panels to ``Panel.join`` (GH #115)
   - Can pass multiple DataFrames to `DataFrame.append` to concatenate (stack)
     and multiple Series to ``Series.append`` too
+  - Added ``justify`` argument to ``DataFrame.to_string`` to allow different
+    alignment of column headers
 
 **API Changes**
 
