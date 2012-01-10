@@ -1,3 +1,5 @@
+# pylint: disable=E1103
+
 import nose
 import unittest
 
@@ -776,6 +778,17 @@ class TestConcatenate(unittest.TestCase):
         expected = DataFrame(np.c_[df.values, df.values],
                              columns=exp_index2)
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_keys_specific_levels(self):
+        df = DataFrame(np.random.randn(10, 4))
+        pieces = [df.ix[:, [0, 1]], df.ix[:, [2]], df.ix[:, [3]]]
+        level = ['three', 'two', 'one', 'zero']
+        result = concat(pieces, axis=1, keys=['one', 'two', 'three'],
+                        levels=[level],
+                        names=['group_key'])
+
+        self.assert_(np.array_equal(result.columns.levels[0], level))
+        self.assertEqual(result.columns.names[0], 'group_key')
 
     def test_concat_dict(self):
         frames = {'foo' : DataFrame(np.random.randn(4, 3)),

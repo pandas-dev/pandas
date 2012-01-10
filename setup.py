@@ -335,7 +335,9 @@ else:
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                         sources=[srcpath('tseries', suffix=suffix)],
-                        include_dirs=[np.get_include()])
+                        include_dirs=[np.get_include()],
+                        # extra_compile_args=['-Wconversion']
+                        )
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],

@@ -608,7 +608,9 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis(es)
-    join_index : index-like
+    join_axes : list of Index objects
+        Specific indexes to use for the other n - 1 axes instead of performing
+        inner/outer set logic
     verify_integrity : boolean, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
@@ -892,31 +894,42 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         if names is None:
             names = [None] * len(keys)
 
+    if levels is None:
+        if single_level:
+            levels = [_ensure_index(keys)]
+        else:
+            levels = [Factor(zp).levels for zp in zipped]
+    else:
+        levels = [_ensure_index(x) for x in levels]
+
     if not _all_indexes_same(indexes):
         label_list = []
 
         # things are potentially different sizes, so compute the exact labels
         # for each level and pass those to MultiIndex.from_arrays
 
-        for hlevel in zipped:
+        for hlevel, level in zip(zipped, levels):
             to_concat = []
-            for k, index in zip(hlevel, indexes):
-                to_concat.append(np.repeat(k, len(index)))
+            for key, index in zip(hlevel, indexes):
+                i = level.get_loc(key)
+                to_concat.append(np.repeat(i, len(index)))
             label_list.append(np.concatenate(to_concat))
 
         concat_index = _concat_indexes(indexes)
 
         # these go at the end
         if isinstance(concat_index, MultiIndex):
-            for level in range(concat_index.nlevels):
-                label_list.append(concat_index.get_level_values(level))
+            levels.extend(concat_index.levels)
+            label_list.extend(concat_index.labels)
         else:
-            label_list.append(concat_index.values)
+            factor = Factor(concat_index)
+            levels.append(factor.levels)
+            label_list.append(factor.labels)
 
         # also copies
         names = names + _get_consensus_names(indexes)
 
-        return MultiIndex.from_arrays(label_list, names=names)
+        return MultiIndex(levels=levels, labels=label_list, names=names)
 
     new_index = indexes[0]
     n = len(new_index)
@@ -924,13 +937,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     # also copies
     names = names + [indexes[0].name]
 
-    if levels is None:
-        if single_level:
-            new_levels = [_ensure_index(keys)]
-        else:
-            new_levels = [Factor(zp).levels for zp in zipped]
-    else:
-        new_levels = [_ensure_index(x) for x in levels]
+    new_levels = levels
 
     # do something a bit more speedy
     new_levels.append(new_index)
