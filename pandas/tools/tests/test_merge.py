@@ -961,11 +961,13 @@ class TestConcatenate(unittest.TestCase):
 
     def test_concat_series(self):
         ts = tm.makeTimeSeries()
+        ts.name = 'foo'
 
         pieces = [ts[:5], ts[5:15], ts[15:]]
 
         result = concat(pieces)
         tm.assert_series_equal(result, ts)
+        self.assertEqual(result.name, ts.name)
 
         result = concat(pieces, keys=[0, 1, 2])
         expected = ts.copy()

@@ -1094,24 +1094,24 @@ copy : boolean, default False
 #-------------------------------------------------------------------------------
 # Combination
 
-    def append(self, other):
+    def append(self, to_append):
         """
-        Concatenate two Series. The indexes must not overlap
+        Concatenate two or more Series. The indexes must not overlap
 
         Parameters
         ----------
-        other : Series
+        to_append : Series or list/tuple of Series
 
         Returns
         -------
-        y : Series
+        appended : Series
         """
-        new_index = self.index.append(other.index)
-        assert(new_index._verify_integrity())
-
-        new_values = np.concatenate((self.values, other.values))
-        name = _maybe_match_name(self, other)
-        return self._constructor(new_values, index=new_index, name=name)
+        from pandas.tools.merge import concat
+        if isinstance(to_append, (list, tuple)):
+            to_concat = [self] + to_append
+        else:
+            to_concat = [self, to_append]
+        return concat(to_concat, ignore_index=False, verify_integrity=True)
 
     def _binop(self, other, func, level=None, fill_value=None):
         """

@@ -690,7 +690,8 @@ class _Concatenator(object):
     def get_result(self):
         if self._is_series:
             new_data = np.concatenate([x.values for x in self.objs])
-            return Series(new_data, index=self.new_axes[0])
+            name = _consensus_name_attr(self.objs)
+            return Series(new_data, index=self.new_axes[0], name=name)
         else:
             new_data = self._get_concatenated_data()
             return self.objs[0]._from_axes(new_data, self.new_axes)
@@ -927,7 +928,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         if single_level:
             new_levels = [_ensure_index(keys)]
         else:
-            new_levels = [Factor(zp).level for zp in zipped]
+            new_levels = [Factor(zp).levels for zp in zipped]
     else:
         new_levels = [_ensure_index(x) for x in levels]
 
@@ -952,6 +953,13 @@ def _get_consensus_names(indexes):
             consensus_name = [None] * index.nlevels
             break
     return consensus_name
+
+def _consensus_name_attr(objs):
+    name = objs[0].name
+    for obj in objs[1:]:
+        if obj.name != name:
+            return None
+    return name
 
 def _all_indexes_same(indexes):
     first = indexes[0]
