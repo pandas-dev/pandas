@@ -562,8 +562,7 @@ R package):
    :suppress:
 
    # force a summary to be printed
-   print_config = core.common.GlobalPrintConfig
-   core.common.GlobalPrintConfig.max_rows = 5
+   set_printoptions(max_rows=5)
 
 .. ipython:: python
 
@@ -574,7 +573,7 @@ R package):
    :suppress:
 
    # restore GlobalPrintConfig
-   core.common.GlobalPrintConfig = print_config
+   reset_printoptions()
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:

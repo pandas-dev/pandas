@@ -11,6 +11,8 @@ MANIFEST
 pandas/version.py
 doc/source/generated
 doc/source/_static
+doc/source/vbench
+doc/source/vbench.rst
 *flymake*
 scikits
 .coverage
