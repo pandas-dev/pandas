@@ -31,8 +31,9 @@ docstring_to_string = """
     sparsify : bool, optional
         Set to False for a DataFrame with a hierarchical index to print every
         multiindex key at each row, default True
-    justify : {'left', 'right'}, default 'left'
-        Left or right-justify the column labels
+    justify : {'left', 'right'}, default None
+        Left or right-justify the column labels. If None uses the option from
+        the configuration in pandas.core.common, 'left' out of the box
     index_names : bool, optional
         Prints the names of the indexes, default True """
 

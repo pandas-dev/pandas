@@ -53,7 +53,7 @@ pandas 0.7.0
     #554)
   - Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
   - Add ``index``, ``header``, and ``justify`` options to
-    ``DataFrame.to_string`` (GH #570, GH #571)
+    ``DataFrame.to_string``. Add option to   (GH #570, GH #571)
   - Can pass multiple DataFrames to ``DataFrame.join`` to join on index (GH #115)
   - Can pass multiple Panels to ``Panel.join`` (GH #115)
   - Can pass multiple DataFrames to `DataFrame.append` to concatenate (stack)
@@ -77,6 +77,8 @@ pandas 0.7.0
   - Deprecated ``Panel.to_long``, renamed to ``to_frame``
   - Deprecated ``colSpace`` argument in ``DataFrame.to_string``, renamed to
     ``col_space``
+  - Rename ``precision`` to ``accuracy`` in engineering float formatter (GH
+    #395)
 
 **Improvements to existing features**
 
@@ -116,6 +118,10 @@ pandas 0.7.0
     passed a nested dict or dict, respectively (GH #540)
   - Modified setup.py so that pip / setuptools will install dependencies (GH
     #507, various pull requests)
+  - Unstack called on DataFrame with non-MultiIndex will return Series (GH
+    #477)
+  - Improve DataFrame.to_string and console formatting to be more consistent in
+    the number of displayed digits (GH #395)
 
 **Bug fixes**
 
@@ -171,6 +177,7 @@ pandas 0.7.0
   - Fix __eq__ comparison between DateOffsets with different relativedelta
     keywords passed
   - Fix exception caused by parser converter returning strings (GH #583)
+  - Fix MultiIndex formatting bug with integer names (GH #601)
 
 Thanks
 ------
