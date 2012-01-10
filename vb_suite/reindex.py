@@ -108,3 +108,23 @@ reindex_frame_level_reindex = \
               name='reindex_frame_level_reindex',
               start_date=datetime(2011, 12, 27))
 
+
+#----------------------------------------------------------------------
+# sort_index
+
+# pathological, but realistic
+setup = common_setup + """
+N = 10000
+K = 10
+
+key1 = np.array([rands(10) for _ in xrange(N)], dtype='O').repeat(K)
+key2 = np.array([rands(10) for _ in xrange(N)], dtype='O').repeat(K)
+
+df = DataFrame({'key1' : key1, 'key2' : key2,
+                'value' : np.random.randn(N * K)})
+"""
+statement = "df.sort_index(by=['key1', 'key2'])"
+frame_sort_index_by_columns = Benchmark(statement, setup,
+                                        name='frame_sort_index_by_columns',
+                                        start_date=datetime(2011, 11, 1))
+

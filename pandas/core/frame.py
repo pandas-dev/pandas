@@ -1965,11 +1965,10 @@ class DataFrame(NDFrame):
         if by is not None:
             assert(axis == 0)
             if isinstance(by, (tuple, list)):
-                to_sort = lib.fast_zip([self[x] for x in by])
+                keys = [self[x].values for x in by]
+                indexer = _lexsort_indexer(keys)
             else:
-                to_sort = self[by].values
-
-            indexer = to_sort.argsort()
+                indexer = self[by].values.argsort()
         else:
             indexer = labels.argsort()
 
@@ -2800,7 +2799,7 @@ class DataFrame(NDFrame):
             return other.copy()
 
         from pandas.tools.merge import concat
-        if isinstance(other, list):
+        if isinstance(other, (list, tuple)):
             to_concat = [self] + other
         else:
             to_concat = [self, other]
@@ -3855,6 +3854,26 @@ if "IPython" in sys.modules:  # pragma: no cover
         install_ipython_completers()
     except Exception:
         pass
+
+def _lexsort_indexer(keys):
+    from pandas.core.groupby import get_group_index, _compress_group_index
+
+    labels = []
+    shape = []
+    for key in keys:
+        rizer = lib.Factorizer(len(key))
+
+        if not key.dtype == np.object_:
+            key = key.astype('O')
+
+        ids, _ = rizer.factorize(key, sort=True)
+        labels.append(ids)
+        shape.append(len(rizer.uniques))
+
+    group_index = get_group_index(labels, shape)
+    comp_ids, _, max_group = _compress_group_index(group_index)
+    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
+    return indexer
 
 
 if __name__ == '__main__':

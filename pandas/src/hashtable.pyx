@@ -693,9 +693,9 @@ cdef class PyObjectHashTable:
         return uniques
 
     def factorize(self, ndarray[object] values):
-        reverse = {}
-        labels, counts = self.get_labels(values, reverse, 0)
-        return reverse, labels, counts
+        uniques = []
+        labels, counts = self.get_labels(values, uniques, 0)
+        return labels, counts, uniques # reverse, labels, counts
 
     cpdef get_labels(self, ndarray[object] values, list uniques,
                      Py_ssize_t count_prior):
