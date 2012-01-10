@@ -505,15 +505,15 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
                       "being renamed to 'accuracy'" , FutureWarning)
         accuracy = precision
 
-    global _float_format, _column_space
-    _float_format = EngFormatter(accuracy, use_eng_prefix)
-    _column_space = max(12, accuracy + 9)
+    global GlobalPrintConfig
+    GlobalPrintConfig.float_format = EngFormatter(accuracy, use_eng_prefix)
+    GlobalPrintConfig.column_space = max(12, accuracy + 9)
 
-_float_format = None
-_column_space = 12
-_precision = 4
-_max_rows = 500
-_max_columns = 0
+#_float_format = None
+#_column_space = 12
+#_precision = 4
+#_max_rows = 500
+#_max_columns = 0
 
 def _stringify(col):
     # unicode workaround
