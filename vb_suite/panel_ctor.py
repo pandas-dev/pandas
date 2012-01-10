@@ -10,10 +10,10 @@ common_setup = """from pandas_vb_common import *
 START_DATE = datetime(2011, 6, 1)
 
 setup_same_index = common_setup + """
-# create 1000 dataframes with the same index
+# create 100 dataframes with the same index
 dr = np.asarray(DateRange(datetime(1990,1,1), datetime(2012,1,1)))
 data_frames = {}
-for x in xrange(1000):
+for x in xrange(100):
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
                    "c": [2]*len(dr)}, index=dr)
    data_frames[x] = df
@@ -26,7 +26,7 @@ panel_from_dict_same_index = \
 
 setup_equiv_indexes = common_setup + """
 data_frames = {}
-for x in xrange(1000):
+for x in xrange(100):
    dr = np.asarray(DateRange(datetime(1990,1,1), datetime(2012,1,1)))
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
                    "c": [2]*len(dr)}, index=dr)
@@ -42,7 +42,7 @@ setup_all_different_indexes = common_setup + """
 data_frames = {}
 start = datetime(1990,1,1)
 end = datetime(2012,1,1)
-for x in xrange(1000):
+for x in xrange(100):
    end += timedelta(days=1)
    dr = np.asarray(DateRange(start, end))
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
@@ -59,8 +59,8 @@ setup_two_different_indexes = common_setup + """
 data_frames = {}
 start = datetime(1990,1,1)
 end = datetime(2012,1,1)
-for x in xrange(1000):
-   if x == 500:
+for x in xrange(100):
+   if x == 50:
        end += timedelta(days=1)
    dr = np.asarray(DateRange(start, end))
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),

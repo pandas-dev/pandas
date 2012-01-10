@@ -110,7 +110,7 @@ reindex_frame_level_reindex = \
 
 
 #----------------------------------------------------------------------
-# sort_index
+# sort_index, drop_duplicates
 
 # pathological, but realistic
 setup = common_setup + """
@@ -128,3 +128,9 @@ frame_sort_index_by_columns = Benchmark(statement, setup,
                                         name='frame_sort_index_by_columns',
                                         start_date=datetime(2011, 11, 1))
 
+# drop_duplicates
+
+statement = "df.drop_duplicates(['key1', 'key2'])"
+frame_drop_duplicates = Benchmark(statement, setup,
+                                  name='frame_drop_duplicates',
+                                  start_date=datetime(2011, 11, 15))
