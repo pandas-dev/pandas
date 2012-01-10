@@ -290,6 +290,8 @@ over the string representation of the object. All arguments are optional:
   - ``index_names`` default True, will print the names of the indices
   - ``index`` default True, will print the index (ie, row labels)
   - ``header`` default True, will print the column labels
+  - ``justify`` default ``left``, will print column headers left- or
+    right-justified
 
 The Series object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
