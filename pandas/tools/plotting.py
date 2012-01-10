@@ -12,6 +12,22 @@ def hist(data, column, by=None, ax=None, fontsize=None):
     ax.set_xticklabels(keys, rotation=0, fontsize=fontsize)
     return ax
 
+def grouped_hist(data, column, by=None, ax=None, bins=50, log=False):
+    """
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+    """
+    def plot_group(group, ax):
+        ax.hist(group[column].dropna(), bins=bins)
+    fig = _grouped_plot(plot_group, data, by=by, sharex=False,
+                        sharey=False)
+    plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
+                        hspace=0.3, wspace=0.2)
+    return fig
+
+
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True):
     """
@@ -98,13 +114,14 @@ def scatter_plot(data, x, y, by=None, ax=None):
 
     return fig
 
-def _grouped_plot(plotf, data, by=None, numeric_only=True):
+def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=(10, 5),
+                  sharex=True, sharey=True):
     grouped = data.groupby(by)
     ngroups = len(grouped)
 
     nrows, ncols = _get_layout(ngroups)
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols,
-                             sharex=True, sharey=True)
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize,
+                             sharex=sharex, sharey=sharey)
 
     ravel_axes = []
     for row in axes:
