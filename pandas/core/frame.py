@@ -3817,7 +3817,7 @@ def _homogenize(data, index, columns, dtype=None):
                 v = v.reindex(index, copy=False)
         else:
             if isinstance(v, dict):
-                v = [v.get(i, nan) for i in index]
+                v = lib.fast_multiget(v, index, default=np.nan)
 
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)

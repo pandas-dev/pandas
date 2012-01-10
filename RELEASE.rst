@@ -109,7 +109,9 @@ pandas 0.7.0
   - Prettier printing of floats, and column spacing fix (GH #395, GH #571)
   - Add ``bold_rows`` option to DataFrame.to_html (GH #586)
   - Improve the performance of ``DataFrame.sort_index`` by up to 5x or more
-    when sorting by multiple columns (GH #555)
+    when sorting by multiple columns
+  - Substantially improve performance of DataFrame and Series constructors when
+    passed a nested dict or dict, respectively (GH #540)
 
 **Bug fixes**
 

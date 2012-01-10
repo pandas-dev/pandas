@@ -150,8 +150,13 @@ class Series(np.ndarray, generic.PandasObject):
                 index = data.index
         elif isinstance(data, dict):
             if index is None:
-                index = Index(sorted(data.keys()))
-            data = [data.get(idx, np.nan) for idx in index]
+                index = Index(sorted(data))
+            else:
+                index = _ensure_index(index)
+            try:
+                data = lib.fast_multiget(data, index, default=np.nan)
+            except TypeError:
+                data = [data.get(i, nan) for i in index]
 
         subarr = _sanitize_array(data, index, dtype, copy,
                                  raise_cast_failure=True)
