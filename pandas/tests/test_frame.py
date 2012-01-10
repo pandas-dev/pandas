@@ -3272,7 +3272,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                            'C' : np.random.randn(100)})
 
         result = frame.sort_index(by=['A', 'B'])
-        indexer = Index(zip(*(frame['A'], frame['B']))).argsort()
+        indexer = np.lexsort((frame['B'], frame['A']))
         expected = frame.take(indexer)
         assert_frame_equal(result, expected)
 
@@ -3281,7 +3281,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         result = frame.sort_index(by=['B', 'A'])
-        indexer = Index(zip(*(frame['B'], frame['A']))).argsort()
+        indexer = np.lexsort((frame['A'], frame['B']))
         expected = frame.take(indexer)
         assert_frame_equal(result, expected)
 
