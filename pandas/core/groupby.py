@@ -373,7 +373,7 @@ class GroupBy(object):
 
         name_list = []
         for ping, labels in zip(self.groupings, recons_labels):
-            labels = _check_platform_int(labels)
+            labels = _ensure_platform_int(labels)
             name_list.append((ping.name, ping.group_index.take(labels)))
 
         return name_list
@@ -1327,6 +1327,8 @@ _cython_transforms = {
 def _compress_group_index(group_index, sort=True):
     uniques = []
     table = lib.Int64HashTable(len(group_index))
+
+    group_index = _ensure_int64(group_index)
     comp_ids = table.get_labels_groupby(group_index, uniques)
     max_group = len(uniques)
 
@@ -1356,9 +1358,14 @@ def _group_labels(values):
         values = values.astype('O')
     return lib.group_labels(values)
 
-def _check_platform_int(labels):
+def _ensure_platform_int(labels):
     if labels.dtype != np.int_:
         labels = labels.astype(np.int_)
+    return labels
+
+def _ensure_int64(labels):
+    if labels.dtype != np.int64:
+        labels = labels.astype(np.int64)
     return labels
 
 def sort_group_labels(ids, labels, counts):
