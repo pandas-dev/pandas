@@ -202,6 +202,12 @@ comma-separated) files. YMMV, as pandas uses the Sniffer_ class of the csv
 module.
 
 .. ipython:: python
+   :suppress:
+
+   df[:7].to_csv('tmp.sv', sep='|')
+   df[:7].to_csv('tmp2.sv', sep=':')
+
+.. ipython:: python
 
     print open('tmp2.sv').read()
     read_csv('tmp2.sv')
@@ -216,11 +222,6 @@ Iterating through files chunk by chunk
 Suppose you wish to iterate through a (potentially very large) file lazily
 rather than reading the entire file into memory, such as the following:
 
-.. ipython:: python
-   :suppress:
-
-   df[:7].to_csv('tmp.sv', sep='|')
-   df[:7].to_csv('tmp2.sv', sep=':')
 
 .. ipython:: python
 
@@ -228,10 +229,6 @@ rather than reading the entire file into memory, such as the following:
    table = read_table('tmp.sv', sep='|')
    table
 
-.. ipython:: python
-   :suppress:
-
-   os.remove('tmp.csv')
 
 By specifiying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
 value will be an iterable object of type ``TextParser``:
@@ -252,6 +249,12 @@ Specifying ``iterator=True`` will also return the ``TextParser`` object:
 
    reader = read_table('tmp.sv', sep='|', iterator=True)
    reader.get_chunk(5)
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.sv')
+   os.remove('tmp2.sv')
 
 Writing to CSV format
 ~~~~~~~~~~~~~~~~~~~~~
