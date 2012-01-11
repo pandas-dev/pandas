@@ -1100,6 +1100,7 @@ class DataFrame(NDFrame):
         """
         return self._constructor(data=self.values.T, index=self.columns,
                                  columns=self.index, copy=False)
+
     T = property(transpose)
 
     #----------------------------------------------------------------------
@@ -1861,11 +1862,15 @@ class DataFrame(NDFrame):
                 level_values = lev.values
                 if level_values.dtype == np.object_:
                     level_values = lib.maybe_convert_objects(level_values)
+                if level_values.dtype == np.datetime64:
+                    # converts to datetime
+                    # TODO: need new block type to handle datetime64
+                    level_values = level_values.astype('O')
 
                 new_obj.insert(0, col_name, level_values.take(lab))
         else:
             name = self.index.name
-            if name is None:
+            if name is None or name == 'index':
                 name = 'index' if 'index' not in self else 'level_0'
             new_obj.insert(0, name, self.index.values)
         new_obj.index = np.arange(len(new_obj))
@@ -3930,8 +3935,6 @@ def _convert_object_array(content, columns):
     return sdict, columns
 
 def _homogenize(data, index, columns, dtype=None):
-    from pandas.core.series import _sanitize_array
-
     homogenized = {}
 
     if dtype is not None:
@@ -3958,13 +3961,9 @@ def _homogenize(data, index, columns, dtype=None):
                 # are putting it into an ndarray later
                 v = v.reindex(index, copy=False)
         else:
-            if isinstance(v, dict):
-                if oindex is None:
-                    oindex = index.astype('O')
-                v = lib.fast_multiget(v, oindex, default=np.nan)
-
-            v = _sanitize_array(v, index, dtype=dtype, copy=False,
-                                raise_cast_failure=False)
+            v = Series(v, index=index, dtype=dtype)
+            if oindex is None:
+                oindex = index.astype('O')
 
         homogenized[k] = v
 

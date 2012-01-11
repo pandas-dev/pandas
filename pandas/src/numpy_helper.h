@@ -18,6 +18,7 @@
 #define PANDAS_BOOL 2
 #define PANDAS_STRING 3
 #define PANDAS_OBJECT 4
+#define PANDAS_DATETIME 5
 
 PANDAS_INLINE int
 infer_type(PyObject* obj) {
@@ -26,6 +27,9 @@ infer_type(PyObject* obj) {
   }
   else if (PyArray_IsIntegerScalar(obj)) {
     return PANDAS_INT;
+  }
+  else if (PyArray_IsScalar(obj, Datetime)) {
+    return PANDAS_DATETIME;
   }
   else if (PyFloat_Check(obj) || PyArray_IsScalar(obj, Floating)) {
     return PANDAS_FLOAT;
@@ -57,6 +61,11 @@ is_bool_object(PyObject* obj) {
 PANDAS_INLINE int
 is_string_object(PyObject* obj) {
   return (PyString_Check(obj) || PyUnicode_Check(obj));
+}
+
+PANDAS_INLINE int
+is_datetime64_object(PyObject *obj) {
+  return PyArray_IsScalar(obj, Datetime);
 }
 
 PANDAS_INLINE int
@@ -125,3 +134,4 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
 //   }
 //   return ap;
 // }
+

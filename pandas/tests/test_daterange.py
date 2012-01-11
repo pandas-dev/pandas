@@ -5,9 +5,10 @@ import unittest
 import numpy as np
 
 import pandas.core.datetools as datetools
-from pandas.core.index import Index
+from pandas.core.index import Index, DatetimeIndex
 from pandas.core.daterange import DateRange, generate_range
 import pandas.core.daterange as daterange
+import pandas.util.testing as tm
 
 try:
     import pytz
@@ -220,12 +221,12 @@ class TestDateRange(unittest.TestCase):
         self.assert_(isinstance(the_int, DateRange))
         self.assert_(the_int.offset == rng.offset)
 
-        the_int = rng1.intersection(rng2.view(Index))
+        the_int = rng1.intersection(rng2.view(DatetimeIndex))
         self.assert_(the_int.equals(expected))
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
-        expected = Index([])
+        expected = DatetimeIndex([])
         self.assert_(the_int.equals(expected))
 
     def test_with_tzinfo(self):
@@ -349,6 +350,17 @@ class TestDateRange(unittest.TestCase):
 
         result = rng1.union(rng2)
         self.assert_(type(result) == DateRange)
+
+if tm.PERFORM_DATETIME64_TESTS:
+    class TestDatetime64Range(TestDateRange):
+        def setUp(self):
+            self.dt64_setting = tm._test_with_datetime64
+            tm._test_with_datetime64 = True
+            super(TestDatetime64Range, self).setUp()
+
+        def tearDown(self):
+            super(TestDatetime64Range, self).tearDown()
+            tm._test_with_datetime64 = self.dt64_setting
 
 def _skip_if_no_pytz():
     try:

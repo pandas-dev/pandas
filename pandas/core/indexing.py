@@ -368,7 +368,8 @@ def _maybe_convert_ix(*args):
         return args
 
 def _is_integer_dtype(arr):
-    return issubclass(arr.dtype.type, np.integer)
+    return (issubclass(arr.dtype.type, np.integer) and 
+            not arr.dtype.type == np.datetime64)
 
 def _is_integer_index(index):
     return index.inferred_type == 'integer'

@@ -7,8 +7,6 @@ Lesser GNU General Public License.
 Parts are from lxml (https://github.com/lxml/lxml)
 """
 
-from datetime import datetime
-from glob import glob
 import os
 import sys
 import shutil
@@ -266,7 +264,7 @@ class CheckSDist(sdist):
         sdist.run(self)
 
 class CheckingBuildExt(build_ext):
-    """Subclass build_ext to get clearer report if Cython is neccessary."""
+    """Subclass build_ext to get clearer report if Cython is necessary."""
 
     def check_cython_extensions(self, extensions):
         for ext in extensions:
@@ -289,6 +287,7 @@ cmdclass = {'clean': CleanCommand,
 
 try:
     from Cython.Distutils import build_ext
+    from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython=True
 except ImportError:
     cython=False
@@ -337,6 +336,7 @@ tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                         sources=[srcpath('tseries', suffix=suffix)],
                         include_dirs=[np.get_include()],
+                        pyrex_gdb=True,
                         # extra_compile_args=['-Wconversion']
                         )
 
@@ -347,6 +347,7 @@ sparse_ext = Extension('pandas._sparse',
 engines_ext = Extension('pandas._engines',
                         depends=['pandas/src/numpy_helper.h'],
                         sources=[srcpath('engines', suffix=suffix)],
+                        pyrex_gdb=True,
                         include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',

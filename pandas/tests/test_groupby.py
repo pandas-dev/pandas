@@ -430,7 +430,7 @@ class TestGroupBy(unittest.TestCase):
         indices = grouped.primary.indices
 
         for k, v in groups.iteritems():
-            samething = self.tsframe.index.take(indices[k])
+            samething = self.tsframe.index.take(indices[k]).astype('O')
             self.assert_(np.array_equal(v, samething))
 
     def test_frame_groupby_columns(self):

@@ -53,11 +53,15 @@ def isnull(obj):
             # Working around NumPy ticket 1542
             shape = obj.shape
             result = np.empty(shape, dtype=bool)
-            vec = lib.isnullobj(obj.ravel())
+            raveled = obj.ravel()
+            vec = lib.isnullobj(raveled)
             result[:] = vec.reshape(shape)
 
             if isinstance(obj, Series):
                 result = Series(result, index=obj.index, copy=False)
+        elif obj.dtype == np.datetime64:
+            # this is the NaT pattern
+            result = obj.ravel().view('i8') == 0x8000000000000000
         else:
             result = -np.isfinite(obj)
         return result
@@ -84,6 +88,28 @@ def notnull(obj):
     if np.isscalar(res):
         return not res
     return -res
+
+_unbox_cache = dict()
+def _dt_unbox(key):
+    '''
+    Unbox datetime to datetime64
+    '''
+    try:
+        return _unbox_cache[key]
+    except KeyError:
+        _unbox_cache[key] = np.datetime64(key)
+        return _unbox_cache[key]
+
+_box_cache = dict()
+def _dt_box(key):
+    '''
+    Box datetime64 to datetime
+    '''
+    try:
+        return _box_cache[key]
+    except KeyError:
+        _box_cache[key] = key.astype('O')
+        return _box_cache[key]
 
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)
@@ -765,7 +791,8 @@ def is_integer_dtype(arr_or_dtype):
         tipo = arr_or_dtype.type
     else:
         tipo = arr_or_dtype.dtype.type
-    return issubclass(tipo, np.integer)
+    return (issubclass(tipo, np.integer) and not
+            issubclass(tipo, np.datetime64))
 
 def is_float_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):

@@ -482,7 +482,11 @@ class HDFStore(object):
         if 'name' in node._v_attrs:
             name = node._v_attrs.name
 
-        index = Index(_unconvert_index(data, kind))
+        if kind in ('date', 'datetime'):
+            index = Index(_unconvert_index(data, kind), dtype=object)
+        else:
+            index = Index(_unconvert_index(data, kind))
+
         index.name = name
 
         return name, index
@@ -511,6 +515,8 @@ class HDFStore(object):
             vlarr = self.handle.createVLArray(group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
+        elif value.dtype == np.datetime64:
+            self.handle.createArray(group, key, value.view('i8'))
         else:
             self.handle.createArray(group, key, value)
 
@@ -627,14 +633,15 @@ class HDFStore(object):
         from pandas.core.common import _asarray_tuplesafe
 
         table = getattr(group, 'table')
+        fields = table._v_attrs.fields
 
         # create the selection
-        sel = Selection(table, where)
+        sel = Selection(table, where, table._v_attrs.index_kind)
         sel.select()
-        fields = table._v_attrs.fields
 
         columns = _maybe_convert(sel.values['column'],
                                  table._v_attrs.columns_kind)
+
         index = _maybe_convert(sel.values['index'],
                                table._v_attrs.index_kind)
         # reconstruct
@@ -674,7 +681,7 @@ class HDFStore(object):
         table = getattr(group, 'table')
 
         # create the selection
-        s = Selection(table,where)
+        s = Selection(table, where, table._v_attrs.index_kind)
         s.select_coords()
 
         # delete the rows in reverse order
@@ -686,10 +693,16 @@ class HDFStore(object):
         return len(s.values)
 
 def _convert_index(index):
+    inferred_type = lib.infer_dtype(index)
+
     # Let's assume the index is homogeneous
     values = np.asarray(index)
 
-    if isinstance(values[0], (datetime, date)):
+    if inferred_type == 'datetime64':
+        converted = values.view('i8')
+        return converted, 'datetime64', _tables().Int64Col()
+    elif inferred_type == 'datetime':
+        # backward compatibility handling with < 0.7.0
         if isinstance(values[0], datetime):
             kind = 'datetime'
         else:
@@ -697,20 +710,25 @@ def _convert_index(index):
         converted = np.array([time.mktime(v.timetuple()) for v in values],
                              dtype=np.int64)
         return converted, kind, _tables().Time64Col()
-    elif isinstance(values[0], basestring):
+    elif inferred_type == 'integer':
+        atom = _tables().Int64Col()
+        return np.asarray(values, dtype=np.int64), 'integer', atom
+    elif inferred_type == 'floating':
+        atom = _tables().Float64Col()
+        return np.asarray(values, dtype=np.float64), 'float', atom
+        pass
+    elif inferred_type == 'boolean':
+        atom = _tables().Int64Col()
+        return np.asarray(values, dtype=np.int64), 'integer', atom
+    elif inferred_type == 'string':
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
         return converted, 'string', _tables().StringCol(itemsize)
-    elif com.is_integer(values[0]):
-        # take a guess for now, hope the values fit
-        atom = _tables().Int64Col()
-        return np.asarray(values, dtype=np.int64), 'integer', atom
-    elif com.is_float(values[0]):
-        atom = _tables().Float64Col()
-        return np.asarray(values, dtype=np.float64), 'float', atom
-    else: # pragma: no cover
+    elif inferred_type == 'mixed':
         atom = _tables().ObjectAtom()
         return np.asarray(values, dtype='O'), 'object', atom
+    else:
+        raise TypeError("Unrecognized inferred type '%s'" % inferred_type)
 
 def _read_array(group, key):
     import tables
@@ -723,13 +741,13 @@ def _read_array(group, key):
         return data
 
 def _unconvert_index(data, kind):
-    if kind == 'datetime':
+    if kind == 'datetime64':
+        index = np.array(data, dtype=np.datetime64)
+    elif kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
     elif kind == 'date':
-        index = np.array([date.fromtimestamp(v) for v in data],
-                         dtype=object)
-
+        index = np.array([date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in ('string', 'integer', 'float'):
         index = np.array(data)
     elif kind == 'object':
@@ -755,13 +773,15 @@ def _maybe_convert(values, val_kind):
     return values
 
 def _get_converter(kind):
+    if kind == 'datetime64':
+        return lambda x: np.datetime64(x)
     if kind == 'datetime':
         return datetime.fromtimestamp
     else: # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 
 def _need_convert(kind):
-    if kind == 'datetime':
+    if kind in ('datetime', 'datetime64'):
         return True
     return False
 
@@ -794,9 +814,10 @@ class Selection(object):
            {'field' : 'index',
             'value' : [v1, v2, v3]}
     """
-    def __init__(self, table, where=None):
+    def __init__(self, table, where=None, index_kind=None):
         self.table = table
         self.where = where
+        self.index_kind = index_kind
         self.column_filter = None
         self.the_condition = None
         self.conditions = []
@@ -811,7 +832,10 @@ class Selection(object):
             value = c['value']
             field = c['field']
 
-            if field == 'index' and isinstance(value, datetime):
+            if field == 'index' and self.index_kind == 'datetime64':
+                val = np.datetime64(value).view('i8')
+                self.conditions.append('(%s %s %s)' % (field,op,val))
+            elif field == 'index' and isinstance(value, datetime):
                 value = time.mktime(value.timetuple())
                 self.conditions.append('(%s %s %s)' % (field,op,value))
             else:

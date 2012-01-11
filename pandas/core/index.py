@@ -1,16 +1,18 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time
+from datetime import time, timedelta
 from itertools import izip
 
 import numpy as np
 
 from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
-                                _is_bool_indexer, _asarray_tuplesafe)
+                                _is_bool_indexer, _asarray_tuplesafe,
+                                _dt_box, _dt_unbox, is_iterator)
 from pandas.util.decorators import cache_readonly
-import pandas.core.common as com
 import pandas._tseries as lib
 import pandas._engines as _gin
+
+from datetime import datetime
 
 __all__ = ['Index']
 
@@ -59,6 +61,9 @@ class Index(np.ndarray):
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
+            if dtype is None and issubclass(data.dtype.type, np.datetime64):
+                return DatetimeIndex(data, copy=copy, name=name)
+
             if dtype is None and issubclass(data.dtype.type, np.integer):
                 return Int64Index(data, copy=copy, name=name)
 
@@ -69,6 +74,11 @@ class Index(np.ndarray):
         else:
             # other iterable of some kind
             subarr = _asarray_tuplesafe(data, dtype=object)
+
+        if (dtype is None
+            and (lib.is_datetime_array(subarr)
+                 or lib.is_datetime64_array(subarr))):
+            return DatetimeIndex(subarr.astype('M8'), name=name)
 
         if lib.is_integer_array(subarr) and dtype is None:
             return Int64Index(subarr.astype('i8'), name=name)
@@ -169,6 +179,9 @@ class Index(np.ndarray):
     @cache_readonly
     def inferred_type(self):
         return lib.infer_dtype(self)
+
+    def is_type_compatible(self, typ):
+        return typ == self.inferred_type
 
     @cache_readonly
     def is_all_dates(self):
@@ -338,7 +351,10 @@ class Index(np.ndarray):
     __ge__ = _indexOp('__ge__')
 
     def __sub__(self, other):
-        return self.diff(other)
+        if isinstance(other, (Index, list)):
+            return self.diff(other)
+        else:
+            return Index(self.view(np.ndarray) - other)
 
     def __and__(self, other):
         return self.intersection(other)
@@ -494,7 +510,7 @@ class Index(np.ndarray):
                 raise
             except TypeError:
                 # generator/iterator-like
-                if com.is_iterator(key):
+                if is_iterator(key):
                     raise InvalidIndexError(key)
                 else:
                     raise e1
@@ -825,7 +841,7 @@ class Index(np.ndarray):
         """
         index = np.asarray(self)
         # because numpy is fussy with tuples
-        item_idx = Index([item])
+        item_idx = Index([item], dtype=index.dtype)
         new_index = np.concatenate((index[:loc], item_idx, index[loc:]))
         return Index(new_index, name=self.name)
 
@@ -884,7 +900,8 @@ class Int64Index(Index):
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
-            data= np.asarray(data)
+
+            data = np.asarray(data)
 
         if issubclass(data.dtype.type, basestring):
             raise TypeError('String dtype not supported, you may need '
@@ -937,9 +954,240 @@ class Int64Index(Index):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
 
-class DateIndex(Index):
-    pass
+# -------- some conversion functions for datetime <--> datetime64
 
+def _as_i8(arg):
+    if isinstance(arg, np.ndarray):
+        return arg.view('i8', type=np.ndarray)
+    else:
+        return arg
+
+def _wrap_i8_function(f):
+    @staticmethod
+    def wrapper(*args, **kwargs):
+        view_args = [_as_i8(arg) for arg in args]
+        return f(*view_args, **kwargs)
+    return wrapper
+
+def _dt_index_box(arg):
+    if isinstance(arg, np.ndarray):
+        return arg.astype('O')
+    else:
+        return arg
+
+def _wrap_dt_function(f):
+    @staticmethod
+    def wrapper(*args, **kwargs):
+        view_args = [_dt_index_box(arg) for arg in args]
+        return f(*view_args, **kwargs)
+    return wrapper
+
+def _join_i8_wrapper(joinf, with_indexers=True):
+    @staticmethod
+    def wrapper(left, right):
+        if isinstance(left, np.ndarray):
+            left = left.view('i8', type=np.ndarray)
+        if isinstance(right, np.ndarray):
+            right = right.view('i8', type=np.ndarray)
+        results = joinf(left, right)
+        if with_indexers:
+            join_index, left_indexer, right_indexer = results
+            join_index = join_index.view('M8')
+            return join_index, left_indexer, right_indexer
+        return results
+    return wrapper
+
+def _dt_index_cmp(opname):
+    """
+    Wrap comparison operations to unbox a datetime to a datetime64.
+    """
+    def wrapper(self, other):
+        if isinstance(other, datetime):
+            func = getattr(self, opname)
+            return func(_dt_unbox(other))
+        else:
+            func = getattr(super(DatetimeIndex, self), opname)
+            return func(other)
+    return wrapper
+
+def _dt_index_op(opname):
+    """
+    Wrap arithmetic operations to unbox a datetime to a datetime64.
+    """
+    def wrapper(self, other):
+        if isinstance(other, timedelta):
+            func = getattr(self, opname)
+            return func(np.timedelta64(other))
+        else:
+            func = getattr(super(DatetimeIndex, self), opname)
+            return func(other)
+    return wrapper
+
+class DatetimeIndex(Int64Index):
+
+    _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
+    _inner_indexer = _join_i8_wrapper(lib.inner_join_indexer_int64)
+    _outer_indexer = _join_i8_wrapper(lib.outer_join_indexer_int64)
+    _left_indexer  = _join_i8_wrapper(lib.left_join_indexer_int64,
+                                      with_indexers=False)
+    _merge_indexer = _join_i8_wrapper(lib.merge_indexer_int64,
+                                      with_indexers=False)
+    _map_indices   = _wrap_i8_function(lib.map_indices_int64)
+    _pad           = _wrap_i8_function(lib.pad_int64)
+    _backfill      = _wrap_i8_function(lib.backfill_int64)
+
+    _arrmap        = _wrap_dt_function(lib.arrmap_object)
+    _groupby       = _wrap_dt_function(lib.groupby_object)
+
+    __eq__ = _dt_index_cmp('__eq__')
+    __ne__ = _dt_index_cmp('__ne__')
+    __lt__ = _dt_index_cmp('__lt__')
+    __gt__ = _dt_index_cmp('__gt__')
+    __le__ = _dt_index_cmp('__le__')
+    __ge__ = _dt_index_cmp('__ge__')
+
+    __add__ = _dt_index_op('__add__')
+    __sub__ = _dt_index_op('__sub__')
+
+    def __new__(cls, data, dtype=None, copy=False, name=None):
+        if not isinstance(data, np.ndarray):
+            if np.isscalar(data):
+                raise ValueError('DatetimeIndex() must be called with a '
+                                 'collection of some kind, %s was passed'
+                                 % repr(data))
+
+            # other iterable of some kind
+            if not isinstance(data, (list, tuple)):
+                data = list(data)
+
+            # try to make it datetime64
+            data = np.asarray(data, dtype=np.datetime64)
+
+        if issubclass(data.dtype.type, basestring):
+            raise TypeError('String dtype not supported, you may need '
+                            'to explicitly cast to datetime64')
+        elif issubclass(data.dtype.type, np.integer):
+            subarr = np.array(data, dtype=np.datetime64, copy=copy)
+        elif issubclass(data.dtype.type, np.datetime64):
+            subarr = np.array(data, dtype=np.datetime64, copy=copy)
+        else:
+            subarr = np.array(data, dtype=np.datetime64, copy=copy)
+            if len(data) > 0:
+                test = (subarr != data)
+                if (type(test) == bool and test == True) or test.any():
+                    raise TypeError('Unsafe NumPy casting, you must '
+                                    'explicitly cast')
+
+        subarr = subarr.view(cls)
+        subarr.name = name
+        return subarr
+
+    def __getitem__(self, key):
+        """Override numpy.ndarray's __getitem__ method to work as desired"""
+        arr_idx = self.view(np.ndarray)
+        if np.isscalar(key):
+            if type(key) == datetime:
+                key = _dt_unbox(key)
+            return _dt_box(arr_idx[key])
+        else:
+            if _is_bool_indexer(key):
+                key = np.asarray(key)
+
+            result = arr_idx[key]
+            if result.ndim > 1:
+                return result
+
+            return DatetimeIndex(result, name=self.name)
+
+    def __iter__(self):
+        # TODO: again, figure out how to expose elements as nice datetime
+        # objects so you can do obj.year etc
+        return iter(self.values.astype('O'))
+
+    def searchsorted(self, key, side='left'):
+        """
+        Workaround numpy coredump in searchsorted
+        """
+        if isinstance(key, datetime):
+            key = _dt_unbox(key)
+        elif isinstance(key, np.ndarray):
+            key = np.array(key, dtype=np.datetime64, copy=False)
+        elif not isinstance(key, np.datetime64):
+            raise TypeError("Key %s is unrecognized type" % key)
+        return self.values.searchsorted(key, side=side)
+
+    def is_type_compatible(self, typ):
+        return typ == self.inferred_type or typ == 'datetime'
+
+    # hack to workaround argmin failure
+    def argmin(self):
+        return (-self).argmax()
+
+    @property
+    def inferred_type(self):
+        # b/c datetime is represented as microseconds since the epoch, make
+        # sure we can't have ambiguous indexing
+        return 'datetime64'
+
+    @property
+    def _constructor(self):
+        return DatetimeIndex
+
+    @property
+    def dtype(self):
+        return np.dtype('M8')
+
+    @property
+    def is_all_dates(self):
+        return True
+
+    @cache_readonly
+    def _engine(self):
+        view = self.view('i8', type=np.ndarray)
+        mapping = lib.map_indices_int64
+        return _gin.DictIndexEngineDatetime(view, mapping)
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        if other.inferred_type == 'datetime64':
+            other = other.view('i8', type=np.ndarray)
+        elif other.inferred_type == 'datetime':
+            # TODO: faster conversion from datetime object to datetime64?
+            other = np.array(other, dtype='M8', copy=False)
+            other = other.view('i8', type=np.ndarray)
+        elif len(other) == 0 and len(self) == 0 and other.dtype == object:
+            # fun corner case
+            return True
+
+        selfi8 = self.view('i8', type=np.ndarray)
+        return np.array_equal(selfi8, other)
+
+    def insert(self, loc, item):
+        """
+        Make new Index inserting new item at location
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        new_index : Index
+        """
+        if type(item) == datetime:
+            item = _dt_unbox(item)
+
+        return super(DatetimeIndex, self).insert(loc, item)
+
+    def _wrap_joined_index(self, joined, other):
+        name = self.name if self.name == other.name else None
+        return DatetimeIndex(joined, name=name)
 
 class Factor(np.ndarray):
     """
@@ -990,9 +1238,11 @@ class Factor(np.ndarray):
             return np.ndarray.__getitem__(self, key)
 
 def unique_with_labels(values):
-    uniques = Index(lib.fast_unique(values))
-    labels = lib.get_unique_labels(values, uniques.indexMap)
-    uniques._cleanup()
+    rizer = lib.Factorizer(len(values))
+    labels, counts = rizer.factorize(values, sort=True)
+    # TODO: fix if this necessary, is factorize supposed to sort it?
+    rizer.uniques.sort()
+    uniques = Index(rizer.uniques)
     return uniques, labels
 
 class MultiIndex(Index):
@@ -1143,7 +1393,7 @@ class MultiIndex(Index):
                 raise
             except TypeError:
                 # generator/iterator-like
-                if com.is_iterator(key):
+                if is_iterator(key):
                     raise InvalidIndexError(key)
                 else:
                     raise e1
@@ -1651,7 +1901,7 @@ class MultiIndex(Index):
             section = labs[start:end]
 
             if lab not in lev:
-                if lib.infer_dtype([lab]) != lev.inferred_type:
+                if not lev.is_type_compatible(lib.infer_dtype([lab])):
                     raise Exception('Level type mismatch: %s' % lab)
 
                 # short circuit

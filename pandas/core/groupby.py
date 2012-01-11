@@ -432,6 +432,8 @@ class GroupBy(object):
         result = None
 
         for label, group in self._generate_groups(obj, group_index, ngroups):
+            if group is None:
+                continue
             res = func(group)
             if result is None:
                 try:

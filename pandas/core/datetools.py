@@ -2,6 +2,8 @@
 
 from datetime import datetime, timedelta
 import sys
+import numpy as np
+from pandas.core.common import _dt_box
 
 try:
     import dateutil
@@ -49,6 +51,8 @@ def to_datetime(arg):
         return arg
 
 def normalize_date(dt):
+    if isinstance(dt, np.datetime64):
+        dt = _dt_box(dt)
     return datetime(dt.year, dt.month, dt.day)
 
 #-------------------------------------------------------------------------------
