@@ -436,11 +436,11 @@ class EngFormatter(object):
         representing the power of 1000 of the original number. Some examples:
 
         >>> format_eng(0)       # for self.accuracy = 0
-        '0'
+        ' 0'
 
         >>> format_eng(1000000) # for self.accuracy = 1,
                                 #     self.use_eng_prefix = True
-        '1.0M'
+        ' 1.0M'
 
         >>> format_eng("-1e-6") # for self.accuracy = 2
                                 #     self.use_eng_prefix = False
@@ -481,10 +481,8 @@ class EngFormatter(object):
         mant = sign*dnum/(10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
-            format_str = u"%g%s"
-        elif self.accuracy == 0:
-            format_str = u"%i%s"
-        elif self.accuracy > 0:
+            format_str = u"% g%s"
+        else:
             format_str = (u"%% .%if%%s" % self.accuracy )
 
         formatted = format_str % (mant, prefix)
