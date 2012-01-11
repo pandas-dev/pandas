@@ -456,8 +456,8 @@ copy : boolean, default False
     def __repr__(self):
         """Clean string representation of a Series"""
         width, height = get_terminal_size()
-        max_rows = (height if com.GlobalPrintConfig.max_rows == 0
-                    else com.GlobalPrintConfig.max_rows)
+        max_rows = (height if com.print_config.max_rows == 0
+                    else com.print_config.max_rows)
         if len(self.index) > max_rows:
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
@@ -518,7 +518,7 @@ copy : boolean, default False
         padSpace = min(maxlen, 60)
 
         if float_format is None:
-            float_format = com.GlobalPrintConfig.float_format
+            float_format = com.print_config.float_format
             if float_format is None:
                 float_format = com._float_format_default
 

@@ -26,6 +26,9 @@ df = DataFrame({'key1' : get_test_data(ngroups=ngroups),
                 'data2' : np.random.randn(N)})
 def f():
     df.groupby(['key1', 'key2']).agg(lambda x: x.values.sum())
+
+simple_series = Series(np.random.randn(N))
+key1 = df['key1']
 """
 
 stmt1 = "df.groupby(['key1', 'key2'])['data1'].agg(lambda x: x.values.sum())"
@@ -42,3 +45,9 @@ stmt = "df.groupby(['key1', 'key2'])['data1'].agg(np.std)"
 groupby_multi_series_op = Benchmark(stmt, setup,
                                     name="groupby_multi_series_op",
                                     start_date=datetime(2011, 8, 1))
+
+groupby_series_simple_cython = \
+    Benchmark('simple_series.groupby(key1).sum()', setup,
+              name='groupby_series_simple_cython',
+              start_date=datetime(2011, 3, 1))
+

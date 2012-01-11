@@ -64,7 +64,7 @@ class DataFrameFormatter(object):
         self.index = index
 
         if justify is None:
-            self.justify = com.GlobalPrintConfig.colheader_justify
+            self.justify = com.print_config.colheader_justify
         else:
             self.justify = justify
 

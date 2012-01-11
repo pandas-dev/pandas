@@ -692,13 +692,8 @@ cdef class PyObjectHashTable:
 
         return uniques
 
-    def factorize(self, ndarray[object] values):
-        uniques = []
-        labels, counts = self.get_labels(values, uniques, 0)
-        return labels, counts, uniques # reverse, labels, counts
-
     cpdef get_labels(self, ndarray[object] values, list uniques,
-                     Py_ssize_t count_prior):
+                     Py_ssize_t count_prior, int32_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int32_t] labels
@@ -713,6 +708,11 @@ cdef class PyObjectHashTable:
 
         for i in range(n):
             val = values[i]
+
+            if val != val:
+                labels[i] = na_sentinel
+                continue
+
             k = kh_get_pymap(self.table, <PyObject*>val)
             if k != self.table.n_buckets:
                 idx = self.table.vals[k]
@@ -759,9 +759,9 @@ cdef class Factorizer:
     def get_count(self):
         return self.count
 
-    def factorize(self, ndarray[object] values, sort=False):
+    def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1):
         labels, counts = self.table.get_labels(values, self.uniques,
-                                               self.count)
+                                               self.count, na_sentinel)
 
         # sort on
         if sort:

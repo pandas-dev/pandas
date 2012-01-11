@@ -383,21 +383,19 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
     """
-    global GlobalPrintConfig
     if precision is not None:
-        GlobalPrintConfig.precision = precision
+        print_config.precision = precision
     if column_space is not None:
-        GlobalPrintConfig.column_space = column_space
+        print_config.column_space = column_space
     if max_rows is not None:
-        GlobalPrintConfig.max_rows = max_rows
+        print_config.max_rows = max_rows
     if max_columns is not None:
-        GlobalPrintConfig.max_columns = max_columns
+        print_config.max_columns = max_columns
     if colheader_justify is not None:
-        GlobalPrintConfig.colheader_justify = colheader_justify
+        print_config.colheader_justify = colheader_justify
 
 def reset_printoptions():
-    global GlobalPrintConfig
-    GlobalPrintConfig.reset()
+    print_config.reset()
 
 class EngFormatter(object):
     """
@@ -503,9 +501,8 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
                       "being renamed to 'accuracy'" , FutureWarning)
         accuracy = precision
 
-    global GlobalPrintConfig
-    GlobalPrintConfig.float_format = EngFormatter(accuracy, use_eng_prefix)
-    GlobalPrintConfig.column_space = max(12, accuracy + 9)
+    print_config.float_format = EngFormatter(accuracy, use_eng_prefix)
+    print_config.column_space = max(12, accuracy + 9)
 
 #_float_format = None
 #_column_space = 12
@@ -526,7 +523,7 @@ def _float_format_default(v, width=None):
     to fit the width, reformat it to that width.
     """
 
-    fmt_str   = '%% .%dg' % GlobalPrintConfig.precision
+    fmt_str   = '%% .%dg' % print_config.precision
     formatted = fmt_str % v
 
     if width is None:
@@ -588,8 +585,8 @@ def _format(s, dtype, space=None, na_rep=None, float_format=None,
 
         if float_format:
             formatted = float_format(x)
-        elif GlobalPrintConfig.float_format:
-            formatted = GlobalPrintConfig.float_format(x)
+        elif print_config.float_format:
+            formatted = print_config.float_format(x)
         else:
             formatted = _float_format_default(x, col_width)
 
@@ -621,7 +618,7 @@ class _GlobalPrintConfig(object):
     def reset(self):
         self.__init__()
 
-GlobalPrintConfig = _GlobalPrintConfig()
+print_config = _GlobalPrintConfig()
 
 #------------------------------------------------------------------------------
 # miscellaneous python tools

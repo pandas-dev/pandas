@@ -79,7 +79,7 @@ class PandasObject(Picklable):
         except KeyError:
             return default
 
-    def groupby(self, by=None, axis=0, level=None, as_index=True):
+    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns
@@ -99,6 +99,8 @@ class PandasObject(Picklable):
             For aggregated output, return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
             effectively "SQL-style" grouped output
+        sort : boolean, default True
+            Sort group keys. Get better performance by turning this off
 
         Examples
         --------
@@ -116,7 +118,8 @@ class PandasObject(Picklable):
         GroupBy object
         """
         from pandas.core.groupby import groupby
-        return groupby(self, by, axis=axis, level=level, as_index=as_index)
+        return groupby(self, by, axis=axis, level=level, as_index=as_index,
+                       sort=sort)
 
     def select(self, crit, axis=0):
         """

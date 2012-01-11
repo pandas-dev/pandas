@@ -104,42 +104,6 @@ def groupby_indices(ndarray values):
 
     return result
 
-# def get_group_index(list list_of_arrays, tuple tshape):
-#     '''
-#     Should just use NumPy, this is slower
-#     '''
-#     cdef:
-#         int32_t **vecs
-#         int32_t *strides
-#         int32_t cur, stride
-#         ndarray[int32_t] result
-#         Py_ssize_t i, j, n, nlevels, ngroups
-
-#     nlevels = len(list_of_arrays)
-#     n = len(list_of_arrays[0])
-
-#     strides = <int32_t*> malloc(nlevels * sizeof(int32_t))
-#     vecs = to_ptr_array(list_of_arrays)
-
-#     result = np.empty(n, dtype='i4')
-
-#     ngroups = 1
-#     for j from 0 <= j < nlevels:
-#         strides[j] = tshape[j]
-#         ngroups *= strides[j]
-
-#     for i from 0 <= i < n:
-#         cur = 0
-#         stride = ngroups
-#         for j from 0 <= j < nlevels:
-#             stride /= strides[j]
-#             cur += vecs[j][i] * stride
-#         result[i] = cur
-
-#     free(strides)
-#     free(vecs)
-#     return result
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def is_lexsorted(list list_of_arrays):
@@ -210,42 +174,6 @@ def group_labels(ndarray[object] values):
 
     return reverse, labels, counts[:count].copy()
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def group_labels2(ndarray[object] values):
-    '''
-    Compute label vector from input values and associated useful data
-
-    Returns
-    -------
-    '''
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int32_t] labels = np.empty(n, dtype=np.int32)
-        dict ids = {}
-        dict reverse = {}
-        int32_t idx
-        object val
-        int32_t count = 0
-
-    for i from 0 <= i < n:
-        val = values[i]
-
-        # is NaN
-        if val != val:
-            labels[i] = -1
-            continue
-
-        if val in ids:
-            idx = ids[val]
-            labels[i] = idx
-        else:
-            ids[val] = count
-            reverse[count] = val
-            labels[i] = count
-            count += 1
-
-    return reverse, labels
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

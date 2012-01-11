@@ -413,10 +413,12 @@ class DataFrame(NDFrame):
         """
         Return a string representation for a particular DataFrame
         """
+        config = com.print_config
+
         terminal_width, terminal_height = get_terminal_size()
-        max_rows = (terminal_height if com.GlobalPrintConfig.max_rows == 0
-                    else com.GlobalPrintConfig.max_rows)
-        max_columns = com.GlobalPrintConfig.max_columns
+        max_rows = (terminal_height if config.max_rows == 0
+                    else config.max_rows)
+        max_columns = config.max_columns
 
         if max_columns > 0:
             buf = StringIO()
