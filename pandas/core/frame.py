@@ -1430,6 +1430,51 @@ class DataFrame(NDFrame):
             result.index = _maybe_droplevels(result.index, key)
             return result
 
+    def lookup(self, row_labels, col_labels):
+        """
+        Label-based "fancy indexing" function for DataFrame. Given equal-length
+        arrays of row and column labels, return an array of the values
+        corresponding to each (row, col)  pair.
+
+        Parameters
+        ----------
+        row_labels : sequence
+        col_labels : sequence
+
+        Notes
+        -----
+        Akin to
+
+        result = []
+        for row, col in zip(row_labels, col_labels):
+            result.append(df.get_value(row, col))
+
+        Example
+        -------
+        values : ndarray
+        """
+        from itertools import izip
+
+        n = len(row_labels)
+        assert(n == len(col_labels))
+
+        thresh = 1000
+        if not self._is_mixed_type or n > thresh:
+            values = self.values
+            ridx = self.index.get_indexer(row_labels)
+            cidx = self.columns.get_indexer(col_labels)
+            flat_index = ridx * len(self.columns) + cidx
+            result = values.flat[flat_index]
+        else:
+            result = np.empty(n, dtype='O')
+            for i, (r, c) in enumerate(izip(row_labels, col_labels)):
+                result[i] = self.get_value(r, c)
+
+        if result.dtype == 'O':
+            result = lib.maybe_convert_objects(result)
+
+        return result
+
     #----------------------------------------------------------------------
     # Reindexing and alignment
 

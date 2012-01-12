@@ -702,6 +702,32 @@ class CheckIndexing(object):
                 expected = self.frame[col][idx]
                 assert_almost_equal(result, expected)
 
+    def test_lookup(self):
+        def alt(df, rows, cols):
+            result = []
+            for r, c in zip(rows, cols):
+                result.append(df.get_value(r, c))
+            return result
+
+        def testit(df):
+            rows = list(df.index) * len(df.columns)
+            cols = list(df.columns) * len(df.index)
+            result = df.lookup(rows, cols)
+            expected = alt(df, rows, cols)
+            assert_almost_equal(result, expected)
+
+        testit(self.mixed_frame)
+        testit(self.frame)
+
+        df = DataFrame({'label' : ['a', 'b', 'a', 'c'],
+                        'mask_a' : [True, True, False, True],
+                        'mask_b' : [True, False, False, False],
+                        'mask_c' : [False, True, False, True]})
+        df['mask'] = df.lookup(df.index, 'mask_' + df['label'])
+        exp_mask = alt(df, df.index, 'mask_' + df['label'])
+        assert_almost_equal(df['mask'], exp_mask)
+        self.assert_(df['mask'].dtype == np.bool_)
+
     def test_set_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:

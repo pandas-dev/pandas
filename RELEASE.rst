@@ -64,6 +64,8 @@ pandas 0.7.0
     for potential speedups (GH #595)
   - Can pass MaskedArray to Series constructor (PR #563)
   - Add Panel item access via attributes and IPython completion (GH #554)
+  - Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving
+    values given a sequence of row and column labels (GH #338)
 
 **API Changes**
 
@@ -187,6 +189,8 @@ pandas 0.7.0
   - Fix exception caused by parser converter returning strings (GH #583)
   - Fix MultiIndex formatting bug with integer names (GH #601)
   - Fix bug in handling of non-numeric aggregates in Series.groupby (GH #612)
+  - Fix TypeError with tuple subclasses (e.g. namedtuple) in
+    DataFrame.from_records (GH #611)
 
 Thanks
 ------
