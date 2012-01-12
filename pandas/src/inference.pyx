@@ -331,6 +331,7 @@ def sanitize_objects(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
         object val, onan
+        Py_ssize_t na_count = 0
 
     n = len(values)
     onan = np.nan
@@ -339,6 +340,8 @@ def sanitize_objects(ndarray[object] values, set na_values):
         val = values[i]
         if val == '' or val in na_values:
             values[i] = onan
+            na_count += 1
+    return na_count
 
 def maybe_convert_bool(ndarray[object] arr):
     cdef:

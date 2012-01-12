@@ -46,6 +46,8 @@ skip_footer : int, default 0
 converters : dict. optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels
+verbose : boolean, default False
+    Indicate number of NA values placed in non-numeric columns
 
 Returns
 -------
@@ -93,7 +95,7 @@ parsed : DataFrame
 def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
              date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None):
+             skip_footer=0, converters=None, verbose=False):
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
@@ -114,7 +116,8 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
                         delimiter=sep,
                         chunksize=chunksize,
                         skip_footer=skip_footer,
-                        converters=converters)
+                        converters=converters,
+                        verbose=verbose)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -127,13 +130,14 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
                date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0, converters=None):
+               skip_footer=0, converters=None, verbose=False):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
                     names=names, parse_dates=parse_dates,
                     nrows=nrows, iterator=iterator, chunksize=chunksize,
-                    skip_footer=skip_footer, converters=converters)
+                    skip_footer=skip_footer, converters=converters,
+                    verbose=verbose)
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -196,7 +200,7 @@ class TextParser(object):
     def __init__(self, f, delimiter=None, names=None, header=0,
                  index_col=None, na_values=None, parse_dates=False,
                  date_parser=None, chunksize=None, skiprows=None,
-                 skip_footer=0, converters=None):
+                 skip_footer=0, converters=None, verbose=False):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -215,6 +219,7 @@ class TextParser(object):
         self.skiprows = set() if skiprows is None else set(skiprows)
         self.skip_footer = skip_footer
         self.delimiter = delimiter
+        self.verbose = verbose
 
         if converters is not None:
             assert(isinstance(converters, dict))
@@ -412,14 +417,17 @@ class TextParser(object):
             if np.isscalar(self.index_col):
                 if self.parse_dates:
                     index = lib.try_parse_dates(index, parser=self.date_parser)
-                index = Index(_convert_types(index, self.na_values),
-                              name=self.index_name)
+                index, na_count = _convert_types(index, self.na_values)
+                index = Index(index, name=self.index_name)
+                if self.verbose and na_count:
+                    print 'Found %d NA values in the index' % na_count
             else:
                 arrays = []
                 for arr in index:
                     if self.parse_dates:
                         arr = lib.try_parse_dates(arr, parser=self.date_parser)
-                    arrays.append(_convert_types(arr, self.na_values))
+                    arr, _ = _convert_types(arr, self.na_values)
+                    arrays.append(arr)
                 index = MultiIndex.from_arrays(arrays, names=self.index_name)
         else:
             index = Index(np.arange(len(content)))
@@ -442,7 +450,7 @@ class TextParser(object):
                 result = result.astype('O')
             data[col] = result
 
-        data = _convert_to_ndarrays(data, self.na_values)
+        data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
         return DataFrame(data=data, columns=self.columns, index=index)
 
@@ -483,24 +491,30 @@ class TextParser(object):
 
         return lines
 
-def _convert_to_ndarrays(dct, na_values):
+def _convert_to_ndarrays(dct, na_values, verbose=False):
     result = {}
     for c, values in dct.iteritems():
-        result[c] = _convert_types(values, na_values)
+        cvals, na_count = _convert_types(values, na_values)
+        result[c] = cvals
+        if verbose and na_count:
+            print 'Filled %d NA values in column %s' % (na_count, str(c))
     return result
 
 def _convert_types(values, na_values):
+    na_count = 0
     if issubclass(values.dtype.type, (np.number, np.bool_)):
-        return values
+        return values, na_count
 
     try:
-        values = lib.maybe_convert_numeric(values, na_values)
+        result = lib.maybe_convert_numeric(values, na_values)
     except Exception:
-        lib.sanitize_objects(values, na_values)
+        na_count = lib.sanitize_objects(values, na_values)
+        result = values
 
-    if values.dtype == np.object_:
-        return lib.maybe_convert_bool(values)
-    return values
+    if result.dtype == np.object_:
+        result = lib.maybe_convert_bool(values)
+
+    return result, na_count
 
 #-------------------------------------------------------------------------------
 # ExcelFile class

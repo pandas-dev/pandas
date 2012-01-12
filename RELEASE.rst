@@ -66,6 +66,8 @@ pandas 0.7.0
   - Add Panel item access via attributes and IPython completion (GH #554)
   - Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving
     values given a sequence of row and column labels (GH #338)
+  - Add ``verbose`` option to ``read_csv`` and ``read_table`` to show number of
+    NA values inserted in non-numeric columns (GH #614)
 
 **API Changes**
 
@@ -132,6 +134,8 @@ pandas 0.7.0
     operations that it implemented (GH #91)
   - Can pass a list of functions to aggregate with groupby on a DataFrame,
     yielding an aggregated result with hierarchical columns (GH #166)
+  - Monkey-patch context to traceback in ``DataFrame.apply`` to indicate which
+    row/column the function application failed on (GH #614)
 
 **Bug fixes**
 
@@ -199,6 +203,7 @@ Thanks
 - Mario Gamboa-Cavazos
 - Arthur Gerigk
 - Yaroslav Halchenko
+- Jeff Hammerbacher
 - Matt Harrison
 - Andreas Hilboll
 - Luc Kesters
