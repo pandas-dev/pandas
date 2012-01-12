@@ -822,6 +822,21 @@ class TestConcatenate(unittest.TestCase):
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_multiindex_with_keys(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
+        frame = DataFrame(np.random.randn(10, 3), index=index,
+                          columns=Index(['A', 'B', 'C'], name='exp'))
+        result = concat([frame, frame], keys=[0, 1], names=['iteration'])
+
+        self.assertEqual(result.index.names, ['iteration'] + index.names)
+        tm.assert_frame_equal(result.ix[0], frame)
+        tm.assert_frame_equal(result.ix[1], frame)
+        self.assertEqual(result.index.nlevels, 3)
+
     def test_concat_keys_and_levels(self):
         df = DataFrame(np.random.randn(1, 3))
         df2 = DataFrame(np.random.randn(1, 4))
