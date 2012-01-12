@@ -258,7 +258,7 @@ class Panel(NDFrame):
         axes = [items, major, minor]
         reshaped_data = data.copy() # shallow
 
-        item_shape = (1, len(major), len(minor))
+        item_shape = len(major), len(minor)
         for item in items:
             v = values = data.get(item)
             if v is None:
@@ -270,8 +270,8 @@ class Panel(NDFrame):
                     v = v.astype(dtype)
                 values = v.values
 
-            if values.ndim == 2:
-                values = values[None, :, :]
+            # if values.ndim == 2:
+            #     values = values[None, :, :]
 
             reshaped_data[item] = values
 

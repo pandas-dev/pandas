@@ -953,14 +953,14 @@ def form_blocks(data, axes):
     return blocks
 
 def _simple_blockify(dct, ref_items, dtype):
-    block_items, values = _stack_dict(dct, ref_items)
+    block_items, values = _stack_dict(dct, ref_items, dtype)
     # CHECK DTYPE?
     if values.dtype != dtype: # pragma: no cover
         values = values.astype(dtype)
 
     return make_block(values, block_items, ref_items, do_integrity_check=True)
 
-def _stack_dict(dct, ref_items):
+def _stack_dict(dct, ref_items, dtype):
     from pandas.core.series import Series
 
     # fml
@@ -971,8 +971,23 @@ def _stack_dict(dct, ref_items):
         else:
             return np.asarray(x)
 
+    def _shape_compat(x):
+        # sparseseries
+        if isinstance(x, Series):
+            return len(x),
+        else:
+            return x.shape
+
     items = [x for x in ref_items if x in dct]
-    stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
+
+    first = dct[items[0]]
+    shape = (len(dct),) + _shape_compat(first)
+
+    stacked = np.empty(shape, dtype=dtype)
+    for i, item in enumerate(items):
+        stacked[i] = _asarray_compat(dct[item])
+
+    # stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):

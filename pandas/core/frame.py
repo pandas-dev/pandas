@@ -3850,6 +3850,8 @@ def _homogenize(data, index, columns, dtype=None):
     if dtype is not None:
         dtype = np.dtype(dtype)
 
+    oindex = None
+
     for k in columns:
         if k not in data:
             # no obvious "empty" int column
@@ -3870,7 +3872,9 @@ def _homogenize(data, index, columns, dtype=None):
                 v = v.reindex(index, copy=False)
         else:
             if isinstance(v, dict):
-                v = lib.fast_multiget(v, index, default=np.nan)
+                if oindex is None:
+                    oindex = index.astype('O')
+                v = lib.fast_multiget(v, oindex, default=np.nan)
 
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)

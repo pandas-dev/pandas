@@ -5,7 +5,8 @@ import os
 
 modules = ['groupby', 'indexing', 'reindex',
            'sparse', 'index_object', 'miscellaneous',
-           'stat_ops', 'join_merge', 'panel_ctor', 'frame_ctor']
+           'stat_ops', 'join_merge', 'panel_ctor', 'frame_ctor',
+           'frame_methods']
 
 by_module = {}
 benchmarks = []

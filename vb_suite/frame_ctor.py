@@ -25,3 +25,10 @@ frame_ctor_list_of_dict = Benchmark("DataFrame(dict_list)", setup,
                                     start_date=datetime(2011, 12, 20))
 
 series_ctor_from_dict = Benchmark("Series(some_dict)", setup)
+
+# nested dict, integer indexes, regression described in #621
+
+setup = common_setup + """
+data = dict((i,dict((j,float(j)) for j in xrange(100))) for i in xrange(2000))
+"""
+frame_ctor_nested_dict_int64 = Benchmark("DataFrame(data)", setup)
