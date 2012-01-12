@@ -334,8 +334,8 @@ and stop are **inclusive** in the label-based case:
 
    date1, date2 = dates[[2, 4]]
    print date1, date2
-   s.ix[date1:date2]
    df.ix[date1:date2]
+   df['A'].ix[date1:date2]
 
 Getting and setting rows in a DataFrame, especially by their location, is much
 easier:
@@ -367,6 +367,19 @@ NumPy. Whenever an array of labels or a boolean vector are involved in the
 indexing operation, the result will be a copy. With single label / scalar
 indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
 returned.
+
+The ``select`` method
+~~~~~~~~~~~~~~~~~~~~~
+
+Another way to extract slices from an object is with the ``select`` method of
+Series, DataFrame, and Panel. This method should be used only when there is no
+more direct way.  ``select`` takes a function which operates on labels along
+``axis`` and returns a boolean.  For instance:
+
+.. ipython:: python
+
+   df.select(lambda x: x == 'A', axis=1)
+
 
 Advanced indexing with integer labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
