@@ -414,15 +414,26 @@ class GroupBy(object):
 
     def _aggregate_series_pure_python(self, obj, func, ngroups):
         counts = np.zeros(ngroups, dtype=int)
-        result = np.empty(ngroups, dtype=float)
-        result.fill(np.nan)
+        result = None
 
         for label, group in self._generator_factory(obj):
             if group is None:
                 continue
-            counts[label] = group.shape[0]
-            result[label] = func(group)
+            res = func(group)
+            if result is None:
+                try:
+                    assert(not isinstance(res, np.ndarray))
+                    assert(not (isinstance(res, list) and
+                                len(res) == len(self.dummy)))
 
+                    result = np.empty(ngroups, dtype='O')
+                except Exception:
+                    raise ValueError('function does not reduce')
+
+            counts[label] = group.shape[0]
+            result[label] = res
+
+        result = lib.maybe_convert_objects(result)
         return result, counts
 
     def _python_apply_general(self, func, *args, **kwargs):
