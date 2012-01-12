@@ -12,7 +12,10 @@ except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
 def _bottleneck_switch(bn_name, alt, **kwargs):
-    bn_func = getattr(bn, bn_name)
+    try:
+        bn_func = getattr(bn, bn_name)
+    except NameError:
+        bn_func = None
     def f(values, axis=None, skipna=True):
         try:
             if _USE_BOTTLENECK and skipna:
