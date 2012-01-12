@@ -608,6 +608,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         last_line = result.split('\n')[-1].strip()
         self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
 
+    def test_to_string_mixed(self):
+        s = Series(['foo', np.nan, -1.23, 4.56])
+        result = s.to_string()
+        expected = ('0     foo\n'
+                    '1     NaN\n'
+                    '2    -1.23\n'
+                    '3     4.56')
+        self.assertEqual(result, expected)
+
+        # but don't count NAs as floats
+        s = Series(['foo', np.nan, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    NaN\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])

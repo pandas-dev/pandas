@@ -522,19 +522,31 @@ copy : boolean, default False
             if float_format is None:
                 float_format = com._float_format_default
 
-        def _format(k, v):
+        def _format(k, v, extra=0):
             # GH #490
             if not isinstance(v, np.ndarray) and isnull(v):
                 v = na_rep
             if com.is_float(v):
                 v = float_format(v)
-            return '%s    %s' % (str(k).ljust(padSpace),
-                                 str(v).replace('\n', ' '))
+            strv = ' ' * extra + str(v).replace('\n', ' ')
+            return '%s    %s' % (str(k).ljust(padSpace), strv)
 
-        it = [_format(idx, v) for idx, v in izip(string_index, vals)]
+        # floating point handling
+        if self.dtype == 'O':
+            is_float = (self.map(com.is_float) & self.notnull()).values
+            leading_space = is_float.any()
+
+            res = []
+            for i, (k, v) in enumerate(izip(string_index, vals)):
+                if not is_float[i] and leading_space:
+                    res.append(_format(k, v, extra=1))
+                else:
+                    res.append(_format(k, v))
+        else:
+            res = [_format(idx, v) for idx, v in izip(string_index, vals)]
 
         if print_header and have_header:
-            it.insert(0, header)
+            res.insert(0, header)
 
         footer = ''
         if name:
@@ -546,9 +558,9 @@ copy : boolean, default False
             footer += 'Length: %d' % len(self)
 
         if footer:
-            it.append(footer)
+            res.append(footer)
 
-        return '\n'.join(it)
+        return '\n'.join(res)
 
     def __str__(self):
         return repr(self)
