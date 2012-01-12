@@ -275,6 +275,17 @@ class TestTypeInference(unittest.TestCase):
     def test_datetime(self):
         pass
 
+    def test_to_object_array_tuples(self):
+        r = (5,6)
+        values = [r]
+        result = lib.to_object_array_tuples(values)
+
+        # make sure record array works
+        import collections as col
+        record = col.namedtuple('record', 'x y')
+        r = record(5,6)
+        values = [r]
+        result = lib.to_object_array_tuples(values)
 
 class TestMoments(unittest.TestCase):
     pass

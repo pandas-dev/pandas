@@ -448,7 +448,7 @@ def to_object_array_tuples(list rows):
     result = np.empty((n, k), dtype=object)
 
     for i from 0 <= i < n:
-        row = rows[i]
+        row = tuple(rows[i]) # upcast any subclasses to tuple
 
         for j from 0 <= j < len(row):
             result[i, j] = row[j]
