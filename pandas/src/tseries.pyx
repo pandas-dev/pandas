@@ -424,6 +424,34 @@ def fast_zip(list ndarrays):
 
     return result
 
+def has_infs_f4(ndarray[float32_t] arr):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        float32_t inf, neginf, val
+
+    inf = np.inf
+    neginf = -inf
+
+    for i in range(n):
+        val = arr[i]
+        if val == inf or val == neginf:
+            return True
+    return False
+
+def has_infs_f8(ndarray[float64_t] arr):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        float64_t inf, neginf, val
+
+    inf = np.inf
+    neginf = -inf
+
+    for i in range(n):
+        val = arr[i]
+        if val == inf or val == neginf:
+            return True
+    return False
+
 # cdef class TypeConverter:
 #     cdef:
 #         cpython.PyTypeObject* klass_type

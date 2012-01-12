@@ -737,7 +737,7 @@ copy : boolean, default False
     def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', level=level, skipna=skipna)
-        return nanops.nansum(self.values, skipna=skipna, copy=True)
+        return nanops.nansum(self.values, skipna=skipna)
 
     @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
                   extras=_doc_ndarray_interface)
@@ -779,7 +779,7 @@ copy : boolean, default False
     def min(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', level=level, skipna=skipna)
-        return nanops.nanmin(self.values, skipna=skipna, copy=True)
+        return nanops.nanmin(self.values, skipna=skipna)
 
     @Substitution(name='maximum', shortname='max',
                   na_action=_doc_exclude_na, extras='')
@@ -787,7 +787,7 @@ copy : boolean, default False
     def max(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', level=level, skipna=skipna)
-        return nanops.nanmax(self.values, skipna=skipna, copy=True)
+        return nanops.nanmax(self.values, skipna=skipna)
 
     @Substitution(name='unbiased standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
@@ -796,8 +796,7 @@ copy : boolean, default False
             level=None):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, copy=True,
-                                     ddof=ddof))
+        return np.sqrt(nanops.nanvar(self.values, skipna=skipna))
 
     @Substitution(name='unbiased variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
@@ -806,7 +805,7 @@ copy : boolean, default False
             level=None):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna)
-        return nanops.nanvar(self.values, skipna=skipna, copy=True, ddof=ddof)
+        return nanops.nanvar(self.values, skipna=skipna)
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -815,7 +814,7 @@ copy : boolean, default False
         if level is not None:
             return self._agg_by_level('skew', level=level, skipna=skipna)
 
-        return nanops.nanskew(self.values, skipna=skipna, copy=True)
+        return nanops.nanskew(self.values, skipna=skipna)
 
     def _agg_by_level(self, name, level=0, skipna=True):
         grouped = self.groupby(level=level)

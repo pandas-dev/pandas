@@ -634,6 +634,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_sum(self):
         self._check_stat_op('sum', np.sum)
 
+    def test_sum_inf(self):
+        s = Series(np.random.randn(10))
+        s2 = s.copy()
+        s[5:8] = np.inf
+        s2[5:8] = np.nan
+        assert_almost_equal(s.sum(), s2.sum())
+
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 

@@ -3210,7 +3210,7 @@ class DataFrame(NDFrame):
         return grouped.aggregate(applyf)
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
-        f = lambda x: op(x, axis=axis, skipna=skipna, copy=True)
+        f = lambda x: op(x, axis=axis, skipna=skipna)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
             try:

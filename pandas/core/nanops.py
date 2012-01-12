@@ -11,12 +11,40 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-def nansum(values, axis=None, skipna=True, copy=True):
+def _bottleneck_switch(bn_name, alt, **kwargs):
+    bn_func = getattr(bn, bn_name)
+    def f(values, axis=None, skipna=True):
+        try:
+            if _USE_BOTTLENECK and skipna:
+                result = bn_func(values, axis=axis, **kwargs)
+                # prefer to treat inf/-inf as NA
+                if _has_infs(result):
+                    result = alt(values, axis=axis, skipna=skipna, **kwargs)
+            else:
+                result = alt(values, axis=axis, skipna=skipna, **kwargs)
+        except Exception:
+            result = alt(values, axis=axis, skipna=skipna, **kwargs)
+
+        return result
+
+    return f
+
+def _has_infs(result):
+    if isinstance(result, np.ndarray):
+        if result.dtype == 'f8':
+            return lib.has_infs_f8(result)
+        elif result.dtype == 'f4':
+            return lib.has_infs_f4(result)
+        else:  # pragma: no cover
+            raise TypeError('Only suppose float32/64 here')
+    else:
+        return np.isinf(result) or np.isneginf(result)
+
+def _nansum(values, axis=None, skipna=True):
     mask = isnull(values)
 
     if skipna and not issubclass(values.dtype.type, np.integer):
-        if copy:
-            values = values.copy()
+        values = values.copy()
         np.putmask(values, mask, 0)
 
     the_sum = values.sum(axis)
@@ -24,12 +52,11 @@ def nansum(values, axis=None, skipna=True, copy=True):
 
     return the_sum
 
-def nanmean(values, axis=None, skipna=True, copy=True):
+def _nanmean(values, axis=None, skipna=True):
     mask = isnull(values)
 
     if skipna and not issubclass(values.dtype.type, np.integer):
-        if copy:
-            values = values.copy()
+        values = values.copy()
         np.putmask(values, mask, 0)
 
     the_sum = values.sum(axis)
@@ -44,7 +71,7 @@ def nanmean(values, axis=None, skipna=True, copy=True):
         the_mean = the_sum / count if count > 0 else np.nan
     return the_mean
 
-def nanmedian(values, axis=None, skipna=True, copy=True):
+def _nanmedian(values, axis=None, skipna=True):
     def get_median(x):
         mask = notnull(x)
         if not skipna and not mask.all():
@@ -59,7 +86,7 @@ def nanmedian(values, axis=None, skipna=True, copy=True):
     else:
         return get_median(values)
 
-def nanvar(values, axis=None, skipna=True, copy=True, ddof=1):
+def _nanvar(values, axis=None, skipna=True, ddof=1):
     mask = isnull(values)
 
     if axis is not None:
@@ -68,52 +95,17 @@ def nanvar(values, axis=None, skipna=True, copy=True, ddof=1):
         count = float(values.size - mask.sum())
 
     if skipna:
-        if copy:
-            values = values.copy()
+        values = values.copy()
         np.putmask(values, mask, 0)
 
     X = values.sum(axis)
     XX = (values ** 2).sum(axis)
     return (XX - X ** 2 / count) / (count - ddof)
 
-def nanskew(values, axis=None, skipna=True, copy=True):
-    if not isinstance(values.dtype.type, np.floating):
-        values = values.astype('f8')
-
-    mask = isnull(values)
-    count = _get_counts(mask, axis)
-
-    if skipna:
-        if copy:
-            values = values.copy()
-        np.putmask(values, mask, 0)
-
-    A = values.sum(axis) / count
-    B = (values ** 2).sum(axis) / count - A ** 2
-    C = (values ** 3).sum(axis) / count - A ** 3 - 3 * A * B
-
-    # floating point error
-    B = _zero_out_fperr(B)
-    C = _zero_out_fperr(C)
-
-    result = ((np.sqrt((count ** 2 - count)) * C) /
-              ((count - 2) * np.sqrt(B) ** 3))
-
-    if isinstance(result, np.ndarray):
-        result = np.where(B == 0, 0, result)
-        result[count < 3] = np.nan
-        return result
-    else:
-        result = 0 if B == 0 else result
-        if count < 3:
-            return np.nan
-        return result
-
-def nanmin(values, axis=None, skipna=True, copy=True):
+def _nanmin(values, axis=None, skipna=True):
     mask = isnull(values)
     if skipna and not issubclass(values.dtype.type, np.integer):
-        if copy:
-            values = values.copy()
+        values = values.copy()
         np.putmask(values, mask, np.inf)
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
@@ -129,11 +121,10 @@ def nanmin(values, axis=None, skipna=True, copy=True):
 
     return _maybe_null_out(result, axis, mask)
 
-def nanmax(values, axis=None, skipna=True, copy=True):
+def _nanmax(values, axis=None, skipna=True):
     mask = isnull(values)
     if skipna and not issubclass(values.dtype.type, np.integer):
-        if copy:
-            values = values.copy()
+        values = values.copy()
         np.putmask(values, mask, -np.inf)
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
@@ -147,15 +138,6 @@ def nanmax(values, axis=None, skipna=True, copy=True):
             result = __builtin__.max(values)
     else:
         result = values.max(axis)
-    return _maybe_null_out(result, axis, mask)
-
-def nanprod(values, axis=None, skipna=True, copy=True):
-    mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type, np.integer):
-        if copy:
-            values = values.copy()
-        values[mask] = 1
-    result = values.prod(axis)
     return _maybe_null_out(result, axis, mask)
 
 def nanargmax(values, axis=None, skipna=True):
@@ -181,6 +163,53 @@ def nanargmin(values, axis=None, skipna=True):
     result = values.argmin(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
+
+nansum = _bottleneck_switch('nansum', _nansum)
+nanmean = _bottleneck_switch('nanmean', _nanmean)
+nanmedian = _bottleneck_switch('nanmedian', _nanmedian)
+nanvar = _bottleneck_switch('nanvar', _nanvar, ddof=1)
+nanmin = _bottleneck_switch('nanmin', _nanmin)
+nanmax = _bottleneck_switch('nanmax', _nanmax)
+
+def nanskew(values, axis=None, skipna=True):
+    if not isinstance(values.dtype.type, np.floating):
+        values = values.astype('f8')
+
+    mask = isnull(values)
+    count = _get_counts(mask, axis)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, 0)
+
+    A = values.sum(axis) / count
+    B = (values ** 2).sum(axis) / count - A ** 2
+    C = (values ** 3).sum(axis) / count - A ** 3 - 3 * A * B
+
+    # floating point error
+    B = _zero_out_fperr(B)
+    C = _zero_out_fperr(C)
+
+    result = ((np.sqrt((count ** 2 - count)) * C) /
+              ((count - 2) * np.sqrt(B) ** 3))
+
+    if isinstance(result, np.ndarray):
+        result = np.where(B == 0, 0, result)
+        result[count < 3] = np.nan
+        return result
+    else:
+        result = 0 if B == 0 else result
+        if count < 3:
+            return np.nan
+        return result
+
+def nanprod(values, axis=None, skipna=True):
+    mask = isnull(values)
+    if skipna and not issubclass(values.dtype.type, np.integer):
+        values = values.copy()
+        values[mask] = 1
+    result = values.prod(axis)
+    return _maybe_null_out(result, axis, mask)
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
     # helper function for nanargmin/nanargmax

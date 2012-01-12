@@ -1,4 +1,9 @@
-meDONE
+DOCS 0.7.0
+----------
+- no sort in groupby
+- concat with dict
+
+DONE
 ----
 - SparseSeries name integration + tests
 - Refactor Series.repr

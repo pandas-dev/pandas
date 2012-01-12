@@ -60,6 +60,10 @@ pandas 0.7.0
     and multiple Series to ``Series.append`` too
   - Added ``justify`` argument to ``DataFrame.to_string`` to allow different
     alignment of column headers
+  - Add ``sort`` option to GroupBy to allow disabling sorting of the group keys
+    for potential speedups (GH #595)
+  - Can pass MaskedArray to Series constructor (PR #563)
+  - Add Panel item access via attributes and IPython completion (GH #554)
 
 **API Changes**
 

@@ -934,7 +934,7 @@ class Panel(NDFrame):
     def _reduce(self, op, axis=0, skipna=True):
         axis_name = self._get_axis_name(axis)
         axis_number = self._get_axis_number(axis_name)
-        f = lambda x: op(x, axis=axis_number, skipna=skipna, copy=True)
+        f = lambda x: op(x, axis=axis_number, skipna=skipna)
 
         result = f(self.values)
 
