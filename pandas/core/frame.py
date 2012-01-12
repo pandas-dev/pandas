@@ -2656,7 +2656,8 @@ class DataFrame(NDFrame):
                     is_reduction = not isinstance(f(_EMPTY_SERIES),
                                                   np.ndarray)
                     if is_reduction:
-                        return Series(np.nan, index=self._get_agg_axis(axis))
+                        return Series(np.nan,
+                                      index=self._get_agg_axis(axis))
                     else:
                         return self.copy()
 
@@ -2670,7 +2671,7 @@ class DataFrame(NDFrame):
     def _apply_raw(self, func, axis):
         try:
             result = lib.reduce(self.values, func, axis=axis)
-        except Exception:
+        except Exception, e:
             result = np.apply_along_axis(func, axis, self.values)
 
         # TODO: mixed type case
@@ -2715,8 +2716,13 @@ class DataFrame(NDFrame):
             if len(successes) < len(res_index):
                 res_index = res_index.take(successes)
         else:
-            for k, v in series_gen:
-                results[k] = func(v)
+            try:
+                for k, v in series_gen:
+                    results[k] = func(v)
+            except Exception, e:
+                if hasattr(e, 'args'):
+                    e.args = e.args + ('occurred at index %s' % str(k),)
+                    raise
 
         if len(results) > 0 and _is_sequence(results.values()[0]):
             if not isinstance(results.values()[0], Series):
@@ -2729,7 +2735,7 @@ class DataFrame(NDFrame):
             if axis == 1:
                 result = result.T
 
-            return result
+            return result.convert_objects()
         else:
             return Series(results, index=res_index)
 

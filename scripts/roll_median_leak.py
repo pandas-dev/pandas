@@ -14,7 +14,6 @@ import psutil
 pid = os.getpid()
 proc = psutil.Process(pid)
 
-
 s = Series(np.random.randn(10000))
 
 for _ in xrange(5):

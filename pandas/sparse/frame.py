@@ -107,6 +107,10 @@ class SparseDataFrame(DataFrame):
         # do nothing when DataFrame calls this method
         pass
 
+    def convert_objects(self):
+        # XXX
+        return self
+
     @property
     def _constructor(self):
         def wrapper(data, index=None, columns=None):

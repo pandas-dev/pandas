@@ -3162,6 +3162,58 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               columns=df.index).T
         assert_frame_equal(result1, expected1)
 
+    def test_apply_modify_traceback(self):
+        data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                                 'bar', 'bar', 'bar', 'bar',
+                                 'foo', 'foo', 'foo'],
+                          'B' : ['one', 'one', 'one', 'two',
+                                 'one', 'one', 'one', 'two',
+                                 'two', 'two', 'one'],
+                          'C' : ['dull', 'dull', 'shiny', 'dull',
+                                 'dull', 'shiny', 'shiny', 'dull',
+                                 'shiny', 'shiny', 'shiny'],
+                          'D' : np.random.randn(11),
+                          'E' : np.random.randn(11),
+                          'F' : np.random.randn(11)})
+
+        data['C'][4] = np.nan
+
+        def transform(row):
+            if row['C'].startswith('shin') and row['A'] == 'foo':
+                row['D'] = 7
+            return row
+
+        def transform2(row):
+            if (notnull(row['C']) and  row['C'].startswith('shin')
+                and row['A'] == 'foo'):
+                row['D'] = 7
+            return row
+
+        try:
+            transformed = data.apply(transform, axis=1)
+        except Exception, e:
+            pass
+
+        self.assertEqual(len(e.args), 2)
+        self.assertEqual(e.args[1], 'occurred at index 4')
+
+    def test_apply_convert_objects(self):
+        data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                                 'bar', 'bar', 'bar', 'bar',
+                                 'foo', 'foo', 'foo'],
+                          'B' : ['one', 'one', 'one', 'two',
+                                 'one', 'one', 'one', 'two',
+                                 'two', 'two', 'one'],
+                          'C' : ['dull', 'dull', 'shiny', 'dull',
+                                 'dull', 'shiny', 'shiny', 'dull',
+                                 'shiny', 'shiny', 'shiny'],
+                          'D' : np.random.randn(11),
+                          'E' : np.random.randn(11),
+                          'F' : np.random.randn(11)})
+
+        result = data.apply(lambda x: x, axis=1)
+        assert_frame_equal(result, data)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)

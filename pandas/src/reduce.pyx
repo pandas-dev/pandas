@@ -67,6 +67,9 @@ cdef class Reducer:
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
+        except Exception, e:
+            if hasattr(e, 'args'):
+                e.args = e.args + (i,)
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
@@ -80,10 +83,6 @@ cdef class Reducer:
             assert(not (isinstance(res, list) and len(res) == len(self.dummy)))
 
             result = np.empty(self.nresults, dtype='O')
-            # if hasattr(res, 'dtype'):
-            #     result = np.empty(self.nresults, dtype=res.dtype)
-            # else:
-            #     result = np.empty(self.nresults, dtype='O')
             result[0] = res
         except Exception:
             raise ValueError('function does not reduce')
