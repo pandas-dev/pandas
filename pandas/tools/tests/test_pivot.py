@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from pandas import DataFrame
+from pandas import DataFrame, concat
 from pandas.tools.pivot import pivot_table
 import pandas.util.testing as tm
 
@@ -59,6 +59,27 @@ class TestPivotTable(unittest.TestCase):
         expected = pivot_table(self.data.drop(['F'], axis=1),
                                rows='A', cols=['B', 'C'], fill_value=0)
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_multi_functions(self):
+        f = lambda func: pivot_table(self.data, values=['D', 'E'],
+                                     rows=['A', 'B'], cols='C',
+                                     aggfunc=func)
+        result = f([np.mean, np.std])
+        means = f(np.mean)
+        stds = f(np.std)
+        expected = concat([means, stds], keys=['mean', 'std'], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        # margins not supported??
+        f = lambda func: pivot_table(self.data, values=['D', 'E'],
+                                     rows=['A', 'B'], cols='C',
+                                     aggfunc=func, margins=True)
+        result = f([np.mean, np.std])
+        means = f(np.mean)
+        stds = f(np.std)
+        expected = concat([means, stds], keys=['mean', 'std'], axis=1)
+        tm.assert_frame_equal(result, expected)
+
 
     def test_margins(self):
         def _check_output(res, col, rows=['A', 'B'], cols=['C']):

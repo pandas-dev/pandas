@@ -1,4 +1,7 @@
+# pylint: disable=E1103
+
 from pandas import Series, DataFrame
+from pandas.tools.merge import concat
 import numpy as np
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
@@ -16,7 +19,10 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
         Columns to group on the x-axis of the pivot table
     cols : list
         Columns to group on the x-axis of the pivot table
-    aggfunc : function, default numpy.mean
+    aggfunc : function, default numpy.mean, or list of functions
+        If list of functions passed, the resulting pivot table will have
+        hierarchical columns whose top level are the function names (inferred
+        from the function objects themselves)
     fill_value : scalar, default None
         Value to replace missing values with
     margins : boolean, default False
@@ -52,6 +58,17 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
     rows = _convert_by(rows)
     cols = _convert_by(cols)
 
+    if isinstance(aggfunc, list):
+        pieces = []
+        keys = []
+        for func in aggfunc:
+            table = pivot_table(data, values=values, rows=rows, cols=cols,
+                                fill_value=fill_value, aggfunc=func,
+                                margins=margins)
+            pieces.append(table)
+            keys.append(func.__name__)
+        return concat(pieces, keys=keys, axis=1)
+
     keys = rows + cols
 
     values_passed = values is not None
@@ -68,7 +85,6 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
         data = data[keys + values]
 
     grouped = data.groupby(keys)
-
     agged = grouped.agg(aggfunc)
 
     table = agged
@@ -95,7 +111,6 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
         col_margin = data[rows + values].groupby(rows).agg(aggfunc)
 
         # need to "interleave" the margins
-
         table_pieces = []
         margin_keys = []
         for key, piece in table.groupby(level=0, axis=1):
@@ -104,9 +119,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
             table_pieces.append(piece)
             margin_keys.append(all_key)
 
-        result = table_pieces[0]
-        for piece in table_pieces[1:]:
-            result = result.join(piece)
+        result = concat(table_pieces, axis=1)
     else:
         result = table
         margin_keys = table.columns

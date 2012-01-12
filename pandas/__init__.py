@@ -29,5 +29,5 @@ from pandas.io.parsers import read_csv, read_table, read_clipboard, ExcelFile
 from pandas.io.pytables import HDFStore
 from pandas.util.testing import debug
 
-from pandas.tools.pivot import pivot_table
 from pandas.tools.merge import merge, concat
+from pandas.tools.pivot import pivot_table

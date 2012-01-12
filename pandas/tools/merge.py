@@ -934,25 +934,31 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
     new_index = indexes[0]
     n = len(new_index)
+    kpieces = len(indexes)
 
     # also copies
-    names = names + [indexes[0].name]
-
-    new_levels = levels
-
-    # do something a bit more speedy
-    new_levels.append(new_index)
+    new_names = list(names)
+    new_levels = list(levels)
 
     # construct labels
-    labels = []
+    new_labels = []
 
-    for hlevel, level in zip(zipped, new_levels[:-1]):
+    # do something a bit more speedy
+
+    for hlevel, level in zip(zipped, levels):
         mapped = level.get_indexer(hlevel)
-        labels.append(np.repeat(mapped, n))
+        new_labels.append(np.repeat(mapped, n))
 
-    # last labels for the new level
-    labels.append(np.tile(np.arange(n), len(indexes)))
-    return MultiIndex(levels=new_levels, labels=labels, names=names)
+    if isinstance(new_index, MultiIndex):
+        new_levels.extend(new_index.levels)
+        new_labels.extend([np.tile(lab, kpieces) for lab in new_index.labels])
+        new_names.extend(new_index.names)
+    else:
+        new_levels.append(new_index)
+        new_names.append(new_index.name)
+        new_labels.append(np.tile(np.arange(n), kpieces))
+
+    return MultiIndex(levels=new_levels, labels=new_labels, names=new_names)
 
 def _get_consensus_names(indexes):
     consensus_name = indexes[0].names
