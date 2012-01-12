@@ -72,6 +72,10 @@ some configurable handling of "what to do with the other axes":
 - ``verify_integrity``: boolean, default False. Check whether the new
   concatenated axis contains duplicates. This can be very expensive relative
   to the actual data concatenation
+- ``ignore_index`` : boolean, default False. If True, do not use the index
+  values on the concatenation axis. The resulting axis will be labeled 0, ...,
+  n - 1. This is useful if you are concatenating objects where the
+  concatenation axis does not have meaningful indexing information.
 
 Without a little bit of context and example many of these arguments don't make
 much sense. Let's take the above example. Suppose we wanted to associate
