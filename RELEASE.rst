@@ -126,6 +126,8 @@ pandas 0.7.0
     #477)
   - Improve DataFrame.to_string and console formatting to be more consistent in
     the number of displayed digits (GH #395)
+  - Use bottleneck if available for performing NaN-friendly statistical
+    operations that it implemented (GH #91)
 
 **Bug fixes**
 
@@ -182,6 +184,7 @@ pandas 0.7.0
     keywords passed
   - Fix exception caused by parser converter returning strings (GH #583)
   - Fix MultiIndex formatting bug with integer names (GH #601)
+  - Fix bug in handling of non-numeric aggregates in Series.groupby (GH #612)
 
 Thanks
 ------
@@ -189,6 +192,7 @@ Thanks
 - Marius Cobzarenco
 - Mario Gamboa-Cavazos
 - Arthur Gerigk
+- Yaroslav Halchenko
 - Matt Harrison
 - Andreas Hilboll
 - Luc Kesters

@@ -641,6 +641,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s2[5:8] = np.nan
         assert_almost_equal(s.sum(), s2.sum())
 
+        import pandas.core.nanops as nanops
+        arr = np.random.randn(100, 100).astype('f4')
+        arr[:, 2] = np.inf
+        res = nanops.nansum(arr, axis=1)
+        expected = nanops._nansum(arr, axis=1)
+        assert_almost_equal(res, expected)
+
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
@@ -686,33 +693,46 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def _check_stat_op(self, name, alternate, check_objects=False):
         from pandas import DateRange
+        import pandas.core.nanops as nanops
 
-        f = getattr(Series, name)
+        def testit():
+            f = getattr(Series, name)
 
-        # add some NaNs
-        self.series[5:15] = np.NaN
+            # add some NaNs
+            self.series[5:15] = np.NaN
 
-        # skipna or no
-        self.assert_(notnull(f(self.series)))
-        self.assert_(isnull(f(self.series, skipna=False)))
+            # skipna or no
+            self.assert_(notnull(f(self.series)))
+            self.assert_(isnull(f(self.series, skipna=False)))
 
-        # check the result is correct
-        nona = self.series.dropna()
-        assert_almost_equal(f(nona), alternate(nona))
+            # check the result is correct
+            nona = self.series.dropna()
+            assert_almost_equal(f(nona), alternate(nona))
 
-        allna = self.series * nan
-        self.assert_(np.isnan(f(allna)))
+            allna = self.series * nan
+            self.assert_(np.isnan(f(allna)))
 
-        # dtype=object with None, it works!
-        s = Series([1, 2, 3, None, 5])
-        f(s)
+            # dtype=object with None, it works!
+            s = Series([1, 2, 3, None, 5])
+            f(s)
 
-        # check DateRange
-        if check_objects:
-            s = Series(DateRange('1/1/2000', periods=10))
-            res = f(s)
-            exp = alternate(s)
-            self.assertEqual(res, exp)
+            # check DateRange
+            if check_objects:
+                s = Series(DateRange('1/1/2000', periods=10))
+                res = f(s)
+                exp = alternate(s)
+                self.assertEqual(res, exp)
+
+        testit()
+
+        try:
+            import bottleneck as bn
+            nanops._USE_BOTTLENECK = False
+            testit()
+            nanops._USE_BOTTLENECK = True
+        except ImportError:
+            pass
+
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
