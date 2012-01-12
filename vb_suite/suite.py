@@ -16,6 +16,9 @@ for modname in modules:
                           if isinstance(v, Benchmark)]
     benchmarks.extend(by_module[modname])
 
+for bm in benchmarks:
+    assert(bm.name is not None)
+
 REPO_PATH = '/home/wesm/code/pandas'
 REPO_URL = 'git@github.com:wesm/pandas.git'
 DB_PATH = '/home/wesm/code/pandas/vb_suite/benchmarks.db'

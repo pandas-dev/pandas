@@ -1896,7 +1896,7 @@ def _get_combined_index(indexes, intersect=False):
             index = index.intersection(other)
         return index
     union =  _union_indexes(indexes)
-    return Index(union)
+    return _ensure_index(union)
 
 def _get_distinct_indexes(indexes):
     return dict((id(x), x) for x in indexes).values()

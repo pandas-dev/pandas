@@ -971,6 +971,8 @@ class DataFrameGroupBy(GroupBy):
                 result[col] = colg.agg(func)
 
             result = DataFrame(result)
+        elif isinstance(arg, list):
+            return self._aggregate_multiple_funcs(arg)
         else:
             if len(self.groupings) > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
@@ -989,6 +991,29 @@ class DataFrameGroupBy(GroupBy):
                 name = self.groupings[0].name
                 result.insert(0, name, values)
             result.index = np.arange(len(result))
+
+        return result
+
+    def _aggregate_multiple_funcs(self, arg):
+        from pandas.tools.merge import concat
+
+        if self.axis != 0:
+            raise NotImplementedError
+
+        obj = self._obj_with_exclusions
+
+        results = []
+        keys = []
+        for col in obj:
+            try:
+                colg = SeriesGroupBy(obj[col], column=col,
+                                     groupings=self.groupings)
+                results.append(colg.agg(arg))
+                keys.append(col)
+            except TypeError:
+                pass
+
+        result = concat(results, keys=keys, axis=1)
 
         return result
 

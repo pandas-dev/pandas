@@ -13,6 +13,7 @@ from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
 from pandas.core.panel import Panel
+from pandas.tools.merge import concat
 from collections import defaultdict
 import pandas._tseries as lib
 import pandas.core.datetools as dt
@@ -562,6 +563,30 @@ class TestGroupBy(unittest.TestCase):
         agged = grouped.agg([np.mean, np.std])
         expected = DataFrame({'mean' : grouped.agg(np.mean),
                               'std' : grouped.agg(np.std)})
+        assert_frame_equal(agged, expected)
+
+    def test_frame_multi_key_function_list(self):
+        data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                                 'bar', 'bar', 'bar', 'bar',
+                                 'foo', 'foo', 'foo'],
+                          'B' : ['one', 'one', 'one', 'two',
+                                 'one', 'one', 'one', 'two',
+                                 'two', 'two', 'one'],
+                          'C' : ['dull', 'dull', 'shiny', 'dull',
+                                 'dull', 'shiny', 'shiny', 'dull',
+                                 'shiny', 'shiny', 'shiny'],
+                          'D' : np.random.randn(11),
+                          'E' : np.random.randn(11),
+                          'F' : np.random.randn(11)})
+
+        grouped = data.groupby(['A', 'B'])
+        funcs = [np.mean, np.std]
+        agged = grouped.agg(funcs)
+        expected = concat([grouped['D'].agg(funcs), grouped['E'].agg(funcs),
+                           grouped['F'].agg(funcs)],
+                          keys=['D', 'E', 'F'], axis=1)
+        assert(isinstance(agged.index, MultiIndex))
+        assert(isinstance(expected.index, MultiIndex))
         assert_frame_equal(agged, expected)
 
     def test_groupby_multiple_columns(self):

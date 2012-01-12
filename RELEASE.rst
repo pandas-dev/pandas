@@ -128,6 +128,8 @@ pandas 0.7.0
     the number of displayed digits (GH #395)
   - Use bottleneck if available for performing NaN-friendly statistical
     operations that it implemented (GH #91)
+  - Can pass a list of functions to aggregate with groupby on a DataFrame,
+    yielding an aggregated result with hierarchical columns (GH #166)
 
 **Bug fixes**
 

@@ -310,8 +310,15 @@ function's name (stored in the function object) will be used.
    grouped['D'].agg({'result1' : np.sum,
                      'result2' : np.mean})
 
-We would like to enable this functionality for DataFrame, too. The result will
-likely have a MultiIndex for the columns.
+On a grouped DataFrame, you can pass a list of functions to apply to each
+column, which produces an aggregated result with a hierarchical index:
+
+.. ipython:: python
+
+   grouped.agg([np.sum, np.mean, np.std])
+
+Passing a dict of functions has different behavior by default, see the next
+section.
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
