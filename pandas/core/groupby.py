@@ -462,7 +462,7 @@ class GroupBy(object):
         raise NotImplementedError
 
     def _wrap_frames(self, keys, values, not_indexed_same=False):
-        from pandas.tools.merge import concat, _concat_frames_hierarchical
+        from pandas.tools.merge import concat
 
         if not_indexed_same:
             group_keys = keys
@@ -574,7 +574,6 @@ class Grouping(object):
                 self._was_factor = True
                 self._labels = inds
                 self._group_index = level_index
-                self._counts = lib.group_count(inds, len(level_index))
                 self.grouper = level_values
         else:
             # no level passed
@@ -626,11 +625,6 @@ class Grouping(object):
     def group_index(self):
         if self._group_index is None:
             self._make_labels()
-
-            # ids = self.ids
-            # values = np.arange(len(self.ids), dtype='O')
-            # self._group_index = Index(lib.lookup_values(values, ids),
-            #                           name=self.name)
         return self._group_index
 
     def _make_labels(self):
@@ -1332,25 +1326,6 @@ def decons_group_index(comp_labels, shape):
         factor *= shape[i]
     return label_list[::-1]
 
-def test_decons():
-    def testit(label_list, shape):
-        group_index = get_group_index(label_list, shape)
-        label_list2 = decons_group_index(group_index, shape)
-
-        for a, b in zip(label_list, label_list2):
-            assert(np.array_equal(a, b))
-
-    shape = (4, 5, 6)
-    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100),
-                  np.tile([0, 2, 4, 3, 0, 1, 2, 3], 100),
-                  np.tile([5, 1, 0, 2, 3, 0, 5, 4], 100)]
-    testit(label_list, shape)
-
-    shape = (10000, 10000)
-    label_list = [np.tile(np.arange(10000), 5),
-                  np.tile(np.arange(10000), 5)]
-    testit(label_list, shape)
-
 def _aggregate_series_fast(obj, func, group_index, ngroups):
     if obj.index._has_complex_internals:
         raise TypeError('Incompatible index for Cython grouper')
@@ -1426,11 +1401,11 @@ def _groupby_indices(values):
     return lib.groupby_indices(values)
 
 def _ensure_platform_int(labels):
-    if labels.dtype != np.int_:
+    if labels.dtype != np.int_:  # pragma: no cover
         labels = labels.astype(np.int_)
     return labels
 
 def _ensure_int64(labels):
-    if labels.dtype != np.int64:
+    if labels.dtype != np.int64:  # pragma: no cover
         labels = labels.astype(np.int64)
     return labels

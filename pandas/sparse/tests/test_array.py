@@ -61,6 +61,14 @@ class TestSparseArray(unittest.TestCase):
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
 
+    def test_getitem(self):
+        def _checkit(i):
+            assert_almost_equal(self.arr[i], self.arr.values[i])
+
+        for i in range(len(self.arr)):
+            _checkit(i)
+            _checkit(-i)
+
     def test_getslice(self):
         result = self.arr[:-3]
         exp = SparseArray(self.arr.values[:-3])

@@ -2,6 +2,7 @@ from cStringIO import StringIO
 from datetime import datetime
 import csv
 import os
+import sys
 import re
 import unittest
 
@@ -512,6 +513,47 @@ c   1   2   3   4
                             index_col=0)
         self.assert_(expected.index.name is None)
         assert_frame_equal(df, expected)
+
+    def test_verbose_import(self):
+        text = """a,b,c,d
+one,1,2,3
+one,1,2,3
+,1,2,3
+one,1,2,3
+,1,2,3
+,1,2,3
+one,1,2,3
+two,1,2,3"""
+
+        buf = StringIO()
+        sys.stdout = buf
+
+        try:
+            # it works!
+            df = read_csv(StringIO(text), verbose=True)
+            self.assert_(buf.getvalue() == 'Filled 3 NA values in column a\n')
+        finally:
+            sys.stdout = sys.__stdout__
+
+        buf = StringIO()
+        sys.stdout = buf
+
+        text = """a,b,c,d
+one,1,2,3
+two,1,2,3
+three,1,2,3
+four,1,2,3
+five,1,2,3
+,1,2,3
+seven,1,2,3
+eight,1,2,3"""
+
+        try:
+            # it works!
+            df = read_csv(StringIO(text), verbose=True, index_col=0)
+            self.assert_(buf.getvalue() == 'Found 1 NA values in the index\n')
+        finally:
+            sys.stdout = sys.__stdout__
 
 class TestParseSQL(unittest.TestCase):
 

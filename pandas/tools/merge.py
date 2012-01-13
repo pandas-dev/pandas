@@ -865,26 +865,6 @@ class _Concatenator(object):
                                 % str(overlap))
 
 
-def _concat_frames_hierarchical(frames, keys, names, levels, axis=0):
-    if axis == 0:
-        indexes = [x.index for x in frames]
-        new_index = _make_concat_multiindex(indexes, keys, levels, names)
-        new_columns = frames[0].columns
-    else:
-        all_columns = [x.columns for x in frames]
-        new_columns = _make_concat_multiindex(all_columns, keys,
-                                              levels, names)
-        new_index = frames[0].index
-
-    if frames[0]._is_mixed_type:
-        new_data = {}
-        for col in new_columns:
-            new_data[col] = np.concatenate([x[col].values for x in frames])
-        return DataFrame(new_data, index=new_index, columns=new_columns)
-    else:
-        new_values = np.concatenate([x.values for x in frames], axis=axis)
-        return DataFrame(new_values, index=new_index, columns=new_columns)
-
 def _concat_indexes(indexes):
     return indexes[0].append(indexes[1:])
 
@@ -898,7 +878,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     else:
         zipped = zip(*keys)
         if names is None:
-            names = [None] * len(keys)
+            names = [None] * len(zipped)
 
     if levels is None:
         if single_level:

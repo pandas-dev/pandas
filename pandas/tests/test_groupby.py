@@ -883,6 +883,14 @@ class TestGroupBy(unittest.TestCase):
             assert_almost_equal(the_counts,
                                 other_counts.reindex(the_counts.index))
 
+        # compute counts when group by level
+        grouped = self.mframe.groupby(level=0)
+        ping = grouped.groupings[0]
+        the_counts = grouped.size()
+        other_counts = Series(ping.counts, ping.group_index)
+        assert_almost_equal(the_counts,
+                            other_counts.reindex(the_counts.index))
+
     def test_groupby_level(self):
         frame = self.mframe
         deleveled = frame.reset_index()
@@ -1245,11 +1253,27 @@ class TestPanelGroupBy(unittest.TestCase):
         self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
 
 
-class TestAggregate(unittest.TestCase):
-    setUp = commonSetUp
+def test_decons():
+    from pandas.core.groupby import decons_group_index, get_group_index
 
-class TestTransform(unittest.TestCase):
-    setUp = commonSetUp
+    def testit(label_list, shape):
+        group_index = get_group_index(label_list, shape)
+        label_list2 = decons_group_index(group_index, shape)
+
+        for a, b in zip(label_list, label_list2):
+            assert(np.array_equal(a, b))
+
+    shape = (4, 5, 6)
+    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100),
+                  np.tile([0, 2, 4, 3, 0, 1, 2, 3], 100),
+                  np.tile([5, 1, 0, 2, 3, 0, 5, 4], 100)]
+    testit(label_list, shape)
+
+    shape = (10000, 10000)
+    label_list = [np.tile(np.arange(10000), 5),
+                  np.tile(np.arange(10000), 5)]
+    testit(label_list, shape)
+
 
 if __name__ == '__main__':
     import nose

@@ -472,6 +472,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(len(sl), len(sl.index))
         self.assertEqual(len(sl.index.indexMap), len(sl.index))
 
+    def test_basic_getitem_setitem_corner(self):
+        # invalid tuples, e.g. self.ts[:, None] vs. self.ts[:, 2]
+        self.assertRaises(Exception, self.ts.__getitem__,
+                          (slice(None, None), 2))
+        self.assertRaises(Exception, self.ts.__setitem__,
+                          (slice(None, None), 2), 2)
+
+        # weird lists. [slice(0, 5)] will work but not two slices
+        result = self.ts[[slice(None, 5)]]
+        expected = self.ts[:5]
+        assert_series_equal(result, expected)
+
+        # OK
+        self.assertRaises(Exception, self.ts.__getitem__,
+                          [5, slice(None, None)])
+        self.assertRaises(Exception, self.ts.__setitem__,
+                          [5, slice(None, None)], 2)
+
     def test_basic_getitem_with_labels(self):
         indices = self.ts.index[[5, 10, 15]]
 
@@ -902,6 +920,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                 self.fail("orphaned index!")
 
         self.assertRaises(Exception, self.ts.append, self.ts)
+
+    def test_append_many(self):
+        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
+
+        result = pieces[0].append(pieces[1:])
+        assert_series_equal(result, self.ts)
 
     def test_all_any(self):
         np.random.seed(12345)

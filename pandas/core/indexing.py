@@ -324,9 +324,6 @@ class _SeriesIndexer(_NDFrameIndexer):
     >>> ts.ix[date1:date2] = 0
     """
 
-    def _get_integer(self, indexer, axis=0):
-        return self.obj._get_values(indexer)
-
     def _get_label(self, key, axis=0):
         return self.obj[key]
 
@@ -382,16 +379,6 @@ def _is_label_like(key):
 
 def _is_list_like(obj):
     return np.iterable(obj) and not isinstance(obj, basestring)
-
-def _is_label_slice(labels, obj):
-    def crit(x):
-        try:
-            _ = labels.get_loc(x)
-            return False
-        except KeyError:
-            return com.is_integer(x) or x is None
-
-    return not crit(obj.start) or not crit(obj.stop)
 
 def _need_slice(obj):
     return (obj.start is not None or

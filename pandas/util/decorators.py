@@ -1,4 +1,7 @@
+from cStringIO import StringIO
+
 from pandas._tseries import cache_readonly
+import sys
 import warnings
 
 def deprecate(name, alternative):
@@ -10,7 +13,7 @@ def deprecate(name, alternative):
     return wrapper
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
-# module http://matplotlib.sourceforge.net/users/license.html 
+# module http://matplotlib.sourceforge.net/users/license.html
 
 class Substitution(object):
     """
@@ -100,3 +103,13 @@ def indent(text, indents=1):
         return ''
     jointext = ''.join(['\n'] + ['    '] * indents)
     return jointext.join(text.split('\n'))
+
+def suppress_stdout(f):
+    def wrapped(*args, **kwargs):
+        try:
+            sys.stdout = StringIO()
+            f(*args, **kwargs)
+        finally:
+            sys.stdout = sys.__stdout__
+
+    return wrapped

@@ -333,6 +333,10 @@ class TestIndex(unittest.TestCase):
         self.assertEquals(idx.slice_locs(end=8), (0, 6))
         self.assertEquals(idx.slice_locs(end=9), (0, 7))
 
+        idx2 = idx[::-1]
+        self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
+        self.assertRaises(KeyError, idx2.slice_locs, 7, 3)
+
     def test_drop(self):
         n = len(self.strIndex)
 

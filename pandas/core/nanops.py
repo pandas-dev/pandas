@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover
 def _bottleneck_switch(bn_name, alt, **kwargs):
     try:
         bn_func = getattr(bn, bn_name)
-    except NameError:
+    except NameError:  # pragma: no cover
         bn_func = None
     def f(values, axis=None, skipna=True):
         try:
