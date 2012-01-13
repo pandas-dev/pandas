@@ -71,6 +71,13 @@ pandas 0.7.0
 
 **API Changes**
 
+  - Label-indexing with integer indexes now raises KeyError if a label is not
+    found instead of falling back on location-based indexing
+  - Label-based slicing via ``ix`` or ``[]`` on Series will now only work if
+    exact matches for the labels are found or if the index is monotonic (for
+    range selections)
+  - Label-based slicing and sequences of labels can be passed to ``[]`` on a
+    Series for both getting and setting (GH #86)
   - `[]` operator (``__getitem__`` and ``__setitem__``) will raise KeyError
     with integer indexes when an index is not contained in the index. The prior
     behavior would fall back on position-based indexing if a key was not found
@@ -195,6 +202,7 @@ pandas 0.7.0
   - Fix bug in handling of non-numeric aggregates in Series.groupby (GH #612)
   - Fix TypeError with tuple subclasses (e.g. namedtuple) in
     DataFrame.from_records (GH #611)
+  - Catch misreported console size when running IPython within Emacs
 
 Thanks
 ------
@@ -216,6 +224,7 @@ Thanks
 - Craig Reeson
 - Jan Schulz
 - Ted Square
+- Graham Taylor
 - Chris Uga
 - Dieter Vandenbussche
 - Texas P.

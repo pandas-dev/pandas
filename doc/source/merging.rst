@@ -228,6 +228,17 @@ Let's consider a variation on the first example presented:
    result = concat(pieces, axis=1, keys=['one', 'two', 'three'])
    result
 
+You can also pass a dict to ``concat`` in which case the dict keys will be used
+for the ``keys`` argument (unless other keys are specified):
+
+.. ipython:: python
+
+   pieces = {'one': df.ix[:, [0, 1]],
+             'two': df.ix[:, [2]],
+             'three': df.ix[:, [3]]}
+   concat(pieces, axis=1)
+   concat(pieces, keys=['three', 'two'])
+
 The MultiIndex created has levels that are constructed from the passed keys and
 the columns of the DataFrame pieces:
 

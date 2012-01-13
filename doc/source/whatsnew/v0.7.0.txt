@@ -3,16 +3,31 @@
 v.0.7.0 (Not Yet Released)
 --------------------------
 
+API Changes
+~~~~~~~~~~~
+
 New features
 ~~~~~~~~~~~~
 
+- New unified :ref:`merge function <merging.join>` for efficiently performing
+  full gamut of database / relational-algebra operations. Refactored existing
+  join methods to use the new infrastructure, resulting in substantial
+  performance gains (GH220_, GH249_, GH267_)
+
+- New :ref:`unified concatenation function <merging.concat>` for concatenating
+  Series, DataFrame or Panel objects along an axis. Can form union or
+  intersection of the other axes. Improves performance of ``Series.append`` and
+  ``DataFrame.append`` (GH468_, GH479_, GH273_)
+
+- :ref:`Can <merging.concatenation>` pass multiple DataFrames to
+  `DataFrame.append` to concatenate (stack) and multiple Series to
+  ``Series.append`` too
+
+- :ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a
+  list of JSON objects) to DataFrame constructor (GH526_)
+
 - You can now :ref:`set multiple columns <indexing.columns.multiple>` in a
   DataFrame via ``__getitem__``, useful for transformation (GH342_)
-
-- New ``merge`` :ref:`function <merging.join>` for efficiently performing full
-  gamut of database / relational-algebra operations. Refactored existing join
-  methods to use the new infrastructure, resulting in substantial performance
-  gains (GH220_, GH249_, GH267_)
 
 - Handle differently-indexed output values in ``DataFrame.apply`` (GH498_)
 
@@ -21,13 +36,11 @@ New features
    df = DataFrame(randn(10, 4))
    df.apply(lambda x: x.describe())
 
-- :ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a
-  list of shallow JSON objects) to DataFrame constructor (GH526_)
-
 - :ref:`Add<indexing.reorderlevels>` ``reorder_levels`` method to Series and
   DataFrame (PR534_)
 
-- :ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame and Panel (PR521_)
+- :ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame
+  and Panel (PR521_)
 
 - :ref:`Add<basics.iterrows>` ``DataFrame.iterrows`` method for efficiently
   iterating through the rows of a DataFrame
@@ -59,10 +72,6 @@ New features
 - :ref:`Can <merging.multiple_join>` pass multiple Panels to ``Panel.join``
   (GH115_)
 
-- :ref:`Can <merging.concatenation>` pass multiple DataFrames to
-  `DataFrame.append` to concatenate (stack) and multiple Series to
-  ``Series.append`` too
-
 - :ref:`Added <io.formatting>` ``justify`` argument to ``DataFrame.to_string``
   to allow different alignment of column headers
 
@@ -85,49 +94,6 @@ Performance improvements
 presort the data, thus achieving a significant speedup (GH93_). Here's a
 graph of the performance of this operation over time on a dataset with 100,000
 rows and 10,000 unique groups:
-
-
-.. .. code-block:: ipython
-
-..     In [5]: df
-..     Out[5]:
-..     <class 'pandas.core.frame.DataFrame'>
-..     Int64Index: 100000 entries, 0 to 99999
-..     Data columns:
-..     data    100000  non-null values
-..     key1    100000  non-null values
-..     key2    100000  non-null values
-..     dtypes: float64(1), object(2)
-
-..     In [6]: df[:10]
-..     Out[6]:
-..        data     key1  key2
-..     0  2.708    4     1
-..     1 -1.945    2     4
-..     2 -1.123    2     0
-..     3  0.09592  0     0
-..     4  2.328    0     3
-..     5 -0.6481   0     0
-..     6  0.2957   3     2
-..     7  0.7336   2     1
-..     8  0.371    2     4
-..     9  1.009    2     4
-
-..     In [6]: df.groupby(['key1', 'key2']).sum()
-..     Out[6]:
-..                data
-..     key1 key2
-..     0    0     114
-..          1    -14.69
-..          2     89.06
-..          3    -61.31
-..          4    -32.24
-..     1    0     57.91
-..          1    -16.08
-..          2    -46.51
-..          3     15.46
-..          4     18.96
-..     ...
 
 .. image:: vbench/figures/groupby_multi_cython.png
    :width: 6in
@@ -171,11 +137,14 @@ similar operation to the above but using a Python function:
 .. _GH220: https://github.com/wesm/pandas/issues/220
 .. _GH249: https://github.com/wesm/pandas/issues/249
 .. _GH267: https://github.com/wesm/pandas/issues/267
+.. _GH273: https://github.com/wesm/pandas/issues/273
 .. _GH338: https://github.com/wesm/pandas/issues/338
 .. _GH342: https://github.com/wesm/pandas/issues/342
 .. _GH374: https://github.com/wesm/pandas/issues/374
 .. _GH439: https://github.com/wesm/pandas/issues/439
+.. _GH468: https://github.com/wesm/pandas/issues/468
 .. _GH476: https://github.com/wesm/pandas/issues/476
+.. _GH479: https://github.com/wesm/pandas/issues/479
 .. _GH489: https://github.com/wesm/pandas/issues/489
 .. _GH492: https://github.com/wesm/pandas/issues/492
 .. _GH496: https://github.com/wesm/pandas/issues/496
