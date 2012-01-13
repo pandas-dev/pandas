@@ -207,29 +207,44 @@ class _NDFrameIndexer(object):
         raise AmbiguousIndexError with integer labels?
         - No, prefer label-based indexing
         """
-        index = self.obj._get_axis(axis)
+        labels = self.obj._get_axis(axis)
 
         try:
-            return index.get_loc(obj)
+            return labels.get_loc(obj)
         except (KeyError, TypeError):
             pass
 
-        is_int_index = _is_integer_index(index)
+        is_int_index = _is_integer_index(labels)
         if isinstance(obj, slice):
-            if _is_label_slice(index, obj):
-                i, j = index.slice_locs(obj.start, obj.stop)
 
-                if obj.step is not None:
-                    raise Exception('Non-zero step not supported with '
-                                    'label-based slicing')
-                return slice(i, j)
+            int_slice = _is_integer_slice(obj)
+            null_slice = obj.start is None and obj.stop is None
+            # could have integers in the first level of the MultiIndex
+            position_slice = (int_slice
+                              and not labels.inferred_type == 'integer'
+                              and not isinstance(labels, MultiIndex))
+
+            if null_slice or position_slice:
+                slicer = obj
             else:
-                return obj
+                try:
+                    i, j = labels.slice_locs(obj.start, obj.stop)
+                    slicer = slice(i, j, obj.step)
+                except Exception:
+                    if _is_integer_slice(obj):
+                        if labels.inferred_type == 'integer':
+                            raise
+                        slicer = obj
+                    else:
+                        raise
+
+            return slicer
+
         elif _is_list_like(obj):
             objarr = _asarray_tuplesafe(obj)
 
             if objarr.dtype == np.bool_:
-                if not obj.index.equals(index):
+                if not obj.index.equals(labels):
                     raise IndexingError('Cannot use boolean index with '
                                         'misaligned or unequal labels')
                 return objarr
@@ -238,7 +253,7 @@ class _NDFrameIndexer(object):
                 if _is_integer_dtype(objarr) and not is_int_index:
                     return objarr
 
-                indexer = index.get_indexer(objarr)
+                indexer = labels.get_indexer(objarr)
                 mask = indexer == -1
                 if mask.any():
                     raise KeyError('%s not in index' % objarr[mask])
@@ -247,7 +262,7 @@ class _NDFrameIndexer(object):
         else:
             if com.is_integer(obj) and not is_int_index:
                 return obj
-            return index.get_loc(obj)
+            return labels.get_loc(obj)
 
     def _tuplify(self, loc):
         tup = [slice(None, None) for _ in range(self.ndim)]
@@ -259,20 +274,39 @@ class _NDFrameIndexer(object):
 
         axis_name = obj._get_axis_name(axis)
         labels = getattr(obj, axis_name)
-        if _is_label_slice(labels, slice_obj):
-            i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
-            slicer = slice(i, j)
 
-            if slice_obj.step is not None:
-                raise Exception('Non-zero step not supported with label-based '
-                                'slicing')
-        else:
+        int_slice = _is_integer_slice(slice_obj)
+
+        null_slice = slice_obj.start is None and slice_obj.stop is None
+        # could have integers in the first level of the MultiIndex
+        position_slice = (int_slice and not labels.inferred_type == 'integer'
+                          and not isinstance(labels, MultiIndex))
+        if null_slice or position_slice:
             slicer = slice_obj
+        else:
+            try:
+                i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
+                slicer = slice(i, j, slice_obj.step)
+            except Exception:
+                if _is_integer_slice(slice_obj):
+                    if labels.inferred_type == 'integer':
+                        raise
+                    slicer = slice_obj
+                else:
+                    raise
 
         if not _need_slice(slice_obj):
             return obj
 
         return obj._slice(slicer, axis=axis)
+
+def _is_integer_slice(obj):
+    def _crit(v):
+        return v is None or com.is_integer(v)
+
+    both_none = obj.start is None and obj.stop is None
+
+    return not both_none and (_crit(obj.start) and _crit(obj.stop))
 
 class _SeriesIndexer(_NDFrameIndexer):
     """

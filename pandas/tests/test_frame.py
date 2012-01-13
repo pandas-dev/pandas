@@ -328,8 +328,36 @@ class CheckIndexing(object):
 
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.randn(10, 5))
-        self.assertRaises(Exception, df.ix.__getitem__, slice(0, 8, 2))
-        self.assertRaises(Exception, df.ix.__setitem__, slice(0, 8, 2), np.nan)
+
+        # this is OK
+        result = df.ix[:8:2]
+        df.ix[:8:2] = np.nan
+        self.assert_(isnull(df.ix[:8:2]).values.all())
+
+    def test_getitem_setitem_integer_slice_keyerrors(self):
+        df = DataFrame(np.random.randn(10, 5), index=range(0, 20, 2))
+
+        # this is OK
+        cp = df.copy()
+        cp.ix[4:10] = 0
+        self.assert_((cp.ix[4:10] == 0).values.all())
+
+        # so is this
+        cp = df.copy()
+        cp.ix[3:11] = 0
+        self.assert_((cp.ix[3:11] == 0).values.all())
+
+        result = df.ix[4:10]
+        result2 = df.ix[3:11]
+        expected = df.reindex([4, 6, 8, 10])
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        # non-monotonic, raise KeyError
+        df2 = df[::-1]
+        self.assertRaises(KeyError, df2.ix.__getitem__, slice(3, 11))
+        self.assertRaises(KeyError, df2.ix.__setitem__, slice(3, 11), 0)
 
     def test_setitem_fancy_2d(self):
         f = self.frame
@@ -1659,7 +1687,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         repr(self.frame)
 
-        com.set_printoptions(precision=4)
+        com.reset_printoptions()
 
     def test_repr_tuples(self):
         buf = StringIO()

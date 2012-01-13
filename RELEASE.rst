@@ -123,7 +123,7 @@ pandas 0.7.0
   - Improve the performance of ``DataFrame.sort_index`` by up to 5x or more
     when sorting by multiple columns
   - Substantially improve performance of DataFrame and Series constructors when
-    passed a nested dict or dict, respectively (GH #540)
+    passed a nested dict or dict, respectively (GH #540, GH #621)
   - Modified setup.py so that pip / setuptools will install dependencies (GH
     #507, various pull requests)
   - Unstack called on DataFrame with non-MultiIndex will return Series (GH

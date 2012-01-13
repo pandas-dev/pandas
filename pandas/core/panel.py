@@ -269,10 +269,6 @@ class Panel(NDFrame):
                 if dtype is not None:
                     v = v.astype(dtype)
                 values = v.values
-
-            # if values.ndim == 2:
-            #     values = values[None, :, :]
-
             reshaped_data[item] = values
 
         # segregates dtypes and forms blocks matching to columns

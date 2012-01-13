@@ -750,17 +750,25 @@ class Index(np.ndarray):
         """
         if start is None:
             beg_slice = 0
-        elif start in self:
-            beg_slice = self.get_loc(start)
         else:
-            beg_slice = self.searchsorted(start, side='left')
+            try:
+                beg_slice = self.get_loc(start)
+            except KeyError:
+                if self.is_monotonic:
+                    beg_slice = self.searchsorted(start, side='left')
+                else:
+                    raise
 
         if end is None:
             end_slice = len(self)
-        elif end in self:
-            end_slice = self.get_loc(end) + 1
         else:
-            end_slice = self.searchsorted(end, side='right')
+            try:
+                end_slice = self.get_loc(end) + 1
+            except KeyError:
+                if self.is_monotonic:
+                    end_slice = self.searchsorted(end, side='right')
+                else:
+                    raise
 
         return beg_slice, end_slice
 
