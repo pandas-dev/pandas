@@ -15,9 +15,9 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
-                                _asarray_tuplesafe,
-                                AmbiguousIndexError)
+                                _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
+from pandas.core.format import SeriesFormatter
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
 from pandas.util import py3compat
@@ -545,69 +545,10 @@ copy : boolean, default False
 
     def _get_repr(self, name=False, print_header=False, length=True,
                   na_rep='NaN', float_format=None):
-        if len(self) == 0:
-            return ''
-
-        vals = self.values
-        index = self.index
-
-        is_multi = isinstance(index, MultiIndex)
-        if is_multi:
-            have_header = any(name for name in index.names)
-            string_index = index.format(names=True)
-            header, string_index = string_index[0], string_index[1:]
-        else:
-            have_header = index.name is not None
-            header = str(index.name)
-            string_index = index.format()
-
-        maxlen = max(len(x) for x in string_index)
-        padSpace = min(maxlen, 60)
-
-        if float_format is None:
-            float_format = com.print_config.float_format
-            if float_format is None:
-                float_format = com._float_format_default
-
-        def _format(k, v, extra=0):
-            # GH #490
-            if not isinstance(v, np.ndarray) and isnull(v):
-                v = na_rep
-            if com.is_float(v):
-                v = float_format(v)
-            strv = ' ' * extra + str(v).replace('\n', ' ')
-            return '%s    %s' % (str(k).ljust(padSpace), strv)
-
-        # floating point handling
-        if self.dtype == 'O':
-            is_float = (self.map(com.is_float) & self.notnull()).values
-            leading_space = is_float.any()
-
-            res = []
-            for i, (k, v) in enumerate(izip(string_index, vals)):
-                if not is_float[i] and leading_space:
-                    res.append(_format(k, v, extra=1))
-                else:
-                    res.append(_format(k, v))
-        else:
-            res = [_format(idx, v) for idx, v in izip(string_index, vals)]
-
-        if print_header and have_header:
-            res.insert(0, header)
-
-        footer = ''
-        if name:
-            footer += "Name: %s" % str(self.name) if self.name else ''
-
-        if length:
-            if footer:
-                footer += ', '
-            footer += 'Length: %d' % len(self)
-
-        if footer:
-            res.append(footer)
-
-        return '\n'.join(res)
+        formatter = SeriesFormatter(self, name=name, header=print_header,
+                                    length=length, na_rep=na_rep,
+                                    float_format=float_format)
+        return formatter.to_string()
 
     def __str__(self):
         return repr(self)

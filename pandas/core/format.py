@@ -1,5 +1,7 @@
+from itertools import izip
+
 from StringIO import StringIO
-from pandas.core.common import adjoin
+from pandas.core.common import adjoin, isnull, _format
 from pandas.core.index import MultiIndex, _ensure_index
 
 import pandas.core.common as com
@@ -36,6 +38,101 @@ docstring_to_string = """
         the configuration in pandas.core.common, 'left' out of the box
     index_names : bool, optional
         Prints the names of the indexes, default True """
+
+class SeriesFormatter(object):
+
+    def __init__(self, series, buf=None, header=True, length=True,
+                 na_rep='NaN', name=False, float_format=None):
+        self.series = series
+        self.buf = buf if buf is not None else StringIO()
+        self.name = name
+        self.na_rep = na_rep
+        self.float_format = float_format
+        self.length = length
+        self.header = header
+
+        def formatter(x, col_width=None):
+            return _format(x, self.series.dtype,
+                           na_rep=self.na_rep,
+                           float_format=self.float_format,
+                           col_width=col_width)
+        self.formatter = formatter
+
+    def _get_footer(self):
+        footer = ''
+        if self.name:
+            footer += ("Name: %s" % str(self.series.name)
+                       if self.series.name else '')
+
+        if self.length:
+            if footer:
+                footer += ', '
+            footer += 'Length: %d' % len(self.series)
+        return footer
+
+    def _get_formatted_index(self):
+        index = self.series.index
+        is_multi = isinstance(index, MultiIndex)
+        if is_multi:
+            have_header = any(name for name in index.names)
+            fmt_index = index.format(names=True)
+        else:
+            have_header = index.name is not None
+            fmt_index = index.format(name=True)
+        return fmt_index, have_header
+
+    def _get_formatted_values(self):
+        series = self.series
+        vals = series.values
+
+        if self.float_format is None:
+            float_format = com.print_config.float_format
+            if float_format is None:
+                float_format = com._float_format_default
+
+        # floating point handling
+        if series.dtype == 'O':
+            is_float = (series.map(com.is_float) & series.notnull()).values
+            leading_space = is_float.any()
+
+            fmt_values = []
+            for i, v in enumerate(vals):
+                if not is_float[i] and leading_space:
+                    fmt_values.append(' %s' % self.formatter(v))
+                elif is_float[i]:
+                    fmt_values.append(float_format(v))
+                elif not leading_space:
+                    fmt_values.append(' %s' % self.formatter(v))
+                else:
+                    fmt_values.append(self.formatter(v))
+        else:
+            fmt_values = _format_fixed_width(self.series.values,
+                                             self.formatter)
+        return fmt_values
+
+    def to_string(self):
+        series = self.series
+
+        if len(series) == 0:
+            return ''
+
+        fmt_index, have_header = self._get_formatted_index()
+        fmt_values = self._get_formatted_values()
+
+        maxlen = max(len(x) for x in fmt_index)
+        pad_space = min(maxlen, 60)
+        result = ['%s   %s' % (k.ljust(pad_space), v)
+                  for (k, v) in izip(fmt_index[1:], fmt_values)]
+
+        if self.header and have_header:
+            result.insert(0, fmt_index[0])
+
+        footer = self._get_footer()
+        if footer:
+            result.append(footer)
+
+        return '\n'.join(result)
+
 
 class DataFrameFormatter(object):
     """
@@ -149,10 +246,8 @@ class DataFrameFormatter(object):
             if i is not None:
                 return formatter(self.frame[col][i])
             else:
-                formatted = [formatter(x) for x in self.frame[col]]
-                max_len = max(map(len, formatted))
-                return [formatter(x, col_width=max_len)
-                        for x in self.frame[col]]
+                return _format_fixed_width(self.frame[col],
+                                           formatter)
 
     def to_html(self):
         """
@@ -331,6 +426,11 @@ class DataFrameFormatter(object):
         else:
             names.append('' if columns.name is None else columns.name)
         return names
+
+def _format_fixed_width(values, formatter):
+    formatted = [formatter(x) for x in values]
+    max_len = max(len(x) for x in formatted)
+    return [formatter(x, col_width=max_len) for x in values]
 
 def single_column_table(column):
     table = '<table><tbody>'

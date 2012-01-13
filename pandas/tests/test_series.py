@@ -722,10 +722,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
         result = s.to_string()
-        expected = ('0     foo\n'
-                    '1     NaN\n'
-                    '2    -1.23\n'
-                    '3     4.56')
+        expected = ('0    foo\n'
+                    '1    NaN\n'
+                    '2   -1.23\n'
+                    '3    4.56')
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
@@ -735,6 +735,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                     '1    NaN\n'
                     '2    bar\n'
                     '3    baz')
+        self.assertEqual(result, expected)
+
+    def test_to_string_float_na_spacing(self):
+        s = Series([0., 1.5678, 2., -3., 4.])
+        s[::2] = np.nan
+
+        result = s.to_string()
+        expected = ('0    NaN\n'
+                    '1    1.568\n'
+                    '2    NaN\n'
+                    '3   -3.000\n'
+                    '4    NaN')
         self.assertEqual(result, expected)
 
     def test_iter(self):
