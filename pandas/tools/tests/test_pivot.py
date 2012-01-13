@@ -80,7 +80,6 @@ class TestPivotTable(unittest.TestCase):
         expected = concat([means, stds], keys=['mean', 'std'], axis=1)
         tm.assert_frame_equal(result, expected)
 
-
     def test_margins(self):
         def _check_output(res, col, rows=['A', 'B'], cols=['C']):
             cmarg = res['All'][:-1]

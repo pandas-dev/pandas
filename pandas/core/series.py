@@ -295,7 +295,7 @@ copy : boolean, default False
                     pass
 
             if index.inferred_type == 'integer':
-                raise # AmbiguousIndexError(key)
+                raise
 
             try:
                 return _gin.get_value_at(self, key)
@@ -307,10 +307,6 @@ copy : boolean, default False
         except TypeError:
             pass
 
-        def _index_with(indexer):
-            return Series(self.values[indexer], index=self.index[indexer],
-                          name=self.name)
-
         # boolean
 
         # special handling of boolean data with NAs stored in object
@@ -318,15 +314,17 @@ copy : boolean, default False
         if _is_bool_indexer(key):
             key = self._check_bool_indexer(key)
             key = np.asarray(key, dtype=bool)
-            return _index_with(key)
 
+        return self._index_with(key)
+
+    def _index_with(self, key):
         # other: fancy integer or otherwise
-
         # [slice(0, 5, None)] will break if you convert to ndarray,
         # e.g. as requested by np.median
 
         try:
-            return _index_with(key)
+            return Series(self.values[key], index=self.index[key],
+                          name=self.name)
         except Exception:
             return self.values[key]
 

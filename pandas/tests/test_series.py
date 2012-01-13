@@ -472,6 +472,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(len(sl), len(sl.index))
         self.assertEqual(len(sl.index.indexMap), len(sl.index))
 
+    # def test_getitem_reindex(self):
+    #     indices = self.ts.index[[5, 10, 15]]
+
+    #     result = self.ts[indices]
+    #     expected = self.ts.reindex(indices)
+    #     assert_series_equal(result, expected)
+
     def test_ix_getitem(self):
         inds = self.series.index[[3,4,7]]
         assert_series_equal(self.series.ix[inds], self.series.reindex(inds))
@@ -490,6 +497,39 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # ask for index value
         self.assertEquals(self.ts.ix[d1], self.ts[d1])
         self.assertEquals(self.ts.ix[d2], self.ts[d2])
+
+    def test_ix_getitem_not_monotonic(self):
+        d1, d2 = self.ts.index[[5, 15]]
+
+        ts2 = self.ts[::2][::-1]
+
+        self.assertRaises(KeyError, ts2.ix.__getitem__, slice(d1, d2))
+        self.assertRaises(KeyError, ts2.ix.__setitem__, slice(d1, d2), 0)
+
+    def test_ix_getitem_setitem_integer_slice_keyerrors(self):
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+
+        # this is OK
+        cp = s.copy()
+        cp.ix[4:10] = 0
+        self.assert_((cp.ix[4:10] == 0).all())
+
+        # so is this
+        cp = s.copy()
+        cp.ix[3:11] = 0
+        self.assert_((cp.ix[3:11] == 0).values.all())
+
+        result = s.ix[4:10]
+        result2 = s.ix[3:11]
+        expected = s.reindex([4, 6, 8, 10])
+
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
+        # non-monotonic, raise KeyError
+        s2 = s[::-1]
+        self.assertRaises(KeyError, s2.ix.__getitem__, slice(3, 11))
+        self.assertRaises(KeyError, s2.ix.__setitem__, slice(3, 11), 0)
 
     def test_ix_getitem_iterator(self):
         idx = iter(self.series.index[:10])

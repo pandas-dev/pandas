@@ -31,11 +31,14 @@ class _NDFrameIndexer(object):
         else:
             return self._getitem_axis(key, axis=0)
 
-    def _getitem_xs(self, idx, axis=0):
+    def _get(self, label, axis=0):
         try:
-            return self.obj.xs(idx, axis=axis, copy=False)
+            return self.obj.xs(label, axis=axis, copy=False)
         except Exception:
-            return self.obj.xs(idx, axis=axis, copy=True)
+            return self.obj.xs(label, axis=axis, copy=True)
+
+    def _slice(self, obj, axis=0):
+        return self.obj._slice(obj, axis=axis)
 
     def __setitem__(self, key, value):
         # kludgetastic
@@ -93,7 +96,7 @@ class _NDFrameIndexer(object):
         # a bit kludgy
         if isinstance(self.obj._get_axis(0), MultiIndex):
             try:
-                return self._getitem_xs(tup, axis=0)
+                return self._get(tup, axis=0)
             except (KeyError, TypeError):
                 pass
 
@@ -153,7 +156,7 @@ class _NDFrameIndexer(object):
             if com.is_integer(key):
                 if isinstance(labels, MultiIndex):
                     try:
-                        return self._getitem_xs(key, axis=0)
+                        return self._get(key, axis=0)
                     except (KeyError, TypeError):
                         if _is_integer_index(self.obj.index.levels[0]):
                             raise
@@ -161,13 +164,13 @@ class _NDFrameIndexer(object):
                 if not is_int_index:
                     idx = labels[key]
 
-            return self._getitem_xs(idx, axis=0)
+            return self._get(idx, axis=0)
         else:
             labels = self.obj._get_axis(axis)
             lab = key
             if com.is_integer(key) and not _is_integer_index(labels):
                 lab = labels[key]
-            return self._getitem_xs(lab, axis=axis)
+            return self._get(lab, axis=axis)
 
     def _getitem_iterable(self, key, axis=0):
         labels = self.obj._get_axis(axis)
@@ -298,7 +301,7 @@ class _NDFrameIndexer(object):
         if not _need_slice(slice_obj):
             return obj
 
-        return obj._slice(slicer, axis=axis)
+        return self._slice(slicer, axis=axis)
 
 def _is_integer_slice(obj):
     def _crit(v):
@@ -327,77 +330,14 @@ class _SeriesIndexer(_NDFrameIndexer):
     >>> ts.ix[date1:date2] = 0
     """
 
-    def __getitem__(self, key):
-        ax = self.obj.index
+    def _get(self, label, axis=0):
+        return self.obj[label]
 
-        if isinstance(key, slice):
-            key = self._convert_slice(key)
+    def _slice(self, obj, axis=0):
+        return self.obj[obj]
 
-        if isinstance(ax, MultiIndex):
-            try:
-                # key = ax.get_loc(key)
-                return self._get_default(key)
-            except Exception:
-                pass
-
-        if _isboolarr(key):
-            self._check_boolean_key(key)
-        elif isinstance(key, slice):
-            pass
-        elif _is_list_like(key):
-            return self._get_list_like(key)
-        return self._get_default(key)
-
-    def __setitem__(self, key, value):
-        ax = self.obj.index
-        if isinstance(ax, MultiIndex):
-            try:
-                key = ax.get_loc(key)
-                self._set_default(key, value)
-                return
-            except Exception:
-                pass
-
-        if _isboolarr(key):
-            self._check_boolean_key(key)
-        elif isinstance(key, slice):
-            key = self._convert_slice(key)
-        elif _is_list_like(key):
-            return self._set_list_like(key, value)
-        return self._set_default(key, value)
-
-    def _check_boolean_key(self, key):
-        if _is_series(key):
-            if not key.index.equals(self.obj.index):
-                raise IndexingError('Cannot use boolean index with '
-                                    'misaligned or unequal labels')
-
-    def _convert_slice(self, key):
-        if _is_label_slice(self.obj.index, key):
-            i, j = self.obj.index.slice_locs(key.start, key.stop)
-            key = slice(i, j)
-        return key
-
-    def _get_default(self, key):
-        return self.obj[key]
-
-    def _get_list_like(self, key):
-        if isinstance(self.obj.index, MultiIndex):
-            try:
-                return self.obj[key]
-            except (KeyError, TypeError, IndexError):
-                pass
-        return self.obj.reindex(key)
-
-    def _set_default(self, key, value):
-        self.obj[key] = value
-
-    def _set_list_like(self, key, value):
-        inds = self.obj.index.get_indexer(key)
-        mask = inds == -1
-        if mask.any():
-            raise IndexingError('Indices %s not found' % key[mask])
-        self.obj.put(inds, value)
+    def _setitem_with_indexer(self, indexer, value):
+        self.obj[indexer] = value
 
 def _is_series(obj):
     from pandas.core.series import Series
