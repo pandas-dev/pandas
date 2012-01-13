@@ -299,6 +299,8 @@ From a list of dicts
    DataFrame(data2, index=['first', 'second'])
    DataFrame(data2, columns=['a', 'b'])
 
+.. _basics.dataframe.from_series:
+
 From a Series
 ~~~~~~~~~~~~~
 

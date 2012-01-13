@@ -140,6 +140,8 @@ DataFrame:
    concat([df.ix[:7, ['a', 'b']], df.ix[2:-2, ['c']],
            df.ix[-7:, ['d']]], axis=1, join_axes=[df.index])
 
+.. _merging.concatenation:
+
 Concatenating using ``append``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -166,6 +168,15 @@ need to be:
    df1
    df2
    df1.append(df2)
+
+``append`` may take multiple objects to concatenate:
+
+.. ipython:: python
+
+   df1 = df.ix[:2]
+   df2 = df.ix[2:4]
+   df3 = df.ix[4:]
+   df1.append([df2,df3])
 
 .. note::
 
@@ -199,6 +210,7 @@ This is also a valid argument to ``DataFrame.append``:
 .. ipython:: python
 
    df1.append(df2, ignore_index=True)
+
 
 More concatenating with group keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -498,6 +510,8 @@ columns:
 
 ``DataFrame.join`` has ``lsuffix`` and ``rsuffix`` arguments which behave
 similarly.
+
+.. _merging.multiple_join:
 
 Joining multiple DataFrame or Panel objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -380,6 +380,18 @@ more direct way.  ``select`` takes a function which operates on labels along
 
    df.select(lambda x: x == 'A', axis=1)
 
+The ``lookup`` method
+~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes you want to extract a set of values given a sequence of row labels
+and column labels, and the ``lookup`` method allows for this and returns a
+numpy array.  For instance,
+
+.. ipython:: python
+
+  dflookup = DataFrame(np.random.rand(20,4), columns = ['A','B','C','D'])
+  dflookup.lookup(xrange(0,10,2), ['B','C','A','B','D'])
+
 
 Advanced indexing with integer labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
