@@ -93,9 +93,10 @@ def _get_terminal_size_linux():
             os.close(fd)
         except:
             pass
-    if not cr:
+    if not cr or cr == (0, 0):
         try:
-            cr = (env['LINES'], env['COLUMNS'])
+           from os import environ as env
+           cr = (env['LINES'], env['COLUMNS'])
         except:
             return None
     return int(cr[1]), int(cr[0])
