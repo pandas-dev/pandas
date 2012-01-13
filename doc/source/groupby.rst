@@ -125,6 +125,8 @@ only verifies that you've passed a valid mapping.
    GroupBy operations (though can't be guaranteed to be the most
    efficient). You can get quite creative with the label mapping functions.
 
+.. _groupby.atributes:
+
 GroupBy object attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -145,6 +147,15 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    grouped = df.groupby(['A', 'B'])
    grouped.groups
    len(grouped)
+
+By default the group keys are sorted during the groupby operation. You may
+however pass ``sort``=``False`` for potential speedups:
+
+.. ipython:: python
+
+   df2 = DataFrame({'X' : ['B', 'B', 'A', 'A'], 'Y' : [1, 2, 3, 4]})
+   df2.groupby(['X'], sort=True).sum()
+   df2.groupby(['X'], sort=False).sum()
 
 .. _groupby.multiindex:
 

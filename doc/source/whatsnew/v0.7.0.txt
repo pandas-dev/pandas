@@ -53,6 +53,31 @@ New features
 - :ref:`Add <io.formatting>` ``index`` and ``header`` options to
   ``DataFrame.to_string``
 
+- :ref:`Can <merging.multiple_join>` pass multiple DataFrames to
+  ``DataFrame.join`` to join on index (GH166_)
+
+- :ref:`Can <merging.multiple_join>` pass multiple Panels to ``Panel.join``
+  (GH115_)
+
+- :ref:`Can <merging.concatenation>` pass multiple DataFrames to
+  `DataFrame.append` to concatenate (stack) and multiple Series to
+  ``Series.append`` too
+
+- :ref:`Added <io.formatting>` ``justify`` argument to ``DataFrame.to_string``
+  to allow different alignment of column headers
+
+- :ref:`Add <groupby.atributes>` ``sort`` option to GroupBy to allow disabling
+  sorting of the group keys for potential speedups (GH595_)
+
+- :ref:`Can <basics.dataframe.from_series>` pass MaskedArray to Series
+  constructor (PR563_)
+
+- :ref:`Add <dsintro.panel_item_selection>` Panel item access via attributes
+  and IPython completion (GH554_)
+
+- Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving values
+  given a sequence of row and column labels (GH338_)
+
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -141,9 +166,12 @@ similar operation to the above but using a Python function:
 - Ported skiplist data structure to C to speed up ``rolling_median`` by about
   5-10x in most typical use cases (GH374_)
 
+.. _GH115: https://github.com/wesm/pandas/issues/115
+.. _GH166: https://github.com/wesm/pandas/issues/166
 .. _GH220: https://github.com/wesm/pandas/issues/220
 .. _GH249: https://github.com/wesm/pandas/issues/249
 .. _GH267: https://github.com/wesm/pandas/issues/267
+.. _GH338: https://github.com/wesm/pandas/issues/338
 .. _GH342: https://github.com/wesm/pandas/issues/342
 .. _GH374: https://github.com/wesm/pandas/issues/374
 .. _GH439: https://github.com/wesm/pandas/issues/439
@@ -157,6 +185,8 @@ similar operation to the above but using a Python function:
 .. _GH536: https://github.com/wesm/pandas/issues/536
 .. _GH542: https://github.com/wesm/pandas/issues/542
 .. _GH545: https://github.com/wesm/pandas/issues/545
+.. _GH554: https://github.com/wesm/pandas/issues/554
+.. _GH595: https://github.com/wesm/pandas/issues/595
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _PR521: https://github.com/wesm/pandas/pull/521
