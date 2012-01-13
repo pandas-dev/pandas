@@ -26,10 +26,20 @@ try:
 except AttributeError:
     pass
 
-def infer_dtype(ndarray values):
+def infer_dtype(object _values):
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n
         object test_val
+        ndarray values
+
+    if isinstance(_values, np.ndarray):
+        values = _values
+    else:
+        if not isinstance(_values, list):
+            _values = list(_values)
+        values = list_to_object_array(_values)
+
+    n = len(values)
 
     val_kind = values.dtype.type
     if val_kind in _TYPE_MAP:

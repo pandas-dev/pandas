@@ -690,7 +690,7 @@ class TestConcatenate(unittest.TestCase):
         b = df[5:].ix[:, ['strings', 'ints', 'floats']]
 
         appended = a.append(b)
-        self.assert_(isnull(appended['strings'][:5]).all())
+        self.assert_(isnull(appended['strings'][0:4]).all())
         self.assert_(isnull(appended['bools'][5:]).all())
 
     def test_append_many(self):

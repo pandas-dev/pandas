@@ -576,8 +576,7 @@ def truncate(self, before=None, after=None, copy=True):
     if before is not None and after is not None:
         assert(before <= after)
 
-    left, right = self.index.slice_locs(before, after)
-    result = self[left:right]
+    result = self.ix[before:after]
 
     if isinstance(self.index, MultiIndex):
         result.index = self.index.truncate(before, after)

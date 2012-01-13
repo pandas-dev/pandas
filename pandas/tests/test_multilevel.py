@@ -159,7 +159,7 @@ class TestMultiLevel(unittest.TestCase):
 
         result = s[2000, 3]
         result2 = s.ix[2000, 3]
-        expected = s[42:65]
+        expected = s.reindex(s.index[42:65])
         expected.index = expected.index.droplevel(0).droplevel(0)
         assert_series_equal(result, expected)
 
@@ -169,7 +169,7 @@ class TestMultiLevel(unittest.TestCase):
 
         # fancy
         result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
-        expected = s[49:51]
+        expected = s.reindex(s.index[49:51])
         assert_series_equal(result, expected)
 
         # key error
@@ -179,9 +179,9 @@ class TestMultiLevel(unittest.TestCase):
         s = self.ymd['A']
 
         s[2000, 3] = np.nan
-        self.assert_(isnull(s[42:65]).all())
-        self.assert_(notnull(s[:42]).all())
-        self.assert_(notnull(s[65:]).all())
+        self.assert_(isnull(s.values[42:65]).all())
+        self.assert_(notnull(s.values[:42]).all())
+        self.assert_(notnull(s.values[65:]).all())
 
         s[2000, 3, 10] = np.nan
         self.assert_(isnull(s[49]))
@@ -243,7 +243,7 @@ class TestMultiLevel(unittest.TestCase):
         frame =  DataFrame(np.random.randn(len(index), 4), index=index,
                            columns=['a', 'b', 'c', 'd'])
         res = frame.ix[1:2]
-        exp = frame[2:]
+        exp = frame.reindex(frame.index[2:])
         assert_frame_equal(res, exp)
 
         frame.ix[1:2] = 7
@@ -252,7 +252,7 @@ class TestMultiLevel(unittest.TestCase):
         series =  Series(np.random.randn(len(index)), index=index)
 
         res = series.ix[1:2]
-        exp = series[2:]
+        exp = series.reindex(series.index[2:])
         assert_series_equal(res, exp)
 
         series.ix[1:2] = 7

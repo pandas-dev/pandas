@@ -472,12 +472,65 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(len(sl), len(sl.index))
         self.assertEqual(len(sl.index.indexMap), len(sl.index))
 
-    # def test_getitem_reindex(self):
-    #     indices = self.ts.index[[5, 10, 15]]
+    def test_basic_getitem_with_labels(self):
+        indices = self.ts.index[[5, 10, 15]]
 
-    #     result = self.ts[indices]
-    #     expected = self.ts.reindex(indices)
-    #     assert_series_equal(result, expected)
+        result = self.ts[indices]
+        expected = self.ts.reindex(indices)
+        assert_series_equal(result, expected)
+
+        result = self.ts[indices[0]:indices[2]]
+        expected = self.ts.ix[indices[0]:indices[2]]
+        assert_series_equal(result, expected)
+
+        # integer indexes, be careful
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        inds = [0, 2, 5, 7, 8]
+        arr_inds = np.array([0, 2, 5, 7, 8])
+        result = s[inds]
+        expected = s.reindex(inds)
+        assert_series_equal(result, expected)
+
+        result = s[arr_inds]
+        expected = s.reindex(arr_inds)
+        assert_series_equal(result, expected)
+
+    def test_basic_setitem_with_labels(self):
+        indices = self.ts.index[[5, 10, 15]]
+
+        cp = self.ts.copy()
+        exp = self.ts.copy()
+        cp[indices] = 0
+        exp.ix[indices] = 0
+        assert_series_equal(cp, exp)
+
+        cp = self.ts.copy()
+        exp = self.ts.copy()
+        cp[indices[0]:indices[2]] = 0
+        exp.ix[indices[0]:indices[2]] = 0
+        assert_series_equal(cp, exp)
+
+        # integer indexes, be careful
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        inds = [0, 4, 6]
+        arr_inds = np.array([0, 4, 6])
+
+        cp = s.copy()
+        exp = s.copy()
+        s[inds] = 0
+        s.ix[inds] = 0
+        assert_series_equal(cp, exp)
+
+        cp = s.copy()
+        exp = s.copy()
+        s[arr_inds] = 0
+        s.ix[arr_inds] = 0
+        assert_series_equal(cp, exp)
+
+        inds_notfound = [0, 4, 5, 6]
+        arr_inds_notfound = np.array([0, 4, 5, 6])
+        self.assertRaises(Exception, s.__setitem__, inds_notfound, 0)
+        self.assertRaises(Exception, s.__setitem__, arr_inds_notfound, 0)
 
     def test_ix_getitem(self):
         inds = self.series.index[[3,4,7]]

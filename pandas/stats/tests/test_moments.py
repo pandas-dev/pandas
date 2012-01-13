@@ -298,8 +298,8 @@ class TestMoments(unittest.TestCase):
 
         result = func(A, B, 20, min_periods=5)
 
-        self.assert_(np.isnan(result[:15]).all())
-        self.assert_(not np.isnan(result[15:]).any())
+        self.assert_(np.isnan(result.values[:15]).all())
+        self.assert_(not np.isnan(result.values[15:]).any())
 
         self.assertRaises(Exception, func, A, randn(50), 20, min_periods=5)
 

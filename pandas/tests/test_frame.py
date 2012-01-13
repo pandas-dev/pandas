@@ -701,10 +701,19 @@ class CheckIndexing(object):
                            slice(None, None, None),
                            slice(None, None, None)), 1)
 
+    def test_getitem_setitem_boolean_misaligned(self):
         # boolean index misaligned labels
         mask = self.frame['A'][::-1] > 1
-        self.assertRaises(Exception, ix.__getitem__, mask)
-        self.assertRaises(Exception, ix.__setitem__, mask, 1.)
+
+        result = self.frame.ix[mask]
+        expected = self.frame.ix[mask[::-1]]
+        assert_frame_equal(result, expected)
+
+        cp = self.frame.copy()
+        expected = self.frame.copy()
+        cp.ix[mask] = 0
+        expected.ix[mask] = 0
+        assert_frame_equal(cp, expected)
 
     def test_setitem_single_column_mixed(self):
         df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],

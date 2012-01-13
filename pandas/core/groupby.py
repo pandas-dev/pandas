@@ -1278,18 +1278,21 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
     elif isinstance(data, DataFrame):
         sorted_data = data.take(indexer, axis=axis)
 
-    if isinstance(data, DataFrame):
-        def slicer(data, slob):
+    if isinstance(sorted_data, DataFrame):
+        def _get_slice(slob):
             if axis == 0:
-                return data[slob]
+                return sorted_data[slob]
             else:
-                return data.ix[:, slob]
-    elif isinstance(data, BlockManager):
-        def slicer(data, slob):
-            return factory(data.get_slice(slob, axis=axis))
-    else:
-        def slicer(data, slob):
-            return data[slob]
+                return sorted_data.ix[:, slob]
+    elif isinstance(sorted_data, BlockManager):
+        def _get_slice(slob):
+            return factory(sorted_data.get_slice(slob, axis=axis))
+    elif isinstance(sorted_data, Series):
+        def _get_slice(slob):
+            return sorted_data._get_values(slob)
+    else:  # pragma: no cover
+        def _get_slice(slob):
+            return sorted_data[slob]
 
     starts, ends = lib.generate_slices(group_index.astype('i4'),
                                        np.prod(shape))
@@ -1298,7 +1301,7 @@ def generate_groups(data, label_list, shape, axis=0, factory=lambda x: x):
         if start == end:
             yield i, None
         else:
-            yield i, slicer(sorted_data, slice(start, end))
+            yield i, _get_slice(slice(start, end))
 
 def get_group_index(label_list, shape):
     if len(label_list) == 1:

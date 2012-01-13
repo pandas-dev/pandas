@@ -31,7 +31,7 @@ class _NDFrameIndexer(object):
         else:
             return self._getitem_axis(key, axis=0)
 
-    def _get(self, label, axis=0):
+    def _get_label(self, label, axis=0):
         try:
             return self.obj.xs(label, axis=axis, copy=False)
         except Exception:
@@ -96,7 +96,7 @@ class _NDFrameIndexer(object):
         # a bit kludgy
         if isinstance(self.obj._get_axis(0), MultiIndex):
             try:
-                return self._get(tup, axis=0)
+                return self._get_label(tup, axis=0)
             except (KeyError, TypeError):
                 pass
 
@@ -156,7 +156,7 @@ class _NDFrameIndexer(object):
             if com.is_integer(key):
                 if isinstance(labels, MultiIndex):
                     try:
-                        return self._get(key, axis=0)
+                        return self._get_label(key, axis=0)
                     except (KeyError, TypeError):
                         if _is_integer_index(self.obj.index.levels[0]):
                             raise
@@ -164,32 +164,28 @@ class _NDFrameIndexer(object):
                 if not is_int_index:
                     idx = labels[key]
 
-            return self._get(idx, axis=0)
+            return self._get_label(idx, axis=0)
         else:
             labels = self.obj._get_axis(axis)
             lab = key
             if com.is_integer(key) and not _is_integer_index(labels):
                 lab = labels[key]
-            return self._get(lab, axis=axis)
+            return self._get_label(lab, axis=axis)
 
     def _getitem_iterable(self, key, axis=0):
         labels = self.obj._get_axis(axis)
         axis_name = self.obj._get_axis_name(axis)
 
-        # asarray can be unsafe, NumPy strings are weird
-        if isinstance(key, Index):
-            # want Index objects to pass through untouched
-            keyarr = key
-        else:
-            keyarr = _asarray_tuplesafe(key)
-
-        if keyarr.dtype == np.bool_:
-            if _is_series(key):
-                if not key.index.equals(labels):
-                    raise IndexingError('Cannot use boolean index with '
-                                        'misaligned or unequal labels')
+        if com._is_bool_indexer(key):
+            key = _check_bool_indexer(labels, key)
             return self.obj.reindex(**{axis_name : labels[np.asarray(key)]})
         else:
+            if isinstance(key, Index):
+                # want Index objects to pass through untouched
+                keyarr = key
+            else:
+                # asarray can be unsafe, NumPy strings are weird
+                keyarr = _asarray_tuplesafe(key)
             if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
                 keyarr = labels.take(keyarr)
 
@@ -244,14 +240,12 @@ class _NDFrameIndexer(object):
             return slicer
 
         elif _is_list_like(obj):
-            objarr = _asarray_tuplesafe(obj)
-
-            if objarr.dtype == np.bool_:
-                if not obj.index.equals(labels):
-                    raise IndexingError('Cannot use boolean index with '
-                                        'misaligned or unequal labels')
+            if com._is_bool_indexer(obj):
+                objarr = _check_bool_indexer(labels, obj)
                 return objarr
             else:
+                objarr = _asarray_tuplesafe(obj)
+
                 # If have integer labels, defer to label-based indexing
                 if _is_integer_dtype(objarr) and not is_int_index:
                     return objarr
@@ -330,14 +324,33 @@ class _SeriesIndexer(_NDFrameIndexer):
     >>> ts.ix[date1:date2] = 0
     """
 
-    def _get(self, label, axis=0):
-        return self.obj[label]
+    def _get_integer(self, indexer, axis=0):
+        return self.obj._get_values(indexer)
 
-    def _slice(self, obj, axis=0):
-        return self.obj[obj]
+    def _get_label(self, key, axis=0):
+        return self.obj[key]
+
+    def _slice(self, indexer, axis=0):
+        return self.obj._get_values(indexer)
 
     def _setitem_with_indexer(self, indexer, value):
-        self.obj[indexer] = value
+        self.obj._set_values(indexer, value)
+
+def _check_bool_indexer(ax, key):
+    # boolean indexing, need to check that the data are aligned, otherwise
+    # disallowed
+    result = key
+    if _is_series(key) and key.dtype == np.bool_:
+        if not key.index.equals(ax):
+            result = key.reindex(ax)
+
+    if isinstance(result, np.ndarray) and result.dtype == np.object_:
+        mask = com.isnull(result)
+        if mask.any():
+            raise IndexingError('cannot index with vector containing '
+                                'NA / NaN values')
+
+    return result
 
 def _is_series(obj):
     from pandas.core.series import Series
@@ -395,4 +408,3 @@ def _maybe_droplevels(index, key):
 
     return index
 
-_isboolarr = lambda x: np.asarray(x).dtype == np.bool_

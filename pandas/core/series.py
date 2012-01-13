@@ -220,21 +220,6 @@ copy : boolean, default False
     _index = None
     index = lib.SeriesIndex()
 
-    # def _get_index(self):
-    #     return self._index
-
-    # def _set_index(self, index):
-    #     if not isinstance(index, _INDEX_TYPES):
-    #         raise TypeError("Expected index to be in %s; was %s."
-    #                         % (_INDEX_TYPES, type(index)))
-
-    #     if len(self) != len(index):
-    #         raise AssertionError('Lengths of index and values did not match!')
-
-    #     self._index = _ensure_index(index)
-
-    # index = property(fget=_get_index, fset=_set_index)
-
     def __array_finalize__(self, obj):
         """
         Gets called after any ufunc or other array operations, necessary
@@ -315,18 +300,143 @@ copy : boolean, default False
             key = self._check_bool_indexer(key)
             key = np.asarray(key, dtype=bool)
 
-        return self._index_with(key)
+        return self._get_with(key)
 
-    def _index_with(self, key):
+    def _get_with(self, key):
         # other: fancy integer or otherwise
-        # [slice(0, 5, None)] will break if you convert to ndarray,
-        # e.g. as requested by np.median
+        if isinstance(key, slice):
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+            return self._get_values(indexer)
+        else:
+            # mpl hackaround
+            if isinstance(key, tuple):
+                try:
+                    return self._get_values(key)
+                except Exception:
+                    pass
 
+            if not isinstance(key, (list, np.ndarray)):
+                key = list(key)
+
+            key_type = lib.infer_dtype(key)
+
+            if key_type == 'integer':
+                if self.index.inferred_type == 'integer':
+                    return self.reindex(key)
+                else:
+                    return self._get_values(key)
+            elif key_type == 'boolean':
+                return self._get_values(key)
+            else:
+                try:
+                    return self.reindex(key)
+                except Exception:
+                    # [slice(0, 5, None)] will break if you convert to ndarray,
+                    # e.g. as requested by np.median
+                    # hack
+                    if isinstance(key[0], slice):
+                        return self._get_values(key)
+                    raise
+
+    def __setitem__(self, key, value):
+        values = self.values
         try:
-            return Series(self.values[key], index=self.index[key],
+            values[self.index.get_loc(key)] = value
+            return
+        except KeyError:
+            if (com.is_integer(key)
+                and not self.index.inferred_type == 'integer'):
+
+                values[key] = value
+                return
+
+            raise KeyError('%s not in this series!' % str(key))
+        except TypeError:
+            # Could not hash item
+            pass
+
+        if _is_bool_indexer(key):
+            key = self._check_bool_indexer(key)
+            key = np.asarray(key, dtype=bool)
+
+        self._set_with(key, value)
+
+    def _set_with(self, key, value):
+        # other: fancy integer or otherwise
+        if isinstance(key, slice):
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+            return self._set_values(indexer, value)
+        else:
+            if isinstance(key, tuple):
+                try:
+                    self._set_values(key, value)
+                except Exception:
+                    pass
+
+            if not isinstance(key, (list, np.ndarray)):
+                key = list(key)
+
+            key_type = lib.infer_dtype(key)
+
+            if key_type == 'integer':
+                if self.index.inferred_type == 'integer':
+                    self._set_labels(key, value)
+                else:
+                    return self._set_values(key, value)
+            elif key_type == 'boolean':
+                self._set_values(key, value)
+            else:
+                self._set_labels(key, value)
+
+    def _set_labels(self, key, value):
+        key = _asarray_tuplesafe(key)
+        indexer = self.index.get_indexer(key)
+        mask = indexer == -1
+        if mask.any():
+            raise ValueError('%s not contained in the index'
+                             % str(key[mask]))
+        self._set_values(indexer, value)
+
+    def _get_values(self, indexer):
+        try:
+            return Series(self.values[indexer], index=self.index[indexer],
                           name=self.name)
         except Exception:
-            return self.values[key]
+            return self.values[indexer]
+
+    def _set_values(self, key, value):
+        self.values[key] = value
+
+    # help out SparseSeries
+    _get_val_at = ndarray.__getitem__
+
+    def __getslice__(self, i, j):
+        if i < 0:
+            i = 0
+        if j < 0:
+            j = 0
+        slobj = slice(i, j)
+        return self.__getitem__(slobj)
+
+    def _check_bool_indexer(self, key):
+        # boolean indexing, need to check that the data are aligned, otherwise
+        # disallowed
+        result = key
+        if isinstance(key, Series) and key.dtype == np.bool_:
+            if not key.index.equals(self.index):
+                result = key.reindex(self.index)
+
+        if isinstance(result, np.ndarray) and result.dtype == np.object_:
+            mask = isnull(result)
+            if mask.any():
+                raise ValueError('cannot index with vector containing '
+                                 'NA / NaN values')
+
+        return result
+
+    def __setslice__(self, i, j, value):
+        """Set slice equal to given value(s)"""
+        ndarray.__setslice__(self, i, j, value)
 
     def get(self, label, default=None):
         """
@@ -389,67 +499,6 @@ copy : boolean, default False
             new_index = np.concatenate([self.index.values, [label]])
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
-
-    # help out SparseSeries
-    _get_val_at = ndarray.__getitem__
-
-    def __getslice__(self, i, j):
-        if i < 0:
-            i = 0
-        if j < 0:
-            j = 0
-        slobj = slice(i, j)
-        return self.__getitem__(slobj)
-
-    def __setitem__(self, key, value):
-        values = self.values
-        try:
-            values[self.index.get_loc(key)] = value
-            return
-        except KeyError:
-            if (com.is_integer(key)
-                and not self.index.inferred_type == 'integer'):
-
-                values[key] = value
-                return
-
-            raise KeyError('%s not in this series!' % str(key))
-        except TypeError:
-            # Could not hash item
-            pass
-
-        key = self._check_bool_indexer(key)
-
-        # special handling of boolean data with NAs stored in object
-        # arrays. Sort of an elaborate hack since we can't represent boolean
-        # NA. Hmm
-        if isinstance(key, np.ndarray) and key.dtype == np.object_:
-            if set([True, False]).issubset(set(key)):
-                key = np.asarray(key, dtype=bool)
-                values[key] = value
-                return
-
-        values[key] = value
-
-    def _check_bool_indexer(self, key):
-        # boolean indexing, need to check that the data are aligned, otherwise
-        # disallowed
-        result = key
-        if isinstance(key, Series) and key.dtype == np.bool_:
-            if not key.index.equals(self.index):
-                result = key.reindex(self.index)
-
-        if isinstance(result, np.ndarray) and result.dtype == np.object_:
-            mask = isnull(result)
-            if mask.any():
-                raise ValueError('cannot index with vector containing '
-                                 'NA / NaN values')
-
-        return result
-
-    def __setslice__(self, i, j, value):
-        """Set slice equal to given value(s)"""
-        ndarray.__setslice__(self, i, j, value)
 
     def __repr__(self):
         """Clean string representation of a Series"""
