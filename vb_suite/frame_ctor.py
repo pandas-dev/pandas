@@ -12,7 +12,12 @@ N, K = 5000, 50
 index = [rands(10) for _ in xrange(N)]
 columns = [rands(10) for _ in xrange(K)]
 frame = DataFrame(np.random.randn(N, K), index=index, columns=columns)
-data = frame.to_dict()
+
+try:
+    data = frame.to_dict()
+except:
+    data = frame.toDict()
+
 some_dict = data.values()[0]
 dict_list = [dict(zip(columns, row)) for row in frame.values]
 """

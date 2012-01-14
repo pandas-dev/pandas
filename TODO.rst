@@ -54,3 +54,5 @@ Performance blog
 - Groupby
 - joining
 - Take
+
+git log v0.6.1..master --pretty=format:%aN | sort | uniq -c | sort -rn

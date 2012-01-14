@@ -2316,7 +2316,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         mixed2 = mixed1.convert_objects()
         assert_frame_equal(mixed1, mixed2)
 
-    def test_append_series(self):
+    def test_append_series_dict(self):
         df = DataFrame(np.random.randn(5, 4),
                        columns=['foo', 'bar', 'baz', 'qux'])
 
@@ -2329,12 +2329,38 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              ignore_index=True)
         assert_frame_equal(result, expected)
 
+        # dict
+        result = df.append(series.to_dict(), ignore_index=True)
+        assert_frame_equal(result, expected)
+
         result = df.append(series[::-1][:3], ignore_index=True)
         expected = df.append(DataFrame({0 : series[::-1][:3]}).T,
                              ignore_index=True)
         assert_frame_equal(result, expected.ix[:, result.columns])
 
         # can append when name set
+        row = df.ix[4]
+        row.name = 5
+        result = df.append(row)
+        expected = df.append(df[-1:], ignore_index=True)
+        assert_frame_equal(result, expected)
+
+    def test_append_list_of_series_dicts(self):
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        dicts = [x.to_dict() for idx, x in df.iterrows()]
+
+        result = df.append(dicts, ignore_index=True)
+        expected = df.append(df, ignore_index=True)
+        assert_frame_equal(result, expected)
+
+        # different columns
+        dicts = [{'foo': 1, 'bar': 2, 'baz': 3, 'peekaboo': 4},
+                 {'foo': 5, 'bar': 6, 'baz': 7, 'peekaboo': 8}]
+        result = df.append(dicts, ignore_index=True)
+        expected = df.append(DataFrame(dicts), ignore_index=True)
+        assert_frame_equal(result, expected)
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)

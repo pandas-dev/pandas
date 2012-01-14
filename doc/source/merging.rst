@@ -262,12 +262,12 @@ like GroupBy where the order of a categorical variable is meaningful.
 
 .. _merging.append.row:
 
-Appending single rows to a DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Appending rows to a DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While not especially efficient (since a new object must be created), you can
-append a row to a DataFrame by passing a Series to ``append``, which returns a
-new DataFrame as above:
+append a single row to a DataFrame by passing a Series or dict to ``append``,
+which returns a new DataFrame as above.
 
 .. ipython:: python
 
@@ -276,6 +276,20 @@ new DataFrame as above:
    s = df.xs(3)
    df.append(s, ignore_index=True)
 
+You should use ``ignore_index`` with this method to instruct DataFrame to
+discard its index. If you wish to preserve the index, you should construct an
+appropriately-indexed DataFrame and append or concatenate those objects.
+
+You can also pass a list of dicts or Series:
+
+.. ipython:: python
+
+   df = DataFrame(np.random.randn(5, 4),
+                  columns=['foo', 'bar', 'baz', 'qux'])
+   dicts = [{'foo': 1, 'bar': 2, 'baz': 3, 'peekaboo': 4},
+            {'foo': 5, 'bar': 6, 'baz': 7, 'peekaboo': 8}]
+   result = df.append(dicts, ignore_index=True)
+   result
 
 .. _merging.join:
 

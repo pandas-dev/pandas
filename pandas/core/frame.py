@@ -42,7 +42,6 @@ import pandas.core.generic as generic
 import pandas.core.datetools as datetools
 import pandas._tseries as lib
 
-
 #----------------------------------------------------------------------
 # Docstring templates
 
@@ -70,6 +69,7 @@ Returns
 -------
 result : DataFrame
 """
+
 
 _stat_doc = """
 Return %(name)s over requested axis.
@@ -2825,26 +2825,41 @@ class DataFrame(NDFrame):
 
     def append(self, other, ignore_index=False, verify_integrity=True):
         """
-        Append columns of other to end of this frame's columns and index.
-        Columns not in this frame are added as new columns.
+        Append columns of other to end of this frame's columns and index,
+        returning a new object.  Columns not in this frame are added as new
+        columns.
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame or list of Series/dict-like objects
         ignore_index : boolean, default False
             If True do not use the index labels. Useful for gluing together
             record arrays
+
+        Notes
+        -----
+        If a list of dict is passed and the keys are all contained in the
+        DataFrame's index, the order of the columns in the resulting DataFrame
+        will be unchanged
 
         Returns
         -------
         appended : DataFrame
         """
-        if isinstance(other, Series):
+        if isinstance(other, (Series, dict)):
+            if isinstance(other, dict):
+                other = Series(other)
+            if other.name is None and not ignore_index:
+                raise Exception('Can only append a Series if ignore_index=True')
+
+            index = None if other.name is None else [other.name]
             other = other.reindex(self.columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
-                              columns=self.columns)
-            if not ignore_index:
-                raise Exception('Can only append a Series if ignore_index=True')
+                              index=index, columns=self.columns)
+        elif isinstance(other, list):
+            other = DataFrame(other)
+            if (self.columns.get_indexer(other.columns) >= 0).all():
+                other = other.ix[:, self.columns]
 
         if not other:
             return self.copy()
@@ -3931,7 +3946,6 @@ def _lexsort_indexer(keys):
     comp_ids, _, max_group = _compress_group_index(group_index)
     indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
     return indexer
-
 
 if __name__ == '__main__':
     import nose

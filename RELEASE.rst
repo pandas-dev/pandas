@@ -68,6 +68,8 @@ pandas 0.7.0
     values given a sequence of row and column labels (GH #338)
   - Add ``verbose`` option to ``read_csv`` and ``read_table`` to show number of
     NA values inserted in non-numeric columns (GH #614)
+  - Can pass a list of dicts or Series to ``DataFrame.append`` to concatenate
+    multiple rows (GH #464)
 
 **API Changes**
 
