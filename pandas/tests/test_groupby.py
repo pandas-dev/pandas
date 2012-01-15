@@ -1230,6 +1230,15 @@ class TestGroupBy(unittest.TestCase):
         del expected[0]
         assert_frame_equal(result, expected)
 
+    def test_cython_grouper_series_bug_noncontig(self):
+        arr = np.empty((100, 100))
+        arr.fill(np.nan)
+        obj = Series(arr[:, 0], index=range(100))
+        inds = np.tile(range(10), 10)
+
+        result = obj.groupby(inds).agg(Series.median)
+        self.assert_(result.isnull().all())
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):

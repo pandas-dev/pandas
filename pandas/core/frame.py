@@ -2856,7 +2856,7 @@ class DataFrame(NDFrame):
             other = other.reindex(self.columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
                               index=index, columns=self.columns)
-        elif isinstance(other, list):
+        elif isinstance(other, list) and not isinstance(other[0], DataFrame):
             other = DataFrame(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():
                 other = other.ix[:, self.columns]

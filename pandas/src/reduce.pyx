@@ -106,6 +106,8 @@ cdef class SeriesGrouper:
 
         self.labels = labels
         self.f = f
+        if not series.flags.c_contiguous:
+            series = series.copy('C')
         self.arr = series
         self.index = series.index
 
@@ -119,6 +121,9 @@ cdef class SeriesGrouper:
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
+            if not dummy.flags.contiguous:
+                dummy = dummy.copy()
+
         return dummy
 
     def get_result(self):

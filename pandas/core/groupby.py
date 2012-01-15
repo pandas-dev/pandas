@@ -1331,7 +1331,7 @@ def _aggregate_series_fast(obj, func, group_index, ngroups):
         raise TypeError('Incompatible index for Cython grouper')
 
     # avoids object / Series creation overhead
-    dummy = obj[:0]
+    dummy = obj[:0].copy()
     indexer = lib.groupsort_indexer(group_index, ngroups)[0]
     obj = obj.take(indexer)
     group_index = group_index.take(indexer)
