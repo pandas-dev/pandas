@@ -203,6 +203,19 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
+    def test_xs_level(self):
+        result = self.frame.xs('two', level=1)
+        expected = self.frame[self.frame.index.get_level_values(1) == 'two']
+        expected.index = expected.index.droplevel(1)
+
+        assert_frame_equal(result, expected)
+
+    def test_xs_level_series(self):
+        s = self.frame['A']
+        result = s[:, 'two']
+        expected = self.frame.xs('two', level=1)['A']
+        assert_series_equal(result, expected)
+
     def test_fancy_2d(self):
         result = self.frame.ix['foo', 'B']
         expected = self.frame.xs('foo')['B']

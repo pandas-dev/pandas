@@ -1395,7 +1395,7 @@ class DataFrame(NDFrame):
     def _series(self):
         return self._data.get_series_dict()
 
-    def xs(self, key, axis=0, copy=True):
+    def xs(self, key, axis=0, level=None, copy=True):
         """
         Returns a cross-section (row or column) from the DataFrame as a Series
         object. Defaults to returning a row (axis 0)
@@ -1413,6 +1413,15 @@ class DataFrame(NDFrame):
         -------
         xs : Series
         """
+        labels = self._get_axis(axis)
+        if level is not None:
+            indexer = [slice(None, None)] * 2
+            indexer[axis] = labels.get_loc_level(key, level=level)
+            result = self.ix[tuple(indexer)]
+            new_ax = result._get_axis(axis).droplevel(level)
+            setattr(result, result._get_axis_name(axis), new_ax)
+            return result
+
         if axis == 1:
             data = self[key]
             if copy:

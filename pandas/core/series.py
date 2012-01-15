@@ -308,12 +308,8 @@ copy : boolean, default False
             indexer = self.ix._convert_to_indexer(key, axis=0)
             return self._get_values(indexer)
         else:
-            # mpl hackaround
             if isinstance(key, tuple):
-                try:
-                    return self._get_values(key)
-                except Exception:
-                    pass
+                return self._get_values_tuple(key)
 
             if not isinstance(key, (list, np.ndarray)):
                 key = list(key)
@@ -337,6 +333,33 @@ copy : boolean, default False
                     if isinstance(key[0], slice):
                         return self._get_values(key)
                     raise
+
+    def _get_values_tuple(self, key):
+        # mpl hackaround
+        if any(k is None for k in key):
+            return self._get_values(key)
+
+        if not isinstance(self.index, MultiIndex):
+            raise ValueError('Can only tuple-index with a MultiIndex')
+
+        indexer = self.index.get_loc_level(key)
+        result = self._get_values(indexer)
+
+        # kludgearound
+        new_index = result.index
+        for i, k in reversed(list(enumerate(key))):
+            if k != slice(None, None):
+                new_index = new_index.droplevel(i)
+        result.index = new_index
+
+        return result
+
+    def _get_values(self, indexer):
+        try:
+            return Series(self.values[indexer], index=self.index[indexer],
+                          name=self.name)
+        except Exception:
+            return self.values[indexer]
 
     def __setitem__(self, key, value):
         values = self.values
@@ -396,13 +419,6 @@ copy : boolean, default False
             raise ValueError('%s not contained in the index'
                              % str(key[mask]))
         self._set_values(indexer, value)
-
-    def _get_values(self, indexer):
-        try:
-            return Series(self.values[indexer], index=self.index[indexer],
-                          name=self.name)
-        except Exception:
-            return self.values[indexer]
 
     def _set_values(self, key, value):
         self.values[key] = value

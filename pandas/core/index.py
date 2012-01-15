@@ -1608,22 +1608,71 @@ class MultiIndex(Index):
             if len(key) == self.nlevels:
                 return self._engine.get_loc(key)
             else:
+                # partial selection
                 result = slice(*self.slice_locs(key, key))
                 if result.start == result.stop:
                     raise KeyError(key)
                 return result
         else:
-            level = self.levels[0]
-            labels = self.labels[0]
-            loc = level.get_loc(key)
+            return self._get_level_indexer(key, level=0)
 
-            if self.lexsort_depth == 0:
-                return labels == loc
+    def get_loc_level(self, key, level=0):
+        """
+        Get integer location slice for requested label or tuple
+
+        Parameters
+        ----------
+        key : label or tuple
+
+        Returns
+        -------
+        loc : int or slice object
+        """
+        if isinstance(key, tuple) and level == 0:
+            if not any(isinstance(k, slice) for k in key):
+                if len(key) == self.nlevels:
+                    return self._engine.get_loc(key)
+                else:
+                    # partial selection
+                    result = slice(*self.slice_locs(key, key))
+                    if result.start == result.stop:
+                        raise KeyError(key)
+                    return result
             else:
-                # sorted, so can return slice object -> view
-                i = labels.searchsorted(loc, side='left')
-                j = labels.searchsorted(loc, side='right')
-                return slice(i, j)
+                indexer = None
+                for i, k in enumerate(key):
+                    if k is None:
+                        continue
+
+                    if isinstance(k, slice):
+                        if k == slice(None, None):
+                           continue
+                        else:
+                            k_index = np.empty(len(self), dtype=bool)
+                            k_index[k] = True
+                    else:
+                        k_index = self._get_level_indexer(k, level=i)
+
+                    if indexer is None:
+                        indexer = k_index
+                    else:
+                        indexer &= k_index
+                return indexer
+        else:
+            return self._get_level_indexer(key, level=level)
+
+    def _get_level_indexer(self, key, level=0):
+        level_index = self.levels[level]
+        loc = level_index.get_loc(key)
+        labels = self.labels[level]
+
+        if level > 0 or self.lexsort_depth == 0:
+            return labels == loc
+        else:
+            # sorted, so can return slice object -> view
+            i = labels.searchsorted(loc, side='left')
+            j = labels.searchsorted(loc, side='right')
+            return slice(i, j)
 
     def truncate(self, before=None, after=None):
         """
