@@ -803,6 +803,31 @@ class TestMultiIndex(unittest.TestCase):
         index = Index([2, 2, 2, 2])
         self.assertRaises(Exception, index.get_loc, 2)
 
+    def test_get_loc_level(self):
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+
+        loc = index.get_loc_level((0, 1))
+        expected = slice(1, 2)
+        self.assertEqual(loc, expected)
+
+        loc = index.get_loc_level((0, 1, 0))
+        expected = 1
+        self.assertEqual(loc, expected)
+
+        self.assertRaises(KeyError, index.get_loc_level, (2, 2))
+
+        index = MultiIndex(levels=[[2000], range(4)],
+                           labels=[np.array([0, 0, 0, 0]),
+                                   np.array([0, 1, 2, 3])])
+        result = index.get_loc_level((2000, slice(None, None)))
+        expected = slice(None, None)
+        self.assertEqual(result, expected)
+
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
         stacked = df.stack()

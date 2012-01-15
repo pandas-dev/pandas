@@ -2322,6 +2322,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         series = df.ix[4]
         self.assertRaises(Exception, df.append, series)
+        series.name = None
+        self.assertRaises(Exception, df.append, series)
 
         result = df.append(series[::-1], ignore_index=True)
         expected = df.append(DataFrame({0 : series[::-1]},

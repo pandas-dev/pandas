@@ -361,6 +361,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
         self.assert_(np.array_equal(result.index, s.index[mask]))
 
+    def test_getitem_generator(self):
+        gen = (x > 0 for x in self.series)
+        result = self.series[gen]
+        result2 = self.series[iter(self.series > 0)]
+        expected = self.series[self.series > 0]
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
     def test_getitem_boolean_object(self):
         # using column from DataFrame
         s = self.series
@@ -733,6 +741,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.to_string()
         expected = ('0    foo\n'
                     '1    NaN\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
+        s = Series(['foo', 5, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    5\n'
                     '2    bar\n'
                     '3    baz')
         self.assertEqual(result, expected)

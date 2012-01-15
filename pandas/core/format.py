@@ -101,10 +101,8 @@ class SeriesFormatter(object):
                     fmt_values.append(' %s' % self.formatter(v))
                 elif is_float[i]:
                     fmt_values.append(float_format(v))
-                elif not leading_space:
-                    fmt_values.append(' %s' % self.formatter(v))
                 else:
-                    fmt_values.append(self.formatter(v))
+                    fmt_values.append(' %s' % self.formatter(v))
         else:
             fmt_values = _format_fixed_width(self.series.values,
                                              self.formatter)

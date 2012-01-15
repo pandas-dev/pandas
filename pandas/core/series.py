@@ -8,6 +8,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from itertools import izip
 import csv
 import operator
+import types
 
 from numpy import nan, ndarray
 import numpy as np
@@ -18,8 +19,9 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
 from pandas.core.format import SeriesFormatter
-from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
+from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
+                               _ensure_index)
+from pandas.core.indexing import _SeriesIndexer
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
@@ -27,8 +29,6 @@ import pandas.core.datetools as datetools
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
-import pandas._engines as _gin
-
 from pandas.util.decorators import Appender, Substitution
 
 __all__ = ['Series', 'TimeSeries']
@@ -261,39 +261,17 @@ copy : boolean, default False
         return self._ix
 
     def __getitem__(self, key):
-        index = self.index
-
-        # Label-based
         try:
-            return index._engine.get_value(self, key)
-        except KeyError, e1:
-            if isinstance(index, MultiIndex):
-                values = self.values
-                try:
-                    loc = index.get_loc(key)
-                    # TODO: what if a level contains tuples??
-                    new_index = index[loc]
-                    new_index = _maybe_droplevels(new_index, key)
-                    return Series(values[loc], index=new_index,
-                                  name=self.name)
-                except KeyError:
-                    pass
-
-            if index.inferred_type == 'integer':
-                raise
-
-            try:
-                return _gin.get_value_at(self, key)
-            except IndexError:
-                raise
-            except Exception, _:
-                pass
-            raise e1
-        except TypeError:
+            return self.index.get_value(self, key)
+        except InvalidIndexError:
             pass
+        except Exception:
+            raise
+
+        if hasattr(key, 'next'):
+            key = list(key)
 
         # boolean
-
         # special handling of boolean data with NAs stored in object
         # arrays. Since we can't represent NA with dtype=bool
         if _is_bool_indexer(key):
@@ -311,7 +289,7 @@ copy : boolean, default False
             if isinstance(key, tuple):
                 return self._get_values_tuple(key)
 
-            if not isinstance(key, (list, np.ndarray)):
+            if not isinstance(key, (list, np.ndarray)):  # pragma: no cover
                 key = list(key)
 
             key_type = lib.infer_dtype(key)
@@ -348,7 +326,7 @@ copy : boolean, default False
         # kludgearound
         new_index = result.index
         for i, k in reversed(list(enumerate(key))):
-            if k != slice(None, None):
+            if not isinstance(k, slice):
                 new_index = new_index.droplevel(i)
         result.index = new_index
 

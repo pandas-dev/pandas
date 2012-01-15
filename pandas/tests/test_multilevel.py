@@ -175,6 +175,18 @@ class TestMultiLevel(unittest.TestCase):
         # key error
         self.assertRaises(KeyError, s.__getitem__, (2000, 3, 4))
 
+    def test_series_getitem_corner(self):
+        s = self.ymd['A']
+
+        # don't segfault, GH #495
+        # out of bounds access
+        self.assertRaises(IndexError, s.__getitem__, len(self.ymd))
+
+        # generator
+        result = s[(x > 0 for x in s)]
+        expected = s[s > 0]
+        assert_series_equal(result, expected)
+
     def test_series_setitem(self):
         s = self.ymd['A']
 
@@ -215,6 +227,24 @@ class TestMultiLevel(unittest.TestCase):
         result = s[:, 'two']
         expected = self.frame.xs('two', level=1)['A']
         assert_series_equal(result, expected)
+
+        s = self.ymd['A']
+        result = s[2000, 5]
+        expected = self.ymd.ix[2000, 5]['A']
+        assert_series_equal(result, expected)
+
+        # not implementing this for now
+
+        self.assertRaises(NotImplementedError, s.__getitem__,
+                          (2000, slice(3, 4)))
+
+        # result = s[2000, 3:4]
+        # lv =s.index.get_level_values(1)
+        # expected = s[(lv == 3) | (lv == 4)]
+        # expected.index = expected.index.droplevel(0)
+        # assert_series_equal(result, expected)
+
+        # can do this though
 
     def test_fancy_2d(self):
         result = self.frame.ix['foo', 'B']

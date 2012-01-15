@@ -10,7 +10,7 @@ from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas._tseries as lib
-import pandas._engines as _engines
+import pandas._engines as _gin
 
 __all__ = ['Index']
 
@@ -24,6 +24,8 @@ def _indexOp(opname):
         return func(other)
     return wrapper
 
+class InvalidIndexError(Exception):
+    pass
 
 class Index(np.ndarray):
     """
@@ -146,8 +148,8 @@ class Index(np.ndarray):
     def _engine(self):
         import weakref
         # property, for now, slow to look up
-        return _engines.DictIndexEngine(weakref.ref(self),
-                                        self._map_indices)
+        return _gin.DictIndexEngine(weakref.ref(self),
+                                    self._map_indices)
 
     def _get_level_number(self, level):
         if not isinstance(level, int):
@@ -469,12 +471,31 @@ class Index(np.ndarray):
         """
         return self._engine.get_loc(key)
 
-    def get_value(self, arr, key):
+    def get_value(self, series, key):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        return self._engine.get_value(arr, key)
+        try:
+            return self._engine.get_value(series, key)
+        except KeyError, e1:
+            if self.inferred_type == 'integer':
+                raise
+
+            try:
+                return _gin.get_value_at(series, key)
+            except IndexError:
+                raise
+            except TypeError:
+                # generator/iterator-like
+                if hasattr(key, 'next'):
+                    raise InvalidIndexError(key)
+                else:
+                    raise e1
+            except Exception:  # pragma: no cover
+                raise e1
+        except TypeError:
+            raise InvalidIndexError(key)
 
     def set_value(self, arr, key, value):
         """
@@ -1091,6 +1112,40 @@ class MultiIndex(Index):
 
         return False
 
+    def get_value(self, series, key):
+        # somewhat broken encapsulation
+        from pandas.core.indexing import _maybe_droplevels
+        from pandas.core.series import Series
+
+        # Label-based
+        try:
+            return self._engine.get_value(series, key)
+        except KeyError, e1:
+            try:
+                # TODO: what if a level contains tuples??
+                loc = self.get_loc(key)
+                new_values = series.values[loc]
+                new_index = self[loc]
+                new_index = _maybe_droplevels(new_index, key)
+                return Series(new_values, index=new_index, name=series.name)
+            except KeyError:
+                pass
+
+            try:
+                return _gin.get_value_at(series, key)
+            except IndexError:
+                raise
+            except TypeError:
+                # generator/iterator-like
+                if hasattr(key, 'next'):
+                    raise InvalidIndexError(key)
+                else:
+                    raise e1
+            except Exception:  # pragma: no cover
+                raise e1
+        except TypeError:
+            raise InvalidIndexError(key)
+
     def get_level_values(self, level):
         """
         Return vector of label values for requested level, equal to the length
@@ -1641,22 +1696,31 @@ class MultiIndex(Index):
             else:
                 indexer = None
                 for i, k in enumerate(key):
-                    if k is None:
-                        continue
+                    if not isinstance(k, slice):
+                        k = self._get_level_indexer(k, level=i)
+                        if isinstance(k, slice):
+                            # everything
+                            if k.start == 0 and k.stop == len(self):
+                                k = slice(None, None)
+                        else:
+                            k_index = k
 
                     if isinstance(k, slice):
                         if k == slice(None, None):
-                           continue
+                            continue
                         else:
-                            k_index = np.empty(len(self), dtype=bool)
-                            k_index[k] = True
-                    else:
-                        k_index = self._get_level_indexer(k, level=i)
+                            raise NotImplementedError
+                            # if self.levels[i].inferred_type == 'integer':
+                            #     raise NotImplementedError
+                            # k_index = np.zeros(len(self), dtype=bool)
+                            # k_index[k] = True
 
                     if indexer is None:
                         indexer = k_index
-                    else:
+                    else:  # pragma: no cover
                         indexer &= k_index
+                if indexer is None:
+                    indexer = slice(None, None)
                 return indexer
         else:
             return self._get_level_indexer(key, level=level)
