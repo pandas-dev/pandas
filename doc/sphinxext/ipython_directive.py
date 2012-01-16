@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- c oding: utf-8 -*-
 """Sphinx directive to support embedded IPython code.
 
 This directive allows pasting of entire interactive IPython sessions, prompts
@@ -90,7 +90,7 @@ from pdb import set_trace
 # Globals
 #-----------------------------------------------------------------------------
 # for tokenizing blocks
-COMMENT, INPUT, OUTPUT =  range(3)
+COMMENT, INPUT, OUTPUT = range(3)
 
 #-----------------------------------------------------------------------------
 # Functions and class declarations
@@ -215,12 +215,12 @@ class EmbeddedSphinxShell(object):
         # Create and initialize ipython, but don't start its mainloop
         IP = InteractiveShell.instance(config=config, profile_dir=profile)
 
-        self.config = config
+        self_closure = self
 
         def custom_handler(self, etype, value, tb, tb_offset=None):
-            if not config.suppress_exception_warning:
-                errstr = ("WARNING: Unhandled Exception: (%s, %s)\n"
-                        % (etype, value))
+            if not self_closure.suppress_exception_warning:
+                errstr = ("WARNING: Exception in statement '%s' => %s, %s)\n"
+                        % (self_closure.datacontent[1], etype, value))
                 sys.stderr.write(errstr)
 
         IP.set_custom_exc((Exception,), custom_handler)
@@ -316,12 +316,13 @@ class EmbeddedSphinxShell(object):
         input_lines = input.split('\n')
 
         if is_okexcept:
-            self.config.suppress_exception_warning = True
+            self.suppress_exception_warning = True
         else:
-            self.config.suppress_exception_warning = False
+            self.suppress_exception_warning = False
+
+        self.datacontent = data
 
         continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
-        Nc = len(continuation)
 
         if is_savefig:
             image_file, image_directive = self.process_image(decorator)
@@ -643,7 +644,7 @@ class IpythonDirective(Directive):
     def setup(self):
         # get config values
         (savefig_dir, source_dir, rgxin,
-                rgxout, promptin, promptout) = self.get_config_options()
+         rgxout, promptin, promptout) = self.get_config_options()
 
         # and attach to shell so we don't have to pass them around
         self.shell.rgxin = rgxin
@@ -680,7 +681,7 @@ class IpythonDirective(Directive):
         self.shell.is_doctest = 'doctest' in options
         self.shell.is_verbatim = 'verbatim' in options
         self.shell.is_okexcept = 'okexcept' in options
-
+        self.shell.current_content = self.content
 
         # handle pure python code
         if 'python' in self.arguments:
