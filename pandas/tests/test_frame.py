@@ -1835,7 +1835,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
-        expected = '   x     \n0  1.e+09\n1  0.2512'
+        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
+            expected = '   x     \n0  1e+009\n1  0.2512'
+        else:
+            expected = '   x     \n0  1.e+09\n1  0.2512'
         assert(df_s == expected)
 
     def test_to_string_right_justify_cols(self):
