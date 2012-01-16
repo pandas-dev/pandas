@@ -221,6 +221,9 @@ class DateRange(Index):
             new_index.name = self.name
             return new_index
         else:
+            if result.ndim > 1:
+                return result
+
             return Index(result, name=self.name)
 
     def summary(self):

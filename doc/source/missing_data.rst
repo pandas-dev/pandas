@@ -256,6 +256,7 @@ an ndarray (e.g. selecting values based on some criteria). If a boolean vector
 contains NAs, an exception will be generated:
 
 .. ipython:: python
+   :okexcept:
 
    reindexed = s.reindex(range(8)).fillna(0)
    reindexed[crit]

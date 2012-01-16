@@ -215,16 +215,6 @@ class EmbeddedSphinxShell(object):
         # Create and initialize ipython, but don't start its mainloop
         IP = InteractiveShell.instance(config=config, profile_dir=profile)
 
-        self_closure = self
-
-        def custom_handler(self, etype, value, tb, tb_offset=None):
-            if not self_closure.suppress_exception_warning:
-                errstr = ("WARNING: Exception in statement '%s', %s, %s)\n"
-                        % (self_closure.datacontent[1], etype, value))
-                sys.stderr.write(errstr)
-
-        IP.set_custom_exc((Exception,), custom_handler)
-
         # io.stdout redirect must be done *after* instantiating InteractiveShell
         io.stdout = self.cout
         io.stderr = self.cout
@@ -315,11 +305,6 @@ class EmbeddedSphinxShell(object):
 
         input_lines = input.split('\n')
 
-        if is_okexcept:
-            self.suppress_exception_warning = True
-        else:
-            self.suppress_exception_warning = False
-
         self.datacontent = data
 
         continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
@@ -368,6 +353,9 @@ class EmbeddedSphinxShell(object):
         output = self.cout.read()
         if not is_suppress and not is_semicolon:
             ret.append(output)
+
+        if not is_okexcept and "Traceback" in output:
+            sys.stdout.write(output)
 
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, image_file,

@@ -170,7 +170,7 @@ groupings.  For instance,
    df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
    df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
 
-   plot.figure();
+   plt.figure();
 
    @savefig box_plot_ex2.png width=4.5in
    df.boxplot(by='X')
@@ -184,7 +184,7 @@ columns:
    df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
    df['Y'] = Series(['A','B','A','B','A','B','A','B','A','B'])
 
-   plot.figure();
+   plt.figure();
 
    @savefig box_plot_ex3.png width=4.5in
    df.boxplot(column=['Col1','Col2'], by=['X','Y'])

@@ -16,7 +16,8 @@ objects. To get started, import numpy and load pandas into your namespace:
    import numpy as np
    from pandas import *
    randn = np.random.randn
-   np.set_printoptions(precision=4, suppress=True, max_columns=8)
+   np.set_printoptions(precision=4, suppress=True)
+   set_printoptions(precision=4, max_columns=8)
 
 .. ipython:: python
 

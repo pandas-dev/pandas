@@ -349,7 +349,6 @@ performance HDF5 format using the excellent `PyTables
 
 .. ipython:: python
 
-   fo
    store = HDFStore('store.h5')
    print store
 
