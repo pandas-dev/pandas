@@ -153,7 +153,10 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
             row_margin[k] = grand_margin[k]
 
     margin_dummy = DataFrame(row_margin, columns=[key]).T
+
+    row_names = result.index.names
     result = result.append(margin_dummy)
+    result.index.names = row_names
 
     return result
 

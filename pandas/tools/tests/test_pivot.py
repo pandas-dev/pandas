@@ -188,6 +188,9 @@ class TestCrosstab(unittest.TestCase):
         result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
                           margins=True)
 
+        self.assertEqual(result.index.names, ['a'])
+        self.assertEqual(result.columns.names, ['b', 'c'])
+
         all_cols = result['All', '']
         exp_cols = df.groupby(['a']).size()
         exp_cols = exp_cols.append(Series([len(df)], index=['All']))

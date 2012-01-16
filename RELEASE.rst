@@ -208,7 +208,8 @@ pandas 0.7.0
   - Fix TypeError with tuple subclasses (e.g. namedtuple) in
     DataFrame.from_records (GH #611)
   - Catch misreported console size when running IPython within Emacs
-  - Fix minor bug in pivot table margins
+  - Fix minor bug in pivot table margins, loss of index names and length-1
+    'All' tuple in row labels
 
 Thanks
 ------
