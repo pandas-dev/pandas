@@ -152,8 +152,8 @@ along ``axis=0``, namely the index:
 .. ipython:: python
 
    s = Series(randn(10), index=np.arange(10))
-   s1 = s[:5]
-   s2 = s[-5:]
+   s1 = s[:5] # note we're slicing with labels here, so 5 is included
+   s2 = s[6:]
    s1.append(s2)
 
 In the case of DataFrame, the indexes must be disjoint but the columns do not
