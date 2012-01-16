@@ -197,13 +197,13 @@ class TestCrosstab(unittest.TestCase):
         self.assertEqual(result.columns.names, ['b', 'c'])
 
         all_cols = result['All', '']
-        exp_cols = df.groupby(['a']).size()
+        exp_cols = df.groupby(['a']).size().astype('i8')
         exp_cols = exp_cols.append(Series([len(df)], index=['All']))
 
         tm.assert_series_equal(all_cols, exp_cols)
 
         all_rows = result.ix['All']
-        exp_rows = df.groupby(['b', 'c']).size()
+        exp_rows = df.groupby(['b', 'c']).size().astype('i8')
         exp_rows = exp_rows.append(Series([len(df)], index=[('All', '')]))
 
         exp_rows = exp_rows.reindex(all_rows.index)

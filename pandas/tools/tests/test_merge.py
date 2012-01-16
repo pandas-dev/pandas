@@ -533,6 +533,29 @@ class TestMergeMulti(unittest.TestCase):
         # just to hit the label compression code path
         merged = merge(df, df2, how='outer')
 
+    def test_left_join_index_preserve_order(self):
+
+        left = DataFrame({'k1' : [0, 1, 2] * 8,
+                          'k2' : ['foo', 'bar'] * 12,
+                          'v' : np.arange(24)})
+
+        index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
+        right = DataFrame({'v2' : [5, 7]}, index=index)
+
+        result = left.join(right, on=['k1', 'k2'])
+
+        expected = left.copy()
+        expected['v2'] = np.nan
+        expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
+        expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
+
+        tm.assert_frame_equal(result, expected)
+
+        # do a right join for an extra test
+        joined = merge(right, left, left_index=True,
+                       right_on=['k1', 'k2'], how='right')
+        tm.assert_frame_equal(joined.ix[:, expected.columns], expected)
+
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='.x', rsuffix='.y'):
 
@@ -1041,28 +1064,6 @@ class TestConcatenate(unittest.TestCase):
         result = concat([df], keys=['foo'])
         expected = concat([df, df], keys=['foo', 'bar'])
         tm.assert_frame_equal(result, expected[:10])
-
-    def test_left_join_index_preserve_order(self):
-
-        left = DataFrame({'k1' : [0, 1, 2] * 4,
-                          'k2' : ['foo', 'bar'] * 6,
-                          'v' : np.arange(12)})
-
-        index = MultiIndex.from_tuples([(2, 'bar')])
-        right = DataFrame({'v2' : 5}, index=index)
-
-        result = left.join(right, on=['k1', 'k2'])
-
-        expected = left.copy()
-        expected['v2'] = np.nan
-        expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
-
-        tm.assert_frame_equal(result, expected)
-
-        # do a right join for an extra test
-        joined = merge(right, left, left_index=True,
-                       right_on=['k1', 'k2'], how='right')
-        tm.assert_frame_equal(joined.ix[:, expected.columns], expected)
 
 
 if __name__ == '__main__':
