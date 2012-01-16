@@ -1,4 +1,4 @@
-# -*- c oding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Sphinx directive to support embedded IPython code.
 
 This directive allows pasting of entire interactive IPython sessions, prompts
@@ -219,7 +219,7 @@ class EmbeddedSphinxShell(object):
 
         def custom_handler(self, etype, value, tb, tb_offset=None):
             if not self_closure.suppress_exception_warning:
-                errstr = ("WARNING: Exception in statement '%s' => %s, %s)\n"
+                errstr = ("WARNING: Exception in statement '%s', %s, %s)\n"
                         % (self_closure.datacontent[1], etype, value))
                 sys.stderr.write(errstr)
 
@@ -644,7 +644,7 @@ class IpythonDirective(Directive):
     def setup(self):
         # get config values
         (savefig_dir, source_dir, rgxin,
-         rgxout, promptin, promptout) = self.get_config_options()
+                rgxout, promptin, promptout) = self.get_config_options()
 
         # and attach to shell so we don't have to pass them around
         self.shell.rgxin = rgxin
