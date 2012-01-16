@@ -196,7 +196,6 @@ class EmbeddedSphinxShell(object):
 
         self.cout = cStringIO.StringIO()
 
-
         # Create config object for IPython
         config = Config()
         config.Global.display_banner = False
@@ -215,6 +214,20 @@ class EmbeddedSphinxShell(object):
 
         # Create and initialize ipython, but don't start its mainloop
         IP = InteractiveShell.instance(config=config, profile_dir=profile)
+
+        self.config = config
+
+        def custom_handler(self, etype, value, tb, tb_offset=None):
+            tmpstderr = io.stderr
+            io.stderr = sys.stderr
+            if not config.suppress_exception_warning:
+                errstr = ("WARNING: Unhandled Exception: (%s, %s)\n"
+                        % (etype, value))
+                io.stderr.write(errstr)
+            io.stderr = tmpstderr
+
+        IP.set_custom_exc((Exception,), custom_handler)
+
         # io.stdout redirect must be done *after* instantiating InteractiveShell
         io.stdout = self.cout
         io.stderr = self.cout
@@ -299,10 +312,16 @@ class EmbeddedSphinxShell(object):
         is_verbatim = decorator=='@verbatim' or self.is_verbatim
         is_doctest = decorator=='@doctest' or self.is_doctest
         is_suppress = decorator=='@suppress' or self.is_suppress
+        is_okexcept = decorator=='@okexcept' or self.is_okexcept
         is_savefig = decorator is not None and \
                      decorator.startswith('@savefig')
 
         input_lines = input.split('\n')
+
+        if is_okexcept:
+            self.config.suppress_exception_warning = True
+        else:
+            self.config.suppress_exception_warning = False
 
         continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
         Nc = len(continuation)
@@ -597,6 +616,7 @@ class IpythonDirective(Directive):
                     'suppress' : directives.flag,
                     'verbatim' : directives.flag,
                     'doctest' : directives.flag,
+                    'okexcept' : directives.flag,
                   }
 
     shell = EmbeddedSphinxShell()
@@ -662,6 +682,7 @@ class IpythonDirective(Directive):
         self.shell.is_suppress = 'suppress' in options
         self.shell.is_doctest = 'doctest' in options
         self.shell.is_verbatim = 'verbatim' in options
+        self.shell.is_okexcept = 'okexcept' in options
 
 
         # handle pure python code

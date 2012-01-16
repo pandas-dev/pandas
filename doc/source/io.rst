@@ -343,6 +343,7 @@ performance HDF5 format using the excellent `PyTables
 
 .. ipython:: python
    :suppress:
+   :okexcept:
 
    os.remove('store.h5')
 
