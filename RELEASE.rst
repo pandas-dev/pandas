@@ -71,7 +71,8 @@ pandas 0.7.0
   - Can pass a list of dicts or Series to ``DataFrame.append`` to concatenate
     multiple rows (GH #464)
   - Add ``level`` argument to ``DataFrame.xs`` for selecting data from other
-    MultiIndex levels (GH #371, GH #629)
+    MultiIndex levels. Can take one or more levels with potentially a tuple of
+    keys for flexible retrieval of data (GH #371, GH #629)
   - New ``crosstab`` function for easily computing frequency tables (GH #170)
 
 **API Changes**
