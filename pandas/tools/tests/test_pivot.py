@@ -2,7 +2,8 @@ import unittest
 
 import numpy as np
 
-from pandas import DataFrame, concat
+from pandas import DataFrame, Series
+from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
 
@@ -176,6 +177,30 @@ class TestCrosstab(unittest.TestCase):
         result = crosstab([b, c], a, colnames=['a'], rownames=('b', 'c'))
         expected = crosstab([df['b'], df['c']], df['a'])
         tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_margins(self):
+        a = np.random.randint(0, 7, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 5, size=100)
+
+        df = DataFrame({'a': a, 'b': b, 'c': c})
+
+        result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                          margins=True)
+
+        all_cols = result['All', '']
+        exp_cols = df.groupby(['a']).size()
+        exp_cols = exp_cols.append(Series([len(df)], index=['All']))
+
+        tm.assert_series_equal(all_cols, exp_cols)
+
+        all_rows = result.ix['All']
+        exp_rows = df.groupby(['b', 'c']).size()
+        exp_rows = exp_rows.append(Series([len(df)], index=[('All', '')]))
+
+        exp_rows = exp_rows.reindex(all_rows.index)
+        exp_rows = exp_rows.fillna(0).astype(np.int64)
+        tm.assert_series_equal(all_rows, exp_rows)
 
 if __name__ == '__main__':
     import nose

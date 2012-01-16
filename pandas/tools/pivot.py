@@ -142,7 +142,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
     else:
         row_margin = Series(np.nan, index=result.columns)
 
-    key = ('All',) + ('',) * (len(rows) - 1)
+    key = ('All',) + ('',) * (len(rows) - 1) if len(rows) > 1 else 'All'
 
     row_margin = row_margin.reindex(result.columns)
     # populate grand margin
@@ -166,7 +166,7 @@ def _convert_by(by):
         by = list(by)
     return by
 
-def crosstab(rows, cols, rownames=None, colnames=None):
+def crosstab(rows, cols, rownames=None, colnames=None, margins=False):
     """
     Compute a simple cross-tabulation of two (or more) factors
 
@@ -180,6 +180,8 @@ def crosstab(rows, cols, rownames=None, colnames=None):
         If passed, must match number of row arrays passed
     colnames : sequence, default None
         If passed, must match number of column arrays passed
+    margins : boolean, default False
+        Add row/column margins (subtotals)
 
     Notes
     -----
@@ -218,15 +220,12 @@ def crosstab(rows, cols, rownames=None, colnames=None):
     data = {}
     data.update(zip(rownames, rows))
     data.update(zip(colnames, cols))
-
     df = DataFrame(data)
-    table = df.groupby(rownames + colnames).size()
+    df['__dummy__'] = 0
 
-    for cname in colnames:
-        table = table.unstack(cname)
+    table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
+                           aggfunc=len, margins=margins)
 
-    table.columns.names = colnames
-    table.index.names = rownames
     return table.fillna(0).astype(np.int64)
 
 def _get_names(arrs, names, prefix='row'):
