@@ -6,6 +6,7 @@ from StringIO import StringIO
 import cPickle as pickle
 import operator
 import os
+import sys
 import unittest
 
 from numpy import random, nan
@@ -1810,10 +1811,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df_s = df.to_string()
 
-        expected = ('   x       \n0  0.000000\n1  0.250000\n'
-                    '2  3456.000\n3  1.20e+46\n4  1.64e+06\n'
-                    '5  1.70e+08\n6  1.253456\n7  3.141593\n'
-                    '8 -1.00e+06')
+        # Python 2.5 just wants me to be sad
+        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
+            expected = ('   x        \n0  0.0000000\n1  0.2500000\n'
+                        '2  3456.0000\n3  1.20e+046\n4  1.64e+006\n'
+                        '5  1.70e+008\n6  1.2534560\n7  3.1415927\n'
+                        '8 -1.00e+006')
+        else:
+            expected = ('   x       \n0  0.000000\n1  0.250000\n'
+                        '2  3456.000\n3  1.20e+46\n4  1.64e+06\n'
+                        '5  1.70e+08\n6  1.253456\n7  3.141593\n'
+                        '8 -1.00e+06')
         assert(df_s == expected)
 
         df = DataFrame({'x' : [3234, 0.253]})
@@ -1823,6 +1831,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert(df_s == expected)
 
         com.reset_printoptions()
+        self.assertEqual(com.print_config.precision, 4)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
