@@ -165,3 +165,31 @@ def _convert_by(by):
         by = list(by)
     return by
 
+def crosstab(rows, columns):
+    """
+    Compute a simple cross-tabulation of two (or more) factors
+
+    Parameters
+    ----------
+    rows :
+    columns :
+
+    Returns
+    -------
+    crosstab : DataFrame
+    """
+    rname = cname = None
+    if isinstance(rows, Series):
+        rname = rows.name
+
+    if isinstance(columns, Series):
+        cname = columns.name
+
+    df = DataFrame({'rows' : rows, 'columns' : columns})
+    table = df.groupby(['rows', 'columns']).size()
+
+    result = table.unstack()
+    result.columns.name = cname
+    result.index.name = rname
+
+    return result

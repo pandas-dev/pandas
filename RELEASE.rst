@@ -70,6 +70,8 @@ pandas 0.7.0
     NA values inserted in non-numeric columns (GH #614)
   - Can pass a list of dicts or Series to ``DataFrame.append`` to concatenate
     multiple rows (GH #464)
+  - Add ``level`` argument to ``DataFrame.xs`` for selecting data from other
+    MultiIndex levels (GH #371, GH #629)
 
 **API Changes**
 
