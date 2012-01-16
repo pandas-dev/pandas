@@ -97,7 +97,7 @@ class _NDFrameIndexer(object):
         if isinstance(self.obj._get_axis(0), MultiIndex):
             try:
                 return self._get_label(tup, axis=0)
-            except (KeyError, TypeError):
+            except Exception:
                 pass
 
         try:

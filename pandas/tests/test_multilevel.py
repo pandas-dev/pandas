@@ -222,6 +222,14 @@ class TestMultiLevel(unittest.TestCase):
 
         assert_frame_equal(result, expected)
 
+        index = MultiIndex.from_tuples([('x', 'y', 'z'), ('a', 'b', 'c'),
+                                        ('p', 'q', 'r')])
+        df = DataFrame(np.random.randn(3, 5), index=index)
+        result = df.xs('c', level=2)
+        expected = df[1:2]
+        expected.index = expected.index.droplevel(2)
+        assert_frame_equal(result, expected)
+
     def test_xs_level_series(self):
         s = self.frame['A']
         result = s[:, 'two']
