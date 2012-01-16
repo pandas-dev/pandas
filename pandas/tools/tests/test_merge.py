@@ -865,6 +865,14 @@ class TestConcatenate(unittest.TestCase):
                         levels=levels)
         self.assertEqual(result.index.names, [None] * 3)
 
+        # no levels
+        result = concat([df, df2, df, df2],
+                        keys=[('foo', 'one'), ('foo', 'two'),
+                              ('baz', 'one'), ('baz', 'two')],
+                        names=['first', 'second'])
+        self.assertEqual(result.index.names, ['first', 'second'] + [None])
+        self.assert_(np.array_equal(result.index.levels[0], ['baz', 'foo']))
+
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
         df1 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='f8'),

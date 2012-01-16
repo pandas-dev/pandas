@@ -178,6 +178,11 @@ class TestCrosstab(unittest.TestCase):
         expected = crosstab([df['b'], df['c']], df['a'])
         tm.assert_frame_equal(result, expected)
 
+        # assign arbitrary names
+        result = crosstab(self.df['A'].values, self.df['C'].values)
+        self.assertEqual(result.index.name, 'row_0')
+        self.assertEqual(result.columns.name, 'col_0')
+
     def test_crosstab_margins(self):
         a = np.random.randint(0, 7, size=100)
         b = np.random.randint(0, 3, size=100)

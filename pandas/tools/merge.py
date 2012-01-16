@@ -864,24 +864,25 @@ def _concat_indexes(indexes):
     return indexes[0].append(indexes[1:])
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
-    single_level = levels is None or len(levels) == 1
-
-    if single_level:
-        zipped = [keys]
-        if names is None:
-            names = [None]
-    else:
+    if ((levels is None and isinstance(keys[0], tuple)) or
+        (levels is not None and len(levels) > 1)):
         zipped = zip(*keys)
         if names is None:
             names = [None] * len(zipped)
 
-    if levels is None:
-        if single_level:
+        if levels is None:
+            levels = [Factor(zp).levels for zp in zipped]
+        else:
+            levels = [_ensure_index(x) for x in levels]
+    else:
+        zipped = [keys]
+        if names is None:
+            names = [None]
+
+        if levels is None:
             levels = [_ensure_index(keys)]
         else:
-            levels = [Factor(zp).levels for zp in zipped]
-    else:
-        levels = [_ensure_index(x) for x in levels]
+            levels = [_ensure_index(x) for x in levels]
 
     if not _all_indexes_same(indexes):
         label_list = []
