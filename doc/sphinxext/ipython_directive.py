@@ -218,13 +218,10 @@ class EmbeddedSphinxShell(object):
         self.config = config
 
         def custom_handler(self, etype, value, tb, tb_offset=None):
-            tmpstderr = io.stderr
-            io.stderr = sys.stderr
             if not config.suppress_exception_warning:
                 errstr = ("WARNING: Unhandled Exception: (%s, %s)\n"
                         % (etype, value))
-                io.stderr.write(errstr)
-            io.stderr = tmpstderr
+                sys.stderr.write(errstr)
 
         IP.set_custom_exc((Exception,), custom_handler)
 
