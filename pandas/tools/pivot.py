@@ -2,6 +2,7 @@
 
 from pandas import Series, DataFrame
 from pandas.tools.merge import concat
+import pandas.core.common as com
 import numpy as np
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
@@ -165,31 +166,80 @@ def _convert_by(by):
         by = list(by)
     return by
 
-def crosstab(rows, columns):
+def crosstab(rows, cols, rownames=None, colnames=None):
     """
     Compute a simple cross-tabulation of two (or more) factors
 
     Parameters
     ----------
-    rows :
-    columns :
+    rows : array-like, Series, or list of arrays/Series
+        Values to group by in the rows
+    cols : array-like, Series, or list of arrays/Series
+        Values to group by in the columns
+    rownames : sequence, default None
+        If passed, must match number of row arrays passed
+    colnames : sequence, default None
+        If passed, must match number of column arrays passed
+
+    Notes
+    -----
+    Any Series passed will have their name attributes used unless row or column
+    names for the cross-tabulation are specified
+
+    Examples
+    --------
+    >>> a
+    array([foo, foo, foo, foo, bar, bar,
+           bar, bar, foo, foo, foo], dtype=object)
+    >>> b
+    array([one, one, one, two, one, one,
+           one, two, two, two, one], dtype=object)
+    >>> c
+    array([dull, dull, shiny, dull, dull, shiny,
+           shiny, dull, shiny, shiny, shiny], dtype=object)
+
+    >>> crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    b    one          two
+    c    dull  shiny  dull  shiny
+    a
+    bar  1     2      1     0
+    foo  2     2      1     2
 
     Returns
     -------
     crosstab : DataFrame
     """
-    rname = cname = None
-    if isinstance(rows, Series):
-        rname = rows.name
+    rows = com._maybe_make_list(rows)
+    cols = com._maybe_make_list(cols)
 
-    if isinstance(columns, Series):
-        cname = columns.name
+    rownames = _get_names(rows, rownames, prefix='row')
+    colnames = _get_names(cols, colnames, prefix='col')
 
-    df = DataFrame({'rows' : rows, 'columns' : columns})
-    table = df.groupby(['rows', 'columns']).size()
+    data = {}
+    data.update(zip(rownames, rows))
+    data.update(zip(colnames, cols))
 
-    result = table.unstack()
-    result.columns.name = cname
-    result.index.name = rname
+    df = DataFrame(data)
+    table = df.groupby(rownames + colnames).size()
 
-    return result
+    for cname in colnames:
+        table = table.unstack(cname)
+
+    table.columns.names = colnames
+    table.index.names = rownames
+    return table.fillna(0).astype(np.int64)
+
+def _get_names(arrs, names, prefix='row'):
+    if names is None:
+        names = []
+        for i, arr in enumerate(arrs):
+            if isinstance(arr, Series) and arr.name is not None:
+                names.append(arr.name)
+            else:
+                names.append('%s_%d' % (prefix, i))
+    else:
+        assert(len(names) == len(arrs))
+        if not isinstance(names, list):
+            names = list(names)
+
+    return names

@@ -92,10 +92,16 @@ class Index(np.ndarray):
     def nlevels(self):
         return 1
 
-    @property
-    def names(self):
-        # for compat with multindex code
+    # for compat with multindex code
+
+    def _get_names(self):
         return [self.name]
+
+    def _set_names(self, values):
+        assert(len(values) == 1)
+        self.name = values[0]
+
+    names = property(fset=_set_names, fget=_get_names)
 
     @property
     def _constructor(self):

@@ -314,9 +314,10 @@ class GroupBy(object):
         keys, values = zip(*result)
 
         if len(self.groupings) > 1:
-            index = MultiIndex.from_tuples(keys)
+            names = [ping.name for ping in self.groupings]
+            index = MultiIndex.from_tuples(keys, names=names)
         else:
-            index = Index(keys)
+            index = Index(keys, name=self.groupings[0].name)
 
         return Series(values, index=index)
 

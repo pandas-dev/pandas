@@ -72,6 +72,7 @@ pandas 0.7.0
     multiple rows (GH #464)
   - Add ``level`` argument to ``DataFrame.xs`` for selecting data from other
     MultiIndex levels (GH #371, GH #629)
+  - New ``crosstab`` function for easily computing frequency tables (GH #170)
 
 **API Changes**
 

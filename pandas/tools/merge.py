@@ -53,9 +53,9 @@ class _MergeOperation(object):
         self.how = how
         self.axis = axis
 
-        self.on = _maybe_make_list(on)
-        self.left_on = _maybe_make_list(left_on)
-        self.right_on = _maybe_make_list(right_on)
+        self.on = com._maybe_make_list(on)
+        self.left_on = com._maybe_make_list(left_on)
+        self.right_on = com._maybe_make_list(right_on)
 
         self.drop_keys = False # set this later...kludge
 
@@ -332,11 +332,6 @@ def _get_multiindex_indexer(join_keys, index, sort=True):
 
     # NOW! reorder
     #right_indexer.take(left_indexer.argsort())
-
-def _maybe_make_list(obj):
-    if obj is not None and not isinstance(obj, (tuple, list)):
-        return [obj]
-    return obj
 
 def _right_outer_join(x, y, max_groups):
     right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)

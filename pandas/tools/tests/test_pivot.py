@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from pandas import DataFrame, concat
-from pandas.tools.pivot import pivot_table
+from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
 
 class TestPivotTable(unittest.TestCase):
@@ -123,6 +123,59 @@ class TestPivotTable(unittest.TestCase):
         # for valcol in table.columns:
         #     gmarg = table[valcol]['All', '']
         #     self.assertEqual(gmarg, self.data[valcol].mean())
+
+
+class TestCrosstab(unittest.TestCase):
+
+    def setUp(self):
+        df = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                               'bar', 'bar', 'bar', 'bar',
+                               'foo', 'foo', 'foo'],
+                        'B' : ['one', 'one', 'one', 'two',
+                               'one', 'one', 'one', 'two',
+                               'two', 'two', 'one'],
+                        'C' : ['dull', 'dull', 'shiny', 'dull',
+                               'dull', 'shiny', 'shiny', 'dull',
+                               'shiny', 'shiny', 'shiny'],
+                        'D' : np.random.randn(11),
+                        'E' : np.random.randn(11),
+                        'F' : np.random.randn(11)})
+
+        self.df = df.append(df, ignore_index=True)
+
+    def test_crosstab_single(self):
+        df = self.df
+        result = crosstab(df['A'], df['C'])
+        expected = df.groupby(['A', 'C']).size().unstack()
+        tm.assert_frame_equal(result, expected.fillna(0).astype(np.int64))
+
+    def test_crosstab_multiple(self):
+        df = self.df
+
+        result = crosstab(df['A'], [df['B'], df['C']])
+        expected = df.groupby(['A', 'B', 'C']).size()
+        expected = expected.unstack('B').unstack('C').fillna(0).astype(np.int64)
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab([df['B'], df['C']], df['A'])
+        expected = df.groupby(['B', 'C', 'A']).size()
+        expected = expected.unstack('A').fillna(0).astype(np.int64)
+        tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_ndarray(self):
+        a = np.random.randint(0, 5, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 10, size=100)
+
+        df = DataFrame({'a': a, 'b': b, 'c': c})
+
+        result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'))
+        expected = crosstab(df['a'], [df['b'], df['c']])
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab([b, c], a, colnames=['a'], rownames=('b', 'c'))
+        expected = crosstab([df['b'], df['c']], df['a'])
+        tm.assert_frame_equal(result, expected)
 
 if __name__ == '__main__':
     import nose
