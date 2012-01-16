@@ -555,6 +555,17 @@ eight,1,2,3"""
         finally:
             sys.stdout = sys.__stdout__
 
+    def test_read_table_buglet_4x_multiindex(self):
+        text = """                      A       B       C       D        E
+one two three   four
+a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
+a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
+x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+
+        # it works!
+        df = read_table(StringIO(text), sep='\s+')
+        self.assertEquals(df.index.names, ['one', 'two', 'three', 'four'])
+
 class TestParseSQL(unittest.TestCase):
 
     def test_convert_sql_column_floats(self):

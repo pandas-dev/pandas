@@ -345,13 +345,24 @@ class TextParser(object):
         except StopIteration:
             line = None
 
-        # implicitly index_col=0 b/c 1 fewer column names
-        if line is not None:
-            implicit_first_cols = len(line) - len(columns)
-        else:
-            implicit_first_cols = 0
+        try:
+            next_line = self._next_line()
+        except StopIteration:
+            next_line = None
 
         index_name = None
+
+        # implicitly index_col=0 b/c 1 fewer column names
+        implicit_first_cols = 0
+        if line is not None:
+            implicit_first_cols = len(line) - len(columns)
+            if next_line is not None:
+                if len(next_line) == len(line) + len(columns):
+                    implicit_first_cols = 0
+                    self.index_col = range(len(line))
+                    self.buf = self.buf[1:]
+                    return line
+
         if implicit_first_cols > 0:
             if self.index_col is None:
                 if implicit_first_cols == 1:
@@ -463,7 +474,7 @@ class TextParser(object):
             rows -= len(self.buf)
 
         if isinstance(source, list):
-            if self.pos >= len(source):
+            if self.pos > len(source):
                 raise StopIteration
             if rows is None:
                 lines.extend(source[self.pos:])
