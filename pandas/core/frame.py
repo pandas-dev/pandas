@@ -1415,9 +1415,17 @@ class DataFrame(NDFrame):
         """
         labels = self._get_axis(axis)
         if level is not None:
-            indexer = [slice(None, None)] * 2
-            indexer[axis] = labels.get_loc_level(key, level=level)
-            result = self.ix[tuple(indexer)]
+            loc = labels.get_loc_level(key, level=level)
+
+            # level = 0
+            if not isinstance(loc, slice):
+                indexer = [slice(None, None)] * 2
+                indexer[axis] = loc
+                indexer = tuple(indexer)
+            else:
+                indexer = loc
+
+            result = self.ix[indexer]
             new_ax = result._get_axis(axis).droplevel(level)
             setattr(result, result._get_axis_name(axis), new_ax)
             return result

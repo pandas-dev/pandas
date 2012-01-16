@@ -201,6 +201,19 @@ class TestMultiLevel(unittest.TestCase):
     def test_series_slice_partial(self):
         pass
 
+    def test_frame_getitem_setitem_slice(self):
+        # getitem
+        result = self.frame.ix[:4]
+        expected = self.frame[:4]
+        assert_frame_equal(result, expected)
+
+        # setitem
+        cp = self.frame.copy()
+        cp.ix[:4] = 0
+
+        self.assert_((cp.values[:4] == 0).all())
+        self.assert_((cp.values[4:] != 0).all())
+
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
         xs2 = self.frame.ix[('bar', 'two')]
@@ -228,6 +241,22 @@ class TestMultiLevel(unittest.TestCase):
         result = df.xs('c', level=2)
         expected = df[1:2]
         expected.index = expected.index.droplevel(2)
+        assert_frame_equal(result, expected)
+
+    def test_xs_level0(self):
+        from pandas import read_table
+        from StringIO import StringIO
+        text = """                      A       B       C       D        E
+one two three   four
+a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
+a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
+x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+
+        df = read_table(StringIO(text), sep='\s+')
+
+        result = df.xs('a', level=0)
+        expected = df.xs('a')
+        self.assertEqual(len(result), 2)
         assert_frame_equal(result, expected)
 
     def test_xs_level_series(self):

@@ -148,6 +148,8 @@ pandas 0.7.0
     yielding an aggregated result with hierarchical columns (GH #166)
   - Monkey-patch context to traceback in ``DataFrame.apply`` to indicate which
     row/column the function application failed on (GH #614)
+  - Improved ability of read_table and read_clipboard to parse
+    console-formatted DataFrames (can read the row of index names, etc.)
 
 **Bug fixes**
 

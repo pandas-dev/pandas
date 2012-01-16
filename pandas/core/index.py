@@ -1640,6 +1640,9 @@ class MultiIndex(Index):
             section = labs[start:end]
 
             if lab not in lev:
+                if lib.infer_dtype([lab]) != lev.inferred_type:
+                    raise Exception('Level type mismatch: %s' % lab)
+
                 # short circuit
                 loc = lev.searchsorted(lab, side=side)
                 if side == 'right' and loc >= 0:
