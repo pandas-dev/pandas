@@ -80,6 +80,27 @@ def test_left_join_indexer():
     expected = np.array([1, 1, 2, 3, 3], dtype='i4')
     assert(np.array_equal(result, expected))
 
+def test_left_outer_join_bug():
+    left = np.array([0, 1, 0, 1, 1, 2, 3, 1, 0, 2, 1, 2, 0, 1, 1, 2, 3, 2, 3,
+                     2, 1, 1, 3, 0, 3, 2, 3, 0, 0, 2, 3, 2, 0, 3, 1, 3, 0, 1,
+                     3, 0, 0, 1, 0, 3, 1, 0, 1, 0, 1, 1, 0, 2, 2, 2, 2, 2, 0,
+                     3, 1, 2, 0, 0, 3, 1, 3, 2, 2, 0, 1, 3, 0, 2, 3, 2, 3, 3,
+                     2, 3, 3, 1, 3, 2, 0, 0, 3, 1, 1, 1, 0, 2, 3, 3, 1, 2, 0,
+                     3, 1, 2, 0, 2], dtype=np.int32)
+
+    right = np.array([3, 1], dtype=np.int32)
+    max_groups = 4
+
+    lidx, ridx = lib.left_outer_join(left, right, max_groups, sort=False)
+
+    exp_lidx = np.arange(len(left))
+    exp_ridx = -np.ones(len(left))
+    exp_ridx[left == 1] = 1
+    exp_ridx[left == 3] = 0
+
+    assert(np.array_equal(lidx, exp_lidx))
+    assert(np.array_equal(ridx, exp_ridx))
+
 def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)

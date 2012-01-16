@@ -51,7 +51,7 @@ def inner_join(ndarray[int32_t] left, ndarray[int32_t] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 def left_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
-                    Py_ssize_t max_groups):
+                    Py_ssize_t max_groups, sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[int32_t] left_count, right_count, left_sorter, right_sorter
@@ -101,8 +101,17 @@ def left_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
         left_pos += lc
         right_pos += rc
 
-    return (_get_result_indexer(left_sorter, left_indexer),
-            _get_result_indexer(right_sorter, right_indexer))
+    left_indexer = _get_result_indexer(left_sorter, left_indexer)
+    right_indexer = _get_result_indexer(right_sorter, right_indexer)
+
+    if not sort:
+        rev = np.empty(len(left), dtype='i4')
+        rev.put(left_sorter, np.arange(len(left)))
+
+        right_indexer = right_indexer.take(rev)
+        left_indexer = left_indexer.take(rev)
+
+    return left_indexer, right_indexer
 
 
 def full_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,

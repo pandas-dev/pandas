@@ -319,12 +319,12 @@ def _get_multiindex_indexer(join_keys, index, sort=True):
 
     left_group_key, right_group_key, max_groups = \
         _factorize_int64(left_group_key, right_group_key,
-                         sort=sort)
+                         sort=False)
 
     left_indexer, right_indexer = \
         lib.left_outer_join(left_group_key.astype('i4'),
                             right_group_key.astype('i4'),
-                            max_groups)
+                            max_groups, sort=False)
 
     return right_indexer
 
