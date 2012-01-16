@@ -1426,6 +1426,7 @@ class DataFrame(NDFrame):
                 indexer = loc
 
             result = self.ix[indexer]
+
             new_ax = result._get_axis(axis).droplevel(level)
             setattr(result, result._get_axis_name(axis), new_ax)
             return result

@@ -229,7 +229,7 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, result2)
 
     def test_xs_level(self):
-        result = self.frame.xs('two', level=1)
+        result = self.frame.xs('two', level='second')
         expected = self.frame[self.frame.index.get_level_values(1) == 'two']
         expected.index = expected.index.droplevel(1)
 
@@ -241,6 +241,21 @@ class TestMultiLevel(unittest.TestCase):
         result = df.xs('c', level=2)
         expected = df[1:2]
         expected.index = expected.index.droplevel(2)
+        assert_frame_equal(result, expected)
+
+    def test_xs_level_multiple(self):
+        from pandas import read_table
+        from StringIO import StringIO
+        text = """                      A       B       C       D        E
+one two three   four
+a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
+a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
+x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+
+        df = read_table(StringIO(text), sep='\s+')
+
+        result = df.xs(('a', 4), level=['one', 'four'])
+        expected = df.xs('a').xs(4, level='four')
         assert_frame_equal(result, expected)
 
     def test_xs_level0(self):

@@ -1394,7 +1394,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        level : int
+        level : int/level name or list thereof
 
         Notes
         -----
@@ -1404,12 +1404,20 @@ class MultiIndex(Index):
         -------
         index : Index or MultiIndex
         """
+        levels = level
+        if not isinstance(levels, (tuple, list)):
+            levels = [level]
+
         new_levels = list(self.levels)
-        new_levels.pop(level)
         new_labels = list(self.labels)
-        new_labels.pop(level)
         new_names = list(self.names)
-        new_names.pop(level)
+
+        levnums = sorted(self._get_level_number(lev) for lev in levels)[::-1]
+
+        for i in levnums:
+            new_levels.pop(i)
+            new_labels.pop(i)
+            new_names.pop(i)
 
         if len(new_levels) == 1:
             result = new_levels[0].take(new_labels[0])
@@ -1692,6 +1700,21 @@ class MultiIndex(Index):
         -------
         loc : int or slice object
         """
+        if isinstance(level, (tuple, list)):
+            assert(len(key) == len(level))
+            result = None
+            for lev, k in zip(level, key):
+                loc = self.get_loc_level(k, level=lev)
+                if isinstance(loc, slice):
+                    mask = np.zeros(len(self), dtype=bool)
+                    mask[loc] = True
+                    loc = mask
+
+                result = loc if result is None else result & loc
+            return result
+
+        level = self._get_level_number(level)
+
         if isinstance(key, tuple) and level == 0:
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
