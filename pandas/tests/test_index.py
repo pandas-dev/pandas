@@ -977,6 +977,9 @@ class TestMultiIndex(unittest.TestCase):
         rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
 
+        r1 = idx1.get_indexer([1,2,3])
+        self.assert_( (r1 == [-1, -1, -1]).all() )
+
         # self.assertRaises(Exception, idx1.get_indexer,
         #                   list(list(zip(*idx2.get_tuple_index()))[0]))
 
