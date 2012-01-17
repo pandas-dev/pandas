@@ -1,4 +1,10 @@
-pandas (0.6.1-1) unstable; urgency=low
+pandas (0.6.1+git316-g195ec30-1) UNRELEASED; urgency=low
+
+  * Testing fresh upstream snapshot prior release
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 16 Jan 2012 19:31:50 -0500
+
+pandas (0.6.1-1) UNRELEASED; urgency=low
 
   * New upstream release
   * python-tk into Build-Depends
