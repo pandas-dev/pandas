@@ -1497,6 +1497,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # buglet
         self.mixed_frame._data.ndim
 
+        # empty
+        unpickled = pickle.loads(pickle.dumps(self.empty))
+        repr(unpickled)
+
     def test_to_dict(self):
         test_data = {
                 'A' : {'1' : 1, '2' : 2},

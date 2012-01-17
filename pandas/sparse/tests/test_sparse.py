@@ -766,6 +766,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             unpickled = pickle.loads(pickled)
             assert_sp_frame_equal(frame, unpickled)
 
+        _test_roundtrip(SparseDataFrame())
         self._check_all(_test_roundtrip)
 
     def test_dense_to_sparse(self):

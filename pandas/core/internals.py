@@ -284,6 +284,9 @@ class BlockManager(object):
         if do_integrity_check:
             self._verify_integrity()
 
+    def __nonzero__(self):
+        return True
+
     @property
     def ndim(self):
         return len(self.axes)
