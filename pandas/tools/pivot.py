@@ -128,7 +128,10 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
     grand_margin = {}
     for k, v in data[values].iteritems():
         try:
-            grand_margin[k] = aggfunc(v)
+            if isinstance(aggfunc, basestring):
+                grand_margin[k] = getattr(v, aggfunc)()
+            else:
+                grand_margin[k] = aggfunc(v)
         except TypeError:
             pass
 
