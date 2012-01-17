@@ -29,7 +29,7 @@ from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series
+from pandas.core.series import Series, _radd_compat
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
@@ -486,7 +486,7 @@ class DataFrame(NDFrame):
     sub = _arith_method(operator.sub, 'subtract')
     div = _arith_method(lambda x, y: x / y, 'divide')
 
-    radd = _arith_method(lambda x, y: y + x, 'radd')
+    radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
     rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
     rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
@@ -500,7 +500,7 @@ class DataFrame(NDFrame):
                                default_axis=None)
     __pow__ = _arith_method(operator.pow, '__pow__', default_axis=None)
 
-    __radd__ = _arith_method(lambda x, y: y + x, '__radd__', default_axis=None)
+    __radd__ = _arith_method(_radd_compat, '__radd__', default_axis=None)
     __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',

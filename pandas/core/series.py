@@ -61,19 +61,26 @@ def _arith_method(op, name):
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
-            # GH #353, NumPy 1.5.1 workaround
-            try:
-                result_values = op(self.values, other)
-            except TypeError:
-                if _np_version.startswith('1.5'): # pragma: no cover
-                    result_values = [op(x, other) for x in self.values]
-                else:
-                    raise
-
             # scalars
-            return Series(result_values, index=self.index,
+            return Series(op(self.values, other), index=self.index,
                           name=self.name)
     return wrapper
+
+def _radd_compat(left, right):
+    radd = lambda x, y: y + x
+    # GH #353, NumPy 1.5.1 workaround
+    try:
+        output = radd(left, right)
+    except TypeError:
+        cond = (_np_version.startswith('1.5') and
+                left.dtype == np.object_)
+        if cond: # pragma: no cover
+            output = np.empty_like(left)
+            output.flat[:] = [radd(x, right) for x in left]
+        else:
+            raise
+
+    return output
 
 def _maybe_match_name(a, b):
     name = None
@@ -581,7 +588,7 @@ copy : boolean, default False
     __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
     __pow__ = _arith_method(operator.pow, '__pow__')
 
-    __radd__ = _arith_method(lambda x, y: y + x, '__add__')
+    __radd__ = _arith_method(_radd_compat, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')
