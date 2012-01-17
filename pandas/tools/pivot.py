@@ -5,7 +5,7 @@ from pandas.tools.merge import concat
 import pandas.core.common as com
 import numpy as np
 
-def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
+def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
                 fill_value=None, margins=False):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
