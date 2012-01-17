@@ -76,7 +76,7 @@ def _radd_compat(left, right):
                 left.dtype == np.object_)
         if cond: # pragma: no cover
             output = np.empty_like(left)
-            output.flat[:] = [radd(x, right) for x in left]
+            output.flat[:] = [radd(x, right) for x in left.flat]
         else:
             raise
 
