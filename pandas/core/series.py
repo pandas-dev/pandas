@@ -33,6 +33,8 @@ from pandas.util.decorators import Appender, Substitution
 
 __all__ = ['Series', 'TimeSeries']
 
+_np_version = np.version.short_version
+
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
@@ -59,8 +61,17 @@ def _arith_method(op, name):
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
+            # GH #353, NumPy 1.5.1 workaround
+            try:
+                result_values = op(self.values, other)
+            except TypeError:
+                if _np_version.startswith('1.5'): # pragma: no cover
+                    result_values = [op(x, other) for x in self.values]
+                else:
+                    raise
+
             # scalars
-            return Series(op(self.values, other), index=self.index,
+            return Series(result_values, index=self.index,
                           name=self.name)
     return wrapper
 
