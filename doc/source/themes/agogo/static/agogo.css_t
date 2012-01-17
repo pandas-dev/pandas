@@ -165,9 +165,10 @@ div.content-wrapper {
   padding-bottom: 20px;
 }
 
+/*  float: left; */
+
 div.document {
   max-width: {{ theme_documentwidth }};
-  float: left;
 }
 
 div.body {
@@ -239,10 +240,12 @@ div.document ol {
 
 /* Sidebar */
 
+
 div.sidebar {
   width: {{ theme_sidebarwidth }};
+  padding: 0 1em;
   float: right;
-  font-size: .9em;
+  font-size: .93em;
 }
 
 div.sidebar a, div.header a {

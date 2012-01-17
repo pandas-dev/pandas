@@ -3,7 +3,6 @@ Module contains tools for processing files into DataFrames or other objects
 """
 from StringIO import StringIO
 import re
-import zipfile
 
 import numpy as np
 
@@ -11,82 +10,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import pandas._tseries as lib
 
-def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
-             skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None):
-    import csv
-
-    if hasattr(filepath_or_buffer, 'read'):
-        f = filepath_or_buffer
-    else:
-        try:
-            # universal newline mode
-            f = open(filepath_or_buffer, 'U')
-        except Exception: # pragma: no cover
-            f = open(filepath_or_buffer, 'r')
-
-    buf = []
-    if sep is None or len(sep) == 1:
-        sniff_sep = True
-        # default dialect
-        dia = csv.excel
-        if sep is not None:
-            sniff_sep = False
-            dia.delimiter = sep
-        # attempt to sniff the delimiter
-        if sniff_sep:
-            line = f.readline()
-            sniffed = csv.Sniffer().sniff(line)
-            dia.delimiter = sniffed.delimiter
-            buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
-        reader = csv.reader(f, dialect=dia)
-    else:
-        reader = (re.split(sep, line.strip()) for line in f)
-
-    if date_parser is not None:
-        parse_dates = True
-
-    parser = TextParser(reader, header=header, index_col=index_col,
-                        names=names, na_values=na_values,
-                        parse_dates=parse_dates,
-                        date_parser=date_parser,
-                        skiprows=skiprows,
-                        chunksize=chunksize, buf=buf,
-                        skip_footer=skip_footer,
-                        converters=converters)
-
-    if nrows is not None:
-        return parser.get_chunk(nrows)
-    elif chunksize or iterator:
-        return parser
-
-    return parser.get_chunk()
-
-
-def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
-               names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0, converters=None):
-    return read_csv(filepath_or_buffer, sep=sep, header=header,
-                    skiprows=skiprows, index_col=index_col,
-                    na_values=na_values, date_parser=date_parser,
-                    names=names, parse_dates=parse_dates,
-                    nrows=nrows, iterator=iterator, chunksize=chunksize,
-                    skip_footer=skip_footer, converters=converters)
-
-def read_clipboard(**kwargs):  # pragma: no cover
-    """
-    Read text from clipboard and pass to read_table. See read_table for the full
-    argument list
-
-    Returns
-    -------
-    parsed : DataFrame
-    """
-    from pandas.util.clipboard import clipboard_get
-    text = clipboard_get()
-    return read_table(StringIO(text), **kwargs)
+from pandas.util.decorators import Appender
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -122,6 +46,8 @@ skip_footer : int, default 0
 converters : dict. optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels
+verbose : boolean, default False
+    Indicate number of NA values placed in non-numeric columns
 
 Returns
 -------
@@ -135,7 +61,7 @@ _csv_sep = """sep : string, default None
 _table_sep = """sep : string, default \\t (tab-stop)
     Delimiter to use"""
 
-read_csv.__doc__ = """
+_read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
 
 %s
@@ -145,7 +71,17 @@ Returns
 parsed : DataFrame
 """ % (_parser_params % _csv_sep)
 
-read_table.__doc__ = """
+_read_csv_doc = """
+Read CSV (comma-separated) file into DataFrame
+
+%s
+
+Returns
+-------
+parsed : DataFrame
+""" % (_parser_params % _csv_sep)
+
+_read_table_doc = """
 Read delimited file into DataFrame
 
 %s
@@ -155,6 +91,67 @@ Returns
 parsed : DataFrame
 """ % (_parser_params % _table_sep)
 
+@Appender(_read_csv_doc)
+def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
+             skiprows=None, na_values=None, parse_dates=False,
+             date_parser=None, nrows=None, iterator=False, chunksize=None,
+             skip_footer=0, converters=None, verbose=False):
+    if hasattr(filepath_or_buffer, 'read'):
+        f = filepath_or_buffer
+    else:
+        try:
+            # universal newline mode
+            f = open(filepath_or_buffer, 'U')
+        except Exception: # pragma: no cover
+            f = open(filepath_or_buffer, 'r')
+
+    if date_parser is not None:
+        parse_dates = True
+
+    parser = TextParser(f, header=header, index_col=index_col,
+                        names=names, na_values=na_values,
+                        parse_dates=parse_dates,
+                        date_parser=date_parser,
+                        skiprows=skiprows,
+                        delimiter=sep,
+                        chunksize=chunksize,
+                        skip_footer=skip_footer,
+                        converters=converters,
+                        verbose=verbose)
+
+    if nrows is not None:
+        return parser.get_chunk(nrows)
+    elif chunksize or iterator:
+        return parser
+
+    return parser.get_chunk()
+
+@Appender(_read_table_doc)
+def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
+               names=None, skiprows=None, na_values=None, parse_dates=False,
+               date_parser=None, nrows=None, iterator=False, chunksize=None,
+               skip_footer=0, converters=None, verbose=False):
+    return read_csv(filepath_or_buffer, sep=sep, header=header,
+                    skiprows=skiprows, index_col=index_col,
+                    na_values=na_values, date_parser=date_parser,
+                    names=names, parse_dates=parse_dates,
+                    nrows=nrows, iterator=iterator, chunksize=chunksize,
+                    skip_footer=skip_footer, converters=converters,
+                    verbose=verbose)
+
+def read_clipboard(**kwargs):  # pragma: no cover
+    """
+    Read text from clipboard and pass to read_table. See read_table for the full
+    argument list
+
+    Returns
+    -------
+    parsed : DataFrame
+    """
+    from pandas.util.clipboard import clipboard_get
+    text = clipboard_get()
+    return read_table(StringIO(text), **kwargs)
+
 
 class BufferedReader(object):
     """
@@ -163,7 +160,7 @@ class BufferedReader(object):
     """
 
     def __init__(self, fh, delimiter=','):
-        pass
+        pass # pragma: no coverage
 
 class BufferedCSVReader(BufferedReader):
     pass
@@ -176,7 +173,7 @@ class TextParser(object):
 
     Parameters
     ----------
-    data : list or csv reader-like object
+    data : file-like object or list
     names : sequence, default
     header : int, default 0
         Row to use to parse column labels. Defaults to the first row. Prior
@@ -200,21 +197,18 @@ class TextParser(object):
                      '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
                      'nan', ''])
 
-    def __init__(self, data, names=None, header=0, index_col=None,
-                 na_values=None, parse_dates=False, date_parser=None,
-                 chunksize=None, skiprows=None, skip_footer=0,
-                 converters=None, buf=None):
+    def __init__(self, f, delimiter=None, names=None, header=0,
+                 index_col=None, na_values=None, parse_dates=False,
+                 date_parser=None, chunksize=None, skiprows=None,
+                 skip_footer=0, converters=None, verbose=False):
         """
         Workhorse function for processing nested list into DataFrame
 
         Should be replaced by np.genfromtxt eventually?
         """
-        self.data = data
-
-        # can pass rows read so far
-        self.buf = [] if buf is None else buf
-        self.pos = len(self.buf)
-
+        self.data = None
+        self.buf = []
+        self.pos = 0
         self.names = list(names) if names is not None else names
         self.header = header
         self.index_col = index_col
@@ -224,6 +218,8 @@ class TextParser(object):
         self.passed_names = names is not None
         self.skiprows = set() if skiprows is None else set(skiprows)
         self.skip_footer = skip_footer
+        self.delimiter = delimiter
+        self.verbose = verbose
 
         if converters is not None:
             assert(isinstance(converters, dict))
@@ -238,9 +234,42 @@ class TextParser(object):
         else:
             self.na_values = set(list(na_values)) | self.NA_VALUES
 
+        if hasattr(f, 'readline'):
+            self._make_reader(f)
+        else:
+            self.data = f
         self.columns = self._infer_columns()
         self.index_name = self._get_index_name()
         self._first_chunk = True
+
+    def _make_reader(self, f):
+        import csv
+
+        sep = self.delimiter
+
+        if sep is None or len(sep) == 1:
+            sniff_sep = True
+            # default dialect
+            dia = csv.excel
+            if sep is not None:
+                sniff_sep = False
+                dia.delimiter = sep
+            # attempt to sniff the delimiter
+            if sniff_sep:
+                line = f.readline()
+                while self.pos in self.skiprows:
+                    self.pos += 1
+                    line = f.readline()
+
+                self.pos += 1
+                sniffed = csv.Sniffer().sniff(line)
+                dia.delimiter = sniffed.delimiter
+                self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
+            reader = csv.reader(f, dialect=dia)
+        else:
+            reader = (re.split(sep, line.strip()) for line in f)
+
+        self.data = reader
 
     def _infer_columns(self):
         names = self.names
@@ -284,12 +313,12 @@ class TextParser(object):
 
     def _next_line(self):
         if isinstance(self.data, list):
-            if self.pos in self.skiprows:
+            while self.pos in self.skiprows:
                 self.pos += 1
 
             line = self.data[self.pos]
         else:
-            if self.pos in self.skiprows:
+            while self.pos in self.skiprows:
                 self.data.next()
                 self.pos += 1
             line = self.data.next()
@@ -316,13 +345,24 @@ class TextParser(object):
         except StopIteration:
             line = None
 
-        # implicitly index_col=0 b/c 1 fewer column names
-        if line is not None:
-            implicit_first_cols = len(line) - len(columns)
-        else:
-            implicit_first_cols = 0
+        try:
+            next_line = self._next_line()
+        except StopIteration:
+            next_line = None
 
         index_name = None
+
+        # implicitly index_col=0 b/c 1 fewer column names
+        implicit_first_cols = 0
+        if line is not None:
+            implicit_first_cols = len(line) - len(columns)
+            if next_line is not None:
+                if len(next_line) == len(line) + len(columns):
+                    implicit_first_cols = 0
+                    self.index_col = range(len(line))
+                    self.buf = self.buf[1:]
+                    return line
+
         if implicit_first_cols > 0:
             if self.index_col is None:
                 if implicit_first_cols == 1:
@@ -346,7 +386,7 @@ class TextParser(object):
 
     def get_chunk(self, rows=None):
         if rows is not None and self.skip_footer:
-            print 'skip_footer not supported for iteration'
+            raise ValueError('skip_footer not supported for iteration')
 
         try:
             content = self._get_lines(rows)
@@ -388,20 +428,23 @@ class TextParser(object):
             if np.isscalar(self.index_col):
                 if self.parse_dates:
                     index = lib.try_parse_dates(index, parser=self.date_parser)
-                index = Index(_convert_types(index, self.na_values),
-                              name=self.index_name)
+                index, na_count = _convert_types(index, self.na_values)
+                index = Index(index, name=self.index_name)
+                if self.verbose and na_count:
+                    print 'Found %d NA values in the index' % na_count
             else:
                 arrays = []
                 for arr in index:
                     if self.parse_dates:
                         arr = lib.try_parse_dates(arr, parser=self.date_parser)
-                    arrays.append(_convert_types(arr, self.na_values))
+                    arr, _ = _convert_types(arr, self.na_values)
+                    arrays.append(arr)
                 index = MultiIndex.from_arrays(arrays, names=self.index_name)
         else:
             index = Index(np.arange(len(content)))
 
         if not index._verify_integrity():
-            dups = index._get_duplicates()
+            dups = index.get_duplicates()
             raise Exception('Index has duplicates: %s' % str(dups))
 
         if len(self.columns) != len(zipped_content):
@@ -413,9 +456,12 @@ class TextParser(object):
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.columns:
                 col = self.columns[col]
-            data[col] = np.vectorize(f)(data[col])
+            result = np.vectorize(f)(data[col])
+            if issubclass(result.dtype.type, (basestring, unicode)):
+                result = result.astype('O')
+            data[col] = result
 
-        data = _convert_to_ndarrays(data, self.na_values)
+        data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
         return DataFrame(data=data, columns=self.columns, index=index)
 
@@ -428,7 +474,7 @@ class TextParser(object):
             rows -= len(self.buf)
 
         if isinstance(source, list):
-            if self.pos >= len(source):
+            if self.pos > len(source):
                 raise StopIteration
             if rows is None:
                 lines.extend(source[self.pos:])
@@ -456,21 +502,30 @@ class TextParser(object):
 
         return lines
 
-def _convert_to_ndarrays(dct, na_values):
+def _convert_to_ndarrays(dct, na_values, verbose=False):
     result = {}
     for c, values in dct.iteritems():
-        result[c] = _convert_types(values, na_values)
+        cvals, na_count = _convert_types(values, na_values)
+        result[c] = cvals
+        if verbose and na_count:
+            print 'Filled %d NA values in column %s' % (na_count, str(c))
     return result
 
 def _convert_types(values, na_values):
-    try:
-        values = lib.maybe_convert_numeric(values, na_values)
-    except Exception:
-        lib.sanitize_objects(values, na_values)
+    na_count = 0
+    if issubclass(values.dtype.type, (np.number, np.bool_)):
+        return values, na_count
 
-    if values.dtype == np.object_:
-        return lib.maybe_convert_bool(values)
-    return values
+    try:
+        result = lib.maybe_convert_numeric(values, na_values)
+    except Exception:
+        na_count = lib.sanitize_objects(values, na_values)
+        result = values
+
+    if result.dtype == np.object_:
+        result = lib.maybe_convert_bool(values)
+
+    return result, na_count
 
 #-------------------------------------------------------------------------------
 # ExcelFile class

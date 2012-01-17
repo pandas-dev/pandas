@@ -286,9 +286,10 @@ class TestSparseSeries(TestCase,
                 # j = np.float64(i)
                 # assert_almost_equal(sp[j], dense[j])
 
+            # API change 1/6/2012
             # negative getitem works
-            for i in xrange(len(dense)):
-                assert_almost_equal(sp[-i], dense[-i])
+            # for i in xrange(len(dense)):
+            #     assert_almost_equal(sp[-i], dense[-i])
 
         _check_getitem(self.bseries, self.bseries.to_dense())
         _check_getitem(self.btseries, self.btseries.to_dense())
@@ -492,6 +493,9 @@ class TestSparseSeries(TestCase,
             expected = expected.reindex(int_indices2).fillna(fill_value)
             assert_almost_equal(expected.values, reindexed.sp_values)
 
+            # make sure level argument asserts
+            expected = expected.reindex(int_indices2).fillna(fill_value)
+
         def _check_with_fill_value(values, first, second, fill_value=nan):
             i_index1 = IntIndex(length, first)
             i_index2 = IntIndex(length, second)
@@ -560,7 +564,8 @@ class TestSparseSeries(TestCase,
                           fill_value=0)
 
         sp_valid = sp.valid()
-        assert_almost_equal(sp_valid, sp.to_dense().valid())
+        assert_almost_equal(sp_valid.values,
+                            sp.to_dense().valid().values)
         self.assert_(sp_valid.index.equals(sp.to_dense().valid().index))
         self.assertEquals(len(sp_valid.sp_values), 2)
 
@@ -718,6 +723,9 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         reindexed = self.frame.reindex(idx)
         assert_sp_frame_equal(cons, reindexed)
 
+        # assert level parameter breaks reindex
+        self.assertRaises(Exception, self.frame.reindex, idx, level=0)
+
     def test_constructor_ndarray(self):
         # no index or columns
         sp = SparseDataFrame(self.frame.values)
@@ -726,6 +734,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sp = SparseDataFrame(self.data['A'], index=self.dates,
                              columns=['A'])
         assert_sp_frame_equal(sp, self.frame.reindex(columns=['A']))
+
+        # raise on level argument
+        self.assertRaises(Exception, self.frame.reindex, columns=['A'],
+                          level=1)
 
         # wrong length index / columns
         self.assertRaises(Exception, SparseDataFrame, self.frame.values,
@@ -1115,7 +1127,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             dense_frame = frame.to_dense()
 
             wp = Panel.from_dict({'foo' : frame})
-            from_dense_lp = wp.to_long()
+            from_dense_lp = wp.to_frame()
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
 
@@ -1273,24 +1285,21 @@ class TestSparsePanel(TestCase,
         dwp2 = Panel.from_dict(self.data_dict)
         assert_panel_equal(dwp, dwp2)
 
-    def test_to_long(self):
+    def test_to_frame(self):
         def _compare_with_dense(panel):
-            slp = panel.to_long()
-            dlp = panel.to_dense().to_long()
+            slp = panel.to_frame()
+            dlp = panel.to_dense().to_frame()
 
             self.assert_(np.array_equal(slp.values, dlp.values))
-            self.assert_(np.array_equal(slp.major_labels,
-                                        dlp.major_labels))
-            self.assert_(np.array_equal(slp.minor_labels,
-                                        dlp.minor_labels))
+            self.assert_(slp.index.equals(dlp.index))
 
         _compare_with_dense(self.panel)
         _compare_with_dense(self.panel.reindex(items=['ItemA']))
 
         zero_panel = SparsePanel(self.data_dict, default_fill_value=0)
-        self.assertRaises(Exception, zero_panel.to_long)
+        self.assertRaises(Exception, zero_panel.to_frame)
 
-        self.assertRaises(Exception, self.panel.to_long,
+        self.assertRaises(Exception, self.panel.to_frame,
                           filter_observations=False)
 
     def test_long_to_wide_sparse(self):
@@ -1382,7 +1391,7 @@ class TestSparsePanel(TestCase,
             _dense_comp(op5)
 
             # TODO: this case not yet supported!
-            # op6 = lambda x: x.add(x.to_long())
+            # op6 = lambda x: x.add(x.to_frame())
             # _dense_comp(op6)
 
         _check_ops(self.panel)

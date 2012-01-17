@@ -439,7 +439,64 @@ cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
 
     return output
 
-def roll_median(ndarray input, int win, int minp):
+from skiplist cimport *
+
+def roll_median_c(ndarray[float64_t] arg, int win, int minp):
+    cdef double val, res, prev
+    cdef:
+        int ret
+        skiplist_t *sl
+        Py_ssize_t midpoint, nobs = 0, i
+
+
+    cdef Py_ssize_t N = len(arg)
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    sl = skiplist_init(win)
+
+    minp = _check_minp(minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = arg[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            skiplist_insert(sl, val)
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = arg[i]
+
+        if i > win - 1:
+            prev = arg[i - win]
+
+            if prev == prev:
+                skiplist_remove(sl, prev)
+                nobs -= 1
+
+        if val == val:
+            nobs += 1
+            skiplist_insert(sl, val)
+
+        if nobs >= minp:
+            midpoint = nobs / 2
+            if nobs % 2:
+                res = skiplist_get(sl, midpoint, &ret)
+            else:
+                res = (skiplist_get(sl, midpoint, &ret) +
+                       skiplist_get(sl, (midpoint - 1), &ret)) / 2
+        else:
+            res = NaN
+
+        output[i] = res
+
+    skiplist_destroy(sl)
+
+    return output
+
+def roll_median_cython(ndarray input, int win, int minp):
     '''
     O(N log(window)) implementation using skip list
     '''

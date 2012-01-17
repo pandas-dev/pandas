@@ -4,10 +4,8 @@
 Parts of this file were taken from the pyzmq project
 (https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
 Lesser GNU General Public License.
+Parts are from lxml (https://github.com/lxml/lxml)
 """
-
-from distutils.core import setup, Command
-# use setuptools if available
 
 from datetime import datetime
 from glob import glob
@@ -16,22 +14,60 @@ import sys
 import shutil
 import warnings
 
+# may need to work around setuptools bug by providing a fake Pyrex
+try:
+    import Cython
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "fake_pyrex"))
+except ImportError:
+    pass
 
-if sys.version_info[0] >= 3:
+# try bootstrapping setuptools if it doesn't exist
+try:
+    import pkg_resources
     try:
-        from setuptools import setup
-        _have_setuptools = True
-    except ImportError:
-        raise ImportError('require setuptools/distribute for Py3k')
-    setuptools_args = {'use_2to3': True,
-                       'zip_safe': False,}
+        pkg_resources.require("setuptools>=0.6c5")
+    except pkg_resources.VersionConflict:
+        from ez_setup import use_setuptools
+        use_setuptools(version="0.6c5")
+    from setuptools import setup, Command
+    _have_setuptools = True
+except ImportError:
+    # no setuptools installed
+    from distutils.core import setup, Command
+    _have_setuptools = False
+
+setuptools_kwargs = {}
+if sys.version_info[0] >= 3:
+
+    setuptools_kwargs = {'use_2to3': True,
+                         'zip_safe': False,
+                         'install_requires': ['python-dateutil > 2','numpy'],
+                        }
+    if not _have_setuptools:
+        sys.exit("need setuptools/distribute for Py3k"
+            "\n$ pip install distribute")
+
 else:
-    setuptools_args = {}
+    setuptools_kwargs = {
+        'install_requires': ['python-dateutil < 2', 'numpy'],
+    }
+    if not _have_setuptools:
+        try:
+            import numpy
+            import dateutil
+            setuptools_kwargs = {}
+        except ImportError:
+            sys.exit("install requires: 'python-dateutil < 2','numpy'."
+                     "  use pip or easy_install."
+                     "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
+try:
+    import numpy as np
+except ImportError:
+    nonumpy_msg = ("# numpy needed to finish setup.  run:\n\n"
+    "    $ pip install numpy  # or easy_install numpy\n")
+    sys.exit(nonumpy_msg)
 
-import numpy as np
-
-# from numpy.distutils.core import setup
 
 from distutils.extension import Extension
 from distutils.command.build import build
@@ -100,8 +136,8 @@ Many of these principles are here to address the shortcomings frequently
 experienced using other languages / scientific research environments. For data
 scientists, working with data is typically divided into multiple stages:
 munging and cleaning data, analyzing / modeling it, then organizing the results
-of the analysis into a form suitable for plotting or tabular display. pandas
-is the ideal tool for all of these tasks.
+of the analysis into a form suitable for plotting or tabular display. pandas is
+the ideal tool for all of these tasks.
 
 Note
 ----
@@ -128,9 +164,9 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 6
-MICRO = 1
-ISRELEASED = True
+MINOR = 7
+MICRO = 0
+ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
@@ -283,20 +319,25 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'parsing', 'reduce', 'stats']
+                   'generated', 'reduce', 'stats',
+                   'inference', 'properties', 'internals',
+                   'hashtable', 'join']
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
 if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
+    tseries_depends.append('pandas/src/util.pxd')
 else:
     tseries_depends = []
 
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                         sources=[srcpath('tseries', suffix=suffix)],
-                        include_dirs=[np.get_include()])
+                        include_dirs=[np.get_include()],
+                        # extra_compile_args=['-Wconversion']
+                        )
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
@@ -322,7 +363,7 @@ if not ISRELEASED:
     extensions.extend([sandbox_ext])
 
 # if _have_setuptools:
-#     setuptools_args["test_suite"] = "nose.collector"
+#     setuptools_kwargs["test_suite"] = "nose.collector"
 
 write_version_py()
 setup(name=DISTNAME,
@@ -346,6 +387,7 @@ setup(name=DISTNAME,
       package_data={'pandas.io' : ['tests/*.h5',
                                    'tests/*.csv',
                                    'tests/*.xls'],
+                    'pandas.tests' : ['data/*.pickle']
                     },
       ext_modules=extensions,
       maintainer_email=MAINTAINER_EMAIL,
@@ -357,4 +399,4 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
-      **setuptools_args)
+      **setuptools_kwargs)

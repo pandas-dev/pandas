@@ -75,6 +75,7 @@ cdef class IndexableSkiplist:
                 i -= node.width[level]
                 node = node.next[level]
 
+
         return node.value
 
     cpdef insert(self, double value):

@@ -11,8 +11,9 @@ import numpy as np
 from pandas import DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
 from pandas.core.frame import group_agg
-from pandas.core.panel import Panel, LongPanel
+from pandas.core.panel import Panel
 from pandas.core.series import remove_na
+import pandas.core.common as com
 import pandas.core.panel as panelmod
 from pandas.util import py3compat
 
@@ -70,6 +71,14 @@ class SafeForLongAndSparse(object):
 
     def test_max(self):
         self._check_stat_op('max', np.max)
+
+    def test_skew(self):
+        from scipy.stats import skew
+        def this_skew(x):
+            if len(x) < 3:
+                return np.nan
+            return skew(x, bias=False)
+        self._check_stat_op('skew', this_skew)
 
     # def test_mad(self):
     #     f = lambda x: np.abs(x - x.mean()).mean()
@@ -354,12 +363,8 @@ class CheckIndexing(object):
         assert_frame_equal(panelc[0], panel[0])
 
     def test_setitem(self):
-
         # LongPanel with one item
-        lp = self.panel.filter(['ItemA']).to_long()
-        self.panel['ItemE'] = lp
-
-        lp = self.panel.filter(['ItemA', 'ItemB']).to_long()
+        lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
         self.assertRaises(Exception, self.panel.__setitem__,
                           'ItemE', lp)
 
@@ -571,6 +576,9 @@ class CheckIndexing(object):
         self.assert_(res is not self.panel)
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
 
+        res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
+        self.assert_(com.is_float_dtype(res3['ItemE'].values))
+
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
@@ -667,6 +675,28 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # cast
         result = Panel(d, dtype=int)
         expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
+
+    def test_constructor_dict_mixed(self):
+        data = dict((k, v.values) for k, v in self.panel.iteritems())
+        result = Panel(data)
+        exp_major = Index(np.arange(len(self.panel.major_axis)))
+        self.assert_(result.major_axis.equals(exp_major))
+
+        result = Panel(data, items=self.panel.items,
+                       major_axis=self.panel.major_axis,
+                       minor_axis=self.panel.minor_axis)
+        assert_panel_equal(result, self.panel)
+
+        data['ItemC'] = self.panel['ItemC']
+        result = Panel(data)
+        assert_panel_equal(result, self.panel)
+
+        # corner, blow up
+        data['ItemB'] = data['ItemB'][:-1]
+        self.assertRaises(Exception, Panel, data)
+
+        data['ItemB'] = self.panel['ItemB'].values[:, :-1]
+        self.assertRaises(Exception, Panel, data)
 
     def test_constructor_resize(self):
         data = self.panel._data
@@ -821,11 +851,6 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)
 
-    def test_combinePanel_with_long(self):
-        lng = self.panel.to_long(filter_observations=False)
-        result = self.panel.add(lng)
-        self.assert_panel_equal(result, self.panel * 2)
-
     def test_swapaxes(self):
         result = self.panel.swapaxes('items', 'minor')
         self.assert_(result.items is self.panel.minor_axis)
@@ -843,22 +868,26 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # this should also work
         self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
 
-    def test_to_long(self):
+    def test_to_frame(self):
         # filtered
-        filtered = self.panel.to_long()
+        filtered = self.panel.to_frame()
+        expected = self.panel.to_frame().dropna(how='any')
+        assert_frame_equal(filtered, expected)
 
         # unfiltered
-        unfiltered = self.panel.to_long(filter_observations=False)
+        unfiltered = self.panel.to_frame(filter_observations=False)
+        assert_panel_equal(unfiltered.to_panel(), self.panel)
 
-        assert_panel_equal(unfiltered.to_wide(), self.panel)
+        # names
+        self.assertEqual(unfiltered.index.names, ['major', 'minor'])
 
-    def test_to_long_mixed(self):
+    def test_to_frame_mixed(self):
         panel = self.panel.fillna(0)
         panel['str'] = 'foo'
         panel['bool'] = panel['ItemA'] > 0
 
-        lp = panel.to_long()
-        wp = lp.to_wide()
+        lp = panel.to_frame()
+        wp = lp.to_panel()
         self.assertEqual(wp['bool'].values.dtype, np.bool_)
         assert_frame_equal(wp['bool'], panel['bool'])
 
@@ -895,48 +924,6 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 
-    def test_join(self):
-        p1 = self.panel.ix[:2, :10, :3]
-        p2 = self.panel.ix[2:, 5:, 2:]
-
-        # left join
-        result = p1.join(p2)
-        expected = p1.copy()
-        expected['ItemC'] = p2['ItemC']
-        assert_panel_equal(result, expected)
-
-        # right join
-        result = p1.join(p2, how='right')
-        expected = p2.copy()
-        expected['ItemA'] = p1['ItemA']
-        expected['ItemB'] = p1['ItemB']
-        expected = expected.reindex(items=['ItemA', 'ItemB', 'ItemC'])
-        assert_panel_equal(result, expected)
-
-        # inner join
-        result = p1.join(p2, how='inner')
-        expected = self.panel.ix[:, 5:10, 2:3]
-        assert_panel_equal(result, expected)
-
-        # outer join
-        result = p1.join(p2, how='outer')
-        expected = p1.reindex(major=self.panel.major_axis,
-                              minor=self.panel.minor_axis)
-        expected = expected.join(p2.reindex(major=self.panel.major_axis,
-                                            minor=self.panel.minor_axis))
-        assert_panel_equal(result, expected)
-
-    def test_join_overlap(self):
-        p1 = self.panel.ix[['ItemA', 'ItemB', 'ItemC']]
-        p2 = self.panel.ix[['ItemB', 'ItemC']]
-
-        joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
-        p1_suf = p1.ix[['ItemB', 'ItemC']].add_suffix('_p1')
-        p2_suf = p2.ix[['ItemB', 'ItemC']].add_suffix('_p2')
-        no_overlap = self.panel.ix[['ItemA']]
-        expected = p1_suf.join(p2_suf).join(no_overlap)
-        assert_panel_equal(joined, expected)
-
     def test_repr_empty(self):
         empty = Panel()
         repr(empty)
@@ -961,108 +948,40 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         renamed_nocopy['foo'] = 3.
         self.assert_((self.panel['ItemA'].values == 3).all())
 
+    def test_get_attr(self):
+        assert_frame_equal(self.panel['ItemA'], self.panel.ItemA)
+
+    def test_group_agg(self):
+        values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
+        bounds = np.arange(5) * 2
+        f = lambda x: x.mean(axis=0)
+
+        agged = group_agg(values, bounds, f)
+
+        assert(agged[1][0] == 2.5)
+        assert(agged[2][0] == 4.5)
+
+        # test a function that doesn't aggregate
+        f2 = lambda x: np.zeros((2,2))
+        self.assertRaises(Exception, group_agg, values, bounds, f2)
+
 class TestLongPanel(unittest.TestCase):
+    """
+    LongPanel no longer exists, but...
+    """
 
     def setUp(self):
         panel = tm.makePanel()
         tm.add_nans(panel)
 
-        self.panel = panel.to_long()
-        self.unfiltered_panel = panel.to_long(filter_observations=False)
-
-    def test_pickle(self):
-        import cPickle
-
-        pickled = cPickle.dumps(self.panel)
-        unpickled = cPickle.loads(pickled)
-
-        assert_almost_equal(unpickled['ItemA'].values,
-                            self.panel['ItemA'].values)
-
-    def test_len(self):
-        len(self.unfiltered_panel)
-
-    def test_constructor(self):
-        pass
-
-    def test_fromRecords_toRecords(self):
-        # structured array
-        K = 10
-
-        recs = np.zeros(K, dtype='O,O,f8,f8')
-        recs['f0'] = range(K // 2) * 2
-        recs['f1'] = np.arange(K) / (K // 2)
-        recs['f2'] = np.arange(K) * 2
-        recs['f3'] = np.arange(K)
-
-        lp = LongPanel.fromRecords(recs, 'f0', 'f1')
-        self.assertEqual(len(lp.items), 2)
-
-        lp = LongPanel.fromRecords(recs, 'f0', 'f1', exclude=['f2'])
-        self.assertEqual(len(lp.items), 1)
-
-        torecs = lp.toRecords()
-        self.assertEqual(len(torecs.dtype.names), len(lp.items) + 2)
-
-        # DataFrame
-        df = DataFrame.from_records(recs)
-        lp = LongPanel.fromRecords(df, 'f0', 'f1', exclude=['f2'])
-        self.assertEqual(len(lp.items), 1)
-
-        # dict of arrays
-        series = DataFrame.from_records(recs)._series
-        lp = LongPanel.fromRecords(series, 'f0', 'f1', exclude=['f2'])
-        self.assertEqual(len(lp.items), 1)
-        self.assert_('f2' in series)
-
-        self.assertRaises(Exception, LongPanel.fromRecords, np.zeros((3, 3)),
-                          0, 1)
-
-    def test_factors(self):
-        # structured array
-        K = 10
-
-        recs = np.zeros(K, dtype='O,O,f8,f8,O,O')
-        recs['f0'] = ['one'] * 5 + ['two'] * 5
-        recs['f1'] = ['A', 'B', 'C', 'D', 'E'] * 2
-        recs['f2'] = np.arange(K) * 2
-        recs['f3'] = np.arange(K)
-        recs['f4'] = ['A', 'B', 'C', 'D', 'E'] * 2
-        recs['f5'] = ['foo', 'bar'] * 5
-
-        lp = LongPanel.fromRecords(recs, 'f0', 'f1')
-
-    def test_columns(self):
-        self.assert_(np.array_equal(self.panel.items, self.panel.columns))
-
-    def test_copy(self):
-        thecopy = self.panel.copy()
-        self.assert_(np.array_equal(thecopy.values, self.panel.values))
-        self.assert_(thecopy.values is not self.panel.values)
-
-    def test_getitem(self):
-        col = self.panel['ItemA']
-
-    def test_setitem(self):
-        self.panel['ItemE'] = self.panel['ItemA']
-        self.panel['ItemF'] = 1.
-
-        wp = self.panel.to_wide()
-        assert_frame_equal(wp['ItemA'], wp['ItemE'])
-
-        itemf = wp['ItemF'].values.ravel()
-        self.assert_((itemf[np.isfinite(itemf)] == 1).all())
-
-        # check exceptions raised
-        lp = self.panel.filter(['ItemA', 'ItemB'])
-        lp2 = self.panel.filter(['ItemC', 'ItemE'])
-        self.assertRaises(Exception, lp.__setitem__, 'foo', lp2)
+        self.panel = panel.to_frame()
+        self.unfiltered_panel = panel.to_frame(filter_observations=False)
 
     def test_ops_differently_indexed(self):
         # trying to set non-identically indexed panel
-        wp = self.panel.to_wide()
+        wp = self.panel.to_panel()
         wp2 = wp.reindex(major=wp.major_axis[:-1])
-        lp2 = wp2.to_long()
+        lp2 = wp2.to_frame()
 
         result = self.panel + lp2
         assert_frame_equal(result.reindex(lp2.index), lp2 * 2)
@@ -1078,14 +997,14 @@ class TestLongPanel(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_combineFrame(self):
-        wp = self.panel.to_wide()
-        result = self.panel.add(wp['ItemA'])
-        assert_frame_equal(result.to_wide()['ItemA'], wp['ItemA'] * 2)
+        wp = self.panel.to_panel()
+        result = self.panel.add(wp['ItemA'].stack(), axis=0)
+        assert_frame_equal(result.to_panel()['ItemA'], wp['ItemA'] * 2)
 
     def test_combinePanel(self):
-        wp = self.panel.to_wide()
+        wp = self.panel.to_panel()
         result = self.panel.add(self.panel)
-        wide_result = result.to_wide()
+        wide_result = result.to_panel()
         assert_frame_equal(wp['ItemA'] * 2, wide_result['ItemA'])
 
         # one item
@@ -1108,8 +1027,8 @@ class TestLongPanel(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_operators(self):
-        wp = self.panel.to_wide()
-        result = (self.panel + 1).to_wide()
+        wp = self.panel.to_panel()
+        result = (self.panel + 1).to_panel()
         assert_frame_equal(wp['ItemA'] + 1, result['ItemA'])
 
     def test_sort(self):
@@ -1117,14 +1036,10 @@ class TestLongPanel(unittest.TestCase):
             return (arr[1:] > arr[:-1]).any()
 
         sorted_minor = self.panel.sortlevel(level=1)
-        self.assert_(is_sorted(sorted_minor.minor_labels))
+        self.assert_(is_sorted(sorted_minor.index.labels[1]))
 
         sorted_major = sorted_minor.sortlevel(level=0)
-        self.assert_(is_sorted(sorted_major.major_labels))
-
-    def test_toCSV(self):
-        self.panel.toCSV('__tmp__')
-        os.remove('__tmp__')
+        self.assert_(is_sorted(sorted_major.index.labels[0]))
 
     def test_to_string(self):
         from cStringIO import StringIO
@@ -1132,80 +1047,71 @@ class TestLongPanel(unittest.TestCase):
         buf = StringIO()
         self.panel.to_string(buf)
 
-    def test_swapaxes(self):
-        swapped = self.panel.swapaxes()
-
-        self.assert_(swapped.major_axis is self.panel.minor_axis)
-
-        # what else to test here?
-
     def test_truncate(self):
-        dates = self.panel.major_axis
+        dates = self.panel.index.levels[0]
         start, end = dates[1], dates[5]
 
-        trunced = self.panel.truncate(start, end).to_wide()
-        expected = self.panel.to_wide()['ItemA'].truncate(start, end)
+        trunced = self.panel.truncate(start, end).to_panel()
+        expected = self.panel.to_panel()['ItemA'].truncate(start, end)
 
         assert_frame_equal(trunced['ItemA'], expected)
 
-        trunced = self.panel.truncate(before=start).to_wide()
-        expected = self.panel.to_wide()['ItemA'].truncate(before=start)
+        trunced = self.panel.truncate(before=start).to_panel()
+        expected = self.panel.to_panel()['ItemA'].truncate(before=start)
 
         assert_frame_equal(trunced['ItemA'], expected)
 
-        trunced = self.panel.truncate(after=end).to_wide()
-        expected = self.panel.to_wide()['ItemA'].truncate(after=end)
+        trunced = self.panel.truncate(after=end).to_panel()
+        expected = self.panel.to_panel()['ItemA'].truncate(after=end)
 
         assert_frame_equal(trunced['ItemA'], expected)
 
         # truncate on dates that aren't in there
-        wp = self.panel.to_wide()
+        wp = self.panel.to_panel()
         new_index = wp.major_axis[::5]
 
         wp2 = wp.reindex(major=new_index)
 
-        lp2 = wp2.to_long()
+        lp2 = wp2.to_frame()
         lp_trunc = lp2.truncate(wp.major_axis[2], wp.major_axis[-2])
 
         wp_trunc = wp2.truncate(wp.major_axis[2], wp.major_axis[-2])
 
-        assert_panel_equal(wp_trunc, lp_trunc.to_wide())
+        assert_panel_equal(wp_trunc, lp_trunc.to_panel())
 
         # throw proper exception
         self.assertRaises(Exception, lp2.truncate, wp.major_axis[-2],
                           wp.major_axis[2])
 
-
-    def test_filter(self):
-        pass
-
     def test_axis_dummies(self):
-        minor_dummies = self.panel.get_axis_dummies('minor')
-        self.assertEqual(len(minor_dummies.items),
-                         len(self.panel.minor_axis))
+        from pandas.core.reshape import make_axis_dummies
 
-        major_dummies = self.panel.get_axis_dummies('major')
-        self.assertEqual(len(major_dummies.items),
-                         len(self.panel.major_axis))
+        minor_dummies = make_axis_dummies(self.panel, 'minor')
+        self.assertEqual(len(minor_dummies.columns),
+                         len(self.panel.index.levels[1]))
+
+        major_dummies = make_axis_dummies(self.panel, 'major')
+        self.assertEqual(len(major_dummies.columns),
+                         len(self.panel.index.levels[0]))
 
         mapping = {'A' : 'one',
                    'B' : 'one',
                    'C' : 'two',
                    'D' : 'two'}
 
-        transformed = self.panel.get_axis_dummies('minor',
+        transformed = make_axis_dummies(self.panel, 'minor',
                                                   transform=mapping.get)
-        self.assertEqual(len(transformed.items), 2)
-        self.assert_(np.array_equal(transformed.items, ['one', 'two']))
+        self.assertEqual(len(transformed.columns), 2)
+        self.assert_(np.array_equal(transformed.columns, ['one', 'two']))
 
         # TODO: test correctness
 
     def test_get_dummies(self):
-        self.panel['Label'] = self.panel.minor_labels
+        from pandas.core.reshape import make_column_dummies, make_axis_dummies
 
-        minor_dummies = self.panel.get_axis_dummies('minor')
-        dummies = self.panel.get_dummies('Label')
-
+        self.panel['Label'] = self.panel.index.labels[1]
+        minor_dummies = make_axis_dummies(self.panel, 'minor')
+        dummies = make_column_dummies(self.panel, 'Label')
         self.assert_(np.array_equal(dummies.values, minor_dummies.values))
 
     def test_apply(self):
@@ -1215,22 +1121,17 @@ class TestLongPanel(unittest.TestCase):
                                          np.sqrt(self.panel.values)))
 
     def test_mean(self):
-        means = self.panel.mean('major')
+        means = self.panel.mean(level='minor')
 
         # test versus Panel version
-        wide_means = self.panel.to_wide().mean('major')
+        wide_means = self.panel.to_panel().mean('major')
         assert_frame_equal(means, wide_means)
 
-        means_broadcast = self.panel.mean('major', broadcast=True)
-        self.assert_(isinstance(means_broadcast, LongPanel))
-
-        # how to check correctness?
-
     def test_sum(self):
-        sums = self.panel.sum('major')
+        sums = self.panel.sum(level='minor')
 
         # test versus Panel version
-        wide_sums = self.panel.to_wide().sum('major')
+        wide_sums = self.panel.to_panel().sum('major')
         assert_frame_equal(sums, wide_sums)
 
     def test_count(self):
@@ -1252,17 +1153,10 @@ class TestLongPanel(unittest.TestCase):
 
         joined = lp1.join(lp2)
 
-        self.assertEqual(len(joined.items), 3)
+        self.assertEqual(len(joined.columns), 3)
 
         self.assertRaises(Exception, lp1.join,
                           self.panel.filter(['ItemB', 'ItemC']))
-
-    def test_merge(self):
-        pass
-
-    def test_add_prefix(self):
-        lp = self.panel.add_prefix('foo#')
-        self.assertEqual(lp.items[0], 'foo#ItemA')
 
     def test_pivot(self):
         from pandas.core.reshape import _slow_pivot
@@ -1286,17 +1180,6 @@ class TestLongPanel(unittest.TestCase):
 
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
-
-
-def test_group_agg():
-    values = np.ones((10, 2)) * np.arange(10).reshape((10, 1))
-    bounds = np.arange(5) * 2
-    f = lambda x: x.mean(axis=0)
-
-    agged = group_agg(values, bounds, f)
-
-    assert(agged[1][0] == 2.5)
-    assert(agged[2][0] == 4.5)
 
 def test_monotonic():
     pos = np.array([1, 2, 3, 5])

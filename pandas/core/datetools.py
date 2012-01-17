@@ -15,6 +15,7 @@ try:
                         'install version 1.5!')
 except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
+    raise # otherwise a 2nd import won't show the message
 
 import calendar
 
@@ -129,8 +130,11 @@ class DateOffset(object):
         return self.__class__(self.n, **self.kwds)
 
     def _params(self):
-        attrs = sorted((item for item in self.__dict__.iteritems()
-                        if item[0] not in ('kwds', '_offset')))
+        attrs = [(k, v) for k, v in vars(self).iteritems()
+                 if k not in ['kwds', '_offset']]
+        attrs.extend(self.kwds.items())
+        attrs = sorted(set(attrs))
+
         params = tuple([str(self.__class__)] + attrs)
         return params
 

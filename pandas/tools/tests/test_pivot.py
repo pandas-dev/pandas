@@ -2,8 +2,9 @@ import unittest
 
 import numpy as np
 
-from pandas import DataFrame
-from pandas.tools.pivot import pivot_table
+from pandas import DataFrame, Series
+from pandas.tools.merge import concat
+from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
 
 class TestPivotTable(unittest.TestCase):
@@ -60,6 +61,26 @@ class TestPivotTable(unittest.TestCase):
                                rows='A', cols=['B', 'C'], fill_value=0)
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_multi_functions(self):
+        f = lambda func: pivot_table(self.data, values=['D', 'E'],
+                                     rows=['A', 'B'], cols='C',
+                                     aggfunc=func)
+        result = f([np.mean, np.std])
+        means = f(np.mean)
+        stds = f(np.std)
+        expected = concat([means, stds], keys=['mean', 'std'], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        # margins not supported??
+        f = lambda func: pivot_table(self.data, values=['D', 'E'],
+                                     rows=['A', 'B'], cols='C',
+                                     aggfunc=func, margins=True)
+        result = f([np.mean, np.std])
+        means = f(np.mean)
+        stds = f(np.std)
+        expected = concat([means, stds], keys=['mean', 'std'], axis=1)
+        tm.assert_frame_equal(result, expected)
+
     def test_margins(self):
         def _check_output(res, col, rows=['A', 'B'], cols=['C']):
             cmarg = res['All'][:-1]
@@ -103,6 +124,91 @@ class TestPivotTable(unittest.TestCase):
         # for valcol in table.columns:
         #     gmarg = table[valcol]['All', '']
         #     self.assertEqual(gmarg, self.data[valcol].mean())
+
+
+class TestCrosstab(unittest.TestCase):
+
+    def setUp(self):
+        df = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                               'bar', 'bar', 'bar', 'bar',
+                               'foo', 'foo', 'foo'],
+                        'B' : ['one', 'one', 'one', 'two',
+                               'one', 'one', 'one', 'two',
+                               'two', 'two', 'one'],
+                        'C' : ['dull', 'dull', 'shiny', 'dull',
+                               'dull', 'shiny', 'shiny', 'dull',
+                               'shiny', 'shiny', 'shiny'],
+                        'D' : np.random.randn(11),
+                        'E' : np.random.randn(11),
+                        'F' : np.random.randn(11)})
+
+        self.df = df.append(df, ignore_index=True)
+
+    def test_crosstab_single(self):
+        df = self.df
+        result = crosstab(df['A'], df['C'])
+        expected = df.groupby(['A', 'C']).size().unstack()
+        tm.assert_frame_equal(result, expected.fillna(0).astype(np.int64))
+
+    def test_crosstab_multiple(self):
+        df = self.df
+
+        result = crosstab(df['A'], [df['B'], df['C']])
+        expected = df.groupby(['A', 'B', 'C']).size()
+        expected = expected.unstack('B').unstack('C').fillna(0).astype(np.int64)
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab([df['B'], df['C']], df['A'])
+        expected = df.groupby(['B', 'C', 'A']).size()
+        expected = expected.unstack('A').fillna(0).astype(np.int64)
+        tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_ndarray(self):
+        a = np.random.randint(0, 5, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 10, size=100)
+
+        df = DataFrame({'a': a, 'b': b, 'c': c})
+
+        result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'))
+        expected = crosstab(df['a'], [df['b'], df['c']])
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab([b, c], a, colnames=['a'], rownames=('b', 'c'))
+        expected = crosstab([df['b'], df['c']], df['a'])
+        tm.assert_frame_equal(result, expected)
+
+        # assign arbitrary names
+        result = crosstab(self.df['A'].values, self.df['C'].values)
+        self.assertEqual(result.index.name, 'row_0')
+        self.assertEqual(result.columns.name, 'col_0')
+
+    def test_crosstab_margins(self):
+        a = np.random.randint(0, 7, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 5, size=100)
+
+        df = DataFrame({'a': a, 'b': b, 'c': c})
+
+        result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                          margins=True)
+
+        self.assertEqual(result.index.names, ['a'])
+        self.assertEqual(result.columns.names, ['b', 'c'])
+
+        all_cols = result['All', '']
+        exp_cols = df.groupby(['a']).size().astype('i8')
+        exp_cols = exp_cols.append(Series([len(df)], index=['All']))
+
+        tm.assert_series_equal(all_cols, exp_cols)
+
+        all_rows = result.ix['All']
+        exp_rows = df.groupby(['b', 'c']).size().astype('i8')
+        exp_rows = exp_rows.append(Series([len(df)], index=[('All', '')]))
+
+        exp_rows = exp_rows.reindex(all_rows.index)
+        exp_rows = exp_rows.fillna(0).astype(np.int64)
+        tm.assert_series_equal(all_rows, exp_rows)
 
 if __name__ == '__main__':
     import nose

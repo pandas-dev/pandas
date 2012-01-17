@@ -13,6 +13,7 @@ from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
 from pandas.core.panel import Panel
+from pandas.tools.merge import concat
 from collections import defaultdict
 import pandas._tseries as lib
 import pandas.core.datetools as dt
@@ -119,6 +120,14 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+    def test_groupby_nonobject_dtype(self):
+        key = self.mframe.index.labels[0]
+        grouped = self.mframe.groupby(key)
+        result = grouped.sum()
+
+        expected = self.mframe.groupby(key.astype('O')).sum()
+        assert_frame_equal(result, expected)
+
     def test_agg_regression1(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.agg(np.mean)
@@ -148,7 +157,7 @@ class TestGroupBy(unittest.TestCase):
 
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
-        assert_frame_equal(grouped.sum(), DataFrame({}))
+        assert_frame_equal(grouped.sum(), DataFrame(columns=self.tsframe.columns))
         assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
@@ -286,7 +295,9 @@ class TestGroupBy(unittest.TestCase):
         grouped = values.groupby(labels)
         agged = grouped.agg(len)
         expected = Series([4, 2], index=['bar', 'foo'])
-        assert_series_equal(agged, expected)
+
+        assert_series_equal(agged, expected, check_dtype=False)
+        self.assert_(issubclass(agged.dtype.type, np.integer))
 
     def test_attr_wrapper(self):
         grouped = self.ts.groupby(lambda x: x.weekday())
@@ -332,6 +343,33 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.agg(np.sum)
         expected = grouped.sum()
         assert_series_equal(result, expected)
+
+    def test_series_agg_multi_pure_python(self):
+        data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                                 'bar', 'bar', 'bar', 'bar',
+                                 'foo', 'foo', 'foo'],
+                          'B' : ['one', 'one', 'one', 'two',
+                                 'one', 'one', 'one', 'two',
+                                 'two', 'two', 'one'],
+                          'C' : ['dull', 'dull', 'shiny', 'dull',
+                                 'dull', 'shiny', 'shiny', 'dull',
+                                 'shiny', 'shiny', 'shiny'],
+                          'D' : np.random.randn(11),
+                          'E' : np.random.randn(11),
+                          'F' : np.random.randn(11)})
+
+        def bad(x):
+            assert(len(x.base) == len(x))
+            return 'foo'
+
+        result = data.groupby(['A', 'B']).agg(bad)
+        expected = data.groupby(['A', 'B']).agg(lambda x: 'foo')
+        assert_frame_equal(result, expected)
+
+    def test_series_index_name(self):
+        grouped = self.df.ix[:, ['C']].groupby(self.df['A'])
+        result = grouped.agg(lambda x: x.mean())
+        self.assertEqual(result.index.name, 'A')
 
     def test_frame_describe_multikey(self):
         grouped = self.tsframe.groupby([lambda x: x.year,
@@ -482,6 +520,12 @@ class TestGroupBy(unittest.TestCase):
             groups[key] = gp
         self.assertEquals(len(groups), 2)
 
+        # axis = 1
+        three_levels = self.three_group.groupby(['A', 'B', 'C']).mean()
+        grouped = three_levels.T.groupby(axis=1, level=(1, 2))
+        for key, group in grouped:
+            pass
+
     def test_multi_iter_panel(self):
         wp = tm.makePanel()
         grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
@@ -519,6 +563,30 @@ class TestGroupBy(unittest.TestCase):
         agged = grouped.agg([np.mean, np.std])
         expected = DataFrame({'mean' : grouped.agg(np.mean),
                               'std' : grouped.agg(np.std)})
+        assert_frame_equal(agged, expected)
+
+    def test_frame_multi_key_function_list(self):
+        data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
+                                 'bar', 'bar', 'bar', 'bar',
+                                 'foo', 'foo', 'foo'],
+                          'B' : ['one', 'one', 'one', 'two',
+                                 'one', 'one', 'one', 'two',
+                                 'two', 'two', 'one'],
+                          'C' : ['dull', 'dull', 'shiny', 'dull',
+                                 'dull', 'shiny', 'shiny', 'dull',
+                                 'shiny', 'shiny', 'shiny'],
+                          'D' : np.random.randn(11),
+                          'E' : np.random.randn(11),
+                          'F' : np.random.randn(11)})
+
+        grouped = data.groupby(['A', 'B'])
+        funcs = [np.mean, np.std]
+        agged = grouped.agg(funcs)
+        expected = concat([grouped['D'].agg(funcs), grouped['E'].agg(funcs),
+                           grouped['F'].agg(funcs)],
+                          keys=['D', 'E', 'F'], axis=1)
+        assert(isinstance(agged.index, MultiIndex))
+        assert(isinstance(expected.index, MultiIndex))
         assert_frame_equal(agged, expected)
 
     def test_groupby_multiple_columns(self):
@@ -679,6 +747,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_omit_nuisance(self):
         grouped = self.df.groupby('A')
+
         result = grouped.mean()
         expected = self.df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
         assert_frame_equal(result, expected)
@@ -704,6 +773,25 @@ class TestGroupBy(unittest.TestCase):
         agged = grouped.agg(np.mean)
         exp = grouped.mean()
         assert_frame_equal(agged, exp)
+
+    def test_empty_groups_corner(self):
+        # handle empty groups
+        df = DataFrame({'k1' : np.array(['b', 'b', 'b', 'a', 'a', 'a']),
+                        'k2' : np.array(['1', '1', '1', '2', '2', '2']),
+                        'k3' : ['foo', 'bar'] * 3,
+                        'v1' : np.random.randn(6),
+                        'v2' : np.random.randn(6)})
+
+        grouped = df.groupby(['k1', 'k2'])
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        assert_frame_equal(result, expected)
+
+        grouped = self.mframe[3:5].groupby(level=0)
+        agged = grouped.apply(lambda x: x.mean())
+        agged_A = grouped['A'].apply(np.mean)
+        assert_series_equal(agged['A'], agged_A)
+        self.assertEquals(agged.index.name, 'first')
 
     def test_apply_concat_preserve_names(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -786,22 +874,35 @@ class TestGroupBy(unittest.TestCase):
         self.assertRaises(GroupByError, frame.groupby('a')['b'].mean)
 
     def test_grouping_attrs(self):
-        deleveled = self.mframe.delevel()
+        deleveled = self.mframe.reset_index()
         grouped = deleveled.groupby(['first', 'second'])
 
         for i, ping in enumerate(grouped.groupings):
             the_counts = self.mframe.groupby(level=i).count()['A']
-            assert_almost_equal(ping.counts, the_counts)
+            other_counts = Series(ping.counts, ping.group_index)
+            assert_almost_equal(the_counts,
+                                other_counts.reindex(the_counts.index))
+
+        # compute counts when group by level
+        grouped = self.mframe.groupby(level=0)
+        ping = grouped.groupings[0]
+        the_counts = grouped.size()
+        other_counts = Series(ping.counts, ping.group_index)
+        assert_almost_equal(the_counts,
+                            other_counts.reindex(the_counts.index))
 
     def test_groupby_level(self):
         frame = self.mframe
-        deleveled = frame.delevel()
+        deleveled = frame.reset_index()
 
         result0 = frame.groupby(level=0).sum()
         result1 = frame.groupby(level=1).sum()
 
-        expected0 = frame.groupby(deleveled['first']).sum()
-        expected1 = frame.groupby(deleveled['second']).sum()
+        expected0 = frame.groupby(deleveled['first'].values).sum()
+        expected1 = frame.groupby(deleveled['second'].values).sum()
+
+        expected0 = expected0.reindex(frame.index.levels[0])
+        expected1 = expected1.reindex(frame.index.levels[1])
 
         self.assert_(result0.index.name == 'first')
         self.assert_(result1.index.name == 'second')
@@ -840,7 +941,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
-        deleveled = frame.delevel()
+        deleveled = frame.reset_index()
 
         mapper0 = {'foo' : 0, 'bar' : 0,
                    'baz' : 1, 'qux' : 1}
@@ -856,6 +957,16 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
+
+    def test_level_preserve_order(self):
+        grouped = self.mframe.groupby(level=0)
+        exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
+        assert_almost_equal(grouped.groupings[0].labels, exp_labels)
+
+    def test_grouping_labels(self):
+        grouped = self.mframe.groupby(self.mframe.index.get_level_values(0))
+        exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3])
+        assert_almost_equal(grouped.groupings[0].labels, exp_labels)
 
     def test_cython_fail_agg(self):
         dr = DateRange('1/1/2000', periods=50)
@@ -989,13 +1100,13 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(agg_result, expected)
         assert_frame_equal(apply_result, expected)
 
-    def test_cython_na_bug(self):
-        values = np.random.randn(10)
-        shape = (5, 5)
-        label_list = [np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2], dtype=np.int32),
-                      np.array([1, 2, 3, 4, 0, 1, 2, 3, 3, 4], dtype=np.int32)]
+    # def test_cython_na_bug(self):
+    #     values = np.random.randn(10)
+    #     shape = (5, 5)
+    #     label_list = [np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2], dtype=np.int32),
+    #                   np.array([1, 2, 3, 4, 0, 1, 2, 3, 3, 4], dtype=np.int32)]
 
-        lib.group_aggregate(values, label_list, shape)
+    #     lib.group_aggregate(values, label_list, shape)
 
     def test_size(self):
         grouped = self.df.groupby(['A', 'B'])
@@ -1119,6 +1230,15 @@ class TestGroupBy(unittest.TestCase):
         del expected[0]
         assert_frame_equal(result, expected)
 
+    def test_cython_grouper_series_bug_noncontig(self):
+        arr = np.empty((100, 100))
+        arr.fill(np.nan)
+        obj = Series(arr[:, 0], index=range(100))
+        inds = np.tile(range(10), 10)
+
+        result = obj.groupby(inds).agg(Series.median)
+        self.assert_(result.isnull().all())
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):
@@ -1142,11 +1262,27 @@ class TestPanelGroupBy(unittest.TestCase):
         self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
 
 
-class TestAggregate(unittest.TestCase):
-    setUp = commonSetUp
+def test_decons():
+    from pandas.core.groupby import decons_group_index, get_group_index
 
-class TestTransform(unittest.TestCase):
-    setUp = commonSetUp
+    def testit(label_list, shape):
+        group_index = get_group_index(label_list, shape)
+        label_list2 = decons_group_index(group_index, shape)
+
+        for a, b in zip(label_list, label_list2):
+            assert(np.array_equal(a, b))
+
+    shape = (4, 5, 6)
+    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100),
+                  np.tile([0, 2, 4, 3, 0, 1, 2, 3], 100),
+                  np.tile([5, 1, 0, 2, 3, 0, 5, 4], 100)]
+    testit(label_list, shape)
+
+    shape = (10000, 10000)
+    label_list = [np.tile(np.arange(10000), 5),
+                  np.tile(np.arange(10000), 5)]
+    testit(label_list, shape)
+
 
 if __name__ == '__main__':
     import nose

@@ -27,7 +27,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.merge_indexer_object(new, old.indexMap)
+        filler = lib.merge_indexer_int64(new, old.indexMap)
 
         expect_filler = [-1, 0, -1, -1, -1, 1, -1, -1, -1, -1, 2, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -35,7 +35,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler = lib.merge_indexer_object(new, old.indexMap)
+        filler = lib.merge_indexer_int64(new, old.indexMap)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
@@ -43,7 +43,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.backfill_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -51,7 +51,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler = lib.backfill_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -60,7 +60,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.pad_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -68,9 +68,38 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([5, 10])
         new = Index(range(5))
-        filler = lib.pad_object(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
+
+def test_left_join_indexer():
+    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
+
+    result = lib.left_join_indexer_int64(b, a)
+    expected = np.array([1, 1, 2, 3, 3], dtype='i4')
+    assert(np.array_equal(result, expected))
+
+def test_left_outer_join_bug():
+    left = np.array([0, 1, 0, 1, 1, 2, 3, 1, 0, 2, 1, 2, 0, 1, 1, 2, 3, 2, 3,
+                     2, 1, 1, 3, 0, 3, 2, 3, 0, 0, 2, 3, 2, 0, 3, 1, 3, 0, 1,
+                     3, 0, 0, 1, 0, 3, 1, 0, 1, 0, 1, 1, 0, 2, 2, 2, 2, 2, 0,
+                     3, 1, 2, 0, 0, 3, 1, 3, 2, 2, 0, 1, 3, 0, 2, 3, 2, 3, 3,
+                     2, 3, 3, 1, 3, 2, 0, 0, 3, 1, 1, 1, 0, 2, 3, 3, 1, 2, 0,
+                     3, 1, 2, 0, 2], dtype=np.int32)
+
+    right = np.array([3, 1], dtype=np.int32)
+    max_groups = 4
+
+    lidx, ridx = lib.left_outer_join(left, right, max_groups, sort=False)
+
+    exp_lidx = np.arange(len(left))
+    exp_ridx = -np.ones(len(left))
+    exp_ridx[left == 1] = 1
+    exp_ridx[left == 3] = 0
+
+    assert(np.array_equal(lidx, exp_lidx))
+    assert(np.array_equal(ridx, exp_ridx))
 
 def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
@@ -135,7 +164,7 @@ def test_groupsort_indexer():
     a = np.random.randint(0, 1000, 100).astype('i4')
     b = np.random.randint(0, 1000, 100).astype('i4')
 
-    result = lib.groupsort_indexer(a, 1000)
+    result = lib.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
     expected = np.argsort(a, kind='mergesort')
@@ -143,7 +172,7 @@ def test_groupsort_indexer():
 
     # compare with lexsort
     key = a * 1000 + b
-    result = lib.groupsort_indexer(key, 1000000)
+    result = lib.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
     assert(np.array_equal(result, expected))
 
@@ -201,6 +230,86 @@ def test_rank():
     _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
     _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
 
+def test_get_reverse_indexer():
+    indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype='i4')
+    result = lib.get_reverse_indexer(indexer, 5)
+    expected = np.array([4, 2, 3, 6, 7], dtype='i4')
+    assert(np.array_equal(result, expected))
+
+class TestTypeInference(unittest.TestCase):
+
+    def test_integers(self):
+        arr = np.array([1, 2, 3, np.int64(4), np.int32(5)], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'integer')
+
+        arr = np.array([1, 2, 3, np.int64(4), np.int32(5), 'foo'],
+                       dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'mixed')
+
+        arr = np.array([1, 2, 3, 4, 5], dtype='i4')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'integer')
+
+    def test_bools(self):
+        arr = np.array([True, False, True, True, True], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'boolean')
+
+        arr = np.array([np.bool_(True), np.bool_(False)], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'boolean')
+
+        arr = np.array([True, False, True, 'foo'], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'mixed')
+
+        arr = np.array([True, False, True], dtype=bool)
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'boolean')
+
+    def test_floats(self):
+        arr = np.array([1., 2., 3., np.float64(4), np.float32(5)], dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'floating')
+
+        arr = np.array([1, 2, 3, np.float64(4), np.float32(5), 'foo'],
+                       dtype='O')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'mixed')
+
+        arr = np.array([1, 2, 3, 4, 5], dtype='f4')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'floating')
+
+        arr = np.array([1, 2, 3, 4, 5], dtype='f8')
+        result = lib.infer_dtype(arr)
+        self.assertEqual(result, 'floating')
+
+    def test_string(self):
+        pass
+
+    def test_unicode(self):
+        pass
+
+    def test_datetime(self):
+        pass
+
+    def test_to_object_array_tuples(self):
+        r = (5,6)
+        values = [r]
+        result = lib.to_object_array_tuples(values)
+
+        try:
+            # make sure record array works
+            from collections import namedtuple
+            record = namedtuple('record', 'x y')
+            r = record(5, 6)
+            values = [r]
+            result = lib.to_object_array_tuples(values)
+        except ImportError:
+            pass
 
 class TestMoments(unittest.TestCase):
     pass

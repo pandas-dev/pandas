@@ -28,6 +28,8 @@ We use the standard convention for referencing the matplotlib API:
 
    import matplotlib.pyplot as plt
 
+.. _visualization.basic:
+
 Basic plotting: ``plot``
 ------------------------
 
@@ -43,7 +45,7 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
    ts.plot()
 
 If the index consists of dates, it calls ``gca().autofmt_xdate()`` to try to
-format the x-axis nicely as per above. THe method takes a number of arguments
+format the x-axis nicely as per above. The method takes a number of arguments
 for controlling the look of the plot:
 
 .. ipython:: python
@@ -62,12 +64,33 @@ On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
    @savefig frame_plot_basic.png width=4.5in
    plt.figure(); df.plot(); plt.legend(loc='best')
 
+You may set the ``legend`` argument to ``False`` to hide the legend, which is
+shown by default.
+
+.. ipython:: python
+
+   @savefig frame_plot_basic_noleg.png width=4.5in
+   df.plot(legend=False)
+
 Some other options are available, like plotting each Series on a different axis:
 
 .. ipython:: python
 
    @savefig frame_plot_subplots.png width=4.5in
    df.plot(subplots=True, figsize=(8, 8)); plt.legend(loc='best')
+
+You may pass ``logy`` to get a log-scale Y axis.
+
+.. ipython:: python
+
+   plt.figure();
+
+   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = np.exp(ts.cumsum())
+
+   @savefig series_plot_logy.png width=4.5in
+   ts.plot(logy=True)
+
 
 Targeting different subplots
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,6 +109,8 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
 
 Other plotting features
 -----------------------
+
+.. _visualization.barplot:
 
 Plotting non-time series data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -117,3 +142,49 @@ subplots:
 
    @savefig frame_hist_ex.png width=4.5in
    df.diff().hist(color='k', alpha=0.5, bins=50)
+
+.. _visualization.box:
+
+Box-Plotting
+~~~~~~~~~~~~
+
+DataFrame has a ``boxplot`` method which allows you to visualize the
+distribution of values within each column.
+
+For instance, here is a boxplot representing five trials of 10 observations of
+a uniform random variable on [0,1).
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(10,5))
+   plt.figure();
+
+   @savefig box_plot_ex.png width=4.5in
+   df.boxplot()
+
+You can create a stratified boxplot using the ``by`` keyword argument to create
+groupings.  For instance,
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+   df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+
+   plot.figure();
+
+   @savefig box_plot_ex2.png width=4.5in
+   df.boxplot(by='X')
+
+You can also pass a subset of columns to plot, as well as group by multiple
+columns:
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(10,3), columns=['Col1', 'Col2', 'Col3'])
+   df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+   df['Y'] = Series(['A','B','A','B','A','B','A','B','A','B'])
+
+   plot.figure();
+
+   @savefig box_plot_ex3.png width=4.5in
+   df.boxplot(column=['Col1','Col2'], by=['X','Y'])

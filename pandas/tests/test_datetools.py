@@ -41,7 +41,7 @@ def test_normalize_date():
 ### DateOffset Tests
 #####
 
-class TestDateOffset(object):
+class TestDateOffset(unittest.TestCase):
 
     def setUp(self):
         self.d = datetime(2008, 1, 2)
@@ -71,6 +71,13 @@ class TestDateOffset(object):
 
     def test_copy(self):
         assert(DateOffset(months=2).copy() == DateOffset(months=2))
+
+    def test_eq(self):
+        offset1 = DateOffset(days=1)
+        offset2 = DateOffset(days=365)
+
+        self.assert_(offset1 != offset2)
+        self.assert_(not (offset1 == offset2))
 
 class TestBusinessDay(unittest.TestCase):
 

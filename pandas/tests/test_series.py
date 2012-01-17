@@ -10,6 +10,7 @@ import nose
 
 from numpy import nan
 import numpy as np
+import numpy.ma as ma
 
 from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
 from pandas.core.index import MultiIndex
@@ -32,6 +33,15 @@ class CheckNameIntegration(object):
     def test_copy_name(self):
         result = self.ts.copy()
         self.assertEquals(result.name, self.ts.name)
+
+    # def test_copy_index_name_checking(self):
+    #     # don't want to be able to modify the index stored elsewhere after
+    #     # making a copy
+
+    #     self.ts.index.name = None
+    #     cp = self.ts.copy()
+    #     cp.index.name = 'foo'
+    #     self.assert_(self.ts.index.name is None)
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
@@ -180,6 +190,28 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
+    def test_constructor_empty(self):
+        empty = Series()
+        empty2 = Series([])
+        assert_series_equal(empty, empty2)
+
+        empty = Series(index=range(10))
+        empty2 = Series(np.nan, index=range(10))
+        assert_series_equal(empty, empty2)
+
+    def test_constructor_maskedarray(self):
+        data = ma.masked_all((3,), dtype=float)
+        result = Series(data)
+        expected = Series([nan, nan, nan])
+        assert_series_equal(result, expected)
+
+        data[0] = 0.0
+        data[2] = 2.0
+        index = ['a', 'b', 'c']
+        result = Series(data, index=index)
+        expected = Series([0.0, nan, 2.0], index=index)
+        assert_series_equal(result, expected)
+
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
         assert_almost_equal(s.index, np.arange(3))
@@ -199,10 +231,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
         assert_series_equal(result, expected)
 
-    def test_constructor_tuples(self):
+    def test_constructor_list_of_tuples(self):
         data = [(1, 1), (2, 2), (2, 3)]
         s = Series(data)
         self.assertEqual(list(s), data)
+
+    def test_constructor_tuple_of_tuples(self):
+        data = ((1, 1), (2, 2), (2, 3))
+        s = Series(data)
+        self.assertEqual(tuple(s), data)
 
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
@@ -225,11 +262,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_setindex(self):
         # wrong type
         series = self.series.copy()
-        self.assertRaises(TypeError, series._set_index, None)
+        self.assertRaises(TypeError, setattr, series, 'index', None)
 
         # wrong length
         series = self.series.copy()
-        self.assertRaises(AssertionError, series._set_index,
+        self.assertRaises(AssertionError, setattr, series, 'index',
                           np.arange(len(series) - 1))
 
         # works
@@ -324,6 +361,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
         self.assert_(np.array_equal(result.index, s.index[mask]))
 
+    def test_getitem_generator(self):
+        gen = (x > 0 for x in self.series)
+        result = self.series[gen]
+        result2 = self.series[iter(self.series > 0)]
+        expected = self.series[self.series > 0]
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
     def test_getitem_boolean_object(self):
         # using column from DataFrame
         s = self.series
@@ -355,6 +400,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, ts.ix.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.ix.__setitem__, mask_shifted, 1)
 
+    def test_getitem_out_of_bounds(self):
+        # don't segfault, GH #495
+        self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))
+
+    def test_getitem_box_float64(self):
+        value = self.ts[5]
+        self.assert_(isinstance(value, np.float64))
+
+    def test_getitem_ambiguous_keyerror(self):
+        s = Series(range(10), index=range(0, 20, 2))
+        self.assertRaises(KeyError, s.__getitem__, 1)
+        self.assertRaises(KeyError, s.ix.__getitem__, 1)
+
+    def test_setitem_ambiguous_keyerror(self):
+        s = Series(range(10), index=range(0, 20, 2))
+        self.assertRaises(KeyError, s.__setitem__, 1, 5)
+        self.assertRaises(KeyError, s.ix.__setitem__, 1, 5)
+
     def test_slice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]
@@ -376,6 +439,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         sl = self.series[10:20]
         sl[:] = 0
         self.assert_((self.series[10:20] == 0).all())
+
+    def test_slice_can_reorder_not_uniquely_indexed(self):
+        s = Series(1, index=['a', 'a', 'b', 'b', 'c'])
+        result = s[::-1] # it works!
 
     def test_setitem(self):
         self.ts[self.ts.index[5]] = np.NaN
@@ -413,15 +480,93 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEqual(len(sl), len(sl.index))
         self.assertEqual(len(sl.index.indexMap), len(sl.index))
 
+    def test_basic_getitem_setitem_corner(self):
+        # invalid tuples, e.g. self.ts[:, None] vs. self.ts[:, 2]
+        self.assertRaises(Exception, self.ts.__getitem__,
+                          (slice(None, None), 2))
+        self.assertRaises(Exception, self.ts.__setitem__,
+                          (slice(None, None), 2), 2)
+
+        # weird lists. [slice(0, 5)] will work but not two slices
+        result = self.ts[[slice(None, 5)]]
+        expected = self.ts[:5]
+        assert_series_equal(result, expected)
+
+        # OK
+        self.assertRaises(Exception, self.ts.__getitem__,
+                          [5, slice(None, None)])
+        self.assertRaises(Exception, self.ts.__setitem__,
+                          [5, slice(None, None)], 2)
+
+    def test_basic_getitem_with_labels(self):
+        indices = self.ts.index[[5, 10, 15]]
+
+        result = self.ts[indices]
+        expected = self.ts.reindex(indices)
+        assert_series_equal(result, expected)
+
+        result = self.ts[indices[0]:indices[2]]
+        expected = self.ts.ix[indices[0]:indices[2]]
+        assert_series_equal(result, expected)
+
+        # integer indexes, be careful
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        inds = [0, 2, 5, 7, 8]
+        arr_inds = np.array([0, 2, 5, 7, 8])
+        result = s[inds]
+        expected = s.reindex(inds)
+        assert_series_equal(result, expected)
+
+        result = s[arr_inds]
+        expected = s.reindex(arr_inds)
+        assert_series_equal(result, expected)
+
+    def test_basic_setitem_with_labels(self):
+        indices = self.ts.index[[5, 10, 15]]
+
+        cp = self.ts.copy()
+        exp = self.ts.copy()
+        cp[indices] = 0
+        exp.ix[indices] = 0
+        assert_series_equal(cp, exp)
+
+        cp = self.ts.copy()
+        exp = self.ts.copy()
+        cp[indices[0]:indices[2]] = 0
+        exp.ix[indices[0]:indices[2]] = 0
+        assert_series_equal(cp, exp)
+
+        # integer indexes, be careful
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        inds = [0, 4, 6]
+        arr_inds = np.array([0, 4, 6])
+
+        cp = s.copy()
+        exp = s.copy()
+        s[inds] = 0
+        s.ix[inds] = 0
+        assert_series_equal(cp, exp)
+
+        cp = s.copy()
+        exp = s.copy()
+        s[arr_inds] = 0
+        s.ix[arr_inds] = 0
+        assert_series_equal(cp, exp)
+
+        inds_notfound = [0, 4, 5, 6]
+        arr_inds_notfound = np.array([0, 4, 5, 6])
+        self.assertRaises(Exception, s.__setitem__, inds_notfound, 0)
+        self.assertRaises(Exception, s.__setitem__, arr_inds_notfound, 0)
+
     def test_ix_getitem(self):
         inds = self.series.index[[3,4,7]]
         assert_series_equal(self.series.ix[inds], self.series.reindex(inds))
         assert_series_equal(self.series.ix[5::2], self.series[5::2])
 
         # slice with indices
-        d1, d2 = self.series.index[[5, 15]]
-        result = self.series.ix[d1:d2]
-        expected = self.series.truncate(d1, d2)
+        d1, d2 = self.ts.index[[5, 15]]
+        result = self.ts.ix[d1:d2]
+        expected = self.ts.truncate(d1, d2)
         assert_series_equal(result, expected)
 
         # boolean
@@ -429,8 +574,41 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(self.series.ix[mask], self.series[mask])
 
         # ask for index value
-        self.assertEquals(self.series.ix[d1], self.series[d1])
-        self.assertEquals(self.series.ix[d2], self.series[d2])
+        self.assertEquals(self.ts.ix[d1], self.ts[d1])
+        self.assertEquals(self.ts.ix[d2], self.ts[d2])
+
+    def test_ix_getitem_not_monotonic(self):
+        d1, d2 = self.ts.index[[5, 15]]
+
+        ts2 = self.ts[::2][::-1]
+
+        self.assertRaises(KeyError, ts2.ix.__getitem__, slice(d1, d2))
+        self.assertRaises(KeyError, ts2.ix.__setitem__, slice(d1, d2), 0)
+
+    def test_ix_getitem_setitem_integer_slice_keyerrors(self):
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+
+        # this is OK
+        cp = s.copy()
+        cp.ix[4:10] = 0
+        self.assert_((cp.ix[4:10] == 0).all())
+
+        # so is this
+        cp = s.copy()
+        cp.ix[3:11] = 0
+        self.assert_((cp.ix[3:11] == 0).values.all())
+
+        result = s.ix[4:10]
+        result2 = s.ix[3:11]
+        expected = s.reindex([4, 6, 8, 10])
+
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
+        # non-monotonic, raise KeyError
+        s2 = s[::-1]
+        self.assertRaises(KeyError, s2.ix.__getitem__, slice(3, 11))
+        self.assertRaises(KeyError, s2.ix.__setitem__, slice(3, 11), 0)
 
     def test_ix_getitem_iterator(self):
         idx = iter(self.series.index[:10])
@@ -531,8 +709,60 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # pass float_format
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split('\n')[:-1]]
+        result = [x.split()[1] for x in result.split('\n')]
         expected = [format(x) for x in self.ts]
+        self.assertEqual(result, expected)
+
+        # empty string
+        result = self.ts[:0].to_string()
+        self.assertEqual(result, '')
+
+        result = self.ts[:0].to_string(length=0)
+        self.assertEqual(result, '')
+
+        # name and length
+        cp = self.ts.copy()
+        cp.name = 'foo'
+        result = cp.to_string(length=True, name=True)
+        last_line = result.split('\n')[-1].strip()
+        self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
+
+    def test_to_string_mixed(self):
+        s = Series(['foo', np.nan, -1.23, 4.56])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    NaN\n'
+                    '2   -1.23\n'
+                    '3    4.56')
+        self.assertEqual(result, expected)
+
+        # but don't count NAs as floats
+        s = Series(['foo', np.nan, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    NaN\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
+        s = Series(['foo', 5, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    5\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
+    def test_to_string_float_na_spacing(self):
+        s = Series([0., 1.5678, 2., -3., 4.])
+        s[::2] = np.nan
+
+        result = s.to_string()
+        expected = ('0    NaN\n'
+                    '1    1.568\n'
+                    '2    NaN\n'
+                    '3   -3.000\n'
+                    '4    NaN')
         self.assertEqual(result, expected)
 
     def test_iter(self):
@@ -561,6 +791,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_sum(self):
         self._check_stat_op('sum', np.sum)
 
+    def test_sum_inf(self):
+        s = Series(np.random.randn(10))
+        s2 = s.copy()
+        s[5:8] = np.inf
+        s2[5:8] = np.nan
+        assert_almost_equal(s.sum(), s2.sum())
+
+        import pandas.core.nanops as nanops
+        arr = np.random.randn(100, 100).astype('f4')
+        arr[:, 2] = np.inf
+        res = nanops.nansum(arr, axis=1)
+        expected = nanops._nansum(arr, axis=1)
+        assert_almost_equal(res, expected)
+
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
@@ -575,10 +819,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self._check_stat_op('prod', np.prod)
 
     def test_min(self):
-        self._check_stat_op('min', np.min)
+        self._check_stat_op('min', np.min, check_objects=True)
 
     def test_max(self):
-        self._check_stat_op('max', np.max)
+        self._check_stat_op('max', np.max, check_objects=True)
 
     def test_std(self):
         alt = lambda x: np.std(x, ddof=1)
@@ -604,26 +848,48 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_cumprod(self):
         self._check_accum_op('cumprod')
 
-    def _check_stat_op(self, name, alternate):
-        f = getattr(Series, name)
+    def _check_stat_op(self, name, alternate, check_objects=False):
+        from pandas import DateRange
+        import pandas.core.nanops as nanops
 
-        # add some NaNs
-        self.series[5:15] = np.NaN
+        def testit():
+            f = getattr(Series, name)
 
-        # skipna or no
-        self.assert_(notnull(f(self.series)))
-        self.assert_(isnull(f(self.series, skipna=False)))
+            # add some NaNs
+            self.series[5:15] = np.NaN
 
-        # check the result is correct
-        nona = self.series.dropna()
-        assert_almost_equal(f(nona), alternate(nona))
+            # skipna or no
+            self.assert_(notnull(f(self.series)))
+            self.assert_(isnull(f(self.series, skipna=False)))
 
-        allna = self.series * nan
-        self.assert_(np.isnan(f(allna)))
+            # check the result is correct
+            nona = self.series.dropna()
+            assert_almost_equal(f(nona), alternate(nona))
 
-        # dtype=object with None, it works!
-        s = Series([1, 2, 3, None, 5])
-        f(s)
+            allna = self.series * nan
+            self.assert_(np.isnan(f(allna)))
+
+            # dtype=object with None, it works!
+            s = Series([1, 2, 3, None, 5])
+            f(s)
+
+            # check DateRange
+            if check_objects:
+                s = Series(DateRange('1/1/2000', periods=10))
+                res = f(s)
+                exp = alternate(s)
+                self.assertEqual(res, exp)
+
+        testit()
+
+        try:
+            import bottleneck as bn
+            nanops._USE_BOTTLENECK = False
+            testit()
+            nanops._USE_BOTTLENECK = True
+        except ImportError:
+            pass
+
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
@@ -683,6 +949,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(Exception, self.ts.append, self.ts)
 
+    def test_append_many(self):
+        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
+
+        result = pieces[0].append(pieces[1:])
+        assert_series_equal(result, self.ts)
+
+    def test_all_any(self):
+        np.random.seed(12345)
+        ts = tm.makeTimeSeries()
+        bool_series = ts > 0
+        self.assert_(not bool_series.all())
+        self.assert_(bool_series.any())
+
     def test_operators(self):
         series = self.ts
         other = self.ts[::2]
@@ -712,6 +991,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                       pos_only=True)
 
         check(self.ts * 2)
+        check(self.ts * 0)
         check(self.ts[::2])
         check(5)
 
@@ -731,6 +1011,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # it works!
         _ = s1 * s2
+
+    # NumPy limitiation =(
+
+    # def test_logical_range_select(self):
+    #     np.random.seed(12345)
+    #     selector = -0.5 <= self.ts <= 0.5
+    #     expected = (self.ts >= -0.5) & (self.ts <= 0.5)
+    #     assert_series_equal(selector, expected)
 
     def test_idxmin(self):
         # test idxmin
@@ -929,6 +1217,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # No overlap
         self.assert_(np.isnan(self.ts[::2].corr(self.ts[1::2])))
 
+        # all NA
+        cp = self.ts[:10].copy()
+        cp[:] = np.nan
+        self.assert_(isnull(cp.corr(cp)))
+
         A = tm.makeTimeSeries()
         B = tm.makeTimeSeries()
         result = A.corr(B)
@@ -971,6 +1264,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # No overlap
         self.assert_(np.isnan(self.ts[::2].cov(self.ts[1::2])))
+
+        # all NA
+        cp = self.ts[:10].copy()
+        cp[:] = np.nan
+        self.assert_(isnull(cp.cov(cp)))
 
     def test_copy(self):
         ts = self.ts.copy()
@@ -1061,6 +1359,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.ts[:10][::3] = 4.
 
         ranks = self.ts.rank()
+        oranks = self.ts.astype('O').rank()
+
+        assert_series_equal(ranks, oranks)
 
         mask =  np.isnan(self.ts)
         filled = self.ts.fillna(np.inf)
@@ -1214,9 +1515,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         truncated = ts.truncate(before=self.ts.index[-1] + offset)
         assert(len(truncated) == 0)
 
-        truncated = ts.truncate(before=self.ts.index[-1] + offset,
-                                after=self.ts.index[0] - offset)
-        assert(len(truncated) == 0)
+        self.assertRaises(Exception, ts.truncate,
+                          before=self.ts.index[-1] + offset,
+                          after=self.ts.index[0] - offset)
 
     def test_asof(self):
         self.ts[5:10] = np.NaN
@@ -1336,9 +1637,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_((b[:2] == 5).all())
 
     def test_align_sameindex(self):
-        a, b = self.ts.align(self.ts)
+        a, b = self.ts.align(self.ts, copy=False)
         self.assert_(a.index is self.ts.index)
         self.assert_(b.index is self.ts.index)
+
+        # a, b = self.ts.align(self.ts, copy=True)
+        # self.assert_(a.index is not self.ts.index)
+        # self.assert_(b.index is not self.ts.index)
 
     def test_reindex(self):
         identity = self.series.reindex(self.series.index)

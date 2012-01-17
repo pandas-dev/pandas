@@ -91,22 +91,26 @@ def get_code_churn(commits):
     #                   'deletions' : deletions}, index=shas)
 
 if __name__ == '__main__':
-    commits, hists = get_commit_history()
-    churn = get_code_churn(commits)
+    # commits, hists = get_commit_history()
+    # churn = get_code_churn(commits)
+
+    from vbench.git import GitRepo
+    repo = GitRepo('/home/wesm/code/pandas')
+    churn = repo.get_churn_by_file()
 
     file_include = []
     for path in churn.major_axis:
         if path.endswith('.pyx') or path.endswith('.py'):
             file_include.append(path)
     commits_include = [sha for sha in churn.minor_axis
-                       if 'LF' not in hists[sha]]
+                       if 'LF' not in repo.messages[sha]]
     commits_include.remove('dcf3490')
 
     clean_churn = churn.reindex(major=file_include, minor=commits_include)
 
     by_commit = clean_churn.sum('major').sum(1)
 
-    by_date = by_commit.groupby(commits).sum()
+    by_date = by_commit.groupby(repo.commit_date).sum()
 
     by_date = by_date.drop([datetime(2011, 6, 10)])
 

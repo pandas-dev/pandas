@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Series
 from pandas.core.index import MultiIndex
-from pandas.core.panel import Panel, LongPanel
+from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
 import pandas.stats.common as common
 import pandas.stats.math as math
@@ -32,6 +32,8 @@ class OLS(object):
     nw_lags: None or int
         Number of Newey-West lags.
     """
+    _panel_model = False
+
     def __init__(self, y, x, intercept=True, weights=None, nw_lags=None,
                  nw_overlap=False):
         import scikits.statsmodels.api as sm
@@ -257,11 +259,15 @@ class OLS(object):
     @cache_readonly
     def _r2_raw(self):
         """Returns the raw r-squared values."""
-        has_intercept = np.abs(self._resid_raw.sum()) < _FP_ERR
-        if self._intercept:
+        if self._use_centered_tss:
             return 1 - self.sm_ols.ssr / self.sm_ols.centered_tss
         else:
             return 1 - self.sm_ols.ssr / self.sm_ols.uncentered_tss
+
+    @property
+    def _use_centered_tss(self):
+        # has_intercept = np.abs(self._resid_raw.sum()) < _FP_ERR
+        return self._intercept
 
     @cache_readonly
     def r2(self):
@@ -753,7 +759,7 @@ class MovingOLS(OLS):
         cum_xx = []
 
         slicer = lambda df, dt: df.truncate(dt, dt).values
-        if isinstance(x, DataFrame) and not isinstance(x, LongPanel):
+        if not self._panel_model:
             _get_index = x.index.get_loc
             def slicer(df, dt):
                 i = _get_index(dt)
@@ -778,7 +784,7 @@ class MovingOLS(OLS):
         cum_xy = []
 
         x_slicer = lambda df, dt: df.truncate(dt, dt).values
-        if isinstance(x, DataFrame) and not isinstance(x, LongPanel):
+        if not self._panel_model:
             _get_index = x.index.get_loc
             def x_slicer(df, dt):
                 i = _get_index(dt)
@@ -934,7 +940,7 @@ class MovingOLS(OLS):
     def _r2_raw(self):
         rs = self._resid_stats
 
-        if self._intercept:
+        if self._use_centered_tss:
             return 1 - rs['sse'] / rs['centered_tss']
         else:
             return 1 - rs['sse'] / rs['uncentered_tss']

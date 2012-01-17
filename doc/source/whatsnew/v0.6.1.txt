@@ -1,0 +1,68 @@
+
+.. _whatsnew_061:
+
+v.0.6.1 (December 13, 2011)
+---------------------------
+
+New features
+~~~~~~~~~~~~
+- Can :ref:`append single rows <merging.append.row>` (as Series) to a DataFrame
+- Add Spearman and Kendall rank :ref:`correlation <computation.correlation>`
+  options to Series.corr and DataFrame.corr (GH428_)
+- :ref:`Added <indexing.basics.get_value>` ``get_value`` and ``set_value`` methods to
+  Series, DataFrame, and Panel for very low-overhead access (>2x faster in many
+  cases) to scalar elements (GH437_, GH438_). ``set_value`` is capable of
+  producing an enlarged object.
+- Add PyQt table widget to sandbox (PR435_)
+- DataFrame.align can :ref:`accept Series arguments <basics.align.frame.series>`
+  and an :ref:`axis option <basics.df_join>` (GH461_)
+- Implement new :ref:`SparseArray <sparse.array>` and :ref:`SparseList <sparse.list>`
+  data structures. SparseSeries now derives from SparseArray (GH463_)
+- :ref:`Better console printing options <basics.console_output>` (PR453_)
+- Implement fast :ref:`data ranking <computation.ranking>` for Series and
+  DataFrame, fast versions of scipy.stats.rankdata (GH428_)
+- Implement :ref:`DataFrame.from_items <basics.dataframe.from_items>` alternate
+  constructor (GH444_)
+- DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast.infer>`
+  for object columns (GH302_)
+- Add :ref:`rolling_corr_pairwise <stats.moments.corr_pairwise>` function for
+  computing Panel of correlation matrices (GH189_)
+- Add :ref:`margins <reshaping.pivot.margins>` option to :ref:`pivot_table
+  <reshaping.pivot>` for computing subgroup aggregates (GH114_)
+- Add ``Series.from_csv`` function (PR482_)
+- :ref:`Can pass <stats.moments.binary>` DataFrame/DataFrame and
+  DataFrame/Series to rolling_corr/rolling_cov (GH #462)
+- MultiIndex.get_level_values can :ref:`accept the level name <indexing.get_level_values>`
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improve memory usage of `DataFrame.describe` (do not copy data
+  unnecessarily) (PR #425)
+
+- Optimize scalar value lookups in the general case by 25% or more in Series
+  and DataFrame
+
+.. image:: vbench/figures/series_getitem_scalar.png
+   :width: 6in
+
+.. image:: vbench/figures/datamatrix_getitem_scalar.png
+   :width: 6in
+
+- Fix performance regression in cross-sectional count in DataFrame, affecting
+  DataFrame.dropna speed
+- Column deletion in DataFrame copies no data (computes views on blocks) (GH
+  #158)
+
+.. _GH114: https://github.com/wesm/pandas/issues/114
+.. _GH189: https://github.com/wesm/pandas/issues/302
+.. _GH302: https://github.com/wesm/pandas/issues/302
+.. _GH428: https://github.com/wesm/pandas/issues/428
+.. _GH437: https://github.com/wesm/pandas/issues/437
+.. _GH438: https://github.com/wesm/pandas/issues/438
+.. _GH444: https://github.com/wesm/pandas/issues/444
+.. _GH461: https://github.com/wesm/pandas/issues/461
+.. _GH463: https://github.com/wesm/pandas/issues/463
+.. _PR435: https://github.com/wesm/pandas/pull/435
+.. _PR453: https://github.com/wesm/pandas/pull/453
+.. _PR482: https://github.com/wesm/pandas/pull/482

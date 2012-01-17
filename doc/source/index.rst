@@ -104,22 +104,24 @@ See the package overview for more detail about what's in the library.
     :hidden:
     :maxdepth: 3
 
+    whatsnew
     install
     faq
     overview
     dsintro
     basics
     indexing
+    computation
     missing_data
     groupby
     merging
     reshaping
     timeseries
     visualization
-    stats
     io
     sparse
     r_interface
     related
     comparison_with_r
     api
+    vbench

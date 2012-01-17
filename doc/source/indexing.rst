@@ -22,12 +22,12 @@ The axis labeling information in pandas objects serves many purposes:
   - Enables automatic and explicit data alignment
   - Allows intuitive getting and setting of subsets of the data set
 
-In this section / chapter, we will focus on the latter set of functionality,
-namely how to slice, dice, and generally get and set subsets of pandas
-objects. The primary focus will be on Series and DataFrame as they have
-received more development attention in this area. More work will be invested in
-Panel and future higher-dimensional data structures in the future, especially
-in label-based advanced indexing.
+In this section / chapter, we will focus on the final point: namely, how to
+slice, dice, and generally get and set subsets of pandas objects. The primary
+focus will be on Series and DataFrame as they have received more development
+attention in this area. Expect more work to be invested higher-dimensional data
+structures (including Panel) in the future, especially in label-based advanced
+indexing.
 
 .. _indexing.basics:
 
@@ -69,6 +69,60 @@ Thus, as per above, we have the most basic indexing using ``[]``:
    s[dates[5]]
    panel['two']
 
+
+.. _indexing.basics.get_value:
+
+Fast scalar value getting and setting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since indexing with ``[]`` must handle a lot of cases (single-label access,
+slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
+out what you're asking for. If you only want to access a scalar value, the
+fastest way is to use the ``get_value`` method, which is implemented on all of
+the data structures:
+
+.. ipython:: python
+
+   s.get_value(dates[5])
+   df.get_value(dates[5], 'A')
+
+There is an analogous ``set_value`` method which has the additional capability
+of enlarging an object. This method *always* returns a reference to the object
+it modified, which in the fast of enlargement, will be a **new object**:
+
+.. ipython:: python
+
+   df.set_value(dates[5], 'E', 7)
+
+Additional Column Access
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.columns.multiple:
+
+.. _indexing.df_cols:
+
+You may access a column on a dataframe directly as an attribute:
+
+.. ipython:: python
+
+   df.A
+
+If you are using the IPython environment, you may also use tab-completion to
+see the accessible columns of a DataFrame.
+
+You can pass a list of columns to ``[]`` to select columns in that order:
+If a column is not contained in the DataFrame, an exception will be
+raised. Multiple columns can also be set in this manner:
+
+.. ipython:: python
+
+   df
+   df[['B', 'A']] = df[['A', 'B']]
+   df
+
+You may find this useful for applying a transform (in-place) to a subset of the
+columns.
+
 Data slices on other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -86,19 +140,16 @@ label, respectively.
    panel.major_xs(date)
    panel.minor_xs('A')
 
-.. note::
-
-   See :ref:`advanced indexing <indexing.advanced>` below for an alternate and
-   more concise way of doing the same thing.
-
 Slicing ranges
 ~~~~~~~~~~~~~~
 
-:ref:`Advanced indexing <indexing.advanced>` detailed below is the most robust
-and consistent way of slicing ranges, e.g. ``obj[5:10]``, across all of the data
-structures and their axes (except in the case of integer labels, more on that
-later). On Series, this syntax works exactly as expected as with an ndarray,
-returning a slice of the values and the corresponding labels:
+The most robust and consistent way of slicing ranges along arbitrary axes is
+described in the :ref:`Advanced indexing <indexing.advanced>` section detailing
+the ``.ix`` method. For now, we explain the semantics of slicing using the
+``[]`` operator.
+
+With Series, the syntax works exactly as with an ndarray, returning a slice of
+the values and the corresponding labels:
 
 .. ipython:: python
 
@@ -125,24 +176,37 @@ largely as a convenience since it is such a common operation.
 Boolean indexing
 ~~~~~~~~~~~~~~~~
 
-Using a boolean vector to index a Series works exactly like an ndarray:
+.. _indexing.boolean:
+
+Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
 .. ipython:: python
 
    s[s > 0]
    s[(s < 0) & (s > -0.5)]
 
-Again as a convenience, selecting rows from a DataFrame using a boolean vector
-the same length as the DataFrame's index (for example, something derived from
-one of the columns of the DataFrame) is supported:
+You may select rows from a DataFrame using a boolean vector the same length as
+the DataFrame's index (for example, something derived from one of the columns
+of the DataFrame):
 
 .. ipython:: python
 
    df[df['A'] > 0]
 
-With the advanced indexing capabilities discussed later, you are able to do
-boolean indexing in any of axes or combine a boolean vector with an indexing
-expression on one of the other axes
+Consider the ``isin`` method of Series, which returns a boolean vector that is
+true wherever the Series elements exist in the passed list. This allows you to
+select out rows where one or more columns have values you want:
+
+.. ipython:: python
+
+   df2 = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+                    'c' : np.random.randn(7)})
+   df2[df2['a'].isin(['one', 'two'])]
+
+Note, with the :ref:`advanced indexing <indexing.advanced>` ``ix`` method, you
+may select along more than one axis using boolean vectors combined with other
+indexing expressions.
 
 Indexing a DataFrame with a boolean DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,42 +225,55 @@ intuitively like so:
 Note that such an operation requires that the boolean DataFrame is indexed
 exactly the same.
 
-Slicing ranges
+
+Take Methods
+~~~~~~~~~~~~
+
+.. _indexing.take:
+
+TODO: Fill Me In
+
+Duplicate Data
 ~~~~~~~~~~~~~~
 
-Similar to Python lists and ndarrays, for convenience DataFrame
-supports slicing:
+.. _indexing.duplicate:
+
+If you want to indentify and remove duplicate rows in a DataFrame,  there are
+two methods that will help: ``duplicated`` and ``drop_duplicates``. Each
+takes as an argument the columns to use to identify duplicated rows.
+
+``duplicated`` returns a boolean vector whose length is the number of rows, and
+which indicates whether a row is duplicated.
+
+``drop_duplicates`` removes duplicate rows.
+
+By default, the first observed row of a duplicate set is considered unique, but
+each method has a ``take_last`` parameter that indicates the last observed row
+should be taken instead.
 
 .. ipython:: python
 
-    df[:2]
-    df[::-1]
-    df[-3:].T
+   df2 = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+                    'c' : np.random.randn(7)})
+   df2.duplicated(['a','b'])
+   df2.drop_duplicates(['a','b'])
+   df2.drop_duplicates(['a','b'], take_last=True)
 
-Boolean indexing
-~~~~~~~~~~~~~~~~
+.. _indexing.dictionarylike:
 
-As another indexing convenience, it is possible to use boolean
-indexing to select rows of a DataFrame:
+Dictionary-like ``get`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. ipython:: python
-
-    df[df['A'] > 0.5]
-
-As we will see later on, the same operation could be accomplished by
-reindexing. However, the syntax would be more verbose; hence, the inclusion of
-this indexing method.
-
-Selecting DataFrame columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can pass a list of columns to ``[]`` to select columns in that order:
+Each of Series, DataFrame, and Panel have a ``get`` method which can return a
+default value.
 
 .. ipython:: python
 
-   df[['C', 'A', 'B']]
+   s = Series([1,2,3], index=['a','b','c'])
+   s.get('a')               # equivalent to s['a']
+   s.get('x', default=-1)
 
-If a column is not contained in the DataFrame, an exception will be raised:
 
 .. _indexing.advanced:
 
@@ -257,8 +334,8 @@ and stop are **inclusive** in the label-based case:
 
    date1, date2 = dates[[2, 4]]
    print date1, date2
-   s.ix[date1:date2]
    df.ix[date1:date2]
+   df['A'].ix[date1:date2]
 
 Getting and setting rows in a DataFrame, especially by their location, is much
 easier:
@@ -291,6 +368,31 @@ indexing operation, the result will be a copy. With single label / scalar
 indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
 returned.
 
+The ``select`` method
+~~~~~~~~~~~~~~~~~~~~~
+
+Another way to extract slices from an object is with the ``select`` method of
+Series, DataFrame, and Panel. This method should be used only when there is no
+more direct way.  ``select`` takes a function which operates on labels along
+``axis`` and returns a boolean.  For instance:
+
+.. ipython:: python
+
+   df.select(lambda x: x == 'A', axis=1)
+
+The ``lookup`` method
+~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes you want to extract a set of values given a sequence of row labels
+and column labels, and the ``lookup`` method allows for this and returns a
+numpy array.  For instance,
+
+.. ipython:: python
+
+  dflookup = DataFrame(np.random.rand(20,4), columns = ['A','B','C','D'])
+  dflookup.lookup(xrange(0,10,2), ['B','C','A','B','D'])
+
+
 Advanced indexing with integer labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -298,9 +400,12 @@ Label-based indexing with integer axis labels is a thorny topic. It has been
 discussed heavily on mailing lists and among various members of the scientific
 Python community. In pandas, our general viewpoint is that labels matter more
 than integer locations. Therefore, advanced indexing with ``.ix`` will always
+attempt label-based indexing, before falling back on integer-based indexing.
 
-Setting values in mixed-type objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Setting values in mixed-type DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.mixed_type_setting:
 
 Setting values on a mixed-type DataFrame or Panel is supported when using scalar
 values, though setting arbitrary vectors is not yet supported:
@@ -309,9 +414,10 @@ values, though setting arbitrary vectors is not yet supported:
 
    df2 = df[:4]
    df2['foo'] = 'bar'
-   df2.ix[3]
-   df2.ix[3] = np.nan
-   df2
+   print df2
+   df2.ix[2] = np.nan
+   print df2
+   print df2.dtypes
 
 .. _indexing.class:
 
@@ -351,6 +457,8 @@ display:
 
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_ops:
 
 The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
 (-)``. These can be directly called as instance methods or used via overloaded
@@ -450,13 +558,15 @@ may wish to generate your own ``MultiIndex`` when preparing the data set.
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _indexing.get_level_values:
+
 The method ``get_level_values`` will return a vector of the labels for each
 location at a particular level:
 
 .. ipython:: python
 
    index.get_level_values(0)
-   index.get_level_values(1)
+   index.get_level_values('second')
 
 
 Basic indexing on axis with MultiIndex
@@ -533,6 +643,29 @@ but as you use it you may uncover corner cases or unintuitive behavior. If you
 do find something like this, do not hesitate to report the issue or ask on the
 mailing list.
 
+.. _indexing.advanced_reindex:
+
+Advanced reindexing and alignment with hierarchical index
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The parameter ``level`` has been added to the ``reindex`` and ``align`` methods
+of pandas objects. This is useful to broadcast values across a level. For
+instance:
+
+.. ipython:: python
+
+   midx = MultiIndex(levels=[['one', 'two'], ['x','y']],
+                     labels=[[1,1,0,0],[1,0,1,0]])
+   df = DataFrame(randn(4,2), index=midx)
+   print df
+   df2 = df.mean(level=0)
+   print df2
+   print df2.reindex(df.index, level=0)
+   df_aligned, df2_aligned = df.align(df2, level=0)
+   print df_aligned
+   print df2_aligned
+
+
 The need for sortedness
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -552,6 +685,17 @@ which will lexicographically sort an axis with a ``MultiIndex``:
    s
    s.sortlevel(0)
    s.sortlevel(1)
+
+.. _indexing.sortlevel_byname:
+
+Note, you may also pass a level name to ``sortlevel`` if the MultiIndex levels
+are named.
+
+.. ipython:: python
+
+   s.index.names = ['L1', 'L2']
+   s.sortlevel(level='L1')
+   s.sortlevel(level='L2')
 
 Some indexing will work even if the data are not sorted, but will be rather
 inefficient and will also return a copy of the data rather than a view:
@@ -601,22 +745,18 @@ The ``swaplevel`` function can switch the order of two levels:
    df[:5]
    df[:5].swaplevel(0, 1, axis=0)
 
-The ``delevel`` DataFrame function
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _indexing.reorderlevels:
 
-As a convenience, there is a new function on DataFrame called ``delevel`` which
-takes a ``MultiIndex`` on the rows and turns the levels into columns of the
-DataFrame:
+Reordering levels with ``reorder_levels``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``reorder_levels`` function generalizes the ``swaplevel`` function,
+allowing you to permute the hierarchical index levels in one step:
 
 .. ipython:: python
 
-   df
-   df.delevel()
+   df[:5].reorder_levels([1,0], axis=0)
 
-The output is more similar to a SQL table or a record array. The names for the
-columns derived from the ``MultiIndex`` are the ones stored in the ``names``
-attribute. These will get automatically assigned in various places where
-``MultiIndex`` is created, for example :ref:`GroupBy <groupby>`.
 
 Some gory internal details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -638,16 +778,6 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
-Swapping levels
-~~~~~~~~~~~~~~~
-
-To do this, use the ``swaplevels`` function:
-
-.. ipython:: python
-
-   df
-   df.swaplevels(0, 1)
-
 Adding an index to an existing DataFrame
 ----------------------------------------
 
@@ -657,6 +787,8 @@ ways.
 
 Add an index using DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_index:
 
 DataFrame has a ``set_index`` method which takes a column name (for a regular
 ``Index``) or a list of column names (for a ``MultiIndex``), to create a new,
@@ -686,6 +818,25 @@ the index in-place (without creating a new object):
    data.set_index('c', drop=False)
    df = data.set_index(['a', 'b'], inplace=True)
    data
+
+Remove / reset the index,  ``reset_index``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As a convenience, there is a new function on DataFrame called ``reset_index``
+which transfers the index values into the DataFrame's columns and sets a simple
+integer index. This is the inverse operation to ``set_index``
+
+.. ipython:: python
+
+   df
+   df.reset_index()
+
+The output is more similar to a SQL table or a record array. The names for the
+columns derived from the index are the ones stored in the ``names`` attribute.
+
+.. note::
+
+   The ``reset_index`` method used to be called ``delevel`` which is now deprecated.
 
 Adding an ad hoc index
 ~~~~~~~~~~~~~~~~~~~~~~

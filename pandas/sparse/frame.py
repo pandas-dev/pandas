@@ -3,7 +3,7 @@ Data structures for sparse float data. Life is made simpler by dealing only with
 float64 data
 """
 
-# pylint: disable=E1101,E1103,W0231
+# pylint: disable=E1101,E1103,W0231,E0202
 
 from numpy import nan
 import numpy as np
@@ -13,10 +13,29 @@ from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
-from pandas.core.panel import LongPanel
+from pandas.util.decorators import cache_readonly
 import pandas.core.datetools as datetools
 
 from pandas.sparse.series import SparseSeries
+from pandas.util.decorators import Appender
+
+
+class _SparseMockBlockManager(object):
+
+    def __init__(self, sp_frame):
+        self.sp_frame = sp_frame
+
+    def get(self, item):
+        return self.sp_frame[item].values
+
+    @property
+    def shape(self):
+        x, y = self.sp_frame.shape
+        return y, x
+
+    @property
+    def axes(self):
+        return [self.sp_frame.columns, self.sp_frame.index]
 
 class SparseDataFrame(DataFrame):
     """
@@ -72,6 +91,14 @@ class SparseDataFrame(DataFrame):
         self.columns = columns
         self.index = index
 
+    def _from_axes(self, data, axes):
+        columns, index = axes
+        return self._constructor(data, index=index, columns=columns)
+
+    @cache_readonly
+    def _data(self):
+        return _SparseMockBlockManager(self)
+
     def _get_numeric_columns(self):
         # everything is necessarily float64
         return self.columns
@@ -79,6 +106,10 @@ class SparseDataFrame(DataFrame):
     def _consolidate_inplace(self):
         # do nothing when DataFrame calls this method
         pass
+
+    def convert_objects(self):
+        # XXX
+        return self
 
     @property
     def _constructor(self):
@@ -295,11 +326,10 @@ class SparseDataFrame(DataFrame):
             else: # pragma: no cover
                 raise
 
+    @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col):
         s = self._series[col]
         return s.get_value(index)
-    if __debug__:
-        get_value.__doc__ = DataFrame.get_value.__doc__
 
     def set_value(self, index, col, value):
         """
@@ -377,11 +407,11 @@ class SparseDataFrame(DataFrame):
     #----------------------------------------------------------------------
     # Arithmetic-related methods
 
-    def _combine_frame(self, other, func, fill_value=None):
+    def _combine_frame(self, other, func, fill_value=None, level=None):
         new_index = self.index.union(other.index)
         new_columns = self.columns.union(other.columns)
 
-        if fill_value is not None:
+        if fill_value is not None or level is not None:
             raise NotImplementedError
 
         this = self
@@ -457,7 +487,10 @@ class SparseDataFrame(DataFrame):
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns)
 
-    def _reindex_index(self, index, method, copy):
+    def _reindex_index(self, index, method, copy, level):
+        if level is not None:
+            raise Exception('Reindex by level not supported for sparse')
+
         if self.index.equals(index):
             if copy:
                 return self.copy()
@@ -484,7 +517,10 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(new_series, index=index, columns=self.columns,
                                default_fill_value=self.default_fill_value)
 
-    def _reindex_columns(self, columns, copy):
+    def _reindex_columns(self, columns, copy, level):
+        if level is not None:
+            raise Exception('Reindex by level not supported for sparse')
+
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
         return SparseDataFrame(sdict, index=self.index, columns=columns,
@@ -507,9 +543,6 @@ class SparseDataFrame(DataFrame):
         self.columns = new_columns
         self._series = new_series
 
-    def _get_raw_column(self, col):
-        return self._series[col].values
-
     def add_prefix(self, prefix):
         f = (('%s' % prefix) + '%s').__mod__
         return self.rename(columns=f)
@@ -518,9 +551,11 @@ class SparseDataFrame(DataFrame):
         f = ('%s' + ('%s' % suffix)).__mod__
         return self.rename(columns=f)
 
-    def _join_on(self, other, on, how, lsuffix, rsuffix):
-        # need to implement?
-        raise NotImplementedError
+    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix=''):
+        if on is not None:
+            raise NotImplementedError
+        else:
+            return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         if isinstance(other, Series):
@@ -575,9 +610,9 @@ class SparseDataFrame(DataFrame):
                                default_kind=self.default_kind)
     T = property(transpose)
 
+    @Appender(DataFrame.count.__doc__)
     def count(self, axis=0, **kwds):
         return self.apply(lambda x: x.count(), axis=axis)
-    count.__doc__ = DataFrame.count.__doc__
 
     def cumsum(self, axis=0):
         """
@@ -682,7 +717,7 @@ def stack_sparse_frame(frame):
     index = MultiIndex(levels=[frame.index, frame.columns],
                        labels=[major_labels, minor_labels])
 
-    lp = LongPanel(stacked_values.reshape((nobs, 1)), index=index,
+    lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,
                    columns=['foo'])
     return lp.sortlevel(level=0)
 

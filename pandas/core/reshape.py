@@ -9,6 +9,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
 from pandas.core.common import notnull
+from pandas.core.groupby import get_group_index
 from pandas.core.index import MultiIndex
 
 
@@ -197,13 +198,6 @@ class _Unstacker(object):
 
         return new_index
 
-def get_group_index(label_list, shape):
-    group_index = np.zeros(len(label_list[0]), dtype=int)
-    for i in xrange(len(shape)):
-        stride = np.prod([x for x in shape[i+1:]], dtype=int)
-        group_index += label_list[i] * stride
-    return group_index
-
 def pivot(self, index=None, columns=None, values=None):
     """
     See DataFrame.pivot
@@ -289,7 +283,10 @@ def _slow_pivot(index, columns, values):
 
 def unstack(obj, level):
     if isinstance(obj, DataFrame):
-        return _unstack_frame(obj, level)
+        if isinstance(obj.index, MultiIndex):
+            return _unstack_frame(obj, level)
+        else:
+            return obj.T.stack(dropna=False)
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level)
         return unstacker.get_result()
@@ -490,3 +487,81 @@ def melt(frame, id_vars=None, value_vars=None):
     mdata['value'] = frame.values.ravel('F')
     mdata['variable'] = np.asarray(frame.columns).repeat(N)
     return DataFrame(mdata, columns=mcolumns)
+
+def convert_dummies(data, cat_variables, prefix_sep='_'):
+    """
+    Compute DataFrame with specified columns converted to dummy variables (0 /
+    1). Result columns will be prefixed with the column name, then the level
+    name, e.g. 'A_foo' for column A and level foo
+
+    Parameters
+    ----------
+    data : DataFrame
+    cat_variables : list-like
+        Must be column names in the DataFrame
+    prefix_sep : string, default '_'
+        String to use to separate column name from dummy level
+
+    Returns
+    -------
+    dummies : DataFrame
+    """
+    result = data.drop(cat_variables, axis=1)
+    for variable in cat_variables:
+        dummies = make_column_dummies(data, variable, prefix=True,
+                                      prefix_sep=prefix_sep)
+        result = result.join(dummies)
+    return result
+
+def make_column_dummies(data, column, prefix=False, prefix_sep='_'):
+    from pandas import Factor
+    factor = Factor(data[column].values)
+    dummy_mat = np.eye(len(factor.levels)).take(factor.labels, axis=0)
+
+    if prefix:
+        dummy_cols = ['%s%s%s' % (column, prefix_sep, str(v))
+                      for v in factor.levels]
+    else:
+        dummy_cols = factor.levels
+    dummies = DataFrame(dummy_mat, index=data.index, columns=dummy_cols)
+    return dummies
+
+def make_axis_dummies(frame, axis='minor', transform=None):
+    """
+    Construct 1-0 dummy variables corresponding to designated axis
+    labels
+
+    Parameters
+    ----------
+    axis : {'major', 'minor'}, default 'minor'
+    transform : function, default None
+        Function to apply to axis labels first. For example, to
+        get "day of week" dummies in a time series regression you might
+        call:
+            make_axis_dummies(panel, axis='major',
+                              transform=lambda d: d.weekday())
+    Returns
+    -------
+    dummies : DataFrame
+        Column names taken from chosen axis
+    """
+    from pandas import Factor
+
+    numbers = {
+        'major' : 0,
+        'minor' : 1
+    }
+    num = numbers.get(axis, axis)
+
+    items = frame.index.levels[num]
+    labels = frame.index.labels[num]
+    if transform is not None:
+        mapped_items = items.map(transform)
+        factor = Factor(mapped_items.take(labels))
+        labels = factor.labels
+        items = factor.levels
+
+    values = np.eye(len(items), dtype=float)
+    values = values.take(labels, axis=0)
+
+    return DataFrame(values, columns=items, index=frame.index)

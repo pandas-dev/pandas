@@ -36,7 +36,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.plot, label='foo')
         _check_plot_works(self.ts.plot, use_index=False)
         _check_plot_works(self.ts.plot, rot=0)
-        _check_plot_works(self.ts.plot, style='.')
+        _check_plot_works(self.ts.plot, style='.', logy=True)
         _check_plot_works(self.ts[:10].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='bar')
 
@@ -67,6 +67,9 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, subplots=True)
         _check_plot_works(df.plot, subplots=True, use_index=False)
 
+        df = DataFrame({'x':[1,2], 'y':[3,4]})
+        self._check_plot_fails(df.plot, kind='line', blarg=True)
+
     @slow
     def test_plot_bar(self):
         df = DataFrame(np.random.randn(6, 4),
@@ -91,7 +94,9 @@ class TestDataFramePlots(unittest.TestCase):
         df['indic2'] = ['foo', 'bar', 'foo'] * 2
 
         _check_plot_works(df.boxplot)
-        _check_plot_works(df.boxplot, column='one', by='indic')
+        _check_plot_works(df.boxplot, column=['one', 'two'])
+        _check_plot_works(df.boxplot, column=['one', 'two'],
+                          by='indic')
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
@@ -107,6 +112,8 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
 
+    def _check_plot_fails(self, f, *args, **kwargs):
+        self.assertRaises(Exception, f, *args, **kwargs)
 
 PNG_PATH = 'tmp.png'
 

@@ -27,6 +27,9 @@ except Exception: # pragma: no cover
 class PandasError(Exception):
     pass
 
+class AmbiguousIndexError(PandasError, KeyError):
+    pass
+
 def isnull(obj):
     '''
     Replacement for numpy.isnan / -numpy.isfinite which is suitable
@@ -231,6 +234,10 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
             mask = indexer == -1
             needs_masking = mask.any()
 
+        # GH #486
+        if out is not None and arr.dtype != out.dtype:
+            arr = arr.astype(out.dtype)
+
         result = arr.take(indexer, axis=axis, out=out)
         result = _maybe_mask(result, mask, needs_masking, axis=axis,
                              out_passed=out is not None)
@@ -281,21 +288,31 @@ def _need_upcast(values):
 
 def _infer_dtype(value):
     if isinstance(value, (float, np.floating)):
-        return float
+        return np.float_
     elif isinstance(value, (bool, np.bool_)):
-        return bool
+        return np.bool_
     elif isinstance(value, (int, np.integer)):
-        return int
+        return np.int_
     else:
-        return object
+        return np.object_
+
+def _possibly_cast_item(obj, item, dtype):
+    chunk = obj[item]
+
+    if chunk.values.dtype != dtype:
+        if dtype in (np.object_, np.bool_):
+            obj[item] = chunk.astype(np.object_)
+        elif not issubclass(dtype, (np.integer, np.bool_)): # pragma: no cover
+            raise ValueError("Unexpected dtype encountered: %s" % dtype)
 
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
-        mask = isnull(key)
-        if mask.any():
-            raise ValueError('cannot index with vector containing '
-                             'NA / NaN values')
-        return set([True, False]).issubset(set(key))
+        if not lib.is_bool_array(key):
+            if isnull(key).any():
+                raise ValueError('cannot index with vector containing '
+                                 'NA / NaN values')
+            return False
+        return True
     elif isinstance(key, np.ndarray) and key.dtype == np.bool_:
         return True
     elif isinstance(key, list):
@@ -307,11 +324,11 @@ def _is_bool_indexer(key):
     return False
 
 def _default_index(n):
-    from pandas.core.index import NULL_INDEX
+    from pandas.core.index import NULL_INDEX, Index
     if n == 0:
         return NULL_INDEX
     else:
-        return np.arange(n)
+        return Index(np.arange(n))
 
 def ensure_float(arr):
     if issubclass(arr.dtype.type, np.integer):
@@ -346,13 +363,16 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
+#-------------------------------------------------------------------------------
+# Global formatting options
+
 def set_printoptions(precision=None, column_space=None, max_rows=None,
-        max_columns=None):
+                     max_columns=None, colheader_justify='right'):
     """
     Alter default behavior of DataFrame.toString
 
     precision : int
-        Floating point output precision
+        Floating point output precision (number of significant digits)
     column_space : int
         Default space for DataFrame columns, defaults to 12
     max_rows : int
@@ -363,16 +383,19 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
     """
-    global _float_format, _column_space, _max_rows, _max_columns
     if precision is not None:
-        float_format = '%.' + '%d' % precision + 'g'
-        _float_format = lambda x: float_format % x
+        print_config.precision = precision
     if column_space is not None:
-        _column_space = column_space
+        print_config.column_space = column_space
     if max_rows is not None:
-        _max_rows = max_rows
+        print_config.max_rows = max_rows
     if max_columns is not None:
-        _max_columns = max_columns
+        print_config.max_columns = max_columns
+    if colheader_justify is not None:
+        print_config.colheader_justify = colheader_justify
+
+def reset_printoptions():
+    print_config.reset()
 
 class EngFormatter(object):
     """
@@ -402,22 +425,22 @@ class EngFormatter(object):
          24: "Y"
       }
 
-    def __init__(self, precision=None, use_eng_prefix=False):
-        self.precision = precision
+    def __init__(self, accuracy=None, use_eng_prefix=False):
+        self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
     def __call__(self, num):
         """ Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
 
-        >>> format_eng(0)      # for self.precision = 0
-        '0'
+        >>> format_eng(0)       # for self.accuracy = 0
+        ' 0'
 
-        >>> format_eng(1000000) # for self.precision = 1,
+        >>> format_eng(1000000) # for self.accuracy = 1,
                                 #     self.use_eng_prefix = True
-        '1.0M'
+        ' 1.0M'
 
-        >>> format_eng("-1e-6") # for self.precision = 2
+        >>> format_eng("-1e-6") # for self.accuracy = 2
                                 #     self.use_eng_prefix = False
         '-1.00E-06'
 
@@ -455,55 +478,37 @@ class EngFormatter(object):
 
         mant = sign*dnum/(10**pow10)
 
-        if self.precision is None:  # pragma: no cover
-            format_str = u"%g%s"
-        elif self.precision == 0:
-            format_str = u"%i%s"
-        elif self.precision > 0:
-            format_str = (u"%%.%if%%s" % self.precision)
+        if self.accuracy is None:  # pragma: no cover
+            format_str = u"% g%s"
+        else:
+            format_str = (u"%% .%if%%s" % self.accuracy )
 
         formatted = format_str % (mant, prefix)
 
-        return formatted.strip()
+        return formatted #.strip()
 
-def set_eng_float_format(precision=3, use_eng_prefix=False):
+def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
     """
     Alter default behavior on how float is formatted in DataFrame.
-    Format float in engineering format.
+    Format float in engineering format. By accuracy, we mean the number of
+    decimal digits after the floating point.
 
     See also EngFormatter.
     """
-    global _float_format, _column_space
-    _float_format = EngFormatter(precision, use_eng_prefix)
-    _column_space = max(12, precision + 9)
+    if precision is not None: # pragma: no cover
+        import warnings
+        warnings.warn("'precision' parameter in set_eng_float_format is "
+                      "being renamed to 'accuracy'" , FutureWarning)
+        accuracy = precision
 
-_float_format = lambda x: '%.4g' % x
-_column_space = 12
-_max_rows = 500
-_max_columns = 0
+    print_config.float_format = EngFormatter(accuracy, use_eng_prefix)
+    print_config.column_space = max(12, accuracy + 9)
 
-def _pfixed(s, space, na_rep=None, float_format=None):
-    if isinstance(s, float):
-        if na_rep is not None and isnull(s):
-            if np.isnan(s):
-                s = na_rep
-            return (' %s' % s).ljust(space)
-
-        if float_format:
-            formatted = float_format(s)
-        else:
-            is_neg = s < 0
-            formatted = _float_format(np.abs(s))
-
-            if is_neg:
-                formatted = '-' + formatted
-            else:
-                formatted = ' ' + formatted
-
-        return formatted.ljust(space)
-    else:
-        stringified = _stringify(s)
-        return (' %s' % stringified)[:space].ljust(space)
+#_float_format = None
+#_column_space = 12
+#_precision = 4
+#_max_rows = 500
+#_max_columns = 0
 
 def _stringify(col):
     # unicode workaround
@@ -512,29 +517,110 @@ def _stringify(col):
     else:
         return '%s' % col
 
-def _format(s, na_rep=None, float_format=None):
-    if isinstance(s, float):
-        if na_rep is not None and isnull(s):
-            if np.isnan(s):
-                s = na_rep
-            return ' %s' % s
+def _float_format_default(v, width=None):
+    """
+    Take a float and its formatted representation and if it needs extra space
+    to fit the width, reformat it to that width.
+    """
+
+    fmt_str   = '%% .%dg' % print_config.precision
+    formatted = fmt_str % v
+
+    if width is None:
+        return formatted
+
+    extra_spc = width - len(formatted)
+
+    if extra_spc <= 0:
+        return formatted
+
+    if 'e' in formatted:
+        # we have something like 1e13 or 1.23e13
+        base, exp = formatted.split('e')
+
+        if '.' in base:
+            # expand fraction by extra space
+            whole, frac = base.split('.')
+            fmt_str = '%%.%df' % (len(frac) + extra_spc)
+            frac = fmt_str % float("0.%s" % frac)
+            base = whole + frac[1:]
+        else:
+            if extra_spc > 1:
+                # enough room for fraction
+                fmt_str = '%% .%df' % (extra_spc - 1)
+                base = fmt_str % float(base)
+            else:
+                # enough room for decimal point only
+                base += '.'
+
+        return base + 'e' + exp
+    else:
+        # we have something like 123 or 123.456
+        if '.' in formatted:
+            # expand fraction by extra space
+            wholel, fracl = map(len, formatted.split("."))
+            fmt_str = '%% .%df' % (fracl + extra_spc)
+        else:
+            if extra_spc > 1:
+                # enough room for fraction
+                fmt_str = '%% .%df' % (extra_spc - 1)
+            else:
+                # enough room for decimal point only
+                fmt_str = '% d.'
+
+        return fmt_str % v
+
+def _format(s, dtype, space=None, na_rep=None, float_format=None,
+            col_width=None):
+    def _just_help(x):
+        if space is None:
+            return x
+        return x[:space].ljust(space)
+
+    def _make_float_format(x):
+        if na_rep is not None and isnull(x):
+            if np.isnan(x):
+                x = ' ' + na_rep
+            return _just_help('%s' % x)
 
         if float_format:
-            formatted = float_format(s)
+            formatted = float_format(x)
+        elif print_config.float_format:
+            formatted = print_config.float_format(x)
         else:
-            is_neg = s < 0
-            formatted = _float_format(np.abs(s))
+            formatted = _float_format_default(x, col_width)
 
-            if is_neg:
-                formatted = '-' + formatted
-            else:
-                formatted = ' ' + formatted
+        return _just_help(formatted)
 
-        return formatted
+    def _make_int_format(x):
+        return _just_help('% d' % x)
+
+    if is_float_dtype(dtype):
+        return _make_float_format(s)
+    elif is_integer_dtype(dtype):
+        return _make_int_format(s)
     else:
-        return ' %s' % _stringify(s)
+        if na_rep is not None and lib.checknull(s):
+            return na_rep
+        else:
+            # object dtype
+            return _just_help('%s' % _stringify(s))
 
-#-------------------------------------------------------------------------------
+class _GlobalPrintConfig(object):
+    def __init__(self):
+        self.precision = 4
+        self.float_format = None
+        self.column_space = 12
+        self.max_rows = 500
+        self.max_columns = 0
+        self.colheader_justify = 'right'
+
+    def reset(self):
+        self.__init__()
+
+print_config = _GlobalPrintConfig()
+
+#------------------------------------------------------------------------------
 # miscellaneous python tools
 
 def rands(n):
@@ -655,10 +741,20 @@ def _asarray_tuplesafe(values, dtype=None):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
-        result = np.empty(len(values), dtype=object)
-        result[:] = values
+        if isinstance(values, list):
+            return lib.list_to_object_array(values)
+        else:
+            # Making a 1D array that safely contains tuples is a bit tricky
+            # in numpy, leading to the following
+            result = np.empty(len(values), dtype=object)
+            result[:] = values
 
     return result
+
+def _maybe_make_list(obj):
+    if obj is not None and not isinstance(obj, (tuple, list)):
+        return [obj]
+    return obj
 
 def is_integer(obj):
     return isinstance(obj, (int, long, np.integer))
@@ -666,11 +762,19 @@ def is_integer(obj):
 def is_float(obj):
     return isinstance(obj, (float, np.floating))
 
-def is_integer_dtype(arr):
-    return issubclass(arr.dtype.type, np.integer)
+def is_integer_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.integer)
 
-def is_float_dtype(arr):
-    return issubclass(arr.dtype.type, np.floating)
+def is_float_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.floating)
 
 def save(obj, path):
     """
@@ -696,7 +800,7 @@ def load(path):
 
     Parameters
     ----------
-    path : string
+p    path : string
         File path
 
     Returns

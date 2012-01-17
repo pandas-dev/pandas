@@ -8,24 +8,28 @@ Data structure for 1-dimensional cross-sectional and time series data
 from itertools import izip
 import csv
 import operator
+import types
 
 from numpy import nan, ndarray
 import numpy as np
+import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
-from pandas.core.generic import PandasObject
-from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import _SeriesIndexer, _maybe_droplevels
+from pandas.core.format import SeriesFormatter
+from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
+                               _ensure_index)
+from pandas.core.indexing import _SeriesIndexer
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas.core.datetools as datetools
+import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
-import pandas._engines as _gin
+from pandas.util.decorators import Appender, Substitution
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -67,10 +71,7 @@ def _maybe_match_name(a, b):
     return name
 
 def _flex_method(op, name):
-    def f(self, other, fill_value=None):
-        return self._binop(other, op, fill_value=fill_value)
-
-    f.__doc__ = """
+    doc = """
     Binary operator %s with support to substitute a fill_value for missing data
     in one of the inputs
 
@@ -80,12 +81,31 @@ def _flex_method(op, name):
     fill_value : None or float value, default None (NaN)
         Fill missing (NaN) values with this value. If both Series are
         missing, the result will be missing
+    level : int or name
+        Broadcast across a level, matching Index values on the
+        passed MultiIndex level
 
     Returns
     -------
     result : Series
     """ % name
+
+    @Appender(doc)
+    def f(self, other, level=None, fill_value=None):
+        return self._binop(other, op, level=level, fill_value=fill_value)
+
     f.__name__ = name
+    return f
+
+def _unbox(func):
+    @Appender(func.__doc__)
+    def f(self, *args, **kwargs):
+        result = func(self, *args, **kwargs)
+        if isinstance(result, np.ndarray) and result.ndim == 0:
+            return result.item()
+        else:  # pragma: no cover
+            return result
+    f.__name__ = func.__name__
     return f
 
 _stat_doc = """
@@ -108,32 +128,35 @@ _doc_exclude_na = "NA/null values are excluded"
 _doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
                           "interface.\n")
 
-def _add_stat_doc(f, name, shortname, na_action=_doc_exclude_na,
-                  extras=''):
-    doc = _stat_doc % {'name' : name,
-                       'shortname' : shortname,
-                       'na_action' : na_action,
-                       'extras' : extras}
-    f.__doc__ = doc
-
 #-------------------------------------------------------------------------------
 # Series class
 
-class Series(np.ndarray, PandasObject):
+class Series(np.ndarray, generic.PandasObject):
     _AXIS_NUMBERS = {
         'index' : 0
     }
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
-    def __new__(cls, data, index=None, dtype=None, name=None, copy=False):
+    __slots__ = ['_index', 'name']
+
+    def __new__(cls, data=None, index=None, dtype=None, name=None,
+                copy=False):
+        if data is None:
+            data = {}
+
         if isinstance(data, Series):
             if index is None:
                 index = data.index
         elif isinstance(data, dict):
             if index is None:
-                index = Index(sorted(data.keys()))
-            data = [data.get(idx, np.nan) for idx in index]
+                index = Index(sorted(data))
+            else:
+                index = _ensure_index(index)
+            try:
+                data = lib.fast_multiget(data, index, default=np.nan)
+            except TypeError:
+                data = [data.get(i, nan) for i in index]
 
         subarr = _sanitize_array(data, index, dtype, copy,
                                  raise_cast_failure=True)
@@ -143,18 +166,21 @@ class Series(np.ndarray, PandasObject):
 
         if index is None:
             index = _default_index(len(subarr))
+        else:
+            index = _ensure_index(index)
 
         # Change the class of the array to be the subclass type.
-        subarr = subarr.view(cls)
+        if index.is_all_dates:
+            subarr = subarr.view(TimeSeries)
+        else:
+            subarr = subarr.view(Series)
         subarr.index = index
         subarr.name = name
 
-        if subarr.index.is_all_dates():
-            subarr = subarr.view(TimeSeries)
-
         return subarr
 
-    def __init__(self, data, index=None, dtype=None, name=None, copy=False):
+    def __init__(self, data=None, index=None, dtype=None, name=None,
+                 copy=False):
         """One-dimensional ndarray with axis labels (including time
 series). Labels must be unique and can any hashable type. The object supports
 both integer- and label-based indexing and provides a host of methods for
@@ -192,21 +218,7 @@ copy : boolean, default False
         raise TypeError('unhashable type')
 
     _index = None
-    def _get_index(self):
-        return self._index
-
-    def _set_index(self, index):
-        indexTypes = ndarray, Index, list, tuple
-        if not isinstance(index, indexTypes):
-            raise TypeError("Expected index to be in %s; was %s."
-                            % (indexTypes, type(index)))
-
-        if len(self) != len(index):
-            raise AssertionError('Lengths of index and values did not match!')
-
-        self._index = _ensure_index(index)
-
-    index = property(fget=_get_index, fset=_set_index)
+    index = lib.SeriesIndex()
 
     def __array_finalize__(self, obj):
         """
@@ -249,45 +261,176 @@ copy : boolean, default False
         return self._ix
 
     def __getitem__(self, key):
-        # Label-based
         try:
-            if isinstance(self.index, MultiIndex):
-                return self._multilevel_index(key)
-            else:
-                hash(key)
-                try:
-                    return self.get_value(key)
-                except KeyError, e1:
-                    try:
-                        return _gin.get_value_at(self, key)
-                    except Exception, _:
-                        pass
-                    raise e1
-        except TypeError:
+            return self.index.get_value(self, key)
+        except InvalidIndexError:
             pass
+        except Exception:
+            raise
 
-        def _index_with(indexer):
-            return Series(self.values[indexer], index=self.index[indexer],
-                          name=self.name)
+        if hasattr(key, 'next'):
+            key = list(key)
 
         # boolean
-
         # special handling of boolean data with NAs stored in object
         # arrays. Since we can't represent NA with dtype=bool
         if _is_bool_indexer(key):
             key = self._check_bool_indexer(key)
             key = np.asarray(key, dtype=bool)
-            return _index_with(key)
 
+        return self._get_with(key)
+
+    def _get_with(self, key):
         # other: fancy integer or otherwise
+        if isinstance(key, slice):
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+            return self._get_values(indexer)
+        else:
+            if isinstance(key, tuple):
+                return self._get_values_tuple(key)
 
-        # [slice(0, 5, None)] will break if you convert to ndarray,
-        # e.g. as requested by np.median
+            if not isinstance(key, (list, np.ndarray)):  # pragma: no cover
+                key = list(key)
 
+            key_type = lib.infer_dtype(key)
+
+            if key_type == 'integer':
+                if self.index.inferred_type == 'integer':
+                    return self.reindex(key)
+                else:
+                    return self._get_values(key)
+            elif key_type == 'boolean':
+                return self._get_values(key)
+            else:
+                try:
+                    return self.reindex(key)
+                except Exception:
+                    # [slice(0, 5, None)] will break if you convert to ndarray,
+                    # e.g. as requested by np.median
+                    # hack
+                    if isinstance(key[0], slice):
+                        return self._get_values(key)
+                    raise
+
+    def _get_values_tuple(self, key):
+        # mpl hackaround
+        if any(k is None for k in key):
+            return self._get_values(key)
+
+        if not isinstance(self.index, MultiIndex):
+            raise ValueError('Can only tuple-index with a MultiIndex')
+
+        indexer = self.index.get_loc_level(key)
+        result = self._get_values(indexer)
+
+        # kludgearound
+        new_index = result.index
+        for i, k in reversed(list(enumerate(key))):
+            if not isinstance(k, slice):
+                new_index = new_index.droplevel(i)
+        result.index = new_index
+
+        return result
+
+    def _get_values(self, indexer):
         try:
-            return _index_with(key)
+            return Series(self.values[indexer], index=self.index[indexer],
+                          name=self.name)
         except Exception:
-            return self.values[key]
+            return self.values[indexer]
+
+    def __setitem__(self, key, value):
+        values = self.values
+        try:
+            values[self.index.get_loc(key)] = value
+            return
+        except KeyError:
+            if (com.is_integer(key)
+                and not self.index.inferred_type == 'integer'):
+
+                values[key] = value
+                return
+
+            raise KeyError('%s not in this series!' % str(key))
+        except TypeError:
+            # Could not hash item
+            pass
+
+        if _is_bool_indexer(key):
+            key = self._check_bool_indexer(key)
+            key = np.asarray(key, dtype=bool)
+
+        self._set_with(key, value)
+
+    def _set_with(self, key, value):
+        # other: fancy integer or otherwise
+        if isinstance(key, slice):
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+            return self._set_values(indexer, value)
+        else:
+            if isinstance(key, tuple):
+                try:
+                    self._set_values(key, value)
+                except Exception:
+                    pass
+
+            if not isinstance(key, (list, np.ndarray)):
+                key = list(key)
+
+            key_type = lib.infer_dtype(key)
+
+            if key_type == 'integer':
+                if self.index.inferred_type == 'integer':
+                    self._set_labels(key, value)
+                else:
+                    return self._set_values(key, value)
+            elif key_type == 'boolean':
+                self._set_values(key, value)
+            else:
+                self._set_labels(key, value)
+
+    def _set_labels(self, key, value):
+        key = _asarray_tuplesafe(key)
+        indexer = self.index.get_indexer(key)
+        mask = indexer == -1
+        if mask.any():
+            raise ValueError('%s not contained in the index'
+                             % str(key[mask]))
+        self._set_values(indexer, value)
+
+    def _set_values(self, key, value):
+        self.values[key] = value
+
+    # help out SparseSeries
+    _get_val_at = ndarray.__getitem__
+
+    def __getslice__(self, i, j):
+        if i < 0:
+            i = 0
+        if j < 0:
+            j = 0
+        slobj = slice(i, j)
+        return self.__getitem__(slobj)
+
+    def _check_bool_indexer(self, key):
+        # boolean indexing, need to check that the data are aligned, otherwise
+        # disallowed
+        result = key
+        if isinstance(key, Series) and key.dtype == np.bool_:
+            if not key.index.equals(self.index):
+                result = key.reindex(self.index)
+
+        if isinstance(result, np.ndarray) and result.dtype == np.object_:
+            mask = isnull(result)
+            if mask.any():
+                raise ValueError('cannot index with vector containing '
+                                 'NA / NaN values')
+
+        return result
+
+    def __setslice__(self, i, j, value):
+        """Set slice equal to given value(s)"""
+        ndarray.__setslice__(self, i, j, value)
 
     def get(self, label, default=None):
         """
@@ -351,84 +494,11 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
-    def _multilevel_index(self, key):
-        values = self.values
-        try:
-            loc = self.index.get_loc(key)
-            if isinstance(loc, (slice, np.ndarray)):
-                # TODO: what if a level contains tuples??
-                new_index = self.index[loc]
-                new_index = _maybe_droplevels(new_index, key)
-                return Series(values[loc], index=new_index, name=self.name)
-            else:
-                return values[loc]
-        except KeyError:
-            if isinstance(key, (int, np.integer)):
-                return values[key]
-            raise KeyError('%s not in this series!' % str(key))
-
-    # help out SparseSeries
-    _get_val_at = ndarray.__getitem__
-
-    def __getslice__(self, i, j):
-        if i < 0:
-            i = 0
-        if j < 0:
-            j = 0
-        slobj = slice(i, j)
-        return self.__getitem__(slobj)
-
-    def __setitem__(self, key, value):
-        values = self.values
-        try:
-            values[self.index.get_loc(key)] = value
-            return
-        except KeyError:
-            if isinstance(key, (int, np.integer)):
-                values[key] = value
-                return
-            raise KeyError('%s not in this series!' % str(key))
-        except TypeError:
-            # Could not hash item
-            pass
-
-        key = self._check_bool_indexer(key)
-
-        # special handling of boolean data with NAs stored in object
-        # arrays. Sort of an elaborate hack since we can't represent boolean
-        # NA. Hmm
-        if isinstance(key, np.ndarray) and key.dtype == np.object_:
-            if set([True, False]).issubset(set(key)):
-                key = np.asarray(key, dtype=bool)
-                values[key] = value
-                return
-
-        values[key] = value
-
-    def _check_bool_indexer(self, key):
-        # boolean indexing, need to check that the data are aligned, otherwise
-        # disallowed
-        result = key
-        if isinstance(key, Series) and key.dtype == np.bool_:
-            if not key.index.equals(self.index):
-                result = key.reindex(self.index)
-
-        if isinstance(result, np.ndarray) and result.dtype == np.object_:
-            mask = isnull(result)
-            if mask.any():
-                raise ValueError('cannot index with vector containing '
-                                 'NA / NaN values')
-
-        return result
-
-    def __setslice__(self, i, j, value):
-        """Set slice equal to given value(s)"""
-        ndarray.__setslice__(self, i, j, value)
-
     def __repr__(self):
         """Clean string representation of a Series"""
         width, height = get_terminal_size()
-        max_rows = height if common._max_rows == 0 else common._max_rows
+        max_rows = (height if com.print_config.max_rows == 0
+                    else com.print_config.max_rows)
         if len(self.index) > max_rows:
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
@@ -452,14 +522,16 @@ copy : boolean, default False
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
-    def to_string(self, buf=None, na_rep='NaN', float_format=None, nanRep=None):
+    def to_string(self, buf=None, na_rep='NaN', float_format=None,
+                  nanRep=None, length=False, name=False):
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
-        the_repr = self._get_repr(float_format=float_format, na_rep=na_rep)
+        the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
+                                  length=length, name=name)
         if buf is None:
             return the_repr
         else:
@@ -467,50 +539,10 @@ copy : boolean, default False
 
     def _get_repr(self, name=False, print_header=False, length=True,
                   na_rep='NaN', float_format=None):
-        vals = self.values
-        index = self.index
-
-        is_multi = isinstance(index, MultiIndex)
-        if is_multi:
-            have_header = any(name for name in index.names)
-            string_index = index.format(names=True)
-            header, string_index = string_index[0], string_index[1:]
-        else:
-            have_header = index.name is not None
-            header = str(index.name)
-            string_index = index.format()
-
-        maxlen = max(len(x) for x in string_index)
-        padSpace = min(maxlen, 60)
-
-        if float_format is None:
-            float_format = common._float_format
-
-        def _format(k, v):
-            if isnull(v):
-                v = na_rep
-            if isinstance(v, (float, np.floating)):
-                v = float_format(v)
-            return '%s    %s' % (str(k).ljust(padSpace), v)
-
-        it = [_format(idx, v) for idx, v in izip(string_index, vals)]
-
-        if print_header and have_header:
-            it.insert(0, header)
-
-        footer = ''
-        if name:
-            footer += "Name: %s" % str(self.name) if self.name else ''
-
-        if length:
-            if footer:
-                footer += ', '
-            footer += 'Length: %d' % len(self)
-
-        if footer:
-            it.append(footer)
-
-        return '\n'.join(it)
+        formatter = SeriesFormatter(self, name=name, header=print_header,
+                                    length=length, na_rep=na_rep,
+                                    float_format=float_format)
+        return formatter.to_string()
 
     def __str__(self):
         return repr(self)
@@ -560,11 +592,20 @@ copy : boolean, default False
         __idiv__ = __div__
 
     #----------------------------------------------------------------------
+    # unbox reductions
+
+    all = _unbox(np.ndarray.all)
+    any = _unbox(np.ndarray.any)
+
+    #----------------------------------------------------------------------
     # Misc public methods
 
     def keys(self):
         "Alias for index"
         return self.index
+
+    # alas, I wish this worked
+    # values = lib.ValuesProperty()
 
     @property
     def values(self):
@@ -684,71 +725,98 @@ copy : boolean, default False
         """
         return len(self.value_counts())
 
+    @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
+                  extras=_doc_ndarray_interface)
+    @Appender(_stat_doc)
     def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('sum', level=level, skipna=skipna)
-        return nanops.nansum(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(sum, 'sum', 'sum', extras=_doc_ndarray_interface)
+        return nanops.nansum(self.values, skipna=skipna)
 
+    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
+                  extras=_doc_ndarray_interface)
+    @Appender(_stat_doc)
     def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('mean', level=level, skipna=skipna)
         return nanops.nanmean(self.values, skipna=skipna)
-    _add_stat_doc(mean, 'mean', 'mean', extras=_doc_ndarray_interface)
 
+    @Substitution(name='mean absolute deviation', shortname='mad',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def mad(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('mad', level=level, skipna=skipna)
 
         demeaned = self - self.mean(skipna=skipna)
         return np.abs(demeaned).mean(skipna=skipna)
-    _add_stat_doc(mad, 'mean absolute deviation', 'mad')
 
+    @Substitution(name='median', shortname='median',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def median(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('median', level=level, skipna=skipna)
         return nanops.nanmedian(self.values, skipna=skipna)
-    _add_stat_doc(median, 'median', 'median')
 
+    @Substitution(name='product', shortname='product',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def prod(self, axis=None, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('prod', level=level, skipna=skipna)
         return nanops.nanprod(self.values, skipna=skipna)
-    _add_stat_doc(prod, 'product', 'product')
 
+    @Substitution(name='minimum', shortname='min',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def min(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', level=level, skipna=skipna)
-        return nanops.nanmin(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(min, 'minimum', 'min')
+        return nanops.nanmin(self.values, skipna=skipna)
 
+    @Substitution(name='maximum', shortname='max',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def max(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', level=level, skipna=skipna)
-        return nanops.nanmax(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(max, 'maximum', 'max')
+        return nanops.nanmax(self.values, skipna=skipna)
 
+    @Substitution(name='unbiased standard deviation', shortname='stdev',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, copy=True,
-                                     ddof=ddof))
-    _add_stat_doc(std, 'unbiased standard deviation', 'stdev')
+        return np.sqrt(nanops.nanvar(self.values, skipna=skipna))
 
+    @Substitution(name='unbiased variance', shortname='var',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna)
-        return nanops.nanvar(self.values, skipna=skipna, copy=True, ddof=ddof)
-    _add_stat_doc(var, 'unbiased variance', 'var')
+        return nanops.nanvar(self.values, skipna=skipna)
 
+    @Substitution(name='unbiased skewness', shortname='skew',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
     def skew(self, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('skew', level=level, skipna=skipna)
 
-        return nanops.nanskew(self.values, skipna=skipna, copy=True)
-    _add_stat_doc(skew, 'unbiased skewness', 'skew')
+        return nanops.nanskew(self.values, skipna=skipna)
+
+    def _agg_by_level(self, name, level=0, skipna=True):
+        grouped = self.groupby(level=level)
+        if hasattr(grouped, name) and skipna:
+            return getattr(grouped, name)()
+        method = getattr(type(self), name)
+        applyf = lambda x: method(x, skipna=skipna)
+        return grouped.aggregate(applyf)
 
     def idxmin(self, axis=None, out=None, skipna=True):
         """
@@ -785,11 +853,6 @@ copy : boolean, default False
         if i == -1:
             return np.nan
         return self.index[i]
-
-    def _agg_by_level(self, name, level=0, skipna=True):
-        method = getattr(type(self), name)
-        applyf = lambda x: method(x, skipna=skipna)
-        return self.groupby(level=level).aggregate(applyf)
 
     def cumsum(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -849,6 +912,7 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
+    @Appender(np.ndarray.round.__doc__)
     def round(self, decimals=0, out=None):
         """
 
@@ -858,7 +922,6 @@ copy : boolean, default False
             result = Series(result, index=self.index, name=self.name)
 
         return result
-    round.__doc__ = np.ndarray.round.__doc__
 
     def quantile(self, q=0.5):
         """
@@ -929,7 +992,7 @@ copy : boolean, default False
         -------
         correlation : float
         """
-        this, other = self.align(other, join='inner')
+        this, other = self.align(other, join='inner', copy=False)
         return nanops.nancorr(this.values, other.values, method=method)
 
     def cov(self, other):
@@ -1029,26 +1092,26 @@ copy : boolean, default False
 #-------------------------------------------------------------------------------
 # Combination
 
-    def append(self, other):
+    def append(self, to_append):
         """
-        Concatenate two Series. The indexes must not overlap
+        Concatenate two or more Series. The indexes must not overlap
 
         Parameters
         ----------
-        other : Series
+        to_append : Series or list/tuple of Series
 
         Returns
         -------
-        y : Series
+        appended : Series
         """
-        new_index = self.index.append(other.index)
-        assert(new_index._verify_integrity())
+        from pandas.tools.merge import concat
+        if isinstance(to_append, (list, tuple)):
+            to_concat = [self] + to_append
+        else:
+            to_concat = [self, to_append]
+        return concat(to_concat, ignore_index=False, verify_integrity=True)
 
-        new_values = np.concatenate((self.values, other.values))
-        name = _maybe_match_name(self, other)
-        return self._constructor(new_values, index=new_index, name=name)
-
-    def _binop(self, other, func, fill_value=None):
+    def _binop(self, other, func, level=None, fill_value=None):
         """
         Perform generic binary operation with optional fill value
 
@@ -1059,6 +1122,9 @@ copy : boolean, default False
         fill_value : float or object
             Value to substitute for NA/null values. If both Series are NA in a
             location, the result will be NA regardless of the passed fill value
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
 
         Returns
         -------
@@ -1070,7 +1136,7 @@ copy : boolean, default False
         this = self
 
         if not self.index.equals(other.index):
-            this, other = self.align(other, join='outer')
+            this, other = self.align(other, level=level, join='outer')
             new_index = this.index
 
         this_vals = this.values
@@ -1123,13 +1189,7 @@ copy : boolean, default False
             for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
-
-                # not thrilled about this but...
-                try:
-                    res = func(lv, rv)
-                except Exception:
-                    res = np.nan
-                new_values[i] = res
+                new_values[i] = func(lv, rv)
         else:
             new_index = self.index
             new_values = func(self.values, other)
@@ -1166,9 +1226,14 @@ copy : boolean, default False
         """
         sortedSeries = self.order(na_last=True)
 
-        # if not self.flags.owndata:
-        #     raise Exception('This Series is a view of some other array, to '
-        #                     'sort in-place you must create a copy')
+        true_base = self
+        while true_base.base is not None:
+            true_base = true_base.base
+
+        if (true_base is not None and
+            (true_base.ndim != 1 or true_base.shape != self.shape)):
+            raise Exception('This Series is a view of some other array, to '
+                            'sort in-place you must create a copy')
 
         self[:] = sortedSeries
         self.index = sortedSeries.index
@@ -1310,6 +1375,28 @@ copy : boolean, default False
         new_index = self.index.swaplevel(i, j)
         return Series(self.values, index=new_index, copy=copy, name=self.name)
 
+    def reorder_levels(self, order):
+        """
+        Rearrange index levels using input order. May not drop or duplicate
+        levels
+
+        Parameters
+        ----------
+        order: list of int representing new level order.
+               (reference level by number not by key)
+        axis: where to reorder levels
+
+        Returns
+        -------
+        type of caller (new object)
+        """
+        if not isinstance(self.index, MultiIndex):  # pragma: no cover
+            raise Exception('Can only reorder levels on a hierarchical axis.')
+
+        result = self.copy()
+        result.index = result.index.reorder_levels(order)
+        return result
+
     def unstack(self, level=-1):
         """
         Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame
@@ -1391,7 +1478,7 @@ copy : boolean, default False
             indexer = lib.merge_indexer_object(self.values.astype(object),
                                                arg.index.indexMap)
 
-            new_values = common.take_1d(np.asarray(arg), indexer)
+            new_values = com.take_1d(np.asarray(arg), indexer)
             return Series(new_values, index=self.index, name=self.name)
         else:
             mapped = lib.map_infer(self.values, arg)
@@ -1419,7 +1506,7 @@ copy : boolean, default False
             mapped = lib.map_infer(self.values, func)
             return Series(mapped, index=self.index, name=self.name)
 
-    def align(self, other, join='outer', copy=True):
+    def align(self, other, join='outer', level=None, copy=True):
         """
         Align two Series object with the specified join method
 
@@ -1427,39 +1514,39 @@ copy : boolean, default False
         ----------
         other : Series
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+        copy : boolean, default True
+            Always return new objects. If copy=False and no reindexing is
+            required, the same object will be returned (for better performance)
 
         Returns
         -------
         (left, right) : (Series, Series)
             Aligned Series
         """
-        if self.index.equals(other.index):
-            left, right = self, other
-            if copy:
-                left = left.copy()
-                right = right.copy()
-            return left, right
-
         join_index, lidx, ridx = self.index.join(other.index, how=join,
+                                                 level=level,
                                                  return_indexers=True)
 
-        def _align_series(series, indexer):
-            if indexer is not None:
-                new_values = common.take_1d(series.values, indexer)
-            else:
-                if copy:
-                    new_values = series.values.copy()
-                else:
-                    new_values = series.values
-
-            # be subclass-friendly
-            return series._constructor(new_values, join_index, name=series.name)
-
-        left = _align_series(self, lidx)
-        right = _align_series(other, ridx)
+        left = self._reindex_indexer(join_index, lidx, copy)
+        right = other._reindex_indexer(join_index, ridx, copy)
         return left, right
 
-    def reindex(self, index=None, method=None, copy=True):
+    def _reindex_indexer(self, new_index, indexer, copy):
+        if indexer is not None:
+            new_values = com.take_1d(self.values, indexer)
+        else:
+            if copy:
+                return self.copy()
+            else:
+                return self
+
+        # be subclass-friendly
+        return self._constructor(new_values, new_index, name=self.name)
+
+    def reindex(self, index=None, method=None, level=None, copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1476,23 +1563,27 @@ copy : boolean, default False
             backfill / bfill: use NEXT valid observation to fill gap
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
 
         Returns
         -------
         reindexed : Series
         """
+        index = _ensure_index(index)
         if self.index.equals(index):
             if copy:
                 return self.copy()
             else:
                 return self
 
-        index = _ensure_index(index)
         if len(self.index) == 0:
             return Series(nan, index=index, name=self.name)
 
-        new_index, fill_vec = self.index.reindex(index, method=method)
-        new_values = common.take_1d(self.values, fill_vec)
+        new_index, fill_vec = self.index.reindex(index, method=method,
+                                                 level=level)
+        new_values = com.take_1d(self.values, fill_vec)
         return Series(new_values, index=new_index, name=self.name)
 
     def reindex_like(self, other, method=None):
@@ -1532,6 +1623,8 @@ copy : boolean, default False
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
         return Series(new_values, index=new_index, name=self.name)
+
+    truncate = generic.truncate
 
     def fillna(self, value=None, method='pad'):
         """
@@ -1604,7 +1697,7 @@ copy : boolean, default False
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', grid=True, **kwds):
+             style='-', grid=True, logy=False, **kwds):
         """
         Plot the input series with the index on the x-axis using matplotlib
 
@@ -1645,7 +1738,10 @@ copy : boolean, default False
             else:
                 x = range(len(self))
 
-            ax.plot(x, self.values.astype(float), style, **kwds)
+            if logy:
+                ax.semilogy(x, self.values.astype(float), style, **kwds)
+            else:
+                ax.plot(x, self.values.astype(float), style, **kwds)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             ax.bar(xinds, self.values.astype(float), 0.5,
@@ -1968,6 +2064,8 @@ copy : boolean, default False
 class TimeSeries(Series):
     pass
 
+_INDEX_TYPES = ndarray, Index, list, tuple
+
 #-------------------------------------------------------------------------------
 # Supplementary functions
 
@@ -1980,6 +2078,11 @@ def remove_na(arr):
 
 def _sanitize_array(data, index, dtype=None, copy=False,
                     raise_cast_failure=False):
+    if isinstance(data, ma.MaskedArray):
+        mask = ma.getmaskarray(data)
+        data = ma.copy(data)
+        data[mask] = np.nan
+
     try:
         subarr = np.array(data, dtype=dtype, copy=copy)
     except (ValueError, TypeError):

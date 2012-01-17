@@ -197,10 +197,15 @@ class TestBlockManager(unittest.TestCase):
         mgr2 = self.mgr.reindex_axis(np.arange(N - 1), axis=1)
         self.assert_(not self.mgr._is_indexed_like(mgr2))
 
-    def test_block_id_vector(self):
+    def test_block_id_vector_item_dtypes(self):
         expected = [0, 1, 0, 1, 0, 2, 3]
         result = self.mgr.block_id_vector
         assert_almost_equal(expected, result)
+
+        result = self.mgr.item_dtypes
+        expected = ['float64', 'object', 'float64', 'object', 'float64',
+                    'bool', 'int64']
+        self.assert_(np.array_equal(result, expected))
 
     def test_union_block_items(self):
         blocks = [get_float_ex(['a', 'b', 'c']),

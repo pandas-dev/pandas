@@ -10,10 +10,11 @@ import numpy as np
 from pandas.core.common import _pickle_array, _unpickle_array, _mut_exclusive
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel, LongPanel
+from pandas.core.panel import Panel
 
 from pandas.sparse.frame import SparseDataFrame
 
+from pandas.util.decorators import deprecate
 
 class SparsePanelAxis(object):
 
@@ -219,13 +220,13 @@ class SparsePanel(Panel):
                            default_fill_value=self.default_fill_value,
                            default_kind=self.default_kind)
 
-    def to_long(self, filter_observations=True):
+    def to_frame(self, filter_observations=True):
         """
-        Convert SparsePanel to (dense) LongPanel
+        Convert SparsePanel to (dense) DataFrame
 
         Returns
         -------
-        lp : LongPanel
+        frame : DataFrame
         """
         if not filter_observations:
             raise Exception('filter_observations=False not supported for '
@@ -266,8 +267,11 @@ class SparsePanel(Panel):
         index = MultiIndex(levels=[self.major_axis, self.minor_axis],
                            labels=[major_labels, minor_labels])
 
-        lp = LongPanel(values, index=index, columns=self.items)
-        return lp.sortlevel(level=0)
+        df = DataFrame(values, index=index, columns=self.items)
+        return df.sortlevel(level=0)
+
+    to_long = deprecate('to_long', to_frame)
+    toLong = deprecate('toLong', to_frame)
 
     def reindex(self, major=None, items=None, minor=None, major_axis=None,
                 minor_axis=None, copy=False):
@@ -361,8 +365,6 @@ class SparsePanel(Panel):
                            default_kind=self.default_kind)
 
     def _combinePanel(self, other, func):
-        # if isinstance(other, LongPanel):
-        #     other = other.to_wide()
         items = self.items + other.items
         major = self.major_axis + other.major_axis
         minor = self.minor_axis + other.minor_axis
@@ -424,7 +426,7 @@ class SparsePanel(Panel):
 SparseWidePanel = SparsePanel
 
 def _convert_frames(frames, index, columns, fill_value=np.nan, kind='block'):
-    from pandas.core.panel import _get_combined_index, _get_combined_columns
+    from pandas.core.panel import _get_combined_index
     output = {}
     for item, df in frames.iteritems():
         if not isinstance(df, SparseDataFrame):
@@ -434,9 +436,11 @@ def _convert_frames(frames, index, columns, fill_value=np.nan, kind='block'):
         output[item] = df
 
     if index is None:
-        index = _get_combined_index(output)
+        all_indexes = [df.index for df in output.values()]
+        index = _get_combined_index(all_indexes)
     if columns is None:
-        columns = _get_combined_columns(output)
+        all_columns = [df.columns for df in output.values()]
+        columns = _get_combined_index(all_columns)
 
     index = _ensure_index(index)
     columns = _ensure_index(columns)

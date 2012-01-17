@@ -3,7 +3,7 @@
 import numpy as np
 
 from pandas.core.common import save, load
-from pandas.core.index import _ensure_index
+from pandas.core.index import MultiIndex
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------
@@ -20,18 +20,6 @@ class Picklable(object):
 
 class PandasError(Exception):
     pass
-
-class AxisProperty(object):
-
-    def __init__(self, axis=0):
-        self.axis = axis
-
-    def __get__(self, obj, type=None):
-        data = getattr(obj, '_data')
-        return data.axes[self.axis]
-
-    def __set__(self, obj, value):
-        obj._set_axis(self.axis, value)
 
 class PandasObject(Picklable):
 
@@ -73,7 +61,25 @@ class PandasObject(Picklable):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def groupby(self, by=None, axis=0, level=None, as_index=True):
+    def get(self, key, default=None):
+        """
+        Get item from object for given key (DataFrame column, Panel slice,
+        etc.). Returns default value if not found
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        value : type of items contained in object
+        """
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns
@@ -93,6 +99,8 @@ class PandasObject(Picklable):
             For aggregated output, return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
             effectively "SQL-style" grouped output
+        sort : boolean, default True
+            Sort group keys. Get better performance by turning this off
 
         Examples
         --------
@@ -110,27 +118,8 @@ class PandasObject(Picklable):
         GroupBy object
         """
         from pandas.core.groupby import groupby
-        return groupby(self, by, axis=axis, level=level, as_index=as_index)
-
-    def truncate(self, before=None, after=None):
-        """Function truncate a sorted DataFrame / Series before and/or after
-        some particular dates.
-
-        Parameters
-        ----------
-        before : date
-            Truncate before date
-        after : date
-            Truncate after date
-
-        Returns
-        -------
-        truncated : type of caller
-        """
-        before = datetools.to_datetime(before)
-        after = datetools.to_datetime(after)
-        # returns view, want to copy
-        return self.ix[before:after].copy()
+        return groupby(self, by, axis=axis, level=level, as_index=as_index,
+                       sort=sort)
 
     def select(self, crit, axis=0):
         """
@@ -364,17 +353,13 @@ class NDFrame(PandasObject):
         return len(self._data.blocks) > 1
 
     def _reindex_axis(self, new_index, fill_method, axis, copy):
-        new_index = _ensure_index(new_index)
-        cur_axis = self._data.axes[axis]
-        if cur_axis.equals(new_index) and not copy:
-            return self
+        new_data = self._data.reindex_axis(new_index, axis=axis,
+                                           method=fill_method, copy=copy)
 
-        if axis == 0:
-            new_data = self._data.reindex_items(new_index)
+        if new_data is self._data and not copy:
+            return self
         else:
-            new_data = self._data.reindex_axis(new_index, axis=axis,
-                                               method=fill_method)
-        return self._constructor(new_data)
+            return self._constructor(new_data)
 
     def cumsum(self, axis=None, skipna=True):
         """
@@ -449,23 +434,6 @@ class NDFrame(PandasObject):
         else:
             result = y.cumprod(axis)
         return self._wrap_array(result, self.axes, copy=False)
-
-    def _values_aggregate(self, func, axis, fill_value, skipna=True):
-        axis = self._get_axis_number(axis)
-
-        values = self.values
-        mask = np.isfinite(values)
-
-        if skipna and fill_value is not None:
-            values = values.copy()
-            values[-mask] = fill_value
-
-        result = func(values, axis=axis)
-        count = mask.sum(axis=axis)
-
-        result[count == 0] = np.NaN
-
-        return result
 
     def copy(self, deep=True):
         """
@@ -580,8 +548,41 @@ class NDFrame(PandasObject):
         if axis == 0:
             labels = self._get_axis(axis)
             new_items = labels.take(indices)
-            new_data = self._data.reindex_items(new_items)
+            new_data = self._data.reindex_axis(new_items, axis=0)
         else:
             new_data = self._data.take(indices, axis=axis)
         return self._constructor(new_data)
+
+# Good for either Series or DataFrame
+
+def truncate(self, before=None, after=None, copy=True):
+    """Function truncate a sorted DataFrame / Series before and/or after
+    some particular dates.
+
+    Parameters
+    ----------
+    before : date
+        Truncate before date
+    after : date
+        Truncate after date
+
+    Returns
+    -------
+    truncated : type of caller
+    """
+    before = datetools.to_datetime(before)
+    after = datetools.to_datetime(after)
+
+    if before is not None and after is not None:
+        assert(before <= after)
+
+    result = self.ix[before:after]
+
+    if isinstance(self.index, MultiIndex):
+        result.index = self.index.truncate(before, after)
+
+    if copy:
+        result = result.copy()
+
+    return result
 

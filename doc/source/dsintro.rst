@@ -16,7 +16,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    import numpy as np
    from pandas import *
    randn = np.random.randn
-   np.set_printoptions(precision=4, suppress=True)
+   np.set_printoptions(precision=4, suppress=True, max_columns=8)
 
 .. ipython:: python
 
@@ -184,6 +184,8 @@ tools for working with labeled data.
 Name attribute
 ~~~~~~~~~~~~~~
 
+.. _dsintro.name_attribute:
+
 Series can also have a ``name`` attribute:
 
 .. ipython:: python
@@ -209,20 +211,22 @@ pandas object. Like Series, DataFrame accepts many different kinds of input:
  - 2-D numpy.ndarray
  - `Structured or record
    <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
- - Another DataFrame
+ - A ``Series``
+ - Another ``DataFrame``
 
 Along with the data, you can optionally pass **index** (row labels) and
 **columns** (column labels) arguments. If you pass an index and / or columns,
-pyou are guaranteeing the index and / or columns of the resulting
+you are guaranteeing the index and / or columns of the resulting
 DataFrame. Thus, a dict of Series plus a specific index will discard all data
 not matching up to the passed index.
 
 If axis labels are not passed, they will be constructed from the input data
 based on common sense rules.
 
-**From dict of Series or dicts**
+From dict of Series or dicts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-the result **index** will be the **union** of the indexes of the various
+The result **index** will be the **union** of the indexes of the various
 Series. If there are any nested dicts, these will be first converted to
 Series. If no columns are passed, the columns will be the sorted list of dict
 keys.
@@ -250,7 +254,8 @@ The row and column labels can be accessed respectively by accessing the
    df.index
    df.columns
 
-**From dict of ndarrays / lists**
+From dict of ndarrays / lists
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ndarrays must all be the same length. If an index is passed, it must
 clearly also be the same length as the arrays. If no index is passed, the
@@ -263,7 +268,8 @@ result will be ``range(n)``, where ``n`` is the array length.
    DataFrame(d)
    DataFrame(d, index=['a', 'b', 'c', 'd'])
 
-**From structured or record array**
+From structured or record array
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This case is handled identically to a dict of arrays.
 
@@ -280,6 +286,84 @@ This case is handled identically to a dict of arrays.
 
     DataFrame is not intended to work exactly like a 2-dimensional NumPy
     ndarray.
+
+.. _basics.dataframe.from_list_of_dicts:
+
+From a list of dicts
+~~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+
+   data2 = [{'a': 1, 'b': 2}, {'a': 5, 'b': 10, 'c': 20}]
+   DataFrame(data2)
+   DataFrame(data2, index=['first', 'second'])
+   DataFrame(data2, columns=['a', 'b'])
+
+.. _basics.dataframe.from_series:
+
+From a Series
+~~~~~~~~~~~~~
+
+The result will be a DataFrame with the same index as the input Series, and
+with one column whose name is the original name of the Series (only if no other
+column name provided).
+
+**Missing Data**
+
+Much more will be said on this topic in the :ref:`Missing data <missing_data>`
+section. To construct a DataFrame with missing data, use ``np.nan`` for those
+values which are missing. Alternatively, you may pass a ``numpy.MaskedArray``
+as the data argument to the DataFrame constructor, and its masked entries will
+be considered missing.
+
+Alternate Constructors
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. _basics.dataframe.from_dict:
+
+**DataFrame.from_dict**
+
+``DataFrame.from_dict`` takes a dict of dicts or a dict of array-like sequences
+and returns a DataFrame. It operates like the ``DataFrame`` constructor except
+for the ``orient`` parameter which is ``'columns'`` by default, but which can be
+set to ``'index'`` in order to use the dict keys as row labels.
+
+.. _basics.dataframe.from_records:
+
+**DataFrame.from_records**
+
+``DataFrame.from_records`` takes a list of tuples or an ndarray with structured
+dtype. Works analogously to the normal ``DataFrame`` constructor, except that
+index maybe be a specific field of the structured dtype to use as the index.
+For example:
+
+.. ipython:: python
+
+   data
+   DataFrame.from_records(data, index='C')
+
+.. _basics.dataframe.from_items:
+
+**DataFrame.from_items**
+
+``DataFrame.from_items`` works analogously to the form of the ``dict``
+constructor that takes a sequence of ``(key, value)`` pairs, where the keys are
+column (or row, in the case of ``orient='index'``) names, and the value are the
+column values (or row values). This can be useful for constructing a DataFrame
+with the columns in a particular order without having to pass an explicit list
+of columns:
+
+.. ipython:: python
+
+   DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])])
+
+If you pass ``orient='index'``, the keys will be the row labels. But in this
+case you must also pass the desired column names:
+
+.. ipython:: python
+
+   DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
+                        orient='index', columns=['one', 'two', 'three'])
 
 Column selection, addition, deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -416,6 +500,19 @@ Operations with scalars are just as you would expect:
    1 / df
    df ** 4
 
+.. _dsintro.boolean:
+
+Boolean operators work as well:
+
+.. ipython:: python
+
+   df1 = DataFrame({'a' : [1, 0, 1], 'b' : [0, 1, 1] }, dtype=bool)
+   df2 = DataFrame({'a' : [0, 1, 1], 'b' : [1, 1, 0] }, dtype=bool)
+   df1 & df2
+   df1 | df2
+   df1 ^ df2
+   -df1
+
 Transposing
 ~~~~~~~~~~~
 
@@ -430,6 +527,8 @@ similar to an ndarray:
 DataFrame interoperability with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _dsintro.numpy_interop:
+
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
 can be used with no issues on DataFrame, assuming the data within are numeric:
 
@@ -437,6 +536,19 @@ can be used with no issues on DataFrame, assuming the data within are numeric:
 
    np.exp(df)
    np.asarray(df)
+
+The dot method on DataFrame implements matrix multiplication:
+
+.. ipython:: python
+
+   df.T.dot(df)
+
+Similarly, the dot method on Series implements dot product:
+
+.. ipython:: python
+
+   s1 = Series(np.arange(5,10))
+   s1.dot(s1)
 
 DataFrame is not intended to be a drop-in replacement for ndarray as its
 indexing semantics are quite different in places from a matrix.
@@ -449,9 +561,21 @@ For very large DataFrame objects, only a summary will be printed to the console
 R package):
 
 .. ipython:: python
+   :suppress:
+
+   # force a summary to be printed
+   set_printoptions(max_rows=5)
+
+.. ipython:: python
 
    baseball = read_csv('data/baseball.csv')
-   baseball
+   print baseball
+
+.. ipython:: python
+   :suppress:
+
+   # restore GlobalPrintConfig
+   reset_printoptions()
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:
@@ -462,6 +586,8 @@ DataFrame in tabular form, though it won't always fit the console width:
 
 DataFrame column types
 ~~~~~~~~~~~~~~~~~~~~~~
+
+.. _dsintro.column_types:
 
 The four main types stored in pandas objects are float, int, boolean, and
 object. A convenient ``dtypes`` attribute return a Series with the data type of
@@ -520,7 +646,8 @@ slightly arbitrary:
 
 Construction of Panels works about like you would expect:
 
-**3D ndarray with optional axis labels**
+From 3D ndarray with optional axis labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -530,7 +657,8 @@ Construction of Panels works about like you would expect:
    wp
 
 
-**dict of DataFrame objects**
+From dict of DataFrame objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -542,6 +670,24 @@ Note that the values in the dict need only be **convertible to
 DataFrame**. Thus, they can be any of the other valid inputs to DataFrame as
 per above.
 
+One helpful factory method is ``Panel.from_dict``, which takes a
+dictionary of DataFrames as above, and the following named parameters:
+
+.. csv-table::
+   :header: "Parameter", "Default", "Description"
+   :widths: 10, 10, 40
+
+   intersect, ``False``, drops elements whose indices do not align
+   orient, ``items``, use ``minor`` to use DataFrames' columns as panel items
+
+For example, compare to the construction above:
+
+.. ipython:: python
+
+   Panel.from_dict(data, orient='minor')
+
+Orient is especially useful for mixed-type DataFrames.
+
 .. note::
 
    Unfortunately Panel, being less commonly used than Series and DataFrame,
@@ -549,6 +695,22 @@ per above.
    available in DataFrame are not available in Panel. This will get worked
    on, of course, in future releases. And faster if you join me in working on
    the codebase.
+
+.. _dsintro.to_panel:
+
+From DataFrame using ``to_panel`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This method was introduced in v0.7 to replace ``LongPanel.to_long``, and converts
+a DataFrame with a two-level index to a Panel.
+
+.. ipython:: python
+
+   midx = MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
+   df = DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
+   df.to_panel()
+
+.. _dsintro.panel_item_selection:
 
 Item selection / addition / deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -561,7 +723,9 @@ of DataFrames:
    wp['Item1']
    wp['Item3'] = wp['Item1'] / wp['Item2']
 
-The API for insertion and deletion is the same as for DataFrame.
+The API for insertion and deletion is the same as for DataFrame. And as with
+DataFrame, if the item is a valid python identifier, you can access it as an
+attribute and tab-complete it in IPython.
 
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~

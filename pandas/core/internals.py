@@ -4,8 +4,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.index import Index, _ensure_index
-from pandas.util.decorators import cache_readonly
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas._tseries as lib
 
 class Block(object):
@@ -107,8 +106,8 @@ class Block(object):
         Reindex using pre-computed indexer information
         """
         if self.values.size > 0:
-            new_values = common.take_fast(self.values, indexer, mask,
-                                          needs_masking, axis=axis)
+            new_values = com.take_fast(self.values, indexer, mask,
+                                       needs_masking, axis=axis)
         else:
             shape = list(self.shape)
             shape[axis] = len(indexer)
@@ -116,7 +115,7 @@ class Block(object):
             new_values.fill(np.nan)
         return make_block(new_values, self.items, self.ref_items)
 
-    def reindex_items_from(self, new_ref_items):
+    def reindex_items_from(self, new_ref_items, copy=True):
         """
         Reindex to only those items contained in the input set of items
 
@@ -128,10 +127,20 @@ class Block(object):
         reindexed : Block
         """
         new_ref_items, indexer = self.items.reindex(new_ref_items)
-        mask = indexer != -1
-        masked_idx = indexer[mask]
-        new_values = self.values.take(masked_idx, axis=0)
-        new_items = self.items.take(masked_idx)
+        if indexer is None:
+            new_items = new_ref_items
+            new_values = self.values.copy() if copy else self.values
+        else:
+            mask = indexer != -1
+            masked_idx = indexer[mask]
+
+            if self.values.ndim == 2:
+                new_values = com.take_2d(self.values, masked_idx, axis=0,
+                                         needs_masking=False)
+            else:
+                new_values = self.values.take(masked_idx, axis=0)
+
+            new_items = self.items.take(masked_idx)
         return make_block(new_values, new_items, new_ref_items)
 
     def get(self, item):
@@ -196,7 +205,7 @@ class Block(object):
 
     def fillna(self, value):
         new_values = self.values.copy()
-        mask = common.isnull(new_values.ravel())
+        mask = com.isnull(new_values.ravel())
         new_values.flat[mask] = value
         return make_block(new_values, self.items, self.ref_items)
 
@@ -435,7 +444,9 @@ class BlockManager(object):
         copy : BlockManager
         """
         copy_blocks = [block.copy(deep=deep) for block in self.blocks]
-        return BlockManager(copy_blocks, self.axes)
+        # copy_axes = [ax.copy() for ax in self.axes]
+        copy_axes = list(self.axes)
+        return BlockManager(copy_blocks, copy_axes, do_integrity_check=False)
 
     def as_matrix(self, items=None):
         if len(self.blocks) == 0:
@@ -635,15 +646,32 @@ class BlockManager(object):
         if item not in self.items:
             raise KeyError('no item named %s' % str(item))
 
-    def reindex_axis(self, new_axis, method=None, axis=0):
+    def reindex_axis(self, new_axis, method=None, axis=0, copy=True):
+        new_axis = _ensure_index(new_axis)
+        cur_axis = self.axes[axis]
+
+        if new_axis.equals(cur_axis):
+            if copy:
+                result = self.copy(deep=True)
+                result.axes[axis] = new_axis
+                return result
+            else:
+                return self
+
         if axis == 0:
             assert(method is None)
             return self.reindex_items(new_axis)
 
-        new_axis = _ensure_index(new_axis)
-        cur_axis = self.axes[axis]
-
         new_axis, indexer = cur_axis.reindex(new_axis, method)
+        return self.reindex_indexer(new_axis, indexer, axis=axis)
+
+    def reindex_indexer(self, new_axis, indexer, axis=1):
+        """
+        pandas-indexer with -1's only.
+        """
+        if axis == 0:
+            return self._reindex_indexer_items(new_axis, indexer)
+
         mask = indexer == -1
 
         # TODO: deal with length-0 case? or does it fall out?
@@ -659,25 +687,39 @@ class BlockManager(object):
         new_axes[axis] = new_axis
         return BlockManager(new_blocks, new_axes)
 
-    def reindex_indexer(self, new_axis, indexer, axis=1):
-        """
-        pandas-indexer with -1's only
-        """
-        if axis == 0:
-            raise NotImplementedError
+    def _reindex_indexer_items(self, new_items, indexer):
+        # TODO: less efficient than I'd like
 
-        new_axes = list(self.axes)
-        new_axes[axis] = new_axis
+        item_order = com.take_1d(self.items.values, indexer)
+
+        # keep track of what items aren't found anywhere
+        mask = np.zeros(len(item_order), dtype=bool)
+
         new_blocks = []
         for blk in self.blocks:
-            new_values = common.take_fast(blk.values, indexer, None,
-                                          False, axis=axis)
-            newb = make_block(new_values, blk.items, self.items)
-            new_blocks.append(newb)
+            blk_indexer = blk.items.get_indexer(item_order)
+            selector = blk_indexer != -1
+            # update with observed items
+            mask |= selector
 
-        return BlockManager(new_blocks, new_axes)
+            if not selector.any():
+                continue
 
-    def reindex_items(self, new_items):
+            new_block_items = new_items.take(selector.nonzero()[0])
+            new_values = com.take_fast(blk.values, blk_indexer[selector],
+                                       None, False, axis=0)
+            new_blocks.append(make_block(new_values, new_block_items,
+                                         new_items))
+
+        if not mask.all():
+            na_items = new_items[-mask]
+            na_block = self._make_na_block(na_items, new_items)
+            new_blocks.append(na_block)
+            new_blocks = _consolidate(new_blocks, new_items)
+
+        return BlockManager(new_blocks, [new_items] + self.axes[1:])
+
+    def reindex_items(self, new_items, copy=True):
         """
 
         """
@@ -689,30 +731,38 @@ class BlockManager(object):
 
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)
-        mask = indexer == -1
 
+        # could have some pathological (MultiIndex) issues here
         new_blocks = []
-        for block in self.blocks:
-            newb = block.reindex_items_from(new_items)
-            if len(newb.items) > 0:
-                new_blocks.append(newb)
+        if indexer is None:
+            for blk in self.blocks:
+                if copy:
+                    new_blocks.append(blk.reindex_items_from(new_items))
+                else:
+                    new_blocks.append(blk)
+        else:
+            for block in self.blocks:
+                newb = block.reindex_items_from(new_items, copy=copy)
+                if len(newb.items) > 0:
+                    new_blocks.append(newb)
 
-        if mask.any():
-            extra_items = new_items[mask]
+            mask = indexer == -1
+            if mask.any():
+                extra_items = new_items[mask]
+                na_block = self._make_na_block(extra_items, new_items)
+                new_blocks.append(na_block)
+                new_blocks = _consolidate(new_blocks, new_items)
 
-            block_shape = list(self.shape)
-            block_shape[0] = len(extra_items)
-            block_values = np.empty(block_shape, dtype=np.float64)
-            block_values.fill(nan)
-            na_block = make_block(block_values, extra_items, new_items,
-                                  do_integrity_check=True)
-            new_blocks.append(na_block)
-            new_blocks = _consolidate(new_blocks, new_items)
+        return BlockManager(new_blocks, [new_items] + self.axes[1:])
 
-        new_axes = list(self.axes)
-        new_axes[0] = new_items
-
-        return BlockManager(new_blocks, new_axes)
+    def _make_na_block(self, items, ref_items):
+        block_shape = list(self.shape)
+        block_shape[0] = len(items)
+        block_values = np.empty(block_shape, dtype=np.float64)
+        block_values.fill(nan)
+        na_block = make_block(block_values, items, ref_items,
+                              do_integrity_check=True)
+        return na_block
 
     def take(self, indexer, axis=1):
         if axis == 0:
@@ -729,8 +779,8 @@ class BlockManager(object):
         new_axes[axis] = self.axes[axis].take(indexer)
         new_blocks = []
         for blk in self.blocks:
-            new_values = common.take_fast(blk.values, indexer,
-                                          None, False, axis=axis)
+            new_values = com.take_fast(blk.values, indexer,
+                                       None, False, axis=axis)
             newb = make_block(new_values, blk.items, self.items)
             new_blocks.append(newb)
 
@@ -749,20 +799,23 @@ class BlockManager(object):
 
         return BlockManager(consolidated, new_axes)
 
-    def _maybe_rename_join(self, other, lsuffix, rsuffix, copydata=True):
-        intersection = self.items.intersection(other.items)
+    def _maybe_rename_join(self, other, lsuffix, rsuffix, exclude=None,
+                           copydata=True):
+        to_rename = self.items.intersection(other.items)
+        if exclude is not None and len(exclude) > 0:
+            to_rename = to_rename - exclude
 
-        if len(intersection) > 0:
+        if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
-                raise Exception('columns overlap: %s' % intersection)
+                raise Exception('columns overlap: %s' % to_rename)
 
             def lrenamer(x):
-                if x in intersection:
+                if x in to_rename:
                     return '%s%s' % (x, lsuffix)
                 return x
 
             def rrenamer(x):
-                if x in intersection:
+                if x in to_rename:
                     return '%s%s' % (x, rsuffix)
                 return x
 
@@ -783,35 +836,6 @@ class BlockManager(object):
             if not ax.equals(oax):
                 return False
         return True
-
-    def join_on(self, other, on, how='left', axis=1, lsuffix=None,
-                rsuffix=None):
-        this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
-
-        other_axis = other.axes[axis]
-        indexer = other_axis.get_indexer(on)
-
-        if how == 'left':
-            mask = indexer == -1
-            needs_masking = len(on) > 0 and mask.any()
-        else:
-            mask = indexer != -1
-            this = this.take(mask.nonzero()[0], axis=axis)
-            indexer = indexer[mask]
-            mask = None
-            needs_masking = False
-
-        other_blocks = []
-        for block in other.blocks:
-            newb = block.reindex_axis(indexer, mask, needs_masking, axis=axis)
-            other_blocks.append(newb)
-
-        cons_items = this.items + other.items
-        consolidated = _consolidate(this.blocks + other_blocks, cons_items)
-
-        new_axes = list(this.axes)
-        new_axes[0] = cons_items
-        return BlockManager(consolidated, new_axes)
 
     def rename_axis(self, mapper, axis=1):
         new_axis = Index([mapper(x) for x in self.axes[axis]])
@@ -861,6 +885,17 @@ class BlockManager(object):
             result.put(indexer, i)
 
         assert((result >= 0).all())
+        return result
+
+    @property
+    def item_dtypes(self):
+        result = np.empty(len(self.items), dtype='O')
+        mask = np.zeros(len(self.items), dtype=bool)
+        for i, blk in enumerate(self.blocks):
+            indexer = self.items.get_indexer(blk.items)
+            result.put(indexer, blk.values.dtype.name)
+            mask.put(indexer, 1)
+        assert(mask.all())
         return result
 
 def form_blocks(data, axes):
@@ -918,14 +953,14 @@ def form_blocks(data, axes):
     return blocks
 
 def _simple_blockify(dct, ref_items, dtype):
-    block_items, values = _stack_dict(dct, ref_items)
+    block_items, values = _stack_dict(dct, ref_items, dtype)
     # CHECK DTYPE?
     if values.dtype != dtype: # pragma: no cover
         values = values.astype(dtype)
 
     return make_block(values, block_items, ref_items, do_integrity_check=True)
 
-def _stack_dict(dct, ref_items):
+def _stack_dict(dct, ref_items, dtype):
     from pandas.core.series import Series
 
     # fml
@@ -936,8 +971,23 @@ def _stack_dict(dct, ref_items):
         else:
             return np.asarray(x)
 
+    def _shape_compat(x):
+        # sparseseries
+        if isinstance(x, Series):
+            return len(x),
+        else:
+            return x.shape
+
     items = [x for x in ref_items if x in dct]
-    stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
+
+    first = dct[items[0]]
+    shape = (len(dct),) + _shape_compat(first)
+
+    stacked = np.empty(shape, dtype=dtype)
+    for i, item in enumerate(items):
+        stacked[i] = _asarray_compat(dct[item])
+
+    # stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):
@@ -1028,209 +1078,3 @@ def _union_items_slow(all_items):
         else:
             seen = seen.union(items)
     return seen
-
-def join_managers(left, right, axis=1, how='left', copy=True):
-    op = _JoinOperation(left, right, axis=axis, how=how)
-    return op.get_result(copy=copy)
-
-class _JoinOperation(object):
-    """
-    Object responsible for orchestrating efficient join operation between two
-    BlockManager data structures
-    """
-    def __init__(self, left, right, axis=1, how='left'):
-        if not left.is_consolidated():
-            left = left.consolidate()
-        if not right.is_consolidated():
-            right = right.consolidate()
-
-        self.left = left
-        self.right = right
-        self.axis = axis
-        self.how = how
-
-        laxis = left.axes[axis]
-        raxis = right.axes[axis]
-
-        (self.join_index,
-         self.lindexer,
-         self.rindexer) = laxis.join(raxis, how=how, return_indexers=True)
-
-        # do NOT sort
-        self.result_items = left.items.append(right.items)
-        self.result_axes = list(left.axes)
-        self.result_axes[0] = self.result_items
-        self.result_axes[axis] = self.join_index
-
-    def get_result(self, copy=False):
-        """
-        Parameters
-        ----------
-        other
-        lindexer
-        lmask
-        rindexer
-        rmask
-
-        Returns
-        -------
-        merged : BlockManager
-        """
-        left_blockmap, right_blockmap = self._prepare_blocks()
-
-        result_blocks = []
-
-        # maybe want to enable flexible copying
-
-        kinds = set(left_blockmap) | set(right_blockmap)
-        for klass in kinds:
-            lblk = left_blockmap.get(klass)
-            rblk = right_blockmap.get(klass)
-
-            if lblk and rblk:
-                # true merge, do not produce intermediate copy
-                res_blk = self._merge_blocks(lblk, rblk)
-            elif lblk:
-                res_blk = self._reindex_block(lblk, side='left')
-            else:
-                res_blk = self._reindex_block(rblk, side='right')
-
-            result_blocks.append(res_blk)
-
-        return BlockManager(result_blocks, self.result_axes)
-
-    def _prepare_blocks(self):
-        lblocks = self.left.blocks
-        rblocks = self.right.blocks
-
-        # will short-circuit and not compute lneed_masking
-        if self.lneed_masking:
-            lblocks = self._upcast_blocks(lblocks)
-
-        if self.rneed_masking:
-            rblocks = self._upcast_blocks(rblocks)
-
-        left_blockmap = dict((type(blk), blk) for blk in lblocks)
-        right_blockmap = dict((type(blk), blk) for blk in rblocks)
-
-        return left_blockmap, right_blockmap
-
-    def _reindex_block(self, block, side='left', copy=True):
-        if side == 'left':
-            indexer = self.lindexer
-            mask, need_masking = self.lmask_info
-        else:
-            indexer = self.rindexer
-            mask, need_masking = self.rmask_info
-
-        # still some inefficiency here for bool/int64 because in the case where
-        # no masking is needed, take_fast will recompute the mask
-
-        if indexer is None and copy:
-            result = block.copy()
-        else:
-            result = block.reindex_axis(indexer, mask, need_masking,
-                                        axis=self.axis)
-
-        result.ref_items = self.result_items
-        return result
-
-    @cache_readonly
-    def lmask_info(self):
-        if (self.lindexer is None or
-            not self._may_need_upcasting(self.left.blocks)):
-            lmask = None
-            lneed_masking = False
-        else:
-            lmask = self.lindexer == -1
-            lneed_masking = lmask.any()
-
-        return lmask, lneed_masking
-
-    @cache_readonly
-    def rmask_info(self):
-        if (self.rindexer is None or
-            not self._may_need_upcasting(self.right.blocks)):
-            rmask = None
-            rneed_masking = False
-        else:
-            rmask = self.rindexer == -1
-            rneed_masking = rmask.any()
-
-        return rmask, rneed_masking
-
-    @property
-    def lneed_masking(self):
-        return self.lmask_info[1]
-
-    @property
-    def rneed_masking(self):
-        return self.rmask_info[1]
-
-    @staticmethod
-    def _may_need_upcasting(blocks):
-        for block in blocks:
-            if isinstance(block, (IntBlock, BoolBlock)):
-                return True
-        return False
-
-    def _merge_blocks(self, lblk, rblk):
-        lidx = self.lindexer
-        ridx = self.rindexer
-
-        n = lblk.values.shape[self.axis] if lidx is None else len(lidx)
-        lk = len(lblk.items)
-        rk = len(rblk.items)
-
-        out_shape = list(lblk.shape)
-        out_shape[0] = lk + rk
-        out_shape[self.axis] = n
-
-        out = np.empty(out_shape, dtype=lblk.values.dtype)
-
-        # is this really faster than assigning to arr.flat?
-        if lidx is None:
-            # out[:lk] = lblk.values
-            common.take_fast(lblk.values, np.arange(n, dtype='i4'),
-                             None, False,
-                             axis=self.axis, out=out[:lk])
-        else:
-            # write out the values to the result array
-            common.take_fast(lblk.values, lidx, None, False,
-                             axis=self.axis, out=out[:lk])
-        if ridx is None:
-            # out[lk:] = lblk.values
-            common.take_fast(rblk.values, np.arange(n, dtype='i4'),
-                             None, False,
-                             axis=self.axis, out=out[lk:])
-        else:
-            common.take_fast(rblk.values, ridx, None, False,
-                             axis=self.axis, out=out[lk:])
-
-        # does not sort
-        new_items = lblk.items.append(rblk.items)
-        return make_block(out, new_items, self.result_items)
-
-    @staticmethod
-    def _upcast_blocks(blocks):
-        """
-        Upcast and consolidate if necessary
-        """
-        # if not need_masking:
-        #     return blocks
-
-        new_blocks = []
-        for block in blocks:
-            if isinstance(block, IntBlock):
-                newb = make_block(block.values.astype(float), block.items,
-                                  block.ref_items)
-            elif isinstance(block, BoolBlock):
-                newb = make_block(block.values.astype(object), block.items,
-                                  block.ref_items)
-            else:
-                newb = block
-            new_blocks.append(newb)
-
-        # use any ref_items
-        return _consolidate(new_blocks, newb.ref_items)
-

@@ -7,6 +7,7 @@
    import numpy as np
    np.random.seed(123456)
    from pandas import *
+   from pandas.core.reshape import *
    import pandas.util.testing as tm
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
@@ -61,19 +62,20 @@ To select out everything for variable ``A`` we could do:
 
    df[df['variable'] == 'A']
 
-But if we wished to do time series operations between variables, this will
-hardly do at all. This is really just a representation of a DataFrame whose
-``columns`` are formed from the unique ``variable`` values and ``index`` from
-the ``date`` values. To reshape the data into this form, use the ``pivot``
-function:
+But suppose we wish to do time series operations with the variables. A better
+representation would be where the ``columns`` are the unique variables and an
+``index`` of dates identifies individual observations. To reshape the data into
+this form, use the ``pivot`` function:
 
 .. ipython:: python
 
    df.pivot(index='date', columns='variable', values='value')
 
-If the ``values`` argument is omitted, the resulting "pivoted" DataFrame will
-have :ref:`hierarchical columns <indexing.hierarchical>` with the top level
-being the set of value columns:
+If the ``values`` argument is omitted, and the input DataFrame has more than
+one column of values which are not used as column or index inputs to ``pivot``,
+then the resulting "pivoted" DataFrame will have :ref:`hierarchical columns
+<indexing.hierarchical>` whose topmost level indicates the respective value
+column:
 
 .. ipython:: python
 
@@ -90,22 +92,26 @@ You of course can then select subsets from the pivoted DataFrame:
 Note that this returns a view on the underlying data in the case where the data
 are homogeneously-typed.
 
+.. _reshaping.stacking:
+
 Reshaping by stacking and unstacking
 ------------------------------------
 
 Closely related to the ``pivot`` function are the related ``stack`` and
 ``unstack`` functions currently available on Series and DataFrame. These
-functions are designed to tie together with ``MultiIndex`` objects (see the
+functions are designed to work together with ``MultiIndex`` objects (see the
 section on :ref:`hierarchical indexing <indexing.hierarchical>`). Here are
 essentially what these functions do:
 
-  - ``stack``: collapse level in ``axis=1`` to produce new object whose index
-    has the collapsed columns as its lowest level
-  - ``unstack``: inverse operation from ``stack``; "pivot" index level to
-    produce reshaped DataFrame
+  - ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
+    returning a DataFrame with an index with a new inner-most level of row
+    labels.
+  - ``unstack``: inverse operation from ``stack``: "pivot" a level of the
+    (possibly hierarchical) row index to the column axis, producing a reshaped
+    DataFrame with a new inner-most level of column labels.
 
-Actually very hard to explain in words; the clearest way is by example. Let's
-take a prior example data set from the hierarchical indexing section:
+The clearest way to explain is by example. Let's take a prior example data set
+from the hierarchical indexing section:
 
 .. ipython:: python
 
@@ -142,6 +148,8 @@ unstacks the **last level**:
    stacked.unstack(1)
    stacked.unstack(0)
 
+.. _reshaping.unstack_by_name:
+
 If the indexes have names, you can use the level names instead of specifying
 the level numbers:
 
@@ -149,10 +157,14 @@ the level numbers:
 
    stacked.unstack('second')
 
-These functions are very intelligent about handling missing data and do not
-expect each subgroup within the hierarchical index to have the same set of
-labels. They also can handle the index being unsorted (but you can make it
-sorted by calling ``sortlevel``, of course). Here is a more complex example:
+You may also stack or unstack more than one level at a time by passing a list
+of levels, in which case the end result is as if each level in the list were
+processed individually.
+
+These functions are intelligent about handling missing data and do not expect
+each subgroup within the hierarchical index to have the same set of labels.
+They also can handle the index being unsorted (but you can make it sorted by
+calling ``sortlevel``, of course). Here is a more complex example:
 
 .. ipython:: python
 
@@ -179,6 +191,27 @@ the right thing:
    df[:3].unstack(0)
    df2.unstack(1)
 
+.. _reshaping.melt:
+
+Reshaping by Melt
+-----------------
+
+The ``melt`` function found in ``pandas.core.reshape`` is useful to massage a
+DataFrame into a format where one or more columns are identifier variables,
+while all other columns, considered measured variables, are "pivoted" to the
+row axis, leaving just two non-identifier columns, "variable" and "value".
+
+For instance,
+
+.. ipython:: python
+
+   cheese = DataFrame({'first' : ['John', 'Mary'],
+                       'last' : ['Doe', 'Bo'],
+                       'height' : [5.5, 6.0],
+                       'weight' : [130, 150]})
+   cheese
+   melt(cheese, id_vars=['first', 'last'])
+
 Combining with stats and GroupBy
 --------------------------------
 
@@ -199,15 +232,16 @@ some very expressive and fast data manipulations.
    df.mean().unstack(0)
 
 
-**********************************
 Pivot tables and cross-tabulations
-**********************************
+----------------------------------
+
+.. _reshaping.pivot:
 
 The function ``pandas.pivot_table`` can be used to create spreadsheet-style pivot
 tables. It takes a number of arguments
 
 - ``data``: A DataFrame object
-- ``values``: column to aggregate
+- ``values``: a column or a list of columns to aggregate
 - ``rows``: list of columns to group by on the table rows
 - ``cols``: list of columns to group by on the table columns
 - ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``
@@ -216,11 +250,11 @@ Consider a data set like this:
 
 .. ipython:: python
 
-   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
-                   'B' : ['A', 'B', 'C'] * 4,
-                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
-                   'D' : np.random.randn(12),
-                   'E' : np.random.randn(12)})
+   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 6,
+                   'B' : ['A', 'B', 'C'] * 8,
+                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 4,
+                   'D' : np.random.randn(24),
+                   'E' : np.random.randn(24)})
    df
 
 We can produce pivot tables from this data very easily:
@@ -229,6 +263,7 @@ We can produce pivot tables from this data very easily:
 
    pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
    pivot_table(df, values='D', rows=['B'], cols=['A', 'C'], aggfunc=np.sum)
+   pivot_table(df, values=['D','E'], rows=['B'], cols=['A', 'C'], aggfunc=np.sum)
 
 The result object is a DataFrame having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
@@ -246,3 +281,19 @@ calling ``to_string`` if you wish:
 
    table = pivot_table(df, rows=['A', 'B'], cols=['C'])
    print table.to_string(na_rep='')
+
+Note that ``pivot_table`` is also available as an instance method on DataFrame.
+
+.. _reshaping.pivot.margins:
+
+Adding margins (partial aggregates)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you pass ``margins=True`` to ``pivot_table``, special ``All`` columns and
+rows will be added with partial group aggregates across the categories on the
+rows and columns:
+
+.. ipython:: python
+
+   df.pivot_table(rows=['A', 'B'], cols='C', margins=True, aggfunc=np.std)
+

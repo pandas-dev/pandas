@@ -2,6 +2,7 @@ from cStringIO import StringIO
 from datetime import datetime
 import csv
 import os
+import sys
 import re
 import unittest
 
@@ -51,6 +52,29 @@ ignore,this,row
         df2 = read_table(StringIO(data), sep=',', na_values=['baz'],
                          skiprows=[1])
         assert_almost_equal(df2.values, expected)
+
+
+    def test_skiprows_bug(self):
+        # GH #505
+        text = """#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+#foo,a,b,c
+1/1/2000,1.,2.,3.
+1/2/2000,4,5,6
+1/3/2000,7,8,9
+"""
+        data = read_csv(StringIO(text), skiprows=range(6), header=None,
+                        index_col=0, parse_dates=True)
+
+        expected = DataFrame(np.arange(1., 10.).reshape((3,3)),
+                             columns=['X.2', 'X.3', 'X.4'],
+                             index=[datetime(2000, 1, 1), datetime(2000, 1, 2),
+                                    datetime(2000, 1, 3)])
+        assert_frame_equal(data, expected)
+
 
     def test_detect_string_na(self):
         data = """A,B
@@ -271,9 +295,18 @@ baz|7|8|9
         assert_frame_equal(chunks[1], df[2:4])
         assert_frame_equal(chunks[2], df[4:])
 
+    def test_read_text_list(self):
+        data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
+        as_list = [['A','B','C'],['foo','1','2','3'],['bar','4','5','6']]
+        df = read_csv(StringIO(data), index_col=0)
+
+        parser = TextParser(as_list, index_col=0, chunksize=2)
+        chunk  = parser.get_chunk(None)
+
+        assert_frame_equal(chunk, df)
+
     def test_iterator(self):
         reader = read_csv(StringIO(self.data1), index_col=0, iterator=True)
-
         df = read_csv(StringIO(self.data1), index_col=0)
 
         chunk = reader.get_chunk(3)
@@ -292,6 +325,16 @@ baz|7|8|9
         assert_frame_equal(chunks[0], df[:2])
         assert_frame_equal(chunks[1], df[2:4])
         assert_frame_equal(chunks[2], df[4:])
+
+        # pass skiprows
+        parser = TextParser(lines, index_col=0, chunksize=2, skiprows=[1])
+        chunks = list(parser)
+        assert_frame_equal(chunks[0], df[1:3])
+
+        # test bad parameter (skip_footer)
+        reader = read_csv(StringIO(self.data1), index_col=0, iterator=True,
+                          skip_footer=True)
+        self.assertRaises(ValueError, reader.get_chunk, 3)
 
         treader = read_table(StringIO(self.data1), sep=',', index_col=0,
                              iterator=True)
@@ -429,6 +472,36 @@ c,4,5,01/03/2009
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
+        # produce integer
+        converter = lambda x: int(x.split('/')[2])
+        result = read_csv(StringIO(data), converters={'D' : converter})
+        expected = read_csv(StringIO(data))
+        expected['D'] = expected['D'].map(converter)
+        assert_frame_equal(result, expected)
+
+    def test_converters_euro_decimal_format(self):
+        data = """Id;Number1;Number2;Text1;Text2;Number3
+1;1521,1541;187101,9543;ABC;poi;4,738797819
+2;121,12;14897,76;DEF;uyt;0,377320872
+3;878,158;108013,434;GHI;rez;2,735694704"""
+        f = lambda x : float(x.replace(",", "."))
+        converter = {'Number1':f,'Number2':f, 'Number3':f}
+        df2 = read_csv(StringIO(data), sep=';',converters=converter)
+        self.assert_(df2['Number1'].dtype == float)
+        self.assert_(df2['Number2'].dtype == float)
+        self.assert_(df2['Number3'].dtype == float)
+
+    def test_converter_return_string_bug(self):
+        # GH #583
+        data = """Id;Number1;Number2;Text1;Text2;Number3
+1;1521,1541;187101,9543;ABC;poi;4,738797819
+2;121,12;14897,76;DEF;uyt;0,377320872
+3;878,158;108013,434;GHI;rez;2,735694704"""
+        f = lambda x : x.replace(",", ".")
+        converter = {'Number1':f,'Number2':f, 'Number3':f}
+        df2 = read_csv(StringIO(data), sep=';',converters=converter)
+        self.assert_(df2['Number1'].dtype == float)
+
     def test_regex_separator(self):
         data = """   A   B   C   D
 a   1   2   3   4
@@ -440,6 +513,58 @@ c   1   2   3   4
                             index_col=0)
         self.assert_(expected.index.name is None)
         assert_frame_equal(df, expected)
+
+    def test_verbose_import(self):
+        text = """a,b,c,d
+one,1,2,3
+one,1,2,3
+,1,2,3
+one,1,2,3
+,1,2,3
+,1,2,3
+one,1,2,3
+two,1,2,3"""
+
+        buf = StringIO()
+        sys.stdout = buf
+
+        try:
+            # it works!
+            df = read_csv(StringIO(text), verbose=True)
+            self.assert_(buf.getvalue() == 'Filled 3 NA values in column a\n')
+        finally:
+            sys.stdout = sys.__stdout__
+
+        buf = StringIO()
+        sys.stdout = buf
+
+        text = """a,b,c,d
+one,1,2,3
+two,1,2,3
+three,1,2,3
+four,1,2,3
+five,1,2,3
+,1,2,3
+seven,1,2,3
+eight,1,2,3"""
+
+        try:
+            # it works!
+            df = read_csv(StringIO(text), verbose=True, index_col=0)
+            self.assert_(buf.getvalue() == 'Found 1 NA values in the index\n')
+        finally:
+            sys.stdout = sys.__stdout__
+
+    def test_read_table_buglet_4x_multiindex(self):
+        text = """                      A       B       C       D        E
+one two three   four
+a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
+a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
+x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+
+        # it works!
+        df = read_table(StringIO(text), sep='\s+')
+        self.assertEquals(df.index.names, ['one', 'two', 'three', 'four'])
 
 class TestParseSQL(unittest.TestCase):
 

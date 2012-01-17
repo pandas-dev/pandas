@@ -43,6 +43,10 @@ class TestMultiLevel(unittest.TestCase):
         self.tdf = tm.makeTimeDataFrame()
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
+
+        # use Int64Index, to make sure things work
+        self.ymd.index.levels = [lev.astype('i8')
+                                 for lev in self.ymd.index.levels]
         self.ymd.index.names = ['year', 'month', 'day']
 
     def test_append(self):
@@ -53,6 +57,46 @@ class TestMultiLevel(unittest.TestCase):
 
         result = a['A'].append(b['A'])
         tm.assert_series_equal(result, self.frame['A'])
+
+    def test_reindex_level(self):
+        # axis=0
+        month_sums = self.ymd.sum(level='month')
+        result = month_sums.reindex(self.ymd.index, level=1)
+        expected = self.ymd.groupby(level='month').transform(np.sum)
+
+        assert_frame_equal(result, expected)
+
+        # Series
+        result = month_sums['A'].reindex(self.ymd.index, level=1)
+        expected = self.ymd['A'].groupby(level='month').transform(np.sum)
+        assert_series_equal(result, expected)
+
+        # axis=1
+        month_sums = self.ymd.T.sum(axis=1, level='month')
+        result = month_sums.reindex(columns=self.ymd.index, level=1)
+        expected = self.ymd.groupby(level='month').transform(np.sum).T
+        assert_frame_equal(result, expected)
+
+    def test_binops_level(self):
+        def _check_op(opname):
+            op = getattr(DataFrame, opname)
+            month_sums = self.ymd.sum(level='month')
+            result = op(self.ymd, month_sums, level='month')
+            broadcasted = self.ymd.groupby(level='month').transform(np.sum)
+            expected = op(self.ymd, broadcasted)
+            assert_frame_equal(result, expected)
+
+            # Series
+            op = getattr(Series, opname)
+            result = op(self.ymd['A'], month_sums['A'], level='month')
+            broadcasted = self.ymd['A'].groupby(level='month').transform(np.sum)
+            expected = op(self.ymd['A'], broadcasted)
+            assert_series_equal(result, expected)
+
+        _check_op('sub')
+        _check_op('add')
+        _check_op('mul')
+        _check_op('div')
 
     def test_pickle(self):
         import cPickle
@@ -115,7 +159,7 @@ class TestMultiLevel(unittest.TestCase):
 
         result = s[2000, 3]
         result2 = s.ix[2000, 3]
-        expected = s[42:65]
+        expected = s.reindex(s.index[42:65])
         expected.index = expected.index.droplevel(0).droplevel(0)
         assert_series_equal(result, expected)
 
@@ -125,25 +169,50 @@ class TestMultiLevel(unittest.TestCase):
 
         # fancy
         result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
-        expected = s[49:51]
+        expected = s.reindex(s.index[49:51])
         assert_series_equal(result, expected)
 
         # key error
         self.assertRaises(KeyError, s.__getitem__, (2000, 3, 4))
 
+    def test_series_getitem_corner(self):
+        s = self.ymd['A']
+
+        # don't segfault, GH #495
+        # out of bounds access
+        self.assertRaises(IndexError, s.__getitem__, len(self.ymd))
+
+        # generator
+        result = s[(x > 0 for x in s)]
+        expected = s[s > 0]
+        assert_series_equal(result, expected)
+
     def test_series_setitem(self):
         s = self.ymd['A']
 
         s[2000, 3] = np.nan
-        self.assert_(isnull(s[42:65]).all())
-        self.assert_(notnull(s[:42]).all())
-        self.assert_(notnull(s[65:]).all())
+        self.assert_(isnull(s.values[42:65]).all())
+        self.assert_(notnull(s.values[:42]).all())
+        self.assert_(notnull(s.values[65:]).all())
 
         s[2000, 3, 10] = np.nan
         self.assert_(isnull(s[49]))
 
     def test_series_slice_partial(self):
         pass
+
+    def test_frame_getitem_setitem_slice(self):
+        # getitem
+        result = self.frame.ix[:4]
+        expected = self.frame[:4]
+        assert_frame_equal(result, expected)
+
+        # setitem
+        cp = self.frame.copy()
+        cp.ix[:4] = 0
+
+        self.assert_((cp.values[:4] == 0).all())
+        self.assert_((cp.values[4:] != 0).all())
 
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
@@ -158,6 +227,76 @@ class TestMultiLevel(unittest.TestCase):
         expected = self.frame.T['foo'].T
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
+
+    def test_xs_level(self):
+        result = self.frame.xs('two', level='second')
+        expected = self.frame[self.frame.index.get_level_values(1) == 'two']
+        expected.index = expected.index.droplevel(1)
+
+        assert_frame_equal(result, expected)
+
+        index = MultiIndex.from_tuples([('x', 'y', 'z'), ('a', 'b', 'c'),
+                                        ('p', 'q', 'r')])
+        df = DataFrame(np.random.randn(3, 5), index=index)
+        result = df.xs('c', level=2)
+        expected = df[1:2]
+        expected.index = expected.index.droplevel(2)
+        assert_frame_equal(result, expected)
+
+    def test_xs_level_multiple(self):
+        from pandas import read_table
+        from StringIO import StringIO
+        text = """                      A       B       C       D        E
+one two three   four
+a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
+a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
+x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+
+        df = read_table(StringIO(text), sep='\s+')
+
+        result = df.xs(('a', 4), level=['one', 'four'])
+        expected = df.xs('a').xs(4, level='four')
+        assert_frame_equal(result, expected)
+
+    def test_xs_level0(self):
+        from pandas import read_table
+        from StringIO import StringIO
+        text = """                      A       B       C       D        E
+one two three   four
+a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
+a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
+x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
+
+        df = read_table(StringIO(text), sep='\s+')
+
+        result = df.xs('a', level=0)
+        expected = df.xs('a')
+        self.assertEqual(len(result), 2)
+        assert_frame_equal(result, expected)
+
+    def test_xs_level_series(self):
+        s = self.frame['A']
+        result = s[:, 'two']
+        expected = self.frame.xs('two', level=1)['A']
+        assert_series_equal(result, expected)
+
+        s = self.ymd['A']
+        result = s[2000, 5]
+        expected = self.ymd.ix[2000, 5]['A']
+        assert_series_equal(result, expected)
+
+        # not implementing this for now
+
+        self.assertRaises(NotImplementedError, s.__getitem__,
+                          (2000, slice(3, 4)))
+
+        # result = s[2000, 3:4]
+        # lv =s.index.get_level_values(1)
+        # expected = s[(lv == 3) | (lv == 4)]
+        # expected.index = expected.index.droplevel(0)
+        # assert_series_equal(result, expected)
+
+        # can do this though
 
     def test_fancy_2d(self):
         result = self.frame.ix['foo', 'B']
@@ -191,6 +330,29 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
+    def test_getitem_setitem_slice_integers(self):
+        index = MultiIndex(levels=[[0, 1, 2], [0, 2]],
+                           labels=[[0, 0, 1, 1, 2, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+
+        frame =  DataFrame(np.random.randn(len(index), 4), index=index,
+                           columns=['a', 'b', 'c', 'd'])
+        res = frame.ix[1:2]
+        exp = frame.reindex(frame.index[2:])
+        assert_frame_equal(res, exp)
+
+        frame.ix[1:2] = 7
+        self.assert_((frame.ix[1:2] == 7).values.all())
+
+        series =  Series(np.random.randn(len(index)), index=index)
+
+        res = series.ix[1:2]
+        exp = series.reindex(series.index[2:])
+        assert_series_equal(res, exp)
+
+        series.ix[1:2] = 7
+        self.assert_((series.ix[1:2] == 7).values.all())
+
     def test_getitem_int(self):
         levels = [[0, 1], [0, 1, 2]]
         labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
@@ -219,6 +381,14 @@ class TestMultiLevel(unittest.TestCase):
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         assert_frame_equal(result, expected)
 
+    def test_getitem_slice_not_sorted(self):
+        df = self.frame.sortlevel(1).T
+
+        # buglet with int typechecking
+        result = df.ix[:, :np.int32(3)]
+        expected = df.reindex(columns=df.columns[:3])
+        assert_frame_equal(result, expected)
+
     def test_setitem_change_dtype(self):
         dft = self.frame.T
         s = dft['foo', 'two']
@@ -228,6 +398,16 @@ class TestMultiLevel(unittest.TestCase):
 
         reindexed = dft.reindex(columns=[('foo', 'two')])
         assert_series_equal(reindexed['foo', 'two'], s > s.median())
+
+    def test_frame_setitem_ix(self):
+        self.frame.ix[('bar', 'two'), 'B'] = 5
+        self.assertEquals(self.frame.ix[('bar', 'two'), 'B'], 5)
+
+        # with integer labels
+        df = self.frame.copy()
+        df.columns = range(3)
+        df.ix[('bar', 'two'), 1] = 7
+        self.assertEquals(df.ix[('bar', 'two'), 1], 7)
 
     def test_fancy_slice_partial(self):
         result = self.frame.ix['bar':'baz']
@@ -249,7 +429,7 @@ class TestMultiLevel(unittest.TestCase):
         # series
         a_sorted = self.frame['A'].sortlevel(0)
         self.assertRaises(Exception,
-                          self.frame.delevel()['A'].sortlevel)
+                          self.frame.reset_index()['A'].sortlevel)
 
         # preserve names
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
@@ -261,7 +441,7 @@ class TestMultiLevel(unittest.TestCase):
                                        names=['prm0', 'prm1', 'prm2'])
         df = DataFrame(np.random.randn(8,3), columns=['A', 'B', 'C'],
                        index=index)
-        deleveled = df.delevel()
+        deleveled = df.reset_index()
         self.assert_(com.is_integer_dtype(deleveled['prm1']))
         self.assert_(com.is_float_dtype(deleveled['prm2']))
 
@@ -423,6 +603,7 @@ class TestMultiLevel(unittest.TestCase):
                         'extra': np.arange(6.)})
 
         result = df.groupby(['state','exp','barcode','v']).apply(len)
+
         unstacked = result.unstack()
         restacked = unstacked.stack()
         assert_series_equal(restacked,
@@ -525,6 +706,22 @@ class TestMultiLevel(unittest.TestCase):
         expected = panel.copy()
         expected.major_axis = expected.major_axis.swaplevel(0, 1)
         tm.assert_panel_equal(result, expected)
+
+    def test_reorder_levels(self):
+        result = self.ymd.reorder_levels(['month', 'day', 'year'])
+        expected = self.ymd.swaplevel(0, 1).swaplevel(1, 2)
+        assert_frame_equal(result, expected)
+
+        result = self.ymd['A'].reorder_levels(['month', 'day', 'year'])
+        expected = self.ymd['A'].swaplevel(0, 1).swaplevel(1, 2)
+        assert_series_equal(result, expected)
+
+        result = self.ymd.T.reorder_levels(['month', 'day', 'year'], axis=1)
+        expected = self.ymd.T.swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(Exception, self.ymd.index.reorder_levels,
+                          [1, 2, 3])
 
     def test_insert_index(self):
         df = self.ymd[:5].T
@@ -649,7 +846,23 @@ class TestMultiLevel(unittest.TestCase):
             leftside = grouped.agg(aggf)
             rightside = getattr(frame, op)(level=level, axis=axis,
                                            skipna=skipna)
+
+            # for good measure, groupby detail
+            level_index = frame._get_axis(axis).levels[level]
+
+            self.assert_(leftside._get_axis(axis).equals(level_index))
+            self.assert_(rightside._get_axis(axis).equals(level_index))
+
             assert_frame_equal(leftside, rightside)
+
+    def test_frame_series_agg_multiple_levels(self):
+        result = self.ymd.sum(level=['year', 'month'])
+        expected = self.ymd.groupby(level=['year', 'month']).sum()
+        assert_frame_equal(result, expected)
+
+        result = self.ymd['A'].sum(level=['year', 'month'])
+        expected = self.ymd['A'].groupby(level=['year', 'month']).sum()
+        assert_series_equal(result, expected)
 
     def test_groupby_multilevel(self):
         result = self.ymd.groupby(level=[0, 1]).mean()

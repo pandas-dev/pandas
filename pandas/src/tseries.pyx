@@ -9,6 +9,7 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyTuple_SetItem,
                       PyTuple_New)
 from cpython cimport PyFloat_Check
+cimport cpython
 
 import numpy as np
 isnan = np.isnan
@@ -21,33 +22,6 @@ cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
 ctypedef unsigned char UChar
-
-cdef int is_contiguous(ndarray arr):
-    return np.PyArray_CHKFLAGS(arr, np.NPY_C_CONTIGUOUS)
-
-cdef int _contiguous_check(ndarray arr):
-    if not is_contiguous(arr):
-        raise ValueError('Tried to use data field on non-contiguous array!')
-
-cdef int16_t *get_int16_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <int16_t *> arr.data
-
-cdef int32_t *get_int32_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <int32_t *> arr.data
-
-cdef int64_t *get_int64_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <int64_t *> arr.data
-
-cdef double_t *get_double_ptr(ndarray arr):
-    _contiguous_check(arr)
-
-    return <double_t *> arr.data
 
 cimport util
 
@@ -155,21 +129,6 @@ cdef class MultiMap:
         raise KeyError(key)
 
 
-def isAllDates(ndarray[object, ndim=1] arr):
-    cdef int i, size = len(arr)
-    cdef object date
-
-    if size == 0:
-        return False
-
-    for i from 0 <= i < size:
-        date = arr[i]
-
-        if not PyDateTime_Check(date):
-            return False
-
-    return True
-
 def ismember(ndarray arr, set values):
     '''
     Checks whether
@@ -201,35 +160,6 @@ def ismember(ndarray arr, set values):
         PyArray_ITER_NEXT(it)
 
     return result.view(np.bool_)
-
-def map_infer(ndarray arr, object f):
-    '''
-    Substitute for np.vectorize with pandas-friendly dtype inference
-
-    Parameters
-    ----------
-    arr : ndarray
-    f : function
-
-    Returns
-    -------
-    mapped : ndarray
-    '''
-    cdef:
-        Py_ssize_t i, n
-        flatiter it
-        ndarray[object] result
-        object val
-
-    it = <flatiter> PyArray_IterNew(arr)
-    n = len(arr)
-    result = np.empty(n, dtype=object)
-    for i in range(n):
-        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-        result[i] = f(val)
-        PyArray_ITER_NEXT(it)
-
-    return maybe_convert_objects(result)
 
 #----------------------------------------------------------------------
 # datetime / io related
@@ -288,11 +218,13 @@ cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
 cdef inline _checknull(object val):
-    return val is None or val != val
+    return not np.PyArray_Check(val) and (val is None or val != val)
 
 cpdef checknull(object val):
-    if isinstance(val, (float, np.floating)):
+    if util.is_float_object(val):
         return val != val or val == INF or val == NEGINF
+    elif is_array(val):
+        return False
     else:
         return _checknull(val)
 
@@ -400,6 +332,57 @@ def fast_unique_multiple_list(list lists):
 
     return uniques
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_unique_multiple_list_gen(object gen):
+    cdef:
+        list buf
+        Py_ssize_t j, n
+        list uniques = []
+        dict table = {}
+        object val, stub = 0
+
+    for buf in gen:
+        n = len(buf)
+        for j from 0 <= j < n:
+            val = buf[j]
+            if val not in table:
+                table[val] = stub
+                uniques.append(val)
+
+    try:
+        uniques.sort()
+    except Exception:
+        pass
+
+    return uniques
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def dicts_to_array(list dicts, list columns):
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[object, ndim=2] result
+        dict row
+        object col, onan = np.nan
+
+    k = len(columns)
+    n = len(dicts)
+
+    result = np.empty((n, k), dtype='O')
+
+    for i in range(n):
+        row = dicts[i]
+        for j in range(k):
+            col = columns[j]
+            if col in row:
+                result[i, j] = row[col]
+            else:
+                result[i, j] = onan
+
+    return result
+
+
 def fast_zip(list ndarrays):
     '''
     For zipping multiple ndarrays into an ndarray of tuples
@@ -441,43 +424,60 @@ def fast_zip(list ndarrays):
 
     return result
 
-cdef class cache_readonly(object):
+def has_infs_f4(ndarray[float32_t] arr):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        float32_t inf, neginf, val
 
-    cdef readonly:
-        object fget, name
+    inf = np.inf
+    neginf = -inf
 
-    def __init__(self, func):
-        self.fget = func
-        self.name = func.__name__
+    for i in range(n):
+        val = arr[i]
+        if val == inf or val == neginf:
+            return True
+    return False
 
-    def __get__(self, obj, type):
-        if obj is None:
-            return self.fget
+def has_infs_f8(ndarray[float64_t] arr):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        float64_t inf, neginf, val
 
-        # Get the cache or set a default one if needed
+    inf = np.inf
+    neginf = -inf
 
-        cache = getattr(obj, '_cache', None)
-        if cache is None:
-            cache = obj._cache = {}
+    for i in range(n):
+        val = arr[i]
+        if val == inf or val == neginf:
+            return True
+    return False
 
-        if PyDict_Contains(cache, self.name):
-            # not necessary to Py_INCREF
-            val = <object> PyDict_GetItem(cache, self.name)
-            return val
-        else:
-            val = self.fget(obj)
-            PyDict_SetItem(cache, self.name, val)
-            return val
+# cdef class TypeConverter:
+#     cdef:
+#         cpython.PyTypeObject* klass_type
 
-cpdef is_array(object o):
-    return np.PyArray_Check(o)
+#     cdef readonly:
+#         object factory
+#         object klass
 
+#     def __init__(self, object klass, factory):
+#         self.klass_type = (<PyObject*> klass).ob_type
+#         self.factory = factory
+
+#     def convert(self, object obj):
+#         if cpython.PyObject_TypeCheck(obj, self.klass_type):
+#             return obj
+#         return self.factory(obj)
 
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
 include "reindex.pyx"
 include "generated.pyx"
-include "parsing.pyx"
 include "reduce.pyx"
 include "stats.pyx"
+include "properties.pyx"
+include "inference.pyx"
+include "internals.pyx"
+include "hashtable.pyx"
+include "join.pyx"

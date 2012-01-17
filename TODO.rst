@@ -1,3 +1,8 @@
+DOCS 0.7.0
+----------
+- no sort in groupby
+- concat with dict
+
 DONE
 ----
 - SparseSeries name integration + tests
@@ -49,3 +54,5 @@ Performance blog
 - Groupby
 - joining
 - Take
+
+git log v0.6.1..master --pretty=format:%aN | sort | uniq -c | sort -rn

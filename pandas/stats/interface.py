@@ -1,6 +1,4 @@
-from pandas.core.api import (Series, DataFrame, Panel, LongPanel,
-                             MultiIndex)
-
+from pandas.core.api import Series, DataFrame, Panel, MultiIndex
 from pandas.stats.ols import OLS, MovingOLS
 from pandas.stats.plm import PanelOLS, MovingPanelOLS, NonPooledPanelOLS
 import pandas.stats.common as common
@@ -15,15 +13,14 @@ def ols(**kwargs):
     y : Series, x : DataFrame -> OLS
     y : Series, x : dict of DataFrame -> OLS
     y : DataFrame, x : DataFrame -> PanelOLS
-    y : DataFrame, x : dict of DataFrame/Panel/LongPanel -> PanelOLS
-    y : Series with MultiIndex, x : Panel/LongPanel -> PanelOLS
+    y : DataFrame, x : dict of DataFrame/Panel -> PanelOLS
+    y : Series with MultiIndex, x : Panel/DataFrame + MultiIndex -> PanelOLS
 
     Parameters
     ----------
     y: Series or DataFrame
         See above for types
-    x: Series, DataFrame, dict of Series, dict of DataFrame, Panel, or
-        LongPanel
+    x: Series, DataFrame, dict of Series, dict of DataFrame, Panel
     weights : Series or ndarray
         The weights are presumed to be (proportional to) the inverse of the
         variance of the observations.  That is, if the variables are to be
@@ -110,7 +107,7 @@ def ols(**kwargs):
     if isinstance(y, DataFrame) or (isinstance(y, Series) and
                                     isinstance(y.index, MultiIndex)):
         panel = True
-    if isinstance(x, (Panel, LongPanel)):
+    if isinstance(x, Panel):
         panel = True
 
     if window_type == 'full_sample':

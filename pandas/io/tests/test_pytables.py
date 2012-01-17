@@ -5,8 +5,7 @@ import sys
 
 import numpy as np
 
-from pandas import (Series, DataFrame, Panel, LongPanel, DateRange,
-                    MultiIndex)
+from pandas import Series, DataFrame, Panel, DateRange, MultiIndex
 from pandas.io.pytables import HDFStore
 import pandas.util.testing as tm
 
@@ -179,6 +178,14 @@ class TesttHDFStore(unittest.TestCase):
         s = Series(np.random.randn(10), index=index)
         self._check_roundtrip(s, tm.assert_series_equal)
 
+    def test_tuple_index(self):
+        # GH #492
+        col = np.arange(10)
+        idx = [(0.,1.), (2., 3.), (4., 5.)]
+        data = np.random.randn(30).reshape((3, 10))
+        DF = DataFrame(data, index=idx, columns=col)
+        self._check_roundtrip(DF, tm.assert_frame_equal)
+
     def test_timeseries_preepoch(self):
         if sys.version_info[0] == 2 and sys.version_info[1] < 7:
             raise nose.SkipTest
@@ -337,14 +344,13 @@ class TesttHDFStore(unittest.TestCase):
 
     def test_long(self):
         def _check(left, right):
-            tm.assert_panel_equal(left.to_wide(),
-                                  right.to_wide())
+            tm.assert_panel_equal(left.to_panel(), right.to_panel())
 
         wp = tm.makePanel()
-        self._check_roundtrip(wp.to_long(), _check)
+        self._check_roundtrip(wp.to_frame(), _check)
 
         # empty
-        self.assertRaises(ValueError, self._check_roundtrip, wp.to_long()[:0],
+        self.assertRaises(ValueError, self._check_roundtrip, wp.to_frame()[:0],
                           _check)
 
     def test_longpanel(self):

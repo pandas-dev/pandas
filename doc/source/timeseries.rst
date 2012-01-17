@@ -56,6 +56,7 @@ logic via subclasses:
     Week, "one week, optionally anchored on a day of the week"
     MonthEnd, "calendar month end"
     BMonthEnd, "business month end"
+    QuarterEnd, "calendar quarter end"
     BQuarterEnd, "business quarter end"
     YearEnd, "calendar year end"
     YearBegin, "calendar year begin"

@@ -9,8 +9,7 @@ from datetime import datetime, date
 import time
 
 import numpy as np
-from pandas import (Series, TimeSeries, DataFrame, Panel, LongPanel,
-                    Index, MultiIndex)
+from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
 from pandas.core.common import adjoin
 import pandas.core.common as com
 import pandas._tseries as lib
@@ -20,8 +19,7 @@ _TYPE_MAP = {
     Series     : 'series',
     TimeSeries : 'series',
     DataFrame  : 'frame',
-    Panel  : 'wide',
-    LongPanel  : 'long'
+    Panel  : 'wide'
 }
 
 _NAME_MAP = {
@@ -32,7 +30,6 @@ _NAME_MAP = {
     'wide' : 'Panel',
     'wide_table' : 'Panel (Table)',
     'long' : 'LongPanel',
-
     # legacy h5 files
     'Series' : 'Series',
     'TimeSeries' : 'TimeSeries',
@@ -74,7 +71,7 @@ class HDFStore(object):
 
         ``'r'``
             Read-only; no data can be modified.
-        ``'w``'
+        ``'w'``
             Write; a new file is created (an existing file with the same
             name would be deleted).
         ``'a'``
@@ -244,7 +241,7 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel, LongPanel}
+        value : {Series, DataFrame, Panel}
         table : boolean, default False
             Write as a PyTables Table structure which may perform worse but
             allow more flexible operations like searching / selecting subsets of
@@ -294,7 +291,7 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel, LongPanel}
+        value : {Series, DataFrame, Panel}
 
         Notes
         -----
@@ -404,31 +401,6 @@ class HDFStore(object):
     def _read_wide_table(self, group, where=None):
         return self._read_panel_table(group, where)
 
-    def _write_long(self, group, panel, append=False):
-        if len(panel.values) == 0:
-            raise ValueError('Can not write empty structure, data length was 0')
-
-        self._write_index(group, 'major_axis', panel.major_axis)
-        self._write_index(group, 'minor_axis', panel.minor_axis)
-        self._write_index(group, 'items', panel.items)
-        self._write_array(group, 'major_labels', panel.major_labels)
-        self._write_array(group, 'minor_labels', panel.minor_labels)
-        self._write_array(group, 'values', panel.values)
-
-    def _read_long(self, group, where=None):
-        from pandas.core.index import MultiIndex
-
-        items = self._read_index(group, 'items')
-        major_axis = self._read_index(group, 'major_axis')
-        minor_axis = self._read_index(group, 'minor_axis')
-        major_labels = _read_array(group, 'major_labels')
-        minor_labels = _read_array(group, 'minor_labels')
-        values = _read_array(group, 'values')
-
-        index = MultiIndex(levels=[major_axis, minor_axis],
-                           labels=[major_labels, minor_labels])
-        return LongPanel(values, index=index, columns=items)
-
     def _write_index(self, group, key, index):
         if len(index) == 0:
             raise ValueError('Can not write empty structure, axis length was 0')
@@ -445,10 +417,7 @@ class HDFStore(object):
             node._v_attrs.name = index.name
 
     def _read_index(self, group, key):
-        try:
-            variety = getattr(group._v_attrs, '%s_variety' % key)
-        except Exception:
-            variety = 'regular'
+        variety = getattr(group._v_attrs, '%s_variety' % key)
 
         if variety == 'multi':
             return self._read_multi_index(group, key)
@@ -500,11 +469,10 @@ class HDFStore(object):
     def _read_index_node(self, node):
         data = node[:]
         kind = node._v_attrs.kind
+        name = None
 
-        try:
+        if 'name' in node._v_attrs:
             name = node._v_attrs.name
-        except Exception:
-            name = None
 
         index = Index(_unconvert_index(data, kind))
         index.name = name
@@ -663,12 +631,12 @@ class HDFStore(object):
                                table._v_attrs.index_kind)
         # reconstruct
         long_index = MultiIndex.from_arrays([index, columns])
-        lp = LongPanel(sel.values['values'], index=long_index,
+        lp = DataFrame(sel.values['values'], index=long_index,
                        columns=fields)
 
-        if lp.consistent:
+        if not long_index.has_duplicates:
             lp = lp.sortlevel(level=0)
-            wp = lp.to_wide()
+            wp = lp.to_panel()
         else:
             if not self._quiet:  # pragma: no cover
                 print ('Duplicate entries in table, taking most recently '
@@ -686,8 +654,8 @@ class HDFStore(object):
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
 
-            lp = LongPanel(new_values, index=new_index, columns=lp.columns)
-            wp = lp.to_wide()
+            lp = DataFrame(new_values, index=new_index, columns=lp.columns)
+            wp = lp.to_panel()
 
         if sel.column_filter:
             new_minor = sorted(set(wp.minor_axis) & sel.column_filter)
@@ -733,7 +701,8 @@ def _convert_index(index):
         atom = _tables().Float64Col()
         return np.asarray(values, dtype=np.float64), 'float', atom
     else: # pragma: no cover
-        raise ValueError('unrecognized index type %s' % type(values[0]))
+        atom = _tables().ObjectAtom()
+        return np.asarray(values, dtype='O'), 'object', atom
 
 def _read_array(group, key):
     import tables
@@ -755,6 +724,8 @@ def _unconvert_index(data, kind):
 
     elif kind in ('string', 'integer', 'float'):
         index = np.array(data)
+    elif kind == 'object':
+        index = np.array(data[0])
     else: # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index

@@ -27,6 +27,21 @@ the previous section:
               major_axis=DateRange('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
+.. _basics.head_tail:
+
+Head and Tail
+-------------
+
+To view a small sample of a Series or DataFrame object, use the ``head`` and
+``tail`` methods. The default number of elements to display is five, but you
+may pass a custom number.
+
+.. ipython:: python
+
+   long_series = Series(randn(1000))
+   long_series.head()
+   long_series.tail(3)
+
 .. _basics.attrs:
 
 Attributes and the raw ndarray(s)
@@ -76,15 +91,15 @@ unlike the axis labels, cannot be assigned to.
 Flexible binary operations
 --------------------------
 
-With binary operations between pandas data structures, we have a couple items
+With binary operations between pandas data structures, there are two key points
 of interest:
 
-  * How to describe broadcasting behavior between higher- (e.g. DataFrame) and
+  * Broadcasting behavior between higher- (e.g. DataFrame) and
     lower-dimensional (e.g. Series) objects.
-  * Behavior of missing data in computations
+  * Missing data in computations
 
-We will demonstrate the currently-available functions to illustrate these
-issues independently, though they can be performed simultaneously.
+We will demonstrate how to manage these issues independently, though they can
+be handled simultaneously.
 
 Matching / broadcasting behavior
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -179,6 +194,20 @@ function implementing this operation is ``combine_first``, which we illustrate:
    df2
    df1.combine_first(df2)
 
+General DataFrame Combine
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``combine_first`` method above calls the more general DataFrame method
+``combine``. This method takes another DataFrame and a combiner function,
+aligns the input DataFrame and then passes the combiner function pairs of
+Series (ie, columns whose names are the same).
+
+So, for instance, to reproduce ``combine_first`` as above:
+
+.. ipython:: python
+
+   combiner = lambda x, y: np.where(isnull(x), y, x)
+   df1.combine(df2, combiner)
 
 .. _basics.stats:
 
@@ -233,7 +262,9 @@ values:
 
    df.cumsum()
 
-Here is a quick reference summary table of common functions
+Here is a quick reference summary table of common functions. Each also takes an
+optional ``level`` parameter which applies only if the object has a
+:ref:`hierarchical index<indexing.hierarchical>`.
 
 .. csv-table::
     :header: "Function", "Description"
@@ -242,6 +273,7 @@ Here is a quick reference summary table of common functions
     ``count``, Number of non-null observations
     ``sum``, Sum of values
     ``mean``, Mean of values
+    ``mad``, Mean absolute deviation
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
@@ -262,6 +294,17 @@ will exclude NAs on Series input by default:
    np.mean(df['one'])
    np.mean(df['one'].values)
 
+``Series`` also has a method ``nunique`` which will return the number of unique
+non-null values:
+
+.. ipython:: python
+
+   series = Series(randn(500))
+   series[20:500] = np.nan
+   series[10:20]  = 5
+   series.nunique()
+
+
 Summarizing data: describe
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -278,6 +321,8 @@ course):
     frame.ix[::2] = np.nan
     frame.describe()
 
+.. _basics.describe:
+
 For a non-numerical Series object, `describe` will give a simple summary of the
 number of unique values and most frequently occurring values:
 
@@ -287,36 +332,24 @@ number of unique values and most frequently occurring values:
    s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
 
+.. _basics.idxmin:
 
-Correlations between objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Index of Min/Max Values
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Several handy methods for computing correlations are provided. The only
-behavior available at the moment is to compute "pairwise complete
-observations". In computing correlations in the presence of missing data, one
-must be careful internally to compute the standard deviation of each Series
-over the labels with valid data in both objects.
+The ``idxmin`` and ``idxmax`` functions on Series and DataFrame compute the
+index labels with the minimum and maximum corresponding values:
 
 .. ipython:: python
 
-   # Series with Series
-   frame['a'].corr(frame['b'])
+   s1 = Series(randn(5))
+   s1
+   s1.idxmin(), s1.idxmax()
 
-   # Pairwise correlation of DataFrame columns
-   frame.corr()
-
-A related method ``corrwith`` is implemented on DataFrame to compute the
-correlation between like-labeled Series contained in different DataFrame
-objects.
-
-.. ipython:: python
-
-   index = ['a', 'b', 'c', 'd', 'e']
-   columns = ['one', 'two', 'three', 'four']
-   df1 = DataFrame(randn(5, 4), index=index, columns=columns)
-   df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
-   df1.corrwith(df2)
-   df2.corrwith(df1, axis=1)
+   df1 = DataFrame(randn(5,3), columns=['A','B','C'])
+   df1
+   df1.idxmin(axis=0)
+   df1.idxmax(axis=1)
 
 .. _basics.apply:
 
@@ -349,6 +382,19 @@ maximum value for each column occurred:
                     index=DateRange('1/1/2000', periods=1000))
    tsdf.apply(lambda x: x.index[x.dropna().argmax()])
 
+You may also pass additional arguments and keyword arguments to the ``apply``
+method. For instance, consider the following function you would like to apply:
+
+.. code-block:: python
+
+   def subtract_and_divide(x, sub, divide=1):
+       return (x - sub) / divide
+
+You may then apply this function as follows:
+
+.. code-block:: python
+
+   df.apply(subtract_and_divide, args=(5,), divide=3)
 
 Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
@@ -364,6 +410,12 @@ Series operation on each column or row:
 
    tsdf
    tsdf.apply(Series.interpolate)
+
+Finally, ``apply`` takes an argument ``raw`` which is False by default, which
+converts each row or column into a Series before applying the function. When
+set to True, the passed function will instead receive an ndarray object, which
+has positive performance implications if you do not need the indexing
+functionality.
 
 .. seealso::
 
@@ -432,6 +484,9 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df
    df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
 
+For convenience, you may utilize the ``reindex_axis`` method, which takes the
+labels and a keyword ``axis`` paramater.
+
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
 following can be done:
@@ -484,6 +539,9 @@ make this simpler:
    df2
    df.reindex_like(df2)
 
+Reindexing with ``reindex_axis``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. _basics.align:
 
 Aligning objects with each other with ``align``
@@ -508,11 +566,29 @@ It returns a tuple with both of the reindexed Series:
    s1.align(s2, join='inner')
    s1.align(s2, join='left')
 
-For DataFrames, the join method will be applied to both the
+.. _basics.df_join:
+
+For DataFrames, the join method will be applied to both the index and the
+columns by default:
 
 .. ipython:: python
 
    df.align(df2, join='inner')
+
+You can also pass an ``axis`` option to only align on the specified axis:
+
+.. ipython:: python
+
+   df.align(df2, join='inner', axis=0)
+
+.. _basics.align.frame.series:
+
+If you pass a Series to ``DataFrame.align``, you can choose to align both
+objects either on the DataFrame's index or columns using the ``axis`` argument:
+
+.. ipython:: python
+
+   df.align(df2.ix[0], axis=1)
 
 .. _basics.reindex_fill:
 
@@ -603,6 +679,12 @@ Series, it need only contain a subset of the labels as keys:
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
 
+The ``rename`` method also provides a ``copy`` named parameter that is by
+default ``True`` and copies the underlying data. Pass ``copy=False`` to rename
+the data in place.
+
+.. _basics.rename_axis:
+
 The Panel class has an a related ``rename_axis`` class which can rename any of
 its three axes.
 
@@ -643,6 +725,34 @@ For example:
       ...:     print frame
       ...:
 
+
+.. _basics.iterrows:
+
+iterrows
+~~~~~~~~
+
+New in v0.7 is the ability to iterate efficiently through rows of a
+DataFrame. It returns an iterator yielding each index value along with a Series
+containing the data in each row:
+
+.. ipython::
+
+   In [0]: for row_index, row in df2.iterrows():
+      ...:     print '%s\n%s' % (row_index, row)
+      ...:
+
+
+For instance, a contrived way to transpose the dataframe would be:
+
+.. ipython:: python
+
+   df2 = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+   print df2
+   print df2.T
+
+   df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
+   print df2_t
+
 .. _basics.sorting:
 
 Sorting by index and value
@@ -667,6 +777,13 @@ determine the sort order:
 .. ipython:: python
 
    df.sort_index(by='two')
+
+The ``by`` argument can take a list of column names, e.g.:
+
+.. ipython:: python
+
+   df = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df[['one', 'two', 'three']].sort_index(by=['one','two'])
 
 Series has the method ``order`` (analogous to `R's order function
 <http://stat.ethz.ch/R-manual/R-patched/library/base/html/order.html>`__) which
@@ -718,6 +835,26 @@ alternately passing the ``dtype`` keyword argument to the object constructor.
    df = DataFrame(np.arange(12).reshape((4, 3)), dtype=float)
    df[0].dtype
 
+.. _basics.cast.infer:
+
+Inferring better types for object columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``convert_objects`` DataFrame method will attempt to convert
+``dtype=object`` columns to a better NumPy dtype. Occasionally (after
+transposing multiple times, for example), a mixed-type DataFrame will end up
+with everything as ``dtype=object``. This method attempts to fix that:
+
+.. ipython:: python
+
+   df = DataFrame(randn(6, 3), columns=['a', 'b', 'c'])
+   df['d'] = 'foo'
+   df
+   df = df.T.T
+   df.dtypes
+   converted = df.convert_objects()
+   converted.dtypes
+
 .. _basics.serialize:
 
 Pickling and serialization
@@ -751,3 +888,34 @@ There is also a ``save`` function which takes any object as its first argument:
 
    import os
    os.remove('foo.pickle')
+
+Console Output Formatting
+-------------------------
+
+.. _basics.console_output:
+
+Use the ``set_eng_float_format`` function in the ``pandas.core.common`` module
+to alter the floating-point formatting of pandas objects to produce a particular
+format.
+
+For instance:
+
+.. ipython:: python
+
+   set_eng_float_format(accuracy=3, use_eng_prefix=True)
+   df['a']/1.e3
+   df['a']/1.e6
+
+.. ipython:: python
+   :suppress:
+
+   reset_printoptions()
+
+
+The ``set_printoptions`` function has a number of options for controlling how
+floating point numbers are formatted (using hte ``precision`` argument) in the
+console and . The ``max_rows`` and ``max_columns`` control how many rows and
+columns of DataFrame objects are shown by default. If ``max_columns`` is set to
+0 (the default, in fact), the library will attempt to fit the DataFrame's
+string representation into the current terminal width, and defaulting to the
+summary view otherwise.

@@ -222,11 +222,6 @@ def add_nans(panel):
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
 
-def makeLongPanel():
-    wp = makePanel()
-    add_nans(wp)
-
-    return wp.to_long()
 
 # Dependency checks.  Copied this from Nipy/Nipype (Copyright of
 # respective developers, license: BSD-3)

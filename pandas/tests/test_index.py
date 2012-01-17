@@ -24,6 +24,11 @@ class TestIndex(unittest.TestCase):
     def test_hash_error(self):
         self.assertRaises(TypeError, hash, self.strIndex)
 
+    def test_new_axis(self):
+        new_index = self.dateIndex[None, :]
+        self.assert_(new_index.ndim == 2)
+        self.assert_(type(new_index) == np.ndarray)
+
     def test_deepcopy(self):
         from copy import deepcopy
 
@@ -66,6 +71,11 @@ class TestIndex(unittest.TestCase):
 
         # it works!
         casted.get_loc(5)
+
+        # pass on name
+        self.intIndex.name = 'foobar'
+        casted = self.intIndex.astype('i8')
+        self.assertEqual(casted.name, 'foobar')
 
     def test_compat(self):
         self.strIndex.tolist()
@@ -175,6 +185,16 @@ class TestIndex(unittest.TestCase):
         # non-iterable input
         self.assertRaises(Exception, first.union, 0.5)
 
+        # preserve names
+        first.name = 'A'
+        second.name = 'A'
+        union = first.union(second)
+        self.assert_(union.name == 'A')
+
+        second.name = 'B'
+        union = first.union(second)
+        self.assert_(union.name is None)
+
     def test_add(self):
         firstCat = self.strIndex + self.dateIndex
         secondCat = self.strIndex + self.strIndex
@@ -245,9 +265,9 @@ class TestIndex(unittest.TestCase):
     #     self.assert_(self.dateIndex[15:15] is NULL_INDEX)
 
     def test_is_all_dates(self):
-        self.assert_(self.dateIndex.is_all_dates())
-        self.assert_(not self.strIndex.is_all_dates())
-        self.assert_(not self.intIndex.is_all_dates())
+        self.assert_(self.dateIndex.is_all_dates)
+        self.assert_(not self.strIndex.is_all_dates)
+        self.assert_(not self.intIndex.is_all_dates)
 
     def test_summary(self):
         self._check_method_works(Index.summary)
@@ -261,6 +281,14 @@ class TestIndex(unittest.TestCase):
         self.assertEquals(formatted, expected)
 
         self.strIndex[:0].format()
+
+    def test_format_with_name_time_info(self):
+        # bug I fixed 12/20/2011
+        inc = timedelta(hours=4)
+        dates = Index([dt + inc for dt in self.dateIndex], name='something')
+
+        formatted = dates.format(name=True)
+        self.assert_(formatted[0] == 'something')
 
     def test_take(self):
         indexer = [4, 3, 0, 2]
@@ -305,6 +333,10 @@ class TestIndex(unittest.TestCase):
         self.assertEquals(idx.slice_locs(end=8), (0, 6))
         self.assertEquals(idx.slice_locs(end=9), (0, 7))
 
+        idx2 = idx[::-1]
+        self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
+        self.assertRaises(KeyError, idx2.slice_locs, 7, 3)
+
     def test_drop(self):
         n = len(self.strIndex)
 
@@ -318,13 +350,13 @@ class TestIndex(unittest.TestCase):
         import pandas
         import numpy as np
 
-        idx1 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B')], dtype=[('num',
+        aidx1 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B')], dtype=[('num',
         int),('let', 'a1')])
-        idx2 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B'),(1,'C'),(2,
+        aidx2 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B'),(1,'C'),(2,
         'C')], dtype=[('num', int),('let', 'a1')])
 
-        idx1 = pandas.Index(idx1)
-        idx2 = pandas.Index(idx2)
+        idx1 = pandas.Index(aidx1)
+        idx2 = pandas.Index(aidx2)
 
         # intersection broken?
         int_idx = idx1.intersection(idx2)
@@ -339,6 +371,19 @@ class TestIndex(unittest.TestCase):
         self.assert_(union_idx.ndim == 1)
         self.assert_(union_idx.equals(expected))
 
+    def test_is_monotonic_incomparable(self):
+        index = Index([5, datetime.now(), 7])
+        self.assert_(not index.is_monotonic)
+
+    def test_get_set_value(self):
+        values = np.random.randn(100)
+        date = self.dateIndex[67]
+
+        assert_almost_equal(self.dateIndex.get_value(values, date),
+                            values[67])
+
+        self.dateIndex.set_value(values, date, 10)
+        self.assertEquals(values[67], 10)
 
 class TestInt64Index(unittest.TestCase):
 
@@ -367,6 +412,15 @@ class TestInt64Index(unittest.TestCase):
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
         self.assertRaises(TypeError, Int64Index, arr)
+
+    def test_coerce_list(self):
+        # coerce things
+        arr = Index([1, 2, 3, 4])
+        self.assert_(type(arr) == Int64Index)
+
+        # but not if explicit dtype passed
+        arr = Index([1, 2, 3, 4], dtype=object)
+        self.assert_(type(arr) == Index)
 
     def test_dtype(self):
         self.assert_(self.index.dtype == np.int64)
@@ -680,13 +734,33 @@ class TestMultiIndex(unittest.TestCase):
         unpickled = pickle.loads(pickled)
         self.assert_(self.index.equals(unpickled))
 
+    def test_legacy_pickle(self):
+        import os
+        def curpath():
+            pth, _ = os.path.split(os.path.abspath(__file__))
+            return pth
+
+        ppath = os.path.join(curpath(), 'data/multiindex_v1.pickle')
+        obj = pickle.load(open(ppath, 'r'))
+
+        self.assert_(obj._is_legacy_format)
+
+        obj2 = MultiIndex.from_tuples(obj.values)
+        self.assert_(obj.equals(obj2))
+
+        res = obj.get_indexer(obj2[::-1])
+        exp = obj.get_indexer(obj[::-1])
+        exp2 = obj2.get_indexer(obj2[::-1])
+        assert_almost_equal(res, exp)
+        assert_almost_equal(exp, exp2)
+
     def test_contains(self):
         self.assert_(('foo', 'two') in self.index)
         self.assert_(('bar', 'two') not in self.index)
         self.assert_(None not in self.index)
 
     def test_is_all_dates(self):
-        self.assert_(not self.index.is_all_dates())
+        self.assert_(not self.index.is_all_dates)
 
     def test_getitem(self):
         # scalar
@@ -728,6 +802,31 @@ class TestMultiIndex(unittest.TestCase):
     def test_get_loc_duplicates(self):
         index = Index([2, 2, 2, 2])
         self.assertRaises(Exception, index.get_loc, 2)
+
+    def test_get_loc_level(self):
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+
+        loc = index.get_loc_level((0, 1))
+        expected = slice(1, 2)
+        self.assertEqual(loc, expected)
+
+        loc = index.get_loc_level((0, 1, 0))
+        expected = 1
+        self.assertEqual(loc, expected)
+
+        self.assertRaises(KeyError, index.get_loc_level, (2, 2))
+
+        index = MultiIndex(levels=[[2000], range(4)],
+                           labels=[np.array([0, 0, 0, 0]),
+                                   np.array([0, 1, 2, 3])])
+        result = index.get_loc_level((2000, slice(None, None)))
+        expected = slice(None, None)
+        self.assertEqual(result, expected)
 
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
@@ -843,6 +942,9 @@ class TestMultiIndex(unittest.TestCase):
         result = index.truncate(before=1, after=2)
         self.assertEqual(len(result.levels[0]), 2)
 
+        # after < before
+        self.assertRaises(ValueError, index.truncate, 3, 1)
+
     def test_get_indexer(self):
         major_axis = Index(range(4))
         minor_axis = Index(range(2))
@@ -875,32 +977,29 @@ class TestMultiIndex(unittest.TestCase):
         rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
 
-        self.assertRaises(Exception, idx1.get_indexer,
-                          list(list(zip(*idx2.get_tuple_index()))[0]))
+        # self.assertRaises(Exception, idx1.get_indexer,
+        #                   list(list(zip(*idx2.get_tuple_index()))[0]))
 
     def test_format(self):
         self.index.format()
         self.index[:0].format()
 
+    def test_format_integer_names(self):
+        index = MultiIndex(levels=[[0, 1], [0, 1]],
+                           labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                           names=[0, 1])
+        index.format(names=True)
+
     def test_bounds(self):
         self.index._bounds
-
-    def test_makeMask(self):
-        from pandas.core.panel import make_mask
-
-        mask =  make_mask(self.index)
-        expected = np.array([True, True,
-                             True, False,
-                             False, True,
-                             True, True], dtype=bool)
-        self.assert_(np.array_equal(mask, expected))
 
     def test_equals(self):
         self.assert_(self.index.equals(self.index))
         self.assert_(self.index.equal_levels(self.index))
 
         self.assert_(not self.index.equals(self.index[:-1]))
-        self.assert_(not self.index.equals(self.index.get_tuple_index()))
+
+        self.assert_(self.index.equals(self.index.get_tuple_index()))
 
         # different number of levels
         index = MultiIndex(levels=[Index(range(4)),
@@ -1109,6 +1208,23 @@ class TestMultiIndex(unittest.TestCase):
         dropped = index.droplevel(0)
         self.assertEqual(dropped.names, ['two', 'three'])
 
+        dropped = index.droplevel('two')
+        expected = index.droplevel(1)
+        self.assert_(dropped.equals(expected))
+
+    def test_droplevel_multiple(self):
+        index = MultiIndex(levels=[Index(range(4)),
+                                   Index(range(4)),
+                                   Index(range(4))],
+                           labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                                   np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                                   np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                           names=['one', 'two', 'three'])
+
+        dropped = index[:2].droplevel(['three', 'one'])
+        expected = index[:2].droplevel(2).droplevel(0)
+        self.assert_(dropped.equals(expected))
+
     def test_insert(self):
         # key contained in all levels
         new_index = self.index.insert(0, ('bar', 'two'))
@@ -1129,6 +1245,75 @@ class TestMultiIndex(unittest.TestCase):
     def test_take_preserve_name(self):
         taken = self.index.take([3,0,1])
         self.assertEqual(taken.names, self.index.names)
+
+    def test_join_level(self):
+        def _check_how(other, how):
+            join_index, lidx, ridx = other.join(self.index, how=how,
+                                                level='second',
+                                                return_indexers=True)
+
+            exp_level = other.join(self.index.levels[1], how=how)
+            self.assert_(join_index.levels[0].equals(self.index.levels[0]))
+            self.assert_(join_index.levels[1].equals(exp_level))
+
+            # pare down levels
+            mask = np.array([x[1] in exp_level for x in self.index], dtype=bool)
+            exp_values = self.index.values[mask]
+            self.assert_(np.array_equal(join_index.values, exp_values))
+
+            if how in ('outer', 'inner'):
+                join_index2, ridx2, lidx2 = \
+                    self.index.join(other, how=how, level='second',
+                                    return_indexers=True)
+
+                self.assert_(join_index.equals(join_index2))
+                self.assert_(np.array_equal(lidx, lidx2))
+                self.assert_(np.array_equal(ridx, ridx2))
+                self.assert_(np.array_equal(join_index2.values, exp_values))
+
+        def _check_all(other):
+            _check_how(other, 'outer')
+            _check_how(other, 'inner')
+            _check_how(other, 'left')
+            _check_how(other, 'right')
+
+        _check_all(Index(['three', 'one', 'two']))
+        _check_all(Index(['one']))
+        _check_all(Index(['one', 'three']))
+
+        # some corner cases
+        idx = Index(['three', 'one', 'two'])
+        result = idx.join(self.index, level='second')
+        self.assert_(isinstance(result, MultiIndex))
+
+        self.assertRaises(Exception, self.index.join, self.index, level=1)
+
+    def test_reindex(self):
+        result, indexer = self.index.reindex(list(self.index[:4]))
+        self.assert_(isinstance(result, MultiIndex))
+
+        result, indexer = self.index.reindex(list(self.index))
+        self.assert_(isinstance(result, MultiIndex))
+        self.assert_(indexer is None)
+
+    def test_reindex_level(self):
+        idx = Index(['one'])
+
+        target, indexer = self.index.reindex(idx, level='second')
+        target2, indexer2 = idx.reindex(self.index, idx, level='second')
+
+        exp_index = self.index.join(idx, level='second', how='left')
+        self.assert_(target.equals(exp_index))
+        self.assert_(target2.equals(exp_index))
+
+    def test_has_duplicates(self):
+        self.assert_(not self.index.has_duplicates)
+        self.assert_(self.index.append(self.index).has_duplicates)
+
+        index = MultiIndex(levels=[[0, 1], [0, 1, 2]],
+                           labels=[[0, 0, 0, 0, 1, 1, 1],
+                                   [0, 1, 2, 0, 0, 1, 2]])
+        self.assert_(index.has_duplicates)
 
 class TestFactor(unittest.TestCase):
 
@@ -1156,6 +1341,12 @@ class TestFactor(unittest.TestCase):
         for i, idx in enumerate(self.factor.levels):
             self.assertEqual(f(arr[labels == i]), agged[i])
 
+
+def test_get_combined_index():
+    from pandas.core.index import _get_combined_index, NULL_INDEX
+
+    result = _get_combined_index([])
+    assert(result is NULL_INDEX)
 
 if __name__ == '__main__':
     import nose

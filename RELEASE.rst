@@ -22,6 +22,224 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 
+pandas 0.7.0
+============
+
+**Release date:** NOT YET RELEASED
+
+**New features / modules**
+
+  - New ``merge`` function for efficiently performing full gamut of database /
+    relational-algebra operations. Refactored existing join methods to use the
+    new infrastructure, resulting in substantial performance gains (GH #220,
+    #249, #267)
+  - New ``concat`` function for concatenating DataFrame or Panel objects along
+    an axis. Can form union or intersection of the other axes. Improves
+    performance of ``DataFrame.append`` (#468, #479, #273)
+  - Handle differently-indexed output values in ``DataFrame.apply`` (GH #498)
+  - Can pass list of dicts (e.g., a list of shallow JSON objects) to DataFrame
+    constructor (GH #526)
+  - Add ``reorder_levels`` method to Series and DataFrame (PR #534)
+  - Add dict-like ``get`` function to DataFrame and Panel (PR #521)
+  - ``DataFrame.iterrows`` method for efficiently iterating through the rows of
+    a DataFrame
+  - Added ``DataFrame.to_panel`` with code adapted from ``LongPanel.to_long``
+  - ``reindex_axis`` method added to DataFrame
+  - Add ``level`` option to binary arithmetic functions on ``DataFrame`` and
+    ``Series``
+  - Add ``level`` option to the ``reindex`` and ``align`` methods on Series and
+    DataFrame for broadcasting values across a level (GH #542, PR #552, others)
+  - Add attribute-based item access to ``Panel`` and add IPython completion (PR
+    #554)
+  - Add ``logy`` option to ``Series.plot`` for log-scaling on the Y axis
+  - Add ``index``, ``header``, and ``justify`` options to
+    ``DataFrame.to_string``. Add option to   (GH #570, GH #571)
+  - Can pass multiple DataFrames to ``DataFrame.join`` to join on index (GH #115)
+  - Can pass multiple Panels to ``Panel.join`` (GH #115)
+  - Can pass multiple DataFrames to `DataFrame.append` to concatenate (stack)
+    and multiple Series to ``Series.append`` too
+  - Added ``justify`` argument to ``DataFrame.to_string`` to allow different
+    alignment of column headers
+  - Add ``sort`` option to GroupBy to allow disabling sorting of the group keys
+    for potential speedups (GH #595)
+  - Can pass MaskedArray to Series constructor (PR #563)
+  - Add Panel item access via attributes and IPython completion (GH #554)
+  - Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving
+    values given a sequence of row and column labels (GH #338)
+  - Add ``verbose`` option to ``read_csv`` and ``read_table`` to show number of
+    NA values inserted in non-numeric columns (GH #614)
+  - Can pass a list of dicts or Series to ``DataFrame.append`` to concatenate
+    multiple rows (GH #464)
+  - Add ``level`` argument to ``DataFrame.xs`` for selecting data from other
+    MultiIndex levels. Can take one or more levels with potentially a tuple of
+    keys for flexible retrieval of data (GH #371, GH #629)
+  - New ``crosstab`` function for easily computing frequency tables (GH #170)
+
+**API Changes**
+
+  - Label-indexing with integer indexes now raises KeyError if a label is not
+    found instead of falling back on location-based indexing
+  - Label-based slicing via ``ix`` or ``[]`` on Series will now only work if
+    exact matches for the labels are found or if the index is monotonic (for
+    range selections)
+  - Label-based slicing and sequences of labels can be passed to ``[]`` on a
+    Series for both getting and setting (GH #86)
+  - `[]` operator (``__getitem__`` and ``__setitem__``) will raise KeyError
+    with integer indexes when an index is not contained in the index. The prior
+    behavior would fall back on position-based indexing if a key was not found
+    in the index which would lead to subtle bugs. This is now consistent with
+    the behavior of ``.ix`` on DataFrame and friends (GH #328)
+  - Rename ``DataFrame.delevel`` to ``DataFrame.reset_index`` and add
+    deprecation warning
+  - `Series.sort` (an in-place operation) called on a Series which is a view on
+    a larger array (e.g. a column in a DataFrame) will generate an Exception to
+    prevent accidentally modifying the data source (GH #316)
+  - Refactor to remove deprecated ``LongPanel`` class (PR #552)
+  - Deprecated ``Panel.to_long``, renamed to ``to_frame``
+  - Deprecated ``colSpace`` argument in ``DataFrame.to_string``, renamed to
+    ``col_space``
+  - Rename ``precision`` to ``accuracy`` in engineering float formatter (GH
+    #395)
+
+**Improvements to existing features**
+
+  - Better error message in DataFrame constructor when passed column labels
+    don't match data (GH #497)
+  - Substantially improve performance of multi-GroupBy aggregation when a
+    Python function is passed, reuse ndarray object in Cython (GH #496)
+  - Can store objects indexed by tuples and floats in HDFStore (GH #492)
+  - Don't print length by default in Series.to_string, add `length` option (GH
+    #489)
+  - Improve Cython code for multi-groupby to aggregate without having to sort
+    the data (GH #93)
+  - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,
+    test for backwards unpickling compatibility
+  - Improve column reindexing performance by using specialized Cython take
+    function
+  - Further performance tweaking of Series.__getitem__ for standard use cases
+  - Avoid Index dict creation in some cases (i.e. when getting slices, etc.),
+    regression from prior versions
+  - Friendlier error message in setup.py if NumPy not installed
+  - Use common set of NA-handling operations (sum, mean, etc.) in Panel class
+    also (GH #536)
+  - Default name assignment when calling ``reset_index`` on DataFrame with a
+    regular (non-hierarchical) index (GH #476)
+  - Use Cythonized groupers when possible in Series/DataFrame stat ops with
+    ``level`` parameter passed (GH #545)
+  - Ported skiplist data structure to C to speed up ``rolling_median`` by about
+    5-10x in most typical use cases (GH #374)
+  - Some performance enhancements in constructing a Panel from a dict of
+    DataFrame objects
+  - Made ``Index._get_duplicates`` a public method by removing the underscore
+  - Prettier printing of floats, and column spacing fix (GH #395, GH #571)
+  - Add ``bold_rows`` option to DataFrame.to_html (GH #586)
+  - Improve the performance of ``DataFrame.sort_index`` by up to 5x or more
+    when sorting by multiple columns
+  - Substantially improve performance of DataFrame and Series constructors when
+    passed a nested dict or dict, respectively (GH #540, GH #621)
+  - Modified setup.py so that pip / setuptools will install dependencies (GH
+    #507, various pull requests)
+  - Unstack called on DataFrame with non-MultiIndex will return Series (GH
+    #477)
+  - Improve DataFrame.to_string and console formatting to be more consistent in
+    the number of displayed digits (GH #395)
+  - Use bottleneck if available for performing NaN-friendly statistical
+    operations that it implemented (GH #91)
+  - Can pass a list of functions to aggregate with groupby on a DataFrame,
+    yielding an aggregated result with hierarchical columns (GH #166)
+  - Monkey-patch context to traceback in ``DataFrame.apply`` to indicate which
+    row/column the function application failed on (GH #614)
+  - Improved ability of read_table and read_clipboard to parse
+    console-formatted DataFrames (can read the row of index names, etc.)
+
+**Bug fixes**
+
+  - Raise exception in out-of-bounds indexing of Series instead of
+    seg-faulting, regression from earlier releases (GH #495)
+  - Fix error when joining DataFrames of different dtypes within the same
+    typeclass (e.g. float32 and float64) (GH #486)
+  - Fix bug in Series.min/Series.max on objects like datetime.datetime (GH
+    #487)
+  - Preserve index names in Index.union (GH #501)
+  - Fix bug in Index joining causing subclass information (like DateRange type)
+    to be lost in some cases (GH #500)
+  - Accept empty list as input to DataFrame constructor, regression from 0.6.0
+    (GH #491)
+  - Can output DataFrame and Series with ndarray objects in a dtype=object
+    array (GH #490)
+  - Return empty string from Series.to_string when called on empty Series (GH
+    #488)
+  - Fix exception passing empty list to DataFrame.from_records
+  - Fix Index.format bug (excluding name field) with datetimes with time info
+  - Fix scalar value access in Series to always return NumPy scalars,
+    regression from prior versions (GH #510)
+  - Handle rows skipped at beginning of file in read_* functions (GH #505)
+  - Handle improper dtype casting in ``set_value`` methods
+  - Unary '-' / __neg__ operator on DataFrame was returning integer values
+  - Unbox 0-dim ndarrays from certain operators like all, any in Series
+  - Fix handling of missing columns (was combine_first-specific) in
+    DataFrame.combine for general case (GH #529)
+  - Fix type inference logic with boolean lists and arrays in DataFrame indexing
+  - Use centered sum of squares in R-square computation if entity_effects=True
+    in panel regression
+  - Handle all NA case in Series.{corr, cov}, was raising exception (GH #548)
+  - Aggregating by multiple levels with ``level`` argument to DataFrame, Series
+    stat method, was broken (GH #545)
+  - Fix Cython buf when converter passed to read_csv produced a numeric array
+    (buffer dtype mismatch when passed to Cython type inference function) (GH
+    #546)
+  - Fix exception when setting scalar value using .ix on a DataFrame with a
+    MultiIndex (GH #551)
+  - Fix outer join between two DateRanges with different offsets that returned
+    an invalid DateRange
+  - Cleanup DataFrame.from_records failure where index argument is an integer
+  - Fix Data.from_records failure when passed a dictionary
+  - Fix NA handling in {Series, DataFrame}.rank with non-floating point dtypes
+  - Fix bug related to integer type-checking in .ix-based indexing
+  - Handle non-string index name passed to DataFrame.from_records
+  - DataFrame.insert caused the columns name(s) field to be discarded (GH #527)
+  - Fix erroneous in monotonic many-to-one left joins
+  - Fix DataFrame.to_string to remove extra column white space (GH #571)
+  - Format floats to default to same number of digits (GH #395)
+  - Added decorator to copy docstring from one function to another (GH #449)
+  - Fix error in monotonic many-to-one left joins
+  - Fix __eq__ comparison between DateOffsets with different relativedelta
+    keywords passed
+  - Fix exception caused by parser converter returning strings (GH #583)
+  - Fix MultiIndex formatting bug with integer names (GH #601)
+  - Fix bug in handling of non-numeric aggregates in Series.groupby (GH #612)
+  - Fix TypeError with tuple subclasses (e.g. namedtuple) in
+    DataFrame.from_records (GH #611)
+  - Catch misreported console size when running IPython within Emacs
+  - Fix minor bug in pivot table margins, loss of index names and length-1
+    'All' tuple in row labels
+
+Thanks
+------
+- Craig Austin
+- Marius Cobzarenco
+- Mario Gamboa-Cavazos
+- Arthur Gerigk
+- Yaroslav Halchenko
+- Jeff Hammerbacher
+- Matt Harrison
+- Andreas Hilboll
+- Luc Kesters
+- Adam Klein
+- Gregg Lind
+- Solomon Negusse
+- Wouter Overmeire
+- Christian Prinoth
+- Sam Reckoner
+- Craig Reeson
+- Jan Schulz
+- Ted Square
+- Graham Taylor
+- Chris Uga
+- Dieter Vandenbussche
+- Texas P.
+- Pinxing Ye
+
 pandas 0.6.1
 ============
 
@@ -85,6 +303,7 @@ pandas 0.6.1
   - MultiIndex.get_level_values can take the level name
   - More helpful error message when DataFrame.plot fails on one of the columns
     (GH #478)
+  - Improve performance of DataFrame.{index, columns} attribute lookup
 
 **Bug fixes**
 

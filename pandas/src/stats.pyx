@@ -108,9 +108,8 @@ def rank_1d_generic(object in_arr):
 
     nan_value = np.inf
 
-    if isinstance(values.dtype.type, np.floating):
-        mask = np.isnan(values)
-        np.putmask(values, mask, nan_value)
+    mask = isnullobj(values.astype('O'))
+    np.putmask(values, mask, nan_value)
 
     n = len(values)
     ranks = np.empty(n, dtype='f8')

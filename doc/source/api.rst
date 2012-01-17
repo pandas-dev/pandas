@@ -12,12 +12,14 @@ General functions
 
 Data manipulations
 ~~~~~~~~~~~~~~~~~~
-.. currentmodule:: pandas.tools.pivot
+.. currentmodule:: pandas
 
 .. autosummary::
    :toctree: generated/
 
    pivot_table
+   merge
+   concat
 
 Pickling
 ~~~~~~~~
@@ -242,6 +244,7 @@ Serialization / IO / Conversion
 .. autosummary::
    :toctree: generated/
 
+   Series.from_csv
    Series.load
    Series.save
    Series.to_csv
@@ -398,6 +401,7 @@ Combining / joining / merging
    :toctree: generated/
 
    DataFrame.join
+   DataFrame.merge
    DataFrame.append
 
 Time series-related
