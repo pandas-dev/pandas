@@ -301,7 +301,10 @@ copy : boolean, default False
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.ix._convert_to_indexer(key, axis=0)
+            if self.index.inferred_type == 'integer':
+                indexer = key
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=0)
             return self._get_values(indexer)
         else:
             if isinstance(key, tuple):
@@ -383,7 +386,10 @@ copy : boolean, default False
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.ix._convert_to_indexer(key, axis=0)
+            if self.index.inferred_type == 'integer':
+                indexer = key
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=0)
             return self._set_values(indexer, value)
         else:
             if isinstance(key, tuple):

@@ -400,6 +400,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, ts.ix.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.ix.__setitem__, mask_shifted, 1)
 
+    def test_getitem_setitem_slice_integers(self):
+        s = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        result = s[:4]
+        expected = s.reindex([2, 4, 6, 8])
+        assert_series_equal(result, expected)
+
+        s[:4] = 0
+        self.assert_((s[:4] == 0).all())
+        self.assert_(not (s[4:] == 0).any())
+
     def test_getitem_out_of_bounds(self):
         # don't segfault, GH #495
         self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))
@@ -680,6 +691,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         str(self.objSeries)
 
         str(Series(tm.randn(1000), index=np.arange(1000)))
+        str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
         str(self.empty)
