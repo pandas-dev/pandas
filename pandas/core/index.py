@@ -1543,7 +1543,7 @@ class MultiIndex(Index):
             target_index = target.get_tuple_index()
 
         if target_index.dtype != object:
-            return np.ones(len(target_index),) * -1
+            return np.ones(len(target_index)) * -1
 
         self_index = self
         if self._is_legacy_format:
