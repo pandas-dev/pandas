@@ -1849,6 +1849,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert(df_s == expected)
 
     def test_to_string_format_na(self):
+        com.reset_printoptions()
         df = DataFrame({'A' : [np.nan, -1, -2.1234, 3, 4],
                         'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
