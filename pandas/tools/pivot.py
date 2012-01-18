@@ -172,9 +172,12 @@ def _convert_by(by):
         by = list(by)
     return by
 
-def crosstab(rows, cols, rownames=None, colnames=None, margins=False):
+def crosstab(rows, cols, values=None, rownames=None, colnames=None,
+             aggfunc=None, margins=False):
     """
-    Compute a simple cross-tabulation of two (or more) factors
+    Compute a simple cross-tabulation of two (or more) factors. By default
+    computes a frequency table of the factors unless an array of values and an
+    aggregation function are passed
 
     Parameters
     ----------
@@ -182,6 +185,10 @@ def crosstab(rows, cols, rownames=None, colnames=None, margins=False):
         Values to group by in the rows
     cols : array-like, Series, or list of arrays/Series
         Values to group by in the columns
+    values : array-like, optional
+        Array of values to aggregate according to the factors
+    aggfunc : function, optional
+        If no values array is passed, computes a frequency table
     rownames : sequence, default None
         If passed, must match number of row arrays passed
     colnames : sequence, default None
@@ -226,13 +233,19 @@ def crosstab(rows, cols, rownames=None, colnames=None, margins=False):
     data = {}
     data.update(zip(rownames, rows))
     data.update(zip(colnames, cols))
-    df = DataFrame(data)
-    df['__dummy__'] = 0
 
-    table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
-                           aggfunc=len, margins=margins)
-
-    return table.fillna(0).astype(np.int64)
+    if values is None:
+        df = DataFrame(data)
+        df['__dummy__'] = 0
+        table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
+                               aggfunc=len, margins=margins)
+        return table.fillna(0).astype(np.int64)
+    else:
+        data['__dummy__'] = values
+        df = DataFrame(data)
+        table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
+                               aggfunc=aggfunc, margins=margins)
+        return table
 
 def _get_names(arrs, names, prefix='row'):
     if names is None:

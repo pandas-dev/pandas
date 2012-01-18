@@ -210,6 +210,21 @@ class TestCrosstab(unittest.TestCase):
         exp_rows = exp_rows.fillna(0).astype(np.int64)
         tm.assert_series_equal(all_rows, exp_rows)
 
+    def test_crosstab_pass_values(self):
+        a = np.random.randint(0, 7, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 5, size=100)
+        values = np.random.randn(100)
+
+        table = crosstab([a, b], c, values, aggfunc=np.sum,
+                         rownames=['foo', 'bar'], colnames=['baz'])
+
+        df = DataFrame({'foo': a, 'bar': b, 'baz': c, 'values' : values})
+
+        expected = df.pivot_table('values', rows=['foo', 'bar'], cols='baz',
+                                  aggfunc=np.sum)
+        tm.assert_frame_equal(table, expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
