@@ -265,6 +265,15 @@ class TestMerge(unittest.TestCase):
         expected = self.target.join(self.source[['MergedA']], on='C')
         assert_frame_equal(result, expected)
 
+    def test_join_on_series_buglet(self):
+        # GH #638
+        df = DataFrame({'a': [1, 1]})
+        ds = Series([2], index=[1], name='b')
+        result = df.join(ds, on='a')
+        expected = DataFrame({'a' : [1, 1],
+                              'b' : [2, 2]}, index=df.index)
+        tm.assert_frame_equal(result, expected)
+
     def test_join_index_mixed(self):
 
         df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
