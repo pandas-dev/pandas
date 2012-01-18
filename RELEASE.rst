@@ -74,6 +74,8 @@ pandas 0.7.0
     MultiIndex levels. Can take one or more levels with potentially a tuple of
     keys for flexible retrieval of data (GH #371, GH #629)
   - New ``crosstab`` function for easily computing frequency tables (GH #170)
+  - Can pass a list of functions to aggregate with groupby on a DataFrame,
+    yielding an aggregated result with hierarchical columns (GH #166)
 
 **API Changes**
 
@@ -145,8 +147,6 @@ pandas 0.7.0
     the number of displayed digits (GH #395)
   - Use bottleneck if available for performing NaN-friendly statistical
     operations that it implemented (GH #91)
-  - Can pass a list of functions to aggregate with groupby on a DataFrame,
-    yielding an aggregated result with hierarchical columns (GH #166)
   - Monkey-patch context to traceback in ``DataFrame.apply`` to indicate which
     row/column the function application failed on (GH #614)
   - Improved ability of read_table and read_clipboard to parse
