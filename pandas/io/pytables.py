@@ -140,6 +140,13 @@ class HDFStore(object):
 
         return output
 
+    def keys(self):
+        """
+        Return a (potentially unordered) list of the keys corresponding to the
+        objects stored in the HDFStore
+        """
+        return self.handle.root._v_children.keys()
+
     def open(self, mode='a', warn=True):
         """
         Open the file in the specified mode
