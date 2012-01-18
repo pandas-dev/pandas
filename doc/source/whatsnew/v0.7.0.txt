@@ -67,7 +67,7 @@ New features
   ``DataFrame.to_string``
 
 - :ref:`Can <merging.multiple_join>` pass multiple DataFrames to
-  ``DataFrame.join`` to join on index (GH166_)
+  ``DataFrame.join`` to join on index (GH115_)
 
 - :ref:`Can <merging.multiple_join>` pass multiple Panels to ``Panel.join``
   (GH115_)
@@ -86,6 +86,10 @@ New features
 
 - Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving values
   given a sequence of row and column labels (GH338_)
+
+- Can pass a :ref:`list of functions <groupby.aggregate.multifunc>` to
+  aggregate with groupby on a DataFrame, yielding an aggregated result with
+  hierarchical columns (GH166_)
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
