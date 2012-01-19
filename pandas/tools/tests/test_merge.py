@@ -23,7 +23,7 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 def get_test_data(ngroups=NGROUPS, n=N):
     unique_groups = range(ngroups)
-    arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
+    arr = np.asarray(np.tile(unique_groups, n // ngroups), dtype=object)
 
     if len(arr) < n:
         arr = np.asarray(list(arr) + unique_groups[:n - len(arr)],

@@ -494,7 +494,7 @@ class Index(np.ndarray):
                 raise
             except TypeError:
                 # generator/iterator-like
-                if hasattr(key, 'next'):
+                if com.is_iterator(key):
                     raise InvalidIndexError(key)
                 else:
                     raise e1
@@ -1143,7 +1143,7 @@ class MultiIndex(Index):
                 raise
             except TypeError:
                 # generator/iterator-like
-                if hasattr(key, 'next'):
+                if com.is_iterator(key):
                     raise InvalidIndexError(key)
                 else:
                     raise e1

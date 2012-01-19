@@ -4,11 +4,14 @@ from datetime import datetime, timedelta
 import operator
 import pickle
 import unittest
+import nose
 
 import numpy as np
 
 from pandas.core.index import Index, Int64Index, Factor, MultiIndex
 from pandas.util.testing import assert_almost_equal
+from pandas.util import py3compat
+
 import pandas.util.testing as tm
 import pandas._tseries as tseries
 
@@ -735,6 +738,9 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(self.index.equals(unpickled))
 
     def test_legacy_pickle(self):
+        if py3compat.PY3:
+            raise nose.SkipTest
+
         import os
         def curpath():
             pth, _ = os.path.split(os.path.abspath(__file__))

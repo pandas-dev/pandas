@@ -286,7 +286,7 @@ copy : boolean, default False
         except Exception:
             raise
 
-        if hasattr(key, 'next'):
+        if com.is_iterator(key):
             key = list(key)
 
         # boolean

@@ -3300,10 +3300,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         try:
             transformed = data.apply(transform, axis=1)
         except Exception, e:
-            pass
+            self.assertEqual(len(e.args), 2)
+            self.assertEqual(e.args[1], 'occurred at index 4')
 
-        self.assertEqual(len(e.args), 2)
-        self.assertEqual(e.args[1], 'occurred at index 4')
 
     def test_apply_convert_objects(self):
         data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
@@ -4346,5 +4345,5 @@ if __name__ == '__main__':
     import nose
     # nose.runmodule(argv=[__file__,'-vvs','-x', '--ipdb-failure'],
     #                exit=False)
-    nose.runmodule(argv=[__file__,'-vvs','-x','--ipdb', '--ipdb-failure'],
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

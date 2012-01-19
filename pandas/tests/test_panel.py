@@ -677,7 +677,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in self.panel.iteritems())
+        data = dict((k, v.values) for k, v in self.panel.iterkv())
         result = Panel(data)
         exp_major = Index(np.arange(len(self.panel.major_axis)))
         self.assert_(result.major_axis.equals(exp_major))
