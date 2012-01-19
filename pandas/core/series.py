@@ -989,6 +989,64 @@ copy : boolean, default False
 
         return Series(result, index=self.index)
 
+    def cummax(self, axis=0, dtype=None, out=None, skipna=True):
+        """
+        Cumulative max of values. Preserves locations of NaN values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        cummax : Series
+        """
+        arr = self.values.copy()
+
+        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, -np.inf)
+
+        result = np.maximum.accumulate(arr)
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
+
+    def cummin(self, axis=0, dtype=None, out=None, skipna=True):
+        """
+        Cumulative min of values. Preserves locations of NaN values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        cummin : Series
+        """
+        arr = self.values.copy()
+
+        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, np.inf)
+
+        result = np.minimum.accumulate(arr)
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
+
     @Appender(np.ndarray.round.__doc__)
     def round(self, decimals=0, out=None):
         """

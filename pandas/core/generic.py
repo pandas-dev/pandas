@@ -435,6 +435,78 @@ class NDFrame(PandasObject):
             result = y.cumprod(axis)
         return self._wrap_array(result, self.axes, copy=False)
 
+    def cummax(self, axis=None, skipna=True):
+        """
+        Return DataFrame of cumulative max over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._default_stat_axis
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = self.values.copy()
+        if not issubclass(y.dtype.type, np.integer):
+            mask = np.isnan(self.values)
+
+            if skipna:
+                np.putmask(y, mask, -np.inf)
+
+            result = np.maximum.accumulate(y,axis)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
+        else:
+            result = np.maximum.accumulate(y,axis)
+        return self._wrap_array(result, self.axes, copy=False)
+
+    def cummin(self, axis=None, skipna=True):
+        """
+        Return DataFrame of cumulative min over requested axis.
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        if axis is None:
+            axis = self._default_stat_axis
+        else:
+            axis = self._get_axis_number(axis)
+
+        y = self.values.copy()
+        if not issubclass(y.dtype.type, np.integer):
+            mask = np.isnan(self.values)
+
+            if skipna:
+                np.putmask(y, mask, np.inf)
+
+            result = np.minimum.accumulate(y,axis)
+
+            if skipna:
+                np.putmask(result, mask, np.nan)
+        else:
+            result = np.minimum.accumulate(y,axis)
+        return self._wrap_array(result, self.axes, copy=False)
+
     def copy(self, deep=True):
         """
         Make a copy of this object
