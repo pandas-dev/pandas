@@ -223,14 +223,13 @@ class GroupBy(object):
     def _multi_iter(self):
         data = self.obj
         group_index = self._group_index
-        comp_ids, _, ngroups = _compress_group_index(group_index)
+        comp_ids, obs_ids = _compress_group_index(group_index)
+        ngroups = len(obs_ids)
         label_list = [ping.labels for ping in self.groupings]
         level_list = [ping.group_index for ping in self.groupings]
         mapper = _KeyMapper(comp_ids, ngroups, label_list, level_list)
 
         for label, group in self._generate_groups(data, comp_ids, ngroups):
-            if group is None:
-                continue
             key = mapper.get_key(label)
             yield key, group
 
@@ -335,7 +334,8 @@ class GroupBy(object):
         # aggregate all the columns at once?)
 
         group_index = self._group_index
-        comp_ids, obs_group_ids, max_group = _compress_group_index(group_index)
+        comp_ids, obs_group_ids = _compress_group_index(group_index)
+        max_group = len(obs_group_ids)
 
         output = {}
         for name, obj in self._iterate_slices():
@@ -352,6 +352,32 @@ class GroupBy(object):
 
         if len(output) == 0:
             raise GroupByError('No numeric types to aggregate')
+
+        return self._wrap_aggregated_output(output, mask, obs_group_ids)
+
+    def _python_agg_general(self, func, *args, **kwargs):
+        agg_func = lambda x: func(x, *args, **kwargs)
+
+        group_index = self._group_index
+        comp_ids, obs_group_ids = _compress_group_index(group_index)
+        max_group = len(obs_group_ids)
+
+        # iterate through "columns" ex exclusions to populate output dict
+        output = {}
+        for name, obj in self._iterate_slices():
+            try:
+                result, counts = self._aggregate_series(obj, agg_func,
+                                                        comp_ids, max_group)
+                output[name] = result
+            except TypeError:
+                continue
+
+        if len(output) == 0:
+            return self._python_apply_general(func, *args, **kwargs)
+
+        mask = counts.ravel() > 0
+        for name, result in output.iteritems():
+            output[name] = result[mask]
 
         return self._wrap_aggregated_output(output, mask, obs_group_ids)
 
@@ -380,31 +406,6 @@ class GroupBy(object):
 
         return name_list
 
-    def _python_agg_general(self, func, *args, **kwargs):
-        agg_func = lambda x: func(x, *args, **kwargs)
-
-        group_index = self._group_index
-        comp_ids, obs_group_ids, max_group = _compress_group_index(group_index)
-
-        # iterate through "columns" ex exclusions to populate output dict
-        output = {}
-        for name, obj in self._iterate_slices():
-            try:
-                result, counts = self._aggregate_series(obj, agg_func,
-                                                        comp_ids, max_group)
-                output[name] = result
-            except TypeError:
-                continue
-
-        if len(output) == 0:
-            return self._python_apply_general(func, *args, **kwargs)
-
-        mask = counts.ravel() > 0
-        for name, result in output.iteritems():
-            output[name] = result[mask]
-
-        return self._wrap_aggregated_output(output, mask, obs_group_ids)
-
     def _aggregate_series(self, obj, func, group_index, ngroups):
         try:
             return self._aggregate_series_fast(obj, func, group_index, ngroups)
@@ -431,8 +432,6 @@ class GroupBy(object):
         result = None
 
         for label, group in self._generate_groups(obj, group_index, ngroups):
-            if group is None:
-                continue
             res = func(group)
             if result is None:
                 try:
@@ -597,7 +596,6 @@ class Grouping(object):
         return iter(self.indices)
 
     _labels = None
-    _ids = None
     _counts = None
     _group_index = None
 
@@ -614,13 +612,6 @@ class Grouping(object):
         if self._labels is None:
             self._make_labels()
         return self._labels
-
-    @property
-    def ids(self):
-        if self._ids is None:
-            index = self.group_index
-            self._ids = dict(zip(range(len(index)), index))
-        return self._ids
 
     @property
     def counts(self):
@@ -1297,10 +1288,11 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
                                        ngroups)
 
     for i, (start, end) in enumerate(zip(starts, ends)):
-        if start == end:
-            yield i, None
-        else:
-            yield i, _get_slice(slice(start, end))
+        # Since I'm now compressing the group ids, it's now not "possible" to
+        # produce empty slices because such groups would not be observed in the
+        # data
+        assert(start < end)
+        yield i, _get_slice(slice(start, end))
 
 def get_group_index(label_list, shape):
     if len(label_list) == 1:
@@ -1390,7 +1382,6 @@ def _compress_group_index(group_index, sort=True):
 
     group_index = _ensure_int64(group_index)
     comp_ids = table.get_labels_groupby(group_index, uniques)
-    max_group = len(uniques)
 
     # these are the ones we observed
     obs_group_ids = np.array(uniques, dtype='i8')
@@ -1406,7 +1397,7 @@ def _compress_group_index(group_index, sort=True):
 
         obs_group_ids = obs_group_ids.take(sorter)
 
-    return comp_ids, obs_group_ids, max_group
+    return comp_ids, obs_group_ids
 
 def _groupby_indices(values):
     if values.dtype != np.object_:

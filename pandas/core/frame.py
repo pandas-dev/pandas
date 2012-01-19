@@ -4000,7 +4000,8 @@ def _lexsort_indexer(keys):
         shape.append(len(rizer.uniques))
 
     group_index = get_group_index(labels, shape)
-    comp_ids, _, max_group = _compress_group_index(group_index)
+    comp_ids, obs_ids = _compress_group_index(group_index)
+    max_group = len(obs_ids)
     indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
     return indexer
 

@@ -108,23 +108,6 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
 DataFrame.pivot_table = pivot_table
 
 def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
-    if len(cols) > 0:
-        col_margin = data[rows + values].groupby(rows).agg(aggfunc)
-
-        # need to "interleave" the margins
-        table_pieces = []
-        margin_keys = []
-        for key, piece in table.groupby(level=0, axis=1):
-            all_key = (key, 'All') + ('',) * (len(cols) - 1)
-            piece[all_key] = col_margin[key]
-            table_pieces.append(piece)
-            margin_keys.append(all_key)
-
-        result = concat(table_pieces, axis=1)
-    else:
-        result = table
-        margin_keys = table.columns
-
     grand_margin = {}
     for k, v in data[values].iteritems():
         try:
@@ -134,6 +117,40 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
                 grand_margin[k] = aggfunc(v)
         except TypeError:
             pass
+
+    if len(cols) > 0:
+        # need to "interleave" the margins
+        table_pieces = []
+        margin_keys = []
+
+
+        def _all_key(key):
+            return (key, 'All') + ('',) * (len(cols) - 1)
+
+        if len(rows) > 0:
+            margin = data[rows + values].groupby(rows).agg(aggfunc)
+            cat_axis = 1
+            for key, piece in table.groupby(level=0, axis=cat_axis):
+                all_key = _all_key(key)
+                piece[all_key] = margin[key]
+                table_pieces.append(piece)
+                margin_keys.append(all_key)
+        else:
+            margin = grand_margin
+            cat_axis = 0
+            for key, piece in table.groupby(level=0, axis=cat_axis):
+                all_key = _all_key(key)
+                table_pieces.append(piece)
+                table_pieces.append(Series(margin[key], index=[all_key]))
+                margin_keys.append(all_key)
+
+        result = concat(table_pieces, axis=cat_axis)
+
+        if len(rows) == 0:
+            return result
+    else:
+        result = table
+        margin_keys = table.columns
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols).agg(aggfunc)

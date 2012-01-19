@@ -107,6 +107,11 @@ class TestDateRange(unittest.TestCase):
         # 32-bit vs. 64-bit platforms
         self.assertEquals(self.rng[4], self.rng[np.int_(4)])
 
+    def test_getitem_matplotlib_hackaround(self):
+        values = self.rng[:, None]
+        expected = self.rng.values[:, None]
+        self.assert_(np.array_equal(values, expected))
+
     def test_shift(self):
         shifted = self.rng.shift(5)
         self.assertEquals(shifted[0], self.rng[5])

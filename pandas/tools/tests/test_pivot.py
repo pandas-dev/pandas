@@ -116,14 +116,17 @@ class TestPivotTable(unittest.TestCase):
             gmarg = table[valcol]['All', '']
             self.assertEqual(gmarg, self.data[valcol].mean())
 
-        # doesn't quite work yet
+        # this is OK
+        table = self.data.pivot_table(rows=['AA', 'BB'], margins=True,
+                                      aggfunc='mean')
 
-        # # no rows
-        # table = self.data.pivot_table(cols=['A', 'B'], margins=True,
-        #                               aggfunc=np.mean)
-        # for valcol in table.columns:
-        #     gmarg = table[valcol]['All', '']
-        #     self.assertEqual(gmarg, self.data[valcol].mean())
+        # no rows
+        rtable = self.data.pivot_table(cols=['AA', 'BB'], margins=True,
+                                      aggfunc=np.mean)
+        self.assert_(isinstance(rtable, Series))
+        for item in ['DD', 'EE', 'FF']:
+            gmarg = table[item]['All', '']
+            self.assertEqual(gmarg, self.data[item].mean())
 
 
 class TestCrosstab(unittest.TestCase):

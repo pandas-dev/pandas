@@ -1131,6 +1131,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_series_frame_radd_bug(self):
         from pandas.util.testing import rands
+        import operator
 
         # GH 353
         vals = Series([rands(5) for _ in xrange(10)])
@@ -1142,6 +1143,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = 'foo_' + frame
         expected = DataFrame({'vals' : vals.map(lambda x: 'foo_' + x)})
         tm.assert_frame_equal(result, expected)
+
+        # really raise this time
+        self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
