@@ -76,11 +76,14 @@ get_value_1d(PyArrayObject* ap, Py_ssize_t i) {
 PANDAS_INLINE char*
 get_c_string(PyObject* obj) {
 #if PY_VERSION_HEX >= 0x03000000
-  PyObject* enc_str = PyUnicode_AsEncodedString(obj);
+  PyObject* enc_str = PyUnicode_AsEncodedString(obj, "utf-8", "error");
+
   char *ret;
   ret = PyBytes_AS_STRING(enc_str);
 
-  Py_XDECREF(enc_str);
+  // TODO: memory leak here
+
+  // Py_XDECREF(enc_str);
   return ret;
 #else
   return PyString_AsString(obj);
