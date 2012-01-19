@@ -140,8 +140,8 @@ def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=None,
         # our favorite default beating matplotlib's idea of the
         # default size
         figsize = (10, 5)
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize,
-                             sharex=sharex, sharey=sharey)
+    fig, axes = subplots(nrows=nrows, ncols=ncols, figsize=figsize,
+                         sharex=sharex, sharey=sharey)
 
     ravel_axes = []
     for row in axes:
@@ -167,9 +167,9 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     ngroups = len(columns)
 
     nrows, ncols = _get_layout(ngroups)
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols,
-                             sharex=True, sharey=True,
-                             figsize=figsize)
+    fig, axes = subplots(nrows=nrows, ncols=ncols,
+                         sharex=True, sharey=True,
+                         figsize=figsize)
 
     if isinstance(axes, plt.Axes):
         ravel_axes = [axes]
