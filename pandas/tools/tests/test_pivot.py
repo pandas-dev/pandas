@@ -227,7 +227,7 @@ class TestCrosstab(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__,'-vvs','-x','--ipdb', '--ipdb-failure'],
                    exit=False)
 
 

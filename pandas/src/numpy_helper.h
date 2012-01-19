@@ -72,6 +72,31 @@ get_value_1d(PyArrayObject* ap, Py_ssize_t i) {
   return PyArray_Scalar(item, PyArray_DESCR(ap), (PyObject*) ap);
 }
 
+
+PANDAS_INLINE char*
+get_c_string(PyObject* obj) {
+#if PY_VERSION_HEX >= 0x03000000
+  PyObject* enc_str = PyUnicode_AsEncodedString(obj);
+  char *ret;
+  ret = PyBytes_AS_STRING(enc_str);
+
+  Py_XDECREF(enc_str);
+  return ret;
+#else
+  return PyString_AsString(obj);
+#endif
+}
+
+// PANDAS_INLINE int
+// is_string(PyObject* obj) {
+// #if PY_VERSION_HEX >= 0x03000000
+//   return PyUnicode_Check(obj);
+// #else
+//   return PyString_Check(obj);
+// #endif
+
+
+
 // PANDAS_INLINE PyObject*
 // get_base_ndarray(PyObject* ap) {
 //   // if (!ap || (NULL == ap)) {
