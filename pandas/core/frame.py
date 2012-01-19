@@ -1257,6 +1257,24 @@ class DataFrame(NDFrame):
         else:
             return self[label]
 
+    def iget_value(self, i, j):
+        """
+        Return scalar value stored at row i and column j, where i and j are
+        integers
+
+        Parameters
+        ----------
+        i : int
+        j : int
+
+        Returns
+        -------
+        value : scalar value
+        """
+        row = self.index[i]
+        col = self.columns[j]
+        return self.get_value(row, col)
+
     def __getitem__(self, key):
         # slice rows
         if isinstance(key, slice):

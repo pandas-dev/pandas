@@ -215,6 +215,7 @@ pandas 0.7.0
   - Catch misreported console size when running IPython within Emacs
   - Fix minor bug in pivot table margins, loss of index names and length-1
     'All' tuple in row labels
+  - Add support for legacy
 
 Thanks
 ------
@@ -233,6 +234,7 @@ Thanks
 - Solomon Negusse
 - Wouter Overmeire
 - Christian Prinoth
+- Jeff Reback
 - Sam Reckoner
 - Craig Reeson
 - Jan Schulz

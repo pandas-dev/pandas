@@ -477,7 +477,7 @@ copy : boolean, default False
         except KeyError:
             return default
 
-    def iget(self, i):
+    def iget_value(self, i):
         """
         Return the i-th value in the Series by location
 
@@ -494,6 +494,8 @@ copy : boolean, default False
         else:
             label = self.index[i]
             return self[label]
+
+    iget = iget_value
 
     def get_value(self, label):
         """
