@@ -1218,6 +1218,45 @@ class DataFrame(NDFrame):
 
             return result.set_value(index, col, value)
 
+    def irow(self, i):
+        """
+        Retrieve the i-th row of the DataFrame by location as a Series. Can
+        also pass a slice object
+
+        Parameters
+        ----------
+        i : int or slice
+
+        Returns
+        -------
+        row : Series
+        """
+        if isinstance(i, slice):
+            return self[i]
+        else:
+            label = self.index[i]
+            return self.xs(label)
+
+    def icol(self, i):
+        """
+        Retrieve the i-th column of the DataFrame by location as a Series. Can
+        also pass a slice object
+
+        Parameters
+        ----------
+        i : int or slice
+
+        Returns
+        -------
+        column : Series
+        """
+        label = self.columns[i]
+        if isinstance(i, slice):
+            lab_slice = slice(label[0], label[-1])
+            return self.ix[:, lab_slice]
+        else:
+            return self[label]
+
     def __getitem__(self, key):
         # slice rows
         if isinstance(key, slice):

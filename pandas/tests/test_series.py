@@ -323,6 +323,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assertRaises(KeyError, self.ts.__getitem__, d)
 
+    def test_iget(self):
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        for i in range(len(s)):
+            result = s.iget(i)
+            exp = s[s.index[i]]
+            assert_almost_equal(result, exp)
+
+        # pass a slice
+        result = s.iget(slice(1, 3))
+        expected = s.ix[2:4]
+        assert_series_equal(result, expected)
+
     def test_getitem_regression(self):
         s = Series(range(5), index=range(5))
         result = s[range(5)]

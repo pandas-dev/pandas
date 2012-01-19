@@ -76,6 +76,8 @@ pandas 0.7.0
   - New ``crosstab`` function for easily computing frequency tables (GH #170)
   - Can pass a list of functions to aggregate with groupby on a DataFrame,
     yielding an aggregated result with hierarchical columns (GH #166)
+  - Add integer-indexing functions ``iget`` in Series and ``irow`` / ``iget``
+    in DataFrame (GH #628)
 
 **API Changes**
 
@@ -219,6 +221,7 @@ Thanks
 - Craig Austin
 - Marius Cobzarenco
 - Mario Gamboa-Cavazos
+- Hans-Martin Gaudecker
 - Arthur Gerigk
 - Yaroslav Halchenko
 - Jeff Hammerbacher
@@ -235,6 +238,7 @@ Thanks
 - Jan Schulz
 - Ted Square
 - Graham Taylor
+- Aman Thakral
 - Chris Uga
 - Dieter Vandenbussche
 - Texas P.

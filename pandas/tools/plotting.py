@@ -1,13 +1,18 @@
-import matplotlib.pyplot as plt
-
 def scatter_matrix(data):
     pass
 
+def _gca():
+    import matplotlib.pyplot as plt
+    return plt.gca()
+
+def _gcf():
+    import matplotlib.pyplot as plt
+    return plt.gcf()
+
 def hist(data, column, by=None, ax=None, fontsize=None):
     keys, values = zip(*data.groupby(by)[column])
-
     if ax is None:
-        ax = plt.gca()
+        ax = _gca()
     ax.boxplot(values)
     ax.set_xticklabels(keys, rotation=0, fontsize=fontsize)
     return ax
@@ -23,7 +28,7 @@ def grouped_hist(data, column, by=None, ax=None, bins=50, log=False):
         ax.hist(group[column].dropna(), bins=bins)
     fig = _grouped_plot(plot_group, data, by=by, sharex=False,
                         sharey=False)
-    plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.3, wspace=0.2)
     return fig
 
@@ -70,8 +75,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         ax = axes
     else:
         if ax is None:
-            ax = plt.gca()
-
+            ax = _gca()
+        fig = ax.get_figure()
         data = data._get_numeric_data()
         if columns:
             cols = columns
@@ -82,7 +87,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
-    plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     return ax
 
 def _stringify(x):
@@ -98,6 +103,8 @@ def scatter_plot(data, x, y, by=None, ax=None):
     -------
     fig : matplotlib.Figure
     """
+    import matplotlib.pyplot as plt
+
     def plot_group(group, ax):
         xvals = group[x].values
         yvals = group[y].values
@@ -116,6 +123,8 @@ def scatter_plot(data, x, y, by=None, ax=None):
 
 def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=(10, 5),
                   sharex=True, sharey=True):
+    import matplotlib.pyplot as plt
+
     grouped = data.groupby(by)
     ngroups = len(grouped)
 
@@ -138,6 +147,8 @@ def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=(10, 5),
 
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True, grid=False):
+    import matplotlib.pyplot as plt
+
     grouped = data.groupby(by)
     if columns is None:
         columns = data._get_numeric_data().columns - by
@@ -195,4 +206,4 @@ if __name__ == '__main__':
 
     fig = scatter_plot(sales2, 'squarefeet', 'price', by='zip')
 
-    plt.show()
+    # plt.show()

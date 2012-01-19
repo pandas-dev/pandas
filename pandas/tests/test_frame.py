@@ -810,6 +810,38 @@ class CheckIndexing(object):
         result = self.frame.ix[self.frame.index[5], 'E']
         self.assert_(com.is_integer(result))
 
+    def test_irow(self):
+        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+
+        result = df.irow(1)
+        exp = df.ix[2]
+        assert_series_equal(result, exp)
+
+        result = df.irow(2)
+        exp = df.ix[4]
+        assert_series_equal(result, exp)
+
+        # slice
+        result = df.irow(slice(4, 8))
+        expected = df.ix[8:14]
+        assert_frame_equal(result, expected)
+
+    def test_icol(self):
+        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
+
+        result = df.icol(1)
+        exp = df.ix[:, 2]
+        assert_series_equal(result, exp)
+
+        result = df.icol(2)
+        exp = df.ix[:, 4]
+        assert_series_equal(result, exp)
+
+        # slice
+        result = df.icol(slice(4, 8))
+        expected = df.ix[:, 8:14]
+        assert_frame_equal(result, expected)
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 

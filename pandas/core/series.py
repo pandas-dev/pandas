@@ -477,6 +477,24 @@ copy : boolean, default False
         except KeyError:
             return default
 
+    def iget(self, i):
+        """
+        Return the i-th value in the Series by location
+
+        Parameters
+        ----------
+        i : int or slice
+
+        Returns
+        -------
+        value : scalar
+        """
+        if isinstance(i, slice):
+            return self[i]
+        else:
+            label = self.index[i]
+            return self[label]
+
     def get_value(self, label):
         """
         Quickly retrieve single value at passed index label
