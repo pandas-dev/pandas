@@ -17,7 +17,8 @@ def hist(data, column, by=None, ax=None, fontsize=None):
     ax.set_xticklabels(keys, rotation=0, fontsize=fontsize)
     return ax
 
-def grouped_hist(data, column, by=None, ax=None, bins=50, log=False):
+def grouped_hist(data, column, by=None, ax=None, bins=50, log=False,
+                 figsize=None):
     """
 
     Returns
@@ -27,14 +28,14 @@ def grouped_hist(data, column, by=None, ax=None, bins=50, log=False):
     def plot_group(group, ax):
         ax.hist(group[column].dropna(), bins=bins)
     fig = _grouped_plot(plot_group, data, by=by, sharex=False,
-                        sharey=False)
+                        sharey=False, figsize=figsize)
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.3, wspace=0.2)
     return fig
 
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True):
+            rot=0, grid=True, figsize=None):
     """
     Make a box plot from DataFrame column optionally grouped by some columns or
     other inputs
@@ -71,7 +72,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             by = [by]
 
         fig, axes = _grouped_plot_by_column(plot_group, data, columns=columns,
-                                            by=by, grid=grid)
+                                            by=by, grid=grid, figsize=figsize)
         ax = axes
     else:
         if ax is None:
@@ -96,7 +97,7 @@ def _stringify(x):
     else:
         return str(x)
 
-def scatter_plot(data, x, y, by=None, ax=None):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
     """
 
     Returns
@@ -111,7 +112,7 @@ def scatter_plot(data, x, y, by=None, ax=None):
         ax.scatter(xvals, yvals)
 
     if by is not None:
-        fig = _grouped_plot(plot_group, data, by=by)
+        fig = _grouped_plot(plot_group, data, by=by, figsize=figsize)
     else:
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -121,14 +122,22 @@ def scatter_plot(data, x, y, by=None, ax=None):
 
     return fig
 
-def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=(10, 5),
+def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=None,
                   sharex=True, sharey=True):
     import matplotlib.pyplot as plt
+
+    # allow to specify mpl default with 'default'
+    if not (isinstance(figsize, str) and figsize == 'default'):
+        figsize = (10, 5)               # our default
 
     grouped = data.groupby(by)
     ngroups = len(grouped)
 
     nrows, ncols = _get_layout(ngroups)
+    if figsize is None:
+        # our favorite default beating matplotlib's idea of the
+        # default size
+        figsize = (10, 5)
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize,
                              sharex=sharex, sharey=sharey)
 
@@ -146,7 +155,8 @@ def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=(10, 5),
     return fig, axes
 
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
-                            numeric_only=True, grid=False):
+                            numeric_only=True, grid=False,
+                            figsize=None):
     import matplotlib.pyplot as plt
 
     grouped = data.groupby(by)
@@ -156,7 +166,8 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     nrows, ncols = _get_layout(ngroups)
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols,
-                             sharex=True, sharey=True)
+                             sharex=True, sharey=True,
+                             figsize=figsize)
 
     if isinstance(axes, plt.Axes):
         ravel_axes = [axes]
