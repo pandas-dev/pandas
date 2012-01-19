@@ -3558,7 +3558,7 @@ class DataFrame(NDFrame):
         import pandas.tools.plotting as plots
         import matplotlib.pyplot as plt
         ax = plots.boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                           grid=grid, rot=rot)
+                           grid=grid, rot=rot, **kwds)
         plt.draw_if_interactive()
         return ax
 
