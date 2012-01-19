@@ -42,7 +42,8 @@ _LEGACY_MAP = {
     'Series' : 'legacy_series',
     'TimeSeries' : 'legacy_series',
     'DataFrame' : 'legacy_frame',
-    'DataMatrix' : 'legacy_frame'
+    'DataMatrix' : 'legacy_frame',
+    'WidePanel' : 'wide_table',
 }
 
 # oh the troubles to reduce import time
