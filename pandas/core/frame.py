@@ -3571,11 +3571,12 @@ class DataFrame(NDFrame):
         and will error.
         """
         import matplotlib.pyplot as plt
+        import pandas.tools.plotting as gfx
 
         if subplots:
-            fig, axes = plt.subplots(nrows=len(self.columns),
-                                   sharex=sharex, sharey=sharey,
-                                   figsize=figsize)
+            fig, axes = gfx.subplots(nrows=len(self.columns),
+                                     sharex=sharex, sharey=sharey,
+                                     figsize=figsize)
         else:
             if ax is None:
                 fig = plt.figure(figsize=figsize)
@@ -3676,13 +3677,14 @@ class DataFrame(NDFrame):
         kwds : other plotting keyword arguments
             To be passed to hist function
         """
+        import pandas.tools.plotting as gfx
         import matplotlib.pyplot as plt
 
         n = len(self.columns)
         k = 1
         while k ** 2 < n:
             k += 1
-        _, axes = plt.subplots(nrows=k, ncols=k)
+        _, axes = gfx.subplots(nrows=k, ncols=k)
 
         for i, col in enumerate(_try_sort(self.columns)):
             ax = axes[i / k][i % k]
