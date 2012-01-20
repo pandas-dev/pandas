@@ -78,8 +78,7 @@ pandas 0.7.0
     yielding an aggregated result with hierarchical columns (GH #166)
   - Add integer-indexing functions ``iget`` in Series and ``irow`` / ``iget``
     in DataFrame (GH #628)
-  - Add automatic realignment functionality (when possible) to comparisons and
-    logical operators for Series
+  - Add new ``Series.unique`` function (GH #658)
 
 **API Changes**
 

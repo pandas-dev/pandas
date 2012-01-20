@@ -999,8 +999,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             tm.assert_almost_equal(cython_or_numpy, python)
 
         def check(other):
-            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv',
-                          'gt', 'ge', 'lt', 'le']
+            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
             for opname in simple_ops:
                 _check_op(other, getattr(operator, opname))
@@ -1979,6 +1978,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.ts[:5] = np.nan
         result = self.ts.dropna()
         self.assertEquals(result.name, self.ts.name)
+
+    def test_numpy_unique(self):
+        # it works!
+        result = np.unique(self.ts)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

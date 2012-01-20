@@ -774,6 +774,21 @@ copy : boolean, default False
             counter[value] += 1
         return Series(counter).order(ascending=False)
 
+    def unique(self):
+        """
+        Return array of unique values in the Series. Significantly faster than
+        numpy.unique
+
+        Returns
+        -------
+        uniques : ndarray
+        """
+        values = self.values
+        if not values.dtype == np.object_:
+            values = values.astype('O')
+        uniques = lib.list_to_object_array(lib.fast_unique(values))
+        return lib.maybe_convert_objects(uniques)
+
     def nunique(self):
         """
         Return count of unique elements in the Series
