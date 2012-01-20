@@ -5,27 +5,8 @@ import numpy as np
 
 from numpy cimport int64_t, import_array
 
-cdef extern from "datetime.h":
-
-    ctypedef class datetime.datetime [object PyDateTime_DateTime]:
-        # cdef int *data
-        # cdef long hashcode
-        # cdef char hastzinfo
-        pass
-
-    int PyDateTime_GET_YEAR(datetime o)
-    int PyDateTime_GET_MONTH(datetime o)
-    int PyDateTime_GET_DAY(datetime o)
-    int PyDateTime_DATE_GET_HOUR(datetime o)
-    int PyDateTime_DATE_GET_MINUTE(datetime o)
-    int PyDateTime_DATE_GET_SECOND(datetime o)
-    int PyDateTime_DATE_GET_MICROSECOND(datetime o)
-    int PyDateTime_TIME_GET_HOUR(datetime o)
-    int PyDateTime_TIME_GET_MINUTE(datetime o)
-    int PyDateTime_TIME_GET_SECOND(datetime o)
-    int PyDateTime_TIME_GET_MICROSECOND(datetime o)
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
+# this is our datetime.pxd
+from datetime cimport *
 
 # import datetime C API
 PyDateTime_IMPORT
@@ -39,39 +20,71 @@ cdef class Date:
         object freq
         object tzinfo
 
-    def __init__(self, int64_t stamp, object freq = None,
-                 object tzinfo = None):
-        self.timestamp = stamp
-        self.freq = <char *>freq
+    def __init__(self, int64_t ts, object freq = None, object tzinfo = None):
+        self.timestamp = ts
+        self.freq = freq
         self.tzinfo = tzinfo
 
-_unbox_cache = dict()
-def dt_unbox(object key):
-    '''
-    Unbox datetime to datetime64
-    '''
+    # --- the following properties to make it compatible with datetime
+
+    cdef npy_datetimestruct decompose(self):
+        cdef npy_datetimestruct dts
+        PyArray_DatetimeToDatetimeStruct(self.timestamp, NPY_FR_us, &dts)
+        return dts
+
+    property year:
+        def __get__(self):
+            return self.decompose().year
+
+    property month:
+        def __get__(self):
+            return self.decompose().month
+
+    property day:
+        def __get__(self):
+            return self.decompose().day
+
+    property hour:
+        def __get__(self):
+            return self.decompose().hour
+
+    property minute:
+        def __get__(self):
+            return self.decompose().min
+
+    property second:
+        def __get__(self):
+            return self.decompose().sec
+
+    property microsecond:
+        def __get__(self):
+            return self.decompose().us
+
+
+# TODO: this is wrong calculation, wtf is going on
+def datetime_to_datetime64_WRONG(object boxed):
     cdef int64_t y, M, d, h, m, s, u
-    cdef int64_t val
+    cdef npy_datetimestruct dts
 
-    # NAT bit pattern
-    val = 0x8000000000000000
+    if PyDateTime_Check(boxed):
+        dts.year = PyDateTime_GET_YEAR(boxed)
+        dts.month = PyDateTime_GET_MONTH(boxed)
+        dts.day = PyDateTime_GET_DAY(boxed)
+        dts.hour = PyDateTime_TIME_GET_HOUR(boxed)
+        dts.min = PyDateTime_TIME_GET_MINUTE(boxed)
+        dts.sec = PyDateTime_TIME_GET_SECOND(boxed)
+        dts.us = PyDateTime_TIME_GET_MICROSECOND(boxed)
+        dts.ps = 0
+        dts.as = 0
 
-    if PyDateTime_Check(key):
-        u = PyDateTime_TIME_GET_MICROSECOND(key)
-        s = PyDateTime_TIME_GET_SECOND(key)
-        m = PyDateTime_TIME_GET_MINUTE(key)
-        h = PyDateTime_TIME_GET_HOUR(key)
-        d = PyDateTime_GET_DAY(key)
-        M = PyDateTime_GET_MONTH(key)
-        y = PyDateTime_GET_YEAR(key)
-        val = y + M + d + h + m + s + u
+        return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
 
-    return np.datetime64(val)
+def from_datetime(object dt, object freq=None):
+    cdef int64_t converted
 
-_box_cache = dict()
-def dt_box(object key):
-    '''
-    Box datetime64 to datetime
-    '''
-    return key.astype('O')
+    if PyDateTime_Check(dt):
+        converted = np.datetime64(dt).view('i8')
+        return Date(converted, freq, dt.tzinfo)
+
+    raise ValueError("Expected a datetime, received a %s" % type(dt))
 

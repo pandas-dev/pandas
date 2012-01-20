@@ -18,6 +18,9 @@ cdef double nan = NaN
 
 from datetime import datetime as pydatetime
 
+# this is our datetime.pxd
+from datetime cimport *
+
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
@@ -28,28 +31,6 @@ cimport util
 cdef extern from "math.h":
     double sqrt(double x)
     double fabs(double)
-
-cdef extern from "datetime.h":
-
-    ctypedef class datetime.datetime [object PyDateTime_DateTime]:
-        # cdef int *data
-        # cdef long hashcode
-        # cdef char hastzinfo
-        pass
-
-    int PyDateTime_GET_YEAR(datetime o)
-    int PyDateTime_GET_MONTH(datetime o)
-    int PyDateTime_GET_DAY(datetime o)
-    int PyDateTime_DATE_GET_HOUR(datetime o)
-    int PyDateTime_DATE_GET_MINUTE(datetime o)
-    int PyDateTime_DATE_GET_SECOND(datetime o)
-    int PyDateTime_DATE_GET_MICROSECOND(datetime o)
-    int PyDateTime_TIME_GET_HOUR(datetime o)
-    int PyDateTime_TIME_GET_MINUTE(datetime o)
-    int PyDateTime_TIME_GET_SECOND(datetime o)
-    int PyDateTime_TIME_GET_MICROSECOND(datetime o)
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
 
 # import datetime C API
 PyDateTime_IMPORT
