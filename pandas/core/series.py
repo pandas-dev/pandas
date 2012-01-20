@@ -621,6 +621,19 @@ copy : boolean, default False
     __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
 
+    # comparisons
+    __gt__ = _arith_method(operator.gt, '__gt__')
+    __ge__ = _arith_method(operator.ge, '__ge__')
+    __lt__ = _arith_method(operator.lt, '__lt__')
+    __le__ = _arith_method(operator.le, '__le__')
+    __eq__ = _arith_method(operator.eq, '__eq__')
+    __ne__ = _arith_method(operator.ne, '__ne__')
+
+    # binary logic
+    __or__ = _arith_method(operator.or_, '__or__')
+    __and__ = _arith_method(operator.and_, '__and__')
+    __xor__ = _arith_method(operator.xor, '__xor__')
+
     # Inplace operators
     __iadd__ = __add__
     __isub__ = __sub__

@@ -1,4 +1,3 @@
-
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -2208,7 +2207,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
             result2 = func(self.simple, row)
             self.assert_(np.array_equal(result2.values,
-                                        func(self.simple.values, row)))
+                                        func(self.simple.values, row.values)))
 
             result3 = func(self.frame, 0)
             self.assert_(np.array_equal(result3.values,

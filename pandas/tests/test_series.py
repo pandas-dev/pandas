@@ -999,11 +999,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             tm.assert_almost_equal(cython_or_numpy, python)
 
         def check(other):
-            _check_op(other, operator.add)
-            _check_op(other, operator.sub)
-            _check_op(other, operator.truediv)
-            _check_op(other, operator.floordiv)
-            _check_op(other, operator.mul)
+            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv',
+                          'gt', 'ge', 'lt', 'le']
+
+            for opname in simple_ops:
+                _check_op(other, getattr(operator, opname))
             _check_op(other, operator.pow, pos_only=True)
 
             _check_op(other, lambda x, y: operator.add(y, x))
