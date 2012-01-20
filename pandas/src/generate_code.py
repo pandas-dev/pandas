@@ -147,6 +147,9 @@ def backfill_%(name)s(ndarray[%(c_type)s] oldIndex,
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
     oldPos = oldLength - 1
     newPos = newLength - 1
 
@@ -220,6 +223,9 @@ def pad_%(name)s(ndarray[%(c_type)s] oldIndex,
 
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
+
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
 
     oldPos = 0
     newPos = 0

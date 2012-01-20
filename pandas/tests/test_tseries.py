@@ -236,6 +236,32 @@ def test_get_reverse_indexer():
     expected = np.array([4, 2, 3, 6, 7], dtype='i4')
     assert(np.array_equal(result, expected))
 
+def test_pad_backfill_object_segfault():
+    from datetime import datetime
+    old = np.array([], dtype='O')
+    new = np.array([datetime(2010, 12, 31)], dtype='O')
+
+    result = lib.pad_object(old, new, lib.map_indices_object(old),
+                            lib.map_indices_object(new))
+    expected = np.array([-1], dtype='i4')
+    assert(np.array_equal(result, expected))
+
+    result = lib.pad_object(new, old, lib.map_indices_object(new),
+                            lib.map_indices_object(old))
+    expected = np.array([], dtype='i4')
+    assert(np.array_equal(result, expected))
+
+    result = lib.backfill_object(old, new, lib.map_indices_object(old),
+                                 lib.map_indices_object(new))
+    expected = np.array([-1], dtype='i4')
+    assert(np.array_equal(result, expected))
+
+    result = lib.backfill_object(new, old, lib.map_indices_object(new),
+                            lib.map_indices_object(old))
+    expected = np.array([], dtype='i4')
+    assert(np.array_equal(result, expected))
+
+
 class TestTypeInference(unittest.TestCase):
 
     def test_integers(self):
