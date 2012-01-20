@@ -1254,12 +1254,12 @@ class TestGroupBy(unittest.TestCase):
         labels = np.array(['a', 'b', 'c', 'd', 'e'], dtype='O')
 
         def convert_fast(x):
-            return Decimal(x.mean())
+            return Decimal(str(x.mean()))
 
         def convert_force_pure(x):
             # base will be length 0
             assert(len(x.base) == len(x))
-            return Decimal(x.mean())
+            return Decimal(str(x.mean()))
 
         grouped = s.groupby(labels)
 

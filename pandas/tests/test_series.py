@@ -1609,7 +1609,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_map_decimal(self):
         from decimal import Decimal
 
-        result = self.series.map(Decimal)
+        result = self.series.map(lambda x: Decimal(str(x)))
         self.assert_(result.dtype == np.object_)
         self.assert_(isinstance(result[0], Decimal))
 
