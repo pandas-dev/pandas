@@ -1703,31 +1703,49 @@ class MultiIndex(Index):
         -------
         loc : int or slice object
         """
+        def _drop_levels(indexer, levels):
+            # kludgearound
+            new_index = self[indexer]
+            levels = [self._get_level_number(i) for i in levels]
+            for i in sorted(levels, reverse=True):
+                new_index = new_index.droplevel(i)
+            return new_index
+
         if isinstance(level, (tuple, list)):
             assert(len(key) == len(level))
             result = None
             for lev, k in zip(level, key):
-                loc = self.get_loc_level(k, level=lev)
+                loc, new_index = self.get_loc_level(k, level=lev)
                 if isinstance(loc, slice):
                     mask = np.zeros(len(self), dtype=bool)
                     mask[loc] = True
                     loc = mask
 
                 result = loc if result is None else result & loc
-            return result
+            return result, _drop_levels(result, level)
 
         level = self._get_level_number(level)
 
         if isinstance(key, tuple) and level == 0:
+            try:
+                if key in self.levels[0]:
+                    indexer = self._get_level_indexer(key, level=level)
+                    new_index = _drop_levels(indexer, [0])
+                    return indexer, new_index
+            except TypeError:
+                pass
+
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
-                    return self._engine.get_loc(key)
+                    return self._engine.get_loc(key), None
                 else:
                     # partial selection
-                    result = slice(*self.slice_locs(key, key))
-                    if result.start == result.stop:
+                    indexer = slice(*self.slice_locs(key, key))
+                    if indexer.start == indexer.stop:
                         raise KeyError(key)
-                    return result
+                    ilevels = [i for i in range(len(key))
+                               if key[i] != slice(None, None)]
+                    return indexer, _drop_levels(indexer, ilevels)
             else:
                 indexer = None
                 for i, k in enumerate(key):
@@ -1744,11 +1762,7 @@ class MultiIndex(Index):
                         if k == slice(None, None):
                             continue
                         else:
-                            raise NotImplementedError
-                            # if self.levels[i].inferred_type == 'integer':
-                            #     raise NotImplementedError
-                            # k_index = np.zeros(len(self), dtype=bool)
-                            # k_index[k] = True
+                            raise TypeError(key)
 
                     if indexer is None:
                         indexer = k_index
@@ -1756,9 +1770,13 @@ class MultiIndex(Index):
                         indexer &= k_index
                 if indexer is None:
                     indexer = slice(None, None)
-                return indexer
+                ilevels = [i for i in range(len(key))
+                           if key[i] != slice(None, None)]
+                return indexer, _drop_levels(indexer, ilevels)
         else:
-            return self._get_level_indexer(key, level=level)
+            indexer = self._get_level_indexer(key, level=level)
+            new_index = _drop_levels(indexer, [level])
+            return indexer, new_index
 
     def _get_level_indexer(self, key, level=0):
         level_index = self.levels[level]

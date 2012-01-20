@@ -285,6 +285,12 @@ copy : boolean, default False
             return self.index.get_value(self, key)
         except InvalidIndexError:
             pass
+        except KeyError:
+            if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+                # kludge
+                pass
+            else:
+                raise
         except Exception:
             raise
 
@@ -343,17 +349,13 @@ copy : boolean, default False
         if not isinstance(self.index, MultiIndex):
             raise ValueError('Can only tuple-index with a MultiIndex')
 
-        indexer = self.index.get_loc_level(key)
-        result = self._get_values(indexer)
+        indexer, new_index = self.index.get_loc_level(key)
 
-        # kludgearound
-        new_index = result.index
-        for i, k in reversed(list(enumerate(key))):
-            if not isinstance(k, slice):
-                new_index = new_index.droplevel(i)
-        result.index = new_index
-
-        return result
+        if com.is_integer(indexer):
+            return self.values[indexer]
+        else:
+            return Series(self.values[indexer], index=new_index,
+                          name=self.name)
 
     def _get_values(self, indexer):
         try:

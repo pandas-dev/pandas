@@ -93,13 +93,6 @@ class _NDFrameIndexer(object):
             self.obj.values[indexer] = value
 
     def _getitem_tuple(self, tup):
-        # a bit kludgy
-        if isinstance(self.obj._get_axis(0), MultiIndex):
-            try:
-                return self._get_label(tup, axis=0)
-            except Exception:
-                pass
-
         try:
             return self._getitem_lowerdim(tup)
         except IndexingError:
@@ -116,6 +109,16 @@ class _NDFrameIndexer(object):
     def _getitem_lowerdim(self, tup):
         from pandas.core.frame import DataFrame
 
+        # a bit kludgy
+        if isinstance(self.obj._get_axis(0), MultiIndex):
+            try:
+                return self._get_label(tup, axis=0)
+            except TypeError:
+                # slices are unhashable
+                pass
+            except Exception:
+                raise
+
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
         # df.ix[0, ['C', 'B', A']] -> rows first (False)
@@ -126,6 +129,7 @@ class _NDFrameIndexer(object):
                 # might have been a MultiIndex
                 if section.ndim == self.ndim:
                     new_key = tup[:i] + (_NS,) + tup[i+1:]
+                    # new_key = tup[:i] + tup[i+1:]
                 else:
                     new_key = tup[:i] + tup[i+1:]
 

@@ -1,5 +1,6 @@
 # pylint: disable-msg=W0612,E1101,W0141
 from cStringIO import StringIO
+import nose
 import unittest
 
 from numpy.random import randn
@@ -287,8 +288,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # not implementing this for now
 
-        self.assertRaises(NotImplementedError, s.__getitem__,
-                          (2000, slice(3, 4)))
+        self.assertRaises(TypeError, s.__getitem__, (2000, slice(3, 4)))
 
         # result = s[2000, 3:4]
         # lv =s.index.get_level_values(1)
@@ -297,16 +297,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # assert_series_equal(result, expected)
 
         # can do this though
-
-    def test_fancy_2d(self):
-        result = self.frame.ix['foo', 'B']
-        expected = self.frame.xs('foo')['B']
-        assert_series_equal(result, expected)
-
-        ft = self.frame.T
-        result = ft.ix['B', 'foo']
-        expected = ft.xs('B')['foo']
-        assert_series_equal(result, expected)
 
     def test_get_loc_single_level(self):
         s = Series(np.random.randn(len(self.single_level)),
@@ -929,7 +919,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assert_(unstacked['E', 1].dtype == np.object_)
         self.assert_(unstacked['F', 1].dtype == np.float64)
 
+    #----------------------------------------------------------------------
+    # AMBIGUOUS CASES!
+
     def test_partial_ix_missing(self):
+        raise nose.SkipTest
+
         result = self.ymd.ix[2000, 0]
         expected = self.ymd.ix[2000]['A']
         assert_series_equal(result, expected)
@@ -942,10 +937,45 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6), 0)
 
+    def test_fancy_2d(self):
+        raise nose.SkipTest
+
+        result = self.frame.ix['foo', 'B']
+        expected = self.frame.xs('foo')['B']
+        assert_series_equal(result, expected)
+
+        ft = self.frame.T
+        result = ft.ix['B', 'foo']
+        expected = ft.xs('B')['foo']
+        assert_series_equal(result, expected)
+
     def test_to_html(self):
         self.ymd.columns.name = 'foo'
         self.ymd.to_html()
         self.ymd.T.to_html()
+
+    def test_level_with_tuples(self):
+        index = MultiIndex(levels=[[('foo', 'bar'), ('foo', 'baz'),
+                                    ('foo', 'qux')],
+                                   [0, 1]],
+                           labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
+
+        series = Series(np.random.randn(6), index=index)
+        frame = DataFrame(np.random.randn(6, 4), index=index)
+
+        result = series[('foo', 'bar')]
+        result2 = series.ix[('foo', 'bar')]
+        expected = series[:2]
+        expected.index = expected.index.droplevel(0)
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
+        result = frame.ix[('foo', 'bar')]
+        result2 = frame.xs(('foo', 'bar'))
+        expected = frame[:2]
+        expected.index = expected.index.droplevel(0)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
 
 if __name__ == '__main__':
 

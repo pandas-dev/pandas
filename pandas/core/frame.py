@@ -1470,7 +1470,7 @@ class DataFrame(NDFrame):
         """
         labels = self._get_axis(axis)
         if level is not None:
-            loc = labels.get_loc_level(key, level=level)
+            loc, new_ax = labels.get_loc_level(key, level=level)
 
             # level = 0
             if not isinstance(loc, slice):
@@ -1482,7 +1482,8 @@ class DataFrame(NDFrame):
 
             result = self.ix[indexer]
 
-            new_ax = result._get_axis(axis).droplevel(level)
+            # new_ax = result._get_axis(axis).droplevel(level)
+
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 
@@ -1493,14 +1494,23 @@ class DataFrame(NDFrame):
             return data
 
         self._consolidate_inplace()
-        loc = self.index.get_loc(key)
+
+        index = self.index
+        if isinstance(index, MultiIndex):
+            loc, new_index = self.index.get_loc_level(key)
+        else:
+            loc = self.index.get_loc(key)
+
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns, name=key)
         else:
-            new_data = self._data.xs(key, axis=1, copy=copy)
-            result = DataFrame(new_data)
-            result.index = _maybe_droplevels(result.index, key)
+            result = self[loc]
+            result.index = new_index
+
+            # new_data = self._data.xs(key, axis=1, copy=copy)
+            # result = DataFrame(new_data)
+            # result.index = _maybe_droplevels(result.index, key)
             return result
 
     def lookup(self, row_labels, col_labels):
