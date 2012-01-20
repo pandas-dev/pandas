@@ -1247,6 +1247,30 @@ class TestGroupBy(unittest.TestCase):
         result = obj.groupby(inds).agg(Series.median)
         self.assert_(result.isnull().all())
 
+    def test_convert_objects_leave_decimal_alone(self):
+        from decimal import Decimal
+
+        s = Series(range(5))
+        labels = np.array(['a', 'b', 'c', 'd', 'e'], dtype='O')
+
+        def convert_fast(x):
+            return Decimal(x.mean())
+
+        def convert_force_pure(x):
+            # base will be length 0
+            assert(len(x.base) == len(x))
+            return Decimal(x.mean())
+
+        grouped = s.groupby(labels)
+
+        result = grouped.agg(convert_fast)
+        self.assert_(result.dtype == np.object_)
+        self.assert_(isinstance(result[0], Decimal))
+
+        result = grouped.agg(convert_force_pure)
+        self.assert_(result.dtype == np.object_)
+        self.assert_(isinstance(result[0], Decimal))
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):

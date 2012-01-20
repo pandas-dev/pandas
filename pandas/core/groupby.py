@@ -446,7 +446,7 @@ class GroupBy(object):
             counts[label] = group.shape[0]
             result[label] = res
 
-        result = lib.maybe_convert_objects(result)
+        result = lib.maybe_convert_objects(result, try_float=0)
         return result, counts
 
     def _python_apply_general(self, func, *args, **kwargs):

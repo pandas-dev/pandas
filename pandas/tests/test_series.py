@@ -1257,9 +1257,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(result, expected)
 
     def test_corr_rank(self):
+        import scipy
         import scipy.stats as stats
-        # kendall and spearman
 
+        # kendall and spearman
         A = tm.makeTimeSeries()
         B = tm.makeTimeSeries()
         A[-5:] = A[:5]
@@ -1270,6 +1271,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = A.corr(B, method='spearman')
         expected = stats.spearmanr(A, B)[0]
         self.assertAlmostEqual(result, expected)
+
+        # these methods got rewritten in 0.8
+        if int(scipy.__version__.split('.')[1]) < 9:
+            raise nose.SkipTest
 
         # results from R
         A = Series([-0.89926396,  0.94209606, -1.03289164, -0.95445587,
