@@ -120,6 +120,7 @@ See the package overview for more detail about what's in the library.
     visualization
     io
     sparse
+    gotchas
     r_interface
     related
     comparison_with_r

@@ -504,12 +504,6 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
     print_config.float_format = EngFormatter(accuracy, use_eng_prefix)
     print_config.column_space = max(12, accuracy + 9)
 
-#_float_format = None
-#_column_space = 12
-#_precision = 4
-#_max_rows = 500
-#_max_columns = 0
-
 def _stringify(col):
     # unicode workaround
     if isinstance(col, tuple):
@@ -611,7 +605,7 @@ class _GlobalPrintConfig(object):
         self.precision = 4
         self.float_format = None
         self.column_space = 12
-        self.max_rows = 500
+        self.max_rows = 200
         self.max_columns = 0
         self.colheader_justify = 'right'
 
@@ -761,6 +755,10 @@ def is_integer(obj):
 
 def is_float(obj):
     return isinstance(obj, (float, np.floating))
+
+def is_iterator(obj):
+    # python 3 generators have __next__ instead of next
+    return hasattr(obj, 'next') or hasattr(obj, '__next__')
 
 def is_integer_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):

@@ -157,9 +157,17 @@ class TestGroupBy(unittest.TestCase):
 
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
-        assert_frame_equal(grouped.sum(), DataFrame(columns=self.tsframe.columns))
+        assert_frame_equal(grouped.sum(),
+                           DataFrame(columns=self.tsframe.columns))
         assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
+
+    def test_agg_python_multiindex(self):
+        grouped = self.mframe.groupby(['A', 'B'])
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        tm.assert_frame_equal(result, expected)
 
     def test_apply_describe_bug(self):
         grouped = self.mframe.groupby(level='first')

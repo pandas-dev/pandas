@@ -33,6 +33,8 @@ from pandas.util.decorators import Appender, Substitution
 
 __all__ = ['Series', 'TimeSeries']
 
+_np_version = np.version.short_version
+
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
@@ -63,6 +65,22 @@ def _arith_method(op, name):
             return Series(op(self.values, other), index=self.index,
                           name=self.name)
     return wrapper
+
+def _radd_compat(left, right):
+    radd = lambda x, y: y + x
+    # GH #353, NumPy 1.5.1 workaround
+    try:
+        output = radd(left, right)
+    except TypeError:
+        cond = (_np_version.startswith('1.5') and
+                left.dtype == np.object_)
+        if cond: # pragma: no cover
+            output = np.empty_like(left)
+            output.flat[:] = [radd(x, right) for x in left.flat]
+        else:
+            raise
+
+    return output
 
 def _maybe_match_name(a, b):
     name = None
@@ -268,7 +286,7 @@ copy : boolean, default False
         except Exception:
             raise
 
-        if hasattr(key, 'next'):
+        if com.is_iterator(key):
             key = list(key)
 
         # boolean
@@ -283,7 +301,10 @@ copy : boolean, default False
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.ix._convert_to_indexer(key, axis=0)
+            if self.index.inferred_type == 'integer':
+                indexer = key
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=0)
             return self._get_values(indexer)
         else:
             if isinstance(key, tuple):
@@ -365,7 +386,10 @@ copy : boolean, default False
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            indexer = self.ix._convert_to_indexer(key, axis=0)
+            if self.index.inferred_type == 'integer':
+                indexer = key
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=0)
             return self._set_values(indexer, value)
         else:
             if isinstance(key, tuple):
@@ -452,6 +476,26 @@ copy : boolean, default False
             return self.get_value(label)
         except KeyError:
             return default
+
+    def iget_value(self, i):
+        """
+        Return the i-th value in the Series by location
+
+        Parameters
+        ----------
+        i : int or slice
+
+        Returns
+        -------
+        value : scalar
+        """
+        if isinstance(i, slice):
+            return self[i]
+        else:
+            label = self.index[i]
+            return self[label]
+
+    iget = iget_value
 
     def get_value(self, label):
         """
@@ -570,12 +614,25 @@ copy : boolean, default False
     __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
     __pow__ = _arith_method(operator.pow, '__pow__')
 
-    __radd__ = _arith_method(lambda x, y: y + x, '__add__')
+    __radd__ = _arith_method(_radd_compat, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')
     __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
+
+    # comparisons
+    __gt__ = _arith_method(operator.gt, '__gt__')
+    __ge__ = _arith_method(operator.ge, '__ge__')
+    __lt__ = _arith_method(operator.lt, '__lt__')
+    __le__ = _arith_method(operator.le, '__le__')
+    __eq__ = _arith_method(operator.eq, '__eq__')
+    __ne__ = _arith_method(operator.ne, '__ne__')
+
+    # binary logic
+    __or__ = _arith_method(operator.or_, '__or__')
+    __and__ = _arith_method(operator.and_, '__and__')
+    __xor__ = _arith_method(operator.xor, '__xor__')
 
     # Inplace operators
     __iadd__ = __add__

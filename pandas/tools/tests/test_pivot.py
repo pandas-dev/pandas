@@ -116,14 +116,17 @@ class TestPivotTable(unittest.TestCase):
             gmarg = table[valcol]['All', '']
             self.assertEqual(gmarg, self.data[valcol].mean())
 
-        # doesn't quite work yet
+        # this is OK
+        table = self.data.pivot_table(rows=['AA', 'BB'], margins=True,
+                                      aggfunc='mean')
 
-        # # no rows
-        # table = self.data.pivot_table(cols=['A', 'B'], margins=True,
-        #                               aggfunc=np.mean)
-        # for valcol in table.columns:
-        #     gmarg = table[valcol]['All', '']
-        #     self.assertEqual(gmarg, self.data[valcol].mean())
+        # no rows
+        rtable = self.data.pivot_table(cols=['AA', 'BB'], margins=True,
+                                      aggfunc=np.mean)
+        self.assert_(isinstance(rtable, Series))
+        for item in ['DD', 'EE', 'FF']:
+            gmarg = table[item]['All', '']
+            self.assertEqual(gmarg, self.data[item].mean())
 
 
 class TestCrosstab(unittest.TestCase):
@@ -210,9 +213,24 @@ class TestCrosstab(unittest.TestCase):
         exp_rows = exp_rows.fillna(0).astype(np.int64)
         tm.assert_series_equal(all_rows, exp_rows)
 
+    def test_crosstab_pass_values(self):
+        a = np.random.randint(0, 7, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 5, size=100)
+        values = np.random.randn(100)
+
+        table = crosstab([a, b], c, values, aggfunc=np.sum,
+                         rownames=['foo', 'bar'], colnames=['baz'])
+
+        df = DataFrame({'foo': a, 'bar': b, 'baz': c, 'values' : values})
+
+        expected = df.pivot_table('values', rows=['foo', 'bar'], cols='baz',
+                                  aggfunc=np.sum)
+        tm.assert_frame_equal(table, expected)
+
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__,'-vvs','-x','--ipdb', '--ipdb-failure'],
                    exit=False)
 
 

@@ -5,7 +5,7 @@ from pandas.tools.merge import concat
 import pandas.core.common as com
 import numpy as np
 
-def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
+def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
                 fill_value=None, margins=False):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
@@ -108,29 +108,49 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc=np.mean,
 DataFrame.pivot_table = pivot_table
 
 def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
-    if len(cols) > 0:
-        col_margin = data[rows + values].groupby(rows).agg(aggfunc)
-
-        # need to "interleave" the margins
-        table_pieces = []
-        margin_keys = []
-        for key, piece in table.groupby(level=0, axis=1):
-            all_key = (key, 'All') + ('',) * (len(cols) - 1)
-            piece[all_key] = col_margin[key]
-            table_pieces.append(piece)
-            margin_keys.append(all_key)
-
-        result = concat(table_pieces, axis=1)
-    else:
-        result = table
-        margin_keys = table.columns
-
     grand_margin = {}
     for k, v in data[values].iteritems():
         try:
-            grand_margin[k] = aggfunc(v)
+            if isinstance(aggfunc, basestring):
+                grand_margin[k] = getattr(v, aggfunc)()
+            else:
+                grand_margin[k] = aggfunc(v)
         except TypeError:
             pass
+
+    if len(cols) > 0:
+        # need to "interleave" the margins
+        table_pieces = []
+        margin_keys = []
+
+
+        def _all_key(key):
+            return (key, 'All') + ('',) * (len(cols) - 1)
+
+        if len(rows) > 0:
+            margin = data[rows + values].groupby(rows).agg(aggfunc)
+            cat_axis = 1
+            for key, piece in table.groupby(level=0, axis=cat_axis):
+                all_key = _all_key(key)
+                piece[all_key] = margin[key]
+                table_pieces.append(piece)
+                margin_keys.append(all_key)
+        else:
+            margin = grand_margin
+            cat_axis = 0
+            for key, piece in table.groupby(level=0, axis=cat_axis):
+                all_key = _all_key(key)
+                table_pieces.append(piece)
+                table_pieces.append(Series(margin[key], index=[all_key]))
+                margin_keys.append(all_key)
+
+        result = concat(table_pieces, axis=cat_axis)
+
+        if len(rows) == 0:
+            return result
+    else:
+        result = table
+        margin_keys = table.columns
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols).agg(aggfunc)
@@ -169,9 +189,12 @@ def _convert_by(by):
         by = list(by)
     return by
 
-def crosstab(rows, cols, rownames=None, colnames=None, margins=False):
+def crosstab(rows, cols, values=None, rownames=None, colnames=None,
+             aggfunc=None, margins=False):
     """
-    Compute a simple cross-tabulation of two (or more) factors
+    Compute a simple cross-tabulation of two (or more) factors. By default
+    computes a frequency table of the factors unless an array of values and an
+    aggregation function are passed
 
     Parameters
     ----------
@@ -179,6 +202,10 @@ def crosstab(rows, cols, rownames=None, colnames=None, margins=False):
         Values to group by in the rows
     cols : array-like, Series, or list of arrays/Series
         Values to group by in the columns
+    values : array-like, optional
+        Array of values to aggregate according to the factors
+    aggfunc : function, optional
+        If no values array is passed, computes a frequency table
     rownames : sequence, default None
         If passed, must match number of row arrays passed
     colnames : sequence, default None
@@ -223,13 +250,19 @@ def crosstab(rows, cols, rownames=None, colnames=None, margins=False):
     data = {}
     data.update(zip(rownames, rows))
     data.update(zip(colnames, cols))
-    df = DataFrame(data)
-    df['__dummy__'] = 0
 
-    table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
-                           aggfunc=len, margins=margins)
-
-    return table.fillna(0).astype(np.int64)
+    if values is None:
+        df = DataFrame(data)
+        df['__dummy__'] = 0
+        table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
+                               aggfunc=len, margins=margins)
+        return table.fillna(0).astype(np.int64)
+    else:
+        data['__dummy__'] = values
+        df = DataFrame(data)
+        table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
+                               aggfunc=aggfunc, margins=margins)
+        return table
 
 def _get_names(arrs, names, prefix='row'):
     if names is None:

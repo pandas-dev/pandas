@@ -74,6 +74,12 @@ pandas 0.7.0
     MultiIndex levels. Can take one or more levels with potentially a tuple of
     keys for flexible retrieval of data (GH #371, GH #629)
   - New ``crosstab`` function for easily computing frequency tables (GH #170)
+  - Can pass a list of functions to aggregate with groupby on a DataFrame,
+    yielding an aggregated result with hierarchical columns (GH #166)
+  - Add integer-indexing functions ``iget`` in Series and ``irow`` / ``iget``
+    in DataFrame (GH #628)
+  - Add automatic realignment functionality (when possible) to comparisons and
+    logical operators for Series
 
 **API Changes**
 
@@ -145,8 +151,6 @@ pandas 0.7.0
     the number of displayed digits (GH #395)
   - Use bottleneck if available for performing NaN-friendly statistical
     operations that it implemented (GH #91)
-  - Can pass a list of functions to aggregate with groupby on a DataFrame,
-    yielding an aggregated result with hierarchical columns (GH #166)
   - Monkey-patch context to traceback in ``DataFrame.apply`` to indicate which
     row/column the function application failed on (GH #614)
   - Improved ability of read_table and read_clipboard to parse
@@ -213,12 +217,14 @@ pandas 0.7.0
   - Catch misreported console size when running IPython within Emacs
   - Fix minor bug in pivot table margins, loss of index names and length-1
     'All' tuple in row labels
+  - Add support for legacy
 
 Thanks
 ------
 - Craig Austin
 - Marius Cobzarenco
 - Mario Gamboa-Cavazos
+- Hans-Martin Gaudecker
 - Arthur Gerigk
 - Yaroslav Halchenko
 - Jeff Hammerbacher
@@ -230,11 +236,13 @@ Thanks
 - Solomon Negusse
 - Wouter Overmeire
 - Christian Prinoth
+- Jeff Reback
 - Sam Reckoner
 - Craig Reeson
 - Jan Schulz
 - Ted Square
 - Graham Taylor
+- Aman Thakral
 - Chris Uga
 - Dieter Vandenbussche
 - Texas P.

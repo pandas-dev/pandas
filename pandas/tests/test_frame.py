@@ -1,4 +1,3 @@
-
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -810,6 +809,38 @@ class CheckIndexing(object):
         result = self.frame.ix[self.frame.index[5], 'E']
         self.assert_(com.is_integer(result))
 
+    def test_irow(self):
+        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+
+        result = df.irow(1)
+        exp = df.ix[2]
+        assert_series_equal(result, exp)
+
+        result = df.irow(2)
+        exp = df.ix[4]
+        assert_series_equal(result, exp)
+
+        # slice
+        result = df.irow(slice(4, 8))
+        expected = df.ix[8:14]
+        assert_frame_equal(result, expected)
+
+    def test_icol(self):
+        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
+
+        result = df.icol(1)
+        exp = df.ix[:, 2]
+        assert_series_equal(result, exp)
+
+        result = df.icol(2)
+        exp = df.ix[:, 4]
+        assert_series_equal(result, exp)
+
+        # slice
+        result = df.icol(slice(4, 8))
+        expected = df.ix[:, 8:14]
+        assert_frame_equal(result, expected)
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
@@ -1497,6 +1528,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # buglet
         self.mixed_frame._data.ndim
 
+        # empty
+        unpickled = pickle.loads(pickle.dumps(self.empty))
+        repr(unpickled)
+
     def test_to_dict(self):
         test_data = {
                 'A' : {'1' : 1, '2' : 2},
@@ -1849,6 +1884,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert(df_s == expected)
 
     def test_to_string_format_na(self):
+        com.reset_printoptions()
         df = DataFrame({'A' : [np.nan, -1, -2.1234, 3, 4],
                         'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
@@ -2171,7 +2207,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
             result2 = func(self.simple, row)
             self.assert_(np.array_equal(result2.values,
-                                        func(self.simple.values, row)))
+                                        func(self.simple.values, row.values)))
 
             result3 = func(self.frame, 0)
             self.assert_(np.array_equal(result3.values,
@@ -3295,10 +3331,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         try:
             transformed = data.apply(transform, axis=1)
         except Exception, e:
-            pass
+            self.assertEqual(len(e.args), 2)
+            self.assertEqual(e.args[1], 'occurred at index 4')
 
-        self.assertEqual(len(e.args), 2)
-        self.assertEqual(e.args[1], 'occurred at index 4')
 
     def test_apply_convert_objects(self):
         data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
@@ -4339,7 +4374,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 if __name__ == '__main__':
     # unittest.main()
     import nose
-    # nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
+    # nose.runmodule(argv=[__file__,'-vvs','-x', '--ipdb-failure'],
     #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

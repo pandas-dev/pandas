@@ -343,6 +343,7 @@ performance HDF5 format using the excellent `PyTables
 
 .. ipython:: python
    :suppress:
+   :okexcept:
 
    os.remove('store.h5')
 
@@ -374,15 +375,16 @@ In a current or later Python session, you can retrieve stored objects:
 
    store['df']
 
-Storing in Table format
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Querying objects stored in Table format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. ipython:: python
    :suppress:
 
    store.close()
    import os
    os.remove('store.h5')
+
+
+.. Storing in Table format
+.. ~~~~~~~~~~~~~~~~~~~~~~~
+
+.. Querying objects stored in Table format
+.. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

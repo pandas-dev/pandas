@@ -30,12 +30,13 @@ class TesttHDFStore(unittest.TestCase):
         self.store.close()
         os.remove(self.path)
 
-    def test_len(self):
+    def test_len_keys(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
         self.assertEquals(len(self.store), 4)
+        self.assert_(set(self.store.keys()) == set(['a', 'b', 'c', 'd']))
 
     def test_repr(self):
         repr(self.store)

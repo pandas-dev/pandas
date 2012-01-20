@@ -42,7 +42,8 @@ _LEGACY_MAP = {
     'Series' : 'legacy_series',
     'TimeSeries' : 'legacy_series',
     'DataFrame' : 'legacy_frame',
-    'DataMatrix' : 'legacy_frame'
+    'DataMatrix' : 'legacy_frame',
+    'WidePanel' : 'wide_table',
 }
 
 # oh the troubles to reduce import time
@@ -139,6 +140,13 @@ class HDFStore(object):
             output += 'Empty'
 
         return output
+
+    def keys(self):
+        """
+        Return a (potentially unordered) list of the keys corresponding to the
+        objects stored in the HDFStore
+        """
+        return self.handle.root._v_children.keys()
 
     def open(self, mode='a', warn=True):
         """

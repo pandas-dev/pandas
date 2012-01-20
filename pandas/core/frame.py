@@ -29,7 +29,7 @@ from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series
+from pandas.core.series import Series, _radd_compat
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
@@ -486,7 +486,7 @@ class DataFrame(NDFrame):
     sub = _arith_method(operator.sub, 'subtract')
     div = _arith_method(lambda x, y: x / y, 'divide')
 
-    radd = _arith_method(lambda x, y: y + x, 'radd')
+    radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
     rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
     rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
@@ -500,7 +500,7 @@ class DataFrame(NDFrame):
                                default_axis=None)
     __pow__ = _arith_method(operator.pow, '__pow__', default_axis=None)
 
-    __radd__ = _arith_method(lambda x, y: y + x, '__radd__', default_axis=None)
+    __radd__ = _arith_method(_radd_compat, '__radd__', default_axis=None)
     __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
@@ -1217,6 +1217,63 @@ class DataFrame(NDFrame):
                 com._possibly_cast_item(result, col, likely_dtype)
 
             return result.set_value(index, col, value)
+
+    def irow(self, i):
+        """
+        Retrieve the i-th row of the DataFrame by location as a Series. Can
+        also pass a slice object
+
+        Parameters
+        ----------
+        i : int or slice
+
+        Returns
+        -------
+        row : Series
+        """
+        if isinstance(i, slice):
+            return self[i]
+        else:
+            label = self.index[i]
+            return self.xs(label)
+
+    def icol(self, i):
+        """
+        Retrieve the i-th column of the DataFrame by location as a Series. Can
+        also pass a slice object
+
+        Parameters
+        ----------
+        i : int or slice
+
+        Returns
+        -------
+        column : Series
+        """
+        label = self.columns[i]
+        if isinstance(i, slice):
+            lab_slice = slice(label[0], label[-1])
+            return self.ix[:, lab_slice]
+        else:
+            return self[label]
+
+    def iget_value(self, i, j):
+        """
+        Return scalar value stored at row i and column j, where i and j are
+        integers
+
+        Parameters
+        ----------
+        i : int
+        j : int
+
+        Returns
+        -------
+        value : scalar value
+        """
+        row = self.index[i]
+        col = self.columns[j]
+        return self.get_value(row, col)
 
     def __getitem__(self, key):
         # slice rows
@@ -3501,7 +3558,7 @@ class DataFrame(NDFrame):
         import pandas.tools.plotting as plots
         import matplotlib.pyplot as plt
         ax = plots.boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                           grid=grid, rot=rot)
+                           grid=grid, rot=rot, **kwds)
         plt.draw_if_interactive()
         return ax
 
@@ -3532,11 +3589,12 @@ class DataFrame(NDFrame):
         and will error.
         """
         import matplotlib.pyplot as plt
+        import pandas.tools.plotting as gfx
 
         if subplots:
-            fig, axes = plt.subplots(nrows=len(self.columns),
-                                   sharex=sharex, sharey=sharey,
-                                   figsize=figsize)
+            fig, axes = gfx.subplots(nrows=len(self.columns),
+                                     sharex=sharex, sharey=sharey,
+                                     figsize=figsize)
         else:
             if ax is None:
                 fig = plt.figure(figsize=figsize)
@@ -3555,17 +3613,17 @@ class DataFrame(NDFrame):
                 empty = self[col].count() == 0
                 y = self[col].values if not empty else np.zeros(x.shape)
 
-                try:
-                    if subplots:
-                        ax = axes[i]
-                        ax.plot(x, y, 'k', label=str(col), **kwds)
-                        ax.legend(loc='best')
-                    else:
-                        ax.plot(x, y, label=str(col), **kwds)
-                except Exception, e:
-                    msg = ('Unable to plot data %s vs index %s,\n'
-                           'error was: %s' % (str(y), str(x), str(e)))
-                    raise Exception(msg)
+                #try:
+                if subplots:
+                    ax = axes[i]
+                    ax.plot(x, y, 'k', label=str(col), **kwds)
+                    ax.legend(loc='best')
+                else:
+                    ax.plot(x, y, label=str(col), **kwds)
+                #except Exception, e:
+                #    msg = ('Unable to plot data %s vs index %s,\n'
+                #           'error was: %s' % (str(y), str(x), str(e)))
+                #    raise Exception(msg)
 
                 ax.grid(grid)
 
@@ -3637,13 +3695,14 @@ class DataFrame(NDFrame):
         kwds : other plotting keyword arguments
             To be passed to hist function
         """
+        import pandas.tools.plotting as gfx
         import matplotlib.pyplot as plt
 
         n = len(self.columns)
         k = 1
         while k ** 2 < n:
             k += 1
-        _, axes = plt.subplots(nrows=k, ncols=k)
+        _, axes = gfx.subplots(nrows=k, ncols=k)
 
         for i, col in enumerate(_try_sort(self.columns)):
             ax = axes[i / k][i % k]
@@ -3961,7 +4020,8 @@ def _lexsort_indexer(keys):
         shape.append(len(rizer.uniques))
 
     group_index = get_group_index(labels, shape)
-    comp_ids, _, max_group = _compress_group_index(group_index)
+    comp_ids, obs_ids = _compress_group_index(group_index)
+    max_group = len(obs_ids)
     indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
     return indexer
 

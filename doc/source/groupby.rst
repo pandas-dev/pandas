@@ -125,7 +125,7 @@ only verifies that you've passed a valid mapping.
    GroupBy operations (though can't be guaranteed to be the most
    efficient). You can get quite creative with the label mapping functions.
 
-.. _groupby.atributes:
+.. _groupby.attributes:
 
 GroupBy object attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -301,6 +301,8 @@ same result as the column names are stored in the resulting ``MultiIndex``:
 .. ipython:: python
 
    df.groupby(['A', 'B']).sum().reset_index()
+
+.. _groupby.aggregate.multifunc:
 
 Applying multiple functions at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

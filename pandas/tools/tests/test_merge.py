@@ -23,7 +23,7 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 def get_test_data(ngroups=NGROUPS, n=N):
     unique_groups = range(ngroups)
-    arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
+    arr = np.asarray(np.tile(unique_groups, n // ngroups), dtype=object)
 
     if len(arr) < n:
         arr = np.asarray(list(arr) + unique_groups[:n - len(arr)],
@@ -264,6 +264,15 @@ class TestMerge(unittest.TestCase):
         result = self.target.join(self.source['MergedA'], on='C')
         expected = self.target.join(self.source[['MergedA']], on='C')
         assert_frame_equal(result, expected)
+
+    def test_join_on_series_buglet(self):
+        # GH #638
+        df = DataFrame({'a': [1, 1]})
+        ds = Series([2], index=[1], name='b')
+        result = df.join(ds, on='a')
+        expected = DataFrame({'a' : [1, 1],
+                              'b' : [2, 2]}, index=df.index)
+        tm.assert_frame_equal(result, expected)
 
     def test_join_index_mixed(self):
 
@@ -555,6 +564,20 @@ class TestMergeMulti(unittest.TestCase):
         joined = merge(right, left, left_index=True,
                        right_on=['k1', 'k2'], how='right')
         tm.assert_frame_equal(joined.ix[:, expected.columns], expected)
+
+    def test_left_merge_na_buglet(self):
+        left = DataFrame({'id': list('abcde'), 'v1': randn(5),
+                          'v2': randn(5), 'dummy' : list('abcde'),
+                          'v3' : randn(5)},
+                         columns=['id', 'v1', 'v2', 'dummy', 'v3'])
+        right = DataFrame({'id' : ['a', 'b', np.nan, np.nan, np.nan],
+                           'sv3' : [1.234, 5.678, np.nan, np.nan, np.nan]})
+
+        merged = merge(left, right, on='id', how='left')
+
+        rdf = right.drop(['id'], axis=1)
+        expected = left.join(rdf)
+        tm.assert_frame_equal(merged, expected)
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='.x', rsuffix='.y'):

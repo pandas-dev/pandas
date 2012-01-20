@@ -306,3 +306,30 @@ def nancov(a, b):
         return np.nan
 
     return np.cov(a, b)[0, 1]
+
+# NA-friendly array comparisons
+
+import operator
+
+def make_nancomp(op):
+    def f(x, y):
+        xmask = isnull(x)
+        ymask = isnull(y)
+        mask = xmask | ymask
+
+        result = op(x, y)
+
+        if mask.any():
+            if result.dtype == np.bool_:
+                result = result.astype('O')
+            np.putmask(result, mask, np.nan)
+
+        return result
+    return f
+
+nangt = make_nancomp(operator.gt)
+nange = make_nancomp(operator.ge)
+nanlt = make_nancomp(operator.lt)
+nanle = make_nancomp(operator.le)
+naneq = make_nancomp(operator.eq)
+nanne = make_nancomp(operator.ne)

@@ -494,7 +494,7 @@ class Index(np.ndarray):
                 raise
             except TypeError:
                 # generator/iterator-like
-                if hasattr(key, 'next'):
+                if com.is_iterator(key):
                     raise InvalidIndexError(key)
                 else:
                     raise e1
@@ -1143,7 +1143,7 @@ class MultiIndex(Index):
                 raise
             except TypeError:
                 # generator/iterator-like
-                if hasattr(key, 'next'):
+                if com.is_iterator(key):
                     raise InvalidIndexError(key)
                 else:
                     raise e1
@@ -1541,6 +1541,9 @@ class MultiIndex(Index):
         target_index = target
         if isinstance(target, MultiIndex) and target._is_legacy_format:
             target_index = target.get_tuple_index()
+
+        if target_index.dtype != object:
+            return np.ones(len(target_index)) * -1
 
         self_index = self
         if self._is_legacy_format:

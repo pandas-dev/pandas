@@ -323,6 +323,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assertRaises(KeyError, self.ts.__getitem__, d)
 
+    def test_iget(self):
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        for i in range(len(s)):
+            result = s.iget(i)
+            exp = s[s.index[i]]
+            assert_almost_equal(result, exp)
+
+        # pass a slice
+        result = s.iget(slice(1, 3))
+        expected = s.ix[2:4]
+        assert_series_equal(result, expected)
+
     def test_getitem_regression(self):
         s = Series(range(5), index=range(5))
         result = s[range(5)]
@@ -399,6 +411,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(Exception, ts.ix.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.ix.__setitem__, mask_shifted, 1)
+
+    def test_getitem_setitem_slice_integers(self):
+        s = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        result = s[:4]
+        expected = s.reindex([2, 4, 6, 8])
+        assert_series_equal(result, expected)
+
+        s[:4] = 0
+        self.assert_((s[:4] == 0).all())
+        self.assert_(not (s[4:] == 0).any())
 
     def test_getitem_out_of_bounds(self):
         # don't segfault, GH #495
@@ -680,6 +703,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         str(self.objSeries)
 
         str(Series(tm.randn(1000), index=np.arange(1000)))
+        str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
         str(self.empty)
@@ -975,11 +999,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             tm.assert_almost_equal(cython_or_numpy, python)
 
         def check(other):
-            _check_op(other, operator.add)
-            _check_op(other, operator.sub)
-            _check_op(other, operator.truediv)
-            _check_op(other, operator.floordiv)
-            _check_op(other, operator.mul)
+            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv',
+                          'gt', 'ge', 'lt', 'le']
+
+            for opname in simple_ops:
+                _check_op(other, getattr(operator, opname))
             _check_op(other, operator.pow, pos_only=True)
 
             _check_op(other, lambda x, y: operator.add(y, x))
@@ -1107,6 +1131,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_series_frame_radd_bug(self):
         from pandas.util.testing import rands
+        import operator
 
         # GH 353
         vals = Series([rands(5) for _ in xrange(10)])
@@ -1118,6 +1143,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = 'foo_' + frame
         expected = DataFrame({'vals' : vals.map(lambda x: 'foo_' + x)})
         tm.assert_frame_equal(result, expected)
+
+        # really raise this time
+        self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
@@ -1572,6 +1600,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(merged.dtype == np.float_)
         self.assert_(isnull(merged['d']))
         self.assert_(not isnull(merged['c']))
+
+    def test_map_decimal(self):
+        from decimal import Decimal
+
+        result = self.series.map(Decimal)
+        self.assert_(result.dtype == np.object_)
+        self.assert_(isinstance(result[0], Decimal))
 
     def test_apply(self):
         assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
