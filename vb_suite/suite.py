@@ -20,10 +20,10 @@ for modname in modules:
 for bm in benchmarks:
     assert(bm.name is not None)
 
-REPO_PATH = '/home/wesm/code/pandas'
-REPO_URL = 'git@github.com:wesm/pandas.git'
-DB_PATH = '/home/wesm/code/pandas/vb_suite/benchmarks.db'
-TMP_DIR = '/home/wesm/tmp/vb_pandas'
+REPO_PATH = '/home/adam/code/pandas'
+REPO_URL = 'git@github.com:adamklein/pandas.git'
+DB_PATH = '/home/adam/code/pandas/vb_suite/benchmarks.db'
+TMP_DIR = '/home/adam/code/tmp/vb_pandas'
 PREPARE = """
 python setup.py clean
 """
@@ -40,7 +40,7 @@ RST_BASE = '../doc/source'
 
 # HACK!
 
-timespan = [datetime(2011, 1, 1), datetime(2012, 1, 1)]
+timespan = [datetime(2012, 1, 1), datetime(2012, 1, 19)]
 
 def generate_rst_files(benchmarks):
     import matplotlib as mpl
