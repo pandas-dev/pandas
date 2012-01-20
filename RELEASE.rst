@@ -219,6 +219,7 @@ pandas 0.7.0
   - Add support for legacy WidePanel objects to be read from HDFStore
   - Fix out-of-bounds segfault in pad_object and backfill_object methods when
     either source or target array are empty
+  - Could not create a new column in a DataFrame from a list of tuples
 
 Thanks
 ------

@@ -1427,9 +1427,7 @@ class DataFrame(NDFrame):
                 assert(len(value) == len(self.index))
 
                 if not isinstance(value, np.ndarray):
-                    value = np.array(value)
-                    if value.dtype.type == np.str_:
-                        value = np.array(value, dtype=object)
+                    value = com._asarray_tuplesafe(value)
                 else:
                     value = value.copy()
         else:

@@ -91,6 +91,14 @@ class CheckIndexing(object):
         self.frame[['A', 'B']] = data
         assert_almost_equal(self.frame[['A', 'B']].values, data)
 
+    def test_setitem_list_of_tuples(self):
+        tuples = zip(self.frame['A'], self.frame['B'])
+        self.frame['tuples'] = tuples
+
+        result = self.frame['tuples']
+        expected = Series(tuples, index=self.frame.index)
+        assert_series_equal(result, expected)
+
     def test_getitem_boolean(self):
         # boolean indexing
         d = self.tsframe.index[10]
@@ -1713,6 +1721,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         com.set_printoptions(max_rows=10, max_columns=2)
         repr(self.frame)
+        com.reset_printoptions()
 
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[('err', object)])
