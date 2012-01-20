@@ -229,7 +229,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     else:
         return ints
 
-def maybe_convert_objects(ndarray[object] objects, bint try_float=1):
+def maybe_convert_objects(ndarray[object] objects, bint try_float=0):
     '''
     Type inference function-- convert object array to proper dtype
     '''
@@ -302,7 +302,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=1):
 
         return objects
 
-convert_sql_column = maybe_convert_objects
+def convert_sql_column(x):
+    return maybe_convert_objects(x, try_float=1)
 
 def try_parse_dates(ndarray[object] values, parser=None):
     cdef:
