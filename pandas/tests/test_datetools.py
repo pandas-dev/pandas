@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
 import unittest
+import numpy as np
 
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    getOffset, getOffsetName, inferTimeRule, hasOffsetName)
+    getOffset, getOffsetName, inferTimeRule, hasOffsetName,
+    _dt_box, _dt_unbox)
 
 from nose.tools import assert_raises
 
@@ -36,6 +38,19 @@ def test_to_datetime1():
 def test_normalize_date():
     actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
     assert actual == datetime(2007, 10, 1)
+
+def test_datetime64_unbox():
+    valb = datetime(2007,10,1)
+    valu = _dt_unbox(valb)
+    print valu
+    #assert type(valu) == np.datetime64
+    #assert valu == np.datetime64(datetime(2007,10,1))
+
+#def test_datetime64_box():
+#    valu = np.datetime64(datetime(2007,10,1))
+#    valb = _dt_box(valu)
+#    assert type(valb) == datetime
+#    assert valb == datetime(2007,10,1)
 
 #####
 ### DateOffset Tests

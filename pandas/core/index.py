@@ -7,7 +7,8 @@ import numpy as np
 
 from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
                                 _is_bool_indexer, _asarray_tuplesafe,
-                                _dt_box, _dt_unbox, is_iterator)
+                                is_iterator)
+from pandas.core.datetools import _dt_box, _dt_unbox
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
 import pandas._engines as _gin

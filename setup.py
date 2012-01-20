@@ -322,6 +322,7 @@ tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'generated', 'reduce', 'stats',
                    'inference', 'properties', 'internals',
                    'hashtable', 'join']
+
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -347,19 +348,22 @@ sparse_ext = Extension('pandas._sparse',
 engines_ext = Extension('pandas._engines',
                         depends=['pandas/src/numpy_helper.h'],
                         sources=[srcpath('engines', suffix=suffix)],
-                        pyrex_gdb=True,
                         include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
+datetime_ext = Extension('pandas._datetime',
+                         sources=[srcpath('datetime', suffix=suffix)],
+                         include_dirs=[np.get_include()])
+
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext]
+extensions = [tseries_ext, engines_ext, sparse_ext, datetime_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

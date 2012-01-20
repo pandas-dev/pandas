@@ -14,7 +14,7 @@ from pandas.util import py3compat
 
 import pandas.util.testing as tm
 import pandas._tseries as tseries
-from pandas.core.common import _dt_unbox
+from pandas.core.datetools import _dt_unbox
 
 class TestIndex(unittest.TestCase):
 

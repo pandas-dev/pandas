@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.core.index import DatetimeIndex
 import pandas.core.datetools as datetools
-from pandas.core.common import _dt_box
+from pandas.core.datetools import _dt_box
 
 __all__ = ['DateRange']
 

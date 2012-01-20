@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 import sys
 import numpy as np
-from pandas.core.common import _dt_box
+import pandas._tseries as lib
 
 try:
     import dateutil
@@ -20,6 +20,15 @@ except ImportError: # pragma: no cover
     raise # otherwise a 2nd import won't show the message
 
 import calendar
+
+#-------------------------------------------------------------------------------
+# Boxing and unboxing
+
+def _dt_unbox(key):
+    lib.dt_unbox(key)
+
+def _dt_box(key):
+    lib.dt_box(key)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
