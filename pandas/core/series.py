@@ -1781,6 +1781,7 @@ copy : boolean, default False
         Intended to be used in ipython --pylab mode
         """
         import matplotlib.pyplot as plt
+        import pandas.tools.plotting as gfx
 
         if label is not None:
             kwds = kwds.copy()
@@ -1801,6 +1802,7 @@ copy : boolean, default False
                 ax.semilogy(x, self.values.astype(float), style, **kwds)
             else:
                 ax.plot(x, self.values.astype(float), style, **kwds)
+            gfx.format_date_labels(ax)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             ax.bar(xinds, self.values.astype(float), 0.5,
@@ -1815,14 +1817,6 @@ copy : boolean, default False
             ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
 
         ax.grid(grid)
-
-        # try to make things prettier
-        try:
-            fig = plt.gcf()
-            fig.autofmt_xdate()
-        except Exception:  # pragma: no cover
-            pass
-
         plt.draw_if_interactive()
 
         return ax

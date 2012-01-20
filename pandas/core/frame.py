@@ -3628,11 +3628,11 @@ class DataFrame(NDFrame):
             self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
                            legend=legend)
 
-        # try to make things prettier
-        try:
-            fig.autofmt_xdate()
-        except Exception:  # pragma: no cover
-            pass
+        if not subplots or (subplots and sharex):
+            try:
+                fig.autofmt_xdate()
+            except Exception:  # pragma: no cover
+                pass
 
         plt.draw_if_interactive()
         if subplots:
