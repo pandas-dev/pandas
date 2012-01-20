@@ -147,7 +147,7 @@ Windows binaries built against NumPy 1.6.1
 
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
-AUTHOR = "AQR Capital Management, LLC"
+AUTHOR = "The pandas Development Team"
 MAINTAINER = "Wes McKinney"
 MAINTAINER_EMAIL = "wesmckinn@gmail.com"
 URL = "http://pandas.sourceforge.net"
@@ -167,9 +167,9 @@ CLASSIFIERS = [
 MAJOR = 0
 MINOR = 7
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
+QUALIFIER = 'rc1'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
