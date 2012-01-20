@@ -2,6 +2,8 @@ pandas (0.6.1+git355-gc76a96f-1) UNRELEASED; urgency=low
 
   * Testing fresh upstream snapshot prior release
   * Updated pre-cythoned .c files for older Debian/Ubuntu releases
+  * Dropped all exclusions of unittests and patches -- shouldn't be necessary
+    any longer
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 16 Jan 2012 19:31:50 -0500
 
