@@ -216,6 +216,9 @@ def pad_float64(ndarray[float64_t] oldIndex,
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
     oldPos = 0
     newPos = 0
 
@@ -270,6 +273,9 @@ def pad_object(ndarray[object] oldIndex,
 
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
+
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
 
     oldPos = 0
     newPos = 0
@@ -326,6 +332,9 @@ def pad_int32(ndarray[int32_t] oldIndex,
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
     oldPos = 0
     newPos = 0
 
@@ -381,6 +390,9 @@ def pad_int64(ndarray[int64_t] oldIndex,
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
     oldPos = 0
     newPos = 0
 
@@ -435,6 +447,9 @@ def pad_bool(ndarray[uint8_t] oldIndex,
 
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
+
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
 
     oldPos = 0
     newPos = 0
@@ -492,6 +507,9 @@ def backfill_float64(ndarray[float64_t] oldIndex,
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
     oldPos = oldLength - 1
     newPos = newLength - 1
 
@@ -540,6 +558,9 @@ def backfill_object(ndarray[object] oldIndex,
 
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
+
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
 
     oldPos = oldLength - 1
     newPos = newLength - 1
@@ -590,6 +611,9 @@ def backfill_int32(ndarray[int32_t] oldIndex,
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
     oldPos = oldLength - 1
     newPos = newLength - 1
 
@@ -639,6 +663,9 @@ def backfill_int64(ndarray[int64_t] oldIndex,
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
 
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
     oldPos = oldLength - 1
     newPos = newLength - 1
 
@@ -687,6 +714,9 @@ def backfill_bool(ndarray[uint8_t] oldIndex,
 
     fill_vec = np.empty(len(newIndex), dtype = np.int32)
     fill_vec.fill(-1)
+
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
 
     oldPos = oldLength - 1
     newPos = newLength - 1

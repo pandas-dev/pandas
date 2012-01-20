@@ -99,6 +99,18 @@ def _stringify(x):
     else:
         return str(x)
 
+def format_date_labels(ax):
+    # mini version of autofmt_xdate
+    try:
+        for label in ax.get_xticklabels():
+            label.set_ha('right')
+            label.set_rotation(30)
+        fig = ax.get_figure()
+        fig.subplots_adjust(bottom=0.2)
+    except Exception: # pragma: no cover
+        pass
+
+
 def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
     """
 

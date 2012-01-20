@@ -841,6 +841,13 @@ class CheckIndexing(object):
         expected = df.ix[:, 8:14]
         assert_frame_equal(result, expected)
 
+    def test_iget_value(self):
+        for i, row in enumerate(self.frame.index):
+            for j, col in enumerate(self.frame.columns):
+                result = self.frame.iget_value(i, j)
+                expected = self.frame.get_value(row, col)
+                assert_almost_equal(result, expected)
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
