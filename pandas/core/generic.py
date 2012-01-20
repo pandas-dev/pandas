@@ -463,7 +463,7 @@ class NDFrame(PandasObject):
             if skipna:
                 np.putmask(y, mask, -np.inf)
 
-            result = np.maximum.accumulate(y,axis)
+            result = np.maximum.accumulate(y, axis)
 
             if skipna:
                 np.putmask(result, mask, np.nan)
@@ -499,7 +499,7 @@ class NDFrame(PandasObject):
             if skipna:
                 np.putmask(y, mask, np.inf)
 
-            result = np.minimum.accumulate(y,axis)
+            result = np.minimum.accumulate(y, axis)
 
             if skipna:
                 np.putmask(result, mask, np.nan)
