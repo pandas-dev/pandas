@@ -786,7 +786,8 @@ copy : boolean, default False
         values = self.values
         if not values.dtype == np.object_:
             values = values.astype('O')
-        uniques = lib.list_to_object_array(lib.fast_unique(values))
+        table = lib.PyObjectHashTable(len(values))
+        uniques = lib.list_to_object_array(table.unique(values))
         return lib.maybe_convert_objects(uniques)
 
     def nunique(self):
