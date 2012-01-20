@@ -1,4 +1,4 @@
-pandas (0.6.1+git316-g195ec30-1) UNRELEASED; urgency=low
+pandas (0.6.1+gitv353-g0fd3e35-1) UNRELEASED; urgency=low
 
   * Testing fresh upstream snapshot prior release
   * Updated pre-cythoned .c files for older Debian/Ubuntu releases
