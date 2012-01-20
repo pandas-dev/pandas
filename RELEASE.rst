@@ -217,7 +217,9 @@ pandas 0.7.0
   - Catch misreported console size when running IPython within Emacs
   - Fix minor bug in pivot table margins, loss of index names and length-1
     'All' tuple in row labels
-  - Add support for legacy
+  - Add support for legacy WidePanel objects to be read from HDFStore
+  - Fix out-of-bounds segfault in pad_object and backfill_object methods when
+    either source or target array are empty
 
 Thanks
 ------
