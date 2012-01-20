@@ -98,6 +98,15 @@ get_c_string(PyObject* obj) {
 //   return PyString_Check(obj);
 // #endif
 
+PANDAS_INLINE PyObject* floatify(PyObject* str) {
+
+#if PY_VERSION_HEX >= 0x03000000
+  return PyFloat_FromString(str);
+#else
+  return PyFloat_FromString(str, NULL);
+#endif
+
+}
 
 
 // PANDAS_INLINE PyObject*

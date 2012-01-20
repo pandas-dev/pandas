@@ -9,6 +9,7 @@ cdef extern from "numpy_helper.h":
     inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     inline object get_value_1d(ndarray, Py_ssize_t)
     inline char *get_c_string(object)
+    inline object floatify(object)
 
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:

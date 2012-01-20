@@ -1601,6 +1601,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(isnull(merged['d']))
         self.assert_(not isnull(merged['c']))
 
+    def test_map_decimal(self):
+        from decimal import Decimal
+
+        result = self.series.map(Decimal)
+        self.assert_(result.dtype == np.object_)
+        self.assert_(isinstance(result[0], Decimal))
+
     def test_apply(self):
         assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
 

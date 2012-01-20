@@ -216,7 +216,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
             floats[i] = nan
             seen_float = 1
         else:
-            fval = float(val)
+            fval = util.floatify(val)
             floats[i] = fval
             if not seen_float:
                 if '.' in val:
@@ -229,7 +229,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     else:
         return ints
 
-def maybe_convert_objects(ndarray[object] objects):
+def maybe_convert_objects(ndarray[object] objects, bint try_float=1):
     '''
     Type inference function-- convert object array to proper dtype
     '''
@@ -273,13 +273,13 @@ def maybe_convert_objects(ndarray[object] objects):
         elif util.is_float_object(val):
             floats[i] = val
             seen_float = 1
-        elif not util.is_string_object(val):
+        elif try_float and not util.is_string_object(val):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)
                 seen_float = 1
             except Exception:
-                pass
+                seen_object = 1
         else:
             seen_object = 1
 
@@ -402,7 +402,7 @@ def map_infer(ndarray arr, object f):
         result[i] = f(val)
         PyArray_ITER_NEXT(it)
 
-    return maybe_convert_objects(result)
+    return maybe_convert_objects(result, try_float=0)
 
 def to_object_array(list rows):
     cdef:
