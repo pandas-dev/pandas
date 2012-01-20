@@ -386,8 +386,14 @@ def _sort_labels(uniques, left, right):
 
     reverse_indexer = np.empty(len(sorter), dtype=np.int32)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
-    return reverse_indexer.take(left), reverse_indexer.take(right)
 
+    new_left = reverse_indexer.take(left)
+    np.putmask(new_left, left == -1, -1)
+
+    new_right = reverse_indexer.take(right)
+    np.putmask(new_right, right == -1, -1)
+
+    return new_left, new_right
 
 class _BlockJoinOperation(object):
     """
