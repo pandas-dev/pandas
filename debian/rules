@@ -18,6 +18,11 @@ EXCLUDE_MORETESTS := $(shell dpkg --compare-versions $(MPLVER) lt 1.0 && echo '|
 	: # Explicit build system to avoid use of all-in-1 Makefile
 	dh $@ --buildsystem=python_distutils
 
+cythonize:
+	find pandas/src -iname *.c -delete
+	python setup.py cython
+	cp pandas/src/*.c debian/cythonized-files
+
 override_dh_auto_configure:
 	dpkg --compare-versions $(CYTHONVER) lt $(MIN_CYTHONVER) && { \
 		echo "I: Using pre-Cython-ed files"; \
