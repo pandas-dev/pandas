@@ -9,6 +9,7 @@ from itertools import izip
 import csv
 import operator
 import types
+from distutils.version import LooseVersion
 
 from numpy import nan, ndarray
 import numpy as np
@@ -34,6 +35,7 @@ from pandas.util.decorators import Appender, Substitution
 __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
+_np_version_under1p6 = LooseVersion(_np_version) < '1.6'
 
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
@@ -72,7 +74,7 @@ def _radd_compat(left, right):
     try:
         output = radd(left, right)
     except TypeError:
-        cond = (_np_version.startswith('1.5') and
+        cond = (_np_version_under1p6 and
                 left.dtype == np.object_)
         if cond: # pragma: no cover
             output = np.empty_like(left)
