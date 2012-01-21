@@ -1283,7 +1283,7 @@ class DataFrame(NDFrame):
         # either boolean or fancy integer index
         elif isinstance(key, (np.ndarray, list)):
             if isinstance(key, list):
-                key = np.array(key, dtype=object)
+                key = lib.list_to_object_array(key)
 
             # also raises Exception if object array with NA values
             if com._is_bool_indexer(key):
@@ -1307,7 +1307,10 @@ class DataFrame(NDFrame):
             mask = indexer == -1
             if mask.any():
                 raise KeyError("No column(s) named: %s" % str(key[mask]))
-            return self.reindex(columns=key)
+            result = self.reindex(columns=key)
+            if result.columns.name is None:
+                result.columns.name = self.columns.name
+            return result
 
     def _slice(self, slobj, axis=0):
         if axis == 0:

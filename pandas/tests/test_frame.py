@@ -66,6 +66,8 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
 
     def test_getitem_list(self):
+        self.frame.columns.name = 'foo'
+
         result = self.frame[['B', 'A']]
         result2 = self.frame[Index(['B', 'A'])]
 
@@ -73,10 +75,22 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
+        self.assertEqual(result.columns.name, 'foo')
+
         self.assertRaises(Exception, self.frame.__getitem__,
                           ['B', 'A', 'foo'])
         self.assertRaises(Exception, self.frame.__getitem__,
                           Index(['B', 'A', 'foo']))
+
+        # tuples
+        df = DataFrame(randn(8, 3),
+                       columns=Index([('foo', 'bar'), ('baz', 'qux'),
+                                      ('peek', 'aboo')], name='sth'))
+
+        result = df[[('foo', 'bar'), ('baz', 'qux')]]
+        expected = df.ix[:, :2]
+        assert_frame_equal(result, expected)
+        self.assertEqual(result.columns.name, 'sth')
 
     def test_setitem_list(self):
         self.frame['E'] = 'foo'
