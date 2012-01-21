@@ -10,6 +10,7 @@ from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
+import pandas.core.common as com
 import pandas._tseries as lib
 
 
@@ -675,6 +676,24 @@ def _get_groupings(obj, grouper=None, axis=0, level=None, sort=True):
         groupers = [grouper]
     else:
         groupers = grouper
+
+    # what are we after, exactly?
+    match_axis_length = len(groupers) == len(group_axis)
+    any_callable = any(callable(g) for g in groupers)
+    any_arraylike = any(isinstance(g, (list, tuple, np.ndarray))
+                        for g in groupers)
+
+    try:
+        if isinstance(obj, DataFrame):
+            all_in_columns = all(g in obj.columns for g in groupers)
+        else:
+            all_in_columns = False
+    except Exception:
+        all_in_columns = False
+
+    if (not any_callable and not all_in_columns
+        and not any_arraylike and match_axis_length):
+        groupers = [com._asarray_tuplesafe(groupers)]
 
     if isinstance(level, (tuple, list)):
         if grouper is None:

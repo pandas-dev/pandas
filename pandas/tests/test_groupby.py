@@ -1271,6 +1271,21 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(result.dtype == np.object_)
         self.assert_(isinstance(result[0], Decimal))
 
+    def test_groupby_list_infer_array_like(self):
+        result = self.df.groupby(list(self.df['A'])).mean()
+        expected = self.df.groupby(self.df['A']).mean()
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(Exception, self.df.groupby, list(self.df['A'][:-1]))
+
+        # pathological case of ambiguity
+        df = DataFrame({'foo' : [0, 1], 'bar' : [3, 4],
+                        'val' : np.random.randn(2)})
+
+        result = df.groupby(['foo', 'bar']).mean()
+        expected = df.groupby([df['foo'], df['bar']]).mean()[['val']]
+
+
 class TestPanelGroupBy(unittest.TestCase):
 
     def setUp(self):
