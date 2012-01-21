@@ -15,50 +15,57 @@ PyDateTime_IMPORT
 import_array()
 
 cdef class Date:
+    '''
+    This is the custom pandas Date box for the numpy datetime64 dtype.
+    '''
     cdef:
         int64_t timestamp
         object freq
         object tzinfo
+        npy_datetimestruct dts
 
     def __init__(self, int64_t ts, object freq = None, object tzinfo = None):
         self.timestamp = ts
         self.freq = freq
         self.tzinfo = tzinfo
 
-    # --- the following properties to make it compatible with datetime
+        # datetime64 decomposition to components
+        PyArray_DatetimeToDatetimeStruct(self.timestamp, NPY_FR_us, &self.dts)
 
-    cdef npy_datetimestruct decompose(self):
-        cdef npy_datetimestruct dts
-        PyArray_DatetimeToDatetimeStruct(self.timestamp, NPY_FR_us, &dts)
-        return dts
+    # TODO: we'll probably need factory methods to construct this box from:
+    #       -- datetime64
+    #       -- int64
+    #       -- datetime object
+
+    # --- the following properties to make it compatible with datetime
 
     property year:
         def __get__(self):
-            return self.decompose().year
+            return self.dts.year
 
     property month:
         def __get__(self):
-            return self.decompose().month
+            return self.dts.month
 
     property day:
         def __get__(self):
-            return self.decompose().day
+            return self.dts.day
 
     property hour:
         def __get__(self):
-            return self.decompose().hour
+            return self.dts.hour
 
     property minute:
         def __get__(self):
-            return self.decompose().min
+            return self.dts.min
 
     property second:
         def __get__(self):
-            return self.decompose().sec
+            return self.dts.sec
 
     property microsecond:
         def __get__(self):
-            return self.decompose().us
+            return self.dts.us
 
 
 # TODO: this is wrong calculation, wtf is going on
