@@ -133,7 +133,6 @@ class SparseSeries(SparseArray, Series):
 
         # Change the class of the array to be the subclass type.
         output = subarr.view(cls)
-        output._sp_values = subarr
         output.sp_index = sparse_index
         output.fill_value = np.float64(fill_value)
         output.index = index

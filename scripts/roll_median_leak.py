@@ -14,8 +14,12 @@ import psutil
 pid = os.getpid()
 proc = psutil.Process(pid)
 
-s = Series(np.random.randn(10000))
+lst = SparseList()
+lst.append([5] * 5)
+lst.append(np.repeat(np.nan, 1000000))
 
-for _ in xrange(5):
-    # print proc.get_memory_info()
-    result = rolling_median(s, 1000)
+sdf = SparseDataFrame({'A' : lst.to_array()})
+
+for _ in xrange(10000):
+    print proc.get_memory_info()
+    chunk = sdf[sdf['A'] == 5]
