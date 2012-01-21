@@ -1641,8 +1641,8 @@ class MultiIndex(Index):
 
     def _partial_tup_index(self, tup, side='left'):
         if len(tup) > self.lexsort_depth:
-            raise Exception('MultiIndex lexsort depth %d, key was length %d' %
-                            (self.lexsort_depth, len(tup)))
+            raise KeyError('MultiIndex lexsort depth %d, key was length %d' %
+                           (self.lexsort_depth, len(tup)))
 
         n = len(tup)
         start, end = 0, len(self)

@@ -955,6 +955,28 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.ymd.T.to_html()
 
     def test_level_with_tuples(self):
+        index = MultiIndex(levels=[[('foo', 'bar', 0), ('foo', 'baz', 0),
+                                    ('foo', 'qux', 0)],
+                                   [0, 1]],
+                           labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
+
+        series = Series(np.random.randn(6), index=index)
+        frame = DataFrame(np.random.randn(6, 4), index=index)
+
+        result = series[('foo', 'bar', 0)]
+        result2 = series.ix[('foo', 'bar', 0)]
+        expected = series[:2]
+        expected.index = expected.index.droplevel(0)
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
+        result = frame.ix[('foo', 'bar', 0)]
+        result2 = frame.xs(('foo', 'bar', 0))
+        expected = frame[:2]
+        expected.index = expected.index.droplevel(0)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
         index = MultiIndex(levels=[[('foo', 'bar'), ('foo', 'baz'),
                                     ('foo', 'qux')],
                                    [0, 1]],
