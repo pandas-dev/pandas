@@ -155,6 +155,8 @@ pandas 0.7.0
     row/column the function application failed on (GH #614)
   - Improved ability of read_table and read_clipboard to parse
     console-formatted DataFrames (can read the row of index names, etc.)
+  - Can pass list of group labels (without having to convert to an ndarray
+    yourself) to ``groupby`` in some cases (GH #659)
 
 **Bug fixes**
 
