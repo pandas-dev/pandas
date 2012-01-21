@@ -966,21 +966,20 @@ def is_monotonic_bool(ndarray[uint8_t] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
+def groupby_float64(ndarray[float64_t] index, ndarray labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t] mask
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels).view(np.uint8)
 
     for i in range(length):
-        if mask[i]:
+        key = util.get_value_1d(labels, i)
+
+        if _checknull(key):
             continue
 
-        key = labels[i]
         idx = index[i]
         if key in result:
             members = result[key]
@@ -992,21 +991,20 @@ def groupby_float64(ndarray[float64_t] index, ndarray[object] labels):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_object(ndarray[object] index, ndarray[object] labels):
+def groupby_object(ndarray[object] index, ndarray labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t] mask
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels).view(np.uint8)
 
     for i in range(length):
-        if mask[i]:
+        key = util.get_value_1d(labels, i)
+
+        if _checknull(key):
             continue
 
-        key = labels[i]
         idx = index[i]
         if key in result:
             members = result[key]
@@ -1018,21 +1016,20 @@ def groupby_object(ndarray[object] index, ndarray[object] labels):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
+def groupby_int32(ndarray[int32_t] index, ndarray labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t] mask
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels).view(np.uint8)
 
     for i in range(length):
-        if mask[i]:
+        key = util.get_value_1d(labels, i)
+
+        if _checknull(key):
             continue
 
-        key = labels[i]
         idx = index[i]
         if key in result:
             members = result[key]
@@ -1044,21 +1041,20 @@ def groupby_int32(ndarray[int32_t] index, ndarray[object] labels):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
+def groupby_int64(ndarray[int64_t] index, ndarray labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t] mask
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels).view(np.uint8)
 
     for i in range(length):
-        if mask[i]:
+        key = util.get_value_1d(labels, i)
+
+        if _checknull(key):
             continue
 
-        key = labels[i]
         idx = index[i]
         if key in result:
             members = result[key]
@@ -1070,21 +1066,20 @@ def groupby_int64(ndarray[int64_t] index, ndarray[object] labels):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_bool(ndarray[uint8_t] index, ndarray[object] labels):
+def groupby_bool(ndarray[uint8_t] index, ndarray labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t] mask
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels).view(np.uint8)
 
     for i in range(length):
-        if mask[i]:
+        key = util.get_value_1d(labels, i)
+
+        if _checknull(key):
             continue
 
-        key = labels[i]
         idx = index[i]
         if key in result:
             members = result[key]
@@ -1106,7 +1101,7 @@ def arrmap_float64(ndarray[float64_t] index, object func):
     for i in range(length):
         result[i] = func(index[i])
 
-    return result
+    return maybe_convert_objects(result)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1119,7 +1114,7 @@ def arrmap_object(ndarray[object] index, object func):
     for i in range(length):
         result[i] = func(index[i])
 
-    return result
+    return maybe_convert_objects(result)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1132,7 +1127,7 @@ def arrmap_int32(ndarray[int32_t] index, object func):
     for i in range(length):
         result[i] = func(index[i])
 
-    return result
+    return maybe_convert_objects(result)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1145,7 +1140,7 @@ def arrmap_int64(ndarray[int64_t] index, object func):
     for i in range(length):
         result[i] = func(index[i])
 
-    return result
+    return maybe_convert_objects(result)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1158,7 +1153,7 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
     for i in range(length):
         result[i] = func(index[i])
 
-    return result
+    return maybe_convert_objects(result)
 
 
 @cython.wraparound(False)

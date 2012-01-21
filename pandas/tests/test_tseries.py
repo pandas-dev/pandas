@@ -261,6 +261,10 @@ def test_pad_backfill_object_segfault():
     expected = np.array([], dtype='i4')
     assert(np.array_equal(result, expected))
 
+def test_arrmap():
+    values = np.array(['foo', 'foo', 'bar', 'bar', 'baz', 'qux'], dtype='O')
+    result = lib.arrmap_object(values, lambda x: x in ['foo', 'bar'])
+    assert(result.dtype == np.bool_)
 
 class TestTypeInference(unittest.TestCase):
 
