@@ -595,6 +595,8 @@ def _format(s, dtype, space=None, na_rep=None, float_format=None,
         return _make_int_format(s)
     else:
         if na_rep is not None and lib.checknull(s):
+            if s is None:
+                return 'None'
             return na_rep
         else:
             # object dtype
