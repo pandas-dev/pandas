@@ -24,11 +24,29 @@ import calendar
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
 
-def _dt_unbox(key):
-    lib.dt_unbox(key)
+# TODO: fix to use new Date boxing logic
 
+_unbox_cache = dict()
+def _dt_unbox(key):
+    '''
+    Unbox datetime to datetime64
+    '''
+    try:
+        return _unbox_cache[key]
+    except KeyError:
+        _unbox_cache[key] = np.datetime64(key)
+        return _unbox_cache[key]
+
+_box_cache = dict()
 def _dt_box(key):
-    lib.dt_box(key)
+    '''
+    Box datetime64 to datetime
+    '''
+    try:
+        return _box_cache[key]
+    except KeyError:
+        _box_cache[key] = key.astype('O')
+        return _box_cache[key]
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
