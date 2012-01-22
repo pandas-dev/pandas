@@ -14,6 +14,9 @@ PyDateTime_IMPORT
 # initialize numpy
 import_array()
 
+# in numpy 1.7, will prop need this
+# numpy_pydatetime_import
+
 cdef class Date:
     '''
     This is the custom pandas Date box for the numpy datetime64 dtype.
@@ -67,31 +70,13 @@ cdef class Date:
         def __get__(self):
             return self.dts.us
 
+cdef:
+    npy_datetimestruct g_dts
+    NPY_DATETIMEUNIT g_out_bestunit
 
-# TODO: this is wrong calculation, wtf is going on
-def datetime_to_datetime64_WRONG(object boxed):
-    cdef int64_t y, M, d, h, m, s, u
-    cdef npy_datetimestruct dts
+def pydt_to_dt64(object pydt):
+    if PyDateTime_Check(pydt):
+        convert_pydatetime_to_datetimestruct(<PyObject *>pydt, &g_dts, &g_out_bestunit, 1)
+        return PyArray_DatetimeStructToDatetime(g_out_bestunit, &g_dts)
 
-    if PyDateTime_Check(boxed):
-        dts.year = PyDateTime_GET_YEAR(boxed)
-        dts.month = PyDateTime_GET_MONTH(boxed)
-        dts.day = PyDateTime_GET_DAY(boxed)
-        dts.hour = PyDateTime_TIME_GET_HOUR(boxed)
-        dts.min = PyDateTime_TIME_GET_MINUTE(boxed)
-        dts.sec = PyDateTime_TIME_GET_SECOND(boxed)
-        dts.us = PyDateTime_TIME_GET_MICROSECOND(boxed)
-        dts.ps = 0
-        dts.as = 0
-
-        return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
-
-def from_datetime(object dt, object freq=None):
-    cdef int64_t converted
-
-    if PyDateTime_Check(dt):
-        converted = np.datetime64(dt).view('i8')
-        return Date(converted, freq, dt.tzinfo)
-
-    raise ValueError("Expected a datetime, received a %s" % type(dt))
-
+    raise ValueError("Expected a datetime, received a %s" % type(pydt))

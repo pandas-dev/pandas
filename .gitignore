@@ -4,7 +4,7 @@
 build
 dist
 MANIFEST
-*.c
+*.c !datetime_helper.c
 *.cpp
 *.so
 *.pyd

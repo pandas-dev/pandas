@@ -355,7 +355,8 @@ sandbox_ext = Extension('pandas._sandbox',
                         include_dirs=[np.get_include()])
 
 datetime_ext = Extension('pandas._datetime',
-                         sources=[srcpath('datetime', suffix=suffix)],
+                         sources=[srcpath('datetime', suffix=suffix),
+                                          'pandas/src/datetime_helper.c'],
                          include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',

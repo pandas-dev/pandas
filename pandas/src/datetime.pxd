@@ -1,4 +1,5 @@
 from numpy cimport int64_t
+from cpython cimport PyObject
 
 cdef extern from "datetime.h":
 
@@ -53,3 +54,9 @@ cdef extern from "numpy/ndarrayobject.h":
     void PyArray_DatetimeToDatetimeStruct(npy_datetime val,
                                           NPY_DATETIMEUNIT fr,
                                           npy_datetimestruct *result)
+
+cdef extern from "datetime_helper.h":
+
+    int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
+                                             NPY_DATETIMEUNIT *out_bestunit,
+                                             int apply_tzinfo)
