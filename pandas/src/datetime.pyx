@@ -33,9 +33,9 @@ cdef class Date:
         PyArray_DatetimeToDatetimeStruct(self.timestamp, NPY_FR_us, &self.dts)
 
     # TODO: we'll probably need factory methods to construct this box from:
-    #       -- datetime64
-    #       -- int64
-    #       -- datetime object
+    #       -- datetime64 scalar python object
+    #       -- datetime python object
+    #       -- int64_t
 
     # --- the following properties to make it compatible with datetime
 
