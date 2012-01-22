@@ -714,9 +714,9 @@ _offsetMap = {
 
 
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
-    for week in xrange(4):
-        _offsetMap['WOM@%d%s' % (week + 1, weekday)] = \
-            WeekOfMonth(week=week, weekday=i)
+    for iweek in xrange(4):
+        _offsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
+            WeekOfMonth(week=iweek, weekday=i)
 
 _offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
 
