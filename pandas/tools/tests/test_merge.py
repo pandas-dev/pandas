@@ -177,6 +177,14 @@ class TestMerge(unittest.TestCase):
         self.assert_('key1.foo' in joined)
         self.assert_('key1.bar' in joined)
 
+    def test_handle_overlap_arbitrary_key(self):
+        joined = merge(self.df, self.df2,
+                       left_on='key2', right_on='key1',
+                       suffixes=['.foo', '.bar'])
+
+        self.assert_('key1.foo' in joined)
+        self.assert_('key2.bar' in joined)
+
     def test_merge_common(self):
         joined = merge(self.df, self.df2)
         exp = merge(self.df, self.df2, on=['key1', 'key2'])
