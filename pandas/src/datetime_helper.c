@@ -9,7 +9,6 @@
 #include <time.h>
 
 #include <numpy/arrayobject.h>
-
 #include "numpy/npy_3kcompat.h"
 
 #include "numpy/arrayscalars.h"
