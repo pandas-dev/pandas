@@ -1073,7 +1073,7 @@ class TestConcatenate(unittest.TestCase):
         expected = ts.copy()
 
         ts.index = DatetimeIndex(np.array(ts.index.values, 
-                                          dtype=np.datetime64))
+                                          dtype='M8[us]'))
 
         exp_labels = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
                       np.arange(len(ts))]

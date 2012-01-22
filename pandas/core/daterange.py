@@ -97,7 +97,7 @@ class DateRange(DatetimeIndex):
         if tzinfo is not None:
             index = [d.replace(tzinfo=tzinfo) for d in index]
 
-        index = np.array(index, dtype=np.datetime64, copy=False)
+        index = np.array(index, dtype='M8[us]', copy=False)
         index = index.view(cls)
         index.name = name
         index.offset = offset
@@ -152,7 +152,7 @@ class DateRange(DatetimeIndex):
 
         if offset not in _daterange_cache:
             xdr = generate_range(_CACHE_START, _CACHE_END, offset=offset)
-            arr = np.array(list(xdr), dtype=np.datetime64, copy=False)
+            arr = np.array(list(xdr), dtype='M8[us]', copy=False)
 
             cachedRange = arr.view(DateRange)
             cachedRange.offset = offset

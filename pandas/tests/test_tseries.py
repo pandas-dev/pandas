@@ -321,7 +321,7 @@ class TestTypeInference(unittest.TestCase):
         pass
 
     def test_datetime(self):
-        arr1 = np.array([1,2,3], dtype='M8')
+        arr1 = np.array([1,2,3], dtype='M8[us]')
         result = lib.infer_dtype(arr1)
         self.assertEqual(result, 'datetime64')
 

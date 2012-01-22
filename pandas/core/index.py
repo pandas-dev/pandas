@@ -79,7 +79,7 @@ class Index(np.ndarray):
         if (dtype is None
             and (lib.is_datetime_array(subarr)
                  or lib.is_datetime64_array(subarr))):
-            return DatetimeIndex(subarr.astype('M8'), name=name)
+            return DatetimeIndex(subarr.astype('M8[us]'), name=name)
 
         if lib.is_integer_array(subarr) and dtype is None:
             return Int64Index(subarr.astype('i8'), name=name)
@@ -1062,17 +1062,17 @@ class DatetimeIndex(Int64Index):
                 data = list(data)
 
             # try to make it datetime64
-            data = np.asarray(data, dtype=np.datetime64)
+            data = np.asarray(data, dtype='M8[us]')
 
         if issubclass(data.dtype.type, basestring):
             raise TypeError('String dtype not supported, you may need '
                             'to explicitly cast to datetime64')
         elif issubclass(data.dtype.type, np.integer):
-            subarr = np.array(data, dtype=np.datetime64, copy=copy)
+            subarr = np.array(data, dtype='M8[us]', copy=copy)
         elif issubclass(data.dtype.type, np.datetime64):
-            subarr = np.array(data, dtype=np.datetime64, copy=copy)
+            subarr = np.array(data, dtype='M8[us]', copy=copy)
         else:
-            subarr = np.array(data, dtype=np.datetime64, copy=copy)
+            subarr = np.array(data, dtype='M8[us]', copy=copy)
             if len(data) > 0:
                 test = (subarr != data)
                 if (type(test) == bool and test == True) or test.any():
@@ -1112,7 +1112,7 @@ class DatetimeIndex(Int64Index):
         if isinstance(key, datetime):
             key = _dt_unbox(key)
         elif isinstance(key, np.ndarray):
-            key = np.array(key, dtype=np.datetime64, copy=False)
+            key = np.array(key, dtype='M8[us]', copy=False)
         elif not isinstance(key, np.datetime64):
             raise TypeError("Key %s is unrecognized type" % key)
         return self.values.searchsorted(key, side=side)
@@ -1159,7 +1159,7 @@ class DatetimeIndex(Int64Index):
             other = other.view('i8', type=np.ndarray)
         elif other.inferred_type == 'datetime':
             # TODO: faster conversion from datetime object to datetime64?
-            other = np.array(other, dtype='M8', copy=False)
+            other = np.array(other, dtype='M8[us]', copy=False)
             other = other.view('i8', type=np.ndarray)
         elif len(other) == 0 and len(self) == 0 and other.dtype == object:
             # fun corner case
