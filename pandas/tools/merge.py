@@ -77,7 +77,7 @@ class _MergeOperation(object):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         # this is a bit kludgy
-        ldata, rdata = self._get_merge_data(self.join_names)
+        ldata, rdata = self._get_merge_data()
 
         # TODO: more efficiently handle group keys to avoid extra consolidation!
         join_op = _BlockJoinOperation([ldata, rdata], join_index,
@@ -154,13 +154,19 @@ class _MergeOperation(object):
 
         return join_index, left_indexer, right_indexer
 
-    def _get_merge_data(self, join_names):
+    def _get_merge_data(self):
         """
         Handles overlapping column names etc.
         """
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
-        exclude_names = [x for x in join_names if x is not None]
+        exclude_names = set(x for x in self.join_names if x is not None)
+        if self.left_on is not None:
+            exclude_names -= set(c.name if hasattr(c, 'name') else c
+                                 for c in self.left_on)
+        if self.right_on is not None:
+            exclude_names -= set(c.name if hasattr(c, 'name') else c
+                                 for c in self.right_on)
         ldata, rdata = ldata._maybe_rename_join(rdata, lsuf, rsuf,
                                                 exclude=exclude_names,
                                                 copydata=False)
