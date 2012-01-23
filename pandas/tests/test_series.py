@@ -879,6 +879,26 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_cumprod(self):
         self._check_accum_op('cumprod')
 
+    def test_cummin(self):
+        self.assert_(np.array_equal(self.ts.cummin(), 
+                                    np.minimum.accumulate(np.array(self.ts))))
+        ts = self.ts.copy()
+        ts[::2]  = np.NaN
+        result   = ts.cummin()[1::2]
+        expected = np.minimum.accumulate(ts.valid())
+
+        self.assert_(np.array_equal(result, expected))
+
+    def test_cummax(self):
+        self.assert_(np.array_equal(self.ts.cummax(), 
+                                    np.maximum.accumulate(np.array(self.ts))))
+        ts = self.ts.copy()
+        ts[::2]  = np.NaN
+        result   = ts.cummax()[1::2]
+        expected = np.maximum.accumulate(ts.valid())
+
+        self.assert_(np.array_equal(result, expected))
+
     def _check_stat_op(self, name, alternate, check_objects=False):
         from pandas import DateRange
         import pandas.core.nanops as nanops
@@ -920,7 +940,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             nanops._USE_BOTTLENECK = True
         except ImportError:
             pass
-
 
     def _check_accum_op(self, name):
         func = getattr(np, name)

@@ -3760,6 +3760,53 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('min', np.min)
         self._check_stat_op('min', np.min, frame=self.intframe)
 
+    def test_cummin(self):
+        self.tsframe.ix[5:10, 0] = nan
+        self.tsframe.ix[10:15, 1] = nan
+        self.tsframe.ix[15:, 2] = nan
+
+        # axis = 0
+        cummin = self.tsframe.cummin()
+        expected = self.tsframe.apply(Series.cummin)
+        assert_frame_equal(cummin, expected)
+
+        # axis = 1
+        cummin = self.tsframe.cummin(axis=1)
+        expected = self.tsframe.apply(Series.cummin, axis=1)
+        assert_frame_equal(cummin, expected)
+
+        # works
+        df = DataFrame({'A' : np.arange(20)}, index=np.arange(20))
+        result = df.cummin()
+
+        # fix issue
+        cummin_xs = self.tsframe.cummin(axis=1)
+        self.assertEqual(np.shape(cummin_xs), np.shape(self.tsframe))
+
+    def test_cummax(self):
+        self.tsframe.ix[5:10, 0] = nan
+        self.tsframe.ix[10:15, 1] = nan
+        self.tsframe.ix[15:, 2] = nan
+
+        # axis = 0
+        cummax = self.tsframe.cummax()
+        expected = self.tsframe.apply(Series.cummax)
+        assert_frame_equal(cummax, expected)
+
+        # axis = 1
+        cummax = self.tsframe.cummax(axis=1)
+        expected = self.tsframe.apply(Series.cummax, axis=1)
+        assert_frame_equal(cummax, expected)
+
+        # works
+        df = DataFrame({'A' : np.arange(20)}, index=np.arange(20))
+        result = df.cummax()
+
+        # fix issue
+        cummax_xs = self.tsframe.cummax(axis=1)
+        self.assertEqual(np.shape(cummax_xs), np.shape(self.tsframe))
+
+
     def test_max(self):
         self._check_stat_op('max', np.max)
         self._check_stat_op('max', np.max, frame=self.intframe)
