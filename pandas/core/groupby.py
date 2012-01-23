@@ -161,6 +161,9 @@ class GroupBy(object):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, attr))
 
+    def __getitem__(self, key):
+        raise NotImplementedError
+
     def _make_wrapper(self, name):
         f = getattr(self.obj, name)
         if not isinstance(f, types.MethodType):
@@ -294,7 +297,13 @@ class GroupBy(object):
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        return self._cython_agg_general('mean')
+        try:
+            return self._cython_agg_general('mean')
+        except GroupByError:
+            raise
+        except Exception:
+            f = lambda x: x.mean(axis=self.axis)
+            return self._python_agg_general(f)
 
     def std(self):
         """
@@ -1255,7 +1264,6 @@ class PanelGroupBy(GroupBy):
             result = result.swapaxes(0, axis)
 
         return result
-
 
 class NDArrayGroupBy(GroupBy):
     pass

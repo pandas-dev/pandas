@@ -409,6 +409,18 @@ to sparse
                             sparse_index=new_index,
                             fill_value=self.fill_value)
 
+    def take(self, indices, axis=0):
+        """
+        Sparse-compatible version of ndarray.take
+
+        Returns
+        -------
+        taken : ndarray
+        """
+        new_values = SparseArray.take(self, indices)
+        new_index = self.index.take(indices)
+        return self._constructor(new_values, index=new_index)
+
     def cumsum(self, axis=0, dtype=None, out=None):
         """
         Cumulative sum of values. Preserves locations of NaN values

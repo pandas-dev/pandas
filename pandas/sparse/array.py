@@ -263,7 +263,7 @@ to sparse
         else:
             return _gin.get_value_at(self, sp_loc)
 
-    def take(self, indices):
+    def take(self, indices, axis=0):
         """
         Sparse-compatible version of ndarray.take
 
@@ -271,6 +271,7 @@ to sparse
         -------
         taken : ndarray
         """
+        assert(axis == 0)
         indices = np.asarray(indices, dtype=int)
 
         n = len(self)

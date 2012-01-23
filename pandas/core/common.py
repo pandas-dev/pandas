@@ -800,7 +800,7 @@ def load(path):
 
     Parameters
     ----------
-p    path : string
+    path : string
         File path
 
     Returns
