@@ -847,6 +847,17 @@ class CheckIndexing(object):
         expected = df.ix[8:14]
         assert_frame_equal(result, expected)
 
+        # verify slice is view
+        result[2] = 0.
+        exp_col = df[2].copy()
+        exp_col[4:8] = 0.
+        assert_series_equal(df[2], exp_col)
+
+        # list of integers
+        result = df.irow([1, 2, 4, 6])
+        expected = df.reindex(df.index[[1, 2, 4, 6]])
+        assert_frame_equal(result, expected)
+
     def test_icol(self):
         df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
 
@@ -861,6 +872,15 @@ class CheckIndexing(object):
         # slice
         result = df.icol(slice(4, 8))
         expected = df.ix[:, 8:14]
+        assert_frame_equal(result, expected)
+
+        # verify slice is view
+        result[8] = 0.
+        self.assert_((df[8] == 0).all())
+
+        # list of integers
+        result = df.icol([1, 2, 4, 6])
+        expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
 
     def test_iget_value(self):

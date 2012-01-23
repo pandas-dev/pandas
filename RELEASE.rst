@@ -157,6 +157,8 @@ pandas 0.7.0
     console-formatted DataFrames (can read the row of index names, etc.)
   - Can pass list of group labels (without having to convert to an ndarray
     yourself) to ``groupby`` in some cases (GH #659)
+  - Use ``kind`` argument to Series.order for selecting different sort kinds
+    (GH #668)
 
 **Bug fixes**
 
@@ -225,6 +227,7 @@ pandas 0.7.0
   - Could not create a new column in a DataFrame from a list of tuples
   - Fix bugs preventing SparseDataFrame and SparseSeries working with groupby
     (GH #666)
+  - Use sort kind in Series.sort / argsort (GH #668)
 
 Thanks
 ------

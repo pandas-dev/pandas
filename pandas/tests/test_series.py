@@ -342,6 +342,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s.ix[2:4]
         assert_series_equal(result, expected)
 
+        # test slice is a view
+        result[:] = 0
+        self.assert_((s[1:3] == 0).all())
+
+        # list of integers
+        result = s.iget([0, 2, 3, 4, 5])
+        expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
+        assert_series_equal(result, expected)
+
     def test_getitem_regression(self):
         s = Series(range(5), index=range(5))
         result = s[range(5)]

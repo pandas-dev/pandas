@@ -483,21 +483,24 @@ copy : boolean, default False
 
     def iget_value(self, i):
         """
-        Return the i-th value in the Series by location
+        Return the i-th value or values in the Series by location
 
         Parameters
         ----------
-        i : int or slice
+        i : int, slice, or sequence of integers
 
         Returns
         -------
-        value : scalar
+        value : scalar (int) or Series (slice, sequence)
         """
         if isinstance(i, slice):
             return self[i]
         else:
             label = self.index[i]
-            return self[label]
+            if isinstance(label, Index):
+                return self.reindex(label)
+            else:
+                return self[label]
 
     iget = iget_value
 

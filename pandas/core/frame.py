@@ -1220,38 +1220,48 @@ class DataFrame(NDFrame):
 
     def irow(self, i):
         """
-        Retrieve the i-th row of the DataFrame by location as a Series. Can
-        also pass a slice object
+        Retrieve the i-th row or rows of the DataFrame by location
 
         Parameters
         ----------
-        i : int or slice
+        i : int, slice, or sequence of integers
+
+        Notes
+        -----
+        If slice passed, the resulting data will be a view
 
         Returns
         -------
-        row : Series
+        row : Series (int) or DataFrame (slice, sequence)
         """
         if isinstance(i, slice):
             return self[i]
         else:
             label = self.index[i]
-            return self.xs(label)
+            if isinstance(label, Index):
+                return self.reindex(label)
+            else:
+                return self.xs(label)
 
     def icol(self, i):
         """
-        Retrieve the i-th column of the DataFrame by location as a Series. Can
-        also pass a slice object
+        Retrieve the i-th column or columns of the DataFrame by location
 
         Parameters
         ----------
-        i : int or slice
+        i : int, slice, or sequence of integers
+
+        Notes
+        -----
+        If slice passed, the resulting data will be a view
 
         Returns
         -------
-        column : Series
+        column : Series (int) or DataFrame (slice, sequence)
         """
         label = self.columns[i]
         if isinstance(i, slice):
+            # need to return view
             lab_slice = slice(label[0], label[-1])
             return self.ix[:, lab_slice]
         else:
