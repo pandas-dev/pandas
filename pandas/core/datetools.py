@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import sys
 import numpy as np
 import pandas._tseries as lib
+import pandas._datetime as dtlib
 
 try:
     import dateutil
@@ -24,28 +25,26 @@ import calendar
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
 
-# TODO: fix to use new Date boxing logic
-
 _unbox_cache = dict()
 def _dt_unbox(key):
     '''
-    Unbox datetime to datetime64
+    Unbox python datetime to datetime64
     '''
     try:
         return _unbox_cache[key]
     except KeyError:
-        _unbox_cache[key] = np.datetime64(key)
+        _unbox_cache[key] = np.datetime64(dtlib.pydt_to_i8(key))
         return _unbox_cache[key]
 
 _box_cache = dict()
 def _dt_box(key):
     '''
-    Box datetime64 to datetime
+    Box datetime64 to python datetime
     '''
     try:
         return _box_cache[key]
     except KeyError:
-        _box_cache[key] = key.astype('O')
+        _box_cache[key] = dtlib.i8_to_pydt(key.view('i8'))
         return _box_cache[key]
 
 #-------------------------------------------------------------------------------

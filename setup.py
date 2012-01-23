@@ -207,8 +207,12 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
+        self._clean_exclude = ['np_datetime.c', 'np_datetime_strings.c']
+
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
+                if f in self._clean_exclude:
+                    continue
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
                                                '.pyd', '.c'):
                     self._clean_me.append(pjoin(root, f))
@@ -356,7 +360,8 @@ sandbox_ext = Extension('pandas._sandbox',
 
 datetime_ext = Extension('pandas._datetime',
                          sources=[srcpath('datetime', suffix=suffix),
-                                          'pandas/src/datetime_helper.c'],
+                                          'pandas/src/np_datetime.c',
+                                          'pandas/src/np_datetime_strings.c'],
                          include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',

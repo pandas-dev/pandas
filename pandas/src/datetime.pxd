@@ -22,6 +22,8 @@ cdef extern from "datetime.h":
     int PyDateTime_TIME_GET_MICROSECOND(datetime o)
     bint PyDateTime_Check(object o)
     void PyDateTime_IMPORT()
+    PyObject *PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
+                                         int minute, int second, int us)
 
 cdef extern from "numpy/ndarrayobject.h":
 
@@ -55,8 +57,10 @@ cdef extern from "numpy/ndarrayobject.h":
                                           NPY_DATETIMEUNIT fr,
                                           npy_datetimestruct *result)
 
-cdef extern from "datetime_helper.h":
+cdef extern from "np_datetime.h":
 
     int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
                                              NPY_DATETIMEUNIT *out_bestunit,
                                              int apply_tzinfo)
+
+    int is_leapyear(int64_t year)
