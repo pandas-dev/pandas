@@ -873,6 +873,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         argsorted = self.ts.argsort()
         self.assert_(issubclass(argsorted.dtype.type, np.integer))
 
+    def test_argsort_stable(self):
+        s = Series(np.random.randint(0, 100, size=10000))
+        mindexer = s.argsort(kind='mergesort')
+        qindexer = s.argsort()
+
+        mexpected = np.argsort(s.values, kind='mergesort')
+        qexpected = np.argsort(s.values, kind='quicksort')
+
+        self.assert_(np.array_equal(mindexer, mexpected))
+        self.assert_(np.array_equal(qindexer, qexpected))
+        self.assert_(not np.array_equal(qindexer, mindexer))
+
     def test_cumsum(self):
         self._check_accum_op('cumsum')
 
@@ -880,7 +892,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self._check_accum_op('cumprod')
 
     def test_cummin(self):
-        self.assert_(np.array_equal(self.ts.cummin(), 
+        self.assert_(np.array_equal(self.ts.cummin(),
                                     np.minimum.accumulate(np.array(self.ts))))
         ts = self.ts.copy()
         ts[::2]  = np.NaN
@@ -890,7 +902,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.array_equal(result, expected))
 
     def test_cummax(self):
-        self.assert_(np.array_equal(self.ts.cummax(), 
+        self.assert_(np.array_equal(self.ts.cummax(),
                                     np.maximum.accumulate(np.array(self.ts))))
         ts = self.ts.copy()
         ts[::2]  = np.NaN

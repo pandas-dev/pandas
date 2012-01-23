@@ -1356,10 +1356,18 @@ copy : boolean, default False
 
     def sort(self, axis=0, kind='quicksort', order=None):
         """
-        Sort values and index labels in place, for compatibility with
-        ndarray. No return value
+        Sort values and index labels by value, in place. For compatibility with
+        ndarray API. No return value
+
+        Parameters
+        ----------
+        axis : int (can only be zero)
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorithm
+        order : ignored
         """
-        sortedSeries = self.order(na_last=True)
+        sortedSeries = self.order(na_last=True, kind=kind)
 
         true_base = self
         while true_base.base is not None:
@@ -1399,6 +1407,14 @@ copy : boolean, default False
         Overrides ndarray.argsort. Argsorts the value, omitting NA/null values,
         and places the result in the same locations as the non-NA values
 
+        Parameters
+        ----------
+        axis : int (can only be zero)
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorithm
+        order : ignored
+
         Returns
         -------
         argsorted : Series
@@ -1409,10 +1425,11 @@ copy : boolean, default False
         if mask.any():
             result = values.copy()
             notmask = -mask
-            result[notmask] = np.argsort(values[notmask])
+            result[notmask] = np.argsort(values[notmask], kind=kind)
             return Series(result, index=self.index, name=self.name)
         else:
-            return Series(np.argsort(values), index=self.index, name=self.name)
+            return Series(np.argsort(values, kind=kind), index=self.index,
+                          name=self.name)
 
     def rank(self):
         """
@@ -1429,7 +1446,7 @@ copy : boolean, default False
             ranks = lib.rank_1d_generic(self.values)
         return Series(ranks, index=self.index, name=self.name)
 
-    def order(self, na_last=True, ascending=True):
+    def order(self, na_last=True, ascending=True, kind='mergesort'):
         """
         Sorts Series object, by value, maintaining index-value link
 
@@ -1439,6 +1456,9 @@ copy : boolean, default False
             Put NaN's at beginning or end
         ascending : boolean, default True
             Sort ascending. Passing False sorts descending
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'mergesort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorith
 
         Returns
         -------

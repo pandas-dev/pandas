@@ -223,6 +223,8 @@ pandas 0.7.0
   - Fix out-of-bounds segfault in pad_object and backfill_object methods when
     either source or target array are empty
   - Could not create a new column in a DataFrame from a list of tuples
+  - Fix bugs preventing SparseDataFrame and SparseSeries working with groupby
+    (GH #666)
 
 Thanks
 ------
