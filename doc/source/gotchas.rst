@@ -80,3 +80,58 @@ specific dates. To enable this, we made the design design to make label-based sl
 This is most definitely a "practicality beats purity" sort of thing, but it is
 something to watch out for is you expect label-based slicing to behave exactly
 in the way that standard Python integer slicing works.
+
+Miscellaneous indexing gotchas
+------------------------------
+
+Reindex versus ix gotchas
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Many users will find themselves using the ``ix`` indexing capabilities as a
+concise means of selecting data from a pandas object:
+
+.. ipython:: python
+
+   df = DataFrame(randn(6, 4), columns=['one', 'two', 'three', 'four'],
+                  index=list('abcdef'))
+   df
+   df.ix[['b', 'c', 'e']]
+
+This is, of course, completely equivalent *in this case* to using th
+``reindex`` method:
+
+.. ipython:: python
+
+   df.reindex(['b', 'c', 'e'])
+
+Some might conclude that ``ix`` and ``reindex`` are 100% equivalent based on
+this. This is indeed true **except in the case of integer indexing**. For
+example, the above operation could alternately have been expressed as:
+
+.. ipython:: python
+
+   df.ix[[1, 2, 4]]
+
+If you pass ``[1, 2, 4]`` to ``reindex`` you will get another thing entirely:
+
+.. ipython:: python
+
+   df.reindex([1, 2, 4])
+
+So it's important to remember that ``reindex`` is **strict label indexing
+only**. This can lead to some potentially surprising results in pathological
+cases where an index contains, say, both integers and strings:
+
+.. ipython:: python
+
+   s = Series([1, 2, 3], index=['a', 0, 1])
+   s
+   s.ix[[0, 1]]
+   s.reindex([0, 1])
+
+Because the index in this case does not contain solely integers, ``ix`` falls
+back on integer indexing. By contrast, ``reindex`` only looks for the values
+passed in the index, thus finding the integers ``0`` and ``1``. While it would
+be possible to insert some logic to check whether a passed sequence is all
+contained in the index, that logic would exact a very high cost in large data
+sets.

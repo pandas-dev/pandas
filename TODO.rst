@@ -1,7 +1,8 @@
 DOCS 0.7.0
 ----------
-- no sort in groupby
-- concat with dict
+- ??? no sort in groupby
+- DONE concat with dict
+- Gotchas re: integer indexing
 
 DONE
 ----
