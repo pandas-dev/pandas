@@ -1,9 +1,9 @@
-cimport numpy as cnp
+cimport numpy as np
 cimport cython
 cimport cpython
 import numpy as np
 
-from numpy cimport int64_t, import_array
+from numpy cimport int32_t, int64_t, import_array, ndarray
 
 # this is our datetime.pxd
 from datetime cimport *
@@ -80,3 +80,33 @@ def pydt_to_dt64(object pydt):
         return PyArray_DatetimeStructToDatetime(g_out_bestunit, &g_dts)
 
     raise ValueError("Expected a datetime, received a %s" % type(pydt))
+
+def fast_field_accessor(ndarray[int64_t] dtindex, object field):
+    cdef:
+        npy_datetimestruct dts
+        Py_ssize_t i, count = 0
+        ndarray[int32_t] out
+
+    count = len(dtindex)
+    out = np.empty(count, dtype='i4')
+
+    if field == 'Y':
+        for i in range(count):
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.year
+        return out
+
+    elif field == 'M':
+        pass
+    elif field == 'D':
+        pass
+    elif field == 'h':
+        pass
+    elif field == 'm':
+        pass
+    elif field == 's':
+        pass
+    elif field == 'us':
+        pass
+    else:
+        raise ValueError("Field %s not supported, must be Y,M,D,h,m,s,us" % field)

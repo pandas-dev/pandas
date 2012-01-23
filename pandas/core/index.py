@@ -12,6 +12,7 @@ from pandas.core.datetools import _dt_box, _dt_unbox
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
 import pandas._engines as _gin
+import pandas._datetime as _dt
 
 from datetime import datetime
 
@@ -1099,6 +1100,10 @@ class DatetimeIndex(Int64Index):
                 return result
 
             return DatetimeIndex(result, name=self.name)
+
+    # TODO: make accessors for fast groupby work
+    def year(self):
+        return _dt.fast_field_accessor(self.values.view('i8'), 'Y')
 
     def __iter__(self):
         # TODO: again, figure out how to expose elements as nice datetime
