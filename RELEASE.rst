@@ -234,6 +234,8 @@ pandas 0.7.0
   - Fix DataFrame operations on non-scalar, non-pandas objects (GH #672)
   - Don't convert DataFrame column to integer type when passing integer to
     __setitem__ (GH #669)
+  - Fix downstream bug in pivot_table caused by integer level names in
+    MultiIndex (GH #678)
 
 Thanks
 ------
