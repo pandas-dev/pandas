@@ -483,6 +483,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(1, index=['a', 'a', 'b', 'b', 'c'])
         result = s[::-1] # it works!
 
+    def test_slice_float_get_set(self):
+        result = self.ts[4.0:10.0]
+        expected = self.ts[4:10]
+        assert_series_equal(result, expected)
+
+        self.ts[4.0:10.0] = 0
+        self.assert_((self.ts[4:10] == 0).all())
+
+        self.assertRaises(TypeError, self.ts.__getitem__, slice(4.5, 10.0))
+        self.assertRaises(TypeError, self.ts.__setitem__, slice(4.5, 10.0), 0)
+
     def test_setitem(self):
         self.ts[self.ts.index[5]] = np.NaN
         self.ts[[1,2,17]] = np.NaN
