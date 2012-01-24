@@ -215,6 +215,22 @@ class TestMultiLevel(unittest.TestCase):
         self.assert_((cp.values[:4] == 0).all())
         self.assert_((cp.values[4:] != 0).all())
 
+    def test_getitem_tuple_plus_slice(self):
+        # GH #671
+        df = DataFrame({'a' : range(10),
+                        'b' : range(10),
+                        'c' : np.random.randn(10),
+                        'd' : np.random.randn(10)})
+
+        idf = df.set_index(['a', 'b'])
+
+        result = idf.ix[(0, 0), :]
+        expected = idf.ix[0, 0]
+        expected2 = idf.xs((0, 0))
+
+        assert_series_equal(result, expected)
+        assert_series_equal(result, expected2)
+
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
         xs2 = self.frame.ix[('bar', 'two')]

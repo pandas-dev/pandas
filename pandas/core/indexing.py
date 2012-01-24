@@ -101,7 +101,12 @@ class _NDFrameIndexer(object):
         # no shortcut needed
         retval = self.obj
         for i, key in enumerate(tup):
-            # hack?
+            if i >= self.obj.ndim:
+                raise IndexingError('Too many indexers')
+
+            if _is_null_slice(key):
+                continue
+
             retval = retval.ix._getitem_axis(key, axis=i)
 
         return retval
@@ -109,15 +114,17 @@ class _NDFrameIndexer(object):
     def _getitem_lowerdim(self, tup):
         from pandas.core.frame import DataFrame
 
+        ax0 = self.obj._get_axis(0)
         # a bit kludgy
-        if isinstance(self.obj._get_axis(0), MultiIndex):
+        if isinstance(ax0, MultiIndex):
             try:
                 return self._get_label(tup, axis=0)
             except TypeError:
                 # slices are unhashable
                 pass
             except Exception:
-                raise
+                if tup[0] not in ax0:
+                    raise
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
@@ -148,12 +155,14 @@ class _NDFrameIndexer(object):
         raise IndexingError('not applicable')
 
     def _getitem_axis(self, key, axis=0):
+        labels = self.obj._get_axis(axis)
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
-        elif _is_list_like(key):
+        elif _is_list_like(key) and not (isinstance(key, tuple) and
+                                         isinstance(labels, MultiIndex)):
+
             return self._getitem_iterable(key, axis=axis)
         elif axis == 0:
-            labels = self.obj._get_axis(0)
             is_int_index = _is_integer_index(labels)
 
             idx = key
@@ -373,6 +382,10 @@ def _maybe_convert_ix(*args):
         return np.ix_(*args)
     else:
         return args
+
+def _is_null_slice(obj):
+    return (isinstance(obj, slice) and obj.start is None and
+            obj.stop is None and obj.step is None)
 
 def _is_integer_dtype(arr):
     return issubclass(arr.dtype.type, np.integer)

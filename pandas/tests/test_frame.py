@@ -2424,9 +2424,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, df.append, series)
 
         result = df.append(series[::-1], ignore_index=True)
-        expected = df.append(DataFrame({0 : series[::-1]},
-                                       index=df.columns).T,
-                             ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T, ignore_index=True)
         assert_frame_equal(result, expected)
 
         # dict
