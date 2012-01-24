@@ -32,7 +32,9 @@ div.header, div.content, div.footer {
 
 div.header-wrapper {
   background: {{ theme_headerbg }};
+  padding: 1em 1em 0;
   border-bottom: 3px solid #2e3436;
+  min-height: 0px;
 }
 
 
@@ -105,6 +107,11 @@ img {
   border: 0;
 }
 
+pre {
+  background-color: #EEE;
+  padding: 0.5em;
+}
+
 div.admonition {
   margin-top: 10px;
   margin-bottom: 10px;
@@ -123,10 +130,14 @@ dt:target, .highlighted {
 
 /* Header */
 
+/*
 div.header {
   padding-top: 10px;
   padding-bottom: 10px;
 }
+*/
+
+div.header {}
 
 div.header h1 {
   font-family: {{ theme_headerfont }};
@@ -140,13 +151,16 @@ div.header h1 a {
 }
 
 div.header div.rel {
-  margin-top: 1em;
+  text-decoration: none;
 }
+/*  margin-top: 1em; */
 
 div.header div.rel a {
+  margin-top: 1em;
   color: {{ theme_headerlinkcolor }};
   letter-spacing: .1em;
   text-transform: uppercase;
+  padding: 3px 1em;
 }
 
 p.logo {
@@ -161,9 +175,12 @@ img.logo {
 /* Content */
 div.content-wrapper {
   background-color: white;
+  padding: 1em;
+}
+/*
   padding-top: 20px;
   padding-bottom: 20px;
-}
+*/
 
 /*  float: left; */
 
