@@ -3750,15 +3750,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             'c': [0.00031111847529610595, 0.0014902627951905339,
                   -0.00094099200035979691]
         }
-        df = DataFrame(data, index=['foo', 'bar', 'baz'],
+        df1 = DataFrame(data, index=['foo', 'bar', 'baz'],
                        dtype='O')
         methods = ['sum', 'mean', 'prod', 'var', 'std', 'skew', 'min', 'max']
 
-        for meth in methods:
-            self.assert_(df.values.dtype == np.object_)
-            result = getattr(df, meth)(1)
-            expected = getattr(df.astype('f8'), meth)(1)
-            assert_series_equal(result, expected)
+        # GH #676
+        df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3],
+                        2: [np.nan, 4]}, dtype=object)
+
+        for df in [df1, df2]:
+            for meth in methods:
+                self.assert_(df.values.dtype == np.object_)
+                result = getattr(df, meth)(1)
+                expected = getattr(df.astype('f8'), meth)(1)
+                assert_series_equal(result, expected)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
