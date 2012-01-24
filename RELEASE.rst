@@ -80,6 +80,9 @@ pandas 0.7.0
     in DataFrame (GH #628)
   - Add new ``Series.unique`` function, significantly faster than
     ``numpy.unique`` (GH #658)
+  - Add new ``cummin`` and ``cummax`` instance methods to ``Series`` and
+    ``DataFrame`` (GH #647)
+  - Add new ``value_range`` function to return min/max of a dataframe (GH #288)
 
 **API Changes**
 

@@ -285,6 +285,8 @@ optional ``level`` parameter which applies only if the object has a
     ``quantile``, Sample quantile (value at %)
     ``cumsum``, Cumulative sum
     ``cumprod``, Cumulative product
+    ``cummax``, Cumulative maximum
+    ``cummin``, Cumulative minimum
 
 Note that by chance some NumPy methods, like ``mean``, ``std``, and ``sum``,
 will exclude NAs on Series input by default:
@@ -331,6 +333,9 @@ number of unique values and most frequently occurring values:
 
    s = Series(['a', 'a', 'b', 'b', 'a', 'a', np.nan, 'c', 'd', 'a'])
    s.describe()
+
+There also is a utility function, ``value_range`` which takes a DataFrame and
+returns a series with the minimum/maximum values in the DataFrame.
 
 .. _basics.idxmin:
 
