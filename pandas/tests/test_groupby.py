@@ -120,6 +120,25 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+    def test_groupby_dict_mapping(self):
+        # GH #679
+        from pandas import Series
+        s = Series({'T1': 5})
+        result = s.groupby({'T1': 'T2'}).agg(sum)
+        expected = s.groupby(['T2']).agg(sum)
+        assert_series_equal(result, expected)
+
+        s = Series([1., 2., 3., 4.], index=list('abcd'))
+        mapping = {'a' : 0, 'b' : 0, 'c' : 1, 'd' : 1}
+
+        result = s.groupby(mapping).mean()
+        result2 = s.groupby(mapping).agg(np.mean)
+        expected = s.groupby([0, 0, 1, 1]).mean()
+        expected2 = s.groupby([0, 0, 1, 1]).mean()
+        assert_series_equal(result, expected)
+        assert_series_equal(result, result2)
+        assert_series_equal(result, expected2)
+
     def test_groupby_nonobject_dtype(self):
         key = self.mframe.index.labels[0]
         grouped = self.mframe.groupby(key)

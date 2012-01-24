@@ -688,7 +688,7 @@ def _get_groupings(obj, grouper=None, axis=0, level=None, sort=True):
 
     # what are we after, exactly?
     match_axis_length = len(groupers) == len(group_axis)
-    any_callable = any(callable(g) for g in groupers)
+    any_callable = any(callable(g) or isinstance(g, dict) for g in groupers)
     any_arraylike = any(isinstance(g, (list, tuple, np.ndarray))
                         for g in groupers)
 
