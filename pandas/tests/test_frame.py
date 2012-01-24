@@ -222,6 +222,29 @@ class CheckIndexing(object):
         self.frame['D'] = self.frame['D'].astype('i8')
         self.assert_(self.frame['D'].dtype == np.int64)
 
+        # #669, should not cast?
+        self.frame['B'] = 0
+        self.assert_(self.frame['B'].dtype == np.float64)
+
+        # cast if pass array of course
+        self.frame['B'] = np.arange(len(self.frame))
+        self.assert_(issubclass(self.frame['B'].dtype.type, np.integer))
+
+        self.frame['foo'] = 'bar'
+        self.frame['foo'] = 0
+        self.assert_(self.frame['foo'].dtype == np.int64)
+
+        self.frame['foo'] = 'bar'
+        self.frame['foo'] = 2.5
+        self.assert_(self.frame['foo'].dtype == np.float64)
+
+        self.frame['something'] = 0
+        self.assert_(self.frame['something'].dtype == np.int64)
+        self.frame['something'] = 2
+        self.assert_(self.frame['something'].dtype == np.int64)
+        self.frame['something'] = 2.5
+        self.assert_(self.frame['something'].dtype == np.float64)
+
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
         mask = self.frame['A'] > 0

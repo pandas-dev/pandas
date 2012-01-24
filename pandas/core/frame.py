@@ -1426,8 +1426,7 @@ class DataFrame(NDFrame):
         Series/TimeSeries will be conformed to the DataFrame's index to
         ensure homogeneity.
         """
-        value = self._sanitize_column(value)
-        value = np.atleast_2d(value)
+        value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 
     def insert(self, loc, column, value):
@@ -1442,11 +1441,10 @@ class DataFrame(NDFrame):
         column : object
         value : int, Series, or array-like
         """
-        value = self._sanitize_column(value)
-        value = np.atleast_2d(value)
+        value = self._sanitize_column(column, value)
         self._data.insert(loc, column, value)
 
-    def _sanitize_column(self, value):
+    def _sanitize_column(self, key, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
         if _is_sequence(value):
@@ -1465,8 +1463,14 @@ class DataFrame(NDFrame):
                     value = value.copy()
         else:
             value = np.repeat(value, len(self.index))
+            if key in self.columns:
+                existing_column = self[key]
+                # special case for now
+                if (com.is_float_dtype(existing_column) and
+                    com.is_integer_dtype(value)):
+                    value = value.astype(np.float64)
 
-        return np.asarray(value)
+        return np.atleast_2d(np.asarray(value))
 
     def pop(self, item):
         """
