@@ -133,7 +133,6 @@ class SparseSeries(SparseArray, Series):
 
         # Change the class of the array to be the subclass type.
         output = subarr.view(cls)
-        output._sp_values = subarr
         output.sp_index = sparse_index
         output.fill_value = np.float64(fill_value)
         output.index = index
@@ -409,6 +408,18 @@ to sparse
         return SparseSeries(new_values, index=self.index,
                             sparse_index=new_index,
                             fill_value=self.fill_value)
+
+    def take(self, indices, axis=0):
+        """
+        Sparse-compatible version of ndarray.take
+
+        Returns
+        -------
+        taken : ndarray
+        """
+        new_values = SparseArray.take(self, indices)
+        new_index = self.index.take(indices)
+        return self._constructor(new_values, index=new_index)
 
     def cumsum(self, axis=0, dtype=None, out=None):
         """

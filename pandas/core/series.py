@@ -285,6 +285,12 @@ copy : boolean, default False
             return self.index.get_value(self, key)
         except InvalidIndexError:
             pass
+        except KeyError:
+            if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+                # kludge
+                pass
+            else:
+                raise
         except Exception:
             raise
 
@@ -343,17 +349,13 @@ copy : boolean, default False
         if not isinstance(self.index, MultiIndex):
             raise ValueError('Can only tuple-index with a MultiIndex')
 
-        indexer = self.index.get_loc_level(key)
-        result = self._get_values(indexer)
+        indexer, new_index = self.index.get_loc_level(key)
 
-        # kludgearound
-        new_index = result.index
-        for i, k in reversed(list(enumerate(key))):
-            if not isinstance(k, slice):
-                new_index = new_index.droplevel(i)
-        result.index = new_index
-
-        return result
+        if com.is_integer(indexer):
+            return self.values[indexer]
+        else:
+            return Series(self.values[indexer], index=new_index,
+                          name=self.name)
 
     def _get_values(self, indexer):
         try:
@@ -481,21 +483,24 @@ copy : boolean, default False
 
     def iget_value(self, i):
         """
-        Return the i-th value in the Series by location
+        Return the i-th value or values in the Series by location
 
         Parameters
         ----------
-        i : int or slice
+        i : int, slice, or sequence of integers
 
         Returns
         -------
-        value : scalar
+        value : scalar (int) or Series (slice, sequence)
         """
         if isinstance(i, slice):
             return self[i]
         else:
             label = self.index[i]
-            return self[label]
+            if isinstance(label, Index):
+                return self.reindex(label)
+            else:
+                return self[label]
 
     iget = iget_value
 
@@ -624,17 +629,17 @@ copy : boolean, default False
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
 
     # comparisons
-    __gt__ = _arith_method(operator.gt, '__gt__')
-    __ge__ = _arith_method(operator.ge, '__ge__')
-    __lt__ = _arith_method(operator.lt, '__lt__')
-    __le__ = _arith_method(operator.le, '__le__')
-    __eq__ = _arith_method(operator.eq, '__eq__')
-    __ne__ = _arith_method(operator.ne, '__ne__')
+    # __gt__ = _arith_method(operator.gt, '__gt__')
+    # __ge__ = _arith_method(operator.ge, '__ge__')
+    # __lt__ = _arith_method(operator.lt, '__lt__')
+    # __le__ = _arith_method(operator.le, '__le__')
+    # __eq__ = _arith_method(operator.eq, '__eq__')
+    # __ne__ = _arith_method(operator.ne, '__ne__')
 
     # binary logic
-    __or__ = _arith_method(operator.or_, '__or__')
-    __and__ = _arith_method(operator.and_, '__and__')
-    __xor__ = _arith_method(operator.xor, '__xor__')
+    # __or__ = _arith_method(operator.or_, '__or__')
+    # __and__ = _arith_method(operator.and_, '__and__')
+    # __xor__ = _arith_method(operator.xor, '__xor__')
 
     # Inplace operators
     __iadd__ = __add__
@@ -773,6 +778,22 @@ copy : boolean, default False
         for value in self.dropna().values:
             counter[value] += 1
         return Series(counter).order(ascending=False)
+
+    def unique(self):
+        """
+        Return array of unique values in the Series. Significantly faster than
+        numpy.unique
+
+        Returns
+        -------
+        uniques : ndarray
+        """
+        values = self.values
+        if not values.dtype == np.object_:
+            values = values.astype('O')
+        table = lib.PyObjectHashTable(len(values))
+        uniques = lib.list_to_object_array(table.unique(values))
+        return lib.maybe_convert_objects(uniques)
 
     def nunique(self):
         """
@@ -965,6 +986,64 @@ copy : boolean, default False
             np.putmask(arr, mask, 1.)
 
         result = arr.cumprod()
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
+
+    def cummax(self, axis=0, dtype=None, out=None, skipna=True):
+        """
+        Cumulative max of values. Preserves locations of NaN values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        cummax : Series
+        """
+        arr = self.values.copy()
+
+        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, -np.inf)
+
+        result = np.maximum.accumulate(arr)
+
+        if do_mask:
+            np.putmask(result, mask, np.nan)
+
+        return Series(result, index=self.index)
+
+    def cummin(self, axis=0, dtype=None, out=None, skipna=True):
+        """
+        Cumulative min of values. Preserves locations of NaN values
+
+        Extra parameters are to preserve ndarray interface.
+
+        Parameters
+        ----------
+        skipna : boolean, default True
+            Exclude NA/null values
+
+        Returns
+        -------
+        cummin : Series
+        """
+        arr = self.values.copy()
+
+        do_mask = skipna and not issubclass(self.dtype.type, np.integer)
+        if do_mask:
+            mask = isnull(arr)
+            np.putmask(arr, mask, np.inf)
+
+        result = np.minimum.accumulate(arr)
 
         if do_mask:
             np.putmask(result, mask, np.nan)
@@ -1280,10 +1359,18 @@ copy : boolean, default False
 
     def sort(self, axis=0, kind='quicksort', order=None):
         """
-        Sort values and index labels in place, for compatibility with
-        ndarray. No return value
+        Sort values and index labels by value, in place. For compatibility with
+        ndarray API. No return value
+
+        Parameters
+        ----------
+        axis : int (can only be zero)
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorithm
+        order : ignored
         """
-        sortedSeries = self.order(na_last=True)
+        sortedSeries = self.order(na_last=True, kind=kind)
 
         true_base = self
         while true_base.base is not None:
@@ -1323,6 +1410,14 @@ copy : boolean, default False
         Overrides ndarray.argsort. Argsorts the value, omitting NA/null values,
         and places the result in the same locations as the non-NA values
 
+        Parameters
+        ----------
+        axis : int (can only be zero)
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorithm
+        order : ignored
+
         Returns
         -------
         argsorted : Series
@@ -1333,10 +1428,11 @@ copy : boolean, default False
         if mask.any():
             result = values.copy()
             notmask = -mask
-            result[notmask] = np.argsort(values[notmask])
+            result[notmask] = np.argsort(values[notmask], kind=kind)
             return Series(result, index=self.index, name=self.name)
         else:
-            return Series(np.argsort(values), index=self.index, name=self.name)
+            return Series(np.argsort(values, kind=kind), index=self.index,
+                          name=self.name)
 
     def rank(self):
         """
@@ -1353,7 +1449,7 @@ copy : boolean, default False
             ranks = lib.rank_1d_generic(self.values)
         return Series(ranks, index=self.index, name=self.name)
 
-    def order(self, na_last=True, ascending=True):
+    def order(self, na_last=True, ascending=True, kind='mergesort'):
         """
         Sorts Series object, by value, maintaining index-value link
 
@@ -1363,6 +1459,9 @@ copy : boolean, default False
             Put NaN's at beginning or end
         ascending : boolean, default True
             Sort ascending. Passing False sorts descending
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'mergesort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorith
 
         Returns
         -------

@@ -817,22 +817,26 @@ class TestMultiIndex(unittest.TestCase):
                                    np.array([0, 1, 0, 0, 0, 1, 0, 1]),
                                    np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
-        loc = index.get_loc_level((0, 1))
+        loc, new_index = index.get_loc_level((0, 1))
         expected = slice(1, 2)
+        exp_index = index[expected].droplevel(0).droplevel(0)
         self.assertEqual(loc, expected)
+        self.assert_(new_index.equals(exp_index))
 
-        loc = index.get_loc_level((0, 1, 0))
+        loc, new_index = index.get_loc_level((0, 1, 0))
         expected = 1
         self.assertEqual(loc, expected)
+        self.assert_(new_index is None)
 
         self.assertRaises(KeyError, index.get_loc_level, (2, 2))
 
         index = MultiIndex(levels=[[2000], range(4)],
                            labels=[np.array([0, 0, 0, 0]),
                                    np.array([0, 1, 2, 3])])
-        result = index.get_loc_level((2000, slice(None, None)))
+        result, new_index = index.get_loc_level((2000, slice(None, None)))
         expected = slice(None, None)
         self.assertEqual(result, expected)
+        self.assert_(new_index.equals(index.droplevel(0)))
 
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()

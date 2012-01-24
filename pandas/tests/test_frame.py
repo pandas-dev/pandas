@@ -66,6 +66,8 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
 
     def test_getitem_list(self):
+        self.frame.columns.name = 'foo'
+
         result = self.frame[['B', 'A']]
         result2 = self.frame[Index(['B', 'A'])]
 
@@ -73,10 +75,22 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
+        self.assertEqual(result.columns.name, 'foo')
+
         self.assertRaises(Exception, self.frame.__getitem__,
                           ['B', 'A', 'foo'])
         self.assertRaises(Exception, self.frame.__getitem__,
                           Index(['B', 'A', 'foo']))
+
+        # tuples
+        df = DataFrame(randn(8, 3),
+                       columns=Index([('foo', 'bar'), ('baz', 'qux'),
+                                      ('peek', 'aboo')], name='sth'))
+
+        result = df[[('foo', 'bar'), ('baz', 'qux')]]
+        expected = df.ix[:, :2]
+        assert_frame_equal(result, expected)
+        self.assertEqual(result.columns.name, 'sth')
 
     def test_setitem_list(self):
         self.frame['E'] = 'foo'
@@ -90,6 +104,14 @@ class CheckIndexing(object):
         data = np.random.randn(len(self.frame), 2)
         self.frame[['A', 'B']] = data
         assert_almost_equal(self.frame[['A', 'B']].values, data)
+
+    def test_setitem_list_of_tuples(self):
+        tuples = zip(self.frame['A'], self.frame['B'])
+        self.frame['tuples'] = tuples
+
+        result = self.frame['tuples']
+        expected = Series(tuples, index=self.frame.index)
+        assert_series_equal(result, expected)
 
     def test_getitem_boolean(self):
         # boolean indexing
@@ -825,6 +847,17 @@ class CheckIndexing(object):
         expected = df.ix[8:14]
         assert_frame_equal(result, expected)
 
+        # verify slice is view
+        result[2] = 0.
+        exp_col = df[2].copy()
+        exp_col[4:8] = 0.
+        assert_series_equal(df[2], exp_col)
+
+        # list of integers
+        result = df.irow([1, 2, 4, 6])
+        expected = df.reindex(df.index[[1, 2, 4, 6]])
+        assert_frame_equal(result, expected)
+
     def test_icol(self):
         df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
 
@@ -839,6 +872,15 @@ class CheckIndexing(object):
         # slice
         result = df.icol(slice(4, 8))
         expected = df.ix[:, 8:14]
+        assert_frame_equal(result, expected)
+
+        # verify slice is view
+        result[8] = 0.
+        self.assert_((df[8] == 0).all())
+
+        # list of integers
+        result = df.icol([1, 2, 4, 6])
+        expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
 
     def test_iget_value(self):
@@ -1713,6 +1755,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         com.set_printoptions(max_rows=10, max_columns=2)
         repr(self.frame)
+        com.reset_printoptions()
 
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[('err', object)])
@@ -2381,9 +2424,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, df.append, series)
 
         result = df.append(series[::-1], ignore_index=True)
-        expected = df.append(DataFrame({0 : series[::-1]},
-                                       index=df.columns).T,
-                             ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T, ignore_index=True)
         assert_frame_equal(result, expected)
 
         # dict
@@ -3736,6 +3777,53 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_min(self):
         self._check_stat_op('min', np.min)
         self._check_stat_op('min', np.min, frame=self.intframe)
+
+    def test_cummin(self):
+        self.tsframe.ix[5:10, 0] = nan
+        self.tsframe.ix[10:15, 1] = nan
+        self.tsframe.ix[15:, 2] = nan
+
+        # axis = 0
+        cummin = self.tsframe.cummin()
+        expected = self.tsframe.apply(Series.cummin)
+        assert_frame_equal(cummin, expected)
+
+        # axis = 1
+        cummin = self.tsframe.cummin(axis=1)
+        expected = self.tsframe.apply(Series.cummin, axis=1)
+        assert_frame_equal(cummin, expected)
+
+        # works
+        df = DataFrame({'A' : np.arange(20)}, index=np.arange(20))
+        result = df.cummin()
+
+        # fix issue
+        cummin_xs = self.tsframe.cummin(axis=1)
+        self.assertEqual(np.shape(cummin_xs), np.shape(self.tsframe))
+
+    def test_cummax(self):
+        self.tsframe.ix[5:10, 0] = nan
+        self.tsframe.ix[10:15, 1] = nan
+        self.tsframe.ix[15:, 2] = nan
+
+        # axis = 0
+        cummax = self.tsframe.cummax()
+        expected = self.tsframe.apply(Series.cummax)
+        assert_frame_equal(cummax, expected)
+
+        # axis = 1
+        cummax = self.tsframe.cummax(axis=1)
+        expected = self.tsframe.apply(Series.cummax, axis=1)
+        assert_frame_equal(cummax, expected)
+
+        # works
+        df = DataFrame({'A' : np.arange(20)}, index=np.arange(20))
+        result = df.cummax()
+
+        # fix issue
+        cummax_xs = self.tsframe.cummax(axis=1)
+        self.assertEqual(np.shape(cummax_xs), np.shape(self.tsframe))
+
 
     def test_max(self):
         self._check_stat_op('max', np.max)

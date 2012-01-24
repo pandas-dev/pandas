@@ -1271,13 +1271,49 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(result.dtype == np.object_)
         self.assert_(isinstance(result[0], Decimal))
 
-class TestPanelGroupBy(unittest.TestCase):
+    def test_groupby_list_infer_array_like(self):
+        result = self.df.groupby(list(self.df['A'])).mean()
+        expected = self.df.groupby(self.df['A']).mean()
+        assert_frame_equal(result, expected)
 
-    def setUp(self):
+        self.assertRaises(Exception, self.df.groupby, list(self.df['A'][:-1]))
+
+        # pathological case of ambiguity
+        df = DataFrame({'foo' : [0, 1], 'bar' : [3, 4],
+                        'val' : np.random.randn(2)})
+
+        result = df.groupby(['foo', 'bar']).mean()
+        expected = df.groupby([df['foo'], df['bar']]).mean()[['val']]
+
+    def test_dictify(self):
+        dict(iter(self.df.groupby('A')))
+        dict(iter(self.df.groupby(['A', 'B'])))
+        dict(iter(self.df['C'].groupby(self.df['A'])))
+        dict(iter(self.df['C'].groupby([self.df['A'], self.df['B']])))
+        dict(iter(self.df.groupby('A')['C']))
+        dict(iter(self.df.groupby(['A', 'B'])['C']))
+
+    def test_sparse_friendly(self):
+        sdf = self.df[['C', 'D']].to_sparse()
+        panel = tm.makePanel()
+        tm.add_nans(panel)
+
+        def _check_work(gp):
+            gp.mean()
+            gp.agg(np.mean)
+            dict(iter(gp))
+
+        # it works!
+        _check_work(sdf.groupby(lambda x: x // 2))
+        _check_work(sdf['C'].groupby(lambda x: x // 2))
+        _check_work(sdf.groupby(self.df['A']))
+
+        # do this someday
+        # _check_work(panel.groupby(lambda x: x.month, axis=1))
+
+    def test_panel_groupby(self):
         self.panel = tm.makePanel()
         tm.add_nans(self.panel)
-
-    def test_groupby(self):
         grouped = self.panel.groupby({'ItemA' : 0, 'ItemB' : 0, 'ItemC' : 1},
                                      axis='items')
         agged = grouped.agg(np.mean)

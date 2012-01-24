@@ -1220,38 +1220,48 @@ class DataFrame(NDFrame):
 
     def irow(self, i):
         """
-        Retrieve the i-th row of the DataFrame by location as a Series. Can
-        also pass a slice object
+        Retrieve the i-th row or rows of the DataFrame by location
 
         Parameters
         ----------
-        i : int or slice
+        i : int, slice, or sequence of integers
+
+        Notes
+        -----
+        If slice passed, the resulting data will be a view
 
         Returns
         -------
-        row : Series
+        row : Series (int) or DataFrame (slice, sequence)
         """
         if isinstance(i, slice):
             return self[i]
         else:
             label = self.index[i]
-            return self.xs(label)
+            if isinstance(label, Index):
+                return self.reindex(label)
+            else:
+                return self.xs(label)
 
     def icol(self, i):
         """
-        Retrieve the i-th column of the DataFrame by location as a Series. Can
-        also pass a slice object
+        Retrieve the i-th column or columns of the DataFrame by location
 
         Parameters
         ----------
-        i : int or slice
+        i : int, slice, or sequence of integers
+
+        Notes
+        -----
+        If slice passed, the resulting data will be a view
 
         Returns
         -------
-        column : Series
+        column : Series (int) or DataFrame (slice, sequence)
         """
         label = self.columns[i]
         if isinstance(i, slice):
+            # need to return view
             lab_slice = slice(label[0], label[-1])
             return self.ix[:, lab_slice]
         else:
@@ -1283,7 +1293,7 @@ class DataFrame(NDFrame):
         # either boolean or fancy integer index
         elif isinstance(key, (np.ndarray, list)):
             if isinstance(key, list):
-                key = np.array(key, dtype=object)
+                key = lib.list_to_object_array(key)
 
             # also raises Exception if object array with NA values
             if com._is_bool_indexer(key):
@@ -1307,7 +1317,10 @@ class DataFrame(NDFrame):
             mask = indexer == -1
             if mask.any():
                 raise KeyError("No column(s) named: %s" % str(key[mask]))
-            return self.reindex(columns=key)
+            result = self.reindex(columns=key)
+            if result.columns.name is None:
+                result.columns.name = self.columns.name
+            return result
 
     def _slice(self, slobj, axis=0):
         if axis == 0:
@@ -1427,9 +1440,7 @@ class DataFrame(NDFrame):
                 assert(len(value) == len(self.index))
 
                 if not isinstance(value, np.ndarray):
-                    value = np.array(value)
-                    if value.dtype.type == np.str_:
-                        value = np.array(value, dtype=object)
+                    value = com._asarray_tuplesafe(value)
                 else:
                     value = value.copy()
         else:
@@ -1472,7 +1483,7 @@ class DataFrame(NDFrame):
         """
         labels = self._get_axis(axis)
         if level is not None:
-            loc = labels.get_loc_level(key, level=level)
+            loc, new_ax = labels.get_loc_level(key, level=level)
 
             # level = 0
             if not isinstance(loc, slice):
@@ -1484,7 +1495,8 @@ class DataFrame(NDFrame):
 
             result = self.ix[indexer]
 
-            new_ax = result._get_axis(axis).droplevel(level)
+            # new_ax = result._get_axis(axis).droplevel(level)
+
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 
@@ -1495,14 +1507,23 @@ class DataFrame(NDFrame):
             return data
 
         self._consolidate_inplace()
-        loc = self.index.get_loc(key)
+
+        index = self.index
+        if isinstance(index, MultiIndex):
+            loc, new_index = self.index.get_loc_level(key)
+        else:
+            loc = self.index.get_loc(key)
+
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns, name=key)
         else:
-            new_data = self._data.xs(key, axis=1, copy=copy)
-            result = DataFrame(new_data)
-            result.index = _maybe_droplevels(result.index, key)
+            result = self[loc]
+            result.index = new_index
+
+            # new_data = self._data.xs(key, axis=1, copy=copy)
+            # result = DataFrame(new_data)
+            # result.index = _maybe_droplevels(result.index, key)
             return result
 
     def lookup(self, row_labels, col_labels):

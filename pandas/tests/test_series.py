@@ -222,6 +222,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(objs, index=[0, 1])
         self.assert_(isinstance(s, Series))
 
+    def test_constructor_pass_none(self):
+        s = Series(None, index=range(5))
+        self.assert_(s.dtype == np.float64)
+
+        s = Series(None, index=range(5), dtype=object)
+        self.assert_(s.dtype == np.object_)
+
     def test_constructor_cast(self):
         self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
@@ -333,6 +340,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # pass a slice
         result = s.iget(slice(1, 3))
         expected = s.ix[2:4]
+        assert_series_equal(result, expected)
+
+        # test slice is a view
+        result[:] = 0
+        self.assert_((s[1:3] == 0).all())
+
+        # list of integers
+        result = s.iget([0, 2, 3, 4, 5])
+        expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
         assert_series_equal(result, expected)
 
     def test_getitem_regression(self):
@@ -466,6 +482,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_slice_can_reorder_not_uniquely_indexed(self):
         s = Series(1, index=['a', 'a', 'b', 'b', 'c'])
         result = s[::-1] # it works!
+
+    def test_slice_float_get_set(self):
+        result = self.ts[4.0:10.0]
+        expected = self.ts[4:10]
+        assert_series_equal(result, expected)
+
+        self.ts[4.0:10.0] = 0
+        self.assert_((self.ts[4:10] == 0).all())
+
+        self.assertRaises(TypeError, self.ts.__getitem__, slice(4.5, 10.0))
+        self.assertRaises(TypeError, self.ts.__setitem__, slice(4.5, 10.0), 0)
 
     def test_setitem(self):
         self.ts[self.ts.index[5]] = np.NaN
@@ -866,11 +893,43 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         argsorted = self.ts.argsort()
         self.assert_(issubclass(argsorted.dtype.type, np.integer))
 
+    def test_argsort_stable(self):
+        s = Series(np.random.randint(0, 100, size=10000))
+        mindexer = s.argsort(kind='mergesort')
+        qindexer = s.argsort()
+
+        mexpected = np.argsort(s.values, kind='mergesort')
+        qexpected = np.argsort(s.values, kind='quicksort')
+
+        self.assert_(np.array_equal(mindexer, mexpected))
+        self.assert_(np.array_equal(qindexer, qexpected))
+        self.assert_(not np.array_equal(qindexer, mindexer))
+
     def test_cumsum(self):
         self._check_accum_op('cumsum')
 
     def test_cumprod(self):
         self._check_accum_op('cumprod')
+
+    def test_cummin(self):
+        self.assert_(np.array_equal(self.ts.cummin(),
+                                    np.minimum.accumulate(np.array(self.ts))))
+        ts = self.ts.copy()
+        ts[::2]  = np.NaN
+        result   = ts.cummin()[1::2]
+        expected = np.minimum.accumulate(ts.valid())
+
+        self.assert_(np.array_equal(result, expected))
+
+    def test_cummax(self):
+        self.assert_(np.array_equal(self.ts.cummax(),
+                                    np.maximum.accumulate(np.array(self.ts))))
+        ts = self.ts.copy()
+        ts[::2]  = np.NaN
+        result   = ts.cummax()[1::2]
+        expected = np.maximum.accumulate(ts.valid())
+
+        self.assert_(np.array_equal(result, expected))
 
     def _check_stat_op(self, name, alternate, check_objects=False):
         from pandas import DateRange
@@ -913,7 +972,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             nanops._USE_BOTTLENECK = True
         except ImportError:
             pass
-
 
     def _check_accum_op(self, name):
         func = getattr(np, name)
@@ -999,8 +1057,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             tm.assert_almost_equal(cython_or_numpy, python)
 
         def check(other):
-            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv',
-                          'gt', 'ge', 'lt', 'le']
+            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
             for opname in simple_ops:
                 _check_op(other, getattr(operator, opname))
@@ -1979,6 +2036,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.ts[:5] = np.nan
         result = self.ts.dropna()
         self.assertEquals(result.name, self.ts.name)
+
+    def test_numpy_unique(self):
+        # it works!
+        result = np.unique(self.ts)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

@@ -78,8 +78,11 @@ pandas 0.7.0
     yielding an aggregated result with hierarchical columns (GH #166)
   - Add integer-indexing functions ``iget`` in Series and ``irow`` / ``iget``
     in DataFrame (GH #628)
-  - Add automatic realignment functionality (when possible) to comparisons and
-    logical operators for Series
+  - Add new ``Series.unique`` function, significantly faster than
+    ``numpy.unique`` (GH #658)
+  - Add new ``cummin`` and ``cummax`` instance methods to ``Series`` and
+    ``DataFrame`` (GH #647)
+  - Add new ``value_range`` function to return min/max of a dataframe (GH #288)
 
 **API Changes**
 
@@ -155,6 +158,10 @@ pandas 0.7.0
     row/column the function application failed on (GH #614)
   - Improved ability of read_table and read_clipboard to parse
     console-formatted DataFrames (can read the row of index names, etc.)
+  - Can pass list of group labels (without having to convert to an ndarray
+    yourself) to ``groupby`` in some cases (GH #659)
+  - Use ``kind`` argument to Series.order for selecting different sort kinds
+    (GH #668)
 
 **Bug fixes**
 
@@ -220,6 +227,10 @@ pandas 0.7.0
   - Add support for legacy WidePanel objects to be read from HDFStore
   - Fix out-of-bounds segfault in pad_object and backfill_object methods when
     either source or target array are empty
+  - Could not create a new column in a DataFrame from a list of tuples
+  - Fix bugs preventing SparseDataFrame and SparseSeries working with groupby
+    (GH #666)
+  - Use sort kind in Series.sort / argsort (GH #668)
 
 Thanks
 ------

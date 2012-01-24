@@ -88,6 +88,12 @@ New features
   aggregate with groupby on a DataFrame, yielding an aggregated result with
   hierarchical columns (GH166_)
 
+- Can call ``cummin`` and ``cummax`` on Series and DataFrame to get cumulative
+  minimum and maximum, respectively (GH647_)
+
+- ``value_range`` added as utility function to get min and max of a dataframe
+  (GH288_)
+
 API Changes to integer indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -266,6 +272,7 @@ similar operation to the above but using a Python function:
 .. _GH115: https://github.com/wesm/pandas/issues/115
 .. _GH166: https://github.com/wesm/pandas/issues/166
 .. _GH220: https://github.com/wesm/pandas/issues/220
+.. _GH288: https://github.com/wesm/pandas/issues/288
 .. _GH249: https://github.com/wesm/pandas/issues/249
 .. _GH267: https://github.com/wesm/pandas/issues/267
 .. _GH273: https://github.com/wesm/pandas/issues/273
@@ -288,6 +295,7 @@ similar operation to the above but using a Python function:
 .. _GH545: https://github.com/wesm/pandas/issues/545
 .. _GH554: https://github.com/wesm/pandas/issues/554
 .. _GH595: https://github.com/wesm/pandas/issues/595
+.. _GH647: https://github.com/wesm/pandas/issues/647
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _PR521: https://github.com/wesm/pandas/pull/521

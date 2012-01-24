@@ -316,21 +316,20 @@ cpdef map_indices_%(name)s(ndarray[%(c_type)s] index):
 
 groupby_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
-def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray[object] labels):
+def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
     cdef dict result = {}
-    cdef ndarray[uint8_t] mask
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
 
     length = len(index)
-    mask = isnullobj(labels).view(np.uint8)
 
     for i in range(length):
-        if mask[i]:
+        key = util.get_value_1d(labels, i)
+
+        if _checknull(key):
             continue
 
-        key = labels[i]
         idx = index[i]
         if key in result:
             members = result[key]
@@ -353,7 +352,7 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
     for i in range(length):
         result[i] = func(index[i])
 
-    return result
+    return maybe_convert_objects(result)
 
 """
 

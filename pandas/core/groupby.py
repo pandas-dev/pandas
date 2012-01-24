@@ -10,6 +10,7 @@ from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
+import pandas.core.common as com
 import pandas._tseries as lib
 
 
@@ -160,6 +161,9 @@ class GroupBy(object):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, attr))
 
+    def __getitem__(self, key):
+        raise NotImplementedError
+
     def _make_wrapper(self, name):
         f = getattr(self.obj, name)
         if not isinstance(f, types.MethodType):
@@ -293,7 +297,13 @@ class GroupBy(object):
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        return self._cython_agg_general('mean')
+        try:
+            return self._cython_agg_general('mean')
+        except GroupByError:
+            raise
+        except Exception:
+            f = lambda x: x.mean(axis=self.axis)
+            return self._python_agg_general(f)
 
     def std(self):
         """
@@ -675,6 +685,24 @@ def _get_groupings(obj, grouper=None, axis=0, level=None, sort=True):
         groupers = [grouper]
     else:
         groupers = grouper
+
+    # what are we after, exactly?
+    match_axis_length = len(groupers) == len(group_axis)
+    any_callable = any(callable(g) for g in groupers)
+    any_arraylike = any(isinstance(g, (list, tuple, np.ndarray))
+                        for g in groupers)
+
+    try:
+        if isinstance(obj, DataFrame):
+            all_in_columns = all(g in obj.columns for g in groupers)
+        else:
+            all_in_columns = False
+    except Exception:
+        all_in_columns = False
+
+    if (not any_callable and not all_in_columns
+        and not any_arraylike and match_axis_length):
+        groupers = [com._asarray_tuplesafe(groupers)]
 
     if isinstance(level, (tuple, list)):
         if grouper is None:
@@ -1236,7 +1264,6 @@ class PanelGroupBy(GroupBy):
             result = result.swapaxes(0, axis)
 
         return result
-
 
 class NDArrayGroupBy(GroupBy):
     pass

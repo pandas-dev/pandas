@@ -93,13 +93,6 @@ class _NDFrameIndexer(object):
             self.obj.values[indexer] = value
 
     def _getitem_tuple(self, tup):
-        # a bit kludgy
-        if isinstance(self.obj._get_axis(0), MultiIndex):
-            try:
-                return self._get_label(tup, axis=0)
-            except Exception:
-                pass
-
         try:
             return self._getitem_lowerdim(tup)
         except IndexingError:
@@ -108,13 +101,30 @@ class _NDFrameIndexer(object):
         # no shortcut needed
         retval = self.obj
         for i, key in enumerate(tup):
-            # hack?
+            if i >= self.obj.ndim:
+                raise IndexingError('Too many indexers')
+
+            if _is_null_slice(key):
+                continue
+
             retval = retval.ix._getitem_axis(key, axis=i)
 
         return retval
 
     def _getitem_lowerdim(self, tup):
         from pandas.core.frame import DataFrame
+
+        ax0 = self.obj._get_axis(0)
+        # a bit kludgy
+        if isinstance(ax0, MultiIndex):
+            try:
+                return self._get_label(tup, axis=0)
+            except TypeError:
+                # slices are unhashable
+                pass
+            except Exception:
+                if tup[0] not in ax0:
+                    raise
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
@@ -126,6 +136,7 @@ class _NDFrameIndexer(object):
                 # might have been a MultiIndex
                 if section.ndim == self.ndim:
                     new_key = tup[:i] + (_NS,) + tup[i+1:]
+                    # new_key = tup[:i] + tup[i+1:]
                 else:
                     new_key = tup[:i] + tup[i+1:]
 
@@ -144,12 +155,14 @@ class _NDFrameIndexer(object):
         raise IndexingError('not applicable')
 
     def _getitem_axis(self, key, axis=0):
+        labels = self.obj._get_axis(axis)
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
-        elif _is_list_like(key):
+        elif _is_list_like(key) and not (isinstance(key, tuple) and
+                                         isinstance(labels, MultiIndex)):
+
             return self._getitem_iterable(key, axis=axis)
         elif axis == 0:
-            labels = self.obj._get_axis(0)
             is_int_index = _is_integer_index(labels)
 
             idx = key
@@ -216,7 +229,7 @@ class _NDFrameIndexer(object):
         is_int_index = _is_integer_index(labels)
         if isinstance(obj, slice):
 
-            int_slice = _is_integer_slice(obj)
+            int_slice = _is_index_slice(obj)
             null_slice = obj.start is None and obj.stop is None
             # could have integers in the first level of the MultiIndex
             position_slice = (int_slice
@@ -230,7 +243,7 @@ class _NDFrameIndexer(object):
                     i, j = labels.slice_locs(obj.start, obj.stop)
                     slicer = slice(i, j, obj.step)
                 except Exception:
-                    if _is_integer_slice(obj):
+                    if _is_index_slice(obj):
                         if labels.inferred_type == 'integer':
                             raise
                         slicer = obj
@@ -272,7 +285,7 @@ class _NDFrameIndexer(object):
         axis_name = obj._get_axis_name(axis)
         labels = getattr(obj, axis_name)
 
-        int_slice = _is_integer_slice(slice_obj)
+        int_slice = _is_index_slice(slice_obj)
 
         null_slice = slice_obj.start is None and slice_obj.stop is None
         # could have integers in the first level of the MultiIndex
@@ -285,7 +298,7 @@ class _NDFrameIndexer(object):
                 i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
                 slicer = slice(i, j, slice_obj.step)
             except Exception:
-                if _is_integer_slice(slice_obj):
+                if _is_index_slice(slice_obj):
                     if labels.inferred_type == 'integer':
                         raise
                     slicer = slice_obj
@@ -297,9 +310,12 @@ class _NDFrameIndexer(object):
 
         return self._slice(slicer, axis=axis)
 
-def _is_integer_slice(obj):
+def _is_index_slice(obj):
+    def _is_valid_index(x):
+        return com.is_integer(x) or com.is_float(x) and np.allclose(x, int(x))
+
     def _crit(v):
-        return v is None or com.is_integer(v)
+        return v is None or _is_valid_index(v)
 
     both_none = obj.start is None and obj.stop is None
 
@@ -366,6 +382,10 @@ def _maybe_convert_ix(*args):
         return np.ix_(*args)
     else:
         return args
+
+def _is_null_slice(obj):
+    return (isinstance(obj, slice) and obj.start is None and
+            obj.stop is None and obj.step is None)
 
 def _is_integer_dtype(arr):
     return issubclass(arr.dtype.type, np.integer)

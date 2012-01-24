@@ -135,7 +135,6 @@ to sparse
 
         # Change the class of the array to be the subclass type.
         output = subarr.view(cls)
-        output._sp_values = subarr
         output.sp_index = sparse_index
         output.fill_value = np.float64(fill_value)
         return output
@@ -264,7 +263,7 @@ to sparse
         else:
             return _gin.get_value_at(self, sp_loc)
 
-    def take(self, indices):
+    def take(self, indices, axis=0):
         """
         Sparse-compatible version of ndarray.take
 
@@ -272,6 +271,7 @@ to sparse
         -------
         taken : ndarray
         """
+        assert(axis == 0)
         indices = np.asarray(indices, dtype=int)
 
         n = len(self)
