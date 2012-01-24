@@ -231,6 +231,7 @@ pandas 0.7.0
   - Fix bugs preventing SparseDataFrame and SparseSeries working with groupby
     (GH #666)
   - Use sort kind in Series.sort / argsort (GH #668)
+  - Fix DataFrame operations on non-scalar, non-pandas objects (GH #672)
 
 Thanks
 ------
