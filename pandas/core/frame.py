@@ -180,19 +180,19 @@ def _arith_method(func, name, default_axis='columns'):
                 casted = Series(other, index=self.columns)
             return self._combine_series(casted, func, fill_value, axis, level)
         elif isinstance(other, np.ndarray):
-            if len(other.shape) == 1:
+            if other.ndim == 1:
                 if axis is not None and self._get_axis_name(axis) == 'index':
                     casted = Series(other, index=self.index)
                 else:
                     casted = Series(other, index=self.columns)
                 return self._combine_series(casted, func, fill_value,
                                             axis, level)
-            elif len(other.shape) == 2:
+            elif other.ndim == 2:
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
                 return self._combine_frame(casted, func, fill_value, level)
-            else:
-                raise ValueError("Bad argument shape") # pragma: no cover
+            else:  # pragma: no cover
+                raise ValueError("Bad argument shape")
         else:
             return self._combine_const(other, func)
 
