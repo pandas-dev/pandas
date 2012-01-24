@@ -40,6 +40,8 @@ def infer_dtype(object _values):
         values = list_to_object_array(_values)
 
     n = len(values)
+    if n == 0:
+        return 'empty'
 
     val_kind = values.dtype.type
     if val_kind in _TYPE_MAP:

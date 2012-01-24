@@ -268,6 +268,13 @@ def test_arrmap():
 
 class TestTypeInference(unittest.TestCase):
 
+    def test_length_zero(self):
+        result = lib.infer_dtype(np.array([], dtype='i4'))
+        self.assertEqual(result, 'empty')
+
+        result = lib.infer_dtype(np.array([], dtype='O'))
+        self.assertEqual(result, 'empty')
+
     def test_integers(self):
         arr = np.array([1, 2, 3, np.int64(4), np.int32(5)], dtype='O')
         result = lib.infer_dtype(arr)
