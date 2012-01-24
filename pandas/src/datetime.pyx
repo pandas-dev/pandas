@@ -175,8 +175,8 @@ cdef class Duration:
     '''
     cdef int64_t length
 
-    def __init__(self, int64_t length = 1):
-        self.length = length
+    def __init__(self, int64_t us = 1):
+        self.length = us
 
     def __str__(self):
         return "Duration (%d)" % self.length
