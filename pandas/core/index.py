@@ -1070,15 +1070,20 @@ class MultiIndex(Index):
         return np.dtype('O')
 
     def _get_level_number(self, level):
-        if not isinstance(level, int):
+        try:
             count = self.names.count(level)
             if count > 1:
                 raise Exception('The name %s occurs multiple times, use a '
                                 'level number' % level)
-
             level = self.names.index(level)
-        elif level < 0:
-            level += self.nlevels
+        except ValueError:
+            if not isinstance(level, int):
+                raise Exception('Level %s not found' % str(level))
+            elif level < 0:
+                level += self.nlevels
+            elif level >= self.nlevels:
+                raise ValueError('Index has only %d levels, not %d'
+                                 % (self.nlevels, level))
         return level
 
     @property
