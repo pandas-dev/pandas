@@ -173,6 +173,9 @@ def _arith_method(func, name, default_axis='columns'):
             return self._combine_frame(other, func, fill_value, level)
         elif isinstance(other, Series):
             return self._combine_series(other, func, fill_value, axis, level)
+        elif isinstance(other, (list, tuple, np.ndarray)):
+            casted = Series(other, index=self.index)
+            return self._combine_series(casted, func, fill_value, axis, level)
         else:
             return self._combine_const(other, func)
 
