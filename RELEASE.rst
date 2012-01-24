@@ -232,6 +232,8 @@ pandas 0.7.0
     (GH #666)
   - Use sort kind in Series.sort / argsort (GH #668)
   - Fix DataFrame operations on non-scalar, non-pandas objects (GH #672)
+  - Don't convert DataFrame column to integer type when passing integer to
+    __setitem__ (GH #669)
 
 Thanks
 ------
@@ -261,6 +263,7 @@ Thanks
 - Dieter Vandenbussche
 - Texas P.
 - Pinxing Ye
+- ... and everyone I forgot
 
 pandas 0.6.1
 ============
