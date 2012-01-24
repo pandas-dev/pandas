@@ -9,6 +9,8 @@ cdef extern from "datetime.h":
         # cdef char hastzinfo
         pass
 
+    void PyDateTime_IMPORT()
+
     int PyDateTime_GET_YEAR(datetime o)
     int PyDateTime_GET_MONTH(datetime o)
     int PyDateTime_GET_DAY(datetime o)
@@ -21,7 +23,6 @@ cdef extern from "datetime.h":
     int PyDateTime_TIME_GET_SECOND(datetime o)
     int PyDateTime_TIME_GET_MICROSECOND(datetime o)
     bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
     PyObject *PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
                                          int minute, int second, int us)
 
@@ -50,12 +51,23 @@ cdef extern from "numpy/ndarrayobject.h":
         #NPY_FR_fs
         #NPY_FR_as
 
+    ctypedef enum NPY_CASTING:
+            NPY_NO_CASTING
+            NPY_EQUIV_CASTING
+            NPY_SAFE_CASTING
+            NPY_SAME_KIND_CASTING
+            NPY_UNSAFE_CASTING
+
     npy_datetime PyArray_DatetimeStructToDatetime(NPY_DATETIMEUNIT fr,
                                                   npy_datetimestruct *d)
 
     void PyArray_DatetimeToDatetimeStruct(npy_datetime val,
                                           NPY_DATETIMEUNIT fr,
                                           npy_datetimestruct *result)
+
+cdef extern from "numpy/npy_common.h":
+
+    ctypedef unsigned char npy_bool
 
 cdef extern from "np_datetime.h":
 
@@ -64,3 +76,17 @@ cdef extern from "np_datetime.h":
                                              int apply_tzinfo)
 
     int is_leapyear(int64_t year)
+
+
+cdef extern from "np_datetime_strings.h":
+
+    int parse_iso_8601_datetime(char *str, int len, NPY_DATETIMEUNIT unit,
+                                NPY_CASTING casting, npy_datetimestruct *out,
+                                npy_bool *out_local, NPY_DATETIMEUNIT *out_bestunit,
+                                npy_bool *out_special)
+
+    int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
+                               int local, NPY_DATETIMEUNIT base, int tzoffset,
+                               NPY_CASTING casting)
+
+    int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)

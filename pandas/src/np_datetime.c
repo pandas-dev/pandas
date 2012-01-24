@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include <numpy/arrayobject.h>
-//#include "numpy/npy_3kcompat.h"
+#include <numpy/ndarrayobject.h>
 
 #include "numpy/arrayscalars.h"
 #include "np_datetime.h"
@@ -47,6 +47,121 @@ int is_leapyear(npy_int64 year)
     return (year & 0x3) == 0 && /* year % 4 == 0 */
            ((year % 100) != 0 ||
             (year % 400) == 0);
+}
+
+/*
+ * Adjusts a datetimestruct based on a minutes offset. Assumes
+ * the current values are valid.
+ */
+void
+add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes)
+{
+    int isleap;
+
+    /* MINUTES */
+    dts->min += minutes;
+    while (dts->min < 0) {
+        dts->min += 60;
+        dts->hour--;
+    }
+    while (dts->min >= 60) {
+        dts->min -= 60;
+        dts->hour++;
+    }
+
+    /* HOURS */
+    while (dts->hour < 0) {
+        dts->hour += 24;
+        dts->day--;
+    }
+    while (dts->hour >= 24) {
+        dts->hour -= 24;
+        dts->day++;
+    }
+
+    /* DAYS */
+    if (dts->day < 1) {
+        dts->month--;
+        if (dts->month < 1) {
+            dts->year--;
+            dts->month = 12;
+        }
+        isleap = is_leapyear(dts->year);
+        dts->day += _days_per_month_table[isleap][dts->month-1];
+    }
+    else if (dts->day > 28) {
+        isleap = is_leapyear(dts->year);
+        if (dts->day > _days_per_month_table[isleap][dts->month-1]) {
+            dts->day -= _days_per_month_table[isleap][dts->month-1];
+            dts->month++;
+            if (dts->month > 12) {
+                dts->year++;
+                dts->month = 1;
+            }
+        }
+    }
+}
+
+/*
+ * Calculates the days offset from the 1970 epoch.
+ */
+npy_int64
+get_datetimestruct_days(const npy_datetimestruct *dts)
+{
+    int i, month;
+    npy_int64 year, days = 0;
+    int *month_lengths;
+
+    year = dts->year - 1970;
+    days = year * 365;
+
+    /* Adjust for leap years */
+    if (days >= 0) {
+        /*
+         * 1968 is the closest leap year before 1970.
+         * Exclude the current year, so add 1.
+         */
+        year += 1;
+        /* Add one day for each 4 years */
+        days += year / 4;
+        /* 1900 is the closest previous year divisible by 100 */
+        year += 68;
+        /* Subtract one day for each 100 years */
+        days -= year / 100;
+        /* 1600 is the closest previous year divisible by 400 */
+        year += 300;
+        /* Add one day for each 400 years */
+        days += year / 400;
+    }
+    else {
+        /*
+         * 1972 is the closest later year after 1970.
+         * Include the current year, so subtract 2.
+         */
+        year -= 2;
+        /* Subtract one day for each 4 years */
+        days += year / 4;
+        /* 2000 is the closest later year divisible by 100 */
+        year -= 28;
+        /* Add one day for each 100 years */
+        days -= year / 100;
+        /* 2000 is also the closest later year divisible by 400 */
+        /* Subtract one day for each 400 years */
+        days += year / 400;
+    }
+
+    month_lengths = _days_per_month_table[is_leapyear(dts->year)];
+    month = dts->month - 1;
+
+    /* Add the months */
+    for (i = 0; i < month; ++i) {
+        days += month_lengths[i];
+    }
+
+    /* Add the days */
+    days += dts->day - 1;
+
+    return days;
 }
 
 /*
@@ -138,59 +253,6 @@ set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts)
         }
         else {
             days -= month_lengths[i];
-        }
-    }
-}
-
-/*
- * Adjusts a datetimestruct based on a minutes offset. Assumes
- * the current values are valid.
- */
-void
-add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes)
-{
-    int isleap;
-
-    /* MINUTES */
-    dts->min += minutes;
-    while (dts->min < 0) {
-        dts->min += 60;
-        dts->hour--;
-    }
-    while (dts->min >= 60) {
-        dts->min -= 60;
-        dts->hour++;
-    }
-
-    /* HOURS */
-    while (dts->hour < 0) {
-        dts->hour += 24;
-        dts->day--;
-    }
-    while (dts->hour >= 24) {
-        dts->hour -= 24;
-        dts->day++;
-    }
-
-    /* DAYS */
-    if (dts->day < 1) {
-        dts->month--;
-        if (dts->month < 1) {
-            dts->year--;
-            dts->month = 12;
-        }
-        isleap = is_leapyear(dts->year);
-        dts->day += _days_per_month_table[isleap][dts->month-1];
-    }
-    else if (dts->day > 28) {
-        isleap = is_leapyear(dts->year);
-        if (dts->day > _days_per_month_table[isleap][dts->month-1]) {
-            dts->day -= _days_per_month_table[isleap][dts->month-1];
-            dts->month++;
-            if (dts->month > 12) {
-                dts->year++;
-                dts->month = 1;
-            }
         }
     }
 }
@@ -540,67 +602,6 @@ convert_datetimestruct_to_datetime(PyArray_DatetimeMetaData *meta,
     return 0;
 }
 
-/*
- * Calculates the days offset from the 1970 epoch.
- */
-npy_int64
-get_datetimestruct_days(const npy_datetimestruct *dts)
-{
-    int i, month;
-    npy_int64 year, days = 0;
-    int *month_lengths;
-
-    year = dts->year - 1970;
-    days = year * 365;
-
-    /* Adjust for leap years */
-    if (days >= 0) {
-        /*
-         * 1968 is the closest leap year before 1970.
-         * Exclude the current year, so add 1.
-         */
-        year += 1;
-        /* Add one day for each 4 years */
-        days += year / 4;
-        /* 1900 is the closest previous year divisible by 100 */
-        year += 68;
-        /* Subtract one day for each 100 years */
-        days -= year / 100;
-        /* 1600 is the closest previous year divisible by 400 */
-        year += 300;
-        /* Add one day for each 400 years */
-        days += year / 400;
-    }
-    else {
-        /*
-         * 1972 is the closest later year after 1970.
-         * Include the current year, so subtract 2.
-         */
-        year -= 2;
-        /* Subtract one day for each 4 years */
-        days += year / 4;
-        /* 2000 is the closest later year divisible by 100 */
-        year -= 28;
-        /* Add one day for each 100 years */
-        days -= year / 100;
-        /* 2000 is also the closest later year divisible by 400 */
-        /* Subtract one day for each 400 years */
-        days += year / 400;
-    }
-
-    month_lengths = _days_per_month_table[is_leapyear(dts->year)];
-    month = dts->month - 1;
-
-    /* Add the months */
-    for (i = 0; i < month; ++i) {
-        days += month_lengths[i];
-    }
-
-    /* Add the days */
-    days += dts->day - 1;
-
-    return days;
-}
 
 /*
  * This provides the casting rules for the TIMEDELTA data type units.

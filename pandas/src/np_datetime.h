@@ -17,7 +17,7 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
 
 int is_leapyear(npy_int64 year);
 
-// stuff numpy needs
+// stuff numpy needs in header
 // ----------------------------------------------------------------------------
 
 char *_datetime_strings[NPY_DATETIME_NUMUNITS];

@@ -3,53 +3,107 @@ import numpy as np
 
 from numpy cimport int32_t, int64_t, import_array, ndarray
 from cpython cimport *
+from libc.stdlib cimport malloc, free
 
 # this is our datetime.pxd
 from datetime cimport *
+from util cimport is_integer_object
+
+# initialize numpy
+np.import_array()
+np.import_ufunc()
 
 # import datetime C API
 PyDateTime_IMPORT
-
-# initialize numpy
-import_array()
 
 # in numpy 1.7, will prob need this
 # numpy_pydatetime_import
 
 # Objects to support date/time arithmetic, inspired by the architecture of the
-# lubridate R package, to eventually replace most of pandas/core/datetools.py
+# lubridate R package, to eventually handle all datetime logic in pandas.
 # --------------------------------------------------------------------------------
 
-cdef class Instant:
+cdef class Timestamp:
     '''
     A timestamp (absolute moment in time) to microsecond resolution, in UTC.
     '''
     cdef:
-        int64_t timestamp
+        int64_t value
         npy_datetimestruct dts
 
-    def __init__(self, int64_t ts):
-        self.timestamp = ts
+    def __init__(self, object ts):
+        """
+        Construct a timestamp that is datetime64-compatible from any of:
+            - int64 pyarray scalar object
+            - python int or long object
+            - iso8601 string object
+            - python datetime object
+        """
+        cdef:
+            Py_ssize_t strlen
+            npy_bool islocal, special
+            NPY_DATETIMEUNIT out_bestunit
 
-        # decompose datetime64 to components
-        PyArray_DatetimeToDatetimeStruct(ts, NPY_FR_us, &self.dts)
+        if is_integer_object(ts) or PyInt_Check(ts) or PyLong_Check(ts):
+            self.value = ts
+            PyArray_DatetimeToDatetimeStruct(self.value, NPY_FR_us, &self.dts)
+        elif PyString_Check(ts):
+            parse_iso_8601_datetime(ts, len(ts), NPY_FR_us, NPY_UNSAFE_CASTING,
+                                    &self.dts, &islocal, &out_bestunit, &special)
+            self.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &self.dts)
+        elif PyDateTime_Check(ts):
+            convert_pydatetime_to_datetimestruct(<PyObject *>ts, &self.dts, 
+                                                 &out_bestunit, 1)
+            self.value = PyArray_DatetimeStructToDatetime(out_bestunit, &self.dts)
+        else:
+            raise ValueError("Could not construct Timestamp from argument")
 
     def __sub__(self, object other):
-        if isinstance(other, Instant):
-            if other.timestamp > self.timestamp:
-                return Interval(self.timestamp, other.timestamp)
+        ''' 
+        Subtract two timestamps, results in an interval with the start being
+        the earlier of the two timestamps. 
+        '''
+        if isinstance(other, Timestamp):
+            if other.value > self.value:
+                return Interval(self.value, other.value)
             else:
-                return Interval(other.timestamp, self.timestamp)
+                return Interval(other.value, self.value)
 
     def __add__(self, object other):
+        '''
+        Add an Interval, Duration, or Period to the Timestamp, resulting in 
+        new Timestamp.
+        '''
         if isinstance(other, Interval):
-            return Instant(self.timestamp + other.dur.length)
+            return Timestamp(self.value + other.dur.length)
         elif isinstance(other, Duration):
-            return Instant(self.timestamp + other.length)
+            return Timestamp(self.value + other.length)
+        elif isinstance(other, Period):
+            # TODO: fix me
+            raise ValueError("TODO: Period needs to be implemented")
 
-    property timestamp:
+    def __str__(self):
+        '''
+        Output ISO8601 format string representation of timestamp.
+        '''
+        cdef:
+            int outlen
+            char *isostr
+            bytes py_str
+
+        outlen = get_datetime_iso_8601_strlen(0, NPY_FR_us)
+
+        isostr = <char *>malloc(outlen)
+        make_iso_8601_datetime(&self.dts, isostr, outlen, 0, NPY_FR_us, 
+                               0, NPY_UNSAFE_CASTING)
+        py_str = isostr
+        free(isostr)
+
+        return py_str
+
+    property value:
         def __get__(self):
-            return self.timestamp
+            return self.value
 
     property year:
         def __get__(self):
@@ -77,7 +131,7 @@ cdef class Instant:
 
     property ms:
         def __get__(self):
-            return self.dts.us / 1000.
+            return self.dts.us // 1000.
 
     property us:
         def __get__(self):
@@ -85,13 +139,13 @@ cdef class Instant:
 
 cdef class Interval:
     '''
-    An absolute time span, from one instant to another
+    An absolute time span, from one timestamp to another
     '''
     cdef:
-        int64_t start
-        int64_t end
+        Timestamp start
+        Timestamp end
 
-    def __init__(self, int64_t start, int64_t end):
+    def __init__(self, Timestamp start, Timestamp end):
         self.start = start
         self.end = end
 
@@ -103,9 +157,17 @@ cdef class Interval:
         def __get__(self):
             return self.end
 
-    property dur:
+    property us:
         def __get__(self):
-            return Duration(self.end - self.start)
+            return Duration(self.end - self.start).us
+
+    property ms:
+        def __get__(self):
+            return Duration(self.end - self.start).ms
+
+    property secs:
+        def __get__(self):
+            return Duration(self.end - self.start).secs
 
 cdef class Duration:
     '''
@@ -125,11 +187,11 @@ cdef class Duration:
 
     property ms:
         def __get__(self):
-            return self.length / 1000.
+            return self.length // 1000
 
     property secs:
         def __get__(self):
-            return self.length / 1000000.
+            return self.length // 1000000
 
 cdef class Period:
     '''
@@ -156,7 +218,7 @@ cdef class Period:
                           hours = self.hours + other.hours,
                           mins = self.mins + other.mins,
                           secs = self.secs + other.secs)
-        raise ValueError("Could not add operand to Period")
+        raise ValueError("Could not add Period to operand")
 
     def __str__(self):
         strbuf = ""
@@ -249,6 +311,7 @@ def quarters(int count):
 
 def years(int count):
     return Period(years = count)
+
 
 # Conversion routines
 # ------------------------------------------------------------------------------
@@ -348,7 +411,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
     else:
         raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
 
-# Some general helper functions we need
+# Some general helper functions
 # ------------------------------------------------------------------------------
 
 def isleapyear(int64_t year):
