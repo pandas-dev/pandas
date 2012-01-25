@@ -624,7 +624,10 @@ class HDFStore(object):
         return self._read_panel_table(group, where)['value']
 
     def _read_panel_table(self, group, where=None):
+        from pandas.core.index import unique_int64, Factor
         from pandas.core.common import _asarray_tuplesafe
+        from pandas.core.internals import BlockManager
+        from pandas.core.reshape import block2d_to_block3d
 
         table = getattr(group, 'table')
 
@@ -637,18 +640,36 @@ class HDFStore(object):
                                  table._v_attrs.columns_kind)
         index = _maybe_convert(sel.values['index'],
                                table._v_attrs.index_kind)
-        # reconstruct
-        long_index = MultiIndex.from_arrays([index, columns])
-        lp = DataFrame(sel.values['values'], index=long_index,
-                       columns=fields)
+        values = sel.values['values']
 
-        if not long_index.has_duplicates:
-            lp = lp.sortlevel(level=0)
-            wp = lp.to_panel()
+        major = Factor(index)
+        minor = Factor(columns)
+
+        J, K = len(major.levels), len(minor.levels)
+        key = major.labels * K + minor.labels
+
+        if len(unique_int64(key)) == len(key):
+            sorter, _ = lib.groupsort_indexer(key, J * K)
+
+            # the data need to be sorted
+            sorted_values = values.take(sorter, axis=0)
+            major_labels = major.labels.take(sorter)
+            minor_labels = minor.labels.take(sorter)
+
+            block = block2d_to_block3d(sorted_values, fields, (J, K),
+                                       major_labels, minor_labels)
+
+            mgr = BlockManager([block], [block.items,
+                                         major.levels, minor.levels])
+            wp = Panel(mgr)
         else:
             if not self._quiet:  # pragma: no cover
                 print ('Duplicate entries in table, taking most recently '
                        'appended')
+
+            # reconstruct
+            long_index = MultiIndex.from_arrays([index, columns])
+            lp = DataFrame(values, index=long_index, columns=fields)
 
             # need a better algorithm
             tuple_index = long_index.get_tuple_index()

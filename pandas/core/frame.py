@@ -806,54 +806,30 @@ class DataFrame(NDFrame):
         panel : Panel
         """
         from pandas.core.panel import Panel
-
-        wide_shape = (len(self.columns), len(self.index.levels[0]),
-                      len(self.index.levels[1]))
+        from pandas.core.reshape import block2d_to_block3d
 
         # only support this kind for now
         assert(isinstance(self.index, MultiIndex) and
                len(self.index.levels) == 2)
 
+        self._consolidate_inplace()
+
         major_axis, minor_axis = self.index.levels
+        major_labels, minor_labels = self.index.labels
 
-        def make_mask(index):
-            """
-            Create observation selection vector using major and minor
-            labels, for converting to wide format.
-            """
-            N, K = index.levshape
-            selector = index.labels[1] + K * index.labels[0]
-            mask = np.zeros(N * K, dtype=bool)
-            mask.put(selector, True)
-            return mask
+        shape = len(major_axis), len(minor_axis)
 
-        def _to_wide_homogeneous():
-            values = np.empty(wide_shape, dtype=self.values.dtype)
-            if not issubclass(values.dtype.type, np.integer):
-                values.fill(np.nan)
+        new_blocks = []
+        for block in self._data.blocks:
+            newb = block2d_to_block3d(block.values.T, block.items, shape,
+                                      major_labels, minor_labels,
+                                      ref_items=self.columns)
+            new_blocks.append(newb)
 
-            frame_values = self.values
-            for i in xrange(len(self.columns)):
-                values[i].flat[mask] = frame_values[:, i]
-            return Panel(values, self.columns, major_axis, minor_axis)
+        new_axes = [self.columns, major_axis, minor_axis]
+        new_mgr = BlockManager(new_blocks, new_axes)
 
-        def _to_wide_mixed():
-            _, N, K = wide_shape
-            # TODO: make much more efficient
-            data = {}
-            for item in self.columns:
-                item_vals = self[item].values
-                values = np.empty((N, K), dtype=item_vals.dtype)
-                values.flat[mask] = item_vals
-                data[item] = DataFrame(values, index=major_axis,
-                                       columns=minor_axis)
-            return Panel(data, self.columns, major_axis, minor_axis)
-
-        mask = make_mask(self.index)
-        if self._is_mixed_type:
-            return _to_wide_mixed()
-        else:
-            return _to_wide_homogeneous()
+        return Panel(new_mgr)
 
     to_wide = deprecate('to_wide', to_panel)
 

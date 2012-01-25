@@ -998,10 +998,25 @@ class Factor(np.ndarray):
             return np.ndarray.__getitem__(self, key)
 
 def unique_with_labels(values):
-    uniques = Index(lib.fast_unique(values))
-    labels = lib.get_unique_labels(values, uniques.indexMap)
-    uniques._cleanup()
+    rizer = lib.Factorizer(len(values))
+    labels, _ = rizer.factorize(values, sort=False)
+    uniques = Index(rizer.uniques)
+
+    sorter = uniques.argsort()
+    reverse_indexer = np.empty(len(sorter), dtype='i4')
+    reverse_indexer.put(sorter, np.arange(len(sorter)))
+    labels = reverse_indexer.take(labels)
+    uniques = uniques.take(sorter)
+
     return uniques, labels
+
+def unique_int64(values):
+    if values.dtype != np.int64:
+        values = values.astype('i8')
+
+    table = lib.Int64HashTable(len(values))
+    uniques = table.unique(values)
+    return uniques
 
 class MultiIndex(Index):
     """
