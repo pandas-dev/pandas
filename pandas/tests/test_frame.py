@@ -24,6 +24,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
+from pandas.util import py3compat
 import pandas._tseries as lib
 
 #-------------------------------------------------------------------------------
@@ -1844,7 +1845,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
-        assert(result in ('  c/\xcf\x83\n0 1   \n1 2   \n2 3   ',
+        if py3compat.PY3:
+            self.assertEqual(result, u'  c/\u03c3\n0 1  \n1 2  \n2 3  ')
+        else:
+            assert(result in ('  c/\xcf\x83\n0 1   \n1 2   \n2 3   ',
                           '  c/?\n0 1   \n1 2   \n2 3   ' ))
 
     def test_head_tail(self):
