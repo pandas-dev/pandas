@@ -115,31 +115,19 @@ class TestDelta(unittest.TestCase):
         repr(2 * Delta(months=2))
 
     def test_mul(self):
-        assert Delta(2) == 2 * Delta(1)
-        assert Delta(2) == Delta(1) * 2
+        assert Delta(days=2) == 2 * Delta(days=1)
+        assert Delta(days=2) == Delta(days=1) * 2
 
     def test_constructor(self):
 
         assert((self.d + Delta(months=2)) == Timestamp(datetime(2008, 3, 2)))
         assert((self.d - Delta(months=2)) == Timestamp(datetime(2007, 11, 2)))
 
-        assert((self.d + Delta(2)) == Timestamp(datetime(2008, 1, 4)))
-
-        assert not Delta(2).isAnchored()
-        assert Delta(1).isAnchored()
+        assert((self.d + Delta(days=2)) == Timestamp(datetime(2008, 1, 4)))
 
         d = Timestamp(datetime(2008, 1, 31))
         assert((d + Delta(months=1)) == Timestamp(datetime(2008, 2, 29)))
 
-    def test_copy(self):
-        assert(Delta(months=2).copy() == Delta(months=2))
-
-    def test_eq(self):
-        offset1 = Delta(days=1)
-        offset2 = Delta(days=365)
-
-        self.assert_(offset1 != offset2)
-        self.assert_(not (offset1 == offset2))
 
 class TestBusinessDay(unittest.TestCase):
 

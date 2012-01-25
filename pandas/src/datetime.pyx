@@ -276,23 +276,6 @@ cdef class Duration:
     def __repr__(self):
         return "Duration(%d, %d, %d)" % (self.days, self.seconds, self.microseconds)
 
-cdef class Filter:
-    """
-    The idea of this class is to select out, quickly, the timestamps within
-    an interval that satisfy some criteria.
-
-    The purpose is to allow us to construct a DatetimeIndex very quickly
-    between two points in time.
-
-    Some examples might be:
-    - Business days
-    - Business month ends
-    - Last friday before end of month
-    - Quarterly business month ends, where first quarter is Feb
-    """
-    def __init__(self):
-        pass
-
 
 # The following is derived from relativedelta.py in dateutil package
 # ------------------------------------------------------------------------------
@@ -494,6 +477,7 @@ cdef class Delta:
             self.minutes = minutes
             self.seconds = seconds
             self.microseconds = microseconds
+
             self.year = year
             self.month = month
             self.day = day
@@ -516,7 +500,7 @@ cdef class Delta:
                 yday = yearday
                 if yearday > 59:
                     self.leapdays = -1
-            if yday != -1:
+            if yday:
                 ydayidx = [31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334,
                            366]
                 for idx, ydays in enumerate(ydayidx):
@@ -684,7 +668,7 @@ cdef class Delta:
                      microsecond=self.microsecond)
 
 
-    def __mul__(self, double f):
+    def __mul__(self, int f):
         return Delta(years=self.years*f,
                      months=self.months*f,
                      days=self.days*f,
@@ -701,9 +685,6 @@ cdef class Delta:
                      minute=self.minute,
                      second=self.second,
                      microsecond=self.microsecond)
-
-    def __div__(self, double f):
-        return self.__mul__(1./f)
 
     def __repr__(self):
         l = []
