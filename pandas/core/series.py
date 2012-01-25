@@ -601,11 +601,14 @@ copy : boolean, default False
     def __iter__(self):
         return iter(self.values)
 
-    def iteritems(self):
+    def iteritems(self, index=True):
         """
         Lazily iterate over (index, value) tuples
         """
-        return izip(iter(self.index), iter(self))
+        if index:
+            return izip(iter(self.index), iter(self))
+        else:
+            return izip(iter(self))
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
@@ -1969,7 +1972,7 @@ copy : boolean, default False
         df = DataFrame.from_csv(path, header=None, sep=sep, parse_dates=parse_dates)
         return df[df.columns[0]]
 
-    def to_csv(self, path):
+    def to_csv(self, path, index=True):
         """
         Write the Series to a CSV file
 
@@ -1977,10 +1980,12 @@ copy : boolean, default False
         ----------
         path : string or None
             Output filepath. If None, write to stdout
+        index : bool, optional
+            Include the index as row names or not
         """
         f = open(path, 'w')
         csvout = csv.writer(f, lineterminator='\n')
-        csvout.writerows(self.iteritems())
+        csvout.writerows(self.iteritems(index))
         f.close()
 
     def dropna(self):
