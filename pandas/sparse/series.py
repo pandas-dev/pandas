@@ -501,7 +501,10 @@ to sparse
         -------
         y : Series
         """
-        dense_combined = self.to_dense().combine_first(other.to_dense())
+        if isinstance(other, SparseSeries):
+            other = other.to_dense()
+
+        dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
 class SparseTimeSeries(SparseSeries, TimeSeries):

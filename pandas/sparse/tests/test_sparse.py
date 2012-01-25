@@ -643,6 +643,18 @@ class TestSparseSeries(TestCase,
         self.assert_(isinstance(result, Series))
         assert_series_equal(result, expected)
 
+    def test_combine_first(self):
+        s = self.bseries
+
+        result = s[::2].combine_first(s)
+        result2 = s[::2].combine_first(s.to_dense())
+
+        expected = s[::2].to_dense().combine_first(s.to_dense())
+        expected = expected.to_sparse(fill_value=s.fill_value)
+
+        assert_sp_series_equal(result, result2)
+        assert_sp_series_equal(result, expected)
+
 class TestSparseTimeSeries(TestCase):
     pass
 
@@ -1193,6 +1205,18 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         check_func(self.iframe)
         check_func(self.zframe)
         check_func(self.fill_frame)
+
+    def test_combine_first(self):
+        df = self.frame
+
+        result = df[::2].combine_first(df)
+        result2 = df[::2].combine_first(df.to_dense())
+
+        expected = df[::2].to_dense().combine_first(df.to_dense())
+        expected = expected.to_sparse(fill_value=df.default_fill_value)
+
+        assert_sp_frame_equal(result, result2)
+        assert_sp_frame_equal(result, expected)
 
 def _dense_series_compare(s, f):
     result = f(s)

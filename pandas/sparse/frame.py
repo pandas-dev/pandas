@@ -14,6 +14,7 @@ from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
 from pandas.util.decorators import cache_readonly
+import pandas.core.common as com
 import pandas.core.datetools as datetools
 
 from pandas.sparse.series import SparseSeries
@@ -525,6 +526,19 @@ class SparseDataFrame(DataFrame):
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self.default_fill_value)
+
+    def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
+                               copy):
+        if columns is None:
+            columns = self.columns
+
+        new_arrays = {}
+        for col in columns:
+            if col not in self:
+                continue
+            new_arrays[col] = com.take_1d(self[col].values, row_indexer)
+
+        return self._constructor(new_arrays, index=index, columns=columns)
 
     def _rename_index_inplace(self, mapper):
         self.index = [mapper(x) for x in self.index]
