@@ -24,11 +24,6 @@ Package overview
  * Static and moving window linear and `panel regression
    <http://en.wikipedia.org/wiki/Panel_data>`__
 
-License
--------
-
-pandas is released under a standard 3-clause BSD license
-
 Data structures at a glance
 ---------------------------
 
@@ -82,16 +77,42 @@ but, for example, columns can be inserted into a DataFrame. However, the vast
 majority of methods produce new objects and leave the input data untouched. In
 general, though, we like to **favor immutability** where sensible.
 
+Development Team
+----------------
 
-History
+pandas is a part of the PyData project. The PyData Development Team is a
+collection of developers focused on the improvement of Python's data
+libraries. The core team that coordinates development can be found on `Github
+<http://github.com/pydata>`__. If you're interested in contributing, please
+visit the `project website <http://pandas.pydata.org>`__.
+
+Getting Support
+---------------
+
+Users and developers are encouraged to join the `pystatsmodels mailing list
+<http://groups.google.com/group/pystatsmodels>`__ or to contact Wes McKinney
+directly at wesmckinn (-at-) gmail (-dot-) com.
+
+For commercial support, training, or consulting, contact Wes at wes (-at-)
+lambdafoundry (-dot-) com.
+
+Credits
 -------
 
 pandas development began at `AQR Capital Management <http://www.aqr.com>`__ in
-April 2008. It was open-sourced at the end of 2009 and continues to be actively
-used and maintained.
+April 2008. It was open-sourced at the end of 2009. AQR continued to provide
+resources for development through the end of 2011, and continues to contribute
+bug reports today.
 
-Contact
+Since January 2012, `Lambda Foundry <http://www.lambdafoundry.com>`__, has
+been providing development resources, as well as commercial support, 
+training, and consulting for pandas.
+
+pandas is only made possible by a group of people around the world like you
+who have contributed new code, bug reports, fixes, comments and ideas. A
+complete list can be found `on Github <http://www.github.com/pydata/pandas/contributors>`__.
+  
+License
 -------
 
-Please feel free to send comments or questions directly to Wes McKinney at
-wesmckinn (-at-) gmail (-dot-) com or the pystatsmodels mailing list.
+.. literalinclude:: ../../LICENSE
