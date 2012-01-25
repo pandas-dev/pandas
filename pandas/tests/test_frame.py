@@ -1847,8 +1847,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         unicode_version = u'  c/\u03c3\x83\n0 1   \n1 2   \n2 3   '
         assert(result in
                ('  c/\xcf\x83\n0 1   \n1 2   \n2 3   ',
-                unicode_version.encode('cp437', 'replace'),
-                unicode_version.encode('latin1', 'replace'),
+                unicode_version.encode('cp437', 'ignore'),
+                unicode_version.encode('latin1', 'ignore'),
                 '  c/?\n0 1   \n1 2   \n2 3   ' ))
 
     def test_head_tail(self):
