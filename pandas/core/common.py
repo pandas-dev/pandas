@@ -1,7 +1,11 @@
 """
 Misc tools for implementing data structures
 """
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 try:
     from io import BytesIO
 except ImportError:  # pragma: no cover
@@ -16,6 +20,7 @@ import decimal
 import math
 
 import pandas._tseries as lib
+from pandas.util import py3compat
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -788,7 +793,7 @@ def save(obj, path):
     """
     f = open(path, 'wb')
     try:
-        cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
     finally:
         f.close()
 
@@ -809,13 +814,13 @@ def load(path):
     """
     f = open(path, 'rb')
     try:
-        return cPickle.load(f)
+        return pickle.load(f)
     finally:
         f.close()
 
 
 def console_encode(value):
-    if not isinstance(value, unicode):
+    if py3compat.PY3 or not isinstance(value, unicode):
         return value
 
     try:
