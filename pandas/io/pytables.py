@@ -771,20 +771,13 @@ def _unconvert_index_legacy(data, kind, legacy=False):
 def _maybe_convert(values, val_kind):
     if _need_convert(val_kind):
         conv = _get_converter(val_kind)
-        conv = np.frompyfunc(conv, 1, 1)
+        # conv = np.frompyfunc(conv, 1, 1)
         values = conv(values)
     return values
 
 def _get_converter(kind):
     if kind == 'datetime':
-        cache = {}
-        def convert_datetime(x):
-            if x in cache:
-                return cache[x]
-            else:
-                cache[x] = result = datetime.fromtimestamp(x)
-                return result
-        return convert_datetime
+        return lib.convert_timestamps
     else: # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 
