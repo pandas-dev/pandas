@@ -371,9 +371,9 @@ class DataFrameFormatter(object):
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [[' %s' % x
-                            if x not in formatters and need_leadsp[x]
+                            if col not in formatters and need_leadsp[x]
                             else str(x)]
-                           for x in fmt_columns]
+                           for col, x in zip(self.columns, fmt_columns)]
 
         if self.show_index_names and self.has_index_names:
             for x in str_columns:

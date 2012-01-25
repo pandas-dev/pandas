@@ -440,29 +440,25 @@ class DataFrame(NDFrame):
                     else config.max_rows)
         max_columns = config.max_columns
 
+        buf = StringIO()
         if max_columns > 0:
-            buf = StringIO()
             if len(self.index) < max_rows and \
                     len(self.columns) <= max_columns:
                 self.to_string(buf=buf)
             else:
                 self.info(buf=buf, verbose=self._verbose_info)
-            return buf.getvalue()
         else:
             if len(self.index) > max_rows:
-                buf = StringIO()
                 self.info(buf=buf, verbose=self._verbose_info)
-                return buf.getvalue()
             else:
-                buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
-                if max([len(l) for l in value.split('\n')]) <= terminal_width:
-                    return value
-                else:
+                if max([len(l) for l in value.split('\n')]) > terminal_width:
                     buf = StringIO()
                     self.info(buf=buf, verbose=self._verbose_info)
-                    return buf.getvalue()
+                    value = buf.getvalue()
+                return com.console_encode(value)
+        return com.console_encode(buf.getvalue())
 
     def __iter__(self):
         """
@@ -1030,7 +1026,7 @@ class DataFrame(NDFrame):
         cols = self.columns
 
         if verbose:
-            print >> buf, unicode('Data columns:')
+            print >> buf, 'Data columns:'
             space = max([len(_stringify(k)) for k in self.columns]) + 4
             col_counts = []
             counts = self.count()
@@ -1039,18 +1035,17 @@ class DataFrame(NDFrame):
                 colstr = _stringify(col)
                 col_counts.append('%s%d  non-null values' %
                                   (_put_str(colstr, space), count))
-            print >> buf, unicode('\n'.join(col_counts))
+            print >> buf, '\n'.join(col_counts)
         else:
             if len(cols) <= 2:
-                print >> buf, unicode('Columns: %s' % repr(cols))
+                print >> buf, 'Columns: %s' % repr(cols)
             else:
-                print >> buf, unicode('Columns: %s to %s'
-                                      % (_stringify(cols[0]),
-                                         _stringify(cols[-1])))
+                print >> buf, ('Columns: %s to %s' % (_stringify(cols[0]),
+                                                      _stringify(cols[-1])))
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
-        buf.write(u'dtypes: %s' % ', '.join(dtypes))
+        buf.write('dtypes: %s' % ', '.join(dtypes))
 
     @property
     def dtypes(self):

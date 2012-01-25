@@ -1814,13 +1814,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
-    def test_to_string_unicode(self):
+    def test_to_string_repr_unicode(self):
         buf = StringIO()
 
         unicode_values = [u'\u03c3'] * 10
         unicode_values = np.array(unicode_values, dtype=object)
         df = DataFrame({'unicode' : unicode_values})
         df.to_string(col_space=10, buf=buf)
+
+        # it works!
+        repr(df)
 
     def test_to_string_unicode_columns(self):
         df = DataFrame({u'\u03c3' : np.arange(10.)})
@@ -1832,6 +1835,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         buf = StringIO()
         df.info(buf=buf)
         buf.getvalue()
+
+    def test_to_string_with_formatters_unicode(self):
+        df = DataFrame({u'c/\u03c3':[1,2,3]})
+        result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
+        self.assertEqual(result, '  c/\xcf\x83\n0 1   \n1 2   \n2 3   ')
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])

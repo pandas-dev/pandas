@@ -509,7 +509,7 @@ def _stringify(col):
     if isinstance(col, tuple):
         return str(col)
     else:
-        return '%s' % col
+        return '%s' % console_encode(col)
 
 def _float_format_default(v, width=None):
     """
@@ -814,3 +814,12 @@ def load(path):
         f.close()
 
 
+def console_encode(value):
+    if not isinstance(value, unicode):
+        return value
+
+    import sys
+    if sys.stdin is not None and sys.stdin.encoding is not None:
+        return value.encode(sys.stdin.encoding)
+    else:
+        return value.encode('ascii', 'replace')

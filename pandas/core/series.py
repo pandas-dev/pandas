@@ -559,7 +559,7 @@ copy : boolean, default False
         else:
             result = '%s' % ndarray.__repr__(self)
 
-        return result
+        return com.console_encode(result)
 
     def _tidy_repr(self, max_vals=20):
         num = max_vals // 2

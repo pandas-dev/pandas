@@ -747,6 +747,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
 
+    def test_repr_unicode(self):
+        s = Series([u'\u03c3'] * 10)
+        repr(s)
+
     def test_to_string(self):
         from cStringIO import StringIO
         buf = StringIO()
