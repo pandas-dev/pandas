@@ -233,7 +233,7 @@ class DataFrame(NDFrame):
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 copy=False):
+                 description=None, unit=None, copy=False):
         """Two-dimensional size-mutable, potentially heterogeneous tabular data
         structure with labeled axes (rows and columns). Arithmetic operations
         align on both row and column labels. Can be thought of as a dict-like
@@ -250,6 +250,14 @@ class DataFrame(NDFrame):
             Will default to np.arange(n) if not column labels provided
         dtype : dtype, default None
             Data type to force, otherwise infer
+        description : dict or list
+            Description for each column. Use {column: description}. For columns 
+            missing descriptions, an empty string will be used. When list is used, 
+            the length of the list must match the length of columns
+        unit : dict or list
+            Unit for each column. Use {column: unit}. For columns missing units, 
+            empty string will be used. When list is used, the length of the list 
+            must match the length of columns
         copy : boolean, default False
             Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
@@ -310,6 +318,38 @@ class DataFrame(NDFrame):
                                          copy=copy)
         else:
             raise PandasError('DataFrame constructor not properly called!')
+
+        if description is None:
+            description = {}
+
+        if unit is None:
+            unit = {}
+
+        if isinstance(description, dict):
+            for column in columns:
+                if not description.has_key(column):
+                    description[column] = ''
+            self.description = description
+        elif isinstance(description, list):
+            if len(description) != len(columns):
+                raise PandasError('The length of the description list must be the same as the number of columns!')
+            else:
+                self.description = {}
+                for i in xrange(len(description)):
+                    self.description[columns[i]] = description[i]
+ 
+        if isinstance(unit, dict):
+            for column in columns:
+                if not unit.has_key(column):
+                    unit[column] = ''
+            self.unit = unit
+        elif isinstance(unit, list):
+            if len(unit) != len(columns):
+                raise PandasError('The length of the unit list must be the same as the number of columns!')
+            else:
+                self.unit = {}
+                for i in xrange(len(unit)):
+                    self.unit[columns[i]] = unit[i]
 
         NDFrame.__init__(self, mgr)
 
@@ -1032,13 +1072,30 @@ class DataFrame(NDFrame):
         if verbose:
             print >> buf, unicode('Data columns:')
             space = max([len(_stringify(k)) for k in self.columns]) + 4
+            space_description = max([len(_stringify(self.description[k])) 
+                                     for k in self.description.keys()])
+            if space_description > 1:
+                space_description += 4
+
+            space_unit = max([len(_stringify(self.unit[k])) 
+                                     for k in self.unit.keys()])
+            if space_unit > 1:
+                space_unit += 4
+
             col_counts = []
+            col_counts.append('%s  %s  %s[count]' %
+                              (_put_str('[column]', space), 
+                               _put_str('[description]', space_description),
+                               _put_str('[unit]', space_unit)))
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
                 colstr = _stringify(col)
-                col_counts.append('%s%d  non-null values' %
-                                  (_put_str(colstr, space), count))
+                col_counts.append('%s  %s  %s%d  non-null values' %
+                                  (_put_str(colstr, space), 
+                                   _put_str(self.description[col], space_description),
+                                   _put_str(self.unit[col], space_unit),
+                                   count))
             print >> buf, unicode('\n'.join(col_counts))
         else:
             if len(cols) <= 2:
