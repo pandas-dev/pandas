@@ -818,8 +818,8 @@ def console_encode(value):
     if not isinstance(value, unicode):
         return value
 
-    import sys
-    if sys.stdin is not None and sys.stdin.encoding is not None:
-        return value.encode(sys.stdin.encoding)
-    else:
+    try:
+        import sys
+        return value.encode(sys.stdin.encoding, 'replace')
+    except AttributeError:
         return value.encode('ascii', 'replace')
