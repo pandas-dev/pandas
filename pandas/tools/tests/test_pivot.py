@@ -130,13 +130,12 @@ class TestPivotTable(unittest.TestCase):
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
-        import itertools
+        from pandas.util.compat import product
         import datetime
         import pandas
 
         d = datetime.date.min
-        data = list(itertools.product(
-                ['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
+        data = list(product(['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
                 [d + datetime.timedelta(i) for i in xrange(20)], [1.0]))
         df = pandas.DataFrame(data)
         table = df.pivot_table(values=4, rows=[0,1,3],cols=[2])

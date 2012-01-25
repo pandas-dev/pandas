@@ -236,6 +236,9 @@ pandas 0.7.0
     __setitem__ (GH #669)
   - Fix downstream bug in pivot_table caused by integer level names in
     MultiIndex (GH #678)
+  - Fix SparseSeries.combine_first when passed a dense Series (GH #687)
+  - Fix performance regression in HDFStore loading when DataFrame or Panel
+    stored in table format with datetimes
 
 Thanks
 ------
