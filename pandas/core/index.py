@@ -121,6 +121,14 @@ class Index(np.ndarray):
         name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
 
+    def __repr__(self):
+        try:
+            return np.array_repr(self.values)
+        except UnicodeError:
+            return np.array_repr(np.array(
+                        [x if not isinstance(x, basestring) else unicode(x)
+                         for x in self.values]))
+
     @property
     def values(self):
         return np.asarray(self)

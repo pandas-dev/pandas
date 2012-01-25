@@ -1836,10 +1836,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.info(buf=buf)
         buf.getvalue()
 
+    def test_to_string_unicode_two(self):
+        dm = DataFrame({u'c/\u03c3': []})
+        buf = StringIO()
+        dm.to_string(buf)
+
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
-        self.assertEqual(result, '  c/\xcf\x83\n0 1   \n1 2   \n2 3   ')
+        assert(result in ('  c/\xcf\x83\n0 1   \n1 2   \n2 3   ',
+                          '  c/?\n0 1   \n1 2   \n2 3   ' ))
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
