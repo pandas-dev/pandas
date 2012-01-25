@@ -569,7 +569,7 @@ copy : boolean, default False
                                                   length=False,
                                                   name=False)
         result = head + '\n...\n' + tail
-        namestr = "Name: %s, " % str(unicode(self.name)) if self.name else ""
+        namestr = "Name: %s, " % str(self.name) if self.name else ""
         result = '%s\n%sLength: %d' % (result, namestr, len(self))
         return result
 
