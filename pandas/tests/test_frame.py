@@ -1844,11 +1844,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
-        unicode_version = u'  c/\u03c3\n0 1   \n1 2   \n2 3   '
         assert(result in
                ('  c/\xcf\x83\n0 1   \n1 2   \n2 3   ',
-                unicode_version.encode('cp437', 'ignore'),
-                unicode_version.encode('latin1', 'ignore'),
+                u'  c/\u03c3\n0 1  \n1 2  \n2 3  '.encode('cp437', 'ignore'),
                 '  c/?\n0 1   \n1 2   \n2 3   ' ))
 
     def test_head_tail(self):
