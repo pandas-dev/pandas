@@ -610,7 +610,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     objs : list or dict of Series, DataFrame, or Panel objects
         If a dict is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
-        selected (see below)
+        selected (see below). Any None objects will be dropped silently unless
+        they are all None in which case an Exception will be raised
     axis : {0, 1, ...}, default 0
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
@@ -671,6 +672,12 @@ class _Concatenator(object):
             if keys is None:
                 keys = sorted(objs)
             objs = [objs[k] for k in keys]
+
+        # filter Nones
+        objs = [obj for obj in objs if obj is not None]
+
+        if len(objs) == 0:
+            raise Exception('All objects passed were None')
 
         # consolidate data
         for obj in objs:

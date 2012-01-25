@@ -1,11 +1,12 @@
 from pandas import *
 from pandas.util.testing import rands
 
-i, j, k = 1, 10000, 500
+i, j, k = 7, 771, 5532
 
 panel = Panel(np.random.randn(i, j, k),
               items=[rands(10) for _ in xrange(i)],
-              major_axis=[rands(10) for _ in xrange(j)],
+              major_axis=DateRange('1/1/2000', periods=j,
+                                   offset=datetools.Minute()),
               minor_axis=[rands(10) for _ in xrange(k)])
 
 

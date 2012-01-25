@@ -777,7 +777,14 @@ def _maybe_convert(values, val_kind):
 
 def _get_converter(kind):
     if kind == 'datetime':
-        return datetime.fromtimestamp
+        cache = {}
+        def convert_datetime(x):
+            if x in cache:
+                return cache[x]
+            else:
+                cache[x] = result = datetime.fromtimestamp(x)
+                return result
+        return convert_datetime
     else: # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 
