@@ -821,5 +821,5 @@ def console_encode(value):
     try:
         import sys
         return value.encode(sys.stdin.encoding, 'replace')
-    except AttributeError:
+    except (AttributeError, TypeError):
         return value.encode('ascii', 'replace')
