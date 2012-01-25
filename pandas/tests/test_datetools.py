@@ -11,6 +11,15 @@ from pandas.core.datetools import (
 
 from nose.tools import assert_raises
 
+import pandas._datetime as dtlib
+from pandas._datetime import Timestamp, Delta
+
+def test_monthrange():
+    import calendar
+    for y in range(2000,2013):
+        for m in range(1,13):
+            assert dtlib.monthrange(y,m) == calendar.monthrange(y,m)
+
 ####
 ## Misc function tests
 ####
@@ -90,6 +99,44 @@ class TestDateOffset(unittest.TestCase):
     def test_eq(self):
         offset1 = DateOffset(days=1)
         offset2 = DateOffset(days=365)
+
+        self.assert_(offset1 != offset2)
+        self.assert_(not (offset1 == offset2))
+
+class TestDelta(unittest.TestCase):
+
+    def setUp(self):
+        self.d = Timestamp(datetime(2008, 1, 2))
+
+    def test_repr(self):
+        repr(Delta())
+        repr(Delta(2))
+        repr(2 * Delta())
+        repr(2 * Delta(months=2))
+
+    def test_mul(self):
+        assert Delta(2) == 2 * Delta(1)
+        assert Delta(2) == Delta(1) * 2
+
+    def test_constructor(self):
+
+        assert((self.d + Delta(months=2)) == Timestamp(datetime(2008, 3, 2)))
+        assert((self.d - Delta(months=2)) == Timestamp(datetime(2007, 11, 2)))
+
+        assert((self.d + Delta(2)) == Timestamp(datetime(2008, 1, 4)))
+
+        assert not Delta(2).isAnchored()
+        assert Delta(1).isAnchored()
+
+        d = Timestamp(datetime(2008, 1, 31))
+        assert((d + Delta(months=1)) == Timestamp(datetime(2008, 2, 29)))
+
+    def test_copy(self):
+        assert(Delta(months=2).copy() == Delta(months=2))
+
+    def test_eq(self):
+        offset1 = Delta(days=1)
+        offset2 = Delta(days=365)
 
         self.assert_(offset1 != offset2)
         self.assert_(not (offset1 == offset2))

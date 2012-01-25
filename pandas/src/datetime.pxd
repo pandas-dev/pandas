@@ -76,7 +76,8 @@ cdef extern from "np_datetime.h":
                                              int apply_tzinfo)
 
     int is_leapyear(int64_t year)
-
+    int _days_per_month_table[2][12]
+    int dayofweek(int y, int m, int d)
 
 cdef extern from "np_datetime_strings.h":
 
@@ -90,3 +91,7 @@ cdef extern from "np_datetime_strings.h":
                                NPY_CASTING casting)
 
     int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
+
+cdef extern from "stdint.h":
+    enum: INT64_MIN
+
