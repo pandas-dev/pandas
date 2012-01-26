@@ -1276,7 +1276,7 @@ class DataFrame(NDFrame):
         col = self.columns[j]
         return self.get_value(row, col)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key, copy=True):
         # slice rows
         if isinstance(key, slice):
             new_data = self._data.get_slice(key, axis=1)
@@ -1289,13 +1289,13 @@ class DataFrame(NDFrame):
             # also raises Exception if object array with NA values
             if com._is_bool_indexer(key):
                 key = np.asarray(key, dtype=bool)
-            return self._getitem_array(key)
+            return self._getitem_array(key, copy=copy)
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
         else:
             return self._get_item_cache(key)
 
-    def _getitem_array(self, key):
+    def _getitem_array(self, key, copy=True):
         if key.dtype == np.bool_:
             if len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
@@ -1308,7 +1308,7 @@ class DataFrame(NDFrame):
             mask = indexer == -1
             if mask.any():
                 raise KeyError("No column(s) named: %s" % str(key[mask]))
-            result = self.reindex(columns=key)
+            result = self.reindex(columns=key, copy=copy)
             if result.columns.name is None:
                 result.columns.name = self.columns.name
             return result

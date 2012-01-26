@@ -66,7 +66,7 @@ class _NDFrameIndexer(object):
         for i, k in enumerate(key):
             idx = self._convert_to_indexer(k, axis=i)
             keyidx.append(idx)
-        return _maybe_convert_ix(*keyidx)
+        return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
         # also has the side effect of consolidating in-place
@@ -90,7 +90,9 @@ class _NDFrameIndexer(object):
                 data = self.obj[item]
                 data.values[plane_indexer] = value
         else:
-            self.obj.values[indexer] = value
+           if isinstance(indexer, tuple):
+               indexer = _maybe_convert_ix(*indexer)
+           self.obj.values[indexer] = value
 
     def _getitem_tuple(self, tup):
         try:

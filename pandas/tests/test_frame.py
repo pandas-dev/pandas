@@ -295,6 +295,19 @@ class CheckIndexing(object):
         dm['coercable'] = ['1', '2', '3']
         self.assertEqual(dm['coercable'].dtype, np.object_)
 
+    def test_setitem_corner2(self):
+        data = {"title" : ['foobar','bar','foobar'] + ['foobar'] * 17 ,
+                "cruft" : np.random.random(20)}
+
+        df = DataFrame(data)
+        ix = df[df['title'] == 'bar'].index
+
+        df.ix[ix, ['title']] = 'foobar'
+        df.ix[ix, ['cruft']] = 0
+
+        assert( df.ix[1, 'title'] == 'foobar' )
+        assert( df.ix[1, 'cruft'] == 0 )
+
     def test_setitem_ambig(self):
         # difficulties with mixed-type data
         from decimal import Decimal
