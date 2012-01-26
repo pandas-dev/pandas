@@ -179,10 +179,9 @@ class DataFrameFormatter(object):
         to_write = []
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = ('Empty %s\nColumns: %s\nIndex: %s' 
-                         % (type(self.frame).__name__, 
-                            repr(frame.columns), 
-                            repr(frame.index)))
+            info_line = (u'Empty %s\nColumns: %s\nIndex: %s'
+                         % (type(self.frame).__name__,
+                            frame.columns, frame.index))
             to_write.append(info_line)
         else:
             # may include levels names also
