@@ -1667,6 +1667,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(isnull(merged['d']))
         self.assert_(not isnull(merged['c']))
 
+    def test_map_type_inference(self):
+        s = Series(range(3))
+        s2 = s.map(lambda x: np.where(x == 0, 0, 1))
+        self.assert_(issubclass(s2.dtype.type, np.integer))
+
     def test_map_decimal(self):
         from decimal import Decimal
 

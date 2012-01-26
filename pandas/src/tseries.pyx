@@ -24,6 +24,7 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 ctypedef unsigned char UChar
 
 cimport util
+from util cimport is_array
 
 cdef extern from "math.h":
     double sqrt(double x)
