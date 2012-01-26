@@ -1866,6 +1866,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                    ('  c/\xcf\x83\n0 1   \n1 2   \n2 3   ', cp437,
                     '  c/?\n0 1   \n1 2   \n2 3   ' ))
 
+    def test_to_string_buffer_all_unicode(self):
+        buf = StringIO()
+
+        empty = DataFrame({u'c/\u03c3':Series()})
+        nonempty = DataFrame({u'c/\u03c3':Series([1,2,3])})
+
+        print >>buf, empty
+        print >>buf, nonempty
+
+        # this should work
+        ''.join(buf.buflist)
+
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
