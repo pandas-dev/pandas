@@ -1493,6 +1493,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         lines = open('_foo', 'U').readlines()
         assert(lines[1] != '\n')
 
+        self.ts.to_csv('_foo', index=False)
+        arr = np.loadtxt('_foo')
+        assert_almost_equal(arr, self.ts.values)
+
         os.remove('_foo')
 
     def test_to_dict(self):
