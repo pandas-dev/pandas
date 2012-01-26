@@ -1002,11 +1002,14 @@ def unique_with_labels(values):
     labels, _ = rizer.factorize(values, sort=False)
     uniques = Index(rizer.uniques)
 
-    sorter = uniques.argsort()
-    reverse_indexer = np.empty(len(sorter), dtype='i4')
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
-    labels = reverse_indexer.take(labels)
-    uniques = uniques.take(sorter)
+    try:
+        sorter = uniques.argsort()
+        reverse_indexer = np.empty(len(sorter), dtype='i4')
+        reverse_indexer.put(sorter, np.arange(len(sorter)))
+        labels = reverse_indexer.take(labels)
+        uniques = uniques.take(sorter)
+    except TypeError:
+        pass
 
     return uniques, labels
 

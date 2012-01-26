@@ -1349,6 +1349,12 @@ class TestFactor(unittest.TestCase):
         subf = self.factor[self.factor.asarray() == 'c']
         tm.assert_almost_equal(subf.labels, [2, 2, 2])
 
+    def test_constructor_unsortable(self):
+        arr = np.array([1, 2, 3, datetime.now()], dtype='O')
+
+        # it works!
+        factor = Factor(arr)
+
     def test_factor_agg(self):
         import pandas.core.frame as frame
 
