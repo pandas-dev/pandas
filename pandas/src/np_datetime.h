@@ -15,12 +15,13 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
                                          NPY_DATETIMEUNIT *out_bestunit,
                                          int apply_tzinfo);
 
-int is_leapyear(npy_int64 year);
 
 int dayofweek(int y, int m, int d);
 
 // stuff numpy needs in header
 // ----------------------------------------------------------------------------
+
+int is_leapyear(npy_int64 year);
 
 char *_datetime_strings[NPY_DATETIME_NUMUNITS];
 

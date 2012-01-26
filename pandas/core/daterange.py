@@ -94,7 +94,7 @@ class DateRange(DatetimeIndex):
                                  offset=offset, time_rule=time_rule)
             index = list(xdr)
 
-        if tzinfo is not None:
+        if tzinfa is not None:
             index = [d.replace(tzinfo=tzinfo) for d in index]
 
         index = np.array(index, dtype='M8[us]', copy=False)

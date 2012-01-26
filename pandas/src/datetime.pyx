@@ -21,15 +21,27 @@ PyDateTime_IMPORT
 # in numpy 1.7, will prob need this
 # numpy_pydatetime_import
 
+ctypedef enum time_res:
+    r_min = 0
+    r_microsecond
+    r_second
+    r_minute
+    r_hour
+    r_day
+    r_month
+    r_year
+    r_max = 98
+    r_invalid = 99
+
 # Objects to support date/time arithmetic
 # --------------------------------------------------------------------------------
 
 cdef class Timestamp:
-    '''
+    """
     A timestamp (absolute moment in time) to microsecond resolution; number of
     microseconds since the POSIX epoch, ignoring leap seconds (thereby different
     from UTC).
-    '''
+    """
     cdef:
         int64_t value
         npy_datetimestruct dts
@@ -63,10 +75,10 @@ cdef class Timestamp:
             raise ValueError("Could not construct Timestamp from argument")
 
     def __sub__(self, object other):
-        '''
+        """
         Subtract two timestamps, results in an interval with the start being
         the earlier of the two timestamps.
-        '''
+        """
         if isinstance(other, Timestamp):
             return Interval(self, other)
         elif isinstance(other, Delta):
@@ -94,10 +106,10 @@ cdef class Timestamp:
         raise NotImplementedError("Op %d not recognized" % op)
 
     def __add__(self, object other):
-        '''
+        """
         Add an Interval, Duration, or Period to the Timestamp, resulting in 
         new Timestamp.
-        '''
+        """
         if isinstance(other, (Interval, Duration)):
             return Timestamp(self.asint + other.length)
         elif isinstance(other, Delta):
@@ -106,9 +118,9 @@ cdef class Timestamp:
             raise NotImplementedError("Add operation not supported")
 
     def __str__(self):
-        '''
+        """
         Output ISO8601 format string representation of timestamp.
-        '''
+        """
         cdef:
             int outlen
             char *isostr
@@ -145,6 +157,29 @@ cdef class Timestamp:
             dts.sec = second
         if microsecond >= 0:
             dts.us = microsecond
+
+        return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
+
+    cdef normalize(self, time_res res):
+        cdef:
+            npy_datetimestruct dts
+
+        dts = self.dts
+
+        if res > r_microsecond:
+            dts.us = 0
+        if res > r_second:
+            dts.sec = 0
+        if res > r_minute:
+            dts.min = 0
+        if res > r_hour:
+            dts.hour = 0
+        if res > r_day:
+            dts.day = 1
+        if res > r_month:
+            dts.month = 1
+        if res > r_year:
+            raise ValueError("Invalid resolution")
 
         return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
 
@@ -185,10 +220,10 @@ cdef class Timestamp:
 
 
 cdef class Interval:
-    '''
+    """
     An absolute time span, from one timestamp to another. Normalized
     to seconds, microseconds, and days.
-    '''
+    """
     cdef:
         Timestamp start
         Timestamp end
@@ -230,9 +265,9 @@ cdef class Interval:
 
 
 cdef class Duration:
-    '''
+    """
     Absolute length of time, similar to timedelta (but faster!)
-    '''
+    """
     cdef int64_t length
 
     def __init__(self, int64_t days = 0,
@@ -275,6 +310,173 @@ cdef class Duration:
 
     def __repr__(self):
         return "Duration(%d, %d, %d)" % (self.days, self.seconds, self.microseconds)
+
+
+cdef convert_to_res(object res):
+    if res == 'microsecond':
+        return r_microsecond
+    if res == 'second':
+        return r_second
+    if res == 'minute':
+        return r_minute
+    if res == 'hour':
+        return r_hour
+    if res == 'day':
+        return r_day
+    if res == 'month':
+        return r_month
+    if res == 'year':
+        return r_year
+    return r_invalid
+
+cdef conversion_factor(time_res res1, time_res res2):
+    cdef:
+        time_res min_res, max_res
+        int64_t factor
+
+    min_res = min(res1, res2)
+    max_res = max(res1, res2)
+    factor = 1
+
+    if min_res == max_res:
+        return factor
+
+    while min_res < max_res:
+        if min_res < r_microsecond:
+            raise "Cannot convert from less than us"
+        elif min_res == r_microsecond:
+            factor *= 1000000
+            min_res = r_second
+        elif min_res == r_second:
+            factor *= 60
+            min_res = r_minute
+        elif min_res == r_minute:
+            factor *= 60
+            min_res = r_hour
+        elif min_res == r_hour:
+            factor *= 24
+            min_res = r_day
+        else:
+            raise "Cannot convert to month or year"
+
+    return factor
+
+# This is all garbage :(
+# Let's try to hack around in scikits.timeseries next...
+# -----------------------------------------
+
+#if offsets.ndim:
+#    assert(len(offsets) > 1 and self.basis == r_microsecond,
+#           "Resolution higher than us not supported")
+
+#    if self.basis == r_year:
+#        assert((offsets >= 1).all() and (offsets <= 12).all(),
+#               "Invalid day offset")
+#    elif self.basis == r_month:
+#        assert((offsets >= 1).all() and (offsets <= 31).all(),
+#               "Invalid day offset")
+#    elif self.basis == r_day:
+#        assert((offsets >= 0).all() and (offsets <= 24).all(),
+#               "Invalid hour offset")
+#    elif self.basis in (r_hour, r_minute):
+#        assert((offsets >= 0).all() and (offsets <= 60).all(),
+#               "Invalid min or sec offset")
+#    elif self.basis == r_second:
+#        assert((offsets >= 0).all() and (offsets <= 999999).all(),
+#               "Invalid microsec offset")
+
+#cdef class Filter:
+#    """
+#    Whether a given timestamp is valid
+#    """
+#    cdef is_valid(Filter self, int64_t ts):
+#        return 1
+
+#cdef class Bday(Filter):
+#    pass
+
+#cdef class Frequency:
+#    """
+#    A frequency is composed of two parts:
+
+#    - resolution: the smallest duration of observation
+#    - filter: observations which are considered valid
+
+#    For two time indexes to be compatible, they must have equivalent
+#    resolution.  This necessitates up/down sampling policies.
+
+#    We also need a conversion policy for the filters. For example, we may
+#    have W@FRI and W@MON filters.  How to reindex?
+#    """
+#    cdef:
+#        time_res res
+#        Filter tfilter
+
+#    def __init__(self, object resolution, Filter tfilter = Filter()):
+
+#        self.res = convert_to_res(resolution)
+
+#        if r_invalid == self.res:
+#            raise ValueError("'%s' not a recognized resolution" % resolution)
+
+#        self.tfilter = tfilter
+
+#    def numticks(Frequency self, Interval ival):
+#        """
+#        Return number of valid ticks within an interval
+#        """
+#        cdef:
+#            Timestamp start, end, tmpts
+#            int64_t tmp, factor, numticks
+#            npy_datetimestruct dts
+
+#        start = ival.start.normalize(self.res)
+#        end = ival.end.normalize(self.res)
+
+#        if end.value < start.value:
+#            tmpts = start
+#            start = end
+#            end   = tmpts
+
+#        tmp = start.value
+#        dts = start.dts
+
+#        factor = 1
+#        numticks = 0
+#        if self.res < r_month:
+#            factor = conversion_factor(r_microsecond, self.res)
+#            while tmp <= end.value:
+#                if self.is_valid_tick(tmp):
+#                    numticks += 1
+#                tmp += factor
+#        else:
+#            if self.res == r_month:
+#                while tmp <= end.value:
+#                    if self.is_valid_tick(tmp):
+#                        numticks += 1
+#                    factor, dts.month = divmod(start.dts.month + 1, 12)
+#                    dts.year += factor
+#                    tmp = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+#            elif self.res == r_year:
+#                while tmp <= end.value:
+#                    if self.is_valid_tick(tmp):
+#                        numticks += 1
+#                    dts.year += 1
+#                    tmp = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+
+#        return numticks
+
+#    cdef is_valid_tick(Frequency self, int64_t tick):
+#        return self.tfilter.is_valid(tick)
+
+#    def rollforward(self, Timestamp ts):
+#        pass
+
+#    def rollback(self, Timestamp):
+#        pass
+
+#    def offset(self, Timestamp ts, int nobs):
+#        pass
 
 
 # The following is derived from relativedelta.py in dateutil package
@@ -882,6 +1084,4 @@ def monthrange(int64_t year, int64_t month):
     days = _days_per_month_table[is_leapyear(year)][month-1]
 
     return (dayofweek(year, month, 1), days)
-
-
 

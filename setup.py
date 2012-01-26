@@ -207,7 +207,16 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
-        self._clean_exclude = ['np_datetime.c', 'np_datetime_strings.c']
+        self._clean_exclude = ['np_datetime.c',
+                               'np_datetime_strings.c',
+                               # scikits.timeseries code
+                               'cseries.c',
+                               'c_convert.c',
+                               'c_datearray.c',
+                               'c_dates.c',
+                               'c_freqs.c',
+                               'c_lib.c',
+                               'c_tseries.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -361,7 +370,15 @@ sandbox_ext = Extension('pandas._sandbox',
 datetime_ext = Extension('pandas._datetime',
                          sources=[srcpath('datetime', suffix=suffix),
                                           'pandas/src/np_datetime.c',
-                                          'pandas/src/np_datetime_strings.c'],
+                                          'pandas/src/np_datetime_strings.c',
+                                           # scikits.timeseries code
+                                          'pandas/src/timeseries/cseries.c',
+                                          'pandas/src/timeseries/c_convert.c',
+                                          'pandas/src/timeseries/c_datearray.c',
+                                          'pandas/src/timeseries/c_dates.c',
+                                          'pandas/src/timeseries/c_freqs.c',
+                                          'pandas/src/timeseries/c_lib.c',
+                                          'pandas/src/timeseries/c_tseries.c'],
                          include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
