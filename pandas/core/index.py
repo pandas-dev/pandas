@@ -2070,8 +2070,7 @@ def _sparsify(label_list):
             if p == t:
                 sparse_cur.append('')
             else:
-                result.append(cur)
-                break
+                sparse_cur.append(t)
 
         prev = cur
 
