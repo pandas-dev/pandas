@@ -23,7 +23,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify)
+                                _default_index, _stringify, csv_encode)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
@@ -890,9 +890,13 @@ class DataFrame(NDFrame):
                 elif not isinstance(index_label, (list, tuple, np.ndarray)):
                     # given a string for a DF with Index
                     index_label = [index_label]
-                csvout.writerow(list(index_label) + list(cols))
+
+                encoded_labels = [csv_encode(val) for val in index_label]
+                encoded_cols = [csv_encode(val) for val in cols]
+                csvout.writerow(encoded_labels + encoded_cols)
             else:
-                csvout.writerow(cols)
+                encoded_cols = [csv_encode(val) for val in cols]
+                csvout.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
         for idx in self.index:
@@ -909,7 +913,8 @@ class DataFrame(NDFrame):
 
                 row_fields.append(val)
 
-            csvout.writerow(row_fields)
+            encoded_rows = [csv_encode(val) for val in row_fields]
+            csvout.writerow(encoded_rows)
 
         f.close()
 

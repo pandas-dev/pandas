@@ -2482,6 +2482,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_csv_unicode(self):
+        from pandas import read_csv
+        path = '__tmp__.csv'
+        df = DataFrame({u'c/\u03c3':[1,2,3]})
+        df.to_csv(path)
+        df2 = read_csv(path, index_col=0)
+        assert_frame_equal(df, df2)
+        os.remove(path)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

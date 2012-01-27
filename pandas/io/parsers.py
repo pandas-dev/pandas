@@ -261,8 +261,9 @@ class TextParser(object):
                 self.pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
-                self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
-            reader = csv.reader(f, dialect=dia)
+                self.buf.extend(list(com.UnicodeReader(StringIO(line),
+                                dialect=dia)))
+            reader = com.UnicodeReader(f, dialect=dia)
         else:
             reader = (re.split(sep, line.strip()) for line in f)
 
