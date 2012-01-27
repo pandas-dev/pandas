@@ -3,6 +3,7 @@ from itertools import izip
 from StringIO import StringIO
 from pandas.core.common import adjoin, isnull, _format
 from pandas.core.index import MultiIndex, _ensure_index
+from pandas.util import py3compat
 
 import pandas.core.common as com
 import numpy as np
@@ -209,17 +210,18 @@ class DataFrameFormatter(object):
             else:
                 to_write.append(adjoin(1, *stringified))
 
-        if force_unicode:
-            to_write = [unicode(s) for s in to_write]
-        else:
-            # generally everything is plain strings, which has ascii encoding.
-            # problem is when there is a char with value over 127 - everything
-            # then gets converted to unicode.
-            try:
-                for s in to_write:
-                    str(s)
-            except UnicodeError:
+        if not py3compat.PY3:
+            if force_unicode:
                 to_write = [unicode(s) for s in to_write]
+            else:
+                # generally everything is plain strings, which has ascii encoding.
+                # problem is when there is a char with value over 127 - everything
+                # then gets converted to unicode.
+                try:
+                    for s in to_write:
+                        str(s)
+                except UnicodeError:
+                    to_write = [unicode(s) for s in to_write]
 
         self.buf.writelines(to_write)
 
