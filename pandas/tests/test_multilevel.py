@@ -451,6 +451,17 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assert_(com.is_integer_dtype(deleveled['prm1']))
         self.assert_(com.is_float_dtype(deleveled['prm2']))
 
+    def test_reset_index_with_drop(self):
+        deleveled = self.ymd.reset_index(drop = True)
+        self.assertEquals(len(deleveled.columns), len(self.ymd.columns))
+
+        deleveled = self.series.reset_index()
+        self.assert_(isinstance(deleveled, DataFrame))
+        self.assert_(len(deleveled.columns) == len(self.series.index.levels)+1)
+
+        deleveled = self.series.reset_index(drop = True)
+        self.assert_(isinstance(deleveled, Series))
+
     def test_sortlevel_by_name(self):
         self.frame.index.names = ['first', 'second']
         result = self.frame.sortlevel(level='second')

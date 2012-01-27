@@ -548,6 +548,25 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
+    def reset_index(self, drop=False):
+        """
+        Analagous to the DataFrame.reset_index function, see docstring there.
+
+        Parameters
+        ----------
+        drop : boolean, default False
+            Do not try to insert index into dataframe columns
+
+        Returns
+        ----------
+        resetted : DataFrame, or Series if drop == True
+        """
+        if drop:
+            return Series(self, index=np.arange(len(self)), name=self.name)
+        else:
+            from pandas.core.frame import DataFrame
+            return DataFrame(self).reset_index(drop=drop)
+
     def __repr__(self):
         """Clean string representation of a Series"""
         width, height = get_terminal_size()
