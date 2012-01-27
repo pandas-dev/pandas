@@ -5,6 +5,8 @@ pandas (0.7.0~rc1+git29-g4d29e47-1) UNRELEASED; urgency=low
   * Dropped all exclusions of unittests and patches -- shouldn't be necessary
     any longer
   * Build only for requested versions (not all supported) of Python
+  * Do nothing for build operation, rely on overloaded install
+    (to avoid undesired re-cythonization on elderly Ubuntus)
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 16 Jan 2012 19:31:50 -0500
 

@@ -37,6 +37,10 @@ override_dh_clean:
 	: # prune auto-generated version.py -- will be generated during build again
 	rm -f pandas/version.py
 
+override_dh_auto_build:
+	# Override default build operation which --force's re-cythonization
+	# on elderly ubuntus
+	:
 
 override_dh_auto_install: ${PYVERS:%=python-install%} ${PYVERS:%=python-test%}
 # Per Python version logic -- install, test, move .so into -lib
