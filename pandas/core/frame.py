@@ -3624,6 +3624,7 @@ class DataFrame(NDFrame):
                 axes = [ax]
             else:
                 fig = ax.get_figure()
+                axes = fig.get_axes()
 
         if kind == 'line':
             if use_index:
