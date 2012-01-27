@@ -4,8 +4,8 @@
 PACKAGE_NAME = python-pandas
 PACKAGE_ROOT_DIR = debian/${PACKAGE_NAME}
 
-PYVERS = $(shell pyversions -vs)
-PYVER = $(shell pyversions  -vd)
+PYVERS = $(shell pyversions -vr)
+PYVER = $(shell pyversions -vd)
 
 CYTHONVER := $(shell dpkg -l cython | awk '/^ii/{print $$3;}' || echo 0)
 MPLVER := $(shell dpkg -l python-matplotlib | awk '/^ii/{print $$3;}' || echo 0)
