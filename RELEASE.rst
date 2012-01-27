@@ -83,6 +83,8 @@ pandas 0.7.0
   - Add new ``cummin`` and ``cummax`` instance methods to ``Series`` and
     ``DataFrame`` (GH #647)
   - Add new ``value_range`` function to return min/max of a dataframe (GH #288)
+  - Add ``drop`` parameter to ``reset_index`` method of ``DataFrame`` and added
+    method to ``Series`` as well (GH #699)
 
 **API Changes**
 

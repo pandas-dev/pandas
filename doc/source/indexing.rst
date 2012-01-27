@@ -834,6 +834,9 @@ integer index. This is the inverse operation to ``set_index``
 The output is more similar to a SQL table or a record array. The names for the
 columns derived from the index are the ones stored in the ``names`` attribute.
 
+``reset_index`` takes an optional parameter ``drop`` which if true simply
+discards the index, instead of putting index values in the DataFrame's columns.
+
 .. note::
 
    The ``reset_index`` method used to be called ``delevel`` which is now deprecated.

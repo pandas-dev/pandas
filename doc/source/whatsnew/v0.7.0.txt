@@ -224,6 +224,8 @@ Other API Changes
 - Miscellaneous renames and deprecations which will (harmlessly) raise
   ``FutureWarning``
 
+- ``drop`` added as an optional parameter to ``DataFrame.reset_index`` (GH699_)
+
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -296,6 +298,7 @@ similar operation to the above but using a Python function:
 .. _GH554: https://github.com/wesm/pandas/issues/554
 .. _GH595: https://github.com/wesm/pandas/issues/595
 .. _GH647: https://github.com/wesm/pandas/issues/647
+.. _GH699: https://github.com/wesm/pandas/issues/699
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _PR521: https://github.com/wesm/pandas/pull/521

@@ -1852,7 +1852,7 @@ class DataFrame(NDFrame):
         frame.index = index
         return frame
 
-    def reset_index(self):
+    def reset_index(self, drop=False):
         """
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
@@ -1860,30 +1860,36 @@ class DataFrame(NDFrame):
         the index name will be used (if set), otherwise a default 'index' or
         'level_0' (if 'index' is already taken) will be used.
 
+        Parameters
+        ----------
+        drop : boolean, default False
+            Do not try to insert index into dataframe columns
+
         Returns
         -------
         resetted : DataFrame
         """
         new_obj = self.copy()
-        if isinstance(self.index, MultiIndex):
-            names = self.index.names
-            zipped = zip(self.index.levels, self.index.labels)
-            for i, (lev, lab) in reversed(list(enumerate(zipped))):
-                col_name = names[i]
-                if col_name is None:
-                    col_name = 'level_%d' % i
+        if not drop:
+            if isinstance(self.index, MultiIndex):
+                names = self.index.names
+                zipped = zip(self.index.levels, self.index.labels)
+                for i, (lev, lab) in reversed(list(enumerate(zipped))):
+                    col_name = names[i]
+                    if col_name is None:
+                        col_name = 'level_%d' % i
 
-                # to ndarray and maybe infer different dtype
-                level_values = lev.values
-                if level_values.dtype == np.object_:
-                    level_values = lib.maybe_convert_objects(level_values)
+                    # to ndarray and maybe infer different dtype
+                    level_values = lev.values
+                    if level_values.dtype == np.object_:
+                        level_values = lib.maybe_convert_objects(level_values)
 
-                new_obj.insert(0, col_name, level_values.take(lab))
-        else:
-            name = self.index.name
-            if name is None:
-                name = 'index' if 'index' not in self else 'level_0'
-            new_obj.insert(0, name, self.index.values)
+                    new_obj.insert(0, col_name, level_values.take(lab))
+            else:
+                name = self.index.name
+                if name is None:
+                    name = 'index' if 'index' not in self else 'level_0'
+                new_obj.insert(0, name, self.index.values)
         new_obj.index = np.arange(len(new_obj))
         return new_obj
 
