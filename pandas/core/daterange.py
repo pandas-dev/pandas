@@ -502,11 +502,15 @@ def generate_range(start=None, end=None, periods=None,
     if offset._normalizeFirst:
         cur = datetools.normalize_date(cur)
 
+    next_date = cur
     while cur <= end:
         yield cur
 
         # faster than cur + offset
-        cur = offset.apply(cur)
+        next_date = offset.apply(cur)
+        if next_date <= cur:
+            raise ValueError('Offset %s did not increment date' % offset)
+        cur = next_date
 
 # Do I want to cache UTC dates? Can't decide...
 

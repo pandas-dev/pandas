@@ -24,6 +24,7 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 ctypedef unsigned char UChar
 
 cimport util
+from util cimport is_array
 
 cdef extern from "math.h":
     double sqrt(double x)
@@ -451,6 +452,29 @@ def has_infs_f8(ndarray[float64_t] arr):
         if val == inf or val == neginf:
             return True
     return False
+
+def convert_timestamps(ndarray values):
+    cdef:
+        object val, f, result
+        dict cache = {}
+        Py_ssize_t i, n = len(values)
+        ndarray[object] out
+
+    # for HDFStore, a bit temporary but...
+
+    from datetime import datetime
+    f = datetime.fromtimestamp
+
+    out = np.empty(n, dtype='O')
+
+    for i in range(n):
+        val = util.get_value_1d(values, i)
+        if val in cache:
+            out[i] = cache[val]
+        else:
+            cache[val] = out[i] = f(val)
+
+    return out
 
 # cdef class TypeConverter:
 #     cdef:

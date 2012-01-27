@@ -49,3 +49,5 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
 cdef inline int is_contiguous(ndarray arr):
     return cnp.PyArray_CHKFLAGS(arr, cnp.NPY_C_CONTIGUOUS)
 
+cdef inline is_array(object o):
+    return cnp.PyArray_Check(o)

@@ -177,6 +177,14 @@ class TestMerge(unittest.TestCase):
         self.assert_('key1.foo' in joined)
         self.assert_('key1.bar' in joined)
 
+    def test_handle_overlap_arbitrary_key(self):
+        joined = merge(self.df, self.df2,
+                       left_on='key2', right_on='key1',
+                       suffixes=['.foo', '.bar'])
+
+        self.assert_('key1.foo' in joined)
+        self.assert_('key2.bar' in joined)
+
     def test_merge_common(self):
         joined = merge(self.df, self.df2)
         exp = merge(self.df, self.df2, on=['key1', 'key2'])
@@ -1088,6 +1096,13 @@ class TestConcatenate(unittest.TestCase):
         expected = concat([df, df], keys=['foo', 'bar'])
         tm.assert_frame_equal(result, expected[:10])
 
+    def test_concat_exclude_none(self):
+        df = DataFrame(np.random.randn(10, 4))
+
+        pieces = [df[:5], None, None, df[5:]]
+        result = concat(pieces)
+        tm.assert_frame_equal(result, df)
+        self.assertRaises(Exception, concat, [None, None])
 
 if __name__ == '__main__':
     import nose

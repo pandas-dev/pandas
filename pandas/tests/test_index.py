@@ -694,6 +694,12 @@ class TestMultiIndex(unittest.TestCase):
         self.index.names = ['foo', 'foo']
         self.assertRaises(Exception, self.index._get_level_number, 'foo')
 
+    def test_get_level_number_integer(self):
+        self.index.names = [1, 0]
+        self.assertEqual(self.index._get_level_number(1), 0)
+        self.assertEqual(self.index._get_level_number(0), 1)
+        self.assertRaises(Exception, self.index._get_level_number, 2)
+
     def test_from_arrays(self):
         arrays = []
         for lev, lab in zip(self.index.levels, self.index.labels):
@@ -1342,6 +1348,12 @@ class TestFactor(unittest.TestCase):
 
         subf = self.factor[self.factor.asarray() == 'c']
         tm.assert_almost_equal(subf.labels, [2, 2, 2])
+
+    def test_constructor_unsortable(self):
+        arr = np.array([1, 2, 3, datetime.now()], dtype='O')
+
+        # it works!
+        factor = Factor(arr)
 
     def test_factor_agg(self):
         import pandas.core.frame as frame

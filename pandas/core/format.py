@@ -3,6 +3,7 @@ from itertools import izip
 from StringIO import StringIO
 from pandas.core.common import adjoin, isnull, _format
 from pandas.core.index import MultiIndex, _ensure_index
+from pandas.util import py3compat
 
 import pandas.core.common as com
 import numpy as np
@@ -170,7 +171,7 @@ class DataFrameFormatter(object):
         else:
             self.columns = frame.columns
 
-    def to_string(self):
+    def to_string(self, force_unicode=False):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -179,10 +180,10 @@ class DataFrameFormatter(object):
         to_write = []
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = 'Empty %s\nColumns: %s\nIndex: %s'
-            to_write.append(info_line % (type(self.frame).__name__,
-                                         repr(frame.columns),
-                                         repr(frame.index)))
+            info_line = (u'Empty %s\nColumns: %s\nIndex: %s'
+                         % (type(self.frame).__name__,
+                            frame.columns, frame.index))
+            to_write.append(info_line)
         else:
             # may include levels names also
             str_index = self._get_formatted_index()
@@ -209,10 +210,18 @@ class DataFrameFormatter(object):
             else:
                 to_write.append(adjoin(1, *stringified))
 
-        for s in to_write:
-            if isinstance(s, unicode):
+        if not py3compat.PY3:
+            if force_unicode:
                 to_write = [unicode(s) for s in to_write]
-                break
+            else:
+                # generally everything is plain strings, which has ascii encoding.
+                # problem is when there is a char with value over 127 - everything
+                # then gets converted to unicode.
+                try:
+                    for s in to_write:
+                        str(s)
+                except UnicodeError:
+                    to_write = [unicode(s) for s in to_write]
 
         self.buf.writelines(to_write)
 
@@ -358,9 +367,9 @@ class DataFrameFormatter(object):
             fmt_columns = zip(*fmt_columns)
             dtypes = self.frame.dtypes.values
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = zip(*[[' %s' % y
+            str_columns = zip(*[[u' %s' % y
                                 if y not in formatters and need_leadsp[x]
-                                else str(y) for y in x]
+                                else y for y in x]
                                for x in fmt_columns])
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
@@ -370,10 +379,10 @@ class DataFrameFormatter(object):
             fmt_columns = self.columns.format()
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = [[' %s' % x
-                            if x not in formatters and need_leadsp[x]
-                            else str(x)]
-                           for x in fmt_columns]
+            str_columns = [[u' %s' % x
+                            if col not in formatters and need_leadsp[x]
+                            else x]
+                           for col, x in zip(self.columns, fmt_columns)]
 
         if self.show_index_names and self.has_index_names:
             for x in str_columns:

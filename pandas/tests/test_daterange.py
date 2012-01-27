@@ -350,6 +350,10 @@ class TestDateRange(unittest.TestCase):
         result = rng1.union(rng2)
         self.assert_(type(result) == DateRange)
 
+    def test_error_with_zero_monthends(self):
+        self.assertRaises(ValueError, DateRange, '1/1/2000', '1/1/2001',
+                          offset=datetools.MonthEnd(0))
+
 def _skip_if_no_pytz():
     try:
         import pytz

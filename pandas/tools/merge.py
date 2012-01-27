@@ -77,7 +77,7 @@ class _MergeOperation(object):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         # this is a bit kludgy
-        ldata, rdata = self._get_merge_data(self.join_names)
+        ldata, rdata = self._get_merge_data()
 
         # TODO: more efficiently handle group keys to avoid extra consolidation!
         join_op = _BlockJoinOperation([ldata, rdata], join_index,
@@ -154,13 +154,19 @@ class _MergeOperation(object):
 
         return join_index, left_indexer, right_indexer
 
-    def _get_merge_data(self, join_names):
+    def _get_merge_data(self):
         """
         Handles overlapping column names etc.
         """
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
-        exclude_names = [x for x in join_names if x is not None]
+        exclude_names = set(x for x in self.join_names if x is not None)
+        if self.left_on is not None:
+            exclude_names -= set(c.name if hasattr(c, 'name') else c
+                                 for c in self.left_on)
+        if self.right_on is not None:
+            exclude_names -= set(c.name if hasattr(c, 'name') else c
+                                 for c in self.right_on)
         ldata, rdata = ldata._maybe_rename_join(rdata, lsuf, rsuf,
                                                 exclude=exclude_names,
                                                 copydata=False)
@@ -604,7 +610,8 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     objs : list or dict of Series, DataFrame, or Panel objects
         If a dict is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
-        selected (see below)
+        selected (see below). Any None objects will be dropped silently unless
+        they are all None in which case an Exception will be raised
     axis : {0, 1, ...}, default 0
         The axis to concatenate along
     join : {'inner', 'outer'}, default 'outer'
@@ -665,6 +672,12 @@ class _Concatenator(object):
             if keys is None:
                 keys = sorted(objs)
             objs = [objs[k] for k in keys]
+
+        # filter Nones
+        objs = [obj for obj in objs if obj is not None]
+
+        if len(objs) == 0:
+            raise Exception('All objects passed were None')
 
         # consolidate data
         for obj in objs:

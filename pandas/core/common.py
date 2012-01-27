@@ -1,7 +1,11 @@
 """
 Misc tools for implementing data structures
 """
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 try:
     from io import BytesIO
 except ImportError:  # pragma: no cover
@@ -16,6 +20,7 @@ import decimal
 import math
 
 import pandas._tseries as lib
+from pandas.util import py3compat
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -506,10 +511,11 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
 
 def _stringify(col):
     # unicode workaround
-    if isinstance(col, tuple):
-        return str(col)
-    else:
-        return '%s' % col
+    return unicode(col)
+    #if isinstance(col, tuple):
+    #    return str(col)
+    #else:
+    #    return '%s' % console_encode(col)
 
 def _float_format_default(v, width=None):
     """
@@ -788,7 +794,7 @@ def save(obj, path):
     """
     f = open(path, 'wb')
     try:
-        cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
     finally:
         f.close()
 
@@ -809,8 +815,16 @@ def load(path):
     """
     f = open(path, 'rb')
     try:
-        return cPickle.load(f)
+        return pickle.load(f)
     finally:
         f.close()
 
+def console_encode(value):
+    if py3compat.PY3 or not isinstance(value, unicode):
+        return value
 
+    try:
+        import sys
+        return value.encode(sys.stdin.encoding, 'replace')
+    except (AttributeError, TypeError):
+        return value.encode('ascii', 'replace')

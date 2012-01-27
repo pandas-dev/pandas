@@ -162,6 +162,7 @@ pandas 0.7.0
     yourself) to ``groupby`` in some cases (GH #659)
   - Use ``kind`` argument to Series.order for selecting different sort kinds
     (GH #668)
+  - Add option to Series.to_csv to omit the index (PR #684)
 
 **Bug fixes**
 
@@ -231,6 +232,15 @@ pandas 0.7.0
   - Fix bugs preventing SparseDataFrame and SparseSeries working with groupby
     (GH #666)
   - Use sort kind in Series.sort / argsort (GH #668)
+  - Fix DataFrame operations on non-scalar, non-pandas objects (GH #672)
+  - Don't convert DataFrame column to integer type when passing integer to
+    __setitem__ (GH #669)
+  - Fix downstream bug in pivot_table caused by integer level names in
+    MultiIndex (GH #678)
+  - Fix SparseSeries.combine_first when passed a dense Series (GH #687)
+  - Fix performance regression in HDFStore loading when DataFrame or Panel
+    stored in table format with datetimes
+  - Raise Exception in DateRange when offset with n=0 is passed (GH #683)
 
 Thanks
 ------
@@ -253,6 +263,7 @@ Thanks
 - Sam Reckoner
 - Craig Reeson
 - Jan Schulz
+- Skipper Seabold
 - Ted Square
 - Graham Taylor
 - Aman Thakral
@@ -260,6 +271,7 @@ Thanks
 - Dieter Vandenbussche
 - Texas P.
 - Pinxing Ye
+- ... and everyone I forgot
 
 pandas 0.6.1
 ============

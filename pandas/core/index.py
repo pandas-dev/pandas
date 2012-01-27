@@ -121,6 +121,14 @@ class Index(np.ndarray):
         name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
 
+    def __str__(self):
+        try:
+            return np.array_repr(self.values)
+        except UnicodeError:
+            converted = u','.join(unicode(x) for x in self.values)
+            return u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
+                                              str(self.values.dtype))
+
     @property
     def values(self):
         return np.asarray(self)
@@ -990,10 +998,28 @@ class Factor(np.ndarray):
             return np.ndarray.__getitem__(self, key)
 
 def unique_with_labels(values):
-    uniques = Index(lib.fast_unique(values))
-    labels = lib.get_unique_labels(values, uniques.indexMap)
-    uniques._cleanup()
+    rizer = lib.Factorizer(len(values))
+    labels, _ = rizer.factorize(values, sort=False)
+    uniques = Index(rizer.uniques)
+
+    try:
+        sorter = uniques.argsort()
+        reverse_indexer = np.empty(len(sorter), dtype='i4')
+        reverse_indexer.put(sorter, np.arange(len(sorter)))
+        labels = reverse_indexer.take(labels)
+        uniques = uniques.take(sorter)
+    except TypeError:
+        pass
+
     return uniques, labels
+
+def unique_int64(values):
+    if values.dtype != np.int64:
+        values = values.astype('i8')
+
+    table = lib.Int64HashTable(len(values))
+    uniques = table.unique(values)
+    return uniques
 
 class MultiIndex(Index):
     """
@@ -1070,15 +1096,20 @@ class MultiIndex(Index):
         return np.dtype('O')
 
     def _get_level_number(self, level):
-        if not isinstance(level, int):
+        try:
             count = self.names.count(level)
             if count > 1:
                 raise Exception('The name %s occurs multiple times, use a '
                                 'level number' % level)
-
             level = self.names.index(level)
-        elif level < 0:
-            level += self.nlevels
+        except ValueError:
+            if not isinstance(level, int):
+                raise Exception('Level %s not found' % str(level))
+            elif level < 0:
+                level += self.nlevels
+            elif level >= self.nlevels:
+                raise ValueError('Index has only %d levels, not %d'
+                                 % (self.nlevels, level))
         return level
 
     @property
@@ -2039,8 +2070,7 @@ def _sparsify(label_list):
             if p == t:
                 sparse_cur.append('')
             else:
-                result.append(cur)
-                break
+                sparse_cur.append(t)
 
         prev = cur
 

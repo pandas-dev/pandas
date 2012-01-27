@@ -747,6 +747,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
 
+    def test_repr_unicode(self):
+        s = Series([u'\u03c3'] * 10)
+        repr(s)
+
     def test_to_string(self):
         from cStringIO import StringIO
         buf = StringIO()
@@ -1489,6 +1493,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         lines = open('_foo', 'U').readlines()
         assert(lines[1] != '\n')
 
+        self.ts.to_csv('_foo', index=False)
+        arr = np.loadtxt('_foo')
+        assert_almost_equal(arr, self.ts.values)
+
         os.remove('_foo')
 
     def test_to_dict(self):
@@ -1662,6 +1670,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(merged.dtype == np.float_)
         self.assert_(isnull(merged['d']))
         self.assert_(not isnull(merged['c']))
+
+    def test_map_type_inference(self):
+        s = Series(range(3))
+        s2 = s.map(lambda x: np.where(x == 0, 0, 1))
+        self.assert_(issubclass(s2.dtype.type, np.integer))
 
     def test_map_decimal(self):
         from decimal import Decimal

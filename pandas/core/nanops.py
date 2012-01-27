@@ -3,6 +3,7 @@ import sys
 import numpy as np
 
 from pandas.core.common import isnull, notnull
+import pandas.core.common as com
 import pandas._tseries as lib
 
 try:
@@ -18,7 +19,7 @@ def _bottleneck_switch(bn_name, alt, **kwargs):
         bn_func = None
     def f(values, axis=None, skipna=True):
         try:
-            if _USE_BOTTLENECK and skipna:
+            if _USE_BOTTLENECK and skipna and values.dtype != np.object_:
                 result = bn_func(values, axis=axis, **kwargs)
                 # prefer to treat inf/-inf as NA
                 if _has_infs(result):
@@ -62,7 +63,7 @@ def _nanmean(values, axis=None, skipna=True):
         values = values.copy()
         np.putmask(values, mask, 0)
 
-    the_sum = values.sum(axis)
+    the_sum = _ensure_numeric(values.sum(axis))
     count = _get_counts(mask, axis)
 
     if axis is not None:
@@ -101,8 +102,8 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
         values = values.copy()
         np.putmask(values, mask, 0)
 
-    X = values.sum(axis)
-    XX = (values ** 2).sum(axis)
+    X = _ensure_numeric(values.sum(axis))
+    XX = _ensure_numeric((values ** 2).sum(axis))
     return (XX - X ** 2 / count) / (count - ddof)
 
 def _nanmin(values, axis=None, skipna=True):
@@ -306,6 +307,18 @@ def nancov(a, b):
         return np.nan
 
     return np.cov(a, b)[0, 1]
+
+def _ensure_numeric(x):
+    if isinstance(x, np.ndarray):
+        if x.dtype == np.object_:
+            x = x.astype(np.float64)
+    elif not (com.is_float(x) or com.is_integer(x)):
+        try:
+            x = float(x)
+        except Exception:
+            raise TypeError('Could not convert %s to numeric' % str(x))
+
+    return x
 
 # NA-friendly array comparisons
 

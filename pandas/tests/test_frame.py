@@ -24,6 +24,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
+from pandas.util import py3compat
 import pandas._tseries as lib
 
 #-------------------------------------------------------------------------------
@@ -222,6 +223,29 @@ class CheckIndexing(object):
         self.frame['D'] = self.frame['D'].astype('i8')
         self.assert_(self.frame['D'].dtype == np.int64)
 
+        # #669, should not cast?
+        self.frame['B'] = 0
+        self.assert_(self.frame['B'].dtype == np.float64)
+
+        # cast if pass array of course
+        self.frame['B'] = np.arange(len(self.frame))
+        self.assert_(issubclass(self.frame['B'].dtype.type, np.integer))
+
+        self.frame['foo'] = 'bar'
+        self.frame['foo'] = 0
+        self.assert_(self.frame['foo'].dtype == np.int64)
+
+        self.frame['foo'] = 'bar'
+        self.frame['foo'] = 2.5
+        self.assert_(self.frame['foo'].dtype == np.float64)
+
+        self.frame['something'] = 0
+        self.assert_(self.frame['something'].dtype == np.int64)
+        self.frame['something'] = 2
+        self.assert_(self.frame['something'].dtype == np.int64)
+        self.frame['something'] = 2.5
+        self.assert_(self.frame['something'].dtype == np.float64)
+
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
         mask = self.frame['A'] > 0
@@ -270,6 +294,19 @@ class CheckIndexing(object):
 
         dm['coercable'] = ['1', '2', '3']
         self.assertEqual(dm['coercable'].dtype, np.object_)
+
+    def test_setitem_corner2(self):
+        data = {"title" : ['foobar','bar','foobar'] + ['foobar'] * 17 ,
+                "cruft" : np.random.random(20)}
+
+        df = DataFrame(data)
+        ix = df[df['title'] == 'bar'].index
+
+        df.ix[ix, ['title']] = 'foobar'
+        df.ix[ix, ['cruft']] = 0
+
+        assert( df.ix[1, 'title'] == 'foobar' )
+        assert( df.ix[1, 'cruft'] == 0 )
 
     def test_setitem_ambig(self):
         # difficulties with mixed-type data
@@ -1791,13 +1828,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
-    def test_to_string_unicode(self):
+    def test_to_string_repr_unicode(self):
         buf = StringIO()
 
         unicode_values = [u'\u03c3'] * 10
         unicode_values = np.array(unicode_values, dtype=object)
         df = DataFrame({'unicode' : unicode_values})
         df.to_string(col_space=10, buf=buf)
+
+        # it works!
+        repr(df)
 
     def test_to_string_unicode_columns(self):
         df = DataFrame({u'\u03c3' : np.arange(10.)})
@@ -1809,6 +1849,32 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         buf = StringIO()
         df.info(buf=buf)
         buf.getvalue()
+
+    def test_to_string_unicode_two(self):
+        dm = DataFrame({u'c/\u03c3': []})
+        buf = StringIO()
+        dm.to_string(buf)
+
+    def test_to_string_with_formatters_unicode(self):
+        df = DataFrame({u'c/\u03c3':[1,2,3]})
+        result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
+        self.assertEqual(result, u'  c/\u03c3\n0 1  \n1 2  \n2 3  ')
+
+    def test_to_string_buffer_all_unicode(self):
+        buf = StringIO()
+
+        empty = DataFrame({u'c/\u03c3':Series()})
+        nonempty = DataFrame({u'c/\u03c3':Series([1,2,3])})
+
+        print >>buf, empty
+        print >>buf, nonempty
+
+        # this should work
+        ''.join(buf.buflist)
+
+    def test_unicode_problem_decoding_as_ascii(self):
+        dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
+        unicode(dm.to_string())
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
@@ -2147,6 +2213,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df.sub(col, axis=0), (df.T - col).T)
         assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
         assert_frame_equal(df.mul(col, axis=0), (df.T * col).T)
+
+    def test_arith_non_pandas_object(self):
+        df = self.simple
+
+        val1 = df.xs('a').values
+        added = DataFrame(df.values + val1, index=df.index, columns=df.columns)
+        assert_frame_equal(df + val1, added)
+
+        added = DataFrame((df.values.T + val1).T,
+                          index=df.index, columns=df.columns)
+        assert_frame_equal(df.add(val1, axis=0), added)
+
+
+        val2 = list(df['two'])
+
+        added = DataFrame(df.values + val2, index=df.index, columns=df.columns)
+        assert_frame_equal(df + val2, added)
+
+        added = DataFrame((df.values.T + val2).T, index=df.index,
+                          columns=df.columns)
+        assert_frame_equal(df.add(val2, axis='index'), added)
+
+        val3 = np.random.rand(*df.shape)
+        added = DataFrame(df.values + val3, index=df.index, columns=df.columns)
+        assert_frame_equal(df.add(val3), added)
 
     def test_combineFrame(self):
         frame_copy = self.frame.reindex(self.frame.index[::2])
@@ -3750,15 +3841,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             'c': [0.00031111847529610595, 0.0014902627951905339,
                   -0.00094099200035979691]
         }
-        df = DataFrame(data, index=['foo', 'bar', 'baz'],
+        df1 = DataFrame(data, index=['foo', 'bar', 'baz'],
                        dtype='O')
         methods = ['sum', 'mean', 'prod', 'var', 'std', 'skew', 'min', 'max']
 
-        for meth in methods:
-            self.assert_(df.values.dtype == np.object_)
-            result = getattr(df, meth)(1)
-            expected = getattr(df.astype('f8'), meth)(1)
-            assert_series_equal(result, expected)
+        # GH #676
+        df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3],
+                        2: [np.nan, 4]}, dtype=object)
+
+        for df in [df1, df2]:
+            for meth in methods:
+                self.assert_(df.values.dtype == np.object_)
+                result = getattr(df, meth)(1)
+                expected = getattr(df.astype('f8'), meth)(1)
+                assert_series_equal(result, expected)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)

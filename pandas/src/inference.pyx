@@ -40,6 +40,8 @@ def infer_dtype(object _values):
         values = list_to_object_array(_values)
 
     n = len(values)
+    if n == 0:
+        return 'empty'
 
     val_kind = values.dtype.type
     if val_kind in _TYPE_MAP:
@@ -80,10 +82,6 @@ def infer_dtype_list(list values):
 
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
-
-cpdef is_array(object o):
-    return np.PyArray_Check(o)
-
 
 def is_bool_array(ndarray values):
     cdef:
@@ -399,8 +397,16 @@ def map_infer(ndarray arr, object f):
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
-        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-        result[i] = f(val)
+        val = f(PyArray_GETITEM(arr, PyArray_ITER_DATA(it)))
+
+        # unbox 0-dim arrays, GH #690
+        if is_array(val) and PyArray_NDIM(val) == 0:
+            # is there a faster way to unbox?
+            val = val.item()
+
+        result[i] = val
+
+
         PyArray_ITER_NEXT(it)
 
     return maybe_convert_objects(result, try_float=0)

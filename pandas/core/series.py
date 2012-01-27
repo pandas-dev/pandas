@@ -309,7 +309,9 @@ copy : boolean, default False
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            if self.index.inferred_type == 'integer':
+            from pandas.core.indexing import _is_index_slice
+
+            if self.index.inferred_type == 'integer' or _is_index_slice(key):
                 indexer = key
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=0)
@@ -390,7 +392,8 @@ copy : boolean, default False
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            if self.index.inferred_type == 'integer':
+            from pandas.core.indexing import _is_index_slice
+            if self.index.inferred_type == 'integer' or _is_index_slice(key):
                 indexer = key
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=0)
@@ -559,7 +562,7 @@ copy : boolean, default False
         else:
             result = '%s' % ndarray.__repr__(self)
 
-        return result
+        return com.console_encode(result)
 
     def _tidy_repr(self, max_vals=20):
         num = max_vals // 2
@@ -601,11 +604,14 @@ copy : boolean, default False
     def __iter__(self):
         return iter(self.values)
 
-    def iteritems(self):
+    def iteritems(self, index=True):
         """
         Lazily iterate over (index, value) tuples
         """
-        return izip(iter(self.index), iter(self))
+        if index:
+            return izip(iter(self.index), iter(self))
+        else:
+            return izip(iter(self))
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
@@ -1969,7 +1975,7 @@ copy : boolean, default False
         df = DataFrame.from_csv(path, header=None, sep=sep, parse_dates=parse_dates)
         return df[df.columns[0]]
 
-    def to_csv(self, path):
+    def to_csv(self, path, index=True):
         """
         Write the Series to a CSV file
 
@@ -1977,10 +1983,12 @@ copy : boolean, default False
         ----------
         path : string or None
             Output filepath. If None, write to stdout
+        index : bool, optional
+            Include the index as row names or not
         """
         f = open(path, 'w')
         csvout = csv.writer(f, lineterminator='\n')
-        csvout.writerows(self.iteritems())
+        csvout.writerows(self.iteritems(index))
         f.close()
 
     def dropna(self):

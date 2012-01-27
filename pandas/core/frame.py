@@ -173,6 +173,26 @@ def _arith_method(func, name, default_axis='columns'):
             return self._combine_frame(other, func, fill_value, level)
         elif isinstance(other, Series):
             return self._combine_series(other, func, fill_value, axis, level)
+        elif isinstance(other, (list, tuple)):
+            if axis is not None and self._get_axis_name(axis) == 'index':
+                casted = Series(other, index=self.index)
+            else:
+                casted = Series(other, index=self.columns)
+            return self._combine_series(casted, func, fill_value, axis, level)
+        elif isinstance(other, np.ndarray):
+            if other.ndim == 1:
+                if axis is not None and self._get_axis_name(axis) == 'index':
+                    casted = Series(other, index=self.index)
+                else:
+                    casted = Series(other, index=self.columns)
+                return self._combine_series(casted, func, fill_value,
+                                            axis, level)
+            elif other.ndim == 2:
+                casted = DataFrame(other, index=self.index,
+                                   columns=self.columns)
+                return self._combine_frame(casted, func, fill_value, level)
+            else:  # pragma: no cover
+                raise ValueError("Bad argument shape")
         else:
             return self._combine_const(other, func)
 
@@ -420,29 +440,25 @@ class DataFrame(NDFrame):
                     else config.max_rows)
         max_columns = config.max_columns
 
+        buf = StringIO()
         if max_columns > 0:
-            buf = StringIO()
             if len(self.index) < max_rows and \
                     len(self.columns) <= max_columns:
                 self.to_string(buf=buf)
             else:
                 self.info(buf=buf, verbose=self._verbose_info)
-            return buf.getvalue()
         else:
             if len(self.index) > max_rows:
-                buf = StringIO()
                 self.info(buf=buf, verbose=self._verbose_info)
-                return buf.getvalue()
             else:
-                buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
-                if max([len(l) for l in value.split('\n')]) <= terminal_width:
-                    return value
-                else:
+                if max([len(l) for l in value.split('\n')]) > terminal_width:
                     buf = StringIO()
                     self.info(buf=buf, verbose=self._verbose_info)
-                    return buf.getvalue()
+                    value = buf.getvalue()
+                return com.console_encode(value)
+        return com.console_encode(buf.getvalue())
 
     def __iter__(self):
         """
@@ -790,54 +806,30 @@ class DataFrame(NDFrame):
         panel : Panel
         """
         from pandas.core.panel import Panel
-
-        wide_shape = (len(self.columns), len(self.index.levels[0]),
-                      len(self.index.levels[1]))
+        from pandas.core.reshape import block2d_to_block3d
 
         # only support this kind for now
         assert(isinstance(self.index, MultiIndex) and
                len(self.index.levels) == 2)
 
+        self._consolidate_inplace()
+
         major_axis, minor_axis = self.index.levels
+        major_labels, minor_labels = self.index.labels
 
-        def make_mask(index):
-            """
-            Create observation selection vector using major and minor
-            labels, for converting to wide format.
-            """
-            N, K = index.levshape
-            selector = index.labels[1] + K * index.labels[0]
-            mask = np.zeros(N * K, dtype=bool)
-            mask.put(selector, True)
-            return mask
+        shape = len(major_axis), len(minor_axis)
 
-        def _to_wide_homogeneous():
-            values = np.empty(wide_shape, dtype=self.values.dtype)
-            if not issubclass(values.dtype.type, np.integer):
-                values.fill(np.nan)
+        new_blocks = []
+        for block in self._data.blocks:
+            newb = block2d_to_block3d(block.values.T, block.items, shape,
+                                      major_labels, minor_labels,
+                                      ref_items=self.columns)
+            new_blocks.append(newb)
 
-            frame_values = self.values
-            for i in xrange(len(self.columns)):
-                values[i].flat[mask] = frame_values[:, i]
-            return Panel(values, self.columns, major_axis, minor_axis)
+        new_axes = [self.columns, major_axis, minor_axis]
+        new_mgr = BlockManager(new_blocks, new_axes)
 
-        def _to_wide_mixed():
-            _, N, K = wide_shape
-            # TODO: make much more efficient
-            data = {}
-            for item in self.columns:
-                item_vals = self[item].values
-                values = np.empty((N, K), dtype=item_vals.dtype)
-                values.flat[mask] = item_vals
-                data[item] = DataFrame(values, index=major_axis,
-                                       columns=minor_axis)
-            return Panel(data, self.columns, major_axis, minor_axis)
-
-        mask = make_mask(self.index)
-        if self._is_mixed_type:
-            return _to_wide_mixed()
-        else:
-            return _to_wide_homogeneous()
+        return Panel(new_mgr)
 
     to_wide = deprecate('to_wide', to_panel)
 
@@ -1010,7 +1002,7 @@ class DataFrame(NDFrame):
         cols = self.columns
 
         if verbose:
-            print >> buf, unicode('Data columns:')
+            print >> buf, 'Data columns:'
             space = max([len(_stringify(k)) for k in self.columns]) + 4
             col_counts = []
             counts = self.count()
@@ -1019,18 +1011,17 @@ class DataFrame(NDFrame):
                 colstr = _stringify(col)
                 col_counts.append('%s%d  non-null values' %
                                   (_put_str(colstr, space), count))
-            print >> buf, unicode('\n'.join(col_counts))
+            print >> buf, '\n'.join(col_counts)
         else:
             if len(cols) <= 2:
-                print >> buf, unicode('Columns: %s' % repr(cols))
+                print >> buf, 'Columns: %s' % repr(cols)
             else:
-                print >> buf, unicode('Columns: %s to %s'
-                                      % (_stringify(cols[0]),
-                                         _stringify(cols[-1])))
+                print >> buf, ('Columns: %s to %s' % (_stringify(cols[0]),
+                                                      _stringify(cols[-1])))
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
-        buf.write(u'dtypes: %s' % ', '.join(dtypes))
+        buf.write('dtypes: %s' % ', '.join(dtypes))
 
     @property
     def dtypes(self):
@@ -1406,8 +1397,7 @@ class DataFrame(NDFrame):
         Series/TimeSeries will be conformed to the DataFrame's index to
         ensure homogeneity.
         """
-        value = self._sanitize_column(value)
-        value = np.atleast_2d(value)
+        value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 
     def insert(self, loc, column, value):
@@ -1422,11 +1412,10 @@ class DataFrame(NDFrame):
         column : object
         value : int, Series, or array-like
         """
-        value = self._sanitize_column(value)
-        value = np.atleast_2d(value)
+        value = self._sanitize_column(column, value)
         self._data.insert(loc, column, value)
 
-    def _sanitize_column(self, value):
+    def _sanitize_column(self, key, value):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
         if _is_sequence(value):
@@ -1445,8 +1434,14 @@ class DataFrame(NDFrame):
                     value = value.copy()
         else:
             value = np.repeat(value, len(self.index))
+            if key in self.columns:
+                existing_column = self[key]
+                # special case for now
+                if (com.is_float_dtype(existing_column) and
+                    com.is_integer_dtype(value)):
+                    value = value.astype(np.float64)
 
-        return np.asarray(value)
+        return np.atleast_2d(np.asarray(value))
 
     def pop(self, item):
         """

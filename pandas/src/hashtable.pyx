@@ -567,6 +567,8 @@ cdef class Int64HashTable:
             khiter_t k
             list uniques = []
 
+        # TODO: kvec
+
         for i in range(n):
             val = values[i]
             k = kh_get_int64(self.table, val)

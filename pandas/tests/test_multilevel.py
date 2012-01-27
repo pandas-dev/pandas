@@ -1015,6 +1015,21 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
+    def test_int_series_slicing(self):
+        s = self.ymd['A']
+        result = s[5:]
+        expected = s.reindex(s.index[5:])
+        assert_series_equal(result, expected)
+
+        exp = self.ymd['A'].copy()
+        s[5:] = 0
+        exp.values[5:] = 0
+        self.assert_(np.array_equal(s.values, exp.values))
+
+        result = self.ymd[5:]
+        expected = self.ymd.reindex(s.index[5:])
+        assert_frame_equal(result, expected)
+
 if __name__ == '__main__':
 
     # unittest.main()
