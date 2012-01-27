@@ -309,7 +309,9 @@ copy : boolean, default False
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            if self.index.inferred_type == 'integer':
+            from pandas.core.indexing import _is_index_slice
+
+            if self.index.inferred_type == 'integer' or _is_index_slice(key):
                 indexer = key
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=0)
@@ -390,7 +392,8 @@ copy : boolean, default False
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            if self.index.inferred_type == 'integer':
+            from pandas.core.indexing import _is_index_slice
+            if self.index.inferred_type == 'integer' or _is_index_slice(key):
                 indexer = key
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=0)
