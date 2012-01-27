@@ -111,6 +111,8 @@ pandas 0.7.0
     ``col_space``
   - Rename ``precision`` to ``accuracy`` in engineering float formatter (GH
     #395)
+  - The default delimiter for ``read_csv`` is comma rather than letting
+    ``csv.Sniffer`` infer it
 
 **Improvements to existing features**
 

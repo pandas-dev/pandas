@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
+import pandas.core.common as com
 import pandas._tseries as lib
 
 from pandas.util.decorators import Appender
@@ -21,8 +22,8 @@ filepath_or_buffer : string or file handle / StringIO
 %s
 header : int, default 0
     Row to use for the column labels of the parsed DataFrame
-skiprows : list-like
-    Row numbers to skip (0-indexed)
+skiprows : list-like or integer
+    Row numbers to skip (0-indexed) or number of rows to skip (int)
 index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
@@ -48,14 +49,16 @@ converters : dict. optional
     be integers or column labels
 verbose : boolean, default False
     Indicate number of NA values placed in non-numeric columns
+delimiter : string, default None
+    Alternative argument name for sep
 
 Returns
 -------
 result : DataFrame or TextParser
 """
 
-_csv_sep = """sep : string, default None
-    Delimiter to use. By default will try to automatically determine
+_csv_sep = """sep : string, default ','
+    Delimiter to use. If sep is None, will try to automatically determine
     this"""
 
 _table_sep = """sep : string, default \\t (tab-stop)
@@ -65,37 +68,25 @@ _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
 
 %s
-
-Returns
--------
-parsed : DataFrame
 """ % (_parser_params % _csv_sep)
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
 
 %s
-
-Returns
--------
-parsed : DataFrame
 """ % (_parser_params % _csv_sep)
 
 _read_table_doc = """
-Read delimited file into DataFrame
+Read general delimited file into DataFrame
 
 %s
-
-Returns
--------
-parsed : DataFrame
 """ % (_parser_params % _table_sep)
 
 @Appender(_read_csv_doc)
-def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
+def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
              date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None, verbose=False):
+             skip_footer=0, converters=None, verbose=False, delimiter=None):
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
@@ -104,6 +95,9 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
             f = open(filepath_or_buffer, 'U')
         except Exception: # pragma: no cover
             f = open(filepath_or_buffer, 'r')
+
+    if delimiter is not None:
+        sep = delimiter
 
     if date_parser is not None:
         parse_dates = True
@@ -130,14 +124,14 @@ def read_csv(filepath_or_buffer, sep=None, header=0, index_col=None, names=None,
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
                date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0, converters=None, verbose=False):
+               skip_footer=0, converters=None, verbose=False, delimiter=None):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
                     names=names, parse_dates=parse_dates,
                     nrows=nrows, iterator=iterator, chunksize=chunksize,
                     skip_footer=skip_footer, converters=converters,
-                    verbose=verbose)
+                    verbose=verbose, delimiter=delimiter)
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -216,6 +210,9 @@ class TextParser(object):
         self.date_parser = date_parser
         self.chunksize = chunksize
         self.passed_names = names is not None
+
+        if com.is_integer(skiprows):
+            skiprows = range(skiprows)
         self.skiprows = set() if skiprows is None else set(skiprows)
         self.skip_footer = skip_footer
         self.delimiter = delimiter

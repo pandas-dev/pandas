@@ -1962,8 +1962,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df_s = df.to_string()
 
-        # Python 2.5 just wants me to be sad
-        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
+        # Python 2.5 just wants me to be sad. And debian 32-bit
+        #sys.version_info[0] == 2 and sys.version_info[1] < 6:
+        if '%.4g' % 1.7e8 == '1.7e+008':
             expected = ('   x        \n0  0.0000000\n1  0.2500000\n'
                         '2  3456.0000\n3  1.20e+046\n4  1.64e+006\n'
                         '5  1.70e+008\n6  1.2534560\n7  3.1415927\n'
