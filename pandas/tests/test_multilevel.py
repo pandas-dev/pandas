@@ -687,6 +687,14 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = grouped.transform(lambda x: x * 2)
         assert_series_equal(applied.reindex(expected.index), expected)
 
+    def test_groupby_corner(self):
+        midx = MultiIndex(levels=[['foo'],['bar'],['baz']],
+                          labels=[[0],[0],[0]], names=['one','two','three'])
+        df = DataFrame([np.random.rand(4)], columns=['a','b','c','d'],
+                       index=midx)
+        # should work
+        df.groupby(level='three')
+
     def test_join(self):
         a = self.frame.ix[:5, ['A']]
         b = self.frame.ix[2:, ['B', 'C']]

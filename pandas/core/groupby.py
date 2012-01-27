@@ -701,7 +701,8 @@ def _get_groupings(obj, grouper=None, axis=0, level=None, sort=True):
         all_in_columns = False
 
     if (not any_callable and not all_in_columns
-        and not any_arraylike and match_axis_length):
+        and not any_arraylike and match_axis_length
+        and not level):
         groupers = [com._asarray_tuplesafe(groupers)]
 
     if isinstance(level, (tuple, list)):
