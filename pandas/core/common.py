@@ -511,10 +511,11 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
 
 def _stringify(col):
     # unicode workaround
-    if isinstance(col, tuple):
-        return str(col)
-    else:
-        return '%s' % console_encode(col)
+    return unicode(col)
+    #if isinstance(col, tuple):
+    #    return str(col)
+    #else:
+    #    return '%s' % console_encode(col)
 
 def _float_format_default(v, width=None):
     """
@@ -817,7 +818,6 @@ def load(path):
         return pickle.load(f)
     finally:
         f.close()
-
 
 def console_encode(value):
     if py3compat.PY3 or not isinstance(value, unicode):
