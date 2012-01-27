@@ -72,29 +72,21 @@ Mutability and copying of data
 ------------------------------
 
 All pandas data structures are value-mutable (the values they contain can be
-altered) but not always size-mutable. The length of a Series cannot be changed,
-but, for example, columns can be inserted into a DataFrame. However, the vast
-majority of methods produce new objects and leave the input data untouched. In
-general, though, we like to **favor immutability** where sensible.
-
-Development Team
-----------------
-
-pandas is a part of the PyData project. The PyData Development Team is a
-collection of developers focused on the improvement of Python's data
-libraries. The core team that coordinates development can be found on `Github
-<http://github.com/pydata>`__. If you're interested in contributing, please
-visit the `project website <http://pandas.pydata.org>`__.
+altered) but not always size-mutable. The length of a Series cannot be
+changed, but, for example, columns can be inserted into a DataFrame. However,
+the vast majority of methods produce new objects and leave the input data
+untouched. In general, though, we like to **favor immutability** where
+sensible.
 
 Getting Support
 ---------------
 
-Users and developers are encouraged to join the `pystatsmodels mailing list
-<http://groups.google.com/group/pystatsmodels>`__ or to contact Wes McKinney
-directly at wesmckinn (-at-) gmail (-dot-) com.
+For community support, please join us on the `pystatsmodels mailing list
+<http://groups.google.com/group/pystatsmodels>`__.
 
-For commercial support, training, or consulting, contact Wes at wes (-at-)
-lambdafoundry (-dot-) com.
+For commercial support from Lambda Foundry, please send inquiries to:
+
+support@lambdafoundry.com
 
 Credits
 -------
@@ -111,6 +103,15 @@ training, and consulting for pandas.
 pandas is only made possible by a group of people around the world like you
 who have contributed new code, bug reports, fixes, comments and ideas. A
 complete list can be found `on Github <http://www.github.com/pydata/pandas/contributors>`__.
+
+Development Team
+----------------
+
+pandas is a part of the PyData project. The PyData Development Team is a
+collection of developers focused on the improvement of Python's data
+libraries. The core team that coordinates development can be found on `Github
+<http://github.com/pydata>`__. If you're interested in contributing, please
+visit the `project website <http://pandas.pydata.org>`__.
   
 License
 -------
