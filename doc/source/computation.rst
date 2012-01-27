@@ -294,6 +294,12 @@ Here are an example for a univariate time series:
    @savefig ewma_ex.png width=4.5in
    ewma(ts, span=20).plot(style='k')
 
+.. note::
+
+   The EW functions perform a standard adjustment to the initial observations
+   whereby if there are fewer observations than called for in the span, those
+   observations are reweighted accordingly.
+
 .. _stats.ols:
 
 Linear and panel regression
