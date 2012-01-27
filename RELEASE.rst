@@ -167,6 +167,8 @@ pandas 0.7.0
   - Use ``kind`` argument to Series.order for selecting different sort kinds
     (GH #668)
   - Add option to Series.to_csv to omit the index (PR #684)
+  - Add ``delimiter`` as an alternative to ``sep`` in ``read_csv`` and other
+    parsing functions
 
 **Bug fixes**
 

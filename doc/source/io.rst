@@ -61,15 +61,17 @@ data into a DataFrame object. They can take a number of arguments:
 
   - ``path_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
-  - ``sep``: A delimiter / separator to split fields on. `read_csv` is capable
-    of inferring the delimiter automatically in some cases by "sniffing." The
-    separator may be specified as a regular expression; for instance you may
-    use '\s*' to indicate arbitrary whitespace.
+  - ``sep`` or ``delimiter``: A delimiter / separator to split fields
+    on. `read_csv` is capable of inferring the delimiter automatically in some
+    cases by "sniffing." The separator may be specified as a regular
+    expression; for instance you may use '\s*' to indicate arbitrary
+    whitespace.
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
   - ``names``: List of column names to use. If passed, header will be
     implicitly set to None.
-  - ``skiprows``: A collection of numbers for rows in the file to skip.
+  - ``skiprows``: A collection of numbers for rows in the file to skip. Can
+    also be an integer to skip the first ``n`` rows
   - ``index_col``: column number, or list of column numbers, to use as the
     ``index`` (row labels) of the resulting DataFrame. By default, it will number
     the rows without using any column, unless there is one more data column than
