@@ -86,7 +86,6 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, kind='bar')
 
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
-        foo
         _check_plot_works(df.plot, kind='bar')
 
     @slow
