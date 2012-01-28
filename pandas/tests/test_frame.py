@@ -1870,7 +1870,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         print >>buf, nonempty
 
         # this should work
-        ''.join(buf.buflist)
+        buf.getvalue()
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
