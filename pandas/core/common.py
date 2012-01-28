@@ -854,6 +854,8 @@ class UnicodeReader:
     """
     A CSV reader which will iterate over lines in the CSV file "f",
     which is encoded in the given encoding.
+    
+    On Python 3, this is replaced (below) by csv.reader, which handles unicode.
     """
 
     def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
@@ -866,4 +868,7 @@ class UnicodeReader:
 
     def __iter__(self):
         return self
+
+if py3compat.PY3:
+    UnicodeReader = csv.reader
 
