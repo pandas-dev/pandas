@@ -48,7 +48,8 @@ def map_iter_args(arr, f, otherargs, n_otherargs, required, n_results):
     
 def auto_map(arr, f, otherargs, n_results=1, required='all'):
     if all(np.isscalar(a) for a in otherargs):
-        return lib.map_infer(arr, lambda v: f(v, *otherargs))
+        res = lib.map_infer(arr, lambda v: f(v, *otherargs))
+        return Series(res, index=arr.index, copy=False)
     
     n_otherargs = len(otherargs)
     if required == 'all':
@@ -61,7 +62,7 @@ def auto_map(arr, f, otherargs, n_results=1, required='all'):
 
 def mapwrap(f, n_results_default=1, required='all'):
     @wraps(f)
-    def wrapped(arr, otherargs=(), n_results=None):
+    def wrapped(arr, *otherargs, n_results=None):
         n_results = n_results or n_results_default
         return auto_map(arr, f, otherargs, n_results, required)
     
