@@ -245,6 +245,8 @@ pandas 0.7.0
   - Fix performance regression in HDFStore loading when DataFrame or Panel
     stored in table format with datetimes
   - Raise Exception in DateRange when offset with n=0 is passed (GH #683)
+  - Fix get/set inconsistency with .ix property and integer location but
+    non-integer index (GH #707)
 
 Thanks
 ------
