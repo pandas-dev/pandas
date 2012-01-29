@@ -854,6 +854,17 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(np.array_equal(result.columns.levels[0], level))
         self.assertEqual(result.columns.names[0], 'group_key')
 
+    def test_concat_dataframe_keys_bug(self):
+        t1 = DataFrame({'value': Series([1,2,3],
+                       index=Index(['a', 'b', 'c'], name='id'))})
+        t2 = DataFrame({'value': Series([7, 8],
+                       index=Index(['a', 'b'], name = 'id'))})
+
+        # it works
+        result = concat([t1, t2], axis=1, keys=['t1', 't2'])
+        self.assertEqual(list(result.columns), [('t1', 'value'),
+                                                ('t2', 'value')])
+
     def test_concat_dict(self):
         frames = {'foo' : DataFrame(np.random.randn(4, 3)),
                   'bar' : DataFrame(np.random.randn(4, 3)),
