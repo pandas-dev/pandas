@@ -125,6 +125,8 @@ class _NDFrameIndexer(object):
                 # slices are unhashable
                 pass
             except Exception:
+                if isinstance(tup[0], slice):
+                    raise IndexingError
                 if tup[0] not in ax0:
                     raise
 
