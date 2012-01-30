@@ -215,6 +215,29 @@ class TestMultiLevel(unittest.TestCase):
         self.assert_((cp.values[:4] == 0).all())
         self.assert_((cp.values[4:] != 0).all())
 
+    def test_frame_getitem_setitem_multislice(self):
+        levels = [['t1', 't2'], ['a','b','c']]
+        labels = [[0,0,0,1,1], [0,1,2,0,1]]
+        midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
+        df = DataFrame({'value':[1,2,3,7,8]}, index=midx)
+
+        result = df.ix[:,'value']
+        assert_series_equal(df['value'], result)
+
+        result = df.ix[1:3,'value']
+        assert_series_equal(df['value'][1:3], result)
+
+        result = df.ix[:,:]
+        assert_frame_equal(df, result)
+
+        result = df
+        df.ix[:, 'value'] = 10
+        result['value'] = 10
+        assert_frame_equal(df, result)
+
+        df.ix[:,:] = 10
+        assert_frame_equal(df, result)
+
     def test_getitem_tuple_plus_slice(self):
         # GH #671
         df = DataFrame({'a' : range(10),
@@ -838,17 +861,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected.index = expected.index.droplevel(0)
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
-
-    def test_series_getitem_slice(self):
-        levels = [['t1', 't2'], ['a','b','c']]
-        labels = [[0,0,0,1,1], [0,1,2,0,1]]
-        midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
-        df = DataFrame({'value':[1,2,3,7,8]}, index=midx)
-        result = df.ix[:,'value']
-        assert_series_equal(df['value'], result)
-
-        result = df.ix[1:3,'value']
-        assert_series_equal(df['value'][1:3], result)
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var']
