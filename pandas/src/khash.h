@@ -112,6 +112,7 @@ int main() {
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <Python.h>
 
 /* compipler specific configuration */
 
@@ -128,6 +129,8 @@ typedef signed long khint64_t;
 typedef unsigned long long khuint64_t;
 typedef signed long long khint64_t;
 #endif
+
+typedef double khfloat64_t;
 
 #ifndef PANDAS_INLINE
   #if defined(__GNUC__)
@@ -346,6 +349,12 @@ static const double __ac_HASH_UPPER = 0.77;
   @abstract     64-bit integer comparison function
  */
 #define kh_int64_hash_equal(a, b) ((a) == (b))
+
+// kludge
+
+#define kh_float64_hash_func _Py_HashDouble
+#define kh_float64_hash_equal kh_int64_hash_equal
+
 /*! @function
   @abstract     const char* hash function
   @param  s     Pointer to a null terminated string
@@ -544,6 +553,9 @@ static PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
 #define KHASH_MAP_INIT_INT64(name, khval_t)								\
 	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
+#define KHASH_MAP_INIT_FLOAT64(name, khval_t)								\
+	KHASH_INIT(name, khfloat64_t, khval_t, 1, kh_float64_hash_func, kh_float64_hash_equal)
+
 typedef const char *kh_cstr_t;
 /*! @function
   @abstract     Instantiate a hash map containing const char* keys
@@ -584,6 +596,7 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 #define kh_exist_pymap(h, k) (kh_exist(h, k))
 #define kh_exist_pyset(h, k) (kh_exist(h, k))
 #define kh_exist_str(h, k) (kh_exist(h, k))
+#define kh_exist_float64(h, k) (kh_exist(h, k))
 #define kh_exist_int64(h, k) (kh_exist(h, k))
 #define kh_exist_int32(h, k) (kh_exist(h, k))
 
@@ -591,5 +604,6 @@ KHASH_MAP_INIT_STR(str, Py_ssize_t)
 
 KHASH_MAP_INIT_INT(int32, Py_ssize_t)
 KHASH_MAP_INIT_INT64(int64, Py_ssize_t)
+KHASH_MAP_INIT_FLOAT64(float64, Py_ssize_t)
 
 #endif /* __AC_KHASH_H */
