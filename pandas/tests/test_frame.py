@@ -24,7 +24,6 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
-from pandas.util import py3compat
 import pandas._tseries as lib
 
 #-------------------------------------------------------------------------------
@@ -2486,8 +2485,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         from pandas import read_csv
         path = '__tmp__.csv'
         df = DataFrame({u'c/\u03c3':[1,2,3]})
-        df.to_csv(path)
-        df2 = read_csv(path, index_col=0)
+        df.to_csv(path, encoding='UTF-8')
+        df2 = read_csv(path, index_col=0, encoding='UTF-8')
         assert_frame_equal(df, df2)
         os.remove(path)
 

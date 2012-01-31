@@ -831,11 +831,11 @@ def console_encode(value):
     except (AttributeError, TypeError):
         return value.encode('ascii', 'replace')
 
-def csv_encode(value):
+def csv_encode(value, encoding='UTF-8'):
     if py3compat.PY3 or not isinstance(value, unicode):
         return value
 
-    return value.encode('UTF-8', 'replace')
+    return value.encode(encoding, 'replace')
 
 class UTF8Recoder:
     """

@@ -86,7 +86,8 @@ Read general delimited file into DataFrame
 def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
              date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None, verbose=False, delimiter=None):
+             skip_footer=0, converters=None, verbose=False, delimiter=None,
+             encoding=None):
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
@@ -111,7 +112,8 @@ def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
                         chunksize=chunksize,
                         skip_footer=skip_footer,
                         converters=converters,
-                        verbose=verbose)
+                        verbose=verbose,
+                        encoding=encoding)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -124,14 +126,15 @@ def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
 def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
                names=None, skiprows=None, na_values=None, parse_dates=False,
                date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0, converters=None, verbose=False, delimiter=None):
+               skip_footer=0, converters=None, verbose=False, delimiter=None,
+               encoding=None):
     return read_csv(filepath_or_buffer, sep=sep, header=header,
                     skiprows=skiprows, index_col=index_col,
                     na_values=na_values, date_parser=date_parser,
                     names=names, parse_dates=parse_dates,
                     nrows=nrows, iterator=iterator, chunksize=chunksize,
                     skip_footer=skip_footer, converters=converters,
-                    verbose=verbose, delimiter=delimiter)
+                    verbose=verbose, delimiter=delimiter, encoding=None)
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -194,7 +197,8 @@ class TextParser(object):
     def __init__(self, f, delimiter=None, names=None, header=0,
                  index_col=None, na_values=None, parse_dates=False,
                  date_parser=None, chunksize=None, skiprows=None,
-                 skip_footer=0, converters=None, verbose=False):
+                 skip_footer=0, converters=None, verbose=False,
+                 encoding=None):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -210,6 +214,8 @@ class TextParser(object):
         self.date_parser = date_parser
         self.chunksize = chunksize
         self.passed_names = names is not None
+        self.encoding = encoding
+        
 
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
@@ -261,9 +267,20 @@ class TextParser(object):
                 self.pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
-                self.buf.extend(list(com.UnicodeReader(StringIO(line),
-                                dialect=dia)))
-            reader = com.UnicodeReader(f, dialect=dia)
+                if self.encoding is not None:
+                    self.buf.extend(list(
+                        com.UnicodeReader(StringIO(line),
+                                          dialect=dia, 
+                                          encoding=self.encoding)))
+                else:
+                    self.buf.extend(list(csv.reader(StringIO(line), 
+                                                    dialect=dia)))
+
+            if self.encoding is not None:
+                reader = com.UnicodeReader(f, dialect=dia, 
+                                           encoding=self.encoding)
+            else:
+                reader = csv.reader(f, dialect=dia)
         else:
             reader = (re.split(sep, line.strip()) for line in f)
 
