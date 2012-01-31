@@ -815,8 +815,8 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        # outermost level of labels must be sorted
-        if self.index.lexsort_depth < 1:
+        # minor axis must be sorted 
+        if self.index.lexsort_depth < 2:
             selfsorted = self.sortlevel(0)
         else:
             selfsorted = self

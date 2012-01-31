@@ -965,13 +965,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         f2 = lambda x: np.zeros((2,2))
         self.assertRaises(Exception, group_agg, values, bounds, f2)
 
-    def test_from_frame_unsorted(self):
-        tuples = [('MSFT', 3), ('AAPL', 3), ('MSFT', 1), 
-                  ('AAPL', 1), ('MSFT', 2)]
+    def test_from_frame_level1_unsorted(self):
+        tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2), 
+                  ('AAPL', 1), ('MSFT', 1)]
         midx = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.rand(5,4), index=midx)
         p = df.to_panel()
-        assert_frame_equal(p.major_xs('MSFT'), df.sort().ix['MSFT',:])
+        assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
 
 class TestLongPanel(unittest.TestCase):
     """
