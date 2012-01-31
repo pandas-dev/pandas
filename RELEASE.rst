@@ -1188,6 +1188,8 @@ Release notes
   * `timeRule` argument in `shift` has been deprecated in favor of using the
     `offset` argument for everything. So you can still pass a time rule string
     to `offset`
+  * Added optional `encoding` argument to `read_csv`, `read_table`, `to_csv`,
+    `from_csv` to handle unicode in python 2.x
 
 **Bug fixes**
 

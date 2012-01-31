@@ -744,7 +744,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0,
-                 parse_dates=True):
+                 parse_dates=True, encoding=None):
         """
         Read delimited file into DataFrame
 
@@ -773,7 +773,8 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
-                          parse_dates=parse_dates, index_col=index_col)
+                          parse_dates=parse_dates, index_col=index_col,
+                          encoding=encoding)
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
@@ -834,7 +835,7 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', nanRep=None, 
+              index=True, index_label=None, mode='w', nanRep=None,
               encoding=None):
         """
         Write DataFrame to a comma-separated values (csv) file
@@ -858,6 +859,9 @@ class DataFrame(NDFrame):
         mode : Python write mode, default 'w'
         sep : character, default ","
             Field delimiter for the output file.
+        encoding : string, optional
+            a string representing the encoding to use if the contents are
+            non-ascii, for python versions prior to 3
         """
         f = open(path, mode)
         csvout = csv.writer(f, lineterminator='\n', delimiter=sep)

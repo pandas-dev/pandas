@@ -94,6 +94,9 @@ New features
 - ``value_range`` added as utility function to get min and max of a dataframe
   (GH288_)
 
+- Added ``encoding`` argument to ``read_csv``, ``read_table``, ``to_csv`` and
+  ``from_csv`` for non-ascii text (GH717_)
+
 API Changes to integer indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -299,6 +302,7 @@ similar operation to the above but using a Python function:
 .. _GH595: https://github.com/wesm/pandas/issues/595
 .. _GH647: https://github.com/wesm/pandas/issues/647
 .. _GH699: https://github.com/wesm/pandas/issues/699
+.. _GH717: https://github.com/wesm/pandas/issues/717
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _GH93: https://github.com/wesm/pandas/issues/93
 .. _PR521: https://github.com/wesm/pandas/pull/521

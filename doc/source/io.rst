@@ -93,6 +93,8 @@ data into a DataFrame object. They can take a number of arguments:
   - ``skip_footer``: number of lines to skip at bottom of file (default 0)
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
+  - ``encoding``: a string representing the encoding to use if the contents are
+    non-ascii, for python versions prior to 3 
 
 .. ipython:: python
    :suppress:
@@ -277,6 +279,8 @@ function takes a number of arguments. Only the first is required.
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
   - ``sep`` : Field delimiter for the output file (default "'")
+  - ``encoding``: a string representing the encoding to use if the contents are
+    non-ascii, for python versions prior to 3 
 
 Writing a formatted string
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

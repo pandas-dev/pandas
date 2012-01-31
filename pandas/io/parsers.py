@@ -51,6 +51,8 @@ verbose : boolean, default False
     Indicate number of NA values placed in non-numeric columns
 delimiter : string, default None
     Alternative argument name for sep
+encoding : string, default None
+    Encoding to use for UTF when reading/writing (ex. 'utf-8')
 
 Returns
 -------
@@ -185,6 +187,8 @@ class TextParser(object):
         Row numbers to skip
     skip_footer : int
         Number of line at bottom of file to skip
+    encoding : string, default None
+        Encoding to use for UTF when reading/writing (ex. 'utf-8')
     """
 
     # common NA values
