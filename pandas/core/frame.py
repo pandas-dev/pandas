@@ -815,19 +815,24 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        major_axis, minor_axis = self.index.levels
-        major_labels, minor_labels = self.index.labels
+        if not self.index.is_monotonic:
+            selfsorted = self.sort()
+        else:
+            selfsorted = self
+
+        major_axis, minor_axis = selfsorted.index.levels
+        major_labels, minor_labels = selfsorted.index.labels
 
         shape = len(major_axis), len(minor_axis)
 
         new_blocks = []
-        for block in self._data.blocks:
+        for block in selfsorted._data.blocks:
             newb = block2d_to_block3d(block.values.T, block.items, shape,
                                       major_labels, minor_labels,
-                                      ref_items=self.columns)
+                                      ref_items=selfsorted.columns)
             new_blocks.append(newb)
 
-        new_axes = [self.columns, major_axis, minor_axis]
+        new_axes = [selfsorted.columns, major_axis, minor_axis]
         new_mgr = BlockManager(new_blocks, new_axes)
 
         return Panel(new_mgr)
