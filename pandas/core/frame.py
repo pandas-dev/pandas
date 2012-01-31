@@ -4055,9 +4055,17 @@ if "IPython" in sys.modules:  # pragma: no cover
     except Exception:
         pass
 
-def _lexsort_indexer(keys):
+def _indexer_from_factorized(labels, shape):
     from pandas.core.groupby import get_group_index, _compress_group_index
 
+    group_index = get_group_index(labels, shape)
+    comp_ids, obs_ids = _compress_group_index(group_index)
+    max_group = len(obs_ids)
+    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
+
+    return indexer
+
+def _lexsort_indexer(keys):
     labels = []
     shape = []
     for key in keys:
@@ -4069,12 +4077,7 @@ def _lexsort_indexer(keys):
         ids, _ = rizer.factorize(key, sort=True)
         labels.append(ids)
         shape.append(len(rizer.uniques))
-
-    group_index = get_group_index(labels, shape)
-    comp_ids, obs_ids = _compress_group_index(group_index)
-    max_group = len(obs_ids)
-    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
-    return indexer
+    return _indexer_from_factorized(labels, shape)
 
 if __name__ == '__main__':
     import nose

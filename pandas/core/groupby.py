@@ -1323,6 +1323,10 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
         yield i, _get_slice(slice(start, end))
 
 def get_group_index(label_list, shape):
+    """
+    Gets the offsets into what would be the cartesian product of all
+    possible labels given the label_list.
+    """
     if len(label_list) == 1:
         return label_list[0]
 

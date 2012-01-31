@@ -1506,7 +1506,8 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True):
         """
-        Sort MultiIndex lexicographically by requested level
+        Sort MultiIndex at the requested level. The result will respect the
+        original ordering of the associated factor at that level.
 
         Parameters
         ----------
@@ -1519,19 +1520,19 @@ class MultiIndex(Index):
         -------
         sorted_index : MultiIndex
         """
-        # TODO: check if lexsorted when level=0
+        from pandas.core.frame import _indexer_from_factorized
 
         labels = list(self.labels)
+
         level = self._get_level_number(level)
         primary = labels.pop(level)
-
-        # Lexsort starts from END
-        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
-
+        indexer = _indexer_from_factorized((primary,) + tuple(labels),
+                                           self.levshape)
         if not ascending:
             indexer = indexer[::-1]
 
         new_labels = [lab.take(indexer) for lab in self.labels]
+
         new_index = MultiIndex(levels=self.levels, labels=new_labels,
                                names=self.names, sortorder=level)
 
