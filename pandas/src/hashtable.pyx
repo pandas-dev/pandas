@@ -579,6 +579,55 @@ cdef class Int64HashTable:
 
         return uniques
 
+ONAN = np.nan
+
+cdef class Float64HashTable:
+
+    cdef:
+        kh_float64_t *table
+
+    def __init__(self, size_hint=1):
+        if size_hint is not None:
+            kh_resize_float64(self.table, size_hint)
+
+    def __cinit__(self):
+        self.table = kh_init_float64()
+
+    def __dealloc__(self):
+        kh_destroy_float64(self.table)
+
+    def factorize(self, ndarray[object] values):
+        reverse = {}
+        labels, counts = self.get_labels(values, reverse, 0)
+        return reverse, labels, counts
+
+    def unique(self, ndarray[float64_t] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            Py_ssize_t idx, count = 0
+            int ret
+            float64_t val
+            khiter_t k
+            list uniques = []
+            bint seen_na = 0
+
+        # TODO: kvec
+
+        for i in range(n):
+            val = values[i]
+
+            if val == val:
+                k = kh_get_float64(self.table, val)
+                if k == self.table.n_buckets:
+                    k = kh_put_float64(self.table, val, &ret)
+                    uniques.append(val)
+                    count += 1
+            elif not seen_na:
+                seen_na = 1
+                uniques.append(ONAN)
+
+        return uniques
+
 cdef class PyObjectHashTable:
 
     cdef:

@@ -69,11 +69,15 @@ ignore,this,row
         data = read_csv(StringIO(text), skiprows=range(6), header=None,
                         index_col=0, parse_dates=True)
 
+        data2 = read_csv(StringIO(text), skiprows=6, header=None,
+                         index_col=0, parse_dates=True)
+
         expected = DataFrame(np.arange(1., 10.).reshape((3,3)),
                              columns=['X.2', 'X.3', 'X.4'],
                              index=[datetime(2000, 1, 1), datetime(2000, 1, 2),
                                     datetime(2000, 1, 3)])
         assert_frame_equal(data, expected)
+        assert_frame_equal(data, data2)
 
 
     def test_detect_string_na(self):
@@ -272,13 +276,16 @@ baz,7,8,9
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
     def test_sniff_delimiter(self):
-        data = """index|A|B|C
+        text = """index|A|B|C
 foo|1|2|3
 bar|4|5|6
 baz|7|8|9
 """
-        data = read_csv(StringIO(data), index_col=0)
+        data = read_csv(StringIO(text), index_col=0, sep=None)
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
+
+        data2 = read_csv(StringIO(text), index_col=0, delimiter='|')
+        assert_frame_equal(data, data2)
 
     def test_read_nrows(self):
         df = read_csv(StringIO(self.data1), nrows=3)
@@ -565,6 +572,17 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # it works!
         df = read_table(StringIO(text), sep='\s+')
         self.assertEquals(df.index.names, ['one', 'two', 'three', 'four'])
+
+    def test_read_csv_parse_simple_list(self):
+        text = """foo
+bar baz
+qux foo
+foo
+bar"""
+        df = read_csv(StringIO(text), header=None)
+        expected = DataFrame({'X.1' : ['foo', 'bar baz', 'qux foo',
+                                       'foo', 'bar']})
+        assert_frame_equal(df, expected)
 
 class TestParseSQL(unittest.TestCase):
 

@@ -24,7 +24,6 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
-from pandas.util import py3compat
 import pandas._tseries as lib
 
 #-------------------------------------------------------------------------------
@@ -1870,7 +1869,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         print >>buf, nonempty
 
         # this should work
-        ''.join(buf.buflist)
+        buf.getvalue()
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
@@ -1962,8 +1961,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df_s = df.to_string()
 
-        # Python 2.5 just wants me to be sad
-        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
+        # Python 2.5 just wants me to be sad. And debian 32-bit
+        #sys.version_info[0] == 2 and sys.version_info[1] < 6:
+        if '%.4g' % 1.7e8 == '1.7e+008':
             expected = ('   x        \n0  0.0000000\n1  0.2500000\n'
                         '2  3456.0000\n3  1.20e+046\n4  1.64e+006\n'
                         '5  1.70e+008\n6  1.2534560\n7  3.1415927\n'
@@ -2479,6 +2479,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = read_csv(path, index_col=0)
         assert_frame_equal(recons, newdf)
 
+        os.remove(path)
+
+    def test_to_csv_unicode(self):
+        from pandas import read_csv
+        path = '__tmp__.csv'
+        df = DataFrame({u'c/\u03c3':[1,2,3]})
+        df.to_csv(path, encoding='UTF-8')
+        df2 = read_csv(path, index_col=0, encoding='UTF-8')
+        assert_frame_equal(df, df2)
         os.remove(path)
 
     def test_info(self):

@@ -23,7 +23,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify)
+                                _default_index, _stringify, csv_encode)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
@@ -744,7 +744,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0,
-                 parse_dates=True):
+                 parse_dates=True, encoding=None):
         """
         Read delimited file into DataFrame
 
@@ -773,7 +773,8 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
-                          parse_dates=parse_dates, index_col=index_col)
+                          parse_dates=parse_dates, index_col=index_col,
+                          encoding=encoding)
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
@@ -834,7 +835,8 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', nanRep=None):
+              index=True, index_label=None, mode='w', nanRep=None,
+              encoding=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -857,6 +859,9 @@ class DataFrame(NDFrame):
         mode : Python write mode, default 'w'
         sep : character, default ","
             Field delimiter for the output file.
+        encoding : string, optional
+            a string representing the encoding to use if the contents are
+            non-ascii, for python versions prior to 3
         """
         f = open(path, mode)
         csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
@@ -890,9 +895,25 @@ class DataFrame(NDFrame):
                 elif not isinstance(index_label, (list, tuple, np.ndarray)):
                     # given a string for a DF with Index
                     index_label = [index_label]
-                csvout.writerow(list(index_label) + list(cols))
+
+                if encoding is not None:
+                    encoded_labels = [csv_encode(val, encoding=encoding)
+                                      for val in index_label]
+                    encoded_cols = [csv_encode(val, encoding=encoding)
+                                    for val in cols]
+                else:
+                    encoded_labels = list(index_label)
+                    encoded_cols = list(cols)
+
+                csvout.writerow(encoded_labels + encoded_cols)
             else:
-                csvout.writerow(cols)
+                if encoding is not None:
+                    encoded_cols = [csv_encode(val, encoding=encoding)
+                                    for val in cols]
+                else:
+                    encoded_cols = list(cols)
+
+                csvout.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
         for idx in self.index:
@@ -909,7 +930,13 @@ class DataFrame(NDFrame):
 
                 row_fields.append(val)
 
-            csvout.writerow(row_fields)
+            if encoding is not None:
+                encoded_rows = [csv_encode(val, encoding=encoding) 
+                                for val in row_fields]
+            else:
+                encoded_rows = list(row_fields)
+
+            csvout.writerow(encoded_rows)
 
         f.close()
 
@@ -3624,6 +3651,7 @@ class DataFrame(NDFrame):
                 axes = [ax]
             else:
                 fig = ax.get_figure()
+                axes = fig.get_axes()
 
         if kind == 'line':
             if use_index:

@@ -125,6 +125,8 @@ class _NDFrameIndexer(object):
                 # slices are unhashable
                 pass
             except Exception:
+                if isinstance(tup[0], slice):
+                    raise IndexingError
                 if tup[0] not in ax0:
                     raise
 
@@ -222,13 +224,16 @@ class _NDFrameIndexer(object):
         - No, prefer label-based indexing
         """
         labels = self.obj._get_axis(axis)
+        is_int_index = _is_integer_index(labels)
+
+        if com.is_integer(obj) and not is_int_index:
+            return obj
 
         try:
             return labels.get_loc(obj)
         except (KeyError, TypeError):
             pass
 
-        is_int_index = _is_integer_index(labels)
         if isinstance(obj, slice):
 
             int_slice = _is_index_slice(obj)
@@ -272,8 +277,6 @@ class _NDFrameIndexer(object):
 
                 return indexer
         else:
-            if com.is_integer(obj) and not is_int_index:
-                return obj
             return labels.get_loc(obj)
 
     def _tuplify(self, loc):

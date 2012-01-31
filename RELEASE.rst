@@ -111,6 +111,8 @@ pandas 0.7.0
     ``col_space``
   - Rename ``precision`` to ``accuracy`` in engineering float formatter (GH
     #395)
+  - The default delimiter for ``read_csv`` is comma rather than letting
+    ``csv.Sniffer`` infer it
 
 **Improvements to existing features**
 
@@ -165,6 +167,8 @@ pandas 0.7.0
   - Use ``kind`` argument to Series.order for selecting different sort kinds
     (GH #668)
   - Add option to Series.to_csv to omit the index (PR #684)
+  - Add ``delimiter`` as an alternative to ``sep`` in ``read_csv`` and other
+    parsing functions
 
 **Bug fixes**
 
@@ -243,6 +247,8 @@ pandas 0.7.0
   - Fix performance regression in HDFStore loading when DataFrame or Panel
     stored in table format with datetimes
   - Raise Exception in DateRange when offset with n=0 is passed (GH #683)
+  - Fix get/set inconsistency with .ix property and integer location but
+    non-integer index (GH #707)
 
 Thanks
 ------
@@ -1182,6 +1188,8 @@ Release notes
   * `timeRule` argument in `shift` has been deprecated in favor of using the
     `offset` argument for everything. So you can still pass a time rule string
     to `offset`
+  * Added optional `encoding` argument to `read_csv`, `read_table`, `to_csv`,
+    `from_csv` to handle unicode in python 2.x
 
 **Bug fixes**
 

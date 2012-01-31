@@ -457,6 +457,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(KeyError, s.__setitem__, 1, 5)
         self.assertRaises(KeyError, s.ix.__setitem__, 1, 5)
 
+    def test_setitem_float_labels(self):
+        # note labels are floats
+        s = Series(['a','b','c'],index=[0,0.5,1])
+        tmp = s.copy()
+
+        s.ix[1] = 'zoo'
+        tmp.values[1] = 'zoo'
+
+        assert_series_equal(s, tmp)
+
     def test_slice(self):
         numSlice = self.series[10:20]
         numSliceEnd = self.series[-10:]

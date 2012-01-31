@@ -730,8 +730,7 @@ class _Concatenator(object):
 
             new_blocks = []
             for kind in kinds:
-                klass_blocks = [mapping.get(kind) for mapping in blockmaps
-                                if kind in mapping]
+                klass_blocks = [mapping.get(kind) for mapping in blockmaps]
                 stacked_block = self._concat_blocks(klass_blocks)
                 new_blocks.append(stacked_block)
             new_data = BlockManager(new_blocks, self.new_axes)
@@ -766,7 +765,8 @@ class _Concatenator(object):
         return reindexed_data
 
     def _concat_blocks(self, blocks):
-        concat_values = np.concatenate([b.values for b in blocks],
+        concat_values = np.concatenate([b.values for b in blocks
+                                        if b is not None],
                                        axis=self.axis)
 
         if self.axis > 0:
@@ -776,12 +776,13 @@ class _Concatenator(object):
                                 'DataFrames')
             return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
-            all_items = [b.items for b in blocks]
+            all_items = [b.items for b in blocks if b is not None]
             if self.axis == 0 and self.keys is not None:
                 offsets = np.r_[0, np.cumsum([len(x._data.axes[self.axis]) for
                                               x in self.objs])]
                 indexer = np.concatenate([offsets[i] + b.ref_locs
-                                          for i, b in enumerate(blocks)])
+                                          for i, b in enumerate(blocks)
+                                          if b is not None])
                 concat_items = self.new_axes[0].take(indexer)
             else:
                 concat_items = _concat_indexes(all_items)

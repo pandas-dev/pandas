@@ -1,5 +1,5 @@
 from cpython cimport PyObject
-from numpy cimport int64_t, int32_t, uint32_t
+from numpy cimport int64_t, int32_t, uint32_t, float64_t
 
 cdef extern from "khash.h":
     ctypedef uint32_t khint_t
@@ -70,6 +70,22 @@ cdef extern from "khash.h":
     inline void kh_del_int64(kh_int64_t*, khint_t)
 
     bint kh_exist_int64(kh_int64_t*, khiter_t)
+
+    ctypedef struct kh_float64_t:
+        khint_t n_buckets, size, n_occupied, upper_bound
+        uint32_t *flags
+        float64_t *keys
+        Py_ssize_t *vals
+
+    inline kh_float64_t* kh_init_float64()
+    inline void kh_destroy_float64(kh_float64_t*)
+    inline void kh_clear_float64(kh_float64_t*)
+    inline khint_t kh_get_float64(kh_float64_t*, float64_t)
+    inline void kh_resize_float64(kh_float64_t*, khint_t)
+    inline khint_t kh_put_float64(kh_float64_t*, float64_t, int*)
+    inline void kh_del_float64(kh_float64_t*, khint_t)
+
+    bint kh_exist_float64(kh_float64_t*, khiter_t)
 
     ctypedef struct kh_int32_t:
         khint_t n_buckets, size, n_occupied, upper_bound
