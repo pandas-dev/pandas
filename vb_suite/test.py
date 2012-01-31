@@ -6,7 +6,7 @@ import sqlite3
 from vbench.git import GitRepo
 
 
-REPO_PATH = '/home/wesm/code/pandas'
+REPO_PATH = '/home/adam/code/pandas'
 repo = GitRepo(REPO_PATH)
 
 con = sqlite3.connect('gb_suite/benchmarks.db')

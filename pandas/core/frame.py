@@ -834,7 +834,8 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', nanRep=None):
+              index=True, index_label=None, mode='w', nanRep=None, 
+              encoding=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -891,11 +892,23 @@ class DataFrame(NDFrame):
                     # given a string for a DF with Index
                     index_label = [index_label]
 
-                encoded_labels = [csv_encode(val) for val in index_label]
-                encoded_cols = [csv_encode(val) for val in cols]
+                if encoding is not None:
+                    encoded_labels = [csv_encode(val, encoding=encoding)
+                                      for val in index_label]
+                    encoded_cols = [csv_encode(val, encoding=encoding)
+                                    for val in cols]
+                else:
+                    encoded_labels = list(index_label)
+                    encoded_cols = list(cols)
+
                 csvout.writerow(encoded_labels + encoded_cols)
             else:
-                encoded_cols = [csv_encode(val) for val in cols]
+                if encoding is not None:
+                    encoded_cols = [csv_encode(val, encoding=encoding)
+                                    for val in cols]
+                else:
+                    encoded_cols = list(cols)
+
                 csvout.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
@@ -913,7 +926,12 @@ class DataFrame(NDFrame):
 
                 row_fields.append(val)
 
-            encoded_rows = [csv_encode(val) for val in row_fields]
+            if encoding is not None:
+                encoded_rows = [csv_encode(val, encoding=encoding) 
+                                for val in row_fields]
+            else:
+                encoded_rows = list(row_fields)
+
             csvout.writerow(encoded_rows)
 
         f.close()
