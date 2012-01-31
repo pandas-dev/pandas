@@ -20,10 +20,10 @@ for modname in modules:
 for bm in benchmarks:
     assert(bm.name is not None)
 
-REPO_PATH = '/home/wesm/code/pandas'
-REPO_URL = 'git@github.com:wesm/pandas.git'
-DB_PATH = '/home/wesm/code/pandas/vb_suite/benchmarks.db'
-TMP_DIR = '/home/wesm/tmp/vb_pandas'
+REPO_PATH = '/home/adam/code/pandas'
+REPO_URL = 'git@github.com:adamklein/pandas.git'
+DB_PATH = '/home/adam/code/pandas/vb_suite/benchmarks.db'
+TMP_DIR = '/home/adam/tmp/vb_pandas'
 PREPARE = """
 python setup.py clean
 """
