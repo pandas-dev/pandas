@@ -220,48 +220,18 @@ cdef class Timestamp:
 
 
 cdef class Interval:
-    """
-    An absolute time span, from one timestamp to another. Normalized
-    to seconds, microseconds, and days.
+    """ 
+    This class replicates design of the Date object from scikits.timeseries,
+    where a frequency is attached. The internal integer value of represents the
+    offset, in the provided frequency, from the gregorian proleptic date of Jan
+    1, 1AD.
     """
     cdef:
-        Timestamp start
-        Timestamp end
+        ts_metadata obmeta  # recreating structure of DatetimeObject 
+        ts_datetime obval   # from sckits.timeseries
 
-    def __init__(self, Timestamp start, Timestamp end):
-        self.start = start
-        self.end = end
-
-    property start:
-        def __get__(self):
-            return self.start
-
-    property end:
-        def __get__(self):
-            return self.end
-
-    property length:
-        def __get__(self):
-            cdef int64_t diff = self.end.asint - self.start.asint
-            return diff
-
-    property microseconds:
-        def __get__(self):
-            cdef int64_t diff = self.end.asint - self.start.asint
-            return diff % 1000000
-
-    property seconds:
-        def __get__(self):
-            cdef int64_t diff = self.end.asint - self.start.asint
-            return (diff // 1000000) % 86400
-
-    property days:
-        def __get__(self):
-            cdef int64_t diff = self.end.asint - self.start.asint
-            return (diff // 1000000) // 86400
-
-    def __str__(self):
-        return "Interval(%s, %s)" % (str(self.start), str(self.end))
+    def __init__(self):
+        pass
 
 
 cdef class Duration:

@@ -1,25 +1,26 @@
-#include "c_freqs.h"
-#include "c_convert.h"
 #include "c_dates.h"
 #include "c_tseries.h"
 
 /* Helper function for TimeSeries_convert:
     determine the size of the second dimension for the resulting
     converted array */
-static long get_width(int fromFreq, int toFreq) {
+static long get_height(int fromFreq, int toFreq) {
 
-    int maxBusDaysPerYear = 262;
-    int maxBusDaysPerQuarter = 66;
-    int maxBusDaysPerMonth = 23;
+    int maxBusDaysPerYear, maxBusDaysPerQuarter, maxBusDaysPerMonth;
+    int maxDaysPerYear, maxDaysPerQuarter, maxDaysPerMonth;
 
-    int maxDaysPerYear = 366;
-    int maxDaysPerQuarter = 92;
-    int maxDaysPerMonth = 31;
-
-    int fromGroup = get_base_unit(fromFreq);
-    int toGroup = get_base_unit(toFreq);
+    int fromGroup = get_freq_group(fromFreq);
+    int toGroup = get_freq_group(toFreq);
 
     if (fromGroup == FR_UND) { fromGroup = FR_DAY; }
+
+    maxBusDaysPerYear = 262;
+    maxBusDaysPerQuarter = 66;
+    maxBusDaysPerMonth = 23;
+
+    maxDaysPerYear = 366;
+    maxDaysPerQuarter = 92;
+    maxDaysPerMonth = 31;
 
     switch(fromGroup)
     {
@@ -89,7 +90,7 @@ static long get_width(int fromFreq, int toFreq) {
         case FR_SEC: //minutely
             switch(toGroup)
             {
-                case FR_ANN: return 24 * 60 * 60 * maxDaysPerYear;
+                case FR_ANN: return 24 * 60 * 60 * maxDaysPerYear;;
                 case FR_QTR: return 24 * 60 * 60 * maxDaysPerQuarter;
                 case FR_MTH: return 24 * 60 * 60 * maxDaysPerMonth;
                 case FR_WK: return 24 * 60 * 60 * 7;
@@ -113,42 +114,39 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     PyObject *returnVal = NULL;
     PyObject *start_index_retval;
 
-    long period;
-    long startIndex, endIndex;
-    npy_int64 newStart, newStartTemp;
-    npy_int64 newEnd, newEndTemp;
-    long newLen, newWidth;
+    long startIndex;
+    long newStart, newStartTemp;
+    long newEnd, newEndTemp;
+    long newLen, newHeight;
     long currIndex, prevIndex;
     long nd;
     npy_intp *dim, *newIdx;
-    long currPerLen=0;
+    long currPerLen;
     char *position;
     PyObject *fromFreq_arg, *toFreq_arg;
     int fromFreq, toFreq;
-    char relation_from, relation_to;
+    char relation;
+    asfreq_info af_info;
     int i;
-    conversion_function totmp, fromtmp;
-    ts_metadata metato, metafrom;
 
     PyObject *val, *valMask;
 
-    // long (*asfreq_main)(long, char, asfreq_info*) = NULL;
-    // long (*asfreq_endpoints)(long, char, asfreq_info*) = NULL;
-    // long (*asfreq_reverse)(long, char, asfreq_info*) = NULL;
+    long (*asfreq_main)(long, char, asfreq_info*) = NULL;
+    long (*asfreq_endpoints)(long, char, asfreq_info*) = NULL;
+    long (*asfreq_reverse)(long, char, asfreq_info*) = NULL;
 
     returnVal = PyDict_New();
 
     if (!PyArg_ParseTuple(args,
-        "OOlOslO:convert(array, fromfreq, period, tofreq, position, startindex, mask)",
-        &array, &fromFreq_arg, &period, &toFreq_arg,
+        "OOOslO:convert(array, fromfreq, tofreq, position, startIndex, mask)",
+        &array, &fromFreq_arg, &toFreq_arg,
         &position, &startIndex, &mask)) return NULL;
 
-    if((fromFreq = check_freq(fromFreq_arg)) == INT_ERR_CODE)
-        return NULL;
-    if((toFreq = check_freq(toFreq_arg)) == INT_ERR_CODE)
-        return NULL;
+    if((fromFreq = check_freq(fromFreq_arg)) == INT_ERR_CODE) return NULL;
+    if((toFreq = check_freq(toFreq_arg)) == INT_ERR_CODE) return NULL;
 
-    if (toFreq == fromFreq) {
+    if (toFreq == fromFreq)
+    {
         PyObject *sidx;
         newArray = (PyArrayObject *)PyArray_Copy(array);
         newMask = (PyArrayObject *)PyArray_Copy(mask);
@@ -169,96 +167,58 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     {
         case 'S':
             // start -> before
-            relation_to = 'S';
+            relation = 'S';
             break;
         case 'E':
             // end -> after
-            relation_to = 'E';
+            relation = 'E';
             break;
         default:
             return NULL;
             break;
     }
-    if ((toFreq == FR_BUS) && (fromFreq < FR_DAY))
-        relation_from = 'S';
-    else
-        relation_from = relation_to;
 
-    totmp = convert_to_mediator(fromFreq, toFreq, 1);
-    init_metadata_from_unit(&metato, fromFreq);
-    metato.convert_to_start = 1;
-//    set_conversion_info(fromFreq, 'S', &infoto);
-    fromtmp = convert_from_mediator(fromFreq, toFreq, 1);
-    init_metadata_from_unit(&metafrom, toFreq);
-    metafrom.convert_to_start = 1;
-//    set_conversion_info(toFreq, 'S', &infofrom);
+    get_asfreq_info(fromFreq, toFreq, &af_info);
 
-
-
-    // get_asfreq_info(fromFreq, toFreq, &af_info);
-
-    // asfreq_main = get_asfreq_func(fromFreq, toFreq, 1);
-    // asfreq_endpoints = get_asfreq_func(fromFreq, toFreq, 0);
+    asfreq_main = get_asfreq_func(fromFreq, toFreq, 1);
+    asfreq_endpoints = get_asfreq_func(fromFreq, toFreq, 0);
 
     //convert start index to new frequency
-    ERR_CHECK(newStartTemp = fromtmp(totmp(startIndex, &metato), &metafrom));
-// asfreq_main(startIndex, 'S', &af_info));
-    newStart = newStartTemp;
-//    if (newStartTemp < 1) {
-//        ERR_CHECK(newStart = asfreq_endpoints(startIndex, 'E', &af_info));
-//    } else {
-//        newStart = newStartTemp;
-//    };
-//    if (newStart < 1) {
-//        PyErr_SetString(PyExc_ValueError,
-//                        "start_date outside allowable range for destination frequency");
-//        return NULL;
-//    };
+    CHECK_ASFREQ(newStartTemp = asfreq_main(startIndex, 'S', &af_info));
+    if (newStartTemp < 1) {
+        CHECK_ASFREQ(newStart = asfreq_endpoints(startIndex, 'E', &af_info));
+    }
+    else { newStart = newStartTemp; }
 
     //convert end index to new frequency
-    endIndex = startIndex + (array->dimensions[0] - 1)*period;
+    CHECK_ASFREQ(newEndTemp = asfreq_main(startIndex+array->dimensions[0]-1, 'E', &af_info));
+    if (newEndTemp < 1) {
+        CHECK_ASFREQ(newEnd = asfreq_endpoints(startIndex+array->dimensions[0]-1, 'S', &af_info));
+    }
+    else { newEnd = newEndTemp; }
 
-    metato.convert_to_start = (int)0;
-    metafrom.convert_to_start = (int)0;
-    ERR_CHECK(newEndTemp = fromtmp(totmp(endIndex, &metato), &metafrom));
-    // ERR_CHECK(newEndTemp = asfreq_main(endIndex, 'E', &af_info));
-//    if (newEndTemp < 1) {
-//        ERR_CHECK(newEnd = asfreq_endpoints(endIndex, 'S', &af_info));
-//    } else { newEnd = newEndTemp; }
-    newEnd = newEndTemp;
-    newLen = newEnd - newStart + 1;
-    newWidth = get_width(fromFreq, toFreq);
-    if (newWidth % period > 0){
-        newWidth = newWidth / period + 1;
-    } else {
-        newWidth /= period;
+    if (newStart < 1) {
+        PyErr_SetString(PyExc_ValueError, "start_date outside allowable range for destination frequency");
+        return NULL;
     }
 
-    if (newWidth > 1) {
+    newLen = newEnd - newStart + 1;
+    newHeight = get_height(fromFreq, toFreq);
+
+    if (newHeight > 1) {
         long tempval;
-        conversion_function totmprev, fromtmprev;
-        ts_metadata metatorev, metafromrev;
+        asfreq_info af_info_rev;
 
+        get_asfreq_info(toFreq, fromFreq, &af_info_rev);
+        asfreq_reverse = get_asfreq_func(toFreq, fromFreq, 0);
 
-        // get_asfreq_info(toFreq, fromFreq, &af_info_rev);
-        // asfreq_reverse = get_asfreq_func(toFreq, fromFreq, 0);
-        totmprev = convert_to_mediator(toFreq, fromFreq, 0);
-        init_metadata_from_unit(&metatorev, toFreq);
-        metatorev.convert_to_start = 1;
-//        set_conversion_info(toFreq, 'S', &metatorev);
-        fromtmprev = convert_from_mediator(toFreq, fromFreq, 0);
-//        set_conversion_info(fromFreq, 'S', &infofromrev);
-        init_metadata_from_unit(&metafromrev, fromFreq);
-        metafromrev.convert_to_start = 1;
-
-        // ERR_CHECK(tempval = asfreq_reverse(newStart, 'S', &af_info_rev));
-        ERR_CHECK(tempval = fromtmprev(totmprev(newStart, &metatorev), &metafromrev));
+        CHECK_ASFREQ(tempval = asfreq_reverse(newStart, 'S', &af_info_rev));
         currPerLen = startIndex - tempval;
 
         nd = 2;
         dim = PyDimMem_NEW(nd);
         dim[0] = (npy_intp)newLen;
-        dim[1] = (npy_intp)newWidth;
+        dim[1] = (npy_intp)newHeight;
     } else {
         nd = 1;
         dim = PyDimMem_NEW(nd);
@@ -278,12 +238,7 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     prevIndex = newStart;
 
-    metafrom.convert_to_start = (relation_from == 'S');
-    metato.convert_to_start = (relation_to == 'S');
-
-
     //set values in the new array
-
     for (i = 0; i < array->dimensions[0]; i++) {
 
         npy_intp idx = (npy_intp)i;
@@ -291,19 +246,21 @@ TimeSeries_convert(PyObject *self, PyObject *args)
         val = PyArray_GETITEM(array, PyArray_GetPtr(array, &idx));
         valMask = PyArray_GETITEM(mask, PyArray_GetPtr(mask, &idx));
 
-        // ERR_CHECK(currIndex = asfreq_main(startIndex + i*period, relation, &af_info));
-        ERR_CHECK(currIndex = fromtmp(totmp(startIndex + i*period, &metato), &metafrom));
+        CHECK_ASFREQ(currIndex = asfreq_main(startIndex + i, relation, &af_info));
 
         newIdx[0] = (npy_intp)(currIndex-newStart);
 
-        if (newWidth > 1) {
-            if (currIndex != prevIndex) {
-                //reset period length
-                currPerLen = 0;
-                prevIndex = currIndex;
-            }
-            newIdx[1] = (npy_intp)currPerLen;
-            currPerLen++;
+        if (newHeight > 1) {
+
+                if (currIndex != prevIndex)
+                {
+                    //reset period length
+                    currPerLen = 0;
+                    prevIndex = currIndex;
+                }
+
+                newIdx[1] = (npy_intp)currPerLen;
+                currPerLen++;
         }
 
         if (newIdx[0] > -1) {
@@ -401,7 +358,7 @@ check_mov_args(
     if (span < min_win_size) {
         char *error_str;
         error_str = PyArray_malloc(60 * sizeof(char));
-        MEM_CHECK(error_str);
+        MEM_CHECK(error_str)
         sprintf(error_str,
                 "span must be greater than or equal to %i",
                 min_win_size);
@@ -411,7 +368,7 @@ check_mov_args(
     }
 
     raw_result_mask = PyArray_malloc((*orig_ndarray_tmp)->dimensions[0] * sizeof(int));
-    MEM_CHECK(raw_result_mask);
+    MEM_CHECK(raw_result_mask)
 
     {
         PyArrayObject *orig_mask_tmp;
@@ -446,7 +403,7 @@ check_mov_args(
     *result_mask = PyArray_SimpleNewFromData(
                              1, (*orig_ndarray_tmp)->dimensions,
                              PyArray_INT32, raw_result_mask);
-    MEM_CHECK(*result_mask);
+    MEM_CHECK(*result_mask)
     result_mask_tmp = (PyArrayObject**)result_mask;
     (*result_mask_tmp)->flags = ((*result_mask_tmp)->flags) | NPY_OWNDATA;
     return 0;
@@ -483,7 +440,7 @@ calc_mov_sum(
                                        orig_ndarray->nd,
                                        orig_ndarray->dimensions,
                                        rtype, 0);
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     for (i=0; i<orig_ndarray->dimensions[0]; i++) {
 
@@ -516,7 +473,7 @@ calc_mov_sum(
                                    PyArray_GetPtr(result_ndarray, &idx));
             mov_sum_val = np_add(val, mov_sum_prevval);
             Py_DECREF(mov_sum_prevval);
-            NULL_CHECK(mov_sum_val);
+            ERR_CHECK(mov_sum_val)
 
             if (non_masked > span) {
                 PyObject *temp_val, *rem_val;
@@ -531,7 +488,7 @@ calc_mov_sum(
                                        PyArray_GetPtr(orig_ndarray, &idx));
 
                     mov_sum_val = np_subtract(temp_val, rem_val);
-                    NULL_CHECK(mov_sum_val);
+                    ERR_CHECK(mov_sum_val)
 
                     Py_DECREF(temp_val);
                     Py_DECREF(rem_val);
@@ -587,10 +544,10 @@ MaskedArray_mov_sum(PyObject *self, PyObject *args, PyObject *kwds)
         (PyArrayObject*)orig_ndarray, (PyArrayObject*)orig_mask,
         span, rtype
     );
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     result_dict = PyDict_New();
-    MEM_CHECK(result_dict);
+    MEM_CHECK(result_dict)
     PyDict_SetItemString(result_dict, "array", result_ndarray);
     PyDict_SetItemString(result_dict, "mask", result_mask);
 
@@ -616,17 +573,17 @@ calc_mov_ranked(PyArrayObject *orig_ndarray, int span, int rtype, char rank_type
                                        orig_ndarray->nd,
                                        orig_ndarray->dimensions,
                                        rtype, 0);
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     if (arr_size >= span) {
         result_array = calloc(arr_size, sizeof(PyObject*));
-        MEM_CHECK(result_array);
+        MEM_CHECK(result_array)
 
         /* this array will be used for quick access to the data in the original
            array (so PyArray_GETITEM doesn't have to be used over and over in the
            main loop) */
         ref_array = PyArray_malloc(arr_size * sizeof(PyObject*));
-        MEM_CHECK(ref_array);
+        MEM_CHECK(ref_array)
 
         for (i=0; i<arr_size; i++) {
             idx = (npy_intp)i;
@@ -636,7 +593,7 @@ calc_mov_ranked(PyArrayObject *orig_ndarray, int span, int rtype, char rank_type
         /* this array wll be used for keeping track of the "ranks" of the values
            in the current window */
         r = PyArray_malloc(span * sizeof(int));
-        MEM_CHECK(r);
+        MEM_CHECK(r)
 
         for (i=0; i < span; i++) {
             r[i] = 1;
@@ -645,25 +602,25 @@ calc_mov_ranked(PyArrayObject *orig_ndarray, int span, int rtype, char rank_type
         if (rank_type == 'E' && ((span % 2) == 0)) {
             // array to store two median values when span is an even #
             even_array = calloc(2, sizeof(PyObject*));
-            MEM_CHECK(even_array);
+            MEM_CHECK(even_array)
         }
 
-        switch(rank_type) {
-            case 'E': // median
-                R = (span + 1)/2;
-                break;
-            case 'I': // min
-                R = 1;
-                break;
-            case 'A': // max
-                R = span;
-                break;
-            default:
-            {
-                PyErr_SetString(PyExc_RuntimeError, "unexpected rank type");
-                return NULL;
-            }
-        }
+		switch(rank_type) {
+			case 'E': // median
+				R = (span + 1)/2;
+				break;
+			case 'I': // min
+				R = 1;
+				break;
+			case 'A': // max
+				R = span;
+				break;
+			default:
+			{
+				PyErr_SetString(PyExc_RuntimeError, "unexpected rank type");
+		        return NULL;
+			}
+		}
 
         one_half = PyFloat_FromDouble(0.5);
 
@@ -807,10 +764,10 @@ MaskedArray_mov_median(PyObject *self, PyObject *args, PyObject *kwds)
 
     result_ndarray = calc_mov_ranked((PyArrayObject*)orig_ndarray,
                                      span, rtype, 'E');
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     result_dict = PyDict_New();
-    MEM_CHECK(result_dict);
+    MEM_CHECK(result_dict)
     PyDict_SetItemString(result_dict, "array", result_ndarray);
     PyDict_SetItemString(result_dict, "mask", result_mask);
 
@@ -842,10 +799,10 @@ MaskedArray_mov_min(PyObject *self, PyObject *args, PyObject *kwds)
 
     result_ndarray = calc_mov_ranked((PyArrayObject*)orig_ndarray,
                                      span, rtype, 'I');
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     result_dict = PyDict_New();
-    MEM_CHECK(result_dict);
+    MEM_CHECK(result_dict)
     PyDict_SetItemString(result_dict, "array", result_ndarray);
     PyDict_SetItemString(result_dict, "mask", result_mask);
 
@@ -877,10 +834,10 @@ MaskedArray_mov_max(PyObject *self, PyObject *args, PyObject *kwds)
 
     result_ndarray = calc_mov_ranked((PyArrayObject*)orig_ndarray,
                                      span, rtype, 'A');
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     result_dict = PyDict_New();
-    MEM_CHECK(result_dict);
+    MEM_CHECK(result_dict)
     PyDict_SetItemString(result_dict, "array", result_ndarray);
     PyDict_SetItemString(result_dict, "mask", result_mask);
 
@@ -903,7 +860,7 @@ calc_mov_average_expw(
                                        orig_ndarray->nd,
                                        orig_ndarray->dimensions,
                                        rtype, 0);
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     decay_factor = PyFloat_FromDouble(2.0/((double)(span + 1)));
 
@@ -937,7 +894,7 @@ calc_mov_average_expw(
                 Py_DECREF(mov_avg_prevval);
                 Py_DECREF(temp_val_a);
                 Py_DECREF(temp_val_b);
-                NULL_CHECK(mov_avg_val);
+                ERR_CHECK(mov_avg_val);
             } else {
                 mov_avg_val = mov_avg_prevval;
             }
@@ -985,10 +942,10 @@ MaskedArray_mov_average_expw(PyObject *self, PyObject *args, PyObject *kwds)
         (PyArrayObject*)orig_ndarray, (PyArrayObject*)orig_mask,
         span, rtype
     );
-    NULL_CHECK(result_ndarray);
+    ERR_CHECK(result_ndarray)
 
     result_dict = PyDict_New();
-    MEM_CHECK(result_dict);
+    MEM_CHECK(result_dict)
     PyDict_SetItemString(result_dict, "array", result_ndarray);
 
     Py_DECREF(result_ndarray);

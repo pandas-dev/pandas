@@ -20,8 +20,6 @@ np_add(PyObject *left_val, PyObject *right_val) {
     return result;
 }
 
-
-
 PyObject*
 np_subtract(PyObject *left_val, PyObject *right_val) {
 
@@ -33,8 +31,6 @@ np_subtract(PyObject *left_val, PyObject *right_val) {
                          right_val);
     return result;
 }
-
-
 
 PyObject*
 np_multiply(PyObject *left_val, PyObject *right_val) {
@@ -48,14 +44,10 @@ np_multiply(PyObject *left_val, PyObject *right_val) {
     return result;
 }
 
-
-
 PyObject*
 np_sqrt(PyObject *val) {
     return PyObject_CallFunction(NP_SQRT, "(O)", val);
 }
-
-
 
 int np_greater(PyObject *left_val, PyObject *right_val) {
 
@@ -72,8 +64,6 @@ int np_greater(PyObject *left_val, PyObject *right_val) {
     return result;
 }
 
-
-
 int np_greater_equal(PyObject *left_val, PyObject *right_val) {
 
     PyObject *temp;
@@ -88,8 +78,6 @@ int np_greater_equal(PyObject *left_val, PyObject *right_val) {
     Py_DECREF(temp);
     return result;
 }
-
-
 
 char *str_uppercase(char *str) {
     if (str) {
@@ -136,8 +124,6 @@ char *str_uppercase(char *str) {
     } else { return NULL; }
 }
 
-
-
 char *str_replace(const char *s, const char *old, const char *new) {
     char *ret;
     int i, count = 0;
@@ -170,7 +156,6 @@ char *str_replace(const char *s, const char *old, const char *new) {
 }
 
 
-
 PyObject *
 set_callback(PyObject *args, PyObject **callback)
 {
@@ -193,8 +178,6 @@ set_callback(PyObject *args, PyObject **callback)
     }
     return result;
 }
-
-
 
 void import_c_lib(PyObject *m) {
     PyObject *ops_dict;
