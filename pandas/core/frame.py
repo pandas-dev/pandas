@@ -815,8 +815,9 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        if not self.index.is_monotonic:
-            selfsorted = self.sort()
+        # outermost level of labels must be sorted
+        if self.index.lexsort_depth < 1:
+            selfsorted = self.sortlevel(0)
         else:
             selfsorted = self
 
