@@ -6,7 +6,7 @@ import os
 modules = ['groupby', 'indexing', 'reindex',
            'sparse', 'index_object', 'miscellaneous',
            'stat_ops', 'join_merge', 'panel_ctor', 'frame_ctor',
-           'frame_methods', 'io']
+           'frame_methods', 'io_bench']
 
 by_module = {}
 benchmarks = []
@@ -20,10 +20,22 @@ for modname in modules:
 for bm in benchmarks:
     assert(bm.name is not None)
 
-REPO_PATH = '/home/adam/code/pandas'
-REPO_URL = 'git@github.com:adamklein/pandas.git'
-DB_PATH = '/home/adam/code/pandas/vb_suite/benchmarks.db'
-TMP_DIR = '/home/adam/tmp/vb_pandas'
+try:
+    import ConfigParser
+
+    config = ConfigParser.ConfigParser()
+    config.readfp(open(os.path.expanduser('~/.vbenchcfg')))
+
+    REPO_PATH = config.get('setup', 'repo_path')
+    REPO_URL = config.get('setup', 'repo_url')
+    DB_PATH = config.get('setup', 'db_path')
+    TMP_DIR = config.get('setup', 'tmp_dir')
+except:
+    REPO_PATH = '/home/wesm/code/pandas'
+    REPO_URL = 'git@github.com:wesm/pandas.git'
+    DB_PATH = '/home/wesm/code/pandas/vb_suite/benchmarks.db'
+    TMP_DIR = '/home/wesm/tmp/vb_pandas'
+
 PREPARE = """
 python setup.py clean
 """
@@ -40,7 +52,7 @@ RST_BASE = '../doc/source'
 
 # HACK!
 
-timespan = [datetime(2011, 1, 1), datetime(2012, 1, 1)]
+#timespan = [datetime(2011, 1, 1), datetime(2012, 1, 1)]
 
 def generate_rst_files(benchmarks):
     import matplotlib as mpl

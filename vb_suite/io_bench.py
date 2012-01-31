@@ -1,4 +1,4 @@
-from vbench.benchmark import Benchmark
+from vbench.api import Benchmark
 from datetime import datetime
 
 common_setup = """from pandas_vb_common import *
@@ -7,7 +7,7 @@ common_setup = """from pandas_vb_common import *
 #----------------------------------------------------------------------
 # read_csv
 
-setup = common_setup + """
+setup1 = common_setup + """
 index = [rands(10) for _ in xrange(10000)]
 df = DataFrame({'float1' : randn(10000),
                 'float2' : randn(10000),
@@ -18,14 +18,14 @@ df = DataFrame({'float1' : randn(10000),
 df.to_csv('__test__.csv')
 """
 
-read_csv_standard = Benchmark("read_csv('__test__.csv')", setup,
+read_csv_standard = Benchmark("read_csv('__test__.csv')", setup1,
                               start_date=datetime(2011, 9, 15))
 
 
 #----------------------------------------------------------------------
 # write_csv
 
-setup = common_setup + """
+setup2 = common_setup + """
 index = [rands(10) for _ in xrange(10000)]
 df = DataFrame({'float1' : randn(10000),
                 'float2' : randn(10000),
@@ -35,6 +35,6 @@ df = DataFrame({'float1' : randn(10000),
                index=index)
 """
 
-write_csv_standard = Benchmark("df.to_csv('__test__.csv')", setup,
+write_csv_standard = Benchmark("df.to_csv('__test__.csv')", setup2,
                                start_date=datetime(2011, 9, 15))
 

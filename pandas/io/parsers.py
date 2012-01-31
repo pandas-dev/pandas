@@ -270,10 +270,10 @@ class TextParser(object):
                 if self.encoding is not None:
                     self.buf.extend(list(
                         com.UnicodeReader(StringIO(line),
-                                          dialect=dia, 
+                                          dialect=dia,
                                           encoding=self.encoding)))
                 else:
-                    self.buf.extend(list(csv.reader(StringIO(line), 
+                    self.buf.extend(list(csv.reader(StringIO(line),
                                                     dialect=dia)))
 
             if self.encoding is not None:
