@@ -98,14 +98,12 @@ indexing_dataframe_boolean_rows_object = \
 # MultiIndex sortlevel
 
 setup = common_setup + """
-level1 = np.array([tm.rands(10) for _ in xrange(1000)], dtype='O')
-level2 = np.array([tm.rands(10) for _ in xrange(10)], dtype='O')
-label1 = np.random.randint(0, 1000, size=100000)
-label2 = np.random.randint(0, 10, size=100000)
-midx = MultiIndex(labels=[label1,label2],
-                  levels=[level1,label2])
+a = np.repeat(np.arange(100), 1000)
+b = np.tile(np.arange(1000), 100)
+midx = MultiIndex.from_arrays([a, b])
+midx = midx.take(np.random.permutation(np.arange(100000)))
 """
-sorting_level_zero = Benchmark("midx.sortlevel(0)", setup, 
-                               start_date=datetime(2012,1,1))
-sorting_level_one = Benchmark("midx.sortlevel(1)", setup,
-                              start_date=datetime(2012,1,1))
+sort_level_zero = Benchmark("midx.sortlevel(0)", setup, 
+                            start_date=datetime(2012,1,1))
+sort_level_one = Benchmark("midx.sortlevel(1)", setup,
+                           start_date=datetime(2012,1,1))
