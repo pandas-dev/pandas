@@ -1095,6 +1095,16 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
+    @staticmethod
+    def _from_elements(values, labels=None, levels=None, names=None,
+                       sortorder=None):
+        index = values.view(MultiIndex)
+        index.levels = levels
+        index.labels = labels
+        index.names  = names
+        index.sortorder = sortorder
+        return index
+
     def _get_level_number(self, level):
         try:
             count = self.names.count(level)
@@ -1506,7 +1516,8 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True):
         """
-        Sort MultiIndex lexicographically by requested level
+        Sort MultiIndex at the requested level. The result will respect the
+        original ordering of the associated factor at that level.
 
         Parameters
         ----------
@@ -1519,21 +1530,30 @@ class MultiIndex(Index):
         -------
         sorted_index : MultiIndex
         """
-        # TODO: check if lexsorted when level=0
+        from pandas.core.frame import _indexer_from_factorized
 
         labels = list(self.labels)
+
         level = self._get_level_number(level)
         primary = labels.pop(level)
 
-        # Lexsort starts from END
-        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
+        shape = list(self.levshape)
+        primshp = shape.pop(level)
 
+        indexer = _indexer_from_factorized((primary,) + tuple(labels),
+                                           (primshp,) + tuple(shape),
+                                           compress=False)
         if not ascending:
             indexer = indexer[::-1]
 
         new_labels = [lab.take(indexer) for lab in self.labels]
-        new_index = MultiIndex(levels=self.levels, labels=new_labels,
-                               names=self.names, sortorder=level)
+
+
+        new_index = MultiIndex._from_elements(self.values.take(indexer),
+                                              labels=new_labels,
+                                              levels=self.levels,
+                                              names=self.names,
+                                              sortorder=level)
 
         return new_index, indexer
 

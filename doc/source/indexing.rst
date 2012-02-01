@@ -654,7 +654,7 @@ instance:
 
 .. ipython:: python
 
-   midx = MultiIndex(levels=[['one', 'two'], ['x','y']],
+   midx = MultiIndex(levels=[['zero', 'one'], ['x','y']],
                      labels=[[1,1,0,0],[1,0,1,0]])
    df = DataFrame(randn(4,2), index=midx)
    print df
@@ -670,13 +670,15 @@ The need for sortedness
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 **Caveat emptor**: the present implementation of ``MultiIndex`` requires that
-the labels be lexicographically sorted into groups for some of the slicing /
-indexing routines to work correctly. You can think about this as meaning that
-the axis is broken up into a tree structure, where every leaf in a particular
-branch shares the same labels at that level of the hierarchy. However, the
-``MultiIndex`` does not enforce this: **you are responsible for ensuring that
-things are properly sorted**. There is an important new method ``sortlevel``
-which will lexicographically sort an axis with a ``MultiIndex``:
+the labels be sorted for some of the slicing / indexing routines to work
+correctly. You can think about breaking the axis into unique groups, where at
+the hierarchical level of interest, each distinct group shares a label, but no
+two have the same label. However, the ``MultiIndex`` does not enforce this:
+**you are responsible for ensuring that things are properly sorted**. There is
+an important new method ``sortlevel`` to sort an axis within a ``MultiIndex``
+so that its labels are grouped and sorted by the original ordering of the
+associated factor at that level. Note that this does not necessarily mean the
+labels will be sorted lexicographically!
 
 .. ipython:: python
 
