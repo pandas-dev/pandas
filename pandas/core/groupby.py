@@ -1324,8 +1324,9 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
 
 def get_group_index(label_list, shape):
     """
-    Gets the offsets into what would be the cartesian product of all
-    possible labels given the label_list.
+    For the particular label_list, gets the offsets into the hypothetical list
+    representing the totally ordered cartesian product of all possible label
+    combinations.
     """
     if len(label_list) == 1:
         return label_list[0]
@@ -1409,24 +1410,38 @@ _cython_transforms = {
 # sorting levels...cleverly?
 
 def _compress_group_index(group_index, sort=True):
+    """
+    Group_index is offsets into cartesian product of all possible labels. This
+    space can be huge, so this function compresses it, by computing offsets
+    (comp_ids) into the list of unique labels (obs_group_ids).
+    """
+
     uniques = []
     table = lib.Int64HashTable(len(group_index))
 
     group_index = _ensure_int64(group_index)
+
+    # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids = table.get_labels_groupby(group_index, uniques)
 
-    # these are the ones we observed
+    # these are the unique ones we observed, in the order we observed them
     obs_group_ids = np.array(uniques, dtype='i8')
 
     if sort and len(obs_group_ids) > 0:
+        # sorter is index where elements ought to go
         sorter = obs_group_ids.argsort()
+
+        # reverse_indexer is where elements came from
         reverse_indexer = np.empty(len(sorter), dtype='i4')
         reverse_indexer.put(sorter, np.arange(len(sorter)))
 
         mask = comp_ids < 0
+
+        # move comp_ids to right locations (ie, unsort ascending labels)
         comp_ids = reverse_indexer.take(comp_ids)
         np.putmask(comp_ids, mask, -1)
 
+        # sort observed ids
         obs_group_ids = obs_group_ids.take(sorter)
 
     return comp_ids, obs_group_ids

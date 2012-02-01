@@ -4055,12 +4055,18 @@ if "IPython" in sys.modules:  # pragma: no cover
     except Exception:
         pass
 
-def _indexer_from_factorized(labels, shape):
+def _indexer_from_factorized(labels, shape, compress=True):
     from pandas.core.groupby import get_group_index, _compress_group_index
 
     group_index = get_group_index(labels, shape)
-    comp_ids, obs_ids = _compress_group_index(group_index)
-    max_group = len(obs_ids)
+
+    if compress:
+        comp_ids, obs_ids = _compress_group_index(group_index)
+        max_group = len(obs_ids)
+    else:
+        comp_ids = group_index
+        max_group = np.prod(shape)
+
     indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
 
     return indexer
