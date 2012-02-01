@@ -581,6 +581,22 @@ class Index(np.ndarray):
     def map(self, mapper):
         return self._arrmap(self.values, mapper)
 
+    def isin(self, values):
+        """
+        Compute boolean array of whether each index value is found in the passed
+        set of values
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        is_contained : ndarray (boolean dtype)
+        """
+        value_set = set(values)
+        return lib.ismember(self, value_set)
+
     def _get_method(self, method):
         if method:
             method = method.lower()

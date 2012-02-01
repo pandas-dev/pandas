@@ -388,6 +388,20 @@ class TestIndex(unittest.TestCase):
         self.dateIndex.set_value(values, date, 10)
         self.assertEquals(values[67], 10)
 
+    def test_isin(self):
+        values = ['foo', 'bar']
+
+        idx = Index(['qux', 'baz', 'foo', 'bar'])
+        result = idx.isin(values)
+        expected = np.array([False, False, True, True])
+        self.assert_(np.array_equal(result, expected))
+
+        # empty, return dtype bool
+        idx = Index([])
+        result = idx.isin(values)
+        self.assert_(len(result) == 0)
+        self.assert_(result.dtype == np.bool_)
+
 class TestInt64Index(unittest.TestCase):
 
     def setUp(self):

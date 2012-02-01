@@ -1878,7 +1878,6 @@ copy : boolean, default False
         """
         value_set = set(values)
         result = lib.ismember(self, value_set)
-        # return self.map(value_set.__contains__)
         return Series(result, self.index, name=self.name)
 
 #-------------------------------------------------------------------------------

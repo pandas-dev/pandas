@@ -85,6 +85,8 @@ pandas 0.7.0
   - Add new ``value_range`` function to return min/max of a dataframe (GH #288)
   - Add ``drop`` parameter to ``reset_index`` method of ``DataFrame`` and added
     method to ``Series`` as well (GH #699)
+  - Add ``isin`` method to Index objects, works just like ``Series.isin`` (GH
+    #657)
 
 **API Changes**
 
