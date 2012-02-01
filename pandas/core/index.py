@@ -1550,10 +1550,10 @@ class MultiIndex(Index):
 
 
         new_index = MultiIndex._from_elements(self.values.take(indexer),
-                                              labels = new_labels,
-                                              levels = self.levels,
-                                              names = self.names,
-                                              sortorder = level)
+                                              labels=new_labels,
+                                              levels=self.levels,
+                                              names=self.names,
+                                              sortorder=level)
 
         return new_index, indexer
 
