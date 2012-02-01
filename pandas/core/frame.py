@@ -815,19 +815,25 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        major_axis, minor_axis = self.index.levels
-        major_labels, minor_labels = self.index.labels
+        # minor axis must be sorted 
+        if self.index.lexsort_depth < 2:
+            selfsorted = self.sortlevel(0)
+        else:
+            selfsorted = self
+
+        major_axis, minor_axis = selfsorted.index.levels
+        major_labels, minor_labels = selfsorted.index.labels
 
         shape = len(major_axis), len(minor_axis)
 
         new_blocks = []
-        for block in self._data.blocks:
+        for block in selfsorted._data.blocks:
             newb = block2d_to_block3d(block.values.T, block.items, shape,
                                       major_labels, minor_labels,
-                                      ref_items=self.columns)
+                                      ref_items=selfsorted.columns)
             new_blocks.append(newb)
 
-        new_axes = [self.columns, major_axis, minor_axis]
+        new_axes = [selfsorted.columns, major_axis, minor_axis]
         new_mgr = BlockManager(new_blocks, new_axes)
 
         return Panel(new_mgr)
@@ -4051,9 +4057,23 @@ if "IPython" in sys.modules:  # pragma: no cover
     except Exception:
         pass
 
-def _lexsort_indexer(keys):
+def _indexer_from_factorized(labels, shape, compress=True):
     from pandas.core.groupby import get_group_index, _compress_group_index
 
+    group_index = get_group_index(labels, shape)
+
+    if compress:
+        comp_ids, obs_ids = _compress_group_index(group_index)
+        max_group = len(obs_ids)
+    else:
+        comp_ids = group_index
+        max_group = np.prod(shape)
+
+    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
+
+    return indexer
+
+def _lexsort_indexer(keys):
     labels = []
     shape = []
     for key in keys:
@@ -4065,12 +4085,7 @@ def _lexsort_indexer(keys):
         ids, _ = rizer.factorize(key, sort=True)
         labels.append(ids)
         shape.append(len(rizer.uniques))
-
-    group_index = get_group_index(labels, shape)
-    comp_ids, obs_ids = _compress_group_index(group_index)
-    max_group = len(obs_ids)
-    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
-    return indexer
+    return _indexer_from_factorized(labels, shape)
 
 if __name__ == '__main__':
     import nose

@@ -1186,6 +1186,28 @@ class TestMultiIndex(unittest.TestCase):
         sorted_idx, _ = index.sortlevel(1, ascending=False)
         self.assert_(sorted_idx.equals(expected[::-1]))
 
+    def test_sortlevel_deterministic(self):
+        tuples = [('bar', 'one'), ('foo', 'two'), ('qux', 'two'),
+                  ('foo', 'one'), ('baz', 'two'), ('qux', 'one')]
+
+        index = MultiIndex.from_tuples(tuples)
+
+        sorted_idx, _ = index.sortlevel(0)
+        expected = MultiIndex.from_tuples(sorted(tuples))
+        self.assert_(sorted_idx.equals(expected))
+
+        sorted_idx, _ = index.sortlevel(0, ascending=False)
+        self.assert_(sorted_idx.equals(expected[::-1]))
+
+        sorted_idx, _ = index.sortlevel(1)
+        by1 = sorted(tuples, key=lambda x: (x[1], x[0]))
+        expected = MultiIndex.from_tuples(by1)
+        self.assert_(sorted_idx.equals(expected))
+
+        sorted_idx, _ = index.sortlevel(1, ascending=False)
+        self.assert_(sorted_idx.equals(expected[::-1]))
+
+
     def test_dims(self):
         pass
 
