@@ -191,7 +191,7 @@ static const double __ac_HASH_UPPER = 0.77;
 		khkey_t *keys;													\
 		khval_t *vals;													\
 	} kh_##name##_t;													\
-	SCOPE kh_##name##_t *kh_init_##name() {								\
+	SCOPE kh_##name##_t *kh_init_##name(void) {								\
 		return (kh_##name##_t*)calloc(1, sizeof(kh_##name##_t));		\
 	}																	\
 	SCOPE void kh_destroy_##name(kh_##name##_t *h)						\
@@ -404,7 +404,7 @@ static PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
   @return       Pointer to the hash table [khash_t(name)*]
  */
-#define kh_init(name) kh_init_##name()
+#define kh_init(name) kh_init_##name(void)
 
 /*! @function
   @abstract     Destroy a hash table.
