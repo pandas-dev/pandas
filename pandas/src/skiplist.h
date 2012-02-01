@@ -58,7 +58,7 @@ typedef struct {
   int *tmp_steps;
 } skiplist_t;
 
-static PANDAS_INLINE double urand() {
+static PANDAS_INLINE double urand(void) {
   return rand() / ((double) RAND_MAX + 1);
 }
 
@@ -186,7 +186,7 @@ static PANDAS_INLINE double skiplist_get(skiplist_t *skp, int i, int *ret) {
 }
 
 static PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
-  node_t *node, *prevnode, *newnode, *next_at_level, *tmp;
+  node_t *node, *prevnode, *newnode, *next_at_level;
   int *steps_at_level;
   int size, steps, level;
   node_t **chain;

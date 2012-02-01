@@ -7,6 +7,9 @@ import numpy as np
 import operator
 import sys
 
+np.import_array()
+np.import_ufunc()
+
 #-------------------------------------------------------------------------------
 # Preamble stuff
 

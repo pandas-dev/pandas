@@ -9,7 +9,7 @@ from vbench.git import GitRepo
 REPO_PATH = '/home/adam/code/pandas'
 repo = GitRepo(REPO_PATH)
 
-con = sqlite3.connect('gb_suite/benchmarks.db')
+con = sqlite3.connect('vb_suite/benchmarks.db')
 
 bmk = '36900a889961162138c140ce4ae3c205'
 # bmk = '9d7b8c04b532df6c2d55ef497039b0ce'
