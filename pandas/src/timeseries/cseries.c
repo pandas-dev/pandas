@@ -58,11 +58,11 @@ static PyMethodDef cseries_methods[] = {
 };
 
 PyMODINIT_FUNC
-initcseries(void)
+init_skts(void)
 {
     PyObject *m;
 
-    m = Py_InitModule("cseries", cseries_methods);
+    m = Py_InitModule("pandas._skts", cseries_methods);
     if (m == NULL)
       return;
 

@@ -220,18 +220,13 @@ cdef class Timestamp:
 
 
 cdef class Interval:
-    """ 
+    """
     This class replicates design of the Date object from scikits.timeseries,
     where a frequency is attached. The internal integer value of represents the
     offset, in the provided frequency, from the gregorian proleptic date of Jan
     1, 1AD.
     """
-    cdef:
-        ts_metadata obmeta  # recreating structure of DatetimeObject 
-        ts_datetime obval   # from sckits.timeseries
-
-    def __init__(self):
-        pass
+    pass
 
 
 cdef class Duration:

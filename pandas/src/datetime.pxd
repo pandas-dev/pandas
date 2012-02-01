@@ -92,18 +92,6 @@ cdef extern from "np_datetime_strings.h":
 
     int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
 
-cdef extern from "timeseries/c_types.h":
-
-    ctypedef struct ts_metadata:
-        int unit
-        int timestep
-        int period_end_at
-        int64_t periods_per_day
-        int64_t secs_per_period
-        int convert_to_start
-
-    ctypedef int64_t ts_datetime
-
 cdef extern from "stdint.h":
     enum: INT64_MIN
 
