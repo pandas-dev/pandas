@@ -931,7 +931,7 @@ class DataFrame(NDFrame):
                 row_fields.append(val)
 
             if encoding is not None:
-                encoded_rows = [csv_encode(val, encoding=encoding) 
+                encoded_rows = [csv_encode(val, encoding=encoding)
                                 for val in row_fields]
             else:
                 encoded_rows = list(row_fields)
@@ -2101,7 +2101,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         columns : object
-            Column name in frame
+            Column name(s) in frame. Accepts a column name or a list or tuple
+            for a nested sort.
         ascending : boolean, default True
             Sort ascending vs. descending
         axis : {0, 1}
@@ -2123,7 +2124,8 @@ class DataFrame(NDFrame):
         axis : {0, 1}
             Sort index/rows versus columns
         by : object
-            Column names in frame
+            Column name(s) in frame. Accepts a column name or a list or tuple
+            for a nested sort.
         ascending : boolean, default True
             Sort ascending vs. descending
 
