@@ -1096,7 +1096,7 @@ class MultiIndex(Index):
         return np.dtype('O')
 
     @staticmethod
-    def _from_elements(self, values, labels=None, levels=None, names=None,
+    def _from_elements(values, labels=None, levels=None, names=None,
                        sortorder=None):
         index = values.view(MultiIndex)
         index.levels = levels
@@ -1536,18 +1536,24 @@ class MultiIndex(Index):
 
         level = self._get_level_number(level)
         primary = labels.pop(level)
+
+        shape = list(self.levshape)
+        primshp = shape.pop(level)
+
         indexer = _indexer_from_factorized((primary,) + tuple(labels),
-                                           self.levshape, compress=False)
+                                           (primshp,) + tuple(shape),
+                                           compress=False)
         if not ascending:
             indexer = indexer[::-1]
 
         new_labels = [lab.take(indexer) for lab in self.labels]
 
-        new_index = self._from_elements(self.values.take(indexer),
-                                        labels = new_labels,
-                                        levels = self.levels,
-                                        names = self.names,
-                                        sortorder = level)
+
+        new_index = MultiIndex._from_elements(self.values.take(indexer),
+                                              labels = new_labels,
+                                              levels = self.levels,
+                                              names = self.names,
+                                              sortorder = level)
 
         return new_index, indexer
 
