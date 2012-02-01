@@ -3,7 +3,7 @@ from khash cimport *
 def test(ndarray arr, Py_ssize_t size_hint):
     cdef:
         kh_pymap_t *table
-        int ret
+        int ret=0
         khiter_t k
         PyObject **data
         Py_ssize_t i, n
@@ -38,7 +38,7 @@ def test_str(ndarray arr, Py_ssize_t size_hint):
     cdef:
         kh_str_t *table
         kh_cstr_t val
-        int ret
+        int ret=0
         khiter_t k
         PyObject **data
         Py_ssize_t i, n
@@ -93,7 +93,7 @@ def obj_unique(ndarray[object] arr):
         # PyObject *obj
         object obj
         PyObject **data
-        int ret
+        int ret=0
         khiter_t k
         Py_ssize_t i, n
         list uniques
@@ -127,7 +127,7 @@ def int64_unique(ndarray[int64_t] arr):
         # PyObject *obj
         int64_t obj
         PyObject **data
-        int ret
+        int ret=0
         khiter_t k
         Py_ssize_t i, j, n
         ndarray[int64_t] uniques
@@ -190,7 +190,7 @@ cdef class StringHashTable:
     cpdef set_item(self, object key, Py_ssize_t val):
         cdef:
             khiter_t k
-            int ret
+            int ret=0
             char* buf
 
         buf = util.get_c_string(key)
@@ -224,7 +224,7 @@ cdef class StringHashTable:
         cdef:
             Py_ssize_t i, n = len(values)
             Py_ssize_t idx, count = 0
-            int ret
+            int ret=0
             object val
             char *buf
             khiter_t k
@@ -252,7 +252,7 @@ cdef class StringHashTable:
             ndarray[int32_t] counts = np.empty(n, dtype=np.int32)
             dict reverse = {}
             Py_ssize_t idx, count = 0
-            int ret
+            int ret=0
             object val
             char *buf
             khiter_t k
@@ -307,7 +307,7 @@ cdef class Int32HashTable:
             raise KeyError(val)
 
     def get_iter_test(self, int32_t key, Py_ssize_t iterations):
-        cdef Py_ssize_t i, val
+        cdef Py_ssize_t i, val=0
         for i in range(iterations):
             k = kh_get_int32(self.table, val)
             if k != self.table.n_buckets:
@@ -316,7 +316,7 @@ cdef class Int32HashTable:
     cpdef set_item(self, int32_t key, Py_ssize_t val):
         cdef:
             khiter_t k
-            int ret
+            int ret=0
 
         k = kh_put_int32(self.table, key, &ret)
         self.table.keys[k] = key
@@ -328,7 +328,7 @@ cdef class Int32HashTable:
     def map_locations(self, ndarray[int32_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             int32_t val
             khiter_t k
 
@@ -341,7 +341,7 @@ cdef class Int32HashTable:
     def lookup_locations(self, ndarray[int32_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             int32_t val
             khiter_t k
             ndarray[int32_t] locs = np.empty(n, dtype='i4')
@@ -363,7 +363,7 @@ cdef class Int32HashTable:
             ndarray[int32_t] counts = np.empty(n, dtype=np.int32)
             dict reverse = {}
             Py_ssize_t idx, count = 0
-            int ret
+            int ret=0
             int32_t val
             khiter_t k
 
@@ -411,7 +411,7 @@ cdef class Int64HashTable:
             raise KeyError(val)
 
     def get_iter_test(self, int64_t key, Py_ssize_t iterations):
-        cdef Py_ssize_t i, val
+        cdef Py_ssize_t i, val=0
         for i in range(iterations):
             k = kh_get_int64(self.table, val)
             if k != self.table.n_buckets:
@@ -420,7 +420,7 @@ cdef class Int64HashTable:
     cpdef set_item(self, int64_t key, Py_ssize_t val):
         cdef:
             khiter_t k
-            int ret
+            int ret=0
 
         k = kh_put_int64(self.table, key, &ret)
         self.table.keys[k] = key
@@ -432,7 +432,7 @@ cdef class Int64HashTable:
     def map(self, ndarray[int64_t] keys, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             int64_t key
             khiter_t k
 
@@ -444,7 +444,7 @@ cdef class Int64HashTable:
     def map_locations(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             int64_t val
             khiter_t k
 
@@ -457,7 +457,7 @@ cdef class Int64HashTable:
     def lookup(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             int64_t val
             khiter_t k
             ndarray[int64_t] locs = np.empty(n, dtype='i8')
@@ -475,7 +475,7 @@ cdef class Int64HashTable:
     def lookup_i4(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             int64_t val
             khiter_t k
             ndarray[int32_t] locs = np.empty(n, dtype='i4')
@@ -502,7 +502,7 @@ cdef class Int64HashTable:
             ndarray[int32_t] labels
             ndarray[int32_t] counts
             Py_ssize_t idx, count = count_prior
-            int ret
+            int ret=0
             int64_t val
             khiter_t k
 
@@ -531,7 +531,7 @@ cdef class Int64HashTable:
             Py_ssize_t i, n = len(values)
             ndarray[int32_t] labels
             Py_ssize_t idx, count = 0
-            int ret
+            int ret=0
             int64_t val
             khiter_t k
 
@@ -562,7 +562,7 @@ cdef class Int64HashTable:
         cdef:
             Py_ssize_t i, n = len(values)
             Py_ssize_t idx, count = 0
-            int ret
+            int ret=0
             int64_t val
             khiter_t k
             list uniques = []
@@ -605,7 +605,7 @@ cdef class Float64HashTable:
         cdef:
             Py_ssize_t i, n = len(values)
             Py_ssize_t idx, count = 0
-            int ret
+            int ret=0
             float64_t val
             khiter_t k
             list uniques = []
@@ -663,7 +663,7 @@ cdef class PyObjectHashTable:
     cpdef set_item(self, object key, Py_ssize_t val):
         cdef:
             khiter_t k
-            int ret
+            int ret=0
             char* buf
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
@@ -676,7 +676,7 @@ cdef class PyObjectHashTable:
     def map_locations(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             object val
             khiter_t k
 
@@ -689,7 +689,7 @@ cdef class PyObjectHashTable:
     def lookup_locations(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             object val
             khiter_t k
             ndarray[int32_t] locs = np.empty(n, dtype='i4')
@@ -707,7 +707,7 @@ cdef class PyObjectHashTable:
     def lookup_locations2(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int ret
+            int ret=0
             object val
             khiter_t k
             long hval
@@ -724,7 +724,7 @@ cdef class PyObjectHashTable:
         cdef:
             Py_ssize_t i, n = len(values)
             Py_ssize_t idx, count = 0
-            int ret
+            int ret=0
             object val
             khiter_t k
             list uniques = []
@@ -745,7 +745,7 @@ cdef class PyObjectHashTable:
             ndarray[int32_t] labels
             ndarray[int32_t] counts
             Py_ssize_t idx, count = count_prior
-            int ret
+            int ret=0
             object val
             khiter_t k
 
@@ -885,7 +885,7 @@ cdef class DictFactorizer:
             ndarray[int32_t] labels
             ndarray[int32_t] counts
             Py_ssize_t idx, count = self.count
-            int ret
+            int ret=0
             object val
 
         labels = np.empty(n, dtype=np.int32)
@@ -954,7 +954,7 @@ cdef class DictFactorizer:
 def lookup_locations2(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
-        int ret
+        int ret=0
         object val
         khiter_t k
         long hval

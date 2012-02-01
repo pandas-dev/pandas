@@ -57,7 +57,7 @@ PyDateTime_IMPORT
 
 # initialize numpy
 import_array()
-
+import_ufunc()
 
 cpdef map_indices_list(list index):
     '''

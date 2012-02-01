@@ -444,7 +444,7 @@ from skiplist cimport *
 def roll_median_c(ndarray[float64_t] arg, int win, int minp):
     cdef double val, res, prev
     cdef:
-        int ret
+        int ret=0
         skiplist_t *sl
         Py_ssize_t midpoint, nobs = 0, i
 
