@@ -984,6 +984,14 @@ def _wrap_dt_function(f):
         return f(*view_args, **kwargs)
     return wrapper
 
+def _wrap_dt_function_first_arg(f):
+    @staticmethod
+    def wrapper(*args, **kwargs):
+        view_args = [_dt_index_box(arg) if i == 0 else arg
+                     for i, arg in enumerate(args)]
+        return f(*view_args, **kwargs)
+    return wrapper
+
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
     def wrapper(left, right):
@@ -1039,7 +1047,7 @@ class DatetimeIndex(Int64Index):
     _backfill      = _wrap_i8_function(lib.backfill_int64)
 
     _arrmap        = _wrap_dt_function(lib.arrmap_object)
-    _groupby       = _wrap_dt_function(lib.groupby_object)
+    _groupby       = _wrap_dt_function_first_arg(lib.groupby_int64)
 
     __eq__ = _dt_index_cmp('__eq__')
     __ne__ = _dt_index_cmp('__ne__')
@@ -1101,13 +1109,30 @@ class DatetimeIndex(Int64Index):
 
             return DatetimeIndex(result, name=self.name)
 
-    # TODO: make accessors for fast groupby work
     def year(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 'Y')
 
+    def month(self):
+        return _dt.fast_field_accessor(self.values.view('i8'), 'M')
+
+    def day(self):
+        return _dt.fast_field_accessor(self.values.view('i8'), 'D')
+
+    def hour(self):
+        return _dt.fast_field_accessor(self.values.view('i8'), 'h')
+
+    def minute(self):
+        return _dt.fast_field_accessor(self.values.view('i8'), 'm')
+
+    def second(self):
+        return _dt.fast_field_accessor(self.values.view('i8'), 's')
+
+    def microsecond(self):
+        return _dt.fast_field_accessor(self.values.view('i8'), 'us')
+
     def __iter__(self):
-        # TODO: again, figure out how to expose elements as nice datetime
-        # objects so you can do obj.year etc
+        # TODO: expose elements as nice datetime objects so you can do obj.year
+        # etc
         return iter(self.values.astype('O'))
 
     def searchsorted(self, key, side='left'):
