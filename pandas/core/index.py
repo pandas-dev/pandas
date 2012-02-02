@@ -97,6 +97,10 @@ class Index(np.ndarray):
                      dtype=dtype)
 
     @property
+    def year(self):
+        return _dt.fast_field_accessor2(self.values, 'Y')
+
+    @property
     def dtype(self):
         return self.values.dtype
 
@@ -984,11 +988,10 @@ def _wrap_dt_function(f):
         return f(*view_args, **kwargs)
     return wrapper
 
-def _wrap_dt_function_first_arg(f):
+def _wrap_dt_function(f):
     @staticmethod
     def wrapper(*args, **kwargs):
-        view_args = [_dt_index_box(arg) if i == 0 else arg
-                     for i, arg in enumerate(args)]
+        view_args = [_dt_index_box(arg) for arg in args]
         return f(*view_args, **kwargs)
     return wrapper
 
@@ -1047,7 +1050,7 @@ class DatetimeIndex(Int64Index):
     _backfill      = _wrap_i8_function(lib.backfill_int64)
 
     _arrmap        = _wrap_dt_function(lib.arrmap_object)
-    _groupby       = _wrap_dt_function_first_arg(lib.groupby_int64)
+    _groupby       = _wrap_dt_function(lib.groupby_object)
 
     __eq__ = _dt_index_cmp('__eq__')
     __ne__ = _dt_index_cmp('__ne__')
@@ -1109,24 +1112,42 @@ class DatetimeIndex(Int64Index):
 
             return DatetimeIndex(result, name=self.name)
 
+    # Try to run function on index first, and then on elements of index
+    # Especially important for group-by functionality
+    def map(self, func_to_map):
+        #try:
+        #    return func_to_map(self)
+        #except:
+        return super(DatetimeIndex, self).map(func_to_map)
+
+    # Fast field accessors for periods of datetime index
+    # --------------------------------------------------------------
+
+    @property
     def year(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 'Y')
 
+    @property
     def month(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 'M')
 
+    @property
     def day(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 'D')
 
+    @property
     def hour(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 'h')
 
+    @property
     def minute(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 'm')
 
+    @property
     def second(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 's')
 
+    @property
     def microsecond(self):
         return _dt.fast_field_accessor(self.values.view('i8'), 'us')
 

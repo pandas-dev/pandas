@@ -77,6 +77,9 @@ cdef class Timestamp:
     def __repr__(self):
         return "Timestamp(%d)" % self.value
 
+    def __hash__(self):
+        return hash(self.value)
+
     def __sub__(self, object other):
         """
         Subtract two timestamps, results in an duration.
@@ -138,8 +141,9 @@ cdef class Timestamp:
 
         return py_str
 
-    def replace(self, int year=-1, int month=-1, int day=-1, int hour=-1,
-                      int minute=-1, int second=-1, int microsecond=-1):
+    def replace(Timestamp self, int year=-1, int month=-1, int day=-1,
+                                int hour=-1, int minute=-1, int second=-1,
+                                int microsecond=-1):
         cdef:
             npy_datetimestruct dts
 
@@ -162,7 +166,7 @@ cdef class Timestamp:
 
         return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
 
-    cdef normalize(self, time_res res):
+    cdef normalize(Timestamp self, time_res res):
         cdef:
             npy_datetimestruct dts
 
@@ -186,46 +190,47 @@ cdef class Timestamp:
         return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
 
     property asint:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.value
 
     property year:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.dts.year
 
     property month:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.dts.month
 
     property day:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.dts.day
 
     property hour:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.dts.hour
 
     property minute:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.dts.min
 
     property second:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.dts.sec
 
     property microsecond:
-        def __get__(self):
+        def __get__(Timestamp self):
             return self.dts.us
 
-    def weekday(self):
-        return dayofweek(self.dts.year, self.month, self.day)
+    def weekday(Timestamp self):
+        return dayofweek(self.dts.year, self.dts.month, self.dts.day)
 
 
 cdef class Duration:
     """
-    Absolute length of time, similar to timedelta (but faster!)
+    Absolute length of time, similar to timedelta
     """
-    cdef int64_t length
+    cdef:
+        int64_t length, days, seconds, microseconds
 
     def __init__(self, int64_t days = 0,
                        int64_t seconds = 0,
@@ -235,6 +240,9 @@ cdef class Duration:
                        int64_t hours = 0,
                        int64_t weeks = 0):
 
+        self.days = days
+        self.seconds = seconds
+        self.microseconds = microseconds
         self.length = (microseconds + 1000 * (milliseconds
                                     + 1000 * (seconds
                                     + 60   * (minutes
@@ -246,24 +254,21 @@ cdef class Duration:
     def from_micros(int64_t length):
         return Duration(microseconds = length)
 
-    def __str__(self):
-        return "Duration (%d)" % self.length
-
     property length:
         def __get__(self):
             return self.length
 
     property microseconds:
         def __get__(self):
-            return self.length % 1000000
+            return self.microseconds # length % 1000000
 
     property seconds:
         def __get__(self):
-            return (self.length // 1000000) % 86400
+            return self.seconds      # (length // 1000000) % 86400
 
     property days:
         def __get__(self):
-            return (self.length // 1000000) // 86400
+            return self.days         # (self.length // 1000000) // 86400
 
     def __repr__(self):
         return "Duration(%d, %d, %d)" % (self.days, self.seconds, self.microseconds)
@@ -807,7 +812,6 @@ cdef class Delta:
 
 # End derivation from dateutil
 
-
 # Conversion routines
 # ------------------------------------------------------------------------------
 
@@ -903,6 +907,29 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
             out[i] = dts.us
         return out
 
+    else:
+        raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
+
+# Another accessor, for datetime object -
+# ------------------------------------------------------------------------------
+
+def fast_field_accessor2(ndarray[object] dtindex, object field):
+    '''
+    Given a int64-based datetime index, extract the year, month, etc.,
+    field and return an array of these values.
+    '''
+    cdef:
+        npy_datetimestruct dts
+        Py_ssize_t i, count = 0
+        ndarray[int32_t] out
+
+    count = len(dtindex)
+    out = np.empty(count, dtype='i4')
+
+    if field == 'Y':
+        for i in range(count):
+                out[i] = PyDateTime_GET_YEAR(dtindex[i])
+        return out
     else:
         raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
 

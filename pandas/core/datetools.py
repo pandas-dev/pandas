@@ -47,6 +47,20 @@ def _dt_box(key):
         _box_cache[key] = dtlib.i8_to_pydt(key.view('i8'))
         return _box_cache[key]
 
+dtdtype = [('Y', '>i4'), # year
+           ('M', '>i4'), # month
+           ('D', '>i4'), # day
+           ('h', '>i4'), # hour
+           ('m', '>i4'), # min
+           ('s', '>i4'), # second
+           ('u', '>i4')] # microsecond
+
+def _dt_arr_to_sarr(arr):
+    return np.array(map(lambda x: (x.year, x.month, x.day, x.hour,
+                                   x.minute, x.second, x.microsecond),
+                        arr),
+                    dtype=dtdtype)
+
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
 
