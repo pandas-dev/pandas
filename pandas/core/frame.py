@@ -839,44 +839,8 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', nanRep=None,
-              encoding=None):
-        """
-        Write DataFrame to a comma-separated values (csv) file
-
-        Parameters
-        ----------
-        path : string
-            File path
-        nanRep : string, default ''
-            Missing data rep'n
-        cols : sequence, optional
-            Columns to write
-        header : boolean, default True
-            Write out column names
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
-        mode : Python write mode, default 'w'
-        sep : character, default ","
-            Field delimiter for the output file.
-        encoding : string, optional
-            a string representing the encoding to use if the contents are
-            non-ascii, for Python 2.x series
-        """
-        f = open(path, mode)
-        csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
-
-        if nanRep is not None:  # pragma: no cover
-            import warnings
-            warnings.warn("nanRep is deprecated, use na_rep",
-                          FutureWarning)
-            na_rep = nanRep
-
+    def _helper_csvexcel(self, writer, na_rep=None, cols=None, header=True,
+                         index=True, index_label=None, encoding=None):
         if cols is None:
             cols = self.columns
 
@@ -910,7 +874,7 @@ class DataFrame(NDFrame):
                     encoded_labels = list(index_label)
                     encoded_cols = list(cols)
 
-                csvout.writerow(encoded_labels + encoded_cols)
+                writer.writerow(encoded_labels + encoded_cols)
             else:
                 if encoding is not None:
                     encoded_cols = [csv_encode(val, encoding=encoding)
@@ -918,7 +882,7 @@ class DataFrame(NDFrame):
                 else:
                     encoded_cols = list(cols)
 
-                csvout.writerow(encoded_cols)
+                writer.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
         for idx in self.index:
@@ -941,11 +905,84 @@ class DataFrame(NDFrame):
             else:
                 encoded_rows = list(row_fields)
 
-            csvout.writerow(encoded_rows)
+            writer.writerow(encoded_rows)
 
+    def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
+              index=True, index_label=None, mode='w', nanRep=None,
+              encoding=None):
+        """
+        Write DataFrame to a comma-separated values (csv) file
+
+        Parameters
+        ----------
+        path : string
+            File path
+        nanRep : string, default ''
+            Missing data rep'n
+        cols : sequence, optional
+            Columns to write
+        header : boolean, default True
+            Write out column names
+        index : boolean, default True
+            Write row names (index)
+        index_label : string or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+        mode : Python write mode, default 'w'
+        sep : character, default ","
+            Field delimiter for the output file.
+        encoding : string, optional
+            a string representing the encoding to use if the contents are
+            non-ascii, for python versions prior to 3
+        """
+        f = open(path, mode)
+        csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
+
+        if nanRep is not None:  # pragma: no cover
+            import warnings
+            warnings.warn("nanRep is deprecated, use na_rep",
+                          FutureWarning)
+            na_rep = nanRep
+        
+        self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols, header=header,
+                         index=index, index_label=index_label, encoding=encoding)
         f.close()
 
-    @Appender(fmt.docstring_to_string, indents=1)
+    def to_excel(self, excel_writer, sheet_name, na_rep='', cols=None, header=True,
+                 index=True, index_label=None):
+        """
+        Write DataFrame to a excel sheet 
+
+        Parameters
+        ----------
+        excel_writer : string or ExcelWriter object
+            File path or existing ExcelWriter 
+        na_rep : string, default ''
+            Missing data rep'n
+        cols : sequence, optional
+            Columns to write
+        header : boolean, default True
+            Write out column names
+        index : boolean, default True
+            Write row names (index)
+        index_label : string or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+        """
+        from pandas.io.parsers import ExcelWriter
+        needSave = False
+        if isinstance(excel_writer, str):
+            excel_writer = ExcelWriter(excel_writer)
+            needSave = True
+        excel_writer.cur_sheet = sheet_name
+        self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols, header=header,
+                              index=index, index_label=index_label, encoding=None)
+        if needSave:
+            excel_writer.save()
+
+    @Appender(docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=True, nanRep=None,

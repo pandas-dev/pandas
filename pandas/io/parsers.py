@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
+import datetime
 import pandas.core.common as com
 import pandas._tseries as lib
 
@@ -627,3 +628,67 @@ class ExcelFile(object):
                             chunksize=chunksize)
 
         return parser.get_chunk()
+
+class ExcelWriter(object):
+    """
+    Class for writing DataFrame objects into excel sheets, uses xlwt. See
+    ExcelWriter.write for more documentation
+
+    Parameters
+    ----------
+    path : string
+        Path to xls file
+    """
+    def __init__(self, path):
+        import xlwt
+        self.path = path
+        self.book = xlwt.Workbook()
+        self.sheets = {}
+        self.cur_sheet = None
+        self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
+        self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
+
+    def __repr__(self):
+        return object.__repr__(self)
+
+    def save(self):
+        """
+        Save workbook to disk
+        """
+        self.book.save(self.path)
+
+
+    def writerow(self, row, sheet_name=None):
+        """
+        Write the given row into Excel an excel sheet
+
+        Parameters
+        ----------
+        row : list
+            Row of data to save to Excel sheet 
+        sheet_name : string, default None
+            Name of Excel sheet, if None, then use self.cur_sheet
+        """
+        if sheet_name is None:
+            sheet_name = self.cur_sheet
+        if sheet_name is None:
+            raise Exception('Must pass explicit sheet_name or set cur_sheet property')
+        if sheet_name in self.sheets:
+            sheet, row_idx = self.sheets[sheet_name]
+        else:
+            sheet = self.book.add_sheet(sheet_name)
+            row_idx = 0
+        sheetrow = sheet.row(row_idx) 
+        for i, val in enumerate(row):
+            if isinstance(val, (datetime.datetime, datetime.date)):
+                if isinstance(val, datetime.datetime):
+                    sheetrow.write(i,val,self.fm_datetime)
+                else:
+                    sheetrow.write(i,val,self.fm_date)
+            else:
+                sheetrow.write(i,val)
+        row_idx += 1
+        if row_idx == 1000:
+            sheet.flush_row_data()
+        self.sheets[sheet_name] = (sheet, row_idx)
+
