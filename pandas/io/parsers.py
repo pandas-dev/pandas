@@ -3,6 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 """
 from StringIO import StringIO
 import re
+from itertools import izip
 
 import numpy as np
 
@@ -469,7 +470,7 @@ class TextParser(object):
         if len(self.columns) != len(zipped_content):
             raise Exception('wrong number of columns')
 
-        data = dict((k, v) for k, v in zip(self.columns, zipped_content))
+        data = dict((k, v) for k, v in izip(self.columns, zipped_content))
 
         # apply converters
         for col, f in self.converters.iteritems():
@@ -607,7 +608,7 @@ class ExcelFile(object):
         data = []
         for i in range(sheet.nrows):
             row = []
-            for value, typ in zip(sheet.row_values(i), sheet.row_types(i)):
+            for value, typ in izip(sheet.row_values(i), sheet.row_types(i)):
                 if typ == XL_CELL_DATE:
                     dt = xldate_as_tuple(value, datemode)
                     # how to produce this first case?
