@@ -840,6 +840,74 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
+    def _helper_csvexcel(self, writer, na_rep=None, cols=None, header=True,
+                         index=True, index_label=None, encoding=None):
+        if cols is None:
+            cols = self.columns
+
+        series = self._series
+        if header:
+            if index:
+                # should write something for index label
+                if index_label is None:
+                    if isinstance(self.index, MultiIndex):
+                        index_label = []
+                        for i, name in enumerate(self.index.names):
+                            if name is None:
+                                name = 'level_%d' % i
+                            index_label.append(name)
+                    else:
+                        index_label = self.index.name
+                        if index_label is None:
+                            index_label = ['index']
+                        else:
+                            index_label = [index_label]
+                elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                    # given a string for a DF with Index
+                    index_label = [index_label]
+
+                if encoding is not None:
+                    encoded_labels = [csv_encode(val, encoding=encoding)
+                                      for val in index_label]
+                    encoded_cols = [csv_encode(val, encoding=encoding)
+                                    for val in cols]
+                else:
+                    encoded_labels = list(index_label)
+                    encoded_cols = list(cols)
+
+                writer.writerow(encoded_labels + encoded_cols)
+            else:
+                if encoding is not None:
+                    encoded_cols = [csv_encode(val, encoding=encoding)
+                                    for val in cols]
+                else:
+                    encoded_cols = list(cols)
+
+                writer.writerow(encoded_cols)
+
+        nlevels = getattr(self.index, 'nlevels', 1)
+        for idx in self.index:
+            row_fields = []
+            if index:
+                if nlevels == 1:
+                    row_fields = [idx]
+                else: # handle MultiIndex
+                    row_fields = list(idx)
+            for i, col in enumerate(cols):
+                val = series[col].get(idx)
+                if isnull(val):
+                    val = na_rep
+
+                row_fields.append(val)
+
+            if encoding is not None:
+                encoded_rows = [csv_encode(val, encoding=encoding)
+                                for val in row_fields]
+            else:
+                encoded_rows = list(row_fields)
+
+            writer.writerow(encoded_rows)
+
     def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
               index=True, index_label=None, mode='w', nanRep=None,
               encoding=None):
@@ -877,74 +945,43 @@ class DataFrame(NDFrame):
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
-
-        if cols is None:
-            cols = self.columns
-
-        series = self._series
-        if header:
-            if index:
-                # should write something for index label
-                if index_label is None:
-                    if isinstance(self.index, MultiIndex):
-                        index_label = []
-                        for i, name in enumerate(self.index.names):
-                            if name is None:
-                                name = 'level_%d' % i
-                            index_label.append(name)
-                    else:
-                        index_label = self.index.name
-                        if index_label is None:
-                            index_label = ['index']
-                        else:
-                            index_label = [index_label]
-                elif not isinstance(index_label, (list, tuple, np.ndarray)):
-                    # given a string for a DF with Index
-                    index_label = [index_label]
-
-                if encoding is not None:
-                    encoded_labels = [csv_encode(val, encoding=encoding)
-                                      for val in index_label]
-                    encoded_cols = [csv_encode(val, encoding=encoding)
-                                    for val in cols]
-                else:
-                    encoded_labels = list(index_label)
-                    encoded_cols = list(cols)
-
-                csvout.writerow(encoded_labels + encoded_cols)
-            else:
-                if encoding is not None:
-                    encoded_cols = [csv_encode(val, encoding=encoding)
-                                    for val in cols]
-                else:
-                    encoded_cols = list(cols)
-
-                csvout.writerow(encoded_cols)
-
-        nlevels = getattr(self.index, 'nlevels', 1)
-        for idx in self.index:
-            row_fields = []
-            if index:
-                if nlevels == 1:
-                    row_fields = [idx]
-                else: # handle MultiIndex
-                    row_fields = list(idx)
-            for i, col in enumerate(cols):
-                val = series[col].get(idx)
-                if isnull(val):
-                    val = na_rep
-
-                row_fields.append(val)
-
-            if encoding is not None:
-                encoded_rows = [csv_encode(val, encoding=encoding)
-                                for val in row_fields]
-            else:
-                encoded_rows = list(row_fields)
-
-            csvout.writerow(encoded_rows)
-
+        
+        self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols, header=header,
+                         index=index, index_label=index_label, encoding=encoding)
         f.close()
+
+    def to_excel(self, excel_writer, sheet_name, na_rep='', cols=None, header=True,
+                 index=True, index_label=None):
+        """
+        Write DataFrame to a excel sheet 
+
+        Parameters
+        ----------
+        excel_writer : string or ExcelWriter object
+            File path or existing ExcelWriter 
+        na_rep : string, default ''
+            Missing data rep'n
+        cols : sequence, optional
+            Columns to write
+        header : boolean, default True
+            Write out column names
+        index : boolean, default True
+            Write row names (index)
+        index_label : string or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+        """
+        from pandas.io.parsers import ExcelWriter
+        needSave = False
+        if isinstance(excel_writer, str):
+            excel_writer = ExcelWriter(excel_writer)
+            needSave = True
+        excel_writer.cur_sheet = sheet_name
+        self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols, header=header,
+                              index=index, index_label=index_label, encoding=None)
+        if needSave:
+            excel_writer.save()
 
     @Appender(docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
