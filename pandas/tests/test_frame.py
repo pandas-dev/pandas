@@ -1838,6 +1838,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # it works!
         repr(df)
 
+        # it works even if sys.stdin in None
+        sys.stdin = None
+        repr(df)
+        sys.stdin = sys.__stdin__
+
     def test_to_string_unicode_columns(self):
         df = DataFrame({u'\u03c3' : np.arange(10.)})
 
@@ -1848,6 +1853,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         buf = StringIO()
         df.info(buf=buf)
         buf.getvalue()
+
+        result = self.frame.to_string(force_unicode=True)
+        self.assert_(isinstance(result, unicode))
 
     def test_to_string_unicode_two(self):
         dm = DataFrame({u'c/\u03c3': []})
@@ -2489,6 +2497,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df2 = read_csv(path, index_col=0, encoding='UTF-8')
         assert_frame_equal(df, df2)
         os.remove(path)
+
+        df.to_csv(path, index=False, encoding='UTF-8')
 
     def test_info(self):
         io = StringIO()

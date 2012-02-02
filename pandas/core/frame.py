@@ -815,7 +815,7 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        # minor axis must be sorted 
+        # minor axis must be sorted
         if self.index.lexsort_depth < 2:
             selfsorted = self.sortlevel(0)
         else:
@@ -867,7 +867,7 @@ class DataFrame(NDFrame):
             Field delimiter for the output file.
         encoding : string, optional
             a string representing the encoding to use if the contents are
-            non-ascii, for python versions prior to 3
+            non-ascii, for Python 2.x series
         """
         f = open(path, mode)
         csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
@@ -950,7 +950,7 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=True, nanRep=None,
-                  index_names=True, justify='left'):
+                  index_names=True, justify='left', force_unicode=False):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -975,7 +975,7 @@ class DataFrame(NDFrame):
                                        justify=justify,
                                        index_names=index_names,
                                        header=header, index=index)
-        formatter.to_string()
+        formatter.to_string(force_unicode=force_unicode)
 
         if buf is None:
             return formatter.buf.getvalue()
@@ -1522,9 +1522,6 @@ class DataFrame(NDFrame):
                 indexer = loc
 
             result = self.ix[indexer]
-
-            # new_ax = result._get_axis(axis).droplevel(level)
-
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 
@@ -1548,10 +1545,6 @@ class DataFrame(NDFrame):
         else:
             result = self[loc]
             result.index = new_index
-
-            # new_data = self._data.xs(key, axis=1, copy=copy)
-            # result = DataFrame(new_data)
-            # result.index = _maybe_droplevels(result.index, key)
             return result
 
     def lookup(self, row_labels, col_labels):

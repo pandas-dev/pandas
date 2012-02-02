@@ -1514,12 +1514,7 @@ class MultiIndex(Index):
         ----------
         """
         order = [self._get_level_number(i) for i in order]
-        try:
-            assert(set(order) == set(range(self.nlevels)))
-        except AssertionError:
-            raise Exception('New order must be permutation of range(%d)' %
-                            self.nlevels)
-
+        assert(len(order) == self.nlevels)
         new_levels = [self.levels[i] for i in order]
         new_labels = [self.labels[i] for i in order]
         new_names = [self.names[i] for i in order]

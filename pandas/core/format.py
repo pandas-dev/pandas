@@ -1,7 +1,7 @@
 from itertools import izip
 
 from StringIO import StringIO
-from pandas.core.common import adjoin, isnull, _format
+from pandas.core.common import adjoin, _format
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
@@ -38,7 +38,9 @@ docstring_to_string = """
         Left or right-justify the column labels. If None uses the option from
         the configuration in pandas.core.common, 'left' out of the box
     index_names : bool, optional
-        Prints the names of the indexes, default True """
+        Prints the names of the indexes, default True
+    force_unicode : bool, default False
+        Always return a unicode result"""
 
 class SeriesFormatter(object):
 
@@ -214,9 +216,9 @@ class DataFrameFormatter(object):
             if force_unicode:
                 to_write = [unicode(s) for s in to_write]
             else:
-                # generally everything is plain strings, which has ascii encoding.
-                # problem is when there is a char with value over 127 - everything
-                # then gets converted to unicode.
+                # generally everything is plain strings, which has ascii
+                # encoding.  problem is when there is a char with value over 127
+                # - everything then gets converted to unicode.
                 try:
                     for s in to_write:
                         str(s)
@@ -226,8 +228,6 @@ class DataFrameFormatter(object):
         self.buf.writelines(to_write)
 
     def _get_col_formatter(self, dtype):
-        from pandas.core.common import _format
-
         def formatter(x, col_width=None):
             return _format(x, dtype, space=self.col_space,
                            na_rep=self.na_rep,

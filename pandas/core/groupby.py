@@ -301,7 +301,7 @@ class GroupBy(object):
             return self._cython_agg_general('mean')
         except GroupByError:
             raise
-        except Exception:
+        except Exception:  # pragma: no cover
             f = lambda x: x.mean(axis=self.axis)
             return self._python_agg_general(f)
 

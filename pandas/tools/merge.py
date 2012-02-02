@@ -15,7 +15,6 @@ from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 
 from pandas.sparse.frame import SparseDataFrame
-from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
 import pandas._tseries as lib
@@ -300,14 +299,10 @@ def _get_keys(frame, on, drop=False):
             keys.append(frame[k].values)
             names.append(k)
 
-
     if drop:
         frame = frame.copy()
         for k in to_drop:
             del frame[k]
-
-        # this is a bit too expensive...
-        # frame = frame.drop(to_drop, axis=1)
 
     return frame, keys, names
 

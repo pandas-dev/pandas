@@ -23,11 +23,10 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 def get_test_data(ngroups=NGROUPS, n=N):
     unique_groups = range(ngroups)
-    arr = np.asarray(np.tile(unique_groups, n // ngroups), dtype=object)
+    arr = np.asarray(np.tile(unique_groups, n // ngroups))
 
     if len(arr) < n:
-        arr = np.asarray(list(arr) + unique_groups[:n - len(arr)],
-                         dtype=object)
+        arr = np.asarray(list(arr) + unique_groups[:n - len(arr)])
 
     random.shuffle(arr)
     return arr
@@ -184,6 +183,21 @@ class TestMerge(unittest.TestCase):
 
         self.assert_('key1.foo' in joined)
         self.assert_('key2.bar' in joined)
+
+        # result = merge(self.df, self.df2, on='key1')
+        # left_on = self.df['key2'].copy()
+        # left_on.name = 'baz'
+        # right_on = self.df2['key1'].copy()
+        # right_on.name = 'baz'
+
+        # grouped = self.df2.groupby('key1').mean()
+        # self.assert_('key2' in grouped)
+
+        # joined = merge(self.df, grouped, left_on='key1',
+        #                right_index=True, suffixes=['.foo', '.bar'])
+        # foo
+        # self.assert_('key2.foo' in joined)
+        # self.assert_('key2.bar' in joined)
 
     def test_merge_common(self):
         joined = merge(self.df, self.df2)

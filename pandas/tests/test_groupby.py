@@ -6,7 +6,7 @@ from numpy import nan
 
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, MultiIndex
-from pandas.core.common import rands, groupby
+from pandas.core.common import rands
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import GroupByError
 from pandas.core.series import Series
@@ -15,7 +15,6 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
-import pandas._tseries as lib
 import pandas.core.datetools as dt
 import numpy as np
 

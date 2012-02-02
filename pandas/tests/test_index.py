@@ -714,6 +714,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(self.index._get_level_number(0), 1)
         self.assertRaises(Exception, self.index._get_level_number, 2)
 
+        self.assertRaises(Exception, self.index._get_level_number, 'fourth')
+
     def test_from_arrays(self):
         arrays = []
         for lev, lab in zip(self.index.levels, self.index.labels):
@@ -742,6 +744,11 @@ class TestMultiIndex(unittest.TestCase):
         result = self.index.get_level_values('first')
         expected = self.index.get_level_values(0)
         self.assert_(np.array_equal(result, expected))
+
+    def test_reorder_levels(self):
+        # this blows up
+        self.assertRaises(Exception, self.index.reorder_levels,
+                          [2, 1, 0])
 
     def test_nlevels(self):
         self.assertEquals(self.index.nlevels, 2)

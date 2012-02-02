@@ -3,7 +3,7 @@ Misc tools for implementing data structures
 """
 try:
     import cPickle as pickle
-except ImportError:
+except ImportError:  # pragma: no cover
     import pickle
 
 try:
@@ -854,7 +854,7 @@ class UnicodeReader:
     """
     A CSV reader which will iterate over lines in the CSV file "f",
     which is encoded in the given encoding.
-    
+
     On Python 3, this is replaced (below) by csv.reader, which handles unicode.
     """
 
@@ -866,9 +866,9 @@ class UnicodeReader:
         row = self.reader.next()
         return [unicode(s, "utf-8") for s in row]
 
-    def __iter__(self):
+    def __iter__(self):  # pragma: no cover
         return self
 
-if py3compat.PY3:
+if py3compat.PY3:  # pragma: no cover
     UnicodeReader = csv.reader
 

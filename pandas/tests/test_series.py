@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import os
 import operator
 import unittest
-import cStringIO as StringIO
 
 import nose
 
@@ -748,6 +747,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # with NaNs
         self.series[5:7] = np.NaN
         str(self.series)
+
+        # with Nones
+        ots = self.ts.astype('O')
+        ots[::2] = None
+        repr(ots)
 
         # tuple name, e.g. from hierarchical index
         self.series.name = ('foo', 'bar', 'baz')
