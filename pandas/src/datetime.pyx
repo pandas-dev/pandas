@@ -9,7 +9,7 @@ from libc.math cimport floor
 
 # this is our datetime.pxd
 from datetime cimport *
-from util cimport is_integer_object
+from util cimport is_integer_object, is_datetime64_object
 
 # initialize numpy
 np.import_array()
@@ -33,23 +33,18 @@ ctypedef enum time_res:
     r_max = 98
     r_invalid = 99
 
-# Objects to support date/time arithmetic
-# --------------------------------------------------------------------------------
-
-cdef class Timestamp:
-    """
-    A timestamp (absolute moment in time) to microsecond resolution; number of
-    microseconds since the POSIX epoch, ignoring leap seconds (thereby different
-    from UTC).
-    """
+cdef class Timestamp(object):
+    # defined in header
     cdef:
-        int64_t value
-        npy_datetimestruct dts
+        datetime dtval      # datetime repr; normally would derive, just wrap
+        int64_t value       # numpy dt64
+        object freq         # dateoffset object
 
-    def __init__(self, object ts):
+    def __init__(self, object ts, object freq=None):
         """
         Construct a timestamp that is datetime64-compatible from any of:
-            - int64 pyarray scalar object
+            - np.int64
+            - np.datetime64
             - python int or long object
             - iso8601 string object
             - python datetime object
@@ -59,135 +54,59 @@ cdef class Timestamp:
             Py_ssize_t strlen
             npy_bool islocal, special
             NPY_DATETIMEUNIT out_bestunit
+            npy_datetimestruct dts
+            Timestamp tmp
 
-        if is_integer_object(ts) or PyInt_Check(ts) or PyLong_Check(ts):
+        self.freq = freq
+
+        # pretty expensive - faster way to access as i8?
+        if is_datetime64_object(ts):
+            self.value = ts.view('i8')
+            PyArray_DatetimeToDatetimeStruct(self.value, NPY_FR_us, &dts)
+            self.dtval = <object>PyDateTime_FromDateAndTime(
+                                dts.year, dts.month,
+                                dts.day, dts.hour,
+                                dts.min, dts.sec, dts.us)
+        # this is cheap
+        elif is_integer_object(ts) or PyInt_Check(ts) or PyLong_Check(ts):
             self.value = ts
-            PyArray_DatetimeToDatetimeStruct(self.value, NPY_FR_us, &self.dts)
+            PyArray_DatetimeToDatetimeStruct(self.value, NPY_FR_us, &dts)
+            self.dtval = <object>PyDateTime_FromDateAndTime(
+                                dts.year, dts.month,
+                                dts.day, dts.hour,
+                                dts.min, dts.sec, dts.us)
+        # this is pretty cheap
         elif PyString_Check(ts):
+            # we might want to fall back on dateutil parser?
             parse_iso_8601_datetime(ts, len(ts), NPY_FR_us, NPY_UNSAFE_CASTING,
-                                    &self.dts, &islocal, &out_bestunit, &special)
-            self.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &self.dts)
+                                    &dts, &islocal, &out_bestunit, &special)
+            self.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+            self.dtval = <object>PyDateTime_FromDateAndTime(
+                                dts.year, dts.month,
+                                dts.day, dts.hour,
+                                dts.min, dts.sec, dts.us)
+        # pretty cheap
         elif PyDateTime_Check(ts):
-            convert_pydatetime_to_datetimestruct(<PyObject *>ts, &self.dts,
-                                                 &out_bestunit, 1)
-            self.value = PyArray_DatetimeStructToDatetime(out_bestunit, &self.dts)
+            self.dtval = ts
+            # to do this is expensive (10x other constructors)
+            # convert_pydatetime_to_datetimestruct(<PyObject *>ts, &dts,
+            #                                     &out_bestunit, 0)
+            dts.year = PyDateTime_GET_YEAR(ts)
+            dts.month = PyDateTime_GET_MONTH(ts)
+            dts.day = PyDateTime_GET_DAY(ts)
+            dts.hour = PyDateTime_DATE_GET_HOUR(ts)
+            dts.min = PyDateTime_DATE_GET_MINUTE(ts)
+            dts.sec = PyDateTime_DATE_GET_SECOND(ts)
+            dts.us = PyDateTime_DATE_GET_MICROSECOND(ts)
+            self.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+        # pretty cheap
+        elif isinstance(ts, Timestamp):
+            tmp = ts
+            self.value = tmp.value
+            self.dtval = tmp.dtval
+            self.freq = tmp.freq
         else:
-            raise ValueError("Could not construct Timestamp from argument")
-
-    def __repr__(self):
-        return "Timestamp(%d)" % self.value
-
-    def __hash__(self):
-        return hash(self.value)
-
-    def __sub__(self, object other):
-        """
-        Subtract two timestamps, results in an duration.
-        """
-        if isinstance(other, Timestamp):
-            return self.value - other.asint
-        elif isinstance(other, Delta):
-            return other.__sub__(self)
-        else:
-            raise NotImplementedError("Sub operation not supported")
-
-    def __richcmp__(Timestamp self, object other, int op):
-        if not isinstance(other, Timestamp):
-            raise ValueError("Cannot compare to non-Timestamp")
-
-        if op == 0:
-            return self.value < other.asint
-        if op == 2:
-            return self.value == other.asint
-        if op == 4:
-            return self.value > other.asint
-        if op == 1:
-            return self.value <= other.asint
-        if op == 3:
-            return self.value != other.asint
-        if op == 5:
-            return self.value >= other.asint
-
-        raise NotImplementedError("Op %d not recognized" % op)
-
-    def __add__(self, object other):
-        """
-        Add an Interval, Duration, or Period to the Timestamp, resulting in
-        new Timestamp.
-        """
-        if isinstance(other, Duration):
-            return Timestamp(self.asint + other.length)
-        elif isinstance(other, Delta):
-            return other.__add__(self)
-        else:
-            raise NotImplementedError("Add operation not supported")
-
-    def __str__(self):
-        """
-        Output ISO8601 format string representation of timestamp.
-        """
-        cdef:
-            int outlen
-            char *isostr
-            bytes py_str
-
-        outlen = get_datetime_iso_8601_strlen(0, NPY_FR_us)
-
-        isostr = <char *>malloc(outlen)
-        make_iso_8601_datetime(&self.dts, isostr, outlen, 0, NPY_FR_us,
-                               0, NPY_UNSAFE_CASTING)
-        py_str = isostr
-        free(isostr)
-
-        return py_str
-
-    def replace(Timestamp self, int year=-1, int month=-1, int day=-1,
-                                int hour=-1, int minute=-1, int second=-1,
-                                int microsecond=-1):
-        cdef:
-            npy_datetimestruct dts
-
-        dts = self.dts
-
-        if year >= 0:
-            dts.year = year
-        if month >= 1:
-            dts.month = month
-        if day >= 1:
-            dts.day = day
-        if hour >= 0:
-            dts.hour = hour
-        if minute >= 0:
-            dts.min = minute
-        if second >= 0:
-            dts.sec = second
-        if microsecond >= 0:
-            dts.us = microsecond
-
-        return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
-
-    cdef normalize(Timestamp self, time_res res):
-        cdef:
-            npy_datetimestruct dts
-
-        dts = self.dts
-
-        if res > r_microsecond:
-            dts.us = 0
-        if res > r_second:
-            dts.sec = 0
-        if res > r_minute:
-            dts.min = 0
-        if res > r_hour:
-            dts.hour = 0
-        if res > r_day:
-            dts.day = 1
-        if res > r_month:
-            dts.month = 1
-        if res > r_year:
-            raise ValueError("Invalid resolution")
-
-        return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
+            raise ValueError("Could not construct Timestamp from argument %s" % type(ts))
 
     property asint:
         def __get__(Timestamp self):
@@ -195,34 +114,300 @@ cdef class Timestamp:
 
     property year:
         def __get__(Timestamp self):
-            return self.dts.year
+            return self.dtval.year
 
     property month:
         def __get__(Timestamp self):
-            return self.dts.month
+            return self.dtval.month
 
     property day:
         def __get__(Timestamp self):
-            return self.dts.day
+            return self.dtval.day
 
     property hour:
         def __get__(Timestamp self):
-            return self.dts.hour
+            return self.dtval.hour
 
     property minute:
         def __get__(Timestamp self):
-            return self.dts.min
+            return self.dtval.minute
 
     property second:
         def __get__(Timestamp self):
-            return self.dts.sec
+            return self.dtval.second
 
     property microsecond:
         def __get__(Timestamp self):
-            return self.dts.us
+            return self.dtval.microsecond
+
+    property tzinfo:
+        def __get__(Timestamp self):
+            return self.dtval.tzinfo
+
+    def replace(Timestamp self, *args, **kwargs):
+        return Timestamp(self.dtval.replace(*args, **kwargs))
+
+    def __richcmp__(self, object other, int op):
+        cdef:
+            Timestamp tmp
+
+        if not isinstance(other, Timestamp):
+            other = Timestamp(other)
+
+        if not isinstance(self, Timestamp):
+            tmp = Timestamp(self)
+        else:
+            tmp = self
+
+        if op == 0:
+            return tmp.value < other.asint
+        if op == 2:
+            return tmp.value == other.asint
+        if op == 4:
+            return tmp.value > other.asint
+        if op == 1:
+            return tmp.value <= other.asint
+        if op == 3:
+            return tmp.value != other.asint
+        if op == 5:
+            return tmp.value >= other.asint
+
+        raise NotImplementedError("Op %d not recognized" % op)
+
+    def __add__(self, other):
+        cdef:
+            Timestamp tmp
+
+        if isinstance(self, Timestamp):
+            tmp = self
+            result = tmp.dtval + other
+        else:
+            tmp = other
+            result = tmp.dtval + self
+
+        return Timestamp(result)
+
+    def __sub__(self, other):
+        cdef:
+            Timestamp tmp
+
+        if isinstance(self, Timestamp):
+            tmp = self
+            result = tmp.dtval - other
+        else:
+            tmp = other
+            result = tmp.dtval - self
+
+        return Timestamp(result)
+
+    def __hash__(Timestamp self):
+        return self.value
+
+    def __str__(Timestamp self):
+        return self.dtval.__str__()
+
+    def __repr__(Timestamp self):
+        return 'Timestamp(%s)' % self.dtval.__repr__()
+
+    def strftime(Timestamp self, object fmtstr):
+        return self.dtval.strftime(fmtstr)
 
     def weekday(Timestamp self):
-        return dayofweek(self.dts.year, self.dts.month, self.dts.day)
+        return dayofweek(self.dtval.year, self.dtval.month, self.dtval.day)
+
+    #def __getattr__(self, object attrib):
+    #    return getattr(self.dtval, attrib)
+
+# Objects to support date/time arithmetic
+# --------------------------------------------------------------------------------
+
+#cdef class Timestamp:
+#    """
+#    A timestamp (absolute moment in time) to microsecond resolution; number of
+#    microseconds since the POSIX epoch, ignoring leap seconds (thereby different
+#    from UTC).
+#    """
+#    cdef:
+#        int64_t value
+#        npy_datetimestruct dts
+
+#    def __init__(self, object ts):
+#        """
+#        Construct a timestamp that is datetime64-compatible from any of:
+#            - int64 pyarray scalar object
+#            - python int or long object
+#            - iso8601 string object
+#            - python datetime object
+#            - another timestamp object
+#        """
+#        cdef:
+#            Py_ssize_t strlen
+#            npy_bool islocal, special
+#            NPY_DATETIMEUNIT out_bestunit
+
+#        if is_integer_object(ts) or PyInt_Check(ts) or PyLong_Check(ts):
+#            self.value = ts
+#            PyArray_DatetimeToDatetimeStruct(self.value, NPY_FR_us, &self.dts)
+#        elif PyString_Check(ts):
+#            parse_iso_8601_datetime(ts, len(ts), NPY_FR_us, NPY_UNSAFE_CASTING,
+#                                    &self.dts, &islocal, &out_bestunit, &special)
+#            self.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &self.dts)
+#        elif PyDateTime_Check(ts):
+#            convert_pydatetime_to_datetimestruct(<PyObject *>ts, &self.dts,
+#                                                 &out_bestunit, 1)
+#            self.value = PyArray_DatetimeStructToDatetime(out_bestunit, &self.dts)
+#        else:
+#            raise ValueError("Could not construct Timestamp from argument")
+
+#    def __repr__(self):
+#        return "Timestamp(%d)" % self.value
+
+#    def __hash__(self):
+#        return hash(self.value)
+
+#    def __sub__(self, object other):
+#        """
+#        Subtract two timestamps, results in an duration.
+#        """
+#        if isinstance(other, Timestamp):
+#            return self.value - other.asint
+#        elif isinstance(other, Delta):
+#            return other.__sub__(self)
+#        else:
+#            raise NotImplementedError("Sub operation not supported")
+
+#    def __richcmp__(Timestamp self, object other, int op):
+#        if not isinstance(other, Timestamp):
+#            raise ValueError("Cannot compare to non-Timestamp")
+
+#        if op == 0:
+#            return self.value < other.asint
+#        if op == 2:
+#            return self.value == other.asint
+#        if op == 4:
+#            return self.value > other.asint
+#        if op == 1:
+#            return self.value <= other.asint
+#        if op == 3:
+#            return self.value != other.asint
+#        if op == 5:
+#            return self.value >= other.asint
+
+#        raise NotImplementedError("Op %d not recognized" % op)
+
+#    def __add__(self, object other):
+#        """
+#        Add an Interval, Duration, or Period to the Timestamp, resulting in
+#        new Timestamp.
+#        """
+#        if isinstance(other, Duration):
+#            return Timestamp(self.asint + other.length)
+#        elif isinstance(other, Delta):
+#            return other.__add__(self)
+#        else:
+#            raise NotImplementedError("Add operation not supported")
+
+#    def __str__(self):
+#        """
+#        Output ISO8601 format string representation of timestamp.
+#        """
+#        cdef:
+#            int outlen
+#            char *isostr
+#            bytes py_str
+
+#        outlen = get_datetime_iso_8601_strlen(0, NPY_FR_us)
+
+#        isostr = <char *>malloc(outlen)
+#        make_iso_8601_datetime(&self.dts, isostr, outlen, 0, NPY_FR_us,
+#                               0, NPY_UNSAFE_CASTING)
+#        py_str = isostr
+#        free(isostr)
+
+#        return py_str
+
+#    def replace(Timestamp self, int year=-1, int month=-1, int day=-1,
+#                                int hour=-1, int minute=-1, int second=-1,
+#                                int microsecond=-1):
+#        cdef:
+#            npy_datetimestruct dts
+
+#        dts = self.dts
+
+#        if year >= 0:
+#            dts.year = year
+#        if month >= 1:
+#            dts.month = month
+#        if day >= 1:
+#            dts.day = day
+#        if hour >= 0:
+#            dts.hour = hour
+#        if minute >= 0:
+#            dts.min = minute
+#        if second >= 0:
+#            dts.sec = second
+#        if microsecond >= 0:
+#            dts.us = microsecond
+
+#        return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
+
+#    cdef normalize(Timestamp self, time_res res):
+#        cdef:
+#            npy_datetimestruct dts
+
+#        dts = self.dts
+
+#        if res > r_microsecond:
+#            dts.us = 0
+#        if res > r_second:
+#            dts.sec = 0
+#        if res > r_minute:
+#            dts.min = 0
+#        if res > r_hour:
+#            dts.hour = 0
+#        if res > r_day:
+#            dts.day = 1
+#        if res > r_month:
+#            dts.month = 1
+#        if res > r_year:
+#            raise ValueError("Invalid resolution")
+
+#        return Timestamp(PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts))
+
+#    property asint:
+#        def __get__(Timestamp self):
+#            return self.value
+
+#    property year:
+#        def __get__(Timestamp self):
+#            return self.dts.year
+
+#    property month:
+#        def __get__(Timestamp self):
+#            return self.dts.month
+
+#    property day:
+#        def __get__(Timestamp self):
+#            return self.dts.day
+
+#    property hour:
+#        def __get__(Timestamp self):
+#            return self.dts.hour
+
+#    property minute:
+#        def __get__(Timestamp self):
+#            return self.dts.min
+
+#    property second:
+#        def __get__(Timestamp self):
+#            return self.dts.sec
+
+#    property microsecond:
+#        def __get__(Timestamp self):
+#            return self.dts.us
+
+#    def weekday(Timestamp self):
+#        return dayofweek(self.dts.year, self.dts.month, self.dts.day)
 
 
 cdef class Duration:
@@ -821,32 +1006,21 @@ def pydt_to_i8(object pydt):
     numpy datetime64; converts to UTC
     '''
     cdef:
-        npy_datetimestruct dts
-        NPY_DATETIMEUNIT out_bestunit
+        Timestamp ts
 
-    if PyDateTime_Check(pydt):
-        # TODO: this function can prob be optimized
-        convert_pydatetime_to_datetimestruct(<PyObject *>pydt, &dts,
-                                             &out_bestunit, 1)
+    if (not PyDateTime_Check(pydt) and
+        not isinstance(pydt, Timestamp)):
+        raise ValueError("Expected a timestamp, received a %s" % type(pydt))
 
-        return PyArray_DatetimeStructToDatetime(out_bestunit, &dts)
+    ts = Timestamp(pydt)
 
-    raise ValueError("Expected a datetime, received a %s" % type(pydt))
+    return ts.value
 
 def i8_to_pydt(int64_t i8, object tzinfo = None):
     '''
     Inverse of pydt_to_i8
     '''
-    cdef:
-        npy_datetimestruct dts
-        object result
-
-    PyArray_DatetimeToDatetimeStruct(i8, NPY_FR_us, &dts)
-
-    result = <object>PyDateTime_FromDateAndTime(dts.year, dts.month, dts.day,
-                                                dts.hour, dts.min, dts.sec, dts.us)
-
-    return result
+    return Timestamp(i8)
 
 
 # Accessors

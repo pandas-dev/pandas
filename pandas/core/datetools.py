@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import sys
 import numpy as np
 import pandas._tseries as lib
-import pandas._datetime as dtlib
 
 try:
     import dateutil
@@ -28,38 +27,42 @@ import calendar
 _unbox_cache = dict()
 def _dt_unbox(key):
     '''
-    Unbox python datetime to datetime64
+    Unbox Timestamp to datetime64
     '''
     try:
         return _unbox_cache[key]
     except KeyError:
-        _unbox_cache[key] = np.datetime64(dtlib.pydt_to_i8(key))
+        _unbox_cache[key] = np.datetime64(lib.pydt_to_i8(key))
         return _unbox_cache[key]
+
+def _dt_unbox_array(arr):
+    unboxer = np.frompyfunc(_dt_unbox, 1, 1)
+    return unboxer(arr).astype('M8[us]')
 
 _box_cache = dict()
 def _dt_box(key):
     '''
-    Box datetime64 to python datetime
+    Box datetime64 to Timestamp
     '''
     try:
         return _box_cache[key]
     except KeyError:
-        _box_cache[key] = dtlib.i8_to_pydt(key.view('i8'))
+        _box_cache[key] = lib.Timestamp(key.view('i8'))
         return _box_cache[key]
 
-dtdtype = [('Y', '>i4'), # year
-           ('M', '>i4'), # month
-           ('D', '>i4'), # day
-           ('h', '>i4'), # hour
-           ('m', '>i4'), # min
-           ('s', '>i4'), # second
-           ('u', '>i4')] # microsecond
+#dtdtype = [('Y', '>i4'), # year
+#           ('M', '>i4'), # month
+#           ('D', '>i4'), # day
+#           ('h', '>i4'), # hour
+#           ('m', '>i4'), # min
+#           ('s', '>i4'), # second
+#           ('u', '>i4')] # microsecond
 
-def _dt_arr_to_sarr(arr):
-    return np.array(map(lambda x: (x.year, x.month, x.day, x.hour,
-                                   x.minute, x.second, x.microsecond),
-                        arr),
-                    dtype=dtdtype)
+#def _dt_arr_to_sarr(arr):
+#    return np.array(map(lambda x: (x.year, x.month, x.day, x.hour,
+#                                   x.minute, x.second, x.microsecond),
+#                        arr),
+#                    dtype=dtdtype)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -79,21 +82,23 @@ def ole2datetime(oledt):
     if val < 61:
         raise Exception("Value is outside of acceptable range: %s " % val)
 
-    return OLE_TIME_ZERO + timedelta(days=val)
+    return lib.Timestamp(OLE_TIME_ZERO + timedelta(days=val))
 
 def to_datetime(arg):
     """Attempts to convert arg to datetime"""
-    if arg is None or isinstance(arg, datetime):
+    if arg is None:
         return arg
+    elif isinstance(arg, datetime):
+        return lib.Timestamp(arg)
     try:
-        return parser.parse(arg)
+        return lib.Timestamp(parser.parse(arg))
     except Exception:
         return arg
 
 def normalize_date(dt):
     if isinstance(dt, np.datetime64):
         dt = _dt_box(dt)
-    return datetime(dt.year, dt.month, dt.day)
+    return lib.Timestamp(datetime(dt.year, dt.month, dt.day))
 
 #-------------------------------------------------------------------------------
 # DateOffset
@@ -302,7 +307,7 @@ class BDay(DateOffset, CacheableOffset):
         return (self.n == 1)
 
     def apply(self, other):
-        if isinstance(other, datetime):
+        if isinstance(other, (datetime, lib.Timestamp)):
             n = self.n
 
             if n == 0 and other.weekday() > 4:
@@ -317,7 +322,8 @@ class BDay(DateOffset, CacheableOffset):
                     n -= k
 
             if self.normalize:
-                result = datetime(result.year, result.month, result.day)
+                result = lib.Timestamp(datetime(result.year, result.month, 
+                                                result.day))
 
             if self.offset:
                 result = result + self.offset
@@ -489,7 +495,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
 
     def getOffsetOfMonth(self, someDate):
         w = Week(weekday=self.weekday)
-        d = datetime(someDate.year, someDate.month, 1)
+        d = lib.Timestamp(datetime(someDate.year, someDate.month, 1))
 
         d = w.rollforward(d)
 
@@ -629,7 +635,7 @@ class BYearEnd(DateOffset, CacheableOffset):
         other = other + relativedelta(years=years)
 
         _, days_in_month = calendar.monthrange(other.year, self.month)
-        result = datetime(other.year, self.month, days_in_month)
+        result = lib.Timestamp(datetime(other.year, self.month, days_in_month))
 
         if result.weekday() > 4:
             result = result - BDay()
@@ -643,7 +649,7 @@ class YearEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
         if other.month != 12 or other.day != 31:
-            other = datetime(other.year - 1, 12, 31)
+            other = lib.Timestamp(datetime(other.year - 1, 12, 31))
             if n <= 0:
                 n = n + 1
         other = other + relativedelta(years=n)
@@ -661,7 +667,7 @@ class YearBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
         if other.month != 1 or other.day != 1:
-            other = datetime(other.year, 1, 1)
+            other = lib.Timestamp(datetime(other.year, 1, 1))
             if n <= 0:
                 n = n + 1
         other = other + relativedelta(years = n, day=1)
@@ -687,7 +693,7 @@ class Tick(DateOffset):
         return self._delta
 
     def apply(self, other):
-        if isinstance(other, (datetime, timedelta)):
+        if isinstance(other, (datetime, timedelta, lib.Timestamp)):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)

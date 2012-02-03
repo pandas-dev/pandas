@@ -1,4 +1,4 @@
-# pylint: disable=E1101,E1103
+# pylint: disable=E1101,E110a
 
 from datetime import datetime
 import operator
@@ -7,7 +7,8 @@ import numpy as np
 
 from pandas.core.index import DatetimeIndex
 import pandas.core.datetools as datetools
-from pandas.core.datetools import _dt_box
+from pandas.core.datetools import _dt_box, _dt_unbox_array
+from pandas._tseries import Timestamp
 
 __all__ = ['DateRange']
 
@@ -22,8 +23,8 @@ def _bin_op(op):
 
     return f
 
-_CACHE_START = datetime(1950, 1, 1)
-_CACHE_END   = datetime(2030, 1, 1)
+_CACHE_START = Timestamp(datetime(1950, 1, 1))
+_CACHE_END   = Timestamp(datetime(2030, 1, 1))
 
 _daterange_cache = {}
 
@@ -70,11 +71,11 @@ class DateRange(DatetimeIndex):
         end = datetools.to_datetime(end)
 
         if (start is not None
-            and not isinstance(start, (datetime, np.datetime64))):
+            and not isinstance(start, (datetime, np.datetime64, Timestamp))):
             raise ValueError('Failed to convert %s to datetime' % start)
 
         if (end is not None
-            and not isinstance(end, (datetime, np.datetime64))):
+            and not isinstance(end, (datetime, np.datetime64, Timestamp))):
             raise ValueError('Failed to convert %s to datetime' % end)
 
         # inside cache range. Handle UTC case
@@ -97,7 +98,7 @@ class DateRange(DatetimeIndex):
         if tzinfo is not None:
             index = [d.replace(tzinfo=tzinfo) for d in index]
 
-        index = np.array(index, dtype='M8[us]', copy=False)
+        index = np.array(_dt_unbox_array(index), dtype='M8[us]', copy=False)
         index = index.view(cls)
         index.name = name
         index.offset = offset
@@ -142,6 +143,10 @@ class DateRange(DatetimeIndex):
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
                       time_rule=None, name=None):
+        if start is not None:
+            start = Timestamp(start)
+        if end is not None:
+            end = Timestamp(end)
 
         # HACK: fix this dependency later
         if time_rule is not None:
@@ -152,7 +157,8 @@ class DateRange(DatetimeIndex):
 
         if offset not in _daterange_cache:
             xdr = generate_range(_CACHE_START, _CACHE_END, offset=offset)
-            arr = np.array(list(xdr), dtype='M8[us]', copy=False)
+            arr = np.array(_dt_unbox_array(list(xdr)), 
+                           dtype='M8[us]', copy=False)
 
             cachedRange = arr.view(DateRange)
             cachedRange.offset = offset

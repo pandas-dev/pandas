@@ -450,6 +450,7 @@ def has_infs_f8(ndarray[float64_t] arr):
 #             return obj
 #         return self.factory(obj)
 
+include "datetime.pyx"
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"

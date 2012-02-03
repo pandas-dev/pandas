@@ -11,14 +11,13 @@ from pandas.core.datetools import (
 
 from nose.tools import assert_raises
 
-import pandas._datetime as dtlib
-from pandas._datetime import Timestamp, Delta
+import pandas._tseries as lib
 
 def test_monthrange():
     import calendar
     for y in range(2000,2013):
         for m in range(1,13):
-            assert dtlib.monthrange(y,m) == calendar.monthrange(y,m)
+            assert lib.monthrange(y,m) == calendar.monthrange(y,m)
 
 ####
 ## Misc function tests

@@ -8,11 +8,10 @@ import numpy as np
 from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
                                 _is_bool_indexer, _asarray_tuplesafe,
                                 is_iterator)
-from pandas.core.datetools import _dt_box, _dt_unbox
+from pandas.core.datetools import _dt_box, _dt_unbox, _dt_unbox_array
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
 import pandas._engines as _gin
-import pandas._datetime as _dt
 
 from datetime import datetime
 
@@ -77,10 +76,14 @@ class Index(np.ndarray):
             # other iterable of some kind
             subarr = _asarray_tuplesafe(data, dtype=object)
 
-        if (dtype is None
-            and (lib.is_datetime_array(subarr)
-                 or lib.is_datetime64_array(subarr))):
-            return DatetimeIndex(subarr.astype('M8[us]'), name=name)
+        if dtype is None:
+            if (lib.is_datetime_array(subarr) or 
+                lib.is_datetime64_array(subarr)):
+                return DatetimeIndex(subarr.astype('M8[us]'), name=name)
+
+            elif lib.is_timestamp_array(subarr):
+                return DatetimeIndex(_dt_unbox_array(subarr).astype('M8[us]'), 
+                                    name=name)
 
         if lib.is_integer_array(subarr) and dtype is None:
             return Int64Index(subarr.astype('i8'), name=name)
@@ -98,7 +101,7 @@ class Index(np.ndarray):
 
     @property
     def year(self):
-        return _dt.fast_field_accessor2(self.values, 'Y')
+        return lib.fast_field_accessor2(self.values, 'Y')
 
     @property
     def dtype(self):
@@ -988,13 +991,6 @@ def _wrap_dt_function(f):
         return f(*view_args, **kwargs)
     return wrapper
 
-def _wrap_dt_function(f):
-    @staticmethod
-    def wrapper(*args, **kwargs):
-        view_args = [_dt_index_box(arg) for arg in args]
-        return f(*view_args, **kwargs)
-    return wrapper
-
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
     def wrapper(left, right):
@@ -1125,31 +1121,31 @@ class DatetimeIndex(Int64Index):
 
     @property
     def year(self):
-        return _dt.fast_field_accessor(self.values.view('i8'), 'Y')
+        return lib.fast_field_accessor(self.values.view('i8'), 'Y')
 
     @property
     def month(self):
-        return _dt.fast_field_accessor(self.values.view('i8'), 'M')
+        return lib.fast_field_accessor(self.values.view('i8'), 'M')
 
     @property
     def day(self):
-        return _dt.fast_field_accessor(self.values.view('i8'), 'D')
+        return lib.fast_field_accessor(self.values.view('i8'), 'D')
 
     @property
     def hour(self):
-        return _dt.fast_field_accessor(self.values.view('i8'), 'h')
+        return lib.fast_field_accessor(self.values.view('i8'), 'h')
 
     @property
     def minute(self):
-        return _dt.fast_field_accessor(self.values.view('i8'), 'm')
+        return lib.fast_field_accessor(self.values.view('i8'), 'm')
 
     @property
     def second(self):
-        return _dt.fast_field_accessor(self.values.view('i8'), 's')
+        return lib.fast_field_accessor(self.values.view('i8'), 's')
 
     @property
     def microsecond(self):
-        return _dt.fast_field_accessor(self.values.view('i8'), 'us')
+        return lib.fast_field_accessor(self.values.view('i8'), 'us')
 
     def __iter__(self):
         # TODO: expose elements as nice datetime objects so you can do obj.year
@@ -1160,8 +1156,8 @@ class DatetimeIndex(Int64Index):
         """
         Workaround numpy coredump in searchsorted
         """
-        if isinstance(key, datetime):
-            key = _dt_unbox(key)
+        if isinstance(key, (datetime, lib.Timestamp)):
+            key = _dt_unbox(lib.Timestamp(key))
         elif isinstance(key, np.ndarray):
             key = np.array(key, dtype='M8[us]', copy=False)
         elif not isinstance(key, np.datetime64):
@@ -2090,7 +2086,7 @@ class MultiIndex(Index):
         -------
         truncated : MultiIndex
         """
-        if after and before and after < before:
+        if after and before and before > after:
             raise ValueError('after < before')
 
         i, j = self.levels[0].slice_locs(before, after)

@@ -94,4 +94,3 @@ cdef extern from "np_datetime_strings.h":
 
 cdef extern from "stdint.h":
     enum: INT64_MIN
-

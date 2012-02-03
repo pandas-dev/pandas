@@ -345,7 +345,9 @@ else:
 
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                        sources=[srcpath('tseries', suffix=suffix)],
+                        sources=[srcpath('tseries', suffix=suffix),
+                                 'pandas/src/np_datetime.c',
+                                 'pandas/src/np_datetime_strings.c'],
                         include_dirs=[np.get_include()],
                         pyrex_gdb=True,
                         # extra_compile_args=['-Wconversion']
@@ -364,12 +366,6 @@ sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
-datetime_ext = Extension('pandas._datetime',
-                         sources=[srcpath('datetime', suffix=suffix),
-                                          'pandas/src/np_datetime.c',
-                                          'pandas/src/np_datetime_strings.c'],
-                         include_dirs=[np.get_include(),
-                                       'pandas/src/timeseries'])
 skts_ext = Extension('pandas._skts',
                      sources= [os.path.join('pandas/src/timeseries', x)
                                for x in ('c_lib.c',
@@ -384,7 +380,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext, datetime_ext, skts_ext]
+extensions = [tseries_ext, engines_ext, sparse_ext, skts_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
