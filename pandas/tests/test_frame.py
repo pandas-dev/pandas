@@ -18,6 +18,7 @@ import pandas.core.datetools as datetools
 from pandas.core.index import NULL_INDEX
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex)
+from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -2488,6 +2489,40 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.to_csv(path, encoding='UTF-8')
         df2 = read_csv(path, index_col=0, encoding='UTF-8')
         assert_frame_equal(df, df2)
+        os.remove(path)
+
+    def test_to_excel_from_excel(self):
+        path = '__tmp__.xls'
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        # test roundtrip
+        self.frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.frame, recons)
+
+        self.tsframe.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.tsframe, recons)
+
+        # Test writing to separate sheets
+        writer = ExcelWriter(path)
+        self.frame.to_excel(writer,'test1')
+        self.tsframe.to_excel(writer,'test2')
+        writer.save()
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.frame, recons)
+        recons = reader.parse('test2',index_col=0)
+        assert_frame_equal(self.tsframe, recons)
+
         os.remove(path)
 
     def test_info(self):
