@@ -2308,6 +2308,51 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_excel_multiindex(self):
+        path = '__tmp__.xls'
+
+        frame = self.frame
+        old_index = frame.index
+        arrays = np.arange(len(old_index)*2).reshape(2,-1)
+        new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
+        frame.index = new_index
+        frame.to_excel(path, 'test1', header=False)
+        frame.to_excel(path, 'test1', cols=['A', 'B'])
+
+        # round trip
+        frame.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        df = reader.parse('test1', index_col=[0,1], parse_dates=False)
+        assert_frame_equal(frame, df)
+        self.assertEqual(frame.index.names, df.index.names)
+        self.frame.index = old_index # needed if setUP becomes a classmethod
+
+        # try multiindex with dates
+        tsframe = self.tsframe
+        old_index = tsframe.index
+        new_index = [old_index, np.arange(len(old_index))]
+        tsframe.index = MultiIndex.from_arrays(new_index)
+
+        tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=[0,1])
+        assert_frame_equal(tsframe, recons)
+
+        # do not load index
+        tsframe.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=None)
+        np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
+
+        # no index
+        tsframe.to_excel(path, 'test1', index=False)
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=None)
+        assert_almost_equal(recons.values, self.tsframe.values)
+        self.tsframe.index = old_index # needed if setUP becomes classmethod
+
+        os.remove(path)
+
     def test_to_excel2007_from_excel2007(self):
         path = '__tmp__.xlsx'
 
@@ -2346,6 +2391,51 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(self.frame, recons)
         recons = reader.parse('test2',index_col=0)
         assert_frame_equal(self.tsframe, recons)
+
+        os.remove(path)
+
+    def test_to_excel2007_multiindex(self):
+        path = '__tmp__.xlsx'
+
+        frame = self.frame
+        old_index = frame.index
+        arrays = np.arange(len(old_index)*2).reshape(2,-1)
+        new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
+        frame.index = new_index
+        frame.to_excel(path, 'test1', header=False)
+        frame.to_excel(path, 'test1', cols=['A', 'B'])
+
+        # round trip
+        frame.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        df = reader.parse('test1', index_col=[0,1], parse_dates=False)
+        assert_frame_equal(frame, df)
+        self.assertEqual(frame.index.names, df.index.names)
+        self.frame.index = old_index # needed if setUP becomes a classmethod
+
+        # try multiindex with dates
+        tsframe = self.tsframe
+        old_index = tsframe.index
+        new_index = [old_index, np.arange(len(old_index))]
+        tsframe.index = MultiIndex.from_arrays(new_index)
+
+        tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=[0,1])
+        assert_frame_equal(tsframe, recons)
+
+        # do not load index
+        tsframe.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=None)
+        np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
+
+        # no index
+        tsframe.to_excel(path, 'test1', index=False)
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=None)
+        assert_almost_equal(recons.values, self.tsframe.values)
+        self.tsframe.index = old_index # needed if setUP becomes classmethod
 
         os.remove(path)
 
