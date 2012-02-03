@@ -16,6 +16,7 @@ from pandas.core.series import remove_na
 import pandas.core.common as com
 import pandas.core.panel as panelmod
 from pandas.util import py3compat
+from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -988,6 +989,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         p = df.to_panel()
         assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
 
+    def test_to_excel(self):
+        path = '__tmp__.xlsx'
+        self.panel.to_excel(path)
+        reader = ExcelFile(path)
+        for item, df in self.panel.iteritems():
+            recdf = reader.parse(str(item),index_col=0) 
+            assert_frame_equal(df, recdf)
+    
 class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...
