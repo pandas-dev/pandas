@@ -2308,6 +2308,47 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_excel2007_from_excel2007(self):
+        path = '__tmp__.xlsx'
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        # test roundtrip
+        self.frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.frame, recons)
+
+        self.tsframe.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.tsframe, recons)
+
+        #Test np.int64
+        frame = DataFrame(np.random.randn(10,2))
+        frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(frame, recons)
+
+        # Test writing to separate sheets
+        writer = ExcelWriter(path)
+        self.frame.to_excel(writer,'test1')
+        self.tsframe.to_excel(writer,'test2')
+        writer.save()
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.frame, recons)
+        recons = reader.parse('test2',index_col=0)
+        assert_frame_equal(self.tsframe, recons)
+
+        os.remove(path)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

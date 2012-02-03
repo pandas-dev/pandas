@@ -569,9 +569,15 @@ class ExcelFile(object):
         Path to xls file
     """
     def __init__(self, path):
-        import xlrd
+        self.use_xlsx = True
+        if path.endswith('.xls'):
+            self.use_xlsx = False
+            import xlrd
+            self.book = xlrd.open_workbook(path)
+        else:
+            from openpyxl import load_workbook
+            self.book = load_workbook(path, use_iterators=True)
         self.path = path
-        self.book = xlrd.open_workbook(path)
 
     def __repr__(self):
         return object.__repr__(self)
@@ -600,6 +606,34 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
+        if self.use_xlsx:
+            return self._parse_xlsx(sheetname, header=header, skiprows=skiprows, index_col=index_col,
+              parse_dates=parse_dates, date_parser=date_parser, na_values=na_values,
+              chunksize=chunksize)
+        else:
+            return self._parse_xls(sheetname, header=header, skiprows=skiprows, index_col=index_col,
+              parse_dates=parse_dates, date_parser=date_parser, na_values=na_values,
+              chunksize=chunksize)
+
+    def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
+              parse_dates=False, date_parser=None, na_values=None,
+              chunksize=None):
+        sheet = self.book.get_sheet_by_name(name=sheetname)
+        data = []
+        for row in sheet.iter_rows(): # it brings a new method: iter_rows()
+            data.append([cell.internal_value for cell in row])
+        parser = TextParser(data, header=header, index_col=index_col,
+                            na_values=na_values,
+                            parse_dates=parse_dates,
+                            date_parser=date_parser,
+                            skiprows=skiprows,
+                            chunksize=chunksize)
+
+        return parser.get_chunk()
+        
+    def _parse_xls(self, sheetname, header=0, skiprows=None, index_col=None,
+              parse_dates=False, date_parser=None, na_values=None,
+              chunksize=None):
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE
 
@@ -640,20 +674,25 @@ class ExcelWriter(object):
         Path to xls file
     """
     def __init__(self, path):
-        import xlwt
+        self.use_xlsx = True
+        if path.endswith('.xls'):
+            self.use_xlsx = False
+            import xlwt
+            self.book = xlwt.Workbook()
+            self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
+            self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
+        else:
+            from openpyxl import Workbook
+            self.book = Workbook(optimized_write = True)
         self.path = path
-        self.book = xlwt.Workbook()
         self.sheets = {}
         self.cur_sheet = None
-        self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
-        self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
 
     def save(self):
         """
         Save workbook to disk
         """
         self.book.save(self.path)
-
 
     def writerow(self, row, sheet_name=None):
         """
@@ -670,6 +709,12 @@ class ExcelWriter(object):
             sheet_name = self.cur_sheet
         if sheet_name is None:
             raise Exception('Must pass explicit sheet_name or set cur_sheet property')
+        if self.use_xlsx:
+            self._writerow_xlsx(row, sheet_name)
+        else:
+            self._writerow_xls(row, sheet_name)
+
+    def _writerow_xls(self, row, sheet_name):
         if sheet_name in self.sheets:
             sheet, row_idx = self.sheets[sheet_name]
         else:
@@ -691,3 +736,14 @@ class ExcelWriter(object):
             sheet.flush_row_data()
         self.sheets[sheet_name] = (sheet, row_idx)
 
+    def _writerow_xlsx(self, row, sheet_name):
+        if sheet_name in self.sheets:
+            sheet, row_idx = self.sheets[sheet_name]
+        else:
+            sheet = self.book.create_sheet()
+            sheet.title = sheet_name
+            row_idx = 0
+
+        sheet.append([int(val) if isinstance(val, np.int64) else val for val in row])
+        row_idx += 1
+        self.sheets[sheet_name] = (sheet, row_idx)
