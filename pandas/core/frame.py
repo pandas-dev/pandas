@@ -972,14 +972,14 @@ class DataFrame(NDFrame):
             sequence should be given if the DataFrame uses MultiIndex.
         """
         from pandas.io.parsers import ExcelWriter
-        needSave = False
+        need_save = False
         if isinstance(excel_writer, str):
             excel_writer = ExcelWriter(excel_writer)
             needSave = True
         excel_writer.cur_sheet = sheet_name
         self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols, header=header,
                               index=index, index_label=index_label, encoding=None)
-        if needSave:
+        if need_save:
             excel_writer.save()
 
     @Appender(docstring_to_string, indents=1)

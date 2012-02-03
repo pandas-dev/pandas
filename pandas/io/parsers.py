@@ -648,9 +648,6 @@ class ExcelWriter(object):
         self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
         self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
 
-    def __repr__(self):
-        return object.__repr__(self)
-
     def save(self):
         """
         Save workbook to disk
