@@ -1,4 +1,4 @@
-# pylint: disable=E1101,E110a
+# pylint: disable=E1101,E1103
 
 from datetime import datetime
 import operator
