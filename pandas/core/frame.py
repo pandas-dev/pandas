@@ -970,6 +970,16 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
+        
+        Notes
+        -----
+        If passing an existing ExcelWriter object, then the sheet will be added
+        to the existing workbook.  This can be used to save different DataFrames
+        to one workbook
+        >>> writer = ExcelWriter('output.xlsx')
+        >>> df1.to_excel(writer,'sheet1')
+        >>> df2.to_excel(writer,'sheet2')
+        >>> writer.save()
         """
         from pandas.io.parsers import ExcelWriter
         need_save = False
