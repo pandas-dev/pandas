@@ -975,7 +975,7 @@ class DataFrame(NDFrame):
         need_save = False
         if isinstance(excel_writer, str):
             excel_writer = ExcelWriter(excel_writer)
-            needSave = True
+            need_save = True
         excel_writer.cur_sheet = sheet_name
         self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols, header=header,
                               index=index, index_label=index_label, encoding=None)
