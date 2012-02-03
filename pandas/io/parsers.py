@@ -682,6 +682,8 @@ class ExcelWriter(object):
                     sheetrow.write(i,val,self.fm_datetime)
                 else:
                     sheetrow.write(i,val,self.fm_date)
+            elif isinstance(val, np.int64):
+                sheetrow.write(i,int(val))
             else:
                 sheetrow.write(i,val)
         row_idx += 1

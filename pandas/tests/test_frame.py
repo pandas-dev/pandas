@@ -2288,6 +2288,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = reader.parse('test1',index_col=0)
         assert_frame_equal(self.tsframe, recons)
 
+        #Test np.int64
+        frame = DataFrame(np.random.randn(10,2))
+        frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(frame, recons)
+
         # Test writing to separate sheets
         writer = ExcelWriter(path)
         self.frame.to_excel(writer,'test1')
