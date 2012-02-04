@@ -322,6 +322,21 @@ class SafeForSparse(object):
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
 
+    def test_abs(self):
+        result = self.panel.abs()
+        expected = np.abs(self.panel)
+        self.assert_panel_equal(result, expected)
+
+        df = self.panel['ItemA']
+        result = df.abs()
+        expected = np.abs(df)
+        assert_frame_equal(result, expected)
+
+        s = df['A']
+        result = s.abs()
+        expected = np.abs(s)
+        assert_series_equal(result, expected)
+
 class CheckIndexing(object):
 
 
@@ -966,7 +981,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assertRaises(Exception, group_agg, values, bounds, f2)
 
     def test_from_frame_level1_unsorted(self):
-        tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2), 
+        tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2),
                   ('AAPL', 1), ('MSFT', 1)]
         midx = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.rand(5,4), index=midx)

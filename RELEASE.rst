@@ -87,6 +87,7 @@ pandas 0.7.0
     method to ``Series`` as well (GH #699)
   - Add ``isin`` method to Index objects, works just like ``Series.isin`` (GH
     #657)
+  - Implement array interface on Panel so that ufuncs work (re: #740)
 
 **API Changes**
 

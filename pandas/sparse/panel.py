@@ -61,6 +61,16 @@ class SparsePanel(Panel):
 
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=np.nan, default_kind='block'):
+        if isinstance(frames, np.ndarray):
+            new_frames = {}
+            for item, vals in zip(items, frames):
+                new_frames[item] = \
+                    SparseDataFrame(vals, index=major_axis,
+                                    columns=minor_axis,
+                                    default_fill_value=default_fill_value,
+                                    default_kind=default_kind)
+            frames = new_frames
+
         assert(isinstance(frames, dict))
 
         self.default_fill_value = fill_value = default_fill_value
@@ -91,6 +101,13 @@ class SparsePanel(Panel):
     def _consolidate_inplace(self): # pragma: no cover
         # do nothing when DataFrame calls this method
         pass
+
+    def __array_wrap__(self, result):
+        return SparsePanel(result, items=self.items,
+                           major_axis=self.major_axis,
+                           minor_axis=self.minor_axis,
+                           default_kind=self.default_kind,
+                           default_fill_value=self.default_fill_value)
 
     @classmethod
     def from_dict(cls, data):

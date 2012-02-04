@@ -263,6 +263,20 @@ to sparse
         new_index = Index(self.index.view(ndarray)[key])
         return self._constructor(dataSlice, index=new_index, name=self.name)
 
+    def abs(self):
+        """
+        Return an object with absolute value taken. Only applicable to objects
+        that are all numeric
+
+        Returns
+        -------
+        abs: type of caller
+        """
+        res_sp_values = np.abs(self.sp_values)
+        return SparseSeries(res_sp_values, index=self.index,
+                            sparse_index=self.sp_index,
+                            fill_value=self.fill_value)
+
     def get(self, label, default=None):
         """
         Returns value occupying requested label, default to specified

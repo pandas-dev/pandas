@@ -342,6 +342,21 @@ class Panel(NDFrame):
         block = make_block(values, items, items)
         return BlockManager([block], fixed_axes)
 
+
+    #----------------------------------------------------------------------
+    # Array interface
+
+    def __array__(self, dtype=None):
+        return self.values
+
+    def __array_wrap__(self, result):
+        return self._constructor(result, items=self.items,
+                                 major_axis=self.major_axis,
+                                 minor_axis=self.minor_axis, copy=False)
+
+    #----------------------------------------------------------------------
+    # Magic methods
+
     def __repr__(self):
         class_name = str(self.__class__)
 
