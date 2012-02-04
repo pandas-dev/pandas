@@ -4175,6 +4175,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
         assert_frame_equal(result, expected)
 
+        df = DataFrame([['b',None,'a'],['a','c','b']])
+        result = df.rank(1)
+        expected = DataFrame([[2.0, 1.5, 1.0], [1, 1.5, 2]])
+        assert_frame_equal(result, expected)
+
+        result = df.rank(0)
+        expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
+        assert_frame_equal(result, expected)
+
     def test_describe(self):
         desc = self.tsframe.describe()
         desc = self.mixed_frame.describe()
