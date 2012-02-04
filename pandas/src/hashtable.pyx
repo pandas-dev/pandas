@@ -755,7 +755,7 @@ cdef class PyObjectHashTable:
         for i in range(n):
             val = values[i]
 
-            if val != val:
+            if val != val or val is None:
                 labels[i] = na_sentinel
                 continue
 
