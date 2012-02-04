@@ -3496,12 +3496,31 @@ class DataFrame(NDFrame):
 
         return cols
 
+    def _get_nonnumeric_columns(self):
+        from pandas.core.internals import ObjectBlock
+
+        cols = []
+        for col, blk in zip(self.columns, self._data.block_id_vector):
+            if isinstance(self._data.blocks[blk], ObjectBlock):
+                cols.append(col)
+
+        return cols
+
     def _get_numeric_data(self):
         if self._is_mixed_type:
             num_data = self._data.get_numeric_data()
             return DataFrame(num_data, copy=False)
         else:
             if self.values.dtype != np.object_:
+                return self
+            else:
+                return self.ix[:, []]
+
+    def _get_nonnumeric_data(self):
+        if self._is_mixed_type:
+            return self.ix[:, self._get_nonnumeric_columns()]
+        else:
+            if self.values.dtype == np.object_:
                 return self
             else:
                 return self.ix[:, []]
@@ -3588,7 +3607,33 @@ class DataFrame(NDFrame):
         """
         data = self._get_numeric_data()
         ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
-        return DataFrame(ranks, index=data.index, columns=data.columns)
+        df = DataFrame(ranks, index=data.index, columns=data.columns)
+
+        odata = self._get_nonnumeric_data()
+        if len(odata):
+            if axis == 0:
+                odata = odata.T
+                df = df.T
+
+                for col in odata.columns:
+                    try:
+                        ranked = lib.rank_1d_object(odata[col])
+                        if len(df[col]) == 0:
+                            df = df.reindex(self.T.index)
+                        df[col] = ranked
+                    except Exception:
+                        continue
+
+                return df.T
+            else:
+                for col in odata.columns:
+                    try:
+                        ranked = lib.rank_1d_object(odata[col])
+                        df[col] = ranked
+                    except Exception:
+                        continue
+                return df
+        return df
 
     #----------------------------------------------------------------------
     # Plotting

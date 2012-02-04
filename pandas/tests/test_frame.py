@@ -4165,6 +4165,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(ranks0.values, exp0)
         assert_almost_equal(ranks1.values, exp1)
 
+    def test_rank2(self):
+        df = DataFrame([['b','c','a'],['a','c','b']])
+        result = df.rank(1)
+        expected = DataFrame([[2.0, 1.5, 1.0], [1, 1.5, 2]])
+        assert_frame_equal(result, expected)
+
+        result = df.rank(0)
+        expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
+        assert_frame_equal(result, expected)
+
     def test_describe(self):
         desc = self.tsframe.describe()
         desc = self.mixed_frame.describe()
