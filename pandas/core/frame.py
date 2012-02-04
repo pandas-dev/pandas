@@ -949,7 +949,7 @@ class DataFrame(NDFrame):
                          index=index, index_label=index_label, encoding=encoding)
         f.close()
 
-    def to_excel(self, excel_writer, sheet_name, na_rep='', cols=None, header=True,
+    def to_excel(self, excel_writer, sheet_name = 'sheet1', na_rep='', cols=None, header=True,
                  index=True, index_label=None):
         """
         Write DataFrame to a excel sheet 
@@ -958,6 +958,8 @@ class DataFrame(NDFrame):
         ----------
         excel_writer : string or ExcelWriter object
             File path or existing ExcelWriter 
+        sheet_name : string, default 'sheet1'
+            Name of sheet which will contain DataFrame
         na_rep : string, default ''
             Missing data rep'n
         cols : sequence, optional
