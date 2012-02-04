@@ -6,9 +6,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=W0703,W0622,W0613,W0201
 
 from itertools import izip
-import csv
 import operator
-import types
 from distutils.version import LooseVersion
 
 from numpy import nan, ndarray
@@ -815,11 +813,13 @@ copy : boolean, default False
         """
         values = self.values
         if issubclass(values.dtype.type, np.floating):
+            if values.dtype != np.float64:
+                values = values.astype(np.float64)
             table = lib.Float64HashTable(len(values))
-            uniques = np.array(table.unique(values), dtype='f8')
+            uniques = np.array(table.unique(values), dtype=np.float64)
         else:
             if not values.dtype == np.object_:
-                values = values.astype('O')
+                values = values.astype(np.object_)
             table = lib.PyObjectHashTable(len(values))
             uniques = lib.list_to_object_array(table.unique(values))
             uniques = lib.maybe_convert_objects(uniques)

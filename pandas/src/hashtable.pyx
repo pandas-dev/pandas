@@ -728,13 +728,19 @@ cdef class PyObjectHashTable:
             object val
             khiter_t k
             list uniques = []
+            bint seen_na = 0
 
         for i in range(n):
             val = values[i]
-            k = kh_get_pymap(self.table, <PyObject*>val)
-            if k == self.table.n_buckets:
-                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
-                uniques.append(val)
+
+            if not _checknull(val):
+                k = kh_get_pymap(self.table, <PyObject*>val)
+                if k == self.table.n_buckets:
+                    k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                    uniques.append(val)
+            elif not seen_na:
+                seen_na = 1
+                uniques.append(ONAN)
 
         return uniques
 

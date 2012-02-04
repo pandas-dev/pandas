@@ -1412,6 +1412,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([])
         assert_series_equal(hist, expected)
 
+    def test_unique(self):
+        # 714 also, dtype=float
+        s = Series([1.2345] * 100)
+        s[::2] = np.nan
+        result = s.unique()
+        self.assert_(len(result) == 2)
+
+        s = Series([1.2345] * 100, dtype='f4')
+        s[::2] = np.nan
+        result = s.unique()
+        self.assert_(len(result) == 2)
+
+        # NAs in object arrays #714
+        s = Series(['foo'] * 100, dtype='O')
+        s[::2] = np.nan
+        result = s.unique()
+        self.assert_(len(result) == 2)
+
     def test_sort(self):
         ts = self.ts.copy()
         ts.sort()
