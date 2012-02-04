@@ -132,3 +132,45 @@ def rank_1d_generic(object in_arr):
                 ranks[argsorted[j]] = sum_ranks / dups
             sum_ranks = dups = 0
     return ranks
+
+def rank_1d_object(object in_arr):
+    """
+    Fast NaN-friendly version of scipy.stats.rankdata
+    """
+
+    cdef:
+        Py_ssize_t i, j, n, dups = 0
+        ndarray[float64_t] ranks
+        ndarray sorted_data, values
+        ndarray[int64_t] argsorted
+        int32_t idx
+        object val, nan_value
+        float64_t sum_ranks = 0
+
+    values = np.asarray(in_arr).copy()
+
+    nan_value = np.inf
+
+    mask = isnullobj(values.astype('O'))
+    np.putmask(values, mask, nan_value)
+
+    n = len(values)
+    ranks = np.empty(n, dtype='f8')
+
+    # py2.5/win32 hack, can't pass i8
+    _as = values.argsort()
+    sorted_data = values.take(_as)
+    argsorted = _as.astype('i8')
+
+    for i in range(n):
+        sum_ranks += i + 1
+        dups += 1
+        val = util.get_value_at(sorted_data, i)
+        if val == nan_value:
+            ranks[argsorted[i]] = nan
+            continue
+        if (i == n - 1) or util.get_value_at(sorted_data, i + 1) != val:
+            for j in range(i - dups + 1, i + 1):
+                ranks[argsorted[j]] = sum_ranks / dups
+            sum_ranks = dups = 0
+    return ranks
