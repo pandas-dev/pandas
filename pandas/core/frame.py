@@ -1082,11 +1082,12 @@ class DataFrame(NDFrame):
     def get_dtype_counts(self):
         counts = {}
         for _, series in self.iterkv():
-            if series.dtype in counts:
-                counts[series.dtype] += 1
+            # endianness can cause dtypes to look different
+            dtype_str = str(series.dtype)
+            if dtype_str in counts:
+                counts[dtype_str] += 1
             else:
-                counts[series.dtype] = 1
-
+                counts[dtype_str] = 1
         return Series(counts)
 
     #----------------------------------------------------------------------

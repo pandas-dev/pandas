@@ -382,7 +382,7 @@ class BlockManager(object):
         """
         Return True if more than one block with the same dtype
         """
-        dtypes = [blk.dtype for blk in self.blocks]
+        dtypes = [blk.dtype.type for blk in self.blocks]
         return len(dtypes) == len(set(dtypes))
 
     def get_slice(self, slobj, axis=0):

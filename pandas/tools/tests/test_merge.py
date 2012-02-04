@@ -345,7 +345,7 @@ class TestMerge(unittest.TestCase):
         a = DataFrame(randn(30,2), columns=['a','b'])
         c = Series(randn(30))
         a['c'] = c
-        d = DataFrame(randn(30,1), columns=['d'])
+        d = DataFrame(randn(30,1), columns=['q'])
 
         # it works!
         a.join(d)
@@ -504,6 +504,7 @@ class TestMerge(unittest.TestCase):
 
         merged['d'] = 'peekaboo'
         self.assert_((right['d'] == 'peekaboo').all())
+
 
 class TestMergeMulti(unittest.TestCase):
 
