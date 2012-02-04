@@ -166,7 +166,7 @@ def rank_1d_object(object in_arr):
         sum_ranks += i + 1
         dups += 1
         val = util.get_value_at(sorted_data, i)
-        if val == nan_value:
+        if val != val or val is None:
             ranks[argsorted[i]] = nan
             continue
         if (i == n - 1) or util.get_value_at(sorted_data, i + 1) != val:
