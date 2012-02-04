@@ -219,7 +219,7 @@ class TextParser(object):
         self.chunksize = chunksize
         self.passed_names = names is not None
         self.encoding = encoding
-        
+
 
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
@@ -281,7 +281,7 @@ class TextParser(object):
                                                     dialect=dia)))
 
             if self.encoding is not None:
-                reader = com.UnicodeReader(f, dialect=dia, 
+                reader = com.UnicodeReader(f, dialect=dia,
                                            encoding=self.encoding)
             else:
                 reader = csv.reader(f, dialect=dia)
