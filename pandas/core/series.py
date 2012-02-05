@@ -2051,7 +2051,7 @@ copy : boolean, default False
         """
         return remove_na(self)
 
-    valid = dropna
+    valid = lambda self: self.dropna()
 
     isnull = isnull
     notnull = notnull

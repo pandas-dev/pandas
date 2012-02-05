@@ -456,13 +456,16 @@ to sparse
         sparse_series.name = self.name
         return sparse_series
 
-    def valid(self):
+    def dropna(self):
         """
-        Analogous to Series.valid
+        Analogous to Series.dropna. If fill_value=NaN, returns a dense Series
         """
         # TODO: make more efficient
         dense_valid = self.to_dense().valid()
-        return dense_valid.to_sparse(fill_value=self.fill_value)
+        if isnull(self.fill_value):
+            return dense_valid
+        else:
+            return dense_valid.to_sparse(fill_value=self.fill_value)
 
     def shift(self, periods, offset=None, timeRule=None):
         """
