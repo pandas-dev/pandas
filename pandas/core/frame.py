@@ -2042,14 +2042,14 @@ class DataFrame(NDFrame):
         new_labels = labels[mask]
         return self.reindex(**{axis_name : new_labels})
 
-    def drop_duplicates(self, col_or_columns=None, take_last=False):
+    def drop_duplicates(self, cols=None, take_last=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns
 
         Parameters
         ----------
-        col_or_columns : column label or sequence of labels, optional
+        cols : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
@@ -2059,17 +2059,17 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
-        duplicated = self.duplicated(col_or_columns, take_last=take_last)
+        duplicated = self.duplicated(cols, take_last=take_last)
         return self[-duplicated]
 
-    def duplicated(self, col_or_columns=None, take_last=False):
+    def duplicated(self, cols=None, take_last=False):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns
 
         Parameters
         ----------
-        col_or_columns : column label or sequence of labels, optional
+        cols : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
         take_last : boolean, default False
@@ -2079,11 +2079,11 @@ class DataFrame(NDFrame):
         -------
         duplicated : Series
         """
-        if col_or_columns is not None:
-            if isinstance(col_or_columns, list):
-                keys = zip(*[self[x] for x in col_or_columns])
+        if cols is not None:
+            if isinstance(cols, list):
+                keys = zip(*[self[x] for x in cols])
             else:
-                keys = list(self[col_or_columns])
+                keys = list(self[cols])
         else:
             keys = zip(*self.values.T)
 
