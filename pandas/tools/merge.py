@@ -312,28 +312,6 @@ class _MergeOperation(object):
                              sort=self.sort)
         return left_group_key, right_group_key, max_groups
 
-
-def _get_join_keys(left, right, left_on, right_on, drop=False):
-    to_drop = []
-    keys = []
-    names = []
-    for k in on:
-        if isinstance(k, np.ndarray) and len(k) == len(frame):
-            keys.append(k)
-            names.append(None) # super kludge-tastic
-        else:
-            to_drop.append(k)
-            keys.append(frame[k].values)
-            names.append(k)
-
-    if drop:
-        frame = frame.copy()
-        for k in to_drop:
-            del frame[k]
-
-    return frame, keys, names
-
-
 def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
     labels = []
