@@ -3496,12 +3496,31 @@ class DataFrame(NDFrame):
 
         return cols
 
+    def _get_nonnumeric_columns(self):
+        from pandas.core.internals import ObjectBlock
+
+        cols = []
+        for col, blk in zip(self.columns, self._data.block_id_vector):
+            if isinstance(self._data.blocks[blk], ObjectBlock):
+                cols.append(col)
+
+        return cols
+
     def _get_numeric_data(self):
         if self._is_mixed_type:
             num_data = self._data.get_numeric_data()
             return DataFrame(num_data, copy=False)
         else:
             if self.values.dtype != np.object_:
+                return self
+            else:
+                return self.ix[:, []]
+
+    def _get_nonnumeric_data(self):
+        if self._is_mixed_type:
+            return self.ix[:, self._get_nonnumeric_columns()]
+        else:
+            if self.values.dtype == np.object_:
                 return self
             else:
                 return self.ix[:, []]
@@ -3572,7 +3591,7 @@ class DataFrame(NDFrame):
         """
         return self.apply(lambda x: x.clip_lower(threshold))
 
-    def rank(self, axis=0):
+    def rank(self, axis=0, numeric_only=True):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
@@ -3581,14 +3600,21 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}, default 0
             Ranks over columns (0) or rows (1)
+        numeric_only : boolean, default None
+            Include only float, int, boolean data
 
         Returns
         -------
         ranks : DataFrame
         """
-        data = self._get_numeric_data()
-        ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
-        return DataFrame(ranks, index=data.index, columns=data.columns)
+        if numeric_only:
+            data = self._get_numeric_data()
+            ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
+            return DataFrame(ranks, index=data.index, columns=data.columns)
+        else:
+            data = self
+            ranks = lib.rank_2d_generic(data.values.astype('O'), axis=axis)
+            return DataFrame(ranks, index=data.index, columns=data.columns)
 
     #----------------------------------------------------------------------
     # Plotting
