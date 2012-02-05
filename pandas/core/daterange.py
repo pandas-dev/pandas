@@ -174,14 +174,14 @@ class DateRange(DatetimeIndex):
             if periods is None:
                 raise Exception('Must provide number of periods!')
 
-            assert(isinstance(end, datetime))
+            assert(isinstance(end, (datetime, Timestamp)))
 
             end = offset.rollback(end)
 
             endLoc = cachedRange.get_loc(end) + 1
             startLoc = endLoc - periods
         elif end is None:
-            assert(isinstance(start, datetime))
+            assert(isinstance(start, (datetime, Timestamp)))
             start = offset.rollforward(start)
 
             startLoc = cachedRange.get_loc(start)
@@ -557,13 +557,13 @@ def generate_range(start=None, end=None, periods=None,
 
 def _in_range(start, end, rng_start, rng_end):
     if isinstance(rng_start, datetime):
-        rng_start = np.datetime64(rng_start)
+        rng_start = Timestamp(rng_start)
     if isinstance(rng_end, datetime):
-        rng_end = np.datetime64(rng_end)
+        rng_end = Timestamp(rng_end)
     if isinstance(start, datetime):
-        start = np.datetime64(start)
+        start = Timestamp(start)
     if isinstance(end, datetime):
-        end = np.datetime64(end)
+        end = Timestamp(end)
 
     return start > rng_start and end < rng_end
 

@@ -15,14 +15,8 @@
 #include "numpy/arrayscalars.h"
 #include "np_datetime.h"
 
-/* Days per month, regular year and leap year */
-int _days_per_month_table[2][12] = {
-    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-};
-
 /* Exported as DATETIMEUNITS in multiarraymodule.c */
-char *_datetime_strings[NPY_DATETIME_NUMUNITS] = {
+static char *_datetime_strings[NPY_DATETIME_NUMUNITS] = {
     NPY_STR_Y,
     NPY_STR_M,
     NPY_STR_W,

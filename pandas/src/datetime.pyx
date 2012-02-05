@@ -105,6 +105,19 @@ cdef class Timestamp(object):
             self.value = tmp.value
             self.dtval = tmp.dtval
             self.freq = tmp.freq
+        elif isinstance(ts, Delta):
+            dts.year = ts.year
+            dts.month = ts.month
+            dts.day = ts.day
+            dts.hour = ts.hour
+            dts.min = ts.minute
+            dts.sec = ts.second
+            dts.us = ts.microsecond
+            self.dtval = <object>PyDateTime_FromDateAndTime(
+                                dts.year, dts.month,
+                                dts.day, dts.hour,
+                                dts.min, dts.sec, dts.us)
+            self.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
         else:
             raise ValueError("Could not construct Timestamp from argument %s" % type(ts))
 
@@ -175,30 +188,26 @@ cdef class Timestamp(object):
         raise NotImplementedError("Op %d not recognized" % op)
 
     def __add__(self, other):
-        cdef:
-            Timestamp tmp
+        cdef Timestamp ts
 
-        if isinstance(self, Timestamp):
-            tmp = self
-            result = tmp.dtval + other
-        else:
+        if not isinstance(self, Timestamp):
             tmp = other
-            result = tmp.dtval + self
+            other = self
+            self = tmp
 
-        return Timestamp(result)
+        ts = self
+        return Timestamp(ts.dtval + other)
 
     def __sub__(self, other):
-        cdef:
-            Timestamp tmp
+        cdef Timestamp ts
 
-        if isinstance(self, Timestamp):
-            tmp = self
-            result = tmp.dtval - other
-        else:
+        if not isinstance(self, Timestamp):
             tmp = other
-            result = tmp.dtval - self
+            other = self
+            self = tmp
 
-        return Timestamp(result)
+        ts = self
+        return Timestamp(ts.dtval - other)
 
     def __hash__(Timestamp self):
         return self.value
@@ -214,55 +223,6 @@ cdef class Timestamp(object):
 
     def weekday(Timestamp self):
         return dayofweek(self.dtval.year, self.dtval.month, self.dtval.day)
-
-cdef class Duration:
-    """
-    Absolute length of time, similar to timedelta
-    """
-    cdef:
-        int64_t length, days, seconds, microseconds
-
-    def __init__(self, int64_t days = 0,
-                       int64_t seconds = 0,
-                       int64_t microseconds = 0,
-                       int64_t milliseconds = 0,
-                       int64_t minutes = 0,
-                       int64_t hours = 0,
-                       int64_t weeks = 0):
-
-        self.days = days
-        self.seconds = seconds
-        self.microseconds = microseconds
-        self.length = (microseconds + 1000 * (milliseconds
-                                    + 1000 * (seconds
-                                    + 60   * (minutes
-                                    + 60   * (hours
-                                    + 24   * (days
-                                    +  7   * weeks))))))
-
-    @staticmethod
-    def from_micros(int64_t length):
-        return Duration(microseconds = length)
-
-    property length:
-        def __get__(self):
-            return self.length
-
-    property microseconds:
-        def __get__(self):
-            return self.microseconds # length % 1000000
-
-    property seconds:
-        def __get__(self):
-            return self.seconds      # (length // 1000000) % 86400
-
-    property days:
-        def __get__(self):
-            return self.days         # (self.length // 1000000) // 86400
-
-    def __repr__(self):
-        return "Duration(%d, %d, %d)" % (self.days, self.seconds, self.microseconds)
-
 
 cdef convert_to_res(object res):
     if res == 'microsecond':
@@ -590,11 +550,19 @@ cdef class Delta:
             self.years = 0
 
     def __add__(self, other):
+        if not isinstance(self, Delta):
+            tmp = self
+            self = other
+            other = tmp
+
         if isinstance(other, Delta):
             return self._add_delta(other)
 
         if isinstance(other, Timestamp):
             return self._add_timestamp(other)
+
+        if isinstance(other, datetime):
+            return self._add_timestamp(Timestamp(other))
 
         raise ValueError("Cannot add to Delta")
 
@@ -622,11 +590,11 @@ cdef class Delta:
         if self.leapdays and month > 2 and isleapyear(year):
             days += self.leapdays
         ret = (other.replace(**repl)
-               + Duration(days=days,
-                          hours=self.hours,
-                          minutes=self.minutes,
-                          seconds=self.seconds,
-                          microseconds=self.microseconds))
+               + timedelta(days=days,
+                           hours=self.hours,
+                           minutes=self.minutes,
+                           seconds=self.seconds,
+                           microseconds=self.microseconds))
         if self.weekday:
             weekday, nth = self.weekday.weekday, (self.weekday.n or 1)
 
@@ -636,11 +604,47 @@ cdef class Delta:
             else:
                 jumpdays += (ret.weekday()-weekday)%7
                 jumpdays *= -1
-            ret += Duration(days=jumpdays)
+            ret += timedelta(days=jumpdays)
 
         return ret
 
+    def __richcmp__(self, other, op):
+        if op == 3:
+            return not (self == other)
+        elif op == 2:
+            if not isinstance(other, Delta):
+                return False
+            if self.weekday or other.weekday:
+                if not self.weekday or not other.weekday:
+                    return False
+                if self.weekday.weekday != other.weekday.weekday:
+                    return False
+                n1, n2 = self.weekday.n, other.weekday.n
+                if n1 != n2 and not ((not n1 or n1 == 1) and (not n2 or n2 == 1)):
+                    return False
+            return (self.years == other.years and
+                    self.months == other.months and
+                    self.days == other.days and
+                    self.hours == other.hours and
+                    self.minutes == other.minutes and
+                    self.seconds == other.seconds and
+                    self.leapdays == other.leapdays and
+                    self.year == other.year and
+                    self.month == other.month and
+                    self.day == other.day and
+                    self.hour == other.hour and
+                    self.minute == other.minute and
+                    self.second == other.second and
+                    self.microsecond == other.microsecond)
+        else:
+            raise NotImplementedError("Delta doesn't implement that comparison")
+
     def _add_delta(self, other):
+        if not isinstance(self, Delta):
+            tmp = self
+            self = other
+            other = tmp
+
         return Delta(years=other.years+self.years,
                     months=other.months+self.months,
                     days=other.days+self.days,
@@ -661,6 +665,11 @@ cdef class Delta:
 
 
     def __sub__(self, other):
+        if not isinstance(self, Delta):
+            tmp = self
+            self = other
+            other = tmp
+
         if isinstance(other, Delta):
             return self._sub_delta(other)
         else:
@@ -704,7 +713,16 @@ cdef class Delta:
                      microsecond=self.microsecond)
 
 
-    def __mul__(self, int f):
+    def __mul__(self, v):
+        cdef int64_t f
+
+        if not isinstance(self, Delta):
+            tmp = self
+            self = v 
+            v = tmp
+
+        f = v
+
         return Delta(years=self.years*f,
                      months=self.months*f,
                      days=self.days*f,

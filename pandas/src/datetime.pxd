@@ -9,6 +9,12 @@ cdef extern from "datetime.h":
         # cdef char hastzinfo
         pass
 
+    ctypedef class datetime.timedelta [object PyDateTime_Delta]:
+        # cdef int *data
+        # cdef long hashcode
+        # cdef char hastzinfo
+        pass
+
     void PyDateTime_IMPORT()
 
     int PyDateTime_GET_YEAR(datetime o)

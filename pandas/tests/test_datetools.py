@@ -12,6 +12,7 @@ from pandas.core.datetools import (
 from nose.tools import assert_raises
 
 import pandas._tseries as lib
+from pandas._tseries import Timestamp, Delta
 
 def test_monthrange():
     import calendar
@@ -67,7 +68,7 @@ def test_datetime64_unbox():
 class TestDateOffset(unittest.TestCase):
 
     def setUp(self):
-        self.d = datetime(2008, 1, 2)
+        self.d = Timestamp(datetime(2008, 1, 2))
 
     def test_repr(self):
         repr(DateOffset())
