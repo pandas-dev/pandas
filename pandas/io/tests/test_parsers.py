@@ -11,7 +11,7 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Index
+from pandas import DataFrame, Index, isnull
 from pandas.io.parsers import read_csv, read_table, ExcelFile, TextParser
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
@@ -583,6 +583,61 @@ bar"""
         expected = DataFrame({'X.1' : ['foo', 'bar baz', 'qux foo',
                                        'foo', 'bar']})
         assert_frame_equal(df, expected)
+
+    def test_converters_corner_with_nas(self):
+        import StringIO
+        import numpy as np
+        import pandas
+        csv = """id,score,days
+1,2,12
+2,2-5,
+3,,14+
+4,6-12,2"""
+
+        def convert_days(x):
+           x = x.strip()
+           if not x: return np.nan
+
+           is_plus = x.endswith('+')
+           if is_plus:
+               x = int(x[:-1]) + 1
+           else:
+               x = int(x)
+           return x
+
+        def convert_days_sentinel(x):
+           x = x.strip()
+           if not x: return -1
+
+           is_plus = x.endswith('+')
+           if is_plus:
+               x = int(x[:-1]) + 1
+           else:
+               x = int(x)
+           return x
+
+        def convert_score(x):
+           x = x.strip()
+           if not x: return np.nan
+           if x.find('-')>0:
+               valmin, valmax = map(int, x.split('-'))
+               val = 0.5*(valmin + valmax)
+           else:
+               val = float(x)
+
+           return val
+
+        fh = StringIO.StringIO(csv)
+        result = pandas.read_csv(fh, converters={'score':convert_score,
+                                                 'days':convert_days},
+                                 na_values=[-1,'',None])
+        self.assert_(isnull(result['days'][1]))
+
+        fh = StringIO.StringIO(csv)
+        result2 = pandas.read_csv(fh, converters={'score':convert_score,
+                                                  'days':convert_days_sentinel},
+                                  na_values=[-1,'',None])
+        assert_frame_equal(result, result2)
 
 class TestParseSQL(unittest.TestCase):
 

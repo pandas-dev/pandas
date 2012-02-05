@@ -475,7 +475,7 @@ class TextParser(object):
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.columns:
                 col = self.columns[col]
-            result = np.vectorize(f)(data[col])
+            result = lib.map_infer(data[col], f)
             if issubclass(result.dtype.type, (basestring, unicode)):
                 result = result.astype('O')
             data[col] = result
@@ -533,6 +533,12 @@ def _convert_to_ndarrays(dct, na_values, verbose=False):
 def _convert_types(values, na_values):
     na_count = 0
     if issubclass(values.dtype.type, (np.number, np.bool_)):
+        mask = lib.ismember(values, na_values)
+        na_count = mask.sum()
+        if na_count > 0:
+            if com.is_integer_dtype(values):
+                values = values.astype(np.float64)
+            np.putmask(values, mask, np.nan)
         return values, na_count
 
     try:
