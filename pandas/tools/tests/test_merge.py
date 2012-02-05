@@ -180,24 +180,8 @@ class TestMerge(unittest.TestCase):
         joined = merge(self.df, self.df2,
                        left_on='key2', right_on='key1',
                        suffixes=['.foo', '.bar'])
-
         self.assert_('key1.foo' in joined)
         self.assert_('key2.bar' in joined)
-
-        # result = merge(self.df, self.df2, on='key1')
-        # left_on = self.df['key2'].copy()
-        # left_on.name = 'baz'
-        # right_on = self.df2['key1'].copy()
-        # right_on.name = 'baz'
-
-        # grouped = self.df2.groupby('key1').mean()
-        # self.assert_('key2' in grouped)
-
-        # joined = merge(self.df, grouped, left_on='key1',
-        #                right_index=True, suffixes=['.foo', '.bar'])
-        # foo
-        # self.assert_('key2.foo' in joined)
-        # self.assert_('key2.bar' in joined)
 
     def test_merge_common(self):
         joined = merge(self.df, self.df2)
@@ -523,6 +507,28 @@ class TestMerge(unittest.TestCase):
                               'value2' : ['a', 'b', 'c', 'c']},
                              index=[1, 2, 0, 3])
         assert_frame_equal(joined, expected)
+
+        # smoke test
+        joined = left.join(right, on='key', sort=False)
+        self.assert_(np.array_equal(joined.index, range(4)))
+
+    def test_intelligently_handle_join_key(self):
+        # #733, be a bit more 1337 about not returning unconsolidated DataFrame
+
+        left = DataFrame({'key' : [1, 1, 2, 2, 3],
+                          'value' : range(5)}, columns=['value', 'key'])
+        right = DataFrame({'key' : [1, 1, 2, 3, 4, 5],
+                           'rvalue' : range(6)})
+
+        joined = merge(left, right, on='key', how='outer')
+        expected = DataFrame({'key' : [1, 1, 1, 1, 2, 2, 3, 4, 5.],
+                              'value' : np.array([0, 0, 1, 1, 2, 3, 4,
+                                                  np.nan, np.nan]),
+                              'rvalue' : np.array([0, 1, 0, 1, 2, 2, 3, 4, 5])},
+                             columns=['value', 'key', 'rvalue'])
+        assert_frame_equal(joined, expected)
+
+        self.assert_(joined._data.is_consolidated())
 
 class TestMergeMulti(unittest.TestCase):
 

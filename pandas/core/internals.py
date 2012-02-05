@@ -802,12 +802,8 @@ class BlockManager(object):
 
         return BlockManager(consolidated, new_axes)
 
-    def _maybe_rename_join(self, other, lsuffix, rsuffix, exclude=None,
-                           copydata=True):
+    def _maybe_rename_join(self, other, lsuffix, rsuffix, copydata=True):
         to_rename = self.items.intersection(other.items)
-        if exclude is not None and len(exclude) > 0:
-            to_rename = to_rename - exclude
-
         if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
                 raise Exception('columns overlap: %s' % to_rename)
@@ -822,7 +818,6 @@ class BlockManager(object):
                     return '%s%s' % (x, rsuffix)
                 return x
 
-            # XXX: COPIES DATA!
             this = self.rename_items(lrenamer, copydata=copydata)
             other = other.rename_items(rrenamer, copydata=copydata)
         else:

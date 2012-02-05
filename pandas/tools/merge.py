@@ -97,13 +97,27 @@ class _MergeOperation(object):
 
         # insert group keys
         for i, name in enumerate(self.join_names):
-            # a faster way?
-            key_col = com.take_1d(self.left_join_keys[i], left_indexer)
-            na_indexer = (left_indexer == -1).nonzero()[0]
-            right_na_indexer = right_indexer.take(na_indexer)
-            key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
-                                                right_na_indexer))
-            result.insert(i, name, key_col)
+            if name in result:
+                key_col = result[name]
+
+                if name in self.left:
+                    na_indexer = (left_indexer == -1).nonzero()[0]
+                    right_na_indexer = right_indexer.take(na_indexer)
+                    key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
+                                                        right_na_indexer))
+                else:
+                    na_indexer = (right_indexer == -1).nonzero()[0]
+                    left_na_indexer = right_indexer.take(na_indexer)
+                    key_col.put(na_indexer, com.take_1d(self.left_join_keys[i],
+                                                        left_na_indexer))
+            else:
+                # a faster way?
+                key_col = com.take_1d(self.left_join_keys[i], left_indexer)
+                na_indexer = (left_indexer == -1).nonzero()[0]
+                right_na_indexer = right_indexer.take(na_indexer)
+                key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
+                                                    right_na_indexer))
+                result.insert(i, name, key_col)
 
     def _get_join_info(self):
         left_ax = self.left._data.axes[self.axis]
@@ -144,17 +158,8 @@ class _MergeOperation(object):
         """
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
-        exclude_names = set(x for x in self.join_names if x is not None)
-        if self.left_on is not None:
-            exclude_names -= set(c.name if hasattr(c, 'name') else c
-                                 for c in self.left_on)
-        if self.right_on is not None:
-            exclude_names -= set(c.name if hasattr(c, 'name') else c
-                                 for c in self.right_on)
         ldata, rdata = ldata._maybe_rename_join(rdata, lsuf, rsuf,
-                                                exclude=exclude_names,
                                                 copydata=False)
-
         return ldata, rdata
 
     def _get_merge_keys(self):
@@ -172,8 +177,6 @@ class _MergeOperation(object):
         left_keys, right_keys
         """
         # Hm, any way to make this logic less complicated??
-        join_names = []
-
         if (self.on is None and self.left_on is None
             and self.right_on is None):
 
@@ -198,18 +201,56 @@ class _MergeOperation(object):
             self.left_on = self.right_on = self.on
             self.drop_keys = True
 
-        # this is a touch kludgy, but accomplishes the goal
-        left_keys = None
-        if self.left_on is not None:
-            self.left, left_keys, left_names = \
-                _get_keys(self.left, self.left_on, drop=self.drop_keys)
-            join_names = left_names
+        left_keys = []
+        right_keys = []
+        join_names = []
+        left_drop, right_drop = [], []
+        left, right = self.left, self.right
 
-        right_keys = None
-        if self.right_on is not None:
-            self.right, right_keys, right_names = \
-                _get_keys(self.right, self.right_on, drop=self.drop_keys)
-            join_names = right_names
+        is_lkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(right)
+
+        # ugh, spaghetti re #733
+        if _any(self.left_on) and _any(self.right_on):
+            for lk, rk in zip(self.left_on, self.right_on):
+                if is_lkey(lk):
+                    left_keys.append(lk)
+                    if is_rkey(rk):
+                        right_keys.append(rk)
+                        join_names.append(None)  # what to do?
+                    else:
+                        right_keys.append(right[rk].values)
+                        join_names.append(rk)
+                else:
+                    if not is_rkey(rk):
+                        right_keys.append(right[rk].values)
+                        if lk == rk:
+                            right_drop.append(rk)
+                    else:
+                        right_keys.append(rk)
+                    left_keys.append(left[lk].values)
+                    join_names.append(lk)
+        elif _any(self.left_on):
+            for k in self.left_on:
+                if is_lkey(k):
+                    left_keys.append(k)
+                    join_names.append(None)
+                else:
+                    left_keys.append(left[k].values)
+                    join_names.append(k)
+        elif _any(self.right_on):
+            for k in self.right_on:
+                if is_rkey(k):
+                    right_keys.append(k)
+                    join_names.append(None)
+                else:
+                    right_keys.append(right[k].values)
+                    join_names.append(k)
+
+        if right_drop:
+            self.right = self.right.drop(right_drop, axis=1)
+        if left_drop:
+            self.left = self.left.drop(left_drop, axis=1)
 
         return left_keys, right_keys, join_names
 
@@ -271,7 +312,8 @@ class _MergeOperation(object):
                              sort=self.sort)
         return left_group_key, right_group_key, max_groups
 
-def _get_keys(frame, on, drop=False):
+
+def _get_join_keys(left, right, left_on, right_on, drop=False):
     to_drop = []
     keys = []
     names = []
@@ -993,3 +1035,5 @@ def _all_indexes_same(indexes):
             return False
     return True
 
+def _any(x):
+    return x is not None and len(x) > 0
