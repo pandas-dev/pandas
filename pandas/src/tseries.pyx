@@ -242,6 +242,20 @@ def isnullobj(ndarray[object] arr):
             result[i] = 1
     return result.view(np.bool_)
 
+def isnullobj2d(ndarray[object, ndim=2] arr):
+    cdef Py_ssize_t i, j, n, m
+    cdef object val
+    cdef ndarray[uint8_t, ndim=2] result
+
+    n, m = (<object> arr).shape
+    result = np.zeros((n, m), dtype=np.uint8)
+    for i from 0 <= i < n:
+        for j from 0 <= j < m:
+            val = arr[i, j]
+            if checknull(val):
+                result[i, j] = 1
+    return result.view(np.bool_)
+
 def list_to_object_array(list obj):
     '''
     Convert list to object ndarray. Seriously can't believe I had to write this

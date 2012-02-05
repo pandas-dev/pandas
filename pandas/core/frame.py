@@ -3591,7 +3591,7 @@ class DataFrame(NDFrame):
         """
         return self.apply(lambda x: x.clip_lower(threshold))
 
-    def rank(self, axis=0):
+    def rank(self, axis=0, numeric_only=True):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
@@ -3600,40 +3600,21 @@ class DataFrame(NDFrame):
         ----------
         axis : {0, 1}, default 0
             Ranks over columns (0) or rows (1)
+        numeric_only : boolean, default None
+            Include only float, int, boolean data
 
         Returns
         -------
         ranks : DataFrame
         """
-        data = self._get_numeric_data()
-        ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
-        df = DataFrame(ranks, index=data.index, columns=data.columns)
-
-        odata = self._get_nonnumeric_data()
-        if len(odata):
-            if axis == 0:
-                odata = odata.T
-                df = df.T
-
-                for col in odata.columns:
-                    try:
-                        ranked = lib.rank_1d_object(odata[col])
-                        if len(df[col]) == 0:
-                            df = df.reindex(self.T.index)
-                        df[col] = ranked
-                    except Exception:
-                        continue
-
-                return df.T
-            else:
-                for col in odata.columns:
-                    try:
-                        ranked = lib.rank_1d_object(odata[col])
-                        df[col] = ranked
-                    except Exception:
-                        continue
-                return df
-        return df
+        if numeric_only:
+            data = self._get_numeric_data()
+            ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
+            return DataFrame(ranks, index=data.index, columns=data.columns)
+        else:
+            data = self
+            ranks = lib.rank_2d_generic(data.values.astype('O'), axis=axis)
+            return DataFrame(ranks, index=data.index, columns=data.columns)
 
     #----------------------------------------------------------------------
     # Plotting
