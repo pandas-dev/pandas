@@ -252,6 +252,8 @@ pandas 0.7.0
   - Raise Exception in DateRange when offset with n=0 is passed (GH #683)
   - Fix get/set inconsistency with .ix property and integer location but
     non-integer index (GH #707)
+  - Use right dropna function for SparseSeries. Return dense Series for NA fill
+    value (GH #730)
 
 Thanks
 ------

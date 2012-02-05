@@ -595,6 +595,28 @@ copy : boolean, default False
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, name=False):
+        """
+        Render a string representation of the Series
+
+        Parameters
+        ----------
+        buf : StringIO-like, optional
+            buffer to write to
+        na_rep : string, optional
+            string representation of NAN to use, default 'NaN'
+        float_format : one-parameter function, optional
+            formatter function to apply to columns' elements if they are floats
+            default None
+        length : boolean, default False
+            Add the Series length
+        name : boolean, default False
+            Add the Series name (which may be None)
+
+        Returns
+        -------
+        formatted : string (if not buffer passed)
+        """
+
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",

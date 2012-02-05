@@ -40,7 +40,11 @@ docstring_to_string = """
     index_names : bool, optional
         Prints the names of the indexes, default True
     force_unicode : bool, default False
-        Always return a unicode result"""
+        Always return a unicode result
+
+    Returns
+    -------
+    formatted : string (or unicode, depending on data and options)"""
 
 class SeriesFormatter(object):
 
