@@ -162,28 +162,30 @@ cdef class Timestamp(object):
 
     def __richcmp__(self, object other, int op):
         cdef:
-            Timestamp tmp
+            Timestamp ts
+
+        if not isinstance(self, Timestamp):
+            tmp = other
+            other = self
+            self = tmp
 
         if not isinstance(other, Timestamp):
             other = Timestamp(other)
 
-        if not isinstance(self, Timestamp):
-            tmp = Timestamp(self)
-        else:
-            tmp = self
+        ts = self
 
         if op == 0:
-            return tmp.value < other.asint
+            return ts.value < other.asint
         if op == 2:
-            return tmp.value == other.asint
+            return ts.value == other.asint
         if op == 4:
-            return tmp.value > other.asint
+            return ts.value > other.asint
         if op == 1:
-            return tmp.value <= other.asint
+            return ts.value <= other.asint
         if op == 3:
-            return tmp.value != other.asint
+            return ts.value != other.asint
         if op == 5:
-            return tmp.value >= other.asint
+            return ts.value >= other.asint
 
         raise NotImplementedError("Op %d not recognized" % op)
 
