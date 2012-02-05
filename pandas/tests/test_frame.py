@@ -4186,6 +4186,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.rank(0, numeric_only=False)
         assert_frame_equal(result, expected)
 
+        # f7u12, this does not work without extensive workaround
         data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
                 [datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 1)]]

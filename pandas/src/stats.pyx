@@ -101,10 +101,10 @@ def rank_1d_generic(object in_arr):
         ndarray sorted_data, values
         ndarray[int64_t] argsorted
         int32_t idx
-        float64_t val, nan_value
+        object val, nan_value
         float64_t sum_ranks = 0
 
-    values = np.asarray(in_arr).copy()
+    values = np.array(in_arr, copy=True)
 
     if values.dtype != np.object_:
         values = values.astype('O')
@@ -117,7 +117,14 @@ def rank_1d_generic(object in_arr):
     ranks = np.empty(n, dtype='f8')
 
     # py2.5/win32 hack, can't pass i8
-    _as = values.argsort()
+    try:
+        _as = values.argsort()
+    except TypeError:
+        valid_locs = (-mask).nonzero()[0]
+        ranks.put(valid_locs, rank_1d_generic(values.take(valid_locs)))
+        np.putmask(ranks, mask, np.nan)
+        return ranks
+
     sorted_data = values.take(_as)
     argsorted = _as.astype('i8')
 
@@ -129,11 +136,17 @@ def rank_1d_generic(object in_arr):
             ranks[argsorted[i]] = nan
             continue
         if (i == n - 1 or
-            fabs(util.get_value_at(sorted_data, i + 1) - val) > FP_ERR):
+            are_diff(util.get_value_at(sorted_data, i + 1), val)):
             for j in range(i - dups + 1, i + 1):
                 ranks[argsorted[j]] = sum_ranks / dups
             sum_ranks = dups = 0
     return ranks
+
+cdef inline are_diff(object left, object right):
+    try:
+        return fabs(left - right) > FP_ERR
+    except TypeError:
+        return left != right
 
 class Infinity(object):
 
@@ -177,7 +190,18 @@ def rank_2d_generic(object in_arr, axis=0):
 
     n, k = (<object> values).shape
     ranks = np.empty((n, k), dtype='f8')
-    argsorted = values.argsort(1).astype('i8')
+
+    try:
+        argsorted = values.argsort(1).astype('i8')
+    except TypeError:
+        values = in_arr
+        for i in range(len(values)):
+            ranks[i] = rank_1d_generic(in_arr[i])
+        if axis == 0:
+            return ranks.T
+        else:
+            return ranks
+
     values.sort(axis=1)
 
     for i in range(n):
@@ -190,7 +214,7 @@ def rank_2d_generic(object in_arr, axis=0):
                 continue
             sum_ranks += (j - infs) + 1
             dups += 1
-            if j == k - 1 or values[i, j + 1] != val:
+            if j == k - 1 or are_diff(values[i, j + 1], val):
                 for z in range(j - dups + 1, j + 1):
                     ranks[i, argsorted[i, z]] = sum_ranks / dups
                 sum_ranks = dups = 0
