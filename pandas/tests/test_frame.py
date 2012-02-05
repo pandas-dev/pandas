@@ -4166,6 +4166,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(ranks1.values, exp1)
 
     def test_rank2(self):
+        from datetime import datetime
+
         df = DataFrame([['b','c','a'],['a','c','b']])
         expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
         result = df.rank(1, numeric_only=False)
@@ -4182,6 +4184,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         expected = DataFrame([[2.0, nan, 1.0], [1.0, 1.0, 2.0]])
         result = df.rank(0, numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
+                [datetime(2000, 1, 2), datetime(2000, 1, 3),
+                 datetime(2000, 1, 1)]]
+        df = DataFrame(data)
+        expected = DataFrame([[2., nan, 1.],
+                              [2., 3., 1.]])
+        result = df.rank(1, numeric_only=False)
         assert_frame_equal(result, expected)
 
     def test_describe(self):

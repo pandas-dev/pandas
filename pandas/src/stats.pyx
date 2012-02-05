@@ -106,9 +106,11 @@ def rank_1d_generic(object in_arr):
 
     values = np.asarray(in_arr).copy()
 
-    nan_value = np.inf
+    if values.dtype != np.object_:
+        values = values.astype('O')
 
-    mask = isnullobj(values.astype('O'))
+    nan_value = Infinity() # always greater than everything
+    mask = isnullobj(values)
     np.putmask(values, mask, nan_value)
 
     n = len(values)
@@ -123,7 +125,7 @@ def rank_1d_generic(object in_arr):
         sum_ranks += i + 1
         dups += 1
         val = util.get_value_at(sorted_data, i)
-        if val == nan_value:
+        if val is nan_value:
             ranks[argsorted[i]] = nan
             continue
         if (i == n - 1 or
@@ -132,6 +134,18 @@ def rank_1d_generic(object in_arr):
                 ranks[argsorted[j]] = sum_ranks / dups
             sum_ranks = dups = 0
     return ranks
+
+class Infinity(object):
+
+    return_false = lambda self, other: False
+    return_true = lambda self, other: True
+    __lt__ = return_false
+    __le__ = return_false
+    __eq__ = return_false
+    __ne__ = return_true
+    __gt__ = return_true
+    __ge__ = return_true
+    __cmp__ = return_false
 
 def rank_2d_generic(object in_arr, axis=0):
     """
@@ -154,7 +168,10 @@ def rank_2d_generic(object in_arr, axis=0):
     else:
         values = in_arr.copy()
 
-    nan_value = -np.inf # subtlety, infs are ranked before alphanumeric!
+    if values.dtype != np.object_:
+        values = values.astype('O')
+
+    nan_value = Infinity() # always greater than everything
     mask = isnullobj2d(values)
     np.putmask(values, mask, nan_value)
 
@@ -167,7 +184,7 @@ def rank_2d_generic(object in_arr, axis=0):
         dups = sum_ranks = infs = 0
         for j in range(k):
             val = values[i, j]
-            if val == nan_value:
+            if val is nan_value:
                 ranks[i, argsorted[i, j]] = nan
                 infs += 1
                 continue
