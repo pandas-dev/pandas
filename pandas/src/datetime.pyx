@@ -221,6 +221,9 @@ cdef class Timestamp(object):
     def strftime(Timestamp self, object fmtstr):
         return self.dtval.strftime(fmtstr)
 
+    def to_datetime(Timestamp self):
+        return self.dtval
+
     def weekday(Timestamp self):
         return dayofweek(self.dtval.year, self.dtval.month, self.dtval.day)
 

@@ -2003,11 +2003,16 @@ copy : boolean, default False
         v = self.get(date)
 
         if isnull(v):
+            # this will convert datetime -> datetime64 index
             candidates = self.index[notnull(self)]
-            index = candidates.searchsorted(date)
+
+            index = candidates.searchsorted(lib.Timestamp(date))
 
             if index > 0:
                 asOfDate = candidates[index - 1]
+                if (isinstance(asOfDate, lib.Timestamp) and 
+                    self.index.dtype != 'M8[us]'):
+                    asOfDate = asOfDate.to_datetime()
             else:
                 return nan
 
