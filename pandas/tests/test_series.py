@@ -13,7 +13,10 @@ import numpy.ma as ma
 
 from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
 from pandas.core.index import MultiIndex
+
 import pandas.core.datetools as datetools
+import pandas.core.nanops as nanops
+
 from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -144,6 +147,19 @@ class CheckNameIntegration(object):
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
         self.assertEquals(result.name, self.ts.name)
+
+class TestNanops(unittest.TestCase):
+
+    def test_comparisons(self):
+        left = np.random.randn(10)
+        right = np.random.randn(10)
+        left[:3] = np.nan
+
+        result = nanops.nangt(left, right)
+        expected = (left > right).astype('O')
+        expected[:3] = np.nan
+
+        assert_almost_equal(result, expected)
 
 class SafeForSparse(object):
     pass
@@ -1429,6 +1445,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s[::2] = np.nan
         result = s.unique()
         self.assert_(len(result) == 2)
+
+        # integers
+        s = Series(np.random.randint(0, 100, size=100))
+        result = np.sort(s.unique())
+        expected = np.unique(s.values)
+        self.assert_(np.array_equal(result, expected))
+
+        s = Series(np.random.randint(0, 100, size=100).astype(np.int32))
+        result = np.sort(s.unique())
+        expected = np.unique(s.values)
+        self.assert_(np.array_equal(result, expected))
+
+        # test string arrays for coverage
+        strings = np.tile(np.array([tm.rands(10) for _ in xrange(10)]), 10)
+        result = np.sort(nanops.unique1d(strings))
+        expected = np.unique(strings)
+        self.assert_(np.array_equal(result, expected))
 
     def test_sort(self):
         ts = self.ts.copy()
