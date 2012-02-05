@@ -37,3 +37,16 @@ setup = common_setup + """
 data = dict((i,dict((j,float(j)) for j in xrange(100))) for i in xrange(2000))
 """
 frame_ctor_nested_dict_int64 = Benchmark("DataFrame(data)", setup)
+
+#----------------------------------------------------------------------
+# get_numeric_data
+
+setup = common_setup + """
+df = DataFrame(randn(10000, 25))
+df['foo'] = 'bar'
+df['bar'] = 'baz'
+df = df.consolidate()
+"""
+
+frame_get_numeric_data = Benchmark('df._get_numeric_data()', setup,
+                                   start_date=datetime(2011, 8, 1))

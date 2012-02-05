@@ -3498,7 +3498,8 @@ class DataFrame(NDFrame):
 
     def _get_numeric_data(self):
         if self._is_mixed_type:
-            return self.ix[:, self._get_numeric_columns()]
+            num_data = self._data.get_numeric_data()
+            return DataFrame(num_data, copy=False)
         else:
             if self.values.dtype != np.object_:
                 return self
