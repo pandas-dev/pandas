@@ -43,18 +43,37 @@ def _arith_method(op, name):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
+                mask = notnull(x) & notnull(y)
+                result = np.empty(len(x), dtype=x.dtype)
+                result[mask] = op(x[mask], y[mask])
+            elif isinstance(x, np.ndarray):
+                mask = notnull(x)
+                result = np.empty(len(x), dtype=x.dtype)
+                result[mask] = op(x[mask], y)
+            else:
+                mask = notnull(y)
+                result = np.empty(len(y), dtype=y.dtype)
+                result[mask] = op(x, y[mask])
+
+        return result
+
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
 
         if isinstance(other, Series):
             if self.index.equals(other.index):
                 name = _maybe_match_name(self, other)
-                return Series(op(self.values, other.values), index=self.index,
-                              name=name)
+                return Series(na_op(self.values, other.values),
+                              index=self.index, name=name)
 
             this_reindexed, other_reindexed = self.align(other, join='outer',
                                                          copy=False)
-            arr = op(this_reindexed.values, other_reindexed.values)
+            arr = na_op(this_reindexed.values, other_reindexed.values)
 
             name = _maybe_match_name(self, other)
             return Series(arr, index=this_reindexed.index, name=name)
@@ -62,8 +81,8 @@ def _arith_method(op, name):
             return NotImplemented
         else:
             # scalars
-            return Series(op(self.values, other), index=self.index,
-                          name=self.name)
+            return Series(na_op(self.values, other),
+                          index=self.index, name=self.name)
     return wrapper
 
 def _radd_compat(left, right):

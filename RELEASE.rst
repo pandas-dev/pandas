@@ -89,6 +89,8 @@ pandas 0.7.0
     #657)
   - Implement array interface on Panel so that ufuncs work (re: #740)
   - Add ``sort`` option to ``DataFrame.join`` (GH #731)
+  - Improved handling of NAs (propagation) in binary operations with
+    dtype=object arrays (GH #737)
 
 **API Changes**
 

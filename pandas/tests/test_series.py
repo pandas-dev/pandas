@@ -1135,6 +1135,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     #     expected = (self.ts >= -0.5) & (self.ts <= 0.5)
     #     assert_series_equal(selector, expected)
 
+    def test_operators_na_handling(self):
+        from decimal import Decimal
+        from datetime import date
+        s = Series([Decimal('1.3'), Decimal('2.3')],
+                   index=[date(2012,1,1), date(2012,1,2)])
+
+        result = s + s.shift(1)
+        self.assert_(isnull(result[0]))
+
+        s = Series(['foo', 'bar', 'baz', np.nan])
+        result = 'prefix_' + s
+        expected = Series(['prefix_foo', 'prefix_bar', 'prefix_baz', np.nan])
+        assert_series_equal(result, expected)
+
+        result = s + '_suffix'
+        expected = Series(['foo_suffix', 'bar_suffix', 'baz_suffix', np.nan])
+        assert_series_equal(result, expected)
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isnull check.
