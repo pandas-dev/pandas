@@ -88,6 +88,7 @@ pandas 0.7.0
   - Add ``isin`` method to Index objects, works just like ``Series.isin`` (GH
     #657)
   - Implement array interface on Panel so that ufuncs work (re: #740)
+  - Add ``sort`` option to ``DataFrame.join`` (GH #731)
 
 **API Changes**
 

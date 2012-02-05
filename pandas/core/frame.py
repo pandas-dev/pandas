@@ -3000,7 +3000,8 @@ class DataFrame(NDFrame):
         return concat(to_concat, ignore_index=ignore_index,
                       verify_integrity=verify_integrity)
 
-    def join(self, other, on=None, how='left', lsuffix='', rsuffix=''):
+    def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
+             sort=False):
         """
         Join columns with other DataFrame either on index or on a key
         column. Efficiently Join multiple DataFrame objects by index at once by
@@ -3028,6 +3029,9 @@ class DataFrame(NDFrame):
             Suffix to use from left frame's overlapping columns
         rsuffix : string
             Suffix to use from right frame's overlapping columns
+        sort : boolean, default False
+            Order result DataFrame lexicographically by the join key. If False,
+            preserves the index order of the calling (left) DataFrame
 
         Notes
         -----
@@ -3040,9 +3044,10 @@ class DataFrame(NDFrame):
         """
         # For SparseDataFrame's benefit
         return self._join_compat(other, on=on, how=how, lsuffix=lsuffix,
-                                 rsuffix=rsuffix)
+                                 rsuffix=rsuffix, sort=sort)
 
-    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix=''):
+    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
+                     sort=False):
         from pandas.tools.merge import merge, concat
 
         if isinstance(other, Series):
@@ -3052,7 +3057,7 @@ class DataFrame(NDFrame):
         if isinstance(other, DataFrame):
             return merge(self, other, left_on=on, how=how,
                          left_index=on is None, right_index=True,
-                         suffixes=(lsuffix, rsuffix), sort=False)
+                         suffixes=(lsuffix, rsuffix), sort=sort)
         else:
             if on is not None:
                 raise ValueError('Joining multiple DataFrames only supported'

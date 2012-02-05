@@ -41,6 +41,8 @@ df_key1 = DataFrame(np.random.randn(len(level1), 4), index=level1,
                     columns=['A', 'B', 'C', 'D'])
 df_key2 = DataFrame(np.random.randn(len(level2), 4), index=level2,
                     columns=['A', 'B', 'C', 'D'])
+
+df_shuf = df.reindex(df.index[shuf])
 """
 
 #----------------------------------------------------------------------
@@ -53,6 +55,11 @@ join_dataframe_index_single_key_small = \
 join_dataframe_index_single_key_bigger = \
     Benchmark("df.join(df_key2, on='key2')", setup,
               name='join_dataframe_index_single_key_bigger')
+
+join_dataframe_index_single_key_bigger_sort = \
+    Benchmark("df_shuf.join(df_key2, on='key2', sort=True)", setup,
+              name='join_dataframe_index_single_key_bigger',
+              start_date=datetime(2012, 2, 5))
 
 join_dataframe_index_multi = \
     Benchmark("df.join(df_multi, on=['key1', 'key2'])", setup,

@@ -438,9 +438,15 @@ class TestMerge(unittest.TestCase):
                            index=['d', 'b', 'c', 'a'])
 
         merged1 = merge(left, right, left_on='key',
-                        right_index=True, how='left')
+                        right_index=True, how='left', sort=False)
         merged2 = merge(right, left, right_on='key',
-                        left_index=True, how='right')
+                        left_index=True, how='right', sort=False)
+        assert_frame_equal(merged1, merged2.ix[:, merged1.columns])
+
+        merged1 = merge(left, right, left_on='key',
+                        right_index=True, how='left', sort=True)
+        merged2 = merge(right, left, right_on='key',
+                        left_index=True, how='right', sort=True)
         assert_frame_equal(merged1, merged2.ix[:, merged1.columns])
 
     def test_merge_index_singlekey_inner(self):
@@ -505,6 +511,18 @@ class TestMerge(unittest.TestCase):
         merged['d'] = 'peekaboo'
         self.assert_((right['d'] == 'peekaboo').all())
 
+    def test_join_sort(self):
+        left = DataFrame({'key' : ['foo', 'bar', 'baz', 'foo'],
+                          'value' : [1, 2, 3, 4]})
+        right = DataFrame({'value2' : ['a', 'b', 'c']},
+                          index=['bar', 'baz', 'foo'])
+
+        joined = left.join(right, on='key', sort=True)
+        expected = DataFrame({'key' : ['bar', 'baz', 'foo', 'foo'],
+                              'value' : [2, 3, 1, 4],
+                              'value2' : ['a', 'b', 'c', 'c']},
+                             index=[1, 2, 0, 3])
+        assert_frame_equal(joined, expected)
 
 class TestMergeMulti(unittest.TestCase):
 

@@ -112,29 +112,14 @@ class _MergeOperation(object):
             join_index, left_indexer, right_indexer = \
                 left_ax.join(right_ax, how=self.how, return_indexers=True)
         elif self.right_index and self.how == 'left':
-            join_index = left_ax
-            left_indexer = None
-
-            if len(self.left_join_keys) > 1:
-                assert(isinstance(right_ax, MultiIndex) and
-                       len(self.left_join_keys) == right_ax.nlevels)
-
-                right_indexer = _get_multiindex_indexer(self.left_join_keys,
-                                                        right_ax, sort=False)
-            else:
-                right_indexer = right_ax.get_indexer(self.left_join_keys[0])
+            join_index, left_indexer, right_indexer = \
+                _left_join_on_index(left_ax, right_ax, self.left_join_keys,
+                                    sort=self.sort)
 
         elif self.left_index and self.how == 'right':
-            join_index = right_ax
-            right_indexer = None
-
-            if len(self.right_join_keys) > 1:
-                assert(isinstance(left_ax, MultiIndex) and
-                       len(self.right_join_keys) == left_ax.nlevels)
-                left_indexer = _get_multiindex_indexer(self.right_join_keys,
-                                                       left_ax, sort=False)
-            else:
-                left_indexer = left_ax.get_indexer(self.right_join_keys[0])
+            join_index, right_indexer, left_indexer = \
+                _left_join_on_index(right_ax, left_ax, self.right_join_keys,
+                                    sort=self.sort)
         else:
             # max groups = largest possible number of distinct groups
             left_key, right_key, max_groups = self._get_group_keys()
@@ -307,7 +292,7 @@ def _get_keys(frame, on, drop=False):
     return frame, keys, names
 
 
-def _get_multiindex_indexer(join_keys, index, sort=True):
+def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
     labels = []
     for level, key in zip(index.levels, join_keys):
@@ -315,8 +300,8 @@ def _get_multiindex_indexer(join_keys, index, sort=True):
         labels.append(rlab)
         shape.append(count)
 
-    left_group_key = get_group_index(labels, shape) #.astype('i4')
-    right_group_key = get_group_index(index.labels, shape) #.astype('i4')
+    left_group_key = get_group_index(labels, shape)
+    right_group_key = get_group_index(index.labels, shape)
 
     left_group_key, right_group_key, max_groups = \
         _factorize_int64(left_group_key, right_group_key,
@@ -327,16 +312,46 @@ def _get_multiindex_indexer(join_keys, index, sort=True):
                             right_group_key.astype('i4'),
                             max_groups, sort=False)
 
-    return right_indexer
+    return left_indexer, right_indexer
 
-    # after refactorizing, I don't think reordering is necessary
+def _get_single_indexer(join_key, index, sort=False):
+    left_key, right_key, count = _factorize_objects(join_key, index, sort=sort)
 
-    # NOW! reorder
-    #right_indexer.take(left_indexer.argsort())
+    left_indexer, right_indexer = \
+        lib.left_outer_join(left_key.astype('i4'), right_key.astype('i4'),
+                            count, sort=sort)
+
+    return left_indexer, right_indexer
 
 def _right_outer_join(x, y, max_groups):
     right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
+
+def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
+    join_index = left_ax
+    left_indexer = None
+
+    if len(join_keys) > 1:
+        assert(isinstance(right_ax, MultiIndex) and
+               len(join_keys) == right_ax.nlevels)
+
+        left_tmp, right_indexer = \
+            _get_multiindex_indexer(join_keys, right_ax,
+                                    sort=sort)
+        if sort:
+            left_indexer = left_tmp
+            join_index = left_ax.take(left_indexer)
+    else:
+        jkey = join_keys[0]
+        if sort:
+            left_indexer, right_indexer = \
+                _get_single_indexer(jkey, right_ax, sort=sort)
+            join_index = left_ax.take(left_indexer)
+        else:
+            right_indexer = right_ax.get_indexer(jkey)
+
+    return join_index, left_indexer, right_indexer
+
 
 _join_functions = {
     'inner' : lib.inner_join,
