@@ -33,7 +33,7 @@ ctypedef enum time_res:
     r_max = 98
     r_invalid = 99
 
-cdef class Timestamp(object):
+cdef class Timestamp:
     # defined in header
     cdef:
         datetime dtval      # datetime repr; normally would derive, just wrap
