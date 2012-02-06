@@ -1,11 +1,13 @@
 from itertools import izip
 
 from StringIO import StringIO
-from pandas.core.common import adjoin, _format
+from pandas.core.common import adjoin, isnull, notnull, _stringify
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
 import pandas.core.common as com
+import pandas._tseries as lib
+
 import numpy as np
 
 docstring_to_string = """
@@ -93,9 +95,9 @@ class SeriesFormatter(object):
         vals = series.values
 
         if self.float_format is None:
-            float_format = com.print_config.float_format
+            float_format = print_config.float_format
             if float_format is None:
-                float_format = com._float_format_default
+                float_format = _float_format_default
 
         # floating point handling
         if series.dtype == 'O':
@@ -139,6 +141,25 @@ class SeriesFormatter(object):
         return '\n'.join(result)
 
 
+def format_array(values, formatter, float_format):
+    # floating point handling
+    if values.dtype == 'O':
+        is_float = (lib.map_infer(values, com.is_float) & notnull(values))
+        leading_space = is_float.any()
+
+        fmt_values = []
+        for i, v in enumerate(values):
+            if not is_float[i] and leading_space:
+                fmt_values.append(' %s' % formatter(v))
+            elif is_float[i]:
+                fmt_values.append(float_format(v))
+            else:
+                fmt_values.append(' %s' % formatter(v))
+    else:
+        fmt_values = _format_fixed_width(values, formatter)
+    return fmt_values
+
+
 class DataFrameFormatter(object):
     """
     Render a DataFrame
@@ -166,7 +187,7 @@ class DataFrameFormatter(object):
         self.index = index
 
         if justify is None:
-            self.justify = com.print_config.colheader_justify
+            self.justify = print_config.colheader_justify
         else:
             self.justify = justify
 
@@ -438,6 +459,7 @@ class DataFrameFormatter(object):
             names.append('' if columns.name is None else columns.name)
         return names
 
+
 def _format_fixed_width(values, formatter):
     formatted = [formatter(x) for x in values]
     max_len = max(len(x) for x in formatted)
@@ -462,3 +484,252 @@ def _has_names(index):
         return any([x is not None for x in index.names])
     else:
         return index.name is not None
+
+
+
+#-------------------------------------------------------------------------------
+# Global formatting options
+
+def set_printoptions(precision=None, column_space=None, max_rows=None,
+                     max_columns=None, colheader_justify='right'):
+    """
+    Alter default behavior of DataFrame.toString
+
+    precision : int
+        Floating point output precision (number of significant digits)
+    column_space : int
+        Default space for DataFrame columns, defaults to 12
+    max_rows : int
+    max_columns : int
+        max_rows and max_columns are used in __repr__() methods to decide if
+        to_string() or info() is used to render an object to a string.
+        Either one, or both can be set to 0 (experimental). Pandas will figure
+        out how big the terminal is and will not display more rows or/and
+        columns that can fit on it.
+    """
+    if precision is not None:
+        print_config.precision = precision
+    if column_space is not None:
+        print_config.column_space = column_space
+    if max_rows is not None:
+        print_config.max_rows = max_rows
+    if max_columns is not None:
+        print_config.max_columns = max_columns
+    if colheader_justify is not None:
+        print_config.colheader_justify = colheader_justify
+
+def reset_printoptions():
+    print_config.reset()
+
+class EngFormatter(object):
+    """
+    Formats float values according to engineering format.
+
+    Based on matplotlib.ticker.EngFormatter
+    """
+
+    # The SI engineering prefixes
+    ENG_PREFIXES = {
+        -24: "y",
+        -21: "z",
+        -18: "a",
+        -15: "f",
+        -12: "p",
+         -9: "n",
+         -6: "u",
+         -3: "m",
+          0: "",
+          3: "k",
+          6: "M",
+          9: "G",
+         12: "T",
+         15: "P",
+         18: "E",
+         21: "Z",
+         24: "Y"
+      }
+
+    def __init__(self, accuracy=None, use_eng_prefix=False):
+        self.accuracy = accuracy
+        self.use_eng_prefix = use_eng_prefix
+
+    def __call__(self, num):
+        """ Formats a number in engineering notation, appending a letter
+        representing the power of 1000 of the original number. Some examples:
+
+        >>> format_eng(0)       # for self.accuracy = 0
+        ' 0'
+
+        >>> format_eng(1000000) # for self.accuracy = 1,
+                                #     self.use_eng_prefix = True
+        ' 1.0M'
+
+        >>> format_eng("-1e-6") # for self.accuracy = 2
+                                #     self.use_eng_prefix = False
+        '-1.00E-06'
+
+        @param num: the value to represent
+        @type num: either a numeric value or a string that can be converted to
+                   a numeric value (as per decimal.Decimal constructor)
+
+        @return: engineering formatted string
+        """
+        import decimal
+        import math
+        dnum = decimal.Decimal(str(num))
+
+        sign = 1
+
+        if dnum < 0:  # pragma: no cover
+            sign = -1
+            dnum = -dnum
+
+        if dnum != 0:
+            pow10 = decimal.Decimal(int(math.floor(dnum.log10()/3)*3))
+        else:
+            pow10 = decimal.Decimal(0)
+
+        pow10 = pow10.min(max(self.ENG_PREFIXES.keys()))
+        pow10 = pow10.max(min(self.ENG_PREFIXES.keys()))
+        int_pow10 = int(pow10)
+
+        if self.use_eng_prefix:
+            prefix = self.ENG_PREFIXES[int_pow10]
+        else:
+            if int_pow10 < 0:
+                prefix = 'E-%02d' % (-int_pow10)
+            else:
+                prefix = 'E+%02d' % int_pow10
+
+        mant = sign*dnum/(10**pow10)
+
+        if self.accuracy is None:  # pragma: no cover
+            format_str = u"% g%s"
+        else:
+            format_str = (u"%% .%if%%s" % self.accuracy )
+
+        formatted = format_str % (mant, prefix)
+
+        return formatted #.strip()
+
+def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
+    """
+    Alter default behavior on how float is formatted in DataFrame.
+    Format float in engineering format. By accuracy, we mean the number of
+    decimal digits after the floating point.
+
+    See also EngFormatter.
+    """
+    if precision is not None: # pragma: no cover
+        import warnings
+        warnings.warn("'precision' parameter in set_eng_float_format is "
+                      "being renamed to 'accuracy'" , FutureWarning)
+        accuracy = precision
+
+    print_config.float_format = EngFormatter(accuracy, use_eng_prefix)
+    print_config.column_space = max(12, accuracy + 9)
+
+def _float_format_default(v, width=None):
+    """
+    Take a float and its formatted representation and if it needs extra space
+    to fit the width, reformat it to that width.
+    """
+
+    fmt_str   = '%% .%dg' % print_config.precision
+    formatted = fmt_str % v
+
+    if width is None:
+        return formatted
+
+    extra_spc = width - len(formatted)
+
+    if extra_spc <= 0:
+        return formatted
+
+    if 'e' in formatted:
+        # we have something like 1e13 or 1.23e13
+        base, exp = formatted.split('e')
+
+        if '.' in base:
+            # expand fraction by extra space
+            whole, frac = base.split('.')
+            fmt_str = '%%.%df' % (len(frac) + extra_spc)
+            frac = fmt_str % float("0.%s" % frac)
+            base = whole + frac[1:]
+        else:
+            if extra_spc > 1:
+                # enough room for fraction
+                fmt_str = '%% .%df' % (extra_spc - 1)
+                base = fmt_str % float(base)
+            else:
+                # enough room for decimal point only
+                base += '.'
+
+        return base + 'e' + exp
+    else:
+        # we have something like 123 or 123.456
+        if '.' in formatted:
+            # expand fraction by extra space
+            wholel, fracl = map(len, formatted.split("."))
+            fmt_str = '%% .%df' % (fracl + extra_spc)
+        else:
+            if extra_spc > 1:
+                # enough room for fraction
+                fmt_str = '%% .%df' % (extra_spc - 1)
+            else:
+                # enough room for decimal point only
+                fmt_str = '% d.'
+
+        return fmt_str % v
+
+def _format(s, dtype, space=None, na_rep=None, float_format=None,
+            col_width=None):
+    def _just_help(x):
+        if space is None:
+            return x
+        return x[:space].ljust(space)
+
+    def _make_float_format(x):
+        if na_rep is not None and isnull(x):
+            if np.isnan(x):
+                x = ' ' + na_rep
+            return _just_help('%s' % x)
+
+        if float_format:
+            formatted = float_format(x)
+        elif print_config.float_format:
+            formatted = print_config.float_format(x)
+        else:
+            formatted = _float_format_default(x, col_width)
+
+        return _just_help(formatted)
+
+    def _make_int_format(x):
+        return _just_help('% d' % x)
+
+    if com.is_float_dtype(dtype):
+        return _make_float_format(s)
+    elif com.is_integer_dtype(dtype):
+        return _make_int_format(s)
+    else:
+        if na_rep is not None and lib.checknull(s):
+            if s is None:
+                return 'None'
+            return na_rep
+        else:
+            # object dtype
+            return _just_help('%s' % _stringify(s))
+
+class _GlobalPrintConfig(object):
+    def __init__(self):
+        self.precision = 4
+        self.float_format = None
+        self.column_space = 12
+        self.max_rows = 200
+        self.max_columns = 0
+        self.colheader_justify = 'right'
+
+    def reset(self):
+        self.__init__()
+
+print_config = _GlobalPrintConfig()

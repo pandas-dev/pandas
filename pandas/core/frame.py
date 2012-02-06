@@ -34,7 +34,7 @@ from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
-from pandas.core.format import DataFrameFormatter, docstring_to_string
+import pandas.core.format as fmt
 
 import pandas.core.nanops as nanops
 import pandas.core.common as com
@@ -433,7 +433,7 @@ class DataFrame(NDFrame):
         """
         Return a string representation for a particular DataFrame
         """
-        config = com.print_config
+        config = fmt.print_config
 
         terminal_width, terminal_height = get_terminal_size()
         max_rows = (terminal_height if config.max_rows == 0
@@ -474,7 +474,6 @@ class DataFrame(NDFrame):
         """
         Iterate over rows of DataFrame as (index, Series) pairs
         """
-        from itertools import izip
         columns = self.columns
         for k, v in izip(self.index, self.values):
             s = v.view(Series)
@@ -946,7 +945,7 @@ class DataFrame(NDFrame):
 
         f.close()
 
-    @Appender(docstring_to_string, indents=1)
+    @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=True, nanRep=None,
@@ -967,20 +966,20 @@ class DataFrame(NDFrame):
                           FutureWarning)
             col_space = colSpace
 
-        formatter = DataFrameFormatter(self, buf=buf, columns=columns,
-                                       col_space=col_space, na_rep=na_rep,
-                                       formatters=formatters,
-                                       float_format=float_format,
-                                       sparsify=sparsify,
-                                       justify=justify,
-                                       index_names=index_names,
-                                       header=header, index=index)
+        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
+                                           col_space=col_space, na_rep=na_rep,
+                                           formatters=formatters,
+                                           float_format=float_format,
+                                           sparsify=sparsify,
+                                           justify=justify,
+                                           index_names=index_names,
+                                           header=header, index=index)
         formatter.to_string(force_unicode=force_unicode)
 
         if buf is None:
             return formatter.buf.getvalue()
 
-    @Appender(docstring_to_string, indents=1)
+    @Appender(fmt.docstring_to_string, indents=1)
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=True, index_names=True,
@@ -999,14 +998,14 @@ class DataFrame(NDFrame):
                           FutureWarning)
             col_space = colSpace
 
-        formatter = DataFrameFormatter(self, buf=buf, columns=columns,
-                                       col_space=col_space, na_rep=na_rep,
-                                       header=header, index=index,
-                                       formatters=formatters,
-                                       float_format=float_format,
-                                       bold_rows=bold_rows,
-                                       sparsify=sparsify,
-                                       index_names=index_names)
+        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
+                                           col_space=col_space, na_rep=na_rep,
+                                           header=header, index=index,
+                                           formatters=formatters,
+                                           float_format=float_format,
+                                           bold_rows=bold_rows,
+                                           sparsify=sparsify,
+                                           index_names=index_names)
         formatter.to_html()
 
         if buf is None:
@@ -2842,7 +2841,7 @@ class DataFrame(NDFrame):
     def _apply_raw(self, func, axis):
         try:
             result = lib.reduce(self.values, func, axis=axis)
-        except Exception, e:
+        except Exception:
             result = np.apply_along_axis(func, axis, self.values)
 
         # TODO: mixed type case
@@ -3760,7 +3759,6 @@ class DataFrame(NDFrame):
             To be passed to hist function
         """
         import pandas.tools.plotting as gfx
-        import matplotlib.pyplot as plt
 
         n = len(self.columns)
         k = 1

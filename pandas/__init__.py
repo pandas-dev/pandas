@@ -23,8 +23,8 @@ from pandas.core.api import *
 from pandas.sparse.api import *
 from pandas.stats.api import *
 
-from pandas.core.common import set_printoptions, reset_printoptions
-from pandas.core.common import set_eng_float_format
+from pandas.core.format import (set_printoptions, reset_printoptions,
+                                set_eng_float_format)
 from pandas.io.parsers import read_csv, read_table, read_clipboard, ExcelFile
 from pandas.io.pytables import HDFStore
 from pandas.util.testing import debug

@@ -17,7 +17,6 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
-from pandas.core.format import SeriesFormatter
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
 from pandas.core.indexing import _SeriesIndexer
@@ -25,6 +24,7 @@ from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
 import pandas.core.datetools as datetools
+import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
@@ -583,8 +583,8 @@ copy : boolean, default False
     def __repr__(self):
         """Clean string representation of a Series"""
         width, height = get_terminal_size()
-        max_rows = (height if com.print_config.max_rows == 0
-                    else com.print_config.max_rows)
+        max_rows = (height if fmt.print_config.max_rows == 0
+                    else fmt.print_config.max_rows)
         if len(self.index) > max_rows:
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
@@ -647,9 +647,9 @@ copy : boolean, default False
 
     def _get_repr(self, name=False, print_header=False, length=True,
                   na_rep='NaN', float_format=None):
-        formatter = SeriesFormatter(self, name=name, header=print_header,
-                                    length=length, na_rep=na_rep,
-                                    float_format=float_format)
+        formatter = fmt.SeriesFormatter(self, name=name, header=print_header,
+                                        length=length, na_rep=na_rep,
+                                        float_format=float_format)
         return formatter.to_string()
 
     def __str__(self):

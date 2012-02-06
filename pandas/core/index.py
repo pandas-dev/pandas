@@ -5,8 +5,6 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
-                                _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas._tseries as lib
@@ -68,7 +66,7 @@ class Index(np.ndarray):
                              'of some kind, %s was passed' % repr(data))
         else:
             # other iterable of some kind
-            subarr = _asarray_tuplesafe(data, dtype=object)
+            subarr = com._asarray_tuplesafe(data, dtype=object)
 
         if lib.is_integer_array(subarr) and dtype is None:
             return Int64Index(subarr.astype('i8'), name=name)
@@ -223,7 +221,7 @@ class Index(np.ndarray):
         if np.isscalar(key):
             return arr_idx[key]
         else:
-            if _is_bool_indexer(key):
+            if com._is_bool_indexer(key):
                 key = np.asarray(key)
 
             result = arr_idx[key]
@@ -274,7 +272,7 @@ class Index(np.ndarray):
                 result.append(dt.strftime("%Y-%m-%d"))
             return result
 
-        result.extend(_stringify(x) for x in self)
+        result.extend(com._stringify(x) for x in self)
 
         return result
 
@@ -1247,7 +1245,7 @@ class MultiIndex(Index):
             result_levels = _sparsify(result_levels)
 
         if adjoin:
-            return _adjoin(space, *result_levels).split('\n')
+            return com.adjoin(space, *result_levels).split('\n')
         else:
             return result_levels
 
@@ -1360,7 +1358,7 @@ class MultiIndex(Index):
             return tuple(lev[lab[key]]
                          for lev, lab in zip(self.levels, self.labels))
         else:
-            if _is_bool_indexer(key):
+            if com._is_bool_indexer(key):
                 key = np.asarray(key)
                 sortorder = self.sortorder
             else:
@@ -1424,7 +1422,7 @@ class MultiIndex(Index):
         """
         try:
             if not isinstance(labels, np.ndarray):
-                labels = _asarray_tuplesafe(labels)
+                labels = com._asarray_tuplesafe(labels)
             indexer = self.get_indexer(labels)
             mask = indexer == -1
             if mask.any():
@@ -2168,7 +2166,8 @@ def _sanitize_and_check(indexes):
 
     if list in kinds:
         if len(kinds) > 1:
-            indexes = [Index(_try_sort(x)) if not isinstance(x, Index) else x
+            indexes = [Index(com._try_sort(x))
+                       if not isinstance(x, Index) else x
                        for x in indexes]
             kinds.remove(list)
         else:
