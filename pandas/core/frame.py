@@ -3102,8 +3102,10 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
         """
-        cols = self._get_numeric_columns()
-        mat = self.as_matrix(cols).T
+        numeric_df = self._get_numeric_data()
+        mat = numeric_df.values.T
+        cols = numeric_df.columns
+
         corrf = nanops.get_corr_func(method)
         K = len(cols)
         correl = np.empty((K, K), dtype=float)
@@ -3128,8 +3130,9 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
         """
-        cols = self._get_numeric_columns()
-        mat = self.as_matrix(cols).T
+        numeric_df = self._get_numeric_data()
+        mat = numeric_df.values.T
+        cols = numeric_df.columns
         baseCov = np.cov(mat)
 
         for i, j, ac, bc in self._cov_helper(mat):
@@ -3205,9 +3208,9 @@ class DataFrame(NDFrame):
         -------
         DataFrame of summary statistics
         """
-        numeric_columns = self._get_numeric_columns()
+        numdata = self._get_numeric_data()
 
-        if len(numeric_columns) == 0:
+        if len(numdata.columns) == 0:
             return DataFrame(dict((k, v.describe())
                                   for k, v in self.iteritems()),
                                   columns=self.columns)
@@ -3217,13 +3220,14 @@ class DataFrame(NDFrame):
 
         destat = []
 
-        for column in numeric_columns:
+        for column in numdata.columns:
             series = self[column]
             destat.append([series.count(), series.mean(), series.std(),
                            series.min(), series.quantile(.25), series.median(),
                            series.quantile(.75), series.max()])
 
-        return self._constructor(map(list, zip(*destat)), index=destat_columns, columns=numeric_columns)
+        return self._constructor(map(list, zip(*destat)), index=destat_columns,
+                                 columns=numdata.columns)
 
     #----------------------------------------------------------------------
     # ndarray-like stats methods
@@ -3252,7 +3256,7 @@ class DataFrame(NDFrame):
                                      numeric_only=numeric_only)
 
         if numeric_only:
-            frame = self.ix[:, self._get_numeric_columns()]
+            frame = self._get_numeric_data()
         else:
             frame = self
 
@@ -3486,41 +3490,12 @@ class DataFrame(NDFrame):
         else:
             raise Exception('Must have 0<= axis <= 1')
 
-    def _get_numeric_columns(self):
-        from pandas.core.internals import ObjectBlock
-
-        cols = []
-        for col, blk in zip(self.columns, self._data.block_id_vector):
-            if not isinstance(self._data.blocks[blk], ObjectBlock):
-                cols.append(col)
-
-        return cols
-
-    def _get_nonnumeric_columns(self):
-        from pandas.core.internals import ObjectBlock
-
-        cols = []
-        for col, blk in zip(self.columns, self._data.block_id_vector):
-            if isinstance(self._data.blocks[blk], ObjectBlock):
-                cols.append(col)
-
-        return cols
-
     def _get_numeric_data(self):
         if self._is_mixed_type:
             num_data = self._data.get_numeric_data()
             return DataFrame(num_data, copy=False)
         else:
             if self.values.dtype != np.object_:
-                return self
-            else:
-                return self.ix[:, []]
-
-    def _get_nonnumeric_data(self):
-        if self._is_mixed_type:
-            return self.ix[:, self._get_nonnumeric_columns()]
-        else:
-            if self.values.dtype == np.object_:
                 return self
             else:
                 return self.ix[:, []]

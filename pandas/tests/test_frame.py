@@ -3803,8 +3803,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                          'd' : [None, None, None],
                          'e' : [3.14, 0.577, 2.773]})
 
-        self.assertEquals(df._get_numeric_columns(), ['a', 'e'])
-        # self.assertEquals(df._get_object_columns(), ['c', 'd'])
+        self.assert_(np.array_equal(df._get_numeric_data().columns,
+                                    ['a', 'e']))
 
     def test_get_numeric_data(self):
         df = DataFrame({'a' : 1., 'b' : 2, 'c' : 'foo'},
@@ -4194,6 +4194,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[2., nan, 1.],
                               [2., 3., 1.]])
         result = df.rank(1, numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        # mixed-type frames
+        self.mixed_frame['foo'] = datetime.now()
+        result = self.mixed_frame.rank(1)
+        expected = self.mixed_frame.rank(1, numeric_only=True)
         assert_frame_equal(result, expected)
 
     def test_describe(self):

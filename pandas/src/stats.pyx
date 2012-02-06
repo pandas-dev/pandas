@@ -90,7 +90,7 @@ def rank_2d_float64(object in_arr, axis=0):
     else:
         return ranks
 
-def rank_1d_generic(object in_arr):
+def rank_1d_generic(object in_arr, bint retry=1):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -120,8 +120,11 @@ def rank_1d_generic(object in_arr):
     try:
         _as = values.argsort()
     except TypeError:
+        if not retry:
+            raise
+
         valid_locs = (-mask).nonzero()[0]
-        ranks.put(valid_locs, rank_1d_generic(values.take(valid_locs)))
+        ranks.put(valid_locs, rank_1d_generic(values.take(valid_locs), 0))
         np.putmask(ranks, mask, np.nan)
         return ranks
 
