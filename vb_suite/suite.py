@@ -1,4 +1,4 @@
-from vbench.api import Benchmark, GitRepo, BenchmarkRunner
+from vbench.api import Benchmark, GitRepo
 from datetime import datetime
 
 import os
@@ -6,7 +6,7 @@ import os
 modules = ['groupby', 'indexing', 'reindex',
            'sparse', 'index_object', 'miscellaneous',
            'stat_ops', 'join_merge', 'panel_ctor', 'frame_ctor',
-           'frame_methods', 'io_bench']
+           'frame_methods', 'io_bench', 'attrs_caching']
 
 by_module = {}
 benchmarks = []
@@ -20,6 +20,16 @@ for modname in modules:
 for bm in benchmarks:
     assert(bm.name is not None)
 
+import getpass
+import sys
+
+USERNAME = getpass.getuser()
+
+if sys.platform == 'darwin':
+    HOME = '/Users/%s' % USERNAME
+else:
+    HOME = '/home/%s' % USERNAME
+
 try:
     import ConfigParser
 
@@ -31,10 +41,10 @@ try:
     DB_PATH = config.get('setup', 'db_path')
     TMP_DIR = config.get('setup', 'tmp_dir')
 except:
-    REPO_PATH = '/home/wesm/code/pandas'
+    REPO_PATH = os.path.join(HOME, 'code/pandas')
     REPO_URL = 'git@github.com:wesm/pandas.git'
-    DB_PATH = '/home/wesm/code/pandas/vb_suite/benchmarks.db'
-    TMP_DIR = '/home/wesm/tmp/vb_pandas'
+    DB_PATH = os.path.join(HOME, 'code/pandas/vb_suite/benchmarks.db')
+    TMP_DIR = os.path.join(HOME, 'tmp/vb_pandas')
 
 PREPARE = """
 python setup.py clean
@@ -48,7 +58,7 @@ START_DATE = datetime(2012, 1, 20)
 
 repo = GitRepo(REPO_PATH)
 
-RST_BASE = '../doc/source'
+RST_BASE = 'source'
 
 # HACK!
 
@@ -110,10 +120,19 @@ Produced on a machine with
   - (K)ubuntu Linux 12.10
   - Python 2.7.2 64-bit (Enthought Python Distribution 7.1-2)
   - NumPy 1.6.1
+
+.. toctree::
+    :hidden:
+    :maxdepth: 3
 """
         for modname, mod_bmks in sorted(by_module.items()):
-            print >> f, '%s\n%s\n' % (modname, '-' * len(modname))
-            for bmk in mod_bmks:
-                print >> f, bmk.name
-                print >> f, '~' * len(bmk.name)
-                print >> f, '.. include:: vbench/%s.txt\n' % bmk.name
+            print >> f, '    vb_%s' % modname
+            modpath = os.path.join(RST_BASE, 'vb_%s.rst' % modname)
+            with open(modpath, 'w') as mh:
+                header = '%s\n%s\n\n' % (modname, '=' * len(modname))
+                print >> mh, header
+
+                for bmk in mod_bmks:
+                    print >> mh, bmk.name
+                    print >> mh, '-' * len(bmk.name)
+                    print >> mh, '.. include:: vbench/%s.txt\n' % bmk.name

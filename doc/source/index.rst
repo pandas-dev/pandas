@@ -125,4 +125,4 @@ See the package overview for more detail about what's in the library.
     related
     comparison_with_r
     api
-    vbench
+
