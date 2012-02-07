@@ -56,7 +56,8 @@ df = DataFrame(randn(1000, 1000))
 """
 
 groupby_frame_cython_many_columns = Benchmark('df.groupby(labels).sum()', setup,
-                                              start_date=datetime(2011, 8, 1))
+                                              start_date=datetime(2011, 8, 1),
+                                              logy=True)
 
 #----------------------------------------------------------------------
 # single key, long, integer key
@@ -69,5 +70,5 @@ df = DataFrame(data)
 
 groupby_frame_singlekey_integer = \
     Benchmark('df.groupby(labels).sum()', setup,
-              start_date=datetime(2011, 8, 1))
+              start_date=datetime(2011, 8, 1), logy=True)
 

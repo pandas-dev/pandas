@@ -443,6 +443,8 @@ class GenericArrayFormatter(object):
             if float_format is None:
                 fmt_str = '%% .%dg' % print_config.precision
                 float_format = lambda x: fmt_str % x
+        else:
+            float_format = self.float_format
 
         formatter = _stringify if self.formatter is None else self.formatter
 
@@ -536,11 +538,11 @@ def _trim_zeros(str_floats):
     """
     # TODO: what if exponential?
     trimmed = str_floats
-    while len(str_floats) > 0 and all([x[-1] == '0' for x in trimmed]):
+    while len(str_floats) > 0 and all([x.endswith('0') for x in trimmed]):
         trimmed = [x[:-1] for x in trimmed]
 
     # trim decimal points
-    return [x[:-1] if x[-1] == '.' else x for x in trimmed]
+    return [x[:-1] if x.endswith('.') else x for x in trimmed]
 
 
 def single_column_table(column):
