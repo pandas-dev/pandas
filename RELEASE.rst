@@ -257,6 +257,8 @@ pandas 0.7.0
     non-integer index (GH #707)
   - Use right dropna function for SparseSeries. Return dense Series for NA fill
     value (GH #730)
+  - Fix Index.format bug causing incorrectly string-formatted Series with
+    datetime indexes (# 758)
 
 Thanks
 ------

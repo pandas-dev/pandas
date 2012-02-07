@@ -1896,6 +1896,12 @@ class DataFrame(NDFrame):
         resetted : DataFrame
         """
         new_obj = self.copy()
+
+        def _maybe_cast(values):
+            if values.dtype == np.object_:
+                values = lib.maybe_convert_objects(values)
+            return values
+
         if not drop:
             if isinstance(self.index, MultiIndex):
                 names = self.index.names
@@ -1906,16 +1912,13 @@ class DataFrame(NDFrame):
                         col_name = 'level_%d' % i
 
                     # to ndarray and maybe infer different dtype
-                    level_values = lev.values
-                    if level_values.dtype == np.object_:
-                        level_values = lib.maybe_convert_objects(level_values)
-
+                    level_values = _maybe_cast(lev.values)
                     new_obj.insert(0, col_name, level_values.take(lab))
             else:
                 name = self.index.name
                 if name is None:
                     name = 'index' if 'index' not in self else 'level_0'
-                new_obj.insert(0, name, self.index.values)
+                new_obj.insert(0, name, _maybe_cast(self.index.values))
         new_obj.index = np.arange(len(new_obj))
         return new_obj
 
