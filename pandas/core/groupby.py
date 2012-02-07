@@ -6,7 +6,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex
-from pandas.core.internals import BlockManager
+from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
@@ -156,7 +156,7 @@ class GroupBy(object):
         return tuple(ping.ngroups for ping in self.groupings)
 
     def __getattr__(self, attr):
-        if hasattr(self.obj, attr):
+        if hasattr(self.obj, attr) and attr != '_cache':
             return self._make_wrapper(attr)
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, attr))
@@ -352,9 +352,7 @@ class GroupBy(object):
             if not issubclass(obj.dtype.type, (np.number, np.bool_)):
                 continue
 
-            if obj.dtype != np.float64:
-                obj = obj.astype('f8')
-
+            obj = com._ensure_float64(obj)
             result, counts = cython_aggregate(obj, comp_ids,
                                               max_group, how=how)
             mask = counts > 0
@@ -395,10 +393,7 @@ class GroupBy(object):
     def _group_index(self):
         result = get_group_index([ping.labels for ping in self.groupings],
                                  self._group_shape)
-
-        if result.dtype != np.int64:  # pragma: no cover
-            result = result.astype('i8')
-        return result
+        return com._ensure_int64(result)
 
     def _get_multi_index(self, mask, obs_ids):
         masked = [labels for _, labels in
@@ -642,9 +637,7 @@ class Grouping(object):
         if self._was_factor:  # pragma: no cover
             raise Exception('Should not call this method grouping by level')
         else:
-            values = self.grouper
-            if values.dtype != np.object_:
-                values = values.astype('O')
+            values = com._ensure_object(self.grouper)
 
             # khash
             rizer = lib.Factorizer(len(values))
@@ -954,6 +947,73 @@ class DataFrameGroupBy(GroupBy):
                 continue
 
             yield val, slicer(val)
+
+
+    def _cython_agg_general(self, how):
+
+        group_index = self._group_index
+        comp_ids, obs_group_ids = _compress_group_index(group_index)
+        max_group = len(obs_group_ids)
+
+        obj = self._obj_with_exclusions
+        if self.axis == 1:
+            obj = obj.T
+
+        new_blocks = []
+
+        for block in obj._data.blocks:
+            values = block.values.T
+            if not issubclass(values.dtype.type, (np.number, np.bool_)):
+                continue
+
+            values = com._ensure_float64(values)
+            result, counts = cython_aggregate(values, comp_ids,
+                                              max_group, how=how)
+
+            mask = counts > 0
+            if len(mask) > 0:
+                result = result[mask]
+            newb = make_block(result.T, block.items, block.ref_items)
+            new_blocks.append(newb)
+
+        if len(new_blocks) == 0:
+            raise GroupByError('No numeric types to aggregate')
+
+        agg_axis = 0 if self.axis == 1 else 1
+        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
+
+        if sum(len(x.items) for x in new_blocks) == len(agg_labels):
+            output_keys = agg_labels
+        else:
+            output_keys = []
+            for b in new_blocks:
+                output_keys.extend(b.items)
+            try:
+                output_keys.sort()
+            except TypeError:  # pragma
+                pass
+
+            if isinstance(agg_labels, MultiIndex):
+                output_keys = MultiIndex.from_tuples(output_keys,
+                                                     names=agg_labels.names)
+
+        if not self.as_index:
+            index = np.arange(new_blocks[0].values.shape[1])
+            mgr = BlockManager(new_blocks, [output_keys, index])
+            result = DataFrame(mgr)
+            group_levels = self._get_group_levels(mask, obs_group_ids)
+            for i, (name, labels) in enumerate(group_levels):
+                result.insert(i, name, labels)
+            result = result.consolidate()
+        else:
+            index = self._get_multi_index(mask, obs_group_ids)
+            mgr = BlockManager(new_blocks, [output_keys, index])
+            result = DataFrame(mgr)
+
+        if self.axis == 1:
+            result = result.T
+
+        return result
 
     @cache_readonly
     def _obj_with_exclusions(self):
@@ -1282,8 +1342,9 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
     -------
     generator
     """
-    indexer = lib.groupsort_indexer(group_index.astype('i4'),
-                                    ngroups)[0]
+    group_index = com._ensure_int32(group_index)
+
+    indexer = lib.groupsort_indexer(group_index, ngroups)[0]
     group_index = group_index.take(indexer)
 
     if isinstance(data, BlockManager):
@@ -1312,8 +1373,7 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
         def _get_slice(slob):
             return sorted_data[slob]
 
-    starts, ends = lib.generate_slices(group_index.astype('i4'),
-                                       ngroups)
+    starts, ends = lib.generate_slices(group_index, ngroups)
 
     for i, (start, end) in enumerate(zip(starts, ends)):
         # Since I'm now compressing the group ids, it's now not "possible" to
@@ -1385,14 +1445,27 @@ class _KeyMapper(object):
 
 def cython_aggregate(values, group_index, ngroups, how='add'):
     agg_func = _cython_functions[how]
+    if values.ndim == 1:
+        squeeze = True
+        values = values[:, None]
+        out_shape = (ngroups, 1)
+    else:
+        squeeze = False
+        out_shape = (ngroups, values.shape[1])
+
     trans_func = _cython_transforms.get(how, lambda x: x)
 
-    result = np.empty(ngroups, dtype=np.float64)
+    result = np.empty(out_shape, dtype=np.float64)
     result.fill(np.nan)
 
     counts = np.zeros(ngroups, dtype=np.int32)
+
     agg_func(result, counts, values, group_index)
     result = trans_func(result)
+
+    if squeeze:
+        result = result.squeeze()
+
     return result, counts
 
 _cython_functions = {

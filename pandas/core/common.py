@@ -531,6 +531,28 @@ def is_float_dtype(arr_or_dtype):
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.floating)
 
+
+def _ensure_float64(arr):
+    if arr.dtype != np.float64:
+        arr = arr.astype(np.float64)
+    return arr
+
+def _ensure_int64(arr):
+    if arr.dtype != np.int64:
+        arr = arr.astype(np.int64)
+    return arr
+
+def _ensure_int32(arr):
+    if arr.dtype != np.int32:
+        arr = arr.astype(np.int32)
+    return arr
+
+def _ensure_object(arr):
+    if arr.dtype != np.object_:
+        arr = arr.astype('O')
+    return arr
+
+
 def save(obj, path):
     """
     Pickle (serialize) object to input file path

@@ -47,3 +47,13 @@ groupby_series_simple_cython = \
     Benchmark('simple_series.groupby(key1).sum()', setup,
               start_date=datetime(2011, 3, 1))
 
+#----------------------------------------------------------------------
+# 2d grouping, aggregate many columns
+
+setup = common_setup + """
+labels = np.random.randint(0, 100, size=1000)
+df = DataFrame(randn(1000, 1000))
+"""
+
+groupby_frame_cython_many_columns = Benchmark('df.groupby(labels).sum()', setup,
+                                              start_date=datetime(2011, 8, 1))

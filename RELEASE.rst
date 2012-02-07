@@ -175,6 +175,8 @@ pandas 0.7.0
   - Add option to Series.to_csv to omit the index (PR #684)
   - Add ``delimiter`` as an alternative to ``sep`` in ``read_csv`` and other
     parsing functions
+  - Substantially improved performance of groupby on DataFrames with many
+    columns by aggregating blocks of columns all at once (GH #745)
 
 **Bug fixes**
 
