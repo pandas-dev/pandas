@@ -1058,7 +1058,34 @@ class DatetimeIndex(Int64Index):
     __add__ = _dt_index_op('__add__')
     __sub__ = _dt_index_op('__sub__')
 
-    def __new__(cls, data, dtype=None, copy=False, name=None):
+    def __new__(cls, data=None,
+                start=None, end=None, freq=None, n=None,
+                dtype=None, copy=False, name=None):
+
+        conforms = False
+
+        if not data:
+            if start and freq and n and n > 0:
+                # generate timestamps via offsets
+                starts = [start]
+                idx = start
+                for i in range(n-1):
+                    idx += freq
+                    starts.append(_dt_unbox(idx))
+                data = np.array(starts, dtype='M8[us]')
+                conforms = True
+            elif start and freq and end:
+                starts = [start]
+                idx = start
+                while idx <= end:
+                    idx += freq
+                    starts.append(_dt_unbox(idx))
+                data = np.array(starts, dtype='M8[us]')
+                conforms = True
+            else:
+                raise ValueError("Must pass array of times or "
+                                 "start, freq, and end/n keywords.")
+
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
@@ -1070,7 +1097,11 @@ class DatetimeIndex(Int64Index):
                 data = list(data)
 
             # try to make it datetime64
-            data = np.asarray(data, dtype='M8[us]')
+            try:
+                data = np.asarray(data, dtype='M8[us]')
+            except ValueError:
+                data = np.asarray(data, dtype='O')
+                data = np.asarray(_dt_unbox_array(data), dtype='M8[us]')
 
         if issubclass(data.dtype.type, basestring):
             raise TypeError('String dtype not supported, you may need '
@@ -1089,6 +1120,15 @@ class DatetimeIndex(Int64Index):
 
         subarr = subarr.view(cls)
         subarr.name = name
+        subarr.freq = freq
+
+        if freq is not None and not conforms:
+            conforming = subarr.map(freq.onOffset).astype(np.bool)
+            if not conforming.all():
+                bad = np.arange(len(subarr))[~conforming]
+                raise ValueError("Non-conforming DatetimeIndex, has invalid "
+                                            "value at positions %s" % bad)
+
         return subarr
 
     def __getitem__(self, key):
@@ -1111,13 +1151,16 @@ class DatetimeIndex(Int64Index):
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
     def map(self, func_to_map):
-        #try:
-        #    return func_to_map(self)
-        #except:
-        return super(DatetimeIndex, self).map(func_to_map)
+        try:
+            return func_to_map(self)
+        except:
+            return super(DatetimeIndex, self).map(func_to_map)
 
     # Fast field accessors for periods of datetime index
     # --------------------------------------------------------------
+
+    # Thought, could be made much much faster if we shadow the index
+    # with a structured array dtype for extracting vectorized fields
 
     @property
     def year(self):
@@ -1148,9 +1191,7 @@ class DatetimeIndex(Int64Index):
         return lib.fast_field_accessor(self.values.view('i8'), 'us')
 
     def __iter__(self):
-        # TODO: expose elements as nice datetime objects so you can do obj.year
-        # etc
-        return iter(self.values.astype('O'))
+        return iter(_dt_unbox_array(self.values))
 
     def searchsorted(self, key, side='left'):
         """
@@ -1231,11 +1272,16 @@ class DatetimeIndex(Int64Index):
         if type(item) == datetime:
             item = _dt_unbox(item)
 
+        if self.freq is not None and not self.freq.onOffset(item):
+            raise ValueError("Cannot insert value at non-conforming time")
+
         return super(DatetimeIndex, self).insert(loc, item)
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return DatetimeIndex(joined, name=name)
+
+# --------------------------- end of datetime-specific code ---------------
 
 class Factor(np.ndarray):
     """
