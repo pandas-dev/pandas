@@ -10,6 +10,7 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
+import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas._tseries as lib
 
@@ -151,10 +152,6 @@ class GroupBy(object):
     def _obj_with_exclusions(self):
         return self.obj
 
-    @property
-    def _group_shape(self):
-        return tuple(ping.ngroups for ping in self.groupings)
-
     def __getattr__(self, attr):
         if hasattr(self.obj, attr) and attr != '_cache':
             return self._make_wrapper(attr)
@@ -226,9 +223,8 @@ class GroupBy(object):
 
     def _multi_iter(self):
         data = self.obj
-        group_index = self._group_index
-        comp_ids, obs_ids = _compress_group_index(group_index)
-        ngroups = len(obs_ids)
+
+        comp_ids, _, ngroups = self._group_info
         label_list = [ping.labels for ping in self.groupings]
         level_list = [ping.group_index for ping in self.groupings]
         mapper = _KeyMapper(comp_ids, ngroups, label_list, level_list)
@@ -343,9 +339,7 @@ class GroupBy(object):
         # TODO: address inefficiencies, like duplicating effort (should
         # aggregate all the columns at once?)
 
-        group_index = self._group_index
-        comp_ids, obs_group_ids = _compress_group_index(group_index)
-        max_group = len(obs_group_ids)
+        comp_ids, obs_group_ids, max_group = self._group_info
 
         output = {}
         for name, obj in self._iterate_slices():
@@ -366,9 +360,7 @@ class GroupBy(object):
     def _python_agg_general(self, func, *args, **kwargs):
         agg_func = lambda x: func(x, *args, **kwargs)
 
-        group_index = self._group_index
-        comp_ids, obs_group_ids = _compress_group_index(group_index)
-        max_group = len(obs_group_ids)
+        comp_ids, obs_group_ids, max_group = self._group_info
 
         # iterate through "columns" ex exclusions to populate output dict
         output = {}
@@ -390,10 +382,23 @@ class GroupBy(object):
         return self._wrap_aggregated_output(output, mask, obs_group_ids)
 
     @property
-    def _group_index(self):
-        result = get_group_index([ping.labels for ping in self.groupings],
-                                 self._group_shape)
-        return com._ensure_int64(result)
+    def _group_info(self):
+        if len(self.groupings) > 1:
+            all_labels = [ping.labels for ping in self.groupings]
+            group_index = get_group_index(all_labels, self._group_shape)
+            comp_ids, obs_group_ids = _compress_group_index(group_index)
+        else:
+            ping = self.groupings[0]
+            group_index = ping.labels
+
+        comp_ids, obs_group_ids = _compress_group_index(group_index)
+        ngroups = len(obs_group_ids)
+        comp_ids = com._ensure_int32(comp_ids)
+        return comp_ids, obs_group_ids, ngroups
+
+    @property
+    def _group_shape(self):
+        return tuple(ping.ngroups for ping in self.groupings)
 
     def _get_multi_index(self, mask, obs_ids):
         masked = [labels for _, labels in
@@ -637,26 +642,10 @@ class Grouping(object):
         if self._was_factor:  # pragma: no cover
             raise Exception('Should not call this method grouping by level')
         else:
-            values = com._ensure_object(self.grouper)
-
-            # khash
-            rizer = lib.Factorizer(len(values))
-            labels, counts = rizer.factorize(values, sort=False)
-
-            uniques = Index(rizer.uniques, name=self.name)
-            if self.sort and len(counts) > 0:
-                sorter = uniques.argsort()
-                reverse_indexer = np.empty(len(sorter), dtype=np.int32)
-                reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-                mask = labels < 0
-                labels = reverse_indexer.take(labels)
-                np.putmask(labels, mask, -1)
-
-                uniques = uniques.take(sorter)
-                counts = counts.take(sorter)
-
-            self._labels = labels
+            labs, uniques, counts = algos.factorize(self.grouper,
+                                                    sort=self.sort)
+            uniques = Index(uniques, name=self.name)
+            self._labels = labs
             self._group_index = uniques
             self._counts = counts
 
@@ -948,12 +937,9 @@ class DataFrameGroupBy(GroupBy):
 
             yield val, slicer(val)
 
-
     def _cython_agg_general(self, how):
 
-        group_index = self._group_index
-        comp_ids, obs_group_ids = _compress_group_index(group_index)
-        max_group = len(obs_group_ids)
+        comp_ids, obs_group_ids, max_group = self._group_info
 
         obj = self._obj_with_exclusions
         if self.axis == 1:
@@ -990,7 +976,7 @@ class DataFrameGroupBy(GroupBy):
                 output_keys.extend(b.items)
             try:
                 output_keys.sort()
-            except TypeError:  # pragma
+            except TypeError:  # pragma: no cover
                 pass
 
             if isinstance(agg_labels, MultiIndex):
@@ -1455,9 +1441,8 @@ def cython_aggregate(values, group_index, ngroups, how='add'):
 
     trans_func = _cython_transforms.get(how, lambda x: x)
 
+    # will be filled in Cython function
     result = np.empty(out_shape, dtype=np.float64)
-    result.fill(np.nan)
-
     counts = np.zeros(ngroups, dtype=np.int32)
 
     agg_func(result, counts, values, group_index)
@@ -1523,3 +1508,13 @@ def _groupby_indices(values):
     if values.dtype != np.object_:
         values = values.astype('O')
     return lib.groupby_indices(values)
+
+def numpy_groupby(data, labels, axis=0):
+    s = np.argsort(labels)
+    keys, inv = np.unique(labels, return_inverse = True)
+    i = inv.take(s)
+    groups_at = np.where(i != np.concatenate(([-1], i[:-1])))[0]
+    ordered_data = data.take(s, axis=axis)
+    group_sums = np.add.reduceat(ordered_data, groups_at, axis=axis)
+
+    return group_sums

@@ -57,3 +57,17 @@ df = DataFrame(randn(1000, 1000))
 
 groupby_frame_cython_many_columns = Benchmark('df.groupby(labels).sum()', setup,
                                               start_date=datetime(2011, 8, 1))
+
+#----------------------------------------------------------------------
+# single key, long, integer key
+
+setup = common_setup + """
+data = np.random.randn(100000, 1)
+labels = np.random.randint(0, 1000, size=100000)
+df = DataFrame(data)
+"""
+
+groupby_frame_singlekey_integer = \
+    Benchmark('df.groupby(labels).sum()', setup,
+              start_date=datetime(2011, 8, 1))
+

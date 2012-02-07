@@ -516,6 +516,9 @@ class IntArrayFormatter(GenericArrayFormatter):
 
 
 def _make_fixed_width(strings, justify='right'):
+    if len(strings) == 0:
+        return strings
+
     max_len = max(len(x) for x in strings)
     if justify == 'left':
         justfunc = lambda self, x: self.ljust(x)
@@ -533,7 +536,7 @@ def _trim_zeros(str_floats):
     """
     # TODO: what if exponential?
     trimmed = str_floats
-    while all([x[-1] == '0' for x in trimmed]):
+    while len(str_floats) > 0 and all([x[-1] == '0' for x in trimmed]):
         trimmed = [x[:-1] for x in trimmed]
 
     # trim decimal points

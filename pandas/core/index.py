@@ -259,21 +259,29 @@ class Index(np.ndarray):
         """
         Render a string representation of the Index
         """
-        result = []
+        from pandas.core.format import format_array
+
         header = []
         if name:
             header.append(str(self.name) if self.name is not None else '')
 
         if self.is_all_dates:
             zero_time = time(0, 0)
+            result = []
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
                     return header + ['%s' % x for x in self]
                 result.append(dt.strftime("%Y-%m-%d"))
             return header + result
 
-        result.extend(com._stringify(x) for x in self)
+        values = self.values
+        if values.dtype == np.object_:
+            values = lib.maybe_convert_objects(values)
 
+        if values.dtype == np.object_:
+            result = [com._stringify(x) for x in values]
+        else:
+            result = _trim_front(format_array(values, None))
         return header + result
 
     def equals(self, other):
@@ -2160,6 +2168,14 @@ def _union_indexes(indexes):
     else:
         return Index(lib.fast_unique_multiple_list(indexes))
 
+def _trim_front(strings):
+    """
+    Trims zeros and decimal points
+    """
+    trimmed = strings
+    while len(strings) > 0 and all([x[0] == ' ' for x in trimmed]):
+        trimmed = [x[1:] for x in trimmed]
+    return trimmed
 
 def _sanitize_and_check(indexes):
     kinds = list(set([type(index) for index in indexes]))

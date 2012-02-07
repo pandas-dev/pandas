@@ -923,6 +923,17 @@ class TestGroupBy(unittest.TestCase):
                            'b': ['foo', 'bar'] * 25})
         self.assertRaises(GroupByError, frame.groupby('a')['b'].mean)
 
+        frame = DataFrame({'a': np.random.randint(0, 5, 50),
+                           'b': ['foo', 'bar'] * 25})
+        self.assertRaises(GroupByError, frame[['b']].groupby(frame['a']).mean)
+
+    def test_wrap_aggregated_output_multindex(self):
+        df = self.mframe.T
+        df['baz', 'two'] = 'peekaboo'
+
+        agged = df.groupby([0, 0, 1]).agg(np.mean)
+        self.assert_(isinstance(agged.columns, MultiIndex))
+
     def test_grouping_attrs(self):
         deleveled = self.mframe.reset_index()
         grouped = deleveled.groupby(['first', 'second'])

@@ -494,7 +494,7 @@ cdef class Int64HashTable:
         return reverse, labels, counts
 
     def get_labels(self, ndarray[int64_t] values, list uniques,
-                   Py_ssize_t count_prior):
+                   Py_ssize_t count_prior, Py_ssize_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int32_t] labels
@@ -909,7 +909,7 @@ cdef class Int64Factorizer:
 
     def factorize(self, ndarray[int64_t] values, sort=False):
         labels, counts = self.table.get_labels(values, self.uniques,
-                                               self.count)
+                                               self.count, -1)
 
         # sort on
         if sort:

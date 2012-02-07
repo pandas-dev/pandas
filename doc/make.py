@@ -29,6 +29,7 @@ def sf():
     'push a copy to the sf site'
     os.system('cd build/html; rsync -avz . wesmckinn,pandas@web.sf.net'
               ':/home/groups/p/pa/pandas/htdocs/ -essh --cvs-exclude')
+
 def sfpdf():
     'push a copy to the sf site'
     os.system('cd build/latex; scp pandas.pdf wesmckinn,pandas@web.sf.net'

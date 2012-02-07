@@ -533,10 +533,7 @@ def is_float_dtype(arr_or_dtype):
 
 
 def _ensure_float64(arr):
-    try:
-        if arr.dtype != np.float64:
-            arr = arr.astype(np.float64)
-    except AttributeError:
+    if arr.dtype != np.float64:
         arr = arr.astype(np.float64)
     return arr
 

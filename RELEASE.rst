@@ -261,6 +261,7 @@ pandas 0.7.0
     value (GH #730)
   - Fix Index.format bug causing incorrectly string-formatted Series with
     datetime indexes (# 758)
+  - Fix errors caused by object dtype arrays passed to ols (GH #759)
 
 Thanks
 ------
