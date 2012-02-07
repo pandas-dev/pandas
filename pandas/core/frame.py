@@ -4031,9 +4031,11 @@ def _homogenize(data, index, columns, dtype=None):
             if isinstance(v, dict):
                 if oindex is None:
                     oindex = index.astype('O')
-                if type(v) != dict:
-                    v = dict(v)
-                v = lib.fast_multiget(v, oindex, default=np.nan)
+                if type(v) == dict:
+                    # fast cython method
+                    v = lib.fast_multiget(v, oindex, default=np.nan)
+                else:
+                    v = lib.map_infer(oindex, v.get)
 
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)

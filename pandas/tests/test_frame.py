@@ -1217,8 +1217,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(frame.index is NULL_INDEX)
 
     def test_constructor_subclass_dict(self):
-        #Test for passing dict subclass to constructor
-        data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in xrange(10)), 
+        # Test for passing dict subclass to constructor
+        data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in xrange(10)),
                 'col2': tm.TestSubDict((x, 20.0 * x) for x in xrange(10))}
         df = DataFrame(data)
         refdf = DataFrame(dict((col, dict(val.iteritems())) for col, val in data.iteritems()))
@@ -1227,6 +1227,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         data = tm.TestSubDict(data.iteritems())
         df = DataFrame(data)
         assert_frame_equal(refdf, df)
+
+        # try with defaultdict
+        from collections import defaultdict
+        data = {}
+        self.frame['B'][:10] = np.nan
+        for k, v in self.frame.iterkv():
+            dct = defaultdict(dict)
+            dct.update(v.to_dict())
+            data[k] = dct
+        frame = DataFrame(data)
+        assert_frame_equal(self.frame.sort_index(), frame)
 
     def test_constructor_dict_block(self):
         expected = [[4., 3., 2., 1.]]
