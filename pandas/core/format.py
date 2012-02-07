@@ -403,8 +403,6 @@ class DataFrameFormatter(object):
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None):
     if com.is_float_dtype(values.dtype):
-        if formatter is None:
-            formatter = float_format
         fmt_klass = FloatArrayFormatter
     elif com.is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
@@ -418,6 +416,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         digits = print_config.precision
 
     fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
+                        float_format=float_format,
                         formatter=formatter, space=space)
 
     return fmt_obj.get_result()
@@ -563,14 +562,14 @@ def _has_names(index):
 #-------------------------------------------------------------------------------
 # Global formatting options
 
-def set_printoptions(precision=None, digits=None, column_space=None,
-                     max_rows=None, max_columns=None,
-                     colheader_justify='right'):
+def set_printoptions(precision=None, column_space=None, max_rows=None,
+                     max_columns=None, colheader_justify='right'):
     """
     Alter default behavior of DataFrame.toString
 
     precision : int
-        Floating point output precision (number of significant digits)
+        Floating point output precision (number of significant digits). This is
+        only a suggestion
     column_space : int
         Default space for DataFrame columns, defaults to 12
     max_rows : int
@@ -581,8 +580,6 @@ def set_printoptions(precision=None, digits=None, column_space=None,
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
     """
-    if digits is not None:
-        print_config.digits = digits
     if precision is not None:
         print_config.precision = precision
     if column_space is not None:

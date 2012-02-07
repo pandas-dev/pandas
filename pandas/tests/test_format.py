@@ -226,11 +226,11 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '1  2.512000e-01')
         assert(df_s == expected)
 
-    def test_to_string_right_justify_cols(self):
+    def test_to_string_left_justify_cols(self):
         fmt.reset_printoptions()
         df = DataFrame({'x' : [3234, 0.253]})
-        df_s = df.to_string(justify='right')
-        expected = ('          x\n'
+        df_s = df.to_string(justify='left')
+        expected = ('   x       \n'
                     '0  3234.000\n'
                     '1     0.253')
         assert(df_s == expected)
@@ -523,6 +523,10 @@ class TestEngFormatter(unittest.TestCase):
                    (55555.5, ' 56k'),
                    (555555, ' 556k')]
          self.compare_all(formatter, in_out)
+
+         formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
+         result = formatter(0)
+         self.assertEqual(result, u' 0.000')
 
 
 # class TestFloatArrayFormatter(unittest.TestCase):
