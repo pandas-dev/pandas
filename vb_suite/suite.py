@@ -102,7 +102,7 @@ def generate_rst_files(benchmarks):
         with open(rst_path, 'w') as f:
             f.write(rst_text)
 
-    with open(os.path.join(RST_BASE, 'vbench.rst'), 'w') as f:
+    with open(os.path.join(RST_BASE, 'index.rst'), 'w') as f:
         print >> f, """
 Performance Benchmarks
 ======================
