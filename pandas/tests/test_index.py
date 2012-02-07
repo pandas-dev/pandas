@@ -293,6 +293,14 @@ class TestIndex(unittest.TestCase):
         formatted = dates.format(name=True)
         self.assert_(formatted[0] == 'something')
 
+    def test_format_datetime_with_time(self):
+        t = Index([datetime(2012, 2, 7), datetime(2012, 2, 7, 23)])
+
+        result = t.format()
+        expected = ['2012-02-07 00:00:00', '2012-02-07 23:00:00']
+        self.assert_(len(result) == 2)
+        self.assertEquals(result, expected)
+
     def test_take(self):
         indexer = [4, 3, 0, 2]
         result = self.dateIndex.take(indexer)

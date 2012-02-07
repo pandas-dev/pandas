@@ -260,21 +260,21 @@ class Index(np.ndarray):
         Render a string representation of the Index
         """
         result = []
-
+        header = []
         if name:
-            result.append(str(self.name) if self.name is not None else '')
+            header.append(str(self.name) if self.name is not None else '')
 
         if self.is_all_dates:
             zero_time = time(0, 0)
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
-                    return result + ['%s' % x for x in self]
+                    return header + ['%s' % x for x in self]
                 result.append(dt.strftime("%Y-%m-%d"))
-            return result
+            return header + result
 
         result.extend(com._stringify(x) for x in self)
 
-        return result
+        return header + result
 
     def equals(self, other):
         """

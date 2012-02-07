@@ -412,6 +412,9 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     if space is None:
         space = print_config.column_space
 
+    if float_format is None:
+        float_format = print_config.float_format
+
     if digits is None:
         digits = print_config.precision
 
