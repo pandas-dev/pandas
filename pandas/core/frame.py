@@ -4031,6 +4031,8 @@ def _homogenize(data, index, columns, dtype=None):
             if isinstance(v, dict):
                 if oindex is None:
                     oindex = index.astype('O')
+                if type(v) != dict:
+                    v = dict(v)
                 v = lib.fast_multiget(v, oindex, default=np.nan)
 
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
