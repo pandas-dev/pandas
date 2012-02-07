@@ -221,6 +221,12 @@ class SparseDataFrame(DataFrame):
         data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
 
+    def astype(self, dtype):
+        new_series = dict((k, v.astype(dtype)) for k, v in self.iteritems())
+        return SparseDataFrame(new_series, index=self.index, columns=self.columns,
+                               default_fill_value=self.default_fill_value,
+                               default_kind=self.default_kind)
+
     def copy(self, deep=True):
         """
         Make a copy of this SparseDataFrame

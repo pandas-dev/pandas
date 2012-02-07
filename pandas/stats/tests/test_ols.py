@@ -221,6 +221,11 @@ class TestOLS(BaseTest):
 
             assert_almost_equal(ref, res)
 
+    def test_ols_object_dtype(self):
+        df = DataFrame(np.random.randn(20, 2), dtype=object)
+        model = ols(y=df[0], x=df[1])
+        summary = repr(model)
+
 class TestOLSMisc(unittest.TestCase):
     '''
     For test coverage with faux data

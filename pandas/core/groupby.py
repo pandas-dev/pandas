@@ -406,7 +406,7 @@ class GroupBy(object):
 
         name_list = []
         for ping, labels in zip(self.groupings, recons_labels):
-            labels = _ensure_platform_int(labels)
+            labels = com._ensure_platform_int(labels)
             name_list.append((ping.name, ping.group_index.take(labels)))
 
         return name_list
@@ -1492,7 +1492,7 @@ def _compress_group_index(group_index, sort=True):
     uniques = []
     table = lib.Int64HashTable(len(group_index))
 
-    group_index = _ensure_int64(group_index)
+    group_index = com._ensure_int64(group_index)
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids = table.get_labels_groupby(group_index, uniques)
@@ -1523,13 +1523,3 @@ def _groupby_indices(values):
     if values.dtype != np.object_:
         values = values.astype('O')
     return lib.groupby_indices(values)
-
-def _ensure_platform_int(labels):
-    if labels.dtype != np.int_:  # pragma: no cover
-        labels = labels.astype(np.int_)
-    return labels
-
-def _ensure_int64(labels):
-    if labels.dtype != np.int64:  # pragma: no cover
-        labels = labels.astype(np.int64)
-    return labels

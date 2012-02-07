@@ -10,10 +10,12 @@ from StringIO import StringIO
 import numpy as np
 
 from pandas.core.api import DataFrame, Series
+from pandas.core.common import _ensure_float64
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
-import pandas.stats.common as common
+
+import pandas.stats.common as scom
 import pandas.stats.math as math
 import pandas.stats.moments as moments
 
@@ -393,7 +395,7 @@ class OLS(object):
         buf.write('%14s %10s %10s %10s %10s %10s %10s\n' %
                   ('Variable', 'Coef', 'Std Err', 't-stat',
                    'p-value', 'CI 2.5%', 'CI 97.5%'))
-        buf.write(common.banner(''))
+        buf.write(scom.banner(''))
         coef_template = '\n%14s %10.4f %10.4f %10.2f %10.4f %10.4f %10.4f'
 
         results = self._results
@@ -402,7 +404,7 @@ class OLS(object):
 
         for i, name in enumerate(beta.index):
             if i and not (i % 5):
-                buf.write('\n' + common.banner(''))
+                buf.write('\n' + scom.banner(''))
 
             std_err = results['std_err'][name]
             CI1 = beta[name] - 1.96 * std_err
@@ -482,9 +484,9 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
             formula.write(' + ' + coef)
 
         params = {
-            'bannerTop' : common.banner('Summary of Regression Analysis'),
-            'bannerCoef' : common.banner('Summary of Estimated Coefficients'),
-            'bannerEnd' : common.banner('End of Summary'),
+            'bannerTop' : scom.banner('Summary of Regression Analysis'),
+            'bannerCoef' : scom.banner('Summary of Estimated Coefficients'),
+            'bannerEnd' : scom.banner('End of Summary'),
             'formula' : formula.getvalue(),
             'r2' : results['r2'],
             'r2_adj' : results['r2_adj'],
@@ -544,7 +546,7 @@ class MovingOLS(OLS):
         self._set_window(window_type, window, min_periods)
 
     def _set_window(self, window_type, window, min_periods):
-        self._window_type = common._get_window_type(window_type)
+        self._window_type = scom._get_window_type(window_type)
 
         if self._is_rolling:
             assert(window is not None)
@@ -1154,6 +1156,50 @@ def _safe_update(d, other):
 
         d[k] = v
 
+def _filter_data(lhs, rhs, weights=None):
+    """
+    Cleans the input for single OLS.
+
+    Parameters
+    ----------
+    lhs: Series
+        Dependent variable in the regression.
+    rhs: dict, whose values are Series, DataFrame, or dict
+        Explanatory variables of the regression.
+
+    Returns
+    -------
+    Series, DataFrame
+        Cleaned lhs and rhs
+    """
+    if not isinstance(lhs, Series):
+        assert(len(lhs) == len(rhs))
+        lhs = Series(lhs, index=rhs.index)
+
+    rhs = _combine_rhs(rhs)
+    lhs = DataFrame({'__y__' : lhs}, dtype=float)
+    pre_filt_rhs = rhs.dropna(how='any')
+
+    combined = rhs.join(lhs, how='outer')
+    if weights is not None:
+        combined['__weights__'] = weights
+
+    valid = (combined.count(1) == len(combined.columns)).values
+    index = combined.index
+    combined = combined[valid]
+
+    if weights is not None:
+        filt_weights = combined.pop('__weights__')
+    else:
+        filt_weights = None
+
+    filt_lhs = combined.pop('__y__')
+    filt_rhs = combined
+
+    return (filt_lhs, filt_rhs, filt_weights,
+            pre_filt_rhs, index, valid)
+
+
 def _combine_rhs(rhs):
     """
     Glue input X variables together while checking for potential
@@ -1177,52 +1223,9 @@ def _combine_rhs(rhs):
         raise Exception('Invalid RHS type: %s' % type(rhs))
 
     if not isinstance(series, DataFrame):
-        series = DataFrame(series)
+        series = DataFrame(series, dtype=float)
 
     return series
-
-def _filter_data(lhs, rhs, weights=None):
-    """
-    Cleans the input for single OLS.
-
-    Parameters
-    ----------
-    lhs: Series
-        Dependent variable in the regression.
-    rhs: dict, whose values are Series, DataFrame, or dict
-        Explanatory variables of the regression.
-
-    Returns
-    -------
-    Series, DataFrame
-        Cleaned lhs and rhs
-    """
-    if not isinstance(lhs, Series):
-        assert(len(lhs) == len(rhs))
-        lhs = Series(lhs, index=rhs.index)
-
-    rhs = _combine_rhs(rhs)
-    lhs = DataFrame({'__y__' : lhs})
-    pre_filt_rhs = rhs.dropna(how='any')
-
-    combined = rhs.join(lhs, how='outer')
-    if weights is not None:
-        combined['__weights__'] = weights
-
-    valid = (combined.count(1) == len(combined.columns)).values
-    index = combined.index
-    combined = combined[valid]
-
-    if weights is not None:
-        filt_weights = combined.pop('__weights__')
-    else:
-        filt_weights = None
-
-    filt_lhs = combined.pop('__y__')
-    filt_rhs = combined
-
-    return (filt_lhs, filt_rhs, filt_weights,
-            pre_filt_rhs, index, valid)
 
 # A little kludge so we can use this method for both
 # MovingOLS and MovingPanelOLS
