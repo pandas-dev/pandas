@@ -176,10 +176,14 @@ if not ISRELEASED:
     FULLVERSION += '.dev'
     try:
         import subprocess
-        pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
-                                stdout=subprocess.PIPE).stdout
+        try:
+            pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
+                                    stdout=subprocess.PIPE).stdout
+        except OSError:
+            # msysgit compatibility
+            pipe = subprocess.Popen(["git.cmd", "rev-parse", "--short", "HEAD"],
+                                    stdout=subprocess.PIPE).stdout
         rev = pipe.read().strip()
-
         # makes distutils blow up on Python 2.7
         if sys.version_info[0] >= 3:
             rev = rev.decode('ascii')
