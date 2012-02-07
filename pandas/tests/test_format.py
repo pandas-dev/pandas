@@ -134,7 +134,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
-                                  float_format='%.6f'.__mod__)
+                                  float_format='%.5f'.__mod__)
         lines = result.split('\n')
         header = lines[0].strip().split()
         joined = '\n'.join([re.sub('\s+', ' ', x).strip() for x in lines[1:]])
