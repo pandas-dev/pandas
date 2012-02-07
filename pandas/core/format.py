@@ -56,16 +56,12 @@ class SeriesFormatter(object):
         self.buf = buf if buf is not None else StringIO()
         self.name = name
         self.na_rep = na_rep
-        self.float_format = float_format
         self.length = length
         self.header = header
 
-        def formatter(x, col_width=None):
-            return _format(x, self.series.dtype,
-                           na_rep=self.na_rep,
-                           float_format=self.float_format,
-                           col_width=col_width)
-        self.formatter = formatter
+        if float_format is None:
+            float_format = print_config.float_format
+        self.float_format = float_format
 
     def _get_footer(self):
         footer = ''
@@ -91,31 +87,9 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        series = self.series
-        vals = series.values
-
-        if self.float_format is None:
-            float_format = print_config.float_format
-            if float_format is None:
-                float_format = _float_format_default
-
-        # floating point handling
-        if series.dtype == 'O':
-            is_float = (series.map(com.is_float) & series.notnull()).values
-            leading_space = is_float.any()
-
-            fmt_values = []
-            for i, v in enumerate(vals):
-                if not is_float[i] and leading_space:
-                    fmt_values.append(' %s' % self.formatter(v))
-                elif is_float[i]:
-                    fmt_values.append(float_format(v))
-                else:
-                    fmt_values.append(' %s' % self.formatter(v))
-        else:
-            fmt_values = _format_fixed_width(self.series.values,
-                                             self.formatter)
-        return fmt_values
+        return format_array(self.series.values, None,
+                            float_format=self.float_format,
+                            na_rep=self.na_rep)
 
     def to_string(self):
         series = self.series
@@ -141,25 +115,6 @@ class SeriesFormatter(object):
         return '\n'.join(result)
 
 
-def format_array(values, formatter, float_format):
-    # floating point handling
-    if values.dtype == 'O':
-        is_float = (lib.map_infer(values, com.is_float) & notnull(values))
-        leading_space = is_float.any()
-
-        fmt_values = []
-        for i, v in enumerate(values):
-            if not is_float[i] and leading_space:
-                fmt_values.append(' %s' % formatter(v))
-            elif is_float[i]:
-                fmt_values.append(float_format(v))
-            else:
-                fmt_values.append(' %s' % formatter(v))
-    else:
-        fmt_values = _format_fixed_width(values, formatter)
-    return fmt_values
-
-
 class DataFrameFormatter(object):
     """
     Render a DataFrame
@@ -180,7 +135,7 @@ class DataFrameFormatter(object):
         self.show_index_names = index_names
         self.sparsify = sparsify
         self.float_format = float_format
-        self.formatters = formatters
+        self.formatters = formatters if formatters is not None else {}
         self.na_rep = na_rep
         self.col_space = col_space
         self.header = header
@@ -228,9 +183,13 @@ class DataFrameFormatter(object):
                         cheader = [x.ljust(max_len) for x in cheader]
                     else:
                         cheader = [x.rjust(max_len) for x in cheader]
-                    stringified.append(cheader + fmt_values)
+                    fmt_values = cheader + fmt_values
+                    stringified.append(_make_fixed_width(fmt_values,
+                                                         self.justify))
                 else:
-                    stringified = [self._format_col(c) for c in self.columns]
+                    stringified = [_make_fixed_width(self._format_col(c),
+                                                     self.justify)
+                                   for c in self.columns]
 
             if self.index:
                 to_write.append(adjoin(1, str_index, *stringified))
@@ -252,34 +211,12 @@ class DataFrameFormatter(object):
 
         self.buf.writelines(to_write)
 
-    def _get_col_formatter(self, dtype):
-        def formatter(x, col_width=None):
-            return _format(x, dtype, space=self.col_space,
-                           na_rep=self.na_rep,
-                           float_format=self.float_format,
-                           col_width=col_width)
-        return formatter
-
-    def _format_col(self, col, i=None):
-        if self.formatters is None:
-            self.formatters = {}
-
-        if col in self.formatters:
-            formatter = self.formatters[col]
-
-            if i is None:
-                return [formatter(x) for x in self.frame[col]]
-            else:
-                return formatter(self.frame[col][i])
-        else:
-            dtype = self.frame[col].dtype
-            formatter = self._get_col_formatter(dtype)
-
-            if i is not None:
-                return formatter(self.frame[col][i])
-            else:
-                return _format_fixed_width(self.frame[col],
-                                           formatter)
+    def _format_col(self, col):
+        formatter = self.formatters.get(col)
+        return format_array(self.frame[col].values, formatter,
+                            float_format=self.float_format,
+                            na_rep=self.na_rep,
+                            space=self.col_space)
 
     def to_html(self):
         """
@@ -361,6 +298,10 @@ class DataFrameFormatter(object):
                 else:
                     return x
 
+            fmt_values = {}
+            for col in frame.columns:
+                fmt_values[col] = self._format_col(col)
+
             # write values
             for i in range(len(frame)):
                 row = []
@@ -368,8 +309,8 @@ class DataFrameFormatter(object):
                     row.extend(_maybe_bold_row(frame.index[i]))
                 else:
                     row.append(_maybe_bold_row(frame.index[i]))
-                for column in frame.columns:
-                    row.append(self._format_col(column, i))
+                for col in frame.columns:
+                    row.append(fmt_values[col][i])
                 write_tr(buf, row, indent, indent_delta)
             indent -= indent_delta
             write(buf, '</tbody>', indent)
@@ -380,10 +321,6 @@ class DataFrameFormatter(object):
     def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
 
-        formatters = self.formatters
-        if formatters is None:
-            formatters = {}
-
         def is_numeric_dtype(dtype):
             return issubclass(dtype.type, np.number)
 
@@ -393,7 +330,7 @@ class DataFrameFormatter(object):
             dtypes = self.frame.dtypes.values
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = zip(*[[u' %s' % y
-                                if y not in formatters and need_leadsp[x]
+                                if y not in self.formatters and need_leadsp[x]
                                 else y for y in x]
                                for x in fmt_columns])
             if self.sparsify:
@@ -405,7 +342,7 @@ class DataFrameFormatter(object):
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [[u' %s' % x
-                            if col not in formatters and need_leadsp[x]
+                            if col not in self.formatters and need_leadsp[x]
                             else x]
                            for col, x in zip(self.columns, fmt_columns)]
 
@@ -459,11 +396,147 @@ class DataFrameFormatter(object):
             names.append('' if columns.name is None else columns.name)
         return names
 
+#----------------------------------------------------------------------
+# Array formatters
 
-def _format_fixed_width(values, formatter):
-    formatted = [formatter(x) for x in values]
-    max_len = max(len(x) for x in formatted)
-    return [formatter(x, col_width=max_len) for x in values]
+
+def format_array(values, formatter, float_format=None, na_rep='NaN',
+                 digits=None, space=None):
+    if com.is_float_dtype(values.dtype):
+        if formatter is None:
+            formatter = float_format
+        fmt_klass = FloatArrayFormatter
+    elif com.is_integer_dtype(values.dtype):
+        fmt_klass = IntArrayFormatter
+    else:
+        fmt_klass = GenericArrayFormatter
+
+    if space is None:
+        space = print_config.column_space
+
+    if digits is None:
+        digits = print_config.precision
+
+    fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
+                        formatter=formatter, space=space)
+
+    return fmt_obj.get_result()
+
+
+class GenericArrayFormatter(object):
+
+    def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
+                 space=12, float_format=None, justify='right'):
+        self.values = values
+        self.digits = digits
+        self.na_rep = na_rep
+        self.space = space
+        self.formatter = formatter
+        self.float_format = float_format
+        self.justify = justify
+
+    def get_result(self):
+        if self.float_format is None:
+            float_format = print_config.float_format
+            if float_format is None:
+                fmt_str = '%% .%dg' % print_config.precision
+                float_format = lambda x: fmt_str % x
+
+        formatter = _stringify if self.formatter is None else self.formatter
+
+        def _format(x):
+            if self.na_rep is not None and lib.checknull(x):
+                if x is None:
+                    return 'None'
+                return self.na_rep
+            else:
+                # object dtype
+                return '%s' % formatter(x)
+
+        vals = self.values
+
+        is_float = lib.map_infer(vals, com.is_float) & notnull(vals)
+        leading_space = is_float.any()
+
+        fmt_values = []
+        for i, v in enumerate(vals):
+            if not is_float[i] and leading_space:
+                fmt_values.append(' %s' % _format(v))
+            elif is_float[i]:
+                fmt_values.append(float_format(v))
+            else:
+                fmt_values.append(' %s' % _format(v))
+
+        return _make_fixed_width(fmt_values, self.justify)
+
+class FloatArrayFormatter(GenericArrayFormatter):
+    """
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        GenericArrayFormatter.__init__(self, *args, **kwargs)
+
+        if self.float_format is not None and self.formatter is None:
+            self.formatter = self.float_format
+
+    def _format_with(self, fmt_str):
+        fmt_values = [fmt_str % x if notnull(x) else self.na_rep
+                      for x in self.values]
+        return _trim_zeros(fmt_values)
+
+    def get_result(self):
+        if self.formatter is not None:
+            fmt_values = [self.formatter(x) for x in self.values]
+        else:
+            fmt_str = '%% .%df' % (self.digits - 1)
+            fmt_values = self._format_with(fmt_str)
+
+            maxlen = max(len(x) for x in fmt_values)
+            too_long = maxlen > self.digits + 5
+
+            # this is pretty arbitrary for now
+            has_large_values = (np.abs(self.values) > 1e8).any()
+
+            if too_long and has_large_values:
+                fmt_str = '%% .%de' % (self.digits - 1)
+                fmt_values = self._format_with(fmt_str)
+
+        return _make_fixed_width(fmt_values)
+
+
+class IntArrayFormatter(GenericArrayFormatter):
+
+
+    def get_result(self):
+        fmt_values = ['% d' % x for x in self.values]
+        return _make_fixed_width(fmt_values, self.justify)
+
+
+def _make_fixed_width(strings, justify='right'):
+    max_len = max(len(x) for x in strings)
+    if justify == 'left':
+        justfunc = lambda self, x: self.ljust(x)
+    else:
+        justfunc = lambda self, x: self.rjust(x)
+
+    def just(x):
+        return justfunc(x[:max_len], max_len)
+
+    return [just(x) for x in strings]
+
+def _trim_zeros(str_floats):
+    """
+    Trims zeros and decimal points
+    """
+    # TODO: what if exponential?
+    trimmed = str_floats
+    while all([x[-1] == '0' for x in trimmed]):
+        trimmed = [x[:-1] for x in trimmed]
+
+    # trim decimal points
+    return [x[:-1] if x[-1] == '.' else x for x in trimmed]
+
 
 def single_column_table(column):
     table = '<table><tbody>'
@@ -490,8 +563,9 @@ def _has_names(index):
 #-------------------------------------------------------------------------------
 # Global formatting options
 
-def set_printoptions(precision=None, column_space=None, max_rows=None,
-                     max_columns=None, colheader_justify='right'):
+def set_printoptions(precision=None, digits=None, column_space=None,
+                     max_rows=None, max_columns=None,
+                     colheader_justify='right'):
     """
     Alter default behavior of DataFrame.toString
 
@@ -507,6 +581,8 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
     """
+    if digits is not None:
+        print_config.digits = digits
     if precision is not None:
         print_config.precision = precision
     if column_space is not None:
@@ -629,100 +705,14 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
     print_config.float_format = EngFormatter(accuracy, use_eng_prefix)
     print_config.column_space = max(12, accuracy + 9)
 
-def _float_format_default(v, width=None):
-    """
-    Take a float and its formatted representation and if it needs extra space
-    to fit the width, reformat it to that width.
-    """
-
-    fmt_str   = '%% .%dg' % print_config.precision
-    formatted = fmt_str % v
-
-    if width is None:
-        return formatted
-
-    extra_spc = width - len(formatted)
-
-    if extra_spc <= 0:
-        return formatted
-
-    if 'e' in formatted:
-        # we have something like 1e13 or 1.23e13
-        base, exp = formatted.split('e')
-
-        if '.' in base:
-            # expand fraction by extra space
-            whole, frac = base.split('.')
-            fmt_str = '%%.%df' % (len(frac) + extra_spc)
-            frac = fmt_str % float("0.%s" % frac)
-            base = whole + frac[1:]
-        else:
-            if extra_spc > 1:
-                # enough room for fraction
-                fmt_str = '%% .%df' % (extra_spc - 1)
-                base = fmt_str % float(base)
-            else:
-                # enough room for decimal point only
-                base += '.'
-
-        return base + 'e' + exp
-    else:
-        # we have something like 123 or 123.456
-        if '.' in formatted:
-            # expand fraction by extra space
-            wholel, fracl = map(len, formatted.split("."))
-            fmt_str = '%% .%df' % (fracl + extra_spc)
-        else:
-            if extra_spc > 1:
-                # enough room for fraction
-                fmt_str = '%% .%df' % (extra_spc - 1)
-            else:
-                # enough room for decimal point only
-                fmt_str = '% d.'
-
-        return fmt_str % v
-
-def _format(s, dtype, space=None, na_rep=None, float_format=None,
-            col_width=None):
-    def _just_help(x):
-        if space is None:
-            return x
-        return x[:space].ljust(space)
-
-    def _make_float_format(x):
-        if na_rep is not None and isnull(x):
-            if np.isnan(x):
-                x = ' ' + na_rep
-            return _just_help('%s' % x)
-
-        if float_format:
-            formatted = float_format(x)
-        elif print_config.float_format:
-            formatted = print_config.float_format(x)
-        else:
-            formatted = _float_format_default(x, col_width)
-
-        return _just_help(formatted)
-
-    def _make_int_format(x):
-        return _just_help('% d' % x)
-
-    if com.is_float_dtype(dtype):
-        return _make_float_format(s)
-    elif com.is_integer_dtype(dtype):
-        return _make_int_format(s)
-    else:
-        if na_rep is not None and lib.checknull(s):
-            if s is None:
-                return 'None'
-            return na_rep
-        else:
-            # object dtype
-            return _just_help('%s' % _stringify(s))
 
 class _GlobalPrintConfig(object):
+    """
+    Holds the console formatting settings for DataFrame and friends
+    """
+
     def __init__(self):
-        self.precision = 4
+        self.precision = self.digits = 7
         self.float_format = None
         self.column_space = 12
         self.max_rows = 200
@@ -733,3 +723,18 @@ class _GlobalPrintConfig(object):
         self.__init__()
 
 print_config = _GlobalPrintConfig()
+
+
+if __name__ == '__main__':
+    arr = np.array([746.03, 0.00, 5620.00, 1592.36])
+    # arr = np.array([11111111.1, 1.55])
+    # arr = [314200.0034, 1.4125678]
+    arr = np.array([  327763.3119,   345040.9076,   364460.9915,   398226.8688,
+                      383800.5172,   433442.9262,   539415.0568,   568590.4108,
+                      599502.4276,   620921.8593,   620898.5294,   552427.1093,
+                      555221.2193,   519639.7059,   388175.7   ,   379199.5854,
+                      614898.25  ,   504833.3333,   560600.    ,   941214.2857,
+                      1134250.    ,  1219550.    ,   855736.85  ,  1042615.4286,
+                      722621.3043,   698167.1818,   803750.    ])
+    fmt = FloatArrayFormatter(arr, digits=7)
+    print fmt.get_result()

@@ -86,7 +86,10 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
-        self.assertEqual(result, u'  c/\u03c3\n0 1  \n1 2  \n2 3  ')
+        self.assertEqual(result, (u'  c/\u03c3\n'
+                                   '0   1\n'
+                                   '1   2\n'
+                                   '2   3'))
 
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
@@ -189,39 +192,47 @@ class TestDataFrameFormatting(unittest.TestCase):
         # Python 2.5 just wants me to be sad. And debian 32-bit
         #sys.version_info[0] == 2 and sys.version_info[1] < 6:
         if '%.4g' % 1.7e8 == '1.7e+008':
-            expected = ('   x        \n0  0.0000000\n1  0.2500000\n'
-                        '2  3456.0000\n3  1.20e+046\n4  1.64e+006\n'
-                        '5  1.70e+008\n6  1.2534560\n7  3.1415927\n'
-                        '8 -1.00e+006')
+            expected = ('              x\n0  0.00000e+000\n1  2.50000e-001\n'
+                        '2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n'
+                        '5  1.70000e+008\n6  1.25346e+000\n7  3.14159e+000\n'
+                        '8 -1.00000e+006')
         else:
-            expected = ('   x       \n0  0.000000\n1  0.250000\n'
-                        '2  3456.000\n3  1.20e+46\n4  1.64e+06\n'
-                        '5  1.70e+08\n6  1.253456\n7  3.141593\n'
-                        '8 -1.00e+06')
+            expected = ('             x\n0  0.00000e+00\n1  2.50000e-01\n'
+                        '2  3.45600e+03\n3  1.20000e+46\n4  1.64000e+06\n'
+                        '5  1.70000e+08\n6  1.25346e+00\n7  3.14159e+00\n'
+                        '8 -1.00000e+06')
         assert(df_s == expected)
 
         df = DataFrame({'x' : [3234, 0.253]})
         df_s = df.to_string()
 
-        expected = '   x    \n0  3234.\n1  0.253'
+        expected = ('          x\n'
+                    '0  3234.000\n'
+                    '1     0.253')
         assert(df_s == expected)
 
         fmt.reset_printoptions()
-        self.assertEqual(fmt.print_config.precision, 4)
+        self.assertEqual(fmt.print_config.precision, 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
         if sys.version_info[0] == 2 and sys.version_info[1] < 6:
-            expected = '   x     \n0  1e+009\n1  0.2512'
+            expected = ('               x\n'
+                        '0  1.000000e+009\n'
+                        '1  2.512000e-001')
         else:
-            expected = '   x     \n0  1.e+09\n1  0.2512'
+            expected = ('              x\n'
+                        '0  1.000000e+09\n'
+                        '1  2.512000e-01')
         assert(df_s == expected)
 
     def test_to_string_right_justify_cols(self):
         fmt.reset_printoptions()
         df = DataFrame({'x' : [3234, 0.253]})
         df_s = df.to_string(justify='right')
-        expected = '       x\n0  3234.\n1  0.253'
+        expected = ('          x\n'
+                    '0  3234.000\n'
+                    '1     0.253')
         assert(df_s == expected)
 
     def test_to_string_format_na(self):
@@ -230,12 +241,12 @@ class TestDataFrameFormatting(unittest.TestCase):
                         'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
 
-        expected = ('   A     B     \n'
-                    '0  NaN   NaN   \n'
-                    '1 -1.000 foo   \n'
-                    '2 -2.123 foooo \n'
-                    '3  3.000 fooooo\n'
-                    '4  4.000 bar   ')
+        expected = ('          A       B\n'
+                    '0       NaN     NaN\n'
+                    '1 -1.000000     foo\n'
+                    '2 -2.123400   foooo\n'
+                    '3  3.000000  fooooo\n'
+                    '4  4.000000     bar')
         self.assertEqual(result, expected)
 
     def test_to_html(self):
@@ -271,6 +282,84 @@ class TestDataFrameFormatting(unittest.TestCase):
         ashtml = x.to_html(bold_rows=False)
         assert('<strong>' not in ashtml)
 
+
+class TestSeriesFormatting(unittest.TestCase):
+
+    def setUp(self):
+        self.ts = tm.makeTimeSeries()
+
+    def test_repr_unicode(self):
+        s = Series([u'\u03c3'] * 10)
+        repr(s)
+
+    def test_to_string(self):
+        from cStringIO import StringIO
+        buf = StringIO()
+
+        s = self.ts.to_string()
+
+        retval = self.ts.to_string(buf=buf)
+        self.assert_(retval is None)
+        self.assertEqual(buf.getvalue().strip(), s)
+
+        # pass float_format
+        format = '%.4f'.__mod__
+        result = self.ts.to_string(float_format=format)
+        result = [x.split()[1] for x in result.split('\n')]
+        expected = [format(x) for x in self.ts]
+        self.assertEqual(result, expected)
+
+        # empty string
+        result = self.ts[:0].to_string()
+        self.assertEqual(result, '')
+
+        result = self.ts[:0].to_string(length=0)
+        self.assertEqual(result, '')
+
+        # name and length
+        cp = self.ts.copy()
+        cp.name = 'foo'
+        result = cp.to_string(length=True, name=True)
+        last_line = result.split('\n')[-1].strip()
+        self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
+
+    def test_to_string_mixed(self):
+        s = Series(['foo', np.nan, -1.23, 4.56])
+        result = s.to_string()
+        expected = ('0     foo\n'
+                    '1     NaN\n'
+                    '2   -1.23\n'
+                    '3    4.56')
+        self.assertEqual(result, expected)
+
+        # but don't count NAs as floats
+        s = Series(['foo', np.nan, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    NaN\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
+        s = Series(['foo', 5, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1      5\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
+    def test_to_string_float_na_spacing(self):
+        s = Series([0., 1.5678, 2., -3., 4.])
+        s[::2] = np.nan
+
+        result = s.to_string()
+        expected = ('0         NaN\n'
+                    '1    1.567800\n'
+                    '2         NaN\n'
+                    '3   -3.000000\n'
+                    '4         NaN')
+        self.assertEqual(result, expected)
 
 class TestEngFormatter(unittest.TestCase):
 
@@ -434,6 +523,16 @@ class TestEngFormatter(unittest.TestCase):
                    (55555.5, ' 56k'),
                    (555555, ' 556k')]
          self.compare_all(formatter, in_out)
+
+
+# class TestFloatArrayFormatter(unittest.TestCase):
+
+#     def test_trim_zeros(self):
+#         values = np.array([1.5, 2.5, 3.5])
+#         fmt = FloatArrayFormatter(values)
+
+#         result = fmt.get_result()
+#         pass
 
 
 if __name__ == '__main__':
