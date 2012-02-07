@@ -253,6 +253,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
         assert_series_equal(result, expected)
 
+    def test_constructor_subclass_dict(self):
+        data = tm.TestSubDict((x, 10.0 * x) for x in xrange(10))
+        series = Series(data)
+        refseries = Series(dict(data.iteritems()))
+        assert_series_equal(refseries, series)
+
     def test_constructor_list_of_tuples(self):
         data = [(1, 1), (2, 2), (2, 3)]
         s = Series(data)
