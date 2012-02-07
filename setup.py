@@ -173,15 +173,7 @@ QUALIFIER = 'rc1'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
-    try:
-        sha = os.environ['GIT_COMMIT']
-        if sha is not None and sha != '':
-            FULLVERSION += sha
-        else:
-            FULLVERSION += '.dev'
-    except KeyError:
-        FULLVERSION += '.dev'
-
+    FULLVERSION += '.dev'
     try:
         import subprocess
         pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
