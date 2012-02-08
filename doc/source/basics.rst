@@ -277,6 +277,7 @@ optional ``level`` parameter which applies only if the object has a
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
+    ``abs``, Absolute Value
     ``prod``, Product of values
     ``std``, Unbiased standard deviation
     ``var``, Unbiased variance

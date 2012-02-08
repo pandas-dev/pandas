@@ -25,7 +25,7 @@ Where to get it
 pandas 0.7.0
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** 2/8/2012
 
 **New features / modules**
 
@@ -91,11 +91,13 @@ pandas 0.7.0
   - Add ``sort`` option to ``DataFrame.join`` (GH #731)
   - Improved handling of NAs (propagation) in binary operations with
     dtype=object arrays (GH #737)
+  - Add ``abs`` method to Pandas objects
+  - Added ``algorithms`` module to start collecting central algos
 
 **API Changes**
 
   - Label-indexing with integer indexes now raises KeyError if a label is not
-    found instead of falling back on location-based indexing
+    found instead of falling back on location-based indexing (GH #700)
   - Label-based slicing via ``ix`` or ``[]`` on Series will now only work if
     exact matches for the labels are found or if the index is monotonic (for
     range selections)
@@ -119,6 +121,8 @@ pandas 0.7.0
     #395)
   - The default delimiter for ``read_csv`` is comma rather than letting
     ``csv.Sniffer`` infer it
+  - Rename ``col_or_columns`` argument in ``DataFrame.drop_duplicates`` (GH
+    #734)
 
 **Improvements to existing features**
 
@@ -178,6 +182,14 @@ pandas 0.7.0
   - Substantially improved performance of groupby on DataFrames with many
     columns by aggregating blocks of columns all at once (GH #745)
   - Can pass a file handle or StringIO to Series/DataFrame.to_csv (GH #765)
+  - Can pass sequence of integers to DataFrame.irow(icol) and Series.iget, (GH
+    #654)
+  - Prototypes for some vectorized string functions
+  - Add float64 hash table to solve the Series.unique problem with NAs (GH #714)
+  - Memoize objects when reading from file to reduce memory footprint
+  - Improved handling of NAs in binary ops with object Series (GH #737)
+  - Added optimized Cython groupby routines for aggregating 2D blocks, added
+    vbenchmark, (GH #745)
 
 **Bug fixes**
 
@@ -263,6 +275,34 @@ pandas 0.7.0
   - Fix Index.format bug causing incorrectly string-formatted Series with
     datetime indexes (# 758)
   - Fix errors caused by object dtype arrays passed to ols (GH #759)
+  - Fix error where column names lost when passing list of labels to
+    DataFrame.__getitem__, (GH #662)
+  - Fix error whereby top-level week iterator overwrote week instance
+  - Fix circular reference causing memory leak in sparse array / series /
+    frame, (GH #663)
+  - Fix integer-slicing from integers-as-floats (GH #670)
+  - Fix zero division errors in nanops from object dtype arrays in all NA case
+    (GH #676)
+  - Fix csv encoding when using unicode (GH #705, #717, #738)
+  - Fix assumption that each object contains every unique block type in concat,
+    (GH #708)
+  - Fix handling of NAs in Series.unique (GH #714)
+  - Fix sortedness check of multiindex in to_panel (GH #719, 720)
+  - Fix that None was not treated as NA in PyObjectHashtable
+  - Fix hashing dtype because of endianness confusion (GH #747, #748)
+  - Fix SparseSeries.dropna to return dense Series in case of NA fill value (GH
+    #730)
+  - Use map_infer instead of np.vectorize. handle NA sentinels if converter
+    yields numeric array, (GH #753)
+  - Fixes and improvements to DataFrame.rank (GH #742)
+  - Fix catching AttributeError instead of NameError for bottleneck
+  - Fix to float formatting issues (GH #726, 758)
+  - Try to cast non-MultiIndex to better dtype when calling reset_index (GH #726
+    #440)
+  - Fix object dtype arrays in OLS class (GH #759)
+  - Fix #1.QNAN0' float bug on 2.6/win64
+  - Allow subclasses of dicts in DataFrame constructor, with tests
+  - Fix problem whereby set_index destroys column multiindex (GH #764)
 
 Thanks
 ------
