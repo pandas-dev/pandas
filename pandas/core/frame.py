@@ -2943,13 +2943,9 @@ class DataFrame(NDFrame):
                 for k, v in series_gen:
                     results[k] = func(v)
             except Exception, e:
-                try:
-                    if hasattr(e, 'args'):
-                        e.args = e.args + ('occurred at index %s' % str(k),)
-                except UnboundLocalError:
-                    raise e
-                else:
-                    raise
+                if hasattr(e, 'args'):
+                    e.args = e.args + ('occurred at index %s' % str(k),)
+                raise
 
         if len(results) > 0 and _is_sequence(results.values()[0]):
             if not isinstance(results.values()[0], Series):

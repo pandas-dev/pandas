@@ -258,7 +258,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0):
 
         if val is None:
             seen_null = 1
-            objects[i] = onan
             floats[i] = fnan
         elif util.is_bool_object(val):
             seen_bool = 1

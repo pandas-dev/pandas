@@ -351,6 +351,12 @@ class CheckIndexing(object):
         self.assert_(df['z'] is not foo)
         assert_series_equal(df['z'], expected)
 
+    def test_setitem_None(self):
+        # GH #766
+        self.frame[None] = self.frame['A']
+        assert_series_equal(self.frame[None], self.frame['A'])
+        repr(self.frame)
+
     def test_delitem_corner(self):
         f = self.frame.copy()
         del f['D']

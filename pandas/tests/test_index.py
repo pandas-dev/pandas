@@ -301,6 +301,13 @@ class TestIndex(unittest.TestCase):
         self.assert_(len(result) == 2)
         self.assertEquals(result, expected)
 
+    def test_format_none(self):
+        values = ['a', 'b', 'c', None]
+
+        idx = Index(values)
+        idx.format()
+        self.assert_(idx[3] is None)
+
     def test_take(self):
         indexer = [4, 3, 0, 2]
         result = self.dateIndex.take(indexer)
