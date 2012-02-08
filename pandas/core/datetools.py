@@ -8,7 +8,6 @@ import pandas._tseries as lib
 try:
     import dateutil
     from dateutil import parser
-    from dateutil.relativedelta import relativedelta
 
     # raise exception if dateutil 2.0 install on 2.x platform
     if (sys.version_info[0] == 2 and
@@ -160,7 +159,7 @@ class DateOffset(object):
         self.n = int(n)
         self.kwds = kwds
         if len(kwds) > 0:
-            self._offset = relativedelta(**kwds)
+            self._offset = lib.Delta(**kwds)
         else:
             self._offset = timedelta(1)
 
@@ -356,10 +355,10 @@ class MonthEnd(DateOffset, CacheableOffset):
         n = self.n
         _, days_in_month = calendar.monthrange(other.year, other.month)
         if other.day != days_in_month:
-            other = other + relativedelta(months=-1, day=31)
+            other = other + lib.Delta(months=-1, day=31)
             if n <= 0:
                 n = n + 1
-        other = other + relativedelta(months=n, day=31)
+        other = other + lib.Delta(months=n, day=31)
         return other
 
     @classmethod
@@ -386,7 +385,7 @@ class BMonthEnd(DateOffset, CacheableOffset):
             n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
-        other = other + relativedelta(months=n, day=31)
+        other = other + lib.Delta(months=n, day=31)
 
         if other.weekday() > 4:
             other = other - BDay()
@@ -482,7 +481,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        one_month = relativedelta(months=1, day=1)
+        one_month = lib.Delta(months=1, day=1)
 
         if offsetOfMonth > other:
             if self.n > 0:
@@ -497,7 +496,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
             else:
                 months = self.n + 1
 
-        return self.getOffsetOfMonth(other + relativedelta(months=months, day=1))
+        return self.getOffsetOfMonth(other + lib.Delta(months=months, day=1))
 
     def getOffsetOfMonth(self, someDate):
         w = Week(weekday=self.weekday)
@@ -551,7 +550,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
+        other = other + lib.Delta(months=monthsToGo + 3*n, day=31)
 
         if other.weekday() > 4:
             other = other - BDay()
@@ -597,7 +596,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
         if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
             n = n - 1
 
-        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
+        other = other + lib.Delta(months=monthsToGo + 3*n, day=31)
 
         return other
 
@@ -638,7 +637,7 @@ class BYearEnd(DateOffset, CacheableOffset):
                 (other.month == self.month and other.day > lastBDay)):
                 years += 1
 
-        other = other + relativedelta(years=years)
+        other = other + lib.Delta(years=years)
 
         _, days_in_month = calendar.monthrange(other.year, self.month)
         result = lib.Timestamp(datetime(other.year, self.month, days_in_month))
@@ -658,7 +657,7 @@ class YearEnd(DateOffset, CacheableOffset):
             other = lib.Timestamp(datetime(other.year - 1, 12, 31))
             if n <= 0:
                 n = n + 1
-        other = other + relativedelta(years=n)
+        other = other + lib.Delta(years=n)
         return other
 
     @classmethod
@@ -676,7 +675,7 @@ class YearBegin(DateOffset, CacheableOffset):
             other = lib.Timestamp(datetime(other.year, 1, 1))
             if n <= 0:
                 n = n + 1
-        other = other + relativedelta(years = n, day=1)
+        other = other + lib.Delta(years = n, day=1)
         return other
 
     @classmethod

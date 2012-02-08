@@ -66,7 +66,7 @@ cdef class _Timestamp(datetime):
         int64_t value       # numpy int64
         object freq         # dateoffset object
 
-# lightweight C object to hold datetime, int64 pair
+# lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
     cdef:
         datetime dtval      # python datetime
@@ -212,6 +212,105 @@ cdef conversion_factor(time_res res1, time_res res2):
             raise "Cannot convert to month or year"
 
     return factor
+
+# Logic to generate ranges
+# -----------------------------------------------------------------------------
+
+def generate_annual_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
+                          int64_t biz=0):
+    """
+    Generate yearly timestamps beginning with start time. Apply dayoffset to
+    each timestamp, which allows you to for instance generate month ends with
+    -1. If biz is 1, we choose the next business day if offset >= 0, else prev
+    business day if < 0.
+    """
+    cdef:
+        Py_ssize_t i, m, d, y, ly, w
+        int64_t us_in_day
+        ndarray[int64_t] dtindex
+        _TSObject ts
+
+    ts = convert_to_tsobject(start)
+
+    us_in_day = conversion_factor(r_microsecond, r_day)
+
+    dtindex = np.empty(periods, np.int64)
+
+    dayoffset *= us_in_day
+
+    dtindex[0] = ts.value + dayoffset
+    m = ts.dtval.month
+    d = ts.dtval.day
+    y = ts.dtval.year
+    ly = m >= 3
+    w = 0
+    # weekday logic needs fixing
+    for i in range(1, periods):
+        dtindex[i] = -w + dtindex[i-1] + (365 + is_leapyear(y + ly)) * us_in_day
+        y += 1
+        if biz != 0:
+            w = dayofweek(y,m,d)
+            if w > 4:
+                if dayoffset < 0:
+                    w = (w-7) * us_in_day
+                else:
+                    w = (7-w) * us_in_day
+            else:
+                w = 0
+            dtindex[i] += w
+
+    return dtindex.view(np.datetime64)
+
+def generate_quarterly_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
+                             int64_t biz=0):
+    cdef:
+        Py_ssize_t i, m1, m2, m3, y1, y2, y3, l1, l2, l3
+        int64_t us_in_day
+        ndarray[int64_t] dtindex
+        _TSObject ts
+
+    ts = convert_to_tsobject(start)
+
+    us_in_day = conversion_factor(r_microsecond, r_day)
+
+    dtindex = np.empty(periods, np.int64)
+
+    dayoffset *= us_in_day
+
+    dtindex[0] = ts.value + dayoffset
+    m1 = ts.dtval.month - 1
+    m2 = m1 + 1
+    m3 = m2 + 1
+    y3 = y2 = y1 = ts.dtval.year
+    l3 = l2 = l1 = is_leapyear(y1)
+
+    for i in range(1, periods):
+        if m3 >= 12:
+            m3 -= 12
+            y3 += 1
+            l3 = is_leapyear(y3)
+        if m2 >= 12:
+            m2 -= 12
+            y2 += 1
+            l2 = is_leapyear(y2)
+        if m1 >= 12:
+            m1 -= 12
+            y1 += 1
+            l1 = is_leapyear(y1)
+
+        dtindex[i] = (dtindex[i-1] +
+                      us_in_day * (_days_per_month_table[l1][m1] +
+                                   _days_per_month_table[l2][m2] +
+                                   _days_per_month_table[l3][m3]))
+        m1 += 3
+        m2 += 3
+        m3 += 3
+
+    return dtindex.view(np.datetime64)
+
+def generate_daily_range(object start, Py_ssize_t periods, int64_t biz=0):
+    pass
+
 
 # The following is derived from relativedelta.py in dateutil package
 # ------------------------------------------------------------------------------
@@ -546,7 +645,7 @@ cdef class Delta:
                 jumpdays *= -1
             ret += timedelta(days=jumpdays)
 
-        return ret
+        return Timestamp(ret)
 
     def __richcmp__(self, other, op):
         if op == 3:
@@ -658,7 +757,7 @@ cdef class Delta:
 
         if not isinstance(self, Delta):
             tmp = self
-            self = v 
+            self = v
             v = tmp
 
         f = v
@@ -847,28 +946,6 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
     else:
         raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
 
-# Another accessor, for datetime object -
-# ------------------------------------------------------------------------------
-
-def fast_field_accessor2(ndarray[object] dtindex, object field):
-    '''
-    Given a int64-based datetime index, extract the year, month, etc.,
-    field and return an array of these values.
-    '''
-    cdef:
-        npy_datetimestruct dts
-        Py_ssize_t i, count = 0
-        ndarray[int32_t] out
-
-    count = len(dtindex)
-    out = np.empty(count, dtype='i4')
-
-    if field == 'Y':
-        for i in range(count):
-                out[i] = PyDateTime_GET_YEAR(dtindex[i])
-        return out
-    else:
-        raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
 
 # Some general helper functions
 # ------------------------------------------------------------------------------

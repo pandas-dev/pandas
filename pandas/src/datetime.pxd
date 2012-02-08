@@ -4,15 +4,9 @@ from cpython cimport PyObject
 cdef extern from "datetime.h":
 
     ctypedef class datetime.datetime [object PyDateTime_DateTime]:
-        # cdef int *data
-        # cdef long hashcode
-        # cdef char hastzinfo
         pass
 
     ctypedef class datetime.timedelta [object PyDateTime_Delta]:
-        # cdef int *data
-        # cdef long hashcode
-        # cdef char hastzinfo
         pass
 
     void PyDateTime_IMPORT()
@@ -80,7 +74,6 @@ cdef extern from "np_datetime.h":
     int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
                                              NPY_DATETIMEUNIT *out_bestunit,
                                              int apply_tzinfo)
-
     int _days_per_month_table[2][12]
     int dayofweek(int y, int m, int d)
     int is_leapyear(int64_t year)

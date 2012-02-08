@@ -41,8 +41,8 @@ static char *_datetime_strings[NPY_DATETIME_NUMUNITS];
  */
 int
 convert_datetimestruct_to_datetime(PyArray_DatetimeMetaData *meta,
-                                    const npy_datetimestruct *dts,
-                                    npy_datetime *out);
+                                   const npy_datetimestruct *dts,
+                                   npy_datetime *out);
 
 /*
  * Calculates the days offset from the 1970 epoch.
