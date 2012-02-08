@@ -114,6 +114,9 @@ class _MergeOperation(object):
                     key_col.put(na_indexer, com.take_1d(self.left_join_keys[i],
                                                         left_na_indexer))
             elif left_indexer is not None:
+                if name is None:
+                    name = 'key_%d' % i
+
                 # a faster way?
                 key_col = com.take_1d(self.left_join_keys[i], left_indexer)
                 na_indexer = (left_indexer == -1).nonzero()[0]
@@ -179,41 +182,7 @@ class _MergeOperation(object):
         -------
         left_keys, right_keys
         """
-        # Hm, any way to make this logic less complicated??
-        if (self.on is None and self.left_on is None
-            and self.right_on is None):
-
-            if self.left_index and self.right_index:
-                self.left_on, self.right_on = (), ()
-            elif self.left_index:
-                if self.right_on is None:
-                    raise Exception('Must pass right_on or right_index=True')
-                self.left_on = [None] * self.left.index.nlevels
-            elif self.right_index:
-                if self.left_on is None:
-                    raise Exception('Must pass left_on or left_index=True')
-                self.right_on = [None] * self.right.index.nlevels
-            else:
-                # use the common columns
-                common_cols = self.left.columns.intersection(self.right.columns)
-                self.left_on = self.right_on = common_cols
-        elif self.on is not None:
-            if self.left_on is not None or self.right_on is not None:
-                raise Exception('Can only pass on OR left_on and '
-                                'right_on')
-            self.left_on = self.right_on = self.on
-        elif self.left_on is not None:
-            n = len(self.left_on)
-            if self.right_index:
-                self.right_on = [None] * n
-            else:
-                assert(len(self.right_on) == n)
-        elif self.right_on is not None:
-            n = len(self.right_on)
-            if self.left_index:
-                self.left_on = [None] * n
-            else:
-                assert(len(self.left_on) == n)
+        self._validate_specification()
 
         left_keys = []
         right_keys = []
@@ -265,6 +234,46 @@ class _MergeOperation(object):
             self.right = self.right.drop(right_drop, axis=1)
 
         return left_keys, right_keys, join_names
+
+    def _validate_specification(self):
+        # Hm, any way to make this logic less complicated??
+        if (self.on is None and self.left_on is None
+            and self.right_on is None):
+
+            if self.left_index and self.right_index:
+                self.left_on, self.right_on = (), ()
+            elif self.left_index:
+                if self.right_on is None:
+                    raise Exception('Must pass right_on or right_index=True')
+            elif self.right_index:
+                if self.left_on is None:
+                    raise Exception('Must pass left_on or left_index=True')
+                assert(len(self.left_on) == self.right.index.nlevels)
+            else:
+                # use the common columns
+                common_cols = self.left.columns.intersection(self.right.columns)
+                self.left_on = self.right_on = common_cols
+        elif self.on is not None:
+            if self.left_on is not None or self.right_on is not None:
+                raise Exception('Can only pass on OR left_on and '
+                                'right_on')
+            self.left_on = self.right_on = self.on
+        elif self.left_on is not None:
+            n = len(self.left_on)
+            if self.right_index:
+                self.right_on = [None] * n
+            else:
+                assert(len(self.right_on) == n)
+        elif self.right_on is not None:
+            n = len(self.right_on)
+            if self.left_index:
+                self.left_on = [None] * n
+            else:
+                assert(len(self.left_on) == n)
+        elif self.left_index:
+            assert(len(self.right_on) == self.left.index.nlevels)
+        elif self.right_index:
+            assert(len(self.left_on) == self.right.index.nlevels)
 
     def _get_group_keys(self):
         """

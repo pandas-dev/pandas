@@ -2943,8 +2943,12 @@ class DataFrame(NDFrame):
                 for k, v in series_gen:
                     results[k] = func(v)
             except Exception, e:
-                if hasattr(e, 'args'):
-                    e.args = e.args + ('occurred at index %s' % str(k),)
+                try:
+                    if hasattr(e, 'args'):
+                        e.args = e.args + ('occurred at index %s' % str(k),)
+                except UnboundLocalError:
+                    raise e
+                else:
                     raise
 
         if len(results) > 0 and _is_sequence(results.values()[0]):
