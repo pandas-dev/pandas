@@ -2056,7 +2056,7 @@ copy : boolean, default False
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
         df.to_csv(path, index=index, sep=sep, na_rep=na_rep, header=header,
-                  index_label=index_label,mode=mode, nanRep=nanRep,
+                  index_label=index_label, mode=mode, nanRep=nanRep,
                   encoding=encoding)
 
     def dropna(self):

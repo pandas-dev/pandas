@@ -2254,31 +2254,36 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_bug(self):
-        from pandas import read_csv
         path = '__tmp__.csv'
         f1 = StringIO('a,1.0\nb,2.0')
         df = DataFrame.from_csv(f1,header=None)
         newdf = DataFrame({'t': df[df.columns[0]]})
         newdf.to_csv(path)
 
-        recons = read_csv(path, index_col=0)
+        recons = pan.read_csv(path, index_col=0)
         assert_frame_equal(recons, newdf)
 
         os.remove(path)
 
     def test_to_csv_unicode(self):
-        from pandas import read_csv
         path = '__tmp__.csv'
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         df.to_csv(path, encoding='UTF-8')
-        df2 = read_csv(path, index_col=0, encoding='UTF-8')
+        df2 = pan.read_csv(path, index_col=0, encoding='UTF-8')
         assert_frame_equal(df, df2)
 
         df.to_csv(path, encoding='UTF-8', index=False)
-        df2 = read_csv(path, index_col=None, encoding='UTF-8')
+        df2 = pan.read_csv(path, index_col=None, encoding='UTF-8')
         assert_frame_equal(df, df2)
 
         os.remove(path)
+
+    def test_to_csv_stringio(self):
+        buf = StringIO()
+        self.frame.to_csv(buf)
+        buf.seek(0)
+        recons = pan.read_csv(buf, index_col=0)
+        assert_frame_equal(recons, self.frame)
 
     def test_to_excel_from_excel(self):
         try:

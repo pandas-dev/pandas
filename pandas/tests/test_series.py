@@ -1,5 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
+from cStringIO import StringIO
 from datetime import datetime, timedelta
 import os
 import operator
@@ -1514,6 +1515,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(arr, self.ts.values)
 
         os.remove('_foo')
+
+    def test_to_csv_stringio(self):
+        buf = StringIO()
+        self.ts.to_csv(buf, index=False)
+        buf.seek(0)
+        arr = np.loadtxt(buf)
+        assert_almost_equal(arr, self.ts.values)
 
     def test_to_dict(self):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))

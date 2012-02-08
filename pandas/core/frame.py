@@ -909,15 +909,15 @@ class DataFrame(NDFrame):
 
             writer.writerow(encoded_rows)
 
-    def to_csv(self, path, sep=",", na_rep='', cols=None, header=True,
-              index=True, index_label=None, mode='w', nanRep=None,
-              encoding=None):
+    def to_csv(self, path_or_buf, sep=",", na_rep='', cols=None,
+               header=True, index=True, index_label=None, mode='w',
+               nanRep=None, encoding=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
         Parameters
         ----------
-        path : string
+        path_or_buf : string or file handle / StringIO
             File path
         na_rep : string, default ''
             Missing data representation
@@ -944,11 +944,21 @@ class DataFrame(NDFrame):
                           FutureWarning)
             na_rep = nanRep
 
-        with open(path, mode) as f:
+        if hasattr(path_or_buf, 'read'):
+            f = path_or_buf
+            close = False
+        else:
+            f = open(path_or_buf, mode)
+            close = True
+
+        try:
             csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
             self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label, encoding=encoding)
+        finally:
+            if close:
+                f.close()
 
     def to_excel(self, excel_writer, sheet_name = 'sheet1', na_rep='', cols=None, header=True,
                  index=True, index_label=None):
