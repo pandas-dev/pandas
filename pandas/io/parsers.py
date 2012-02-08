@@ -596,7 +596,7 @@ class ExcelFile(object):
             Row to use for the column labels of the parsed DataFrame
         skiprows : list-like
             Row numbers to skip (0-indexed)
-        index_col : int, default 0
+        index_col : int, default None
             Column to use as the row labels of the DataFrame. Pass None if there
             is no such column
         na_values : list-like, default None
@@ -665,8 +665,8 @@ class ExcelFile(object):
 
 class ExcelWriter(object):
     """
-    Class for writing DataFrame objects into excel sheets, uses xlwt. See
-    ExcelWriter.write for more documentation
+    Class for writing DataFrame objects into excel sheets, uses xlwt for xls, 
+    openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
