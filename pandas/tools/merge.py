@@ -221,6 +221,12 @@ class _MergeOperation(object):
                 else:
                     left_keys.append(left[k].values)
                     join_names.append(k)
+            if isinstance(self.right.index, MultiIndex):
+                right_keys = [lev.values.take(lab)
+                              for lev, lab in zip(self.right.index.levels,
+                                                  self.right.index.labels)]
+            else:
+                right_keys = [self.right.index.values]
         elif _any(self.right_on):
             for k in self.right_on:
                 if is_rkey(k):
@@ -229,6 +235,12 @@ class _MergeOperation(object):
                 else:
                     right_keys.append(right[k].values)
                     join_names.append(k)
+            if isinstance(self.left.index, MultiIndex):
+                left_keys = [lev.values.take(lab)
+                             for lev, lab in zip(self.left.index.levels,
+                                                 self.left.index.labels)]
+            else:
+                left_keys = [self.left.index.values]
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
@@ -248,7 +260,6 @@ class _MergeOperation(object):
             elif self.right_index:
                 if self.left_on is None:
                     raise Exception('Must pass left_on or left_index=True')
-                assert(len(self.left_on) == self.right.index.nlevels)
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
@@ -261,19 +272,14 @@ class _MergeOperation(object):
         elif self.left_on is not None:
             n = len(self.left_on)
             if self.right_index:
+                assert(len(self.left_on) == self.right.index.nlevels)
                 self.right_on = [None] * n
-            else:
-                assert(len(self.right_on) == n)
         elif self.right_on is not None:
             n = len(self.right_on)
             if self.left_index:
+                assert(len(self.right_on) == self.left.index.nlevels)
                 self.left_on = [None] * n
-            else:
-                assert(len(self.left_on) == n)
-        elif self.left_index:
-            assert(len(self.right_on) == self.left.index.nlevels)
-        elif self.right_index:
-            assert(len(self.left_on) == self.right.index.nlevels)
+        assert(len(self.right_on) == len(self.left_on))
 
     def _get_group_keys(self):
         """
@@ -285,25 +291,8 @@ class _MergeOperation(object):
         -------
 
         """
-        if self.left_index:
-            if isinstance(self.left.index, MultiIndex):
-                left_keys = [lev.values.take(lab)
-                             for lev, lab in zip(self.left.index.levels,
-                                                 self.left.index.labels)]
-            else:
-                left_keys = [self.left.index.values]
-        else:
-            left_keys = self.left_join_keys
-
-        if self.right_index:
-            if isinstance(self.right.index, MultiIndex):
-                right_keys = [lev.values.take(lab)
-                              for lev, lab in zip(self.right.index.levels,
-                                                  self.right.index.labels)]
-            else:
-                right_keys = [self.right.index.values]
-        else:
-            right_keys = self.right_join_keys
+        left_keys = self.left_join_keys
+        right_keys = self.right_join_keys
 
         assert(len(left_keys) == len(right_keys))
 

@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import operator
 import unittest
+import nose
 
 import numpy as np
 
@@ -990,13 +991,20 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
 
     def test_to_excel(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
         path = '__tmp__.xlsx'
         self.panel.to_excel(path)
         reader = ExcelFile(path)
         for item, df in self.panel.iteritems():
-            recdf = reader.parse(str(item),index_col=0) 
+            recdf = reader.parse(str(item),index_col=0)
             assert_frame_equal(df, recdf)
-    
+
 class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...

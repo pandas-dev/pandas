@@ -8,6 +8,8 @@ import os
 import sys
 import unittest
 
+import nose
+
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np

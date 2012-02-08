@@ -488,7 +488,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _format_with(self, fmt_str):
         fmt_values = [fmt_str % x if notnull(x) else self.na_rep
                       for x in self.values]
-        return _trim_zeros(fmt_values)
+        return _trim_zeros(fmt_values, self.na_rep)
 
     def get_result(self):
         if self.formatter is not None:
@@ -537,17 +537,22 @@ def _make_fixed_width(strings, justify='right'):
 
     return [just(x) for x in strings]
 
-def _trim_zeros(str_floats):
+def _trim_zeros(str_floats, na_rep='NaN'):
     """
     Trims zeros and decimal points
     """
     # TODO: what if exponential?
     trimmed = str_floats
-    while len(str_floats) > 0 and all([x.endswith('0') for x in trimmed]):
-        trimmed = [x[:-1] for x in trimmed]
+
+    def _cond(values):
+        non_na = [x for x in values if x != na_rep]
+        return len(non_na) > 0 and all([x.endswith('0') for x in non_na])
+
+    while _cond(trimmed):
+        trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
 
     # trim decimal points
-    return [x[:-1] if x.endswith('.') else x for x in trimmed]
+    return [x[:-1] if x.endswith('.') and x != na_rep else x for x in trimmed]
 
 
 def single_column_table(column):

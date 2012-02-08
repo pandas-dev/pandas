@@ -241,12 +241,24 @@ class TestDataFrameFormatting(unittest.TestCase):
                         'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
 
-        expected = ('          A       B\n'
-                    '0       NaN     NaN\n'
-                    '1 -1.000000     foo\n'
-                    '2 -2.123400   foooo\n'
-                    '3  3.000000  fooooo\n'
-                    '4  4.000000     bar')
+        expected = ('        A       B\n'
+                    '0     NaN     NaN\n'
+                    '1 -1.0000     foo\n'
+                    '2 -2.1234   foooo\n'
+                    '3  3.0000  fooooo\n'
+                    '4  4.0000     bar')
+        self.assertEqual(result, expected)
+
+        df = DataFrame({'A' : [np.nan, -1., -2., 3., 4.],
+                        'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
+        result = df.to_string()
+
+        expected = ('    A       B\n'
+                    '0 NaN     NaN\n'
+                    '1  -1     foo\n'
+                    '2  -2   foooo\n'
+                    '3   3  fooooo\n'
+                    '4   4     bar')
         self.assertEqual(result, expected)
 
     def test_to_html(self):
@@ -354,11 +366,11 @@ class TestSeriesFormatting(unittest.TestCase):
         s[::2] = np.nan
 
         result = s.to_string()
-        expected = ('0         NaN\n'
-                    '1    1.567800\n'
-                    '2         NaN\n'
-                    '3   -3.000000\n'
-                    '4         NaN')
+        expected = ('0       NaN\n'
+                    '1    1.5678\n'
+                    '2       NaN\n'
+                    '3   -3.0000\n'
+                    '4       NaN')
         self.assertEqual(result, expected)
 
 class TestEngFormatter(unittest.TestCase):
