@@ -2607,6 +2607,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df2.drop_duplicates(['A', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
+    def test_drop_col_still_multiindex(self):
+        arrays = [[  'a',   'b',   'c',    'top'],
+                  [  '',    '',    '',     'OD' ],
+                  [  '',    '',    '',     'wx' ]]
+
+        tuples = zip(*arrays)
+        tuples.sort()
+        index = MultiIndex.from_tuples(tuples)
+
+        df = DataFrame(randn(3,4), columns=index)
+        del df[('a','','')]
+        assert(isinstance(df.columns, MultiIndex))
+
     def test_fillna(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan

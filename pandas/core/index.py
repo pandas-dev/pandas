@@ -1117,6 +1117,10 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
+    @property
+    def _constructor(self):
+        return MultiIndex.from_tuples
+
     @staticmethod
     def _from_elements(values, labels=None, levels=None, names=None,
                        sortorder=None):

@@ -599,7 +599,9 @@ class BlockManager(object):
     def delete(self, item):
         i, _ = self._find_block(item)
         loc = self.items.get_loc(item)
-        new_items = Index(np.delete(np.asarray(self.items), loc))
+
+        new_items = self.items._constructor(
+                np.delete(np.asarray(self.items), loc))
 
         self._delete_from_block(i, item)
         self.set_items_norename(new_items)
